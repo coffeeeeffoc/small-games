@@ -65,6 +65,9 @@ const cc = {
   Node: SceneNode, UITransform: Transform, Graphics, Color,
   Camera: class { static ProjectionType = { ORTHO: 0 }; static ClearFlag = { DEPTH_ONLY: 0 }; },
   Canvas: class {}, Mask: class { static Type = { GRAPHICS_RECT: 0 }; },
+  Sprite: class { static SizeMode = { CUSTOM: 0 }; }, SpriteFrame: class {}, Texture2D: class {},
+  resources: { load(_name: string, _type: any, done: any) { done(new Error('unavailable art')); } },
+  isValid: () => true,
   Label: class { static Overflow = { CLAMP: 0 }; static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0 }; },
   Layers: { Enum: { UI_2D: 1 } }, ResolutionPolicy: { EXACT_FIT: 0 },
   sys: { isMobile: false, isBrowser: false, getSafeAreaRect: () => ({ x: inset, y: inset, width: frame.width - inset * 2, height: frame.height - inset * 2 }) },
@@ -209,11 +212,11 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
           assert(back && back.label.string === (lang === 'zh' ? '返回' : 'BACK'));
           assert.equal(back.y, Math.max(...controls.map((b: any) => b.y)), 'return stays in the footer');
         }
-        if (reason === 'manual' || reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'flightControls,convoy,zoomControls,supply,sound,effects,help,language,home,' + (reason === 'settings' ? 'close' : 'resume'));
+        if (reason === 'manual' || reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'flightControls,zoomControls,sound,language,help,convoy,mission,supply,home,' + (reason === 'settings' ? 'close' : 'resume'));
       }
       sim.pause('settings', true); hud.toolsOpen = true; hud.update(sim, world);
       assert.equal(hud.modalKey, 'settings:flight');
-      for (const id of ['rotateLeft', 'rotateRight', 'orbitLeft', 'orbitRight', 'altitudeUp', 'radiusOut', 'sensor', 'locate', 'mission'])
+      for (const id of ['rotateLeft', 'rotateRight', 'orbitLeft', 'orbitRight', 'altitudeUp', 'radiusOut', 'locate'])
         assert(hud.buttons.some((b: any) => b.id === id && b.label.node.activeInHierarchy));
       hud.toolsOpen = false; sim.pause('settings', false); hud.update(sim, world);
       assert(!hud.buttons.some((b: any) => b.id === 'orbitLeft' && b.label.node.activeInHierarchy));
@@ -634,22 +637,27 @@ const assertPanelTargets = (hud: any) => {
   }
 };
 
-test('HUD: home leaves the battlefield visible and pause gathers controls into compact settings', () => {
+test('HUD: independent title cover precedes mission previews and compact settings', () => {
   for (const [width, height] of [[568, 320], [844, 320], [844, 390], [1366, 768]])
     for (const safe of [0, 12]) for (const lang of ['zh', 'en']) {
       Object.assign(frame, { width, height }); inset = safe;
       const hud = new HUD(new SceneNode()), sim = new Simulation();
       hud.lang = lang; hud.rewardsAvailable = true; hud.resize(); hud.update(sim, world);
       assertPanelTargets(hud);
-      for (const id of ['help', 'start', 'missions']) assert(hud.buttons.some((b: any) => b.id === id && b.label.node.parent === hud.modal));
-      assert(hud.modal.getComponent(Graphics).calls.some((c: any) => c.op === 'rect' && c.args[2] === width && c.args[3] === height && c.fill === '#07121c28'), 'home uses only a light battlefield tint');
+      for (const id of ['help', 'missions']) assert(hud.buttons.some((b: any) => b.id === id && b.label.node.parent === hud.modal));
+      assert(!hud.buttons.some((b: any) => b.id === 'start'));
+      assert(hud.homeBackground.active, 'cover stays opaque even when artwork fails');
+      assert(!panelLabels(hud).some((l: any) => l.string.includes(data.text(sim.mission.name, lang))));
+      hud.missionsOpen = true; hud.update(sim, world);
+      assert(!hud.homeBackground.active); assert(hud.buttons.some((b: any) => b.id === 'start'));
+      hud.missionsOpen = false;
       sim.start(); sim.time = 38; sim.pause('manual', true); hud.update(sim, world);
       assertPanelTargets(hud);
       const captions = panelLabels(hud).map((l: any) => l.string);
       assert(captions.includes(lang === 'zh' ? '战斗设置' : 'BATTLE SETTINGS'));
       const graphics = hud.modal.getComponent(Graphics).calls;
       const panel = graphics.find((c: any) => c.op === 'roundRect' && c.fill === '#091b2df5');
-      assert(panel && panel.args[2] <= 640 && panel.args[3] <= 296);
+      assert(panel && panel.args[2] <= 640 && panel.args[3] <= 304);
       const resume = hud.buttons.find((b: any) => b.id === 'resume');
       assert(graphics.some((c: any) => c.op === 'roundRect' && c.fill === '#ffbf55' && c.args[0] === resume.x - width / 2), 'resume is the amber primary action');
       for (const pending of [false, true]) {
@@ -662,7 +670,7 @@ test('HUD: home leaves the battlefield visible and pause gathers controls into c
       }
       hud.supplyOpen = false; hud.pendingSupply = false; hud.rewardsAvailable = false; hud.modalKey = 'rebuild'; hud.update(sim, world);
       assertPanelTargets(hud);
-      assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).map((b: any) => b.id), ['flightControls', 'convoy', 'zoomControls', 'sound', 'effects', 'help', 'language', 'home', 'resume'], 'offline settings omit only ads');
+      assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).map((b: any) => b.id), ['flightControls', 'zoomControls', 'sound', 'language', 'help', 'convoy', 'mission', 'home', 'resume'], 'offline settings omit only ads');
     }
   inset = 0;
 });
@@ -706,6 +714,26 @@ test('HUD: compact guide keeps its tabs and footer reachable while content scrol
     sim.pause('help', false); sim.pause('settings', true); hud.update(sim, world);
     const controls = hud.buttons.filter((b: any) => b.label.node.parent === hud.modal);
     for (const b of controls) assert(b.h >= 44 && b.y + b.h <= frame.height - inset);
+  }
+  inset = 0;
+});
+
+test('HUD: flight values, direction selection and display controls stay separate in a live-view drawer', () => {
+  for (const [width, height] of [[568, 320], [844, 390], [1366, 768]]) for (const safe of [0, 12]) for (const lang of ['zh', 'en']) {
+    Object.assign(frame, { width, height }); inset = safe;
+    const hud = new HUD(new SceneNode()), sim = new Simulation(); sim.start(); sim.pause('settings', true);
+    hud.lang = lang; hud.toolsOpen = true; hud.rewardsAvailable = true; hud.update(sim, world);
+    assertPanelTargets(hud);
+    const left = hud.buttons.find((b: any) => b.id === 'altitudeDown').x;
+    assert(left > width * .3, 'keep part of the actual battlefield visible');
+    assert(panelLabels(hud).some((l: any) => l.string === '1000'));
+    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitRight').label.color.hex, '#5ed9f5');
+    sim.adjustAltitude(20); sim.setOrbitDirection(-1); hud.modalKey = 'rebuild'; hud.update(sim, world);
+    assert(panelLabels(hud).some((l: any) => l.string === '1200'));
+    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitLeft').label.color.hex, '#5ed9f5');
+    hud.toolsOpen = false; hud.zoomOpen = true; hud.update(sim, world); assertPanelTargets(hud);
+    for (const id of ['sensor', 'effects', 'lensIn', 'lensOut', 'zoomUpgrade'])
+      assert(hud.buttons.some((b: any) => b.id === id && b.label.node.parent === hud.modal));
   }
   inset = 0;
 });

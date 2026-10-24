@@ -241,6 +241,8 @@ export function assertKillAccounting(s) {
 
 export async function press(page, id, touch = false, expand = true) {
   let s = await snapshot(page);
+  if (id === 'zoomIn') id = 'lensIn';
+  if (id === 'zoomOut') id = 'lensOut';
   if (id === 'pause') id = 'settings';
   if (id === 'resume' && s.modal === 'settings') id = 'close';
   if (id === 'flightControls' && s.modal === 'settings:flight') id = 'resume';
@@ -252,12 +254,16 @@ export async function press(page, id, touch = false, expand = true) {
     await press(page, 'resume', touch, false); s = await snapshot(page);
   }
   if (!s.buttons.some(b => b.id === id) && expand) {
-    if (id === 'training' || id.startsWith('mission:')) await press(page, 'missions', touch, false);
+    if (id === 'training' || id === 'start' && s.modal === 'home' || id.startsWith('mission:')) await press(page, 'missions', touch, false);
     else {
       if (!s.modal) await press(page, 'settings', touch, false);
       s = await snapshot(page);
+      if (!s.buttons.some(b => b.id === id) && s.modal.startsWith('settings:')) {
+        await press(page, 'close', touch, false); s = await snapshot(page);
+      }
       if (!s.buttons.some(b => b.id === id)) {
-        const drawer = ['lensIn', 'lensOut', 'zoomUpgrade'].includes(id) ? 'zoomControls' : 'flightControls';
+        const drawer = ['lensIn', 'lensOut', 'zoomUpgrade', 'sensor', 'effects'].includes(id) ? 'zoomControls' : 'flightControls';
+        if (!s.buttons.some(b => b.id === drawer) && s.modal.startsWith('settings:')) await press(page, 'close', touch, false);
         await press(page, drawer, touch, false);
       }
     }
@@ -834,7 +840,7 @@ async function run() {
       await page.waitForFunction(
         () =>
           globalThis.__night?.snapshot().audio === 'ready' &&
-          __night.snapshot().buttons.some((b) => b.id === 'start'),
+          __night.snapshot().buttons.some((b) => b.id === 'missions'),
       );
       await press(page, 'start', touch);
       let s = await snapshot(page);
@@ -1263,7 +1269,7 @@ async function run() {
       for (const replay of replays) {
         await page.reload();
         await page.waitForFunction(() =>
-          globalThis.__night?.snapshot().buttons.some((b) => b.id === 'start'),
+          globalThis.__night?.snapshot().buttons.some((b) => b.id === 'missions'),
         );
         await press(page, 'start', touch);
         result[replay] = await missionReplay(page, {
@@ -1302,7 +1308,7 @@ async function run() {
       if (!touch && process.argv.includes('--omission')) {
         await page.reload();
         await page.waitForFunction(() =>
-          globalThis.__night?.snapshot().buttons.some((b) => b.id === 'start'),
+          globalThis.__night?.snapshot().buttons.some((b) => b.id === 'missions'),
         );
         await press(page, 'start');
         result.omission = await missionReplay(page, { omitLast: true });

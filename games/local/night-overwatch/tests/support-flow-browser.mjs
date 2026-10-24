@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { acceptanceBuild, snapshot, press, assertLayout } from './flight-browser.mjs';
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const dir = fileURLToPath(new URL('../reports/2026-10-24-compact-hud/support/', import.meta.url));
+const dir = fileURLToPath(new URL('../reports/2026-10-25-settings/support/', import.meta.url));
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const results = [], errors = [];

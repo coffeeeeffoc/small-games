@@ -36,6 +36,7 @@ try {
     }, { x, y });
     const tap = async (x, y) => { const p = await screenPoint(x, y); await page.touchscreen.tap(p.x, p.y); await page.waitForTimeout(90); };
     const press = async id => {
+      if (id === 'start' && (await snapshot(page)).modal === 'home') await press('missions');
       const s = await snapshot(page), b = s.buttons.find(b => b.id === id);
       assert(b, `visible ${id}: ${s.buttons.map(b => b.id)}`);
       await tap(b.x + b.w / 2, b.y + b.h / 2);

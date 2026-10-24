@@ -97,6 +97,7 @@ try {
       const canvas = frame.locator('#GameCanvas');
       // The exported flight-browser press helper uses top-page coordinates; iframe input needs this mapping.
       const press = async id => {
+        if (id === 'start' && (await snapshot(frame)).modal === 'home') await press('missions');
         await expect.poll(async () => (await snapshot(frame)).buttons.some(b => b.id === id)).toBe(true);
         const b = (await snapshot(frame)).buttons.find(b => b.id === id);
         const position = await canvas.evaluate((element, button) => {

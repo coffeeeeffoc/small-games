@@ -184,13 +184,13 @@ export class Simulation {
       Array.from(this.pauses).every(reason => reason === 'settings' || reason === 'manual'));
   }
   setOrbitDirection(direction: -1 | 1) {
-    if (this.canConfigure) this.flight.setDirection(direction);
+    if (this.canConfigure) this.flight.setDirection(direction, this.paused);
   }
   adjustAltitude(delta: number) {
-    if (this.canConfigure) this.flight.adjustAltitude(delta);
+    if (this.canConfigure) this.flight.adjustAltitude(delta, this.paused);
   }
   adjustRadius(delta: number) {
-    if (this.canConfigure) this.flight.adjustRadius(delta);
+    if (this.canConfigure) this.flight.adjustRadius(delta, this.paused);
   }
   flightTime(weapon = this.selected, p: Point | null = this.aim) {
     if (!p || !Number.isInteger(weapon) || !WEAPONS[weapon] || ![p.x, p.z].every(Number.isFinite) ||

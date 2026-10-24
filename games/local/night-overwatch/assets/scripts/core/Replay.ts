@@ -2,7 +2,7 @@ import { Simulation, type PauseReason } from './Simulation.ts';
 import { WEAPONS } from './Data.ts';
 import { MISSIONS, TRAINING } from './MissionCatalog.ts';
 
-export const RANKED_RULE_VERSION = 'night-input-replay-v5';
+export const RANKED_RULE_VERSION = 'night-input-replay-v6';
 export type ReplayFrame = { input: Record<string, unknown>; ticks: number };
 export type NightReplay = { simulation: ReturnType<Simulation['checkpoint']>; assisted: boolean };
 const commands = ['setOrbitDirection', 'adjustAltitude', 'adjustRadius', 'pause',

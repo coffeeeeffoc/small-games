@@ -42,6 +42,7 @@ try {
       current.evidence.push(`${prefix}.png`);
     };
     const hit = async (id) => {
+      if (id === 'start' && (await snapshot(page)).modal === 'home') await hit('missions');
       current.steps.push({ action: 'press', id, button: (await snapshot(page)).buttons.find((b) => b.id === id) });
       await press(page, id, touch, false);
       assertLayout(await snapshot(page), width, height);
@@ -74,7 +75,7 @@ try {
       report.checks.push(current);
       try {
         await page.goto(base);
-        await page.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready' && __night.snapshot().buttons.some((b) => b.id === 'start'));
+        await page.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready' && __night.snapshot().buttons.some((b) => b.id === 'missions'));
         await page.waitForFunction(() => {
           const startup = document.querySelector('#night-startup');
           return !startup || startup.hidden || getComputedStyle(startup).display === 'none' || getComputedStyle(startup).visibility === 'hidden';
@@ -103,7 +104,7 @@ try {
       await hit('close');
       assert.equal((await snapshot(page)).modal, 'settings');
       await hit('close');
-      assert.equal((await snapshot(page)).modal, 'briefing');
+      assert.equal((await snapshot(page)).modal, 'home');
       await hit('start');
       assert.equal((await snapshot(page)).phase, 'playing');
     }, false);

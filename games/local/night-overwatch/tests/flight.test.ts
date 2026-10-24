@@ -21,6 +21,22 @@ const isolated = () => {
 };
 const near = (a: number, b: number, tolerance = 1e-6) => assert(Math.abs(a - b) < tolerance, `${a} ≈ ${b}`);
 
+test('paused direction and radius settle the orbit even halfway through a reversal', () => {
+  for (const direction of [-1, 1] as const) {
+    const f = new Flight();
+    f.setDirection(-1); f.step(1 / 60);
+    f.setDirection(direction, true);
+    const a = f.aircraft, radius = Math.hypot(a.x, a.z);
+    near(Math.sin(a.yaw), -a.z / radius * direction);
+    near(Math.cos(a.yaw), a.x / radius * direction);
+    f.adjustRadius(-40, true);
+    near(a.bank, Math.atan(direction * FLIGHT.speed ** 2 / (FLIGHT.gravity * a.radius)));
+    const selected = a.radius;
+    for (let i = 0; i < 600; i++) f.step(1 / 60);
+    near(Math.hypot(a.x, a.z), selected, .001);
+  }
+});
+
 test('metre scale, coordinated bank, orbit period and constant-speed reversal agree', (t) => {
   const f = new Flight(), a = f.aircraft;
   const period = 2 * Math.PI * FLIGHT.radius / FLIGHT.speed;
@@ -118,6 +134,30 @@ test('aircraft is live simulation state and pauses freeze its orbit', () => {
   s.adjustRadius(20);
   s.step(0.1);
   assert.equal(JSON.stringify(s.aircraft), frozen);
+});
+
+test('paused settings apply flight pose immediately while every battle clock and projectile stays frozen', () => {
+  const s = new Simulation(); s.start(); s.fire(); s.grantBuff('rate'); s.pause('settings', true);
+  const battle = () => { const { flight, ...rest } = s.checkpoint(); return rest; };
+  const frozen = battle(), original = { ...s.aircraft };
+  s.adjustAltitude(20); s.adjustRadius(20); s.setOrbitDirection(-1);
+  assert.equal(s.aircraft.y, original.altitude + 20);
+  assert.equal(s.aircraft.radius, original.radius + 20);
+  near(Math.hypot(s.aircraft.x, s.aircraft.z), original.radius + 20);
+  assert.equal(s.aircraft.direction, -1); near(s.aircraft.yaw, original.yaw + Math.PI);
+  const selected = { ...s.aircraft }; s.setOrbitDirection(-1); assert.deepEqual(s.aircraft, selected);
+  for (let i = 0; i < 100; i++) s.step(.1);
+  assert.deepEqual(battle(), frozen); assert.deepEqual(s.aircraft, selected);
+  for (const reason of ['background', 'focus', 'advert', 'orientation', 'help'] as const) {
+    s.pause(reason, true); s.adjustAltitude(-20); s.adjustRadius(-20); s.setOrbitDirection(1);
+    assert.deepEqual(s.aircraft, selected, reason); s.pause(reason, false);
+  }
+  s.adjustAltitude(Infinity); s.adjustRadius(NaN); assert.deepEqual(s.aircraft, selected);
+  s.adjustAltitude(10000); s.adjustRadius(-10000);
+  assert.equal(s.aircraft.y, FLIGHT.maxAltitude); near(Math.hypot(s.aircraft.x, s.aircraft.z), FLIGHT.minRadius);
+  s.pause('settings', false); const resumed = { ...s.aircraft }; s.step(.1);
+  assert(s.time > 0); assert(Math.hypot(s.aircraft.x - resumed.x, s.aircraft.z - resumed.z) <= FLIGHT.speed * .1 + 1e-6);
+  assert.deepEqual(s.checkpoint(), Simulation.restore(s.checkpoint()).checkpoint());
 });
 
 test('arrival cannot succeed while a threat is still alive', () => {

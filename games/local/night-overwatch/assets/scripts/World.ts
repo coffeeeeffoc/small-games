@@ -1242,9 +1242,10 @@ export class World {
     const cursor = this.project(s.aim, 0, true);
     this.recoil = s.paused || s.phase !== 'playing' ? { x: 0, y: 0 } : recoilOffset(s.events, s.time, reduced);
     const elapsed = this.cameraTime < 0 ? 0 : clamp(s.time - this.cameraTime, 0, 0.1);
-    this.cameraPaused = s.paused;
+    // Only user settings may reframe a frozen battle; system/advert pauses still block it.
+    this.cameraPaused = s.paused && !s.canConfigure;
     this.cameraTime = s.time;
-    if (!s.paused) {
+    if (!this.cameraPaused) {
       this.plane = { ...s.aircraft };
       this.aircraftModel.update(s.aircraft, s.aircraft.yaw, s.aircraft.pitch, s.aircraft.direction, s.aircraft.bank, s.selected);
       if (this.aircraftModel.status === 'ready') this.assets.add('aircraft.cabin');
@@ -1268,7 +1269,7 @@ export class World {
       span.z += (maxZ - minZ - span.z) * smoothing;
       this.focusSpan = span;
     }
-    // The aircraft continues moving even when convoy-follow is off. Simulation pause freezes its pose.
+    // Automatic flight stays frozen; explicit paused settings have already updated its pose.
     this.updateCamera();
     if (!s.paused && s.phase === 'playing' && elapsed > 0 && cursor.z >= 0) {
       const aim = this.aimAt(cursor.x, cursor.y);

@@ -772,7 +772,7 @@ export class Overwatch extends Component {
       return;
     }
     if (e.keyCode === 13 && this.sim.phase !== 'playing') {
-      this.action(this.sim.phase === 'briefing' ? 'start' : 'retry');
+      this.action(this.sim.phase === 'briefing' ? this.hud.missionsOpen ? 'start' : 'missions' : 'retry');
       return;
     }
     const a = ACTIONS.find((a) => (a.keys as readonly number[]).includes(e.keyCode));
@@ -895,6 +895,7 @@ export class Overwatch extends Component {
         else if (e.type === 'wave') this.platform.play('alert');
         this.lastEvent = e.id;
       }
+    this.world.root.active = this.sim.phase !== 'briefing' || this.hud.missionsOpen;
     this.world.update(this.sim, this.platform.reducedEffects);
     if (this.platform.rewards.ammo !== this.sim.homingAmmo) {
       this.platform.rewards.ammo = this.sim.homingAmmo;
@@ -998,6 +999,8 @@ export class Overwatch extends Component {
       friendlyRisk: this.sim.friendlyRisk,
       aimedUnit: this.sim.aimedUnit?.id,
       ui: {
+        homeArtworkReady: !!this.hud.homeArtwork.spriteFrame,
+        worldVisible: this.world.root.active,
         width: this.hud.w,
         height: this.hud.h,
         minimap: this.hud.minimapLayout,

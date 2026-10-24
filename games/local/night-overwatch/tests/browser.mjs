@@ -223,7 +223,7 @@ try {
     if (w === 844) {
       await m.reload();
       await m.waitForFunction(() =>
-        globalThis.__night?.snapshot().buttons.some((b) => b.id === 'start'),
+        globalThis.__night?.snapshot().buttons.some((b) => b.id === 'missions'),
       );
       await m.waitForFunction(() => !document.getElementById('night-startup'));
       await button(m, 'start', true);

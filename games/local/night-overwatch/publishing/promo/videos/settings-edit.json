@@ -1,0 +1,123 @@
+{
+  "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
+  "sourceRecording": "reports/2026-10-25-settings/menu/95c9ae07bb1962aa793d290e48b3ebfe.webm",
+  "recordingSha256": "fb0353bb9a5c058c852bbae37d3835bb68800d9afc6738393d5de6b788ff3096",
+  "audio": "silent; browser capture has no audio track",
+  "segments": [
+    {
+      "file": "promo/images/title-1920x1080.png",
+      "seconds": 3
+    },
+    {
+      "file": "95c9ae07bb1962aa793d290e48b3ebfe.webm",
+      "from": 12,
+      "to": 25
+    }
+  ],
+  "operations": "Gameplay transcode only. Promo: title plus actual capture with letterbox. No speed changes.",
+  "commands": [
+    [
+      "ffmpeg",
+      "-y",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-i",
+      "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-25-settings\\menu\\95c9ae07bb1962aa793d290e48b3ebfe.webm",
+      "-an",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "fast",
+      "-crf",
+      "21",
+      "-pix_fmt",
+      "yuv420p",
+      "-movflags",
+      "+faststart",
+      "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\publishing\\gameplay\\videos\\mobile-settings-844x390-silent.mp4"
+    ],
+    [
+      "ffmpeg",
+      "-y",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-loop",
+      "1",
+      "-t",
+      "3",
+      "-i",
+      "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\publishing\\promo\\images\\title-1920x1080.png",
+      "-ss",
+      "12",
+      "-t",
+      "13",
+      "-i",
+      "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-25-settings\\menu\\95c9ae07bb1962aa793d290e48b3ebfe.webm",
+      "-filter_complex",
+      "[0:v]scale=1280:720,fps=25,setsar=1,setpts=PTS-STARTPTS[a];[1:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=0x071522,fps=25,setsar=1,setpts=PTS-STARTPTS[b];[a][b]concat=n=2:v=1:a=0[v]",
+      "-map",
+      "[v]",
+      "-an",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "fast",
+      "-crf",
+      "21",
+      "-pix_fmt",
+      "yuv420p",
+      "-movflags",
+      "+faststart",
+      "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\publishing\\promo\\videos\\night-overwatch-settings-1280x720-silent.mp4"
+    ],
+    [
+      "ffmpeg",
+      "-y",
+      "-hide_banner",
+      "-loglevel",
+      "error",
+      "-ss",
+      "8",
+      "-i",
+      "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\publishing\\promo\\videos\\night-overwatch-settings-1280x720-silent.mp4",
+      "-frames:v",
+      "1",
+      "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-25-settings\\promo-frame.png"
+    ]
+  ],
+  "decoded": true,
+  "probes": {
+    "gameplay/videos/mobile-settings-844x390-silent.mp4": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 844,
+          "height": 390
+        }
+      ],
+      "format": {
+        "duration": "30.040000"
+      }
+    },
+    "promo/videos/night-overwatch-settings-1280x720-silent.mp4": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "16.000000"
+      }
+    }
+  }
+}

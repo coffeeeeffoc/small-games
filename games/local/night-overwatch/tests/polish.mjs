@@ -4,6 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { sourceHash } from '../scripts/artifact.mjs';
 import { MISSION } from '../assets/scripts/core/Data.ts';
 import { aimAt, evidenceDirectory, acceptanceBuild } from './flight-browser.mjs';
+import { press as pressButton } from './flight-browser.mjs';
 
 const round = process.env.NIGHT_ROUND || 'feedback-overhaul';
 const base = process.env.NIGHT_URL || 'http://localhost:4318';
@@ -44,25 +45,7 @@ try {
     });
     const snap = () => p.evaluate(() => __night.snapshot());
     const capture = (name) => p.screenshot({ path: `${dir}/${width}-${name}.png` });
-    const press = async (id) => {
-      let s = await snap();
-      if (!s.buttons.some((b) => b.id === id) && s.buttons.some((b) => b.id === 'flightControls')) {
-        const b = s.buttons.find((b) => b.id === 'flightControls');
-        if (touch) await p.touchscreen.tap(b.x + b.w / 2, b.y + b.h / 2);
-        else await p.mouse.click(b.x + b.w / 2, b.y + b.h / 2);
-        await p.waitForTimeout(80);
-        s = await snap();
-      }
-      const b = s.buttons.find((b) => b.id === id);
-      assert(b, `visible ${id}`);
-      assert(
-        b.x >= 0 && b.y >= 0 && b.x + b.w <= width + 1 && b.y + b.h <= height + 1,
-        `${id} fits`,
-      );
-      if (touch) await p.touchscreen.tap(b.x + b.w / 2, b.y + b.h / 2);
-      else await p.mouse.click(b.x + b.w / 2, b.y + b.h / 2);
-      await p.waitForTimeout(90);
-    };
+    const press = id => pressButton(p, id, touch);
     const loaded = Date.now();
     await p.goto(base);
     await p.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready');

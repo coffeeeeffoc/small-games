@@ -62,6 +62,7 @@ async function open(width, height, provider, touch = true) {
     await page.waitForTimeout(80);
   };
   const press = async id => {
+      if (id === 'start' && (await snapshot(page)).modal === 'home') await press('missions');
     const s = await snapshot(page), b = s.buttons.find(b => b.id === id);
     assert(b, `visible ${id}: ${s.buttons.map(b => b.id)}`);
     await tap(b.x + b.w / 2, b.y + b.h / 2);

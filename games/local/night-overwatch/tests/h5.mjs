@@ -23,7 +23,9 @@ function disjoint(buttons, width, height) {
 }
 async function press(f,id,touch=true) {
   let s=await snap(f);
-  if(!s.buttons.some(b=>b.id===id)&&s.buttons.some(b=>b.id==='flightControls')) {await press(f,'flightControls',touch);s=await snap(f);}
+  if(id==='start' && s.modal==='home') {await press(f,'missions',touch);s=await snap(f);}
+  if(!s.buttons.some(b=>b.id===id) && s.modal.startsWith('settings:')) {await press(f,'close',touch);s=await snap(f);}
+  if(!s.buttons.some(b=>b.id===id)&&s.buttons.some(b=>b.id==='flightControls')) {await press(f,['effects','sensor','lensIn','lensOut'].includes(id)?'zoomControls':'flightControls',touch);s=await snap(f);}
   const b=s.buttons.find(b=>b.id===id); assert(b,id);
   const position={x:b.x+b.w/2,y:b.y+b.h/2};
   if(touch) await f.locator('canvas').tap({position}); else await f.locator('canvas').click({position});

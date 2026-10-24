@@ -29,14 +29,35 @@ export class Flight {
     this.radius = value.radius;
   }
 
-  setDirection(direction: -1 | 1) {
-    if (direction === -1 || direction === 1) this.aircraft.direction = direction;
+  setDirection(direction: -1 | 1, immediate = false) {
+    if (direction !== -1 && direction !== 1) return;
+    const a = this.aircraft;
+    a.direction = direction;
+    if (immediate) {
+      const angle = Math.atan2(a.z, a.x);
+      a.yaw = Math.atan2(-Math.sin(angle) * direction, Math.cos(angle) * direction);
+      a.heading = ((a.yaw * 180 / Math.PI) % 360 + 360) % 360;
+      a.bank = clamp(Math.atan(direction * FLIGHT.speed ** 2 / (FLIGHT.gravity * Math.max(FLIGHT.minRadius, Math.hypot(a.x, a.z)))), -FLIGHT.maxBank, FLIGHT.maxBank);
+    }
   }
-  adjustAltitude(delta: number) {
-    if (Number.isFinite(delta)) this.altitude = clamp(this.altitude + delta, FLIGHT.minAltitude, FLIGHT.maxAltitude);
+  adjustAltitude(delta: number, immediate = false) {
+    if (!Number.isFinite(delta)) return;
+    this.altitude = clamp(this.altitude + delta, FLIGHT.minAltitude, FLIGHT.maxAltitude);
+    if (immediate) {
+      this.aircraft.y = this.aircraft.altitude = this.altitude;
+      this.aircraft.pitch = 0;
+    }
   }
-  adjustRadius(delta: number) {
-    if (Number.isFinite(delta)) this.radius = clamp(this.radius + delta, FLIGHT.minRadius, FLIGHT.maxRadius);
+  adjustRadius(delta: number, immediate = false) {
+    if (!Number.isFinite(delta)) return;
+    this.radius = clamp(this.radius + delta, FLIGHT.minRadius, FLIGHT.maxRadius);
+    if (immediate) {
+      const a = this.aircraft, angle = Math.atan2(a.z, a.x);
+      a.radius = this.radius;
+      a.x = Math.cos(angle) * this.radius;
+      a.z = Math.sin(angle) * this.radius;
+      this.setDirection(a.direction, true);
+    }
   }
   step(dt: number) {
     if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) throw Error('Use fixed steps <= 0.1 seconds');

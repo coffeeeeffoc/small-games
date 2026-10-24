@@ -23,6 +23,7 @@ try {
         : { x: r.left + x * r.width / s.ui.width, y: r.top + y * r.height / s.ui.height };
     }, { x, y });
     const press = async id => {
+      if (id === 'start' && (await snapshot(page)).modal === 'home') await press('missions');
       const s = await snapshot(page), b = s.buttons.find(button => button.id === id);
       assert(b, `visible ${id}`);
       const p = await point(b.x + b.w / 2, b.y + b.h / 2);

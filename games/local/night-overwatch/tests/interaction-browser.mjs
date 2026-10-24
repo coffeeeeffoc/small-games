@@ -5,7 +5,7 @@ import { acceptanceBuild, assertLayout, snapshot, press, navigateMap, aimAt, wai
 
 const base = process.env.NIGHT_URL;
 const build = await acceptanceBuild(base);
-const dir = new URL('../reports/2026-10-24-compact-hud/interaction/', import.meta.url);
+const dir = new URL('../reports/2026-10-25-settings/interaction/', import.meta.url);
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true,
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
@@ -54,7 +54,7 @@ try {
     await press(page, 'pause', touch);
     state = await snapshot(page);
     assert.equal(state.modal, 'settings');
-    assert(['sound', 'effects', 'help'].every(id => state.buttons.some(b => b.id === id)), 'Pause uses the unified settings panel');
+    assert(['sound', 'zoomControls', 'help'].every(id => state.buttons.some(b => b.id === id)), 'Pause links to display settings and help');
     assert(!state.buttons.some(b => b.id === 'fullscreen'));
     assertLayout(state, width, height);
     assert.equal((await snapshot(page)).modal, 'settings', 'Settings remain paused');

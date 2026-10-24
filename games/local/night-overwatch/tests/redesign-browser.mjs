@@ -6,7 +6,7 @@ import { acceptanceBuild, snapshot, assertLayout, aimAt, navigateMap } from './f
 
 const base = process.env.NIGHT_URL;
 const build = await acceptanceBuild(base);
-const dir = fileURLToPath(new URL('../reports/2026-10-24-compact-hud/', import.meta.url));
+const dir = fileURLToPath(new URL('../reports/2026-10-25-settings/redesign/', import.meta.url));
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
 const report = { build, checks: [], errors: [], captures: [], fixtures: 'Local saved unlocks; completed rewarded-provider fixture only for supply UI. No simulation state writes.' };
@@ -31,6 +31,7 @@ try {
         : { x: r.left + x / s.ui.width * r.width, y: r.top + y / s.ui.height * r.height };
     }, { x, y });
     const hit = async id => {
+      if (id === 'start' && (await snapshot(page)).modal === 'home') await hit('missions');
       const s = await snapshot(page);
       if (id === 'pause') id = 'settings';
       if (id === 'resume' && s.modal === 'settings') id = 'close';
@@ -123,14 +124,14 @@ try {
     await hit('mission:operation-006'); await hit('start');
     await page.waitForFunction(() => __night.snapshot().modelImport === 'loaded');
     assert.equal((await snapshot(page)).light, 'night'); await capture('night');
-    await hit('settings'); await hit('flightControls'); await hit('mission');
+    await hit('settings'); await hit('mission');
     assert.equal((await snapshot(page)).modal, 'mission'); await hit('resume');
-    assert.equal((await snapshot(page)).modal, 'settings:flight');
+    assert.equal((await snapshot(page)).modal, 'settings'); await hit('flightControls');
     const configTime = (await snapshot(page)).time;
     await hit('orbitLeft'); assert.equal((await snapshot(page)).aircraft.direction, -1);
     await hit('orbitRight'); assert.equal((await snapshot(page)).aircraft.direction, 1);
     assert.equal((await snapshot(page)).time, configTime, 'configuration keeps the battle frozen');
-    await hit('sensor'); await hit('resume'); await capture('thermal');
+    await hit('close'); await hit('zoomControls'); await hit('sensor'); await hit('resume'); await capture('thermal');
     assert.equal((await snapshot(page)).thermal, true);
     await hit('pause'); assert.equal((await snapshot(page)).radioPlaying, false);
     report.checks.push({ width, height, touch, layout: true, dayDuskNight: true, radioLifecycle: true, relativeRelease: touch, supplyFixture: true });
