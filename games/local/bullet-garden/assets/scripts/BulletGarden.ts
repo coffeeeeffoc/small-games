@@ -52,6 +52,12 @@ const host = globalThis as typeof globalThis & {
   BulletGardenLoading?: { progress(n: number): void; ready(): void; fail(s: string): void };
   __bulletGarden?: { snapshot(): unknown };
   tap?: { createRewardedVideoAd?: unknown };
+  SmallGamesRewardAds?: {
+    available: boolean;
+    show(request: unknown): Promise<{ status: string }>;
+    cancel?(): void;
+    dispose?(): void;
+  };
 };
 
 @ccclass('BulletGarden')
@@ -87,12 +93,16 @@ export class BulletGarden extends Component {
     view.enableAutoFullScreen(false);
     view.resizeWithBrowserSize(true);
     const adAvailable = () =>
-      channel.adsEnabled &&
-      (sys.isBrowser ? channel.platform === 'taptap-h5' : channel.platform === 'taptap') &&
+      (sys.isBrowser && host.SmallGamesRewardAds
+        ? host.SmallGamesRewardAds.available
+        : channel.adsEnabled &&
+          (sys.isBrowser ? channel.platform === 'taptap-h5' : channel.platform === 'taptap')) &&
       typeof host.tap?.createRewardedVideoAd === 'function';
-    const provider = channel.adsEnabled
-      ? createPlatformAdProvider({ platform: channel.platform, adUnitId: channel.adUnitId })
-      : null;
+    const provider = sys.isBrowser && host.SmallGamesRewardAds
+      ? host.SmallGamesRewardAds
+      : channel.adsEnabled
+        ? createPlatformAdProvider({ platform: channel.platform, adUnitId: channel.adUnitId })
+        : null;
     this.session = new GardenSession({
       profile: this.read(SAVE_KEY),
       provider,
@@ -244,7 +254,7 @@ export class BulletGarden extends Component {
     this.stopFeedback();
     if (!this.session) return;
     this.clearInput();
-    this.session.suspend({ nativeAdTransition: !sys.isBrowser });
+    this.session.suspend();
     this.dirty = true;
   };
   show = () => {

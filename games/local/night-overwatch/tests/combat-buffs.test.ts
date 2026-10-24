@@ -10,7 +10,7 @@ function advance(s: Simulation, seconds: number, dt = .05) {
   for (let n = 0; n < steps; n++) s.step(seconds / steps);
 }
 function isolated() {
-  const s = new Simulation('training-60'); s.start(); s.convoy = 'holding';
+  const s = new Simulation('training-60'); s.start(); s.choose(0); s.convoy = 'holding';
   s.units = s.units.filter(u => u.friendly);
   s.addUnit('turret', { x: 150, z: 90 }); // Keep the mission playing after an isolated target dies.
   return s;
@@ -33,7 +33,7 @@ test('buffs are exclusive, last sixty combat seconds, and do not survive a new s
   assert(s.grantBuff('rate'));
   s.phase = 'success'; const frozen = combatState(s); advance(s, 1);
   assert.equal(combatState(s), frozen);
-  assert.equal(new Simulation().buff, undefined);
+  assert.equal(new Simulation('operation-007').buff, undefined);
   const invalid = isolated();
   assert(!invalid.grantBuff('unknown' as 'rate')); assert.equal(invalid.buff, undefined);
 });

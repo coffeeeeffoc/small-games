@@ -37,7 +37,7 @@
 | --- | --- | --- |
 | 本目录 `*.png`、`design.html`、`tokens.json` | 12 页效果稿、十页总览及精确视觉参数 | 390 × 844 的设计基准；样例词单和学习记录仅用于展示 |
 | [actual/h5/](actual/h5/) | `home/islands/learning/book/play/pause/result/custom/help/share/settings-390x844.png` | 生产 H5 单机与学习页面，390 × 844 触屏模拟；效果稿与实装逐页对照 |
-| [implemented/](implemented/) | `native-<page>-320/390/430.png`，原生横屏和进度截图 | 生产原生 Canvas + Chromium 触屏/SDK 模拟；包含主页、词岛、学习、教材选择/详情、游玩、暂停、结算、词单、帮助、设置和分享 |
+| [implemented/](https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/letters-words2/docs/design/mobile-2026-10-06/implemented) | `native-<page>-320/390/430.png`，原生横屏和进度截图 | 生产原生 Canvas + Chromium 触屏/SDK 模拟；包含主页、词岛、学习、教材选择/详情、游玩、暂停、结算、词单、帮助、设置和分享 |
 | [evidence/](evidence/) | `friend-h5-*` 房间、游玩、选中牌、词义页和结算截图 | 生产 H5 好友赛页面、Canvas 渲染及比赛规则；覆盖 320 × 568、390 × 844、844 × 390 |
 | [competition-mobile-report.json](evidence/competition-mobile-report.json) | 好友赛触屏、44 px 翻页字母牌、拼词与返回核验 | 网络/身份为 fixture；390 视口完成 18 词，错误列表为空 |
 | [independent-review.json](independent-review.json) | 页面返回、取消教材下载、迟到分享与原生/H5 互通存档核验 | Chromium 390 × 844；记录已修问题及回归测试，当前 findings/errors 为空 |

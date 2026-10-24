@@ -1,0 +1,5 @@
+# Retired evidence is available in Git history; local reruns stay untracked.
+/plans/
+/design/mobile-2026-10-05/
+/design/cartoon-refresh-2026-10-05/
+/design/shared-identity-2026-10-16/

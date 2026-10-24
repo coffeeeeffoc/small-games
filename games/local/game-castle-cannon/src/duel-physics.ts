@@ -32,7 +32,8 @@ export function cover(duel: Duel, from: Point, to: Point, exclude = '') {
     })
   );
 }
-function hitShell(duel: Duel, shell: Shell, previous: Point) {
+// Shared read-only sweep: the preview and the authoritative shell stop at the same surface.
+export function shellCollision(duel: Duel, shell: Shell, previous: Point) {
   const floor = duelGroundHeight(shell.position.x, shell.position.z);
   const before = previous.y - duelGroundHeight(previous.x, previous.z),
     after = shell.position.y - floor;
@@ -66,14 +67,20 @@ function hitShell(duel: Duel, shell: Shell, previous: Point) {
     const bunker = nodePoint(p.side, 'shelter');
     consider(`bunker:${p.side}`, { ...bunker, y: 1.1 }, { x: 7, y: 2.2, z: 6 });
   }
-  if (fraction > 1) return false;
-  shell.position = {
+  if (fraction > 1) return null;
+  const position = {
     x: previous.x + (shell.position.x - previous.x) * fraction,
     y: previous.y + (shell.position.y - previous.y) * fraction,
     z: previous.z + (shell.position.z - previous.z) * fraction,
   };
-  explode(duel, shell, hit);
-  return true;
+  return { position, hit };
+}
+export function stepShell(s: Shell, dt: number) {
+  s.position.x += s.velocity.x * dt;
+  s.position.z += s.velocity.z * dt;
+  s.position.y += s.velocity.y * dt - (R.gravity * dt * dt) / 2;
+  s.velocity.y -= R.gravity * dt;
+  s.age += dt;
 }
 export function explode(duel: Duel, shell: Shell, hit: string) {
   const cfg = R[shell.ammo],
@@ -124,19 +131,15 @@ export function advanceShells(duel: Duel, dt: number) {
   const survivors: Shell[] = [];
   for (const s of duel.shells) {
     const before = { ...s.position };
-    s.position.x += s.velocity.x * dt;
-    s.position.z += s.velocity.z * dt;
-    s.position.y += s.velocity.y * dt - (R.gravity * dt * dt) / 2;
-    s.velocity.y -= R.gravity * dt;
-    s.age += dt;
+    stepShell(s, dt);
     if (duel.tick % 6 === 0) s.trail.push({ ...s.position });
     if (s.trail.length > 90) s.trail.shift();
-    if (
-      !hitShell(duel, s, before) &&
-      s.age < 12 &&
-      Math.abs(s.position.x) < 220 &&
-      Math.abs(s.position.z) < 130
-    )
+    const collision = shellCollision(duel, s, before);
+    if (collision) {
+      s.position = collision.position;
+      explode(duel, s, collision.hit);
+    }
+    if (!collision && s.age < 12 && Math.abs(s.position.x) < 220 && Math.abs(s.position.z) < 130)
       survivors.push(s);
   }
   duel.shells = survivors;

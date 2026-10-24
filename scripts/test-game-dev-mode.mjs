@@ -143,6 +143,7 @@ try {
           game.id === 'merge-front' ||
           game.id === 'tower-brake' ||
           game.id === 'tetracube' ||
+          game.id === 'castle-cannon' ||
           game.id === 'ink-is-everything' ||
           game.id === 'ball-roguelite' ||
           game.id === 'flick-arena' ||

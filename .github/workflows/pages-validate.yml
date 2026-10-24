@@ -71,6 +71,7 @@ jobs:
       TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
       TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
       THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ github.workspace }}/games/local/three-choose-two/.prebuilt
+      CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
       PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
     steps:
       - uses: actions/checkout@v5
@@ -134,6 +135,10 @@ jobs:
         with:
           name: three-choose-two-${{ github.sha }}
           path: games/local/three-choose-two/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: game-castle-cannon-${{ github.sha }}
+          path: games/local/game-castle-cannon/.prebuilt
       - run: pnpm check:games
       - run: pnpm build:pages
       - name: Build and validate the company website
@@ -178,6 +183,7 @@ jobs:
       TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
       TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
       THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ github.workspace }}/games/local/three-choose-two/.prebuilt
+      CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
       PAGES_FULL_REGRESSION: ${{ inputs.full }}
       PAGES_GAME_SOURCES: ${{ inputs.game_sources }}
     steps:
@@ -243,6 +249,10 @@ jobs:
         with:
           name: three-choose-two-${{ github.sha }}
           path: games/local/three-choose-two/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: game-castle-cannon-${{ github.sha }}
+          path: games/local/game-castle-cannon/.prebuilt
       - run: pnpm check:games
       - run: pnpm test:game-config
       - run: node --test scripts/pages-test-scope.test.mjs apps/shell-web/scripts/pages-validation.test.mjs

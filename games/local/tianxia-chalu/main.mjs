@@ -74,6 +74,7 @@ let lastFrame = 0,
   tutorialSeen = new Set(),
   startedCards = [],
   adBusy = false,
+  adEpoch = 0,
   backgrounded = false;
 const debug =
   globalThis.SmallGamesDev?.enabled === true || globalThis.SmallGamesDev?.isEnabled?.() === true;
@@ -96,7 +97,7 @@ const hostAds = globalThis.SmallGamesRewardAds;
 const provider =
   config?.adMode === 'host' && config.provider?.show
     ? config.provider
-    : hostAds?.offer
+    : hostAds?.available !== false && hostAds?.offer
       ? {
           show: ({ opportunityId }) => hostAds.offer({ id: opportunityId }),
           dispose: () => hostAds.cancel?.(),
@@ -140,7 +141,15 @@ function header(title, back = home) {
     '</h2><span></span></header>'
   );
 }
+function cancelUpgrade() {
+  adEpoch++;
+  if (adBusy) {
+    try { provider?.dispose?.(); } catch { /* Navigation remains available. */ }
+  }
+  adBusy = false;
+}
 function show(next, html) {
+  if (next !== screen) cancelUpgrade();
   gesture = null;
   bridge.preview = null;
   screen = next;
@@ -1240,10 +1249,14 @@ function finish() {
 async function upgrade() {
   if (adBusy || screen !== 'result' || !reward || reward.tier >= 3) return;
   adBusy = true;
-  const id = runId;
+  const id = runId, token = ++adEpoch, armory = save.armory;
   $('upgrade-card').disabled = true;
-  const result = await publishing.rewarded({ placement: 'rank-card-' + id });
-  const changed = upgradeCard(save.armory, id, result.status);
+  let result;
+  try {
+    result = await provider?.show({ opportunityId: 'tianxia-chalu:rank-card-' + id, kind: 'rewarded' }) ?? { status: 'unavailable' };
+  } catch { result = { status: 'failed' }; }
+  if (token !== adEpoch || screen !== 'result' || runId !== id || save.armory !== armory) return;
+  const changed = upgradeCard(armory, id, result.status);
   if (changed) persist();
   adBusy = false;
   if (screen === 'result' && runId === id) {
@@ -1386,6 +1399,7 @@ window.addEventListener('focus', () => {
   backgrounded = document.hidden;
 });
 window.addEventListener('pagehide', () => {
+  cancelUpgrade();
   backgrounded = true;
   if (screen === 'battle') void pause();
   audio.dispose();

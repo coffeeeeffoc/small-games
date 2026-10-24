@@ -122,7 +122,8 @@ export function recordWin(progress, levelIndex, levelId, result, { practice = fa
   const next = sanitizeProgress(progress);
   const scores = result.continued === true ? next.continuedBest : next.best;
   const previous = scores[levelId];
-  if (!previous || score.elapsed < previous.elapsed) scores[levelId] = score;
+  if (!result.rewardRefillUsed && (!previous || score.elapsed < previous.elapsed))
+    scores[levelId] = score;
   next.unlocked = Math.min(MAX_LEVELS, Math.max(next.unlocked, levelIndex + 2));
   Object.assign(progress, next);
   return progress;

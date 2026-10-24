@@ -39,6 +39,107 @@ const h5Configuration = {
   targets: [{ platform: 'taptap', type: 'h5' }],
 };
 
+test('thirteen reward games package isolated ads-on/off H5 variants; castle stays excluded', async () => {
+  const games = [
+    'homebound-station',
+    'bullet-garden',
+    'merge-front',
+    'tower-brake',
+    'tetracube',
+    'three-choose-two',
+    'orbit-atelier',
+    'tianxia-chalu',
+    'ball-roguelite',
+    'flick-arena',
+    'chase-thief',
+    'moss-garden',
+    'cage-rescue',
+  ];
+  const folder = await mkdtemp(path.join(tmpdir(), 'thirteen-h5-'));
+  try {
+    const adUnits = Object.fromEntries(games.map((game) => [game, `fixture-${game}`]));
+    const config = parseGameBuildConfig({
+      ...h5Configuration,
+      games,
+      targets: [{ platform: 'taptap', type: 'h5', ads: [false, true], adUnits }],
+    });
+    assert.equal(gameBuildPlan(config).length, 26);
+    assert.throws(
+      () => parseGameBuildConfig({ ...h5Configuration, games: ['castle-cannon'] }),
+      /BUILD_GAMES/,
+    );
+    for (const game of games)
+      await mkdir(
+        path.join(folder, 'games/local', game === 'moss-garden' ? 'game-moss-garden' : game),
+        { recursive: true },
+      );
+    const env = Object.fromEntries(
+      games.map((game) => [
+        `TAPTAP_${game.toUpperCase().replaceAll('-', '_')}_AD_UNIT_ID`,
+        adUnits[game],
+      ]),
+    );
+    const result = await buildH5Packages(
+      {
+        games,
+        modes: [
+          [false, false],
+          [true, false],
+        ],
+        output: 'outputs/thirteen',
+        batch: 'thirteen',
+      },
+      {
+        workspace: folder,
+        env,
+        allowDirty: true,
+        perGame: true,
+        buildOnly: true,
+        compile: async ({ game, buildOutput, env }) => {
+          assert.equal(
+            env[`TAPTAP_${game.toUpperCase().replaceAll('-', '_')}_AD_UNIT_ID`],
+            adUnits[game],
+          );
+          assert.equal(env.BULLET_GARDEN_PLATFORM_CONFIG, undefined);
+          await writeFile(
+            path.join(buildOutput, 'index.html'),
+            '<html><head><script type="module" src="./entry.js"></script></head><body></body></html>',
+          );
+          await writeFile(path.join(buildOutput, 'entry.js'), '// fixture compiler output\n');
+        },
+      },
+    );
+    assert.equal(result.variants.length, 26);
+    for (const variant of result.variants) {
+      const dist = path.join(result.output, variant.name, 'dist');
+      const configText = await readFile(path.join(dist, 'platform-config.js'), 'utf8');
+      if (['tower-brake', 'cage-rescue', 'flick-arena'].includes(variant.game)) {
+        assert.match(
+          await readFile(path.join(dist, 'offline-config.js'), 'utf8'),
+          /enabled: false/,
+        );
+        assert.match(await readFile(path.join(dist, 'index.html'), 'utf8'), /offline-config\.js/);
+      }
+      const enabled = variant.name.includes('-ads-on-');
+      assert.match(configText, new RegExp(`"adsEnabled":${enabled}`));
+      if (enabled) assert(configText.includes(`"adUnitId":"${adUnits[variant.game]}"`));
+      const html = await readFile(path.join(dist, 'index.html'), 'utf8');
+      assert(html.indexOf('game-rewards.js') < html.indexOf('entry.js'));
+      assert.equal((html.match(/src="\.\/game-rewards\.js"/g) || []).length, 1);
+      assert(variant.files.some((file) => file.path === 'platform-ads.js'));
+      assert(variant.files.some((file) => file.path === 'game-rewards.js'));
+      assert.equal(variant.serviceEnabled, false);
+      assert(
+        zipInventory(await readFile(path.join(result.output, variant.zip)), {
+          maxBytes: 256 * 1024 * 1024,
+        }).some((file) => file.path === 'dist/index.html'),
+      );
+    }
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});
+
 test('commented JavaScript config takes precedence, supports explicit .js, and falls back only when absent', async () => {
   const folder = await mkdtemp(path.join(tmpdir(), 'game-config-'));
   const module = path.join(folder, 'game-build.local.mjs');

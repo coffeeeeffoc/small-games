@@ -1,0 +1,354 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "b5b66e9d3f678aa1ec2032b75d8490257c72e85df3444a1a34d5a09d7e45deba"
+  },
+  "phase": "success",
+  "kills": 4,
+  "time": 140.25000000000375,
+  "clearTime": 137.23333333333468,
+  "extractionSeconds": 3.0166666666690674,
+  "wallSeconds": 43.94,
+  "fired": 10,
+  "friendlyDamage": 0,
+  "resumedHold": true,
+  "retry": true,
+  "radioDuration": 4.752608,
+  "lastAudible": 4.57280000000074,
+  "accelerated": {
+    "id": 64,
+    "weapon": 1,
+    "x": 132.27290587669694,
+    "z": -39.19583009294834,
+    "born": 137.23333333333468,
+    "origin": {
+      "x": 117.95622351497025,
+      "y": 20.308604734877356,
+      "z": 3.417300224940874
+    },
+    "velocity": {
+      "x": 16.75756143593252,
+      "y": -22.877480776187177,
+      "z": -49.878325944314795
+    },
+    "targetY": 0.40540474051177006,
+    "due": 137.4469187409798,
+    "timeScale": 4
+  },
+  "samples": [
+    {
+      "time": 137.25000000000136,
+      "progress": 0.28400000000000003,
+      "shots": 5,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.00010000000148124855,
+      "phase": "playing"
+    },
+    {
+      "time": 137.35000000000144,
+      "progress": 0.30799999999999994,
+      "shots": 5,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.20670000000296795,
+      "phase": "playing"
+    },
+    {
+      "time": 137.45000000000152,
+      "progress": 0.33199999999999985,
+      "shots": 4,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.40910000000147306,
+      "phase": "playing"
+    },
+    {
+      "time": 137.5500000000016,
+      "progress": 0.3559999999999998,
+      "shots": 4,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.6099000000022272,
+      "phase": "playing"
+    },
+    {
+      "time": 137.65000000000168,
+      "progress": 0.38,
+      "shots": 4,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.8087000000029718,
+      "phase": "playing"
+    },
+    {
+      "time": 137.75000000000176,
+      "progress": 0.40400000000000014,
+      "shots": 3,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.0114999999999839,
+      "phase": "playing"
+    },
+    {
+      "time": 137.85000000000184,
+      "progress": 0.4280000000000003,
+      "shots": 3,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.2158000000007405,
+      "phase": "playing"
+    },
+    {
+      "time": 137.95000000000192,
+      "progress": 0.45200000000000046,
+      "shots": 2,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.4522000000029607,
+      "phase": "playing"
+    },
+    {
+      "time": 138.050000000002,
+      "progress": 0.47600000000000064,
+      "shots": 2,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.6609000000022434,
+      "phase": "playing"
+    },
+    {
+      "time": 138.15000000000208,
+      "progress": 0.5000000000000008,
+      "shots": 1,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.870999999999981,
+      "phase": "playing"
+    },
+    {
+      "time": 138.25000000000216,
+      "progress": 0.5240000000000007,
+      "shots": 1,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.0779000000022165,
+      "phase": "playing"
+    },
+    {
+      "time": 138.35000000000224,
+      "progress": 0.5480000000000006,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.323999999999984,
+      "phase": "playing"
+    },
+    {
+      "time": 138.45000000000232,
+      "progress": 0.5720000000000003,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.5319000000022243,
+      "phase": "playing"
+    },
+    {
+      "time": 138.5500000000024,
+      "progress": 0.5960000000000002,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.7365000000000066,
+      "phase": "playing"
+    },
+    {
+      "time": 138.65000000000248,
+      "progress": 0.62,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.9470000000000027,
+      "phase": "playing"
+    },
+    {
+      "time": 138.75000000000256,
+      "progress": 0.6439999999999998,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.150499999999994,
+      "phase": "playing"
+    },
+    {
+      "time": 138.85000000000264,
+      "progress": 0.6679999999999997,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.3563000000007435,
+      "phase": "playing"
+    },
+    {
+      "time": 138.95000000000272,
+      "progress": 0.6919999999999995,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.559900000002216,
+      "phase": "playing"
+    },
+    {
+      "time": 139.0500000000028,
+      "progress": 0.7159999999999995,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.7627000000029796,
+      "phase": "playing"
+    },
+    {
+      "time": 139.15000000000288,
+      "progress": 0.7399999999999997,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.964900000002217,
+      "phase": "playing"
+    },
+    {
+      "time": 139.25000000000296,
+      "progress": 0.7639999999999999,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.168600000001476,
+      "phase": "playing"
+    },
+    {
+      "time": 139.35000000000304,
+      "progress": 0.788,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.372800000000751,
+      "phase": "playing"
+    },
+    {
+      "time": 139.45000000000312,
+      "progress": 0.8120000000000002,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.57280000000074,
+      "phase": "playing"
+    },
+    {
+      "time": 139.5500000000032,
+      "progress": 0.8360000000000003,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.003500000000002501,
+      "phase": "playing"
+    },
+    {
+      "time": 139.65000000000327,
+      "progress": 0.8600000000000003,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 139.75000000000335,
+      "progress": 0.8840000000000002,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 139.85000000000343,
+      "progress": 0.9079999999999999,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 139.9500000000035,
+      "progress": 0.9319999999999995,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 140.0500000000036,
+      "progress": 0.9559999999999992,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 140.15000000000367,
+      "progress": 0.9799999999999989,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 140.25000000000375,
+      "progress": 1,
+      "shots": 0,
+      "fired": 10,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "success"
+    }
+  ],
+  "mode": "normal",
+  "errors": [],
+  "input": "Actual mouse/keyboard/touch; no simulation state writes or reward fixture"
+}

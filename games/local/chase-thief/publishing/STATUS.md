@@ -18,3 +18,11 @@
 | 实际游戏录屏 | 已提供 | [实际追逐](gameplay/videos/city-chase-390x844.webm)，390×844 VP8 WebM，约 42 秒、无声；普通模式真实输入，无开发跳段。[录制环境与终态](gameplay/videos/recording.json)；2026-10-22 ffprobe/完整解码/抽帧核验                                   |
 
 素材来源见 [ASSETS.md](../assets/ASSETS.md)。实际录屏及截图是 Linux Chromium 浏览器采集，不是原生小游戏、Creator 编辑器或物理手机录制。宣传片与原始实机录像分别保存，概念图单独标识。文件尺寸、字节数及 SHA-256 见 [media-manifest.json](media-manifest.json)。
+
+## 2026-10-24 可选奖励增量
+
+暂停页可完整观看后获得五秒普通碰撞保护，每局一次；复用 protection，仅游玩时间递减，沟壑仍须跳跃。辅助局不保存本地纪录，也不显示新纪录；免费重试和街区选择不变。
+
+源码身份：codex/taptap-rewards-thirteen，基线 0fadabdf 后本轮工作区。八类既有资料文件仍在；本次仅核查目录/文件存在，未重新解码历史媒体，原核验日期仍有效于原版本。现有截图/录像不证明新增奖励入口；本次明确不生成媒体。奖励版本的新构建、手机触屏截图/录像、真实广告/真机验证交主会话完成。未上传、未提审、未发布。
+
+[奖励设计与验证边界](../docs/design/rewards-2026-10-24.md)。

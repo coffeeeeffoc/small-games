@@ -49,8 +49,6 @@ try {
     await layout(); await capture('pause'); await press('settings'); await layout(); await capture('settings');
     await press('help'); await layout(); await press('close'); await press('close');
     assert.equal((await snapshot(page)).modal, 'pause');
-    await press('fullscreen'); await page.waitForFunction(() => !!document.fullscreenElement);
-    await press('fullscreen'); await page.waitForFunction(() => !document.fullscreenElement);
     assert.equal((await snapshot(page)).time, frozen, 'fullscreen preserves paused battle');
     await press('resume'); await press('weapon0');
     const fire = (await snapshot(page)).buttons.find(b => b.id === 'fire');

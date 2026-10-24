@@ -20,9 +20,9 @@
 
 ## 历史方案与评审
 
-- [手机页面方案](design/mobile-2026-10-05/README.md)及[验证记录](design/mobile-2026-10-05/verification.md)
+- [手机页面方案](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/mobile-2026-10-05/README.md)及[验证记录](design/mobile-2026-10-05/verification.md)
 - [卡通风格调整](design/cartoon-refresh-2026-10-05/README.md)
-- [早期产品与实施方案](plans/)
+- [早期产品与实施方案](https://github.com/coffeeeeffoc/small-games/tree/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/plans)
 - [历史实现交接](../RELEASE-REVIEW.md)与[历史独立评审](../INDEPENDENT-REVIEW.md)
 
 旧脚本中依赖已移除页面、角色按钮或联网入口的浏览器回归已清理；历史报告仍保留原命令以解释当时证据。当前验收使用游戏目录 `pnpm build && pnpm test:browser`，新截图与报告写入 `outputs/browser/`，不会改写这些历史记录。`scripts/competition-playtest.mjs` 保留历史联机专项及依赖登记，不能作为当前离线页面的浏览器门禁。

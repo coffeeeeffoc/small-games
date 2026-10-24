@@ -31,6 +31,7 @@ jobs:
       TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
       TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
       THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ github.workspace }}/games/local/three-choose-two/.prebuilt
+      CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       # Reserve the first 1000 codes for local builds; reruns retain the same application version.
@@ -86,6 +87,10 @@ jobs:
         with:
           name: three-choose-two-${{ github.sha }}
           path: games/local/three-choose-two/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: game-castle-cannon-${{ github.sha }}
+          path: games/local/game-castle-cannon/.prebuilt
       - run: pnpm check:games
       - uses: actions/setup-java@v5
         with:
@@ -150,6 +155,7 @@ jobs:
       TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
       TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
       THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ github.workspace }}/games/local/three-choose-two/.prebuilt
+      CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
       GOMAXPROCS: '1'
       APP_VERSION: '0.2.0'
       IOS_BUILD_NUMBER: ${{ github.run_number }}
@@ -204,6 +210,10 @@ jobs:
         with:
           name: three-choose-two-${{ github.sha }}
           path: games/local/three-choose-two/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: game-castle-cannon-${{ github.sha }}
+          path: games/local/game-castle-cannon/.prebuilt
       - run: pnpm check:games
       - run: pnpm ios:simulator
       - run: python3 apps/shell-ios/scripts/test-install-manifest.py

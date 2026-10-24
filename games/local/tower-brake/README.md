@@ -54,3 +54,11 @@ pnpm --filter @coffeeeeffoc/tower-brake test:browser
 未使用 Hyper3D：本版所需形体可用小型程序网格完成，便于保持统一风格、体积和手机性能；空间站是可辨认的风格化结构。
 
 先生成的[设计效果图与设计说明](docs/design/cocos-2026-10-22/README.md)、[实际浏览器记录](docs/design/cocos-2026-10-22/browser-report.json)、[八类上架资料](publishing/STATUS.md)分别保留。旧 Canvas 的历史截图与记录仍在旧设计目录，不作为本版实机证据。本版交付为 Cocos H5；未提交渠道审核，也未验证微信、B站或真实手机。
+
+## 可选奖励（2026-10-24）
+
+暂停且刹车耗尽时，可完整观看后补满一次刹车，每局一次。免费续关、连穿补刹车及关卡解锁保留；领取后使当前排行会话失效，本局不写主线、续关或无尽纪录。
+
+通过现有全局 `SmallGamesRewardAds.offer` 领取，仅 `completed` 生效；不可用、取消、失败不消耗次数。请求绑定当前局面和令牌，重开、导航、pagehide、销毁取消，普通隐藏/失焦不取消观看；没有播放总超时，完成后仍暂停，需主动继续。H5 公共模块由构建注入，不复制 SDK，不修改源指纹规则。
+
+设计与验证边界见 [奖励说明](docs/design/rewards-2026-10-24.md)。

@@ -29,7 +29,8 @@
     "BULLET_GARDEN_PLATFORM_CONFIG",
     "TOWER_BRAKE_PREBUILT_DIR",
     "TETRACUBE_PREBUILT_DIR",
-    "THREE_CHOOSE_TWO_PREBUILT_DIR"
+    "THREE_CHOOSE_TWO_PREBUILT_DIR",
+    "CASTLE_CANNON_PREBUILT_DIR"
   ],
   "tasks": {
     "dev": {
@@ -224,6 +225,12 @@
       "outputs": ["dist/**"],
       "env": ["COCOS_CREATOR", "THREE_CHOOSE_TWO_PREBUILT_DIR"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/three-choose-two/.prebuilt/**"]
+    },
+    "@coffeeeeffoc/game-castle-cannon#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "server-dist/**"],
+      "env": ["COCOS_CREATOR", "CASTLE_CANNON_PREBUILT_DIR"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/game-castle-cannon/.prebuilt/**"]
     }
   }
 }

@@ -40,7 +40,7 @@ TapTap H5 广告位、原生小游戏广告位、Android APK 的 Java／JSB 接�
 | 浪湾卡丁车 / carding-car                | 984547 | tapmcgymnoqi9kdbls | 1054323              | 金币补给 +100；每场完成后的机会只结算一次            |
 | 词屿 / letters-words2                   | 987557 | tapmca1ytzeqiyk93j | 1054324              | 自由拾词的逐字提示；普通提示免费，挑战模式不开放辅助 |
 
-五款配置源是 [`infra/builds/five-taptap-h5.mjs`](../../infra/builds/five-taptap-h5.mjs)，用 `pnpm build:games --config infra/builds/five-taptap-h5.mjs --dry-run` 检查，再去掉 `--dry-run` 构建。根默认 `game-build.local.mjs` 当前选择原三款，不自动选择这五款。原六款离线预设继续保留；travel-bund 没有本次核实的 AppID，仍默认关闭广告。
+五款配置源是 [`infra/builds/five-taptap-h5.mjs`](../../infra/builds/five-taptap-h5.mjs)，用 `pnpm build:games --config infra/builds/five-taptap-h5.mjs --dry-run` 检查，再去掉 `--dry-run` 构建。根默认 `game-build.local.mjs` 的当前选择见文末十三款接入说明；该历史五款预设保持不变。原六款离线预设继续保留；travel-bund 没有本次核实的 AppID，仍默认关闭广告。
 
 本轮包体、截图、通过记录及未验收范围见 [五款最终包验证](../verification/2026-10-21-five-taptap-h5/README.md)。
 
@@ -171,7 +171,31 @@ cops-robbers 曾仍有游戏端 `ads.js` 的 45 秒总超时，以及 `main.js` 
 ## 本次归档与边界
 
 - [最终修复与失败／通过证据](../../games/submodules/xiangqi-five/docs/design/h5-ad-open-timeout-2026-10-19/README.md)：47 项相关回归、三种手机尺寸的整包触屏流程、虚拟时钟十分钟结束页案例通过。
-- [此前 180 秒方案的记录](../../games/submodules/xiangqi-five/docs/design/h5-ad-timing-fix-2026-10-18/README.md)：仅是中间版本，已被最终方案替代。
-- [可见性问题记录](../../games/submodules/xiangqi-five/docs/design/h5-ad-host-fix-2026-10-18/validation.md)：记录 Window 监听遗漏，不能单独证明超时已修好。
+- [此前 180 秒方案的历史记录](https://github.com/coffeeeeffoc/xiangqi-five/blob/fe1c870f3713bb0b19e2ea503a137f86c5c51fa4/docs/design/h5-ad-timing-fix-2026-10-18/README.md)：仅是中间版本，已被最终方案替代。
+- [可见性问题与最终修复](../../games/submodules/xiangqi-five/docs/design/h5-ad-open-timeout-2026-10-19/README.md)：保留 Window 监听遗漏和旧测试未冒泡造成误通过的原因，分别说明历史证据与最终超时验证。
 - 最终本地包：`outputs/xiangqi-five-h5-ad-open-timeout-2026-10-19/xiangqi-five-taptap-h5-ads-on-service-off.zip`，SHA-256 `cb521b295ccef16c100f347067b402f98d8cd70bb5213478482246385b07e228`。
 - 未完成本包的 TapTap 上传、真机真实广告和平台验收。不能把其他会话截图中的“实机成功”移用为本包证据；发布时另按[增量发布验证](incremental-publication.md)执行。
+
+## 十三款可选激励接入（2026-10-24）
+
+根配置保留原有四款并新增以下十三款；本轮是 TapTap H5 接线，一炮拆城未改动。新十三款的广告位为空，打包会关闭广告，不会借用旧游戏 ID。后续逐款通过 MCP 核实后填入目标的 adUnits 并重新构建；这一步之后无需再改玩法代码。没有 SDK、取消或失败不发奖，基础游玩仍可继续。
+
+| 游戏 / ID                     | 触发位置与奖励                                                         |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| 归途站 / homebound-station    | 主动请求额外调度、2/3 倍速；1 倍速免费                                 |
+| 子弹花园 / bullet-garden      | 暂停补给恢复 30% 生命；失败续战恢复 50% 生命，各一次                   |
+| 神机合阵 / merge-front        | 每局一次额外 2 枚补给币                                                |
+| 穿云落星 / tower-brake        | 暂停且刹车耗尽后补满一次，辅助局不记纪录，免费续关保留                 |
+| 重力方舱 / tetracube          | 倒转和失败续局；无广告配置时保留既有免费基础操作                       |
+| 三块选两块 / three-choose-two | 重抽候选、失败后追加 2 组继续                                          |
+| 星扣工坊 / orbit-atelier      | 暂停时辅助对齐一环，不自动释放；每局一次，计入提示和步数，普通提示免费 |
+| 夺城令 / tianxia-chalu        | 结算后升级本局免费获得的排名卡一次                                     |
+| 星轨弹珠 / ball-roguelite     | 晶体共鸣、应急清除底部两排，各一次                                     |
+| 弹指擂台 / flick-arena        | 仅单人练习暂停时领取一次瞄准建议，不自动出手；对战和挑战禁用           |
+| 追贼别撞墙 / chase-thief      | 暂停时领取一次 5 秒普通碰撞保护，沟壑仍失败，辅助局不记纪录            |
+| 苔光花园 / moss-garden        | 每关首次提示免费，之后主动选择额外提示                                 |
+| 打破笼子接住人 / cage-rescue  | 普通局球机会耗尽时补 1 球，每局一次，免费重试保留                      |
+
+复用 SmallGamesRewardAds.offer/show 和公共 platform-ads.js，不经过有总时限的旧 publishing.rewarded 包装。子弹花园仍保留独立原生 provider；H5 优先共享端口。穿云落星、打破笼子接住人、弹指擂台的统一 H5 包仅支持 backend:false，覆盖编译制品中的旧 API 默认值，不初始化联网服务或显示不可用联网入口。
+
+验证记录见各游戏 tests/rewards.test.mjs、子弹花园 tests/cocos-ads.browser.mjs、打破笼子接住人 tests/reward-browser.mjs、夺城令 tests/browser.mjs 及苔光花园 tests/expansion.browser.mjs。SDK 回调夹具不等于真实广告库存或 TapTap 真机验收。

@@ -37,3 +37,15 @@ pnpm --filter @coffeeeeffoc/orbit-atelier test:publishing:browser
 `assets/scripts/core` 为无引擎依赖的规则、关卡与存档层；`AtelierView.ts` 负责场景与视觉，`OrbitAtelier.ts` 负责输入、流程和生命周期。`src/`、`tests/legacy-*` 及旧设计目录作为历史实现和迁移参考保留，不是当前运行入口或本轮验收证据。
 
 Web 采用竖屏优先，并提供横屏布局、暂停恢复、撤回、提示、全屏和声音/触感/减少动态设置。公共开发工具通过 `?dev=1` 显式开启，`?dev=0` 显式关闭。分享链接只携带关卡挑战参数，广告默认关闭。本轮仅配置 Web Mobile / Web Desktop 构建，未完成微信、抖音、B 站或 Android/iOS 真机验收。
+
+## 可选奖励（2026-10-24）
+
+普通提示继续免费。暂停页可完整观看后对齐下一只可解星环，每局一次；复用 findHint 和 rotateRing，不自动释放。操作加入撤回历史并计入 moves/hints，提示星级规则不变；布尔 rewardAlignUsed 经存档重建及撤回 OR 保留。
+
+通过现有全局 `SmallGamesRewardAds.offer` 领取，仅 `completed` 生效；不可用、取消、失败不消耗次数。请求绑定当前局面和令牌，重开、导航、pagehide、销毁取消，普通隐藏/失焦不取消观看；没有播放总超时，完成后仍暂停，需主动继续。H5 公共模块由构建注入，不复制 SDK，不修改源指纹规则。
+
+设计与验证边界见 [奖励说明](docs/design/rewards-2026-10-24.md)。
+
+资料检查：当前没有 publishing/ 目录，八类统一上架资料均缺；既有 docs/design 证据未在本次转为上架资料。本次授权不生成媒体，交主会话补齐正式资料并建立 STATUS。
+
+上架资料与验证边界：[publishing/STATUS.md](publishing/STATUS.md)。

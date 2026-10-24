@@ -8,7 +8,7 @@
 
 仅本地及已有服务端 AI 对局；不新增真人匹配或重写规则。
 
-`concept.svg` 是本轮局部控件与反馈示意，沿用已有主场景和页面；实现后保存浏览器触屏模拟截图并补充验证记录。按钮有效热区保持至少 44px；短反馈不遮挡核心对象。
+[历史记录：concept.svg](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/tianxia-chalu/docs/design/expansion-2026-10-11/concept.svg) 是本轮局部控件与反馈示意，沿用已有主场景和页面；实现后保存浏览器触屏模拟截图并补充验证记录。按钮有效热区保持至少 44px；短反馈不遮挡核心对象。
 
 验收：开始、核心操作、按住预览、取消/拖出/多触点、键盘等价操作、暂停恢复和结算返回；规则与构建检查。预览不得提前改道；城池易主和结束时旧预览失效。浏览器模拟不等于手机真机验收。本轮没有增加分享或广告，继续沿用已配置的 AI 对局后端。
 
@@ -18,6 +18,6 @@
 
 本地 Chromium 浏览器触屏模拟通过9项场景，含正常8次触屏改道获胜、解锁存档恢复、180秒正常结算、320×568 / 390×844 / 844×390、全屏切换、禁用存储与开发模式进度隔离。33项规则测试通过。准确提交版本的复验由发布候选门禁执行。
 
-- [实际路线预览截图](../screenshots/route-preview-390x844.png)
+- [实际路线预览截图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/tianxia-chalu/docs/design/screenshots/route-preview-390x844.png)
 - [完整浏览器验收记录](../browser-report.json)
 - 执行：`node --test tests/*.test.mjs`、`PLAYWRIGHT_EXECUTABLE_PATH=/usr/bin/chromium node tests/browser.mjs`（游戏目录）。

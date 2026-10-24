@@ -12,10 +12,11 @@ const tick = (s: Simulation, seconds: number, dt = 1 / 60) => {
   for (let i = 0; i < Math.ceil(seconds / dt); i++) s.step(dt);
 };
 const isolated = () => {
-  const s = new Simulation();
+  const s = new Simulation('operation-007');
   s.start();
   s.units = s.units.filter((u) => u.friendly);
   s.convoy = 'holding';
+  s.addUnit('turret', { x: MAP.halfWidth, z: MAP.halfDepth }); // Retain combat during flight-only tests.
   return s;
 };
 const near = (a: number, b: number, tolerance = 1e-6) => assert(Math.abs(a - b) < tolerance, `${a} ≈ ${b}`);
@@ -93,7 +94,7 @@ test('port weapon stations, metre-authored mesh and banked model/camera transfor
 });
 
 test('aircraft is live simulation state and pauses freeze its orbit', () => {
-  const s = new Simulation();
+  const s = new Simulation('operation-007');
   s.start();
   assert(s.aircraft, 'flight must have persistent state, not aircraft(time) decoration');
   const first = { ...s.aircraft };
@@ -120,7 +121,7 @@ test('aircraft is live simulation state and pauses freeze its orbit', () => {
 });
 
 test('arrival cannot succeed while a threat is still alive', () => {
-  const s = new Simulation();
+  const s = new Simulation('operation-007');
   assert.equal(s.threatsRemaining, 24, 'unspawned contacts also count');
   s.start();
   s.progress = 10000;
@@ -262,7 +263,7 @@ test('four friendly groups stay dispersed and enemies attack living local target
   for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++)
     assert(distance(groups[i], groups[j]) > 40);
   for (const target of groups) s.addUnit('turret', { x: target.x, z: target.z - 0.5 });
-  tick(s, MISSION.warmup + 0.1);
+  tick(s, s.mission.warmup + 0.1);
   for (const target of groups) {
     assert(target.hp < target.maxHp);
     const event = s.events.find((e) => e.type === 'attack' && e.unit === target.id);
@@ -336,7 +337,7 @@ test('every outpost must retain a survivor; the last lethal hit determines group
     const enemyKill = (unit: typeof first) => {
       const enemy = s.addUnit('turret', { x: unit.x - 0.5, z: unit.z });
       unit.hp = UNITS.turret.damage * MISSION.friendlyArmor;
-      tick(s, MISSION.warmup + 0.02);
+      tick(s, s.mission.warmup + 0.02);
       enemy.hp = 0;
     };
     // The first casualty comes from the opposite side, so total damage cannot identify the cause.
@@ -357,6 +358,7 @@ test('every outpost must retain a survivor; the last lethal hit determines group
       while (s.time + 1 / 60 < shot.due) s.step(1 / 60);
       s.progress = ROUTE_LENGTH;
       s.convoy = 'arrived';
+      s.units.filter(u => !u.friendly).forEach(u => { u.hp = 0; });
       assert.equal(s.threatsRemaining, 0);
       s.step(1 / 60); // Last friendly dies in the exact step that would otherwise declare success.
     }
@@ -367,7 +369,7 @@ test('every outpost must retain a survivor; the last lethal hit determines group
     assert.equal(s.failureCause, finalCause);
     assert.equal(s.rescue.hp, s.rescue.maxHp);
     assert.equal(s.rating, '—');
-    const fresh = new Simulation();
+    const fresh = new Simulation('operation-007');
     assert.equal(fresh.failedGroup, undefined);
     assert.equal(fresh.failureCause, '');
   }

@@ -57,6 +57,7 @@ export interface Run {
   collisions: number;
   successes: number;
   protection: number;
+  rewardProtectionUsed: boolean;
   slowRemaining: number;
   nextWave: number;
   obstacles: Obstacle[];
@@ -106,6 +107,7 @@ export function createRun({
     collisions: 0,
     successes: 0,
     protection: 0,
+    rewardProtectionUsed: false,
     slowRemaining: 0,
     nextWave: 0,
     obstacles: [],
@@ -149,6 +151,12 @@ export function resumeRun(run: Run) {
     run.phase = 'running';
     run.accumulator = 0;
   }
+}
+export function rewardProtection(run: Run): boolean {
+  if (run.phase !== 'paused' || run.rewardProtectionUsed) return false;
+  run.rewardProtectionUsed = true;
+  run.protection = Math.max(run.protection, 5);
+  return true;
 }
 export function markPractice(run: Run) {
   run.practice = true;
