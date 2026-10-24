@@ -24,3 +24,5 @@ TapTap应用998795（Developer492506）于2026-10-24查询未开通广告，正�
 本记录是本款及接线的定向检查，不是完整validate:candidate通过记录。普通push保留hooks和非强制保护；最终推送base/head及CI/Pages状态由交付信息记录。远端推进后必须合并并重建/复测，不能沿用合并前制品。
 
 首次推送36f1ff80的Pages范围规划失败：规划环境只安装锁定Prettier，本次接线证明错误依赖完整工作区中的js-yaml。已改为使用规划阶段已有的Prettier YAML解析器，保留完整工作流比较与所有锁文件文档校验；新增仅Prettier、无js-yaml的独立进程回归，覆盖全部8个真实接线文件及首个锁文档被篡改时拒绝。未修改或放宽发布门禁。
+
+2026-10-25 CI 维护：确认 `assets/emblem.svg` 的 LF/CRLF 是 Windows 制品与 Linux Pages 源码指纹不一致的原因，指纹文本归一化已包含 SVG。26 项规则与指纹测试通过；新增测试在 Windows 和 Linux Node 24.21.0 均通过，验证换行等价、SVG 内容变化和二进制变化仍使指纹失效。基于 b5105c58 的修复候选已用 Windows Creator 3.8.8 实际重建，再由 Linux `pnpm run build` 验证并使用同一制品；源码指纹为 `dea2dd6e95fc19c75c3e1a07cbae3576a37a5a786dc32fa21cad43a4479bdaf8`。本次未改变玩法或画面，沿用上述实机模拟素材；CI/Pages 最终结果另行核对，不能用此次本地通过代替。

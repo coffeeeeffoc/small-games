@@ -37,7 +37,7 @@ export async function sourceHash(directory = root) {
     const bytes = await readFile(path.join(directory, file));
     hash.update(file + '\0');
     hash.update(
-      /\.(ts|js|mjs|json|meta|scene|mtl|html|css)$/.test(file)
+      /\.(ts|js|mjs|json|meta|scene|mtl|html|css|svg)$/.test(file)
         ? bytes.toString('utf8').replaceAll('\r\n', '\n')
         : bytes,
     );

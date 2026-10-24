@@ -27,6 +27,8 @@ TapTap 采用 H5 游戏上架方式：官方上传工具接收 `dist/` 目录，
 
 `window.Ashfall.snapshot()`全模式只读，含ready/creator/screen/run/controls；controls坐标为CSS像素，供真实Creator触控测试。`window.Ashfall.dev(action,value)`仅公共dev开启存在，修改均隔离为试玩。`scripts/prepare.mjs`同步纯规则与meta，`scripts/build.mjs`调用真实Creator，`ASHFALL_FRONT_PREBUILT_DIR`须包含源码匹配dist和cc.d.ts；指纹包含共享奖励/开发模式/工具链与离线烘焙源。首次导入生成meta若改变输入须重建，不标记旧制品有效。
 
+源码指纹统一 SVG 等文本输入的 LF/CRLF 换行，保证 Windows Creator 制品可在 Linux Pages 校验；文本实际内容与二进制字节仍参与校验。修改指纹实现后须用 Creator 重新生成制品，不能只修改制品记录。
+
 ## 结构与验证
 
 - `src/core.mjs`：与 DOM 无关的固定步长规则、伤害、碰撞、升级和结算。
