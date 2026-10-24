@@ -210,9 +210,6 @@ function App() {
     matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   const touch = touchCapability.current;
   const game = useRef<HTMLElement>(null);
-  const display = useRef<ReturnType<typeof setupDisplay> | null>(null);
-  const [fullscreen, setFullscreen] = useState(false),
-    [displayPending, setDisplayPending] = useState(false);
   const [settings] = useState(() => {
     let raw = null;
     try {
@@ -404,9 +401,8 @@ function App() {
     }
   }, [notify]);
   const start = useCallback(
-    (lockMouse = true, enterFullscreen = touch && !started) => {
+    (lockMouse = true) => {
       if (error) return;
-      if (enterFullscreen) display.current?.enterFullscreen();
       if (!started) {
         launching.current = true;
         setPanel(null);
@@ -436,7 +432,7 @@ function App() {
   useEffect(() => {
     if (ready && launching.current) {
       launching.current = false;
-      start(false, false);
+      start(false);
     }
   }, [ready, start]);
   const receiveRenderer = useCallback(
@@ -1047,16 +1043,9 @@ function App() {
         clearInput();
         resetGestures();
       },
-      onMessage: notify,
-      onFullscreenChange: (value, pending) => {
-        setFullscreen(value);
-        setDisplayPending(pending);
-      },
     });
-    display.current = controller;
     return () => {
       controller.dispose();
-      display.current = null;
     };
   }, [notify]);
   useEffect(() => {
@@ -1905,26 +1894,6 @@ function App() {
         </div>
         {panel === 'pause' && (
           <footer className="settings-footer">
-            <button
-              className="fullscreen-control"
-              aria-label={fullscreen ? '退出全屏' : '全屏'}
-              aria-pressed={fullscreen}
-              disabled={displayPending}
-              onClick={() => display.current?.toggleFullscreen()}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden="true"
-              >
-                <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />
-              </svg>
-              {displayPending ? '切换中…' : fullscreen ? '退出全屏' : '全屏'}
-            </button>
             <button className="primary" onClick={() => (started ? start(false) : setPanel(null))}>
               {started ? '继续漫游' : '完成'}
             </button>

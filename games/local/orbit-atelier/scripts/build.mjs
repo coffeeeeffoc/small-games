@@ -70,13 +70,14 @@ if (target === 'web-mobile' && process.env.ORBIT_ATELIER_PREBUILT_DIR) {
   let html = await readFile(path.join(out, 'index.html'), 'utf8');
   html = html
     .replace(/<title>.*?<\/title>/, '<title>星扣工坊 · Orbit Atelier</title>')
+    .replace(/<meta name="(?:full-screen|x5-fullscreen|360-fullscreen)"[^>]*>/g, '')
     .replace('minimal-ui=true', 'viewport-fit=cover')
     .replace(
       '</head>',
-      '<link rel="icon" href="data:,"><style>html,body{margin:0;background:#061522;overflow:hidden}canvas{touch-action:none;outline:none}[hidden]{display:none!important}#GameDiv{position:absolute;inset:0;width:100%;height:100%;border:0;margin:0}#GameCanvas{width:100%;height:100%}</style><script src="./dev-mode.js"></script><script src="./fullscreen.js"></script><script type="module" src="./host.js"></script></head>',
+      '<link rel="icon" href="data:,"><style>html,body{margin:0;background:#061522;overflow:hidden}canvas{touch-action:none;outline:none}[hidden]{display:none!important}#GameDiv{position:absolute;inset:0;width:100%;height:100%;border:0;margin:0}#GameCanvas{width:100%;height:100%}</style><script src="./dev-mode.js"></script><script type="module" src="./host.js"></script></head>',
     );
   await writeFile(path.join(out, 'index.html'), html);
-  for (const file of ['dev-mode.js', 'fullscreen.js'])
+  for (const file of ['dev-mode.js'])
     await cp(path.join(root, 'scripts', file), path.join(out, file));
   await cp(path.join(root, 'startup/host.js'), path.join(out, 'host.js'));
   await cp(

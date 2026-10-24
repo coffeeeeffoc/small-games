@@ -165,10 +165,6 @@ export class KartGame extends Component {
       sys.localStorage.setItem('kart-settings-v1', JSON.stringify({ muted: this.muted, coaching: this.hud.coach.enabled }));
     } catch { /* Storage is optional in private browsing and native previews. */ }
   }
-  toggleFullscreen = () => {
-    const display = (globalThis as typeof globalThis & { KartDisplay?: { toggleFullscreen(): unknown } }).KartDisplay;
-    if (sys.isBrowser) display?.toggleFullscreen();
-  };
   choose = (field: keyof Selection, delta: number) => {
     if (this.race.phase !== 'ready' || this.multiplayer?.room || this.hud.settingsVisible) return;
     this.selection = cycleSelection(this.selection, field, delta);
@@ -531,7 +527,6 @@ export class KartGame extends Component {
       this.toggleMode,
       this.toggleSettings,
       () => this.hud.settingsVisible,
-      this.toggleFullscreen,
       this.enterGarage,
     );
     const display = (globalThis as typeof globalThis & { KartDisplay?: { setControls(controls: Record<string, () => void>): void } }).KartDisplay;

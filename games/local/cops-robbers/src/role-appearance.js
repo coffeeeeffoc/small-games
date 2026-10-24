@@ -481,6 +481,6 @@ export function openAppearanceSettings(onChange = () => {}) {
     },
     { once: true },
   );
-  (document.fullscreenElement || document.body).append(dialog);
+  document.body.append(dialog);
   dialog.showModal();
 }

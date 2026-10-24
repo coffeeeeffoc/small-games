@@ -423,15 +423,8 @@ try {
   report.checks.push('568x320 safe targets; blur releases touches and pauses');
   await page.getByRole('button', { name: '返回主页', exact: true }).tap();
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.getByRole('button', { name: '全屏', exact: true }).tap();
-  await page.waitForTimeout(150);
-  const fullscreenEntered = await page.evaluate(() => Boolean(document.fullscreenElement));
-  if (fullscreenEntered) {
-    await page.getByRole('button', { name: '退出全屏', exact: true }).tap();
-    await page.waitForTimeout(100);
-    assert.equal(await page.evaluate(() => Boolean(document.fullscreenElement)), false);
-    report.checks.push('fullscreen enters and exits without losing progress');
-  } else report.checks.push('fullscreen rejected gracefully; game remained playable');
+  await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
+  report.checks.push('home has no fullscreen controls');
   await page.locator('#start-game').tap();
   // Remain stationary in range: defeat is produced by ordinary enemy attacks.
   await touch(['right']);

@@ -286,11 +286,7 @@ try {
     await shot('mobile-home');
     await check('native Cocos engine, home and locked map', async () => {
       assert.equal((await snapshot()).engine, 'Cocos Creator 3.8.8');
-      assert.equal(
-        await page.locator('#game-display-notice').isVisible(),
-        false,
-        'No empty fullscreen notice covers the footer',
-      );
+      assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
       await tap('levels');
       await screen('levels');
       assert((await snapshot()).controls.some((c) => c.id === 'level:nova-02' && c.disabled));

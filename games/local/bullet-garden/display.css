@@ -20,41 +20,6 @@
   --display-safe-left: env(safe-area-inset-top);
   transform: translateX(var(--game-height)) rotate(90deg);
 }
-.fullscreen-control {
-  position: absolute;
-  top: max(14px, var(--display-safe-top));
-  right: max(14px, var(--display-safe-right));
-  z-index: 30;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 76px;
-  min-height: 44px;
-  white-space: nowrap;
-  padding: 8px 11px;
-  border: 1px solid #a3b98e77;
-  border-radius: 11px;
-  background: #20392eef;
-  color: #e4efcd;
-  font-size: 12px;
-  box-shadow: 0 3px 10px #091b1980;
-}
-.fullscreen-control::before {
-  content: '';
-  width: 15px;
-  height: 15px;
-  flex: none;
-  background:
-    linear-gradient(currentColor, currentColor) left top / 6px 2px no-repeat,
-    linear-gradient(currentColor, currentColor) left top / 2px 6px no-repeat,
-    linear-gradient(currentColor, currentColor) right top / 6px 2px no-repeat,
-    linear-gradient(currentColor, currentColor) right top / 2px 6px no-repeat,
-    linear-gradient(currentColor, currentColor) left bottom / 6px 2px no-repeat,
-    linear-gradient(currentColor, currentColor) left bottom / 2px 6px no-repeat,
-    linear-gradient(currentColor, currentColor) right bottom / 6px 2px no-repeat,
-    linear-gradient(currentColor, currentColor) right bottom / 2px 6px no-repeat;
-}
 #game[data-runtime='web'] .tools {
   margin-right: var(--fullscreen-space, 110px);
 }
@@ -75,12 +40,6 @@
   color: #f2f3df;
   font-size: 12px;
   pointer-events: none;
-}
-
-/* These controls belong to every screen, including full-page camp/archive screens. */
-#game > #fullscreen {
-  visibility: visible !important;
-  pointer-events: auto !important;
 }
 #game > #display-notice {
   visibility: visible !important;
@@ -178,10 +137,6 @@
 #game[data-compact-landscape='true'] .coins strong {
   font-size: 15px;
   min-width: 14px;
-}
-#game[data-compact-landscape='true'] .fullscreen-control {
-  top: max(10px, var(--display-safe-top));
-  min-width: 76px;
 }
 #game[data-compact-landscape='true'] .secondary-tool {
   display: none;
@@ -348,11 +303,6 @@ body[data-armed='true'] #game[data-compact-landscape='true'] .announcement {
 }
 #game[data-compact-landscape='true'] .control-hint {
   bottom: 1px;
-}
-
-/* Preserve the current full-screen menu architecture, with scrolling inside each screen. */
-#game[data-compact-landscape='true'] .overlay {
-  padding: 0;
 }
 #game[data-compact-landscape='true'] .overlay > .modal {
   width: 100%;

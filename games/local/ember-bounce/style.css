@@ -285,18 +285,6 @@ h1 span:last-child {
   border: 1px solid #a58e7080;
   font-size: 15px;
 }
-.screen [data-game-fullscreen] {
-  min-height: 44px !important;
-  color: #ccc4b3 !important;
-  background: #11162999 !important;
-  border-color: #6e65815e !important;
-  font-size: 11px !important;
-  padding: 8px 14px !important;
-  box-shadow: none !important;
-}
-.screen [data-game-fullscreen]:hover {
-  background: #222742 !important;
-}
 .menu-screen {
   display: flex;
   flex-direction: column;
@@ -813,11 +801,6 @@ h2 {
   }
   .home-actions .secondary {
     min-height: 44px;
-  }
-  .home-actions [data-game-fullscreen] {
-    position: absolute;
-    right: 22px;
-    bottom: 12px;
   }
   .home-progress {
     display: none;

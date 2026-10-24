@@ -37,5 +37,3 @@ html[data-touch-landscape="true"] .level-grid{grid-template-columns:repeat(5,1fr
 html[data-touch-landscape="true"] #overlay.hint-overlay{padding:52px 12px 64px}
 html[data-touch-landscape="true"] .hint-card{width:340px;font-size:12px}
 html[data-touch-landscape="true"] #message{position:absolute;bottom:64px;max-width:90%}
-
-.workspace[inert] [data-game-fullscreen]{visibility:hidden}

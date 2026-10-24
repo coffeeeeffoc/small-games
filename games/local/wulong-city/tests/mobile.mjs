@@ -88,7 +88,7 @@ try {
     await page.locator('#records-back').tap();
     await page.locator('#home-settings').tap();
     await pageIs(page, 'pause');
-    await touchTargets(page, ['#sound', '#fullscreen', '#pause-home']);
+    await touchTargets(page, ['#sound', '#pause-home']);
     await screenshot(page, `${viewport.width}-settings`);
     await page.locator('#pause-home').tap();
     await enterGame(page, true);

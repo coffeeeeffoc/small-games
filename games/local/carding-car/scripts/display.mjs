@@ -1,12 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-// Keep the shared H5 fullscreen controller unchanged. The kart HUD invokes its
-// hidden control so same-origin embeds, errors and browser exits use one path.
 function displayControls() {
-  const fullscreen = document.getElementById('kart-fullscreen');
   let controls = {}, locking = false;
-  const getFullscreen = () => fullscreen.getAttribute('aria-pressed') === 'true';
   async function lockLandscape() {
     if (locking || !screen.orientation?.lock) return;
     locking = true;
@@ -20,17 +16,10 @@ function displayControls() {
     }
   }
   window.KartDisplay = {
-    toggleFullscreen() { fullscreen.click(); },
-    getFullscreen,
     setControls(next) { controls = next || {}; },
   };
   for (const action of ['pause', 'settings'])
     document.getElementById(`kart-accessible-${action}`).addEventListener('click', () => controls[action]?.());
-  // Native orientation locks usually need fullscreen and/or user activation.
-  // Neither is required for Creator's CSS landscape fallback.
-  document.addEventListener('game-displaychange', () => {
-    if (getFullscreen()) void lockLandscape();
-  });
   document.addEventListener('pointerdown', () => { void lockLandscape(); }, { once: true, capture: true });
   window.addEventListener('pageshow', () => { void lockLandscape(); });
   void lockLandscape();
@@ -54,8 +43,8 @@ export async function installDisplay(directory) {
       #game-display-notice { top:50%; bottom:auto !important; left:32px !important;
         max-width:calc(100dvh - 28px) !important; transform:translate(-50%,-50%) rotate(90deg) !important; }
     }
-  </style><script src="./competition-session.js"></script><script defer src="./fullscreen.js"></script></head>`)
-    .replace('<body>', `<body><button id="kart-fullscreen" type="button" data-game-fullscreen hidden tabindex="-1" aria-label="全屏">全屏</button>
+  </style><script src="./competition-session.js"></script></head>`)
+    .replace('<body>', `<body>
       <nav id="kart-web-controls" aria-label="游戏快捷操作">
         <button id="kart-accessible-pause" type="button" aria-label="暂停">暂停</button>
         <button id="kart-accessible-settings" type="button" aria-label="设置">设置</button>

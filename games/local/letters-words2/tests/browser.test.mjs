@@ -112,10 +112,7 @@ try {
     await page.locator('#resume-button').click();
     assert.deepEqual(await tileSnapshot(), partialBoard, 'pause and resume preserve partial answer and tile positions');
     await openSettings(page);
-    const fullscreen = page.locator('#settings-dialog [data-game-fullscreen]');
-    await fullscreen.click();
-    await page.waitForFunction(() => !!document.fullscreenElement);
-    assert.equal(await fullscreen.textContent(), '退出全屏');
+    assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
     await page.locator('#settings-dialog [data-close]').last().click();
     await continueGame(page);
     assert.deepEqual(await tileSnapshot(), partialBoard);
@@ -126,8 +123,6 @@ try {
     assert.equal(await page.locator('#help-dialog [data-game-fullscreen]').count(), 0);
     await page.locator('#help-dialog [data-close]').last().click();
     await openSettings(page);
-    await fullscreen.click();
-    await page.waitForFunction(() => !document.fullscreenElement);
     await page.locator('#settings-dialog [data-close]').last().click();
     await continueGame(page);
     assert.deepEqual(await tileSnapshot(), partialBoard);
@@ -361,9 +356,7 @@ try {
     const page = await context.newPage();
     await page.goto(baseURL);
     await openSettings(page);
-    await page.locator('#settings-dialog [data-game-fullscreen]').tap();
-    await page.waitForFunction(() => !document.querySelector('#game-display-notice').hidden);
-    assert.match(await page.locator('#game-display-notice').textContent(), failure === 'unsupported' ? /不支持.*仍可/ : /未允许.*仍可/);
+    assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
     assert.equal(await page.evaluate(() => !!document.fullscreenElement), false);
     await page.locator('#settings-dialog [data-close]').last().tap();
     await continueGame(page);
@@ -371,7 +364,7 @@ try {
     assert.equal(await page.locator('.answer-slot.filled').count(), 1, `${failure}: ordinary play remains available`);
     await context.close();
   }
-  console.log('Fullscreen entry/exit/rotation preserve selection; unavailable/denied branches remain playable (simulated capability failures).');
+  console.log('Normal viewport/rotation preserve selection without fullscreen controls, including unavailable APIs.');
 } finally {
   await browser.close();
 }

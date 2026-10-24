@@ -21,15 +21,11 @@ export const castleCannonGameDefinition: GameDefinition = {
     canvas.tabIndex = 0;
     const controls = document.createElement('div');
     controls.className = 'castle-controls';
-    const full = document.createElement('button');
-    full.dataset.gameFullscreen = '';
-    full.textContent = '全屏';
-    full.className = 'castle-fullscreen';
     const status = document.createElement('p');
     status.className = 'sr';
     status.setAttribute('role', 'status');
     stage.append(canvas, controls);
-    root.append(stage, full, status);
+    root.append(stage, status);
     target.append(root);
     let pointerListener: ((e: CanvasPointerEvent) => void) | null = null,
       actionListener: ((id: string) => void) | null = null,
@@ -118,7 +114,6 @@ export const castleCannonGameDefinition: GameDefinition = {
       capture: true,
     });
     window.addEventListener('resize', resize, options);
-    document.addEventListener('fullscreenchange', resize, options);
     document.addEventListener('game-displaychange', resize, options);
     window.addEventListener(
       'blur',
@@ -151,7 +146,6 @@ export const castleCannonGameDefinition: GameDefinition = {
     function present(hits: readonly Hit[], label: string, screen: string) {
       root.dataset.screen = screen;
       root.dataset.ready = 'true';
-      full.hidden = screen !== 'home' && screen !== 'settings' && screen !== 'paused';
       const ids = new Set(hits.map((h) => h.id));
       for (const [id, b] of buttons)
         if (!ids.has(id)) {

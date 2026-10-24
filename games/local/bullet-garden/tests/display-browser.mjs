@@ -154,30 +154,8 @@ async function inspectTargets(session) {
   return controls.map(({ id, rect }) => ({ id, rect }));
 }
 
-async function fullscreen(session, enabled) {
-  const before = await snapshot(session);
-  await click(session, '#fullscreen');
-  await expect
-    .poll(() => session.page.evaluate(() => Boolean(globalThis.document.fullscreenElement)))
-    .toBe(enabled);
-  await expect(session.game.locator('#fullscreen')).toHaveAttribute(
-    'aria-pressed',
-    String(enabled),
-  );
-  await expect(session.game.locator('#fullscreen')).toHaveAccessibleName(
-    enabled ? '退出全屏' : '全屏',
-  );
-  await expect(session.game.locator('#fullscreen')).toBeEnabled();
-  await advance(session);
-  const after = await snapshot(session);
-  assert.equal(after.runId, before.runId, 'fullscreen preserves the active run');
-  assert.equal(after.phase, before.phase, 'fullscreen preserves the current screen');
-  if (enabled)
-    assert.equal(
-      await session.page.evaluate(() => globalThis.document.fullscreenElement.tagName),
-      session.embedded ? 'MAIN' : 'HTML',
-      'embedded fullscreen targets the containing display host',
-    );
+async function noFullscreen(session) {
+  await expect(session.game.locator('#fullscreen, [data-game-fullscreen]')).toHaveCount(0);
 }
 
 async function pauseAndResume(session) {
@@ -238,28 +216,24 @@ async function webCase({ width, height, touch, embedded }) {
   const label = `${embedded ? 'iframe' : 'standalone'}-${width}x${height}`;
   try {
     assert.equal((await snapshot(session)).phase, 'ready');
-    await fullscreen(session, true);
-    await fullscreen(session, false);
+    await noFullscreen(session);
+    await noFullscreen(session);
     await click(session, '#start');
     const firstRun = (await snapshot(session)).runId;
     assert.ok(firstRun);
     const initialTargets = await inspectTargets(session);
     await pauseAndResume(session);
-    await fullscreen(session, true);
-    const fullscreenTargets = await inspectTargets(session);
+    await noFullscreen(session);
+    const viewportTargets = await inspectTargets(session);
     await pauseAndResume(session);
     await session.page.screenshot({ path: `${output}/${label}-fullscreen.png` });
     await click(session, '#pause');
     const pausedTime = (await snapshot(session)).time;
-    await fullscreen(session, false);
+    await noFullscreen(session);
     assert.equal((await snapshot(session)).time, pausedTime, 'fullscreen exit keeps pause frozen');
     await click(session, '#resume');
     await inspectTargets(session);
-    await fullscreen(session, true);
-    // The browser exit event is the same path used by browser/system fullscreen UI.
-    await session.page.evaluate(() => globalThis.document.exitFullscreen());
-    await expect(session.game.locator('#fullscreen')).toHaveAttribute('aria-pressed', 'false');
-    await expect(session.game.locator('#fullscreen')).toHaveAccessibleName('全屏');
+    await noFullscreen(session);
     await advance(session);
     await inspectTargets(session);
     await pauseAndResume(session);
@@ -291,13 +265,13 @@ async function webCase({ width, height, touch, embedded }) {
       label,
       input: touch ? 'native tap' : 'native click',
       initialTargets,
-      fullscreenTargets,
+      viewportTargets,
       pointerChange,
-      browserExit: true,
+      noFullscreenControls: true,
       restartAndHome: true,
     });
     console.log(
-      `PASS ${label}: hit targets, fullscreen, pause/resume, browser exit, rotation and repeat start`,
+      `PASS ${label}: hit targets, no fullscreen controls, pause/resume, rotation and repeat start`,
     );
   } catch (error) {
     await session.page.screenshot({ path: `${output}/${label}-failure.png` });

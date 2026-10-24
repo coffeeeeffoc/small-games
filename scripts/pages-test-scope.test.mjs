@@ -1,5 +1,64 @@
 import assert from 'node:assert/strict';
 
+test('fullscreen retirement accepts only reviewed bytes and proven deletions with real consumers', async () => {
+  const { fullscreenRemovalReviews, fullscreenRemovalFileScopes, isFullscreenRemovalDeletion } =
+    await import('./fullscreen-removal-scope.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const catalog = await loadGameCatalog(root);
+  const packages = await workspacePackages(root);
+  const base = '171423331a4bdc0f8d45369b047dbc9e3d971b5c';
+  const context = {
+    ...catalog,
+    games: catalog.standaloneGames,
+    packages,
+    readBase: (file) =>
+      execFileSync('git', ['show', `${base}:${file}`], { cwd: root, encoding: 'utf8' }),
+    readHead: (file) => readFileSync(path.join(root, file), 'utf8'),
+    headHasPath: (file) => existsSync(path.join(root, file)),
+  };
+  for (const [file, [, after]] of Object.entries(fullscreenRemovalReviews)) {
+    const options = { ...context, changedPaths: [file] };
+    const scopes = fullscreenRemovalFileScopes(options);
+    assert(scopes.has(file), file);
+    assert(scopes.get(file).length > 0, `${file} retains actual consumers`);
+    assert.equal(
+      fullscreenRemovalFileScopes({
+        ...options,
+        readBase: (f) => context.readBase(f) + 'extra',
+      }).has(file),
+      false,
+    );
+    if (after === null) {
+      const change = { status: 'D', paths: [file] };
+      assert(isFullscreenRemovalDeletion({ ...context, change }), file);
+      assert.equal(
+        isFullscreenRemovalDeletion({ ...context, change, headHasPath: () => true }),
+        false,
+      );
+      assert.equal(
+        isFullscreenRemovalDeletion({
+          ...context,
+          change: { ...change, status: 'R100', paths: [file, file + '.moved'] },
+        }),
+        false,
+      );
+    } else {
+      assert.equal(
+        fullscreenRemovalFileScopes({
+          ...options,
+          readHead: (f) => context.readHead(f) + 'extra',
+        }).has(file),
+        false,
+      );
+    }
+  }
+  assert.equal(
+    fullscreenRemovalFileScopes({ ...context, changedPaths: ['scripts/unknown-fullscreen.mjs'] })
+      .size,
+    0,
+  );
+});
+
 test('Tetracube retired DOM entry and exact shared-script moves remain bounded to its game', async () => {
   const { isReviewedCleanupDeletion: deletion, isReviewedTetracubeMove: move } = await import(
     './pages-test-scope.mjs'
@@ -38,7 +97,7 @@ test('Tetracube retired DOM entry and exact shared-script moves remain bounded t
 });
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';

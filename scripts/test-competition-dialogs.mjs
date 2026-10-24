@@ -125,7 +125,7 @@ const server = createServer((request, response) => {
                     ? format
                     : request.url === '/fixture.js'
                       ? fixture
-                      : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${xiangqiPage ? ' data-screen="modes"' : ''}><button data-game-fullscreen>全屏</button>${xiangqiPage ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : lettersPage ? '<button id="friend-button" hidden style="min-height:44px;margin:24px">好友同题</button>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
+                      : `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body${xiangqiPage ? ' data-screen="modes"' : ''}>${xiangqiPage ? '<main class="page"><section data-screen="modes"><button id="mode-online" hidden style="min-height:48px;margin:24px"><strong>好友对弈</strong><small>邀请朋友一起玩</small></button></section></main>' : lettersPage ? '<button id="friend-button" hidden style="min-height:44px;margin:24px">好友同题</button>' : ''}<script type="module" src="/fixture.js"></script></body></html>`,
   );
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -400,7 +400,7 @@ try {
         await expect(page.locator('.page')).toBeHidden();
         await expect(page.locator('section[data-screen]')).toHaveJSProperty('inert', true);
       }
-      await expect(page.locator('body > [data-game-fullscreen]')).toHaveCount(1);
+      await expect(page.locator('body > [data-game-fullscreen]')).toHaveCount(0);
       await expect(exit).toBeInViewport();
       for (const selector of ['[data-rules]', '[data-profile]', '[data-board]']) {
         await press(dialog.locator(selector));

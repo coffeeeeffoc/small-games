@@ -31,10 +31,8 @@ test('default Web, H5 and native packages stay isolated and portable', async () 
     /\b(?:document|window|Blob|TextEncoder|OfflineAudioContext)\b|\bimport\s/,
   );
   assert.doesNotMatch(await read('dist-wechat/pages/lab/index.wxml'), /web-view|fullscreen/);
-  assert.equal(
-    await read('shared/browser/fullscreen.js'),
-    await read('../../../platforms/h5/fullscreen.js'),
-  );
+  assert.doesNotMatch(await read('dist/index.html'), /data-game-fullscreen|fullscreen\.js/);
+  assert.doesNotMatch(await read('dist-h5/index.html'), /data-game-fullscreen|fullscreen\.js/);
 });
 test('native bundle starts without browser globals and draws through the host', () => {
   const { page, saved, canvas } = nativeFixture((host) => {

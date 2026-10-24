@@ -15,7 +15,6 @@ export async function sourceHash(directory = fileURLToPath(root)) {
     'audio.mjs',
     'rewards.mjs',
     'publishing.js',
-    'fullscreen.js',
     'favicon.svg',
   ];
   for (const dir of ['assets', 'scripts', 'settings', 'art', 'src'])

@@ -17,7 +17,6 @@ for (const file of [
   'vendor',
   'favicon.svg',
   'dev-mode.js',
-  'fullscreen.js',
 ])
   await cp(new URL(file, import.meta.url), new URL(file, dist), { recursive: true });
 for (const file of ['publishing.js', 'platform-ads.js'])

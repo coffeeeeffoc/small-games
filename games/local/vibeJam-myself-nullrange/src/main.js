@@ -82,15 +82,6 @@ $('help-close').onclick = closeHelp;
 $('help-dialog').addEventListener('cancel', e => { e.preventDefault(); closeHelp(); });
 $('pause-dialog').addEventListener('cancel', e => { e.preventDefault(); resume(); });
 $('result-dialog').addEventListener('cancel', e => { e.preventDefault(); menu(); });
-$('fullscreen').hidden = !document.fullscreenEnabled;
-$('fullscreen').onclick = async () => {
-  try {
-    if (document.fullscreenElement) await document.exitFullscreen();
-    else { await document.documentElement.requestFullscreen(); if (screen.orientation?.lock) await screen.orientation.lock('landscape').catch(() => {}); }
-  } catch { game.notice = '当前浏览器不支持全屏，可横屏继续游戏'; game.noticeTime = 3; }
-  blurControl();
-};
-document.addEventListener('fullscreenchange', () => { $('fullscreen').setAttribute('aria-label', document.fullscreenElement ? '退出全屏' : '进入全屏'); input?.reset(); });
 addEventListener('blur', () => { if (game.mode === 'running') pause(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden && game.mode === 'running') pause(); });
 addEventListener('resize', () => input?.reset());

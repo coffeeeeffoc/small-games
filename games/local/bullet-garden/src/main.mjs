@@ -37,7 +37,6 @@ setupDisplay({
     resetInput();
     renderer.resize();
   },
-  onMessage: (text) => announce(text),
 });
 const renderer = new GardenRenderer(canvas);
 const audio = new GardenAudio();
@@ -766,7 +765,6 @@ window.addEventListener('keydown', (event) => {
         'section:not([hidden]) button, section:not([hidden]) select',
       ),
     ].filter((button) => !button.disabled);
-    if ($('fullscreen')) focusable.push($('fullscreen'));
     const first = focusable[0],
       last = focusable.at(-1);
     if (

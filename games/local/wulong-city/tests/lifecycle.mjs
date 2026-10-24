@@ -179,18 +179,18 @@ try {
   assert.equal((await snap()).sound, false);
   checks.push('Muted echo loop runs; switching to L02 removes echo activity and preserves mute');
   await page.locator('#pause').click();
-  await page.locator('#fullscreen').click();
-  assert(await page.evaluate(() => !!document.fullscreenElement));
+  assert.equal(await page.locator('#fullscreen').count(), 0);
+  assert.equal(await page.evaluate(() => !!document.fullscreenElement), false);
   await page.locator('[data-resume]').click();
   await page.keyboard.down('ArrowRight');
   await page.waitForFunction(() => window.__wulong.snapshot().state.p.x > 115);
   await page.keyboard.up('ArrowRight');
   await page.locator('#pause').click();
-  await page.locator('#fullscreen').click();
+  assert.equal(await page.locator('#fullscreen').count(), 0);
   assert.equal(await page.evaluate(() => !!document.fullscreenElement), false);
   await page.locator('[data-resume]').click();
   checks.push(
-    'Fullscreen controls on the pause page enter/exit; movement works during fullscreen play',
+    'Pause/resume works in the normal viewport without fullscreen controls',
   );
   const cd = await context.newCDPSession(page);
   let b = await page.locator('#right').boundingBox();

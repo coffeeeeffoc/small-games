@@ -130,7 +130,6 @@ export class Hud {
       progress.touchButtons,
       state.resultNewRecord,
       state.legacyLink,
-      state.fullscreen,
       state.rewardPending,
       state.rewardMessage,
       run.rewardProtectionUsed,
@@ -245,8 +244,6 @@ export class Hud {
               58,
             );
           }
-          if (state.canFullscreen)
-            this.button('fullscreen', state.fullscreen ? '退出全屏' : '进入全屏', 30, 472, 330, 58);
           this.button('back', '返回', 112, Math.max(552, h - 100), 166, 54, true);
           if (!progress.writable)
             this.text('save-note', '旧存档读取异常，本次可继续游玩', 195, h - 31, 12, '#e6d4b3');

@@ -284,14 +284,6 @@ export function App() {
             : '倒影里看见的门，未必能走过去。靠近表面按 E 核实；地面与门框始终可靠。',
         }[level.tutorial]
       : '';
-  async function fullscreen() {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await document.documentElement.requestFullscreen();
-    } catch {
-      notify('当前浏览器不支持此全屏请求，仍可在网页内继续探索。');
-    }
-  }
   return (
     <main id="maze-game" data-screen={screen} className={`game ${touch ? 'touch' : ''}`}>
       <canvas ref={canvas} className="world" aria-label="第一人称迷宫场景" />
@@ -340,7 +332,7 @@ export function App() {
                 启程 <span>→</span>
               </button>
               <button onClick={() => show('levels')}>旅行手记 · 选择关卡</button>
-              <button onClick={() => void fullscreen()}>切换全屏</button>
+              
               <button
                 className="quiet"
                 onClick={() => {
@@ -376,7 +368,7 @@ export function App() {
                 {rehearsal.current ? ' · 开发试玩' : ''}
               </span>
             </div>
-            <div className="hud-actions"><button className="icon-button" aria-label="切换全屏" onClick={() => void fullscreen()}>⛶</button>
+            <div className="hud-actions">
             <button id="pause" className="icon-button" aria-label="暂停" onClick={pause}>
               <PauseIcon />
             </button></div>

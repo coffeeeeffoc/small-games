@@ -435,18 +435,7 @@ try {
   await screen(desktopPage, 'home');
   await action(desktopPage, 'home:settings').click();
   await screen(desktopPage, 'settings');
-  const fullscreen = desktopPage.locator('[data-game-fullscreen]');
-  await expect(fullscreen).toHaveCount(1);
-  await fullscreen.click();
-  await expect
-    .poll(() => desktopPage.evaluate(() => Boolean(document.fullscreenElement)))
-    .toBe(true);
-  await expect(fullscreen).toHaveAttribute('aria-pressed', 'true');
-  await fullscreen.click();
-  await expect
-    .poll(() => desktopPage.evaluate(() => Boolean(document.fullscreenElement)))
-    .toBe(false);
-  await expect(fullscreen).toHaveAttribute('aria-pressed', 'false');
+  await expect(desktopPage.locator('[data-game-fullscreen]')).toHaveCount(0);
   await action(desktopPage, 'settings:sound').click();
   await expect.poll(async () => (await save(desktopPage)).sound).toBe(false);
   await action(desktopPage, 'nav:back').click();

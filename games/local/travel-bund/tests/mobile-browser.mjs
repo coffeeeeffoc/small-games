@@ -354,26 +354,13 @@ try {
     );
     await session.game.locator('#enter-world').tap();
     await expect(session.game.locator('main')).toHaveAttribute('data-phase', 'playing');
-    await expect
-      .poll(() => session.page.evaluate(() => document.fullscreenElement?.tagName))
-      .toBe('HTML');
-    const calls = await session.page.evaluate(() => window.fullscreenCalls);
-    assert.deepEqual(
-      calls,
-      [{ target: 'HTML', activeGesture: true }],
-      'Entry requests complete-game fullscreen synchronously from the start gesture',
-    );
+    assert.deepEqual(await session.page.evaluate(() => window.fullscreenCalls), []);
     await layout(session, viewport.height > viewport.width);
     await controlsInside(session, '.hud button, .hud-actions button, .joystick');
     await session.game.getByRole('button', { name: '暂停', exact: true }).tap();
     await panelInside(session);
-    assert.equal(
-      await session.game.getByRole('button', { name: /全屏/ }).count(),
-      1,
-      'Settings expose exactly one fullscreen control',
-    );
+    assert.equal(await session.game.getByRole('button', { name: /全屏/ }).count(), 0);
     const before = await state(session);
-    await session.game.getByRole('button', { name: '退出全屏', exact: true }).tap();
     await expect
       .poll(() => session.page.evaluate(() => Boolean(document.fullscreenElement)))
       .toBe(false);
@@ -442,12 +429,12 @@ try {
     await layout(session, true);
     await session.game.locator('#enter-world').tap();
     await expect(session.game.locator('main')).toHaveAttribute('data-phase', 'playing');
-    await expect(session.game.getByRole('status')).toContainText(/全屏/);
+    assert.equal(await session.game.getByRole('button', { name: /全屏/ }).count(), 0);
     assert.equal(await session.page.evaluate(() => Boolean(document.fullscreenElement)), false);
     const requestCount = await session.page.evaluate(() => window.fullscreenCalls.length);
     assert.equal(
       requestCount,
-      fullscreen === 'reject' ? 1 : 0,
+      0,
       'No asynchronous retry after Scene becomes ready',
     );
     await session.game.getByRole('button', { name: '暂停', exact: true }).tap();
@@ -494,10 +481,10 @@ try {
     const hostNav = session.page.locator('.standalone-page > nav');
     await expect(hostNav).toBeVisible();
     if (embedding === 'same-origin') {
-      await expect(iframe).toHaveAttribute('data-bund-game-display', 'true');
+      assert.equal(await iframe.getAttribute('data-bund-game-display'), null);
       assert.equal(
         await hostStyles(session),
-        1,
+        0,
         'The game scopes one immersion stylesheet to its owning same-origin host',
       );
     } else {
@@ -514,31 +501,12 @@ try {
     };
     await session.game.locator('#enter-world').tap();
     await expect(session.game.locator('main')).toHaveAttribute('data-phase', 'playing');
-    await expect
-      .poll(() => session.page.evaluate(() => document.fullscreenElement?.tagName))
-      .toBe(embedding === 'same-origin' ? 'MAIN' : 'IFRAME');
-    if (embedding === 'cross-origin') {
-      await expect(hostNav).toBeVisible();
-      assert.equal(
-        await session.game.evaluate(() => document.fullscreenElement?.tagName),
-        'HTML',
-        'Cross-origin iframe fullscreen includes every game control',
-      );
-    } else {
-      await expect(hostNav).not.toBeVisible();
-      assert.equal(
-        await session.page.evaluate(() =>
-          document.fullscreenElement.hasAttribute('data-game-display-host'),
-        ),
-        true,
-        "Same-origin shell fullscreens this iframe's complete display host",
-      );
-    }
+    assert.equal(await session.page.evaluate(() => document.fullscreenElement), null);
+    await expect(hostNav).toBeVisible();
     await controlsInside(session, '.hud button, .hud-actions button, .joystick');
     await session.game.getByRole('button', { name: '暂停', exact: true }).tap();
     await panelInside(session);
     const before = await state(session);
-    await session.game.getByRole('button', { name: '退出全屏', exact: true }).tap();
     await expect
       .poll(() => session.page.evaluate(() => Boolean(document.fullscreenElement)))
       .toBe(false);
@@ -576,7 +544,7 @@ try {
 
   const removed = await open({ embedding: 'same-origin' });
   const removedIframe = await removed.page.locator('iframe').elementHandle();
-  assert.equal(await hostStyles(removed), 1);
+  assert.equal(await hostStyles(removed), 0);
   await removedIframe.evaluate((element) => element.remove());
   await hostCleaned(removed, removedIframe);
   await expect(removed.page.getByRole('navigation', { name: '游戏导航' })).toBeVisible();
@@ -590,10 +558,7 @@ try {
   await modalFullscreen.game.getByRole('button', { name: '游览设置' }).tap();
   await panelInside(modalFullscreen);
   const beforeModalFullscreen = await state(modalFullscreen);
-  await modalFullscreen.game.getByRole('button', { name: '全屏', exact: true }).tap();
-  await expect
-    .poll(() => modalFullscreen.page.evaluate(() => document.fullscreenElement?.tagName))
-    .toBe('HTML');
+  assert.equal(await modalFullscreen.game.getByRole('button', { name: /全屏/ }).count(), 0);
   await panelInside(modalFullscreen);
   await controlsInside(modalFullscreen, '.settings-footer button, .panel .close');
   assert.deepEqual(
@@ -605,10 +570,7 @@ try {
   await expect(modalFullscreen.game.getByRole('dialog')).not.toBeVisible();
   await expect(modalFullscreen.game.locator('main')).toHaveAttribute('data-phase', 'intro');
   await modalFullscreen.game.getByRole('button', { name: '游览设置' }).tap();
-  await modalFullscreen.game.getByRole('button', { name: '退出全屏', exact: true }).tap();
-  await expect
-    .poll(() => modalFullscreen.page.evaluate(() => Boolean(document.fullscreenElement)))
-    .toBe(false);
+  assert.equal(await modalFullscreen.page.evaluate(() => document.fullscreenElement), null);
   await controlsInside(modalFullscreen, '.settings-footer button, .panel .close');
   await modalFullscreen.game.getByRole('button', { name: '返回首页', exact: true }).tap();
   await expect(modalFullscreen.game.getByRole('dialog')).not.toBeVisible();

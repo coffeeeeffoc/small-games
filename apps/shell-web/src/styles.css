@@ -282,9 +282,6 @@ select {
   height: 100%;
   min-height: 300px;
 }
-.game-slot > .office-fp:fullscreen {
-  height: 100dvh;
-}
 .standalone-page {
   height: 100dvh;
   display: flex;

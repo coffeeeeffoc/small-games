@@ -130,7 +130,6 @@ export class MergeFront extends Component {
   clips: Record<string, AudioClip> = {};
   unregister: (() => void)[] = [];
   accessibility?: HTMLDivElement;
-  fullscreen?: HTMLButtonElement;
   accessibilityKey = '';
   inputCount = 0;
   start() {
@@ -186,11 +185,6 @@ export class MergeFront extends Component {
       this.accessibility.style.cssText =
         'position:fixed;left:-10000px;width:1px;height:1px;overflow:hidden';
       document.body.append(this.accessibility);
-      this.fullscreen = document.createElement('button');
-      this.fullscreen.dataset.gameFullscreen = '';
-      this.fullscreen.tabIndex = -1;
-      this.fullscreen.style.cssText = 'position:fixed;left:-10000px';
-      document.body.append(this.fullscreen);
       platform.__mergeFront = { snapshot: () => this.inspect() };
     }
     if (platform.SmallGamesDev) {
@@ -513,8 +507,7 @@ export class MergeFront extends Component {
     } else if (id === 'vibration') {
       this.progress.vibration = !this.progress.vibration;
       this.save();
-    } else if (id === 'fullscreen') this.fullscreen?.click();
-    else if (id === 'reward') void this.reward();
+    } else if (id === 'reward') void this.reward();
     else if (id === 'reward-close') {
       this.rewards?.cancel();
       this.provider()?.cancel?.();
@@ -1498,7 +1491,6 @@ export class MergeFront extends Component {
       78,
     );
     u.button('motion', '减弱动态  ' + (this.reducedMotion ? '开启' : '关闭'), 270, 332, 420, 70);
-    if (sys.isBrowser) u.button('fullscreen', '全屏', 25, 350, 160, 78);
     if (
       this.returnScreen === 'paused' &&
       this.provider()?.available !== false &&
@@ -1676,7 +1668,6 @@ export class MergeFront extends Component {
     }
     for (const key of Object.keys(this.clips)) resources.release('audio/' + key, AudioClip);
     this.accessibility?.remove();
-    this.fullscreen?.remove();
     this.ui?.dispose();
   }
 }

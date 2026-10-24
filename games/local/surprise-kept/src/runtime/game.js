@@ -108,10 +108,6 @@ export class SurpriseGame {
         this.persist();
         return;
       }
-      if (button.id === 'fullscreen') {
-        this.fullscreen();
-        return;
-      }
       if (button.id === 'level-menu') {
         this.levelMenu();
         return;
@@ -288,16 +284,6 @@ export class SurpriseGame {
       '惊喜先等一等',
       `<p>${this.challenge ? '同关试玩，不改自己的安排与完成记录。' : '没有倒计时，慢慢安排就好。'}</p>${this.challenge ? '<button class="secondary" data-action="own-progress">返回自己的安排</button>' : ''}<button class="primary" data-action="close" id="resume">继续安排</button><button class="secondary" data-action="restart">重新开始本关</button><button class="secondary" data-action="levels">返回选关</button>`,
     );
-  }
-  async fullscreen() {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else if (document.documentElement.requestFullscreen)
-        await document.documentElement.requestFullscreen();
-      else this.view.feedback('此浏览器不支持全屏，可用浏览器菜单添加到主屏幕。');
-    } catch {
-      this.view.feedback('浏览器暂未允许全屏，当前画面可继续游玩。');
-    }
   }
   objectives() {
     this.modal(

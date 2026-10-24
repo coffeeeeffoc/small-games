@@ -58,7 +58,7 @@ try {
   await page.goto(origin);
   await page.waitForFunction(() => overrides['screen.orientation'] === 'landscape');
   assert.equal(await page.evaluate(() => overrides['screen.exactFitScreen']), true);
-  await expect(page.locator('#kart-fullscreen')).toBeHidden();
+  await expect(page.locator('#kart-fullscreen')).toHaveCount(0);
   await expect(page.locator('#kart-rotate')).toHaveCount(0);
   const loading = page.locator('#kart-loading');
   for (const viewport of [{ width: 390, height: 844 }, { width: 305, height: 667 }, { width: 844, height: 390 }]) {
@@ -86,27 +86,10 @@ try {
   await page.keyboard.press('Tab');
   await page.keyboard.press('Enter');
   assert.deepEqual(await page.evaluate(() => invoked), ['pause', 'settings']);
-  // A real user click invokes the same bridge used by the canvas settings menu.
-  await page.evaluate(() => {
-    const trigger = document.createElement('button');
-    trigger.id = 'test-fullscreen'; trigger.textContent = 'Test fullscreen';
-    trigger.addEventListener('click', () => KartDisplay.toggleFullscreen());
-    document.body.append(trigger);
-  });
-  await page.locator('#test-fullscreen').click();
-  await expect.poll(() => page.evaluate(() => KartDisplay.getFullscreen())).toBe(true);
-  assert.equal(await page.evaluate(() => document.fullscreenElement?.tagName), 'HTML');
-  assert.ok((await page.evaluate(() => orientationRequests)).length >= 2);
-  await page.evaluate(() => document.exitFullscreen());
-  await expect.poll(() => page.evaluate(() => KartDisplay.getFullscreen())).toBe(false);
-  await page.evaluate(() => {
-    document.documentElement.requestFullscreen = () => Promise.reject(new Error('denied'));
-  });
-  await page.locator('#test-fullscreen').click();
-  await expect(page.locator('#game-display-notice')).toContainText('未允许全屏');
-  assert.equal(await page.evaluate(() => KartDisplay.getFullscreen()), false);
+  assert.equal(await page.evaluate(() => 'toggleFullscreen' in KartDisplay), false);
+  assert.ok((await page.evaluate(() => orientationRequests)).length >= 1);
   assert.deepEqual(errors, []);
-  console.log('PASS: rotated loading at 305/390px, landscape lifecycle configuration, touch retry, accessible controls, HUD fullscreen bridge, external exit and denied orientation/fullscreen fallback');
+  console.log('PASS: rotated loading at 305/390px, landscape lifecycle configuration, touch retry, accessible controls, no fullscreen bridge and denied orientation fallback');
 } finally {
   await browser?.close();
   if (server) await new Promise(resolve => server.close(resolve));

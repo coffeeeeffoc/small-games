@@ -130,8 +130,6 @@ export function startApplication() {
         : saved?.levelId === id
           ? saved
           : null,
-    onFullscreen: () => display.toggleFullscreen(),
-    isFullscreen: () => display.isFullscreen(),
     isMiniGame: () => display.miniGame,
   });
   function notifyHost(screen) {
@@ -238,7 +236,6 @@ export function startApplication() {
   bindPress('#new-game', () => dialogs.askRestart());
   bindPress('#choose-chapter', () => dialogs.showChapters());
   bindPress('#home-help', () => dialogs.showHelp());
-  bindPress('#home-fullscreen', () => display.toggleFullscreen());
   bindPress('#reward', () => dialogs.showRewards());
   bindPress('#pause', () => dialogs.showPause());
   bindPress('#help', () => dialogs.showHelp());
@@ -350,7 +347,6 @@ export function startApplication() {
     .forEach((element) => (element.innerHTML = icon(element.dataset.icon)));
   $('#cover-art').innerHTML = renderVignette('attack');
   updateCover();
-  display.syncFullscreen();
   hud.soundButton();
   updateHUD();
   renderer.render(state, { time: 0 });

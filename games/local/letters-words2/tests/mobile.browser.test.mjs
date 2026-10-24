@@ -115,7 +115,7 @@ try {
     await screenshot(page, 'library', viewport);
     await goHome(page);
     await openSettings(page);
-    assert.equal(await page.locator('[data-game-fullscreen]').count(), 1, 'one H5 fullscreen entry');
+    assert.equal(await page.locator('[data-game-fullscreen]').count(), 0, 'no H5 fullscreen entry');
     await screenshot(page, 'settings', viewport);
     await goHome(page);
     await continueGame(page);

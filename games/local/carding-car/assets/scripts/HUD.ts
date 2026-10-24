@@ -65,7 +65,6 @@ export class HUD {
   settingsVisible = false;
   settings: Node;
   settingsHelp: Label;
-  fullscreen: Label;
   private soundSwitch: Graphics;
   private helpSwitch: Graphics;
   private helpState: Label;
@@ -231,12 +230,6 @@ export class HUD {
     this.sound = this.label(soundRow.row, '', 92, settingsLayout.sound.y, 13, '#947b61', 38, 30);
     this.sound.isBold = false;
     this.soundSwitch = this.graphics(soundRow.row, 'SoundSwitch');
-    const fullscreenRow = option(settingsLayout.fullscreen, '全屏显示', 'display');
-    const fullscreenAction = this.box(fullscreenRow.row, 136, settingsLayout.fullscreen.y, 76, 32, '#f6ebd8');
-    fullscreenAction.strokeColor = color('#ddc9aa'); fullscreenAction.lineWidth = 1;
-    fullscreenAction.roundRect(98, settingsLayout.fullscreen.y - 16, 76, 32, 14); fullscreenAction.stroke();
-    this.fullscreen = this.label(fullscreenRow.row, '', 136, settingsLayout.fullscreen.y, 14, '#704d35', 74, 32);
-    this.fullscreen.isBold = false;
     const helpRow = option(settingsLayout.help, '驾驶教学', 'wheel');
     this.help = helpRow.caption;
     this.helpState = this.label(helpRow.row, '', 92, settingsLayout.help.y, 13, '#947b61', 38, 30);
@@ -360,9 +353,6 @@ export class HUD {
     this.nitro.string = k.nitroCooldown > 0 ? `${k.nitroCooldown.toFixed(1)}s` : '氮气';
     this.racingHUD.active = r.phase === 'racing' || r.phase === 'countdown';
     this.settings.active = this.settingsVisible;
-    const display = (globalThis as typeof globalThis & { KartDisplay?: { getFullscreen(): boolean } }).KartDisplay;
-    this.fullscreen.string = display?.getFullscreen() ? '退出' : '开启';
-    this.fullscreen.node.parent!.active = sys.isBrowser;
     this.settingsHelp.string = r.networked
       ? this.rulesVisible ? '完成 3 圈比用时 · 首车冲线后 60 秒截止\n好友房间中不会暂停比赛' : '设置已自动保存'
       : this.coach.enabled

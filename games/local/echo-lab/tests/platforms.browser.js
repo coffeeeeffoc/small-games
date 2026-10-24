@@ -46,17 +46,7 @@ try {
         `${target} ${width} overflow`,
       );
       assert.equal(await page.evaluate(() => SmallGamesDev.isEnabled()), false);
-      const fullscreen = page.locator('[data-game-fullscreen]');
-      assert.equal(await fullscreen.count(), 1);
-      const bounds = await fullscreen.boundingBox();
-      assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width + 1);
-      if (width < 1000) await fullscreen.tap();
-      else await fullscreen.click();
-      await page.waitForTimeout(100);
-      if (await page.evaluate(() => Boolean(document.fullscreenElement))) {
-        await fullscreen.click();
-        await page.waitForFunction(() => !document.fullscreenElement);
-      }
+      assert.equal(await page.locator('[data-game-fullscreen]').count(), 0);
       await page.locator('#addAbsorber').scrollIntoViewIfNeeded();
       if (width < 1000) await page.locator('#addAbsorber').tap();
       else await page.locator('#addAbsorber').click();
@@ -74,7 +64,7 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(
-    `PASS: Web/H5 production packages at 320, 390 and 1280 px; touch, persistence, fullscreen, explicit dev switches. Screenshots: ${output}`,
+    `PASS: Web/H5 production packages at 320, 390 and 1280 px; touch, persistence, no fullscreen controls, explicit dev switches. Screenshots: ${output}`,
   );
 } finally {
   await browser.close();

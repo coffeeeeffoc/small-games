@@ -30,7 +30,6 @@ export type MossTarget = CanvasGameTarget & {
   dev?: boolean;
   onView?(view: View, hits: HitArea[]): void;
   onAction?(listener: (id: string) => void): () => void;
-  fullscreen?(): Promise<void>;
   feedback?(kind: 'place' | 'mark' | 'win', sound: boolean, vibration: boolean): void;
 };
 
@@ -392,11 +391,6 @@ export async function createMossGame(target: MossTarget, host: GameHost) {
     } else if (id === 'settings:vibration') {
       save = { ...save, vibration: !save.vibration };
       checkpoint();
-    } else if (id === 'settings:fullscreen' && !target.native) {
-      void target.fullscreen?.().catch(() => {
-        notice = '当前环境不支持全屏，可继续游玩';
-        draw();
-      });
     } else if (id === 'dev:solve' && target.dev && page === 'play') {
       practice = true;
       const answer = solve(level, 1)[0];

@@ -260,8 +260,7 @@ export class ChaseGame {
       this.progress[k] = !this.progress[k];
       this.persist();
       this.hud.key = '';
-    } else if (id === 'fullscreen') this.fullscreen();
-    else if (['left', 'right', 'jump', 'slide'].includes(id)) this.action(id);
+    } else if (['left', 'right', 'jump', 'slide'].includes(id)) this.action(id);
   }
   action(action: string) {
     if (this.screen === 'running' && act(this.run, action as any)) {
@@ -302,11 +301,6 @@ export class ChaseGame {
     pauseRun(this.run);
     this.sound.stop();
     this.show('paused');
-  }
-  fullscreen() {
-    const d = host.document;
-    if (!d) return;
-    d.querySelector('[data-game-fullscreen]')?.click();
   }
   installInput() {
     const bind = (type: any, fn: any) => {
@@ -454,8 +448,6 @@ export class ChaseGame {
       rewardPending: this.rewardPending,
       rewardMessage: this.rewardMessage,
       legacyLink: this.legacyLink,
-      fullscreen: !!host.document?.fullscreenElement,
-      canFullscreen: !!host.document?.documentElement?.requestFullscreen,
     });
     if (host.document) {
       const b = host.document.body;

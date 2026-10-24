@@ -395,17 +395,7 @@ try {
     await tap(page, 'pause');
     await shot(page, 'viewport-' + viewport.width + 'x' + viewport.height);
     await tap(page, 'settings');
-    if (viewport.width === 844) {
-      await tap(page, 'fullscreen');
-      await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
-      await tap(page, 'fullscreen');
-      await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
-      await page.evaluate(() => {
-        Element.prototype.requestFullscreen = () => Promise.reject(new Error('Fixture denial'));
-      });
-      await tap(page, 'fullscreen');
-      evidence.push({ case: 'fullscreen-enter-exit-denial', result: 'passed' });
-    }
+    assert.equal((await state(page)).buttons.some(b => /fullscreen|全屏/.test(b.id + b.label)), false);
     await tap(page, 'back');
     await tap(page, 'home');
     evidence.push({ case: 'orientation-touch', viewport, result: 'passed' });

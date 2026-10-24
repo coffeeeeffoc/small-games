@@ -654,10 +654,7 @@ try {
         Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
         document.dispatchEvent(new Event('visibilitychange'));
       });
-      await page.locator('[data-game-fullscreen]').tap();
-      await expect(page.locator('[data-game-fullscreen]')).toHaveAttribute('aria-pressed', 'true');
-      await page.locator('[data-game-fullscreen]').tap();
-      await expect(page.locator('[data-game-fullscreen]')).toHaveAttribute('aria-pressed', 'false');
+      await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
       assert.equal((await snapshot(page)).time, at);
       await page.locator('#resume').tap();
       await advance(page, 600);
@@ -682,13 +679,12 @@ try {
       await advance(denied, 100);
       await expect(denied.locator('#notice')).toContainText('存档暂时不可用');
       await denied.locator('#pause').tap();
-      await denied.locator('[data-game-fullscreen]').tap();
-      await expect(denied.locator('#game-display-notice')).toBeVisible();
+      await expect(denied.locator('[data-game-fullscreen]')).toHaveCount(0);
       await denied.locator('#resume').tap();
       assert.equal((await snapshot(denied)).screen, 'battle');
       return {
         background: 'simulated visibility event',
-        fullscreen: 'entered/exited actual browser fullscreen; refusal injected',
+        fullscreen: 'no fullscreen controls or automatic entry',
         storage: 'SecurityError getter; play continued',
       };
     },

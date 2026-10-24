@@ -937,9 +937,6 @@ h1 span:last-child {
     width: min(480px, calc((100dvh - 26px) * 0.57));
   }
 }
-:fullscreen {
-  background: #ead3b2;
-}
 body[data-phase='replaying'] #game,
 body[data-phase='revealing'] #game {
   cursor: progress;

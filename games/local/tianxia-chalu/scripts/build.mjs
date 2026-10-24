@@ -86,7 +86,6 @@ for (const file of [
   'audio.mjs',
   'rewards.mjs',
   'publishing.js',
-  'fullscreen.js',
   'favicon.svg',
   'art',
   'src',

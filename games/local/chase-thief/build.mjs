@@ -10,7 +10,7 @@ if (engine.length < 1_000_000 || !provenance)
   throw new Error('Pinned Cocos engine missing. Run build:engine.');
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
-for (const name of ['index.html', 'style.css', 'bootstrap.mjs', 'dev-mode.js', 'fullscreen.js'])
+for (const name of ['index.html', 'style.css', 'bootstrap.mjs', 'dev-mode.js'])
   await cp(new URL(name, root), new URL(name, output));
 await cp(new URL('vendor/', root), new URL('vendor/', output), { recursive: true });
 await cp(new URL('assets/resources/art/', root), new URL('art/', output), { recursive: true });
