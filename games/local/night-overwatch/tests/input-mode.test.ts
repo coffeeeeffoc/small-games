@@ -73,9 +73,11 @@ test('offset aim survives slow microdrags, release-only displacement, taps and c
   g.touchEnd(touch(1, 370, 260));
   assert.deepEqual(g.sim.aim, { x: 30, z: 40 });
   g.touchStart(touch(2, 200, 200)); g.touchEnd(touch(2, 200, 200));
-  assert.deepEqual(g.sim.aim, { x: 30, z: 40 });
+  assert.deepEqual(g.sim.aim, { x: 200, z: 200 }, 'a tap moves the ordinary reticle without firing');
   g.touchStart(touch(3, 200, 200)); g.touchCancel(touch(3)); g.touchEnd(touch(3, 700, 200));
-  assert.deepEqual(g.sim.aim, { x: 30, z: 40 }); assert.equal(g.sim.fired, 0);
+  assert.deepEqual(g.sim.aim, { x: 200, z: 200 }); assert.equal(g.sim.fired, 0);
+  g.touchStart(touch(4, 300, 200)); g.touchEnd(touch(4, 370, 260));
+  assert.deepEqual(g.sim.aim, { x: 200, z: 200 }, 'release-only displacement is not a tap');
   g.platform.dispose();
 });
 
@@ -197,7 +199,7 @@ test('supply completion earns one choice, ammo grants two once, and inventory ne
     g.finishReward(true);
     assert.equal(g.sim.homingAmmo, 0); assert(g.platform.rewards.pendingSupply);
     assert(!g.sim.pauses.has('advert'));
-    g.action('supplyLater'); assert.equal(g.sim.resumeCountdown, 3);
+    g.action('supplyLater'); assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused); assert.equal(g.hud.toast, '');
     for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
     assert(!g.sim.paused); assert(g.platform.rewards.pendingSupply);
     await g.requestReward('zoom');
@@ -258,7 +260,7 @@ test('timed buffs block supply and zoom providers; cancellation never grants and
   try {
     const request = g.requestReward('supply'); g.action('adCancel'); g.action('adClose'); await request;
     assert(!g.platform.rewards.pendingSupply); assert(g.sim.pauses.has('manual'));
-    g.action('resume'); assert.equal(g.sim.resumeCountdown, 3);
+    g.action('resume'); assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused);
     for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
     const next = g.requestReward('supply'); g.action('close'); await next;
     assert(!g.platform.rewards.pendingSupply, 'Escape cancels without granting a reward');
@@ -277,7 +279,7 @@ test('completed entitlement survives close, home, reload and background; repeate
     await g.requestReward('zoom'); assert.equal(calls, 1);
     g.hide(); complete({ status: 'completed' }); complete({ status: 'completed' }); await request;
     assert(g.platform.rewards.pendingSupply); assert(g.sim.paused);
-    g.show(); assert(g.sim.paused); g.action('supplyLater'); g.action('pause'); g.action('home');
+    g.show(); assert(g.sim.paused); g.action('supplyLater'); g.action('pause'); g.action('home'); g.action('exitConfirm');
     assert(g.platform.rewards.pendingSupply);
     const restored = mission(); restored.hud.t = (zh: string) => zh;
     assert(restored.platform.rewards.pendingSupply);
@@ -479,13 +481,17 @@ test('actual task choices update public entry URLs without carrying private fiel
 test('returning home aborts a live mission, clears input and starts the next map cleanly', () => {
   const g = mission(); g.sim.choose(2); g.sim.setFire('mouse', true); g.keys.add(32);
   g.sim.pause('manual', true); g.action('home');
+  assert.equal(g.sim.phase, 'playing'); assert(g.hud.exitConfirm); assert(g.sim.paused);
+  const original = g.sim; g.action('exitCancel');
+  assert.equal(g.sim, original); assert(!g.sim.paused); assert(!g.hud.exitConfirm);
+  g.action('home'); g.action('exitConfirm');
   assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.time, 0);
   assert.equal(g.sim.pauses.size, 0); assert.equal(g.keys.size, 0); assert.equal(g.sim.shots.length, 0);
   g.action('mission:ambush-02');
   assert.equal(g.sim.mission.map, 'highland'); assert.equal(g.world.map, 'highland');
   assert.equal(g.sim.phase, 'briefing');
   g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 6);
-  g.action('home'); assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.fired, 0);
+  g.action('home'); g.action('exitConfirm'); assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.fired, 0);
 });
 
 test('operation lock applies to ordinary menu/URL, developer practice stays isolated, and denied storage keeps progression', () => {
@@ -568,7 +574,7 @@ test('failed support ads return to the choice with no award; skip resumes battle
       await new Promise(resolve => setImmediate(resolve));
       assert(g.hud.supplyOpen); assert(g.hud.supplyMessage.includes('未获得奖励'));
       assert.equal(g.hud.supplySelection, 'ammo'); assert.equal(g.sim.homingAmmo, 0); assert(!g.platform.rewards.pendingSupply);
-      g.action('supplyLater'); assert.equal(g.sim.resumeCountdown, 3); assert.equal(offers, 1);
+      g.action('supplyLater'); assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused); assert.equal(g.hud.toast, ''); assert.equal(offers, 1);
     } finally { g.platform.dispose(); }
   }
 });
@@ -604,4 +610,53 @@ test('deferred support waits for every system pause and never consumes credit af
       g.pause('focus', false); assert.equal(g.sim.buff?.remaining, action === 'restore' ? 60 : undefined);
     } finally { g.platform.dispose(); }
   }
+});
+
+
+test('settings controls stay paused, subpages return to settings, and system pauses remain authoritative', () => {
+  const g = mission(); g.hud.t = (zh: string) => zh;
+  g.world.zoom = 1; g.world.adjustZoom = (factor: number) => { g.world.zoom *= factor; };
+  g.world.sensor = () => { g.world.thermal = !g.world.thermal; };
+  g.action('settings'); assert(g.sim.pauses.has('settings')); assert.equal(g.sim.held.size, 0);
+  g.action('flightControls'); assert(g.hud.toolsOpen);
+  g.action('sensor'); assert(g.world.thermal); assert(g.sim.paused);
+  g.action('close'); assert(!g.hud.toolsOpen); assert(g.sim.paused);
+  g.action('zoomControls'); g.action('lensIn'); assert.equal(g.world.zoom, 1.2); assert(g.sim.paused);
+  g.action('close'); assert(!g.hud.zoomOpen); assert(g.sim.paused);
+  g.action('convoy'); assert.equal(g.sim.convoy, 'holdRequested');
+  g.hide(); g.action('convoy'); assert.equal(g.sim.convoy, 'holdRequested');
+  g.action('resume'); assert(g.sim.pauses.has('background')); assert(!g.sim.pauses.has('settings'));
+  g.show(); assert(!g.sim.paused); g.platform.dispose();
+});
+
+test('muting through settings stops every voice, persists the choice and blocks new sound', () => {
+  const g = mission(), p = g.platform, saved = new Map<string, string>(), previous = cc.sys.localStorage;
+  cc.sys.localStorage = { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } as any;
+  try {
+    p.activate(); p.speak('priority', 'zh'); p.play('rapid'); p.ambience(true);
+    g.action('sound'); assert(p.muted); assert(g.hud.muted); assert(!p.radio.playing);
+    assert([...p.voices.values()].every((source: any) => !source.playing));
+    p.speak('day', 'zh'); p.play('rapid'); p.ambience(true);
+    assert(!p.radio.playing); assert(!p.engine.playing); assert([...p.voices.values()].every((source: any) => !source.playing));
+    assert.equal(saved.get('night-overwatch-muted'), 'true');
+    g.action('sound'); assert(!p.muted); assert(!g.hud.muted); p.play('rapid'); assert(p.voices.get('rapid').playing);
+  } finally { cc.sys.localStorage = previous; p.dispose(); }
+});
+
+test('skipping support keeps background frozen without reintroducing a countdown', () => {
+  const g = mission(); g.hud.t = (zh: string) => zh; g.platform.rewards.pendingSupply = true;
+  g.action('settings'); g.action('supply'); g.hide(); g.action('supplyLater');
+  assert.equal(g.sim.resumeCountdown, 0); assert(g.sim.pauses.has('background')); assert(g.platform.rewards.pendingSupply);
+  g.show(); assert(!g.sim.paused); assert.equal(g.sim.resumeCountdown, 0); g.platform.dispose();
+});
+
+test('priority action moves both view and reticle, clears firing and stays inert while paused', () => {
+  const g = mission(), target = g.sim.units.find((u: any) => !u.friendly);
+  Object.assign(target, { x: g.sim.rescue.x + 5, z: g.sim.rescue.z, born: -30, attack: 3 });
+  const threat = g.sim.priorityThreat; assert(threat);
+  g.sim.setFire('touch:1', true); g.action('priority');
+  assert.equal(g.world.follow, false); assert.equal(g.world.center.x, threat.unit.x); assert.equal(g.world.center.z, threat.unit.z);
+  assert.equal(g.sim.aim.x, threat.unit.x); assert.equal(g.sim.aim.z, threat.unit.z); assert.equal(g.sim.held.size, 0);
+  g.action('settings'); const aim = { ...g.sim.aim }; target.x += 4; g.action('priority'); assert.deepEqual(g.sim.aim, aim);
+  g.platform.dispose();
 });

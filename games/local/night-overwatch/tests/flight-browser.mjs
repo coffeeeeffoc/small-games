@@ -241,25 +241,46 @@ export function assertKillAccounting(s) {
 
 export async function press(page, id, touch = false, expand = true) {
   let s = await snapshot(page);
-  if (!s.buttons.some((b) => b.id === id) && expand) {
-    const drawer = id === 'training' || id.startsWith('mission:') ? 'missions' : 'flightControls';
-    if (s.buttons.some((b) => b.id === drawer)) {
-      await press(page, drawer, touch, false);
-      s = await snapshot(page);
-    }
+  if (id === 'pause') id = 'settings';
+  if (id === 'resume' && s.modal === 'settings') id = 'close';
+  if (id === 'flightControls' && s.modal === 'settings:flight') id = 'resume';
+  if (id === 'zoomControls' && s.modal === 'settings:zoom') id = 'resume';
+  if (!s.modal && ['flightControls', 'zoomControls'].includes(id)) {
+    await press(page, 'settings', touch, false); s = await snapshot(page);
   }
-  const b = s.buttons.find((b) => b.id === id);
-  assert(b, `Visible button ${id}; actual: ${s.buttons.map((b) => b.id).join(', ')}`);
-  const q = center(b);
+  if (s.modal.startsWith('settings') && /^(weapon[012]|fire)$/.test(id)) {
+    await press(page, 'resume', touch, false); s = await snapshot(page);
+  }
+  if (!s.buttons.some(b => b.id === id) && expand) {
+    if (id === 'training' || id.startsWith('mission:')) await press(page, 'missions', touch, false);
+    else {
+      if (!s.modal) await press(page, 'settings', touch, false);
+      s = await snapshot(page);
+      if (!s.buttons.some(b => b.id === id)) {
+        const drawer = ['lensIn', 'lensOut', 'zoomUpgrade'].includes(id) ? 'zoomControls' : 'flightControls';
+        await press(page, drawer, touch, false);
+      }
+    }
+    s = await snapshot(page);
+  }
+  const b = s.buttons.find(b => b.id === id);
+  assert(b, `Visible button ${id}; actual: ${s.buttons.map(b => b.id).join(', ')}`);
+  const q = await page.evaluate(b => {
+    const r = document.querySelector('canvas').getBoundingClientRect(), s = __night.snapshot();
+    const x = b.x + b.w / 2, y = b.y + b.h / 2;
+    return r.height > r.width && s.ui.width > s.ui.height
+      ? { x: r.right - y / s.ui.height * r.width, y: r.top + x / s.ui.width * r.height }
+      : { x: r.left + x / s.ui.width * r.width, y: r.top + y / s.ui.height * r.height };
+  }, b);
   if (touch) await page.touchscreen.tap(q.x, q.y);
   else await page.mouse.click(q.x, q.y);
-  await page.waitForTimeout(85);
+  await page.waitForTimeout(100);
 }
 
 export async function navigateMap(page, target, touch = false) {
   let before = await snapshot(page);
-  if (before.buttons.some((b) => b.id === 'zoomOut')) {
-    await press(page, 'flightControls', touch, false);
+  if (before.modal.startsWith('settings') || before.modal === 'pause') {
+    await press(page, 'resume', touch, false);
     before = await snapshot(page);
   }
   const map = before.ui.minimap;
@@ -739,7 +760,7 @@ export async function missionReplay(
         }
       }
     }
-    if (s.convoy === 'holding') await press(page, 'convoy', touch);
+    if (s.convoy === 'holding') { await press(page, 'convoy', touch); await press(page, 'resume', touch); }
     await page.waitForTimeout(100);
   }
   throw Error('Real-input mission replay timed out');
@@ -946,6 +967,7 @@ async function run() {
           landmarks,
         );
         await press(page, id, touch);
+        await press(page, 'resume', touch);
         await page.waitForTimeout(
           id.startsWith('altitude') || id.startsWith('radius') ? 1000 : 200,
         );
@@ -991,7 +1013,6 @@ async function run() {
           );
         }
       }
-      await press(page, 'flightControls', touch, false);
       check(
         'rotation, both orbit directions, altitude and radius; panel input isolation and layout',
       );
@@ -1105,7 +1126,7 @@ async function run() {
       if (touch) {
         const pauseFinger = {
           id: 91,
-          ...center((await snapshot(page)).buttons.find((b) => b.id === 'pause')),
+          ...center((await snapshot(page)).buttons.find((b) => b.id === 'settings')),
         };
         await cdp.send('Input.dispatchTouchEvent', {
           type: 'touchStart',
@@ -1117,7 +1138,7 @@ async function run() {
         await page.keyboard.press('p');
         await page.keyboard.up('Space');
       }
-      await page.waitForFunction(() => __night.snapshot().pauses.includes('manual'));
+      await page.waitForFunction(() => __night.snapshot().pauses.includes('settings'));
       const frozen = await snapshot(page);
       assert(
         frozen.shots.some((p) => p.id === shot.id),
@@ -1130,13 +1151,11 @@ async function run() {
       for (const key of ['time', 'aircraft', 'camera', 'shotPositions', 'shots', 'fired'])
         assert.deepEqual(still[key], frozen[key], `Pause freezes ${key}`);
       assert.deepEqual(still.held, []);
-      await press(page, 'settings', touch);
       await press(page, 'help', touch);
       assertLayout(await snapshot(page), width, height);
       await press(page, 'close', touch);
-      assert((await snapshot(page)).pauses.includes('manual'), 'Closing help retains manual pause');
+      assert((await snapshot(page)).pauses.includes('settings'), 'Closing help retains settings pause');
       await press(page, 'close', touch);
-      await press(page, 'resume', touch, false);
       await page.waitForTimeout(220);
       const resumed = await snapshot(page);
       assert(resumed.time > frozen.time);

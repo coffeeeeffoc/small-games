@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { acceptanceBuild, snapshot, press, aimAt, navigateMap, waitForImpact } from './flight-browser.mjs';
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const dir = fileURLToPath(new URL('../reports/2026-10-24-sync/', import.meta.url));
+const dir = fileURLToPath(new URL('../reports/2026-10-24-compact-hud/extraction/', import.meta.url));
 const mode = process.env.NIGHT_EXTRACTION_PAUSE ? 'pause' : 'normal';
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true });
@@ -58,7 +58,7 @@ try {
   assert.equal((await snapshot(page)).fired, clear.fired, 'keyboard, mouse and touch cannot fire during extraction');
   await page.screenshot({ path: `${dir}/${mode}-extracting-844.png` });
   if (mode === 'pause') {
-    await page.waitForFunction(() => __night.snapshot().pauses.includes('manual')); await page.waitForTimeout(120);
+    await page.waitForFunction(() => __night.snapshot().pauses.includes('settings')); await page.waitForTimeout(120);
     const paused = await snapshot(page); assert(!paused.radioPlaying); assert(paused.radioPending);
     await page.waitForTimeout(800); const held = await snapshot(page);
     assert.equal(held.time, paused.time); assert(Math.abs(held.radioTime - paused.radioTime) < .08);

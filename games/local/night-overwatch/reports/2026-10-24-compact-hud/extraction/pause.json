@@ -1,0 +1,944 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "36ce939bea942b477c4808f586eb863f1cae59a3ff1bc10b3f9b4a6b0eb35d47"
+  },
+  "phase": "success",
+  "kills": 4,
+  "time": 45.68333333333202,
+  "clearTime": 40.6833333333323,
+  "extractionSeconds": 4.999999999999723,
+  "wallSeconds": 7.841,
+  "fired": 19,
+  "friendlyDamage": 0,
+  "resumedHold": true,
+  "retry": true,
+  "radioDuration": 4.752608,
+  "lastAudible": 4.73239999999106,
+  "accelerated": {
+    "id": 56,
+    "weapon": 1,
+    "x": 130.81250682601288,
+    "z": -41.505883121974264,
+    "born": 40.68333333333231,
+    "origin": {
+      "x": 88.66969109730493,
+      "y": 15.165319725929898,
+      "z": -36.75318097582415
+    },
+    "velocity": {
+      "x": 54.064579669819,
+      "y": -18.492673942921996,
+      "z": -6.097192116482506
+    },
+    "targetY": 0.45242934342602864,
+    "due": 40.87820590973113,
+    "timeScale": 4
+  },
+  "samples": [
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.00020000000297670795,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.74999999999897,
+      "progress": 0.1879691358024789,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": false,
+      "radioTime": 0.08539999999106129,
+      "phase": "playing"
+    },
+    {
+      "time": 40.8333333333323,
+      "progress": 0.21103819444445385,
+      "shots": 7,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.09129999999701965,
+      "phase": "playing"
+    },
+    {
+      "time": 40.91666666666563,
+      "progress": 0.23410725308642877,
+      "shots": 6,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.1809999999850973,
+      "phase": "playing"
+    },
+    {
+      "time": 41.01666666666562,
+      "progress": 0.2617901234567987,
+      "shots": 6,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.2751999999880823,
+      "phase": "playing"
+    },
+    {
+      "time": 41.116666666665616,
+      "progress": 0.2894729938271686,
+      "shots": 5,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.36699999998509725,
+      "phase": "playing"
+    },
+    {
+      "time": 41.199999999998944,
+      "progress": 0.31254205246914357,
+      "shots": 5,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.45839999999105885,
+      "phase": "playing"
+    },
+    {
+      "time": 41.29999999999894,
+      "progress": 0.3402249228395135,
+      "shots": 4,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.5489999999850994,
+      "phase": "playing"
+    },
+    {
+      "time": 41.38333333333227,
+      "progress": 0.36329398148148845,
+      "shots": 4,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.6389999999850957,
+      "phase": "playing"
+    },
+    {
+      "time": 41.466666666665596,
+      "progress": 0.3863630401234634,
+      "shots": 3,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.7296999999880782,
+      "phase": "playing"
+    },
+    {
+      "time": 41.56666666666559,
+      "progress": 0.4140459104938333,
+      "shots": 3,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.8214999999851003,
+      "phase": "playing"
+    },
+    {
+      "time": 41.64999999999892,
+      "progress": 0.4371149691358083,
+      "shots": 3,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.910399999991057,
+      "phase": "playing"
+    },
+    {
+      "time": 41.74999999999891,
+      "progress": 0.46479783950617815,
+      "shots": 2,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.0009999999850976,
+      "phase": "playing"
+    },
+    {
+      "time": 41.83333333333224,
+      "progress": 0.4878668981481531,
+      "shots": 2,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.0921999999880825,
+      "phase": "playing"
+    },
+    {
+      "time": 41.933333333332236,
+      "progress": 0.5155497685185231,
+      "shots": 1,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.181999999985102,
+      "phase": "playing"
+    },
+    {
+      "time": 42.016666666665564,
+      "progress": 0.5386188271604979,
+      "shots": 1,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.272999999985096,
+      "phase": "playing"
+    },
+    {
+      "time": 42.09999999999889,
+      "progress": 0.5616878858024729,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.3632999999970181,
+      "phase": "playing"
+    },
+    {
+      "time": 42.19999999999889,
+      "progress": 0.5893707561728428,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.4547999999970216,
+      "phase": "playing"
+    },
+    {
+      "time": 42.283333333332216,
+      "progress": 0.6124398148148178,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.5448999999910598,
+      "phase": "playing"
+    },
+    {
+      "time": 42.38333333333221,
+      "progress": 0.6401226851851877,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.6362999999970214,
+      "phase": "playing"
+    },
+    {
+      "time": 42.46666666666554,
+      "progress": 0.6631917438271626,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.7264999999851014,
+      "phase": "playing"
+    },
+    {
+      "time": 42.56666666666553,
+      "progress": 0.6908746141975325,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.8171999999880768,
+      "phase": "playing"
+    },
+    {
+      "time": 42.64999999999886,
+      "progress": 0.7139436728395074,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.9076999999880755,
+      "phase": "playing"
+    },
+    {
+      "time": 42.749999999998856,
+      "progress": 0.7416265432098774,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 1.9972999999970185,
+      "phase": "playing"
+    },
+    {
+      "time": 42.833333333332185,
+      "progress": 0.7646956018518524,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.090299999997022,
+      "phase": "playing"
+    },
+    {
+      "time": 42.93333333333218,
+      "progress": 0.7923784722222222,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.180599999994037,
+      "phase": "playing"
+    },
+    {
+      "time": 43.01666666666551,
+      "progress": 0.8154475308641972,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.2694999999851007,
+      "phase": "playing"
+    },
+    {
+      "time": 43.099999999998836,
+      "progress": 0.8385165895061721,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.3599999999850994,
+      "phase": "playing"
+    },
+    {
+      "time": 43.19999999999883,
+      "progress": 0.866199459876542,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.449899999991061,
+      "phase": "playing"
+    },
+    {
+      "time": 43.28333333333216,
+      "progress": 0.889268518518517,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.5403999999910596,
+      "phase": "playing"
+    },
+    {
+      "time": 43.38333333333215,
+      "progress": 0.9169513888888873,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.631099999994042,
+      "phase": "playing"
+    },
+    {
+      "time": 43.46666666666548,
+      "progress": 0.9400204475308627,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.721599999994041,
+      "phase": "playing"
+    },
+    {
+      "time": 43.54999999999881,
+      "progress": 0.9630895061728378,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.811799999997021,
+      "phase": "playing"
+    },
+    {
+      "time": 43.649999999998805,
+      "progress": 0.9907723765432083,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.903599999994043,
+      "phase": "playing"
+    },
+    {
+      "time": 43.73333333333213,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 2.994499999985102,
+      "phase": "playing"
+    },
+    {
+      "time": 43.83333333333213,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.0873999999910566,
+      "phase": "playing"
+    },
+    {
+      "time": 43.916666666665456,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.178099999994039,
+      "phase": "playing"
+    },
+    {
+      "time": 44.01666666666545,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.268499999985096,
+      "phase": "playing"
+    },
+    {
+      "time": 44.09999999999878,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.3589999999851017,
+      "phase": "playing"
+    },
+    {
+      "time": 44.199999999998774,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.450399999991056,
+      "phase": "playing"
+    },
+    {
+      "time": 44.2833333333321,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.5401999999880758,
+      "phase": "playing"
+    },
+    {
+      "time": 44.3833333333321,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.631199999988077,
+      "phase": "playing"
+    },
+    {
+      "time": 44.466666666665425,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.7216999999880755,
+      "phase": "playing"
+    },
+    {
+      "time": 44.549999999998754,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.811599999994037,
+      "phase": "playing"
+    },
+    {
+      "time": 44.64999999999875,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.9045999999940406,
+      "phase": "playing"
+    },
+    {
+      "time": 44.73333333333208,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 3.9949999999850974,
+      "phase": "playing"
+    },
+    {
+      "time": 44.83333333333207,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.088599999994038,
+      "phase": "playing"
+    },
+    {
+      "time": 44.933333333332065,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.183799999997021,
+      "phase": "playing"
+    },
+    {
+      "time": 45.016666666665394,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.275399999991059,
+      "phase": "playing"
+    },
+    {
+      "time": 45.11666666666539,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.366299999997018,
+      "phase": "playing"
+    },
+    {
+      "time": 45.19999999999872,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.458599999994043,
+      "phase": "playing"
+    },
+    {
+      "time": 45.29999999999871,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.549099999994041,
+      "phase": "playing"
+    },
+    {
+      "time": 45.38333333333204,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.640899999991056,
+      "phase": "playing"
+    },
+    {
+      "time": 45.483333333332034,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 4.73239999999106,
+      "phase": "playing"
+    },
+    {
+      "time": 45.56666666666536,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": true,
+      "radioPlaying": true,
+      "radioTime": 0.004799999997018745,
+      "phase": "playing"
+    },
+    {
+      "time": 45.66666666666536,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "playing"
+    },
+    {
+      "time": 45.68333333333202,
+      "progress": 1,
+      "shots": 0,
+      "fired": 19,
+      "radioPending": false,
+      "radioPlaying": false,
+      "radioTime": 0,
+      "phase": "success"
+    }
+  ],
+  "mode": "pause",
+  "errors": [],
+  "input": "Actual mouse/keyboard/touch; no simulation state writes or reward fixture"
+}

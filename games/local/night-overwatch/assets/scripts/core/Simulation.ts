@@ -179,14 +179,18 @@ export class Simulation {
   get friendlyLosses() {
     return this.units.filter((u) => u.friendly && u.hp <= 0).length;
   }
+  get canConfigure() {
+    return this.phase === 'playing' && (!this.paused || this.pauses.has('settings') &&
+      Array.from(this.pauses).every(reason => reason === 'settings' || reason === 'manual'));
+  }
   setOrbitDirection(direction: -1 | 1) {
-    if (!this.paused && this.phase === 'playing') this.flight.setDirection(direction);
+    if (this.canConfigure) this.flight.setDirection(direction);
   }
   adjustAltitude(delta: number) {
-    if (!this.paused && this.phase === 'playing') this.flight.adjustAltitude(delta);
+    if (this.canConfigure) this.flight.adjustAltitude(delta);
   }
   adjustRadius(delta: number) {
-    if (!this.paused && this.phase === 'playing') this.flight.adjustRadius(delta);
+    if (this.canConfigure) this.flight.adjustRadius(delta);
   }
   flightTime(weapon = this.selected, p: Point | null = this.aim) {
     if (!p || !Number.isInteger(weapon) || !WEAPONS[weapon] || ![p.x, p.z].every(Number.isFinite) ||
@@ -242,6 +246,7 @@ export class Simulation {
     } else {
       this.pauses.delete(reason);
       if (reason === 'countdown') this.resumeCountdown = 0;
+      if (reason === 'manual') this.resumeRequired = false;
     }
   }
   grantBuff(kind: BuffKind): boolean {
@@ -313,7 +318,7 @@ export class Simulation {
     if (pressed) this.fire();
   }
   command() {
-    if (this.mission.mode === 'training' || this.phase !== 'playing' || this.paused || this.convoy === 'arrived' || this.extractionRemaining !== undefined) return;
+    if (this.mission.mode === 'training' || !this.canConfigure || this.convoy === 'arrived' || this.extractionRemaining !== undefined) return;
     if (this.convoy === 'moving') {
       if (!this.holdPoints.some((p) => p > this.progress + 0.01)) return;
       this.convoy = 'holdRequested';

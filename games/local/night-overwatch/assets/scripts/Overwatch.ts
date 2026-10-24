@@ -66,9 +66,9 @@ export class Overwatch extends Component {
     this.hud.reducedEffects = this.platform.reducedEffects;
     if (sys.isBrowser) {
       const button = document.createElement('button');
-      button.setAttribute('aria-label', '暂停');
+      button.setAttribute('aria-label', '设置');
       button.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);';
-      button.addEventListener('click', () => this.action('pause'));
+      button.addEventListener('click', () => this.action('settings'));
       document.body.appendChild(button);
       this.pauseControl = button;
     }
@@ -145,6 +145,7 @@ export class Overwatch extends Component {
     this.syncRewards();
     this.hud.modalKey = 'rebuild';
     this.hud.supplyOpen = false;
+    this.hud.exitConfirm = this.hud.toolsOpen = this.hud.zoomOpen = false;
   }
   selectMission(id: MissionId, persist = false) {
     if (this.sim.phase === 'playing') return;
@@ -171,6 +172,7 @@ export class Overwatch extends Component {
     this.lastEvent = this.accumulator = 0;
     this.hud.modalKey = 'rebuild';
     this.hud.supplyOpen = false;
+    this.hud.exitConfirm = this.hud.toolsOpen = this.hud.zoomOpen = false;
   }
   syncWorld() {
     if (this.world.map !== this.sim.mission.map || this.world.light !== this.sim.mission.light) {
@@ -193,7 +195,7 @@ export class Overwatch extends Component {
   async requestReward(kind: RewardKind, supply?: SupplyReward) {
     if (!this.platform.rewardsAvailable) return;
     if (this.rewardRequest || this.sim.phase !== 'playing' || this.sim.buff || this.sim.resumeCountdown > 0 ||
-        ['background', 'focus', 'orientation', 'help', 'settings', 'mission'].some(reason => this.sim.pauses.has(reason as PauseReason)) ||
+        ['background', 'focus', 'orientation', 'help', 'mission'].some(reason => this.sim.pauses.has(reason as PauseReason)) ||
         kind === 'zoom' && !nextZoomLimit(this.platform.rewards.zoomLimit)) return;
     if (this.platform.rewards.pendingSupply) { this.openSupply(); return; }
     const request = { kind, supply, sim: this.sim };
@@ -203,6 +205,8 @@ export class Overwatch extends Component {
     this.hud.supplyMessage = '';
     this.hud.supplyOpen = false;
     this.pause('manual', true);
+    this.pause('settings', false);
+    this.hud.toolsOpen = this.hud.zoomOpen = false;
     this.pause('supply', false);
     this.hud.advert = { kind, mock: false };
     this.pause('advert', true);
@@ -216,6 +220,8 @@ export class Overwatch extends Component {
       this.hud.toastUntil = Date.now() + 4000;
       if (kind === 'supply') {
         this.hud.supplyMessage = this.hud.toast;
+        this.hud.toast = '';
+        this.hud.toastUntil = 0;
         this.hud.modalKey = 'rebuild';
       }
     }
@@ -244,17 +250,24 @@ export class Overwatch extends Component {
   openSupply() {
     if (!this.platform.rewardsAvailable && !this.platform.rewards.pendingSupply) return;
     if (this.sim.phase !== 'playing' || this.rewardRequest || this.sim.resumeCountdown > 0) return;
+    this.hud.toolsOpen = this.hud.zoomOpen = false;
+    this.pause('supply', true);
+    this.pause('settings', false);
     this.hud.supplyOpen = true;
     this.hud.supplyMessage = '';
     this.hud.pendingSupply = this.platform.rewards.pendingSupply;
-    this.pause('supply', true);
     this.hud.modalKey = 'rebuild';
   }
   closeSupply() {
     this.deferredSupply = undefined;
     this.hud.supplyOpen = false;
+    this.clear();
+    this.hud.toast = '';
+    this.hud.toastUntil = 0;
+    this.pause('countdown', false);
     this.pause('supply', false);
-    this.resumeBattle();
+    this.pause('manual', false);
+    this.accumulator = 0;
   }
   private activateDeferredSupply() {
     const pending = this.deferredSupply;
@@ -321,6 +334,19 @@ export class Overwatch extends Component {
       else if (['adCancel', 'close'].includes(id)) this.platform.cancelReward();
       return;
     }
+    if (this.hud.exitConfirm) {
+      if (id === 'exitConfirm') {
+        this.hud.exitConfirm = false;
+        this.clear();
+        this.sim.phase = 'briefing';
+        this.selectMission(this.selectedMission);
+        this.hud.missionsOpen = false;
+      } else if (['exitCancel', 'close', 'resume', 'pause', 'settings'].includes(id)) {
+        this.hud.exitConfirm = false;
+        this.action('resume');
+      }
+      return;
+    }
     if (this.sim.resumeCountdown > 0) {
       if (id === 'pause') this.pause('manual', true);
       return;
@@ -339,12 +365,18 @@ export class Overwatch extends Component {
     }
     if (id === 'zoomUpgrade') { void this.requestReward('zoom'); return; }
     if (id === 'zoomControls') {
-      this.clear();
+      this.pause('settings', true);
       this.hud.zoomOpen = !this.hud.zoomOpen;
       this.hud.toolsOpen = false;
       return;
     }
     if (id === 'home') {
+      if (this.sim.phase === 'playing') {
+        this.hud.exitConfirm = true;
+        this.hud.toolsOpen = this.hud.zoomOpen = false;
+        this.pause('settings', true);
+        return;
+      }
       this.clear();
       this.sim.phase = 'briefing';
       this.selectMission(this.selectedMission);
@@ -383,23 +415,30 @@ export class Overwatch extends Component {
       return;
     }
     if (id === 'tools' || id === 'flightControls') {
-      this.clear();
+      this.pause('settings', true);
       this.hud.zoomOpen = false;
       this.hud.toolsOpen = !this.hud.toolsOpen;
       return;
     }
     const flightActions = ['rotateLeft', 'rotateRight', 'orbitLeft', 'orbitRight',
       'altitudeUp', 'altitudeDown', 'radiusIn', 'radiusOut'];
-    if (!['zoomIn', 'zoomOut', 'sound', ...flightActions].includes(id)) this.hud.toolsOpen = false;
     if (id === 'close' || id === 'resume') {
       if (this.sim.pauses.has('help')) this.pause('help', false);
-      else if (this.sim.pauses.has('settings')) this.pause('settings', false);
       else if (this.sim.pauses.has('mission')) this.pause('mission', false);
-      else if (this.sim.resumeRequired) this.resumeBattle();
-      else this.pause('manual', false);
+      else if (id === 'close' && (this.hud.toolsOpen || this.hud.zoomOpen)) {
+        this.hud.toolsOpen = this.hud.zoomOpen = false;
+        this.hud.modalKey = 'rebuild';
+      } else {
+        this.hud.toolsOpen = this.hud.zoomOpen = false;
+        this.pause('settings', false);
+        if (this.sim.resumeRequired) this.resumeBattle();
+        else this.pause('manual', false);
+      }
       return;
     }
     if (id === 'settings') {
+      if (this.sim.pauses.has('settings') || this.sim.pauses.has('manual')) { this.action('resume'); return; }
+      this.hud.toolsOpen = this.hud.zoomOpen = false;
       const wasHelp = this.sim.pauses.has('help');
       if (wasHelp) this.pause('help', false);
       this.pause('settings', wasHelp || !this.sim.pauses.has('settings'));
@@ -410,11 +449,7 @@ export class Overwatch extends Component {
       this.pause('help', !this.sim.pauses.has('help'));
       return;
     }
-    if (id === 'pause') {
-      if (this.sim.pauses.has('manual') && this.sim.resumeRequired) this.resumeBattle();
-      else this.pause('manual', !this.sim.pauses.has('manual'));
-      return;
-    }
+    if (id === 'pause') { this.action('settings'); return; }
     if (id === 'mission') {
       this.pause('mission', !this.sim.pauses.has('mission'));
       return;
@@ -462,7 +497,10 @@ export class Overwatch extends Component {
       this.sim.start();
       return;
     }
-    if (this.sim.paused || this.sim.phase !== 'playing') return;
+    const menuAction = [...flightActions, 'sensor', 'convoy', 'locate', 'zoomIn', 'zoomOut'].includes(id);
+    const menuPaused = this.sim.paused && Array.from(this.sim.pauses).every(reason => ['settings', 'manual'].includes(reason));
+    if (this.sim.phase !== 'playing' || this.sim.paused && !(menuPaused && menuAction)) return;
+    if (menuPaused) { this.pause('settings', true); this.hud.modalKey = 'rebuild'; }
     if (id === 'priority') {
       const threat = this.sim.priorityThreat;
       if (threat) this.locateMap(threat.unit);
@@ -709,7 +747,13 @@ export class Overwatch extends Component {
       if (role?.role === 'aim' && !this.sim.paused) {
         const p = t.getUILocation(), x = p.x, y = this.hud.h - p.y;
         const tap = !role.moved && Math.hypot(x - (role.originX ?? role.x), y - (role.originY ?? role.y)) <= 2;
-        if (this.sim.homingSelected && tap && !this.hud.blocksBattlefield(x, y)) this.lockAt(x, y);
+        if (tap && !this.hud.blocksBattlefield(x, y)) {
+          if (this.sim.homingSelected) this.lockAt(x, y);
+          else {
+            const aim = this.world.aimAt(x * view.getScaleX(), (this.hud.h - y) * view.getScaleY());
+            if (aim) this.sim.setAim(aim);
+          }
+        }
         else if (this.sim.homingSelected && this.sim.homingTarget) this.sim.lockHoming(this.sim.homingTarget.id);
       }
     }
@@ -859,8 +903,8 @@ export class Overwatch extends Component {
     this.updateRadio(Math.min(dt, .1));
     this.hud.update(this.sim, this.world);
     if (this.pauseControl) {
-      this.pauseControl.disabled = this.sim.phase !== 'playing' || !!this.hud.modal && this.hud.modalKey !== 'pause';
-      this.pauseControl.setAttribute('aria-pressed', String(this.sim.pauses.has('manual')));
+      this.pauseControl.disabled = !!this.rewardRequest || this.hud.supplyOpen || this.sim.resumeCountdown > 0 || this.hud.exitConfirm;
+      this.pauseControl.setAttribute('aria-pressed', String(this.sim.pauses.has('settings') || this.sim.pauses.has('manual')));
     }
     if (sys.isBrowser && !this.startupSignalled && this.world.aircraftModel.status !== 'loading' && this.world.modelImport !== 'loading') {
       this.startupSignalled = true;

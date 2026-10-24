@@ -559,12 +559,18 @@ export class World {
           const light =
             0.42 + Math.max(0, -normal.x * 0.58 + normal.y * 0.42 + normal.z * 0.66) * 0.8;
           const variation =
-            0.92 + 0.08 * Math.sin(x * 0.07 + Math.sin(z * 0.035) * 3) * Math.cos(z * 0.065);
+            0.88 + 0.12 * Math.sin(x * 0.07 + Math.sin(z * 0.035) * 3) * Math.cos(z * 0.065) + noise(x * 7 + z * 13) * 0.08;
+          const soil = clamp((Math.sin(x * .095 + Math.sin(z * .072) * 2) * Math.cos(z * .11) - .1) * 1.5, 0, .8);
+          const scree = clamp((Math.hypot(slope.x, slope.z) - .2) * 1.4, 0, .75);
           const haze = clamp((Math.hypot(x, z) - 100) / 1500, 0, 0.78);
           g.positions.push(x, terrainHeights[ix][iz] - 0.045, z);
           g.normals.push(normal.x, normal.y, normal.z);
-          for (const [near, far] of (this.light === 'day' ? [[map === 'valley' ? 104 : 143, 178], [map === 'valley' ? 133 : 133, 193], [map === 'valley' ? 94 : 110, 201]] : this.light === 'dusk' ? [[94, 152], [102, 139], [83, 150]] : [[34, 60], [45, 70], [50, 92]]))
-            g.colors.push((near * light * variation * (1 - haze) + far * haze) / 255);
+          const palette = this.light === 'day' ? [[map === 'valley' ? 104 : 143, 178], [133, 193], [map === 'valley' ? 94 : 110, 201]] : this.light === 'dusk' ? [[94, 152], [102, 139], [83, 150]] : [[34, 60], [45, 70], [50, 92]];
+          for (const [channel, [near, far]] of palette.entries()) {
+            const earth = near * (1 + [0.24, -0.12, -0.28][channel] * soil);
+            const mineral = earth * (1 + [0.09, -0.04, 0.14][channel] * scree);
+            g.colors.push((mineral * light * variation * (1 - haze) + far * haze) / 255);
+          }
           g.colors.push(1);
           if (ix < xs.length - 1 && iz < zs.length - 1) {
             const a = ix * zs.length + iz,
@@ -722,6 +728,39 @@ export class World {
         continue;
       trees.push({ x, z, y: surfaceHeight(x, z), h: 1.5 + noise(i * 3 + 2) * 2.2, seed: i });
     }
+    const clearGround = (x: number, z: number) => roadDistance(x, z) > 4 &&
+      !(map === 'valley' && Math.abs(x - riverX(z)) < 7) &&
+      !houses.some(([hx, hz, w, d]) => Math.abs(x - hx) < w / 2 + 2 && Math.abs(z - hz) < d / 2 + 2) &&
+      !fields.some(([fx, fz, w, d]) => Math.abs(x - fx) < w / 2 + 1 && Math.abs(z - fz) < d / 2 + 1);
+    this.terrainBatch('terrain.grass', this.light === 'day' ? '#778d50' : this.light === 'dusk' ? '#5d6544' : '#263631', '#142126', g => {
+      // Static low blades share one batch and stay below vehicle silhouettes.
+      for (let i = 0; i < 2400; i++) {
+        const x = (noise(i * 5 + 4601) * 2 - 1) * terrainExtent.x;
+        const z = (noise(i * 5 + 4602) * 2 - 1) * terrainExtent.z;
+        const slope = terrainSlope(surfaceHeight, x, z);
+        if (!clearGround(x, z) || Math.hypot(slope.x, slope.z) > .65 || Math.sin(x * .09) + Math.cos(z * .13) < -.5) continue;
+        for (let blade = 0; blade < 5; blade++) {
+          const angle = noise(i * 11 + blade) * Math.PI * 2, radius = noise(i * 17 + blade) * 1.1;
+          const bx = x + Math.cos(angle) * radius, bz = z + Math.sin(angle) * radius;
+          const h = .22 + noise(i * 19 + blade) * .45, width = .12 + h * .28, start = g.positions.length / 3;
+          for (const [dx, dz, rise] of [[-width, 0, 0], [width, 0, 0], [.16, .08, h]]) {
+            const px = bx + dx * Math.cos(angle) - dz * Math.sin(angle), pz = bz + dx * Math.sin(angle) + dz * Math.cos(angle);
+            g.positions.push(px, surfaceHeight(px, pz) + .025 + rise, pz);
+            g.normals.push(0, 1, 0);
+            const shade = rise ? 1 : .68; g.colors.push(shade, shade, shade * .9, 1);
+          }
+          g.indices.push(start, start + 1, start + 2, start + 2, start + 1, start);
+        }
+      }
+    });
+    this.terrainBatch('terrain.gravel', this.light === 'day' ? '#aaa18a' : this.light === 'dusk' ? '#786d60' : '#343b42', '#253138', g => {
+      for (let i = 0; i < 950; i++) {
+        const x = (noise(i * 3 + 8701) * 2 - 1) * terrainExtent.x, z = (noise(i * 3 + 8702) * 2 - 1) * terrainExtent.z;
+        if (!clearGround(x, z)) continue;
+        const size = .3 + noise(i + 8703) * .7;
+        addShape(g, rock, x, size * .07, z, size * 1.8, size * .5, size, .85 + noise(i) * .2, i);
+      }
+    });
     this.terrainBatch('terrain.ridges', '#34434b', '#3a454b', (g) => {
       for (let i = 0; i < 120; i++) {
         const x = (noise(i + 920) * 2 - 1) * (MAP.halfWidth - 4),
