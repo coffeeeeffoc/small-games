@@ -4,7 +4,6 @@ import {
   Color,
   Graphics,
   ImageAsset,
-  LabelOutline,
   Sprite,
   SpriteFrame,
   Texture2D,
@@ -39,7 +38,6 @@ export interface ViewState {
   progress: Progress;
   gate: SpeedGate;
   speedExpanded: boolean;
-  demoTime: number;
   toast: string;
   resultStars: number;
   elapsed: number;
@@ -61,6 +59,7 @@ export class StationHUD {
   marks: Graphics;
   readonly ready: Promise<void>;
   private backdrop: Sprite;
+  private logo: Sprite;
   private art = new Map<string, SpriteFrame>();
   private textures: Texture2D[] = [];
   private disposed = false;
@@ -97,21 +96,27 @@ export class StationHUD {
     canvas.cameraComponent = this.camera;
     this.backdrop = this.node('Chapter illustration').addComponent(Sprite);
     this.backdrop.sizeMode = Sprite.SizeMode.CUSTOM;
-    // Home uses StationWorld's live demonstration, not a second poster/board.
-    this.ready = new Promise<void>((resolve, reject) => {
-      resources.load('art/levels', ImageAsset, (error, asset) => {
-        if (error || !asset) return reject(error || new Error('Missing chapter artwork'));
-        if (this.disposed) return resolve();
-        const texture = new Texture2D();
-        texture.image = asset;
-        const frame = new SpriteFrame();
-        frame.texture = texture;
-        this.textures.push(texture);
-        this.art.set('levels', frame);
-        this.signature = '';
-        resolve();
-      });
-    });
+    this.logo = this.node('Home station plaque').addComponent(Sprite);
+    this.logo.sizeMode = Sprite.SizeMode.CUSTOM;
+    this.ready = Promise.all(
+      ['home', 'home-logo', 'levels'].map(
+        (name) =>
+          new Promise<void>((resolve, reject) => {
+            resources.load(`art/${name}`, ImageAsset, (error, asset) => {
+              if (error || !asset) return reject(error || new Error('Missing chapter artwork'));
+              if (this.disposed) return resolve();
+              const texture = new Texture2D();
+              texture.image = asset;
+              const frame = new SpriteFrame();
+              frame.texture = texture;
+              this.textures.push(texture);
+              this.art.set(name, frame);
+              this.signature = '';
+              resolve();
+            });
+          }),
+      ),
+    ).then(() => {});
     // Sibling order matters: paused cars, arrows and top HUD all sit under the shade.
     this.marks = this.node('Road direction badges').addComponent(Graphics);
     this.roadLabels = this.node('Road badge labels');
@@ -121,6 +126,7 @@ export class StationHUD {
     this.modalLabels = this.node('Modal labels');
     this.toastInk = this.node('Brief notices').addComponent(Graphics);
     this.toastLabels = this.node('Notice labels');
+    this.logo.node.setSiblingIndex(this.baseLabels.getSiblingIndex());
     this.surface = this.g;
     this.textParent = this.baseLabels;
     this.resize();
@@ -208,6 +214,11 @@ export class StationHUD {
       disabled ? '#e0dfd2' : primary ? C.gold : C.cream,
       radius,
     );
+    if (primary && !disabled) {
+      this.rect(this.surface, x + 3, y + 3 + (down ? 1 : 0), w - 6, h - 7, '#ffe285', radius - 2);
+      this.rect(this.surface, x + 5, y + 8 + (down ? 1 : 0), w - 10, h - 13, C.gold, radius - 4);
+      this.rect(this.surface, x + 14, y + 5 + (down ? 1 : 0), w - 28, 2, '#fff3b8', 1);
+    }
     const t = this.text(
       `button:${id}`,
       label,
@@ -284,7 +295,7 @@ export class StationHUD {
       top = this.safe.top + 8,
       bottom = this.h - this.safe.bottom - 12,
       short = this.h - this.safe.top - this.safe.bottom < 480,
-      roadVisible = ['home', 'playing', 'pause'].includes(v.page);
+      roadVisible = ['playing', 'pause'].includes(v.page);
     const key = [
       v.page,
       this.pressed,
@@ -313,9 +324,10 @@ export class StationHUD {
       for (const label of this.labels.values()) label.node.active = false;
       this.surface = this.g;
       this.textParent = this.baseLabels;
-      this.backdrop.node.active = v.page === 'levels';
+      this.backdrop.node.active = v.page === 'levels' || v.page === 'home';
+      this.logo.node.active = v.page === 'home';
       if (this.backdrop.node.active) {
-        const frame = this.art.get('levels');
+        const frame = this.art.get(v.page === 'home' ? 'home' : 'levels');
         if (frame) {
           this.backdrop.spriteFrame = frame;
           const scale = Math.max(
@@ -325,49 +337,91 @@ export class StationHUD {
           this.backdrop.node
             .getComponent(UITransform)!
             .setContentSize(frame.originalSize.width * scale, frame.originalSize.height * scale);
+          this.backdrop.node.setPosition(0, 0);
+          if (v.page === 'home' && this.w > this.h) {
+            const portraitWidth = Math.max(
+              this.w * 0.54,
+              (this.h * frame.originalSize.width) / frame.originalSize.height,
+            );
+            this.backdrop.node
+              .getComponent(UITransform)!
+              .setContentSize(
+                portraitWidth,
+                (portraitWidth * frame.originalSize.height) / frame.originalSize.width,
+              );
+            this.backdrop.node.setPosition(
+              (portraitWidth - this.w) / 2,
+              ((portraitWidth * frame.originalSize.height) / frame.originalSize.width) * 0.17,
+            );
+          }
         }
       }
       if (v.page === 'home') {
         const landscape = this.w > this.h;
-        const title = this.text(
-          'home-title',
-          '归途站',
-          cx,
-          top + (landscape ? 17 : 34),
-          landscape ? 28 : 48,
-          width,
-          landscape ? 38 : 64,
-          C.ink,
-        );
-        title.isBold = true;
-        const outline = title.getComponent(LabelOutline) ?? title.node.addComponent(LabelOutline);
-        outline.color = col(C.cream);
-        outline.width = 2;
+        const menuW = landscape ? Math.min(330, availableW * 0.4) : Math.min(358, availableW - 32);
+        const menuX = landscape ? this.w - this.safe.right - menuW - 24 : cx - menuW / 2;
+        const menuCx = menuX + menuW / 2;
+        const menuY = bottom - 170;
+        if (landscape) this.rect(this.g, menuX - 16, 0, menuW + 56, this.h, '#163f49fa', 0);
+        const logoFrame = this.art.get('home-logo');
+        if (logoFrame) {
+          this.logo.spriteFrame = logoFrame;
+          const logoW = Math.min(menuW, 312);
+          const logoH = (logoW * logoFrame.originalSize.height) / logoFrame.originalSize.width;
+          this.logo.node.getComponent(UITransform)!.setContentSize(logoW, logoH);
+          this.logo.node.setPosition(
+            (landscape ? menuCx : cx) - this.w / 2,
+            this.h / 2 - top - logoH / 2 - (landscape ? 6 : 22),
+          );
+          if (!landscape)
+            this.rect(this.g, cx - 120, top + logoH + 23, 240, 22, '#fff4dfdf', 11);
+          this.text(
+            'home-hint',
+            '看箭头，解开车阵，接大家回家',
+            landscape ? menuCx : cx,
+            top + logoH + (landscape ? 18 : 34),
+            12,
+            menuW,
+            22,
+            landscape ? C.cream : C.ink,
+          );
+        }
+        this.rect(this.g, menuX - 1, menuY - 1, menuW + 2, 172, '#e5bc68', 22);
+        this.rect(this.g, menuX, menuY, menuW, 170, '#173f48ee', 21);
+        this.rect(this.g, menuX + 2, menuY + 2, menuW - 4, 2, '#f7de9b', 1);
+        const next = v.invitedLevel ? v.invitedLevel - 1 : continueIndex(v.progress);
         this.text(
-          'home-hint',
-          '看箭头 · 点动车 · 接大家回家',
-          cx,
-          top + (landscape ? 43 : 86),
-          landscape ? 12 : 15,
+          'home-progress',
+          `${v.developer ? '试玩 · ' : v.invitedLevel ? '好友挑战 · ' : ''}第 ${next + 1} 关 · ${LEVELS[next]!.title.split(' · ')[0]}`,
+          menuCx,
+          menuY + 24,
+          14,
           width,
-          landscape ? 20 : 28,
-          C.ink,
+          24,
+          C.cream,
         );
-        if (v.developer && !landscape)
-          this.text('dev', '开发试玩 · 任意选关', cx, top + 115, 12, width, 22, C.teal);
         this.button(
           'continue',
           v.invitedLevel
-            ? `接受邀请 · 第 ${v.invitedLevel} 关`
-            : `开始接班  ›  第 ${continueIndex(v.progress) + 1} 关`,
-          left,
-          bottom - 112,
-          width,
+            ? '开始挑战'
+            : v.progress.stars.some((stars) => stars > 0)
+              ? '继续游戏'
+              : '开始游戏',
+          menuX + 16,
+          menuY + 46,
+          menuW - 32,
           56,
           true,
         );
-        this.button('levels', '选择关卡', left, bottom - 44, (width - 12) / 2, 44);
-        this.button('settings', '设置', left + (width + 12) / 2, bottom - 44, (width - 12) / 2, 44);
+        this.button('levels', '选择关卡', menuX + 16, menuY + 114, (menuW - 44) / 2, 44);
+        this.button(
+          'settings',
+          '游戏设置',
+          menuX + menuW / 2 + 6,
+          menuY + 114,
+          (menuW - 44) / 2,
+          44,
+        );
       } else if (v.page === 'levels') {
         this.rect(this.g, left - 6, top - 2, width + 12, short ? 52 : 74, '#fff4dfe6', 20);
         this.text('levels-title', '选择关卡', cx, top + 24, 30, width, 44).isBold = true;
@@ -495,8 +549,8 @@ export class StationHUD {
       } else if (v.page === 'settings') {
         const c = this.card(244),
           half = (c.w - 12) / 2;
-        this.text('panel-title', '调度员设置', c.cx, c.y + 38, 27, c.w, 44).isBold = true;
-        this.text('panel-copy', '轻松接班，好好回家', c.cx, c.y + 75, 14, c.w, 24, C.dim);
+        this.text('panel-title', '游戏设置', c.cx, c.y + 38, 27, c.w, 44).isBold = true;
+        this.text('panel-copy', '轻松出发，好好回家', c.cx, c.y + 75, 14, c.w, 24, C.dim);
         this.button('home', '返回首页', c.x, c.y + 102, c.w, 52, true);
         this.button(
           'sound',
@@ -515,7 +569,7 @@ export class StationHUD {
         this.text('help-title', '一起，好好回家', c.cx, c.y + 35, 26, c.w, 44).isBold = true;
         this.text(
           'help-copy',
-          '看箭头，点击前方畅通的出租车。\n点击时绑定旅客，多车同时接客。\n接完旅客，让所有车辆离站。\n\n1×免费。2×、3×、5×各看一次\n激励视频，解锁当前局对应倍速。',
+          '看箭头，点击前方畅通的出租车。\n旅客先在站台候车，车辆横向停靠。\n一拨上完车，下一拨自动出站。\n接完旅客，让所有车辆离站。\n\n1×免费；2×、3×、5×分别观看\n激励视频，解锁当前局对应倍速。',
           c.cx,
           copyTop + copyHeight / 2,
           c.h < 310 ? 14 : 15,
@@ -619,21 +673,34 @@ export class StationHUD {
       for (const vehicle of s.vehicles) {
         if (vehicle.state !== 'holding') continue;
         const p = world.arrow(vehicle),
-          r = 10;
-        if (!world.inViewport(p)) continue;
-        if (v.page === 'home') {
-          const pulse = 0.5 + 0.5 * Math.sin(v.demoTime * 3 + vehicle.sequence * 0.7);
-          this.circle(this.marks, p.x, p.y, 12 + pulse * 2, '#fff3bf80');
+          r = 8;
+        if (!world.inViewport(p) || p.y - 23 < world.clipTop || p.y + r > world.clipBottom)
+          continue;
+        if (this.pressed === `car:${vehicle.id}`) {
+          const body = world.project(vehicle.position);
+          const size = world.presentation().taxiLength;
+          this.marks.strokeColor = col('#ffe497');
+          this.marks.lineWidth = 3;
+          this.marks.roundRect(
+            body.x - size * 0.6 - this.w / 2,
+            this.h / 2 - body.y - size * 0.6,
+            size * 1.2,
+            size * 1.2,
+            8,
+          );
+          this.marks.stroke();
+          this.marks.strokeColor = col(C.cream);
+          this.marks.lineWidth = 2;
         }
-        this.rect(this.marks, p.x + 10, p.y + 2, 16, 16, C.cream, 4);
+        this.rect(this.marks, p.x + 7, p.y - 23, 14, 14, C.cream, 4);
         this.text(
           `capacity:${vehicle.id}`,
           String(vehicle.passengerCapacity),
-          p.x + 18,
-          p.y + 10,
-          11,
-          16,
-          16,
+          p.x + 14,
+          p.y - 16,
+          10,
+          14,
+          14,
           C.ink,
         );
         this.circle(this.marks, p.x, p.y, r, C.cream);

@@ -14,6 +14,7 @@ export interface StationBayGeometry {
   entry: Point;
   exit: Point;
   door: Point;
+  waitingPoint: Point;
 }
 export interface StationGeometry {
   mode: 'legacy' | 'station';
@@ -66,28 +67,32 @@ export function getStationGeometry(config: Pick<LevelConfig, 'columns' | 'rows'>
     throw new Error('停车阵列须为3–6列、3–9行');
   const origin = { x: (-(columns - 1) * PITCH) / 2, z: modern ? 12 : 8 };
   let left = origin.x - PITCH;
-  while (left > -10) left -= PITCH;
+  if (modern) left = Math.min(left, -8);
+  else while (left > -10) left -= PITCH;
   const right = -left,
     north = origin.z - PITCH,
     south = origin.z + rows * PITCH;
   const approachZ = modern ? 4 : 4.5,
-    departureZ = -4;
+    departureZ = modern ? 4 : -4;
   const bays = (modern ? [-6, -2, 2, 6] : [-7.5, -2.5, 2.5, 7.5]).map((x, i) => ({
     id: `T${i + 1}`,
     point: { x, z: modern ? 0 : 0.5 },
-    entry: { x, z: approachZ },
-    exit: { x, z: departureZ },
+    entry: { x: modern ? x - 2 : x, z: approachZ },
+    exit: { x: modern ? x + 2 : x, z: departureZ },
     door: { x, z: -6 },
+    waitingPoint: { x, z: modern ? -2.5 : -6 },
   }));
   const topXs = range(left, right),
     sideZs = range(north, south);
   const exitPoint = { x: right + 8, z: departureZ };
   const approachPoints = [
     { x: left, z: approachZ },
-    ...bays.map((b) => b.entry),
+    ...bays.map((b) => b.entry).filter((p) => p.x > left),
     { x: bays[3]!.point.x + 4, z: approachZ },
   ];
-  const departurePoints = range(bays[0]!.point.x, exitPoint.x).map((x) => ({ x, z: departureZ }));
+  const departurePoints = modern
+    ? [...approachPoints, exitPoint]
+    : range(bays[0]!.point.x, exitPoint.x).map((x) => ({ x, z: departureZ }));
   if (departurePoints[departurePoints.length - 1]!.x !== exitPoint.x)
     departurePoints.push(exitPoint);
   const lanes: Lane[] = [
@@ -155,18 +160,25 @@ export function getStationGeometry(config: Pick<LevelConfig, 'columns' | 'rows'>
     {
       id: 'empty-taxi-exit',
       kind: 'bay-exit',
-      points: [
-        approachPoints[approachPoints.length - 1]!,
-        { x: approachPoints[approachPoints.length - 1]!.x, z: 0 },
-        { x: approachPoints[approachPoints.length - 1]!.x, z: departureZ },
-      ],
+      points: modern
+        ? [{ x: right, z: approachZ }, exitPoint]
+        : [
+            approachPoints[approachPoints.length - 1]!,
+            { x: approachPoints[approachPoints.length - 1]!.x, z: 0 },
+            { x: approachPoints[approachPoints.length - 1]!.x, z: departureZ },
+          ],
       width: 3.4,
       oneWay: true as const,
     },
   ];
   return {
     mode: modern ? 'station' : 'legacy',
-    bounds: { left: left - 3, right: right + 3, top: -11, bottom: south + 3 },
+    bounds: {
+      left: left - (modern ? 2 : 3),
+      right: right + (modern ? 2 : 3),
+      top: -11,
+      bottom: south + 3,
+    },
     parking: {
       columns,
       rows,
@@ -187,7 +199,11 @@ export function getStationGeometry(config: Pick<LevelConfig, 'columns' | 'rows'>
         .filter((l) => l.kind === 'collector' || l.kind === 'approach' || l.kind === 'departure')
         .flatMap((l) => l.points),
     ).filter((p) => p.x <= right + 3),
-    crosswalks: bays.map((b) => ({ bayId: b.id, from: b.door, to: b.point })),
+    crosswalks: bays.map((b) => ({
+      bayId: b.id,
+      from: b.door,
+      to: modern ? b.waitingPoint : b.point,
+    })),
     collector: { left, right, north, south },
     approachZ,
     departureZ,
@@ -227,6 +243,13 @@ export function stationEntryPath(
       if (z < path[path.length - 1]!.z) append(path, { x: left, z });
   append(path, { x: left, z: g.approachZ });
   const bay = g.bays.find((b) => b.id === bayId);
+  if (g.mode === 'station') {
+    // Cross the passing lane without stopping in another bay's merge.
+    if (bay)
+      for (const p of g.lanes.find((l) => l.id === `${bay.id}-entry`)!.points) append(path, p);
+    else append(path, g.exitPoint);
+    return path;
+  }
   for (const b of g.bays) {
     if (bay && b.point.x > bay.point.x) break;
     append(path, b.entry);
@@ -243,6 +266,12 @@ export function stationEntryPath(
   return path;
 }
 export function stationDeparturePath(g: StationGeometry, position: Point): Point[] {
+  if (g.mode === 'station') {
+    const bay = g.bays.find((b) => b.point.x === position.x)!;
+    const path = g.lanes.find((l) => l.id === `${bay.id}-exit`)!.points.map((p) => ({ ...p }));
+    append(path, g.exitPoint);
+    return path;
+  }
   const path = [{ ...position }, { x: position.x, z: g.departureZ }];
   for (const p of g.lanes.find((l) => l.id === 'station-departure')!.points)
     if (p.x > position.x) append(path, p);

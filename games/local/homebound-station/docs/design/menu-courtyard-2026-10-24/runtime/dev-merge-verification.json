@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-24",
+  "remoteBase": "e94899634546f314c9b2be8e56fca9b276fdcd5a",
+  "browser": "156.0.8078.47",
+  "creator": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "593df7be61174f3cb196c816958b9e1c94c0facafce9e07f72d120cfeba3f9db"
+  },
+  "checks": [
+    "independent illustrated home with no level board, actionable cars or background simulation",
+    "settings, sound persistence and help return; no fullscreen control",
+    "pressed target highlight and drag-away cancellation on non-scrollable level",
+    "touch cancellation",
+    "level 1 at 1×: two real touches with RAF-observed receipt times; both leave parking before first boarding; fixed passenger/pickup bindings",
+    "same sprite length while parked/driving/boarding; horizontal curbside boarding; empty waiting area replenishes before another car is dispatched",
+    "pause modal blocks real car touches and keeps the simulation clock frozen",
+    "browser focus loss pauses; explicit resume restores play",
+    "rewarded speed completion/cancellation/failure; no premature grant",
+    "real touch solve with concurrent taxis; settlement and unlock",
+    "public invitation sharing removes developer mode",
+    "blocked-car local feedback preserves the run without dispatch",
+    "800×600 landscape fits every level-100 car and accepts real dispatch",
+    "level 100: genuine 320×568 touch pan reveals the bottom row without dispatch; fixed HUD; real available-car touches dispatch on 390×844 and 844×390",
+    "URL dev free selection, explicit-off precedence, saved progress, portrait/landscape",
+    "invited level 100 is practice and does not bypass normal progression"
+  ],
+  "errors": [],
+  "environment": "Chromium touch emulation of real Creator web build, not physical-device certification",
+  "typecheck": "passed",
+  "creatorBuild": "passed",
+  "fullCandidateValidator": "not run"
+}
