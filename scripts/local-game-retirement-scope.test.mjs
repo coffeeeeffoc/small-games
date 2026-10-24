@@ -647,7 +647,9 @@ test('single game retirement binds both comparison trees and retains Shell consu
   ]) {
     const before = tree(base),
       roots = Object.keys(trees);
-    const changedPaths = git('diff', '--name-only', '-z', base, head).split('\0').filter(Boolean);
+    const changedPaths = git('diff', '--no-renames', '--name-only', '-z', base, head)
+      .split('\0')
+      .filter(Boolean);
     const context = {
       baseCommit: base,
       changedPaths,
@@ -701,6 +703,29 @@ test('single game retirement binds both comparison trees and retains Shell consu
       { changedPaths: [...changedPaths, roots[0] + '/unknown-extra.mjs'] },
     ])
       assert.equal(localRetirementFileScopes({ ...context, ...override }).size, 0);
+
+    if (base === review.singleGamePagesRetirementBase) {
+      for (const [from, move] of Object.entries(review.singleGamePagesRetirementMoves)) {
+        const change = { status: move.status, paths: [from, move.to] };
+        assert(isReviewedLocalRetirementDeletion(change, scopes), from);
+        assert(!hasLocalRetirementFileProof(move.to, scopes.get(from), context.readHead));
+        assert(
+          !isReviewedLocalRetirementDeletion(
+            { ...change, paths: [from, move.to + '.extra'] },
+            scopes,
+          ),
+        );
+        assert(!isReviewedLocalRetirementDeletion({ ...change, status: 'R001' }, scopes));
+      }
+      const [from, move] = Object.entries(review.singleGamePagesRetirementMoves)[0];
+      assert.equal(
+        localRetirementFileScopes({
+          ...context,
+          readHeadEntry: (path) => (path === move.to ? '' : context.readHeadEntry(path)),
+        }).size,
+        0,
+      );
+    }
     const lock = 'pnpm-lock.yaml';
     if (base === review.singleGameRetirementBase) {
       const old = context.readBase(lock);

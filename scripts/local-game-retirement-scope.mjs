@@ -13,6 +13,7 @@ import {
   singleGameRetirementReviews,
   singleGamePagesRetirementTrees,
   singleGamePagesRetirementReviews,
+  singleGamePagesRetirementMoves,
 } from './local-game-retirement-reviews.mjs';
 
 const proofs = new WeakMap();
@@ -31,6 +32,8 @@ export function localRetirementHeadQueryPaths(changedPaths) {
       ...Object.keys(singleGameRetirementReviews),
       ...Object.keys(singleGamePagesRetirementTrees),
       ...Object.keys(singleGamePagesRetirementReviews),
+      ...Object.keys(singleGamePagesRetirementMoves),
+      ...Object.values(singleGamePagesRetirementMoves).map((move) => move.to),
       ...Object.keys(mainRetirementMoves),
       ...Object.values(mainRetirementMoves).map((move) => move.to),
     ]),
@@ -38,12 +41,23 @@ export function localRetirementHeadQueryPaths(changedPaths) {
 }
 
 /** A retired tree binds every former source/asset; edits bind both exact file snapshots. */
-export function localRetirementScopesForReview(context, trees, reviews) {
+export function localRetirementScopesForReview(context, trees, reviews, moves) {
   const scopes = new Map();
   const { changedPaths, readBaseEntry, readBase, readHead, readHeadEntry, headHasPath } = context;
   try {
     for (const [root, entry] of Object.entries(trees)) {
       if (readBaseEntry(root) !== entry || headHasPath(root) !== false) return scopes;
+    }
+    for (const [from, move] of Object.entries(moves ?? {})) {
+      if (
+        !Object.keys(trees).some((root) => from.startsWith(root + '/')) ||
+        readBaseEntry(from) !== move.beforeEntry ||
+        readBaseEntry(move.to) !== '' ||
+        readHeadEntry(move.to) !== move.afterEntry ||
+        headHasPath(from) !== false ||
+        headHasPath(move.to) !== true
+      )
+        return scopes;
     }
     for (const [file, review] of Object.entries(reviews)) {
       if (review.afterEntry && readHeadEntry(file) !== review.afterEntry) return scopes;
@@ -86,13 +100,16 @@ export function localRetirementScopesForReview(context, trees, reviews) {
         (trees === localRetirementTrees && reviews === localRetirementReviews) ||
         (trees === portfolioRetirementTrees && reviews === portfolioRetirementReviews) ||
         (trees === singleGameRetirementTrees && reviews === singleGameRetirementReviews) ||
-        (trees === singleGamePagesRetirementTrees && reviews === singleGamePagesRetirementReviews)
+        (trees === singleGamePagesRetirementTrees &&
+          reviews === singleGamePagesRetirementReviews &&
+          moves === singleGamePagesRetirementMoves)
       )
         proofs.set(value, {
           file,
           deleted: !!root || review.after === null,
           after: review?.after,
           movedFrom: review?.movedFrom,
+          move: moves?.[file],
         });
     }
   } catch {
@@ -118,6 +135,7 @@ export function localRetirementFileScopes(context) {
       context,
       singleGamePagesRetirementTrees,
       singleGamePagesRetirementReviews,
+      singleGamePagesRetirementMoves,
     ),
     ...mainRetirementDeletionScopes(context),
   ]);

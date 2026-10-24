@@ -1063,8 +1063,8 @@ export const catalogCleanupReviews = Object.freeze({
 });
 
 // One complete game removal; surviving edits bind exact Git bytes and retained consumers.
-export const singleGameRetirementBase = 'b5105c58d82270908303042d4874cc5b3d82733a';
-export const singleGameRetirementFixture = 'd9f5913416a656851a16e97ebc671b08b3719a3e';
+export const singleGameRetirementBase = '0cc3d0f8f83c2499e67db43b7d56aa84ea7397a7';
+export const singleGameRetirementFixture = 'fbfdee0ec08a823a9888d7d2737c4078d52f3b8f';
 export const singleGameRetirementTrees = Object.freeze({
   'games/local/orbit-atelier':
     '040000 tree c4cd2c47a1acf7f4d18ec3b8c62fd7a25bf87077\tgames/local/orbit-atelier\n',
@@ -1246,13 +1246,13 @@ export const singleGameRetirementReviews = Object.freeze({
     sources: [],
   },
   'scripts/publication-scopes.mjs': {
-    before: '28fcc94086ac09d82e6387f9e72cfa60adf132bc5a2bdf5e4ab45e84a4442476',
-    after: '6484ed152335c475fee5b5c99787c01f2ba14217e93eb6fe7c7240bd678bef90',
+    before: '013e26c3781b08e66952b5fe3de657ede58dffa27641a4f6f6aa9a1deb180192',
+    after: '40a159269774fa231142f89be19d15ceb90639a2e32c9829eddd53ae967776ec',
     sources: [],
   },
   'scripts/publication-scopes.test.mjs': {
-    before: '992667a33badaea2f689f0498e79dc8424e983aa234559d4f7208a5d3aa49174',
-    after: '05e44d1e5d56c4742cb4107d60a73c939de9d7cf9374be3a1b33447fde82adb1',
+    before: '3d319c70a20cf32604b554feb2a6223074527d9ea128cd401373ad9c6347604d',
+    after: '5f584c815f58e64a931d71f1167a592011e62de2be7d2c3fb287dfae246630d2',
     sources: [],
   },
   'scripts/reuse-cocos-artifacts.mjs': {
@@ -1481,5 +1481,224 @@ export const singleGamePagesRetirementReviews = Object.freeze({
     ...singleGameRetirementReviews['turbo.json'],
     before: '2939bab45107ebb53888d6f5a0a77420f2e05551bf464a91e4c8fef7c79d7c3a',
     sources: ['games/local/ashfall-front'],
+  },
+});
+// Git pairs similar Creator templates with new surviving files; only these exact pairs are reviewed.
+export const singleGamePagesRetirementMoves = Object.freeze({
+  'games/local/orbit-atelier/assets/resources.meta': {
+    to: 'games/local/ashfall-front/assets/resources.meta',
+    status: 'R063',
+    beforeEntry:
+      '100644 blob c79c4f3f9eb284ad339706e92f0348cfc7846002\tgames/local/orbit-atelier/assets/resources.meta\n',
+    afterEntry:
+      '100644 blob e9b3a21b7b5cc1f659babafd7b01bc3ce1aa9748\tgames/local/ashfall-front/assets/resources.meta\n',
+  },
+  'games/local/orbit-atelier/assets/scripts/core.meta': {
+    to: 'games/local/ashfall-front/assets/resources/art.meta',
+    status: 'R070',
+    beforeEntry:
+      '100644 blob eb3d7961c6535415f1702a05d82ef67588e812a6\tgames/local/orbit-atelier/assets/scripts/core.meta\n',
+    afterEntry:
+      '100644 blob 35a1fe62af95d781b7ccdc7f1379ca8afc30e331\tgames/local/ashfall-front/assets/resources/art.meta\n',
+  },
+  'games/local/orbit-atelier/assets/resources/armillary.png.meta': {
+    to: 'games/local/ashfall-front/assets/resources/art/barrel.png.meta',
+    status: 'R064',
+    beforeEntry:
+      '100644 blob d9486863b1b50de7561bf9a2ba4f961dec4f2d80\tgames/local/orbit-atelier/assets/resources/armillary.png.meta\n',
+    afterEntry:
+      '100644 blob 47e041c0e799678e698efbe66a4621e07542d84e\tgames/local/ashfall-front/assets/resources/art/barrel.png.meta\n',
+  },
+  'games/local/orbit-atelier/assets/resources/audio/turn.wav.meta': {
+    to: 'games/local/ashfall-front/assets/resources/checkpoint.wav.meta',
+    status: 'R077',
+    beforeEntry:
+      '100644 blob 7ef5390b03f8db85317eadeae46769edeef7e45e\tgames/local/orbit-atelier/assets/resources/audio/turn.wav.meta\n',
+    afterEntry:
+      '100644 blob 8da9d82d7465703dcbcaeb0b151d174a387a634b\tgames/local/ashfall-front/assets/resources/checkpoint.wav.meta\n',
+  },
+  'games/local/orbit-atelier/assets/resources/audio/complete.wav.meta': {
+    to: 'games/local/ashfall-front/assets/resources/explode.wav.meta',
+    status: 'R077',
+    beforeEntry:
+      '100644 blob e7459c0a3498beb287e54685750158c3fac32217\tgames/local/orbit-atelier/assets/resources/audio/complete.wav.meta\n',
+    afterEntry:
+      '100644 blob 8d76afee33985c4eae5f7cf18c0e0eb211890ef0\tgames/local/ashfall-front/assets/resources/explode.wav.meta\n',
+  },
+  'games/local/orbit-atelier/assets/resources/audio/release.wav.meta': {
+    to: 'games/local/ashfall-front/assets/resources/hit.wav.meta',
+    status: 'R077',
+    beforeEntry:
+      '100644 blob b804e277f1915ba3d07e55ccb18a6b7374edce6a\tgames/local/orbit-atelier/assets/resources/audio/release.wav.meta\n',
+    afterEntry:
+      '100644 blob 0c451328f637caf7b939b83009f1ae7baefb1344\tgames/local/ashfall-front/assets/resources/hit.wav.meta\n',
+  },
+  'games/local/orbit-atelier/assets/scenes.meta': {
+    to: 'games/local/ashfall-front/assets/scenes.meta',
+    status: 'R070',
+    beforeEntry:
+      '100644 blob d07728d7789d3a265df11133d6b0eb4fd9f5e320\tgames/local/orbit-atelier/assets/scenes.meta\n',
+    afterEntry:
+      '100644 blob c8fb70d80ed3a5715acf23147a5f0469e9e23b0b\tgames/local/ashfall-front/assets/scenes.meta\n',
+  },
+  'games/local/orbit-atelier/assets/scenes/main.scene': {
+    to: 'games/local/ashfall-front/assets/scenes/main.scene',
+    status: 'R087',
+    beforeEntry:
+      '100644 blob 487eb1f3222dd9f3d87ab2cf8b3cee82a4298723\tgames/local/orbit-atelier/assets/scenes/main.scene\n',
+    afterEntry:
+      '100644 blob 4f41fb233d4f713064c3f93b7363b4b479a61a30\tgames/local/ashfall-front/assets/scenes/main.scene\n',
+  },
+  'games/local/orbit-atelier/assets/scenes/main.scene.meta': {
+    to: 'games/local/ashfall-front/assets/scenes/main.scene.meta',
+    status: 'R072',
+    beforeEntry:
+      '100644 blob 01653c5b8902279c5dc07febd47d91ad636b91c8\tgames/local/orbit-atelier/assets/scenes/main.scene.meta\n',
+    afterEntry:
+      '100644 blob 981bc91ceecb206afddaf51645e02565f4f05ed8\tgames/local/ashfall-front/assets/scenes/main.scene.meta\n',
+  },
+  'games/local/orbit-atelier/assets/scripts.meta': {
+    to: 'games/local/ashfall-front/assets/scripts.meta',
+    status: 'R070',
+    beforeEntry:
+      '100644 blob e1b4a4f1fe84cf039e3dbc4beef08d08a419e16b\tgames/local/orbit-atelier/assets/scripts.meta\n',
+    afterEntry:
+      '100644 blob 52654dc8ed5cf341f1095bed819d1e679d1eadf1\tgames/local/ashfall-front/assets/scripts.meta\n',
+  },
+  'games/local/orbit-atelier/assets/scripts/OrbitAtelier.ts.meta': {
+    to: 'games/local/ashfall-front/assets/scripts/Ashfall.ts.meta',
+    status: 'R070',
+    beforeEntry:
+      '100644 blob bc2921e8bce191a1e8bd964aff62e955a29d3e22\tgames/local/orbit-atelier/assets/scripts/OrbitAtelier.ts.meta\n',
+    afterEntry:
+      '100644 blob 4c9e99d63c5de5015d77a6768e86b7cd998a31fe\tgames/local/ashfall-front/assets/scripts/Ashfall.ts.meta\n',
+  },
+  'games/local/orbit-atelier/assets/scripts/core/catalog.ts.meta': {
+    to: 'games/local/ashfall-front/assets/scripts/FrontView.ts.meta',
+    status: 'R070',
+    beforeEntry:
+      '100644 blob 583609f9a941f4fdb4f3337e553ea0c621d75ae1\tgames/local/orbit-atelier/assets/scripts/core/catalog.ts.meta\n',
+    afterEntry:
+      '100644 blob 91a4ba84b7113660f8f73f743338a8f7c950b7d4\tgames/local/ashfall-front/assets/scripts/FrontView.ts.meta\n',
+  },
+  'games/local/orbit-atelier/scripts/artifact.mjs': {
+    to: 'games/local/ashfall-front/scripts/artifact.mjs',
+    status: 'R066',
+    beforeEntry:
+      '100644 blob e89b910ba9359eec24d71e955f62d52fa108c8c2\tgames/local/orbit-atelier/scripts/artifact.mjs\n',
+    afterEntry:
+      '100644 blob a86fb4b601bebb477a4418207d3a9a70796a9d27\tgames/local/ashfall-front/scripts/artifact.mjs\n',
+  },
+  'games/local/orbit-atelier/dev-mode.d.ts': {
+    to: 'games/local/ashfall-front/scripts/dev-mode.d.ts',
+    status: 'R100',
+    beforeEntry:
+      '100644 blob 19ecd63375b8c703a717e650860e303b67af3ab5\tgames/local/orbit-atelier/dev-mode.d.ts\n',
+    afterEntry:
+      '100644 blob 19ecd63375b8c703a717e650860e303b67af3ab5\tgames/local/ashfall-front/scripts/dev-mode.d.ts\n',
+  },
+  'games/local/orbit-atelier/scripts/dev-mode.js': {
+    to: 'games/local/ashfall-front/scripts/dev-mode.js',
+    status: 'R099',
+    beforeEntry:
+      '100644 blob b184ed2ed1f23f612143491235bbfe348c42e627\tgames/local/orbit-atelier/scripts/dev-mode.js\n',
+    afterEntry:
+      '100644 blob 149c2470bb0be0226b8604a4a9faae52ebf6c8cb\tgames/local/ashfall-front/scripts/dev-mode.js\n',
+  },
+  'games/local/orbit-atelier/scripts/serve.mjs': {
+    to: 'games/local/ashfall-front/scripts/serve.mjs',
+    status: 'R079',
+    beforeEntry:
+      '100644 blob 4953fdac6698c76edb1cdc51b9168a1f5d23ced3\tgames/local/orbit-atelier/scripts/serve.mjs\n',
+    afterEntry:
+      '100644 blob 614a7fc40f5b27b5a12e013c1eae3dc7b8bff14e\tgames/local/ashfall-front/scripts/serve.mjs\n',
+  },
+  'games/local/orbit-atelier/scripts/typecheck.mjs': {
+    to: 'games/local/ashfall-front/scripts/typecheck.mjs',
+    status: 'R090',
+    beforeEntry:
+      '100644 blob 3f4ea1acb2109e17dcf4372d3f4a169e6b3d0c54\tgames/local/orbit-atelier/scripts/typecheck.mjs\n',
+    afterEntry:
+      '100644 blob d27efcd9cf7eb32e1ecf2320c654b4a47ad2c83b\tgames/local/ashfall-front/scripts/typecheck.mjs\n',
+  },
+  'games/local/orbit-atelier/settings/v2/packages/builder.json': {
+    to: 'games/local/ashfall-front/settings/v2/packages/builder.json',
+    status: 'R100',
+    beforeEntry:
+      '100644 blob 7526e4073d3807dd595fdebf9732cc79d3c3a108\tgames/local/orbit-atelier/settings/v2/packages/builder.json\n',
+    afterEntry:
+      '100644 blob 7526e4073d3807dd595fdebf9732cc79d3c3a108\tgames/local/ashfall-front/settings/v2/packages/builder.json\n',
+  },
+  'games/local/orbit-atelier/settings/v2/packages/device.json': {
+    to: 'games/local/ashfall-front/settings/v2/packages/device.json',
+    status: 'R100',
+    beforeEntry:
+      '100644 blob 70e599e6c94711f84807c353d7bda58c61472ec9\tgames/local/orbit-atelier/settings/v2/packages/device.json\n',
+    afterEntry:
+      '100644 blob 70e599e6c94711f84807c353d7bda58c61472ec9\tgames/local/ashfall-front/settings/v2/packages/device.json\n',
+  },
+  'games/local/orbit-atelier/settings/v2/packages/engine.json': {
+    to: 'games/local/ashfall-front/settings/v2/packages/engine.json',
+    status: 'R079',
+    beforeEntry:
+      '100644 blob 0a993947fb4e0e7c6152f7516a9647e91d8c399e\tgames/local/orbit-atelier/settings/v2/packages/engine.json\n',
+    afterEntry:
+      '100644 blob ba8210d8db4be0511a3e20d14a4a79b104f4631f\tgames/local/ashfall-front/settings/v2/packages/engine.json\n',
+  },
+  'games/local/orbit-atelier/settings/v2/packages/information.json': {
+    to: 'games/local/ashfall-front/settings/v2/packages/information.json',
+    status: 'R100',
+    beforeEntry:
+      '100644 blob 94848dec1f2251d4ff16bbd83b42c3ec773f835d\tgames/local/orbit-atelier/settings/v2/packages/information.json\n',
+    afterEntry:
+      '100644 blob 94848dec1f2251d4ff16bbd83b42c3ec773f835d\tgames/local/ashfall-front/settings/v2/packages/information.json\n',
+  },
+  'games/local/orbit-atelier/settings/v2/packages/program.json': {
+    to: 'games/local/ashfall-front/settings/v2/packages/program.json',
+    status: 'R100',
+    beforeEntry:
+      '100644 blob 916c1b2018a771c2006a05ebd438649652a46940\tgames/local/orbit-atelier/settings/v2/packages/program.json\n',
+    afterEntry:
+      '100644 blob 916c1b2018a771c2006a05ebd438649652a46940\tgames/local/ashfall-front/settings/v2/packages/program.json\n',
+  },
+  'games/local/orbit-atelier/tsconfig.json': {
+    to: 'games/local/ashfall-front/tsconfig.json',
+    status: 'R066',
+    beforeEntry:
+      '100644 blob 41e0cfb3d4b5a8fe7ba72623a274e3db6b476ec5\tgames/local/orbit-atelier/tsconfig.json\n',
+    afterEntry:
+      '100644 blob 53907692bbdb82d1eabb8eb378e65f9a0ee1d9a7\tgames/local/ashfall-front/tsconfig.json\n',
+  },
+  'games/local/orbit-atelier/assets/resources/audio.meta': {
+    to: 'games/local/night-overwatch/assets/resources/ui.meta',
+    status: 'R070',
+    beforeEntry:
+      '100644 blob 71d9112a2b36bba3d40f8e6436adf6f1e041b9b3\tgames/local/orbit-atelier/assets/resources/audio.meta\n',
+    afterEntry:
+      '100644 blob 1afab5667438839f0f196373ab7eee7cdf717743\tgames/local/night-overwatch/assets/resources/ui.meta\n',
+  },
+  'games/local/orbit-atelier/assets/resources/atelier.jpg.meta': {
+    to: 'games/local/night-overwatch/assets/resources/ui/home.png.meta',
+    status: 'R062',
+    beforeEntry:
+      '100644 blob 2a84ddaaf18f4ace7ce54a8fc896348c6c21f528\tgames/local/orbit-atelier/assets/resources/atelier.jpg.meta\n',
+    afterEntry:
+      '100644 blob c9dd5cb20a8654e0e91d553d8e75388b8e567290\tgames/local/night-overwatch/assets/resources/ui/home.png.meta\n',
+  },
+  'games/local/orbit-atelier/scripts/dev-mode.d.ts': {
+    to: 'games/local/porcelain-puzzle/dev-mode.d.ts',
+    status: 'R100',
+    beforeEntry:
+      '100644 blob 19ecd63375b8c703a717e650860e303b67af3ab5\tgames/local/orbit-atelier/scripts/dev-mode.d.ts\n',
+    afterEntry:
+      '100644 blob 19ecd63375b8c703a717e650860e303b67af3ab5\tgames/local/porcelain-puzzle/dev-mode.d.ts\n',
+  },
+  'games/local/orbit-atelier/dev-mode.js': {
+    to: 'games/local/porcelain-puzzle/dev-mode.js',
+    status: 'R099',
+    beforeEntry:
+      '100644 blob b184ed2ed1f23f612143491235bbfe348c42e627\tgames/local/orbit-atelier/dev-mode.js\n',
+    afterEntry:
+      '100644 blob 149c2470bb0be0226b8604a4a9faae52ebf6c8cb\tgames/local/porcelain-puzzle/dev-mode.js\n',
   },
 });
