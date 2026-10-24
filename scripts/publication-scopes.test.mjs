@@ -6002,3 +6002,19 @@ test('cumulative Ashfall and Porcelain lock changes retain both games and Shell'
   ])
     assert.equal(reviewedSharedFileScopes({ ...context, ...extra }).has(file), false);
 });
+
+test('Chase browser helper changes retain the game and Shell consumers', () => {
+  const file = 'apps/shell-web/scripts/game-checks/chase-thief.mjs';
+  const options = {
+    changedPaths: [file],
+    games: [],
+    packages: [],
+    readBase: () => '',
+    readHead: () => '',
+  };
+  assert.deepEqual(reviewedSharedFileScopes(options).get(file), [
+    'games/local/chase-thief',
+    'apps/shell-web',
+  ]);
+  assert.equal(reviewedSharedFileScopes({ ...options, changedPaths: [file + '.unknown'] }).size, 0);
+});

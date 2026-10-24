@@ -104,3 +104,5 @@ Tower 与并行合入的 Tetracube 构成九款 Creator Producer。组合证明�
 灰烬防线构建依赖与青花拾光登记累计到同一锁文件时，以最近成功 Pages `17142333` 到 `b5105c58` 的完整前后摘要绑定；该差异只复用已有 Playwright/TypeScript tuple 并增加 Shell workspace 链接，选择两款游戏及 Shell 三个实际消费者。额外锁文件字节、依赖版本改变或消费者身份缺失仍拒绝分类。
 
 同一累计区间内，Shell manifest 同时移除旧全屏测试命令并新增青花拾光依赖，另以完整前后摘要绑定并保留 Shell 和青花拾光消费者；既有单独全屏移除证明继续保留。
+
+追逐游戏的独立浏览器操作模块 `apps/shell-web/scripts/game-checks/chase-thief.mjs` 按精确路径选择追逐游戏与 Shell 消费者；即使仅修复测试流程，也执行该游戏的真实嵌入／触屏回归，不能只留下通用导航样例。

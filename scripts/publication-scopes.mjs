@@ -4010,6 +4010,10 @@ export function reviewedSharedFileScopes({
       scopes.set(file, porcelainScopes.get(file));
       continue;
     }
+    if (file === 'apps/shell-web/scripts/game-checks/chase-thief.mjs') {
+      scopes.set(file, ['games/local/chase-thief', 'apps/shell-web']);
+      continue;
+    }
     if (file === 'apps/shell-web/scripts/game-checks/ashfall-front.mjs') {
       scopes.set(file, ['games/local/ashfall-front', 'apps/shell-web']);
       continue;
