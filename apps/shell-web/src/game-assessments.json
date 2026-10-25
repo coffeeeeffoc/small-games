@@ -905,9 +905,9 @@
       ]
     },
     {
-      "id": "three-choose-two",
-      "title": "三块选两块",
-      "source": "games/local/three-choose-two",
+      "id": "place-and-clear",
+      "title": "摆消乐",
+      "source": "games/local/place-and-clear",
       "disposition": "potential",
       "potential": ["fun", "potential"],
       "platforms": ["mobile", "web"],
@@ -924,9 +924,9 @@
         "验证种子挑战的回流和模式分榜理解，继续调节拖放容错与连续交叉消除反馈；真实平台广告及认证成绩需单独验收。"
       ],
       "evidence": [
-        "games/local/three-choose-two/README.md",
-        "games/local/three-choose-two/docs/design/publishing-2026-10-11/design.md",
-        "games/local/three-choose-two/docs/design/publishing-2026-10-11/publishing-browser.json"
+        "games/local/place-and-clear/README.md",
+        "games/local/place-and-clear/docs/design/publishing-2026-10-11/design.md",
+        "games/local/place-and-clear/docs/design/publishing-2026-10-11/publishing-browser.json"
       ],
       "delivered": [
         "新增独立种子挑战、同局重试与好友自报目标分比较；挑战不覆盖普通存档和原有在线排行；可选续局接入模拟激励，结算使用频控模拟插屏。"

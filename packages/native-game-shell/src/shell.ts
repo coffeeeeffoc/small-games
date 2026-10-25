@@ -1,16 +1,12 @@
-import { HostError, type GameDefinition, type GameInstance } from '@coffeeeeffoc/game-contract';
-import type { DynamicContentEnvelope } from '@coffeeeeffoc/content-schema';
+import { HostError, type GameInstance } from '@coffeeeeffoc/game-contract';
 import type { CanvasGameTarget, CanvasPointerEvent } from '@coffeeeeffoc/canvas-game-adapter';
 import { createNativeGameHost } from './host.js';
 import { createNativeMedia } from './media.js';
 import type { NativeSdk, TouchEvent } from './sdk.js';
 import { createNativeViewport, type NativeViewportOptions } from './viewport.js';
 export type { NativeViewportOptions } from './viewport.js';
-export type ReviewedModule = {
-  definition: GameDefinition<CanvasGameTarget>;
-  content: DynamicContentEnvelope;
-  viewport?: NativeViewportOptions;
-};
+import type { ReviewedModule } from './module.js';
+export type { ReviewedModule } from './module.js';
 export async function startNativeGame(
   sdk: NativeSdk | undefined,
   loadGame: () => Promise<ReviewedModule>,
@@ -113,7 +109,10 @@ export async function startNativeGame(
       sdk.onWindowResize(resize);
       remember(() => sdk.offWindowResize?.(resize));
     }
-    const host = createNativeGameHost(sdk, module.definition.manifest, module.content, options);
+    const host = createNativeGameHost(sdk, module.definition.manifest, module.content, {
+      ...options,
+      storageGameId: module.storageGameId,
+    });
     instance = await module.definition.mount(
       {
         canvas: viewport.canvas,

@@ -7,6 +7,201 @@ import {
   isReviewedLocalRetirementDeletion,
 } from './local-game-retirement-scope.mjs';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
+test('saved Pages retirement plus rename binds exact files and retains every surviving consumer', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const {
+    deliveryRetirementBase: base,
+    deliveryRetirementTrees: trees,
+    deliveryRetirementReviews,
+    deliveryRenameRetirementReviews: reviews,
+  } = await import('./local-game-retirement-reviews.mjs');
+  const { localRetirementFileScopes, localRetirementHeadQueryPaths, hasLocalRetirementFileProof } =
+    await import('./local-game-retirement-scope.mjs');
+  const { gameRenameFileScopes, isReviewedGameRename } = await import('./game-rename-scope.mjs');
+  const head = 'ff34bc7c74d5643f78b05c7b1b0135ea0c59ed62';
+  const git = (...args) =>
+    execFileSync('git', args, {
+      cwd: new URL('../', import.meta.url),
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  const entries = (ref) =>
+    new Map(
+      git('ls-tree', '-r', '-t', ref)
+        .trimEnd()
+        .split('\n')
+        .map((line) => [line.split('\t')[1], line + '\n']),
+    );
+  const before = entries(base),
+    after = entries(head),
+    cache = new Map();
+  const read = (ref, file) => {
+    const key = ref + ':' + file;
+    if (!cache.has(key)) cache.set(key, git('show', key));
+    return cache.get(key);
+  };
+  const root = Object.keys(trees)[0];
+  const changedPaths = git('diff', '--no-renames', '--name-only', '-z', base, head)
+    .split('\0')
+    .filter(Boolean);
+  const context = {
+    baseCommit: base,
+    changedPaths,
+    readBaseEntry: (file) => before.get(file) ?? '',
+    readHeadEntry: (file) => after.get(file) ?? '',
+    readBase: (file) => read(base, file),
+    readHead: (file) => read(head, file),
+    headHasPath: (file) => after.has(file),
+  };
+  const scopes = localRetirementFileScopes(context);
+  const deleted = changedPaths.filter((file) => file.startsWith(root + '/'));
+  assert.equal(deleted.length, 24);
+  assert.equal(scopes.size, deleted.length + Object.keys(reviews).length);
+  assert.equal(localRetirementScopesForReview(context, trees, deliveryRetirementReviews).size, 0);
+  const cloned = localRetirementScopesForReview(context, trees, { ...reviews });
+  for (const file of deleted) {
+    const change = { status: 'D', paths: [file] };
+    assert(isReviewedLocalRetirementDeletion(change, scopes), file);
+    assert(!isReviewedLocalRetirementDeletion(change, cloned), 'a cloned review cannot lend proof');
+    assert(!hasLocalRetirementDeletionProof(file, [...scopes.get(file)]));
+    assert(!isReviewedLocalRetirementDeletion({ status: 'R100', paths: [file, 'other'] }, scopes));
+  }
+  const queryPaths = localRetirementHeadQueryPaths(changedPaths);
+  for (const [file, review] of Object.entries(reviews)) {
+    assert(queryPaths.includes(file), file);
+    assert.equal(hash(context.readBase(file)), review.before, file);
+    assert.equal(hash(context.readHead(file)), review.after, file);
+    assert.deepEqual(scopes.get(file), review.sources, file);
+    assert(hasLocalRetirementFileProof(file, scopes.get(file), context.readHead), file);
+    assert(!hasLocalRetirementFileProof(file, [...scopes.get(file)], context.readHead));
+    assert(!hasLocalRetirementFileProof(file, cloned.get(file), context.readHead));
+    for (const reader of ['readBase', 'readHead'])
+      assert.equal(
+        localRetirementScopesForReview(
+          {
+            ...context,
+            [reader]: (name) => context[reader](name) + (name === file ? '\nextra' : ''),
+          },
+          trees,
+          reviews,
+        ).size,
+        0,
+        `${file}: ${reader} drift`,
+      );
+  }
+  const shellAndGame = ['apps/shell-web', 'games/local/place-and-clear'];
+  for (const file of ['package.json', 'src/game-meta.json', 'src/standalone-games.json'])
+    assert.deepEqual(scopes.get('apps/shell-web/' + file), shellAndGame);
+  assert.deepEqual(scopes.get('pnpm-lock.yaml'), [
+    ...shellAndGame,
+    'apps/shell-minigame',
+    'services/runtime-api',
+  ]);
+  assert.deepEqual(scopes.get('apps/shell-web/scripts/standalone-game-checks.mjs'), [
+    ...shellAndGame,
+    'games/local/flick-arena',
+    'games/local/waterline-station',
+    'games/local/tianxia-chalu',
+  ]);
+  for (const file of ['scripts/standalone-game-entry.mjs', 'src/game-assessments.json'])
+    assert.deepEqual(scopes.get('apps/shell-web/' + file), [
+      ...shellAndGame,
+      'games/local/waterline-station',
+    ]);
+  for (const file of [
+    'apps/shell-web/scripts/pages-smoke.mjs',
+    'apps/shell-web/src/StandaloneGame.tsx',
+    'apps/shell-web/tests/standalone-immersive.integration.test.tsx',
+    'apps/shell-web/tests/standalone.integration.test.tsx',
+    'scripts/test-game-dev-mode.mjs',
+  ])
+    assert.deepEqual(scopes.get(file), [...shellAndGame, 'games/local/waterline-station']);
+  for (const file of ['src/game-sharing.ts', 'tests/game-sharing.test.tsx'])
+    assert.deepEqual(scopes.get('apps/shell-web/' + file), [
+      ...shellAndGame,
+      'games/local/ball-roguelite',
+      'games/local/ember-bounce',
+    ]);
+  assert.deepEqual(scopes.get('apps/shell-web/tests/routes.integration.test.tsx'), [
+    ...shellAndGame,
+    'games/local/ember-bounce',
+  ]);
+
+  // The entire multi-document lock must equal these two removals plus the rename;
+  // every other importer, package resolution, integrity and snapshot byte survives.
+  const lock = context.readBase('pnpm-lock.yaml');
+  const link =
+    '      tangerine-express:\n' +
+    '        specifier: workspace:*\n' +
+    '        version: link:../../games/local/vibeJam-myself-delivery\n';
+  const importer =
+    '  games/local/vibeJam-myself-delivery:\n' +
+    '    dependencies:\n' +
+    '      three:\n' +
+    '        specifier: 0.180.0\n' +
+    '        version: 0.180.0\n' +
+    '    devDependencies:\n' +
+    '      vite:\n' +
+    '        specifier: 7.3.7\n' +
+    '        version: 7.3.7(@types/node@24.3.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.13)\n\n';
+  assert.equal(lock.split(link).length, 2);
+  assert.equal(lock.split(importer).length, 2);
+  assert.equal(
+    lock.replace(link, '').replace(importer, '').replaceAll('three-choose-two', 'place-and-clear'),
+    context.readHead('pnpm-lock.yaml'),
+  );
+  const tokens = git(
+    'diff',
+    '--find-renames',
+    '--name-status',
+    '-z',
+    '--diff-filter=DR',
+    base,
+    head,
+  )
+    .split('\0')
+    .filter(Boolean);
+  const renameScopes = gameRenameFileScopes(context);
+  let renamed = 0;
+  while (tokens.length) {
+    const status = tokens.shift();
+    const change = { status, paths: tokens.splice(0, status.startsWith('R') ? 2 : 1) };
+    if (change.paths[0].startsWith(root + '/'))
+      assert(isReviewedLocalRetirementDeletion(change, scopes));
+    else {
+      assert(isReviewedGameRename(change, renameScopes), change.paths[0]);
+      assert(!scopes.has(change.paths[1]), 'surviving game files keep ordinary validation');
+      renamed++;
+    }
+  }
+  assert.equal(renamed, 216);
+  // A changed surviving file loses the cumulative proof, while the separately
+  // verified retired tree keeps the remote branch's independent deletion proof.
+  const shared = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+  const drifted = localRetirementFileScopes({
+    ...context,
+    readHead: (file) => context.readHead(file) + (file === shared ? '\nextra' : ''),
+  });
+  assert(!drifted.has(shared));
+  for (const file of deleted)
+    assert(isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, drifted), file);
+  for (const override of [
+    { baseCommit: head },
+    { readBaseEntry: (file) => (file === root ? '' : context.readBaseEntry(file)) },
+    { headHasPath: (file) => file === root || context.headHasPath(file) },
+    { headHasPath: () => undefined },
+    { changedPaths: [...changedPaths, root + '/unknown-extra.mjs'] },
+    {
+      readHead: () => {
+        throw new Error('query failed');
+      },
+    },
+  ])
+    assert.equal(localRetirementFileScopes({ ...context, ...override }).size, 0);
+  assert(!scopes.has('scripts/unknown-deletion.mjs'));
+});
+
 test('delivery retirement binds its original tree and surviving edits', async () => {
   const { execFileSync } = await import('node:child_process');
   const { deliveryRetirementBase, deliveryRetirementTrees, deliveryRetirementReviews } =

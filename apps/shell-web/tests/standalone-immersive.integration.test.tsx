@@ -38,7 +38,7 @@ it.each([
   'tianxia-chalu',
   'ashfall-front',
   'carrom-club',
-  'three-choose-two',
+  'place-and-clear',
   'cage-rescue',
   'chase-thief',
   'merge-front',

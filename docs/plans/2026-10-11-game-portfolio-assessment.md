@@ -664,7 +664,7 @@ Shell 当前有 39 款可玩入口，提供 **全部游戏 / 上轮已改造 / �
 - **上轮已落实**：新增独立种子挑战、同局重试与好友自报目标分比较；挑战不覆盖普通存档和原有在线排行；可选续局接入模拟激励，结算使用频控模拟插屏。
 - **下一步**：验证种子挑战的回流和模式分榜理解，继续调节拖放容错与连续交叉消除反馈；真实平台广告及认证成绩需单独验收。
 - **拓展方向**：同题挑战、好友对战、内容分享；是适配方向，已有能力与待做能力以证据和实现为准。
-- **证据**：[games/local/three-choose-two/README.md](../../games/local/three-choose-two/README.md)、[games/local/three-choose-two/docs/design/publishing-2026-10-11/design.md](../../games/local/three-choose-two/docs/design/publishing-2026-10-11/design.md)、[games/local/three-choose-two/docs/design/publishing-2026-10-11/publishing-browser.json](../../games/local/three-choose-two/docs/design/publishing-2026-10-11/publishing-browser.json)；上轮有 Linux Chromium 触屏模拟记录，不是真机验证。
+- **证据**：[games/local/place-and-clear/README.md](../../games/local/place-and-clear/README.md)、[games/local/place-and-clear/docs/design/publishing-2026-10-11/design.md](../../games/local/place-and-clear/docs/design/publishing-2026-10-11/design.md)、[games/local/place-and-clear/docs/design/publishing-2026-10-11/publishing-browser.json](../../games/local/place-and-clear/docs/design/publishing-2026-10-11/publishing-browser.json)；上轮有 Linux Chromium 触屏模拟记录，不是真机验证。
 
 ## 目录实现验证
 

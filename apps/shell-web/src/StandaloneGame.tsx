@@ -26,7 +26,7 @@ export function StandaloneGame({
     id === 'tianxia-chalu' ||
     id === 'ashfall-front' ||
     id === 'carrom-club' ||
-    id === 'three-choose-two' ||
+    id === 'place-and-clear' ||
     id === 'cage-rescue' ||
     id === 'chase-thief' ||
     id === 'merge-front' ||

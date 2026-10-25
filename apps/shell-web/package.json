@@ -69,7 +69,7 @@
     "@coffeeeeffoc/tetracube": "workspace:*",
     "@coffeeeeffoc/tower-brake": "workspace:*",
     "@coffeeeeffoc/cage-rescue": "workspace:*",
-    "@coffeeeeffoc/three-choose-two": "workspace:*",
+    "@coffeeeeffoc/place-and-clear": "workspace:*",
     "@coffeeeeffoc/ashfall-front": "workspace:*",
     "@coffeeeeffoc/porcelain-puzzle": "workspace:*"
   },

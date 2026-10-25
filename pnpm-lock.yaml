@@ -296,9 +296,9 @@ importers:
       '@coffeeeeffoc/platform-wechat':
         specifier: workspace:*
         version: link:../../platforms/wechat
-      '@coffeeeeffoc/three-choose-two':
+      '@coffeeeeffoc/place-and-clear':
         specifier: workspace:*
-        version: link:../../games/local/three-choose-two
+        version: link:../../games/local/place-and-clear
       '@coffeeeeffoc/wulong-city':
         specifier: workspace:*
         version: link:../../games/local/wulong-city
@@ -417,9 +417,9 @@ importers:
       '@coffeeeeffoc/tetracube':
         specifier: workspace:*
         version: link:../../games/local/tetracube
-      '@coffeeeeffoc/three-choose-two':
+      '@coffeeeeffoc/place-and-clear':
         specifier: workspace:*
-        version: link:../../games/local/three-choose-two
+        version: link:../../games/local/place-and-clear
       '@coffeeeeffoc/tianxia-chalu':
         specifier: workspace:*
         version: link:../../games/local/tianxia-chalu
@@ -845,7 +845,7 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
-  games/local/three-choose-two:
+  games/local/place-and-clear:
     dependencies:
       '@coffeeeeffoc/game-contract':
         specifier: workspace:*
@@ -1676,9 +1676,9 @@ importers:
       '@coffeeeeffoc/service-kit':
         specifier: workspace:*
         version: link:../../packages/service-kit
-      '@coffeeeeffoc/three-choose-two':
+      '@coffeeeeffoc/place-and-clear':
         specifier: workspace:*
-        version: link:../../games/local/three-choose-two
+        version: link:../../games/local/place-and-clear
       '@fastify/rate-limit':
         specifier: 11.2.0
         version: 11.2.0
