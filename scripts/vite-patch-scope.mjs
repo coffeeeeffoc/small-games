@@ -33,7 +33,6 @@ const audited = {
     'games/local/game-moss-garden',
     'games/local/homebound-station',
     'games/local/luban-workshop',
-    'games/local/maze-wander',
     'games/local/merge-front',
     'games/local/travel-bund',
     'games/local/urban-breakout',

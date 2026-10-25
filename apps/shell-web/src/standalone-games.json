@@ -56,24 +56,10 @@
     "output": "dist"
   },
   {
-    "id": "voiceprint-case",
-    "source": "games/local/voiceprint-case",
-    "title": "声纹疑案",
-    "description": "听取嘈杂现场的一句话，对照三位虚构成年人的同句录音，辨认同一个声音，挑战十二关渐进听觉谜案。",
-    "output": "dist"
-  },
-  {
     "id": "echo-lab",
     "source": "games/local/echo-lab",
     "title": "回声实验室 · Echo Lab",
     "description": "拖动和旋转反射板、消音板，分别调节四面墙的反射率，听见空间改变声音；导出原声与调制声，分享房间链接邀请朋友一起实验。",
-    "output": "dist"
-  },
-  {
-    "id": "maze-wander",
-    "source": "games/local/maze-wander",
-    "title": "迷境漫游",
-    "description": "在五种风景、二十个手工迷宫中第一人称探索，留下标记，辨认回环与倒影，慢慢找到归途。支持电脑与手机网页。",
     "output": "dist"
   },
   {

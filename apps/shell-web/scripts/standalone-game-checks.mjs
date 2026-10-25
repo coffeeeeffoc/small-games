@@ -355,34 +355,6 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#leave'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'home');
     await expect(frame.locator('#start')).toBeVisible();
-  } else if (id === 'voiceprint-case') {
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
-      timeout: 20_000,
-    });
-    await expect(frame.locator('#game')).toBeVisible();
-    await expect(frame.locator('#confirm')).toBeDisabled();
-    // Starting a round automatically plays the scene after the user unlocks audio.
-    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
-    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false', {
-      timeout: 20_000,
-    });
-    await click(frame.locator('#scene-play'));
-    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
-    for (const slot of [0, 1, 2]) {
-      await click(frame.locator(`button[data-listen="${slot}"]`));
-    }
-    await click(frame.locator('button[data-select="0"]'));
-    await expect(frame.locator('#confirm')).toBeEnabled();
-    await click(frame.locator('#confirm'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'feedback');
-    await expect(frame.locator('#feedback')).toBeVisible();
-    await click(frame.locator('#next'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await expect(frame.locator('#feedback')).toBeHidden();
-    await expect(frame.locator('#confirm')).toBeDisabled();
-    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
-    await click(frame.locator('#stop'));
-    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
   } else if (id === 'tetracube') {
     const canvas = frame.locator('#GameCanvas');
     const snapshot = () => canvas.evaluate(() => globalThis.__tetracube?.snapshot());
@@ -564,30 +536,6 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await tap('abandon');
     await expect.poll(async () => (await snapshot()).screen).toBe('home');
     expect((await snapshot()).buttons.some((item) => /fullscreen/i.test(item.id))).toBe(false);
-  } else if (id === 'maze-wander') {
-    await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
-    if (mobile) {
-      await click(frame.locator('#pause'));
-    } else {
-      const page = frame.locator('canvas').page();
-      await page.keyboard.down('w');
-      await page.waitForTimeout(350);
-      await page.keyboard.up('w');
-      await page.keyboard.press('Escape');
-    }
-    await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'pause');
-    await click(frame.locator('#resume'));
-    await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
-    if (!mobile) {
-      // Resuming captures the mouse again; Escape must release it before Shell navigation.
-      await frame.locator('canvas').page().keyboard.press('Escape');
-      await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'pause');
-      await expect
-        .poll(() =>
-          frame.locator('body').evaluate(() => globalThis.document.pointerLockElement === null),
-        )
-        .toBe(true);
-    }
   } else if (id === 'urban-breakout') {
     await expect(frame.locator('.stage')).toHaveAttribute('data-playing', 'true');
     await expect

@@ -1,3 +1,40 @@
+// Exact source trees for the two retired games. The directory tree IDs bind every
+// tracked source file, document, and binary asset in the reviewed base commit.
+export const mazeVoiceRetirementBase = '61759eb643f97601323bcaf12706d0d1737b1ce5';
+export const mazeVoiceRetirementTrees = Object.freeze({
+  'games/local/maze-wander':
+    '040000 tree 87472def6b5d71d3f1ee63492eecb032552ca175\tgames/local/maze-wander\n',
+  'games/local/voiceprint-case':
+    '040000 tree 5c8e022fef5f7e137bc72abc45610c984dff44d3\tgames/local/voiceprint-case\n',
+});
+export const mazeVoiceRetirementReviews = Object.freeze({
+  'apps/shell-web/package.json': {
+    before: '34b9b61e8106b032ebc5ccf457aac7186af25f856912a15325780cff3421e3fc',
+    after: 'da9caee901116c64d4f050581a73dadf4467dc52fe1b7450fe7fcfc10493f968',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-meta.json': {
+    before: '37fd4bd10f228bb1405183d7e7857bf901eb09e2790f3f859fec57ef18abeda3',
+    after: '4b0c8d19e5747a0184e91917465b88aa161216a74c8a79b7c0d638b4b255d3f0',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/standalone-games.json': {
+    before: '6483f95872c936e1b251527e5d7bd7613fcbc070a082af9b0d4ac16eb67f041e',
+    after: '365f9fb8f9ed3c778a28f72ce3b6efd02a8b4143e8268012e8f27083e420381c',
+    sources: ['apps/shell-web'],
+  },
+  'pnpm-lock.yaml': {
+    before: '2614344f65b1483c2997f9e2866c1e2b06d0a385c26fd916341f63ad5f7f4762',
+    after: 'd016202fe6a6ee51961f2defa9224a0fddf9e29364991916397a034a91d0b806',
+    sources: ['apps/shell-web'],
+  },
+  'scripts/test-game-dev-mode.mjs': {
+    before: '657ba38e4aac440e50314db3194f0ecfac71ba8061410cfd1bb8a2025c33fea2',
+    after: 'd13197ae582a50792dd82a7aaa796e55d7913f1144a1b977d98ef9f0317e20e0',
+    sources: ['apps/shell-web'],
+  },
+});
+
 // Reviewed removal of five local games; precise snapshots and finite surviving consumers.
 export const localRetirementBase = 'aa7e30777290989ac8a48f854f65eb1c8f242a8b';
 export const localRetirementTrees = Object.freeze({

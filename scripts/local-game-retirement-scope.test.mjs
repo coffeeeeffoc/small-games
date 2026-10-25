@@ -7,6 +7,72 @@ import {
   isReviewedLocalRetirementDeletion,
 } from './local-game-retirement-scope.mjs';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
+test('maze and voice retirements bind the exact base trees and reject borrowed proofs', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { mazeVoiceRetirementBase, mazeVoiceRetirementTrees, mazeVoiceRetirementReviews } =
+    await import('./local-game-retirement-reviews.mjs');
+  const { localRetirementFileScopes, hasLocalRetirementFileProof } = await import(
+    './local-game-retirement-scope.mjs'
+  );
+  const git = (...args) =>
+    execFileSync('git', args, {
+      cwd: new URL('../', import.meta.url),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  const head = git('rev-parse', 'HEAD').trim();
+  const entries = (ref) =>
+    new Map(
+      git('ls-tree', '-r', '-t', ref)
+        .trimEnd()
+        .split('\n')
+        .map((line) => [line.split('\t')[1], line + '\n']),
+    );
+  const before = entries(mazeVoiceRetirementBase);
+  const after = entries(head);
+  const deleted = git('diff', '--name-only', '-z', mazeVoiceRetirementBase, head)
+    .split('\0')
+    .filter((file) =>
+      Object.keys(mazeVoiceRetirementTrees).some((root) => file.startsWith(root + '/')),
+    );
+  const context = {
+    baseCommit: mazeVoiceRetirementBase,
+    changedPaths: [...deleted, ...Object.keys(mazeVoiceRetirementReviews)],
+    readBaseEntry: (file) => before.get(file) ?? '',
+    readHeadEntry: (file) => after.get(file) ?? '',
+    readBase: (file) => git('show', `${mazeVoiceRetirementBase}:${file}`),
+    readHead: (file) => git('show', `${head}:${file}`),
+    headHasPath: (file) => after.has(file),
+  };
+  const scopes = localRetirementFileScopes(context);
+  assert.equal(deleted.length, 88);
+  for (const file of deleted) {
+    assert(isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, scopes), file);
+    assert(
+      !isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, new Map([[file, []]])),
+    );
+  }
+  for (const [file, review] of Object.entries(mazeVoiceRetirementReviews)) {
+    assert.deepEqual(scopes.get(file), review.sources);
+    assert(hasLocalRetirementFileProof(file, scopes.get(file), context.readHead));
+    assert.equal(
+      localRetirementFileScopes({
+        ...context,
+        readHead: (name) => context.readHead(name) + (name === file ? '\nextra' : ''),
+      }).size,
+      0,
+    );
+  }
+  assert.equal(localRetirementFileScopes({ ...context, baseCommit: head }).size, 0);
+  assert.equal(
+    localRetirementFileScopes({
+      ...context,
+      readBaseEntry: (file) =>
+        file === 'games/local/maze-wander' ? '' : context.readBaseEntry(file),
+    }).size,
+    0,
+  );
+});
 test('catalog cleanup binds its real deleted tree and exact surviving edits without reusable proofs', async () => {
   const { execFileSync } = await import('node:child_process');
   const {

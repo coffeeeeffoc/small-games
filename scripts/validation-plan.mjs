@@ -206,6 +206,18 @@ export function staticBuildTargets(packages, direct, affected) {
   );
 }
 
+// A Shell catalog edit must not rebuild every game merely because Shell lists
+// it as a workspace dependency. Changed game consumers and selected entry
+// fixtures remain in the build set, together with emitted shared prerequisites.
+export function incrementalBuildTargets(packages, direct, affected) {
+  const selectedGames = new Set(
+    [...direct, ...affected].filter((pkg) => pkg.dir.startsWith('games/')).map((pkg) => pkg.name),
+  );
+  return staticBuildTargets(packages, direct, affected).filter(
+    (pkg) => !pkg.dir.startsWith('games/') || selectedGames.has(pkg.name),
+  );
+}
+
 // Fast DOM contracts are shared by hook, candidate validation and CI. Their finite
 // jsdom suite covers entry, registry, route parameters and immersive navigation.
 export const shellContractFiles = [
