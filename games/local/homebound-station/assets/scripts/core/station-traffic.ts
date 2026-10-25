@@ -37,9 +37,11 @@ function segmentDistance(a: Point, b: Point, c: Point, d: Point) {
 }
 function grant(s: Simulation, v: Vehicle, job: Service, to: Point): StationMovement | undefined {
   const bay =
-    job.phase === 'driving' && job.bayId && job.pathIndex === job.path.length - 1
+    job.phase === 'driving' && job.bayId && job.pathIndex >= job.path.length - 2
       ? s.bays.find((b) => b.id === job.bayId)
       : undefined;
+  const enteringBay = bay && job.pathIndex === job.path.length - 2;
+  const destination = enteringBay ? s.geometry.bays.find((b) => b.id === bay.id)!.point : undefined;
   if (bay?.vehicleId && bay.vehicleId !== v.id) return undefined;
   if (bay) {
     const group = s.groups.find((g) => g.id === job.groupId)!;
@@ -50,7 +52,15 @@ function grant(s: Simulation, v: Vehicle, job: Service, to: Point): StationMovem
     s.bays.some((occupied) => {
       if (!occupied.vehicleId || occupied.vehicleId === v.id) return false;
       const geometry = s.geometry.bays.find((b) => b.id === occupied.id)!;
-      return distanceToSegment(to, geometry.point, geometry.exit) < CLEARANCE;
+      if (distanceToSegment(to, geometry.point, geometry.exit) >= CLEARANCE) return false;
+      // A taxi with an assigned empty bay can cross the neighbour's exit in
+      // one reserved maneuver. The curb car will wait for that maneuver to end.
+      return !(
+        destination &&
+        occupied.id !== bay?.id &&
+        distanceToSegment(s.vehicles.find((car) => car.id === occupied.vehicleId)!.position,
+          to, destination) >= CLEARANCE
+      );
     })
   )
     return undefined;
@@ -130,7 +140,8 @@ export function moveStation(s: Simulation, v: Vehicle, job: Service) {
     if (length <= distance + 0.00001) {
       v.position = { ...to };
       job.pathIndex++;
-      delete s.movements![v.id];
+      if (!(job.phase === 'driving' && job.bayId && job.pathIndex === job.path.length - 1))
+        delete s.movements![v.id];
     }
   }
   const finished = job.pathIndex >= job.path.length;
