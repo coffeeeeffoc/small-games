@@ -143,8 +143,8 @@ export class Hud {
       for (const l of this.labels.values()) l.node.active = false;
       if (screen === 'home') {
         this.panel(22, 64, 262, 148, '#153e3dcc', 22);
-        this.text('title1', '追贼', 144, 106, 45, '#fcf0cf', 232);
-        this.text('title2', '别撞墙', 154, 162, 43, '#f6ca83', 245);
+        this.text('title1', '小贼', 144, 106, 45, '#fcf0cf', 232);
+        this.text('title2', '哪里跑', 154, 162, 43, '#f6ca83', 245);
         this.text('subtitle', '穿街过巷 · 一路追下去', 180, 237, 17, '#fff4db', 330);
         this.panel(20, h - 245, 350, 222, '#173c39dd', 23);
         this.button('start', '开始追逐  ›', 38, h - 225, 314, 64, true);
@@ -183,11 +183,11 @@ export class Hud {
           this.button('right', '›', 250, h - 88, 65, 58);
         }
       } else {
-        this.panel(0, 0, this.width, h, '#15332dc9', 0);
+        this.panel(0, 0, this.width, h, screen === 'districts' ? '#15332d80' : '#15332dc9', 0);
         if (screen === 'districts') {
           this.text('title', '从哪里出发', 195, 88, 32);
-          this.text('intro', '选择街区，开始新的追逐', 195, 132, 16, '#d4d4b7');
-          const names = ['骑楼长街 · 宽阔缓弯', '居民小巷 · 曲折有高差', '热闹集市 · 摊位与推车'];
+          this.text('intro', '选择起点 · 沿途会经过三个街区', 195, 132, 16, '#f2e4c9');
+          const names = ['廊柱店招 · 商铺货物', '灰墙晾衣 · 生活杂物', '彩棚果蔬 · 满载货车'];
           DISTRICTS.forEach((id, i) => {
             const y = 184 + i * 112;
             this.panel(28, y, 334, 94, progress.selected === id ? '#d9be81' : '#f2e4c9', 18);

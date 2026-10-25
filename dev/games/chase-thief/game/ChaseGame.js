@@ -254,6 +254,9 @@ export class ChaseGame {
     else if (id.startsWith('choose:')) {
       this.progress.selected = id.slice(7);
       this.persist();
+      this.run = createRun({ seed: 4729, departure: this.progress.selected });
+      pauseRun(this.run);
+      this.world.reset(this.run);
       this.hud.key = '';
     } else if (id.startsWith('toggle:')) {
       const k = id.slice(7);

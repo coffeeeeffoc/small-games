@@ -8,7 +8,7 @@
   "sources": [
     [
       "ChaseGame.ts",
-      "ccc78c5d73ed66814c2169242d86197003784d3fd252b598da59c961ccbc285b"
+      "69293810812cf8fd515dbd612950939080a789b5d9631ff5eb6d87b733f4abda"
     ],
     [
       "Geometry.ts",
@@ -16,7 +16,7 @@
     ],
     [
       "Hud.ts",
-      "878a6dce14ee9e7594606a585bdac5ca860c4edd5396ae04fc56bc8c3ce84ddd"
+      "8b953bbfbf8c21290a560d4f37d39327b22abf9f633bcc4321fff89e1c7e5c6b"
     ],
     [
       "Materials.ts",
@@ -28,7 +28,7 @@
     ],
     [
       "World.ts",
-      "12ec8a3f8cb2d02a0997db086ca44a78b4559558e2936426960b77927cf2195b"
+      "e186f203044c293eec5744cfda51f0cc9cec851cc6e1588f7bed93fa05016976"
     ],
     [
       "core/progress.ts",
@@ -43,7 +43,7 @@
       "0522891eccfc3bc7f1f6eb725f53b9ad8fbea8dfa683d4c120f3f6473e87c4f3"
     ]
   ],
-  "artifactSha256": "923a80394a09a9cc281b5862a229606e0d377b86e7aab71f354fe7322389ffa0",
+  "artifactSha256": "6e2dee4296cdb3a832750dc7d7efe28f32858c79bdc4f0b38965af78a9ff0d95",
   "runtimeFiles": [
     {
       "path": "art/city-models.json",
@@ -102,8 +102,8 @@
     },
     {
       "path": "game/ChaseGame.js",
-      "bytes": 17414,
-      "sha256": "f1791fe963b8a73421c56de4b7c98ef6ba6464f9ee1dc08b4d1a84a9f83b6fcc"
+      "bytes": 17553,
+      "sha256": "a19aa1af62d3b605b0b0f5bacc5d0045323e6c16a4000eaefe6999b181d889c3"
     },
     {
       "path": "game/core/progress.js",
@@ -127,8 +127,8 @@
     },
     {
       "path": "game/Hud.js",
-      "bytes": 13106,
-      "sha256": "b64f2444de53145fb28c222e5f5dc2e4ee0b827815a2d1b96ab914b17f8674df"
+      "bytes": 13149,
+      "sha256": "f418b059436df7360c781ed783757bad2e6a59bfde4368a90ac602784a9216e9"
     },
     {
       "path": "game/Materials.js",
@@ -142,13 +142,13 @@
     },
     {
       "path": "game/World.js",
-      "bytes": 25768,
-      "sha256": "5e7169c18689e226e22d099de500c2c7e6698f535aa45d10f95e62d785c2a86d"
+      "bytes": 32401,
+      "sha256": "2c533071d85c148274ae8943392c3d5eca74c957b763c706bce14fddc4aa646f"
     },
     {
       "path": "index.html",
       "bytes": 1219,
-      "sha256": "f2043ceaa245388e5e530aad5015bc7ee1c7835ca178d63d3ca9c6ac0ef09d8c"
+      "sha256": "89e63a481b83d8b548496e9412d5734474612584b64cc5ec517c050fa0ff3219"
     },
     {
       "path": "style.css",

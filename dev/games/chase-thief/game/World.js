@@ -14,6 +14,11 @@ import { visibleObstacles, visibleCoins, RULES } from './core/simulation.js';
                                                 
 
 const SKY = new cc.Color(186, 209, 212, 255);
+const DISTRICT_STYLE = {
+  'old-town': { facades: [0, 1], height: 9, road: '#c7b99b', tint: [1, 0.96, 0.88, 1] },
+  alley: { facades: [2, 4], height: 5.6, road: '#8e9ba3', tint: [0.65, 0.73, 0.8, 1] },
+  market: { facades: [3, 5], height: 7, road: '#c59b75', tint: [1, 0.88, 0.71, 1] },
+};
 const radians = 180 / Math.PI;
 class Runner {
   root         ;
@@ -206,9 +211,7 @@ export class World {
     for (let s = start; s < start + 40; s += 2) {
       const a = sampleRoute(s, run.seed, run.departure),
         b = sampleRoute(s + 2, run.seed, run.departure);
-      const color = rgb(
-        a.district === 'market' ? '#b7a284' : a.district === 'alley' ? '#a9a79c' : '#b8ad96',
-      );
+      const color = rgb(DISTRICT_STYLE[a.district].road);
       for (const lane of [0, 1, 2]) {
         const hole = gaps.find(
           (o) => o.lane === lane && s >= o.at - GAP.length / 2 && s < o.at + GAP.length / 2,
@@ -380,10 +383,11 @@ export class World {
       const p = sampleRoute(s, run.seed, run.departure),
         info = segmentInfo(p.index, run.seed, run.departure);
       const yaw = p.heading;
+      const style = DISTRICT_STYLE[p.district];
       for (const side of [-1, 1]) {
         const r = hash(Math.floor(s) * 7 + side, run.seed),
-          variant = Math.floor(r * 6);
-        const height = 8.7 + hash(Math.floor(s) * 9 + side, run.seed) * 4.4;
+          variant = style.facades[Math.floor(r * style.facades.length)];
+        const height = style.height + hash(Math.floor(s) * 9 + side, run.seed) * 2.8;
         const length = 9.5,
           front = p.width / 2 + 1.35,
           depth = 5.8;
@@ -441,12 +445,11 @@ export class World {
             [b[0], p.y + height, b[2]],
             [a[0], p.y + height, a[2]],
           ],
-          [1, 1, 1, 1],
+          style.tint,
           [-side * Math.cos(yaw), 0, side * Math.sin(yaw)],
           [u0, v0, u1, v0, u1, v1, u0, v1],
         );
-        if (r > 0.25) {
-          const aw = point(s, side * (front - 0.55));
+        if (p.district !== 'alley' && (p.district === 'market' || r > 0.25)) {
           for (let k = 0; k < 6; k++) {
             const ap = point(s - 2.25 + k * 0.9, side * (front - 0.55));
             solids.box(
@@ -456,7 +459,7 @@ export class World {
               1.25,
               0.11,
               0.9,
-              rgb(k % 2 ? '#ded4b6' : variant % 2 ? '#8e4937' : '#375b4e'),
+              rgb(k % 2 ? '#ebd39b' : p.district === 'market' ? '#bd4b32' : '#375b4e'),
               yaw,
             );
             const fringe = point(s - 2.25 + k * 0.9, side * (front - 1.18));
@@ -467,7 +470,7 @@ export class World {
               0.08,
               0.32,
               0.88,
-              rgb(k % 2 ? '#e2d8bd' : '#375b4e'),
+              rgb(k % 2 ? '#ebd39b' : p.district === 'market' ? '#bd4b32' : '#375b4e'),
               yaw,
             );
           }
@@ -478,11 +481,13 @@ export class World {
         solids.add(this.art.meshes.pot, pot[0], p.y + 0.1, pot[2], 1.4, yaw);
         const prop = point(s + 3.5, side * (p.width / 2 + 0.68));
         const propName =
-          p.district === 'market' && r > 0.35
+          p.district === 'market'
             ? 'stall'
-            : r > 0.75
-              ? 'bench'
-              : r > 0.45
+            : p.district === 'alley'
+              ? r > 0.5
+                ? 'bin'
+                : 'pot'
+              : r > 0.5
                 ? 'tree'
                 : 'lamp';
         solids.add(
@@ -493,6 +498,40 @@ export class World {
           propName === 'stall' ? 0.75 : 1,
           yaw - (side * Math.PI) / 2,
         );
+        const detail = (along, offset, y, w, h, d, color) => {
+          const q = point(s + along, side * offset, y);
+          solids.box(q[0], q[1], q[2], w, h, d, rgb(color), yaw);
+        };
+        if (p.district === 'old-town') {
+          for (const along of [-4.2, 0, 4.2]) {
+            detail(along, front - 0.65, 1.5, 0.34, 3, 0.34, '#e5d6b3');
+            detail(along, front - 0.65, 0.17, 0.55, 0.34, 0.55, '#b3a68c');
+            detail(along, front - 0.65, 2.9, 0.55, 0.24, 0.55, '#f0e0bb');
+          }
+          detail(0, front - 0.55, 3.15, 1.4, 0.3, 9.8, '#e1cda5');
+          detail(-2.6, front - 0.95, 4.5, 1.3, 1.7, 0.18, '#d2b77a');
+          detail(-2.6, front - 0.95, 4.5, 1.1, 1.48, 0.21, r > 0.5 ? '#315c50' : '#994832');
+          for (const y of [4.15, 4.5, 4.85])
+            detail(-2.6, front - 0.95, y, 0.58, 0.09, 0.23, '#eed9a4');
+        } else if (p.district === 'alley') {
+          detail(0, front - 0.4, 3.15, 1, 0.2, 3.6, '#6f797c');
+          detail(0, front - 0.92, 3.9, 0.07, 0.07, 3.6, '#374b50');
+          for (let along = -1.6; along <= 1.6; along += 0.4)
+            detail(along, front - 0.92, 3.54, 0.06, 0.7, 0.06, '#374b50');
+          detail(2.8, front - 0.15, 1.1, 0.1, 2.1, 0.13, '#687e83');
+        } else {
+          detail(-0.8, front - 0.5, 0.62, 0.85, 0.65, 2.5, '#876039');
+          for (let n = 0; n < 12; n++)
+            detail(
+              -1.8 + (n % 6) * 0.4,
+              front - 0.55 + Math.floor(n / 6) * 0.3,
+              1.02,
+              0.3,
+              0.25,
+              0.31,
+              ['#e6a332', '#729542', '#bd5036'][n % 3],
+            );
+        }
         const shadeA = point(s - 4, (side * p.width) / 2, 0.012),
           shadeB = point(s + 4, (side * p.width) / 2, 0.012);
         const shadeC = point(s + 5, side * (p.width / 2 - 1.35), 0.012),
@@ -503,8 +542,33 @@ export class World {
       if (p.split > 0.65) {
         solids.add(this.art.meshes.pot, p.x, p.y + 0.38, p.z, 0.9, yaw);
       }
-      // Occasional overhead street wires are world geometry, never fixed screen decorations.
-      if (Math.floor(s / 10) % 4 === 1) {
+      // High decorations stay above the obstacle-reading corridor.
+      if (Math.floor(s / 10) % 2 === 0 && p.district !== 'old-town') {
+        const height = p.district === 'alley' ? 5.8 : 6.1;
+        const rope = point(s, 0, height);
+        solids.box(rope[0], rope[1], rope[2], p.width + 2.6, 0.035, 0.035, rgb('#495352'), yaw);
+        for (let k = 0; k < 7; k++) {
+          const offset = (k - 3) * (p.width / 8);
+          const color = rgb(
+            (p.district === 'alley'
+              ? ['#b9cbd1', '#5f8396', '#e3d7be']
+              : ['#d35737', '#e3b83e', '#408b79'])[k % 3],
+          );
+          const topLeft = point(s, offset - 0.34, height - 0.02);
+          const topRight = point(s, offset + 0.34, height - 0.02);
+          const bottomLeft = point(
+            s,
+            p.district === 'alley' ? offset - 0.34 : offset,
+            height - 0.8,
+          );
+          const bottomRight = point(
+            s,
+            p.district === 'alley' ? offset + 0.34 : offset,
+            height - 0.8,
+          );
+          solids.quad([topLeft, topRight, bottomRight, bottomLeft], color, [0, 0, -1]);
+        }
+      } else if (Math.floor(s / 10) % 4 === 1) {
         for (let k = 0; k < 10; k++) {
           const t0 = k / 10,
             t1 = (k + 1) / 10;
@@ -535,14 +599,107 @@ export class World {
     shadows.node('Street shadows', parent, this.shadow);
     return parent;
   }
-  object(id        , type        ) {
+  obstacleMesh(type        , district        , variant        ) {
+    const key = `${district}/${type}/${variant}`;
+    if (this.meshes.has(key)) return this.meshes.get(key) ;
+    const b = new Batch();
+    const source = this.art.meshes[type];
+    const tint =
+      district === 'alley'
+        ? [0.75, 0.87, 0.96]
+        : district === 'market'
+          ? [1.1, 0.96, 0.7]
+          : [1, 1, 1];
+    const mesh = {
+      ...source,
+      colors: source.colors.map((c, i) =>
+        i % 4 === 3 ? c : Math.min(1, c * tint[i % 4] * (type === 'barrel' && variant ? 0.78 : 1)),
+      ),
+    };
+    b.add(mesh, 0, type === 'barrel' ? -0.35 : 0);
+    const accent = district === 'alley' ? '#759499' : district === 'market' ? '#ce6034' : '#a76235';
+    const box = (x, y, z, w, h, d, color) => b.box(x, y, z, w, h, d, rgb(color));
+    if (type === 'barrier') {
+      if (district === 'alley') {
+        for (const y of [0.22, 0.4]) box(0, y, 0, 1.7, 0.14, 0.44, variant ? '#8d785c' : '#b29b74');
+      } else if (district === 'market') {
+        for (const x of [-0.6, 0, 0.6])
+          box(x, 0.28, 0, 0.5, 0.4, 0.4, variant ? '#bc7649' : '#7b8d55');
+      }
+      for (let i = 0; i < 5; i++)
+        box((i - 2) * 0.35, 0.59, 0, 0.17, 0.27, 0.18, (i + variant) % 2 ? '#f1d9a1' : accent);
+    } else if (type === 'beam') {
+      for (let i = 0; i < 5; i++)
+        box(
+          (i - 2) * 0.4,
+          1.63,
+          0,
+          0.36,
+          0.7,
+          0.2,
+          district === 'alley'
+            ? ['#d7d4bd', '#688c9e', '#ab7762'][(i + variant) % 3]
+            : (i + variant) % 2
+              ? '#e6cc91'
+              : accent,
+        );
+      if (district === 'market') box(0, 2.05, 0, 2.08, 0.12, 0.38, variant ? '#d6b45a' : '#a85435');
+    } else if (type === 'crate' || type === 'cart') {
+      const width = type === 'crate' ? 0.82 : 1.6;
+      if (district === 'alley') {
+        // Cloth covers reuse the loaded silhouette so parcels still read as dodge-only obstacles.
+        box(
+          0,
+          type === 'crate' ? 0.48 : 1.08,
+          0,
+          type === 'crate' ? 0.98 : 1.64,
+          type === 'crate' ? 0.94 : 0.45,
+          0.94,
+          variant ? '#b49c7a' : '#809b9b',
+        );
+        box(0, 1.47, 0, width, 0.91, 0.84, variant ? '#78929b' : '#c6b18c');
+      } else if (district === 'market') {
+        for (const y of [0.3, 0.65, 1.15, 1.65])
+          for (const z of [-0.47, 0.47])
+            box(
+              0,
+              y + (type === 'cart' ? 0.28 : 0),
+              z,
+              width,
+              0.11,
+              0.025,
+              variant ? '#698c47' : '#ba723c',
+            );
+      }
+      for (const z of [-0.44, 0.44]) {
+        box(0, 1.45, z, width, 0.24, 0.035, variant ? accent : '#d5bd8a');
+        for (const x of [-width * 0.3, width * 0.3]) box(x, 1.42, z, 0.045, 0.9, 0.045, '#e3cc9b');
+      }
+      if (district === 'market') {
+        for (let i = 0; i < 6; i++)
+          box(
+            (((i % 3) - 1) * width) / 3,
+            type === 'crate' ? 1.88 : 2.06,
+            (Math.floor(i / 3) - 0.5) * 0.34,
+            width / 4,
+            0.14,
+            0.25,
+            variant ? '#7eac4b' : '#e6a13c',
+          );
+      }
+    }
+    const result = cc.utils.createMesh(b.data       , undefined, { calculateBounds: true });
+    this.meshes.set(key, result);
+    return result;
+  }
+  object(id        , type        , district = 'old-town', variant = 0) {
     let n = this.objects.get(id);
     if (n) return n;
     n = new cc.Node(type + ' ' + id);
     this.root.addChild(n);
     const r = n.addComponent(cc.MeshRenderer);
     r.setMaterial(this.solid, 0);
-    r.mesh = this.meshes.get(type) ;
+    r.mesh = type === 'coin' ? this.meshes.get(type)  : this.obstacleMesh(type, district, variant);
     if (type !== 'coin' && type !== 'barrel') this.contact(n, type === 'beam' ? 1.3 : 0.7, 0.6);
     this.objects.set(id, n);
     return n;
@@ -572,7 +729,7 @@ export class World {
         run.seed,
         run.departure,
       );
-      const n = this.object(o.id, o.type);
+      const n = this.object(o.id, o.type, p.district, o.wave % 2);
       if (o.fullWidth) n.setScale((p.laneWidth + 0.08) / (o.type === 'beam' ? 2.3 : 1.9), 1, 1);
       n.setPosition(at.x, at.y, at.z);
       n.setRotationFromEuler(0, at.heading * radians, 0);
