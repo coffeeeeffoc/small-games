@@ -1,0 +1,9 @@
+{
+  "environment": "Linux Chromium 140.0.7339.186, 390x844 mobile touch emulation, same-origin sandboxed iframe; not native device",
+  "checks": [
+    "six spatial rotation controls and 44px touch targets",
+    "real CDP drag changes camera and projected container without moving piece",
+    "pause/resume preserves angle"
+  ],
+  "errors": []
+}
