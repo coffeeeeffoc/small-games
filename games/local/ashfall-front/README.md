@@ -17,7 +17,7 @@ pnpm --filter @coffeeeeffoc/ashfall-front package:taptap # Windows PowerShell/.N
 
 开发入口为 `http://localhost:4467`；构建产物在 `dist/`。浏览器检查可通过 `PLAYWRIGHT_EXECUTABLE_PATH` 指定 Chromium。
 
-手机使用左右、跳跃、冲刺和射击按钮，支持多点同时操作。点按开火点射、按住连射并自动瞄准，拖动自由瞄准；快速松手保留已接受的一发及方向，取消/暂停清除输入。A/D或方向键移动，空格/W跳跃，Shift冲刺，J自动连射、I斜上、K斜下，Esc暂停。Creator landscape适配负责竖持整页旋转及输入映射；没有浏览器全屏控件。844×390、568×320和390×844是验收尺寸。
+手机左下操作区下排左右移动、上排冲刺/跳跃；按方向后滑向上排会保留移动方向，支持一个左拇指跑跳与冲刺，松手或滑出整个操作区停止。右下仅开火：点按点射、按住连射并自动瞄准、拖动自由瞄准；右手射击与左手位移独立。快速松手保留已接受的一发及方向，取消单指只释放该触点，暂停/失焦清除全部输入。A/D或方向键移动，空格/W跳跃，Shift冲刺，J自动连射、I斜上、K斜下，Esc暂停。Creator landscape适配负责竖持整页旋转及输入映射；没有浏览器全屏控件。844×390、568×320和390×844是验收尺寸。
 
 TapTap 采用 H5 游戏上架方式：官方上传工具接收 `dist/` 目录，手工上传使用 `package:taptap` 生成的 ZIP，入口为唯一顶层目录下的 `dist/index.html`，后台横屏参数为 `screenOrientation: 2`。包体、操作与提交流程见 [TapTap H5 上架说明](docs/deployment/taptap-h5.md)；后台上传、审核和手机 TapTap WebView 验收尚未执行。
 
@@ -46,3 +46,5 @@ TapTap 采用 H5 游戏上架方式：官方上传工具接收 `dist/` 目录，
 本轮方案及已审四页概念图见[战役方案](docs/design/cocos-campaign.md)。上架资料入口：[publishing/STATUS.md](publishing/STATUS.md)。六尺寸真实Creator触控及SDK夹具结果、当前媒体与正式广告阻塞均见上述记录。推送不表示CI、平台审核或真机验收通过。
 
 2026-10-25 控件与遭遇修正：[设计与效果图](docs/design/controls-2026-10-25.md)、[当前验证与画面](docs/qa/controls-2026-10-25/verification.md)。
+
+2026-10-26 双拇指分区与主题图标：[操作布局](docs/design/two-thumb-controls.svg)、[当前验证与画面](docs/qa/two-thumb-controls/verification.md)。

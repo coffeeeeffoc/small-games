@@ -1,7 +1,7 @@
 # 灰烬防线上架资料
 
-- Game ID：`ashfall-front`；名称：灰烬防线；更新时间：2026-10-25。
-- 当前版本：2.0.0，Cocos Creator 3.8.8，23关战役，2026-10-25控件/点射/前方遭遇修正；准确源码/制品身份见[当前QA](../docs/qa/controls-2026-10-25/verification.md)。
+- Game ID：`ashfall-front`；名称：灰烬防线；更新时间：2026-10-26。
+- 当前版本：2.0.0，Cocos Creator 3.8.8，23关战役，2026-10-26双拇指分区、输入隔离与射击主题图标更新；准确源码/制品身份见[当前QA](../docs/qa/two-thumb-controls/verification.md)。
 - 目标：移动横屏Web/H5及Shell iframe，竖持由Creator旋转兜底。
 - 闭环：成立。规则纯输入抽样完成第1/3/23关，真实Creator浏览器完成开始、选关、多点操作、暂停、开发夹具胜负、重试和返回；夹具胜负不作为自然通关证据。
 - 上架阶段：基础资料已提供，未上传、未提审、未上线。下一步：物理手机长局试玩，以及开通App998795广告后重新查询正式广告位并做TapTap宿主验收。
@@ -11,10 +11,10 @@
 | 游戏简介   | 已提供 | [introduction.md](copy/introduction.md)，中文，描述当前23关和阵地推进；2026-10-24核对代码与浏览器。                                                                                                                                                                                                |
 | 一句话推荐 | 已提供 | [tagline.md](copy/tagline.md)，中文，可直接使用。                                                                                                                                                                                                                                                  |
 | 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，说明迁移、免费基础玩法和正式广告未开通。                                                                                                                                                                                                              |
-| 图标       | 已提供 | [512×512 PNG](icon/ashfall-front-512.png)，由本游戏原创emblem.svg栅格化；已打开并核对PNG尺寸。                                                                                                                                                                                                     |
-| 宣传图     | 已提供 | [新版四状态概念图](promo/images/controls-2026-10-25.png)，1760×880 PNG，原生SVG布局参考，明确不是运行截图；2026-10-25打开核对，原四页宣传图保留历史版本。                                                                                                                                          |
-| 宣传视频   | 已提供 | [新版横屏MP4](promo/videos/ashfall-controls-20261025.mp4)，1280×720，11.92秒，无声；实际普通模式触控录像加边框、淡入淡出，2026-10-25 ffprobe及抽帧验证。                                                                                                                                           |
-| 游戏内截图 | 已提供 | [正常模式选关](gameplay/screenshots/levels-normal-844x390.png)、[实玩画面](gameplay/screenshots/combat-live-844x390.png)、[前方遭遇](gameplay/screenshots/forward-encounter-844x390.png)及同目录首页/暂停/设置/失败。844×390 PNG，2026-10-25实际Creator Chromium触屏模拟；QA另有竖持、小屏和宽屏。 |
-| 游戏内录屏 | 已提供 | [新版真实触控MP4](gameplay/videos/cocos-controls-20261025.mp4)，844×390，11.92秒，无声；普通模式、真实多点输入、未修改生命/敌人/胜负，含不射击快速推进、确认重试、47次射击和7次击破；2026-10-25验证[媒体信息](media-info.json)。                                                                   |
+| 图标       | 已提供 | [512×512 PNG](icon/ashfall-front-512.png)，内置 imagegen 参考本游戏实玩画面生成持枪战士/工业防线插画，替换旧A字盾徽；512×512不透明PNG，2026-10-26打开核对并检查64px缩略图；发行加载页同步使用。                                                                                                    |
+| 宣传图     | 已提供 | [双拇指布局参考](promo/images/two-thumb-controls.png)，844×430 PNG，原生SVG布局参考，不是运行截图；2026-10-26打开核对。                                                                                                                                                                            |
+| 宣传视频   | 已提供 | [新版横屏MP4](promo/videos/ashfall-two-thumb-20261026.mp4)，1280×720，12.76秒，无声；来自当前真实普通模式触控录像，2026-10-26解码及抽帧核验。                                                                                                                                                      |
+| 游戏内截图 | 已提供 | [正常模式选关](gameplay/screenshots/levels-normal-844x390.png)、[实玩画面](gameplay/screenshots/combat-live-844x390.png)、[前方遭遇](gameplay/screenshots/forward-encounter-844x390.png)及同目录首页/暂停/设置/失败。844×390 PNG，2026-10-26实际Creator Chromium触屏模拟；QA另有竖持、小屏和宽屏。 |
+| 游戏内录屏 | 已提供 | [当前真实触控MP4](gameplay/videos/cocos-two-thumb-20261026.mp4)，844×390，12.76秒，无声；普通模式真实多点输入，无生命/敌人/胜负修改，2026-10-26核验[媒体信息](media-info.json)。                                                                                                                   |
 
 这些是基础素材，不表示满足所有渠道的最新提审规格。正式广告配置默认关闭：2026-10-24用户确认App998795（Developer492506），MCP查询状态为未开通，无可用正式广告位。奖励完成/取消/失败、前后台顺序及迟到结果已用隔离SDK夹具验证；真实广告库存、物理手机、上传、审核与上线均未验证。

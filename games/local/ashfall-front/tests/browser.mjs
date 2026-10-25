@@ -10,7 +10,7 @@ import {
 } from '../../../../apps/shell-web/scripts/game-checks/ashfall-front.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const url = process.env.ASHFALL_TEST_URL || 'http://127.0.0.1:4469';
-const output = new URL('../docs/qa/controls-2026-10-25/', import.meta.url);
+const output = new URL('../../../../outputs/ashfall-front/two-thumb/', import.meta.url);
 await mkdir(output, { recursive: true });
 await mkdir(new URL('../publishing/gameplay/screenshots/', import.meta.url), { recursive: true });
 const server = process.env.ASHFALL_TEST_URL
@@ -102,6 +102,84 @@ try {
     await input.tap('home');
     await assertAshfallGameplay(page, true);
     await input.tap('start');
+    await bounds();
+    const layout = await snapshot(page);
+    const movement = layout.controls.filter((b) =>
+      ['left', 'right', 'jump', 'dash'].includes(b.id),
+    );
+    for (const b of movement) {
+      assert.ok(
+        layout.rotated ? b.y + b.h < height / 2 : b.x + b.w < width / 2,
+        `${b.id} stays in the left-hand half of the logical landscape`,
+      );
+    }
+    const fire = layout.controls.find((b) => b.id === 'fire');
+    assert.ok(layout.rotated ? fire.y > height / 2 : fire.x > width / 2);
+    for (const [index, a] of layout.controls.entries())
+      for (const b of layout.controls.slice(index + 1))
+        assert.ok(
+          a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y,
+          `combat controls overlap: ${a.id}/${b.id}`,
+        );
+    const cdp = await context.newCDPSession(page);
+    try {
+      const right = await input.point('right'),
+        jump = await input.point('jump'),
+        dash = await input.point('dash'),
+        shooting = { ...(await input.point('fire')), id: 2 };
+      const send = (type, position, keepFire = true) =>
+        cdp.send('Input.dispatchTouchEvent', {
+          type,
+          touchPoints: [
+            ...(position ? [{ ...position, id: 1 }] : []),
+            ...(keepFire ? [shooting] : []),
+          ],
+        });
+      await send('touchStart', right);
+      await page.waitForTimeout(100);
+      const beforeSlide = await snapshot(page);
+      await send('touchMove', { x: (right.x + jump.x) / 2, y: (right.y + jump.y) / 2 });
+      await page.waitForTimeout(80);
+      assert.ok(
+        (await snapshot(page)).run.player.x > beforeSlide.run.player.x,
+        'direction survives the button gap',
+      );
+      await send('touchMove', jump);
+      await page.waitForTimeout(100);
+      const jumping = await snapshot(page);
+      assert.ok(jumping.run.player.y < beforeSlide.run.player.y - 10, 'left thumb slide jumps');
+      assert.ok(
+        jumping.run.player.x > beforeSlide.run.player.x &&
+          jumping.run.shots > beforeSlide.run.shots,
+        'two thumbs move, jump and fire simultaneously',
+      );
+      await send('touchMove', dash);
+      await page.waitForTimeout(50);
+      assert.ok((await snapshot(page)).run.player.dashCooldown > 0.3, 'left thumb slide dashes');
+      await send('touchMove', { x: width / 2, y: height / 2 });
+      await page.waitForTimeout(250);
+      assert.ok(
+        Math.abs((await snapshot(page)).run.player.vx) < 1,
+        'leaving the movement cluster stops movement',
+      );
+      const stillFiring = (await snapshot(page)).run.shots;
+      await send('touchEnd', { x: width / 2, y: height / 2 }, false);
+      await page.waitForTimeout(220);
+      assert.ok(
+        (await snapshot(page)).run.shots > stillFiring,
+        'lifting left thumb leaves right firing',
+      );
+      await send('touchEnd', null, false);
+      await page.waitForTimeout(220);
+      const released = (await snapshot(page)).run.shots;
+      await page.waitForTimeout(220);
+      assert.equal((await snapshot(page)).run.shots, released);
+    } finally {
+      await cdp.detach();
+    }
+    await input.tap('pause');
+    await input.tap('restart');
+    await input.tap('confirm');
     for (let i = 0; i < 3; i++) {
       const tapShots = (await snapshot(page)).run.shots;
       await input.tap('fire');
@@ -197,6 +275,30 @@ try {
     const video = page.video();
     await context.close();
     if (video) report.video = await video.path();
+  }
+  {
+    const context = await browser.newContext({ viewport: { width: 844, height: 390 } });
+    const page = await context.newPage();
+    const missingArt = /\/assets\/.*\.png(?:\?.*)?$/;
+    await page.route(missingArt, (route) => route.abort());
+    await page.goto(url + '/');
+    await expect(page.locator('#ashfall-loading[role="alert"]')).toBeVisible({ timeout: 60000 });
+    await expect(page.getByRole('button', { name: '重新加载' })).toBeVisible();
+    await page.keyboard.press('Enter');
+    assert.equal(
+      (await snapshot(page)).screen,
+      'home',
+      'loading failure cannot start an invisible battle',
+    );
+    await capture(page, 'loading-error');
+    await page.unroute(missingArt);
+    await page.getByRole('button', { name: '重新加载' }).click();
+    await expect.poll(async () => (await snapshot(page))?.ready, { timeout: 60000 }).toBe(true);
+    await expect(page.locator('#ashfall-loading')).toHaveCount(0);
+    await context.close();
+    report.checks.push(
+      'Resource failure shows an actionable retry, blocks battle, and reload recovers',
+    );
   }
   {
     const desktop = await browser.newContext({ viewport: { width: 1280, height: 720 } });
@@ -354,7 +456,7 @@ try {
     });
     await input.tap('pause');
     await input.tap('supply');
-    await capture(page, 'supply-confirmation');
+    await capture(page, 'supply-confirmation-' + result);
     const hp = (await snapshot(page)).run.player.hp;
     await input.tap('claim');
     await expect.poll(async () => (await snapshot(page)).adLocked).toBe(true);

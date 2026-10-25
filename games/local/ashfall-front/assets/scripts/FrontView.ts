@@ -392,9 +392,14 @@ export class FrontView {
     this.line(x, 570 * s, x, 400 * s, '#e3b46d', 4);
     this.circle(x, 400 * s, 8, '#ffc76b');
   }
-  hit(x: number, y: number) {
+  hit(x: number, y: number, includeDisabled = false) {
     return this.controls.findLast(
-      (b) => !b.disabled && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h,
+      (b) =>
+        (includeDisabled || !b.disabled) &&
+        x >= b.x &&
+        x <= b.x + b.w &&
+        y >= b.y &&
+        y <= b.y + b.h,
     );
   }
   dispose() {

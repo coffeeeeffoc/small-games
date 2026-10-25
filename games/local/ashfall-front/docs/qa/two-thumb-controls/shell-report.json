@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "browserVersion": "156.0.8078.47",
+  "builtIn": 0,
+  "selected": [
+    "ashfall-front"
+  ],
+  "standalone": [
+    {
+      "id": "ashfall-front",
+      "entryMode": "legacy",
+      "status": "passed",
+      "phase": "complete",
+      "timings": {
+        "embedded-load": 680,
+        "embedded-gameplay": 2921,
+        "embedded-return": 92,
+        "mobile-load": 113,
+        "mobile-gameplay": 1900
+      },
+      "embedded": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "directMobile": "passed",
+      "durationMs": 5939
+    }
+  ],
+  "failures": []
+}
