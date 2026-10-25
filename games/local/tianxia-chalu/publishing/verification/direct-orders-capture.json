@@ -1,10 +1,10 @@
 {
-  "capturedAt": "2026-10-25T14:54:33.903Z",
+  "capturedAt": "2026-10-25T15:14:53.767Z",
   "environment": "Production Creator web-mobile in Chromium 390x844 touch emulation; normal clock and randomness; no battle, inventory or ad fixtures",
   "build": {
     "creator": "3.8.8",
     "target": "web-mobile",
-    "sourceHash": "4b5635b14b5563117f2c5624dc693f6a85504c32f2c4854493a8b66b81ade88e"
+    "sourceHash": "47b6bdb1657b842d42cc0606dba8d72b092720fa4aadd036400fa808070c43f9"
   },
   "checks": [
     "actual source/target taps",
@@ -15,10 +15,10 @@
     "pause"
   ],
   "final": {
-    "time": 18.7,
+    "time": 19.4,
     "stats": {
       "switches": 8,
-      "captured": 2,
+      "captured": 1,
       "lost": 0
     }
   },

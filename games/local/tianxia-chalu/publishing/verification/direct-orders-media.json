@@ -1,15 +1,15 @@
 {
-  "sourceHash": "4b5635b14b5563117f2c5624dc693f6a85504c32f2c4854493a8b66b81ade88e",
+  "sourceHash": "47b6bdb1657b842d42cc0606dba8d72b092720fa4aadd036400fa808070c43f9",
   "verifiedAt": "2026-10-25",
-  "creatorRun": 40203797776,
-  "creatorJob": 121200633146,
-  "artifactId": 12602817367,
-  "artifactZipSha256": "90b4a69fe838ea0c28eaff31f9668d6bf3b85b81cc28e88129fc51d24730be5e",
+  "creatorRun": 40205255520,
+  "creatorJob": 121205199375,
+  "artifactId": 12603971382,
+  "artifactZipSha256": "fe3153efb654ffd20bd33f7cbabc155790af48c2b3be769825f8f106bab99f10",
   "files": [
     {
       "file": "gameplay/screenshots/direct-orders-2026-10-25/battle-390x844.png",
-      "bytes": 356390,
-      "sha256": "58d3c39dd55026ba1cd419bbb2361c6b66092f4355d22f924851e251eced3259",
+      "bytes": 356075,
+      "sha256": "8f383f7419f5a4e4e9a526d5973415ca9f9eebd5c194899391964a04a2d50e58",
       "media": {
         "programs": [],
         "stream_groups": [],
@@ -25,8 +25,8 @@
     },
     {
       "file": "gameplay/screenshots/direct-orders-2026-10-25/drag-orders-390x844.png",
-      "bytes": 356784,
-      "sha256": "d80401c5535f7c9374b2fc66d9a97348e606a0ede3c914e6723b3c03081d5afb",
+      "bytes": 356758,
+      "sha256": "65128ef4b55a282d7fc32af34f8b032be50a62d3429a3e79f693262ad735955f",
       "media": {
         "programs": [],
         "stream_groups": [],
@@ -42,8 +42,8 @@
     },
     {
       "file": "gameplay/screenshots/direct-orders-2026-10-25/hold-city-390x844.png",
-      "bytes": 356241,
-      "sha256": "6d11afafd2380ba43a22da5278d72419e028c1f0017a9bc1f39ef567a478c0d3",
+      "bytes": 356085,
+      "sha256": "3e3bf0773eeaa31a789c0442b426d79d1d4b3eb2549c8d12cd226350c958e2b5",
       "media": {
         "programs": [],
         "stream_groups": [],
@@ -110,8 +110,8 @@
     },
     {
       "file": "gameplay/videos/direct-orders-2026-10-25/duochengling-gameplay-390x844.webm",
-      "bytes": 1162188,
-      "sha256": "82fc791d3d27a15eb65699fa699359c864cd3e60a29d4dfc2d42f3da2f4d1839",
+      "bytes": 1225289,
+      "sha256": "6bc81b21242e8bc9179dd09ce385ae739dcabbf66991d3bf1611f2140b26769c",
       "media": {
         "programs": [],
         "stream_groups": [],
@@ -123,7 +123,7 @@
           }
         ],
         "format": {
-          "duration": "23.720000"
+          "duration": "24.320000"
         }
       }
     },
@@ -146,8 +146,8 @@
     },
     {
       "file": "promo/videos/direct-orders-2026-10-25/duochengling-preview-390x844.mp4",
-      "bytes": 700785,
-      "sha256": "6cf0c2f73641895bb8a94289c3b6800f2642b36d8969e6fcf8e8af07a94106e6",
+      "bytes": 753516,
+      "sha256": "7cc1b40f744fd765d5106067ed54e08912de6266a6361c6e17dc7113c6ac77da",
       "media": {
         "programs": [],
         "stream_groups": [],
@@ -159,7 +159,7 @@
           }
         ],
         "format": {
-          "duration": "23.720000"
+          "duration": "24.000000"
         }
       }
     }

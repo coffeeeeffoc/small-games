@@ -2,7 +2,7 @@
 
 - 游戏：`tianxia-chalu` / 夺城令
 - 更新日期：2026-10-25
-- 对应版本：Cocos Creator 3.8.8 `web-mobile`，源码指纹 `4b5635b14b5563117f2c5624dc693f6a85504c32f2c4854493a8b66b81ade88e`；[构建身份](verification/direct-orders-build-info.json)。
+- 对应版本：Cocos Creator 3.8.8 `web-mobile`，源码指纹 `47b6bdb1657b842d42cc0606dba8d72b092720fa4aadd036400fa808070c43f9`；[构建身份](verification/direct-orders-build-info.json)。
 - 目标形态：手机 Web / H5 基础素材，桌面 Chromium 的手机视口及触屏模拟。
 - 基本闭环：已成立。历史[游戏浏览器报告](verification/browser-report.json)保留自然胜负、奖励、重试和解锁证据；本轮[实际采集](verification/direct-orders-capture.json)验证新军令操作，[服务入口报告](verification/direct-orders-server-browser.json)验证权威 HTTP 对局入口。
 - 当前上架阶段：仅整理素材，未上传平台后台或提交审核。
@@ -19,9 +19,9 @@
 | 开发者的话   | 已提供 | [developer-note.md](copy/developer-note.md)，中文 Markdown                                                                                                                                                                                                                                                                                                                                                                                                                                 | 核对已实现范围和交付平台                                                               |
 | 图标         | 已提供 | [duochengling.svg](icon/duochengling.svg)，48×48 viewBox，透明圆角外缘                                                                                                                                                                                                                                                                                                                                                                                                                     | 复用当前运行时 favicon，SVG 源码与原文件一致，无旧产品名                               |
 | 宣传图       | 已提供 | [首页基础宣传图](promo/images/direct-orders-2026-10-25/duochengling-home-390x844.png)，390×844 PNG                                                                                                                                                                                                                                                                                                                                                                                         | 新构建首页实际截图，目视核验新标题；未添加概念场景                                     |
-| 宣传视频     | 已提供 | [23.72 秒预览](promo/videos/direct-orders-2026-10-25/duochengling-preview-390x844.mp4)，390×844、H.264、无音轨                                                                                                                                                                                                                                                                                                                                                                             | 下方真实录屏的 H.264 基础版，完整解码核验                                              |
+| 宣传视频     | 已提供 | [24.00 秒预览](promo/videos/direct-orders-2026-10-25/duochengling-preview-390x844.mp4)，390×844、H.264、无音轨                                                                                                                                                                                                                                                                                                                                                                             | 下方真实录屏的 H.264 基础版，完整解码核验                                              |
 | 游戏内截图   | 已提供 | [首页](gameplay/screenshots/direct-orders-2026-10-25/home-390x844.png)、[山河图](gameplay/screenshots/direct-orders-2026-10-25/levels-390x844.png)、[选城](gameplay/screenshots/direct-orders-2026-10-25/selected-city-390x844.png)、[接力补给](gameplay/screenshots/direct-orders-2026-10-25/battle-390x844.png)、[拖拽](gameplay/screenshots/direct-orders-2026-10-25/drag-orders-390x844.png)、[屯兵](gameplay/screenshots/direct-orders-2026-10-25/hold-city-390x844.png)，390×844 PNG | 实际触屏画面，无派兵按钮；目视核验选中反馈、兵线与布局                                 |
-| 游戏内视频   | 已提供 | [实际操作录屏](gameplay/videos/direct-orders-2026-10-25/duochengling-gameplay-390x844.webm)，23.72 秒，390×844、VP8、无音轨；[本轮媒体清单](verification/direct-orders-media.json)                                                                                                                                                                                                                                                                                                         | 正常时钟与随机数，实际点击、占城接力、拖拽、双击和点兵线，8 次军令、2 次夺城；完整解码 |
+| 游戏内视频   | 已提供 | [实际操作录屏](gameplay/videos/direct-orders-2026-10-25/duochengling-gameplay-390x844.webm)，24.32 秒，390×844、VP8、无音轨；[本轮媒体清单](verification/direct-orders-media.json)                                                                                                                                                                                                                                                                                                         | 正常时钟与随机数，实际点击、占城接力、拖拽、双击和点兵线，8 次军令、1 次夺城；完整解码 |
 
 ## 2026-10-22 历史检查记录
 
@@ -37,8 +37,8 @@
 
 ## 2026-10-25 直接军令交互验证
 
-- [真实构建](https://github.com/coffeeeeffoc/small-games/actions/runs/40203797776/job/121200633146)已通过 Creator 3.8.8 编译、类型和规则检查；下载后校验 ZIP SHA-256 及当前源码指纹。未改写旧制品身份。
-- [本轮采集报告](verification/direct-orders-capture.json)无时钟、随机数、战局或广告夹具，记录实际派兵与两次夺城；[权威服务浏览器报告](verification/direct-orders-server-browser.json)9 项通过、无页面异常，含延迟军令回执时继续操作另一城。
+- [真实构建](https://github.com/coffeeeeffoc/small-games/actions/runs/40205255520/job/121205199375)已通过 Creator 3.8.8 匹配制品、类型和规则检查；下载后校验 ZIP SHA-256 及当前源码指纹。未改写旧制品身份。
+- [本轮采集报告](verification/direct-orders-capture.json)无时钟、随机数、战局或广告夹具，记录实际派兵、占城和接力；[权威服务浏览器报告](verification/direct-orders-server-browser.json)9 项通过、无页面异常，含延迟军令回执时继续操作另一城。
 - 本地开发回归覆盖 13 组游戏流程，使用真实 Creator 渲染器和当前宿主脚本；该开发覆盖验证与生产匹配制品验证分别记录，不混称。最终合并候选仍运行仓库 `validate:candidate`，准确 base/head 以交付日志为准。
 - 八类资料均有实际内容，原有图标、简介以外的两份文案与本轮功能兼容。历史录像保留；新的军令操作以本轮目录为准。
 - 本轮为桌面 Chromium 手机触屏模拟，未做实体手机／原生渠道验证，未提交平台审核。方案及回归说明见[交互修复记录](../docs/design/direct-orders-2026-10-25.md)。
