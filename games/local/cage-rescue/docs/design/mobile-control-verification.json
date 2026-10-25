@@ -300,5 +300,13 @@
     "selectedChecks": 9,
     "passed": 9,
     "note": "Final focused rerun includes the three corrected LF-hash cases and the two workspace-consumer cases after the pinned chess submodule was initialized. Initial broad run passed 110/115 before those corrections."
+  },
+  "mergedCandidate": "b887137ad6f53619f2e4030b042c8cee40247536",
+  "remoteBase": "337b6015d48c2daa2d406596d640d0c060b5b076",
+  "shellContracts": {
+    "files": 8,
+    "passed": 149,
+    "failed": 0,
+    "maxWorkers": 1
   }
 }
