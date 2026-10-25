@@ -50,12 +50,12 @@ try {
     const ids = async () =>
       (await articles.evaluateAll((items) => items.map((item) => item.dataset.gameId))).sort();
     await page.goto(`${base}?dev=0`);
-    await expect(articles).toHaveCount(40);
+    await expect(articles).toHaveCount(39);
     assert.deepEqual(await ids(), data.games.map((game) => game.id).sort());
     for (const [schedule, label, count] of [
       ['previous', '上轮已改造', 7],
       ['current', '本轮改造', 15],
-      ['later', '有潜力 · 后续改造', 18],
+      ['later', '有潜力 · 后续改造', 17],
       ['hold', '暂缓投入', 0],
     ]) {
       await activate(tab(label));
@@ -83,7 +83,7 @@ try {
     }
     await activate(tab('全部游戏'));
     await activate(page.locator('.catalog-facet').getByRole('button', { name: /^有潜力/ }));
-    await expect(articles).toHaveCount(40);
+    await expect(articles).toHaveCount(39);
     await expect(tab('暂缓投入')).toContainText('0');
     await activate(tab('清空筛选'));
     await activate(tab('全部游戏'));
@@ -159,11 +159,11 @@ try {
     report.push({
       width,
       input: touch ? 'Chromium touch emulation' : 'mouse',
-      all: 40,
-      potential: 40,
+      all: 39,
+      potential: 39,
       previous: 7,
       current: 15,
-      later: 18,
+      later: 17,
       hold: 0,
       mobileCurrent: 13,
       checks: [

@@ -422,26 +422,6 @@
       "delivered": []
     },
     {
-      "id": "vibeJam-myself-delivery",
-      "title": "橘风速递",
-      "source": "games/local/vibeJam-myself-delivery",
-      "disposition": "potential",
-      "potential": ["fun", "potential"],
-      "platforms": ["mobile"],
-      "primaryPlatform": "mobile",
-      "orientation": "landscape",
-      "genres": ["racing", "simulation"],
-      "opportunities": ["challenge", "share"],
-      "schedule": "later",
-      "implementationStatus": "deferred",
-      "scheduleReason": "采购、驾驶、送达已成闭环；后续应一起梳理上下车与采购节奏，需比小范围反馈改造更完整的交互调整。",
-      "strengths": ["采购、驾驶、送达与货物完整度形成完整三分钟循环"],
-      "weaknesses": ["上下车与逐件采购可能打断驾驶爽点，多控件增加学习量"],
-      "improvements": ["压缩重复采购流程，强化完整配送连击与同订单路线挑战"],
-      "evidence": ["games/local/vibeJam-myself-delivery/README.md"],
-      "delivered": []
-    },
-    {
       "id": "vibeJam-myself-history-guess",
       "title": "此时 · 此地",
       "source": "games/local/vibeJam-myself-history-guess",
