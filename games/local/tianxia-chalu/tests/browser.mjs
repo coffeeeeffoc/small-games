@@ -78,9 +78,12 @@ async function session({
         globalThis.__testAdStatus = 'completed';
         globalThis.SmallGamesPublishingConfig = {
           adMode: 'host',
-          provider: { show: async () => globalThis.__testHoldAd
-            ? new Promise(resolve => globalThis.__finishTestAd = resolve)
-            : ({ status: globalThis.__testAdStatus }) },
+          provider: {
+            show: async () =>
+              globalThis.__testHoldAd
+                ? new Promise((resolve) => (globalThis.__finishTestAd = resolve))
+                : { status: globalThis.__testAdStatus },
+          },
         };
       }
     },
@@ -124,7 +127,9 @@ async function mapForInput(page, timeout = 10000) {
                 ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
                 : null,
             missingCityIds: (s.cities ?? [])
-              .filter((c) => !Number.isFinite(points?.[c.id]?.x) || !Number.isFinite(points?.[c.id]?.y))
+              .filter(
+                (c) => !Number.isFinite(points?.[c.id]?.x) || !Number.isFinite(points?.[c.id]?.y),
+              )
               .map((c) => c.id),
           };
         });
@@ -148,7 +153,11 @@ async function mapForInput(page, timeout = 10000) {
           missingCityIds: map.missingCityIds,
         };
       },
-      { timeout, intervals: [25], message: 'Map must be visible with every city projected before input' },
+      {
+        timeout,
+        intervals: [25],
+        message: 'Map must be visible with every city projected before input',
+      },
     )
     .toBeNull();
   return map;
@@ -184,11 +193,15 @@ async function select(page, id) {
 async function command(page, junctionId, index) {
   const s = await snapshot(page);
   const j = s.junctions.find((j) => j.id === junctionId);
-  await select(page, j.cityId);
   if (index === -1) {
-    await page.locator('#hold').tap();
-    await advance(page, 50);
-  } else await tapCity(page, j.exits[index]);
+    await clearSelection(page);
+    await tapCity(page, j.cityId);
+    await tapCity(page, j.cityId);
+  } else {
+    await select(page, j.cityId);
+    await tapCity(page, j.exits[index]);
+  }
+  await advance(page, 320);
   assert.equal(
     (await snapshot(page)).junctions.find((x) => x.id === junctionId).routeIndex,
     index,
@@ -357,6 +370,88 @@ try {
     },
   );
   await check(
+    'Captured-city relay, independent orders, deselection, double tap and road cycles need no command buttons',
+    async () => {
+      const page = await session();
+      await begin(page);
+      await page.locator('#skip-tutorial').tap();
+      assert.equal(await page.locator('#hold, #cycle').count(), 0);
+      const initial = await snapshot(page);
+      const a = initial.cities.find((c) => c.owner === 0);
+      const aj = initial.junctions.find((j) => j.cityId === a.id);
+      const b = initial.cities.find((c) => c.id === aj.exits[0]);
+      const bj = initial.junctions.find((j) => j.cityId === b.id);
+      const c = initial.cities.find((c) => c.owner === 1);
+      const d = aj.exits.find((id) => id !== b.id);
+      await tapCity(page, a.id);
+      assert.equal((await snapshot(page)).selected, a.id);
+      await advance(page, 320);
+      await tapCity(page, a.id);
+      assert.equal((await snapshot(page)).selected, null);
+      assert.equal((await snapshot(page)).junctions.find((j) => j.id === aj.id).routeIndex, -1);
+      await command(page, aj.id, 0);
+      for (
+        let i = 0;
+        i < 12 && (await snapshot(page)).cities.find((v) => v.id === b.id).owner !== 0;
+        i++
+      )
+        await advance(page, 1000);
+      assert.equal((await snapshot(page)).cities.find((v) => v.id === b.id).owner, 0);
+      await tapCity(page, b.id);
+      await tapCity(page, c.id);
+      assert.equal(
+        (await snapshot(page)).junctions.find((j) => j.id === bj.id).routeIndex,
+        bj.exits.indexOf(c.id),
+      );
+      assert.equal(
+        (await snapshot(page)).junctions.find((j) => j.id === aj.id).routeIndex,
+        0,
+        'A keeps supplying B',
+      );
+      await tapCity(page, a.id);
+      await tapCity(page, d);
+      assert.equal(
+        (await snapshot(page)).junctions.find((j) => j.id === aj.id).routeIndex,
+        aj.exits.indexOf(d),
+      );
+      assert.equal((await snapshot(page)).selected, null);
+      // A is selected, but a double tap on friendly B must only hold B.
+      await advance(page, 350);
+      await tapCity(page, a.id);
+      await tapCity(page, b.id);
+      await tapCity(page, b.id);
+      await advance(page, 350);
+      assert.equal((await snapshot(page)).junctions.find((j) => j.id === bj.id).routeIndex, -1);
+      assert.equal(
+        (await snapshot(page)).junctions.find((j) => j.id === aj.id).routeIndex,
+        aj.exits.indexOf(d),
+      );
+      const s = await snapshot(page),
+        road = s.roads.find((r) => [r.a, r.b].includes(a.id) && [r.a, r.b].includes(b.id));
+      const pa = s.cities.find((v) => v.id === road.a).client,
+        pb = s.cities.find((v) => v.id === road.b).client;
+      const tapRoad = async () => {
+        await page.touchscreen.tap((pa.x + pb.x) / 2, (pa.y + pb.y) / 2);
+        await advance(page, 550);
+      };
+      const direction = async (from, to) => {
+        const j = (await snapshot(page)).junctions.find((j) => j.cityId === from);
+        assert.equal(j.exits[j.routeIndex], to);
+      };
+      await tapRoad();
+      await direction(road.a, road.b);
+      await tapRoad();
+      await direction(road.a, undefined);
+      await direction(road.b, road.a);
+      await tapRoad();
+      await direction(road.a, undefined);
+      await direction(road.b, undefined);
+      await shot(page, 'direct-orders-390x844');
+      await page.locator('#pause').tap();
+      return { relay: true, independentSources: true, doubleTapIsolation: true, roadCycle: true };
+    },
+  );
+  await check(
     'Military intelligence pauses simulation, exposes every faction and restores a visible local radius',
     async () => {
       const page = await session();
@@ -419,10 +514,16 @@ try {
       saved = await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')));
       assert.equal(saved.armory.cards[0].tier, base.tier);
       await page.clock.fastForward(61000);
-      await page.evaluate(() => { globalThis.__testHoldAd = true; });
+      await page.evaluate(() => {
+        globalThis.__testHoldAd = true;
+      });
       await page.locator('#upgrade-card').tap();
       await page.clock.fastForward(600000);
-      assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')))).armory.cards[0].tier, base.tier);
+      assert.equal(
+        (await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')))).armory
+          .cards[0].tier,
+        base.tier,
+      );
       await page.evaluate(() => globalThis.__finishTestAd({ status: 'completed' }));
       await expect(page.locator('#upgrade-card')).toHaveCount(0);
       saved = await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')));
@@ -468,21 +569,31 @@ try {
       };
     },
   );
-  await check('Leaving the result invalidates a late card upgrade before mutating the armory', async () => {
-    const page = await session({ ads: true, seed: 0 });
-    await begin(page);
-    await page.locator('#skip-tutorial').tap();
-    await advance(page, 181000);
-    assert.equal((await snapshot(page)).screen, 'result');
-    const before = await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')).armory);
-    await page.evaluate(() => { globalThis.__testHoldAd = true; });
-    await page.locator('#upgrade-card').tap();
-    await page.locator('#result-home').tap();
-    await page.evaluate(() => globalThis.__finishTestAd({ status: 'completed' }));
-    await advance(page, 100);
-    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')).armory), before);
-    return { lateRewardIgnored: true };
-  });
+  await check(
+    'Leaving the result invalidates a late card upgrade before mutating the armory',
+    async () => {
+      const page = await session({ ads: true, seed: 0 });
+      await begin(page);
+      await page.locator('#skip-tutorial').tap();
+      await advance(page, 181000);
+      assert.equal((await snapshot(page)).screen, 'result');
+      const before = await page.evaluate(
+        () => JSON.parse(localStorage.getItem('tianxia-chalu:v1')).armory,
+      );
+      await page.evaluate(() => {
+        globalThis.__testHoldAd = true;
+      });
+      await page.locator('#upgrade-card').tap();
+      await page.locator('#result-home').tap();
+      await page.evaluate(() => globalThis.__finishTestAd({ status: 'completed' }));
+      await advance(page, 100);
+      assert.deepEqual(
+        await page.evaluate(() => JSON.parse(localStorage.getItem('tianxia-chalu:v1')).armory),
+        before,
+      );
+      return { lateRewardIgnored: true };
+    },
+  );
   await check(
     'Ordinary defeat also grants its ranking card, and retry preserves the seed',
     async () => {
@@ -612,14 +723,13 @@ try {
         assert(s.time >= old.time && s.time - old.time < 1.5);
         const own = s.cities.find((c) => c.owner === 0),
           j = s.junctions.find((j) => j.cityId === own.id);
-        await select(page, own.id);
-        await page.locator('#cycle').tap();
+        await command(page, j.id, (j.routeIndex + 1) % j.exits.length);
         await advance(page, 350);
         assert.notEqual(
           (await snapshot(page)).junctions.find((x) => x.id === j.id).routeIndex,
           j.routeIndex,
         );
-        for (const id of ['pause', 'hold', 'cycle', 'intel']) {
+        for (const id of ['pause', 'intel']) {
           const b = await page.locator('#' + id).boundingBox();
           assert(
             b.width >= 44 && b.height >= 44,
@@ -674,8 +784,7 @@ try {
       await begin(denied);
       const s = await snapshot(denied),
         c = s.cities.find((c) => c.owner === 0);
-      await select(denied, c.id);
-      await denied.locator('#cycle').tap();
+      await command(denied, s.junctions.find((j) => j.cityId === c.id).id, 0);
       await advance(denied, 100);
       await expect(denied.locator('#notice')).toContainText('存档暂时不可用');
       await denied.locator('#pause').tap();
@@ -689,23 +798,29 @@ try {
       };
     },
   );
-  await check('Coordinate input waits for a real Creator map and rejects unavailable maps', async () => {
-    const page = await session();
-    await assert.rejects(mapForInput(page, 250), /home/);
-    await page.evaluate(async () => (await globalThis.System.import('cc')).director.pause());
-    await page.locator('#start').tap();
-    await advance(page, 150);
-    assert((await snapshot(page)).cities.every((c) => c.client === null));
-    await assert.rejects(mapForInput(page, 250), /missingCityIds/);
-    await page.evaluate(() => {
-      setTimeout(async () => (await globalThis.System.import('cc')).director.resume(), 600);
-    });
-    const { s } = await mapForInput(page);
-    const city = s.cities.find((c) => c.owner === 0);
-    await select(page, city.id);
-    assert.equal((await snapshot(page)).selected, city.id);
-    return { delayedCreatorFrameMs: 600, unavailableMapsRejected: ['home', 'unprojected prepare'] };
-  });
+  await check(
+    'Coordinate input waits for a real Creator map and rejects unavailable maps',
+    async () => {
+      const page = await session();
+      await assert.rejects(mapForInput(page, 250), /home/);
+      await page.evaluate(async () => (await globalThis.System.import('cc')).director.pause());
+      await page.locator('#start').tap();
+      await advance(page, 150);
+      assert((await snapshot(page)).cities.every((c) => c.client === null));
+      await assert.rejects(mapForInput(page, 250), /missingCityIds/);
+      await page.evaluate(() => {
+        setTimeout(async () => (await globalThis.System.import('cc')).director.resume(), 600);
+      });
+      const { s } = await mapForInput(page);
+      const city = s.cities.find((c) => c.owner === 0);
+      await select(page, city.id);
+      assert.equal((await snapshot(page)).selected, city.id);
+      return {
+        delayedCreatorFrameMs: 600,
+        unavailableMapsRejected: ['home', 'unprojected prepare'],
+      };
+    },
+  );
   await check(
     'Daily equipment expires while preparing, preserving seed and planned orders',
     async () => {
@@ -735,8 +850,7 @@ try {
       const { s: before } = await mapForInput(page),
         c = before.cities.find((c) => c.owner === 0);
       assert.equal(c.troops, 16);
-      await select(page, c.id);
-      await page.locator('#cycle').tap();
+      await command(page, before.junctions.find((j) => j.cityId === c.id).id, 0);
       await advance(page, 100);
       const orders = (await snapshot(page)).junctions.map((j) => j.routeIndex);
       await advance(page, 61000);
@@ -759,9 +873,6 @@ try {
   for (const context of contexts) await context.close();
   await browser.close();
   server?.kill();
-  await writeFile(
-    new URL('browser-report.json', evidence),
-    JSON.stringify(report, null, 2) + '\n',
-  );
+  await writeFile(new URL('browser-report.json', evidence), JSON.stringify(report, null, 2) + '\n');
 }
 if (!report.passed) process.exitCode = 1;

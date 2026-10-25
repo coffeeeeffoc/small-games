@@ -115,14 +115,15 @@ try {
   await page.touchscreen.tap(point.x, point.y);
   await expect.poll(async () => (await snapshot()).selected).toBe(own.id);
   const ack = page.waitForResponse((r) => r.url().endsWith('/commands'));
-  await page.locator('#cycle').tap();
+  const target = (await snapshot()).cities.find((c) => c.id === junction.exits[0]).client;
+  await page.touchscreen.tap(target.x, target.y);
   assert.equal((await (await ack).json()).accepted, true);
   assert.equal(first.sequence, 1);
   assert.equal(junction.routeIndex, 0);
   advance(2000);
   await expect(page.locator('#clock')).toHaveText('2:58');
   checks.push(
-    'A real Cocos city touch plus direction control reaches the API and renders the accepted route and server time.',
+    'Real Cocos source and target city touches reaches the API and renders the accepted route and server time.',
   );
   await pause(first);
   const paused = first.state.time;
