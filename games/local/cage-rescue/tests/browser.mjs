@@ -248,10 +248,24 @@ try {
         await expect
           .poll(async () => (await snapshot(page)).game.ball.y)
           .toBeLessThan(initialY - 8);
-        const bounds = await page.locator('#scene').boundingBox();
+        const bounds = await page.locator('#paddle-control').boundingBox();
+        const field = await page.locator('#scene').boundingBox();
+        const pauseButton = await page.locator('#pause').boundingBox();
+        assert.ok(
+          pauseButton.width >= 44 && pauseButton.height >= 44,
+          'pause has a full touch target',
+        );
+        assert.ok(
+          pauseButton.x >= field.x && pauseButton.x + pauseButton.width <= field.x + field.width,
+          'pause is not clipped by the narrow field',
+        );
+        assert.ok(bounds.y >= field.y + field.height - 1, 'control stays below the entire field');
+        assert.ok(bounds.height >= 88, 'control has room for a thumb');
+        assert.ok(bounds.y + bounds.height <= viewport.height + 1, 'control stays inside viewport');
+        assert.ok(Math.abs(bounds.width - field.width) <= 2, 'control aligns with the field');
         const coordinate = (x) => ({
           x: bounds.x + bounds.width * x,
-          y: bounds.y + bounds.height * 0.85,
+          y: bounds.y + bounds.height * 0.55,
         });
         const touch = await context.newCDPSession(page);
         try {

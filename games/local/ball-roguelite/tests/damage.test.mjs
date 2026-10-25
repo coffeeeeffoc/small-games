@@ -13,7 +13,7 @@ function runUntil(game, frames, dt = 1 / 240) {
 }
 
 for (const [shape, id, degrees, offset] of [
-  ['circle', 99, 0, 16 + FIELD.radius],
+  ['circle', 99, 0, 13 + FIELD.radius],
   ['hexagon', 100, 85, -18 - FIELD.radius],
 ]) {
   test(`grazing pierce damages a ${shape} once until the ball leaves its surface`, () => {
@@ -21,7 +21,7 @@ for (const [shape, id, degrees, offset] of [
     game.count = 1;
     game.upgrades.pierce = 2;
     game.bricks = [target(id, 3, 5)];
-    fire(game, 0, -500);
+    fire(game, 0, 500);
     const center = brickCenter(game.bricks[0]);
     const angle = (degrees * Math.PI) / 180;
     Object.assign(game.balls[0], {
@@ -29,7 +29,6 @@ for (const [shape, id, degrees, offset] of [
       y: center.y - Math.sin(angle) * 90 + Math.cos(angle) * offset,
       vx: Math.cos(angle) * 690,
       vy: Math.sin(angle) * 690,
-      boost: 0,
     });
     const hits = runUntil(game, 62).filter((e) => e.type === 'hit');
     assert.equal(hits.length, 1, 'one entry must not spend both pierces and hit a third time');
@@ -39,11 +38,11 @@ for (const [shape, id, degrees, offset] of [
   });
 }
 
-for (const [damage, pierce, expectedHits] of [
-  [1, 0, 22],
-  [4, 0, 22],
-  [1, 2, 44],
-  [4, 2, 43],
+for (const [damage, pierce] of [
+  [1, 0],
+  [4, 0],
+  [1, 2],
+  [4, 2],
 ]) {
   test(`22 balls at ${damage} damage and ${pierce} pierce deduct only actual contact damage`, () => {
     const game = createGame('endless', { seed: 123 });
@@ -52,20 +51,18 @@ for (const [damage, pierce, expectedHits] of [
     game.upgrades.pierce = pierce;
     const brick = target(99, 3, 6);
     game.bricks = [brick];
-    fire(game, 0, -500);
-    const hits = runUntil(game, 24 * 240).filter((e) => e.type === 'hit' && e.id === brick.id);
-    assert.equal(hits.length, expectedHits);
+    fire(game, 0, 500);
+    const events = runUntil(game, 24 * 240);
+    const hits = events.filter((e) => e.type === 'hit' && e.id === brick.id);
+    assert.ok(hits.length >= 22);
     assert.ok(hits.every((e) => e.damage === damage && e.ballId));
-    assert.equal(brick.hp, 170 - expectedHits * damage);
-    if (pierce) {
+    assert.equal(brick.hp, 170 - hits.length * damage);
+    if (!pierce) {
       const repeated = hits.filter((e) => e.ballId === hits[0].ballId);
-      assert.equal(
-        repeated.length,
-        2,
-        'top-wall rebound may legitimately hit the same target again',
-      );
-      assert.ok(Math.abs(repeated[0].y - repeated[1].y) > 20, 'opposite entry surfaces');
-    }
+      assert.ok(repeated.length > 1, 'gravity and the ceiling allow genuine re-entry');
+      const bounces = events.filter((e) => e.type === 'bounce' && e.kind === 'brick' && e.ballId === hits[0].ballId);
+      assert.ok(bounces.every((e, i) => i === 0 || e.at - bounces[i - 1].at > 0.1), 'no overlap spam');
+    } else assert.equal(hits.length, 22, 'piercing falls through to collection without a floor rebound');
   });
 }
 
@@ -79,7 +76,7 @@ function firstHit(upgrade, seed = 1, bomb = false) {
     target(102, 0, 0),
   ];
   game.seed = seed;
-  fire(game, 0, -500);
+  fire(game, 0, 500);
   return { game, events: runUntil(game, 63) };
 }
 

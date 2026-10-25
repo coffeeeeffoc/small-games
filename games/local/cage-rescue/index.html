@@ -26,7 +26,7 @@
         width="390"
         height="700"
         tabindex="0"
-        aria-label="救援场地，左右拖动控制挡板；键盘左右键移动，空格发球"
+        aria-label="救援场地，使用下方操作区移动滑板；键盘左右键移动，空格发球"
       ></canvas>
 
       <section id="home-screen" class="screen home-screen" aria-labelledby="game-title">
@@ -111,7 +111,7 @@
         <div id="trial-badge" class="trial-badge" hidden>开发试玩 · 不保存进度</div>
         <div id="slow-badge" class="slow-badge" hidden>救援缓降</div>
         <div id="launch-area" class="launch-area">
-          <p id="launch-hint">左右拖动挡板，接球也接人</p>
+          <p id="launch-hint">滑动下方操作区，接球也接人</p>
           <button id="launch" class="primary compact">点击发球</button>
         </div>
         <div id="play-tip" class="play-tip">拖动挡板 · 救回全部 6 位队友</div>
@@ -168,7 +168,9 @@
             <b>01</b>
             <div>
               <h3>一块挡板，两项任务</h3>
-              <p>左右拖动挡板反弹球，击碎砖块和笼子。击中挡板边缘，球会斜着弹走。</p>
+              <p>
+                在场地下方操作区左右滑动，横向位置对应上方滑板，两端对应左右边界。手指不用遮住场地；击中滑板边缘，球会斜着弹走。
+              </p>
             </div>
           </article>
           <article>
@@ -277,5 +279,20 @@
         <button id="leaderboard-retry" class="secondary">刷新排行榜</button>
       </section>
     </main>
+    <div
+      id="paddle-control"
+      role="slider"
+      tabindex="0"
+      aria-label="滑板位置"
+      aria-describedby="paddle-control-hint"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="50"
+      hidden
+    >
+      <span id="paddle-control-hint">在此左右滑动 · 控制上方滑板</span>
+      <span class="control-track" aria-hidden="true"><i id="control-paddle"></i></span>
+      <span class="control-edges" aria-hidden="true">← 左边界<span>右边界 →</span></span>
+    </div>
   </body>
 </html>

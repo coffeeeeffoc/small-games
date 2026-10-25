@@ -35,7 +35,7 @@ it('packages an executable carrom rule with its engine and content, without ship
       ...[
         'services/runtime-api/dist/main.js',
         'services/kart-server/src/main.ts',
-        'games/local/three-choose-two/src/engine.js',
+        'games/local/place-and-clear/src/engine.js',
         'games/local/flick-arena/src/engine.mjs',
         'games/local/carding-car/assets/scripts/main.ts',
         'games/local/cops-robbers/src/engine.js',

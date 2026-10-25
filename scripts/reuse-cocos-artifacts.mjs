@@ -12,7 +12,7 @@ export const games = [
   'bullet-garden',
   'tower-brake',
   'tetracube',
-  'three-choose-two',
+  'place-and-clear',
   'game-castle-cannon',
   'ashfall-front',
 ];

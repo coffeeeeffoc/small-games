@@ -1,3 +1,4 @@
+import { gameRenameFileScopes } from './game-rename-scope.mjs';
 import {
   localRetirementFileScopes,
   localRetirementHeadQueryPaths,
@@ -45,6 +46,7 @@ import {
   workspacePackages,
   affectedPackages,
   staticBuildTargets,
+  incrementalBuildTargets,
   isDocumentation,
   shellContractTargets,
   shellContractFiles,
@@ -784,7 +786,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
     ],
     'ball-roguelite': ['browser.mjs'],
     'ember-bounce': ['browser.mjs'],
-    'three-choose-two': ['publishing.browser.mjs'],
+    'place-and-clear': ['publishing.browser.mjs'],
     'flick-arena': ['publishing.browser.mjs'],
     'moss-garden': ['publishing.browser.mjs'],
     'chase-thief': ['publishing.browser.mjs'],
@@ -1004,6 +1006,7 @@ export async function validateTree({
       nineNativeFileScopes,
       nineLockFileScopes,
       localRetirementFileScopes,
+      gameRenameFileScopes,
     ])
       for (const [file, sources] of classify(context)) fileScopes.set(file, sources);
   }
@@ -1049,6 +1052,7 @@ export async function validateTree({
         'scripts/nine-native-scope.test.mjs',
         'scripts/nine-lock-scope.test.mjs',
         'scripts/publication-scopes.test.mjs',
+        'scripts/game-rename-scope.test.mjs',
         'scripts/vite-patch-scope.test.mjs',
         'scripts/prune-turbo-cache.test.mjs',
         'scripts/prune-actions-cache.test.mjs',
@@ -1131,7 +1135,11 @@ export async function validateTree({
           ]),
         ]
       : direct;
-  const buildTargets = staticBuildTargets(packages, buildDirect, affected).filter(
+  const buildTargets = (
+    incremental
+      ? incrementalBuildTargets(packages, buildDirect, affected)
+      : staticBuildTargets(packages, buildDirect, affected)
+  ).filter(
     (pkg) =>
       !(
         incrementalScope?.vite_patch &&

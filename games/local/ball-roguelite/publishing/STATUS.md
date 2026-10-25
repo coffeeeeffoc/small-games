@@ -1,34 +1,30 @@
 # 星轨弹珠上架基础资料
 
-- 游戏：`ball-roguelite` / 星轨弹珠
-- 更新日期：2026-10-23（Asia/Shanghai）
-- 对应版本：本次无尽伤害与图标更新；准确 core/render 指纹及媒体 SHA-256 见 [media-manifest.json](media-manifest.json)，录制轨迹见 [capture-report.json](capture-report.json)。
-- 目标形态：390×844 手机 Web/H5 基础素材；不是原生小游戏真机资料。
-- 基本闭环：已成立。实际触屏验证首页、选关、发射、结算、重试及返回，见 [14 组浏览器流程](../docs/design/endless-clarity/actual/browser-report.json)。本次录像另覆盖无尽发射、碰撞、暂停恢复、下一轮和保存返回。
-- 当前上架阶段：基础素材已提供，尚未上传平台、提交审核或确认上线。
-- 下一步：按本次授权完成最终提交验证与 dev 推送；正式平台提审前核对对应媒体规格及原生/广告验收，平台上传另行授权。
+- 游戏：ball-roguelite / 星轨弹珠
+- 更新时间：2026-10-25（Asia/Shanghai）
+- 当前版本：orbit-v4 重力落珠，触底即回收；准确源码 SHA-256 与素材摘要见 [gravity-media-manifest.json](gravity-media-manifest.json)。
+- 目标形态：竖屏 Web/H5；截图为 390×844 CSS 视口、DPR 2 的 780×1688 PNG；视频为 390×844。不是原生小游戏真机资料。
+- 基本闭环：成立。浏览器触屏模拟自然完成第一星域并解锁下一关，另覆盖无尽发射、碰撞、暂停、回收、下一轮、失败和重试；见 [浏览器记录](../docs/design/gravity-drop/actual/browser-report.json)。
+- 上架阶段：基础素材已提供，未上传、提审或发布。下一步为用户试玩反馈和目标渠道真机验收。
 
-## 必需资料
+## 八类资料
 
-以下均于 2026-10-23 核对，来源为当前仓库素材及本次真实 Cocos Web 构建。视频无音轨，不暗示录得手机音频。
+以下均在 2026-10-25 核对。录像来自实际生产构建的 Chromium 手机触屏模拟，无音轨。普通发布录像没有改造棋盘或使用测试存档，操作轨迹见 [gravity-capture-report.json](gravity-capture-report.json)。
 
-| 类别         | 状态   | 文件与规格                                                                                                                                                                                                                                                                                                                | 版本与验证方法                                                                 |
-| ------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| 游戏简介     | 已提供 | [introduction.md](copy/introduction.md)                                                                                                                                                                                                                                                                                   | 对照八关、无尽、强化、存档与可选广告的实际实现                                 |
-| 一句话推荐语 | 已提供 | [tagline.md](copy/tagline.md)                                                                                                                                                                                                                                                                                             | 与核心借墙弹射玩法一致                                                         |
-| 开发者的话   | 已提供 | [developer-note.md](copy/developer-note.md)                                                                                                                                                                                                                                                                               | 只描述已完成改动与实际验证边界                                                 |
-| 图标         | 已提供 | [orbit.svg](icon/orbit.svg)，64×64 viewBox                                                                                                                                                                                                                                                                                | 与运行时 favicon.svg 字节一致，复用游戏现有图标                                |
-| 宣传图       | 已提供 | [首页宣传图](promo/images/orbit-home-390x844.png)，390×844 PNG                                                                                                                                                                                                                                                            | 直接复用本次实录首页截图，不作为概念渲染                                       |
-| 宣传视频     | 已提供 | [基础预览](promo/videos/orbit-preview-390x844.mp4)，390×844，15.8 秒，H.264 MP4                                                                                                                                                                                                                                           | 实际录屏转码为可分享版本；ffprobe 核规格、FFmpeg 完整解码通过                  |
-| 游戏内截图   | 已提供 | [首页](gameplay/screenshots/home-390x844.png)、[选关](gameplay/screenshots/levels-390x844.png)、[无尽](gameplay/screenshots/endless-390x844.png)、[飞行](gameplay/screenshots/flight-390x844.png)、[暂停](gameplay/screenshots/paused-390x844.png)、[下一轮](gameplay/screenshots/next-turn-390x844.png)，均为390×844 PNG | 系统 Chromium 手机触屏模拟、生产 dist；等待 Cocos 实际绘制后截图，核对运行画面 |
-| 游戏内视频   | 已提供 | [无尽实际录屏](gameplay/videos/endless-390x844.webm)，390×844，15.8 秒，VP8 WebM                                                                                                                                                                                                                                          | Playwright 真实触屏输入与录像；动作前后状态留档、页面错误0，完整解码通过       |
+| 类别 | 状态 | 实际内容、规格和验证 |
+| --- | --- | --- |
+| 游戏简介 | 已提供 | [introduction.md](copy/introduction.md)：顶部发射、力度、重力、八关/无尽与回收，逐项对照实现 |
+| 一句话推荐语 | 已提供 | [tagline.md](copy/tagline.md)：对应重力夹缝连弹 |
+| 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)：本次交互改造和真实验证边界 |
+| 图标 | 已提供 | [orbit.svg](icon/orbit.svg)，64×64 viewBox；沿用现有品牌，与 favicon.svg 字节一致 |
+| 宣传图 | 已提供 | [gravity-home-780x1688.png](promo/images/gravity-home-780x1688.png)，实际新版首页；已核画面与 PNG 尺寸 |
+| 宣传视频 | 已提供 | [gravity-drop-390x844.mp4](promo/videos/gravity-drop-390x844.mp4)，390×844、H.264；实际无尽录像转码，ffprobe 与完整解码通过 |
+| 游戏内截图 | 已提供 | [首页](gameplay/screenshots/gravity-home-780x1688.png)、[选关](gameplay/screenshots/gravity-levels-780x1688.png)、[瞄准力度](gameplay/screenshots/gravity-aim-780x1688.png)、[无尽](gameplay/screenshots/gravity-endless-780x1688.png)、[飞行](gameplay/screenshots/gravity-flight-780x1688.png)、[暂停](gameplay/screenshots/gravity-paused-780x1688.png)、[回收](gameplay/screenshots/gravity-recall-780x1688.png)、[下一轮](gameplay/screenshots/gravity-next-turn-780x1688.png)；均为 780×1688、真实 Cocos 场景绘制 |
+| 游戏内录像 | 已提供 | [gravity-drop-390x844.webm](gameplay/videos/gravity-drop-390x844.webm)，390×844、VP8；真实触屏与正常新开的无尽对局，完整解码通过 |
 
-## 本次检查记录
+## 版本与验收说明
 
-- 历史素材：复用运行时图标；首页、场景截图和录像均为当前代码重新录制。旧设计证据保持原位。
-- 版本：本轮未修改引擎和关卡数据，视频与图片对应已修复的穿透、半径8弹丸和图标界面；以指纹文件核对来源。
-- 阻塞复查：八类基础资料无阻塞。目标平台原生实机、真实广告 SDK 和正式渠道规格未验收，不将素材齐全等同于平台审核通过。
-
-## 2026-10-24 H5 激励接线
-
-已接入统一 H5 构建的可选奖励端口；广告位为空时保持关闭，免费玩法可用。本轮奖励位置、配置与验证边界见[通用接入表](../../../../docs/operations/taptap-rewarded-ads.md#十三款可选激励接入2026-10-24)。现有八类素材保留；本次不代表平台广告开通、库存或真机验收完成。
+- 2026-10-23 的 orbit/endless 命名素材及旧 media-manifest.json 保留为历史批次；当前交付以本表的 gravity 文件及新指纹清单为准。
+- 概念图不充当正常关卡宣传证据；中间诊断截图保留在忽略的 outputs 目录。
+- 八类基础资料无阻塞。真实手机、原生小游戏、真实广告 SDK、账号与库存未验收；浏览器 fixture 的 completed 回调仅验证游戏奖励接线。
+- 存档与新规则兼容，旧规则中途存档不产生新规则可比较的同种子成绩；dev 提交/推送与 CI 状态以交付记录为准；未上传渠道或提审。

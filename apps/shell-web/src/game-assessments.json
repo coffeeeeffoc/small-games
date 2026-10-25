@@ -195,26 +195,6 @@
       ]
     },
     {
-      "id": "voiceprint-case",
-      "title": "声纹疑案",
-      "source": "games/local/voiceprint-case",
-      "disposition": "potential",
-      "potential": ["fun", "potential"],
-      "platforms": ["mobile"],
-      "primaryPlatform": "mobile",
-      "orientation": "portrait",
-      "genres": ["puzzle", "audio"],
-      "opportunities": ["challenge", "share"],
-      "schedule": "later",
-      "implementationStatus": "deferred",
-      "scheduleReason": "声音辨识题材有差异；后续需要试听环境、听觉可访问性与新录音内容验证，先确认首局正确理解再扩展。",
-      "strengths": ["同句不同声音与渐进噪声有辨识度，12关支持反复试听"],
-      "weaknesses": ["强依赖可听环境和听觉差异，内容量制约复玩"],
-      "improvements": ["增加非答案式重听提示与耳机校准，分享正确率而非答案"],
-      "evidence": ["games/local/voiceprint-case/README.md"],
-      "delivered": []
-    },
-    {
       "id": "echo-lab",
       "title": "回声实验室 · Echo Lab",
       "source": "games/local/echo-lab",
@@ -232,26 +212,6 @@
       "weaknesses": ["更接近声音实验工具，缺少明确胜负和短局动力"],
       "improvements": ["Web保留精确拖动，增加可选回声任务和作品试听卡"],
       "evidence": ["games/local/echo-lab/README.md"],
-      "delivered": []
-    },
-    {
-      "id": "maze-wander",
-      "title": "迷境漫游",
-      "source": "games/local/maze-wander",
-      "disposition": "potential",
-      "potential": ["fun", "potential"],
-      "platforms": ["web", "app"],
-      "primaryPlatform": "web",
-      "orientation": "landscape",
-      "genres": ["exploration", "puzzle"],
-      "opportunities": ["challenge", "share"],
-      "schedule": "later",
-      "implementationStatus": "deferred",
-      "scheduleReason": "20迷宫和空间记忆机制有探索价值；后续重点处理第一人称舒适性与移动转向，需独立输入和眩晕体验验证。",
-      "strengths": ["20迷宫、标记、镜面与捷径让空间记忆有变化"],
-      "weaknesses": ["第一人称移动对手机双指与眩晕敏感，节奏偏慢"],
-      "improvements": ["Web优先优化移动与转向，提供舒适设置和路线纪录分享"],
-      "evidence": ["games/local/maze-wander/README.md"],
       "delivered": []
     },
     {
@@ -462,26 +422,6 @@
       "delivered": []
     },
     {
-      "id": "vibeJam-myself-delivery",
-      "title": "橘风速递",
-      "source": "games/local/vibeJam-myself-delivery",
-      "disposition": "potential",
-      "potential": ["fun", "potential"],
-      "platforms": ["mobile"],
-      "primaryPlatform": "mobile",
-      "orientation": "landscape",
-      "genres": ["racing", "simulation"],
-      "opportunities": ["challenge", "share"],
-      "schedule": "later",
-      "implementationStatus": "deferred",
-      "scheduleReason": "采购、驾驶、送达已成闭环；后续应一起梳理上下车与采购节奏，需比小范围反馈改造更完整的交互调整。",
-      "strengths": ["采购、驾驶、送达与货物完整度形成完整三分钟循环"],
-      "weaknesses": ["上下车与逐件采购可能打断驾驶爽点，多控件增加学习量"],
-      "improvements": ["压缩重复采购流程，强化完整配送连击与同订单路线挑战"],
-      "evidence": ["games/local/vibeJam-myself-delivery/README.md"],
-      "delivered": []
-    },
-    {
       "id": "vibeJam-myself-history-guess",
       "title": "此时 · 此地",
       "source": "games/local/vibeJam-myself-history-guess",
@@ -637,12 +577,12 @@
       "potential": ["fun", "potential"],
       "platforms": ["mobile", "web"],
       "primaryPlatform": "mobile",
-      "orientation": "landscape",
+      "orientation": "portrait",
       "genres": ["puzzle", "physics"],
       "opportunities": ["challenge", "share"],
       "schedule": "current",
       "implementationStatus": "implemented",
-      "scheduleReason": "50关已有渐进机制与撤销，本轮集中解决小屏管线追踪与预测反馈，再以同关最少步验证分享。",
+      "scheduleReason": "已完成竖屏优先 Cocos 改版，50关保留并增加章节解锁、完整主页和暂停结算；继续用真机试玩核验复杂管网。",
       "strengths": ["50关水位、箱子、小船、水轮逐步组合，预测与撤销降低试错"],
       "weaknesses": ["复杂管网在小屏仍有追踪成本，需用真人试玩验证连通反馈与操作预算是否易懂"],
       "improvements": [
@@ -650,10 +590,11 @@
       ],
       "evidence": [
         "games/local/waterline-station/README.md",
-        "games/local/waterline-station/docs/design/expansion-2026-10-11/README.md",
-        "games/local/waterline-station/docs/design/expansion-2026-10-11/browser-report.json"
+        "games/local/waterline-station/docs/design/mobile-cocos-2026-10-25/README.md",
+        "games/local/waterline-station/docs/design/mobile-cocos-2026-10-25/actual/browser-report.json"
       ],
       "delivered": [
+        "真实 Cocos 3.8.8 场景、触屏与音频；竖屏主页、章节解锁、暂停和结算，兼容旧存档与短横屏",
         "显示已用操作 / 三星目标，剩余两步时预警，管线选择明确两端水槽与开关状态",
         "同关少步邀请隔离正常存档，可明确退出并恢复常规进度；提示、预测、撤销或额外操作标为辅助通关且分享不附成绩，结算保留44px手机按钮"
       ]
@@ -964,9 +905,9 @@
       ]
     },
     {
-      "id": "three-choose-two",
-      "title": "三块选两块",
-      "source": "games/local/three-choose-two",
+      "id": "place-and-clear",
+      "title": "摆消乐",
+      "source": "games/local/place-and-clear",
       "disposition": "potential",
       "potential": ["fun", "potential"],
       "platforms": ["mobile", "web"],
@@ -983,9 +924,9 @@
         "验证种子挑战的回流和模式分榜理解，继续调节拖放容错与连续交叉消除反馈；真实平台广告及认证成绩需单独验收。"
       ],
       "evidence": [
-        "games/local/three-choose-two/README.md",
-        "games/local/three-choose-two/docs/design/publishing-2026-10-11/design.md",
-        "games/local/three-choose-two/docs/design/publishing-2026-10-11/publishing-browser.json"
+        "games/local/place-and-clear/README.md",
+        "games/local/place-and-clear/docs/design/publishing-2026-10-11/design.md",
+        "games/local/place-and-clear/docs/design/publishing-2026-10-11/publishing-browser.json"
       ],
       "delivered": [
         "新增独立种子挑战、同局重试与好友自报目标分比较；挑战不覆盖普通存档和原有在线排行；可选续局接入模拟激励，结算使用频控模拟插屏。"

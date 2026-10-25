@@ -1,4 +1,5 @@
 import { arenaRadius, nextArenaRadius, previewAim, outsideArena, physics } from './core.mjs';
+import { aimFromDrag } from './aim.mjs';
 import { levels, chapters } from './levels.mjs';
 import { isLevelUnlocked, nextLevel, totalStars } from './progress.mjs';
 
@@ -1107,17 +1108,14 @@ export function draw(c, app) {
       }
       const aim = app.drag || (canAim ? app.aimHint : null);
       if (aim) {
-        const dx = aim.dx,
-          dy = aim.dy,
-          len = Math.hypot(dx, dy),
-          power = Math.min(1, len / 115);
-        const preview = previewAim(state, -dx, -dy, power),
+        const { x, y, power } = aimFromDrag(aim.dx, aim.dy);
+        const preview = previewAim(state, x, y, power),
           end = preview.end ?? state.discs[state.active];
         const out = preview.out;
         const ringRisk = willShrink && outsideArena({ ...state, radius: nextRadius }, end.x, end.y);
         const nearEdge = outsideArena(state, end.x, end.y, -physics.puck);
         const previewColor = out || ringRisk ? '#f37e61' : nearEdge ? '#ffd080' : '#fff1ca';
-        if (len > 4) {
+        if (power > 0) {
           c.save();
           c.setLineDash([3, 6]);
           line(
@@ -1147,8 +1145,8 @@ export function draw(c, app) {
           rect(c, 90, 632, 210 * power, 7, 3, out || ringRisk ? '#e97950' : '#f4ca77');
         text(
           c,
-          len < 9
-            ? '拉回圆盘可取消'
+          power === 0
+            ? '向后拉得越远，力度越大 · 拉回可取消'
             : out
               ? '预计出界 · 减小力度或改变方向'
               : ringRisk

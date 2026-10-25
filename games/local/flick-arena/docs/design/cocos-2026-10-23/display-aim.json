@@ -1,0 +1,133 @@
+{
+  "environment": "Chromium mobile touch emulation, not physical hardware",
+  "base": "510a24c4b9d90d8de80523ee5bb4b838e8f56dc2",
+  "cases": [
+    {
+      "width": 330,
+      "height": 717,
+      "dpr": 1,
+      "attempts": [
+        {
+          "power": 0.25000012062283855,
+          "travel": 7.608340631015054
+        },
+        {
+          "power": 0.6000002894948124,
+          "travel": 43.04899973109158
+        },
+        {
+          "power": 0.999999855252594,
+          "travel": 118.96663243390478
+        }
+      ],
+      "auxiliaryNodes": true,
+      "cameraAndTouchAligned": true
+    },
+    {
+      "width": 330,
+      "height": 717,
+      "dpr": 2,
+      "attempts": [
+        {
+          "power": 0.25000012062283855,
+          "travel": 7.608340631015054
+        },
+        {
+          "power": 0.6000002894948124,
+          "travel": 43.04899973109158
+        },
+        {
+          "power": 0.999999855252594,
+          "travel": 118.96663243390478
+        }
+      ],
+      "auxiliaryNodes": true,
+      "cameraAndTouchAligned": true
+    },
+    {
+      "width": 330,
+      "height": 717,
+      "dpr": 3,
+      "attempts": [
+        {
+          "power": 0.25000012062283855,
+          "travel": 7.608340631015054
+        },
+        {
+          "power": 0.6000002894948124,
+          "travel": 43.04899973109158
+        },
+        {
+          "power": 0.999999855252594,
+          "travel": 118.96663243390478
+        }
+      ],
+      "auxiliaryNodes": true,
+      "cameraAndTouchAligned": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "dpr": 2,
+      "attempts": [
+        {
+          "power": 0.25,
+          "travel": 7.60833333333332
+        },
+        {
+          "power": 0.6,
+          "travel": 43.04895833333339
+        },
+        {
+          "power": 1,
+          "travel": 118.96666666666628
+        }
+      ],
+      "auxiliaryNodes": true,
+      "cameraAndTouchAligned": true
+    },
+    {
+      "width": 320,
+      "height": 568,
+      "dpr": 2,
+      "attempts": [
+        {
+          "power": 0.2500001868804539,
+          "travel": 7.608344639600787
+        },
+        {
+          "power": 0.6000000112128275,
+          "travel": 43.04895993676773
+        },
+        {
+          "power": 1,
+          "travel": 118.96666666666628
+        }
+      ],
+      "auxiliaryNodes": true,
+      "cameraAndTouchAligned": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "dpr": 2,
+      "attempts": [
+        {
+          "power": 0.25,
+          "travel": 7.60833333333332
+        },
+        {
+          "power": 0.6000002653702445,
+          "travel": 43.048996281278356
+        },
+        {
+          "power": 1,
+          "travel": 118.96666666666628
+        }
+      ],
+      "auxiliaryNodes": true,
+      "cameraAndTouchAligned": true
+    }
+  ],
+  "pageErrors": []
+}

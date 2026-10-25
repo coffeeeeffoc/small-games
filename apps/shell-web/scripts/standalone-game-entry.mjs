@@ -5,7 +5,7 @@ export const markers = {
   'porcelain-puzzle': 'body[data-screen="home"]',
   'ashfall-front': '#GameCanvas',
   'carrom-club': '#start',
-  'three-choose-two': '#GameCanvas',
+  'place-and-clear': '#GameCanvas',
   'cage-rescue': '#start',
   'flick-arena': '#start',
   'tower-brake': '#GameCanvas',
@@ -15,15 +15,13 @@ export const markers = {
   'castle-cannon': '#GameCanvas',
   'ember-bounce': '#start',
   'tianxia-chalu': '#start',
-  'voiceprint-case': '#start',
   'echo-lab': '#scene [data-object="reflector-1"]',
   'bullet-garden': '#GameCanvas',
-  'maze-wander': '#start',
   'urban-breakout': '#start',
   'homebound-station': 'body[data-homebound-ready="true"]',
   'rescue-team': '#fleet-1',
 
-  'waterline-station': '#board[data-level="1"]',
+  'waterline-station': 'body[data-screen="home"]',
   'tiny-signals': '#game-root[data-status="playing"]',
   'echo-weaver': '#emit',
   'ink-is-everything': '#start-game',
@@ -46,7 +44,6 @@ export const markers = {
 
   'travel-bund': '#enter-world',
 
-  'vibeJam-myself-delivery': '#start',
   'vibeJam-myself-history-guess': '#start',
   'vibeJam-myself-nullrange': '#deploy',
 };
@@ -62,8 +59,6 @@ export const homeControls = {
   'ball-roguelite': '#start',
   'ember-bounce': '#start',
   'tianxia-chalu': ['#start', '#begin-battle'],
-  'voiceprint-case': '#start',
-  'maze-wander': ['#start', '#enter'],
   'urban-breakout': '#start',
   'fold-the-world': '[data-action="start"]',
   'xiangqi-five': '#home-start',
@@ -81,7 +76,7 @@ export const legacyEntryIds = [
   'ashfall-front',
   'castle-cannon',
   'tower-brake',
-  'three-choose-two',
+  'place-and-clear',
   'chase-thief',
   'tetracube',
   'merge-front',
@@ -104,8 +99,6 @@ export const legacyEntryIds = [
   'night-overwatch',
 
   'travel-bund',
-
-  'vibeJam-myself-delivery',
 ];
 
 export function entryMode(id) {

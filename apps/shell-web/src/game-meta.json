@@ -8,8 +8,8 @@
         "time": "2026-10-11T19:27:17Z"
       },
       "updated": {
-        "commit": "3aafcaea506533821612674971116e757a455ed3",
-        "time": "2026-10-25T02:54:53+08:00"
+        "commit": "3c656ff8feca55046a23619b409ea60b6671faad",
+        "time": "2026-10-25T21:29:31+08:00"
       }
     },
     "ball-roguelite": {
@@ -19,8 +19,8 @@
         "time": "2026-10-06T10:01:31Z"
       },
       "updated": {
-        "commit": "03884c4e5d43431e2ccc55fef182d3022ef0f407",
-        "time": "2026-10-24T23:05:15+08:00"
+        "commit": "e39dbf4041e633bf830aff0124eee26c02a67dc1",
+        "time": "2026-10-25T23:10:12+08:00"
       }
     },
     "bullet-garden": {
@@ -85,8 +85,8 @@
         "time": "2026-10-06T18:26:31Z"
       },
       "updated": {
-        "commit": "73e8c10cb5c5775bb351fee5afb6109009b9d22e",
-        "time": "2026-10-24T23:29:59+08:00"
+        "commit": "61759eb643f97601323bcaf12706d0d1737b1ce5",
+        "time": "2026-10-25T22:18:34+08:00"
       }
     },
     "cops-robbers": {
@@ -140,8 +140,8 @@
         "time": "2026-10-05T19:03:26Z"
       },
       "updated": {
-        "commit": "4ca3d64f78e4435c4ffb0c69d5047b516e669997",
-        "time": "2026-10-24T23:00:29+08:00"
+        "commit": "ee9ddda91513c3b7fb12698d02835b68aceb7dd5",
+        "time": "2026-10-25T23:24:51+08:00"
       }
     },
     "flick-arena": {
@@ -151,8 +151,8 @@
         "time": "2026-10-05T20:43:08Z"
       },
       "updated": {
-        "commit": "4ca3d64f78e4435c4ffb0c69d5047b516e669997",
-        "time": "2026-10-24T23:00:29+08:00"
+        "commit": "6c7125c11edf72f8906d77fdbc7627bad883e651",
+        "time": "2026-10-25T15:31:25Z"
       }
     },
     "fold-the-world": {
@@ -173,8 +173,8 @@
         "time": "2026-10-03T09:52:21+08:00"
       },
       "updated": {
-        "commit": "4ca3d64f78e4435c4ffb0c69d5047b516e669997",
-        "time": "2026-10-24T23:00:29+08:00"
+        "commit": "2f8dcdd3a47640cbb51516eaa0cba9f638585975",
+        "time": "2026-10-25T15:04:36Z"
       }
     },
     "ink-is-everything": {
@@ -210,17 +210,6 @@
         "time": "2026-10-24T23:00:29+08:00"
       }
     },
-    "maze-wander": {
-      "source": "games/local/maze-wander",
-      "created": {
-        "commit": "1180a513cdf90ff3fc235f58464fb1afd992d3a3",
-        "time": "2026-10-03T09:54:08+08:00"
-      },
-      "updated": {
-        "commit": "03884c4e5d43431e2ccc55fef182d3022ef0f407",
-        "time": "2026-10-24T23:05:15+08:00"
-      }
-    },
     "merge-front": {
       "source": "games/local/merge-front",
       "created": {
@@ -250,8 +239,8 @@
         "time": "2026-09-28T13:34:28+08:00"
       },
       "updated": {
-        "commit": "ae20e88f21de8b16dcb6b2d330f38ce200c12a9d",
-        "time": "2026-10-25T02:15:24+08:00"
+        "commit": "dd866db3e62605c84f1fa4409705ebb08304f49b",
+        "time": "2026-10-25T14:06:05+08:00"
       }
     },
     "out-of-frame": {
@@ -305,12 +294,12 @@
         "time": "2026-10-06T19:20:40Z"
       },
       "updated": {
-        "commit": "4ca3d64f78e4435c4ffb0c69d5047b516e669997",
-        "time": "2026-10-24T23:00:29+08:00"
+        "commit": "82dcfdb850942bd4476cf09dbb9dcad9bf241bd6",
+        "time": "2026-10-25T15:38:38Z"
       }
     },
-    "three-choose-two": {
-      "source": "games/local/three-choose-two",
+    "place-and-clear": {
+      "source": "games/local/place-and-clear",
       "created": {
         "commit": "044e8fd2ff4fc74b30eb975738e60a5ce62b0856",
         "time": "2026-10-07T10:31:05Z"
@@ -386,17 +375,6 @@
         "time": "2026-10-24T23:05:15+08:00"
       }
     },
-    "vibeJam-myself-delivery": {
-      "source": "games/local/vibeJam-myself-delivery",
-      "created": {
-        "commit": "af3fa2dd0c3581fa2b44bf50710b1605c783b967",
-        "time": "2026-09-14T01:49:09+08:00"
-      },
-      "updated": {
-        "commit": "03884c4e5d43431e2ccc55fef182d3022ef0f407",
-        "time": "2026-10-24T23:05:15+08:00"
-      }
-    },
     "vibeJam-myself-history-guess": {
       "source": "games/local/vibeJam-myself-history-guess",
       "created": {
@@ -419,17 +397,6 @@
         "time": "2026-10-24T23:05:15+08:00"
       }
     },
-    "voiceprint-case": {
-      "source": "games/local/voiceprint-case",
-      "created": {
-        "commit": "4d9d09cacfaef59f7a4beb8b26da99bac363596d",
-        "time": "2026-10-04T00:29:19+08:00"
-      },
-      "updated": {
-        "commit": "4ca3d64f78e4435c4ffb0c69d5047b516e669997",
-        "time": "2026-10-24T23:00:29+08:00"
-      }
-    },
     "waterline-station": {
       "source": "games/local/waterline-station",
       "created": {
@@ -437,8 +404,8 @@
         "time": "2026-10-02T12:57:38Z"
       },
       "updated": {
-        "commit": "4ca3d64f78e4435c4ffb0c69d5047b516e669997",
-        "time": "2026-10-24T23:00:29+08:00"
+        "commit": "f0669e4077085cabe6b5189d63fc3c65894a7c97",
+        "time": "2026-10-25T15:36:59Z"
       }
     },
     "wulong-city": {

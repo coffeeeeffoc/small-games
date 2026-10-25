@@ -12,6 +12,7 @@ import {
   canReward,
   grantReward,
   FIELD,
+  aimVelocity,
 } from './core.mjs';
 import { createStorage } from './storage.mjs';
 import { prepareArt } from './src/art.mjs';
@@ -45,7 +46,7 @@ const incoming = new URL(location.href).searchParams,
   sharedLevel = levelById(incoming.get('level')),
   sharedSeed = Number(incoming.get('seed'));
 const hasChallenge =
-  ['orbit-v1', 'orbit-v2', 'orbit-v3'].includes(incoming.get('challenge')) &&
+  ['orbit-v1', 'orbit-v2', 'orbit-v3', 'orbit-v4'].includes(incoming.get('challenge')) &&
   sharedLevel &&
   Number.isInteger(sharedSeed) &&
   sharedSeed > 0 &&
@@ -114,7 +115,7 @@ function renderScreen() {
       data,
       storage.getResume(data.lastMode),
       hasChallenge
-        ? incoming.get('challenge') !== 'orbit-v3'
+        ? incoming.get('challenge') !== 'orbit-v4'
           ? '旧版种子 · 按新规则重试'
           : '好友同场挑战 →'
         : null,
@@ -338,7 +339,7 @@ async function activate(action) {
     if (disposed || game !== run || screen !== 'supply-panel') return;
     rewardMessage = result.granted
       ? kind === 'rescue'
-        ? '底部两行已清除 · 准备继续'
+        ? '顶部两行已清除 · 准备继续'
         : '晶体共鸣已生效 · 本局持续'
       : result.status === 'dismissed'
         ? '未完整观看，未领取奖励'
@@ -351,7 +352,7 @@ async function activate(action) {
     const outcome = await publishing.share({
       text: `${run.level.title}击碎 ${run.score} 颗球珠，最佳 ${run.bestCombo} 连碎。挑战同一组晶体！`,
       params: {
-        challenge: 'orbit-v3',
+        challenge: 'orbit-v4',
         level: run.levelId,
         seed: run.initialSeed,
         targetScore: run.score,
@@ -385,6 +386,9 @@ function snapshot() {
         waveIndex: game.waveIndex,
         practice: game.practice,
         launchX: game.launchX,
+        launchY: FIELD.launchY,
+        launchSpeed: game.direction?.speed ?? 0,
+        aimPower: aim ? aimVelocity(aim.x - game.launchX, aim.y - FIELD.launchY)?.power ?? 0 : 0,
         upgrades: { ...game.upgrades },
         rewards: { ...game.rewards },
         collisionCount: game.collisionCount,
@@ -414,7 +418,7 @@ function frame(dt) {
   if (screen === 'playing' && game) {
     update(game, dt);
     feedback();
-    view.updateHud(game);
+    view.updateHud(game, aim);
     if (lastPhase !== game.phase) {
       if (game.phase !== 'flight') processState();
       else {
@@ -455,7 +459,7 @@ function wireInput(cc) {
     cancelAim();
     if (
       screen === 'playing' &&
-      fire(game, p.x - game.launchX, p.y - FIELD.floor + FIELD.radius + 1)
+      fire(game, p.x - game.launchX, p.y - FIELD.launchY)
     ) {
       lastPhase = 'flight';
       renderScreen();

@@ -9,6 +9,87 @@
     }
   },
   {
+    "path": "gameplay/screenshots/bench-battle.png",
+    "bytes": 1130787,
+    "sha256": "2672260ff2fefb71ca54676e8dc259c34064562a6658895199677a75288947eb",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/bench-long-press-320.png",
+    "bytes": 195926,
+    "sha256": "112bb853b52b107275a57e4f125dd4d76ade7765efe41186a2b07c0b101e51fd",
+    "info": {
+      "width": 320,
+      "height": 568
+    }
+  },
+  {
+    "path": "gameplay/screenshots/bench-long-press-battle.png",
+    "bytes": 914156,
+    "sha256": "f8030bc437c41ba63fa9a3e728a92314a87e71a7d3a46b4a3354e358b8d38d08",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/bench-long-press-own.png",
+    "bytes": 609393,
+    "sha256": "48d6f82c93ac827dc916cfcba525c7da730387791a12b66ab0fc32485ad34eb4",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/bench-long-press-shop.png",
+    "bytes": 603670,
+    "sha256": "c09e8db96ca30a0b3bfd19281ff61c546e3d7317a6c6b7e57506521c7f424365",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
+    "path": "gameplay/screenshots/bench-new-item-568.png",
+    "bytes": 185487,
+    "sha256": "5105a7df522d5aa2f63205b86f9f2b5320423e9b1c422899c0fec8fb67067a29",
+    "info": {
+      "width": 568,
+      "height": 320
+    }
+  },
+  {
+    "path": "gameplay/screenshots/bench-page-two-568.png",
+    "bytes": 215396,
+    "sha256": "af85ca049dfc40b04257ed1787d8cb13ab7306047f0793e1719140a1ff697964",
+    "info": {
+      "width": 568,
+      "height": 320
+    }
+  },
+  {
+    "path": "gameplay/screenshots/bench-planning-390.png",
+    "bytes": 449302,
+    "sha256": "1b43c180e0c810923456c84ccf543ea29de1b499b09c3a5499295d2f6eb158fc",
+    "info": {
+      "width": 390,
+      "height": 844
+    }
+  },
+  {
+    "path": "gameplay/screenshots/bench-planning.png",
+    "bytes": 761230,
+    "sha256": "aec5f0e8d62bde3fa94128302f698c1e07be6d31cd28e31d9ee0c1809500bb3b",
+    "info": {
+      "width": 1152,
+      "height": 540
+    }
+  },
+  {
     "path": "gameplay/screenshots/home-1152x540.png",
     "bytes": 873416,
     "sha256": "23a5e1da515a40d517fbf3514b25b9f9d499b6780c46ce0c9774c2c7e4282799",
@@ -135,6 +216,22 @@
     }
   },
   {
+    "path": "gameplay/videos/bench-interaction-1152x540.mp4",
+    "bytes": 1731663,
+    "sha256": "76840fc8a858a9c656458a2de5fa3c4cb72ab41432f58b42e73e13c6bffd261e",
+    "info": {
+      "duration": 30.0,
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1152,
+          "height": 540
+        }
+      ]
+    }
+  },
+  {
     "path": "gameplay/videos/round-formation-1152x540.mp4",
     "bytes": 3478635,
     "sha256": "49df8fe1f3ac0cd9ffe7e9be17947a3d6a6cfd6cc44bb3b321651f48bc7dd704",
@@ -182,6 +279,22 @@
     "info": {
       "width": 1672,
       "height": 941
+    }
+  },
+  {
+    "path": "promo/videos/bench-interaction-1280x720.mp4",
+    "bytes": 2563889,
+    "sha256": "6909673f8e4c531daac4e05efa9c1da3cc0455de2df5d2c65948c1598fb962de",
+    "info": {
+      "duration": 17.96,
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1280,
+          "height": 720
+        }
+      ]
     }
   },
   {

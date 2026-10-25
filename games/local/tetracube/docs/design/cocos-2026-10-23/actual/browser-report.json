@@ -1,11 +1,11 @@
 {
-  "environment": "win32 Chromium real mouse/CDP touch; no physical device or live ad fill",
-  "browser": "155.0.8059.85",
+  "environment": "linux Chromium real mouse/CDP touch; no physical device or live ad fill",
+  "browser": "140.0.7339.186",
   "checks": [
-    "flow/rotation/hold/views/drag/drop/free-invert/save 320x640",
-    "flow/rotation/hold/views/drag/drop/free-invert/save 390x844",
-    "flow/rotation/hold/views/drag/drop/free-invert/save 844x390",
-    "flow/rotation/hold/views/drag/drop/free-invert/save 1280x800",
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 320x640",
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 390x844",
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 844x390",
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 1280x800",
     "inversion completed",
     "inversion dismissed",
     "inversion unavailable",

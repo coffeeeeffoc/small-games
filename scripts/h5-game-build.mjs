@@ -17,7 +17,7 @@ if (
     'homebound-station',
     'merge-front',
     'tetracube',
-    'three-choose-two',
+    'place-and-clear',
     'ashfall-front',
     'bullet-garden',
     'tower-brake',

@@ -137,7 +137,7 @@ async function setup(url: string) {
     rules.set(module.default.id, module.default);
   }
   const store = createCompetitionStore(db, rules);
-  const engineName = '@coffeeeeffoc/three-choose-two/engine';
+  const engineName = '@coffeeeeffoc/place-and-clear/engine';
   const engine = (await import(engineName)) as Engine;
   const ranked = createThreeChooseTwoStore(db, engine);
   const mockOfficial = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {

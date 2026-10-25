@@ -17,6 +17,7 @@ export function createNativeGameHost(
   content: DynamicContentEnvelope,
   options: {
     platformId: string;
+    storageGameId?: string;
     adUnitId?: string;
     adAuthority?: 'host' | 'none';
     sessionId: string;
@@ -53,7 +54,7 @@ export function createNativeGameHost(
     },
     online: options.online,
     content,
-    storagePrefix: `${options.platformId}:${manifest.gameId}:`,
+    storagePrefix: `${options.platformId}:${options.storageGameId ?? manifest.gameId}:`,
     storage: {
       getItem(key) {
         const value = sdk.getStorageSync(key);

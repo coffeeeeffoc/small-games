@@ -1,3 +1,4 @@
+import { writeLegacyGameRedirects } from '../apps/shell-web/scripts/legacy-game-redirects.mjs';
 import assert from 'node:assert/strict';
 import { readFile, cp, rm } from 'node:fs/promises';
 import path from 'node:path';
@@ -27,6 +28,7 @@ async function runSelectedShell(plan) {
       recursive: true,
     });
   }
+  await writeLegacyGameRedirects(path.join(shell, 'public/games'), plan.browser_ids);
   // Deliberately avoid build:pages, whose prepare step builds every registered game.
   run('pnpm', ['exec', 'vite', 'build', '--mode', 'pages'], shell, process.env);
   run(process.execPath, ['scripts/pages-smoke.mjs'], shell, selectedShellEnvironment(plan));

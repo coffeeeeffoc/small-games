@@ -1,4 +1,4 @@
-import { threeChooseTwoInput } from './standalone-game-checks.mjs';
+import { placeAndClearInput } from './standalone-game-checks.mjs';
 import { tapControl as tapChaseControl } from './game-checks/chase-thief.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -17,12 +17,13 @@ const builtInCount = 0;
 const basePath = process.env.PAGES_BASE_PATH ?? '/small-games/';
 const immersiveGame = (id) =>
   [
+    'waterline-station',
     'bullet-garden',
     'homebound-station',
     'tianxia-chalu',
     'ashfall-front',
     'carrom-club',
-    'three-choose-two',
+    'place-and-clear',
     'cage-rescue',
     'chase-thief',
     'merge-front',
@@ -185,8 +186,8 @@ try {
         await expect(frame.locator('#home')).toBeVisible();
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
-      } else if (game.id === 'three-choose-two') {
-        const { snapshot, control } = threeChooseTwoInput(frame);
+      } else if (game.id === 'place-and-clear') {
+        const { snapshot, control } = placeAndClearInput(frame);
         await expect.poll(async () => (await snapshot()).screen).toBe('home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await control('start');
@@ -246,6 +247,7 @@ try {
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (
+        game.id === 'waterline-station' ||
         game.id === 'bullet-garden' ||
         game.id === 'tianxia-chalu' ||
         game.id === 'ashfall-front' ||

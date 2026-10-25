@@ -54,13 +54,14 @@ it.each(games)('opens standalone Game $id and removes its frame on exit', async 
     expect(frame?.title).toBe(title);
     expect(launch?.getAttribute('href')).toBe(frame?.getAttribute('src'));
     if (
+      id === 'waterline-station' ||
       id === 'porcelain-puzzle' ||
       id === 'bullet-garden' ||
       id === 'homebound-station' ||
       id === 'tianxia-chalu' ||
       id === 'ashfall-front' ||
       id === 'carrom-club' ||
-      id === 'three-choose-two' ||
+      id === 'place-and-clear' ||
       id === 'cage-rescue' ||
       id === 'chase-thief' ||
       id === 'merge-front' ||

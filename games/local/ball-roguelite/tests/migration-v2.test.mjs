@@ -23,7 +23,7 @@ test('all six authentic schema-2 final-wave checkpoints keep the current board a
     assert.equal(game.level.waves.length, newLengths[i]);
     assert.deepEqual(game.level, levelById(saved.levelId));
     assert.deepEqual(game.bricks, saved.bricks, saved.levelId);
-    for (const key of ['seed', 'turn', 'score', 'shots', 'launchX', 'nextId', 'bestCombo'])
+    for (const key of ['seed', 'turn', 'score', 'shots', 'nextId', 'bestCombo'])
       assert.equal(game[key], saved[key], `${saved.levelId}:${key}`);
     assert.deepEqual(game.rewards, { resonance: 1, rescue: 1 });
     assert.equal(canReward(game, 'resonance'), false);
@@ -51,7 +51,7 @@ test('old 36-ball saves scale current health once when capped to 22 and keep con
     saved.bricks[1],
   ]);
   const normalized = checkpoint(game);
-  assert.equal(normalized.schemaVersion, 3);
+  assert.equal(normalized.schemaVersion, 4);
   assert.deepEqual(restoreGame(normalized).bricks, game.bricks);
   assert.deepEqual(restoreGame(normalized).rewards, saved.rewards);
 });
@@ -106,7 +106,7 @@ test('legacy source catalog cannot contain newer waves, expert levels, or absorb
 });
 
 test('schema-2 and schema-3 reward counters cannot disappear or become malformed on reload', () => {
-  for (const schemaVersion of [2, 3]) {
+  for (const schemaVersion of [2, 3, 4]) {
     for (const rewards of [
       undefined,
       null,

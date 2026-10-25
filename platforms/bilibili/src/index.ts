@@ -26,7 +26,7 @@ export async function startBilibiliGame(
   title: string,
   adUnitId?: string,
 ) {
-  const key = `bilibili:${game.definition.manifest.gameId}:entry-gifts`;
+  const key = `bilibili:${game.storageGameId ?? game.definition.manifest.gameId}:entry-gifts`;
   let scene = '';
   let sidebar = false;
   let started = false;

@@ -131,12 +131,13 @@ try {
           mode.name === 'default' ? null : mode.enabled ? '1' : '0',
         );
         if (
+          game.id === 'waterline-station' ||
           game.id === 'bullet-garden' ||
           game.id === 'homebound-station' ||
           game.id === 'tianxia-chalu' ||
           game.id === 'ashfall-front' ||
           game.id === 'carrom-club' ||
-          game.id === 'three-choose-two' ||
+          game.id === 'place-and-clear' ||
           game.id === 'cage-rescue' ||
           game.id === 'chase-thief' ||
           game.id === 'merge-front' ||
@@ -169,8 +170,6 @@ try {
         mode.enabled,
       );
       const debugField = {
-        'maze-wander': 'mazeDebug',
-
         'vibeJam-myself-nullrange': '__flight',
       }[game.id];
       if (debugField)

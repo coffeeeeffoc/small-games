@@ -108,10 +108,8 @@ export class StationWorld {
   clipBottom = 844;
   private readonly bayInk: Graphics;
   private readonly actors: Node;
-  private readonly bayNumbers: Label[] = [];
   private readonly stationSign: Label;
   private readonly signBacking: Graphics;
-  private readonly roadSigns: Label[] = [];
   private geometry: StationGeometry = getStationGeometry(LEVELS[0]!);
   private axisWidth = 390;
   private axisHeight = 760;
@@ -172,23 +170,10 @@ export class StationWorld {
     this.content = this.node('Board content', this.viewport);
     this.ground = this.node('Paved streets and garden').addComponent(Graphics);
     this.bayInk = this.node('Pickup bay status').addComponent(Graphics);
-    const signs = this.node('Pickup bay numbers');
-    for (let i = 0; i < 4; i++) {
-      const label = this.node(`Bay ${i + 1}`, signs).addComponent(Label);
-      label.string = String(i + 1);
-      label.fontFamily = 'sans-serif';
-      label.horizontalAlign = Label.HorizontalAlign.CENTER;
-      label.verticalAlign = Label.VerticalAlign.CENTER;
-      label.overflow = Label.Overflow.CLAMP;
-      label.color = paint(PALETTE.cream);
-      this.bayNumbers.push(label);
-    }
     this.actors = this.node('Depth-sorted painted town');
     const signage = this.node('Station signage');
     this.signBacking = this.node('Station name plaque', signage).addComponent(Graphics);
     this.stationSign = this.makeLabel('Station name', signage, '归途站');
-    for (const name of ['进站 ↑', '离站 →'])
-      this.roadSigns.push(this.makeLabel(name, signage, name));
     const frame = view.getFrameSize();
     this.resize(frame.width, frame.height);
     this.ready = new Promise<void>((resolve, reject) => {
@@ -430,7 +415,7 @@ export class StationWorld {
     this.viewport.setPosition(this.area.x + this.area.w / 2 - this.w / 2, clipY);
     this.content.setPosition(-(this.area.x + this.area.w / 2 - this.w / 2), -clipY);
     // One body envelope everywhere, including roads, turns and parked taxis.
-    this.taxiSize = 2.55 * Math.min(this.scaleX, this.scaleZ, this.streetScale);
+    this.taxiSize = 3.25 * Math.min(this.scaleX, this.scaleZ, this.streetScale);
     this.personSize = clamp(this.taxiSize * 0.5, 12, 18);
     this.elevation = 0;
     this.root.getComponent(UITransform)!.setContentSize(this.w, this.h);
@@ -529,17 +514,27 @@ export class StationWorld {
     const p = this.project(point, 0);
     const dx = Math.cos(angle);
     const dy = Math.sin(angle);
-    const size = Math.max(3, Math.min(5, this.taxiSize * 0.09));
+    const size = Math.max(7, Math.min(11, this.taxiSize * 0.27));
     this.line(
       this.ground,
       [
-        { x: p.x - dx * size - dy * size, y: p.y - dy * size + dx * size },
-        { x: p.x + dx * size, y: p.y + dy * size },
-        { x: p.x - dx * size + dy * size, y: p.y - dy * size - dx * size },
+        { x: p.x - dx * size, y: p.y - dy * size },
+        { x: p.x + dx * size * 0.36, y: p.y + dy * size * 0.36 },
       ],
-      '#dce1cd9c',
-      1.7,
+      '#fff6dfd9',
+      2.5,
     );
+    this.ground.fillColor = paint('#fff6dfd9');
+    for (const [i, x, y] of [
+      [0, size, 0], [1, -size * 0.12, -size * 0.43], [2, -size * 0.12, size * 0.43],
+    ] as const) {
+      const px = p.x + dx * x - dy * y - this.w / 2,
+        py = this.h / 2 - (p.y + dy * x + dx * y);
+      if (i === 0) this.ground.moveTo(px, py);
+      else this.ground.lineTo(px, py);
+    }
+    this.ground.close();
+    this.ground.fill();
   }
 
   private drawGround() {
@@ -594,14 +589,14 @@ export class StationWorld {
       for (let column = 0; column < p.columns; column++) {
         const x = p.origin.x + column * p.pitch,
           z = p.origin.z + row * p.pitch;
-        const cell = this.box(x - 1.83, z - 1.8, x + 1.83, z + 1.8);
+        const cell = this.box(x - 1.65, z - 1.75, x + 1.65, z + 1.75);
         this.rect(g, cell, (row + column) % 2 ? '#a8babc12' : '#c8d5d51e', 3);
         this.worldLine(
           [
-            { x: x - 1.83, z: z - 1.75 },
-            { x: x - 1.83, z: z + 1.75 },
-            { x: x + 1.83, z: z + 1.75 },
-            { x: x + 1.83, z: z - 1.75 },
+            { x: x - 1.65, z: z - 1.7 },
+            { x: x - 1.65, z: z + 1.7 },
+            { x: x + 1.65, z: z + 1.7 },
+            { x: x + 1.65, z: z - 1.7 },
           ],
           '#eae2c096',
           1,
@@ -620,6 +615,7 @@ export class StationWorld {
         this.flowMark(mid, Math.atan2(to.y - from.y, to.x - from.x));
       }
     }
+    this.flowMark({ x: geo.collector.right - 1, z: geo.departureZ }, 0);
     // A raised divider prevents visually suggesting a shortcut across the two
     // opposing station roads. Its west end is the actual entrance in geometry.
     const divider = this.box(geo.collector.left + 2, 5.7, geo.collector.right + 1, 6.3);
@@ -698,44 +694,21 @@ export class StationWorld {
     this.rect(
       this.signBacking,
       { x: signX - signWidth / 2, y: signY - 12, w: signWidth, h: 24 },
-      '#c2ad88',
+      '#d9b46b',
       6,
     );
     this.rect(
       this.signBacking,
       { x: signX - signWidth / 2 + 2, y: signY - 11, w: signWidth - 4, h: 21 },
-      '#fff2d6',
+      '#16474d',
       5,
     );
     this.stationSign.node.setPosition(signX - this.w / 2, this.h / 2 - signY);
     this.stationSign.node.getComponent(UITransform)!.setContentSize(signWidth, 28);
     this.stationSign.fontSize = this.landscape ? 16 : 19;
     this.stationSign.lineHeight = 28;
-    for (const [i, bay] of geo.bays.entries()) {
-      const sign = this.project({ x: bay.point.x, z: -5.5 });
-      this.rect(g, { x: sign.x - 23, y: sign.y - 9, w: 46, h: 18 }, '#e6d5ac', 5);
-      this.rect(g, { x: sign.x - 22, y: sign.y - 8, w: 44, h: 16 }, '#214b51', 4);
-      const label = this.bayNumbers[i]!;
-      label.node.setPosition(sign.x - this.w / 2, this.h / 2 - sign.y);
-      label.node.getComponent(UITransform)!.setContentSize(46, 18);
-      label.fontSize = 10;
-      label.lineHeight = 18;
-    }
-    for (const [i, label] of this.roadSigns.entries()) {
-      // Legible roadway labels use existing lanes; no decorative posts in narrow verges.
-      const point = this.project(
-        i
-          ? { x: geo.collector.right - 2, z: geo.departureZ }
-          : { x: geo.collector.left, z: geo.collector.north + 3 },
-      );
-      label.node.active = true;
-      label.node.setPosition(point.x - this.w / 2, this.h / 2 - point.y);
-      label.node.getComponent(UITransform)!.setContentSize(52, 20);
-      label.fontSize = 10;
-      label.lineHeight = 18;
-      label.color = paint('#f6e8c8');
-      label.string = i ? '离站 →' : this.landscape ? '进站 →' : '↑ 进站';
-    }
+    this.stationSign.isBold = true;
+    this.stationSign.color = paint('#fff6dd');
   }
 
   private visual(id: string, frame: SpriteFrame, kind: Kind, point: Point): Visual {
@@ -925,24 +898,11 @@ export class StationWorld {
   }
 
   private paintBays(simulation: Simulation) {
-    const signature =
-      simulation.bays.map((bay) => `${bay.id}:${bay.state}`).join('|') +
-      simulation.groups
-        .map((group) => `${group.id}:${group.boarded}:${group.arrivesAt !== undefined}`)
-        .join('|');
+    const signature = simulation.bays.map((bay) => `${bay.id}:${bay.state}`).join('|');
     if (signature === this.baySignature) return;
     this.baySignature = signature;
     this.bayInk.clear();
-    for (const [i, bay] of simulation.bays.entries()) {
-      const waiting = simulation.groups.find(
-        (group) =>
-          group.queueBayId === bay.id &&
-          group.state !== 'split' &&
-          group.arrivesAt !== undefined &&
-          group.boarded < group.passengers.length,
-      );
-      this.bayNumbers[i]!.string =
-        `${i + 1} · ${waiting ? `${waiting.passengers.length - waiting.boarded}人` : '空'}`;
+    for (const bay of simulation.bays) {
       const point = this.geometry.bays.find((b) => b.id === bay.id)?.point;
       if (!point) continue;
       const { x, z } = point,

@@ -127,8 +127,18 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
   },
   'ball-roguelite': {
     fields: {
-      challenge: oneOf('orbit-v1'),
-      level: oneOf('stardust', 'prism', 'flare', 'frost', 'void', 'orbit', 'endless'),
+      challenge: oneOf('orbit-v1', 'orbit-v2', 'orbit-v3', 'orbit-v4'),
+      level: oneOf(
+        'stardust',
+        'prism',
+        'flare',
+        'frost',
+        'void',
+        'orbit',
+        'lattice',
+        'eclipse',
+        'endless',
+      ),
       seed: integer(0xffffffff, 1),
       targetScore: integer(10000000),
     },
@@ -136,7 +146,7 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
   },
   'ember-bounce': {
     fields: {
-      emberChallenge: oneOf('1'),
+      emberChallenge: oneOf('2'),
       level: oneOf(
         'first-spark',
         'side-glow',
@@ -151,7 +161,7 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
     },
     required: ['emberChallenge', 'level', 'turns'],
   },
-  'three-choose-two': {
+  'place-and-clear': {
     fields: {
       seed: integer(0xffffffff),
       variant: oneOf('classic', 'refill'),

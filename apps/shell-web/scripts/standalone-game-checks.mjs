@@ -1,3 +1,4 @@
+import { assertWaterlineGameplay } from './game-checks/waterline-station.mjs';
 import { assertChaseGameplay } from './game-checks/chase-thief.mjs';
 import { expect } from '@playwright/test';
 import { enterStandalone } from './standalone-game-entry.mjs';
@@ -62,8 +63,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'three-choose-two') {
-    const { snapshot, control, point, canvas, page } = threeChooseTwoInput(frame, mobile);
+  if (id === 'place-and-clear') {
+    const { snapshot, control, point, canvas, page } = placeAndClearInput(frame, mobile);
     await expect.poll(async () => (await snapshot())?.ready, { timeout: 60000 }).toBe(true);
     expect((await snapshot()).creator).toBe('3.8.8');
     await expect(canvas).toBeVisible();
@@ -229,8 +230,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     const initial = await snapshot();
     const bounds = await arena.boundingBox();
     const page = arena.page();
-    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.92 };
-    const target = { x: bounds.x + bounds.width * 0.35, y: bounds.y + bounds.height * 0.25 };
+    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.08 };
+    const target = { x: bounds.x + bounds.width * 0.35, y: bounds.y + bounds.height * 0.75 };
     if (mobile) {
       const touch = await page.context().newCDPSession(page);
       try {
@@ -340,13 +341,18 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     if (mobile) await page.touchscreen.tap(x, y);
     else await page.mouse.click(x, y);
     await expect.poll(async () => (await snapshot()).selected).toBe(city.id);
-    await click(frame.locator('#cycle'));
+    const target = (await snapshot()).cities.find((entry) => entry.id === junction.exits[0]);
+    const targetX = bounds.x - local.x + target.client.x;
+    const targetY = bounds.y - local.y + target.client.y;
+    if (mobile) await page.touchscreen.tap(targetX, targetY);
+    else await page.mouse.click(targetX, targetY);
     await expect
       .poll(
         async () =>
           (await snapshot()).junctions.find((entry) => entry.id === junction.id).routeIndex,
       )
-      .not.toBe(junction.routeIndex);
+      .toBe(0);
+    await expect.poll(async () => (await snapshot()).selected).toBe(null);
     await click(frame.locator('#pause'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'pause');
     await click(frame.locator('#resume'));
@@ -355,34 +361,6 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#leave'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'home');
     await expect(frame.locator('#start')).toBeVisible();
-  } else if (id === 'voiceprint-case') {
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing', {
-      timeout: 20_000,
-    });
-    await expect(frame.locator('#game')).toBeVisible();
-    await expect(frame.locator('#confirm')).toBeDisabled();
-    // Starting a round automatically plays the scene after the user unlocks audio.
-    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
-    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false', {
-      timeout: 20_000,
-    });
-    await click(frame.locator('#scene-play'));
-    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
-    for (const slot of [0, 1, 2]) {
-      await click(frame.locator(`button[data-listen="${slot}"]`));
-    }
-    await click(frame.locator('button[data-select="0"]'));
-    await expect(frame.locator('#confirm')).toBeEnabled();
-    await click(frame.locator('#confirm'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'feedback');
-    await expect(frame.locator('#feedback')).toBeVisible();
-    await click(frame.locator('#next'));
-    await expect(frame.locator('body')).toHaveAttribute('data-phase', 'playing');
-    await expect(frame.locator('#feedback')).toBeHidden();
-    await expect(frame.locator('#confirm')).toBeDisabled();
-    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'true');
-    await click(frame.locator('#stop'));
-    await expect(frame.locator('#scene-play')).toHaveAttribute('aria-pressed', 'false');
   } else if (id === 'tetracube') {
     const canvas = frame.locator('#GameCanvas');
     const snapshot = () => canvas.evaluate(() => globalThis.__tetracube?.snapshot());
@@ -564,30 +542,6 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await tap('abandon');
     await expect.poll(async () => (await snapshot()).screen).toBe('home');
     expect((await snapshot()).buttons.some((item) => /fullscreen/i.test(item.id))).toBe(false);
-  } else if (id === 'maze-wander') {
-    await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
-    if (mobile) {
-      await click(frame.locator('#pause'));
-    } else {
-      const page = frame.locator('canvas').page();
-      await page.keyboard.down('w');
-      await page.waitForTimeout(350);
-      await page.keyboard.up('w');
-      await page.keyboard.press('Escape');
-    }
-    await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'pause');
-    await click(frame.locator('#resume'));
-    await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'playing');
-    if (!mobile) {
-      // Resuming captures the mouse again; Escape must release it before Shell navigation.
-      await frame.locator('canvas').page().keyboard.press('Escape');
-      await expect(frame.locator('#maze-game')).toHaveAttribute('data-screen', 'pause');
-      await expect
-        .poll(() =>
-          frame.locator('body').evaluate(() => globalThis.document.pointerLockElement === null),
-        )
-        .toBe(true);
-    }
   } else if (id === 'urban-breakout') {
     await expect(frame.locator('.stage')).toHaveAttribute('data-playing', 'true');
     await expect
@@ -814,82 +768,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect.poll(async () => (await snapshot()).paused).toBe(false);
     await expect.poll(async () => (await snapshot()).time).toBeGreaterThan(pausedTime);
   } else if (id === 'waterline-station') {
-    const snapshot = () => frame.locator('body').evaluate(() => globalThis.__waterlineSnapshot());
-    await expect(frame.locator('#level-name')).not.toBeEmpty();
-    await expect(frame.locator('#gate-controls')).toHaveCount(0);
-    await expect(frame.locator('.board-wrap #board-controls button[data-gate]')).toHaveCount(2);
-    await expect(frame.locator('#chapter-nav [data-chapter-index]')).toHaveCount(5);
-    await expect(frame.locator('#level-nav [data-level-index]')).toHaveCount(10);
-    await click(frame.locator('[data-chapter-index="4"]'));
-    await expect(frame.locator('[data-level-index="49"]')).toBeVisible();
-    await expect(frame.locator('#board')).toHaveAttribute('data-level', '1');
-    await click(frame.locator('[data-level-index="49"]'));
-    await expect(frame.locator('#board')).toHaveAttribute('data-level', '50');
-    await click(frame.locator('[data-chapter-index="0"]'));
-    await click(frame.locator('[data-level-index="0"]'));
-    const valve = frame.locator('#board-controls button[data-gate="AB"]');
-    await expect(valve).toHaveAttribute('aria-pressed', 'false');
-    const moves = Number(await frame.locator('#moves-left').textContent());
-    const initialWater = await frame.locator('[data-tank="A"]').getAttribute('data-water');
-    await click(valve);
-    await expect(frame.locator('#moves-left')).toHaveText(String(moves - 1));
-    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
-    await expect(valve).toHaveAttribute('aria-pressed', 'true');
-    await expect(frame.locator('[data-tank="A"]')).not.toHaveAttribute('data-water', initialWater);
-    await click(frame.locator('#result-undo'));
-    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'playing');
-    await expect(frame.locator('#moves-left')).toHaveText(String(moves));
-    await expect(frame.locator('[data-tank="A"]')).toHaveAttribute('data-water', initialWater);
-    await click(valve);
-    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'won');
-    await click(frame.locator('#result-retry'));
-    await expect(frame.locator('#board')).toHaveAttribute('data-status', 'playing');
-    await expect(frame.locator('#moves-left')).toHaveText(String(moves));
-    await click(frame.locator('[data-level-index="3"]'));
-    const laterMoves = Number(await frame.locator('#moves-left').textContent());
-    await click(valve);
-    await expect(valve).toHaveAttribute('aria-pressed', 'true');
-    await expect(valve).toBeEnabled();
-    await click(valve);
-    await expect(valve).toHaveAttribute('aria-pressed', 'false');
-    await expect(valve).toBeEnabled();
-    await expect(frame.locator('#moves-left')).toHaveText(String(laterMoves - 2));
-    await click(frame.locator('#restart'));
-    await expect(frame.locator('#moves-left')).toHaveText(String(laterMoves));
-    const pipe = frame.locator('#board [data-connection="AB"]');
-    await pipe.scrollIntoViewIfNeeded();
-    const position = await pipe.evaluate((group) => {
-      const path = group.querySelector('.pipe-hit');
-      const bounds = globalThis.document.querySelector('#board').getBoundingClientRect();
-      const matrix = path.getScreenCTM();
-      for (let step = 5; step < 196; step += 1) {
-        const point = path.getPointAtLength((path.getTotalLength() * step) / 200);
-        const screen = new globalThis.DOMPoint(point.x, point.y).matrixTransform(matrix);
-        const target = globalThis.document.elementFromPoint(screen.x, screen.y);
-        if (target?.closest('[data-connection]')?.dataset.connection === 'AB') {
-          return { x: screen.x - bounds.left, y: screen.y - bounds.top };
-        }
-      }
-      return null;
-    });
-    expect(position).not.toBeNull();
-    const pipeBounds = await frame.locator('#board').boundingBox();
-    const beforePipe = await snapshot();
-    const pipePage = pipe.page();
-    if (mobile)
-      await pipePage.touchscreen.tap(pipeBounds.x + position.x, pipeBounds.y + position.y);
-    else await pipePage.mouse.click(pipeBounds.x + position.x, pipeBounds.y + position.y);
-    await expect.poll(async () => (await snapshot()).focusedConnection).toBe('AB');
-    await expect(frame.locator('#board [data-connection="AB"]')).toHaveAttribute(
-      'data-focused',
-      'true',
-    );
-    await expect(frame.locator('#board-foreground [data-foreground-connection]')).toHaveAttribute(
-      'data-foreground-connection',
-      'AB',
-    );
-    expect((await snapshot()).state).toEqual(beforePipe.state);
-    await expect(frame.locator('#moves-left')).toHaveText(String(laterMoves));
+    await assertWaterlineGameplay(frame, mobile);
   } else if (id === 'echo-lab') {
     await frame.locator('#preset').selectOption('first');
     await expect(frame.locator('#roomBadge')).toHaveText('72 × 40 m');
@@ -1487,23 +1366,6 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     );
     await expect(frame.getByRole('dialog')).toBeHidden();
     await expect(frame.locator('main')).toHaveAttribute('data-phase', 'playing');
-  } else if (id === 'vibeJam-myself-delivery') {
-    // Slow rendering must not slow the order clock (also exercises the frame-to-tick wiring).
-    await frame.locator('body').evaluate(() => {
-      const requestFrame = globalThis.requestAnimationFrame.bind(globalThis);
-      globalThis.requestAnimationFrame = (callback) =>
-        requestFrame(() =>
-          globalThis.setTimeout(() => callback(globalThis.performance.now()), 400),
-        );
-    });
-    await click(frame.locator('#start'));
-    await click(frame.locator('[data-action="accept"]'));
-    await expect(frame.locator('#timer')).toBeVisible();
-    await expect(frame.locator('#timer')).not.toHaveText('03:00');
-    await click(frame.locator('#minimap-button'));
-    await expect(frame.locator('#large-map')).toBeVisible();
-    await click(frame.getByRole('button', { name: '继续配送' }));
-    await expect(frame.locator('#large-map')).toBeHidden();
   } else if (id === 'vibeJam-myself-history-guess') {
     await expect(frame.locator('#load-cover')).toBeHidden({ timeout: 20000 });
     const mapTab = frame.locator('#map-tab');
@@ -1591,10 +1453,10 @@ async function pressWebGLControl(frame, control, selector, mobile = false, docum
   else await control.page().mouse.click(x, y);
 }
 
-export function threeChooseTwoInput(frame, mobile = false) {
+export function placeAndClearInput(frame, mobile = false) {
   const canvas = frame.locator('#GameCanvas'),
     page = canvas.page();
-  const snapshot = () => canvas.evaluate(() => globalThis.getThreeChooseTwoSnapshot?.());
+  const snapshot = () => canvas.evaluate(() => globalThis.getPlaceAndClearSnapshot?.());
   const point = async (p) => {
     const s = await snapshot(),
       b = await canvas.boundingBox();
@@ -1638,7 +1500,11 @@ export function threeChooseTwoInput(frame, mobile = false) {
     const p = await point({ x: c.x + c.w / 2, y: c.y + c.h / 2 });
     if (mobile) await page.touchscreen.tap(p.x, p.y);
     else await page.mouse.click(p.x, p.y);
-    await expect.poll(async () => (await snapshot()).controls.length).toBeGreaterThan(0);
+    // A high-DPR Creator repaint can exceed the default 5s on software WebGL.
+    // Still require the actual controls to return before inspecting or tapping them.
+    await expect
+      .poll(async () => (await snapshot()).controls.length, { timeout: 20000 })
+      .toBeGreaterThan(0);
     await page.waitForTimeout(80);
   };
   return { snapshot, control, point, canvas, page };

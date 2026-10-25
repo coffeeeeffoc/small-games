@@ -1,0 +1,20 @@
+{
+  "status": "passed",
+  "checks": [
+    "portrait touch aim and cancellation",
+    "short release is slower, recall remains visible and pauses, outside release cancels",
+    "settled round resumes from home and reload; interrupted flight rolls back only this round",
+    "upgrade checkpoint restore, clean same-level share payload, cancellation without rewards",
+    "pause, resume, lifecycle and return home",
+    "normal clear, growth, next stage and saved unlock",
+    "small viewport and landscape preserve the round",
+    "friend challenge explicit entry, independent resume, real touch tie, normal progress retained",
+    "desktop mouse and pause without fullscreen controls",
+    "normal boundary loss, no reward or unlock, and retry",
+    "url-on",
+    "storage-on",
+    "explicit-off",
+    "blocked-storage"
+  ],
+  "failures": []
+}

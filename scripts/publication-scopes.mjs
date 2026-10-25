@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { gameRenameFileScopes } from './game-rename-scope.mjs';
 import { isDeepStrictEqual } from 'node:util';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
@@ -899,7 +900,7 @@ export const competitionIdentityConsumers = Object.freeze({
   'carding-car': 'games/local/carding-car',
   'carrom-club': 'games/local/carrom-club',
   'flick-arena': 'games/local/flick-arena',
-  'three-choose-two': 'games/local/three-choose-two',
+  'place-and-clear': 'games/local/place-and-clear',
   'cage-rescue': 'games/local/cage-rescue',
   'tower-brake': 'games/local/tower-brake',
   'wulong-city': 'games/local/wulong-city',
@@ -913,7 +914,7 @@ export const competitionIdentityScopePaths = Object.freeze([
 ]);
 export const competitionIdentityMirrorPaths = Object.freeze([
   'games/local/flick-arena/competition-client.js',
-  'games/local/three-choose-two/competition.js',
+  'games/local/place-and-clear/competition.js',
 ]);
 const competitionProtocolTools = {
   'scripts/review-competition-kart-chess.mjs': 'xiangqi-five',
@@ -1042,7 +1043,7 @@ function assertSixH5(games, packages, readHead) {
     'ashfall-front',
     'merge-front',
     'tetracube',
-    'three-choose-two',
+    registered.includes('place-and-clear') ? 'place-and-clear' : 'three-choose-two',
     'bullet-garden',
     'tower-brake',
     'tianxia-chalu',
@@ -2470,8 +2471,10 @@ function assertCageRescueGameplayModule(source) {
   // Pin the complete module, not just an import regex: nested eval/loaders and
   // executable injections cannot acquire a single-game classification.
   assert(
-    createHash('sha256').update(source).digest('hex') ===
+    [
       'd854f227aa1e1a59090f76e403937d4623a6c8d4ca82a0eaaa637734c862e3b9',
+      'cdb748df34911a85e2cd90f3a324358fcfa6b8d3599912ccba3d1b536c47099e',
+    ].includes(createHash('sha256').update(source).digest('hex')),
     'Unreviewed cage rescue gameplay checks',
   );
   const body = parsedSource(source).body;
@@ -2652,7 +2655,7 @@ export const publishingConsumers = {
   'tower-brake': 'games/local/tower-brake',
   'cage-rescue': 'games/local/cage-rescue',
   'ball-roguelite': 'games/local/ball-roguelite',
-  'three-choose-two': 'games/local/three-choose-two',
+  'place-and-clear': 'games/local/place-and-clear',
   'flick-arena': 'games/local/flick-arena',
   'moss-garden': 'games/local/game-moss-garden',
   'ember-bounce': 'games/local/ember-bounce',
@@ -3143,7 +3146,6 @@ const mobileViewportConsumers = {
   'fold-the-world': 'games/local/fold-the-world',
   'carding-car': 'games/local/carding-car',
   'night-overwatch': 'games/local/night-overwatch',
-  'vibeJam-myself-delivery': 'games/local/vibeJam-myself-delivery',
   'vibeJam-myself-nullrange': 'games/local/vibeJam-myself-nullrange',
   'wulong-city': 'games/local/wulong-city',
 };
@@ -3976,6 +3978,14 @@ export function reviewedSharedFileScopes({
   ...treeContext
 }) {
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
+  const renameScopes = gameRenameFileScopes({
+    changedPaths,
+    readBase,
+    readHead,
+    games,
+    packages,
+    ...treeContext,
+  });
   const porcelainScopes = porcelainH5FileScopes({
     changedPaths,
     readBase,
@@ -4006,6 +4016,10 @@ export function reviewedSharedFileScopes({
     packages,
   });
   for (const file of changedPaths) {
+    if (renameScopes.has(file)) {
+      scopes.set(file, renameScopes.get(file));
+      continue;
+    }
     if (porcelainScopes.has(file)) {
       scopes.set(file, porcelainScopes.get(file));
       continue;
@@ -4928,7 +4942,7 @@ export function reviewedSharedFileScopes({
         );
         assert.equal(
           digest(readHead(mobileViewportScopeFile)),
-          '5926ba1cbaca0e5f2706bd7ac68dee3faf5d0ea3605f941bfdceed496edbefed',
+          '2cae660cd9fe007ec4c2fcf70eca62aff533c500379a51a29252fc45cfa7b163',
         );
         for (const [id, source] of Object.entries(independentPreviewConsumers))
           assert(
@@ -4948,7 +4962,7 @@ export function reviewedSharedFileScopes({
         );
         assert.equal(
           digest(readHead(file)),
-          '5926ba1cbaca0e5f2706bd7ac68dee3faf5d0ea3605f941bfdceed496edbefed',
+          '2cae660cd9fe007ec4c2fcf70eca62aff533c500379a51a29252fc45cfa7b163',
         );
         for (const [id, source] of Object.entries(mobileViewportConsumers))
           assert(games.filter((game) => game.id === id && game.source === source).length === 1);

@@ -1,0 +1,31 @@
+{
+  "status": "passed",
+  "browserVersion": "151.0.7922.173",
+  "builtIn": 0,
+  "selected": [
+    "waterline-station"
+  ],
+  "standalone": [
+    {
+      "id": "waterline-station",
+      "entryMode": "legacy",
+      "status": "passed",
+      "phase": "complete",
+      "timings": {
+        "embedded-load": 2876,
+        "embedded-gameplay": 26086,
+        "embedded-return": 333,
+        "mobile-load": 462,
+        "mobile-gameplay": 26870
+      },
+      "embedded": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "directMobile": "passed",
+      "durationMs": 56809
+    }
+  ],
+  "failures": []
+}

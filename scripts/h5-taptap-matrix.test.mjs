@@ -627,7 +627,7 @@ test('explicit profiles require twelve local QA variants and only three online-a
     'ashfall-front': 'landscape',
     'merge-front': 'landscape',
     tetracube: 'portrait',
-    'three-choose-two': 'portrait',
+    'place-and-clear': 'portrait',
     'bullet-garden': 'portrait',
     'tower-brake': 'portrait',
     'tianxia-chalu': 'portrait',

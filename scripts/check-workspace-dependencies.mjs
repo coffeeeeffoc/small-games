@@ -48,10 +48,10 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/merge-front/scripts/build-native.mjs -> games/local/carding-car/scripts/clear-output.mjs',
   'games/local/merge-front/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/merge-front/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
-  'games/local/three-choose-two/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
-  'games/local/three-choose-two/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
-  'games/local/three-choose-two/scripts/build.mjs -> scripts/h5-ad-config.mjs',
-  'games/local/three-choose-two/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/place-and-clear/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/place-and-clear/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
+  'games/local/place-and-clear/scripts/build.mjs -> scripts/h5-ad-config.mjs',
+  'games/local/place-and-clear/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/cops-robbers-realtime/src/taptap-h5-ads.js -> platforms/h5/platform-ads.js',
   'games/local/night-overwatch/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
   'games/local/night-overwatch/scripts/build-native.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
@@ -76,7 +76,7 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/wulong-city/tests/game.test.mjs -> platforms/h5/publishing.js',
   // These two identity fixtures reuse the actual client/session lifecycle only in tests.
   'apps/shell-minigame/scripts/taptap-login.test.mjs -> platforms/competition/client.js',
-  'games/local/three-choose-two/tests/online.browser.mjs -> services/runtime-api/dist/competition/identity-store.js',
+  'games/local/place-and-clear/tests/online.browser.mjs -> services/runtime-api/dist/competition/identity-store.js',
   // Build tooling and browser acceptance helpers, never game runtime dependencies.
   'apps/admin-web/vite.config.ts -> scripts/admin-csp.mjs',
   'apps/admin-web/tests/browser.mjs -> scripts/admin-caddy-fixture.mjs',

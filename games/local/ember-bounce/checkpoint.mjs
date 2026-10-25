@@ -1,4 +1,5 @@
 import { createGame, applyUpgrade, FIELD, LEVELS } from './core.mjs';
+import { LEGACY_LEVELS } from './levels.mjs';
 
 function contentKey(level) {
   let hash = 2166136261;
@@ -20,8 +21,9 @@ export function checkpoint(game) {
 
 export function restoreCheckpoint(saved) {
   if (!saved || saved.version !== 1 || !['aim', 'upgrade'].includes(saved.phase)) return null;
-  const level = LEVELS.find((candidate) => candidate.id === saved.levelId);
-  if (!level || saved.contentKey !== contentKey(level)) return null;
+  const level = [...LEVELS, ...LEGACY_LEVELS].find((candidate) =>
+    candidate.id === saved.levelId && saved.contentKey === contentKey(candidate));
+  if (!level) return null;
   if (!integer(saved.completedTurns, 0, 1000) || !integer(saved.score, 0, 1000000000)
     || !integer(saved.bestCombo, 0, 1000000) || !integer(saved.ballCount, level.balls, 32)) return null;
   const completed = saved.completedTurns;
@@ -29,7 +31,7 @@ export function restoreCheckpoint(saved) {
   const pending = saved.phase === 'upgrade';
   if ((pending && !level.upgradeTurns.includes(completed)) || !Array.isArray(saved.upgrades)
     || saved.upgrades.length !== earnedUpgrades - Number(pending)) return null;
-  const game = createGame(level.id);
+  const game = createGame(level);
   for (const id of saved.upgrades) {
     game.phase = 'upgrade';
     if (!applyUpgrade(game, id)) return null;
