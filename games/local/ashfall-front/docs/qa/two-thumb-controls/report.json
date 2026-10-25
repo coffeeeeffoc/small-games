@@ -83,7 +83,7 @@
     "Desktop Chromium with emulated touch, not a physical phone or TapTap inventory.",
     "Only explicit development fixtures change battle state; timing samples are separate pure-input rule tests."
   ],
-  "video": "C:\\Users\\15211\\Documents\\Codex\\ashfall-two-thumb-delivery\\outputs\\ashfall-front\\video\\b03d43aaa9061427ddbdce37f8ebd1c8.webm",
+  "video": "C:\\Users\\15211\\Documents\\Codex\\ashfall-two-thumb-delivery\\outputs\\ashfall-front\\video\\2813ae574e984f8c9a651fae2f45795d.webm",
   "live": {
     "encounter": {
       "ready": true,
@@ -215,7 +215,7 @@
             "type": "drone",
             "waveIndex": 0,
             "x": 1388.8000000000031,
-            "y": 343.28956000777004,
+            "y": 342.93199730679765,
             "hp": 60,
             "state": "hover"
           },
@@ -229,7 +229,7 @@
             "state": "patrol"
           },
           {
-            "id": "e20",
+            "id": "e21",
             "type": "shooter",
             "waveIndex": 1,
             "x": 2452.7833333333497,
@@ -238,7 +238,7 @@
             "state": "patrol"
           },
           {
-            "id": "e21",
+            "id": "e22",
             "type": "chaser",
             "waveIndex": 1,
             "x": 2885.300000000007,
@@ -247,16 +247,16 @@
             "state": "chase"
           },
           {
-            "id": "e22",
+            "id": "e23",
             "type": "drone",
             "waveIndex": 1,
             "x": 3000.9666666666503,
-            "y": 358.34705566478164,
+            "y": 375.49092795901566,
             "hp": 60,
             "state": "hover"
           },
           {
-            "id": "e23",
+            "id": "e24",
             "type": "shooter",
             "waveIndex": 1,
             "x": 2752.7833333333497,
@@ -349,7 +349,7 @@
           "y": 570,
           "w": 34,
           "h": 62,
-          "hp": 120,
+          "hp": 110,
           "maxHp": 120,
           "vx": 0,
           "vy": 0,
@@ -367,12 +367,12 @@
           "dashDirection": 1
         },
         "roomTime": 3.8666666666666556,
-        "time": 11.716666666666642,
+        "time": 11.783333333333305,
         "waveIndex": 0,
-        "capture": 2.974999999999992,
+        "capture": 2.9583333333333255,
         "checkpointComplete": false,
         "enemies": [],
-        "shots": 47,
+        "shots": 48,
         "kills": 7,
         "assisted": false,
         "rewardUsed": {
@@ -382,5 +382,5 @@
       }
     }
   },
-  "liveVideo": "C:\\Users\\15211\\Documents\\Codex\\ashfall-two-thumb-delivery\\outputs\\ashfall-front\\live\\b939902311e489576b987452e6875018.webm"
+  "liveVideo": "C:\\Users\\15211\\Documents\\Codex\\ashfall-two-thumb-delivery\\outputs\\ashfall-front\\live\\f79087135c0013982cdd98790e1c8afd.webm"
 }

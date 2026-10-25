@@ -1,10 +1,10 @@
 {
   "source": "Cocos Creator 3.8.8 Web Mobile; Chromium touch emulation, 844x390; ordinary mode, no developer state changes",
-  "sourceHash": "58bc13f268e5f46ee65f248acfe4cb1866d3e9c85a5523e23c48120a2bc8d61b",
+  "sourceHash": "37739ad8cd95c29ad69766e8a87233abc2dde8a83302db1e5e9846f8c20b1b98",
   "verified": "2026-10-26",
   "audio": false,
   "trialStates": false,
-  "shots": 47,
+  "shots": 48,
   "kills": 7,
   "uploaded": false,
   "deviceVerified": false,
@@ -20,7 +20,7 @@
         }
       ],
       "format": {
-        "duration": "12.760000"
+        "duration": "13.200000"
       }
     },
     "promo/videos/ashfall-two-thumb-20261026.mp4": {
@@ -34,7 +34,7 @@
         }
       ],
       "format": {
-        "duration": "12.760000"
+        "duration": "13.200000"
       }
     }
   }

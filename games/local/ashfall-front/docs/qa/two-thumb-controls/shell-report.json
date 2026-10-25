@@ -12,11 +12,11 @@
       "status": "passed",
       "phase": "complete",
       "timings": {
-        "embedded-load": 680,
-        "embedded-gameplay": 2921,
-        "embedded-return": 92,
-        "mobile-load": 113,
-        "mobile-gameplay": 1900
+        "embedded-load": 616,
+        "embedded-gameplay": 2795,
+        "embedded-return": 194,
+        "mobile-load": 111,
+        "mobile-gameplay": 2027
       },
       "embedded": "passed",
       "viewport": {
@@ -24,7 +24,7 @@
         "height": 844
       },
       "directMobile": "passed",
-      "durationMs": 5939
+      "durationMs": 5932
     }
   ],
   "failures": []
