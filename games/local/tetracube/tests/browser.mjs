@@ -51,6 +51,73 @@ async function press(p, id, mobile = true) {
 async function capture(p, name) {
   await p.screenshot({ path: out + name + '.png' });
 }
+async function dragScene(p, context, mobile, dx, dy, cancel = false, duringAnimation = false) {
+  const s = await snap(p),
+    r = s.scene,
+    b = await p.locator('#GameCanvas').boundingBox(),
+    scaleX = b.width / s.viewport.width,
+    scaleY = b.height / s.viewport.height,
+    x = b.x + (r.x + r.w / 2 - dx / 2) * scaleX,
+    y = b.y + (r.y + r.h / 2 - dy / 2) * scaleY;
+  let observedDuringAnimation = false;
+  const checkAnimation = async () => {
+    if (!duringAnimation) return;
+    const current = await snap(p);
+    observedDuringAnimation ||= current.animating && current.camera.yaw !== s.camera.yaw;
+  };
+  if (mobile) {
+    const cdp = await context.newCDPSession(p);
+    try {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+      for (let i = 1; i <= 4; i++) {
+        await cdp.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: x + (dx * scaleX * i) / 4, y: y + (dy * scaleY * i) / 4 }],
+        });
+        await checkAnimation();
+      }
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: cancel ? 'touchCancel' : 'touchEnd',
+        touchPoints: [],
+      });
+    } finally {
+      await cdp.detach();
+    }
+  } else {
+    await p.mouse.move(x, y);
+    await p.mouse.down();
+    await p.mouse.move(x + dx * scaleX, y + dy * scaleY, { steps: 4 });
+    await checkAnimation();
+    await p.mouse.up();
+  }
+  if (duringAnimation)
+    assert(observedDuringAnimation, 'camera rotates while physical animation is still running');
+  // Wait for actual geometry to be drawn; camera state alone is insufficient.
+  await p.evaluate(
+    () => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))),
+  );
+}
+function assertOrbit(before, after) {
+  assert.equal(after.view, 'free');
+  assert.notEqual(after.camera.yaw, before.camera.yaw, 'horizontal drag rotates the camera');
+  assert.notEqual(after.camera.pitch, before.camera.pitch, 'vertical drag rotates the camera');
+  assert.notDeepEqual(
+    after.containerCorners,
+    before.containerCorners,
+    'rendered container changes',
+  );
+  assert.deepEqual(
+    after.game.active.pos.slice(0, 2),
+    before.game.active.pos.slice(0, 2),
+    'observing does not move the piece',
+  );
+  assert.deepEqual(
+    after.game.active.cells,
+    before.game.active.cells,
+    'observing does not rotate the piece',
+  );
+  assert.deepEqual(after.game.board, before.game.board, 'observing does not rearrange the board');
+}
 async function fits(p) {
   const s = await snap(p);
   for (const c of s.controls) {
@@ -156,8 +223,33 @@ try {
       await press(p, 'hold', mobile);
       assert.equal((await snap(p)).game.held.id, holdBefore);
       await press(p, 'observe', mobile);
-      await press(p, 'view-top', mobile);
-      assert.equal((await snap(p)).view, 'top');
+      for (const preset of ['iso', 'top', 'front', 'side']) {
+        await press(p, 'view-' + preset, mobile);
+        await p.evaluate(() => new Promise(requestAnimationFrame));
+        const beforeOrbit = await snap(p);
+        assert.equal(beforeOrbit.view, preset);
+        await dragScene(p, context, mobile, 56, 56);
+        const afterOrbit = await snap(p);
+        assertOrbit(beforeOrbit, afterOrbit);
+        if (preset === 'top')
+          assert(afterOrbit.camera.pitch > Math.PI / 2, 'drag crosses top view');
+      }
+      await capture(p, 'observe-' + width);
+      const released = await snap(p);
+      await p.mouse.move(20, 200);
+      assert.deepEqual((await snap(p)).camera, released.camera, 'release stops dragging');
+      if (mobile) {
+        await dragScene(p, context, true, -40, -32, true);
+        const cancelled = await snap(p);
+        await p.waitForTimeout(60);
+        assert.deepEqual(
+          (await snap(p)).camera,
+          cancelled.camera,
+          'touch cancellation stops dragging',
+        );
+        await dragScene(p, context, true, 32, 24);
+        assertOrbit(cancelled, await snap(p));
+      }
       await press(p, 'view-iso', mobile);
       await press(p, 'move', mobile);
       const s = await snap(p),
@@ -189,6 +281,17 @@ try {
       await idle(p);
       assert.equal((await snap(p)).game.placed, 1);
       await press(p, 'invert', mobile);
+      const flipping = await snap(p);
+      assert(flipping.animating, 'physical inversion animates');
+      assert.equal(
+        flipping.controls.find((c) => c.id === 'observe').disabled,
+        false,
+        'observation remains available during inversion',
+      );
+      await press(p, 'observe', mobile);
+      const duringFlip = await snap(p);
+      await dragScene(p, context, mobile, 36, 28, false, true);
+      assertOrbit(duringFlip, await snap(p));
       await idle(p);
       assert.equal((await snap(p)).game.flipCount, 1);
       assert.equal((await snap(p)).screen, 'playing');
@@ -198,6 +301,7 @@ try {
       await capture(p, 'paused-' + width);
       await press(p, 'resume', mobile);
       await phase(p, 'playing');
+      await press(p, 'move', mobile);
       if (width === 390) {
         for (let i = 0; i < 9; i++) {
           await press(p, 'rotate-XZ-plus');
@@ -218,7 +322,10 @@ try {
       await p.locator('body[data-tetracube-ready="true"]').waitFor();
       assert.deepEqual((await snap(p)).game, saved, 'reload');
       report.checks.push(
-        'flow/rotation/hold/views/drag/drop/free-invert/save ' + width + 'x' + height,
+        'flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save ' +
+          width +
+          'x' +
+          height,
       );
     } finally {
       const video = p.video();

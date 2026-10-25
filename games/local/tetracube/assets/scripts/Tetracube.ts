@@ -559,12 +559,13 @@ export class Tetracube extends Component {
       if (this.ui.at(x, y)?.id !== p.control) this.ui.pressed = '';
       return;
     }
-    if (this.screen !== 'playing' || this.animating) return;
+    if (this.screen !== 'playing' || this.hidden) return;
     if (this.mode === 'observe') {
       this.ui.projection.orbit(dx, dy);
       this.viewName = 'free';
       return;
     }
+    if (this.animating) return;
     const delta = this.ui.projection.planeDelta(dx, dy, p.anchor);
     p.dx += delta.x;
     p.dy += delta.y;
@@ -703,9 +704,9 @@ export class Tetracube extends Component {
       cx = land ? x + w - cw : x + (w - cw) / 2;
     const controls: Rect = {
       x: cx,
-      y: land ? y + (h - 252) / 2 : y + h - 214,
+      y: land ? y + (h - 252) / 2 : y + h - 234,
       w: cw,
-      h: land ? 252 : 214,
+      h: land ? 252 : 234,
     };
     const scene: Rect = land
       ? { x, y: y + 72, w: w - cw - 12, h: h - 88 }
@@ -920,7 +921,16 @@ export class Tetracube extends Component {
     u.panel(r.x - 4, r.y - 8, r.w + 8, r.h + 14, '#0b142be8', '#32486b', 14);
     const gap = 6,
       small = (r.w - 12) * 0.22;
-    u.button('move', '移动', r.x, r.y, small, 44, this.mode === 'move' ? 'mint' : 'blue', disabled);
+    u.button(
+      'move',
+      '移动',
+      r.x,
+      r.y,
+      small,
+      44,
+      this.mode === 'move' ? 'mint' : 'blue',
+      this.screen !== 'playing',
+    );
     u.button(
       'observe',
       '观察',
@@ -929,7 +939,7 @@ export class Tetracube extends Component {
       small,
       44,
       this.mode === 'observe' ? 'mint' : 'blue',
-      disabled,
+      this.screen !== 'playing',
     );
     u.button(
       'drop',
@@ -944,27 +954,18 @@ export class Tetracube extends Component {
     u.text('rot-label', '旋转方块 · 每次90°', r.x + r.w / 2, r.y + 59, 12, r.w, C.mint);
     const bw = (r.w - 5 * gap) / 6;
     for (const [i, plane] of ['XY', 'XZ', 'YZ'].entries())
-      for (const [j, sign] of ['plus', 'minus'].entries())
-        u.button(
-          'rotate-' + plane + '-' + sign,
-          plane + (j ? '−' : '+'),
-          r.x + (i * 2 + j) * (bw + gap),
-          r.y + 73,
-          bw,
-          44,
-          'mint',
-          disabled,
-        );
-    u.text('ship-label', '转动容器 · 整舱重排', r.x + r.w / 2, r.y + 132, 12, r.w, C.violet);
+      for (const [j, direction] of [1, -1].entries())
+        u.rotationButton(plane, direction, r.x + (i * 2 + j) * (bw + gap), r.y + 73, bw, disabled);
+    u.text('ship-label', '转动容器 · 整舱重排', r.x + r.w / 2, r.y + 152, 12, r.w, C.violet);
     const hold = 54,
       fw = (r.w - hold - 3 * gap) / 3;
-    u.button('left', '左90°', r.x, r.y + 146, fw, 44, 'violet', disabled);
-    u.button('right', '右90°', r.x + fw + gap, r.y + 146, fw, 44, 'violet', disabled);
+    u.button('left', '左90°', r.x, r.y + 166, fw, 44, 'violet', disabled);
+    u.button('right', '右90°', r.x + fw + gap, r.y + 166, fw, 44, 'violet', disabled);
     u.button(
       'invert',
       adPolicy(this.provider()).invertNeedsAd ? '180° · 视频' : '颠倒180°',
       r.x + 2 * (fw + gap),
-      r.y + 146,
+      r.y + 166,
       fw,
       44,
       'violet',
@@ -974,7 +975,7 @@ export class Tetracube extends Component {
       'hold',
       this.state.held ? '换入' : '暂存',
       r.x + r.w - hold,
-      r.y + 146,
+      r.y + 166,
       hold,
       44,
       'blue',
@@ -984,22 +985,22 @@ export class Tetracube extends Component {
       'held-name',
       this.state.held?.name || '空槽',
       r.x + r.w - hold / 2,
-      r.y + 201,
+      r.y + 221,
       10,
       hold,
       C.muted,
     );
     const guide = [
       '拖动方块，虚线是落点',
-      '点击 XY / XZ / YZ 改变姿态',
+      '按图示箭头旋转方块，反向可转回',
       '点击落下，填满平面即可消层',
       '左右侧翻，整舱向下重排',
     ][this.tutorialStep];
     u.text(
       'guide',
-      guide || (this.mode === 'observe' ? '拖动观察 · 四个预设视角' : '拖动移动 · 暂存每块一次'),
+      this.mode === 'observe' ? '拖动方舱 · 自由旋转视角' : guide || '拖动移动 · 暂存每块一次',
       r.x + (r.w - hold) / 2,
-      r.y + 201,
+      r.y + 221,
       10,
       r.w - hold - 4,
       C.muted,
@@ -1130,7 +1131,7 @@ export class Tetracube extends Component {
       button('cancel', '取消，返回游戏', h - 70);
     } else {
       const touch =
-        '目标：填满整层，消除获得连锁。\n\n在场景中拖动方块。\n观察模式：拖动镜头或选择4种视角。\nXY、XZ、YZ 各有正反90°。\n虚线是落点，数字是离底部的层数。';
+        '目标：填满整层，消除获得连锁。\n\n在场景中拖动方块。\n观察模式：拖动方舱自由旋转，也可选4种视角。\n按图示平转、前后转、左右转，各有反向。\n虚线是落点，数字是离底部的层数。';
       const keys =
         '暂存：每块一次，落地后恢复。\n左右侧翻免费，重力始终向下。\n\n方向键/WASD移动，空格落下；\nQ/E/R旋转，Shift反转，C暂存；\nG颠倒，P/Esc暂停。';
       const contentH = h - 148,
@@ -1173,6 +1174,8 @@ export class Tetracube extends Component {
       rewardPending: this.rewards?.pending || false,
       inputMode: this.mode,
       view: this.viewName,
+      camera: this.ui ? { ...this.ui.projection.camera } : null,
+      containerCorners: this.ui?.projection._corners() || [],
       hidden: this.hidden,
       practice: this.practice,
       tutorialStep: this.tutorialStep,

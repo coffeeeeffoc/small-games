@@ -354,6 +354,82 @@ export class TetracubeView {
     this.panel(x + 25, y + 12, 5, 19, C.text, '', 1);
     this.controls[this.controls.length - 1].label = '暂停';
   }
+  rotationButton(
+    plane: string,
+    direction: number,
+    x: number,
+    y: number,
+    w: number,
+    disabled = false,
+  ) {
+    const id = 'rotate-' + plane + '-' + (direction < 0 ? 'minus' : 'plus');
+    const label = { XY: '平转', XZ: '前后', YZ: '左右' }[plane] || '平转';
+    this.button(id, '', x, y, w, 64, 'mint', disabled);
+    this.controls[this.controls.length - 1].label =
+      label + (direction < 0 ? '反向' : '正向') + '旋转90度';
+    const offset = this.pressed === id ? 3 : 0;
+    const cx = x + w / 2,
+      cy = y + 24 + offset,
+      scale = Math.min(10, (w - 10) / 3.2);
+    const project = ([a, b, c]: number[]) => ({
+      x: cx + (a - b) * scale * 0.8,
+      y: cy + (a + b) * scale * 0.4 - c * scale,
+    });
+    const axes = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] }[plane] || [0, 1];
+    const tint = disabled
+      ? '#69778b'
+      : { XY: C.mint, XZ: '#8ccaff', YZ: '#efc18a' }[plane] || C.mint;
+    const corners = Array.from({ length: 8 }, (_, i) =>
+      [0, 1, 2].map((axis) => ((i >> axis) & 1) * 2 - 1),
+    );
+    for (let i = 0; i < 8; i++)
+      for (let axis = 0; axis < 3; axis++)
+        if (!(i & (1 << axis)))
+          this.line(project(corners[i]), project(corners[i | (1 << axis)]), '#839abe', 1, 3);
+    const onPlane = (a: number, b: number) => {
+      const v = [0, 0, 0];
+      v[axes[0]] = a;
+      v[axes[1]] = b;
+      return project(v);
+    };
+    this.polygon(
+      [onPlane(-1, -1), onPlane(1, -1), onPlane(1, 1), onPlane(-1, 1)],
+      tint + '55',
+      tint,
+      1.2,
+      3,
+    );
+    // Match rotateCells: (a, b) becomes (b, -a) for a positive turn.
+    const arc = Array.from({ length: 21 }, (_, i) => {
+      const angle = -Math.PI / 4 - (direction * i * Math.PI * 1.5) / 20;
+      return onPlane(Math.cos(angle) * 1.25, Math.sin(angle) * 1.25);
+    });
+    const arrow = disabled ? '#93a0b2' : '#f1fff6';
+    for (let i = 1; i < arc.length; i++) this.line(arc[i - 1], arc[i], arrow, 2, 3);
+    const tip = arc[arc.length - 1],
+      previous = arc[arc.length - 2],
+      angle = Math.atan2(tip.y - previous.y, tip.x - previous.x);
+    for (const side of [-1, 1])
+      this.line(
+        tip,
+        {
+          x: tip.x - 5 * Math.cos(angle + side * 0.55),
+          y: tip.y - 5 * Math.sin(angle + side * 0.55),
+        },
+        arrow,
+        2,
+        3,
+      );
+    this.text(
+      'rotation:' + id,
+      direction < 0 ? '反向' : label,
+      cx,
+      y + 50 + offset,
+      11,
+      w - 4,
+      disabled ? '#76839e' : C.text,
+    );
+  }
   at(x: number, y: number) {
     return [...this.controls]
       .reverse()
