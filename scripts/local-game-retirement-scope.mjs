@@ -1,5 +1,11 @@
 import { createHash } from 'node:crypto';
 import {
+  deliveryRetirementBase,
+  deliveryRetirementTrees,
+  deliveryRetirementReviews,
+  mazeVoiceRetirementBase,
+  mazeVoiceRetirementTrees,
+  mazeVoiceRetirementReviews,
   catalogCleanupReviews,
   catalogCleanupTrees,
   localRetirementReviews,
@@ -22,6 +28,10 @@ export function localRetirementHeadQueryPaths(changedPaths) {
   return [
     ...new Set([
       ...changedPaths,
+      ...Object.keys(deliveryRetirementTrees),
+      ...Object.keys(deliveryRetirementReviews),
+      ...Object.keys(mazeVoiceRetirementTrees),
+      ...Object.keys(mazeVoiceRetirementReviews),
       ...Object.keys(catalogCleanupTrees),
       ...Object.keys(catalogCleanupReviews),
       ...Object.keys(localRetirementTrees),
@@ -96,6 +106,8 @@ export function localRetirementScopesForReview(context, trees, reviews, moves) {
       const value = Object.freeze([...(review?.sources ?? [])]);
       scopes.set(file, value);
       if (
+        (trees === deliveryRetirementTrees && reviews === deliveryRetirementReviews) ||
+        (trees === mazeVoiceRetirementTrees && reviews === mazeVoiceRetirementReviews) ||
         (trees === catalogCleanupTrees && reviews === catalogCleanupReviews) ||
         (trees === localRetirementTrees && reviews === localRetirementReviews) ||
         (trees === portfolioRetirementTrees && reviews === portfolioRetirementReviews) ||
@@ -119,6 +131,16 @@ export function localRetirementScopesForReview(context, trees, reviews, moves) {
 }
 export function localRetirementFileScopes(context) {
   return new Map([
+    ...(context.baseCommit === deliveryRetirementBase
+      ? localRetirementScopesForReview(context, deliveryRetirementTrees, deliveryRetirementReviews)
+      : []),
+    ...(context.baseCommit === mazeVoiceRetirementBase
+      ? localRetirementScopesForReview(
+          context,
+          mazeVoiceRetirementTrees,
+          mazeVoiceRetirementReviews,
+        )
+      : []),
     ...localRetirementScopesForReview(context, catalogCleanupTrees, catalogCleanupReviews),
     ...localRetirementScopesForReview(context, localRetirementTrees, localRetirementReviews),
     ...localRetirementScopesForReview(

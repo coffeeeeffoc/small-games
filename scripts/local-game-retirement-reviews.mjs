@@ -1,3 +1,129 @@
+// Exact source trees for the two retired games. The directory tree IDs bind every
+// tracked source file, document, and binary asset in the reviewed base commit.
+export const mazeVoiceRetirementBase = '61759eb643f97601323bcaf12706d0d1737b1ce5';
+export const mazeVoiceRetirementTrees = Object.freeze({
+  'games/local/maze-wander':
+    '040000 tree 87472def6b5d71d3f1ee63492eecb032552ca175\tgames/local/maze-wander\n',
+  'games/local/voiceprint-case':
+    '040000 tree 5c8e022fef5f7e137bc72abc45610c984dff44d3\tgames/local/voiceprint-case\n',
+});
+export const mazeVoiceRetirementReviews = Object.freeze({
+  'apps/shell-web/package.json': {
+    before: '34b9b61e8106b032ebc5ccf457aac7186af25f856912a15325780cff3421e3fc',
+    after: 'da9caee901116c64d4f050581a73dadf4467dc52fe1b7450fe7fcfc10493f968',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-meta.json': {
+    before: '37fd4bd10f228bb1405183d7e7857bf901eb09e2790f3f859fec57ef18abeda3',
+    after: '4b0c8d19e5747a0184e91917465b88aa161216a74c8a79b7c0d638b4b255d3f0',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/standalone-games.json': {
+    before: '6483f95872c936e1b251527e5d7bd7613fcbc070a082af9b0d4ac16eb67f041e',
+    after: '365f9fb8f9ed3c778a28f72ce3b6efd02a8b4143e8268012e8f27083e420381c',
+    sources: ['apps/shell-web'],
+  },
+  'pnpm-lock.yaml': {
+    before: '2614344f65b1483c2997f9e2866c1e2b06d0a385c26fd916341f63ad5f7f4762',
+    after: 'd016202fe6a6ee51961f2defa9224a0fddf9e29364991916397a034a91d0b806',
+    sources: ['apps/shell-web'],
+  },
+  'scripts/test-game-dev-mode.mjs': {
+    before: '657ba38e4aac440e50314db3194f0ecfac71ba8061410cfd1bb8a2025c33fea2',
+    after: 'd13197ae582a50792dd82a7aaa796e55d7913f1144a1b977d98ef9f0317e20e0',
+    sources: ['apps/shell-web'],
+  },
+});
+
+// The delivery retirement binds its exact original tree and all surviving executable edits.
+export const deliveryRetirementBase = '4e97662fd910758595c345f2985a805d1a19095d';
+export const deliveryRetirementTrees = Object.freeze({
+  'games/local/vibeJam-myself-delivery':
+    '040000 tree d6de7299158f98dd75bd09956e43e1ba176aca03\tgames/local/vibeJam-myself-delivery\n',
+});
+export const deliveryRetirementReviews = Object.freeze({
+  'apps/shell-web/package.json': {
+    before: 'da9caee901116c64d4f050581a73dadf4467dc52fe1b7450fe7fcfc10493f968',
+    after: 'e5d690f0cb5acf329a526d240afcb34b431b8e0ec6b0d7e850cd44123d55bcad',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/catalog-rollout-smoke.mjs': {
+    before: '0a42fef045386e0cfdd113d3e61b1dc73ae8711eaf199a65aa165cad09bf747c',
+    after: 'f1f9f2f5951fb55ddd0f1c168fa20237d5185ed6a628703c945abd5eaea36d00',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/pages-validation.mjs': {
+    before: '5926ba1cbaca0e5f2706bd7ac68dee3faf5d0ea3605f941bfdceed496edbefed',
+    after: '2cae660cd9fe007ec4c2fcf70eca62aff533c500379a51a29252fc45cfa7b163',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/pages-validation.test.mjs': {
+    before: 'c18edf50ec02a5ad289a17a8b495e85c794be5243f413105ee481e65365908c6',
+    after: '2b95d3373fedf35c8eb031a7d3e51261766b20ab91b1659a87d01cc072745f8a',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-checks.mjs': {
+    before: 'e77642d3f694475cacdbd4977f7399db1a27e838162486d31a1e86367d92c72d',
+    after: 'befcf6148a83273c6c44f43629352978f66ed925054169cfd92a67688f890a4a',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.mjs': {
+    before: '472b6aa9d32fe16dafcabca68bfbf961804e413e061a2c93d69b595b2cedd158',
+    after: '7bddd0e019ba2ad26c232f953908f3b27f8feef61c76e0dcb95f03be9dbe5027',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-assessments.json': {
+    before: '3716b49c27e8948a1bbb4ad2fa86172d537c76aa1e495338dfe97ba6fd0615c8',
+    after: '81db3e7027aa5762a267b7f431eb8810d3abfcfc8cc1ca96b858a5ee1af98bcf',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/game-meta.json': {
+    before: '4b0c8d19e5747a0184e91917465b88aa161216a74c8a79b7c0d638b4b255d3f0',
+    after: '20bffa968cd393c65a845f8d056ae8a5f4e57c548163975b3fad56bf5ddcd2eb',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/src/standalone-games.json': {
+    before: '365f9fb8f9ed3c778a28f72ce3b6efd02a8b4143e8268012e8f27083e420381c',
+    after: '4dda1080fcbb8acc28546b2c58d93ce74368be6e1c83aede560828d199233712',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/catalog-assessments.test.ts': {
+    before: 'bcf2ea9e1c3d5ae4130d7fdd791c8861e9c669f6878cd5607bd89ff98cff3340',
+    after: 'bb436e9a58bb7d90d6bed798ac99438078456dfe5c9057d23271726b4e1a685e',
+    sources: ['apps/shell-web'],
+  },
+  'apps/shell-web/tests/catalog-filters.integration.test.tsx': {
+    before: '539f7ea68e9abd3a2bc2c85c3cbd97f8d4f66b498c5d953ab67cdf8228624d4a',
+    after: 'd9719b42468a671d7c4ef952428c7cd87d45cd81b44a7ede2d51814c8399cf61',
+    sources: ['apps/shell-web'],
+  },
+  'pnpm-lock.yaml': {
+    before: 'd016202fe6a6ee51961f2defa9224a0fddf9e29364991916397a034a91d0b806',
+    after: '2e8a158e8e8dca1d7426c237a6cd7fae149df3b4b7674efefbafd7f2b5409f92',
+    sources: ['apps/shell-web'],
+  },
+  'scripts/pages-regression-timings.json': {
+    before: '7df8e227a848733f0217e2f2100f53892b04e507950004d9b23415c735cf7e66',
+    after: '4c3075e3e99fb5ab2e9f1658e0db42c31008179ea6d528c89dd2f9fb813c28a0',
+    sources: [],
+  },
+  'scripts/publication-scopes.mjs': {
+    before: '67c19bc72a500fb3d2b3b4e8ee0989cca1409f57df3ae7aafc7501a9f68d5e9e',
+    after: 'e6e1a649273e4ca3fe3a6223d32dd46390a49a1c7f60df552af168c0af28e75c',
+    sources: [],
+  },
+  'scripts/publication-scopes.test.mjs': {
+    before: '722c31965de143facfb44379b745bf4fbf772d72242f65c5a6cef07fd8951753',
+    after: 'd1770a8d95a26a3b4a889a92509a02066784df2c9e9eb25b21b7d0b1232c9b72',
+    sources: [],
+  },
+  'scripts/vite-patch-scope.mjs': {
+    before: '759fed2393ebf8bab9e90ee465b791aec6b168cb66ff351403d723d87ad78372',
+    after: '03336879faebba53a8e32c1ee3404f38509b1426b666da4f50f4a87038c17cf9',
+    sources: [],
+  },
+});
+
 // Reviewed removal of five local games; precise snapshots and finite surviving consumers.
 export const localRetirementBase = 'aa7e30777290989ac8a48f854f65eb1c8f242a8b';
 export const localRetirementTrees = Object.freeze({

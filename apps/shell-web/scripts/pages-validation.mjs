@@ -25,13 +25,9 @@ export function selectPagesGames(games, input) {
 export function mobileGameViewport(id, fallback = { width: 390, height: 844 }) {
   // This tall narrow viewport catches a held touch leaking onto the result dialog.
   if (id === 'wulong-city') return { width: 360, height: 900 };
-  return [
-    'fold-the-world',
-    'carding-car',
-    'night-overwatch',
-    'vibeJam-myself-delivery',
-    'vibeJam-myself-nullrange',
-  ].includes(id)
+  return ['fold-the-world', 'carding-car', 'night-overwatch', 'vibeJam-myself-nullrange'].includes(
+    id,
+  )
     ? { width: 844, height: 390 }
     : fallback;
 }

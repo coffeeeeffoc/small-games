@@ -1,3 +1,7 @@
+## Git 提交约定
+
+- 后续所有 Git 提交的提交说明统一使用中文。
+
 ## Agent skills
 
 涉及 TypeSafe API、语义分类、评分或判断流程时，使用 `typesafe-ai` 技能。

@@ -15,10 +15,8 @@ export const markers = {
   'castle-cannon': '#GameCanvas',
   'ember-bounce': '#start',
   'tianxia-chalu': '#start',
-  'voiceprint-case': '#start',
   'echo-lab': '#scene [data-object="reflector-1"]',
   'bullet-garden': '#GameCanvas',
-  'maze-wander': '#start',
   'urban-breakout': '#start',
   'homebound-station': 'body[data-homebound-ready="true"]',
   'rescue-team': '#fleet-1',
@@ -46,7 +44,6 @@ export const markers = {
 
   'travel-bund': '#enter-world',
 
-  'vibeJam-myself-delivery': '#start',
   'vibeJam-myself-history-guess': '#start',
   'vibeJam-myself-nullrange': '#deploy',
 };
@@ -62,8 +59,6 @@ export const homeControls = {
   'ball-roguelite': '#start',
   'ember-bounce': '#start',
   'tianxia-chalu': ['#start', '#begin-battle'],
-  'voiceprint-case': '#start',
-  'maze-wander': ['#start', '#enter'],
   'urban-breakout': '#start',
   'fold-the-world': '[data-action="start"]',
   'xiangqi-five': '#home-start',
@@ -104,8 +99,6 @@ export const legacyEntryIds = [
   'night-overwatch',
 
   'travel-bund',
-
-  'vibeJam-myself-delivery',
 ];
 
 export function entryMode(id) {

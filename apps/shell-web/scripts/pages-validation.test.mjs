@@ -10,13 +10,7 @@ import { monitorPagesPage } from './pages-browser-monitor.mjs';
 const games = [{ id: 'merge-front' }, { id: 'heavy-game' }];
 
 test('mobile entry viewports preserve landscape controls and portrait regression cases', () => {
-  for (const id of [
-    'fold-the-world',
-    'carding-car',
-    'night-overwatch',
-    'vibeJam-myself-delivery',
-    'vibeJam-myself-nullrange',
-  ])
+  for (const id of ['fold-the-world', 'carding-car', 'night-overwatch', 'vibeJam-myself-nullrange'])
     assert.deepEqual(mobileGameViewport(id), { width: 844, height: 390 }, id);
   assert.deepEqual(mobileGameViewport('out-of-frame'), { width: 390, height: 844 });
   const pixel = { width: 412, height: 839 };

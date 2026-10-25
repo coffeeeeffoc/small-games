@@ -3143,7 +3143,6 @@ const mobileViewportConsumers = {
   'fold-the-world': 'games/local/fold-the-world',
   'carding-car': 'games/local/carding-car',
   'night-overwatch': 'games/local/night-overwatch',
-  'vibeJam-myself-delivery': 'games/local/vibeJam-myself-delivery',
   'vibeJam-myself-nullrange': 'games/local/vibeJam-myself-nullrange',
   'wulong-city': 'games/local/wulong-city',
 };
@@ -4928,7 +4927,7 @@ export function reviewedSharedFileScopes({
         );
         assert.equal(
           digest(readHead(mobileViewportScopeFile)),
-          '5926ba1cbaca0e5f2706bd7ac68dee3faf5d0ea3605f941bfdceed496edbefed',
+          '2cae660cd9fe007ec4c2fcf70eca62aff533c500379a51a29252fc45cfa7b163',
         );
         for (const [id, source] of Object.entries(independentPreviewConsumers))
           assert(
@@ -4948,7 +4947,7 @@ export function reviewedSharedFileScopes({
         );
         assert.equal(
           digest(readHead(file)),
-          '5926ba1cbaca0e5f2706bd7ac68dee3faf5d0ea3605f941bfdceed496edbefed',
+          '2cae660cd9fe007ec4c2fcf70eca62aff533c500379a51a29252fc45cfa7b163',
         );
         for (const [id, source] of Object.entries(mobileViewportConsumers))
           assert(games.filter((game) => game.id === id && game.source === source).length === 1);

@@ -1,12 +1,12 @@
 # 游戏一览
 
-当前共登记 **43 款游戏**（42 款本地游戏、1 款子模块游戏），与 Shell 登记和磁盘目录一致。全部游戏的标签、优缺点、改进方向和优先级见[产品评估](plans/2026-10-11-game-portfolio-assessment.md)，也可直接在游戏目录按标签筛选并展开评估。
+当前共登记 **39 款游戏**（38 款本地游戏、1 款子模块游戏），与 Shell 登记和磁盘目录一致。全部游戏的标签、优缺点、改进方向和优先级见[产品评估](plans/2026-10-11-game-portfolio-assessment.md)，也可直接在游戏目录按标签筛选并展开评估。
 
-潜力判断与改造排期独立：**40 款有趣 / 有潜力**，并非只有7款。完整排期为 **上轮已改造7 + 本轮改造13 + 有潜力后续改造20 + 用户暂缓3 = 43**；每款只属于一个排期组，仍可同时拥有多个玩法、平台与拓展标签。游戏目录显示各组总数、筛选匹配数和逐款实施状态，全部名单与排期理由见[完整排期索引](plans/2026-10-11-game-portfolio-assessment.md#全量排期索引)。
+潜力判断与改造排期独立：**39 款有趣 / 有潜力**，并非只有7款。完整排期为 **上轮已改造7 + 本轮改造15 + 有潜力后续改造17 = 39**；每款只属于一个排期组，仍可同时拥有多个玩法、平台与拓展标签。游戏目录显示各组总数、筛选匹配数和逐款实施状态，全部名单与排期理由见[完整排期索引](plans/2026-10-11-game-portfolio-assessment.md#全量排期索引)。
 
 标题和描述来自 Shell 登记；新增目录仍以 `pnpm check:games` 的磁盘发现结果为准。
 
-## 本地游戏（42 款）
+## 本地游戏（38 款）
 
 | 游戏                     | Game ID                        | 源码                                                                         | 简介                                                                                                                         |
 | ------------------------ | ------------------------------ | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -18,9 +18,7 @@
 | 星轨弹珠                 | `ball-roguelite`               | [ball-roguelite](../games/local/ball-roguelite/)                             | 拖动瞄准，松手弹射。组合穿透、爆裂、闪电与暴击，击穿六片星域的砖阵，或挑战无尽星空。                                         |
 | 熔光弹珠                 | `ember-bounce`                 | [ember-bounce](../games/local/ember-bounce/)                                 | 拖动瞄准一束熔光弹珠，借墙面连锁反弹击碎熔晶，收集更多弹珠与祝福，挑战逐步解锁的熔炉关卡。                                   |
 | 夺城令                   | `tianxia-chalu`                | [tianxia-chalu](../games/local/tianxia-chalu/)                               | 四方城寨自动出兵，轻点岔路切换行军方向，抢占村镇、截断援军，在一张山水战图上统一天下。                                       |
-| 声纹疑案                 | `voiceprint-case`              | [voiceprint-case](../games/local/voiceprint-case/)                           | 听取嘈杂现场的一句话，对照三位虚构成年人的同句录音，辨认同一个声音，挑战十二关渐进听觉谜案。                                 |
 | 回声实验室 · Echo Lab    | `echo-lab`                     | [echo-lab](../games/local/echo-lab/)                                         | 拖动和旋转反射板、消音板，分别调节四面墙的反射率，听见空间改变声音；导出原声与调制声，分享房间链接邀请朋友一起实验。         |
-| 迷境漫游                 | `maze-wander`                  | [maze-wander](../games/local/maze-wander/)                                   | 在五种风景、二十个手工迷宫中第一人称探索，留下标记，辨认回环与倒影，慢慢找到归途。支持电脑与手机网页。                       |
 | 街区突围                 | `urban-breakout`               | [urban-breakout](../games/local/urban-breakout/)                             | 橙白救援小队穿越老街，转火击破限时补给，回防冲刺尸潮。P1 单人实战样板。                                                      |
 | 归途站                   | `homebound-station`            | [homebound-station](../games/local/homebound-station/)                       | 看箭头解开密集出租车阵，点击或滑动车辆出库，自动接上旅客，让整片车场有序清空。                                               |
 | 浪湾卡丁车               | `carding-car`                  | [carding-car](../games/local/carding-car/)                                   | 在海湾赛道漂移蓄力，挑战一圈冲刺或三圈冠军，收集路线印章，邀请朋友挑战同一条赛道。                                           |
@@ -29,7 +27,6 @@
 | 街区追捕                 | `cops-robbers-realtime`        | [cops-robbers-realtime](../games/local/cops-robbers-realtime/)               | 点选警察封住路口，合作抓住小偷。横屏街区百关挑战、个人与全站通关纪录、好友 PK。                                              |
 | 词屿 · 字母叠叠乐        | `letters-words2`               | [letters-words2](../games/local/letters-words2/)                             | 从三词早餐、海岸与星空小岛开始，揭开层叠字母，再挑战八大主题与每日同题。                                                     |
 | 江风入境 · 外滩漫游      | `travel-bund`                  | [travel-bund](../games/local/travel-bund/)                                   | 沿建筑、桥畔与天际三条路线收集地标足迹，第一视角漫游外滩两岸，留下旅行明信片。                                               |
-| 橘风速递                 | `vibeJam-myself-delivery`      | [vibeJam-myself-delivery](../games/local/vibeJam-myself-delivery/)           | 驾驶小摩托穿越海滨小岛，采购货物并完成配送。                                                                                 |
 | 此时 · 此地              | `vibeJam-myself-history-guess` | [vibeJam-myself-history-guess](../games/local/vibeJam-myself-history-guess/) | 观察历史全景，猜测地点与年份，走三幕主题旅途、五幕普通旅途或每日同题，揭晓时空中的故事。                                     |
 | 零域 · NULL RANGE        | `vibeJam-myself-nullrange`     | [vibeJam-myself-nullrange](../games/local/vibeJam-myself-nullrange/)         | 低空飞行、迎击敌机，在三波空战中回收残骸。                                                                                   |
 | 折叠世界                 | `fold-the-world`               | [fold-the-world](../games/local/fold-the-world/)                             | 在100个手工关卡中折起远处的平台，安排取物与回程，逐步解开更复杂的空间谜题。                                                  |
