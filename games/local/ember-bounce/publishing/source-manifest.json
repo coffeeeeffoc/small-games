@@ -2,19 +2,20 @@
   "release": "gravity-volley-2026-10-25",
   "date": "2026-10-25",
   "workingTree": true,
-  "baseCommit": "61759eb643f97601323bcaf12706d0d1737b1ce5",
+  "baseCommit": "510a24c4b9d90d8de80523ee5bb4b838e8f56dc2",
+  "hashFormat": "UTF-8 text normalized to LF (including byte counts); binary files use original bytes",
   "runtimeSha256": {
-    "index.html": "2d517cfd64f64a4b9389f56bbc959941d5f9fca524d699806868824fb5791762",
+    "index.html": "f4790a497d127a85224a17b9b3285d0c9b27d211b454d2b192e9ede8386dc318",
     "style.css": "235a30f8f747dba8f63146616fad40a01dbf004053ad70f5e385c03180fac04b",
-    "main.mjs": "7f306f3167c6d2effa40ba48c828d021974de0edef870ffa69ffb52a2e709b20",
-    "core.mjs": "146f1a42f260b694fe6e78bc8343bb3e403f2a803a6665a26c719275d10c70d7",
-    "levels.mjs": "57c788a05db8fbf1754e7c6c62bafd080c28180197ed40aef45ba5041bbfdc78",
-    "render.mjs": "2056082c72343c5931b5ea3c0fd9a7a1b0691f0dcf8f972a78d93baaf0b59c11",
-    "audio.mjs": "b11584584ac392987a3e2e6559f4b97ee029d4ea917680e131743db40d734171",
-    "storage.mjs": "5f08d371e87853d8d4a7f60f2f6105730cbe5e9447e6b33b8d69093dc5b00dff",
-    "checkpoint.mjs": "7a17e001997cd9484e332ceb6c89ad321c8e5529645ac7919f188ed5098074b5",
-    "challenge.mjs": "b0f87f5c493c1b3e134ac1bbd8552c55f7bdf23bf287896db0d3530499a1d44a",
-    "favicon.svg": "47c8f6a0fc3a7df6be2f0f13ed185c6a957c6023b400254771eb9c96e5b37128",
+    "main.mjs": "8be57baaf7183c8aa0dca0cd10f55d1e697ffbe3c006dff9acd6fa8d6685c6e7",
+    "core.mjs": "bcea532529ec2a4896d721c4b510a647eb92bc95d9ecabe68ec408285a2a5cab",
+    "levels.mjs": "2fef1b7929d35d5a77219ca3bb9f44e9e463f86c6bf61aa11511a263992c10c4",
+    "render.mjs": "4a5021ecde5bc6574e77c22b1f7cffde9e90762eb701e47bfc2f9fa61aecf493",
+    "audio.mjs": "db5ecf0aa6a316369667c53bfc5f063d29c2314cdf14099ae624bdd6dffaaa50",
+    "storage.mjs": "9efe1aa11a1834af9e8470d571f44d595a65adc5845d2723d891d8ca7cf8aa9d",
+    "checkpoint.mjs": "aab75750f566bb121d60826b5a06b2bce64131643c6eb3558f641110ea91953b",
+    "challenge.mjs": "4988e31d93ea56d950adeb69676bb91b0d7973be6aaa0f231ebd85dcc8153a5f",
+    "favicon.svg": "5f05e4b08d8b965f25c3d8559e385e03f4294f436dc3c0b4674ca5cb9fea6dfd",
     "dev-mode.js": "fcc49bdcc071a234df52081bbb6f09ce0a002e4c633403cb460724c921cb4b39",
     "assets/cavern.webp": "b0648c38af74fb749d97d774e97bdf2a37ec81b5ebd68c108b6ff8f4de8cb838",
     "../../../platforms/h5/publishing.js": "56d31e3441ff163ff71f7eda0001e1344eebf689accb5cfcde3ad9015a63b1f8"
@@ -105,8 +106,8 @@
       ]
     },
     "icon/ember-bounce.svg": {
-      "bytes": 484,
-      "sha256": "47c8f6a0fc3a7df6be2f0f13ed185c6a957c6023b400254771eb9c96e5b37128"
+      "bytes": 483,
+      "sha256": "5f05e4b08d8b965f25c3d8559e385e03f4294f436dc3c0b4674ca5cb9fea6dfd"
     },
     "promo/images/portrait-1080x1920.png": {
       "bytes": 1531706,
