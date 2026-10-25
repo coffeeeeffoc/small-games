@@ -355,7 +355,7 @@ export class TetracubeView {
     this.controls[this.controls.length - 1].label = '暂停';
   }
   rotationButton(
-    plane: string,
+    plane: 'XY' | 'XZ' | 'YZ',
     direction: number,
     x: number,
     y: number,
@@ -363,7 +363,7 @@ export class TetracubeView {
     disabled = false,
   ) {
     const id = 'rotate-' + plane + '-' + (direction < 0 ? 'minus' : 'plus');
-    const label = { XY: '平转', XZ: '前后', YZ: '左右' }[plane] || '平转';
+    const label = { XY: '平转', XZ: '前后', YZ: '左右' }[plane];
     this.button(id, '', x, y, w, 64, 'mint', disabled);
     this.controls[this.controls.length - 1].label =
       label + (direction < 0 ? '反向' : '正向') + '旋转90度';
@@ -375,10 +375,10 @@ export class TetracubeView {
       x: cx + (a - b) * scale * 0.8,
       y: cy + (a + b) * scale * 0.4 - c * scale,
     });
-    const axes = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] }[plane] || [0, 1];
+    const axes = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] }[plane];
     const tint = disabled
       ? '#69778b'
-      : { XY: C.mint, XZ: '#8ccaff', YZ: '#efc18a' }[plane] || C.mint;
+      : { XY: C.mint, XZ: '#8ccaff', YZ: '#efc18a' }[plane];
     const corners = Array.from({ length: 8 }, (_, i) =>
       [0, 1, 2].map((axis) => ((i >> axis) & 1) * 2 - 1),
     );

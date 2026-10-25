@@ -953,7 +953,7 @@ export class Tetracube extends Component {
     );
     u.text('rot-label', '旋转方块 · 每次90°', r.x + r.w / 2, r.y + 59, 12, r.w, C.mint);
     const bw = (r.w - 5 * gap) / 6;
-    for (const [i, plane] of ['XY', 'XZ', 'YZ'].entries())
+    for (const [i, plane] of (['XY', 'XZ', 'YZ'] as const).entries())
       for (const [j, direction] of [1, -1].entries())
         u.rotationButton(plane, direction, r.x + (i * 2 + j) * (bw + gap), r.y + 73, bw, disabled);
     u.text('ship-label', '转动容器 · 整舱重排', r.x + r.w / 2, r.y + 152, 12, r.w, C.violet);
