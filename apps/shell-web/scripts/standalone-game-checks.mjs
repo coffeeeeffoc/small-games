@@ -1569,7 +1569,11 @@ export function placeAndClearInput(frame, mobile = false) {
     const p = await point({ x: c.x + c.w / 2, y: c.y + c.h / 2 });
     if (mobile) await page.touchscreen.tap(p.x, p.y);
     else await page.mouse.click(p.x, p.y);
-    await expect.poll(async () => (await snapshot()).controls.length).toBeGreaterThan(0);
+    // A high-DPR Creator repaint can exceed the default 5s on software WebGL.
+    // Still require the actual controls to return before inspecting or tapping them.
+    await expect
+      .poll(async () => (await snapshot()).controls.length, { timeout: 20000 })
+      .toBeGreaterThan(0);
     await page.waitForTimeout(80);
   };
   return { snapshot, control, point, canvas, page };
