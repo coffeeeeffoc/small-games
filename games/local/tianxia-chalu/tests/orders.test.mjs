@@ -423,3 +423,26 @@ test('a captured opposite endpoint cannot cancel a valid attack during cooldown 
   );
   assert.equal(j(state, 'A').routeIndex, 0);
 });
+
+test('a server ownership rejection for auxiliary stop still allows the primary attack', async () => {
+  const state = map(),
+    sent = [],
+    errors = [];
+  route(state, 'B', 'A');
+  const queue = createOrderQueue({
+    read: () => ({ state, enabled: true }),
+    failed: (e) => errors.push(e),
+    send: async (c) => {
+      sent.push(c);
+      if (c.sourceId === 'B')
+        throw Object.assign(new Error('not owner'), { code: 'not-owner', rejected: true });
+      j(state, c.sourceId).routeIndex = c.index;
+    },
+  });
+  await queue.push({ kind: 'route', sourceId: 'A', targetId: 'B' });
+  assert.deepEqual(
+    sent.map((c) => c.sourceId),
+    ['B', 'A'],
+  );
+  assert.equal(errors.length, 0);
+});

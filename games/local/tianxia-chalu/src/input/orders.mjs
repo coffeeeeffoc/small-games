@@ -256,7 +256,14 @@ export function createOrderQueue({
                 break;
               if (!owns(state, command.sourceId)) throw new Error('城池已经易主，军令已取消');
               if (j.routeIndex === command.index) break;
-              const result = await send(command);
+              let result;
+              try {
+                result = await send(command);
+              } catch (error) {
+                if (command.stopTargetId && error.rejected && error.code === 'not-owner') break;
+                throw error;
+              }
+              if (command.stopTargetId && result?.reason === 'not-owner') break;
               if (token !== epoch) break;
               if (result?.reason === 'cooldown') {
                 await wait();
