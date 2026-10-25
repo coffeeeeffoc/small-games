@@ -146,7 +146,7 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
   },
   'ember-bounce': {
     fields: {
-      emberChallenge: oneOf('1'),
+      emberChallenge: oneOf('2'),
       level: oneOf(
         'first-spark',
         'side-glow',
