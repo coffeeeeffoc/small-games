@@ -1,29 +1,38 @@
 {
-  "date": "2026-10-23",
+  "date": "2026-10-25",
   "creator": "3.8.8",
-  "sourceHash": "0e7386e91e8871c0e9eabb817237aa027683778d1d3c17196df7577d05416c6e",
+  "sourceHash": "84bebf2853511e19ec672390ef19282657f4af7ec1d2731a4645cc1d246a8533",
   "environment": "Chromium touch emulation, 390x844; not a physical device",
   "audio": "Videos have no audio track",
   "media": [
     {
       "file": "gameplay/screenshots/game-390x844.png",
-      "sha256": "24d006fd1cf3c00e2598e7fa98f1476bbb67de27f52240f36d443017f5c1eb76"
+      "sha256": "45200f3e5930326fb365597b5254f9724dcbe7a1b196586674ec90f2c4ae440c"
     },
     {
       "file": "gameplay/screenshots/home-390x844.png",
-      "sha256": "249049e76c2be9044b7eb6bcc6a20201585e159b4e1e611ebd43a3e517e3f4f6"
+      "sha256": "bcab45693c08a1b3d1c18f88b8e95237dd9380fc9a196a8e8d991a0cede92f51"
     },
     {
       "file": "gameplay/screenshots/reset-390x844.png",
-      "sha256": "fc769b64fe945cb7c21ef1be06c3f25a21f1e495fa5dc9ff3fc33e9bfb7ead82"
+      "sha256": "22ab24bfef0e1af2be3cad79e6064ea0d271a2950daf960fe9b79063d031d272"
     },
     {
       "file": "gameplay/screenshots/win-390x844.png",
-      "sha256": "b61eea45e0946f7cdb5a0a06274db9cc54b0bbc2201779c19f4adf7aef367a04"
+      "sha256": "1a36bcdb94d890811c54c53dbe8144e3457310e0d160b1dfd0e3c8f600246594"
     },
     {
       "file": "gameplay/videos/creator-touch-levels1-3-390x844.mp4",
-      "sha256": "9aef1eb26a27416ec149c5c6649878da4251660cd1e965fb11cb370ef0e6ab93"
+      "sha256": "4e5222d1b6404639776a1b157b3a8f3106c71ff2c820338f5f4adc12366fd472",
+      "durationSeconds": 60.56,
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 390,
+          "height": 844
+        }
+      ]
     },
     {
       "file": "icon/icon.png",
@@ -31,11 +40,22 @@
     },
     {
       "file": "promo/images/garden-title-portrait-1024x1536.png",
-      "sha256": "243f6ed8fe1d7ae348c712d80e4a20ed28c3ad6d8ca84bcc8e47b4aa3420c9f5"
+      "sha256": "0452fa56cdfe22aee528d403213fbcbeadbdf7b7fe5cc8578e15ededa63b10c7"
     },
     {
       "file": "promo/videos/garden-creator-promo-720x1280.mp4",
-      "sha256": "7d153d7249d8bb18bd132b8d29a7c2e2ac3218e9346cb65bddcd02535d927843"
+      "sha256": "2c5a328f718bf4c1ca9739d80b94de5a2e28e10b16f29aba717607cdd7cd1b60",
+      "durationSeconds": 63.56,
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 720,
+          "height": 1280
+        }
+      ]
     }
-  ]
+  ],
+  "sourceCommit": "60df0b53bc75802d06d5bd54f2ffdbc00eb2ced7",
+  "buildRun": "https://github.com/coffeeeeffoc/small-games/actions/runs/40207538682/job/121211601148"
 }

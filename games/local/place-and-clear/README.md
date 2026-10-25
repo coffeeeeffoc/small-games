@@ -54,7 +54,8 @@ API 路径 /api/competition/v1/three-choose-two，沿用现有服务器秘密种
 原 ./engine、./shapes、./levels、./progress、./canvas 导出保留。build:native:legacy / test:native:legacy 明确服务旧 Canvas 宿主，不能当成本次 Cocos 原生包。main.mjs/style.css 仅为历史外观参考，根 index.html 不再加载它们；fullscreen.js 仅保留未引用的兼容副本。新原生目标需独立构建和真机验收。
 
 - [设计及素材来源](docs/design/cocos-2026-10-23/design.md)
-- [本次验证](docs/design/cocos-2026-10-23/VALIDATION.md)
+- [改名验证](docs/design/rename-2026-10-25.md)
+- [Creator 迁移验证](docs/design/cocos-2026-10-23/VALIDATION.md)
 - [上架资料八类清单](publishing/STATUS.md)
 - [历史花园设计](docs/design/garden-2026-10-07/refinement.md)
 
