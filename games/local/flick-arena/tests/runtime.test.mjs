@@ -5,7 +5,11 @@ import { arena, fighter } from '../src/render.mjs';
 import { chooseBot, seeded, shoot, step, physics } from '../src/core.mjs';
 function harness(options = {}, width = 390, height = 780) {
   let listener,
-    depth = 0;
+    depth = 0,
+    dash = [],
+    path = [];
+  const dashStack = [],
+    dashedPaths = [];
   const texts = [],
     arcs = [];
   const context = new Proxy(
@@ -16,10 +20,27 @@ function harness(options = {}, width = 390, height = 780) {
       },
       save() {
         depth++;
+        dashStack.push(dash);
       },
       restore() {
         depth--;
         assert(depth >= 0);
+        dash = dashStack.pop();
+      },
+      setLineDash(value) {
+        dash = value;
+      },
+      beginPath() {
+        path = [];
+      },
+      moveTo(x, y) {
+        path.push({ x, y });
+      },
+      lineTo(x, y) {
+        path.push({ x, y });
+      },
+      stroke() {
+        if (dash.length && path.length > 1) dashedPaths.push(path);
       },
       fillText(t) {
         texts.push(t);
@@ -50,6 +71,7 @@ function harness(options = {}, width = 390, height = 780) {
     context,
     texts,
     arcs,
+    dashedPaths,
     canvas: target.canvas,
     pointer: (phase, x, y, pointerId = 0) => listener?.({ phase, x, y, pointerId }),
     depth: () => depth,
@@ -267,6 +289,56 @@ test('touch aim previews the simulated stop and warns about both exits and the n
   assert(texts.includes('这个落点有收圈风险'));
   pointer('cancel', p.x, p.y);
   assert.equal(s.shots, 0);
+  game.dispose();
+});
+test('drag distance, visible dashed reach and released speed agree at every strength', () => {
+  let previousReach = 0;
+  for (const distance of [9, 28.75, 57.5, 86.25, 115, 180]) {
+    const { game, pointer, dashedPaths, texts } = harness();
+    game.debugStart(0);
+    const { x, y } = playerPoint(game);
+    pointer('down', x, y);
+    dashedPaths.length = 0;
+    pointer('move', x, y + distance);
+    const guide = dashedPaths[0];
+    assert(guide, 'an actionable drag draws a dashed travel guide');
+    const end = guide.at(-1);
+    const reach = y - end.y;
+    assert.equal(guide[0].x, x);
+    assert.equal(guide[0].y, y);
+    assert(Math.abs(end.x - x) < 1e-9);
+    if (distance <= 115) assert(reach > previousReach, 'longer pull extends the dashed line');
+    else assert.equal(reach, previousReach, 'overpull stays at the full-power reach');
+    previousReach = reach;
+    pointer('up', x, y + distance);
+    const power = Math.max(0.08, Math.min(1, distance / 115));
+    assert.equal(game.app.state.lastShot.power, power);
+    assert.equal(game.app.state.discs[0].vy, -physics.maxSpeed * power);
+    assert(texts.some((value) => value.startsWith(`力度 ${Math.round(power * 100)}%`)));
+    while (game.app.state.phase === 'moving') step(game.app.state);
+    const disc = game.app.state.discs[0];
+    assert(
+      Math.abs(end.y - (arena.y + disc.y * arena.scale)) < 1e-7,
+      'the rendered guide ends at the actual unobstructed stop',
+    );
+    game.dispose();
+  }
+});
+test('pulling back into the cancel zone clears both power and the dashed guide', () => {
+  const { game, pointer, dashedPaths, texts } = harness();
+  game.debugStart(0);
+  const { x, y } = playerPoint(game);
+  pointer('down', x, y);
+  pointer('move', x, y + 115);
+  for (const distance of [8.9, 5, 0]) {
+    dashedPaths.length = 0;
+    texts.length = 0;
+    pointer('move', x, y + distance);
+    assert.equal(dashedPaths.length, 0);
+    assert(texts.some((value) => value.startsWith('力度 0%')));
+  }
+  pointer('up', x, y);
+  assert.equal(game.app.state.shots, 0);
   game.dispose();
 });
 test('replay motion follows the same physical clock after 30 Hz and 120 Hz live play', () => {

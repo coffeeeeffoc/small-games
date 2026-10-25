@@ -11,16 +11,11 @@ body {
   color: #fce9bc;
   font-family: system-ui, sans-serif;
 }
-body {
-  display: grid;
-  place-items: center;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
-    env(safe-area-inset-left);
-}
 #stage {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  /* Host/extension nodes must neither share the stage's height nor push it offscreen. */
+  position: fixed;
+  inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
   overflow: hidden;
   touch-action: none;
   user-select: none;

@@ -25,4 +25,4 @@
 - 新增 21 项输入／队列回归，游戏规则与存储等合计 71 项；服务规则 10 项通过。开发触屏覆盖全部 13 组游戏流程，旧进攻型自动 pilot 对几十毫秒的交互时序敏感，改为稳定的防守型 pilot；保留真实手势、军令生效、获胜、解锁和奖励断言，不改变游戏平衡。
 - 匹配生产制品的[HTTP 服务触屏回归](../../publishing/verification/direct-orders-server-browser.json)9 项通过，含慢回执期间两座城市的独立派兵、前后台、断线、恢复和退出。
 - [实际选中反馈](../../publishing/gameplay/screenshots/direct-orders-2026-10-25/selected-city-390x844.png)、[补给接力](../../publishing/gameplay/screenshots/direct-orders-2026-10-25/battle-390x844.png)、[拖拽预览](../../publishing/gameplay/screenshots/direct-orders-2026-10-25/drag-orders-390x844.png)及[正常时钟录屏](../../publishing/gameplay/videos/direct-orders-2026-10-25/duochengling-gameplay-390x844.webm)。只减少旧军令按钮，保留纸本山河风格与现有沙盘；窄屏、横屏及恢复竖屏的触控已覆盖。
-- 并行 `dev` 更新已合并保留，最终增量验证基线为 `6dedd8dfbf21a50fdc4bbc43d41b914c0afa0a5e`。最终候选提交后运行 `pnpm validate:candidate --base <准确远端SHA> --head <候选SHA>`；完整准确 SHA 和执行结果保存在交付日志。
+- 并行 `dev` 更新已合并保留。最终候选提交后运行 `pnpm validate:candidate --base <准确远端SHA> --head <候选SHA>`；若远端继续推进，重新合并并验证。完整准确 base/head SHA 和执行结果保存在交付日志。
