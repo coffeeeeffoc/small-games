@@ -18,7 +18,7 @@ test('saved Pages retirement plus rename binds exact files and retains every sur
   const { localRetirementFileScopes, localRetirementHeadQueryPaths, hasLocalRetirementFileProof } =
     await import('./local-game-retirement-scope.mjs');
   const { gameRenameFileScopes, isReviewedGameRename } = await import('./game-rename-scope.mjs');
-  const head = '9ff200ec8039a39b39994f17edf791d1d7a73c3b';
+  const head = 'ff34bc7c74d5643f78b05c7b1b0135ea0c59ed62';
   const git = (...args) =>
     execFileSync('git', args, {
       cwd: new URL('../', import.meta.url),
@@ -78,10 +78,14 @@ test('saved Pages retirement plus rename binds exact files and retains every sur
     assert(!hasLocalRetirementFileProof(file, cloned.get(file), context.readHead));
     for (const reader of ['readBase', 'readHead'])
       assert.equal(
-        localRetirementFileScopes({
-          ...context,
-          [reader]: (name) => context[reader](name) + (name === file ? '\nextra' : ''),
-        }).size,
+        localRetirementScopesForReview(
+          {
+            ...context,
+            [reader]: (name) => context[reader](name) + (name === file ? '\nextra' : ''),
+          },
+          trees,
+          reviews,
+        ).size,
         0,
         `${file}: ${reader} drift`,
       );
@@ -97,7 +101,22 @@ test('saved Pages retirement plus rename binds exact files and retains every sur
   assert.deepEqual(scopes.get('apps/shell-web/scripts/standalone-game-checks.mjs'), [
     ...shellAndGame,
     'games/local/flick-arena',
+    'games/local/waterline-station',
+    'games/local/tianxia-chalu',
   ]);
+  for (const file of ['scripts/standalone-game-entry.mjs', 'src/game-assessments.json'])
+    assert.deepEqual(scopes.get('apps/shell-web/' + file), [
+      ...shellAndGame,
+      'games/local/waterline-station',
+    ]);
+  for (const file of [
+    'apps/shell-web/scripts/pages-smoke.mjs',
+    'apps/shell-web/src/StandaloneGame.tsx',
+    'apps/shell-web/tests/standalone-immersive.integration.test.tsx',
+    'apps/shell-web/tests/standalone.integration.test.tsx',
+    'scripts/test-game-dev-mode.mjs',
+  ])
+    assert.deepEqual(scopes.get(file), [...shellAndGame, 'games/local/waterline-station']);
   for (const file of ['src/game-sharing.ts', 'tests/game-sharing.test.tsx'])
     assert.deepEqual(scopes.get('apps/shell-web/' + file), [
       ...shellAndGame,
@@ -157,6 +176,16 @@ test('saved Pages retirement plus rename binds exact files and retains every sur
     }
   }
   assert.equal(renamed, 216);
+  // A changed surviving file loses the cumulative proof, while the separately
+  // verified retired tree keeps the remote branch's independent deletion proof.
+  const shared = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+  const drifted = localRetirementFileScopes({
+    ...context,
+    readHead: (file) => context.readHead(file) + (file === shared ? '\nextra' : ''),
+  });
+  assert(!drifted.has(shared));
+  for (const file of deleted)
+    assert(isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, drifted), file);
   for (const override of [
     { baseCommit: head },
     { readBaseEntry: (file) => (file === root ? '' : context.readBaseEntry(file)) },

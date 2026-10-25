@@ -58,18 +58,18 @@ export const gameRenameReviews = Object.freeze({
     sources: ['games/local/place-and-clear', 'apps/shell-minigame'],
   },
   'apps/shell-web/scripts/pages-smoke.mjs': {
-    before: '3d6053ceaca61859f6a807932be4632a431c54ea7be6ce728010ec3aa024409e',
-    after: '81f6ab429efd3c6f39840fdd9cf69526a430582429ddaaba2bc008c6c93bbb94',
+    before: '62a90e8c15e8cb505a0fcf4b068237f245ca7a8bc4c301f649b52f2640ce09bf',
+    after: '5ade3cc3e03d6c3fda73f7bba3d0acb5e266a0444b0ac76ce929f278d1cf6978',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/scripts/standalone-game-checks.mjs': {
-    before: '679bbdacf0838a00591b56fc157d72fbd39a9d291775e8146be5cd0a102dc5d7',
-    after: '446e8765fbb066a3fc54b587fbad4b47ec91149cc2056c0569131dc99bb606a0',
+    before: '0055915b02778addb399b0823ec84b2e43ee5ef2472d2363f71c8eb1b8f4488a',
+    after: '6077695801dd1d07ee476a90583bd6140964792d11161b149c2d84ef00acea57',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/scripts/standalone-game-entry.mjs': {
-    before: '7bddd0e019ba2ad26c232f953908f3b27f8feef61c76e0dcb95f03be9dbe5027',
-    after: '61dcf54befe778203207cfc8cada910f7f8ba8b32845ac58d5257afb2defa89a',
+    before: '4678e547fdc9060a5615214c481b529c29b5d19912b647a1b5b3b5189de766ca',
+    after: 'edf3241e0c8e5518462727e69683f541388808146e3c28d0358a9cc96466dc00',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/scripts/standalone-game-entry.test.mjs': {
@@ -78,13 +78,13 @@ export const gameRenameReviews = Object.freeze({
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/src/StandaloneGame.tsx': {
-    before: 'a4618a25ec15ce38c17623aa988b68d6c80409bb162eb5f48280a492bc6a8d1c',
-    after: 'c62c400289ee03fc0e2560e033a27f735ec3018742150bbb4dc374ed407dc9fc',
+    before: 'da70ac48ecb89a7679d8261823302962797ece9bb2ae3fcd7a9fa54af1706716',
+    after: 'df1047df93eb138088b789445579398a918debe6aa761c6c62dd130685b63e48',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/src/game-assessments.json': {
-    before: '81db3e7027aa5762a267b7f431eb8810d3abfcfc8cc1ca96b858a5ee1af98bcf',
-    after: '2aa6a324ac58a9e1d00678a1c64aeb541f0a3d7d5bcbf283d6ff668c8895a9e7',
+    before: '3cfca241e68bebbf5c47fdc46e23f9260f7e021f18eba395b1781a3707cb7427',
+    after: '28a60007f3c4db38d1702d163fe50fb6c2abf75d6b5a93ac6d91c8ab71f2a763',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/src/game-route.ts': {
@@ -113,13 +113,13 @@ export const gameRenameReviews = Object.freeze({
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/tests/standalone-immersive.integration.test.tsx': {
-    before: 'eb5561286268f0004e75f0f528e08a3db5120959cb13105f82aa9b7f283cd27f',
-    after: '3cfd2916137b2652682b23f441da036eab0a4ba53bb8f73213a881a70e79fd65',
+    before: '6d4f04537bfae4a507e699754543ad526e3dc3b9c9845c22001b43bd8dd25848',
+    after: 'ff9be88547e36172b48f87518b4f7c370c1badfacf9cb21444892f76e432073e',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/tests/standalone.integration.test.tsx': {
-    before: 'd82ceb3fad5e81f1f9fce82eeba48ddee1978d77638ddcc41a971339e5887e0c',
-    after: '858c256299e29d1eec65277fda77b82a0e180c56758206738356d237ef541d77',
+    before: '71ccbfbe44b8cec3a156587da51e8b82b735978edc6bdb30e53b00dc043d2f39',
+    after: '6d7521a9af1d93bb18361a1c514318d1b8001d499bae3493a757ccaec78dc9bc',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'game-build.local.mjs': {
@@ -233,8 +233,8 @@ export const gameRenameReviews = Object.freeze({
     sources: ['games/local/place-and-clear'],
   },
   'scripts/test-game-dev-mode.mjs': {
-    before: 'd13197ae582a50792dd82a7aaa796e55d7913f1144a1b977d98ef9f0317e20e0',
-    after: 'b6f277d93c742f9685403facbd9157025d4cf209caa6e045df191e5dbb73aace',
+    before: '10e2222567553044a1b73545960654384e537976e59dbf97d525a9d6182e5d53',
+    after: '78dfd0740cfe543a05dbae3e3e24a5df1748305bb86238f6e8091be206191d3a',
     sources: ['games/local/place-and-clear'],
   },
   'scripts/validate-tree.test.mjs': {
