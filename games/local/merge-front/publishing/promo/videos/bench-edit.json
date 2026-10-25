@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-25",
+  "sourceHash": "909297d55a44db864ac0ad6c30a29c4758399c6abe32c76530f7e05e2e2ad6e1",
+  "method": "Existing title illustration, then current actual Creator touch recordings at original speed; no audio; seeded legal saves; separate matches are cut together",
+  "gameplay": {
+    "file": "reports/browser/videos/shop-flow.webm",
+    "start": 15,
+    "duration": 30
+  },
+  "promo": [
+    {
+      "file": "publishing/promo/images/round-formation-landscape.png",
+      "start": 0,
+      "duration": 3,
+      "still": true
+    },
+    {
+      "file": "reports/browser/videos/shop-flow.webm",
+      "start": 15,
+      "duration": 8,
+      "still": false
+    },
+    {
+      "file": "reports/browser/videos/shop-showcase.webm",
+      "start": 2.5,
+      "duration": 5,
+      "still": false
+    },
+    {
+      "file": "reports/browser/videos/crystal-0.webm",
+      "start": 3,
+      "duration": 2,
+      "still": false
+    }
+  ]
+}

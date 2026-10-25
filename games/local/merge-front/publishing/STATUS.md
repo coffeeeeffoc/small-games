@@ -1,28 +1,23 @@
 # 神机合阵发布资料
 
-- Game ID：merge-front；更新时间：2026-10-23。
-- 对应版本：商店/流派/法术改版，规则3、内容2、对局v4；Creator源码指纹 `312ff45582619a9bc5a152aba7742a2d8904385ef77b0972dd283c293aad0076`，提交身份随本目录所在提交固定。
-- 目标：横屏手机 Web / H5 基础素材。当前阶段：素材整理与 dev 发布准备；未向渠道提交审核。
-- 闭环：已成立。三选一开局 → 商店买卖/配字/施法 → 实际触屏拖动布阵/合并 → 开战锁阵 → 六种攻晶演出 → 收入递增再整备。胜负/重试、暂停及刷新恢复通过。见 [浏览器记录](gameplay/shop-browser-report.json) 和 [验证说明](../docs/design/shop-synergies-2026-10-23/VALIDATION.md)。
-- 下一步：核对 dev CI/Pages，正式提审前按指定渠道尺寸及真机要求验收。
+- Game ID：merge-front；更新时间：2026-10-25。
+- 当前版本：点击直接购买、全区域长按详情、棋盘下方备战手牌与独立底部商店。规则3、内容2、对局v4不变；运行源码指纹 `909297d55a44db864ac0ad6c30a29c4758399c6abe32c76530f7e05e2e2ad6e1`，开发提交身份随所在Git提交固定。
+- 目标：横屏手机 Web / H5 基础素材。闭环为三选一开局 → 点击购买/配字/施法 → 触屏拖动布阵/合并 → 开战锁阵 → 攻晶结算 → 收入递增再整备，支持胜负重试、暂停和刷新恢复。
+- 证据：[本轮浏览器报告](gameplay/bench-browser-report.json)、[验证说明](../docs/design/shop-synergies-2026-10-23/VALIDATION.md)。19组真实Creator浏览器记录通过；43项自动测试通过。下一步按正式发布渠道要求验收真机与广告，CI/Pages部署结果单独核对。
 
-| 类别 | 状态 | 文件与规格 | 最近验证 |
+| 类别 | 状态 | 当前文件与规格 | 最近验证 |
 | --- | --- | --- | --- |
-| 游戏简介 | 已提供 | [简介](copy/introduction.md)，UTF-8 | 2026-10-23，核对当前实现 |
-| 一句话推荐语 | 已提供 | [推荐语](copy/tagline.md)，UTF-8 | 同上 |
+| 游戏简介 | 已提供 | [简介](copy/introduction.md)，UTF-8，含点击购买/长按详情 | 2026-10-25，核对当前实现 |
+| 一句话推荐语 | 已提供 | [推荐语](copy/tagline.md)，UTF-8 | 2026-10-25，沿用仍适用内容 |
 | 开发者的话 | 已提供 | [开发说明](copy/developer-note.md)，UTF-8 | 同上 |
-| 图标 | 已提供 | [哪吒图标](icon/nezha-1254-square.png)，1254×1254 PNG，不透明 | 2026-10-23，实际打开检查 |
-| 宣传图 | 已提供 | [主视觉](promo/images/round-formation-landscape.png)，1672×941 PNG，插画而非游戏截图 | 2026-10-23，实际打开检查 |
-| 宣传视频 | 已提供 | [短片](promo/videos/shop-synergies-1280x720.mp4)，1280×720 H.264，无声，21.12秒；主视觉片头+买卖布阵/战斗/六种攻晶实际片段，剪辑表见 shop-edit.json | 2026-10-23，ffprobe规格与解码帧检查 |
-| 游戏内截图 | 已提供 | [商店整备](gameplay/screenshots/shop-planning.png)、[战斗](gameplay/screenshots/shop-battle.png)、[暂停](gameplay/screenshots/shop-pause.png)、[巨刃攻晶](gameplay/screenshots/shop-crystal-sword.png)，1152×540 PNG；另有首页、次回合、拖动原位消失和结算 | 2026-10-23，真实Creator Web运行与人工查看 |
-| 游戏内视频 | 已提供 | [实际录屏](gameplay/videos/shop-synergies-1152x540.mp4)，1152×540 H.264，无声，26.04秒 | 2026-10-23，Chromium触屏操作录制，ffprobe与解码帧检查 |
+| 图标 | 已提供 | [哪吒图标](icon/nezha-1254-square.png)，1254×1254 PNG，不透明 | 2026-10-23，已打开核对；本轮沿用 |
+| 宣传图 | 已提供 | [主视觉](promo/images/round-formation-landscape.png)，1672×941 PNG，插画而非游戏截图 | 同上 |
+| 宣传视频 | 已更新 | [交互短片](promo/videos/bench-interaction-1280x720.mp4)，1280×720 H.264，无声，18秒；插画片头+当前真实触屏操作/战斗/攻晶 | 2026-10-25，ffprobe及解码帧核对；片段见bench-edit.json |
+| 游戏内截图 | 已更新 | [整备](gameplay/screenshots/bench-planning.png)、[战斗](gameplay/screenshots/bench-battle.png)、[商品详情](gameplay/screenshots/bench-long-press-shop.png)、[场上详情](gameplay/screenshots/bench-long-press-own.png)，1152×540；另含568×320分页/购入与320×568旋转详情 | 2026-10-25，实际Creator Web与人工查看 |
+| 游戏内视频 | 已更新 | [实际操作](gameplay/videos/bench-interaction-1152x540.mp4)，1152×540 H.264，无声，30秒 | 2026-10-25，Chromium触屏录屏、规格与解码帧核对 |
 
-素材 SHA-256、字节数和逐文件尺寸见 [清单](media-manifest.json)。图标、宣传插画、场景/水晶沿用已核对素材；角色运行图集和六种攻晶法器重新通过内置 image_gen 生成。表现为有体积感的2.5D精灵，未采用骨骼3D模型。宣传图按玩法作艺术表现，不作为实际截图。
+逐文件尺寸、SHA-256与字节数见 [清单](media-manifest.json)。图标、插画、场景、水晶及2.5D角色图集沿用，不是骨骼3D。本轮bench-*媒体来自当前真实Creator产物，shop-*与round-formation-*保留为历史媒体。
 
-录屏来自真实Creator生产包和触摸输入；主流程使用种子18的正常开局，包含买卖、刷新、配字、施法和取消/无效落点验证，原始视频保留对应提示。第三回合展陈由种子37按生产AI合法打完两轮再购买生成；六种攻晶及结算由合法命令运行到相应时刻恢复，并未虚构单位或战果。宣传片组合了这些不同对局，剪辑表明确片段来源。手机浏览器模拟不等同于物理设备、微信/抖音/B站真机或真实广告填充。基础素材没有待制作项；渠道审核和真机验收尚未执行。
+主流程采用种子18合法开局，录屏包含购买、长按、配字及拖动交互，也保留无效操作的真实反馈；第三轮展陈用种子37通过生产AI和合法购买生成。小屏多页手牌同样由合法回合/购买累积。宣传片拼接不同对局，均未虚构单位、战果或加速。详见 [剪辑表](promo/videos/bench-edit.json)。
 
-本轮概念图、三角色交叉审查与256局AI平衡对照保留在 docs/design/shop-synergies-2026-10-23。上一轮正式截图/视频和证据原样保留，与本轮shop-*文件分开。
-
-## 2026-10-24 H5 激励接线
-
-已接入统一 H5 构建的可选奖励端口；广告位为空时保持关闭，免费玩法可用。本轮奖励位置、配置与验证边界见[通用接入表](../../../../docs/operations/taptap-rewarded-ads.md#十三款可选激励接入2026-10-24)。现有八类素材保留；本次不代表平台广告开通、库存或真机验收完成。
+手机浏览器模拟不等同于物理设备和微信/抖音/B站真机。八类基础资料已备齐，尚未提交渠道审核；真实广告填充、原生渠道打包和真机验收未执行。既有可选H5激励接线继续生效，空广告位关闭奖励入口且免费玩法可用，见[接入表](../../../../docs/operations/taptap-rewarded-ads.md#十三款可选激励接入2026-10-24)。
