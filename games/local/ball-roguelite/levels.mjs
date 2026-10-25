@@ -1,4 +1,4 @@
-// Game-owned content: rows arrive from top to bottom; zero means empty space.
+// Game-owned content: rows enter at the bottom and rise toward the launcher; zero means empty space.
 export const SCHEMA_VERSION = 1;
 export const UPGRADES = Object.freeze([
   {

@@ -229,8 +229,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     const initial = await snapshot();
     const bounds = await arena.boundingBox();
     const page = arena.page();
-    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.92 };
-    const target = { x: bounds.x + bounds.width * 0.35, y: bounds.y + bounds.height * 0.25 };
+    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.08 };
+    const target = { x: bounds.x + bounds.width * 0.35, y: bounds.y + bounds.height * 0.75 };
     if (mobile) {
       const touch = await page.context().newCDPSession(page);
       try {

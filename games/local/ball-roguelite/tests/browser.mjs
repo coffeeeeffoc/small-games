@@ -9,7 +9,8 @@ import { LEVELS } from '../levels.mjs';
 import { STORAGE_KEY } from '../storage.mjs';
 
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
-const evidence = fileURLToPath(new URL('../docs/design/endless-clarity/actual/', import.meta.url));
+const evidence = fileURLToPath(new URL('../outputs/gravity-drop/', import.meta.url));
+const publishing = fileURLToPath(new URL('../publishing/', import.meta.url));
 await mkdir(evidence, { recursive: true });
 const mime = {
   '.html': 'text/html',
@@ -54,7 +55,7 @@ const browser = await chromium.launch({
 });
 const report = {
   environment:
-    'Linux Chromium mobile touch emulation, production dist; not physical-device validation',
+    'Chromium mobile touch emulation, production dist; not physical-device validation',
   fixtures:
     'Explicit saved-board fixtures test rare states; ad callbacks use a declared local SDK fixture, never a real advertising SDK.',
   browser: browser.version(),
@@ -137,7 +138,7 @@ async function shot(page, dx, dy, cancel = false) {
   const state = await snap(page),
     box = await page.locator('#arena').boundingBox();
   assert.equal(state.phase, 'aim', 'only aim may launch a real gesture');
-  const baseY = FIELD.floor - FIELD.radius - 1;
+  const baseY = FIELD.launchY;
   const scale = Math.min(
     1,
     dx < 0
@@ -145,9 +146,9 @@ async function shot(page, dx, dy, cancel = false) {
       : dx > 0
         ? (FIELD.right - 3 - state.launchX) / dx
         : 1,
-    dy < 0 ? (baseY - FIELD.top - 3) / -dy : 1,
+    dy > 0 ? (FIELD.floor - 3 - baseY) / dy : 1,
   );
-  assert(scale > 0 && dy * scale < -6, 'planned direction remains valid within the touch board');
+  assert(scale > 0 && dy * scale > 6, 'planned direction remains valid within the touch board');
   const map = (x, y) => ({ x: box.x + (x * box.width) / 390, y: box.y + (y * box.height) / 620 });
   // Chromium 140 clears touch emulation when an input CDP session detaches.
   // Keep one per page until its context closes, including across reloads.
@@ -168,6 +169,11 @@ async function shot(page, dx, dy, cancel = false) {
     type: 'touchMove',
     touchPoints: [map(state.launchX + dx * scale, baseY + dy * scale)],
   });
+  await expect.poll(async () => (await snap(page)).aimPower).toBeGreaterThan(0);
+  if (!report.aimCapture) {
+    await capture(page, 'aim-390');
+    report.aimCapture = true;
+  }
   await cdp.send('Input.dispatchTouchEvent', {
     type: cancel ? 'touchCancel' : 'touchEnd',
     touchPoints: [],
@@ -181,6 +187,7 @@ async function shot(page, dx, dy, cancel = false) {
       { message: cancel ? 'cancelled touch must not launch' : 'touchEnd must launch exactly once' },
     )
     .toEqual({ aiming: false, shots: state.shots + (cancel ? 0 : 1) });
+  return snap(page);
 }
 async function capture(page, name, scene = page) {
   // Semantic controls update before Cocos submits its new display list.
@@ -249,6 +256,7 @@ async function open({
   ads = false,
   query = '',
   blocked = false,
+  record = false,
 } = {}) {
   if (active) await active.close();
   active = await browser.newContext({
@@ -256,6 +264,7 @@ async function open({
     isMobile: true,
     hasTouch: true,
     deviceScaleFactor: 2,
+    ...(record ? { recordVideo: { dir: path.join(publishing, 'gameplay/videos'), size: viewport } } : {}),
   });
   await active.addInitScript(
     ({ initial, key, ads, blocked }) => {
@@ -353,14 +362,14 @@ function plan(state) {
     if (state[key] !== undefined) game[key] = structuredClone(state[key]);
   const angles = Array.from(
     { length: 25 },
-    (_, index) => -Math.PI + PHYSICS.minAngle + (index * (Math.PI - 2 * PHYSICS.minAngle)) / 24,
+    (_, index) => PHYSICS.minAngle + (index * (Math.PI - 2 * PHYSICS.minAngle)) / 24,
   );
   const directions = [
     ...angles.map((angle) => ({ x: Math.cos(angle) * 500, y: Math.sin(angle) * 500 })),
     ...game.bricks
       .filter((brick) => brick.hp > 0 && brick.kind !== 'pickup')
       .map(brickCenter)
-      .map((point) => ({ x: point.x - game.launchX, y: point.y - FIELD.floor + FIELD.radius + 1 })),
+      .map((point) => ({ x: point.x - game.launchX, y: point.y - FIELD.launchY })),
   ];
   let best;
   for (const direction of directions) {
@@ -372,7 +381,9 @@ function plan(state) {
           ? (FIELD.right - 3 - game.launchX) / direction.x
           : 1,
     );
-    if (direction.y * scale >= -6) continue;
+    if (direction.y * scale <= 6) continue;
+    direction.x *= scale;
+    direction.y *= scale;
     const trial = structuredClone(game);
     trial.events = [];
     if (!fire(trial, direction.x, direction.y)) continue;
@@ -467,10 +478,10 @@ try {
   await targets(page, '#playing button');
   await capture(page, 'play-390');
   const before = await snap(page);
-  await shot(page, -65, -410, true);
+  await shot(page, 65, 410, true);
   assert.equal((await snap(page)).shots, before.shots);
   assert.equal((await snap(page)).aiming, false);
-  await shot(page, -65, -410);
+  await shot(page, 65, 410);
   await expect.poll(async () => (await snap(page)).collisionCount).toBeGreaterThan(0);
   await capture(page, 'impact-390');
   await page.locator('#settings-button').tap();
@@ -600,7 +611,7 @@ try {
   await page.locator('#confirm-cancel').tap();
   assert.deepEqual(simulation(await snap(page)), simulation(fresh));
   assert.deepEqual(await saved(page), unchangedSave);
-  await shot(page, 0, -400);
+  await shot(page, 0, 400);
   await page.locator('#recall').tap();
   await settle(page);
   const previousRun = await snap(page);
@@ -691,7 +702,7 @@ try {
     await centered(page);
     await targets(page, '#confirm button');
     await page.locator('#confirm-cancel').tap();
-    await shot(page, -30, -400);
+    await shot(page, 30, 400);
     assert.equal((await snap(page)).shots, 1);
     await page.locator('#pause').tap();
     const paused = await frozen(page, 'paused');
@@ -711,14 +722,14 @@ try {
   const glass = createGame('endless', { seed: 62 });
   glass.count = 1;
   glass.bricks = [
-    // Keep the damaged glass above the centered pause panel so its evidence stays visible.
+    // Keep the damaged glass below the centered pause panel so its evidence stays visible.
     { id: 99, c: 3, r: 0, kind: 'brick', hp: 2, maxHp: 2 },
     { id: 100, c: 0, r: 1, kind: 'brick', hp: 90, maxHp: 90 },
   ];
   glass.nextId = 101;
   page = await open({ run: glass });
   await page.locator('#start').tap();
-  await shot(page, 0, -400);
+  await shot(page, 0, 400);
   await expect
     .poll(async () => (await snap(page)).visuals.cracked, { intervals: [20, 20, 20] })
     .toBeGreaterThan(0);
@@ -726,10 +737,7 @@ try {
   await capture(page, 'damage-cracks-390');
   assert((await snap(page)).visuals.cracked > 0);
   await page.locator('#resume').tap();
-  await settle(page);
-  assert((await snap(page)).visuals.returns > 0);
   const glassPauseBox = await page.locator('#pause').boundingBox();
-  await shot(page, 0, -400);
   await expect
     .poll(async () => (await snap(page)).visuals.shards, { intervals: [16, 16, 16] })
     .toBeGreaterThan(0);
@@ -744,6 +752,7 @@ try {
   await capture(page, 'crystal-shards-390');
   await page.locator('#resume').tap();
   await settle(page);
+  assert((await snap(page)).visuals.returns > 0);
   report.checks.push(
     'explicit two-hit glass fixture uses real launches: visible cracks, six-piece crystal shatter, clear breaking audio and animated natural returns reported by scene statistics',
   );
@@ -755,7 +764,7 @@ try {
   page = await open({ run: absorber });
   await page.locator('#start').tap();
   const inventory = (await snap(page)).count;
-  await shot(page, 0, -400);
+  await shot(page, 0, 400);
   await expect
     .poll(async () => (await snap(page)).visuals.absorptions, { intervals: [20, 20, 20] })
     .toBeGreaterThan(0);
@@ -802,7 +811,7 @@ try {
     if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.locator('#start').tap();
     const pauseTarget = await page.locator('#pause').boundingBox();
-    await shot(page, 0, -400);
+    await shot(page, 0, 400);
     await expect
       .poll(async () => (await snap(page)).visuals[`${effect}s`], { intervals: [16, 16, 16] })
       .toBeGreaterThan(0);
@@ -824,7 +833,7 @@ try {
   returning.bricks = [];
   page = await open({ run: returning });
   await page.locator('#start').tap();
-  await shot(page, 150, -12);
+  await shot(page, 150, 12);
   await expect.poll(async () => (await snap(page)).shots).toBe(1);
   const pauseBox = await page.locator('#pause').boundingBox();
   await page.locator('#pause').tap();
@@ -853,17 +862,17 @@ try {
     recalling.balls.length > 0 && recalling.balls.some((ball) => ball.returning),
     'recall visibly retains returning marbles',
   );
-  assert(hint.includes('召回'));
+  assert(hint.includes('向下回收'));
   assert.equal(movingBack.phase, 'recall');
   assert(
     movingBack.balls.some((ball) => {
       const previous = recalling.balls.find((other) => other.id === ball.id);
-      return previous && Math.hypot(ball.x - previous.x, ball.y - previous.y) > 0.1;
+      return previous && ball.x === previous.x && ball.y > previous.y + 0.1;
     }),
-    'returning marbles visibly travel before settlement',
+    'collected marbles only travel downward before settlement',
   );
   assert.equal(pausedRecall.phase, 'recall');
-  assert(pausedRecall.balls.length > 0, 'manual recall is not instant deletion');
+  assert(pausedRecall.balls.length > 0, 'manual collection waits for floor contact');
   await capture(page, 'manual-recall-390');
   await page.locator('#resume').tap();
   await settle(page);
@@ -873,8 +882,41 @@ try {
   assert.equal(returned.balls.length, 0);
   await capture(page, 'marbles-returned-390');
   report.checks.push(
-    'actual shallow-angle touch is accepted; recall remains visible with moving marbles, pauses exactly, resumes and settles only after return animation',
+    'actual shallow-angle touch is accepted; recall visibly drops marbles downward, pauses exactly, resumes and settles only after return animation',
   );
+
+  const powerBoard = createGame('endless');
+  powerBoard.count = 1;
+  powerBoard.bricks = [];
+  page = await open({ run: powerBoard });
+  await page.locator('#start').tap();
+  const near = await shot(page, 0, 80);
+  await page.locator('#recall').tap();
+  await settle(page);
+  const far = await shot(page, 0, 400);
+  assert(far.launchSpeed > near.launchSpeed + 300);
+  assert.equal(far.launchY, FIELD.launchY);
+  assert(far.balls.some((b) => b.vy > 0));
+  report.power = { near: near.launchSpeed, far: far.launchSpeed };
+  report.checks.push('real touch release at 80/400 logical pixels produces different initial speeds from the top dock');
+
+  const previewBoard = createGame('endless');
+  previewBoard.bricks = [
+    { id: 99, c: 3, r: 8, kind: 'brick', hp: 99, maxHp: 99 },
+    { id: 100, c: 1, r: 7, kind: 'brick', hp: 99, maxHp: 99 },
+  ];
+  previewBoard.nextId = 101;
+  page = await open({ run: previewBoard, ads: true });
+  await page.locator('#start').tap();
+  const beforeClear = await shot(page, 0, 400, true);
+  await page.locator('#supply').tap();
+  await requestAd(page, '#reward-rescue', 'completed');
+  await expect(page.locator('#reward-status')).toContainText('两行已清除');
+  await page.locator('#supply-back').tap();
+  const afterClear = await shot(page, 0, 400, true);
+  assert.equal(afterClear.turn, beforeClear.turn);
+  assert(afterClear.visuals.aimEnd.y > beforeClear.visuals.aimEnd.y + 100);
+  report.checks.push('rescue updates the cached aim trajectory at identical release coordinates within the same turn');
 
   const rescue = createGame('endless', { seed: 88 });
   rescue.bricks = [
@@ -900,7 +942,7 @@ try {
   const recallsBefore = (await snap(page)).visuals.recalls;
   // The vertical volley returns in under a second. Launch left at a shallow angle
   // and tap the stable control directly so actionability waits cannot miss flight.
-  await shot(page, -150, -12);
+  await shot(page, 150, 12);
   await page.touchscreen.tap(recallBox.x + recallBox.width / 2, recallBox.y + recallBox.height / 2);
   await expect
     .poll(async () => (await snap(page)).visuals.recalls, {
@@ -938,7 +980,7 @@ try {
   await page.evaluate(() => window.__finishAd({ status: 'completed' }));
   assert.equal((await snap(page)).rewards.resonance, 0);
   await leave(page);
-  page = await open({ query: '/?challenge=orbit-v3&level=stardust&seed=88&targetScore=12&dev=0' });
+  page = await open({ query: '/?challenge=orbit-v4&level=stardust&seed=88&targetScore=12&dev=0' });
   await page.locator('#challenge-orbit').tap();
   assert.equal((await snap(page)).challenge, true);
   assert(await page.locator('#supply').isDisabled());
@@ -947,7 +989,7 @@ try {
   );
   page = await open({ blocked: true, query: '/?dev=0' });
   await page.locator('#start').tap();
-  await shot(page, 0, -400);
+  await shot(page, 0, 400);
   assert.equal((await snap(page)).shots, 1);
   report.checks.push('blocked storage remains playable');
   page = await open({ query: '/?dev=1' });
@@ -993,6 +1035,42 @@ try {
   report.checks.push(
     'non-BFCache teardown releases the scene and pauses Cocos without closing the script-opened window',
   );
+
+  // Publication footage uses a normal new run and real touch only, without a saved-board fixture.
+  page = await open({ record: true });
+  const video = page.video(), actions = [];
+  await capture(page, 'publish-home-390');
+  await page.locator('#endless-button').tap();
+  await capture(page, 'publish-endless-390');
+  for (let round = 0; round < 2; round++) {
+    const before = await snap(page), direction = plan(before);
+    const launched = await shot(page, direction.x, direction.y);
+    await page.waitForTimeout(1500);
+    await capture(page, `publish-flight-${round}-390`);
+    if ((await snap(page)).phase === 'flight') {
+      await page.locator('#pause').tap();
+      await frozen(page, 'paused');
+      await capture(page, 'publish-paused-390');
+      await page.locator('#resume').tap();
+      await page.waitForTimeout(1500);
+      if (round === 1 && (await snap(page)).phase === 'flight') {
+        await page.locator('#recall').tap();
+        await page.waitForTimeout(180);
+        await capture(page, 'publish-recall-390');
+      }
+    }
+    await settle(page);
+    actions.push({ before, direction, launched, after: await snap(page) });
+    await capture(page, 'publish-next-turn-390');
+  }
+  await active.close();
+  active = null;
+  await video.saveAs(path.join(publishing, 'gameplay/videos/gravity-drop-390x844.webm'));
+  await video.delete();
+  await writeFile(path.join(publishing, 'gravity-capture-report.json'), JSON.stringify({
+    date: '2026-10-25', environment: report.environment, fixture: false, actions,
+  }, null, 2));
+  report.checks.push('normal endless play recorded at 390x844 with real touch, natural floor collection, downward manual collection, pause and next turn');
   assert.deepEqual(report.errors, []);
   report.passed = true;
 } finally {
