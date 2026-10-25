@@ -601,7 +601,7 @@ export class MergeFront extends Component {
     else if (this.screen === 'result') this.resultView();
     else if (this.screen === 'help') this.helpView();
     else if (this.screen === 'settings') this.settingsView();
-    if (this.feedbackUntil > this.time) {
+    if (this.feedbackUntil > this.time && !this.hoverInfo) {
       u.panel(210, 84, 540, 52, '#102f2beb', C.gold, 16, 6);
       u.text('toast', this.feedback, 480, 110, 22, 520, C.paper, 7, 48);
     }

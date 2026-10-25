@@ -365,6 +365,44 @@ try {
     await saveVideo(page, 'shop-showcase');
     evidence.push({ case: 'legal-third-round-showcase', result: 'passed' });
   }
+  // Build a crowded inventory entirely through legal rounds and purchases.
+  const crowded = createMatch('level-01', 18);
+  assert(
+    command(crowded, 0, { type: 'deploy', card: crowded.sides[0].hand[0].id, x: 300, y: 180 }).ok,
+  );
+  for (let round = 0; round < 3; round++) {
+    for (const offer of [...crowded.sides[0].shop])
+      command(crowded, 0, { type: 'buy', offer: offer.id });
+    assert(command(crowded, 0, { type: 'startRound' }).ok);
+    while (crowded.roundStage !== 'planning' && crowded.phase === 'running') step(crowded);
+  }
+  {
+    const { context, page } = await open(
+      { width: 568, height: 320 },
+      loadFixture,
+      fixture(crowded),
+    );
+    await tap(page, 'start');
+    await tap(page, 'hand-next');
+    assert.equal((await state(page)).handPage, 1);
+    await shot(page, 'bench-page-two-568');
+    await tap(page, 'hand-prev');
+    const before = (await state(page)).match.sides[0];
+    const existing = new Set([
+      ...before.hand.map((c) => 'card:' + c.id),
+      ...before.spells.map((c) => 'spell:' + c.id),
+    ]);
+    const offer = before.shop.find((o) => o.kind !== 'part' && o.cost <= before.coins);
+    assert(offer, 'legal purchase available for pagination check');
+    await tap(page, 'offer:' + offer.id);
+    const after = await state(page);
+    const added = after.controls.find((c) => /^(card|spell):/.test(c.id) && !existing.has(c.id));
+    assert(added, 'newly purchased item is visible on its page');
+    await hold(page, added.id, { screenshot: 'bench-new-item-568' });
+    await context.close();
+    await saveVideo(page, 'bench-pagination');
+    evidence.push({ case: 'six-card-pages-and-purchase-reveal-on-small-phone', result: 'passed' });
+  }
   const effects = new Map();
   for (let seed = 0; seed < 100 && effects.size < 6; seed++) {
     const m = createMatch('level-01', seed);
