@@ -2,9 +2,9 @@
   "gameId": "tetracube",
   "version": "2.0.0",
   "creator": "3.8.8",
-  "sourceHash": "c68df948aabcf79be044d845acb848a2815157325f71ed186262239c12559db7",
-  "date": "2026-10-23",
-  "environment": "Windows Chromium, mobile viewport; not native device",
+  "sourceHash": "77e1c1b642a9383ae3f835f8fd070bba92f9b2bef2a438d194e78939d1e84c1c",
+  "date": "2026-10-25",
+  "environment": "Linux Chromium 140.0.7339.186, mobile viewport; verified Windows Creator 3.8.8 artifact; not native device",
   "files": [
     {
       "file": "copy/developer-note.md",
@@ -13,8 +13,8 @@
     },
     {
       "file": "copy/introduction.md",
-      "bytes": 353,
-      "sha256": "efd54518f893ed345c3ffd6b4a6eae37c9b90f21319b4372fde6eb6d260f7576"
+      "bytes": 374,
+      "sha256": "0729cc4f64b646bdfe5c2d110e0448205780aa78bcf99d53529b625c3b3b5316"
     },
     {
       "file": "copy/tagline.md",
@@ -28,33 +28,33 @@
     },
     {
       "file": "gameplay/screenshots/home-390x844.png",
-      "bytes": 266578,
-      "sha256": "743b5992c761a80650ec626108eb9eb89319660d0c20562cf8f7e23a1cc89fc6"
+      "bytes": 262186,
+      "sha256": "c8efd0a3e366a87c551eb23c63e1b1d53f82c343b76d0549e6bbe37c808d8a26"
     },
     {
       "file": "gameplay/screenshots/paused-390x844.png",
-      "bytes": 96354,
-      "sha256": "201d6ff7c954db6478c7b0dfd4f0515029c9fadc91fcc86cbc273de21b9bdac2"
+      "bytes": 106834,
+      "sha256": "d517e9225aa7b7713a9f95b65713604b53a3c4b8691aa746d1fffbbb825b5a09"
     },
     {
       "file": "gameplay/screenshots/play-390x844.png",
-      "bytes": 261766,
-      "sha256": "1165ae4ab844a46cba6c1d6103cae9fb4795b0079beac52cf2b42e2767890f1d"
+      "bytes": 266314,
+      "sha256": "eb47e253a0b42acdbeb17c7a2c1d39fd0820aa770b2124fa3c94621b8f8d8303"
     },
     {
       "file": "gameplay/videos/real-play-390x844.webm",
-      "bytes": 1034746,
-      "sha256": "9a34a88ccbe8074336077f03ae2ad4ffd76f13272d90fd1f0bee667330991f56"
+      "bytes": 1885674,
+      "sha256": "b89db0773c33336ad4cbabee0f546e6688b74a1b00bc1bf56554ee747eba8630"
     },
     {
       "file": "promo/images/tetracube-home-390x844.png",
-      "bytes": 266578,
-      "sha256": "743b5992c761a80650ec626108eb9eb89319660d0c20562cf8f7e23a1cc89fc6"
+      "bytes": 262186,
+      "sha256": "c8efd0a3e366a87c551eb23c63e1b1d53f82c343b76d0549e6bbe37c808d8a26"
     },
     {
       "file": "promo/videos/tetracube-preview-390x844.mp4",
-      "bytes": 469488,
-      "sha256": "02584ab9fafe8a0779881429a86ab4d9b8e5ffd48f0e6898b7018746fe8eb3a3"
+      "bytes": 524656,
+      "sha256": "8a14840e771a8438f534fb4d2bd9e84c7a5631e9314e223e532e781dc08370dc"
     }
   ]
 }

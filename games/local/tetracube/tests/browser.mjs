@@ -46,7 +46,11 @@ async function press(p, id, mobile = true) {
     x: ((c.x + c.w / 2) * b.width) / s.viewport.width,
     y: ((c.y + c.h / 2) * b.height) / s.viewport.height,
   };
-  await (mobile ? canvas.tap({ position }) : canvas.click({ position }));
+  // Coordinates come from the rendered control and real canvas bounds. Dispatch directly so
+  // locator stability waits do not consume the brief physical-turn animation under test.
+  await (mobile
+    ? p.touchscreen.tap(b.x + position.x, b.y + position.y)
+    : p.mouse.click(b.x + position.x, b.y + position.y));
 }
 async function capture(p, name) {
   await p.screenshot({ path: out + name + '.png' });
@@ -93,9 +97,11 @@ async function dragScene(p, context, mobile, dx, dy, cancel = false, duringAnima
   if (duringAnimation)
     assert(observedDuringAnimation, 'camera rotates while physical animation is still running');
   // Wait for actual geometry to be drawn; camera state alone is insufficient.
-  await p.evaluate(
-    () => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))),
-  );
+  if (duringAnimation) await p.clock.runFor(32);
+  else
+    await p.evaluate(
+      () => new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok))),
+    );
 }
 function assertOrbit(before, after) {
   assert.equal(after.view, 'free');
@@ -185,6 +191,7 @@ async function open({ width = 390, height = 844, mobile = true, save, ad, video 
     { save, ad },
   );
   const page = await context.newPage();
+  await page.clock.install();
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto('http://127.0.0.1:4189/');
   await page.locator('body[data-tetracube-ready="true"]').waitFor({ timeout: 60000 });
@@ -250,6 +257,39 @@ try {
         await dragScene(p, context, true, 32, 24);
         assertOrbit(cancelled, await snap(p));
       }
+      if (width === 390) {
+        const camera = (await snap(p)).camera;
+        const cdp = await context.newCDPSession(p);
+        try {
+          const first = { id: 1, x: 130, y: 300 },
+            second = { id: 2, x: 230, y: 320 };
+          for (const [type, touchPoints] of [
+            ['touchStart', [first]],
+            ['touchStart', [first, second]],
+            [
+              'touchMove',
+              [
+                { ...first, x: 150 },
+                { ...second, x: 250 },
+              ],
+            ],
+            ['touchEnd', [{ ...first, x: 150 }]],
+            ['touchMove', [{ ...first, x: 180 }]],
+            ['touchEnd', []],
+          ])
+            await cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+          assert.deepEqual(
+            (await snap(p)).camera,
+            camera,
+            'second finger cancels orbit until all touches end',
+          );
+        } finally {
+          await cdp.detach();
+        }
+        const fresh = await snap(p);
+        await dragScene(p, context, true, 32, 24);
+        assertOrbit(fresh, await snap(p));
+      }
       await press(p, 'view-iso', mobile);
       await press(p, 'move', mobile);
       const s = await snap(p),
@@ -280,7 +320,11 @@ try {
       await press(p, 'drop', mobile);
       await idle(p);
       assert.equal((await snap(p)).game.placed, 1);
+      // Keep the real engine's animation clock within its first frames while dispatching
+      // real input. Slow software WebGL must not turn this into an after-animation test.
+      await p.clock.pauseAt(new Date(await p.evaluate(() => Date.now() + 100)));
       await press(p, 'invert', mobile);
+      await p.clock.runFor(16);
       const flipping = await snap(p);
       assert(flipping.animating, 'physical inversion animates');
       assert.equal(
@@ -289,18 +333,31 @@ try {
         'observation remains available during inversion',
       );
       await press(p, 'observe', mobile);
+      await p.clock.runFor(16);
       const duringFlip = await snap(p);
       await dragScene(p, context, mobile, 36, 28, false, true);
       assertOrbit(duringFlip, await snap(p));
+      await p.clock.resume();
       await idle(p);
       assert.equal((await snap(p)).game.flipCount, 1);
       assert.equal((await snap(p)).screen, 'playing');
+      const pausedCamera = (await snap(p)).camera;
       await press(p, 'pause', mobile);
       await phase(p, 'paused');
+      // Use an unobstructed scene point; a stale drag must not survive the menu.
+      await p.mouse.move(12, 150);
+      await p.mouse.down();
+      await p.mouse.move(30, 170);
+      await p.mouse.up();
+      assert.deepEqual((await snap(p)).camera, pausedCamera, 'paused input cannot orbit');
       await fits(p);
       await capture(p, 'paused-' + width);
       await press(p, 'resume', mobile);
       await phase(p, 'playing');
+      assert.deepEqual((await snap(p)).camera, pausedCamera, 'resume keeps the observation angle');
+      const resumed = await snap(p);
+      await dragScene(p, context, mobile, 24, 20);
+      assertOrbit(resumed, await snap(p));
       await press(p, 'move', mobile);
       if (width === 390) {
         for (let i = 0; i < 9; i++) {
