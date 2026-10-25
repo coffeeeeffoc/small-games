@@ -22,7 +22,7 @@ function memory(value) {
 function upgradeRun(id) {
   const game = createGame(id, { seed: 20261006 });
   for (let turn = 0; turn < 5; turn++) {
-    fire(game, 0, -400);
+    fire(game, 0, 400);
     recall(game);
   }
   assert.equal(game.phase, 'upgrade');
@@ -113,7 +113,7 @@ test('leaving a flight preserves that mode pre-shot checkpoint and the other mod
   storage.saveRun(campaign);
   storage.saveRun(endless);
   const before = storage.read();
-  fire(endless, 40, -400);
+  fire(endless, 40, 400);
   storage.saveRun(endless);
   assert.deepEqual(createStorage(raw).read(), before);
 });
