@@ -1,6 +1,6 @@
 # 子弹花园 · 上架基础资料
 
-- Game ID：`bullet-garden`；更新日期：2026-10-24。
+- Game ID：`bullet-garden`；更新日期：2026-10-26。
 - 对应素材：鼠标/触摸输入、有目标射击与战斗首页优化批次；截图及录像来自真实 Creator 3.8.8 web-mobile，源指纹 `f8d7e3d9611d6e646c8246d714abe3bfa703b676b35e820a7e9cb99872235e46`。dev 整合保留远端共享奖励广告与生命周期修复，最新源码/构建证据见 [dev 整合验证](../docs/design/garden-input-home-2026-10-24/03-dev-delivery.md)。
 - 目标形态：竖屏手机 Web/H5 基础素材。素材中桌面 Chromium 的触屏模拟不冒充手机或原生平台实机。
 - 基本闭环：已成立。首页 → 选关 → 鼠标/触屏移动、遇敌射击 → 击杀取得强化 → 暂停恢复 → 清场胜利 → 返回/保存重载，另覆盖多指冲刺、失败/技能/重试；[本次验证](../docs/design/garden-input-home-2026-10-24/02-validation.md)。
@@ -12,7 +12,7 @@
 | 游戏简介 | 已提供 | [introduction.md](copy/introduction.md)，中文 UTF-8 | 本次版本，2026-10-24，逐项对照实际功能 |
 | 一句话推荐语 | 已提供 | [tagline.md](copy/tagline.md)，中文 UTF-8 | 同上 |
 | 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，中文 UTF-8 | 同上 |
-| 图标 | 已提供 | [icon-20261024.png](icon/icon-20261024.png)，256×256 PNG，不透明；复用游戏自有角色图标 | 已核验图片尺寸、内容及文件散列 |
+| 图标 | 已提供 | [icon.png](icon/icon.png)，1254×1254 PNG，不透明；以原有角色图标为参考提升清晰度，符合 TapTap 方图及不低于 512×512 px 的要求 | 2026-10-26，打开图片并核验实际 PNG 编码、尺寸及 SHA-256；旧 256×256 版本仅保留为历史素材 |
 | 宣传图 | 已提供 | [花园战斗首页](promo/images/garden-battle-home-390x844.png)、[遇敌战斗](promo/images/garden-target-battle-390x844.png)，390×844 PNG | 新首页与战斗均来自当前 Creator 构建 |
 | 宣传视频 | 已提供 | [garden-input-home-390x844.mp4](promo/videos/garden-input-home-390x844.mp4)，390×844，19秒，H.264，无音轨；新首页、移动交战、后段战斗及通关剪辑 | FFmpeg 串行剪辑，ffprobe及解码画面核验 |
 | 游戏内截图 | 已提供 | [首页](gameplay/screenshots/input-home-20261024/home-390.png)、[选关](gameplay/screenshots/input-home-20261024/levels-390.png)、[移动](gameplay/screenshots/input-home-20261024/battle-moving-390.png)、[强化](gameplay/screenshots/input-home-20261024/upgrade-1-390.png)、[胜利](gameplay/screenshots/input-home-20261024/victory-390.png)，390×844；另含窄屏与横屏 | 当前生产构建、Chromium触屏模拟；布局截图含已成长存档夹具，通关录像从新存档开始 |
@@ -20,9 +20,10 @@
 
 ## 本次核验
 
-- 当前文件见 [dev 整合素材 SHA-256](media-dev-merge-sha256.json)，清单分别记录最终源码与原始截图/录像来源。此前输入/首页、界面和固定镜头批次的文件、清单保留，仅作为历史证据。
+- 当前图标见 [素材清单的 icon/icon.png 条目](media-manifest.json)，其余当前文件见 [dev 整合素材 SHA-256](media-dev-merge-sha256.json)，清单分别记录最终源码与原始截图/录像来源。此前输入/首页、界面和固定镜头批次的文件、清单保留，仅作为历史证据。
+- 本次仅更新上架图标及其规格记录，运行时图标与玩法素材保持原版本。使用内置 imagegen，以旧 [icon-20261024.png](icon/icon-20261024.png) 为编辑参考；提示词要求保留白发守园人、叶帽白花、植物武器、金色弹环、紫色敌人与花园背景的原构图、配色和风格，仅提升清晰度，输出方形不透明 PNG，无新增文字、水印、边框或圆角遮罩，尺寸不低于 512×512 px。实际输出 1254×1254，SHA-256：`c242dc6525a27e0ef0f25ec581c8ce573810ba77a8bb9f607d93dbf88e8750a3`。
 - 录屏为浏览器生成的无音轨视频；游戏音效已另经真实 WebAudio 生命周期测试，不把静音录像作为音效验收依据。
 - 图标、场景及角色设定沿用原素材；八方向四步态图集仍为2.5D表现。首页由内置 imagegen 参考原首页与角色图集生成花园交战插画，提示词与来历见 `docs/design/garden-input-home-2026-10-24/`。概念材料未充当实际截图。
 - 历史设计、QA和录制保留原位置，本目录是本次可用基础交付。当前没有无法制作的必需资料项。
-- 未声明这些基础尺寸已满足某一渠道的提审要求，也未以本地通过宣称原生 SDK、真机、广告库存或审核通过。
+- 本次图标按用户提供的 TapTap「方图 · 不低于 512×512 px · JPG/PNG」核验；其他基础素材尚未按渠道提审规格验收。未上传或提审，也未以本地通过宣称原生 SDK、真机、广告库存或审核通过。
 - 可选补给/失败续战复用共享 H5 provider，仅完整观看发奖；缺 ID 或 SDK 时正常游戏仍可继续。未取得本应用的新广告位 ID，真实填充及 TapTap 真机回调待验收；远端广告批次的素材和 `media-manifest.json` 保留，说明见 [奖励广告验证](../../../../docs/verification/rewarded-ads-2026-10-24.md)。
