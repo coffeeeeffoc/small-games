@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-23",
+  "date": "2026-10-25",
   "build": {
     "game": "flick-arena",
     "engine": "Cocos",
@@ -19,8 +19,8 @@
   "files": [
     {
       "path": "copy/developer-note.md",
-      "bytes": 474,
-      "sha256": "00b13463c3b1cfd6763c295abc5ce5434a4f3751da163868545c6d28c23fe799"
+      "bytes": 560,
+      "sha256": "00eb5737027c210e3db88824a97dc1d2907a1d6e64f6d0cd9bd044f713636578"
     },
     {
       "path": "copy/introduction.md",
@@ -33,19 +33,34 @@
       "sha256": "479203fb2baef19ec1e4496d9c6b868b8d8ce731f2076f4577384b499a4d4c91"
     },
     {
+      "path": "gameplay/screenshots/aim-100-330x717.png",
+      "bytes": 136454,
+      "sha256": "dbffb2146ab69e77367f1e4f97c8ff6154e95e4f25c47d560408a0a8e29f9e6d"
+    },
+    {
+      "path": "gameplay/screenshots/aim-25-330x717.png",
+      "bytes": 135899,
+      "sha256": "0f9ea61c4e5234cef0c79533c4a70f6f951d298020f3cc7280b75bfb94ec90e6"
+    },
+    {
       "path": "gameplay/screenshots/aim-390x844.png",
       "bytes": 191622,
       "sha256": "587641f5bfcae526314e36b33ea8909898a5ba221ea8ad966e1f7a1fbf085c53"
     },
     {
+      "path": "gameplay/screenshots/home-330x717.png",
+      "bytes": 143802,
+      "sha256": "5742d4d2193bc54cc37313b8d08d2b9a330fe5fa79c51863a021fd0c576b9100"
+    },
+    {
       "path": "gameplay/screenshots/home-780x1688.png",
-      "bytes": 516999,
-      "sha256": "9bbd1ef828a91840383fc3fe4611a1791027d392d36a892445e70ad92af82a3e"
+      "bytes": 516697,
+      "sha256": "a0ffdae5bf945159f2c3e4923665c3738e771da108033263e0692bfa94681daf"
     },
     {
       "path": "gameplay/screenshots/paused-780x1688.png",
-      "bytes": 296853,
-      "sha256": "503b768e0f59e40c8e619f80814cb2b11580bdd97a5bfa4276cf19636286527e"
+      "bytes": 296860,
+      "sha256": "562183da66566015be63e4bc0141ffa69b073f271d8f6e32fc162a8d67b5380f"
     },
     {
       "path": "gameplay/screenshots/result-390x844.png",
@@ -64,13 +79,25 @@
     },
     {
       "path": "promo/images/home-780x1688.png",
-      "bytes": 516999,
-      "sha256": "9bbd1ef828a91840383fc3fe4611a1791027d392d36a892445e70ad92af82a3e"
+      "bytes": 516697,
+      "sha256": "a0ffdae5bf945159f2c3e4923665c3738e771da108033263e0692bfa94681daf"
     },
     {
       "path": "promo/videos/flick-preview-390x844.mp4",
       "bytes": 311976,
       "sha256": "2f76f52445e5e58823cf53b570778f225a7047a1f753124deef6316f7430b6f1"
     }
-  ]
+  ],
+  "displayAimUpdate": {
+    "base": "510a24c4b9d90d8de80523ee5bb4b838e8f56dc2",
+    "environment": "Chromium mobile touch emulation, not physical hardware",
+    "report": "../docs/design/cocos-2026-10-23/display-aim.json",
+    "sources": {
+      "style.css": "b06581da45130e48d14be0576469b2e23319d2d4bebb5f1376e34f36ec930454",
+      "src/aim.mjs": "2b00d0132af4758d07838a03bc8fc3b2701bcfed9d930ab0e361d90f91b47231",
+      "src/game.mjs": "b27ce70f90d4e6502f4beed24be1fb42d404afb04441bae7a1fb997870f4ba8d",
+      "src/render.mjs": "e9fec31328570cef0191c364d9ed9a056c0b43315af600f326d84f2b2d332bdf"
+    },
+    "retainedVideoVersion": "2026-10-23; both videos fully decoded again on 2026-10-25, not new recordings"
+  }
 }

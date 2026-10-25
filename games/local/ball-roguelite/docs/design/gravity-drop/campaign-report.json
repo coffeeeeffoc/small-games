@@ -1,0 +1,3892 @@
+{
+  "rules": "orbit-v4-gravity",
+  "environment": "Node CPU deterministic240Hz simulation; no advertisements; legal mobile angle candidates",
+  "seconds": 25.774,
+  "seeds": [
+    1234,
+    20261006,
+    998811
+  ],
+  "records": [
+    {
+      "mode": "stardust",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 9,
+      "score": 1,
+      "count": 6,
+      "damage": 2,
+      "contacts": 20,
+      "absorbed": 0,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 8,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 9,
+      "score": 1,
+      "count": 6,
+      "damage": 2,
+      "contacts": 20,
+      "absorbed": 0,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 8,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 9,
+      "score": 1,
+      "count": 6,
+      "damage": 2,
+      "contacts": 20,
+      "absorbed": 0,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 8,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 4,
+      "score": 15,
+      "count": 6,
+      "damage": 1,
+      "contacts": 257,
+      "absorbed": 0,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -150,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": -50,
+          "dy": 411
+        },
+        {
+          "turn": 2,
+          "dx": 50,
+          "dy": 361
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 411
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 4,
+      "score": 15,
+      "count": 6,
+      "damage": 1,
+      "contacts": 257,
+      "absorbed": 0,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -150,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": -50,
+          "dy": 411
+        },
+        {
+          "turn": 2,
+          "dx": 50,
+          "dy": 361
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 411
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 4,
+      "score": 15,
+      "count": 6,
+      "damage": 1,
+      "contacts": 257,
+      "absorbed": 0,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -150,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": -50,
+          "dy": 411
+        },
+        {
+          "turn": 2,
+          "dx": 50,
+          "dy": 361
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 411
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 4,
+      "score": 15,
+      "count": 6,
+      "damage": 1,
+      "contacts": 266,
+      "absorbed": 0,
+      "maxRow": 1,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 150,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": 150,
+          "dy": 511
+        },
+        {
+          "turn": 2,
+          "dx": 172,
+          "dy": 21.11894447529959
+        },
+        {
+          "turn": 3,
+          "dx": -60.212807576330846,
+          "dy": 496.36117676927125
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 4,
+      "score": 15,
+      "count": 6,
+      "damage": 1,
+      "contacts": 266,
+      "absorbed": 0,
+      "maxRow": 1,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 150,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": 150,
+          "dy": 511
+        },
+        {
+          "turn": 2,
+          "dx": 172,
+          "dy": 21.11894447529959
+        },
+        {
+          "turn": 3,
+          "dx": -60.212807576330846,
+          "dy": 496.36117676927125
+        }
+      ]
+    },
+    {
+      "mode": "stardust",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 4,
+      "score": 15,
+      "count": 6,
+      "damage": 1,
+      "contacts": 266,
+      "absorbed": 0,
+      "maxRow": 1,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 150,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": 150,
+          "dy": 511
+        },
+        {
+          "turn": 2,
+          "dx": 172,
+          "dy": 21.11894447529959
+        },
+        {
+          "turn": 3,
+          "dx": -60.212807576330846,
+          "dy": 496.36117676927125
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 8,
+      "score": 3,
+      "count": 7,
+      "damage": 1,
+      "contacts": 33,
+      "absorbed": 3,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 8,
+      "score": 3,
+      "count": 7,
+      "damage": 2,
+      "contacts": 33,
+      "absorbed": 3,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 8,
+      "score": 3,
+      "count": 9,
+      "damage": 1,
+      "contacts": 33,
+      "absorbed": 3,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 7,
+      "score": 21,
+      "count": 7,
+      "damage": 1,
+      "contacts": 273,
+      "absorbed": 9,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 411
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 361
+        },
+        {
+          "turn": 3,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 411
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 361
+        },
+        {
+          "turn": 6,
+          "dx": 100,
+          "dy": 361
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 7,
+      "score": 21,
+      "count": 7,
+      "damage": 1,
+      "contacts": 273,
+      "absorbed": 9,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 411
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 361
+        },
+        {
+          "turn": 3,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 411
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 361
+        },
+        {
+          "turn": 6,
+          "dx": 100,
+          "dy": 361
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 7,
+      "score": 21,
+      "count": 7,
+      "damage": 1,
+      "contacts": 273,
+      "absorbed": 9,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 411
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 361
+        },
+        {
+          "turn": 3,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 411
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 361
+        },
+        {
+          "turn": 6,
+          "dx": 100,
+          "dy": 361
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 4,
+      "score": 21,
+      "count": 7,
+      "damage": 1,
+      "contacts": 288,
+      "absorbed": 9,
+      "maxRow": 2,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 172,
+          "dy": 453.98623960403717
+        },
+        {
+          "turn": 1,
+          "dx": -172,
+          "dy": 249.48342549889188
+        },
+        {
+          "turn": 2,
+          "dx": -150,
+          "dy": 511
+        },
+        {
+          "turn": 3,
+          "dx": -100,
+          "dy": 511
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 4,
+      "score": 21,
+      "count": 7,
+      "damage": 1,
+      "contacts": 288,
+      "absorbed": 9,
+      "maxRow": 2,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 172,
+          "dy": 453.98623960403717
+        },
+        {
+          "turn": 1,
+          "dx": -172,
+          "dy": 249.48342549889188
+        },
+        {
+          "turn": 2,
+          "dx": -150,
+          "dy": 511
+        },
+        {
+          "turn": 3,
+          "dx": -100,
+          "dy": 511
+        }
+      ]
+    },
+    {
+      "mode": "prism",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 4,
+      "score": 21,
+      "count": 7,
+      "damage": 1,
+      "contacts": 288,
+      "absorbed": 9,
+      "maxRow": 2,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 172,
+          "dy": 453.98623960403717
+        },
+        {
+          "turn": 1,
+          "dx": -172,
+          "dy": 249.48342549889188
+        },
+        {
+          "turn": 2,
+          "dx": -150,
+          "dy": 511
+        },
+        {
+          "turn": 3,
+          "dx": -100,
+          "dy": 511
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 8,
+      "score": 4,
+      "count": 8,
+      "damage": 1,
+      "contacts": 66,
+      "absorbed": 5,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 8,
+      "score": 4,
+      "count": 8,
+      "damage": 1,
+      "contacts": 66,
+      "absorbed": 5,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 8,
+      "score": 4,
+      "count": 8,
+      "damage": 2,
+      "contacts": 66,
+      "absorbed": 5,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 6,
+      "score": 26,
+      "count": 9,
+      "damage": 1,
+      "contacts": 472,
+      "absorbed": 16,
+      "maxRow": 4,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": 411
+        },
+        {
+          "turn": 1,
+          "dx": 50,
+          "dy": 361
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 3,
+          "dx": -150,
+          "dy": 411
+        },
+        {
+          "turn": 4,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 5,
+          "dx": 100,
+          "dy": 461
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 6,
+      "score": 26,
+      "count": 9,
+      "damage": 2,
+      "contacts": 493,
+      "absorbed": 16,
+      "maxRow": 4,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": 411
+        },
+        {
+          "turn": 1,
+          "dx": 50,
+          "dy": 361
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 3,
+          "dx": -150,
+          "dy": 411
+        },
+        {
+          "turn": 4,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 5,
+          "dx": 100,
+          "dy": 461
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 6,
+      "score": 26,
+      "count": 9,
+      "damage": 2,
+      "contacts": 493,
+      "absorbed": 16,
+      "maxRow": 4,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": 411
+        },
+        {
+          "turn": 1,
+          "dx": 50,
+          "dy": 361
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 3,
+          "dx": -150,
+          "dy": 411
+        },
+        {
+          "turn": 4,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 5,
+          "dx": 100,
+          "dy": 461
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 6,
+      "score": 26,
+      "count": 8,
+      "damage": 2,
+      "contacts": 416,
+      "absorbed": 13,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 119.54920010067717,
+          "dy": 485.497671215103
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 411
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 511
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 453.98623960403717
+        },
+        {
+          "turn": 4,
+          "dx": 172,
+          "dy": 65.45120088309473
+        },
+        {
+          "turn": 5,
+          "dx": 172,
+          "dy": 249.48342549889185
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 6,
+      "score": 26,
+      "count": 8,
+      "damage": 1,
+      "contacts": 420,
+      "absorbed": 13,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 119.54920010067717,
+          "dy": 485.497671215103
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 411
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 511
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 453.98623960403717
+        },
+        {
+          "turn": 4,
+          "dx": 172,
+          "dy": 65.45120088309473
+        },
+        {
+          "turn": 5,
+          "dx": 172,
+          "dy": 249.48342549889185
+        }
+      ]
+    },
+    {
+      "mode": "flare",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 6,
+      "score": 26,
+      "count": 8,
+      "damage": 2,
+      "contacts": 416,
+      "absorbed": 13,
+      "maxRow": 3,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 119.54920010067717,
+          "dy": 485.497671215103
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 411
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 511
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 453.98623960403717
+        },
+        {
+          "turn": 4,
+          "dx": 172,
+          "dy": 65.45120088309473
+        },
+        {
+          "turn": 5,
+          "dx": 172,
+          "dy": 249.48342549889185
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 7,
+      "score": 5,
+      "count": 9,
+      "damage": 2,
+      "contacts": 79,
+      "absorbed": 8,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 7,
+      "score": 5,
+      "count": 9,
+      "damage": 1,
+      "contacts": 79,
+      "absorbed": 8,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 7,
+      "score": 5,
+      "count": 9,
+      "damage": 2,
+      "contacts": 79,
+      "absorbed": 8,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 10,
+      "score": 27,
+      "count": 9,
+      "damage": 2,
+      "contacts": 512,
+      "absorbed": 32,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": -150,
+          "dy": 211
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 5,
+          "dx": -50,
+          "dy": 411
+        },
+        {
+          "turn": 6,
+          "dx": 150,
+          "dy": 361
+        },
+        {
+          "turn": 7,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 8,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 9,
+          "dx": 100,
+          "dy": 261
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 10,
+      "score": 27,
+      "count": 9,
+      "damage": 2,
+      "contacts": 512,
+      "absorbed": 32,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": -150,
+          "dy": 211
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 5,
+          "dx": -50,
+          "dy": 411
+        },
+        {
+          "turn": 6,
+          "dx": 150,
+          "dy": 361
+        },
+        {
+          "turn": 7,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 8,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 9,
+          "dx": 100,
+          "dy": 261
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 10,
+      "score": 27,
+      "count": 9,
+      "damage": 2,
+      "contacts": 512,
+      "absorbed": 32,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": -150,
+          "dy": 211
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 5,
+          "dx": -50,
+          "dy": 411
+        },
+        {
+          "turn": 6,
+          "dx": 150,
+          "dy": 361
+        },
+        {
+          "turn": 7,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 8,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 9,
+          "dx": 100,
+          "dy": 261
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 6,
+      "score": 27,
+      "count": 9,
+      "damage": 1,
+      "contacts": 454,
+      "absorbed": 26,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -119.5492001006771,
+          "dy": 485.497671215103
+        },
+        {
+          "turn": 1,
+          "dx": 150,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": -172,
+          "dy": 249.48342549889188
+        },
+        {
+          "turn": 3,
+          "dx": 50,
+          "dy": 461
+        },
+        {
+          "turn": 4,
+          "dx": -172,
+          "dy": 328.07533592444156
+        },
+        {
+          "turn": 5,
+          "dx": 172,
+          "dy": 328.07533592444184
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 6,
+      "score": 27,
+      "count": 9,
+      "damage": 1,
+      "contacts": 444,
+      "absorbed": 26,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -119.5492001006771,
+          "dy": 485.497671215103
+        },
+        {
+          "turn": 1,
+          "dx": 150,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": -172,
+          "dy": 249.48342549889188
+        },
+        {
+          "turn": 3,
+          "dx": 50,
+          "dy": 461
+        },
+        {
+          "turn": 4,
+          "dx": -172,
+          "dy": 328.07533592444156
+        },
+        {
+          "turn": 5,
+          "dx": 172,
+          "dy": 249.48342549889185
+        }
+      ]
+    },
+    {
+      "mode": "frost",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 6,
+      "score": 27,
+      "count": 9,
+      "damage": 2,
+      "contacts": 446,
+      "absorbed": 26,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -119.5492001006771,
+          "dy": 485.497671215103
+        },
+        {
+          "turn": 1,
+          "dx": 150,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": -172,
+          "dy": 249.48342549889188
+        },
+        {
+          "turn": 3,
+          "dx": 50,
+          "dy": 461
+        },
+        {
+          "turn": 4,
+          "dx": -172,
+          "dy": 328.07533592444156
+        },
+        {
+          "turn": 5,
+          "dx": 172,
+          "dy": 249.48342549889185
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 7,
+      "score": 4,
+      "count": 12,
+      "damage": 1,
+      "contacts": 60,
+      "absorbed": 14,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 7,
+      "score": 4,
+      "count": 10,
+      "damage": 2,
+      "contacts": 54,
+      "absorbed": 14,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 7,
+      "score": 4,
+      "count": 10,
+      "damage": 2,
+      "contacts": 54,
+      "absorbed": 14,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 11,
+      "score": 30,
+      "count": 10,
+      "damage": 2,
+      "contacts": 531,
+      "absorbed": 36,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": -100,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": -50,
+          "dy": 261
+        },
+        {
+          "turn": 4,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 5,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 6,
+          "dx": -150,
+          "dy": 311
+        },
+        {
+          "turn": 7,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 8,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 9,
+          "dx": 0,
+          "dy": 311
+        },
+        {
+          "turn": 10,
+          "dx": 100,
+          "dy": 261
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 11,
+      "score": 30,
+      "count": 10,
+      "damage": 2,
+      "contacts": 531,
+      "absorbed": 36,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": -100,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": -50,
+          "dy": 261
+        },
+        {
+          "turn": 4,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 5,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 6,
+          "dx": -150,
+          "dy": 311
+        },
+        {
+          "turn": 7,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 8,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 9,
+          "dx": 0,
+          "dy": 311
+        },
+        {
+          "turn": 10,
+          "dx": 100,
+          "dy": 261
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 11,
+      "score": 30,
+      "count": 10,
+      "damage": 2,
+      "contacts": 531,
+      "absorbed": 36,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": -100,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": 100,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": -50,
+          "dy": 261
+        },
+        {
+          "turn": 4,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 5,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 6,
+          "dx": -150,
+          "dy": 311
+        },
+        {
+          "turn": 7,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 8,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 9,
+          "dx": 0,
+          "dy": 311
+        },
+        {
+          "turn": 10,
+          "dx": 100,
+          "dy": 261
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 10,
+      "score": 30,
+      "count": 10,
+      "damage": 1,
+      "contacts": 648,
+      "absorbed": 30,
+      "maxRow": 4,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 172,
+          "dy": 249.48342549889185
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 461
+        },
+        {
+          "turn": 2,
+          "dx": -172,
+          "dy": 42.61879746498601
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 90.49357765662984
+        },
+        {
+          "turn": 4,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 5,
+          "dx": -172,
+          "dy": 194.41063445422145
+        },
+        {
+          "turn": 6,
+          "dx": 172,
+          "dy": 65.45120088309473
+        },
+        {
+          "turn": 7,
+          "dx": 172,
+          "dy": 42.61879746498597
+        },
+        {
+          "turn": 8,
+          "dx": 172,
+          "dy": 194.41063445422148
+        },
+        {
+          "turn": 9,
+          "dx": 172,
+          "dy": 194.41063445422148
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 7,
+      "score": 30,
+      "count": 10,
+      "damage": 2,
+      "contacts": 634,
+      "absorbed": 30,
+      "maxRow": 4,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 172,
+          "dy": 249.48342549889185
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 461
+        },
+        {
+          "turn": 2,
+          "dx": -172,
+          "dy": 42.61879746498601
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 90.49357765662984
+        },
+        {
+          "turn": 4,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 5,
+          "dx": -100,
+          "dy": 511
+        },
+        {
+          "turn": 6,
+          "dx": 172,
+          "dy": 42.61879746498597
+        }
+      ]
+    },
+    {
+      "mode": "void",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 7,
+      "score": 30,
+      "count": 10,
+      "damage": 2,
+      "contacts": 634,
+      "absorbed": 30,
+      "maxRow": 4,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 172,
+          "dy": 249.48342549889185
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 461
+        },
+        {
+          "turn": 2,
+          "dx": -172,
+          "dy": 42.61879746498601
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 90.49357765662984
+        },
+        {
+          "turn": 4,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 5,
+          "dx": -100,
+          "dy": 511
+        },
+        {
+          "turn": 6,
+          "dx": 172,
+          "dy": 42.61879746498597
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 7,
+      "score": 5,
+      "count": 11,
+      "damage": 1,
+      "contacts": 90,
+      "absorbed": 13,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 7,
+      "score": 12,
+      "count": 11,
+      "damage": 2,
+      "contacts": 123,
+      "absorbed": 17,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 7,
+      "score": 5,
+      "count": 11,
+      "damage": 1,
+      "contacts": 90,
+      "absorbed": 13,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 13,
+      "score": 37,
+      "count": 11,
+      "damage": 2,
+      "contacts": 594,
+      "absorbed": 47,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": -150,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 211
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 261
+        },
+        {
+          "turn": 5,
+          "dx": -150,
+          "dy": 311
+        },
+        {
+          "turn": 6,
+          "dx": -100,
+          "dy": 311
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 311
+        },
+        {
+          "turn": 8,
+          "dx": 50,
+          "dy": 361
+        },
+        {
+          "turn": 9,
+          "dx": 150,
+          "dy": 311
+        },
+        {
+          "turn": 10,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 11,
+          "dx": 100,
+          "dy": 261
+        },
+        {
+          "turn": 12,
+          "dx": -100,
+          "dy": 211
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 13,
+      "score": 37,
+      "count": 11,
+      "damage": 2,
+      "contacts": 594,
+      "absorbed": 47,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": -150,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 211
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 261
+        },
+        {
+          "turn": 5,
+          "dx": -150,
+          "dy": 311
+        },
+        {
+          "turn": 6,
+          "dx": -100,
+          "dy": 311
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 311
+        },
+        {
+          "turn": 8,
+          "dx": 50,
+          "dy": 361
+        },
+        {
+          "turn": 9,
+          "dx": 150,
+          "dy": 311
+        },
+        {
+          "turn": 10,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 11,
+          "dx": 100,
+          "dy": 261
+        },
+        {
+          "turn": 12,
+          "dx": -100,
+          "dy": 211
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 10,
+      "score": 37,
+      "count": 11,
+      "damage": 2,
+      "contacts": 582,
+      "absorbed": 39,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": -150,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 211
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 261
+        },
+        {
+          "turn": 5,
+          "dx": -150,
+          "dy": 311
+        },
+        {
+          "turn": 6,
+          "dx": 50,
+          "dy": 461
+        },
+        {
+          "turn": 7,
+          "dx": 150,
+          "dy": 411
+        },
+        {
+          "turn": 8,
+          "dx": 100,
+          "dy": 411
+        },
+        {
+          "turn": 9,
+          "dx": -100,
+          "dy": 361
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 8,
+      "score": 37,
+      "count": 11,
+      "damage": 2,
+      "contacts": 640,
+      "absorbed": 37,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 2,
+          "dx": 172,
+          "dy": 118.95046273748338
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 453.98623960403717
+        },
+        {
+          "turn": 4,
+          "dx": 172,
+          "dy": 90.49357765662984
+        },
+        {
+          "turn": 5,
+          "dx": -150,
+          "dy": 511
+        },
+        {
+          "turn": 6,
+          "dx": 172,
+          "dy": 65.45120088309473
+        },
+        {
+          "turn": 7,
+          "dx": 172,
+          "dy": 328.07533592444184
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 10,
+      "score": 37,
+      "count": 11,
+      "damage": 1,
+      "contacts": 676,
+      "absorbed": 38,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 2,
+          "dx": 172,
+          "dy": 118.95046273748338
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 453.98623960403717
+        },
+        {
+          "turn": 4,
+          "dx": 172,
+          "dy": 90.49357765662984
+        },
+        {
+          "turn": 5,
+          "dx": 172,
+          "dy": 453.98623960403717
+        },
+        {
+          "turn": 6,
+          "dx": 172,
+          "dy": 21.11894447529959
+        },
+        {
+          "turn": 7,
+          "dx": 172,
+          "dy": 249.48342549889185
+        },
+        {
+          "turn": 8,
+          "dx": 172,
+          "dy": 42.61879746498597
+        },
+        {
+          "turn": 9,
+          "dx": 172,
+          "dy": 42.61879746498597
+        }
+      ]
+    },
+    {
+      "mode": "orbit",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 8,
+      "score": 37,
+      "count": 11,
+      "damage": 2,
+      "contacts": 640,
+      "absorbed": 37,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 2,
+          "dx": 172,
+          "dy": 118.95046273748338
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 453.98623960403717
+        },
+        {
+          "turn": 4,
+          "dx": 172,
+          "dy": 90.49357765662984
+        },
+        {
+          "turn": 5,
+          "dx": -150,
+          "dy": 511
+        },
+        {
+          "turn": 6,
+          "dx": 172,
+          "dy": 65.45120088309473
+        },
+        {
+          "turn": 7,
+          "dx": 172,
+          "dy": 328.07533592444184
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 7,
+      "score": 12,
+      "count": 13,
+      "damage": 1,
+      "contacts": 235,
+      "absorbed": 39,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 8,
+      "score": 13,
+      "count": 11,
+      "damage": 2,
+      "contacts": 170,
+      "absorbed": 32,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 8,
+      "score": 13,
+      "count": 11,
+      "damage": 2,
+      "contacts": 170,
+      "absorbed": 32,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 6,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 7,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 12,
+      "score": 35,
+      "count": 11,
+      "damage": 2,
+      "contacts": 660,
+      "absorbed": 55,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 4,
+          "dx": -100,
+          "dy": 261
+        },
+        {
+          "turn": 5,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 6,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 7,
+          "dx": -50,
+          "dy": 261
+        },
+        {
+          "turn": 8,
+          "dx": 150,
+          "dy": 211
+        },
+        {
+          "turn": 9,
+          "dx": 100,
+          "dy": 211
+        },
+        {
+          "turn": 10,
+          "dx": 0,
+          "dy": 261
+        },
+        {
+          "turn": 11,
+          "dx": -150,
+          "dy": 261
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 10,
+      "score": 35,
+      "count": 12,
+      "damage": 2,
+      "contacts": 594,
+      "absorbed": 51,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 4,
+          "dx": -100,
+          "dy": 261
+        },
+        {
+          "turn": 5,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 6,
+          "dx": 100,
+          "dy": 361
+        },
+        {
+          "turn": 7,
+          "dx": 150,
+          "dy": 361
+        },
+        {
+          "turn": 8,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 9,
+          "dx": -150,
+          "dy": 361
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 12,
+      "score": 35,
+      "count": 11,
+      "damage": 2,
+      "contacts": 660,
+      "absorbed": 55,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": 100,
+          "dy": 311
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 4,
+          "dx": -100,
+          "dy": 261
+        },
+        {
+          "turn": 5,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 6,
+          "dx": 50,
+          "dy": 311
+        },
+        {
+          "turn": 7,
+          "dx": -50,
+          "dy": 261
+        },
+        {
+          "turn": 8,
+          "dx": 150,
+          "dy": 211
+        },
+        {
+          "turn": 9,
+          "dx": 100,
+          "dy": 211
+        },
+        {
+          "turn": 10,
+          "dx": 0,
+          "dy": 261
+        },
+        {
+          "turn": 11,
+          "dx": -150,
+          "dy": 261
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 8,
+      "score": 35,
+      "count": 11,
+      "damage": 2,
+      "contacts": 677,
+      "absorbed": 44,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": 172,
+          "dy": 328.07533592444184
+        },
+        {
+          "turn": 2,
+          "dx": -100,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 461
+        },
+        {
+          "turn": 4,
+          "dx": 172,
+          "dy": 152.61929724972424
+        },
+        {
+          "turn": 5,
+          "dx": -172,
+          "dy": 42.61879746498601
+        },
+        {
+          "turn": 6,
+          "dx": 172,
+          "dy": 118.95046273748338
+        },
+        {
+          "turn": 7,
+          "dx": 172,
+          "dy": 328.07533592444184
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 11,
+      "score": 35,
+      "count": 13,
+      "damage": 1,
+      "contacts": 714,
+      "absorbed": 52,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": 172,
+          "dy": 328.07533592444184
+        },
+        {
+          "turn": 2,
+          "dx": -100,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 461
+        },
+        {
+          "turn": 4,
+          "dx": 172,
+          "dy": 152.61929724972424
+        },
+        {
+          "turn": 5,
+          "dx": -172,
+          "dy": 328.07533592444156
+        },
+        {
+          "turn": 6,
+          "dx": -172,
+          "dy": 118.95046273748333
+        },
+        {
+          "turn": 7,
+          "dx": -172,
+          "dy": 328.07533592444156
+        },
+        {
+          "turn": 8,
+          "dx": -172,
+          "dy": 90.4935776566299
+        },
+        {
+          "turn": 9,
+          "dx": 172,
+          "dy": 90.49357765662984
+        },
+        {
+          "turn": 10,
+          "dx": 172,
+          "dy": 90.49357765662984
+        }
+      ]
+    },
+    {
+      "mode": "lattice",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 11,
+      "score": 35,
+      "count": 11,
+      "damage": 2,
+      "contacts": 708,
+      "absorbed": 52,
+      "maxRow": 5,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 1,
+          "dx": 172,
+          "dy": 328.07533592444184
+        },
+        {
+          "turn": 2,
+          "dx": -100,
+          "dy": 261
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 461
+        },
+        {
+          "turn": 4,
+          "dx": 172,
+          "dy": 152.61929724972424
+        },
+        {
+          "turn": 5,
+          "dx": -172,
+          "dy": 328.07533592444156
+        },
+        {
+          "turn": 6,
+          "dx": -172,
+          "dy": 118.95046273748333
+        },
+        {
+          "turn": 7,
+          "dx": -172,
+          "dy": 328.07533592444156
+        },
+        {
+          "turn": 8,
+          "dx": -172,
+          "dy": 90.4935776566299
+        },
+        {
+          "turn": 9,
+          "dx": 172,
+          "dy": 90.49357765662984
+        },
+        {
+          "turn": 10,
+          "dx": 172,
+          "dy": 90.49357765662984
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "fixed",
+      "seed": 1234,
+      "phase": "lost",
+      "turn": 6,
+      "score": 7,
+      "count": 11,
+      "damage": 2,
+      "contacts": 173,
+      "absorbed": 20,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "fixed",
+      "seed": 20261006,
+      "phase": "lost",
+      "turn": 6,
+      "score": 7,
+      "count": 13,
+      "damage": 1,
+      "contacts": 173,
+      "absorbed": 20,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "fixed",
+      "seed": 998811,
+      "phase": "lost",
+      "turn": 6,
+      "score": 7,
+      "count": 11,
+      "damage": 2,
+      "contacts": 173,
+      "absorbed": 20,
+      "maxRow": 10,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 1,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 2,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 3,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 4,
+          "dx": 0,
+          "dy": 500
+        },
+        {
+          "turn": 5,
+          "dx": 0,
+          "dy": 500
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "direct",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 12,
+      "score": 42,
+      "count": 13,
+      "damage": 2,
+      "contacts": 1066,
+      "absorbed": 69,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": 311
+        },
+        {
+          "turn": 1,
+          "dx": 50,
+          "dy": 261
+        },
+        {
+          "turn": 2,
+          "dx": 150,
+          "dy": 211
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 311
+        },
+        {
+          "turn": 5,
+          "dx": 100,
+          "dy": 261
+        },
+        {
+          "turn": 6,
+          "dx": -100,
+          "dy": 361
+        },
+        {
+          "turn": 7,
+          "dx": -150,
+          "dy": 311
+        },
+        {
+          "turn": 8,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 9,
+          "dx": 150,
+          "dy": 311
+        },
+        {
+          "turn": 10,
+          "dx": -100,
+          "dy": 311
+        },
+        {
+          "turn": 11,
+          "dx": 100,
+          "dy": 261
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "direct",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 9,
+      "score": 42,
+      "count": 12,
+      "damage": 2,
+      "contacts": 815,
+      "absorbed": 58,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": 311
+        },
+        {
+          "turn": 1,
+          "dx": 50,
+          "dy": 261
+        },
+        {
+          "turn": 2,
+          "dx": 150,
+          "dy": 211
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 311
+        },
+        {
+          "turn": 5,
+          "dx": 100,
+          "dy": 261
+        },
+        {
+          "turn": 6,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 7,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 8,
+          "dx": -100,
+          "dy": 411
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "direct",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 9,
+      "score": 42,
+      "count": 12,
+      "damage": 2,
+      "contacts": 815,
+      "absorbed": 58,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": -50,
+          "dy": 311
+        },
+        {
+          "turn": 1,
+          "dx": 50,
+          "dy": 261
+        },
+        {
+          "turn": 2,
+          "dx": 150,
+          "dy": 211
+        },
+        {
+          "turn": 3,
+          "dx": 150,
+          "dy": 261
+        },
+        {
+          "turn": 4,
+          "dx": -150,
+          "dy": 311
+        },
+        {
+          "turn": 5,
+          "dx": 100,
+          "dy": 261
+        },
+        {
+          "turn": 6,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 7,
+          "dx": 100,
+          "dy": 461
+        },
+        {
+          "turn": 8,
+          "dx": -100,
+          "dy": 411
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "bank",
+      "seed": 1234,
+      "phase": "won",
+      "turn": 11,
+      "score": 42,
+      "count": 11,
+      "damage": 2,
+      "contacts": 855,
+      "absorbed": 59,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 2,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 194.41063445422148
+        },
+        {
+          "turn": 4,
+          "dx": -172,
+          "dy": 21.118944475299678
+        },
+        {
+          "turn": 5,
+          "dx": 150,
+          "dy": 411
+        },
+        {
+          "turn": 6,
+          "dx": -172,
+          "dy": 42.61879746498601
+        },
+        {
+          "turn": 7,
+          "dx": 172,
+          "dy": 65.45120088309473
+        },
+        {
+          "turn": 8,
+          "dx": 172,
+          "dy": 90.49357765662984
+        },
+        {
+          "turn": 9,
+          "dx": 172,
+          "dy": 194.41063445422148
+        },
+        {
+          "turn": 10,
+          "dx": 172,
+          "dy": 194.41063445422148
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "bank",
+      "seed": 20261006,
+      "phase": "won",
+      "turn": 8,
+      "score": 42,
+      "count": 11,
+      "damage": 1,
+      "contacts": 818,
+      "absorbed": 56,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 2,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 194.41063445422148
+        },
+        {
+          "turn": 4,
+          "dx": -172,
+          "dy": 21.118944475299678
+        },
+        {
+          "turn": 5,
+          "dx": 150,
+          "dy": 411
+        },
+        {
+          "turn": 6,
+          "dx": 119.54920010067717,
+          "dy": 485.497671215103
+        },
+        {
+          "turn": 7,
+          "dx": -119.5492001006771,
+          "dy": 485.497671215103
+        }
+      ]
+    },
+    {
+      "mode": "eclipse",
+      "strategy": "bank",
+      "seed": 998811,
+      "phase": "won",
+      "turn": 8,
+      "score": 42,
+      "count": 11,
+      "damage": 2,
+      "contacts": 679,
+      "absorbed": 54,
+      "maxRow": 6,
+      "shots": [
+        {
+          "turn": 0,
+          "dx": 100,
+          "dy": 361
+        },
+        {
+          "turn": 1,
+          "dx": -150,
+          "dy": 361
+        },
+        {
+          "turn": 2,
+          "dx": -100,
+          "dy": 411
+        },
+        {
+          "turn": 3,
+          "dx": 172,
+          "dy": 194.41063445422148
+        },
+        {
+          "turn": 4,
+          "dx": -172,
+          "dy": 21.118944475299678
+        },
+        {
+          "turn": 5,
+          "dx": 172,
+          "dy": 249.48342549889185
+        },
+        {
+          "turn": 6,
+          "dx": -119.5492001006771,
+          "dy": 485.497671215103
+        },
+        {
+          "turn": 7,
+          "dx": 172,
+          "dy": 249.48342549889185
+        }
+      ]
+    }
+  ]
+}
