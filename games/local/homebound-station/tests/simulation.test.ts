@@ -659,6 +659,24 @@ test('靠站车辆上客时，其他车能沿外侧通过车道驶向远端泊�
   assert(passedWhileBoarding, '通过车道必须在邻湾上客期间真正可用');
 });
 
+test('第三上车位正在上客时，后车穿过其出口并进入空着的第四上车位', () => {
+  const config = modernFixture();
+  config.groups = config.groups.slice(0, 4).map((group) => ({ ...group, size: 4 }));
+  config.vehicles = config.vehicles.slice(0, 2);
+  const s = createSimulation(config);
+  assert(dispatch(s, 'N0', 'T3').ok);
+  assert(dispatch(s, 'N1', 'T4').ok);
+  let passedWhileBoarding = false;
+  for (let i = 0; i < 800 && !s.vehicles.every((v) => v.state === 'removed'); i++) {
+    drive(s, 0.05);
+    const [parked, passing] = s.vehicles;
+    if (parked!.state === 'boarding' && passing!.position.z === s.geometry.approachZ &&
+        passing!.position.x > parked!.position.x + 1) passedWhileBoarding = true;
+  }
+  assert(passedWhileBoarding, '后车须在前车上客时通过第三上车位出口');
+  assert(s.vehicles.every((v) => v.state === 'removed'));
+});
+
 test('现代候车区分乘后，第二子组独立出站并保留人员与车辆绑定', () => {
   const config = modernFixture();
   config.groups = [{ id: 'family', size: 6, allowSplit: true }];

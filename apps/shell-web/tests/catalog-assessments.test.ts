@@ -17,7 +17,7 @@ const heldIds: string[] = [];
 
 it('covers every registered and on-disk Game once and includes the resumed city chase', () => {
   const ids = [...builtInGameRegistry, ...standalone].map((g) => g.id).sort();
-  expect(ids).toHaveLength(40);
+  expect(ids).toHaveLength(39);
   expect(assessmentData.games.map((g) => g.id).sort()).toEqual(ids);
   expect(Object.keys(assessments).sort()).toEqual(ids);
   expect(new Set(ids).size).toBe(ids.length);
@@ -53,20 +53,20 @@ it('covers every registered and on-disk Game once and includes the resumed city 
   expect(assessments['travel-bund'].disposition).toBe('potential');
 });
 
-it('exhaustively partitions 40 games into 7 previous, 15 current, 18 later and 0 held with the latest user decisions', () => {
+it('exhaustively partitions 39 games into 7 previous, 15 current, 17 later and 0 held with the latest user decisions', () => {
   const games = Object.values(assessments);
   const scheduled = rolloutGroups.flatMap(([tab]) => {
     const matches = games.filter((game) => matchesAssessment(game, { ...emptyFilters(), tab }));
-    expect(matches).toHaveLength({ previous: 7, current: 15, later: 18, hold: 0 }[tab]);
+    expect(matches).toHaveLength({ previous: 7, current: 15, later: 17, hold: 0 }[tab]);
     return matches.map((game) => game.id);
   });
   expect(scheduled.sort()).toEqual(games.map((game) => game.id).sort());
-  expect(new Set(scheduled).size).toBe(40);
+  expect(new Set(scheduled).size).toBe(39);
   expect(
     games.filter((game) =>
       matchesAssessment(game, { ...emptyFilters(), potential: ['potential'] }),
     ),
-  ).toHaveLength(40);
+  ).toHaveLength(39);
   expect(
     games
       .filter((game) => game.schedule === 'current')

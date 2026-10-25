@@ -22,7 +22,6 @@
 | letters-words2               | 词屿 · 字母叠叠乐   | ciyu-word-tiles             | iframe   |
 | merge-front                  | 神机合阵            | @small-games/merge-front    | iframe   |
 | travel-bund                  | 江风入境 · 外滩漫游 | @coffeeeeffoc/travel-bund   | iframe   |
-| vibeJam-myself-delivery      | 橘风速递            | tangerine-express           | iframe   |
 | vibeJam-myself-history-guess | 此时 · 此地         | here-and-then               | iframe   |
 | vibeJam-myself-nullrange     | 零域 · NULL RANGE   | null-range-mobile-cn        | iframe   |
 
@@ -196,7 +195,7 @@ Android 的 Web 素材流程复用大厅制品。B 站原生 Canvas Shell 继续
 
 原四款游戏额外执行了修仙、斗蟋与办公室的现有完整浏览器回归，覆盖通关/失败、重开、存档、暂停/恢复及相应触控操作；Arena 在正式大厅中验证挑虫、调养、开战、闪避和暂停。
 
-手机回归使用 390×844 竖屏；橘风速递和零域按其玩法使用 844×390 横屏。浏览器报告和截图生成到 `.scratch/game-integration/`，修仙、斗蟋的详细输出位于各自 `.scratch/` 子目录，办公室输出位于游戏的 `test-results/`。
+手机回归使用 390×844 竖屏；零域按其玩法使用 844×390 横屏。浏览器报告和截图生成到 `.scratch/game-integration/`，修仙、斗蟋的详细输出位于各自 `.scratch/` 子目录，办公室输出位于游戏的 `test-results/`。
 
 这里验证的是本机浏览器模拟手机与 Web 资源包；没有执行真机 APK/iOS 安装、远端 GitHub Actions 或线上发布。全部运行入口保留原玩法，测试适配了横屏提示、不可选字母牌和旅游风景画卷的实际行为。
 

@@ -673,7 +673,7 @@ export class StationHUD {
       for (const vehicle of s.vehicles) {
         if (vehicle.state !== 'holding') continue;
         const p = world.arrow(vehicle),
-          r = 8;
+          r = 9.5;
         if (!world.inViewport(p) || p.y - 23 < world.clipTop || p.y + r > world.clipBottom)
           continue;
         if (this.pressed === `car:${vehicle.id}`) {
@@ -692,42 +692,35 @@ export class StationHUD {
           this.marks.strokeColor = col(C.cream);
           this.marks.lineWidth = 2;
         }
-        this.rect(this.marks, p.x + 7, p.y - 23, 14, 14, C.cream, 4);
+        this.rect(this.marks, p.x + 6, p.y - 25, 18, 18, '#142f38', 5);
+        this.rect(this.marks, p.x + 8, p.y - 23, 14, 14, '#fff9e8', 3);
         this.text(
           `capacity:${vehicle.id}`,
           String(vehicle.passengerCapacity),
-          p.x + 14,
+          p.x + 15,
           p.y - 16,
-          10,
+          11,
           14,
           14,
           C.ink,
         );
-        this.circle(this.marks, p.x, p.y, r, C.cream);
-        this.circle(this.marks, p.x, p.y, r - 1.5, C.ink);
+        this.circle(this.marks, p.x, p.y, r, '#fff9e8');
+        this.circle(this.marks, p.x, p.y, r - 1.3, '#142f38');
         const dx = Math.cos(p.angle),
           dy = Math.sin(p.angle),
           perp = { x: -dy, y: dx };
-        // Open arrowhead and a narrow shaft stay distinct inside the small badge.
-        for (const path of [
-          [
-            [-5, 0],
-            [5, 0],
-          ],
-          [
-            [0, -4],
-            [5, 0],
-            [0, 4],
-          ],
-        ]) {
-          path.forEach(([x, y], i) => {
-            const xx = p.x + dx * x! + perp.x * y! - this.w / 2,
-              yy = this.h / 2 - (p.y + dy * x! + perp.y * y!);
-            if (i === 0) this.marks.moveTo(xx, yy);
-            else this.marks.lineTo(xx, yy);
-          });
+        this.marks.fillColor = col('#ffffff');
+        for (const [i, x, y] of [
+          [0, -5, -1.5], [1, 1, -1.5], [2, 1, -4.5], [3, 6, 0],
+          [4, 1, 4.5], [5, 1, 1.5], [6, -5, 1.5],
+        ] as const) {
+          const xx = p.x + dx * x + perp.x * y - this.w / 2,
+            yy = this.h / 2 - (p.y + dy * x + perp.y * y);
+          if (i === 0) this.marks.moveTo(xx, yy);
+          else this.marks.lineTo(xx, yy);
         }
-        this.marks.stroke();
+        this.marks.close();
+        this.marks.fill();
       }
     }
     this.toastInk.clear();

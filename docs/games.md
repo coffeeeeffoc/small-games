@@ -1,12 +1,12 @@
 # 游戏一览
 
-当前共登记 **40 款游戏**（39 款本地游戏、1 款子模块游戏），与 Shell 登记和磁盘目录一致。全部游戏的标签、优缺点、改进方向和优先级见[产品评估](plans/2026-10-11-game-portfolio-assessment.md)，也可直接在游戏目录按标签筛选并展开评估。
+当前共登记 **39 款游戏**（38 款本地游戏、1 款子模块游戏），与 Shell 登记和磁盘目录一致。全部游戏的标签、优缺点、改进方向和优先级见[产品评估](plans/2026-10-11-game-portfolio-assessment.md)，也可直接在游戏目录按标签筛选并展开评估。
 
-潜力判断与改造排期独立：**40 款有趣 / 有潜力**，并非只有7款。完整排期为 **上轮已改造7 + 本轮改造15 + 有潜力后续改造18 = 40**；每款只属于一个排期组，仍可同时拥有多个玩法、平台与拓展标签。游戏目录显示各组总数、筛选匹配数和逐款实施状态，全部名单与排期理由见[完整排期索引](plans/2026-10-11-game-portfolio-assessment.md#全量排期索引)。
+潜力判断与改造排期独立：**39 款有趣 / 有潜力**，并非只有7款。完整排期为 **上轮已改造7 + 本轮改造15 + 有潜力后续改造17 = 39**；每款只属于一个排期组，仍可同时拥有多个玩法、平台与拓展标签。游戏目录显示各组总数、筛选匹配数和逐款实施状态，全部名单与排期理由见[完整排期索引](plans/2026-10-11-game-portfolio-assessment.md#全量排期索引)。
 
 标题和描述来自 Shell 登记；新增目录仍以 `pnpm check:games` 的磁盘发现结果为准。
 
-## 本地游戏（39 款）
+## 本地游戏（38 款）
 
 | 游戏                     | Game ID                        | 源码                                                                         | 简介                                                                                                                         |
 | ------------------------ | ------------------------------ | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -27,7 +27,6 @@
 | 街区追捕                 | `cops-robbers-realtime`        | [cops-robbers-realtime](../games/local/cops-robbers-realtime/)               | 点选警察封住路口，合作抓住小偷。横屏街区百关挑战、个人与全站通关纪录、好友 PK。                                              |
 | 词屿 · 字母叠叠乐        | `letters-words2`               | [letters-words2](../games/local/letters-words2/)                             | 从三词早餐、海岸与星空小岛开始，揭开层叠字母，再挑战八大主题与每日同题。                                                     |
 | 江风入境 · 外滩漫游      | `travel-bund`                  | [travel-bund](../games/local/travel-bund/)                                   | 沿建筑、桥畔与天际三条路线收集地标足迹，第一视角漫游外滩两岸，留下旅行明信片。                                               |
-| 橘风速递                 | `vibeJam-myself-delivery`      | [vibeJam-myself-delivery](../games/local/vibeJam-myself-delivery/)           | 驾驶小摩托穿越海滨小岛，采购货物并完成配送。                                                                                 |
 | 此时 · 此地              | `vibeJam-myself-history-guess` | [vibeJam-myself-history-guess](../games/local/vibeJam-myself-history-guess/) | 观察历史全景，猜测地点与年份，走三幕主题旅途、五幕普通旅途或每日同题，揭晓时空中的故事。                                     |
 | 零域 · NULL RANGE        | `vibeJam-myself-nullrange`     | [vibeJam-myself-nullrange](../games/local/vibeJam-myself-nullrange/)         | 低空飞行、迎击敌机，在三波空战中回收残骸。                                                                                   |
 | 折叠世界                 | `fold-the-world`               | [fold-the-world](../games/local/fold-the-world/)                             | 在100个手工关卡中折起远处的平台，安排取物与回程，逐步解开更复杂的空间谜题。                                                  |
