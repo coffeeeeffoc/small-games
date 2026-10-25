@@ -7,6 +7,71 @@ import {
   isReviewedLocalRetirementDeletion,
 } from './local-game-retirement-scope.mjs';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
+test('delivery retirement binds its original tree and surviving edits', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { deliveryRetirementBase, deliveryRetirementTrees, deliveryRetirementReviews } =
+    await import('./local-game-retirement-reviews.mjs');
+  const { localRetirementFileScopes, hasLocalRetirementFileProof } = await import(
+    './local-game-retirement-scope.mjs'
+  );
+  const git = (...args) =>
+    execFileSync('git', args, {
+      cwd: new URL('../', import.meta.url),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  const head = 'dcd768cdd681458b4e54fa07581f7d2ec2787e3a';
+  const entries = (ref) =>
+    new Map(
+      git('ls-tree', '-r', '-t', ref)
+        .trimEnd()
+        .split('\n')
+        .map((line) => [line.split('\t')[1], line + '\n']),
+    );
+  const before = entries(deliveryRetirementBase);
+  const after = entries(head);
+  const root = Object.keys(deliveryRetirementTrees)[0];
+  const deleted = git('diff', '--name-only', '-z', deliveryRetirementBase, head)
+    .split('\0')
+    .filter((file) => file.startsWith(root + '/'));
+  const context = {
+    baseCommit: deliveryRetirementBase,
+    changedPaths: [...deleted, ...Object.keys(deliveryRetirementReviews)],
+    readBaseEntry: (file) => before.get(file) ?? '',
+    readHeadEntry: (file) => after.get(file) ?? '',
+    readBase: (file) => git('show', `${deliveryRetirementBase}:${file}`),
+    readHead: (file) => git('show', `${head}:${file}`),
+    headHasPath: (file) => after.has(file),
+  };
+  const scopes = localRetirementFileScopes(context);
+  assert.equal(deleted.length, 24);
+  for (const file of deleted) {
+    assert(isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, scopes), file);
+    assert(
+      !isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, new Map([[file, []]])),
+    );
+  }
+  for (const [file, review] of Object.entries(deliveryRetirementReviews)) {
+    assert.deepEqual(scopes.get(file), review.sources, file);
+    assert(hasLocalRetirementFileProof(file, scopes.get(file), context.readHead));
+  }
+  assert.equal(localRetirementFileScopes({ ...context, baseCommit: head }).size, 0);
+  assert.equal(
+    localRetirementFileScopes({
+      ...context,
+      readBaseEntry: (file) => (file === root ? '' : context.readBaseEntry(file)),
+    }).size,
+    0,
+  );
+  const changed = Object.keys(deliveryRetirementReviews)[0];
+  assert.equal(
+    localRetirementFileScopes({
+      ...context,
+      readHead: (file) => context.readHead(file) + (file === changed ? '\nextra' : ''),
+    }).size,
+    0,
+  );
+});
 test('maze and voice retirements bind the exact base trees and reject borrowed proofs', async () => {
   const { execFileSync } = await import('node:child_process');
   const { mazeVoiceRetirementBase, mazeVoiceRetirementTrees, mazeVoiceRetirementReviews } =
@@ -20,7 +85,7 @@ test('maze and voice retirements bind the exact base trees and reject borrowed p
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     });
-  const head = git('rev-parse', 'HEAD').trim();
+  const head = '4e97662fd910758595c345f2985a805d1a19095d';
   const entries = (ref) =>
     new Map(
       git('ls-tree', '-r', '-t', ref)
