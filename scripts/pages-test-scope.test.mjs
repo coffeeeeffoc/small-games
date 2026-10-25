@@ -5,7 +5,17 @@ test('fullscreen retirement accepts only reviewed bytes and proven deletions wit
     await import('./fullscreen-removal-scope.mjs');
   const root = fileURLToPath(new URL('../', import.meta.url));
   const catalog = await loadGameCatalog(root);
-  const packages = await workspacePackages(root);
+  // This fixture describes the pre-rename release, not today's public identity.
+  catalog.standaloneGames = catalog.standaloneGames.map((game) =>
+    game.id === 'place-and-clear'
+      ? { ...game, id: 'three-choose-two', source: 'games/local/three-choose-two' }
+      : game,
+  );
+  const packages = (await workspacePackages(root)).map((pkg) =>
+    pkg.dir === 'games/local/place-and-clear'
+      ? { ...pkg, dir: 'games/local/three-choose-two', name: '@coffeeeeffoc/three-choose-two' }
+      : pkg,
+  );
   const base = '171423331a4bdc0f8d45369b047dbc9e3d971b5c';
   // Pin both sides of the review; later game registrations may legitimately change these files.
   const head = '3b08f528a764ca48163b9acbc2a66ceba1486e6e';

@@ -63,8 +63,8 @@ export const gameRenameReviews = Object.freeze({
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/scripts/standalone-game-checks.mjs': {
-    before: 'befcf6148a83273c6c44f43629352978f66ed925054169cfd92a67688f890a4a',
-    after: 'b9c5fde461b8a5fff8fd2ddb85b487b47035b9d2eac27a09bea350328eade014',
+    before: '679bbdacf0838a00591b56fc157d72fbd39a9d291775e8146be5cd0a102dc5d7',
+    after: '446e8765fbb066a3fc54b587fbad4b47ec91149cc2056c0569131dc99bb606a0',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/scripts/standalone-game-entry.mjs': {
@@ -93,8 +93,8 @@ export const gameRenameReviews = Object.freeze({
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/src/game-sharing.ts': {
-    before: '60e545c5a1d690ce5dff0ed78c2c62c3558418ebe1a2dbe40b8726076d2b81eb',
-    after: 'acdb65bb0336fce3e71c4d2b329468966ef53c8e7609050545085972b2b8527b',
+    before: '6887b2a1dc84c3a6ae153e76c3a2f33ee0de25b45ed0973adf6963577d441aba',
+    after: 'f8aec3522ff4c822b47cfcdea24e0db3efb57c2843c81e2a62c60dec9f681889',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/tests/catalog-assessments.test.ts': {
@@ -103,8 +103,8 @@ export const gameRenameReviews = Object.freeze({
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/tests/game-sharing.test.tsx': {
-    before: '1b804dd9b9efee45b978dbce5e8ee173787725f3acbe9d3b76f464b86f8a10b5',
-    after: 'a29c6e68bbc7787031a98602eab16a9dee2dee8592b8a70aaaf2a7a70451297f',
+    before: '9248212c74a1f0515d6f43cd0be03f989633535496fd21e7e0c1e9ccd222d5e1',
+    after: '44da45b972289cd9a319ddc2e3e32a8be611c8890ef1edd085642afcbc73da0c',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/tests/routes.integration.test.tsx': {
@@ -239,7 +239,7 @@ export const gameRenameReviews = Object.freeze({
   },
   'scripts/validate-tree.test.mjs': {
     before: '2fa35179e1c8198fa953a6da074d2c691bc87eec1580b5e1756fb759f615c690',
-    after: 'b58510e56a5b31cfe91f69a122a24351604109d971e0c7b1df7c9252be3b3143',
+    after: '2dd4721194d6e168fde1e04a5787ae91c0476410e3b159a4d3d66498b60ebd53',
     sources: ['games/local/place-and-clear'],
   },
   'turbo.json': {
