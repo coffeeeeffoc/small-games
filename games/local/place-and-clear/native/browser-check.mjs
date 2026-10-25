@@ -10,7 +10,7 @@ import { STORAGE_KEY } from '../src/progress.mjs';
 import { nativeHarnessHtml } from './browser-harness.mjs';
 
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
-const artifact = path.resolve(gameRoot, '../../../apps/shell-minigame/dist/wechat/three-choose-two');
+const artifact = path.resolve(gameRoot, '../../../apps/shell-minigame/dist/wechat/place-and-clear');
 const output = path.join(gameRoot, 'docs/design/refresh-2026-10-07');
 const report = { environment: 'Built native Canvas bundle; Chromium touch emulation with a mock wx SDK',
   actualDevice: false, platformLoginVerified: false, screenshots: [], checks: [], errors: [] };

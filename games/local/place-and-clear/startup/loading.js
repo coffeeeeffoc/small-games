@@ -8,10 +8,10 @@
     },
     { capture: true },
   );
-  const overlay = document.getElementById('three-choose-two-loading');
-  const progress = document.getElementById('three-choose-two-progress');
-  const status = document.getElementById('three-choose-two-status');
-  const retry = document.getElementById('three-choose-two-retry');
+  const overlay = document.getElementById('place-and-clear-loading');
+  const progress = document.getElementById('place-and-clear-progress');
+  const status = document.getElementById('place-and-clear-status');
+  const retry = document.getElementById('place-and-clear-retry');
   let finished = false;
   const timeout = setTimeout(() => fail('加载时间较长，请检查网络后重试'), 90000);
   function fail(message) {
@@ -20,7 +20,7 @@
       retry.hidden = false;
     }
   }
-  globalThis.ThreeChooseTwoLoading = {
+  globalThis.PlaceAndClearLoading = {
     progress(value) {
       progress.value = value;
       status.textContent = `正在准备积木 ${Math.round(value * 100)}%`;

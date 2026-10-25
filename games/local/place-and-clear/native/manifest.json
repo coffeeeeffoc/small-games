@@ -1,10 +1,10 @@
 {
-  "gameId": "three-choose-two",
+  "gameId": "place-and-clear",
   "version": "1.0.0",
   "gameContractVersion": 1,
   "contentSchemaVersion": 1,
   "capabilities": ["content", "storage"],
   "loadModes": ["native-package"],
   "entry": "game.js",
-  "integrity": "builtin:three-choose-two@1.0.0"
+  "integrity": "builtin:place-and-clear@1.0.0"
 }

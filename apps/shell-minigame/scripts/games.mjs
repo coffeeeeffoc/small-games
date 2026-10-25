@@ -5,13 +5,14 @@ import { douyinPlatform } from '@coffeeeeffoc/platform-douyin/build';
 import { kuaishouPlatform } from '@coffeeeeffoc/platform-kuaishou/build';
 import { wulongSharedSourcePlugin } from '@coffeeeeffoc/wulong-city/build-plugin';
 export const games = {
-  'three-choose-two': {
-    title: '三块选两块',
-    root: 'three-choose-two',
-    module: '@coffeeeeffoc/three-choose-two/canvas',
+  'place-and-clear': {
+    title: '摆消乐',
+    root: 'place-and-clear',
+    storageGameId: 'three-choose-two',
+    module: '@coffeeeeffoc/place-and-clear/canvas',
     manifest: 'native/manifest.json',
-    definition: 'threeChooseTwoCanvasDefinition',
-    content: 'defaultThreeChooseTwoEnvelope',
+    definition: 'placeAndClearCanvasDefinition',
+    content: 'defaultPlaceAndClearEnvelope',
     configureCompetition: true,
     configureAdvertising: true,
     orientation: 'portrait',

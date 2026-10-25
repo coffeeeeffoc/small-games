@@ -12,28 +12,28 @@ if (!['web-mobile', 'web-desktop'].includes(target))
   throw Error(
     'This project currently validates web-mobile and web-desktop. Native targets require separate acceptance.',
   );
-if (target === 'web-mobile' && process.env.THREE_CHOOSE_TWO_PREBUILT_DIR) {
-  const source = await verifyPrebuilt(process.env.THREE_CHOOSE_TWO_PREBUILT_DIR);
+if (target === 'web-mobile' && process.env.PLACE_AND_CLEAR_PREBUILT_DIR) {
+  const source = await verifyPrebuilt(process.env.PLACE_AND_CLEAR_PREBUILT_DIR);
   if (source !== path.join(root, 'dist')) {
     await rm(path.join(root, 'dist'), { recursive: true, force: true });
     await cp(source, path.join(root, 'dist'), { recursive: true });
   }
-  console.log('Restored verified Three Choose Two Creator artifact.');
+  console.log('Restored verified Place & Clear Creator artifact.');
 } else {
   if (!existsSync(editor))
     throw Error(
-      'Install Cocos Creator 3.8.8 or provide a source-matching THREE_CHOOSE_TWO_PREBUILT_DIR. No replacement engine is used.',
+      'Install Cocos Creator 3.8.8 or provide a source-matching PLACE_AND_CLEAR_PREBUILT_DIR. No replacement engine is used.',
     );
   const enginePackage = path.join(
     path.dirname(editor),
     'resources/resources/3d/engine/package.json',
   );
   if (JSON.parse(await readFile(enginePackage, 'utf8')).version !== '3.8.8')
-    throw Error('Three Choose Two requires Cocos Creator 3.8.8.');
+    throw Error('Place & Clear requires Cocos Creator 3.8.8.');
   await import('./prepare.mjs');
   await mkdir(path.join(root, 'reports'), { recursive: true });
   const config = {
-    name: 'three-choose-two',
+    name: 'place-and-clear',
     platform: target,
     debug: false,
     md5Cache: true,
@@ -73,15 +73,15 @@ if (target === 'web-mobile' && process.env.THREE_CHOOSE_TWO_PREBUILT_DIR) {
   await brandCocos(out);
   let html = await readFile(path.join(out, 'index.html'), 'utf8');
   html = html
-    .replace(/<title>.*?<\/title>/, '<title>三块选两块 · 给下一步留点空间</title>')
+    .replace(/<title>.*?<\/title>/, '<title>摆消乐 · 给下一步留点空间</title>')
     .replace('minimal-ui=true', 'viewport-fit=cover')
     .replace(
       '</head>',
-      '<link rel="icon" href="./icon.png"><style>html,body{height:100%;width:100%;margin:0;background:#d0dfc2;overflow:hidden}canvas{touch-action:none;outline:none}#GameDiv{position:fixed;inset:0;width:100%;height:100%;border:0;margin:0}#GameCanvas{width:100%;height:100%}[hidden]{display:none!important}#three-choose-two-loading{position:fixed;inset:0;z-index:9999;background:#d0dfc2;color:#183c34;display:flex;align-items:center;justify-content:center;flex-direction:column;font:18px sans-serif;gap:18px}#three-choose-two-loading img{width:112px;border-radius:26px}#three-choose-two-loading button{padding:15px 30px;background:#ed896c;color:#fff9e6;border:0;border-radius:16px;font:inherit}#three-choose-two-loading progress{accent-color:#57b7a4;width:220px}</style><script src="./dev-mode.js"></script><script src="./competition.js"></script><script type="module" src="./host.js"></script></head>',
+      '<link rel="icon" href="./icon.png"><style>html,body{height:100%;width:100%;margin:0;background:#d0dfc2;overflow:hidden}canvas{touch-action:none;outline:none}#GameDiv{position:fixed;inset:0;width:100%;height:100%;border:0;margin:0}#GameCanvas{width:100%;height:100%}[hidden]{display:none!important}#place-and-clear-loading{position:fixed;inset:0;z-index:9999;background:#d0dfc2;color:#183c34;display:flex;align-items:center;justify-content:center;flex-direction:column;font:18px sans-serif;gap:18px}#place-and-clear-loading img{width:112px;border-radius:26px}#place-and-clear-loading button{padding:15px 30px;background:#ed896c;color:#fff9e6;border:0;border-radius:16px;font:inherit}#place-and-clear-loading progress{accent-color:#57b7a4;width:220px}</style><script src="./dev-mode.js"></script><script src="./competition.js"></script><script type="module" src="./host.js"></script></head>',
     )
     .replace(
       '<body>',
-      '<body><div id="three-choose-two-loading" role="status"><img src="./icon.png" alt=""><strong>三块选两块</strong><progress id="three-choose-two-progress" max="1" value="0"></progress><span id="three-choose-two-status">正在准备积木…</span><button id="three-choose-two-retry" hidden>重新加载</button></div><script src="./loading.js"></script>',
+      '<body><div id="place-and-clear-loading" role="status"><img src="./icon.png" alt=""><strong>摆消乐</strong><progress id="place-and-clear-progress" max="1" value="0"></progress><span id="place-and-clear-status">正在准备积木…</span><button id="place-and-clear-retry" hidden>重新加载</button></div><script src="./loading.js"></script>',
     );
   await writeFile(path.join(out, 'index.html'), html);
   await cp(path.join(root, 'scripts/dev-mode.js'), path.join(out, 'dev-mode.js'));
@@ -92,7 +92,7 @@ if (target === 'web-mobile' && process.env.THREE_CHOOSE_TWO_PREBUILT_DIR) {
     new URL('../../../../platforms/h5/publishing.js', import.meta.url),
     path.join(out, 'publishing.js'),
   );
-  await prepareH5Ads('three-choose-two', out);
+  await prepareH5Ads('place-and-clear', out);
   await cp(
     path.join(path.dirname(editor), 'resources/resources/3d/engine/bin/.declarations/cc.d.ts'),
     path.join(root, 'cc.d.ts'),
@@ -110,5 +110,5 @@ if (target === 'web-mobile' && process.env.THREE_CHOOSE_TWO_PREBUILT_DIR) {
     await rm(path.join(root, 'dist'), { recursive: true, force: true });
     await cp(out, path.join(root, 'dist'), { recursive: true });
   }
-  console.log(`Built Three Choose Two with Creator 3.8.8: ${out}`);
+  console.log(`Built Place & Clear with Creator 3.8.8: ${out}`);
 }

@@ -23,12 +23,13 @@ import { createOnlineClient } from './generated/client.js';
 import { canResetOptions, resetOptions, createRewardGate } from './generated/rewards.js';
 export const platform = globalThis as typeof globalThis & {
   SmallGamesDev?: any;
-  ThreeChooseTwoDev?: any;
+  PlaceAndClearDev?: any;
+  PlaceAndClearHost?: any;
   ThreeChooseTwoHost?: any;
   SmallGamesRewardAds?: any;
-  ThreeChooseTwoPublishing?: any;
-  getThreeChooseTwoSnapshot?: () => any;
-  ThreeChooseTwoLoading?: any;
+  PlaceAndClearPublishing?: any;
+  getPlaceAndClearSnapshot?: () => any;
+  PlaceAndClearLoading?: any;
 };
 export function createSession(options: {
   storage: Storage;
@@ -91,7 +92,7 @@ export function createSession(options: {
   const invitedVariant = query?.get('variant') === 'refill' ? 'refill' : 'classic';
   const publishing = {
     share: (args: any) =>
-      platform.ThreeChooseTwoPublishing?.share(args) ||
+      platform.PlaceAndClearPublishing?.share(args) ||
       Promise.resolve({ status: 'unavailable' }),
   };
   function render() {
@@ -548,7 +549,7 @@ export function createSession(options: {
   async function shareScore() {
     const rank =
       onlineSession?.settlement?.status === 'verified' ? onlineSession.settlement.rank : null;
-    const text = `三块选两块：${onlineSession?.settlement?.status === 'verified' ? '在线挑战' : endlessName()} ${fmt(state.score)} 分，最高一次消除 ${state.stats.maxLines} 条线${rank ? '，全站第 ' + rank + ' 名' : ''}。${!devPractice && !state.resetRewardIds?.length && !onlineSession && Number.isInteger(state.initialSeed) ? '你能用同样的积木超越我吗？' : '这三块，你舍哪一块？'}`;
+    const text = `摆消乐：${onlineSession?.settlement?.status === 'verified' ? '在线挑战' : endlessName()} ${fmt(state.score)} 分，最高一次消除 ${state.stats.maxLines} 条线${rank ? '，全站第 ' + rank + ' 名' : ''}。${!devPractice && !state.resetRewardIds?.length && !onlineSession && Number.isInteger(state.initialSeed) ? '你能用同样的积木超越我吗？' : '这三块，你舍哪一块？'}`;
     const params =
       !devPractice &&
       !state.resetRewardIds?.length &&
@@ -573,7 +574,7 @@ export function createSession(options: {
       const resultState = state, resultEpoch = lifecycleEpoch;
       publishingBusy = true;
       try {
-        await platform.ThreeChooseTwoPublishing?.interstitial({ placement: 'result-exit', naturalBreak: true });
+        await platform.PlaceAndClearPublishing?.interstitial({ placement: 'result-exit', naturalBreak: true });
       } catch {
         // An optional advertisement cannot prevent leaving the result screen.
       } finally { publishingBusy = false; }
@@ -865,11 +866,11 @@ export function createSession(options: {
       })
     : null;
   if (developer) {
-    platform.ThreeChooseTwoDev = developer;
+    platform.PlaceAndClearDev = developer;
     unregister.push(
       platform.SmallGamesDev.registerActions([
         {
-          id: 'three-choose-two-tools',
+          id: 'place-and-clear-tools',
           label: '关卡与开发调试工具',
           run: () => dispatch('dev-tools'),
         },
@@ -983,7 +984,7 @@ export function createSession(options: {
       clearTimeout(animationTimer);
       clearTimeout(toastTimer);
       unregister.forEach((off) => off());
-      if (platform.ThreeChooseTwoDev === developer) delete platform.ThreeChooseTwoDev;
+      if (platform.PlaceAndClearDev === developer) delete platform.PlaceAndClearDev;
     },
     cancelInput() {
       selectedSlot = null;

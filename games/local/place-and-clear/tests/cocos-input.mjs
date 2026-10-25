@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { SHAPE_BY_ID } from '../src/shapes.mjs';
 export function inputFor(page, mobile = true) {
   const canvas = page.locator('#GameCanvas'),
-    snapshot = () => page.evaluate(() => globalThis.getThreeChooseTwoSnapshot?.());
+    snapshot = () => page.evaluate(() => globalThis.getPlaceAndClearSnapshot?.());
   const point = async (p) => {
     const s = await snapshot(),
       b = await canvas.boundingBox(),

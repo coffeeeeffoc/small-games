@@ -350,7 +350,7 @@ test('synchronous SHA-256 matches published vectors and the standard Node implem
     ['a'.repeat(1_000_000), 'cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0'],
   ];
   for (const [input, expected] of vectors) assert.equal(sha256(input), expected);
-  for (const input of ['三块选两块', '🌱积木🧩', '\ud800', ...Array.from({ length: 100 }, (_, i) => `${i}:` + 'counter-seed'.repeat(i))])
+  for (const input of ['摆消乐', '🌱积木🧩', '\ud800', ...Array.from({ length: 100 }, (_, i) => `${i}:` + 'counter-seed'.repeat(i))])
     assert.equal(sha256(input), createHash('sha256').update(input).digest('hex'));
 });
 

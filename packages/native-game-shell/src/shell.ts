@@ -10,6 +10,8 @@ export type ReviewedModule = {
   definition: GameDefinition<CanvasGameTarget>;
   content: DynamicContentEnvelope;
   viewport?: NativeViewportOptions;
+  /** Preserve saves when an authored game ID changes. */
+  storageGameId?: string;
 };
 export async function startNativeGame(
   sdk: NativeSdk | undefined,
@@ -113,7 +115,10 @@ export async function startNativeGame(
       sdk.onWindowResize(resize);
       remember(() => sdk.offWindowResize?.(resize));
     }
-    const host = createNativeGameHost(sdk, module.definition.manifest, module.content, options);
+    const host = createNativeGameHost(sdk, module.definition.manifest, module.content, {
+      ...options,
+      storageGameId: module.storageGameId,
+    });
     instance = await module.definition.mount(
       {
         canvas: viewport.canvas,

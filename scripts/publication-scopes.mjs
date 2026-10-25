@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { gameRenameFileScopes } from './game-rename-scope.mjs';
 import { isDeepStrictEqual } from 'node:util';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
@@ -899,7 +900,7 @@ export const competitionIdentityConsumers = Object.freeze({
   'carding-car': 'games/local/carding-car',
   'carrom-club': 'games/local/carrom-club',
   'flick-arena': 'games/local/flick-arena',
-  'three-choose-two': 'games/local/three-choose-two',
+  'place-and-clear': 'games/local/place-and-clear',
   'cage-rescue': 'games/local/cage-rescue',
   'tower-brake': 'games/local/tower-brake',
   'wulong-city': 'games/local/wulong-city',
@@ -913,7 +914,7 @@ export const competitionIdentityScopePaths = Object.freeze([
 ]);
 export const competitionIdentityMirrorPaths = Object.freeze([
   'games/local/flick-arena/competition-client.js',
-  'games/local/three-choose-two/competition.js',
+  'games/local/place-and-clear/competition.js',
 ]);
 const competitionProtocolTools = {
   'scripts/review-competition-kart-chess.mjs': 'xiangqi-five',
@@ -1042,7 +1043,7 @@ function assertSixH5(games, packages, readHead) {
     'ashfall-front',
     'merge-front',
     'tetracube',
-    'three-choose-two',
+    registered.includes('place-and-clear') ? 'place-and-clear' : 'three-choose-two',
     'bullet-garden',
     'tower-brake',
     'tianxia-chalu',
@@ -2652,7 +2653,7 @@ export const publishingConsumers = {
   'tower-brake': 'games/local/tower-brake',
   'cage-rescue': 'games/local/cage-rescue',
   'ball-roguelite': 'games/local/ball-roguelite',
-  'three-choose-two': 'games/local/three-choose-two',
+  'place-and-clear': 'games/local/place-and-clear',
   'flick-arena': 'games/local/flick-arena',
   'moss-garden': 'games/local/game-moss-garden',
   'ember-bounce': 'games/local/ember-bounce',
@@ -3975,6 +3976,14 @@ export function reviewedSharedFileScopes({
   ...treeContext
 }) {
   const scopes = vitePatchFileScopes({ changedPaths, readBase, readHead });
+  const renameScopes = gameRenameFileScopes({
+    changedPaths,
+    readBase,
+    readHead,
+    games,
+    packages,
+    ...treeContext,
+  });
   const porcelainScopes = porcelainH5FileScopes({
     changedPaths,
     readBase,
@@ -4005,6 +4014,10 @@ export function reviewedSharedFileScopes({
     packages,
   });
   for (const file of changedPaths) {
+    if (renameScopes.has(file)) {
+      scopes.set(file, renameScopes.get(file));
+      continue;
+    }
     if (porcelainScopes.has(file)) {
       scopes.set(file, porcelainScopes.get(file));
       continue;

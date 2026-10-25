@@ -2,6 +2,7 @@ import { LEVELS, getLevel, validateLevels } from './levels.mjs';
 import { SHAPE_BY_ID } from './shapes.mjs';
 import { RULE_VERSION, getStars } from './engine.mjs';
 
+// Persistent save identity deliberately survives the Place & Clear rename.
 export const STORAGE_KEY = 'three-choose-two-progress-v1';
 export const PROGRESS_VERSION = 1;
 const copy = (value) => typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));

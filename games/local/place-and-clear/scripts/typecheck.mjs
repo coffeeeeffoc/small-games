@@ -7,7 +7,7 @@ import { editorRoot } from '../../carding-car/scripts/toolchain.mjs';
 import { verifyPrebuilt } from './artifact.mjs';
 await import('./prepare.mjs');
 const root = fileURLToPath(new URL('../', import.meta.url));
-const prebuilt = process.env.THREE_CHOOSE_TWO_PREBUILT_DIR;
+const prebuilt = process.env.PLACE_AND_CLEAR_PREBUILT_DIR;
 if (prebuilt) await verifyPrebuilt(prebuilt);
 const declarations = prebuilt
   ? path.resolve(prebuilt, 'cc.d.ts')

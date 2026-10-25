@@ -36,8 +36,8 @@ type Press = {
   touch: boolean;
 };
 
-@ccclass('ThreeChooseTwo')
-export class ThreeChooseTwo extends Component {
+@ccclass('PlaceAndClear')
+export class PlaceAndClear extends Component {
   ui!: GardenView;
   session!: ReturnType<typeof createSession>;
   dirty = true;
@@ -136,20 +136,20 @@ export class ThreeChooseTwo extends Component {
       document.addEventListener('visibilitychange', this.visibility);
       this.accessibility = document.createElement('div');
       this.accessibility.id = 'game';
-      this.accessibility.setAttribute('aria-label', '三块选两块');
+      this.accessibility.setAttribute('aria-label', '摆消乐');
       this.accessibility.style.cssText =
         'position:fixed;left:-10000px;width:1px;height:1px;overflow:hidden';
       document.body.append(this.accessibility);
-      platform.getThreeChooseTwoSnapshot = () => this.inspect();
+      platform.getPlaceAndClearSnapshot = () => this.inspect();
     }
     this.render();
   }
   rewardPort() {
-    const host = platform.ThreeChooseTwoHost?.ads;
+    const host = (platform.PlaceAndClearHost ?? platform.ThreeChooseTwoHost)?.ads;
     const port = host || platform.SmallGamesRewardAds;
     // Test providers require the same explicit developer permission as other mutation APIs.
     const test = platform.SmallGamesDev?.isEnabled()
-      ? (globalThis as any).ThreeChooseTwoTestAds
+      ? (globalThis as any).PlaceAndClearTestAds
       : undefined;
     const provider = test || port;
     if (!provider) return undefined;
@@ -341,11 +341,11 @@ export class ThreeChooseTwo extends Component {
     this.layout.candidates = [];
     if (!u.ready) {
       u.text('loading', u.error || '积木准备中…', u.W / 2, u.H / 2, 22);
-      if (u.error) platform.ThreeChooseTwoLoading?.fail(u.error);
+      if (u.error) platform.PlaceAndClearLoading?.fail(u.error);
       u.end();
       return;
     }
-    platform.ThreeChooseTwoLoading?.ready();
+    platform.PlaceAndClearLoading?.ready();
     switch (d.screen) {
       case 'home':
         this.home();
@@ -430,7 +430,7 @@ export class ThreeChooseTwo extends Component {
           window.parent.postMessage(
             {
               type: 'small-games:display-state',
-              gameId: 'three-choose-two',
+              gameId: 'place-and-clear',
               screen: d.screen === 'home' ? 'home' : 'playing',
             },
             location.origin,
@@ -1564,7 +1564,7 @@ export class ThreeChooseTwo extends Component {
       window.removeEventListener('blur', this.suspend);
       window.removeEventListener('pagehide', this.exit);
       document.removeEventListener('visibilitychange', this.visibility);
-      delete platform.getThreeChooseTwoSnapshot;
+      delete platform.getPlaceAndClearSnapshot;
     }
     this.accessibility?.remove();
     this.ui?.dispose();

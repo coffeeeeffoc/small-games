@@ -6,7 +6,7 @@ import path from 'node:path';
 import { sourceHash } from '../scripts/artifact.mjs';
 
 test('source fingerprint normalizes mts line endings and retains authored content and binary bytes', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'three-choose-two-fingerprint-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'place-and-clear-fingerprint-'));
   try {
     for (const folder of ["assets","scripts","settings","startup","src"])
       await mkdir(path.join(dir, folder), { recursive: true });

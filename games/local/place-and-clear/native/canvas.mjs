@@ -9,24 +9,24 @@ import '../competition.js';
 import { createOnlineClient } from '../src/client.mjs';
 import { createNativeFeedback } from './feedback.mjs';
 
-export const threeChooseTwoManifest = gameManifestSchema.parse(manifest);
-export const defaultThreeChooseTwoEnvelope = {
-  gameId: 'three-choose-two', schemaVersion: 1, revision: 1,
+export const placeAndClearManifest = gameManifestSchema.parse(manifest);
+export const defaultPlaceAndClearEnvelope = {
+  gameId: 'place-and-clear', schemaVersion: 1, revision: 1,
   payload: { levelIds: LEVELS.map(level => level.id) },
 };
 
 /** DOM-free native renderer. The exact same engine and catalog power H5 and native play. */
-export const threeChooseTwoCanvasDefinition = {
-  manifest: threeChooseTwoManifest,
+export const placeAndClearCanvasDefinition = {
+  manifest: placeAndClearManifest,
   async mount(target, host) {
     assertHostCapabilities(['content', 'storage'], host.session.capabilities);
     if (host.session.gameId !== manifest.gameId)
-      throw new HostError({ code: 'INVALID_INPUT', message: 'Three choose two session identity mismatch' });
+      throw new HostError({ code: 'INVALID_INPUT', message: 'Place & Clear session identity mismatch' });
     const content = await host.content.load();
     if (content.gameId !== manifest.gameId || content.schemaVersion !== 1 ||
       !Number.isInteger(content.revision) || content.revision < 1 ||
-      JSON.stringify(content.payload?.levelIds) !== JSON.stringify(defaultThreeChooseTwoEnvelope.payload.levelIds))
-      throw new HostError({ code: 'CONTENT_INCOMPATIBLE', message: 'Unsupported three choose two level catalog' });
+      JSON.stringify(content.payload?.levelIds) !== JSON.stringify(defaultPlaceAndClearEnvelope.payload.levelIds))
+      throw new HostError({ code: 'CONTENT_INCOMPATIBLE', message: 'Unsupported place and clear level catalog' });
     const ctx = target.canvas.getContext('2d');
     if (!ctx) throw new HostError({ code: 'UNAVAILABLE', message: 'Canvas 2D is unavailable' });
 
@@ -163,7 +163,7 @@ export const threeChooseTwoCanvasDefinition = {
     }
     function track(name, properties = {}) {
       if (host.session.capabilities.includes('telemetry'))
-        void host.telemetry.track(`three-choose-two.${name}`, properties).catch(() => {});
+        void host.telemetry.track(`place-and-clear.${name}`, properties).catch(() => {});
     }
     function sound(kind) {
       if (!suspended) feedback.sound(kind);
@@ -417,7 +417,7 @@ export const threeChooseTwoCanvasDefinition = {
       const compressed = Math.max(0, 844 - h), titleY = 114 - compressed * .1;
       const logoHeight = 200 - compressed * .3;
       if (art.logo) ctx.drawImage(art.logo, (390 - logoHeight * 1.5) / 2, 72, logoHeight * 1.5, logoHeight);
-      else { text('三块', 195, titleY, 48, ink, 'center', 900); text('选两块', 195, titleY + 54, 54, ink, 'center', 900); }
+      else { text('摆消乐', 195, titleY + 27, 54, ink, 'center', 900); }
       const heroHeight = 282 - compressed * .71, heroY = 228 - compressed * .35;
       if (art.hero) ctx.drawImage(art.hero, (390 - heroHeight * 1.334) / 2, heroY, heroHeight * 1.334, heroHeight);
       else { piece({shapeId:'l3-nw', color:1}, 112, heroY + 25, 42); piece({shapeId:'square2', color:2}, 208, heroY + 38, 42); }
@@ -659,8 +659,8 @@ export const threeChooseTwoCanvasDefinition = {
       const rankingText = settlement?.status === 'verified' && Number.isInteger(settlement.rank)
         ? ` · 全站第${settlement.rank}名` : onlineSession ? ' · 在线成绩' : ' · 离线练习';
       try {
-        nativeSdk.shareAppMessage({ title: `三块选两块：${state.score}分 · 单步最多${state.stats.maxLines}线${rankingText}`,
-          query: 'game=three-choose-two', fail() { if (!disposed) say('分享暂不可用'); } });
+        nativeSdk.shareAppMessage({ title: `摆消乐：${state.score}分 · 单步最多${state.stats.maxLines}线${rankingText}`,
+          query: 'game=place-and-clear', fail() { if (!disposed) say('分享暂不可用'); } });
       } catch { say('分享暂不可用'); }
     }
     function drawResult(h) {

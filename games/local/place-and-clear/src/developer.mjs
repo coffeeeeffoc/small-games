@@ -89,11 +89,11 @@ export function createDeveloperAPI({ isEnabled, getSnapshot, getState, isolate, 
     },
   });
   api.registerActions([
-    { id: 'three-choose-two-levels', label: '试玩任意关卡', permission: 'levels', run: openLevels },
-    { id: 'three-choose-two-solution', label: '查看参考解法', permission: 'solution', run: openSolution },
-    { id: 'three-choose-two-undo', label: '补充撤销 · 9 次', permission: 'undo', run: () => api.refillUndo() },
-    { id: 'three-choose-two-restart', label: '重置当前试玩', permission: 'restart', run: () => api.restart() },
-    { id: 'three-choose-two-board', label: '清空试玩棋盘', permission: 'board', run: () => api.clearBoard() },
+    { id: 'place-and-clear-levels', label: '试玩任意关卡', permission: 'levels', run: openLevels },
+    { id: 'place-and-clear-solution', label: '查看参考解法', permission: 'solution', run: openSolution },
+    { id: 'place-and-clear-undo', label: '补充撤销 · 9 次', permission: 'undo', run: () => api.refillUndo() },
+    { id: 'place-and-clear-restart', label: '重置当前试玩', permission: 'restart', run: () => api.restart() },
+    { id: 'place-and-clear-board', label: '清空试玩棋盘', permission: 'board', run: () => api.clearBoard() },
   ]);
   return api;
 }

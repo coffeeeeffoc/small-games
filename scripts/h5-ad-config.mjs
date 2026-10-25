@@ -8,7 +8,7 @@ export const additionalH5Games = [
   'carding-car',
   'merge-front',
   'tetracube',
-  'three-choose-two',
+  'place-and-clear',
   'bullet-garden',
   'tower-brake',
   'tianxia-chalu',
@@ -34,7 +34,11 @@ export function h5AdConfig(game, { env = process.env, args = [] } = {}) {
   if (!['0', '1'].includes(value)) throw new Error('H5_ADS_ENABLED must be 0 or 1');
   if (value === '0') return { adMode: 'off', adsEnabled: false };
   const key = `TAPTAP_${game.toUpperCase().replaceAll('-', '_')}_AD_UNIT_ID`;
-  const adUnitId = (env[key] || '').trim();
+  const adUnitId = (
+    env[key] ??
+    (game === 'place-and-clear' ? env.TAPTAP_THREE_CHOOSE_TWO_AD_UNIT_ID : undefined) ??
+    ''
+  ).trim();
   if (adUnitId && (!/^[\w-]{1,160}$/.test(adUnitId) || /^(YOUR_|REPLACE_|TODO)/i.test(adUnitId)))
     throw new Error(`${key} must contain a real advertisement unit ID`);
   return {

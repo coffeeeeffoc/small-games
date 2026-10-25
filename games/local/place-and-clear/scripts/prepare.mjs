@@ -11,6 +11,7 @@ for (const name of (await readdir(new URL('src/', root)))
     '$1.js$2',
   );
   await writeFile(new URL(name.replace('.mjs', '.js'), output), code);
+  // Legacy namespace keeps existing Creator asset UUIDs stable across the rename.
   const hex = createHash('sha256')
     .update('three-choose-two/core/' + name)
     .digest('hex');

@@ -1,3 +1,4 @@
+// Stable wire identity: existing sessions, policies and deployed APIs keep this name.
 const PATH = '/three-choose-two';
 export const RANKING_VERSION = 'three-choose-two-v1';
 

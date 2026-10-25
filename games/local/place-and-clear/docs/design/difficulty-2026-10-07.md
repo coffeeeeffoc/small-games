@@ -49,4 +49,4 @@
 
 兼容性回归使用原第 6 关的实际旧配置 fixture：完成第一手后保存，读取进度并恢复原棋盘、候选与完整配置，接着按原解完成三星；原第 1–5 关记录和第 6 关解锁保留，新开第 6 关读取新棋盘。测试不依赖运行时 Git 或外部 fixture 下载。
 
-本次相关规则验证：`node --test games/local/three-choose-two/tests/levels.test.mjs games/local/three-choose-two/tests/engine.test.mjs`，30 项通过。难度数据验证独立于界面验证；手机视口与触屏验证由本次界面交付记录覆盖。
+本次相关规则验证：`node --test games/local/place-and-clear/tests/levels.test.mjs games/local/place-and-clear/tests/engine.test.mjs`，30 项通过。难度数据验证独立于界面验证；手机视口与触屏验证由本次界面交付记录覆盖。

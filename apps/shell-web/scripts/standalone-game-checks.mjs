@@ -62,8 +62,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'three-choose-two') {
-    const { snapshot, control, point, canvas, page } = threeChooseTwoInput(frame, mobile);
+  if (id === 'place-and-clear') {
+    const { snapshot, control, point, canvas, page } = placeAndClearInput(frame, mobile);
     await expect.poll(async () => (await snapshot())?.ready, { timeout: 60000 }).toBe(true);
     expect((await snapshot()).creator).toBe('3.8.8');
     await expect(canvas).toBeVisible();
@@ -1522,10 +1522,10 @@ async function pressWebGLControl(frame, control, selector, mobile = false, docum
   else await control.page().mouse.click(x, y);
 }
 
-export function threeChooseTwoInput(frame, mobile = false) {
+export function placeAndClearInput(frame, mobile = false) {
   const canvas = frame.locator('#GameCanvas'),
     page = canvas.page();
-  const snapshot = () => canvas.evaluate(() => globalThis.getThreeChooseTwoSnapshot?.());
+  const snapshot = () => canvas.evaluate(() => globalThis.getPlaceAndClearSnapshot?.());
   const point = async (p) => {
     const s = await snapshot(),
       b = await canvas.boundingBox();

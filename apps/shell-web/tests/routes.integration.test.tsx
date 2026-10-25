@@ -61,12 +61,27 @@ async function clickButton(container: HTMLElement, label: string) {
 }
 
 describe('Web Shell routes', () => {
+  it('opens a legacy block-game bookmark at the renamed entry without losing its challenge', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/#/games/three-choose-two?seed=42&variant=refill&targetScore=100&token=private',
+    );
+    const container = await renderShell();
+    expect(container.querySelector('iframe')?.getAttribute('title')).toBe('摆消乐');
+    expect(container.querySelector('iframe')?.getAttribute('src')).toMatch(
+      /^\/games\/place-and-clear\/index.html\?seed=42&variant=refill&targetScore=100/,
+    );
+    expect(container.querySelector('iframe')?.getAttribute('src')).not.toContain('token=');
+    await clickButton(container, '返回目录');
+    expect(container.querySelector('iframe')).toBeNull();
+  });
   it.each([
     ['tower-brake', 'challenge=tower-v1&level=first-brake&targetScore=450'],
     ['cage-rescue', 'challenge=rescue-v1&level=rescue-01&targetRescued=3&targetCombo=2'],
     ['ball-roguelite', 'challenge=orbit-v1&level=stardust&seed=42&targetScore=250'],
     ['ember-bounce', 'emberChallenge=1&level=first-spark&turns=9'],
-    ['three-choose-two', 'seed=42&variant=refill&targetScore=100'],
+    ['place-and-clear', 'seed=42&variant=refill&targetScore=100'],
     ['flick-arena', 'seed=42&layout=triangle&targetShots=9'],
     ['moss-garden', 'level=moss-09&targetHints=1&targetMistakes=2&targetTime=5000'],
   ])(

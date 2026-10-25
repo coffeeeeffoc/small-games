@@ -298,8 +298,8 @@
         "time": "2026-10-24T23:00:29+08:00"
       }
     },
-    "three-choose-two": {
-      "source": "games/local/three-choose-two",
+    "place-and-clear": {
+      "source": "games/local/place-and-clear",
       "created": {
         "commit": "044e8fd2ff4fc74b30eb975738e60a5ce62b0856",
         "time": "2026-10-07T10:31:05Z"

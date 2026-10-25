@@ -8,7 +8,7 @@ try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, recordVideo: { dir: fileURLToPath(new URL('../reports/gameplay-recording/', import.meta.url)), size: { width: 390, height: 844 } } });
   const page = await context.newPage(), input = inputFor(page), errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto(process.env.THREE_CHOOSE_TWO_BROWSER_URL || 'http://localhost:4422');
+  await page.goto(process.env.PLACE_AND_CLEAR_BROWSER_URL || 'http://localhost:4422');
   await input.ready();
   await page.waitForTimeout(2000);
   await input.control('start');

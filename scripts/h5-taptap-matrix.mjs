@@ -7,7 +7,7 @@ export const h5Orientations = Object.freeze({
   'ashfall-front': 'landscape',
   'merge-front': 'landscape',
   tetracube: 'portrait',
-  'three-choose-two': 'portrait',
+  'place-and-clear': 'portrait',
   'bullet-garden': 'portrait',
   'tower-brake': 'portrait',
   'tianxia-chalu': 'portrait',

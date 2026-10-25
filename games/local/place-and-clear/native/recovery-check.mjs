@@ -15,7 +15,7 @@ const platform = values.platform;
 assert.ok(['wechat', 'bilibili'].includes(platform));
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
 const artifact = values.artifact ? path.resolve(values.artifact)
-  : path.resolve(gameRoot, '../../../apps/shell-minigame/dist', platform, 'three-choose-two');
+  : path.resolve(gameRoot, '../../../apps/shell-minigame/dist', platform, 'place-and-clear');
 const release = JSON.parse(await readFile(path.join(artifact, 'release.json')));
 assert.equal(release.platform, platform);
 assert.equal(release.mode, 'preview');

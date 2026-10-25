@@ -9,7 +9,7 @@ import { inputFor } from './cocos-input.mjs';
 const output = new URL('../docs/design/cocos-2026-10-23/actual/', import.meta.url);
 await mkdir(output, { recursive: true });
 let server,
-  url = process.env.THREE_CHOOSE_TWO_BROWSER_URL || process.env.GAME_URL;
+  url = process.env.PLACE_AND_CLEAR_BROWSER_URL || process.env.GAME_URL;
 if (!url) {
   server = spawn(
     process.execPath,
@@ -56,6 +56,8 @@ async function open(p, query = '') {
   await p.page.goto(url + query);
   await p.ready();
   assert.equal((await p.snapshot()).creator, '3.8.8');
+  await expect(p.page).toHaveTitle(/摆消乐/);
+  await expect(p.page.locator('#game')).toHaveAttribute('aria-label', '摆消乐');
 }
 async function shot(p, name) {
   await p.page.screenshot({ path: fileURLToPath(new URL(name + '.png', output)) });
@@ -77,7 +79,7 @@ try {
   await open(p);
   await shot(p, 'home-390x844');
   assert.equal(await p.page.locator('[data-game-fullscreen]').count(), 0);
-  assert.equal(await p.page.evaluate(() => globalThis.ThreeChooseTwoDev), undefined);
+  assert.equal(await p.page.evaluate(() => globalThis.PlaceAndClearDev), undefined);
   await p.control('start');
   await p.screen('brief');
   await shot(p, 'brief-390x844');
@@ -167,7 +169,7 @@ try {
   );
   pass('Developer UI can scroll/select level 120 without changing real progress');
   await open(p, '?dev=0');
-  assert.equal(await p.page.evaluate(() => typeof globalThis.ThreeChooseTwoDev), 'undefined');
+  assert.equal(await p.page.evaluate(() => typeof globalThis.PlaceAndClearDev), 'undefined');
   await p.control('start');
   await p.page.evaluate(() =>
     window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })),
@@ -214,7 +216,7 @@ try {
   pass('320/360/landscape scrolling and controls');
   const rewards = await phone();
   await rewards.page.addInitScript(() => {
-    globalThis.ThreeChooseTwoHost = {
+    globalThis.PlaceAndClearHost = {
       ads: {
         offer: () => {
           globalThis.__offers = (globalThis.__offers || 0) + 1;
@@ -283,7 +285,7 @@ try {
   const share = await phone();
   await share.page.addInitScript(() => {
     globalThis.SmallGamesPublishingConfig = {
-      publicUrl: 'https://games.example/three-choose-two/',
+      publicUrl: 'https://games.example/place-and-clear/',
     };
     globalThis.__shares = [];
     Object.defineProperty(navigator, 'share', {

@@ -12,13 +12,13 @@ import { getLevel } from '../src/levels.mjs';
 
 // This test starts the actual Runtime Service and writes only isolated identity
 // fixtures. Every game move uses ordinary CDP touch input; snapshots are read-only.
-const databaseUrl = process.env.THREE_CHOOSE_TWO_TEST_DATABASE_URL;
+const databaseUrl = process.env.PLACE_AND_CLEAR_TEST_DATABASE_URL;
 if (!databaseUrl || new URL(databaseUrl).pathname !== '/competition_test')
-  throw new Error('Set THREE_CHOOSE_TWO_TEST_DATABASE_URL to isolated competition_test');
+  throw new Error('Set PLACE_AND_CLEAR_TEST_DATABASE_URL to isolated competition_test');
 const workspace = fileURLToPath(new URL('../../../../', import.meta.url));
 const output = fileURLToPath(new URL('../docs/design/actual/', import.meta.url));
-const baseURL = process.env.THREE_CHOOSE_TWO_ONLINE_BROWSER_URL || 'http://localhost:4422/';
-const port = Number(process.env.THREE_CHOOSE_TWO_ONLINE_API_PORT || 4424);
+const baseURL = process.env.PLACE_AND_CLEAR_ONLINE_BROWSER_URL || 'http://localhost:4422/';
+const port = Number(process.env.PLACE_AND_CLEAR_ONLINE_API_PORT || 4424);
 const apiURL = `http://127.0.0.1:${port}/api/competition/v1`;
 const configuredPsql = process.env.PSQL_PATH || 'psql';
 const psql = await access(configuredPsql).then(() => configuredPsql, () => 'psql');
@@ -100,7 +100,7 @@ async function phone(credential) {
   const cdp = await context.newCDPSession(page);
   return { context, page, cdp };
 }
-async function snapshot(page) { return page.evaluate(() => window.getThreeChooseTwoSnapshot()); }
+async function snapshot(page) { return page.evaluate(() => window.getPlaceAndClearSnapshot()); }
 async function screen(page, name) { await expect(page.locator('#game')).toHaveAttribute('data-screen', name); }
 async function action(page,name){return inputFor(page).control(name);}
 async function startOnline(page) { await action(page, 'endless'); await screen(page, 'endless'); await action(page, 'online-start'); await screen(page, 'playing'); }

@@ -3,17 +3,17 @@ import { test } from 'node:test';
 import { domesticChannels, publicReleaseConfiguration } from '../publication-config.mjs';
 
 test('public configuration preserves existing build contract without exposing server secrets', () => {
-  const config = publicReleaseConfiguration('three-choose-two', 'wechat', {
+  const config = publicReleaseConfiguration('place-and-clear', 'wechat', {
     release: true,
     env: {
-      MINIGAME_THREE_CHOOSE_TWO_WECHAT_APP_ID: 'wx0123456789abcdef',
-      MINIGAME_THREE_CHOOSE_TWO_WECHAT_AD_UNIT_ID: 'adunit-public',
+      MINIGAME_PLACE_AND_CLEAR_WECHAT_APP_ID: 'wx0123456789abcdef',
+      MINIGAME_PLACE_AND_CLEAR_WECHAT_AD_UNIT_ID: 'adunit-public',
       WECHAT_APP_SECRET: 'must-not-ship',
       COMPETITION_PLATFORM_CONFIG: 'must-not-ship',
     },
   });
   assert.deepEqual(config, {
-    'three-choose-two': { wechat: { appId: 'wx0123456789abcdef', adUnitId: 'adunit-public' } },
+    'place-and-clear': { wechat: { appId: 'wx0123456789abcdef', adUnitId: 'adunit-public' } },
   });
   assert.equal(JSON.stringify(config).includes('must-not-ship'), false);
 });

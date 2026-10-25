@@ -30,7 +30,7 @@ node apps/shell-minigame/scripts/build.mjs --game three-choose-two --platform we
 node scripts/native-game-smoke.mjs --standalone --game three-choose-two --platform wechat
 node apps/shell-minigame/scripts/build.mjs --game three-choose-two --platform bilibili --preview
 node scripts/native-game-smoke.mjs --standalone --game three-choose-two --platform bilibili
-node games/local/three-choose-two/native/browser-check.mjs
+node games/local/place-and-clear/native/browser-check.mjs
 ```
 
 两个平台实际 CJS 构建及 SDK 模拟运行冒烟均通过。Canvas 生产包在 Chromium 中使用模拟微信 SDK 和真实触屏事件，12 项流程通过：正常锁关、非法/取消拖放、多触点、首关三星与解锁、三次限额的单步撤销、前后台取消手势、首页继续、卸载后精确恢复、无尽练习、不含私有会话数据的真实练习成绩分享、320 × 640 小屏以及资源清理。实际声音加载和清理覆盖 7 个 WAV，设置保存覆盖音效、音乐、振动、高对比及减少闪光。截图与完整记录在 [native-actual/verification.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/native-actual/verification.json)。它们是浏览器与 SDK 模拟结果，尚未进行微信/B 站真机验收。
@@ -55,7 +55,7 @@ node games/local/three-choose-two/native/browser-check.mjs
 
 ```sh
 node apps/shell-minigame/scripts/build.mjs --game three-choose-two --platform wechat --preview --ad-unit-id native-recovery-fixture
-node games/local/three-choose-two/native/recovery-check.mjs --platform wechat
+node games/local/place-and-clear/native/recovery-check.mjs --platform wechat
 # B 站使用同样的两个命令，将 wechat 改为 bilibili。
 # 可用 --artifact <独立目录> 读取已复制的测试包，避免覆盖其他验收的构建输出。
 ```

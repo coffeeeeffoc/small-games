@@ -27,7 +27,7 @@ export async function verifyNativeArtifact({
     ['flick-arena', '弹指擂台'],
     ['moss-garden', '苔光花园'],
     ['wulong-city', '乌龙城'],
-    ['three-choose-two', '三块选两块'],
+    ['place-and-clear', '摆消乐'],
   ];
   if (standalone) {
     assert.equal(config.deviceOrientation, 'portrait');
@@ -38,7 +38,7 @@ export async function verifyNativeArtifact({
     const project = JSON.parse(readFileSync(path.join(root, 'project.config.json'), 'utf8'));
     assert.equal(project.compileType, 'game');
     const assets = {
-      'three-choose-two': 'assets',
+      'place-and-clear': 'assets',
       'flick-arena': 'audio',
       'moss-garden': 'moss-garden-audio',
       'wulong-city': 'assets',
@@ -317,7 +317,7 @@ export async function verifyNativeArtifact({
       const module = { exports: {} };
       modules.set(resolved, module);
       const code = readFileSync(resolved, 'utf8');
-      if (gameId === 'three-choose-two') {
+      if (gameId === 'place-and-clear') {
         // The shared competition client carries one browser fallback. This VM
         // exposes no fetch, window or document: native play must use SDK request.
         assert.doesNotMatch(code, /XMLHttpRequest|import\s*\(\s*['"]https?:/);
@@ -346,7 +346,7 @@ export async function verifyNativeArtifact({
       );
     }
     if (standalone) await entry.ready;
-    const ready = gameId === 'three-choose-two' ? '继续闯关' : title;
+    const ready = gameId === 'place-and-clear' ? '继续闯关' : title;
     for (let index = 0; index < 50 && !rendered.includes(ready); index++)
       await new Promise(setImmediate);
     assert.ok(rendered.includes(ready), `${gameId} Artifact must launch without a DOM`);
@@ -387,13 +387,13 @@ export async function verifyNativeArtifact({
       assert.ok(rendered.length > 0);
       assert.ok(!rendered.includes('全屏'), 'Native builds must not expose browser fullscreen');
     }
-    if (gameId === 'three-choose-two') {
+    if (gameId === 'place-and-clear') {
       assert.ok(standalone);
-      const { getLevel } = await import('../games/local/three-choose-two/src/levels.mjs');
-      const { canPlace } = await import('../games/local/three-choose-two/src/engine.mjs');
+      const { getLevel } = await import('../games/local/place-and-clear/src/levels.mjs');
+      const { canPlace } = await import('../games/local/place-and-clear/src/engine.mjs');
       const click = (label) => {
         const position = labelPositions.get(label);
-        assert.ok(position, `Missing three choose two control: ${label}`);
+        assert.ok(position, `Missing place and clear control: ${label}`);
         tap(position.x, position.y);
       };
       const emit = (listeners, x, y, identifier = 1) => {
@@ -544,7 +544,7 @@ export async function verifyNativeArtifact({
       assert.ok(
         logs.every(
           (event) =>
-            event.gameId === 'three-choose-two' && event.name?.startsWith('three-choose-two.'),
+            event.gameId === 'place-and-clear' && event.name?.startsWith('place-and-clear.'),
         ),
         'Native gameplay may emit structured telemetry but no lifecycle errors',
       );
@@ -725,7 +725,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   });
   const platforms = ['wechat', 'bilibili', 'douyin', 'kuaishou'];
   assert.ok(!values.platform || platforms.includes(values.platform), 'Unknown native platform');
-  const standaloneGames = ['moss-garden', 'wulong-city', 'flick-arena', 'three-choose-two'];
+  const standaloneGames = ['moss-garden', 'wulong-city', 'flick-arena', 'place-and-clear'];
   assert.ok(!values.game || standaloneGames.includes(values.game), 'Unknown game');
   for (const game of values.game ? [values.game] : standaloneGames) {
     for (const platform of values.platform ? [values.platform] : platforms) {

@@ -59,7 +59,7 @@ export async function verifyPrebuilt(directory) {
     info.sourceHash !== (await sourceHash())
   )
     throw Error(
-      'Three Choose Two artifact does not match current sources; rebuild with Creator 3.8.8.',
+      'Place & Clear artifact does not match current sources; rebuild with Creator 3.8.8.',
     );
   await access(path.join(dist, 'index.html'));
   await access(path.resolve(directory, 'cc.d.ts'));
@@ -72,7 +72,7 @@ export async function verifyPrebuilt(directory) {
     !Object.keys(files).some((file) => /\.js$/.test(file)) ||
     !files['index.html']
   )
-    throw Error('Incomplete Creator runtime manifest; rebuild Three Choose Two.');
+    throw Error('Incomplete Creator runtime manifest; rebuild Place & Clear.');
   for (const [file, expected] of Object.entries(files)) {
     const resolved = path.resolve(dist, file);
     if (!resolved.startsWith(dist + path.sep) || !/^[a-f0-9]{64}$/.test(String(expected)))

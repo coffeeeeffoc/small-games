@@ -66,7 +66,7 @@ export class GardenView {
     parent: Node,
     private changed: () => void,
   ) {
-    this.root = this.node('ThreeChooseTwoCanvas', parent);
+    this.root = this.node('PlaceAndClearCanvas', parent);
     const canvas = this.root.addComponent(Canvas);
     const cn = new Node('GardenCamera');
     parent.addChild(cn);
@@ -120,7 +120,7 @@ export class GardenView {
         const f = new SpriteFrame();
         f.texture = t;
         this.frames.set(key, f);
-        (globalThis as any).ThreeChooseTwoLoading?.progress(this.frames.size / 3);
+        (globalThis as any).PlaceAndClearLoading?.progress(this.frames.size / 3);
         this.ready = this.frames.size === 3;
         this.changed();
       });

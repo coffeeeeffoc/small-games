@@ -21,7 +21,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "ThreeChooseTwo",
+    "_name": "PlaceAndClear",
     "_parent": {
       "__id__": 1
     },

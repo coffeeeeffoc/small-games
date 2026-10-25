@@ -151,7 +151,7 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
     },
     required: ['emberChallenge', 'level', 'turns'],
   },
-  'three-choose-two': {
+  'place-and-clear': {
     fields: {
       seed: integer(0xffffffff),
       variant: oneOf('classic', 'refill'),

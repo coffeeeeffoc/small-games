@@ -11,7 +11,7 @@ for (const [game, variable] of [
   ['merge-front', 'MERGE_FRONT_PREBUILT_DIR'],
   ['tower-brake', 'TOWER_BRAKE_PREBUILT_DIR'],
   ['tetracube', 'TETRACUBE_PREBUILT_DIR'],
-  ['three-choose-two', 'THREE_CHOOSE_TWO_PREBUILT_DIR'],
+  ['place-and-clear', 'PLACE_AND_CLEAR_PREBUILT_DIR'],
   ['game-castle-cannon', 'CASTLE_CANNON_PREBUILT_DIR'],
   ['ashfall-front', 'ASHFALL_FRONT_PREBUILT_DIR'],
 ])

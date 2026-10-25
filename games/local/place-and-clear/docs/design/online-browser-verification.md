@@ -6,9 +6,9 @@
 
 ```sh
 pnpm --filter @coffeeeeffoc/runtime-api build
-node games/local/three-choose-two/build.mjs
+node games/local/place-and-clear/build.mjs
 # 既有独立静态预览服务器运行在 http://localhost:4422/
-PSQL_PATH="$LOCAL_PSQL_PATH" THREE_CHOOSE_TWO_TEST_DATABASE_URL="$LOCAL_COMPETITION_TEST_URL" node games/local/three-choose-two/tests/online.browser.mjs
+PSQL_PATH="$LOCAL_PSQL_PATH" THREE_CHOOSE_TWO_TEST_DATABASE_URL="$LOCAL_COMPETITION_TEST_URL" node games/local/place-and-clear/tests/online.browser.mjs
 ```
 
 最终重验于 10:21 UTC 完成，测试使用显式 `PSQL_PATH` 指向本地提取的 PostgreSQL 17 客户端；默认入口仍可使用 PATH 中的 `psql`。结果：8 项检查全部通过，无页面运行异常；完整记录见 [online-browser-report.json](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/three-choose-two/docs/design/actual/online-browser-report.json)。最终重验采用 256 位服务端种子和 `sha256-counter-v1` 正式发块算法。

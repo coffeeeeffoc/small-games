@@ -46,7 +46,7 @@ test('twelve reward games package isolated ads-on/off H5 variants; castle stays 
     'merge-front',
     'tower-brake',
     'tetracube',
-    'three-choose-two',
+    'place-and-clear',
     'tianxia-chalu',
     'ball-roguelite',
     'flick-arena',

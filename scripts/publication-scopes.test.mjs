@@ -999,7 +999,7 @@ const rewardH5Extras = [
   'ashfall-front',
   'merge-front',
   'tetracube',
-  'three-choose-two',
+  'place-and-clear',
   'bullet-garden',
   'tower-brake',
   'tianxia-chalu',
@@ -3975,8 +3975,8 @@ test('shared identity client proves all thirteen consumers and native compositio
       read('games/local/flick-arena/competition-client.js') + '\n',
     ],
     [
-      'games/local/three-choose-two/competition.js',
-      read('games/local/three-choose-two/competition.js') + '\n',
+      'games/local/place-and-clear/competition.js',
+      read('games/local/place-and-clear/competition.js') + '\n',
     ],
     [
       'platforms/competition/game-services.js',

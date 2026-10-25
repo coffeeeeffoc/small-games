@@ -161,7 +161,7 @@ it('restores every rollout tab and preserves the old focus URL population', () =
       'ember-bounce',
       'cage-rescue',
       'flick-arena',
-      'three-choose-two',
+      'place-and-clear',
     ].sort(),
   );
   expect(catalogStateUrl('https://example.com/?catalogTab=focus', legacy)).toContain(

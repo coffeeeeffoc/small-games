@@ -1,9 +1,9 @@
 {
-  "name": "@coffeeeeffoc/three-choose-two",
+  "name": "@coffeeeeffoc/place-and-clear",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "三块选两块：竖屏积木消除、三选二取舍与一百二十关空间挑战",
+  "description": "摆消乐：竖屏积木消除、三选二取舍与一百二十关空间挑战",
   "exports": {
     "./engine": {
       "types": "./src/engine.d.mts",
@@ -25,8 +25,8 @@
     "test:online:browser": "node tests/online.browser.mjs",
     "typecheck": "node scripts/typecheck.mjs",
     "test:publishing:browser": "node tests/publishing.browser.mjs",
-    "build:native:legacy": "node ../../../apps/shell-minigame/scripts/build.mjs --game three-choose-two",
-    "test:native:legacy": "node ../../../scripts/native-game-smoke.mjs --standalone --game three-choose-two --platform wechat && node ../../../scripts/native-game-smoke.mjs --standalone --game three-choose-two --platform bilibili"
+    "build:native:legacy": "node ../../../apps/shell-minigame/scripts/build.mjs --game place-and-clear",
+    "test:native:legacy": "node ../../../scripts/native-game-smoke.mjs --standalone --game place-and-clear --platform wechat && node ../../../scripts/native-game-smoke.mjs --standalone --game place-and-clear --platform bilibili"
   },
   "dependencies": {
     "@coffeeeeffoc/game-contract": "workspace:*"

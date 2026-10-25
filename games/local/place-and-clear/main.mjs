@@ -34,7 +34,7 @@ const invitedTarget = /^\d{1,10}$/.test(challengeQuery.get('targetScore') || '')
 const invitedVariant = challengeQuery.get('variant') === 'refill' ? 'refill' : 'classic';
 const publishingConfig = globalThis.SmallGamesPublishingConfig ?? {};
 const publishingMode = publishingConfig.adMode ?? 'mock';
-const publishing = createH5Publishing({ gameId: 'three-choose-two', title: '三块选两块', adMode: publishingMode, provider: publishingConfig.provider, publicUrl: publishingConfig.publicUrl, pause() {
+const publishing = createH5Publishing({ gameId: 'place-and-clear', title: '摆消乐', adMode: publishingMode, provider: publishingConfig.provider, publicUrl: publishingConfig.publicUrl, pause() {
   const locked = inputLockedUntil; cancelDrag(); audio.stop(); inputLockedUntil = Infinity;
   return () => { inputLockedUntil = locked; if (screen === 'playing') audio.syncMusic(true); };
 } });
@@ -143,14 +143,14 @@ function render() {
   app.dataset.status = state?.status || '';
   const screens = { home: renderHome, levels: renderLevels, brief: renderBrief, playing: renderPlaying, pause: renderPause, settings: renderSettings, help: renderHelp, result: renderResult, endless: renderEndless, leaderboard: renderLeaderboard, 'dev-levels': () => renderLevels(true), 'dev-tools': renderDeveloperTools };
   app.innerHTML = paintDefinitions() + (screens[screen] || renderHome)();
-  try { if (window.parent !== window) window.parent.postMessage({ type:'small-games:display-state', gameId:'three-choose-two', screen:screen === 'home' ? 'home' : 'playing' }, location.origin); } catch { /* Standalone is fully playable. */ }
+  try { if (window.parent !== window) window.parent.postMessage({ type:'small-games:display-state', gameId:'place-and-clear', screen:screen === 'home' ? 'home' : 'playing' }, location.origin); } catch { /* Standalone is fully playable. */ }
 }
 function renderHome() {
   const saved = playableResume(), resumeOnline = canResumeOnline(), recovery = onlineRecovery();
   const id = saved?.levelId || Math.min(progress.unlocked || 1, LEVELS.length), level = getLevel(id);
   const title = resumeOnline ? '三选二在线 · '+(onlineSession ? '第 '+state.group+' 组' : '已保存的对局') : saved?.mode === 'endless' ? endlessName(saved)+' · '+fmt(saved.score)+' 分' : '第 '+pad(id)+' 关 · '+escape(level.title);
   const startLabel = resumeOnline ? '继续在线对局' : saved ? '继续游戏' : progress.unlocked > 1 ? '继续闯关' : '开始闯关';
-  return `<section class="home"><div class="home-topline"><span class="home-stars" aria-label="已收集 ${totalStars(progress)} 颗星">${star()}${totalStars(progress)}</span><div class="home-top-tools">${devEnabled() ? '<button class="dev-chip" data-action="dev-tools">开发</button>' : ''}<button class="home-settings icon-button" data-action="settings" aria-label="设置">${icon('settings')}</button></div></div><div class="home-intro"><h1 aria-label="三块选两块"><img src="./native/assets/art/logo.png" alt="三块选两块" width="768" height="512" fetchpriority="high"></h1></div>${hero()}<div class="home-progress"><strong>${title}</strong></div><button class="primary home-start" data-action="start">${icon('play')}${startLabel}</button><div class="home-modes"><button class="home-mode-card" data-action="levels">${icon('levels')}<strong>选关</strong></button><button class="home-mode-card endless-card" data-action="endless">${icon('endless')}<strong>无尽挑战</strong></button></div>${invitedSeed !== null ? '<button class="secondary" data-action="challenge-invite">接受好友的同局挑战</button>' + (invitedTarget !== null ? '<p class="mode-footnote">好友自报目标 '+fmt(invitedTarget)+' 分</p>' : '') : ''}${!resumeOnline && recovery ? '<button class="online-recovery" data-action="online-resume">在线成绩待确认 · 查看对局 →</button>' : ''}<nav class="home-nav" aria-label="游戏菜单"><button data-action="leaderboard">${icon('trophy')}<span>排行榜</span></button><button data-action="help">${icon('help')}<span>玩法帮助</span></button></nav></section>`;
+  return `<section class="home"><div class="home-topline"><span class="home-stars" aria-label="已收集 ${totalStars(progress)} 颗星">${star()}${totalStars(progress)}</span><div class="home-top-tools">${devEnabled() ? '<button class="dev-chip" data-action="dev-tools">开发</button>' : ''}<button class="home-settings icon-button" data-action="settings" aria-label="设置">${icon('settings')}</button></div></div><div class="home-intro"><h1 aria-label="摆消乐"><img src="./native/assets/art/logo.png" alt="摆消乐" width="768" height="512" fetchpriority="high"></h1></div>${hero()}<div class="home-progress"><strong>${title}</strong></div><button class="primary home-start" data-action="start">${icon('play')}${startLabel}</button><div class="home-modes"><button class="home-mode-card" data-action="levels">${icon('levels')}<strong>选关</strong></button><button class="home-mode-card endless-card" data-action="endless">${icon('endless')}<strong>无尽挑战</strong></button></div>${invitedSeed !== null ? '<button class="secondary" data-action="challenge-invite">接受好友的同局挑战</button>' + (invitedTarget !== null ? '<p class="mode-footnote">好友自报目标 '+fmt(invitedTarget)+' 分</p>' : '') : ''}${!resumeOnline && recovery ? '<button class="online-recovery" data-action="online-resume">在线成绩待确认 · 查看对局 →</button>' : ''}<nav class="home-nav" aria-label="游戏菜单"><button data-action="leaderboard">${icon('trophy')}<span>排行榜</span></button><button data-action="help">${icon('help')}<span>玩法帮助</span></button></nav></section>`;
 }
 function renderLevels(developer = false) {
   developer = devEnabled();
@@ -206,7 +206,7 @@ function renderPause() {
 function renderDeveloperTools() {
   if (!devEnabled()) return renderHome();
   const level = state?.mode === 'level', solution = level ? currentLevel().solution || [] : [];
-  return `${header('开发试玩', 'dev-back')}<h1 class="page-title">关卡与调试工具</h1><p class="page-subtitle">独立试玩，不改真实进度、纪录或排行榜。</p><section class="dev-status">${level ? `<strong>${devPractice ? '当前试玩' : '当前关卡'} · 第 ${pad(state.levelId)} 关</strong><p>已放 ${state.stats.placements} 块 · 第 ${state.group} 组 · 撤销 ${state.undoRemaining} 次</p>${!devPractice ? '<p>修改参数或棋盘时，将自动转入独立试玩。</p>' : ''}` : '<strong>先选一关，开始独立试玩</strong><p>在线对局与离线无尽的棋盘保持正常规则。</p>'}</section><div class="button-stack dev-actions"><button class="primary" data-action="dev-levels">选择任意关卡</button><button class="secondary" data-action="dev-solution" ${level ? '' : 'disabled'}>查看参考落点</button><button class="secondary" data-action="dev-refill-undo" ${level ? '' : 'disabled'}>补充撤销 · 9 次</button><button class="secondary" data-action="dev-restart" ${level ? '' : 'disabled'}>重置当前试玩</button><button class="secondary" data-action="dev-clear-board" ${level ? '' : 'disabled'}>清空试玩棋盘</button></div>${devShowSolution && level ? `<section class="dev-solution"><h3>从初始棋盘开始的参考解</h3><ol>${solution.map(move => `<li>候选 ${move.slot+1} → 第 ${move.y+1} 行，第 ${move.x+1} 列</li>`).join('')}</ol><p>落点为积木左上角。中途改变布局后，可重置再对照。</p></section>` : ''}<p class="dev-api-note">完整试玩权限已开放。参数与后续扩展可通过 ThreeChooseTwoDev 使用。</p><button class="quiet-button" data-action="dev-back">${developerReturnScreen === 'playing' || developerReturnScreen === 'pause' ? '返回游戏' : '返回'}</button>`;
+  return `${header('开发试玩', 'dev-back')}<h1 class="page-title">关卡与调试工具</h1><p class="page-subtitle">独立试玩，不改真实进度、纪录或排行榜。</p><section class="dev-status">${level ? `<strong>${devPractice ? '当前试玩' : '当前关卡'} · 第 ${pad(state.levelId)} 关</strong><p>已放 ${state.stats.placements} 块 · 第 ${state.group} 组 · 撤销 ${state.undoRemaining} 次</p>${!devPractice ? '<p>修改参数或棋盘时，将自动转入独立试玩。</p>' : ''}` : '<strong>先选一关，开始独立试玩</strong><p>在线对局与离线无尽的棋盘保持正常规则。</p>'}</section><div class="button-stack dev-actions"><button class="primary" data-action="dev-levels">选择任意关卡</button><button class="secondary" data-action="dev-solution" ${level ? '' : 'disabled'}>查看参考落点</button><button class="secondary" data-action="dev-refill-undo" ${level ? '' : 'disabled'}>补充撤销 · 9 次</button><button class="secondary" data-action="dev-restart" ${level ? '' : 'disabled'}>重置当前试玩</button><button class="secondary" data-action="dev-clear-board" ${level ? '' : 'disabled'}>清空试玩棋盘</button></div>${devShowSolution && level ? `<section class="dev-solution"><h3>从初始棋盘开始的参考解</h3><ol>${solution.map(move => `<li>候选 ${move.slot+1} → 第 ${move.y+1} 行，第 ${move.x+1} 列</li>`).join('')}</ol><p>落点为积木左上角。中途改变布局后，可重置再对照。</p></section>` : ''}<p class="dev-api-note">完整试玩权限已开放。参数与后续扩展可通过 PlaceAndClearDev 使用。</p><button class="quiet-button" data-action="dev-back">${developerReturnScreen === 'playing' || developerReturnScreen === 'pause' ? '返回游戏' : '返回'}</button>`;
 }
 function renderSettings() { return `${header('设置')}<h1 class="pause-title">找到舒服的节奏。</h1><p class="pause-copy">声音与振动分别控制，随时可调整。</p>${settingsRows()}<div class="button-stack"><button class="secondary" data-action="help">玩法与计分</button><button class="primary" data-action="home">返回首页</button></div>`; }
 function renderHelp() {
@@ -482,14 +482,14 @@ async function openLeaderboard() {
   try { ranking=await online.board(); } catch(error) { ranking=null;rankingError=error.message || '服务尚未连接，请稍后重试。'; }
   finally { rankingBusy=false;if(screen === 'leaderboard')render(); }
 }
-function rewardAvailable() { return typeof globalThis.__THREE_CHOOSE_TWO_HOST__?.rewardedAd === 'function' || publishingMode === 'mock' || publishingMode === 'host' && typeof publishingConfig.provider?.show === 'function'; }
+function rewardAvailable() { return typeof globalThis.__PLACE_AND_CLEAR_HOST__?.rewardedAd === 'function' || publishingMode === 'mock' || publishingMode === 'host' && typeof publishingConfig.provider?.show === 'function'; }
 async function rewardContinue() {
   if (devPractice || !rewardAvailable() || isLocked()) return;
   const original=state;
   inputLockedUntil=Infinity;
   try {
-    const hostReward = globalThis.__THREE_CHOOSE_TWO_HOST__?.rewardedAd;
-    const ad = hostReward ? await hostReward({ gameId:'three-choose-two',levelId:state.levelId,placement:'level-continue' }) : await publishing.rewarded({ placement:'level-continue' });
+    const hostReward = globalThis.__PLACE_AND_CLEAR_HOST__?.rewardedAd;
+    const ad = hostReward ? await hostReward({ gameId:'place-and-clear',levelId:state.levelId,placement:'level-continue' }) : await publishing.rewarded({ placement:'level-continue' });
     const receipt = hostReward ? ad : { rewarded: ad.status === 'completed', rewardId: ad.status === 'completed' ? (publishingMode === 'mock' ? 'mock-' : 'host-') + crypto.randomUUID() : null };
     if (state !== original || !receipt?.rewarded || !receipt?.rewardId) { toast('广告未完成，本局未消耗续局次数。');return; }
     if (!devPractice) storage.setItem('three-choose-two-pending-reward-v1',JSON.stringify({state:original,rewardId:receipt.rewardId}));
@@ -501,7 +501,7 @@ async function rewardContinue() {
 }
 async function shareScore() {
   const rank=onlineSession?.settlement?.status === 'verified' ? onlineSession.settlement.rank : null;
-  const text=`三块选两块：${onlineSession?.settlement?.status === 'verified' ? '在线挑战' : endlessName()} ${fmt(state.score)} 分，最高一次消除 ${state.stats.maxLines} 条线${rank ? '，全站第 '+rank+' 名' : ''}。${!onlineSession && Number.isInteger(state.initialSeed) ? '你能用同样的积木超越我吗？' : '这三块，你舍哪一块？'}`;
+  const text=`摆消乐：${onlineSession?.settlement?.status === 'verified' ? '在线挑战' : endlessName()} ${fmt(state.score)} 分，最高一次消除 ${state.stats.maxLines} 条线${rank ? '，全站第 '+rank+' 名' : ''}。${!onlineSession && Number.isInteger(state.initialSeed) ? '你能用同样的积木超越我吗？' : '这三块，你舍哪一块？'}`;
   const params = !onlineSession && Number.isInteger(state.initialSeed) ? { seed: state.initialSeed, variant: state.variant || 'classic', targetScore: Math.min(1_000_000_000, state.score) } : {};
   const result = await publishing.share({ text, params });
   if (result.status === 'copied') toast('成绩与挑战链接已复制。');
@@ -588,9 +588,9 @@ window.addEventListener('blur',()=>{lifecycleEpoch++;cancelDrag();selectedSlot=n
 document.addEventListener('visibilitychange',()=>{if(document.hidden){lifecycleEpoch++;cancelDrag();selectedSlot=null;if(screen === 'playing'){persist();show('pause');}audio.stop();}});
 window.addEventListener('pagehide',(event)=>{lifecycleEpoch++;cancelDrag();persist();audio.stop();if(!event.persisted)publishing.dispose();});
 window.addEventListener('resize',()=>{cancelDrag();selectedSlot=null;});
-window.getThreeChooseTwoSnapshot=()=>state ? structuredClone({state,screen,devPractice,online:onlineSession ? {id:onlineSession.id,seq:onlineSession.seq,status:onlineSession.status,eligible:onlineSession.eligible} : null}) : {state:null,screen,devPractice};
+window.getPlaceAndClearSnapshot=()=>state ? structuredClone({state,screen,devPractice,online:onlineSession ? {id:onlineSession.id,seq:onlineSession.seq,status:onlineSession.status,eligible:onlineSession.eligible} : null}) : {state:null,screen,devPractice};
 const developer = devEnabled() ? createDeveloperAPI({
-  isEnabled: devEnabled, getSnapshot: window.getThreeChooseTwoSnapshot, getState: () => state,
+  isEnabled: devEnabled, getSnapshot: window.getPlaceAndClearSnapshot, getState: () => state,
   isolate: isolateTrial, beginLevel: startTrial, restart: () => beginLevel(state.levelId),
   update: next => { clearTimeout(animationTimer);cancelDrag();state=next;selectedSlot=null;inputLockedUntil=0;show(screen === 'dev-tools' ? 'dev-tools' : state.status === 'playing' ? 'playing' : 'result'); },
   openLevels: () => {persist();show('levels');},
@@ -598,8 +598,8 @@ const developer = devEnabled() ? createDeveloperAPI({
   registerActions: actions => globalThis.SmallGamesDev.registerActions(actions),
 }) : null;
 if (developer) {
-  window.ThreeChooseTwoDev = developer;
-  globalThis.SmallGamesDev.registerActions([{ id:'three-choose-two-tools',label:'关卡与开发调试工具',run:()=>dispatch('dev-tools') }]);
+  window.PlaceAndClearDev = developer;
+  globalThis.SmallGamesDev.registerActions([{ id:'place-and-clear-tools',label:'关卡与开发调试工具',run:()=>dispatch('dev-tools') }]);
   globalThis.SmallGamesDev.registerSnapshot(()=>({screen,level:state?.levelId,group:state?.group,score:state?.score,placements:state?.stats?.placements,practice:devPractice,permissions:Object.keys(developer.permissions)}));
 }
 // Confirmed rewards survive a process restart between receipt and state write.

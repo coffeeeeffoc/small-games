@@ -13,21 +13,21 @@ import { nativeHarnessHtml } from './browser-harness.mjs';
 
 // Only the official code exchange is mocked. Login persistence, authentication,
 // replay, settlement and ranking use the real Runtime Service and isolated PG.
-const databaseURL = process.env.THREE_CHOOSE_TWO_TEST_DATABASE_URL;
-const ownerURL = process.env.THREE_CHOOSE_TWO_TEST_OWNER_DATABASE_URL;
+const databaseURL = process.env.PLACE_AND_CLEAR_TEST_DATABASE_URL;
+const ownerURL = process.env.PLACE_AND_CLEAR_TEST_OWNER_DATABASE_URL;
 for (const value of [databaseURL, ownerURL])
   assert.equal(value && new URL(value).pathname, '/competition_test', 'Use only the isolated competition_test database');
 const workspace = fileURLToPath(new URL('../../../../', import.meta.url));
 const output = fileURLToPath(new URL('../docs/design/native-actual/', import.meta.url));
-const apiPort = Number(process.env.THREE_CHOOSE_TWO_NATIVE_API_PORT || 4426);
+const apiPort = Number(process.env.PLACE_AND_CLEAR_NATIVE_API_PORT || 4426);
 const apiURL = `http://127.0.0.1:${apiPort}/api/competition/v1`;
 const fixture = randomUUID(), testSecret = randomBytes(24).toString('hex');
-const prelude = path.join(workspace, '.scratch/three-choose-two', `native-official-${process.pid}.mjs`);
+const prelude = path.join(workspace, '.scratch/place-and-clear', `native-official-${process.pid}.mjs`);
 const report = { environment: 'Built WeChat and B站 native bundles; Chromium CDP touch; actual Runtime HTTP and PostgreSQL',
   actualDevice: false, officialPlatformVerified: false,
   identityBoundary: 'SDK login code is a fixture; only the official WeChat/B站 code-to-openid HTTP exchange is mocked. Our identity, token, moves, replay and leaderboard use the real service and database.',
   checks: [], screenshots: [], errors: [] };
-const psql = process.env.PSQL_PATH || '/tmp/three-choose-two-postgres/root/usr/lib/postgresql/17/bin/psql';
+const psql = process.env.PSQL_PATH || '/tmp/place-and-clear-postgres/root/usr/lib/postgresql/17/bin/psql';
 let runtime, runtimeOutput = '', browser;
 const server = http.createServer(async (request, response) => {
   try {
@@ -38,7 +38,7 @@ const server = http.createServer(async (request, response) => {
       const html = nativeHarnessHtml({ platform, appId: `mock-${platform}-app`, apiUrl: apiURL, loginCode: `${fixture}-${platform}` });
       response.end(html.replace('src="/game.js"', `src="/${platform}/game.js"`)); return;
     }
-    const artifact = path.join(workspace, 'apps/shell-minigame/dist', platform, 'three-choose-two');
+    const artifact = path.join(workspace, 'apps/shell-minigame/dist', platform, 'place-and-clear');
     const filename = path.resolve(artifact, '.' + url.pathname.replace(/^\/(wechat|bilibili)/, ''));
     assert.ok(filename.startsWith(artifact + path.sep));
     response.setHeader('content-type', filename.endsWith('.js') ? 'application/javascript' : 'audio/wav');

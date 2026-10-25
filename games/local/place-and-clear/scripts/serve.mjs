@@ -42,5 +42,5 @@ const server = createServer(async (req, res) => {
     res.writeHead(404).end('Build the game first: pnpm build');
   }
 }).listen(port, '0.0.0.0', () =>
-  console.log(`Three Choose Two: http://localhost:${server.address().port}`),
+  console.log(`Place & Clear: http://localhost:${server.address().port}`),
 );
