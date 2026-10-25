@@ -20,7 +20,7 @@ import {
 import { UPGRADES } from '../levels.mjs';
 const brick = (id, c, r, hp = 100) => ({ id, c, r, kind: 'brick', hp, maxHp: hp });
 
-test('material contours are stable across row descent and contain both sizes and shapes', () => {
+test('material contours are stable across row rise and contain both sizes and shapes', () => {
   const profiles = Array.from({ length: 20 }, (_, i) => targetProfile(brick(i + 1, 3, 2)));
   assert.equal(new Set(profiles.map((p) => p.radius)).size, 3);
   assert.equal(new Set(profiles.map((p) => p.shape)).size, 2);
@@ -36,7 +36,7 @@ test('circle visual corners have no invisible rectangular hit box', () => {
     r = targetProfile(target).radius;
   game.bricks = [target];
   game.launchX = c.x + r + FIELD.radius + 0.05;
-  fire(game, 0, -500);
+  fire(game, 0, 500);
   update(game, 0.25);
   assert.equal(target.hp, 100);
   assert.equal(drainEvents(game).filter((e) => e.type === 'hit').length, 0);
@@ -51,18 +51,18 @@ test('hex face and vertex hits use the visible polygon normal and surface', () =
       r = targetProfile(target).radius;
     game.bricks = [target];
     game.launchX = c.x + offset;
-    fire(game, 0, -500);
+    fire(game, 0, 500);
     update(game, 0.25);
     const hit = drainEvents(game).find((e) => e.type === 'bounce');
     assert.ok(hit);
     if (offset === 0) {
       assert.ok(Math.abs(hit.x - c.x) < 1e-6);
-      assert.ok(Math.abs(hit.y - c.y - r) < 1e-6);
+      assert.ok(Math.abs(hit.y - c.y + r) < 1e-6);
       assert.ok(Math.abs(hit.nx) < 1e-6);
     } else {
       assert.ok(Math.abs(hit.nx - 0.5) < 1e-6);
-      assert.ok(Math.abs(hit.ny - Math.sqrt(3) / 2) < 1e-6);
-      assert.ok(Math.abs(hit.y - c.y - (r - (hit.x - c.x) / Math.sqrt(3))) < 1e-6);
+      assert.ok(Math.abs(hit.ny + Math.sqrt(3) / 2) < 1e-6);
+      assert.ok(Math.abs(hit.y - c.y + (r - (hit.x - c.x) / Math.sqrt(3))) < 1e-6);
     }
     assert.ok(
       Math.hypot(game.balls[0].vx, game.balls[0].vy) >= PHYSICS.minSpeed &&
@@ -76,7 +76,7 @@ test('refraction only makes a small departing correction toward a nearby forward
   game.count = 1;
   game.bricks = [brick(99, 3, 6), brick(98, 2, 7)];
   game.launchX = 183;
-  fire(game, 0, -500);
+  fire(game, 0, 500);
   update(game, 0.25);
   const bounces = drainEvents(game).filter((e) => e.type === 'bounce');
   assert.ok(bounces.length);
@@ -127,11 +127,11 @@ test('rewards grant once per run, persist, and never affect challenges or practi
     assert.equal(canReward(isolated, 'resonance'), false);
     assert.equal(grantReward(isolated, 'rescue'), false);
   }
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   assert.equal(canReward(game, 'rescue'), false);
 });
 
-test('rescue removes the two lowest occupied rows without damage rewards or another descent', () => {
+test('rescue removes the two highest occupied rows without damage rewards or another rise', () => {
   const game = createGame('endless');
   game.bricks = [
     brick(100, 1, 10),
@@ -172,7 +172,7 @@ test('resonance stays additive even with critical and has no secondary damage am
       game.bricks = [brick(99, 3, 6, 1000)];
     }
     grantReward(boosted, 'resonance');
-    fire(boosted, 0, -500);
+    fire(boosted, 0, 500);
     update(boosted, 0.25);
     const events = drainEvents(boosted),
       hit = events.find((e) => e.type === 'hit');
@@ -202,7 +202,7 @@ test('legacy uncapped builds migrate their existing board effort and preserve id
   assert.equal(restored.upgrades.extra, 5);
   assert.equal(restored.bricks[0].hp, Math.ceil((1000 * 88) / 1980));
   assert.equal(restored.seed, old.seed);
-  assert.equal(restored.initialSeed, 1234);
+  assert.equal(restored.initialSeed, null);
   assert.deepEqual(restored.rewards, { resonance: 0, rescue: 0 });
   assert.equal(
     restoreGame({ ...checkpoint(restored), rewards: { resonance: 2, rescue: 0 } }),
