@@ -201,7 +201,9 @@ try {
   assert.equal(s.match.sides[0].coins, 4);
   assert.equal(s.match.sides[0].shop.length, 2);
   await hold(page, 'spell:' + s.match.sides[0].spells[0].id);
-  await drag(page, 'spell:' + s.match.sides[0].spells[0].id, world(s, 390, 70));
+  await drag(page, 'unit:' + deployed.id, world(s, 390, 30));
+  await drag(page, 'spell:' + s.match.sides[0].spells[0].id, 'unit:' + deployed.id);
+  await drag(page, 'unit:' + deployed.id, world(s, 390, 70));
   s = await state(page);
   assert.equal(s.match.sides[0].formation[0].bonusHp, 35);
   const part = s.match.sides[0].shop.find((o) => o.kind === 'part');
@@ -327,6 +329,10 @@ try {
   await tap(page, 'resume');
   evidence.push({
     case: 'touch-shop-buy-refresh-pair-cast-sell-deploy-merge-recall-hidden-source-cancel-lock-pause-reload',
+    result: 'passed',
+  });
+  evidence.push({
+    case: 'tap-buy-stable-offer-slots-hold-shop-hand-part-spell-own-enemy-live-battle-top-row-cast',
     result: 'passed',
   });
   await tap(page, 'pause');
