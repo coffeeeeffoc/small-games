@@ -1,0 +1,132 @@
+{
+  "release": "gravity-volley-2026-10-25",
+  "date": "2026-10-25",
+  "workingTree": true,
+  "baseCommit": "61759eb643f97601323bcaf12706d0d1737b1ce5",
+  "runtimeSha256": {
+    "index.html": "2d517cfd64f64a4b9389f56bbc959941d5f9fca524d699806868824fb5791762",
+    "style.css": "235a30f8f747dba8f63146616fad40a01dbf004053ad70f5e385c03180fac04b",
+    "main.mjs": "7f306f3167c6d2effa40ba48c828d021974de0edef870ffa69ffb52a2e709b20",
+    "core.mjs": "146f1a42f260b694fe6e78bc8343bb3e403f2a803a6665a26c719275d10c70d7",
+    "levels.mjs": "57c788a05db8fbf1754e7c6c62bafd080c28180197ed40aef45ba5041bbfdc78",
+    "render.mjs": "2056082c72343c5931b5ea3c0fd9a7a1b0691f0dcf8f972a78d93baaf0b59c11",
+    "audio.mjs": "b11584584ac392987a3e2e6559f4b97ee029d4ea917680e131743db40d734171",
+    "storage.mjs": "5f08d371e87853d8d4a7f60f2f6105730cbe5e9447e6b33b8d69093dc5b00dff",
+    "checkpoint.mjs": "7a17e001997cd9484e332ceb6c89ad321c8e5529645ac7919f188ed5098074b5",
+    "challenge.mjs": "b0f87f5c493c1b3e134ac1bbd8552c55f7bdf23bf287896db0d3530499a1d44a",
+    "favicon.svg": "47c8f6a0fc3a7df6be2f0f13ed185c6a957c6023b400254771eb9c96e5b37128",
+    "dev-mode.js": "fcc49bdcc071a234df52081bbb6f09ce0a002e4c633403cb460724c921cb4b39",
+    "assets/cavern.webp": "b0648c38af74fb749d97d774e97bdf2a37ec81b5ebd68c108b6ff8f4de8cb838",
+    "../../../platforms/h5/publishing.js": "56d31e3441ff163ff71f7eda0001e1344eebf689accb5cfcde3ad9015a63b1f8"
+  },
+  "files": {
+    "copy/developer-note.md": {
+      "bytes": 822,
+      "sha256": "e1c3faf62cf4e449c8948739366f387d1097fd215f37b2b46b7eb78e3c0c1ad8"
+    },
+    "copy/introduction.md": {
+      "bytes": 839,
+      "sha256": "fa79b8de071bbddae80d6ed5b3beb103eee84c10088ff6d60fe0120aff3e8d2d"
+    },
+    "copy/tagline.md": {
+      "bytes": 61,
+      "sha256": "c588c3a52afee24483602948eade8e3be5729aba403b6204cbf6b80d83c1a3ad"
+    },
+    "gameplay/screenshots/aim-390x844.png": {
+      "bytes": 408318,
+      "sha256": "e5c08cd520b570dc8a34a0ab8055c34a364c491d95fff75a47016ca19c5d4f87",
+      "dimensions": [
+        390,
+        844
+      ]
+    },
+    "gameplay/screenshots/home-390x844.png": {
+      "bytes": 398577,
+      "sha256": "6a9cdca17d57c6df2dfa333a41cb0d60b82ae8f96c4a7038e34e462244d01ddf",
+      "dimensions": [
+        390,
+        844
+      ]
+    },
+    "gameplay/screenshots/levels-780x1688.png": {
+      "bytes": 1285475,
+      "sha256": "1eec6061b085939742dadaa6b373535feaaa2c13cf13b1b06e951f465f2c03ee",
+      "dimensions": [
+        780,
+        1688
+      ]
+    },
+    "gameplay/screenshots/recall-390x844.png": {
+      "bytes": 400328,
+      "sha256": "a240597cc765d4850d5ba1e115c9ffc610103aa5dee6c4ce5990a1163d419d56",
+      "dimensions": [
+        390,
+        844
+      ]
+    },
+    "gameplay/screenshots/reduced-motion-320x568.png": {
+      "bytes": 250284,
+      "sha256": "3171353b7df30e898c56ba09976132174fce33546fc6bfddf45b2fdfb84d0db0",
+      "dimensions": [
+        320,
+        568
+      ]
+    },
+    "gameplay/screenshots/result-780x1688.png": {
+      "bytes": 974806,
+      "sha256": "30fba07f55193c71a2aec64edd21285dd078acac7dc93a0c1d72d60ba5e266d0",
+      "dimensions": [
+        780,
+        1688
+      ]
+    },
+    "gameplay/screenshots/volley-390x844.png": {
+      "bytes": 415544,
+      "sha256": "f7ef2c5d4827e358a2667353a288d065d3d73cc23437bcb11294c2329a8a5356",
+      "dimensions": [
+        390,
+        844
+      ]
+    },
+    "gameplay/videos/gravity-volley-390x844.webm": {
+      "bytes": 679613,
+      "sha256": "410a9b489d5845a56e8d30ea02cc075e9459defbfc58b87feb3730a9b488afc5"
+    },
+    "gameplay/videos/recording.json": {
+      "bytes": 4507,
+      "sha256": "bdf9902db65f5054408b8dffe7af505587cfd06ced604003225582a4616f52b9"
+    },
+    "icon/ember-bounce-512.png": {
+      "bytes": 36857,
+      "sha256": "fc4e299fb489ab1353ae0bf740d7c4fef10b3865d9d935cfbb42935705f5ed39",
+      "dimensions": [
+        512,
+        512
+      ]
+    },
+    "icon/ember-bounce.svg": {
+      "bytes": 484,
+      "sha256": "47c8f6a0fc3a7df6be2f0f13ed185c6a957c6023b400254771eb9c96e5b37128"
+    },
+    "promo/images/portrait-1080x1920.png": {
+      "bytes": 1531706,
+      "sha256": "7de4b76ff743c70f43de9a3534fbea2d75f09ee7cea033b16f859ca848dca1a7",
+      "dimensions": [
+        1080,
+        1920
+      ]
+    },
+    "promo/images/portrait-poster.html": {
+      "bytes": 1138,
+      "sha256": "a82b05b46b150cdaabb71ef55848ccc9a63e097c272d5c975568353baa8f8ae6"
+    },
+    "promo/videos/gravity-volley-540x1168.mp4": {
+      "bytes": 548581,
+      "sha256": "ff6e01dce92006439a6570d305d39ed0ced7be3549db54d36f032cd50979d730"
+    },
+    "STATUS.md": {
+      "bytes": 3588,
+      "sha256": "4aea1c6efd3bb1f83a408fdff3468b5fbe52a373152df63832147350d0359081"
+    }
+  }
+}
