@@ -3268,7 +3268,7 @@ body.competition-active #mode-online { position:static; }
 		return factory;
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-ulIzc4/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-I8TbZ0/entry.mjs
 	if (globalThis.__COMPETITION_CONFIG__?.identityProvider === "taptap") installTapCompetitionIdentity();
 	mountCompetition("cops-robbers-realtime", createRenderer);
 	//#endregion
