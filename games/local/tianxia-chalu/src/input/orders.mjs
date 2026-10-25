@@ -164,10 +164,14 @@ export function createMapInput({
     }
     if (hit?.id !== down.cityId) return;
     if (hit) {
-      if (down.double && owns(state, hit.id)) {
+      if (down.double) {
         clearPending();
         lastTap = null;
-        order({ kind: 'hold', sourceId: hit.id });
+        if (owns(state, hit.id)) order({ kind: 'hold', sourceId: hit.id });
+        else {
+          select(null);
+          notify('城池已经易主，屯兵令已取消');
+        }
         return;
       }
       lastTap = owns(state, hit.id) ? { cityId: hit.id, time: now() } : null;

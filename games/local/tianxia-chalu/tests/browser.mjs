@@ -201,7 +201,8 @@ async function command(page, junctionId, index) {
     await select(page, j.cityId);
     await tapCity(page, j.exits[index]);
   }
-  await advance(page, 320);
+  if (index === -1 || s.cities.find((c) => c.id === j.exits[index])?.owner === 0)
+    await advance(page, 300);
   assert.equal(
     (await snapshot(page)).junctions.find((x) => x.id === junctionId).routeIndex,
     index,
@@ -488,7 +489,8 @@ try {
         commands = 0;
       for (let step = 0; step < 65 && (await snapshot(page)).screen === 'battle'; step++) {
         const s = await snapshot(page);
-        for (const c of planRoutes(s, 0, 'aggressive')) {
+        // A defensive pilot remains stable when real gestures cross a simulation step.
+        for (const c of planRoutes(s, 0, 'defensive')) {
           if ((await snapshot(page)).screen !== 'battle') break;
           const current = (await snapshot(page)).junctions.find((j) => j.id === c.junctionId);
           if (current?.owner === 0 && current.routeIndex !== c.routeIndex) {

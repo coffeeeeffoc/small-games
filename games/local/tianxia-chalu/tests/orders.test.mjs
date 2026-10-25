@@ -446,3 +446,17 @@ test('a server ownership rejection for auxiliary stop still allows the primary a
   );
   assert.equal(errors.length, 0);
 });
+
+test('ownership lost during the second tap cannot leave a deferred ghost dispatch', () => {
+  const h = harness();
+  h.tap('A');
+  h.tap('B');
+  h.advance(80);
+  h.input.pointer('down', h.point('B'), 1);
+  h.state.cities[1].owner = j(h.state, 'B').owner = 1;
+  h.input.pointer('up', h.point('B'), 1);
+  h.tap('C');
+  h.advance(500);
+  assert.equal(h.intents.length, 0);
+  assert(h.messages.some((m) => m.includes('易主')));
+});
