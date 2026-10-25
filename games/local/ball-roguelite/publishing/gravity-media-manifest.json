@@ -1,0 +1,121 @@
+{
+  "date": "2026-10-25",
+  "rules": "orbit-v4-gravity",
+  "base": "61759eb643f97601323bcaf12706d0d1737b1ce5",
+  "state": "orbit-v4 bottom collection candidate; commit identity is recorded by Git",
+  "source": {
+    "core.mjs": "f6375cfa4ce5e3466c857d2168129f8ade306c3547f56a8bc2013e0a3b92d314",
+    "main.mjs": "0f79195b4a43f89f8ad3650078dea5045531a528ee1ee838986f6a2d341453f4",
+    "render.mjs": "63e3f108ed45befd59e4249a8f45e9d6fc9ef900dff26c947c47b31df200ac68",
+    "levels.mjs": "9eb9dd9ae7538dc7a8352299d9c00eae2d0c6b6a384e76ef0eb3eea1a7f1df15",
+    "storage.mjs": "0695a9f8091277578e1a8dba26315020bf8ad55bbe24652fb4833b330ec5aa9a",
+    "src/audio.mjs": "c36c2b6c1cd86915354ce087a58b9218d7ac6be503c7a021b31407a9f19a32bc"
+  },
+  "files": [
+    {
+      "file": "STATUS.md",
+      "bytes": 3377,
+      "sha256": "cd1650b874e249d1944fabf608cba0f52f272e5be06f38efe64870a272f7d257"
+    },
+    {
+      "file": "copy/introduction.md",
+      "bytes": 776,
+      "sha256": "2cc566c49f8065fde6be305125122996a6a43aadc3bce1df2fe6a814ba8b57a8"
+    },
+    {
+      "file": "copy/tagline.md",
+      "bytes": 58,
+      "sha256": "1772b90cb1d25ac76d0b9453a922854918eead35041b32786203d2438854da53"
+    },
+    {
+      "file": "copy/developer-note.md",
+      "bytes": 721,
+      "sha256": "03960ad3482888c69927d04ad09e1f11f8586cb0b6c4eb44c4c7259add4d808e"
+    },
+    {
+      "file": "icon/orbit.svg",
+      "bytes": 356,
+      "sha256": "e305d9aa44807bd4222e78aa5a7e7480b4139d20258e65d42727bc508645abae"
+    },
+    {
+      "file": "promo/images/gravity-home-780x1688.png",
+      "bytes": 1667688,
+      "sha256": "94ad5fa26c1d020c8f42253b1039c608f248272af35cb1e41bd557ba27f1a59c",
+      "width": 780,
+      "height": 1688
+    },
+    {
+      "file": "promo/videos/gravity-drop-390x844.mp4",
+      "bytes": 508166,
+      "sha256": "65592bd4560a08019fce2053a633b43a6ec5e61ce34d29609e8c80a81bc4275d"
+    },
+    {
+      "file": "gameplay/videos/gravity-drop-390x844.webm",
+      "bytes": 1225804,
+      "sha256": "036ef78886bdc77613a4d2181aa9f5b7d5c91c5206545252497647e921c98112"
+    },
+    {
+      "file": "gravity-capture-report.json",
+      "bytes": 13921,
+      "sha256": "ade51ed4c53513689c1470d0a4ad1affc6a9f0eea27e6cb5167dc43f16d536af"
+    },
+    {
+      "file": "gameplay/screenshots/gravity-aim-780x1688.png",
+      "bytes": 1433332,
+      "sha256": "f168c55bfb1b0c58ce4b71fce1bc7744f29aed43d82b543bf1ede9d92f05b5c8",
+      "width": 780,
+      "height": 1688
+    },
+    {
+      "file": "gameplay/screenshots/gravity-endless-780x1688.png",
+      "bytes": 1447767,
+      "sha256": "fc54ba6c63f8a447ddfa7fd061555654c5db38e3c559c45069f67b8cd98607a1",
+      "width": 780,
+      "height": 1688
+    },
+    {
+      "file": "gameplay/screenshots/gravity-flight-780x1688.png",
+      "bytes": 1444744,
+      "sha256": "3c9394779caff6f235e98cc46e424de962370ee09cceb37e8cabb8da0c1d3d22",
+      "width": 780,
+      "height": 1688
+    },
+    {
+      "file": "gameplay/screenshots/gravity-home-780x1688.png",
+      "bytes": 1667688,
+      "sha256": "94ad5fa26c1d020c8f42253b1039c608f248272af35cb1e41bd557ba27f1a59c",
+      "width": 780,
+      "height": 1688
+    },
+    {
+      "file": "gameplay/screenshots/gravity-levels-780x1688.png",
+      "bytes": 1607427,
+      "sha256": "1f86b56756085f121288ebd3751bb7adf4970d62ccda2dc182549741024f1c8d",
+      "width": 780,
+      "height": 1688
+    },
+    {
+      "file": "gameplay/screenshots/gravity-next-turn-780x1688.png",
+      "bytes": 1406752,
+      "sha256": "971d552a33de032274f1ef5cbc473d2cacfe8b3a2eeb469cc3786b29a8b4f7ba",
+      "width": 780,
+      "height": 1688
+    },
+    {
+      "file": "gameplay/screenshots/gravity-paused-780x1688.png",
+      "bytes": 1350543,
+      "sha256": "742911bb308addd3804f3247630c19db2d76c3c8d214a201bdca2bfeee33c6b7",
+      "width": 780,
+      "height": 1688
+    },
+    {
+      "file": "gameplay/screenshots/gravity-recall-780x1688.png",
+      "bytes": 1405316,
+      "sha256": "04e54a73df784868d542dc8ba1259fd7229c887ed172579a35431726c9e791aa",
+      "width": 780,
+      "height": 1688
+    }
+  ],
+  "sourceHashEncoding": "SHA-256 of UTF-8 source normalized to LF",
+  "textFileHashEncoding": "Text file bytes and SHA-256 use UTF-8 normalized to LF, matching Git blobs; binary files use raw bytes"
+}

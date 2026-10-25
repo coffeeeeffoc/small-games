@@ -9,7 +9,8 @@ export const FIELD = Object.freeze({
   cell: 50,
   row: 50,
   radius: 8,
-  speed: 690,
+  speed: 900,
+  launchY: 44,
   maxRow: 9,
 });
 export const LIMITS = Object.freeze({ balls: 22, damage: 4 });
@@ -17,15 +18,16 @@ export const RHYTHM = Object.freeze({
   bpm: 120,
   beat: 0.5,
   launchPattern: Object.freeze([0, 0.04, 0.125, 0.165, 0.25, 0.29, 0.375, 0.415]),
-  reboundBoost: 0.28,
-  reboundDecay: 7.5,
-  trailLimit: 18,
+  trailLimit: 30,
+  trailSeconds: 0.12,
 });
 export const PHYSICS = Object.freeze({
-  gravity: 8,
+  gravity: 360,
   step: 1 / 240,
-  minSpeed: 400,
-  maxSpeed: 760,
+  minSpeed: 120,
+  maxSpeed: 1120,
+  launchMinSpeed: 260,
+  powerDistance: 460,
   maxFlight: 24,
   minAngle: (7 * Math.PI) / 180,
   restitution: 0.986,
@@ -49,7 +51,7 @@ export function random(game) {
 export function brickRect(brick) {
   return {
     x: FIELD.left + brick.c * FIELD.cell + 4,
-    y: FIELD.top + brick.r * FIELD.row + 4,
+    y: FIELD.floor - (brick.r + 1) * FIELD.row + 4,
     w: FIELD.cell - 8,
     h: FIELD.row - 8,
   };
@@ -57,7 +59,7 @@ export function brickRect(brick) {
 export function brickCenter(brick) {
   return {
     x: FIELD.left + brick.c * FIELD.cell + FIELD.cell / 2,
-    y: FIELD.top + brick.r * FIELD.row + FIELD.row / 2,
+    y: FIELD.floor - brick.r * FIELD.row - FIELD.row / 2,
   };
 }
 const profileCache = new Map(),
@@ -152,7 +154,7 @@ export function createGame(
   const level = typeof id === 'object' ? id : levelById(id);
   if (!level || validateLevels([{ ...level, unlock: null }]).length) throw new Error('无效关卡');
   const game = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     level: copy(level),
     levelId: level.id,
     phase: 'aim',
@@ -193,12 +195,19 @@ export function createGame(
   return game;
 }
 export function aimDirection(dx, dy) {
-  if (!Number.isFinite(dx) || !Number.isFinite(dy) || dy >= -6) return null;
-  const angle = clamp(Math.atan2(dy, dx), -Math.PI + PHYSICS.minAngle, -PHYSICS.minAngle);
+  if (!Number.isFinite(dx) || !Number.isFinite(dy) || dy <= 6) return null;
+  const angle = clamp(Math.atan2(dy, dx), PHYSICS.minAngle, Math.PI - PHYSICS.minAngle);
   return { x: Math.cos(angle), y: Math.sin(angle) };
 }
-export function fire(game, dx, dy) {
+export function aimVelocity(dx, dy) {
   const direction = aimDirection(dx, dy);
+  if (!direction) return null;
+  const power = clamp(Math.hypot(dx, dy) / PHYSICS.powerDistance, 0, 1);
+  const speed = PHYSICS.launchMinSpeed + power * (FIELD.speed - PHYSICS.launchMinSpeed);
+  return { x: direction.x * speed, y: direction.y * speed, speed, power };
+}
+export function fire(game, dx, dy) {
+  const direction = aimVelocity(dx, dy);
   if (game.phase !== 'aim' || !direction) return false;
   Object.assign(game, {
     phase: 'flight',
@@ -224,15 +233,14 @@ const launchAt = (index) =>
 function launch(game) {
   const id = `${game.shots}:${game.emitted}`,
     x = game.launchX,
-    y = FIELD.floor - FIELD.radius - 1;
+    y = FIELD.launchY;
   const accent = game.emitted % RHYTHM.launchPattern.length === 0;
   game.balls.push({
     id,
     x,
     y,
-    vx: game.direction.x * FIELD.speed,
-    vy: game.direction.y * FIELD.speed,
-    boost: accent ? RHYTHM.reboundBoost : RHYTHM.reboundBoost / 2,
+    vx: game.direction.x,
+    vy: game.direction.y,
     trail: [{ x, y, t: game.elapsed }],
     pierce: game.upgrades.pierce || 0,
     ignored: [],
@@ -379,16 +387,8 @@ function sweep(ball, dx, dy, brick) {
   }
   return nearest;
 }
-const travelTime = (dt, boost) =>
-  dt + (boost * -Math.expm1(-RHYTHM.reboundDecay * dt)) / RHYTHM.reboundDecay;
-function contactTime(distance, boost) {
-  let time = distance / (1 + boost);
-  for (let i = 0; i < 5; i++)
-    time -=
-      (travelTime(time, boost) - distance) / (1 + boost * Math.exp(-RHYTHM.reboundDecay * time));
-  return Math.max(0, time);
-}
 function trailPoint(ball, t, contact = false) {
+  while (ball.trail.length && t - ball.trail[0].t > RHYTHM.trailSeconds) ball.trail.shift();
   const previous = ball.trail.at(-1);
   if (previous && Math.hypot(previous.x - ball.x, previous.y - ball.y) < EPS) {
     if (contact) previous.contact = true;
@@ -448,9 +448,8 @@ function refract(game, ball, collision) {
 function moveBall(game, ball, dt) {
   let remaining = dt;
   for (let impact = 0; impact < 16 && remaining > EPS && !ball.done; impact++) {
-    const travel = travelTime(remaining, ball.boost),
-      dx = ball.vx * travel,
-      dy = ball.vy * travel;
+    const dx = ball.vx * remaining,
+      dy = ball.vy * remaining;
     ball.ignored = ball.ignored.filter((id) => {
       const b = game.bricks.find((b) => b.id === id && b.hp > 0);
       return b && inside(ball, b);
@@ -474,19 +473,13 @@ function moveBall(game, ball, dt) {
     }
     ball.x += dx * collision.t;
     ball.y += dy * collision.t;
-    const consumed =
-      collision.type === 'move'
-        ? remaining
-        : Math.min(remaining, contactTime(travel * collision.t, ball.boost));
-    ball.boost *= Math.exp(-RHYTHM.reboundDecay * consumed);
+    const consumed = remaining * collision.t;
     remaining -= consumed;
     const at = game.elapsed - remaining;
     trailPoint(ball, at, collision.type !== 'move');
     if (collision.type === 'move') break;
     if (collision.type === 'return') {
-      if (game.nextX === null)
-        game.nextX = clamp(ball.x, FIELD.left + FIELD.radius, FIELD.right - FIELD.radius);
-      beginReturn(game, ball, 'natural');
+      collectBall(game, ball, 'natural');
       break;
     }
     if (collision.type !== 'brick' || collision.brick.kind !== 'pickup') game.collisionCount++;
@@ -537,7 +530,6 @@ function moveBall(game, ball, dt) {
     ball.vx *= speed / oldSpeed;
     ball.vy *= speed / oldSpeed;
     const refraction = refract(game, ball, collision);
-    ball.boost = RHYTHM.reboundBoost * (0.65 + 0.35 * ((game.collisionCount % 4) / 3));
     emit(game, 'bounce', {
       ...contact,
       at,
@@ -568,7 +560,7 @@ function offerUpgrades(game) {
 }
 function endTurn(game) {
   game.turn++;
-  game.launchX = game.nextX ?? game.launchX;
+  game.launchX = WIDTH / 2;
   game.balls = [];
   game.bricks = game.bricks.filter((b) => b.hp > 0);
   if (
@@ -592,28 +584,22 @@ function endTurn(game) {
   else game.phase = 'aim';
   emit(game, 'turn');
 }
+function collectBall(game, ball, reason) {
+  ball.done = true;
+  ball.y = FIELD.floor - FIELD.radius;
+  emit(game, 'returned', { ballId: ball.id, x: ball.x, y: FIELD.floor, reason });
+}
 function beginReturn(game, ball, reason) {
-  if (ball.done) return;
-  const to = { x: game.nextX ?? game.launchX, y: FIELD.floor - FIELD.radius - 1 };
+  if (ball.done || ball.returning) return;
+  const to = { x: ball.x, y: FIELD.floor - FIELD.radius };
   const from = { x: ball.x, y: ball.y };
-  const index = Number(String(ball.id).split(':').at(-1)) || 0;
-  const duration =
-    reason === 'natural'
-      ? 0.26 + Math.min(0.28, Math.abs(from.x - to.x) / 1000)
-      : 0.88 + (index % 4) * 0.07;
-  const control = {
-    x: clamp(
-      (from.x + to.x) / 2 + (index % 2 ? 36 : -36),
-      FIELD.left + FIELD.radius,
-      FIELD.right - FIELD.radius,
-    ),
-    y: Math.max(FIELD.top + 12, Math.min(from.y, to.y) - (reason === 'natural' ? 26 : 60)),
-  };
+  const duration = 0.25 + Math.max(0, to.y - from.y) / 1000;
   Object.assign(ball, {
     returning: true,
+    vx: 0,
+    vy: 0,
     returnFrom: from,
     returnTo: to,
-    returnControl: control,
     returnElapsed: 0,
     returnDuration: duration,
     returnReason: reason,
@@ -624,8 +610,6 @@ function beginReturn(game, ball, reason) {
     y: from.y,
     toX: to.x,
     toY: to.y,
-    controlX: control.x,
-    controlY: control.y,
     duration,
     reason,
   });
@@ -635,26 +619,22 @@ function advanceReturn(game, ball, dt) {
   const progress = ball.returnElapsed / ball.returnDuration,
     t = progress * progress;
   const a = ball.returnFrom,
-    c = ball.returnControl,
     b = ball.returnTo;
-  ball.x = (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x;
-  ball.y = (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y;
+  ball.y = a.y + (b.y - a.y) * t;
+  ball.vy = 2 * progress * (b.y - a.y) / ball.returnDuration;
   trailPoint(ball, game.elapsed);
-  if (progress >= 1 - 1e-10) {
-    ball.done = true;
-    emit(game, 'returned', { ballId: ball.id, x: b.x, y: b.y, reason: ball.returnReason });
-  }
+  if (progress >= 1 - 1e-10) collectBall(game, ball, ball.returnReason);
 }
 export function recall(game, reason = 'manual') {
   if (game.phase !== 'flight') return false;
-  game.nextX ??= game.launchX;
+  game.nextX = WIDTH / 2;
   game.phase = 'recall';
   game.recallReason = reason === 'timeout' ? 'timeout' : 'manual';
   for (const ball of game.balls) if (!ball.done) beginReturn(game, ball, game.recallReason);
   emit(game, 'recall', {
     reason: game.recallReason,
     x: game.nextX,
-    y: FIELD.floor - FIELD.radius - 1,
+    y: FIELD.floor,
   });
   return true;
 }
@@ -727,13 +707,9 @@ function advanceStep(game, dt) {
     game.flight += step;
     for (const ball of game.balls)
       if (!ball.done) {
-        if (ball.returning) {
-          advanceReturn(game, ball, step);
-          continue;
-        }
         ball.vy += (PHYSICS.gravity * step) / 2;
         moveBall(game, ball, step);
-        if (!ball.done && !ball.returning) {
+        if (!ball.done) {
           ball.vy += (PHYSICS.gravity * step) / 2;
           const speed = Math.hypot(ball.vx, ball.vy);
           if (speed > PHYSICS.maxSpeed) {
@@ -764,6 +740,23 @@ export function update(game, dt) {
 export function drainEvents(game) {
   return game.events.splice(0);
 }
+// Use the live solver on a disposable first ball; preview never mutates the real run.
+export function previewShot(game, dx, dy) {
+  const preview = { ...game, bricks: copy(game.bricks), events: [], count: 1, phase: 'aim' };
+  if (!fire(preview, dx, dy)) return [];
+  const points = [{ x: preview.launchX, y: FIELD.launchY }];
+  for (let i = 0; i < 360; i++) {
+    update(preview, PHYSICS.step);
+    const ball = preview.balls[0];
+    if (!ball || ball.returning || preview.phase !== 'flight') break;
+    if (i % 4 === 3) points.push({ x: ball.x, y: ball.y });
+    if (preview.events.some((e) => e.type === 'hit' || e.type === 'pickup')) {
+      points.push({ x: ball.x, y: ball.y });
+      break;
+    }
+  }
+  return points;
+}
 export function checkpoint(game) {
   if (!['aim', 'upgrade'].includes(game.phase) || game.practice || game.challenge) return null;
   const saved = copy(game);
@@ -783,7 +776,7 @@ const LEGACY_WAVE_COUNTS = Object.freeze({
 export function restoreGame(saved) {
   if (
     !saved ||
-    ![1, 2, 3].includes(saved.schemaVersion) ||
+    ![1, 2, 3, 4].includes(saved.schemaVersion) ||
     saved.practice ||
     saved.challenge ||
     !['aim', 'upgrade'].includes(saved.phase)
@@ -916,7 +909,8 @@ export function restoreGame(saved) {
     game.phase === 'upgrade' ? game.cards.filter((id) => upgradeAvailable(game, id)) : [];
   if (game.phase === 'upgrade' && !game.cards.length) game.phase = 'aim';
   game.initialSeed =
-    integer(saved.initialSeed, 0xffffffff) && saved.initialSeed > 0 ? saved.initialSeed : null;
-  game.launchX = clamp(game.launchX, FIELD.left + FIELD.radius, FIELD.right - FIELD.radius);
+    saved.schemaVersion === 4 && integer(saved.initialSeed, 0xffffffff) && saved.initialSeed > 0
+      ? saved.initialSeed : null;
+  game.launchX = WIDTH / 2;
   return game;
 }

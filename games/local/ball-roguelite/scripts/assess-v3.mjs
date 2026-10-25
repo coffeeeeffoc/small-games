@@ -13,14 +13,14 @@ const preference = ['power', 'pierce', 'extra', 'chain', 'blast', 'critical'];
 function directions(game) {
   const angles = Array.from(
     { length: 25 },
-    (_, i) => -Math.PI + PHYSICS.minAngle + (i * (Math.PI - 2 * PHYSICS.minAngle)) / 24,
+    (_, i) => PHYSICS.minAngle + (i * (Math.PI - 2 * PHYSICS.minAngle)) / 24,
   );
   const list = angles.map((a) => ({ x: Math.cos(a) * 500, y: Math.sin(a) * 500 }));
   for (const b of game.bricks.filter((b) => b.kind !== 'pickup')) {
     const p = brickCenter(b);
-    list.push({ x: p.x - game.launchX, y: p.y - FIELD.floor + FIELD.radius + 1 });
+    list.push({ x: p.x - game.launchX, y: p.y - FIELD.launchY });
   }
-  return list.filter((d) => {
+  return list.map((d) => {
     const scale = Math.min(
       1,
       d.x < 0
@@ -29,15 +29,15 @@ function directions(game) {
           ? (FIELD.right - 3 - game.launchX) / d.x
           : 1,
     );
-    return d.y * scale < -6;
-  });
+    return { x: d.x * scale, y: d.y * scale };
+  }).filter((d) => d.y > 6);
 }
 function bestShot(game) {
   let best;
   for (const d of directions(game)) {
     const trial = structuredClone(game);
     trial.events = [];
-    fire(trial, d.x, d.y);
+    if (!fire(trial, d.x, d.y)) throw Error('invalid candidate');
     settle(trial);
     const danger = trial.bricks
       .filter((b) => b.hp > 0 && b.kind !== 'pickup')
@@ -50,15 +50,15 @@ function bestShot(game) {
           : trial.score * 100 - danger + trial.count * 25;
     if (!best || value > best.value) best = { d, value };
   }
-  return best?.d || { x: 0, y: -500 };
+  return best?.d || { x: 0, y: 500 };
 }
 function direct(game) {
   const b = game.bricks
     .filter((b) => b.kind !== 'pickup')
     .sort((a, b) => b.r - a.r || a.hp - b.hp)[0];
-  if (!b) return { x: 0, y: -500 };
+  if (!b) return { x: 0, y: 500 };
   const p = brickCenter(b);
-  return { x: p.x - game.launchX, y: p.y - FIELD.floor + FIELD.radius + 1 };
+  return { x: p.x - game.launchX, y: p.y - FIELD.launchY };
 }
 const records = [],
   campaign = process.argv.includes('--campaign'),
@@ -84,9 +84,9 @@ for (const mode of [
         if (g.phase === 'upgrade')
           chooseUpgrade(g, preference.find((id) => g.cards.includes(id)) || g.cards[0]);
         const d =
-          strategy === 'bank' ? bestShot(g) : strategy === 'direct' ? direct(g) : { x: 0, y: -500 };
+          strategy === 'bank' ? bestShot(g) : strategy === 'direct' ? direct(g) : { x: 0, y: 500 };
         shots.push({ turn: g.turn, dx: d.x, dy: d.y });
-        fire(g, d.x, d.y);
+        if (!fire(g, d.x, d.y)) throw Error('invalid shot');
         settle(g);
         contacts += g.collisionCount;
         absorbed += g.absorbed;
@@ -114,7 +114,7 @@ for (const mode of [
       console.log(JSON.stringify({ ...record, shots: undefined }));
     }
 const report = {
-  base: 'ba3f3966',
+  rules: 'orbit-v4-gravity',
   environment:
     'Node CPU deterministic240Hz simulation; no advertisements; legal mobile angle candidates',
   seconds: (Date.now() - start) / 1000,
@@ -123,12 +123,12 @@ const report = {
 };
 const output = new URL(
   campaign && endless
-    ? '../docs/design/prism-carnival/balance-report.json'
+    ? '../docs/design/gravity-drop/balance-report.json'
     : campaign
       ? process.env.BALL_ASSESS_LEVEL
-        ? '../docs/design/prism-carnival/campaign-focus-report.json'
-        : '../docs/design/prism-carnival/campaign-report.json'
-      : '../docs/design/prism-carnival/endless-report.json',
+        ? '../docs/design/gravity-drop/campaign-focus-report.json'
+        : '../docs/design/gravity-drop/campaign-report.json'
+      : '../docs/design/gravity-drop/endless-report.json',
   import.meta.url,
 );
 mkdirSync(path.dirname(fileURLToPath(output)), { recursive: true });
