@@ -122,6 +122,16 @@ test('rename requires the reviewed source tree, absent old directory and every m
   }
 });
 
+test('parallel catalog changes retain the rename deletion proof without inheriting registry scope', () => {
+  const f = fixture();
+  f.base.set(registry, JSON.stringify([old, { id: 'removed', source: 'games/local/removed' }]));
+  f.head.set(registry, JSON.stringify([current, { id: 'added', source: 'games/local/added' }]));
+  const scopes = gameRenameFileScopes(f.context);
+  assert(hasGameRenameDeletionProof(file, scopes.get(file)));
+  assert(!scopes.has(registry));
+  assert(!scopes.has('games/local/removed/main.mjs'));
+});
+
 test('registry and lock allow only the one identity move without changing dependencies or resolution', () => {
   const f = fixture();
   const lock = 'pnpm-lock.yaml';

@@ -74,6 +74,8 @@ Pages 全量回归保持每个游戏的全部阶段在同一片内，以 300000 
 
 五款本地游戏的删除范围由 `local-game-retirement-scope.mjs` 和精确审阅表证明：固定 Git tree 绑定被移除的源码、文档及二进制素材，候选树必须证明目录消失；其余编辑绑定准确 base/head 字节。仍被其他游戏使用的确认音效迁至公共资源位置，额外绑定原始 Git blob，输出字节不变。只接受删除和这一条已绑定原始 blob 的 R100 音效迁移。未知路径、额外字节、读取失败或复制 scope 数组均不能借用该证明；Web 目录及真实依赖消费者仍执行增量检查。
 
+保存的 Pages 基线 `4e97662f` 同时早于橘风速递下线和摆消乐改名。`deliveryRenameRetirementReviews` 保留原下线表，另绑定同一被删目录 tree 及 19 个共享文件的完整前后摘要；锁文件只删除橘风速递 importer 与 Shell 链接，再替换摆消乐标识，其余 resolution 与 snapshot 字节不变。目录、manifest 和 metadata 保留 Shell 与摆消乐消费者，锁文件另保留 Minigame、Runtime；累计浏览器操作和分享协议分别保留 Flick Arena、Ball Roguelite 与 Ember Bounce。216 条改名路径独立证明，目标文件继续正常游戏验证；未知字节、复制审阅表或 scope、读取失败不能借用累计证明。
+
 目录清理的后续精确审阅同时支持本地目录和 Git submodule 根删除：gitlink 必须绑定原始 `160000` 模式、提交和路径，候选树必须确认消失。保留的词库导出器迁移绑定原始 blob；词库模块的一行来源注释清理绑定完整前后字节且测试确认可执行内容不变，因此不触发其间接 TapTap 消费者的引擎重建。复制 proof、额外代码或查询失败仍恢复真实依赖门禁；目录、部署替换和保留游戏入口继续验证。
 
 merge-front 改为第六款 Creator 工程。CI Producer 保留已有五款的校验并增加本款；通用矩阵用目录执行脚本以兼容不同包名。针对 `39388e3a89df1b1a0d573bb800016fdbfbc4ac86` 的准确字节证明只覆盖本次广告、制品与入口接线；额外改动恢复既有消费者检查。旧Canvas入口等10个文件的删除绑定原始摘要和HEAD不存在证明。`MERGE_FRONT_PREBUILT_DIR` 与其余Creator产物一样，须同时通过源码和输出摘要校验。

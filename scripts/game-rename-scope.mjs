@@ -93,8 +93,8 @@ export const gameRenameReviews = Object.freeze({
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/src/game-sharing.ts': {
-    before: '6887b2a1dc84c3a6ae153e76c3a2f33ee0de25b45ed0973adf6963577d441aba',
-    after: 'f8aec3522ff4c822b47cfcdea24e0db3efb57c2843c81e2a62c60dec9f681889',
+    before: 'd7a120d50fd2782cabcc64a4767bbd2d7600b6f335a99cf5ab32bea8ffe7cea4',
+    after: 'c34479c7218d00663d603a2b33aa2933605a20e409cfe06e06c0ab978c7f8399',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/tests/catalog-assessments.test.ts': {
@@ -103,13 +103,13 @@ export const gameRenameReviews = Object.freeze({
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/tests/game-sharing.test.tsx': {
-    before: '9248212c74a1f0515d6f43cd0be03f989633535496fd21e7e0c1e9ccd222d5e1',
-    after: '44da45b972289cd9a319ddc2e3e32a8be611c8890ef1edd085642afcbc73da0c',
+    before: 'd8f88dd3957eeab50df86816b78238e31ec15408664c6cb13a5f96a7957eebb1',
+    after: '5e6dcae90653dee6316c3136f2baf31ad692ec65c58da7d4afe380c07c973c82',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/tests/routes.integration.test.tsx': {
-    before: '4e0b6ecd2c75eefe8a3516bb51ca93079e6186e80a3f25445a0356596ccd6a00',
-    after: '0279af6d799e09fc962eabb959149dd46f60d18abb4d0f4d907e78cdf9abd13d',
+    before: '957545ade1e2333019dde9be47eccd71e8d8a64a896db4207c01e794fd4aacf9',
+    after: '593aa7ac4e1772b70ec317fff6881ec36e836e0cef82b2df18898cd87e4942bc',
     sources: ['games/local/place-and-clear', 'apps/shell-web'],
   },
   'apps/shell-web/tests/standalone-immersive.integration.test.tsx': {
@@ -299,10 +299,8 @@ function identity(readBase, readHead) {
     after.some((g) => g.id === gameRename.from || g.source === gameRename.oldSource)
   )
     return false;
-  const expected = before.map((g) =>
-    g === old[0] ? { ...g, id: gameRename.to, source: gameRename.source, title: '摆消乐' } : g,
-  );
-  if (!isDeepStrictEqual(after, expected)) return false;
+  const expected = { ...old[0], id: gameRename.to, source: gameRename.source, title: '摆消乐' };
+  if (!isDeepStrictEqual(current[0], expected)) return false;
   const oldPackage = readJson(readBase, gameRename.oldSource + '/package.json');
   const pkg = readJson(readHead, gameRename.source + '/package.json');
   return (
@@ -327,7 +325,18 @@ export function gameRenameRegistrationScopes({ changedPaths, readBase, readHead 
       'apps/shell-minigame',
       'services/runtime-api',
     ];
-    if (changedPaths.includes(REGISTRY)) scopes.set(REGISTRY, [gameRename.source]);
+    if (changedPaths.includes(REGISTRY)) {
+      const before = readJson(readBase, REGISTRY);
+      const expected = before.map((g) =>
+        g.id === gameRename.from
+          ? { ...g, id: gameRename.to, source: gameRename.source, title: '摆消乐' }
+          : g,
+      );
+      // Other catalog changes must retain their own consumer/deletion review.
+      // They cannot invalidate this game's separately bound directory move.
+      if (isDeepStrictEqual(readJson(readHead, REGISTRY), expected))
+        scopes.set(REGISTRY, [gameRename.source]);
+    }
     // A pure textual workspace move cannot alter any registry resolution,
     // dependency tuple, duplicate importer, integrity or unrelated lock byte.
     if (changedPaths.includes(LOCK)) {

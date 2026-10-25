@@ -124,6 +124,91 @@ export const deliveryRetirementReviews = Object.freeze({
   },
 });
 
+// The saved Pages baseline also precedes the Place & Clear rename and the
+// reviewed Flick/Ball/Ember checks. Keep the original retirement fixture above intact.
+// This named table has its own proof identity; cloned tables cannot authorize deletion.
+export const deliveryRenameRetirementReviews = Object.freeze({
+  ...deliveryRetirementReviews,
+  'apps/shell-web/package.json': {
+    ...deliveryRetirementReviews['apps/shell-web/package.json'],
+    after: '26dcf3d5b147d3a27933f393e0fed076c48d2057584ebe43f21901d62a1edfe3',
+    sources: ['apps/shell-web', 'games/local/place-and-clear'],
+  },
+  'apps/shell-web/scripts/standalone-game-checks.mjs': {
+    ...deliveryRetirementReviews['apps/shell-web/scripts/standalone-game-checks.mjs'],
+    after: '446e8765fbb066a3fc54b587fbad4b47ec91149cc2056c0569131dc99bb606a0',
+    sources: ['apps/shell-web', 'games/local/place-and-clear', 'games/local/flick-arena'],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.mjs': {
+    ...deliveryRetirementReviews['apps/shell-web/scripts/standalone-game-entry.mjs'],
+    after: '61dcf54befe778203207cfc8cada910f7f8ba8b32845ac58d5257afb2defa89a',
+    sources: ['apps/shell-web', 'games/local/place-and-clear'],
+  },
+  'apps/shell-web/src/game-assessments.json': {
+    ...deliveryRetirementReviews['apps/shell-web/src/game-assessments.json'],
+    after: '2aa6a324ac58a9e1d00678a1c64aeb541f0a3d7d5bcbf283d6ff668c8895a9e7',
+    sources: ['apps/shell-web', 'games/local/place-and-clear'],
+  },
+  'apps/shell-web/src/game-meta.json': {
+    ...deliveryRetirementReviews['apps/shell-web/src/game-meta.json'],
+    after: '259daaf748da2a1da7f345359b7b016c12fc07cd1d2fe93095f7c79f1d442d1e',
+    sources: ['apps/shell-web', 'games/local/place-and-clear'],
+  },
+  'apps/shell-web/src/standalone-games.json': {
+    ...deliveryRetirementReviews['apps/shell-web/src/standalone-games.json'],
+    after: '1e795cdea2636d77dc63393cc137fff6e9ce1626d8b8173ab8b270b960b615d9',
+    sources: ['apps/shell-web', 'games/local/place-and-clear'],
+  },
+  'apps/shell-web/tests/catalog-assessments.test.ts': {
+    ...deliveryRetirementReviews['apps/shell-web/tests/catalog-assessments.test.ts'],
+    after: '5d1c1a1fa6d6851f51c64a2aebfc9b578e8589b2100720bf6a93d83d08e9893f',
+    sources: ['apps/shell-web', 'games/local/place-and-clear'],
+  },
+  'pnpm-lock.yaml': {
+    ...deliveryRetirementReviews['pnpm-lock.yaml'],
+    after: '56f6af17c621d5c8adfba776d8ad43d7e704ab42dd7fa4dc4904ab21bcb0e3b4',
+    sources: [
+      'apps/shell-web',
+      'games/local/place-and-clear',
+      'apps/shell-minigame',
+      'services/runtime-api',
+    ],
+  },
+  'scripts/publication-scopes.mjs': {
+    ...deliveryRetirementReviews['scripts/publication-scopes.mjs'],
+    after: 'c3704eb3d550d6c6357e32c2218a6d818fe1761799f9cdce3fb8744b67a465b6',
+  },
+  'scripts/publication-scopes.test.mjs': {
+    ...deliveryRetirementReviews['scripts/publication-scopes.test.mjs'],
+    after: '37e83a55f0384874ca83cec00816ed072beec2b6063fe11fe138d1c53ac1203b',
+  },
+  'apps/shell-web/src/game-sharing.ts': {
+    before: '60e545c5a1d690ce5dff0ed78c2c62c3558418ebe1a2dbe40b8726076d2b81eb',
+    after: 'c34479c7218d00663d603a2b33aa2933605a20e409cfe06e06c0ab978c7f8399',
+    sources: [
+      'apps/shell-web',
+      'games/local/place-and-clear',
+      'games/local/ball-roguelite',
+      'games/local/ember-bounce',
+    ],
+  },
+  'apps/shell-web/tests/game-sharing.test.tsx': {
+    before: '1b804dd9b9efee45b978dbce5e8ee173787725f3acbe9d3b76f464b86f8a10b5',
+    after: '5e6dcae90653dee6316c3136f2baf31ad692ec65c58da7d4afe380c07c973c82',
+    sources: [
+      'apps/shell-web',
+      'games/local/place-and-clear',
+      'games/local/ball-roguelite',
+      'games/local/ember-bounce',
+    ],
+  },
+  'apps/shell-web/tests/routes.integration.test.tsx': {
+    before: '4e0b6ecd2c75eefe8a3516bb51ca93079e6186e80a3f25445a0356596ccd6a00',
+    after: '593aa7ac4e1772b70ec317fff6881ec36e836e0cef82b2df18898cd87e4942bc',
+    sources: ['apps/shell-web', 'games/local/place-and-clear', 'games/local/ember-bounce'],
+  },
+});
+
 // Reviewed removal of five local games; precise snapshots and finite surviving consumers.
 export const localRetirementBase = 'aa7e30777290989ac8a48f854f65eb1c8f242a8b';
 export const localRetirementTrees = Object.freeze({
