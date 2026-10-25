@@ -1,0 +1,233 @@
+{
+  "date": "2026-10-25",
+  "environment": "Windows Chromium 140.0.7339.186 touch emulation",
+  "viewport": "390x844; final reduced-motion check 320x568",
+  "firstRound": {
+    "phase": "playing",
+    "corePhase": "aim",
+    "aiming": false,
+    "levelId": "first-spark",
+    "turn": 2,
+    "completedTurns": 1,
+    "shots": 1,
+    "score": 35,
+    "ballCount": 13,
+    "shotSpeed": 920,
+    "direction": {
+      "x": 0,
+      "y": 1,
+      "power": 1,
+      "speed": 920
+    },
+    "collected": 12,
+    "volleyCount": 12,
+    "bestCombo": 0,
+    "balls": [],
+    "destroyed": 0,
+    "practice": false,
+    "challenge": null,
+    "resume": {
+      "levelId": "first-spark",
+      "completedTurns": 1
+    },
+    "targets": [
+      {
+        "id": "first-spark:0:0",
+        "x": 158,
+        "y": 402,
+        "hp": 24,
+        "kind": "orb"
+      },
+      {
+        "id": "first-spark:0:1",
+        "x": 232,
+        "y": 402,
+        "hp": 24,
+        "kind": "orb"
+      },
+      {
+        "id": "first-spark:1:0",
+        "x": 95,
+        "y": 460,
+        "hp": 24,
+        "kind": "orb"
+      },
+      {
+        "id": "first-spark:1:2",
+        "x": 295,
+        "y": 460,
+        "hp": 24,
+        "kind": "orb"
+      },
+      {
+        "id": "first-spark:2:0",
+        "x": 155,
+        "y": 518,
+        "hp": 31,
+        "kind": "orb"
+      },
+      {
+        "id": "first-spark:2:1",
+        "x": 235,
+        "y": 518,
+        "hp": 31,
+        "kind": "orb"
+      }
+    ],
+    "progress": {
+      "unlocked": [
+        "first-spark"
+      ],
+      "completed": {}
+    }
+  },
+  "naturalCollection": {
+    "phase": "playing",
+    "corePhase": "flight",
+    "aiming": false,
+    "levelId": "first-spark",
+    "turn": 1,
+    "completedTurns": 0,
+    "shots": 1,
+    "score": 35,
+    "ballCount": 13,
+    "shotSpeed": 920,
+    "direction": {
+      "x": 0,
+      "y": 1,
+      "power": 1,
+      "speed": 920
+    },
+    "collected": 0,
+    "volleyCount": 12,
+    "bestCombo": 0,
+    "balls": [
+      {
+        "x": 195,
+        "y": 562.3931755829904,
+        "vx": 0,
+        "vy": 1193.083333333326,
+        "returning": true
+      },
+      {
+        "x": 195,
+        "y": 546.5868055555553,
+        "vx": 0,
+        "vy": 1185.8333333333264,
+        "returning": false
+      },
+      {
+        "x": 195,
+        "y": 483.2050347222223,
+        "vx": 0,
+        "vy": 1154.4166666666617,
+        "returning": false
+      },
+      {
+        "x": 195,
+        "y": 421.5250000000003,
+        "vx": 0,
+        "vy": 1122.999999999997,
+        "returning": false
+      },
+      {
+        "x": 195,
+        "y": 361.5467013888893,
+        "vx": 0,
+        "vy": 1091.5833333333323,
+        "returning": false
+      },
+      {
+        "x": 195,
+        "y": 303.27013888888933,
+        "vx": 0,
+        "vy": 1060.1666666666677,
+        "returning": false
+      },
+      {
+        "x": 195,
+        "y": 242.41388888888918,
+        "vx": 0,
+        "vy": 1026.3333333333364,
+        "returning": false
+      },
+      {
+        "x": 195,
+        "y": 187.67170138888903,
+        "vx": 0,
+        "vy": 994.916666666669,
+        "returning": false
+      },
+      {
+        "x": 195,
+        "y": 134.63125000000005,
+        "vx": 0,
+        "vy": 963.5000000000014,
+        "returning": false
+      },
+      {
+        "x": 195,
+        "y": 83.29253472222223,
+        "vx": 0,
+        "vy": 932.0833333333337,
+        "returning": false
+      }
+    ],
+    "destroyed": 0,
+    "practice": false,
+    "challenge": null,
+    "resume": {
+      "levelId": "first-spark",
+      "completedTurns": 0
+    },
+    "targets": [
+      {
+        "id": "first-spark:0:0",
+        "x": 158,
+        "y": 460,
+        "hp": 24,
+        "kind": "orb"
+      },
+      {
+        "id": "first-spark:0:1",
+        "x": 232,
+        "y": 460,
+        "hp": 24,
+        "kind": "orb"
+      },
+      {
+        "id": "first-spark:1:0",
+        "x": 95,
+        "y": 518,
+        "hp": 24,
+        "kind": "orb"
+      },
+      {
+        "id": "first-spark:1:1",
+        "x": 195,
+        "y": 518,
+        "hp": 0,
+        "kind": "pickup"
+      },
+      {
+        "id": "first-spark:1:2",
+        "x": 295,
+        "y": 518,
+        "hp": 24,
+        "kind": "orb"
+      }
+    ],
+    "progress": {
+      "unlocked": [
+        "first-spark"
+      ],
+      "completed": {}
+    }
+  },
+  "recall": {
+    "count": 13,
+    "collected": 0
+  },
+  "errors": [],
+  "controls": "Native CDP touch events; normal player mode, no state injection"
+}

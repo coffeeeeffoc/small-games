@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1170" height="760" viewBox="0 0 1170 760">
+<defs><linearGradient id="bg" x2="0" y2="1"><stop stop-color="#161d38"/><stop offset="1" stop-color="#080e20"/></linearGradient><radialGradient id="orb"><stop stop-color="#315c79"/><stop offset="1" stop-color="#14394c"/></radialGradient></defs>
+<rect width="1170" height="760" fill="#080d1b"/>
+<g font-family="Microsoft YaHei, sans-serif" fill="#f5e9cb" text-anchor="middle">
+<text x="585" y="35" font-size="22">熔光弹珠 · 重力连弹交互稿（设计示意）</text>
+<g id="board"><rect x="20" y="65" width="350" height="635" rx="24" fill="url(#bg)" stroke="#705c43"/><text x="195" y="101" font-size="16">01 第一束火花</text><path d="M40 190V655H350V190" fill="none" stroke="#9d8155" opacity=".5"/><path d="M40 190H350" stroke="#a18153" stroke-dasharray="5 7"/><ellipse cx="195" cy="147" rx="28" ry="12" fill="none" stroke="#ffcf7f" stroke-width="2"/><g fill="url(#orb)" stroke="#9feeff"><circle cx="135" cy="480" r="24"/><circle cx="255" cy="480" r="24"/><circle cx="95" cy="545" r="24"/><circle cx="295" cy="545" r="24"/></g><g font-size="19"><text x="135" y="486">18</text><text x="255" y="486">18</text><text x="95" y="551">24</text><text x="295" y="551">24</text></g></g>
+<use href="#board" x="390"/><use href="#board" x="780"/>
+<path d="M195 147Q300 270 315 450Q316 490 295 520" fill="none" stroke="#ffe4a0" stroke-width="3" stroke-dasharray="2 10"/>
+<path d="M175 147A20 20 0 1 1 215 147" fill="none" stroke="#ffc763" stroke-width="4"/><text x="195" y="627" font-size="17">力度 72% · 松手发射</text>
+<path d="M575 490Q610 510 650 505Q610 555 550 545Q605 590 662 540" fill="none" stroke="#ffca70" stroke-opacity=".32" stroke-width="5"/>
+<g fill="#fff3c9"><circle cx="575" cy="490" r="5"/><circle cx="590" cy="499" r="4"/><circle cx="605" cy="504" r="3"/><circle cx="650" cy="505" r="5"/><circle cx="550" cy="545" r="5"/><circle cx="662" cy="540" r="5"/></g><text x="585" y="340" font-size="25">24 连击</text><text x="585" y="627" font-size="17">重力下坠 · 夹缝往返</text>
+<path d="M1040 555V680M900 575V680" fill="none" stroke="#ffd28c" stroke-opacity=".4" stroke-width="2"/>
+<g fill="#ffe3a1"><circle cx="1040" cy="640" r="5"/><circle cx="1040" cy="660" r="3"/><circle cx="1040" cy="675" r="1"/><circle cx="900" cy="650" r="4"/><circle cx="900" cy="672" r="2"/></g><text x="975" y="627" font-size="17">落底回收 · 8 / 12 已收齐</text>
+<text x="195" y="735" font-size="16">松手位置同时决定角度和速度</text><text x="585" y="735" font-size="16">拖影退后，实球与耐久始终清楚</text><text x="975" y="735" font-size="16">首次触底即退出碰撞，向下淡出</text>
+</g></svg>
