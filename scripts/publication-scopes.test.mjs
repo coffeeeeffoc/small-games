@@ -950,6 +950,7 @@ test('fourth Creator classification works in a bare planner with only Prettier a
   for (const module of [
     'publication-scopes.mjs',
     'local-game-retirement-scope.mjs',
+    'pages-registration-scope.mjs',
     'local-game-retirement-reviews.mjs',
     'vite-patch-scope.mjs',
     'competition-ingress.mjs',
@@ -3041,6 +3042,7 @@ test('reviewed quality budget can be planned without installed YAML dependencies
     for (const module of [
       'publication-scopes.mjs',
       'local-game-retirement-scope.mjs',
+      'pages-registration-scope.mjs',
       'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
@@ -3093,6 +3095,7 @@ test('cache writer reduction has an exact dependency-free scope and rejects unre
     for (const module of [
       'publication-scopes.mjs',
       'local-game-retirement-scope.mjs',
+      'pages-registration-scope.mjs',
       'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
@@ -4569,6 +4572,7 @@ test('admin lock proof plans without installed YAML dependencies', async () => {
     for (const module of [
       'publication-scopes.mjs',
       'local-game-retirement-scope.mjs',
+      'pages-registration-scope.mjs',
       'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
@@ -4776,6 +4780,7 @@ test('shared authority helper selects only its three backend consumers and bound
     for (const module of [
       'publication-scopes.mjs',
       'local-game-retirement-scope.mjs',
+      'pages-registration-scope.mjs',
       'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
@@ -5825,6 +5830,7 @@ test('Ashfall planning works with only pinned Prettier and preserves every lock 
     for (const name of [
       'publication-scopes.mjs',
       'local-game-retirement-scope.mjs',
+      'pages-registration-scope.mjs',
       'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',

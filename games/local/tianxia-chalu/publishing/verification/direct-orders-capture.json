@@ -1,0 +1,26 @@
+{
+  "capturedAt": "2026-10-25T15:14:53.767Z",
+  "environment": "Production Creator web-mobile in Chromium 390x844 touch emulation; normal clock and randomness; no battle, inventory or ad fixtures",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "47b6bdb1657b842d42cc0606dba8d72b092720fa4aadd036400fa808070c43f9"
+  },
+  "checks": [
+    "actual source/target taps",
+    "capture then relay with continuing supply",
+    "drag independent source",
+    "double tap hold",
+    "three-state road cycle",
+    "pause"
+  ],
+  "final": {
+    "time": 19.4,
+    "stats": {
+      "switches": 8,
+      "captured": 1,
+      "lost": 0
+    }
+  },
+  "errors": []
+}

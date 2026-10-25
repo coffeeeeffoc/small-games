@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1152" height="540" viewBox="0 0 1152 540">
+  <defs><linearGradient id="field" x2="0" y2="1"><stop stop-color="#467265"/><stop offset="1" stop-color="#c2c3a3"/></linearGradient></defs>
+  <rect width="1152" height="540" fill="#0d2928"/>
+  <rect y="66" width="1152" height="260" fill="url(#field)"/>
+  <g font-family="sans-serif" fill="#fff2cf" text-anchor="middle">
+    <rect x="30" y="22" width="235" height="18" rx="9" fill="#8ce4cb"/><text x="148" y="37" fill="#123d37">我方 30/30</text>
+    <rect x="800" y="22" width="235" height="18" rx="9" fill="#eb7973"/><text x="918" y="37" fill="#123d37">敌晶 26/30</text>
+    <text x="576" y="29" font-size="24" fill="#f3cb79">第 2 回合</text><text x="576" y="55" font-size="18">整备</text>
+    <rect x="1066" y="3" width="76" height="70" rx="18" fill="#123d37" stroke="#f3cb79"/><path d="M1091 22h10v32h-10zM1108 22h10v32h-10z" fill="#fff2cf"/>
+    <rect x="310" y="70" width="533" height="38" rx="12" fill="#123d37"/><text x="576" y="96" font-size="18">烈焰 1/4　　雷霆 1/4　　玄甲 1/4　　灵泽 0/4</text>
+    <g fill="#123d37" stroke="#8ce4cb"><ellipse cx="270" cy="238" rx="44" ry="15"/><ellipse cx="425" cy="183" rx="44" ry="15"/><ellipse cx="430" cy="284" rx="44" ry="15"/></g>
+    <g font-size="23" fill="#123d37"><text x="270" y="214">杨戬</text><text x="425" y="159">震雷炮</text><text x="430" y="260">护阵车</text><text x="740" y="159">哪吒</text><text x="740" y="260">离火铳</text><text x="920" y="214">孙悟空</text></g>
+    <text x="1030" y="307" font-size="20" fill="#123d37">上阵 3/6</text>
+    <rect x="8" y="326" width="1136" height="100" rx="14" fill="#16483f" stroke="#648d79"/>
+    <text x="84" y="360" font-size="21" fill="#8ce4cb">备战手牌</text><text x="84" y="389" font-size="20">3/12</text>
+    <g fill="#215f52" stroke="#8ce4cb"><rect x="176" y="332" width="108" height="90" rx="12"/><rect x="292" y="332" width="108" height="90" rx="12"/><rect x="408" y="332" width="108" height="90" rx="12"/></g>
+    <g font-size="20"><text x="230" y="369">Lv.1</text><text x="230" y="408">巡天机</text><text x="346" y="369">Lv.1</text><text x="346" y="408">震雷炮</text><text x="462" y="369" font-size="31">刃</text><text x="462" y="408">磨刃</text></g>
+    <rect y="432" width="1152" height="108" fill="#103b34"/>
+    <text x="56" y="455" font-size="19" fill="#f3cb79">商店</text><text x="56" y="485" font-size="26" fill="#f3cb79">◆ 6</text><text x="56" y="514" font-size="16">下轮 +8</text>
+    <rect x="112" y="438" width="96" height="90" rx="14" fill="#247064" stroke="#f3cb79"/><text x="160" y="481" font-size="30">↻</text><text x="160" y="516" font-size="17">◆ 1</text>
+    <g fill="#215f52" stroke="#f3cb79"><rect x="224" y="438" width="220" height="90" rx="14"/><rect x="456" y="438" width="220" height="90" rx="14"/><rect x="688" y="438" width="220" height="90" rx="14"/></g>
+    <g font-size="23"><text x="334" y="474">孙悟空</text><text x="334" y="510" fill="#f3cb79">◆ 4</text><text x="566" y="474">护阵车</text><text x="566" y="510" fill="#f3cb79">◆ 3</text><text x="798" y="474">锻体</text><text x="798" y="510" fill="#f3cb79">◆ 2</text></g>
+    <rect x="936" y="438" width="204" height="90" rx="18" fill="#edb950"/><text x="1038" y="495" font-size="34" fill="#123d37">开战</text>
+  </g>
+</svg>

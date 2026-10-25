@@ -1,4 +1,19 @@
-# 商店与流派版本验证
+# 商店与备战席验证
+
+## 2026-10-25 点击购买与长按详情
+
+运行源码指纹 `909297d55a44db864ac0ad6c30a29c4758399c6abe32c76530f7e05e2e2ad6e1`。本次只改购买/详情交互和备战布局，保留规则3、内容2、对局v4及现有数值。
+
+- 布局先见 [03-shop-layout.svg](03-shop-layout.svg)，最终实际画面见 [整备](../../../publishing/gameplay/screenshots/bench-planning.png)、[场上详情](../../../publishing/gameplay/screenshots/bench-long-press-own.png)、[568宽手牌第二页](../../../publishing/gameplay/screenshots/bench-page-two-568.png)、[购入后长按](../../../publishing/gameplay/screenshots/bench-new-item-568.png)。参考项目及交互取舍见 [PLAN](PLAN.md)。
+- `pnpm --dir games/local/merge-front test`：43项通过，其中34项规则/奖励/制品测试，9项实际控制器交互测试。控制器测试使用真实规则核和明确的引擎/绘制替身，不代表Creator渲染验收。`test:rules`只运行可静态确认的纯Node测试，供仓库增量验证调用。
+- 真实Creator 3.8.8构建、引擎声明类型检查及43项测试由 Windows [构建任务40208612339](https://github.com/coffeeeeffoc/small-games/actions/runs/40208612339)执行，产物源提交 `0f8a733afc780a2de66589f71dde79343b5b155f`。产物下载后由仓库原有 `verifyPrebuilt` 核对当前源码指纹及每个运行文件摘要，再通过本地正式typecheck/build入口。最终开发提交和构建提交可能不同，以相同运行源码指纹及准确候选验证为准；临时构建工作流不进入dev。制品ID与ZIP摘要见 [构建来源](../../../publishing/gameplay/bench-build.json)。
+- `test:publishing:browser`：19组记录通过、页面错误及失败资源为空，见 [完整报告](../../../publishing/gameplay/bench-browser-report.json)。实际加载上述Creator生产包，使用CDP触摸：点击直接购买且不误触相邻商品；长按商品、完整手牌、法术、残字、整备双方及战斗单位；松手/取消收起，战斗继续；购买后翻页定位；边缘拖放、顶排施法、部署/合并/回收/售出；暂停、重开、恢复、胜负重试和六种水晶演出。
+- 视口1152×540、844×390、390×844、320×568、568×320均验收。竖持沿用游戏横向旋转，横竖切换触摸坐标通过；当前页面无浏览器全屏按钮。物理设备、微信/抖音/B站真机及真实广告填充未验收。
+- 独立只读复核发现并修复：备战席边缘误命中单位、顶排精灵身体落点被拒、基础攻速表述及购买提示覆盖详情标题。最终截图核对文字完整、手牌/商店分层及分页边界；详情出现时暂时隐藏短时提示。
+
+当前媒体均来自本轮实际触屏录屏：游戏视频30秒、宣传剪辑18秒，后者含3秒历史主视觉插画及不同合法对局片段，均为原速无声H.264。片段来源见 [bench-edit.json](../../../publishing/promo/videos/bench-edit.json)，规格/摘要见 [媒体清单](../../../publishing/media-manifest.json)。旧媒体和下方历史验证保留，不能替代本轮运行证据。
+
+## 2026-10-23 商店/流派改版历史记录
 
 2026-10-23；真实 Cocos Creator 3.8.8、Node24.21.0、pnpm12.6.0。运行源码指纹 `312ff45582619a9bc5a152aba7742a2d8904385ef77b0972dd283c293aad0076`，最终发布提交以所在Git提交及准确候选验证日志为准。
 
