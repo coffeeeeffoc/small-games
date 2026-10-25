@@ -108,7 +108,6 @@ export class StationWorld {
   clipBottom = 844;
   private readonly bayInk: Graphics;
   private readonly actors: Node;
-  private readonly bayNumbers: Label[] = [];
   private readonly stationSign: Label;
   private readonly signBacking: Graphics;
   private geometry: StationGeometry = getStationGeometry(LEVELS[0]!);
@@ -171,17 +170,6 @@ export class StationWorld {
     this.content = this.node('Board content', this.viewport);
     this.ground = this.node('Paved streets and garden').addComponent(Graphics);
     this.bayInk = this.node('Pickup bay status').addComponent(Graphics);
-    const signs = this.node('Pickup bay numbers');
-    for (let i = 0; i < 4; i++) {
-      const label = this.node(`Bay ${i + 1}`, signs).addComponent(Label);
-      label.string = String(i + 1);
-      label.fontFamily = 'sans-serif';
-      label.horizontalAlign = Label.HorizontalAlign.CENTER;
-      label.verticalAlign = Label.VerticalAlign.CENTER;
-      label.overflow = Label.Overflow.CLAMP;
-      label.color = paint(PALETTE.cream);
-      this.bayNumbers.push(label);
-    }
     this.actors = this.node('Depth-sorted painted town');
     const signage = this.node('Station signage');
     this.signBacking = this.node('Station name plaque', signage).addComponent(Graphics);
@@ -721,16 +709,6 @@ export class StationWorld {
     this.stationSign.lineHeight = 28;
     this.stationSign.isBold = true;
     this.stationSign.color = paint('#fff6dd');
-    for (const [i, bay] of geo.bays.entries()) {
-      const sign = this.project({ x: bay.point.x, z: -5.5 });
-      this.rect(g, { x: sign.x - 23, y: sign.y - 9, w: 46, h: 18 }, '#e6d5ac', 5);
-      this.rect(g, { x: sign.x - 22, y: sign.y - 8, w: 44, h: 16 }, '#214b51', 4);
-      const label = this.bayNumbers[i]!;
-      label.node.setPosition(sign.x - this.w / 2, this.h / 2 - sign.y);
-      label.node.getComponent(UITransform)!.setContentSize(46, 18);
-      label.fontSize = 10;
-      label.lineHeight = 18;
-    }
   }
 
   private visual(id: string, frame: SpriteFrame, kind: Kind, point: Point): Visual {
@@ -924,8 +902,7 @@ export class StationWorld {
     if (signature === this.baySignature) return;
     this.baySignature = signature;
     this.bayInk.clear();
-    for (const [i, bay] of simulation.bays.entries()) {
-      this.bayNumbers[i]!.string = String(i + 1);
+    for (const bay of simulation.bays) {
       const point = this.geometry.bays.find((b) => b.id === bay.id)?.point;
       if (!point) continue;
       const { x, z } = point,
