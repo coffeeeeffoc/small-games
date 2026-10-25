@@ -3501,6 +3501,7 @@ test('dedicated gameplay proof rejects extra dependencies and nested executable 
       "  eval('globalThis.cageScopeInjected = true');\n  const click =",
     ),
     cageModule.replace('locator.tap()', 'locator.click()'),
+    cageModule.replace("'#paddle-control'", "'#scene'"),
     cageModule.replace("await click(frame.locator('#pause'));", 'return;'),
   ];
   for (const module of variants) {

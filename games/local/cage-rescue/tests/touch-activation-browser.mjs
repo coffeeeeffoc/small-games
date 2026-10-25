@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium, devices, expect } from '@playwright/test';
+import { RULES } from '../src/core.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const server = spawn(process.execPath, ['server.mjs', '--dist'], {
@@ -41,12 +42,67 @@ try {
   });
   await page.goto('http://127.0.0.1:4484');
   await page.locator('#start').tap();
-  await page.locator('#launch').tap();
   const touch = await context.newCDPSession(page);
   const snapshot = () => page.evaluate(() => __cageRescue.snapshot());
+  const field = await page.locator('#scene').boundingBox();
+  const control = await page.locator('#paddle-control').boundingBox();
+  const send = (type, touchPoints = []) =>
+    touch.send('Input.dispatchTouchEvent', { type, touchPoints });
+  const pointAt = (x) => ({
+    x: field.x + (x / 390) * field.width,
+    y: control.y + control.height * 0.55,
+  });
+  await send('touchStart', [{ x: field.x + field.width / 2, y: field.y + field.height * 0.85 }]);
+  assert.equal(
+    (await snapshot()).activePointer,
+    null,
+    'touching the field does not grab the paddle',
+  );
+  await send('touchEnd');
+  // Start inside the old paddle hit area: no grab offset is allowed on the strip.
+  await send('touchStart', [pointAt(210)]);
+  await expect.poll(async () => (await snapshot()).game.paddle.x).toBeCloseTo(210, 0);
+  for (const target of [100, 290, 195]) {
+    await send('touchMove', [pointAt(target)]);
+    await expect.poll(async () => (await snapshot()).game.paddle.x).toBeCloseTo(target, 0);
+  }
+  for (const target of [1, 389]) {
+    await send('touchMove', [pointAt(target)]);
+    const width = (await snapshot()).game.paddle.w;
+    const expected = target < 195 ? RULES.left + width / 2 : RULES.right - width / 2;
+    await expect.poll(async () => (await snapshot()).game.paddle.x).toBeCloseTo(expected, 0);
+    await expect(page.locator('#paddle-control')).toHaveAttribute(
+      'aria-valuenow',
+      target < 195 ? '0' : '100',
+    );
+  }
+  await send('touchMove', [{ x: field.x + field.width + 25, y: control.y + 5 }]);
+  assert.notEqual((await snapshot()).activePointer, null, 'capture survives leaving the control');
+  await send('touchMove', [pointAt(195)]);
+  await expect.poll(async () => (await snapshot()).game.paddle.x).toBeCloseTo(195, 0);
+  const oldPointer = (await snapshot()).activePointer;
+  await send('touchCancel');
+  assert.equal((await snapshot()).activePointer, null);
+  await page
+    .locator('#paddle-control')
+    .dispatchEvent('pointermove', { pointerId: oldPointer, clientX: field.x });
+  await page.waitForTimeout(100);
+  assert.equal((await snapshot()).game.paddle.x, 195, 'cancelled pointer cannot move the paddle');
+  await page.locator('#paddle-control').focus();
+  await page.keyboard.press('Home');
+  await expect(page.locator('#paddle-control')).toHaveAttribute('aria-valuenow', '0');
+  await page.keyboard.press('End');
+  await expect(page.locator('#paddle-control')).toHaveAttribute('aria-valuenow', '100');
+  await send('touchStart', [pointAt(195)]);
+  await expect.poll(async () => (await snapshot()).game.paddle.x).toBeCloseTo(195, 0);
+  await send('touchEnd');
+  report.checks.push(
+    'Separate strip maps absolute positions and both boundaries precisely; field touches are ignored; capture, cancellation and slider keyboard endpoints work',
+  );
+  await page.locator('#launch').tap();
   for (let i = 0; i < 8; i++) {
-    const bounds = await page.locator('#scene').boundingBox();
-    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.85 };
+    const bounds = await page.locator('#paddle-control').boundingBox();
+    const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.55 };
     const end = { x: bounds.x + bounds.width * (i % 2 ? 0.3 : 0.7), y: start.y };
     await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
     await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [end] });
@@ -66,7 +122,7 @@ try {
     await page.locator('#resume').tap();
   }
   report.checks.push(
-    'Eight native canvas drags immediately followed by pause each activate exactly once; resume remains available',
+    'Eight native control-strip drags immediately followed by pause each activate exactly once; resume remains available',
   );
   const bounds = await page.locator('#pause').boundingBox();
   const point = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
@@ -135,8 +191,9 @@ try {
   );
   assert.deepEqual(report.errors, []);
   report.passed = true;
+  await mkdir(new URL('../test-results/', import.meta.url), { recursive: true });
   await writeFile(
-    new URL('../docs/design/publishing/touch-activation-report.json', import.meta.url),
+    new URL('../test-results/touch-activation-report.json', import.meta.url),
     JSON.stringify(report, null, 2) + '\n',
   );
   console.log(JSON.stringify(report, null, 2));

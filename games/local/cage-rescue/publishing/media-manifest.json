@@ -1,23 +1,23 @@
 {
-  "verified": "2026-10-23 (Asia/Shanghai)",
+  "verified": "2026-10-26 (Asia/Shanghai)",
   "ruleVersion": "rescue-ranked-v2",
-  "environment": "Linux, Node 24.21.0, Chromium 151.0.7922.173, desktop touch emulation",
+  "environment": "Windows, Node 24.21.0, Chromium 140.0.7339.186; desktop mobile touch emulation",
   "sourceSha256": {
-    "index.html": "0360ac91b3e51d69bf8f58daaedb03e60baa725096ad8a6ffb0080e442f91a63",
+    "index.html": "dc38396bbe429db17ac2e9635f6fe7c92b86b9dd3ae550e40349a07673202d70",
     "src/audio.mjs": "57fe85fbc43bc7836ca905316d01b6175f6681113a2ca40b88a71721f0101dbf",
     "src/core.mjs": "a2358e2c69ca213d9cecf91386b0c98c964af8a69c0f6276efbc21ac07c752ee",
     "src/host.mjs": "aafa589b4f7b27b7ea3806f36d187713e81e7858522c1e551f4551b85aa3f08c",
     "src/levels.mjs": "9d36456ce1ebf037a9dbc68dee81301f8c47f2dde096c467c8cc378eef89ca67",
-    "src/main.mjs": "21dcaa1413710aa39a3478b854fba0d581416f9127b0f5273b5181229f979ea4",
+    "src/main.mjs": "3690950662ba205b5dbabbc378f302ca9155014b9de5f873cc04d07a881544d2",
     "src/progress.mjs": "7c18dfb4e793a0d388db78b5561754caf94b5c766a95c58682bfc58ae9642b52",
     "src/render.mjs": "34d82c2086f975596fca8e2b0edca35855e4b184aeadc51636bde069365adfbc",
-    "style.css": "5443489c50b48dcfc5dc9c2094a6a5fba5117c209c975c84186e50fe590a93d1"
+    "style.css": "111546bd9bb8e72bbecbca75886b9f3b29e6f706729a95e063ccc7bc6456ba94"
   },
   "media": [
     {
       "path": "gameplay/screenshots/chamber-multiball-390.png",
-      "bytes": 190871,
-      "sha256": "ed6eb38fe01a1bce75c8cabecfc6dd31012710b7c1582e0285ab33bd5c73e89c",
+      "bytes": 196161,
+      "sha256": "fb3e9e91bc94d40c613ec8418b9182d683ee82200c79c72e0aa4673583b2ba79",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -33,8 +33,8 @@
     },
     {
       "path": "gameplay/screenshots/chamber-ready-320.png",
-      "bytes": 147508,
-      "sha256": "2b7bc61ab1f13fa1f4af6b47737d194e30e4a64cb490c7a6f59274dfaa2b40f3",
+      "bytes": 137715,
+      "sha256": "052d9afc4eb539f0deb2ae1f1148da35c1d72c3755d37388a2a569512a983255",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -50,8 +50,8 @@
     },
     {
       "path": "gameplay/screenshots/chamber-ready-390.png",
-      "bytes": 193361,
-      "sha256": "e13dd508e862967138a4d2beebce709722a60ed0503d31acd23196911edc35c2",
+      "bytes": 198263,
+      "sha256": "ba4fb27efd3ad5c60c5dcd057fc9140e4a932af6df05d714a54b139308cebde5",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -67,8 +67,8 @@
     },
     {
       "path": "gameplay/screenshots/chamber-result-390.png",
-      "bytes": 159326,
-      "sha256": "d471271d4266f4b188eea263468e45aac7bd0aa5f12ceb8bf9c550eb1d71ce6d",
+      "bytes": 144751,
+      "sha256": "894d9cdbb76ed380e9d2e5cec1f449ff1191b6d46a737ffbfba0dd12267a7ff4",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -84,8 +84,8 @@
     },
     {
       "path": "gameplay/screenshots/home-390.png",
-      "bytes": 185664,
-      "sha256": "91068a5ad76ab9ec14b5fb77d29f4f8eb8194cc3d2b97d2f14425bd692534f7f",
+      "bytes": 188403,
+      "sha256": "8087b1ad9d9e53a435a0c3f80aacfad3bbaf990987dff32b5ffcaeaf2ec381b6",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -101,8 +101,8 @@
     },
     {
       "path": "gameplay/screenshots/levels-390.png",
-      "bytes": 200815,
-      "sha256": "b660d9f8d1d6a0c44b93d4584f63bfb69a659445c458d34d276dacbd0d6f2ce0",
+      "bytes": 205631,
+      "sha256": "6c74a8db13dbd305393115525701c73117842500c9437585ba6f2b439b24f6d2",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -118,8 +118,8 @@
     },
     {
       "path": "gameplay/screenshots/multiball-pause-390.png",
-      "bytes": 156603,
-      "sha256": "bb93b08a4753651be7979a1664520ef685c03070077f63f9997ebdb35a27eaff",
+      "bytes": 138879,
+      "sha256": "bc49e694572e0ef83ddc5e022d29d8fc274b88a77e76bb547a3b10c3fbe4999f",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -135,8 +135,8 @@
     },
     {
       "path": "gameplay/screenshots/route-11-390.png",
-      "bytes": 183396,
-      "sha256": "42bb3b71ef0d11daa53467d2e12b90b72e85fbb41d4727991e2ebcd4fbc371bd",
+      "bytes": 188457,
+      "sha256": "1e635539eda26953f2d78df37fe5493eff79e7b6ef1fe43fd2e42a8cc164f3d9",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -152,8 +152,8 @@
     },
     {
       "path": "gameplay/screenshots/route-11-triggered-390.png",
-      "bytes": 175308,
-      "sha256": "8368701a88519ff0e3c899dc0727e824b1bbf3f895e41fef9d6be235f904f4a0",
+      "bytes": 181553,
+      "sha256": "dddd85a1aa6d29b1fea9836ca7984cac5e6bf69155961a2b835f15fdcfb0476e",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -169,8 +169,8 @@
     },
     {
       "path": "gameplay/screenshots/route-17-390.png",
-      "bytes": 196644,
-      "sha256": "94b5a2c0b254d60b86152a5331ae10ad351df04de7d8287abb161f1462dd79f7",
+      "bytes": 202728,
+      "sha256": "c553b58c7c33da478f47e0deecbbffc5ec04f543ff63f2863ac2be7d4cdec85c",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -186,8 +186,8 @@
     },
     {
       "path": "gameplay/screenshots/route-17-triggered-390.png",
-      "bytes": 196006,
-      "sha256": "908bf93873d5bb15f1134dee36a2093f3e4cae8a9a9181e127cb3431e313485e",
+      "bytes": 202809,
+      "sha256": "57ef3ffa56a3cb78d1842609f92e2e69ca257a59f77a29679635543c677b9d4b",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -203,8 +203,8 @@
     },
     {
       "path": "gameplay/screenshots/route-24-390.png",
-      "bytes": 194169,
-      "sha256": "0d3dc03563931efdc8f1f247e520773791901fe6cdc2ba53bdb0b6238028f293",
+      "bytes": 198500,
+      "sha256": "7fba12f0cc7e7b45cd0027988b9130ee953fea6b2a0d743689bd3c2fa149d1c2",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -220,8 +220,8 @@
     },
     {
       "path": "gameplay/screenshots/route-24-triggered-390.png",
-      "bytes": 189902,
-      "sha256": "e77ea86cbb4729500e9614d23bd1424eda820ef87d0666651f2cf250a7df6a8d",
+      "bytes": 189503,
+      "sha256": "990c6fc238660b2fdbca40027f2b609c4abbd486d4d2cf044ee8d7f0ace1484b",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -237,8 +237,8 @@
     },
     {
       "path": "gameplay/screenshots/route-29-390.png",
-      "bytes": 191458,
-      "sha256": "0c9e1c638f4351e93b58589132c84dda3986297a4427c31851c3f0375955fb14",
+      "bytes": 198047,
+      "sha256": "50de39e63212722ecde152a65388edd4cf62073ebb6e825d7a441b7bd14f3d9d",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -254,8 +254,8 @@
     },
     {
       "path": "gameplay/screenshots/route-29-triggered-390.png",
-      "bytes": 185678,
-      "sha256": "2b644885d30733200319f949c65f3dfa10954cdeca777eb52984c05920cc7eac",
+      "bytes": 191077,
+      "sha256": "cd89324d67586e610af26dad9233a1d386010aeb1b51b9c313c605e693af4978",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -271,8 +271,8 @@
     },
     {
       "path": "gameplay/screenshots/route-7-390.png",
-      "bytes": 188375,
-      "sha256": "c21d653598f75edbefcba58ece77855f26bfde341398ad3c6fa9d059be6b85e2",
+      "bytes": 193328,
+      "sha256": "684acc6c0b0254eeceac362871a4ffc380cce5247b07f84dd845a2eaec6149ff",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -288,8 +288,8 @@
     },
     {
       "path": "gameplay/screenshots/route-7-triggered-390.png",
-      "bytes": 179204,
-      "sha256": "61f12ac747f33b0f84ea4bc540b480424cccab8d5920d502106faab3459cec0d",
+      "bytes": 184047,
+      "sha256": "d6b54968fc57c09254812a87657fcc701ba89e6c5547ef2800af8a5dd49baa57",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -305,8 +305,8 @@
     },
     {
       "path": "gameplay/videos/chamber-real-time-390x844.mp4",
-      "bytes": 970541,
-      "sha256": "d06b491e5ec2e2cd62e6725488e8f8d746485955c5e2a0f3c7cb4775b67353d1",
+      "bytes": 1137130,
+      "sha256": "1b3bfa164aa7658bbafddc73d9c82bf9c738d3e4a59aadf976d55f20ee70510f",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -318,7 +318,7 @@
           }
         ],
         "format": {
-          "duration": "40.440000"
+          "duration": "38.400000"
         }
       }
     },
@@ -346,8 +346,8 @@
     },
     {
       "path": "promo/images/chamber-multiball-390x844.png",
-      "bytes": 190871,
-      "sha256": "ed6eb38fe01a1bce75c8cabecfc6dd31012710b7c1582e0285ab33bd5c73e89c",
+      "bytes": 196161,
+      "sha256": "fb3e9e91bc94d40c613ec8418b9182d683ee82200c79c72e0aa4673583b2ba79",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -363,8 +363,8 @@
     },
     {
       "path": "promo/videos/chamber-preview-390x844.mp4",
-      "bytes": 643596,
-      "sha256": "a1d0fe0ca0e93d5febd202b12aa417d1becdb2a5166e20d7895a0b7e3ac60a53",
+      "bytes": 763454,
+      "sha256": "c4053e854ba48bf40cc190126aae69a92c028a4e463648ef4bf51b95a47dd346",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -384,6 +384,8 @@
   "notes": [
     "Campaign selection uses an earned-progress fixture; recording uses pointer input only and real-time simulation.",
     "Original game artwork is reused for screenshots; icon is an original SVG illustration.",
-    "H.264 videos decoded successfully with ffmpeg. No native SDK, physical phone, upload, review or release was performed."
-  ]
+    "H.264 videos decoded successfully with ffmpeg. No native SDK, physical phone, upload, review or release was performed.",
+    "2026-10-26: independent control strip below the field; updated 17 screenshots, promotional image and both MP4 videos. Real-time gameplay video is 38.4 seconds."
+  ],
+  "sourceHashEncoding": "UTF-8 with LF line endings, matching Git text blobs"
 }
