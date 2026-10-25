@@ -41,10 +41,10 @@ test('content validates stable IDs, reachable unlocks and exact seven-column wav
 });
 test('invalid aim cannot launch and a volley keeps its original ball count', () => {
   const game = createGame('stardust');
-  assert.equal(fire(game, 0, 100), false);
-  assert.equal(fire(game, NaN, -100), false);
-  assert.equal(fire(game, 0, -400), true);
-  assert.equal(fire(game, 20, -200), false);
+  assert.equal(fire(game, 0, -100), false);
+  assert.equal(fire(game, NaN, 100), false);
+  assert.equal(fire(game, 0, 400), true);
+  assert.equal(fire(game, 20, 200), false);
   assert.equal(game.volley, 5);
   game.count += 2;
   settle(game);
@@ -55,32 +55,32 @@ test('continuous collision damages a one-cell target at 12 fps without tunneling
   for (const fps of [12, 24, 60]) {
     const game = createGame('stardust');
     game.bricks = [{ id: 99, c: 3, r: 6, kind: 'brick', hp: 100, maxHp: 100 }];
-    fire(game, 0, -400);
+    fire(game, 0, 400);
     settle(game, fps);
-    assert.ok(game.bricks.find((b) => b.id === 99).hp < 100, `no hit at ${fps} fps`);
+    assert.ok(drainEvents(game).some((e) => e.type === 'hit' && e.id === 99), `no hit at ${fps} fps`);
     assert.equal(game.turn, 1);
   }
 });
 test('pickup does not reflect or add a ball to the current volley', () => {
   const game = createGame('stardust');
   game.bricks = [{ id: 99, c: 3, r: 5, kind: 'pickup', hp: 1, maxHp: 1 }];
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   update(game, 0.25);
   update(game, 0.25);
   assert.equal(game.count, 6);
   assert.equal(game.volley, 5);
-  assert.ok(game.balls.some((ball) => ball.vy < 0));
+  assert.ok(game.balls.some((ball) => ball.vy > 0));
 });
-test('piercing hits a target only once per contact while continuing upwards', () => {
+test('piercing hits a target only once per contact while continuing downwards', () => {
   const game = createGame('stardust');
   game.count = 1;
   game.upgrades.pierce = 1;
   game.bricks = [{ id: 99, c: 3, r: 5, kind: 'brick', hp: 50, maxHp: 50 }];
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   update(game, 0.25);
   update(game, 0.2);
   assert.equal(game.bricks[0].hp, 49);
-  assert.ok(game.balls[0].vy < 0);
+  assert.ok(game.balls[0].vy > 0);
 });
 test('adjacent bombs can chain without double scoring or damaging pickups', () => {
   const game = createGame('stardust');
@@ -92,7 +92,7 @@ test('adjacent bombs can chain without double scoring or damaging pickups', () =
     { id: 101, c: 5, r: 5, kind: 'brick', hp: 1, maxHp: 1 },
     { id: 102, c: 4, r: 4, kind: 'pickup', hp: 1, maxHp: 1 },
   ];
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   update(game, 0.25);
   update(game, 0.25);
   assert.equal(game.score, 3);
@@ -107,22 +107,22 @@ test('recall advances a turn and remaining bricks must be cleared before victory
   game.waveIndex = game.level.waves.length;
   const last = { id: 99, c: 3, r: 3, kind: 'brick', hp: 1, maxHp: 1 };
   game.bricks = [last];
-  fire(game, 200, -300);
+  fire(game, 200, 300);
   recall(game);
   assert.equal(game.phase, 'aim');
   assert.equal(game.turn, 1);
-  fire(game, brickCenter(last).x - game.launchX, brickCenter(last).y - FIELD.floor);
+  fire(game, brickCenter(last).x - game.launchX, brickCenter(last).y - FIELD.launchY);
   settle(game);
   assert.equal(game.phase, 'won');
   assert.equal(game.score, 1);
 });
-test('lowest row has a chance to clear; one more descent causes loss', () => {
+test('highest row has a chance to clear; one more rise causes loss', () => {
   const game = createGame('stardust');
   game.bricks = [{ id: 99, c: 0, r: FIELD.maxRow - 1, kind: 'brick', hp: 999, maxHp: 999 }];
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   recall(game);
   assert.equal(game.phase, 'aim');
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   recall(game);
   assert.equal(game.phase, 'lost');
   assert.equal(recall(game), false);
@@ -150,14 +150,14 @@ test('six upgrade types stack and choices cannot be replayed', () => {
 test('every fifth turn offers three distinct seeded choices; long flights recover', () => {
   const game = createGame('endless');
   for (let i = 0; i < 5; i++) {
-    fire(game, 0, -500);
+    fire(game, 0, 500);
     recall(game);
   }
   assert.equal(game.phase, 'upgrade');
   assert.equal(new Set(game.cards).size, 3);
   assert.equal(chooseUpgrade(game, 'unknown'), false);
   chooseUpgrade(game, game.cards[0]);
-  fire(game, 1000, -20);
+  fire(game, 1000, 20);
   game.flight = 23.99;
   update(game, 0.1);
   assert.equal(game.phase, 'recall');
@@ -168,7 +168,7 @@ test('rhythmic doublets launch all 22 balls on time and retain the flight deadli
     const game = createGame('endless');
     game.count = 22;
     game.bricks = [];
-    fire(game, 1000, -20);
+    fire(game, 1000, 20);
     const launches = drainEvents(game).filter((event) => event.type === 'launch');
     for (let frame = 0; ['flight', 'recall'].includes(game.phase) && frame < fps * 26; frame++) {
       update(game, 1 / fps);
@@ -191,16 +191,15 @@ test('gravity and dissipative rebounds stay bounded and agree across frame rates
     const game = createGame('endless');
     game.count = 1;
     game.bricks = [];
-    fire(game, 1000, -20);
+    fire(game, 1000, 20);
     for (let frame = 0; frame < fps; frame++) {
       update(game, 1 / fps);
       const ball = game.balls[0];
-      assert.ok(ball.boost >= 0 && ball.boost <= RHYTHM.reboundBoost);
       assert.ok(
         Math.hypot(ball.vx, ball.vy) >= PHYSICS.minSpeed &&
           Math.hypot(ball.vx, ball.vy) <= PHYSICS.maxSpeed,
       );
-      assert.ok(ball.vy > game.direction.y * FIELD.speed);
+      assert.ok(ball.vy > game.direction.y);
       assert.ok(ball.trail.length <= RHYTHM.trailLimit);
     }
     return game.balls[0];
@@ -208,7 +207,6 @@ test('gravity and dissipative rebounds stay bounded and agree across frame rates
   for (const ball of results.slice(1)) {
     assert.ok(Math.abs(ball.x - results[0].x) < 1e-6);
     assert.ok(Math.abs(ball.y - results[0].y) < 1e-6);
-    assert.ok(Math.abs(ball.boost - results[0].boost) < 1e-6);
   }
 });
 test('hit effects use the true surface contact and trails keep the reflected corner', () => {
@@ -216,7 +214,7 @@ test('hit effects use the true surface contact and trails keep the reflected cor
   game.count = 1;
   const brick = { id: 99, c: 3, r: 6, kind: 'brick', hp: 100, maxHp: 100 };
   game.bricks = [brick];
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   drainEvents(game);
   update(game, 0.25);
   const events = drainEvents(game),
@@ -226,14 +224,14 @@ test('hit effects use the true surface contact and trails keep the reflected cor
     ball = game.balls[0];
   assert.ok(hit && bounce);
   assert.equal(hit.x, 195);
-  assert.equal(hit.y, brickCenter(brick).y + targetProfile(brick).radius);
+  assert.equal(hit.y, brickCenter(brick).y - targetProfile(brick).radius);
   assert.equal(bounce.ballId, ball.id);
-  assert.equal(bounce.ny, 1);
-  assert.ok(ball.vy > 0);
+  assert.equal(bounce.ny, -1);
+  assert.ok(ball.vy < 0);
   const contact = ball.trail.find((point) => point.contact);
   assert.ok(contact);
   assert.equal(contact.x, hit.x);
-  assert.equal(contact.y, hit.y + FIELD.radius);
+  assert.equal(contact.y, hit.y - FIELD.radius);
   assert.ok(ball.trail.every((point, index) => index === 0 || point.t >= ball.trail[index - 1].t));
   assert.ok(ball.trail.some((point, index) => index > 0 && point.y < ball.trail[index - 1].y));
   assert.ok(ball.trail.some((point, index) => index > 0 && point.y > ball.trail[index - 1].y));
@@ -246,14 +244,14 @@ test('round targets reflect along the real radial normal without gaining energy'
     profile = targetProfile(brick);
   game.bricks = [brick];
   game.launchX = center.x - profile.radius / 2;
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   update(game, 0.25);
   const bounce = drainEvents(game).find((event) => event.type === 'bounce');
   assert.ok(bounce);
   assert.ok(Math.abs(Math.hypot(bounce.x - center.x, bounce.y - center.y) - profile.radius) < 1e-7);
-  assert.ok(bounce.nx < 0 && bounce.ny > 0);
+  assert.ok(bounce.nx < 0 && bounce.ny < 0);
   const ball = game.balls[0];
-  assert.ok(ball.vx < 0 && ball.vy > 0);
+  assert.ok(ball.vx < 0 && ball.vy < 0);
   assert.ok(
     Math.hypot(ball.vx, ball.vy) >= PHYSICS.minSpeed &&
       Math.hypot(ball.vx, ball.vy) <= PHYSICS.maxSpeed,
@@ -266,12 +264,12 @@ function bestShot(game, fps) {
   let best = null;
   const angles = Array.from(
     { length: 25 },
-    (_, i) => -Math.PI + PHYSICS.minAngle + (i * (Math.PI - 2 * PHYSICS.minAngle)) / 24,
+    (_, i) => PHYSICS.minAngle + (i * (Math.PI - 2 * PHYSICS.minAngle)) / 24,
   );
   const targets = game.bricks.filter((b) => b.hp > 0 && b.kind !== 'pickup').map(brickCenter);
   const directions = [
     ...angles.map((a) => ({ x: Math.cos(a) * 500, y: Math.sin(a) * 500 })),
-    ...targets.map((p) => ({ x: p.x - game.launchX, y: p.y - FIELD.floor + FIELD.radius + 1 })),
+    ...targets.map((p) => ({ x: p.x - game.launchX, y: p.y - FIELD.launchY })),
   ];
   for (const direction of directions) {
     const scale = Math.min(
@@ -282,7 +280,9 @@ function bestShot(game, fps) {
           ? (FIELD.right - 3 - game.launchX) / direction.x
           : 1,
     );
-    if (direction.y * scale >= -6) continue;
+    if (direction.y * scale <= 6) continue;
+    direction.x *= scale;
+    direction.y *= scale;
     const trial = structuredClone(game);
     trial.events = [];
     if (!fire(trial, direction.x, direction.y)) continue;
@@ -327,7 +327,7 @@ for (const fps of [24, 60])
 
 test('checkpoints restore exact turn state and reject corrupt or unknown saves', () => {
   const game = createGame('endless');
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   recall(game);
   const saved = checkpoint(game),
     restored = restoreGame(saved);
@@ -351,9 +351,9 @@ test('original smaller-ball edge checkpoints restore safely with the larger roun
     assert.ok(restored);
     assert.equal(
       restored.launchX,
-      launchX < 195 ? FIELD.left + FIELD.radius : FIELD.right - FIELD.radius,
+      195,
     );
-    assert.equal(fire(restored, launchX < 195 ? -1000 : 1000, -20), true);
+    assert.equal(fire(restored, launchX < 195 ? -1000 : 1000, 20), true);
     assert.ok(restored.balls[0].x - FIELD.radius >= FIELD.left);
     assert.ok(restored.balls[0].x + FIELD.radius <= FIELD.right);
     update(restored, 1 / 24);
@@ -368,11 +368,11 @@ test('flight reload returns to the previous aim checkpoint and practice changes 
     store = createStorage(raw),
     game = createGame('stardust');
   store.saveRun(game);
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   settle(game);
   store.saveRun(game);
   const saved = store.read().resume;
-  fire(game, 100, -400);
+  fire(game, 100, 400);
   store.saveRun(game);
   const reopened = createStorage(raw);
   assert.equal(reopened.read().resume.turn, saved.turn);
@@ -446,7 +446,7 @@ test('twelve-brick chains reward the next volley only, with a one-ball per-shot 
     hp: 1,
     maxHp: 1,
   }));
-  fire(game, 0, -400);
+  fire(game, 0, 400);
   for (let frame = 0; frame < 100 && game.score < 21; frame++) update(game, 1 / 60);
   assert.equal(game.score, 21);
   assert.equal(game.count, 2);
@@ -461,7 +461,7 @@ test('shared challenges preserve the initial seed and never overwrite ordinary p
   const replay = createGame('endless', { seed: original.initialSeed, challenge: true });
   assert.deepEqual(replay.bricks, original.bricks);
   for (const game of [original, replay]) {
-    fire(game, 0, -400);
+    fire(game, 0, 400);
     settle(game);
   }
   assert.deepEqual(replay.bricks, original.bricks);

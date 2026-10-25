@@ -127,8 +127,18 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
   },
   'ball-roguelite': {
     fields: {
-      challenge: oneOf('orbit-v1'),
-      level: oneOf('stardust', 'prism', 'flare', 'frost', 'void', 'orbit', 'endless'),
+      challenge: oneOf('orbit-v1', 'orbit-v2', 'orbit-v3', 'orbit-v4'),
+      level: oneOf(
+        'stardust',
+        'prism',
+        'flare',
+        'frost',
+        'void',
+        'orbit',
+        'lattice',
+        'eclipse',
+        'endless',
+      ),
       seed: integer(0xffffffff, 1),
       targetScore: integer(10000000),
     },

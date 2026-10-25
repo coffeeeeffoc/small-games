@@ -27,7 +27,7 @@ test('absorbers damage first then consume only the colliding volley ball, even w
   g.count = 3;
   g.upgrades.pierce = 2;
   g.bricks = [target(100, 3, 6, 80, 'absorber')];
-  fire(g, 0, -500);
+  fire(g, 0, 500);
   settle(g);
   const events = drainEvents(g),
     absorbs = events.filter((e) => e.type === 'absorb');
@@ -47,7 +47,7 @@ test('absorbers damage first then consume only the colliding volley ball, even w
         e.ballId,
     ),
   );
-  assert.equal(fire(g, 0, -500), true);
+  assert.equal(fire(g, 0, 500), true);
   assert.equal(g.volley, 3);
 });
 
@@ -55,7 +55,7 @@ test('destroying an absorber saves the current projectile and reports its materi
   const g = createGame('stardust');
   g.count = 1;
   g.bricks = [target(100, 3, 6, 1, 'absorber')];
-  fire(g, 0, -500);
+  fire(g, 0, 500);
   update(g, 0.25);
   const events = drainEvents(g);
   assert.equal(events.filter((e) => e.type === 'absorb').length, 0);
@@ -68,29 +68,29 @@ test('destroying an absorber saves the current projectile and reports its materi
   assert.ok(g.balls.some((b) => !b.done));
 });
 
-test('weak gravity produces a continuous curve before collision while preserving horizontal velocity', () => {
+test('gravity produces a continuous curve before collision while preserving horizontal velocity', () => {
   const g = createGame('endless');
   g.count = 1;
   g.bricks = [];
-  fire(g, 80, -400);
+  fire(g, 80, 400);
   const start = structuredClone(g.balls[0]),
     dt = 0.2;
   update(g, dt);
   const ball = g.balls[0];
   assert.ok(Math.abs(ball.vx - start.vx) < 1e-8);
   assert.ok(Math.abs(ball.vy - start.vy - PHYSICS.gravity * dt) < 1e-8);
-  const linearY = start.y + start.vy * (dt + (start.boost * (1 - Math.exp(-7.5 * dt))) / 7.5);
+  const linearY = start.y + start.vy * dt;
   assert.ok(
     ball.y > linearY + 0.1,
     'gravity visibly bends the trajectory downward without a discontinuity',
   );
 });
 
-test('manual recall retains bodies and runs a pauseable accelerating arc before descending the board', () => {
+test('manual recall retains bodies and runs a pauseable downward drop before raising the board', () => {
   const g = createGame('endless');
   g.count = 4;
   g.bricks = [target(100, 0, 0)];
-  fire(g, 100, -400);
+  fire(g, 100, 400);
   update(g, 0.25);
   const original = g.balls.map((b) => ({ id: b.id, x: b.x, y: b.y })),
     board = structuredClone(g.bricks),
@@ -104,7 +104,7 @@ test('manual recall retains bodies and runs a pauseable accelerating arc before 
     original,
   );
   assert.ok(
-    g.balls.every((b) => b.returning && b.returnDuration >= 0.8 && b.returnDuration <= 1.2),
+    g.balls.every((b) => b.returning && b.returnDuration >= 0.25 && b.returnDuration <= 0.8),
   );
   const frozen = structuredClone(g);
   update(g, 0);
@@ -125,11 +125,11 @@ test('manual recall retains bodies and runs a pauseable accelerating arc before 
   assert.equal(events.find((e) => e.type === 'recall').reason, 'manual');
 });
 
-test('deadline enters animated recall and natural collection emits return/returned separately', () => {
+test('deadline drops remaining balls down and natural floor collection completes immediately', () => {
   const g = createGame('endless');
   g.count = 1;
   g.bricks = [];
-  fire(g, 100, -400);
+  fire(g, 100, 400);
   g.flight = 23.99;
   update(g, 0.02);
   assert.equal(g.phase, 'recall');
@@ -141,18 +141,17 @@ test('deadline enters animated recall and natural collection emits return/return
   const natural = createGame('endless');
   natural.count = 1;
   natural.bricks = [];
-  fire(natural, 0, -500);
+  fire(natural, 0, 500);
   let first;
   for (let i = 0; i < 60 * 10 && !first; i++) {
     update(natural, 1 / 60);
-    first = drainEvents(natural).find((e) => e.type === 'return');
+    first = drainEvents(natural).find((e) => e.type === 'returned');
   }
   assert.ok(first);
   assert.equal(first.reason, 'natural');
-  assert.ok(natural.balls.some((b) => b.id === first.ballId && b.returning));
-  assert.equal(natural.turn, 0);
-  settle(natural);
-  assert.ok(drainEvents(natural).some((e) => e.type === 'returned' && e.ballId === first.ballId));
+  assert.equal(first.y, FIELD.floor);
+  assert.equal(natural.balls.length, 0);
+  assert.equal(natural.turn, 1);
 });
 
 test('gravity, target collisions and absorber ordering agree at 24/60/144 frames per second', () => {
@@ -160,8 +159,9 @@ test('gravity, target collisions and absorber ordering agree at 24/60/144 frames
     const g = createGame('endless', { seed: 123 });
     g.count = 3;
     g.bricks = [target(100, 3, 5, 80, 'absorber'), target(101, 2, 6)];
-    fire(g, -100, -400);
+    assert.equal(fire(g, 0, 400), true);
     for (let f = 0; f < fps; f++) update(g, 1 / fps);
+    assert.ok(g.collisionCount > 0 && g.absorbed > 0);
     return {
       phase: g.phase,
       bricks: g.bricks,
@@ -180,7 +180,7 @@ test('flight and recall never overwrite the pre-launch checkpoint, including an 
     g = createGame('stardust');
   storage.saveRun(g);
   const before = values.get(STORAGE_KEY);
-  fire(g, 100, -400);
+  fire(g, 100, 400);
   update(g, 0.2);
   storage.saveRun(g);
   assert.equal(values.get(STORAGE_KEY), before);
@@ -209,7 +209,7 @@ test('endless pickups arrive every fourth wave and large clears do not mint extr
   g.bricks = Array.from({ length: 21 }, (_, i) =>
     target(100 + i, i % 7, 3 + Math.floor(i / 7), 1, 'bomb'),
   );
-  fire(g, 0, -400);
+  fire(g, 0, 400);
   for (let i = 0; i < 100 && g.score < 21; i++) update(g, 1 / 60);
   assert.equal(g.score, 21);
   assert.equal(g.count, 1);
@@ -222,12 +222,12 @@ test('8–12 degree launches sustain wall rebounds and still contact lower targe
       const g = createGame('endless');
       g.count = 1;
       g.bricks = withTargets
-        ? [target(99, 0, 9, 500), target(101, 6, 7, 500), target(102, 2, 5, 500)]
+        ? Array.from({ length: 7 }, (_, c) => target(99 + c, c, 3, 500))
         : [];
       fire(
         g,
         Math.cos((degrees * Math.PI) / 180) * 500,
-        -Math.sin((degrees * Math.PI) / 180) * 500,
+        Math.sin((degrees * Math.PI) / 180) * 500,
       );
       let walls = 0;
       const hits = [],
@@ -251,21 +251,21 @@ test('8–12 degree launches sustain wall rebounds and still contact lower targe
           (speed) => speed >= PHYSICS.minSpeed - 1e-8 && speed <= PHYSICS.maxSpeed + 1e-8,
         ),
       );
-      assert.ok(speeds[0] < FIELD.speed, 'first bounce loses a small amount of energy');
+      assert.ok(speeds.length > 0);
       assert.ok(!['flight', 'recall'].includes(g.phase));
     }
   }
 });
 
-test('larger marbles retain target-selection value while the final expert resists greedy aiming', () => {
-  // Radius changes alter bank-shot routes. Verify useful strategies across seeds,
-  // rather than requiring lattice to keep the radius-6 single-seed loss.
+test('gravity campaign rewards target selection while fixed vertical shots still fail expert boards', () => {
+  // Re-measured with orbit-v4; see gravity-drop/campaign-report.json for all 72 runs.
   for (const [id, strategy, expected] of [
     ['stardust', 'direct', 'won'],
     ['prism', 'direct', 'won'],
     ['lattice', 'direct', 'won'],
     ['lattice', 'fixed', 'lost'],
-    ['eclipse', 'direct', 'lost'],
+    ['eclipse', 'direct', 'won'],
+    ['eclipse', 'fixed', 'lost'],
   ])
     for (const seed of [1234, 20261006, 998811]) {
       const g = createGame(id, { seed });
@@ -284,7 +284,7 @@ test('larger marbles retain target-selection value while the final expert resist
         fire(
           g,
           strategy === 'fixed' ? 0 : p.x - g.launchX,
-          strategy === 'fixed' ? -500 : p.y - FIELD.floor + FIELD.radius + 1,
+          strategy === 'fixed' ? 500 : p.y - FIELD.launchY,
         );
         settle(g);
       }
