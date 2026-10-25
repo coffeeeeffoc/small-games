@@ -1,4 +1,5 @@
 import { createMatch, shoot, step, skipTurn, chooseBot, seeded, physics } from './core.mjs';
+import { aimFromDrag, aimGesture } from './aim.mjs';
 import { layouts } from './layouts.mjs';
 import { levels, chapters, getLevel, evaluateChallenges } from './levels.mjs';
 import {
@@ -135,7 +136,11 @@ export function createGame(target, options = {}) {
     const move = status === 'completed' ? chooseBot(state) : null;
     if (move) {
       app.rewardHintUsed = true;
-      app.aimHint = { dx: -move.x * move.power * 115, dy: -move.y * move.power * 115, shots: state.shots };
+      app.aimHint = {
+        dx: -move.x * move.power * aimGesture.fullPowerDistance,
+        dy: -move.y * move.power * aimGesture.fullPowerDistance,
+        shots: state.shots,
+      };
       app.rewardMessage = `提示就绪 · 力度 ${Math.round(move.power * 100)}%，继续查看虚线`;
     } else app.rewardMessage = status === 'dismissed' ? '已取消 · 未获得提示' : '未获得提示 · 拖拽预览仍免费';
     render();
@@ -647,13 +652,9 @@ export function createGame(target, options = {}) {
         const drag = app.drag,
           id = pressed;
         cancel();
-        if (
-          drag &&
-          app.canAim &&
-          drag.actor === app.state.active &&
-          Math.hypot(drag.dx, drag.dy) >= 9
-        )
-          fire(-drag.dx, -drag.dy, Math.min(1, Math.hypot(drag.dx, drag.dy) / 115));
+        const aim = drag && aimFromDrag(drag.dx, drag.dy);
+        if (aim?.power && app.canAim && drag.actor === app.state.active)
+          fire(aim.x, aim.y, aim.power);
         else if (id) {
           const b = app.buttons.find((button) => button.id === id);
           if (b && p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) action(id);
