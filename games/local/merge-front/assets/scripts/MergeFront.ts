@@ -671,15 +671,15 @@ export class MergeFront extends Component {
     }
     if (this.hoverInfo) {
       const info = this.hoverInfo,
-        width = 474,
-        height = 310;
+        width = 500,
+        height = 350;
       const x =
         info.x < W / 2 ? Math.min(W - width - 12, info.x + 58) : Math.max(12, info.x - width - 58);
       const y = Math.max(78, Math.min(H - height - 12, info.y - height - 24));
       u.panel(x + 5, y + 6, width, height, '#061e25aa', '', 18, 6);
       u.panel(x, y, width, height, '#123d37fa', C.gold, 18, 6);
       u.text('hover-title', info.title, x + width / 2, y + 29, 25, width - 24, C.gold, 7);
-      u.text('hover-body', info.body, x + width / 2, y + 171, 20, width - 32, C.paper, 7, 236);
+      u.text('hover-body', info.body, x + width / 2, y + 190, 21, width - 32, C.paper, 7, 280);
     }
     u.end();
     this.syncAccessibility();
@@ -764,7 +764,7 @@ export class MergeFront extends Component {
         (control.startsWith('enemy:') ? '敌方' : '我方') +
         ' · Lv.' +
         card.level +
-        (card.entered ? ' · 已出战' : ' · 首战待触发') +
+        (card.entered ? ' · 已出战' : ' · 未出战') +
         (card.ward ? '\n已施护符：下场 +30%生命护盾' : '');
     }
     if (key.startsWith('part:'))
@@ -1761,7 +1761,10 @@ export class MergeFront extends Component {
         inHand = contains(HAND, x, y),
         inSell = contains(SELL, x, y),
         inBoard = contains(b, x, y);
-      const merge = card && inBoard ? this.mergeTarget(card, x, y) : undefined;
+      // Top-row bodies extend above the floor rectangle. Honour their hit area,
+      // while the bench and sale area remain exclusive drop destinations.
+      const onFormation = !inHand && !inSell && (inBoard || target?.id.startsWith('unit:'));
+      const merge = card && onFormation ? this.mergeTarget(card, x, y) : undefined;
       const near = side.formation
         .filter((c) => c.id !== card?.id)
         .sort((a, b) => b.y - a.y)
@@ -1775,7 +1778,7 @@ export class MergeFront extends Component {
         const spell = side.spells.find((c) => c.id === Number(p.control.slice(6)));
         if (spell) {
           if (spell.key === 'inspire' && own) this.act({ type: 'cast', spell: spell.id });
-          else if (spell.key !== 'inspire' && inBoard && near)
+          else if (spell.key !== 'inspire' && onFormation && near)
             this.act({ type: 'cast', spell: spell.id, target: near.id });
         }
       } else if (p.control.startsWith('part:')) {

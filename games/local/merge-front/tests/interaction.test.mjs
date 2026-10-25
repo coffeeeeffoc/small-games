@@ -266,3 +266,22 @@ test('dropping on the bench edge recalls instead of merging or casting into the 
   assert.equal(side.formation.length, 0);
   assert.equal(side.hand.length, 3);
 });
+
+test('the visible body of a top-row unit accepts spells and same-name merges', () => {
+  const app = fixture(),
+    side = app.match.sides[0],
+    card = side.hand[0];
+  assert(command(app.match, 0, { type: 'deploy', card: card.id, x: 300, y: 30 }).ok);
+  side.hand.push({ ...card, id: 999 });
+  app.buyOffer(side.shop.find((o) => o.key === 'fortify').id);
+  app.render();
+  const body = point(app, 'unit:' + card.id);
+  assert(body.y < app.board().y, 'body lies above the floor bounds');
+  for (const id of ['spell:' + side.spells[0].id, 'card:999']) {
+    start(app, id);
+    app.move(1, body.x, body.y);
+    app.up(1, body.x, body.y);
+  }
+  assert.equal(side.formation[0].bonusHp, 35);
+  assert.equal(side.formation[0].level, 2);
+});
