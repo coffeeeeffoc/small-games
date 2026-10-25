@@ -1,7 +1,7 @@
 {
   "source": "Cocos Creator 3.8.8 Web Mobile; Chromium touch emulation, 844x390; ordinary mode, no developer state changes",
-  "sourceHash": "6cff3f09bb3b3e09fdda3278d4999dce061a379b88ce4a97d3178141ce08ab3a",
-  "verified": "2026-10-25",
+  "sourceHash": "58bc13f268e5f46ee65f248acfe4cb1866d3e9c85a5523e23c48120a2bc8d61b",
+  "verified": "2026-10-26",
   "audio": false,
   "trialStates": false,
   "shots": 47,
@@ -9,7 +9,7 @@
   "uploaded": false,
   "deviceVerified": false,
   "files": {
-    "gameplay/videos/cocos-controls-20261025.mp4": {
+    "gameplay/videos/cocos-two-thumb-20261026.mp4": {
       "programs": [],
       "stream_groups": [],
       "streams": [
@@ -20,10 +20,10 @@
         }
       ],
       "format": {
-        "duration": "11.920000"
+        "duration": "12.760000"
       }
     },
-    "promo/videos/ashfall-controls-20261025.mp4": {
+    "promo/videos/ashfall-two-thumb-20261026.mp4": {
       "programs": [],
       "stream_groups": [],
       "streams": [
@@ -34,7 +34,7 @@
         }
       ],
       "format": {
-        "duration": "11.920000"
+        "duration": "12.760000"
       }
     }
   }

@@ -43,16 +43,97 @@ function controller() {
   game.ready = true;
   game.screen = 'playing';
   game.ui = {
+    ready: true,
     W: 844,
     H: 430,
     worldScale: 0.6,
     cameraX: 0,
+    controls: [],
     hit: (x) => (x < 10 ? { id: 'fire' } : x < 20 ? { id: 'right' } : null),
   };
   game.draw = () => {};
   game.audio = { stop() {} };
   return game;
 }
+
+function movementController() {
+  const game = controller();
+  game.ui.controls = [
+    { id: 'dash', x: 20, y: 230, w: 70, h: 70 },
+    { id: 'jump', x: 100, y: 230, w: 70, h: 70 },
+    { id: 'left', x: 20, y: 310, w: 70, h: 70 },
+    { id: 'right', x: 100, y: 310, w: 70, h: 70 },
+    { id: 'fire', x: 730, y: 300, w: 90, h: 90 },
+  ];
+  game.ui.hit = (x, y) =>
+    game.ui.controls.find(
+      (b) => !b.disabled && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h,
+    );
+  return game;
+}
+
+test('one movement thumb slides through gaps into jump and dash while the other keeps firing', () => {
+  const game = movementController();
+  game.down(1, { x: 135, y: 345 });
+  game.down(2, { x: 775, y: 345 });
+  game.update(1 / 60);
+  game.move(1, { x: 135, y: 305 });
+  assert.equal(game.held('right'), true, 'gap in the movement cluster retains direction');
+  game.move(1, { x: 135, y: 265 });
+  game.update(1 / 60);
+  assert.ok(game.run.player.vy < 0, 'sliding into jump triggers jump');
+  assert.equal(game.held('right'), true, 'jump keeps the accepted rightward movement');
+  game.move(1, { x: 55, y: 265 });
+  game.update(1 / 60);
+  assert.equal(game.run.player.dashDirection, 1, 'dash uses the movement thumb direction');
+  assert.ok(game.run.player.dashCooldown > 0);
+  game.move(1, { x: 55, y: 345 });
+  assert.equal(game.held('left'), true);
+  assert.equal(game.held('right'), false);
+  game.move(1, { x: 400, y: 200 });
+  assert.equal(game.held('left'), false, 'leaving the cluster stops movement');
+  assert.equal(game.held('fire'), true, 'movement exit does not cancel the shooting thumb');
+});
+
+test('cancelled fingers release only their own controls and queued actions', () => {
+  const game = movementController();
+  game.down(1, { x: 135, y: 345 });
+  game.down(2, { x: 775, y: 345 });
+  game.touchCancel({ getTouches: () => [{ getID: () => 1 }] });
+  assert.equal(game.held('right'), false);
+  assert.equal(game.held('fire'), true);
+  game.touchCancel({ getTouches: () => [{ getID: () => 2 }] });
+  game.update(1 / 60);
+  assert.equal(game.run.shots, 0, 'cancelled fire must not leave a queued shot');
+});
+
+test('a stationary thumb on jump or dash does not retrigger and cooldown presses do not queue', () => {
+  const game = movementController();
+  game.down(1, { x: 135, y: 345 });
+  game.move(1, { x: 135, y: 265 });
+  game.update(1 / 60);
+  game.move(1, { x: 136, y: 266 });
+  assert.equal(game.jump, false);
+  game.ui.controls.find((b) => b.id === 'dash').disabled = true;
+  game.move(1, { x: 55, y: 265 });
+  assert.equal(game.dash, false);
+  game.ui.controls.find((b) => b.id === 'dash').disabled = false;
+  game.move(1, { x: 56, y: 266 });
+  assert.equal(game.dash, false, 'cooldown completion must not trigger a held gesture');
+  game.up(1, { x: 56, y: 266 });
+  assert.equal(game.held('right'), false);
+});
+
+test('disabled movement controls block mouse scene fire', () => {
+  const game = controller();
+  game.ui.hit = (_x, _y, includeDisabled) =>
+    includeDisabled ? { id: 'dash', disabled: true } : null;
+  const event = { getButton: () => 0, getUILocation: () => ({ x: 80, y: 100 }) };
+  game.mouseDown(event);
+  game.mouseUp(event);
+  game.update(1 / 60);
+  assert.equal(game.run.shots, 0);
+});
 
 test('press and release between frames fires once, including taps during weapon cooldown', () => {
   const game = controller();

@@ -36,3 +36,13 @@ canvas {
 #ashfall-loading img {
   border-radius: 20px;
 }
+#ashfall-loading button {
+  min-height: 44px;
+  padding: 10px 28px;
+  border: 1px solid #e9b879;
+  border-radius: 6px;
+  background: #a9753b;
+  color: #fff1d6;
+  font: inherit;
+  cursor: pointer;
+}

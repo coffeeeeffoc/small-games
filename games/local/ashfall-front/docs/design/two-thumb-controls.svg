@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="844" height="430" viewBox="0 0 844 430">
+  <defs><style>text{font-family:'Microsoft YaHei',sans-serif;fill:#e8e4cf;font-size:15px} .note{fill:#c9b48f;font-size:13px}</style></defs>
+  <rect width="844" height="430" fill="#182d24"/>
+  <path d="M0 330V180H100V120H220V230H430V150H650V90H750V200H844V430H0" fill="#2e4031"/>
+  <path d="M0 338H844M420 160V338M600 80V338" stroke="#64715a" stroke-width="5"/>
+  <rect x="24" y="18" width="184" height="44" fill="#10221e"/>
+  <path d="M36 45H146" stroke="#d3a15b" stroke-width="6"/><text x="156" y="46">120</text>
+  <text x="310" y="32">01 运输车间 · 00:03</text><text x="310" y="57" fill="#e3bd7e">阵地 1/6 · 守住接通</text>
+  <circle cx="780" cy="41" r="25" fill="#10221e"/><path d="M774 31V51M786 31V51" stroke="#e8e4cf" stroke-width="5"/>
+  <path d="M295 271H316V291H327V307H312V334H302V305H287V295H295Z" fill="#939978"/><path d="M311 290H348V296H311" fill="#c0bc91"/><path d="M350 285L367 293L350 301Z" fill="#f6bb62"/>
+  <rect x="18" y="246" width="156" height="170" rx="22" fill="#0b1c1666" stroke="#6f8566" stroke-dasharray="4 5"/>
+  <g fill="#19352ad0" stroke="#789078"><circle cx="58" cy="286" r="27"/><circle cx="132" cy="286" r="27"/><circle cx="58" cy="360" r="27"/><circle cx="132" cy="360" r="27"/></g>
+  <g fill="none" stroke="#e5e8d7" stroke-width="2.5"><path d="M48 277L57 286L48 295M60 277L69 286L60 295M122 286L132 276L142 286M132 276V298M64 350L52 360L64 370M126 350L138 360L126 370"/></g>
+  <text x="42" y="248">冲刺</text><text x="116" y="248">跳跃</text>
+  <path d="M150 352C175 331 175 306 150 291" fill="none" stroke="#e4b977" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="188" y="284">左手：方向 / 移动 / 跳跃 / 冲刺</text>
+  <text x="188" y="309" class="note">按方向后滑向动作键，保持移动；离开操作区停止</text>
+  <circle cx="765" cy="365" r="41" fill="#a9753bd9" stroke="#e9b879" stroke-width="2"/>
+  <g stroke="#fff1d6" fill="none" stroke-width="2"><circle cx="765" cy="365" r="11"/><path d="M745 365H758M772 365H785M765 345V358M765 372V385"/></g>
+  <text x="724" y="304">右手：开火</text><text x="680" y="325" class="note">点射 / 长按连射 / 拖动瞄准</text>
+  <text x="260" y="416" class="note">实施前操作布局参考 · 非运行截图 · 触控热区至少 44 CSS px</text>
+</svg>
