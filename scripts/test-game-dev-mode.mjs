@@ -131,6 +131,7 @@ try {
           mode.name === 'default' ? null : mode.enabled ? '1' : '0',
         );
         if (
+          game.id === 'waterline-station' ||
           game.id === 'bullet-garden' ||
           game.id === 'homebound-station' ||
           game.id === 'tianxia-chalu' ||
