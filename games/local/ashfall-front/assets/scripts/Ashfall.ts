@@ -14,7 +14,15 @@ import {
   game,
   view,
 } from 'cc';
-import { createRun, stepRun, chooseUpgrade, continueRun, LEVELS, UPGRADES } from './core/core.js';
+import {
+  createRun,
+  stepRun,
+  chooseUpgrade,
+  continueRun,
+  retryRoom,
+  LEVELS,
+  UPGRADES,
+} from './core/core.js';
 import { readProgress, recordProgress, unlockedCount } from './core/progress.js';
 import { createLocalHost } from './core/host.js';
 import { createRewards, rewardEligible } from './core/rewards.js';
@@ -32,6 +40,7 @@ export class Ashfall extends Component {
   rewards: any;
   screen = 'home';
   helpReturn = 'home';
+  confirmAction = 'home';
   rewardKind = 'supply';
   rewardReturn = 'paused';
   page = 0;
@@ -46,6 +55,8 @@ export class Ashfall extends Component {
   keys = new Set<number>();
   jump = false;
   dash = false;
+  fireTap = false;
+  tapDirection: { x: number; y: number } | undefined;
   touched = -100;
   audio!: AudioSource;
   clips = new Map<string, AudioClip>();
@@ -102,6 +113,10 @@ export class Ashfall extends Component {
         }
         if (action === 'clear') {
           this.run.enemies = [];
+          this.run.encounters.forEach((e: any) => {
+            e.guards = true;
+            e.boss = true;
+          });
           this.run.capture = this.run.level.waves[this.run.waveIndex].captureSeconds;
           this.run.checkpointComplete = true;
           this.run.waveIndex = this.run.wavesTotal - 1;
@@ -159,6 +174,8 @@ export class Ashfall extends Component {
     this.mouseAim = null;
     this.jump = false;
     this.dash = false;
+    this.fireTap = false;
+    this.tapDirection = undefined;
     this.accumulator = 0;
   }
   setScreen(screen: string) {
@@ -170,9 +187,11 @@ export class Ashfall extends Component {
         {
           type: 'small-games:display-state',
           gameId: 'ashfall-front',
-          screen: ['playing', 'paused', 'upgrade', 'reward', 'result'].includes(screen)
-            ? 'playing'
-            : 'home',
+          screen:
+            ['playing', 'paused', 'upgrade', 'reward', 'result', 'confirm'].includes(screen) ||
+            (['help', 'settings'].includes(screen) && this.helpReturn === 'paused')
+              ? 'playing'
+              : 'home',
         },
         web.document.referrer ? new URL(web.document.referrer).origin : web.location.origin,
       );
@@ -218,13 +237,23 @@ export class Ashfall extends Component {
     else if (id === 'home') {
       this.rewards.cancel();
       this.setScreen('home');
-    } else if (id === 'retry') this.begin(this.run.startIndex, this.run.singleLevel, this.trial);
-    else if (id === 'help') {
+    } else if (id === 'retry') {
+      this.rewards.cancel();
+      retryRoom(this.run);
+      this.savedRooms = this.run.roomsCleared.length;
+      this.effects = [];
+      this.setScreen('playing');
+    } else if (id === 'leave' || id === 'restart') {
+      this.confirmAction = id === 'leave' ? 'home' : 'retry';
+      this.setScreen('confirm');
+    } else if (id === 'confirm') this.action(this.confirmAction);
+    else if (id === 'help' || id === 'settings') {
       this.helpReturn = this.screen;
-      this.setScreen('help');
+      this.setScreen(id);
     } else if (id === 'back') this.setScreen(this.helpReturn);
     else if (id === 'sound') {
       this.progress.sound = !this.progress.sound;
+      if (!this.progress.sound) this.audio.stop();
       this.save();
       this.draw();
     } else if (id === 'motion') {
@@ -262,18 +291,26 @@ export class Ashfall extends Component {
     return { x: p.x, y: this.ui.H - p.y };
   }
   down(id: number, p: { x: number; y: number }) {
-    if (!this.ready || this.adLocked) return;
+    if (!this.ready || this.adLocked || this.pointers.has(id)) return;
     const b = this.ui.hit(p.x, p.y);
     if (!b) return;
     this.pointers.set(id, { id: b.id, ...p, dx: 0, dy: 0 });
     if (b.id === 'jump') this.jump = true;
     if (b.id === 'dash') this.dash = true;
+    if (b.id === 'fire') {
+      this.fireTap = true;
+      this.tapDirection = undefined;
+    }
   }
   move(id: number, p: { x: number; y: number }) {
     const a = this.pointers.get(id);
     if (a) {
       a.dx = p.x - a.x;
       a.dy = p.y - a.y;
+      if (a.id === 'fire' && this.fireTap)
+        this.tapDirection = Math.hypot(a.dx, a.dy) > 12 ? { x: a.dx, y: a.dy } : undefined;
+      if (['left', 'right', 'jump', 'dash'].includes(a.id) && this.ui.hit(p.x, p.y)?.id !== a.id)
+        this.pointers.delete(id);
     }
   }
   up(id: number, p: { x: number; y: number }) {
@@ -311,6 +348,7 @@ export class Ashfall extends Component {
     const p = this.point(e);
     if (this.screen === 'playing' && !this.ui.hit(p.x, p.y)) {
       this.pointers.set(-1, { id: 'scene-fire', ...p, dx: 0, dy: 0 });
+      this.fireTap = true;
       this.aimMouse(p);
     } else this.down(-1, p);
   }
@@ -325,22 +363,32 @@ export class Ashfall extends Component {
   mouseUp(e: EventMouse) {
     if (e.getButton() !== 0) return;
     this.up(-1, this.point(e));
-    this.mouseAim = null;
+    if (!this.fireTap) this.mouseAim = null;
   }
   keyDown(e: EventKeyboard) {
     const k = e.keyCode;
     if (k === KeyCode.ESCAPE) {
       if (this.screen === 'playing') this.action('pause');
       else if (this.screen === 'paused') this.action('resume');
+      else if (['help', 'settings'].includes(this.screen)) this.action('back');
+      else if (this.screen === 'confirm') this.setScreen('paused');
       return;
     }
     if (k === KeyCode.ENTER && this.screen === 'home') {
       this.action('start');
       return;
     }
+    if (this.screen !== 'playing' || this.adLocked) return;
     if (!this.keys.has(k)) {
       if ([KeyCode.SPACE, KeyCode.KEY_W, KeyCode.ARROW_UP].includes(k)) this.jump = true;
       if ([KeyCode.SHIFT_LEFT, KeyCode.SHIFT_RIGHT].includes(k)) this.dash = true;
+      if ([KeyCode.KEY_J, KeyCode.KEY_I, KeyCode.KEY_K].includes(k)) {
+        this.fireTap = true;
+        this.tapDirection =
+          k === KeyCode.KEY_J
+            ? undefined
+            : { x: this.run.player.facing, y: k === KeyCode.KEY_I ? -1 : 1 };
+      }
     }
     this.keys.add(k);
   }
@@ -361,17 +409,20 @@ export class Ashfall extends Component {
       this.accumulator = Math.min(0.1, this.accumulator + dt);
       while (this.accumulator >= 1 / 60 && this.run.phase === 'playing') {
         const fire = Array.from(this.pointers.values()).find((p) => p.id === 'fire');
-        let direction: { x: number; y: number } | undefined;
+        let direction = this.tapDirection;
         if (fire && Math.hypot(fire.dx, fire.dy) > 12) direction = { x: fire.dx, y: fire.dy };
         if (this.keys.has(KeyCode.KEY_I)) direction = { x: this.run.player.facing, y: -1 };
         if (this.keys.has(KeyCode.KEY_K)) direction = { x: this.run.player.facing, y: 1 };
+        const shots = this.run.shots;
         stepRun(
           this.run,
           {
+            viewWidth: this.ui.W / this.ui.worldScale,
             move:
               Number(this.held('right', [KeyCode.KEY_D, KeyCode.ARROW_RIGHT])) -
               Number(this.held('left', [KeyCode.KEY_A, KeyCode.ARROW_LEFT])),
             fire:
+              this.fireTap ||
               this.held('fire', [KeyCode.KEY_J, KeyCode.KEY_I, KeyCode.KEY_K]) ||
               this.held('scene-fire'),
             aim: this.mouseAim,
@@ -381,6 +432,11 @@ export class Ashfall extends Component {
           },
           1 / 60,
         );
+        if (this.run.shots > shots) {
+          this.fireTap = false;
+          this.tapDirection = undefined;
+          if (!this.held('scene-fire')) this.mouseAim = null;
+        }
         this.jump = false;
         this.dash = false;
         this.accumulator -= 1 / 60;
@@ -422,232 +478,326 @@ export class Ashfall extends Component {
     if (!this.ui || !this.progress) return;
     const u = this.ui,
       H = u.H,
-      middle = H / 2;
+      h = Math.max(54, 44 / u.scale),
+      pitch = h + 8;
+    const menu =
+      ['home', 'levels'].includes(this.screen) ||
+      (['help', 'settings'].includes(this.screen) && this.helpReturn === 'home');
+    u.pressed = new Set(Array.from(this.pointers.values()).map((p) => p.id));
     u.begin();
-    u.world(
-      this.run,
-      ['home', 'levels', 'help'].includes(this.screen),
-      this.visualTime,
-      this.reduced(),
-    );
+    u.world(this.run, menu, this.visualTime, this.reduced());
     for (const e of this.effects) {
-      const x = (e.x - u.cameraX) * u.worldScale,
-        y = e.y * u.worldScale;
       u.circle(
-        x,
-        y,
-        ((e.type === 'explode' ? 35 : 7) * e.life) / 0.3,
+        (e.x - u.cameraX) * u.worldScale,
+        e.y * u.worldScale,
+        this.reduced() ? 5 : ((e.type === 'explode' ? 35 : 7) * e.life) / 0.3,
         e.type === 'explode' ? '#edb46b88' : '#fff0bccc',
       );
     }
+    const heading = (title: string, note: string, top: number, left = 198, width = 448) => {
+      u.line(left, top, left + 38, top, '#d5a36b', 3);
+      u.text('heading', title, left, top + 12, width, 29, '#f2ead5', 42, true);
+      u.text('note', note, left, top + 58, width, 18, '#aab9a5', 28, true);
+    };
     if (this.screen === 'home') {
-      u.box(24, 30, 428, H - 60, '#101e18d9');
-      u.text('title', '灰 烬 防 线', 42, 43, 390, 46);
-      u.text('sub', 'A S H F A L L  F R O N T', 42, 101, 390, 18, '#c4b487');
-      const bottom = H - 82,
-        second = Math.min(middle + 35, bottom - 80),
-        first = Math.min(middle - 39, second - 82);
-      u.button(
-        'start',
-        this.progress.completed.length ? '继续行动  ›' : '开始行动  ›',
-        50,
-        first,
-        360,
-        68,
+      const left = Math.max(32, u.safe.left + 12),
+        panelH = 190 + pitch * 2 + h,
+        top = (H - panelH) / 2;
+      u.panel(left, top, 360, panelH, '#10221eec');
+      heading('灰 烬 防 线', 'ASHFALL FRONT  /  23 SECTORS', top + 26, left + 24, 312);
+      const current = Math.min(this.progress.completed.length, LEVELS.length - 1);
+      u.text(
+        'home-sector',
+        `${String(current + 1).padStart(2, '0')}  ${LEVELS[current].name}`,
+        left + 24,
+        top + 126,
+        312,
+        20,
+        '#d3bd94',
+        32,
         true,
       );
-      u.button('levels', '战区选择 · 23关', 50, second, 230);
-      u.button('help', '操作', 292, second, 118);
-      u.button('campaign', '从头战役', 50, bottom, 174, 60);
-      u.button('sound', this.progress.sound ? '声音：开' : '声音：关', 236, bottom, 174, 60);
+      u.button(
+        'start',
+        this.progress.completed.length ? '继续行动  →' : '开始行动  →',
+        left + 24,
+        top + 164,
+        312,
+        h,
+        true,
+      );
+      u.button('levels', '战区选择', left + 24, top + 164 + pitch, 150, h);
+      u.button('help', '操作指引', left + 186, top + 164 + pitch, 150, h, false, false, true);
+      u.button(
+        'settings',
+        '设置 · 声音与动态',
+        left + 24,
+        top + 164 + pitch * 2,
+        312,
+        h,
+        false,
+        false,
+        true,
+      );
     } else if (this.screen === 'levels') {
-      u.box(20, 18, 804, H - 36, '#102019ed');
-      u.text('levels-title', '战 区 选 择  /  23关', 40, 29, 590, 29);
-      u.button('home', '返回', 708, 23, 94, 60);
-      const cardH = Math.min(170, H - 190),
-        cardLeft = Math.max(37, u.safe.left + 8),
-        cardPitch = (Math.min(807, u.safe.right - 8) - cardLeft) / 6,
-        cardW = cardPitch - 9;
+      u.panel(22, 20, 800, H - 40, '#10221fee');
+      heading(
+        '战区选择',
+        `已突破 ${this.progress.completed.length} / 23  ·  ${web.SmallGamesDev?.isEnabled() ? '开发试玩' : '通关解锁后续战区'}`,
+        43,
+        44,
+        610,
+      );
+      u.button('home', '返回', 704, 30, 94, h, false, false, true);
+      const cardLeft = Math.max(40, u.safe.left + 12),
+        cardPitch = (Math.min(804, u.safe.right - 12) - cardLeft) / 6;
       for (let i = 0; i < 6; i++) {
         const index = this.page * 6 + i;
-        if (index >= 23) break;
+        if (index >= LEVELS.length) break;
         const level = LEVELS[index],
           done = this.progress.completed.includes(level.id),
           open = index < unlockedCount(this.progress) || web.SmallGamesDev?.isEnabled();
         u.button(
           'level-' + index,
-          `${String(index + 1).padStart(2, '0')}\n${level.name}\n${done ? '已完成 ✓' : open ? '可进入 ›' : '未解锁'}`,
+          `${String(index + 1).padStart(2, '0')}\n${level.name}\n${done ? '已完成' : open ? '进入 →' : '未解锁'}`,
           cardLeft + i * cardPitch,
-          102,
-          cardW,
-          cardH,
+          146,
+          cardPitch - 10,
+          Math.min(160, H - 248),
           open && !done,
           !open,
         );
       }
-      u.button('prev', '‹', 244, H - 84, 78, 60, false, this.page === 0);
-      u.text('page', `${this.page + 1} / 4`, 336, H - 74, 170, 26);
-      u.button('next', '›', 520, H - 84, 78, 60, false, this.page === 3);
-    } else if (this.screen === 'help') {
-      u.box(50, 25, 744, H - 50, '#102019ee');
-      u.text('help-title', '行动指引', 90, 40, 660, 30);
-      [
-        '左侧方向移动；右侧跳跃、冲刺、长按开火',
-        '按住射击拖向目标，自由瞄准；松手立即停止',
-        '靠近金色中继，守住阵地；敌人贴近会阻断接通',
-        '每处接通回复18生命；清关回复30，爆炸击杀可回收',
-        '键盘 A/D 移动 · 空格跳跃 · Shift冲刺 · J/I/K射击',
-      ].forEach((s, i) => u.text('help-' + i, s, 75, 92 + i * 37, 694, 22));
-      u.button('back', '返回', 322, H - 95, 200, 64, true);
+      u.button('campaign', '从首关开始战役', 44, H - h - 32, 240, h, false, false, true);
+      u.button('prev', '‹', 494, H - h - 32, 70, h, false, this.page === 0);
+      u.text('page', `${this.page + 1} / 4`, 568, H - h - 19, 110, 21);
+      u.button('next', '›', 690, H - h - 32, 70, h, false, this.page === 3);
+    } else if (this.screen === 'help' || this.screen === 'settings') {
+      const settings = this.screen === 'settings',
+        panelH = settings ? pitch * 3 + 114 : 370,
+        top = (H - panelH) / 2;
+      u.box(0, 0, u.W, H, '#06130e88', '#06130e88');
+      u.panel(140, top, 564, panelH);
+      heading(
+        settings ? '行动设置' : '操作指引',
+        settings ? '调整立即生效，并保存在本机' : '点射、连射与机动推进',
+        top + 20,
+        166,
+        512,
+      );
+      if (settings) {
+        for (const [i, id, label, on] of [
+          [0, 'sound', '游戏声音', this.progress.sound],
+          [1, 'motion', '减弱动态', this.reduced()],
+        ] as [number, string, string, boolean][]) {
+          const y = top + 102 + i * pitch;
+          u.text(id + '-label', label, 174, y + 12, 290, 22, '#e5e8d7', 30, true);
+          u.button(id, on ? '开启  ●' : '关闭  ○', 514, y, 154, h, on);
+        }
+      } else
+        [
+          '左右移动 · 跳跃越障 · 冲刺快速脱离包围',
+          '点按开火射击；长按连射，自动瞄准近处敌人',
+          '按住开火并拖动，可自由控制射击方向',
+          '前往金色中继，清除附近敌人并守住接通进度',
+          'A/D移动 · 空格跳跃 · Shift冲刺 · J/I/K射击',
+        ].forEach((s, i) =>
+          u.text('help-' + i, s, 166, top + 104 + i * 35, 512, 20, '#d4ddcb', 30, true),
+        );
+      u.button(
+        'back',
+        this.helpReturn === 'paused' ? '返回暂停菜单' : '返回主页',
+        286,
+        top + panelH - h - 16,
+        272,
+        h,
+        true,
+      );
     } else {
       const p = this.run.player,
         wave = this.run.level.waves[this.run.waveIndex];
-      u.box(20, 15, 218, 46, '#102019de');
-      u.box(33, 29, (120 * p.hp) / p.maxHp, 15, '#cc9850');
-      u.text('hp', `${Math.ceil(p.hp)} / ${p.maxHp}`, 158, 25, 78, 19);
-      const target = this.run.checkpointComplete
-        ? this.run.waveIndex + 1 < this.run.wavesTotal
-          ? `向下一阵地推进  →`
-          : '前往出口  →'
-        : `阵地 ${this.run.waveIndex + 1}/${this.run.wavesTotal} · ${Math.floor((100 * this.run.capture) / wave.captureSeconds)}% ${this.run.contested ? '争夺中' : '接通中'}`;
-      u.text(
-        'mission',
-        `${this.run.levelIndex + 1} / 23  ${this.run.level.name}   ${clock(this.run.roomTime)}`,
-        246,
-        15,
-        468,
-        20,
-      );
-      u.text('target', target, 240, 44, 475, 22, '#ffd18a');
-      u.button('pause', '', 742, 15, 72, 64);
-      const pause = u.controls[u.controls.length - 1];
-      u.box(pause.x + 24, pause.y + 18, 6, 27, '#f1e6c6', '#f1e6c6');
-      u.box(pause.x + 39, pause.y + 18, 6, 27, '#f1e6c6', '#f1e6c6');
-      pause.label = '暂停';
       if (this.screen === 'playing') {
-        u.button('left', '◀', 26, H - 98, 84, 78);
-        u.button('right', '▶', 124, H - 98, 84, 78);
-        u.button('jump', '跳跃', 524, H - 94, 82, 74);
-        u.button('dash', '冲刺', 622, H - 94, 82, 74);
-        u.button('fire', '开火', 720, H - 108, 96, 92, true);
+        u.panel(24, 18, 184, 44, '#10221ed9');
+        u.line(36, 45, 146, 45, '#405747', 6);
+        if (p.hp > 0) u.line(36, 45, 36 + (110 * p.hp) / p.maxHp, 45, '#d3a15b', 6);
+        u.text('hp', `${Math.ceil(p.hp)}`, 152, 27, 46, 20);
+        u.text(
+          'mission',
+          `${String(this.run.levelIndex + 1).padStart(2, '0')}  ${this.run.level.name}  ·  ${clock(this.run.roomTime)}`,
+          224,
+          14,
+          452,
+          19,
+        );
+        const delta = wave.checkpointX - p.x;
+        const target = this.run.checkpointComplete
+          ? this.run.waveIndex + 1 < this.run.wavesTotal
+            ? '接通完成 · 向下一阵地推进 →'
+            : '全线接通 · 前往出口 →'
+          : Math.abs(delta) > wave.radius
+            ? `${delta > 0 ? '前往中继 →' : '← 返回中继'} · 阵地 ${this.run.waveIndex + 1}/${this.run.wavesTotal}`
+            : `阵地 ${this.run.waveIndex + 1}/${this.run.wavesTotal} · ${Math.floor((100 * this.run.capture) / wave.captureSeconds)}% ${this.run.contested ? '清除阵地内敌人' : '守住接通'}`;
+        u.text('target', target, 214, 43, 472, 19, '#e3bd7e');
+        u.button('pause', '暂停', 744, 10, 72, 62);
+        const y = H - h - 18;
+        u.button('left', '向左移动', 26, y, 76, h);
+        u.button('right', '向右移动', 112, y, 76, h);
+        u.button('jump', '跳跃', 534, y, 76, h);
+        u.button('dash', '冲刺', 620, y, 76, h, false, p.dashCooldown > 0);
+        u.button('fire', '开火', 714, H - 106, 102, 92, true);
+        u.text('jump-caption', '跳跃', 534, y - 24, 76, 16, '#c5cfbb');
+        u.text(
+          'dash-caption',
+          p.dashCooldown > 0 ? `${p.dashCooldown.toFixed(1)}s` : '冲刺',
+          620,
+          y - 24,
+          76,
+          16,
+          '#c5cfbb',
+        );
+        u.text('fire-caption', '开火', 724, H - 126, 82, 16, '#edc991');
       } else {
-        u.box(146, 76, 552, H - 100, '#0e1e17ed');
+        u.box(0, 0, u.W, H, '#06130e99', '#06130e99');
+        const panelH = Math.max(320, pitch * 3 + 116),
+          top = (H - panelH) / 2,
+          row = top + 112;
+        u.panel(170, top, 504, panelH);
+        const sector = `${this.run.level.name} · 阵地 ${this.run.waveIndex + 1}/${this.run.wavesTotal}`;
         if (this.screen === 'paused') {
-          const h = Math.min(66, (H - 186) / 3),
-            rows = [136, 136 + h + 8, 136 + (h + 8) * 2];
-          u.text('paused', '行动暂停', 184, 87, 476, 28);
-          u.button('resume', '继续战斗', 180, rows[0], 230, h, true);
-          u.button(
-            'supply',
-            '战地补给',
-            430,
-            rows[0],
-            230,
-            h,
-            false,
-            !rewardEligible(this.run, 'supply'),
+          heading('行动暂停', sector, top + 22);
+          const supply = !!web.SmallGamesRewardAds?.available && rewardEligible(this.run, 'supply');
+          u.button('resume', '继续战斗  →', 198, row, supply ? 218 : 448, h, true);
+          if (supply) u.button('supply', '补给 · 观看广告', 428, row, 218, h);
+          u.button('restart', '重试本关', 198, row + pitch, 218, h);
+          u.button('leave', '返回主页', 428, row + pitch, 218, h);
+          u.button('help', '操作指引', 198, row + pitch * 2, 218, h, false, false, true);
+          u.button('settings', '设置', 428, row + pitch * 2, 218, h, false, false, true);
+        } else if (this.screen === 'confirm') {
+          heading(
+            this.confirmAction === 'retry' ? '重新开始本关？' : '返回主页？',
+            '本关战斗将重置，已解锁战区保留',
+            top + 22,
           );
-          u.button('retry', '重新行动', 180, rows[1], 230, h);
-          u.button('home', '返回主页', 430, rows[1], 230, h);
-          u.button('help', '操作', 180, rows[2], 146, h);
-          u.button('sound', this.progress.sound ? '声音 开' : '声音 关', 346, rows[2], 148, h);
-          u.button('motion', this.reduced() ? '动态 弱' : '动态 正常', 514, rows[2], 146, h);
-        }
-        if (this.screen === 'reward') {
           u.text(
-            'reward-title',
+            'confirm-copy',
+            this.confirmAction === 'retry'
+              ? '保留已获得改装，重新部署到本关起点'
+              : '下次可从已解锁的当前战区重新行动',
+            198,
+            row,
+            448,
+            20,
+            '#d1d9c7',
+          );
+          u.button('resume', '继续战斗', 198, row + pitch, 218, h, true);
+          u.button(
+            'confirm',
+            this.confirmAction === 'retry' ? '确认重试' : '确认返回',
+            428,
+            row + pitch,
+            218,
+            h,
+          );
+        } else if (this.screen === 'reward') {
+          heading(
             this.rewardKind === 'supply' ? '战地补给' : '续战支援',
-            180,
-            91,
-            480,
-            32,
+            '自愿观看 · 每关一次',
+            top + 22,
           );
           u.text(
             'reward-copy',
-            `完整观看后恢复${this.rewardKind === 'supply' ? '40%' : '50%'}生命，每关一次`,
-            173,
-            151,
-            498,
-            25,
+            `完整观看后恢复${this.rewardKind === 'supply' ? '40%' : '50%'}生命`,
+            198,
+            row,
+            448,
+            24,
           );
-          u.text('reward-note', '辅助行动可解锁关卡，不计最佳时间', 174, 194, 496, 21, '#c8b98c');
+          u.text(
+            'reward-note',
+            '辅助行动可解锁关卡，不计最佳时间',
+            198,
+            row + 38,
+            448,
+            18,
+            '#b9c6ad',
+          );
           u.button(
             'claim',
-            this.adLocked
-              ? '等待广告关闭…'
-              : web.SmallGamesRewardAds?.available
-                ? '观看并领取'
-                : '补给暂不可用',
-            229,
-            238,
-            386,
-            66,
+            this.adLocked ? '等待广告关闭…' : '观看并领取',
+            198,
+            row + pitch,
+            448,
+            h,
             true,
             this.adLocked || !web.SmallGamesRewardAds?.available,
           );
-          u.button('cancel', '取消 · 返回行动', 266, H - 84, 312, 60, false, this.adLocked);
-        }
-        if (this.screen === 'upgrade') {
-          u.text(
-            'upgrade',
-            this.run.choices.length ? '选择改装 · 下一战区' : '改装已齐备 · 免费继续',
-            170,
-            91,
-            504,
-            27,
+          u.button(
+            'cancel',
+            '取消 · 返回',
+            284,
+            row + pitch * 2,
+            276,
+            h,
+            false,
+            this.adLocked,
+            true,
           );
-          if (!this.run.choices.length) u.button('continue', '继续推进', 265, 183, 314, 76, true);
+        } else if (this.screen === 'upgrade') {
+          heading(
+            this.run.choices.length ? '选择战地改装' : '改装已齐备',
+            '战区已突破 · 继续推进下一战区',
+            top + 22,
+          );
+          if (!this.run.choices.length)
+            u.button('continue', '免费继续  →', 198, row + 32, 448, h, true);
           else
             this.run.choices.forEach((id: string, i: number) => {
               const item = UPGRADES.find((x: any) => x.id === id)!;
               u.button(
                 'upgrade-' + id,
                 `${item.name}\n${item.short}`,
-                170 + i * 168,
-                160,
-                156,
-                130,
-                true,
+                190 + i * 158,
+                row + 8,
+                148,
+                126,
               );
             });
-        }
-        if (this.screen === 'result') {
-          u.text(
-            'result',
-            this.run.phase === 'won'
-              ? this.run.singleLevel
-                ? '战区已突破'
-                : '战役任务完成'
-              : '行动中断',
-            180,
-            91,
-            480,
-            32,
+        } else if (this.screen === 'result') {
+          const won = this.run.phase === 'won';
+          heading(
+            won ? (this.run.singleLevel ? '战区已突破' : '战役任务完成') : '行动失败',
+            (won ? '' : '生命耗尽 · ') + sector,
+            top + 22,
           );
           u.text(
             'result-time',
-            `${clock(this.run.time)} · ${this.run.kills}击破 ${this.trial ? '· 试玩' : this.run.assisted ? '· 辅助行动' : ''}`,
-            180,
-            146,
-            480,
-            24,
+            `${clock(this.run.roomTime)}  /  ${this.run.kills} 击破${this.trial ? ' · 试玩' : this.run.assisted ? ' · 辅助行动' : ''}`,
+            198,
+            row - 3,
+            448,
+            23,
+            '#e4d5b2',
           );
-          u.button('retry', '再次行动', 180, 208, 230, 67, true);
-          u.button('levels', '战区选择', 430, 208, 230, 67);
+          u.button('retry', won ? '再战本关  →' : '重试本关  →', 198, row + pitch, 448, h, true);
+          const revive =
+            !won && !!web.SmallGamesRewardAds?.available && rewardEligible(this.run, 'revive');
           u.button(
-            this.run.phase === 'lost' ? 'revive' : 'home',
-            this.run.phase === 'lost' ? '续战支援' : '返回主页',
-            265,
-            H - 84,
-            314,
-            60,
+            'home',
+            '返回主页',
+            198,
+            row + pitch * 2,
+            revive ? 218 : 448,
+            h,
             false,
-            this.run.phase === 'lost' && !rewardEligible(this.run, 'revive'),
+            false,
+            true,
           );
+          if (revive)
+            u.button('revive', '续战 · 观看广告', 428, row + pitch * 2, 218, h, false, false, true);
         }
       }
     }
-    if (this.messageLeft > 0) u.text('toast', this.message, 140, H - 146, 564, 22, '#ffdea0');
+    if (this.messageLeft > 0) u.text('toast', this.message, 160, 6, 524, 19, '#ffdea0');
     if (this.ui.error) u.text('error', this.ui.error, 100, H / 2, 644, 26);
     u.end();
     if (this.ready && u.ready) web.document?.getElementById('ashfall-loading')?.remove();
@@ -692,6 +842,7 @@ export class Ashfall extends Component {
         enemies: this.run.enemies.map((e: any) => ({
           id: e.id,
           type: e.type,
+          waveIndex: e.waveIndex,
           x: e.x,
           y: e.y,
           hp: e.hp,

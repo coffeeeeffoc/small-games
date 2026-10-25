@@ -60,11 +60,12 @@ function emit(run, type, data = {}) {
   run.events.push({ ...data, type, id: ++run._eventSeq });
 }
 
-function spawnEnemy(run, config) {
+function spawnEnemy(run, config, waveIndex = run.waveIndex) {
   const stats = ENEMY_STATS[config.type];
   return {
     id: nextId(run, 'e'),
     type: config.type,
+    waveIndex,
     ...stats,
     maxHp: stats.hp,
     x: config.x,
@@ -89,6 +90,16 @@ function spawnEnemy(run, config) {
   };
 }
 
+function activateEncounter(run, index, bosses = false) {
+  const encounter = run.encounters[index];
+  const configs = run.level.waves[index].enemies.filter((enemy) =>
+    enemy.type === 'boss' ? bosses && !encounter.boss : !encounter.guards,
+  );
+  run.enemies.push(...configs.map((config) => spawnEnemy(run, config, index)));
+  encounter.guards = true;
+  if (bosses) encounter.boss = true;
+}
+
 function spawnWave(run, index) {
   // Reinforcements can arrive near the player's current position. Give a visible
   // grace period so their first contact is always avoidable with ordinary movement.
@@ -98,7 +109,7 @@ function spawnWave(run, index) {
   run.reinforcementTime = 0;
   run.checkpointComplete = false;
   run.nextWaveDelay = null;
-  run.enemies = run.level.waves[index].enemies.map((config) => spawnEnemy(run, config));
+  activateEncounter(run, index, true);
   emit(run, 'wave', { waveIndex: index, wavesTotal: run.wavesTotal });
 }
 
@@ -111,6 +122,9 @@ function loadRoom(run, levelIndex) {
   run.roomEpoch++;
   run.choices = [];
   run.bullets = [];
+  run.enemies = [];
+  run.encounters = run.level.waves.map(() => ({ guards: false, boss: false }));
+  run.contested = false;
   run.barrels = run.level.barrels.map((config) => ({
     id: nextId(run, 'b'),
     ...config,
@@ -151,6 +165,7 @@ export function createRun(
     startIndex: index,
     singleLevel,
     assisted: false,
+    retried: false,
     roomEpoch: 0,
     phase: 'playing',
     levelIndex: index,
@@ -666,6 +681,9 @@ function upgradeChoices(run) {
 function checkProgress(run, dt) {
   if (run.phase !== 'playing') return;
   const wave = run.level.waves[run.waveIndex];
+  const defenders = run.enemies.filter(
+    (enemy) => enemy.waveIndex === run.waveIndex && enemy.hp > 0,
+  );
   if (wave.captureSeconds && !run.checkpointComplete) {
     const nearby = Math.abs(run.player.x - wave.checkpointX) <= wave.radius;
     const contested = run.enemies.some(
@@ -673,31 +691,33 @@ function checkProgress(run, dt) {
     );
     run.contested = contested;
     if (nearby && !contested) run.capture = Math.min(wave.captureSeconds, run.capture + dt);
-    run.reinforcementTime += dt;
+    if (nearby) run.reinforcementTime += dt;
     if (
       run.capture < wave.captureSeconds &&
       run.reinforcementTime >= wave.reinforcementInterval &&
-      run.enemies.length < 12
+      nearby &&
+      defenders.length < 12
     ) {
       run.reinforcementTime = 0;
       run.enemies.push(...wave.reinforcements.map((config) => spawnEnemy(run, config)));
       emit(run, 'reinforcements', { x: wave.checkpointX, y: run.level.ground });
     }
-    if (run.capture < wave.captureSeconds || run.enemies.some((e) => e.hp > 0)) return;
+    if (run.capture < wave.captureSeconds || defenders.length) return;
     run.checkpointComplete = true;
     heal(run, 18);
     emit(run, 'checkpoint', { x: wave.checkpointX, y: run.level.ground });
   }
-  if (run.enemies.some((enemy) => enemy.hp > 0)) return;
+  if (defenders.length) return;
   if (run.waveIndex + 1 < run.wavesTotal) {
     const next = run.level.waves[run.waveIndex + 1];
-    if (next.checkpointX && Math.abs(run.player.x - next.checkpointX) > 620) return;
+    if (next.checkpointX && run.player.x < next.checkpointX - 620) return;
     if (run.nextWaveDelay === null)
       run.nextWaveDelay = run.level.waves[run.waveIndex + 1].delay ?? 0.9;
     run.nextWaveDelay -= dt;
     if (run.nextWaveDelay <= 0) spawnWave(run, run.waveIndex + 1);
     return;
   }
+  if (run.enemies.some((enemy) => enemy.hp > 0)) return;
   if (wave.captureSeconds && run.player.x < run.level.exitX - 80) return;
   if (!run.roomsCleared.includes(run.level.id)) {
     run.roomsCleared.push(run.level.id);
@@ -740,6 +760,12 @@ export function stepRun(run, input = {}, dt = 1 / 60) {
     run.time += slice;
     run.roomTime += slice;
     updatePlayer(run, input, slice);
+    const width = Number.isFinite(input.viewWidth) ? clamp(input.viewWidth, 720, 2400) : 1280;
+    const right = Math.max(0, Math.min(run.level.width - width, p.x - width * 0.34)) + width;
+    for (const [index, wave] of run.level.waves.entries()) {
+      if (wave.checkpointX && wave.checkpointX <= right && !run.encounters[index].guards)
+        activateEncounter(run, index);
+    }
     updateEnemies(run, slice);
     updateBullets(run, slice);
     if (run.phase === 'playing') contactDamage(run);
@@ -781,4 +807,13 @@ export function continueRun(run) {
     emit(run, 'win', { time: run.time, kills: run.kills, score: run.score });
   }
   return true;
+}
+
+/** Retry only the current sector; keep earned modifications, never a clean-run record. */
+export function retryRoom(run) {
+  run.retried = true;
+  run.roomsCleared = run.roomsCleared.filter((id) => id !== run.level.id);
+  run.player.hp = run.player.maxHp;
+  run.events = [];
+  loadRoom(run, run.levelIndex);
 }

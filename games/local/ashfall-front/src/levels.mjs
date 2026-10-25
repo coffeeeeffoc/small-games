@@ -188,7 +188,7 @@ for (const [index, level] of LEVELS.entries()) {
     if (upper) level.platforms.push({ x: x + 30, y: 328, w: 220, h: 22 });
     level.barrels.push({ x: x + 250, y: 570 }, { x: x + 380, y: 570 });
     const enemies = [
-      { type: 'shooter', x: x + 410, y: 570 },
+      { type: 'shooter', x: x + 40, y: 570 },
       { type: 'chaser', x: x + 520, y: 570 },
       { type: 'drone', x: x + 610, y: 365 },
       { type: upper ? 'drone' : 'shooter', x: platformX + 160, y: upper ? 320 : 442 },
@@ -202,13 +202,11 @@ for (const [index, level] of LEVELS.entries()) {
       radius: upper ? 380 : 360,
       contestRadius: index < 6 ? 95 : 105,
       reinforcementInterval: index < 8 ? 8.5 : index < 16 ? 8 : 7.5,
-      reinforcements: roster
-        .split('')
-        .map((letter, i) => ({
-          type: { s: 'shooter', c: 'chaser', d: 'drone' }[letter],
-          x: x + (i === 0 ? 590 : -560 + i * 50),
-          y: letter === 'd' ? 360 : 570,
-        })),
+      reinforcements: roster.split('').map((letter, i) => ({
+        type: { s: 'shooter', c: 'chaser', d: 'drone' }[letter],
+        x: x + 590 + i * 95,
+        y: letter === 'd' ? 360 : 570,
+      })),
       enemies,
     };
   });

@@ -74,7 +74,9 @@ export async function assertAshfallGameplay(frame, mobile = false) {
     await input.tap('resume');
     await expect.poll(async () => (await snapshot(frame)).screen).toBe('playing');
     await input.tap('pause');
-    await input.tap('home');
+    await input.tap('leave');
+    await expect.poll(async () => (await snapshot(frame)).screen).toBe('confirm');
+    await input.tap('confirm');
     await expect.poll(async () => (await snapshot(frame)).screen).toBe('home');
   } finally {
     await input.dispose();

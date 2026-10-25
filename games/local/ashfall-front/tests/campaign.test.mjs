@@ -5,6 +5,7 @@ import {
   stepRun,
   continueRun,
   chooseUpgrade,
+  retryRoom,
   LEVELS,
   validateLevels,
   UPGRADES,
@@ -143,6 +144,10 @@ test('all 23 sector transitions remain free after modifications are exhausted an
     // Set the final checkpoint state: this verifies transitions, not natural combat.
     run.enemies = [];
     run.bullets = [];
+    run.encounters.forEach((e) => {
+      e.guards = true;
+      e.boss = true;
+    });
     run.waveIndex = run.wavesTotal - 1;
     run.checkpointComplete = true;
     run.player.x = run.level.exitX;
@@ -164,4 +169,112 @@ test('all 23 sector transitions remain free after modifications are exhausted an
   assert.equal(recordProgress(progress, run), true);
   assert.equal(progress.completed.length, 23);
   assert.equal(progress.bestTime, run.time);
+});
+
+test('running past uncleared relays activates visible forward guards only once, without skipping objectives', () => {
+  for (const viewWidth of [1280, 1413, 1600]) {
+    const run = createRun(2, { seed: 1 });
+    const x = run.level.waves[1].checkpointX;
+    run.player.x = x - viewWidth * 0.66 - 5;
+    stepRun(run, { viewWidth }, 1 / 60);
+    assert.equal(run.encounters[1].guards, false);
+    run.player.x += 10;
+    stepRun(run, { viewWidth, move: 1, jump: true, dash: true }, 1 / 60);
+    const guards = run.enemies.filter((e) => e.waveIndex === 1);
+    assert.equal(guards.length, 4);
+    assert.ok(guards.every((e) => e.x > run.player.x));
+    assert.equal(run.waveIndex, 0);
+    assert.equal(run.checkpointComplete, false);
+    const ids = guards.map((e) => e.id);
+    stepRun(run, { viewWidth }, 1 / 60);
+    assert.deepEqual(
+      run.enemies.filter((e) => e.waveIndex === 1).map((e) => e.id),
+      ids,
+    );
+    run.player.x = run.level.exitX;
+    stepRun(run, { viewWidth }, 1 / 60);
+    assert.ok(run.encounters.every((e) => e.guards));
+    assert.ok(!run.enemies.some((e) => e.type === 'boss'));
+    assert.equal(run.phase, 'playing');
+    assert.equal(run.roomsCleared.length, 0);
+  }
+});
+
+test('future encounters survive relay transitions, defeated guards do not respawn, bosses retain prerequisites', () => {
+  const run = createRun(2, { seed: 1 });
+  run.player.x = run.level.waves[1].checkpointX - 400;
+  stepRun(run, {}, 1 / 60);
+  const survivor = run.enemies.find((e) => e.waveIndex === 1);
+  run.enemies = [survivor];
+  run.capture = run.level.waves[0].captureSeconds;
+  for (let i = 0; i < 65; i++) stepRun(run, {}, 1 / 60);
+  assert.equal(run.waveIndex, 1);
+  assert.deepEqual(
+    run.enemies.map((e) => e.id),
+    [survivor.id],
+  );
+  const last = run.wavesTotal - 1;
+  run.player.x = run.level.waves[last].checkpointX - 500;
+  stepRun(run, {}, 1 / 60);
+  assert.ok(!run.enemies.some((e) => e.type === 'boss'));
+  run.waveIndex = last - 1;
+  run.enemies = run.enemies.filter((e) => e.waveIndex === last);
+  run.capture = run.level.waves[last - 1].captureSeconds;
+  for (let i = 0; i < 65; i++) stepRun(run, {}, 1 / 60);
+  assert.equal(run.waveIndex, last);
+  assert.equal(run.enemies.filter((e) => e.type === 'boss').length, 1);
+});
+
+test('reinforcements arrive ahead while defending, and stop accumulating behind a distant runner', () => {
+  const run = createRun(3, { seed: 1 });
+  run.player.x = run.level.waves[0].checkpointX;
+  run.enemies = [];
+  run.reinforcementTime = 20;
+  stepRun(run, {}, 1 / 60);
+  assert.ok(run.enemies.length > 0);
+  assert.ok(run.enemies.every((e) => e.x > run.player.x + 200));
+  run.player.x = run.level.exitX;
+  stepRun(run, {}, 1 / 60);
+  const time = run.reinforcementTime;
+  stepRun(run, {}, 0.1);
+  assert.equal(run.reinforcementTime, time);
+});
+
+test('touch-style automatic fire engages newly visible forward guards while old enemies remain behind', () => {
+  const run = createRun(0, { seed: 1 });
+  run.player.x = run.level.waves[1].checkpointX - 400;
+  stepRun(run, { viewWidth: 1413 }, 1 / 60);
+  const target = run.enemies.find((e) => e.waveIndex === 1 && e.type === 'shooter');
+  const hp = target.hp;
+  assert.ok(run.enemies.some((e) => e.waveIndex === 0 && e.x < run.player.x));
+  for (let tick = 0; tick < 120; tick++) stepRun(run, { fire: true, viewWidth: 1413 }, 1 / 60);
+  assert.ok(target.hp < hp, 'automatic fire hits the forward encounter without manual aim');
+  assert.equal(run.player.facing, 1);
+  assert.equal(run.waveIndex, 0);
+});
+
+test('retry keeps current sector and earned upgrades, invalidates pending rewards and clean-run best time', () => {
+  const run = createRun(0, { seed: 1 });
+  run.phase = 'upgrade';
+  run.choices = ['rapid'];
+  chooseUpgrade(run, 'rapid');
+  const epoch = run.roomEpoch;
+  run.player.hp = 0;
+  run.phase = 'lost';
+  run.rewardUsed.revive = true;
+  retryRoom(run);
+  assert.equal(run.levelIndex, 1);
+  assert.deepEqual(run.upgrades, ['rapid']);
+  assert.equal(run.stats.fireInterval, 0.11);
+  assert.equal(run.player.hp, 120);
+  assert.equal(run.roomEpoch, epoch + 1);
+  assert.equal(run.rewardUsed.revive, false);
+  assert.equal(run.encounters.filter((e) => e.guards).length, 1);
+  run.phase = 'won';
+  run.roomsCleared = LEVELS.map((l) => l.id);
+  run.time = 900;
+  const progress = readProgress(null);
+  recordProgress(progress, run);
+  assert.equal(progress.completed.length, 23);
+  assert.equal(progress.bestTime, null);
 });

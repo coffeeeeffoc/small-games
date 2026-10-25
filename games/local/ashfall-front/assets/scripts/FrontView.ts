@@ -34,6 +34,7 @@ export class FrontView {
   camera: Camera;
   graphics: Graphics;
   controls: Control[] = [];
+  pressed = new Set<string>();
   nodes = new Map<string, Node>();
   seen = new Set<string>();
   frames = new Map<string, SpriteFrame>();
@@ -141,6 +142,7 @@ export class FrontView {
     size = 22,
     color = '#efe5c5',
     height = size * 1.5 * text.split('\n').length,
+    left = false,
   ) {
     const n = this.get('text-' + id);
     n.setPosition(x + w / 2 - this.W / 2, this.H / 2 - y - height / 2);
@@ -151,6 +153,7 @@ export class FrontView {
     l.color = c(color);
     l.overflow = Label.Overflow.SHRINK;
     l.verticalAlign = Label.VerticalAlign.CENTER;
+    l.horizontalAlign = left ? Label.HorizontalAlign.LEFT : Label.HorizontalAlign.CENTER;
     n.getComponent(UITransform)!.setContentSize(w, height);
     return l;
   }
@@ -162,41 +165,98 @@ export class FrontView {
     this.graphics.fill();
     this.graphics.stroke();
   }
+  panel(x: number, y: number, w: number, h: number, fill = '#10221ff5', stroke = '#526b5b') {
+    const g = this.graphics,
+      cut = Math.min(10, h / 4);
+    g.fillColor = c(fill);
+    g.strokeColor = c(stroke);
+    g.lineWidth = 1;
+    g.moveTo(x - this.W / 2, this.H / 2 - y);
+    for (const [px, py] of [
+      [x + w - cut, y],
+      [x + w, y + cut],
+      [x + w, y + h],
+      [x + cut, y + h],
+      [x, y + h - cut],
+    ])
+      g.lineTo(px - this.W / 2, this.H / 2 - py);
+    g.close();
+    g.fill();
+    g.stroke();
+  }
+  icon(id: string, x: number, y: number, color: string) {
+    const line = (a: number, b: number, d: number, e: number) =>
+      this.line(x + a, y + b, x + d, y + e, color, 2.5);
+    if (id === 'pause') {
+      this.box(x - 8, y - 10, 5, 20, color, color);
+      this.box(x + 3, y - 10, 5, 20, color, color);
+    } else if (id === 'fire') {
+      const g = this.graphics;
+      g.strokeColor = c(color);
+      g.lineWidth = 2;
+      g.circle(x - this.W / 2, this.H / 2 - y, 11);
+      g.stroke();
+      line(-20, 0, -7, 0);
+      line(7, 0, 20, 0);
+      line(0, -20, 0, -7);
+      line(0, 7, 0, 20);
+    } else if (id === 'jump') {
+      line(-10, 0, 0, -10);
+      line(0, -10, 10, 0);
+      line(0, -10, 0, 12);
+    } else if (id === 'dash') {
+      for (const offset of [-8, 4]) {
+        line(offset - 5, -9, offset + 5, 0);
+        line(offset + 5, 0, offset - 5, 9);
+      }
+    } else {
+      const direction = id === 'left' ? -1 : 1;
+      line(-6 * direction, -10, 6 * direction, 0);
+      line(6 * direction, 0, -6 * direction, 10);
+    }
+  }
   button(
     id: string,
     label: string,
     x: number,
     y: number,
     w: number,
-    h = 66,
+    h = 54,
     primary = false,
     disabled = false,
+    quiet = false,
   ) {
     h = Math.max(h, 44 / this.scale);
+    w = Math.max(w, 44 / this.scale);
     x = Math.max(this.safe.left + 8, Math.min(x, this.safe.right - w - 8));
     y = Math.max(this.safe.top + 8, Math.min(y, this.safe.bottom - h - 8));
-    this.box(
-      x,
-      y,
-      w,
-      h,
-      disabled ? '#1b2823' : primary ? '#bd813d' : '#182d24',
-      primary ? '#efbb68' : '#738370',
-    );
+    const pressed = this.pressed.has(id),
+      ink = disabled ? '#879589' : primary ? '#fff1d6' : '#e5e8d7',
+      fill = disabled ? '#17271fe0' : pressed ? '#526b49f5' : primary ? '#a9753bea' : '#19352ac9',
+      stroke = disabled ? '#3d5145' : primary ? '#e9b879' : '#607b67',
+      pad = ['left', 'right', 'jump', 'dash', 'fire', 'pause'].includes(id),
+      visualH = h >= 100 ? h - 8 : Math.min(h - 10, pad ? 74 : 44),
+      top = y + (h - visualH) / 2;
+    if (pad) {
+      const r = Math.min(w - 10, visualH) / 2;
+      const g = this.graphics;
+      g.fillColor = c(fill);
+      g.strokeColor = c(stroke);
+      g.lineWidth = primary ? 2 : 1;
+      g.circle(x + w / 2 - this.W / 2, this.H / 2 - y - h / 2, r);
+      g.fill();
+      g.stroke();
+      this.icon(id, x + w / 2, y + h / 2, ink);
+    } else {
+      if (!quiet || pressed) this.panel(x, top, w, visualH, fill, stroke);
+      if (primary) this.line(x + 10, top + 4, x + w - 16, top + 4, '#f0c98b', 1);
+    }
     const rows = label.split('\n').length,
-      size = rows > 1 ? 20 : 24,
+      size = rows > 1 ? 19 : 21,
       textHeight = Math.min(h - 12, rows * size * 1.35);
-    this.text(
-      id,
-      label,
-      x + 5,
-      y + (h - textHeight) / 2,
-      w - 10,
-      size,
-      disabled ? '#738370' : '#f1e6c6',
-      textHeight,
-    );
+    if (!pad) this.text(id, label, x + 5, y + (h - textHeight) / 2, w - 10, size, ink, textHeight);
     this.controls.push({ id, label, x, y, w, h, disabled });
+    return this.controls[this.controls.length - 1];
   }
   image(
     id: string,

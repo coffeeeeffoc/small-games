@@ -10,7 +10,7 @@ import {
 } from '../../../../apps/shell-web/scripts/game-checks/ashfall-front.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const url = process.env.ASHFALL_TEST_URL || 'http://127.0.0.1:4469';
-const output = new URL('../docs/qa/cocos/', import.meta.url);
+const output = new URL('../docs/qa/controls-2026-10-25/', import.meta.url);
 await mkdir(output, { recursive: true });
 await mkdir(new URL('../publishing/gameplay/screenshots/', import.meta.url), { recursive: true });
 const server = process.env.ASHFALL_TEST_URL
@@ -102,6 +102,17 @@ try {
     await input.tap('home');
     await assertAshfallGameplay(page, true);
     await input.tap('start');
+    for (let i = 0; i < 3; i++) {
+      const tapShots = (await snapshot(page)).run.shots;
+      await input.tap('fire');
+      await expect.poll(async () => (await snapshot(page)).run.shots).toBeGreaterThan(tapShots);
+      await page.waitForTimeout(180);
+      assert.equal(
+        (await snapshot(page)).run.shots,
+        tapShots + 1,
+        'one quick tap produces exactly one shot',
+      );
+    }
     const before = await snapshot(page);
     await input.press(['right', 'fire', 'jump']);
     await page.waitForTimeout(350);
@@ -120,6 +131,12 @@ try {
     await input.tap('pause');
     await bounds();
     await capture(page, `pause-${width}x${height}`);
+    assert.ok(
+      !(await snapshot(page)).controls.some((b) =>
+        ['pause', 'supply', 'sound', 'motion'].includes(b.id),
+      ),
+      'pause only exposes available actions',
+    );
     const buttons = (await snapshot(page)).controls.filter((b) => b.id !== 'pause');
     for (let a = 0; a < buttons.length; a++)
       for (let b = a + 1; b < buttons.length; b++) {
@@ -133,10 +150,28 @@ try {
           `overlapping pause controls ${x.id}/${y.id}`,
         );
       }
+    await input.tap('settings');
+    await bounds();
+    const settings = await snapshot(page);
+    await input.tap('sound');
+    assert.equal((await snapshot(page)).progress.sound, !settings.progress.sound);
+    await input.tap('motion');
+    assert.equal((await snapshot(page)).progress.reducedMotion, false);
+    await capture(page, `settings-${width}x${height}`);
+    await input.tap('back');
+    assert.equal((await snapshot(page)).screen, 'paused');
+    await input.tap('help');
+    await bounds();
+    await capture(page, `help-${width}x${height}`);
+    await input.tap('back');
+    await input.tap('restart');
+    assert.equal((await snapshot(page)).screen, 'confirm');
+    await bounds();
     await input.tap('resume');
     await page.evaluate(() => dispatchEvent(new Event('blur')));
     await expect.poll(async () => (await snapshot(page)).screen).toBe('paused');
-    await input.tap('home');
+    await input.tap('leave');
+    await input.tap('confirm');
     await page.evaluate(() => window.Ashfall.dev('level', 0));
     await page.evaluate(() => window.Ashfall.dev('clear'));
     await expect.poll(async () => (await snapshot(page)).screen).toBe('result');
@@ -149,10 +184,15 @@ try {
     await input.tap('retry');
     await page.evaluate(() => window.Ashfall.dev('lose'));
     await capture(page, `defeat-${width}x${height}`);
+    await bounds();
+    assert.ok(
+      !(await snapshot(page)).controls.some((b) => ['levels', 'pause', 'revive'].includes(b.id)),
+      'failure has retry and home, no sector picker or unavailable ads',
+    );
     await input.tap('retry');
     await input.dispose();
     report.checks.push(
-      `Creator touch/home/23-level pages/multitouch/cancel/pause/blur/results/retry at ${width}x${height}`,
+      `Creator quick-tap fire/settings/help/home/23-level pages/multitouch/cancel/pause/confirm/blur/results/retry at ${width}x${height}`,
     );
     const video = page.video();
     await context.close();
@@ -185,6 +225,82 @@ try {
     await desktop.close();
     report.checks.push(
       'Normal desktop mode: locked levels, no developer mutations or SDK, native mouse aiming',
+    );
+  }
+  {
+    const context = await browser.newContext({
+      viewport: { width: 844, height: 390 },
+      hasTouch: true,
+      isMobile: true,
+      recordVideo: {
+        dir: root + '../../../outputs/ashfall-front/live',
+        size: { width: 844, height: 390 },
+      },
+    });
+    const page = await context.newPage();
+    page.on('pageerror', (e) => report.errors.push(e.message));
+    await page.goto(url + '/');
+    await expect.poll(async () => (await snapshot(page))?.ready, { timeout: 60000 }).toBe(true);
+    const input = await ashfallInput(page, true);
+    await input.tap('levels');
+    await capture(page, 'levels-normal-844x390');
+    await input.tap('home');
+    await input.tap('settings');
+    await input.tap('sound');
+    await input.tap('motion');
+    await input.tap('back');
+    await page.reload();
+    await expect.poll(async () => (await snapshot(page))?.ready, { timeout: 60000 }).toBe(true);
+    assert.equal((await snapshot(page)).progress.sound, false, 'sound persisted after refresh');
+    assert.equal(
+      (await snapshot(page)).progress.reducedMotion,
+      true,
+      'motion persisted after refresh',
+    );
+    await input.tap('start');
+    await input.press(['right', 'jump', 'dash']);
+    await expect
+      .poll(async () => (await snapshot(page)).run.enemies.some((e) => e.waveIndex === 1), {
+        timeout: 15000,
+      })
+      .toBe(true);
+    const encounter = await snapshot(page);
+    assert.equal(encounter.run.waveIndex, 0, 'running ahead does not bypass relay capture');
+    assert.equal(encounter.run.shots, 0, 'encounter activates without firing');
+    const width = (encounter.logicalWidth * 720) / encounter.logicalHeight;
+    assert.ok(
+      encounter.run.enemies.some(
+        (e) =>
+          e.waveIndex === 1 &&
+          e.x > encounter.run.player.x &&
+          e.x < encounter.run.player.x + width * 0.66 + 50,
+      ),
+      'new guard appears at the forward viewport edge',
+    );
+    await input.release();
+    await capture(page, 'forward-encounter-844x390');
+    await input.press(['fire']);
+    await page.waitForTimeout(3600);
+    await input.release();
+    await input.tap('pause');
+    await input.tap('restart');
+    await input.tap('confirm');
+    assert.equal((await snapshot(page)).run.levelIndex, 0);
+    await input.press(['right', 'fire']);
+    await page.waitForTimeout(1000);
+    await input.release();
+    await input.press(['fire']);
+    await page.waitForTimeout(2500);
+    await capture(page, 'combat-live-844x390');
+    await input.release();
+    await input.tap('pause');
+    await input.dispose();
+    const video = page.video();
+    report.live = { encounter, final: await snapshot(page) };
+    await context.close();
+    report.liveVideo = await video.path();
+    report.checks.push(
+      'Normal touch: persisted settings, no-fire sprint activates forward guards before capturing relay 1, confirmed restart and real combat recording',
     );
   }
   const context = await browser.newContext({
@@ -294,14 +410,31 @@ try {
   await input.dispose();
   await context.close();
   assert.deepEqual(report.errors, []);
-  for (const name of ['home-844x390', 'combat-844x390', 'levels-844x390', 'pause-844x390'])
+  for (const name of [
+    'home-844x390',
+    'combat-844x390',
+    'levels-844x390',
+    'pause-844x390',
+    'levels-normal-844x390',
+    'combat-live-844x390',
+    'forward-encounter-844x390',
+    'settings-844x390',
+    'defeat-844x390',
+  ])
     await copyFile(
       new URL(name + '.png', output),
       new URL('../publishing/gameplay/screenshots/' + name + '.png', import.meta.url),
     );
+} catch (error) {
+  report.errors.push(String(error));
+  console.error(error);
+  throw error;
 } finally {
-  await writeFile(new URL('report.json', output), JSON.stringify(report, null, 2) + '\n');
-  await browser.close();
-  server?.kill();
+  try {
+    await writeFile(new URL('report.json', output), JSON.stringify(report, null, 2) + '\n');
+  } finally {
+    await browser.close();
+    server?.kill();
+  }
 }
 console.log(JSON.stringify(report));

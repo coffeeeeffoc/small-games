@@ -1,12 +1,41 @@
 {
-  "source": "Creator 3.8.8 Web Mobile, Chromium Android user agent and native touch emulation",
-  "videoSeconds": 16.12,
-  "width": 844,
-  "height": 390,
+  "source": "Cocos Creator 3.8.8 Web Mobile; Chromium touch emulation, 844x390; ordinary mode, no developer state changes",
+  "sourceHash": "6cff3f09bb3b3e09fdda3278d4999dce061a379b88ce4a97d3178141ce08ab3a",
+  "verified": "2026-10-25",
   "audio": false,
   "trialStates": false,
-  "shots": 99,
-  "kills": 5,
+  "shots": 47,
+  "kills": 7,
   "uploaded": false,
-  "deviceVerified": false
+  "deviceVerified": false,
+  "files": {
+    "gameplay/videos/cocos-controls-20261025.mp4": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 844,
+          "height": 390
+        }
+      ],
+      "format": {
+        "duration": "11.920000"
+      }
+    },
+    "promo/videos/ashfall-controls-20261025.mp4": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "11.920000"
+      }
+    }
+  }
 }

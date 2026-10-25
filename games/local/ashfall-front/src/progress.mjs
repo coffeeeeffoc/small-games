@@ -42,6 +42,7 @@ export function recordProgress(progress, run, trial = false) {
   if (
     run.phase === 'won' &&
     !run.assisted &&
+    !run.retried &&
     !run.singleLevel &&
     run.startIndex === 0 &&
     run.roomsCleared.length === LEVELS.length &&
