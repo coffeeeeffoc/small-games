@@ -1,0 +1,15 @@
+{
+  "browser": "151.0.7922.173",
+  "environment": "Linux Chromium mobile viewport and real browser touch simulation, not physical-device certification",
+  "engine": "Cocos Engine 3.8.8 official source runtime",
+  "checks": [
+    "home/locked levels/touch cancel/open-close/undo/pause/restart/prediction confirmation/result undo/next unlock/locked gate",
+    "storage roundtrip/failure/free extra move cannot be reclaimed after undo/sound/help",
+    "all 50 authored stations solved by real Cocos touch input and compared to pure engine after every move; legacy v1 selected migration",
+    "320/390 portrait and 568/844 landscape preserve state, valid touch targets and complex five-tank input",
+    "window blur pauses without advancing turns",
+    "storage unavailable remains playable",
+    "dev-only level skip isolates practice progress"
+  ],
+  "errors": []
+}

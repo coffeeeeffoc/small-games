@@ -1,175 +1,36 @@
 <!doctype html>
 <html lang="zh-CN">
   <head>
-  <script src="./dev-mode.js"></script>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#153e40" />
-    <title>水位联动站 · 一阀牵动全局</title>
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%23153e40'/%3E%3Cpath d='M7 18q6-6 13 0t13 0M7 26q6-6 13 0t13 0' fill='none' stroke='%2387dfca' stroke-width='3'/%3E%3C/svg%3E"
-    />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#061d2a" />
+    <title>水位联动站 · Waterline Station</title>
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./style.css" />
-    <script type="module" src="./game.mjs"></script>
   </head>
-  <body>
-    <main class="station">
-      <header class="masthead">
-        <div class="brand">
-          <span class="brand-icon" aria-hidden="true">≈</span>
-          <h1>水位联动站</h1>
+  <body data-screen="loading">
+    <main id="stage" aria-label="水位联动站">
+      <div id="GameDiv">
+        <div id="Cocos3dGameContainer">
+          <canvas id="GameCanvas" aria-label="水位联动站游戏场景"></canvas>
         </div>
-        <div class="header-actions">
-          <button id="sound" class="icon-button" aria-label="开启音效" aria-pressed="false">
-            ♪</button
-          ><button id="help" class="icon-button" aria-label="玩法说明">?</button>
-        </div>
-      </header>
-
-      <div class="game-layout">
-        <section class="play-panel" aria-label="水位联动沙盘">
-          <div class="stage-header">
-            <div class="stage-title">
-              <span id="level-number" class="stage-number">01</span>
-              <div>
-                <p id="chapter" class="eyebrow">第一章 / 港口初见</p>
-                <h2 id="level-name">共享一片水面</h2>
-              </div>
-            </div>
-            <div class="turn-display">
-              <span>剩余操作</span><strong id="moves-left">—</strong
-              ><span class="turn-unit">次</span>
-            </div>
-            <small id="move-budget"></small><button id="exit-challenge" class="text-button" hidden>退出好友挑战 · 返回常规航站</button>
-          </div>
-          <div class="board-wrap">
-            <div class="board-topline">
-              <span><i class="signal"></i><span id="board-status">等待调度</span></span
-              ><span id="volume-total">总水量守恒</span>
-            </div>
-            <div class="board-scene">
-              <svg
-                id="board"
-                viewBox="0 0 960 530"
-                role="group"
-                aria-label="水槽与可选择管线"
-                xmlns="http://www.w3.org/2000/svg"
-              ></svg>
-              <svg
-                id="board-foreground"
-                viewBox="0 0 960 530"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-              ></svg>
-              <div id="board-controls" role="group" aria-label="场景阀门"></div>
-            </div>
-            <div
-              id="result"
-              class="result"
-              hidden
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="result-title"
-            >
-              <div class="result-card">
-                <span id="result-mark" aria-hidden="true">✦</span>
-                <p id="result-kicker" class="eyebrow">调度完成</p>
-                <h3 id="result-title">全站联动成功</h3>
-                <p id="result-copy"></p>
-                <button id="next-level" class="primary-button">下一站 →</button
-                ><button id="result-undo" class="text-button">撤销上一步</button
-                ><button id="result-retry" class="text-button">重新挑战</button><button id="share-result" class="text-button">邀请好友挑战同关</button><p id="share-status" role="status"></p><button id="result-exit-challenge" class="text-button" hidden>退出好友挑战 · 返回常规航站</button>
-              </div>
-            </div>
-          </div>
-          <div class="board-legend">
-            <span><i class="key water-key"></i>共享液位</span
-            ><span><i class="key target-key"></i>机关触发线</span
-            ><span><i class="key preview-key"></i>预测水位</span
-            ><span class="arcade-note">街机规则 · 非真实水利模拟</span>
-          </div>
-          <div class="dispatch">
-            <span class="dispatch-icon" aria-hidden="true">→</span>
-            <div>
-              <span class="eyebrow" id="message-label">调度提示</span>
-              <p id="message" role="status" aria-live="polite"></p>
-            </div>
-          </div>
-        </section>
-
-        <aside class="control-panel" aria-label="任务与辅助操作">
-          <div class="control-heading">
-            <span class="eyebrow">任务 / 辅助</span
-            ><span class="console-dots" aria-hidden="true">•••</span>
-          </div>
-          <div class="objectives-heading">
-            <h3>本关任务</h3>
-            <span id="objective-count">0 / 2</span>
-          </div>
-          <ul id="objectives" class="objectives"></ul>
-          <div class="assist-controls">
-            <button id="predict" aria-pressed="false">
-              <span aria-hidden="true">⌁</span>液位预测<span
-                class="switch"
-                aria-hidden="true"
-              ></span>
-            </button>
-            <p id="predict-note">开启后，先看水位，再确认操作</p>
-          </div>
-          <div class="utility">
-            <button id="undo" disabled><span aria-hidden="true">↶</span>撤销</button
-            ><button id="restart"><span aria-hidden="true">↻</span>重来</button
-            ><button id="hint"><span aria-hidden="true">✧</span>提示</button>
-          </div>
-          <button id="extra-move" class="extra-button">
-            ＋ 多一次操作 <span>本关一次 · 免费</span>
-          </button>
-        </aside>
       </div>
-
-      <footer class="route-panel">
-        <div class="route-heading">
-          <div>
-            <span class="eyebrow">STATION ROUTE</span>
-            <h2>选择航站</h2>
-          </div>
-          <span id="route-progress">航站记录 0 / 50</span>
-        </div>
-        <nav id="chapter-nav" class="chapter-nav" aria-label="选择章节"></nav>
-        <nav id="level-nav" class="level-nav" aria-label="选择关卡"></nav>
-      </footer>
-      <div class="page-footer">
-        <span>让水自己找到平衡。</span><span>CONNECTED VESSELS × LOGIC PUZZLE</span>
+      <div id="accessibility" aria-label="游戏操作"></div>
+      <div id="loading" role="status">
+        <img src="./icon.svg" width="72" height="72" alt="" />
+        <h1>水位联动站</h1>
+        <p id="loading-message">正在点亮港口灯火…</p>
+        <button id="load-retry" hidden>重新加载</button>
       </div>
+      <dialog id="share-fallback" aria-labelledby="share-heading">
+        <h2 id="share-heading">复制挑战链接</h2>
+        <p>长按下方链接选择并复制，发给好友。</p>
+        <textarea id="share-url" readonly aria-label="挑战链接"></textarea
+        ><button id="share-select">选择链接</button><button id="share-close">返回结算</button>
+      </dialog>
+      <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
     </main>
-    <dialog id="help-dialog">
-      <p class="eyebrow">值班员手册 / QUICK START</p>
-      <h2>你调闸门，水找平衡。</h2>
-      <ol>
-        <li>
-          <strong>直接点击场景里的阀门</strong>
-          <p>
-            点圆形阀门打开，再点一次关闭。点水管只将这条连接和相关阀门置顶，不消耗操作；锁住的阀门也可以点选查看。打开后水量自动均分，每次开关消耗一次操作。
-          </p>
-        </li>
-        <li>
-          <strong>让机关依次启动</strong>
-          <p>
-            箱子降到黄色平台，会压下并锁存开关；船升到出口线且任务完成即可出航。实验站还会出现溢流水轮。
-          </p>
-        </li>
-        <li>
-          <strong>计划，再试一次</strong>
-          <p>
-            预测模式先显示虚线液位，再次点击同一闸门确认。撤销和提示免费，卡住时每关可加一次操作。
-          </p>
-        </li>
-      </ol>
-      <p class="manual-note">
-        溢流每次调度结算一次；水轮累计收到的水量。所有数值为街机规则，不用于水利或压力工程教学。
-      </p>
-      <button id="start-playing" class="primary-button">开始调度 →</button>
-    </dialog>
+    <script src="./dev-mode.js"></script>
+    <script type="module" src="./game.mjs"></script>
   </body>
 </html>

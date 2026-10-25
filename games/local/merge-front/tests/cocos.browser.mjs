@@ -22,7 +22,8 @@ const evidence = [],
   errors = [];
 let active;
 async function saveVideo(page, name) {
-  if (page.video()) await page.video().saveAs(fileURLToPath(new URL('videos/' + name + '.webm', output)));
+  if (page.video())
+    await page.video().saveAs(fileURLToPath(new URL('videos/' + name + '.webm', output)));
 }
 async function open(viewport = { width: 844, height: 390 }, fixture, fixtureArg) {
   const context = await browser.newContext({
@@ -104,6 +105,27 @@ async function drag(page, source, target, cancel = false) {
     await session.detach();
   }
 }
+async function hold(page, id, { cancel = false, screenshot, during } = {}) {
+  const session = await page.context().newCDPSession(page),
+    p = await point(page, id);
+  try {
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ ...p, id: 1 }],
+    });
+    await expect.poll(() => state(page).then((s) => !!s.hoverInfo)).toBe(true);
+    if (screenshot) await shot(page, screenshot);
+    if (during) await during();
+    await session.send('Input.dispatchTouchEvent', {
+      type: cancel ? 'touchCancel' : 'touchEnd',
+      touchPoints: [],
+    });
+    await expect.poll(() => state(page).then((s) => s.hoverInfo)).toBe(null);
+  } finally {
+    await session.detach();
+  }
+}
+const center = (r) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
 async function screen(page, name) {
   await expect.poll(() => state(page).then((s) => s.screen)).toBe(name);
 }
@@ -138,7 +160,7 @@ try {
     first = cards(s)[0].id;
   await tap(page, first);
   assert.equal((await state(page)).match.sides[0].formation.length, 0);
-  await tap(page, 'info-close');
+  await hold(page, first, { screenshot: 'long-press-hand' });
   await drag(page, first, world(s, 390, 70), true);
   assert.equal((await state(page)).match.sides[0].formation.length, 0);
   await drag(page, first, world(s, 750, 70));
@@ -158,29 +180,44 @@ try {
   );
   await tap(page, 'info-close');
   await drag(page, 'unit:' + deployed.id, world(s, 390, 70));
-  const handDrop = { x: 740, y: 470 },
-    sellDrop = { x: 1070, y: 325 };
+  const handDrop = center(s.dropZones.hand),
+    sellDrop = center(s.dropZones.sell);
   const fort = s.match.sides[0].shop.find((o) => o.key === 'fortify');
   await drag(page, 'offer:' + fort.id, handDrop, true);
   assert.equal((await state(page)).match.sides[0].coins, 6);
-  await drag(page, 'offer:' + fort.id, handDrop);
+  const beforeInspect = JSON.stringify((await state(page)).match);
+  await hold(page, 'offer:' + fort.id, { screenshot: 'long-press-shop' });
+  assert.equal(JSON.stringify((await state(page)).match), beforeInspect, 'long press never buys');
+  const survivor = (await state(page)).controls.find(
+    (c) => c.id === 'offer:' + s.match.sides[0].shop[1].id,
+  );
+  await tap(page, 'offer:' + fort.id);
+  assert.equal(
+    (await state(page)).controls.find((c) => c.id === survivor.id).x,
+    survivor.x,
+    'remaining offer keeps its position',
+  );
   s = await state(page);
   assert.equal(s.match.sides[0].coins, 4);
   assert.equal(s.match.sides[0].shop.length, 2);
-  await drag(page, 'spell:' + s.match.sides[0].spells[0].id, world(s, 390, 70));
+  await hold(page, 'spell:' + s.match.sides[0].spells[0].id);
+  await drag(page, 'unit:' + deployed.id, world(s, 390, 30));
+  await drag(page, 'spell:' + s.match.sides[0].spells[0].id, 'unit:' + deployed.id);
+  await drag(page, 'unit:' + deployed.id, world(s, 390, 70));
   s = await state(page);
   assert.equal(s.match.sides[0].formation[0].bonusHp, 35);
   const part = s.match.sides[0].shop.find((o) => o.kind === 'part');
   await drag(page, 'offer:' + part.id, handDrop);
   s = await state(page);
   const before = JSON.stringify(s.match.sides[0]);
-  await drag(page, 'part:nezha:0', world(s, 300, 180));
+  await hold(page, s.controls.find((c) => c.id.startsWith('part:nezha:0:')).id);
+  await drag(page, s.controls.find((c) => c.id.startsWith('part:nezha:0:')).id, world(s, 300, 180));
   assert.equal(JSON.stringify((await state(page)).match.sides[0]), before);
   await tap(page, 'refresh');
   s = await state(page);
   assert.equal(s.match.sides[0].coins, 2);
   assert.equal(s.match.sides[0].shop[0].part, 'nezha:1');
-  await drag(page, 'offer:' + s.match.sides[0].shop[0].id, handDrop);
+  await tap(page, 'offer:' + s.match.sides[0].shop[0].id);
   s = await state(page);
   assert.equal(s.match.sides[0].hand[0].key, 'nezha');
   assert.deepEqual(s.match.sides[0].bag, {});
@@ -222,8 +259,9 @@ try {
   await drag(page, 'unit:' + second.id, world(s, 300, 150));
   s = await state(page);
   assert.equal(s.match.sides[0].formation.find((c) => c.id === deployed.id).level, 2);
-  const rearHead=world(s,300,150);rearHead.y-=55;
-  await drag(page,rearHead,world(s,390,70));
+  const rearHead = world(s, 300, 150);
+  rearHead.y -= 55;
+  await drag(page, rearHead, world(s, 390, 70));
   await drag(page, 'unit:' + deployed.id, handDrop);
   s = await state(page);
   assert.equal(s.match.sides[0].hand[0].bonusHp, 35);
@@ -235,13 +273,15 @@ try {
   s = await state(page);
   assert.equal(s.match.sides[0].coins, coins);
   assert.equal(s.match.sides[0].spells[0].key, 'sharpen');
+  await hold(page, 'spell:' + s.match.sides[0].spells[0].id);
   await drag(page, 'spell:' + s.match.sides[0].spells[0].id, world(s, 390, 70));
   s = await state(page);
   assert.equal(s.match.sides[0].formation[0].bonusDamage, 5);
   assert.equal(cards(s).length, 0, 'empty hand has no slot controls');
   const expensive = s.match.sides[0].shop.find((o) => o.cost > s.match.sides[0].coins),
     snapshotBefore = JSON.stringify(s.match);
-  await drag(page, 'offer:' + expensive.id, handDrop);
+  await hold(page, 'offer:' + expensive.id, { cancel: true });
+  await tap(page, 'offer:' + expensive.id);
   assert.equal(
     JSON.stringify((await state(page)).match),
     snapshotBefore,
@@ -249,6 +289,10 @@ try {
   );
   await page.waitForTimeout(3100);
   await shot(page, 'planning');
+  await hold(page, 'unit:' + deployed.id, { screenshot: 'long-press-own' });
+  await hold(page, s.controls.find((c) => c.id.startsWith('enemy:')).id, {
+    screenshot: 'long-press-enemy',
+  });
   await tap(page, 'pause');
   await shot(page, 'pause');
   assert.deepEqual(
@@ -263,7 +307,11 @@ try {
   s = await state(page);
   assert.equal(s.match.roundStage, 'battle');
   assert.ok(!s.controls.some((c) => c.id.startsWith('offer:') || c.id.startsWith('card:')));
-  await page.waitForTimeout(2000);
+  const live = (await state(page)).controls.find((c) => c.id.startsWith('troop:'));
+  const tickBeforeHold = (await state(page)).match.tick;
+  await hold(page, live.id, { screenshot: 'long-press-battle' });
+  assert((await state(page)).match.tick > tickBeforeHold, 'inspection keeps combat running');
+  await page.waitForTimeout(1200);
   await shot(page, 'battle');
   await tap(page, 'pause');
   const frozen = (await state(page)).match;
@@ -281,6 +329,10 @@ try {
   await tap(page, 'resume');
   evidence.push({
     case: 'touch-shop-buy-refresh-pair-cast-sell-deploy-merge-recall-hidden-source-cancel-lock-pause-reload',
+    result: 'passed',
+  });
+  evidence.push({
+    case: 'tap-buy-stable-offer-slots-hold-shop-hand-part-spell-own-enemy-live-battle-top-row-cast',
     result: 'passed',
   });
   await tap(page, 'pause');
@@ -312,6 +364,44 @@ try {
     await context.close();
     await saveVideo(page, 'shop-showcase');
     evidence.push({ case: 'legal-third-round-showcase', result: 'passed' });
+  }
+  // Build a crowded inventory entirely through legal rounds and purchases.
+  const crowded = createMatch('level-01', 18);
+  assert(
+    command(crowded, 0, { type: 'deploy', card: crowded.sides[0].hand[0].id, x: 300, y: 180 }).ok,
+  );
+  for (let round = 0; round < 3; round++) {
+    for (const offer of [...crowded.sides[0].shop])
+      command(crowded, 0, { type: 'buy', offer: offer.id });
+    assert(command(crowded, 0, { type: 'startRound' }).ok);
+    while (crowded.roundStage !== 'planning' && crowded.phase === 'running') step(crowded);
+  }
+  {
+    const { context, page } = await open(
+      { width: 568, height: 320 },
+      loadFixture,
+      fixture(crowded),
+    );
+    await tap(page, 'start');
+    await tap(page, 'hand-next');
+    assert.equal((await state(page)).handPage, 1);
+    await shot(page, 'bench-page-two-568');
+    await tap(page, 'hand-prev');
+    const before = (await state(page)).match.sides[0];
+    const existing = new Set([
+      ...before.hand.map((c) => 'card:' + c.id),
+      ...before.spells.map((c) => 'spell:' + c.id),
+    ]);
+    const offer = before.shop.find((o) => o.kind !== 'part' && o.cost <= before.coins);
+    assert(offer, 'legal purchase available for pagination check');
+    await tap(page, 'offer:' + offer.id);
+    const after = await state(page);
+    const added = after.controls.find((c) => /^(card|spell):/.test(c.id) && !existing.has(c.id));
+    assert(added, 'newly purchased item is visible on its page');
+    await hold(page, added.id, { screenshot: 'bench-new-item-568' });
+    await context.close();
+    await saveVideo(page, 'bench-pagination');
+    evidence.push({ case: 'six-card-pages-and-purchase-reveal-on-small-phone', result: 'passed' });
   }
   const effects = new Map();
   for (let seed = 0; seed < 100 && effects.size < 6; seed++) {
@@ -386,6 +476,8 @@ try {
     await tap(page, 'supply:2');
     await tap(page, 'begin');
     const s = await state(page);
+    await hold(page, cards(s)[0].id, { screenshot: 'long-press-hand-' + viewport.width });
+    await shot(page, 'planning-' + viewport.width);
     await drag(page, cards(s)[0].id, world(s, 250, 180));
     assert.equal((await state(page)).match.sides[0].formation.length, 1);
     await tap(page, 'pause');
@@ -395,7 +487,10 @@ try {
     await tap(page, 'pause');
     await shot(page, 'viewport-' + viewport.width + 'x' + viewport.height);
     await tap(page, 'settings');
-    assert.equal((await state(page)).buttons.some(b => /fullscreen|全屏/.test(b.id + b.label)), false);
+    assert.equal(
+      (await state(page)).controls.some((b) => /fullscreen|全屏/.test(b.id + b.label)),
+      false,
+    );
     await tap(page, 'back');
     await tap(page, 'home');
     evidence.push({ case: 'orientation-touch', viewport, result: 'passed' });

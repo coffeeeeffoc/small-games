@@ -10,6 +10,8 @@ export function readProgress(storage, levels) {
       progress.selected = saved.selected;
     }
     progress.sound = saved.sound === true;
+    if (Number.isInteger(saved.unlocked) && saved.unlocked >= 0 && saved.unlocked < levels.length)
+      progress.unlocked = saved.unlocked;
     if (saved.best && typeof saved.best === 'object' && !Array.isArray(saved.best)) {
       progress.best = Object.fromEntries(
         levels.flatMap((level) => {

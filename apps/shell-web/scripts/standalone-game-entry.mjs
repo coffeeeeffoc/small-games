@@ -21,7 +21,7 @@ export const markers = {
   'homebound-station': 'body[data-homebound-ready="true"]',
   'rescue-team': '#fleet-1',
 
-  'waterline-station': '#board[data-level="1"]',
+  'waterline-station': 'body[data-screen="home"]',
   'tiny-signals': '#game-root[data-status="playing"]',
   'echo-weaver': '#emit',
   'ink-is-everything': '#start-game',

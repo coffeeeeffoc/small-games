@@ -577,12 +577,12 @@
       "potential": ["fun", "potential"],
       "platforms": ["mobile", "web"],
       "primaryPlatform": "mobile",
-      "orientation": "landscape",
+      "orientation": "portrait",
       "genres": ["puzzle", "physics"],
       "opportunities": ["challenge", "share"],
       "schedule": "current",
       "implementationStatus": "implemented",
-      "scheduleReason": "50关已有渐进机制与撤销，本轮集中解决小屏管线追踪与预测反馈，再以同关最少步验证分享。",
+      "scheduleReason": "已完成竖屏优先 Cocos 改版，50关保留并增加章节解锁、完整主页和暂停结算；继续用真机试玩核验复杂管网。",
       "strengths": ["50关水位、箱子、小船、水轮逐步组合，预测与撤销降低试错"],
       "weaknesses": ["复杂管网在小屏仍有追踪成本，需用真人试玩验证连通反馈与操作预算是否易懂"],
       "improvements": [
@@ -590,10 +590,11 @@
       ],
       "evidence": [
         "games/local/waterline-station/README.md",
-        "games/local/waterline-station/docs/design/expansion-2026-10-11/README.md",
-        "games/local/waterline-station/docs/design/expansion-2026-10-11/browser-report.json"
+        "games/local/waterline-station/docs/design/mobile-cocos-2026-10-25/README.md",
+        "games/local/waterline-station/docs/design/mobile-cocos-2026-10-25/actual/browser-report.json"
       ],
       "delivered": [
+        "真实 Cocos 3.8.8 场景、触屏与音频；竖屏主页、章节解锁、暂停和结算，兼容旧存档与短横屏",
         "显示已用操作 / 三星目标，剩余两步时预警，管线选择明确两端水槽与开关状态",
         "同关少步邀请隔离正常存档，可明确退出并恢复常规进度；提示、预测、撤销或额外操作标为辅助通关且分享不附成绩，结算保留44px手机按钮"
       ]

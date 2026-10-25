@@ -20,6 +20,7 @@ export function StandaloneGame({
   const [display, setDisplay] = useState({ entry, playing: false });
   const playing = display.entry === entry && display.playing;
   const immersive =
+    id === 'waterline-station' ||
     id === 'bullet-garden' ||
     id === 'homebound-station' ||
     id === 'tianxia-chalu' ||
