@@ -162,7 +162,10 @@ export function createMapInput({
       }
       return;
     }
-    if (hit?.id !== down.cityId) return;
+    if (hit?.id !== down.cityId) {
+      cancel();
+      return;
+    }
     if (hit) {
       if (down.double) {
         clearPending();

@@ -340,13 +340,18 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     if (mobile) await page.touchscreen.tap(x, y);
     else await page.mouse.click(x, y);
     await expect.poll(async () => (await snapshot()).selected).toBe(city.id);
-    await click(frame.locator('#cycle'));
+    const target = (await snapshot()).cities.find((entry) => entry.id === junction.exits[0]);
+    const targetX = bounds.x - local.x + target.client.x;
+    const targetY = bounds.y - local.y + target.client.y;
+    if (mobile) await page.touchscreen.tap(targetX, targetY);
+    else await page.mouse.click(targetX, targetY);
     await expect
       .poll(
         async () =>
           (await snapshot()).junctions.find((entry) => entry.id === junction.id).routeIndex,
       )
-      .not.toBe(junction.routeIndex);
+      .toBe(0);
+    await expect.poll(async () => (await snapshot()).selected).toBe(null);
     await click(frame.locator('#pause'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'pause');
     await click(frame.locator('#resume'));

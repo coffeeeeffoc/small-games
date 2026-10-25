@@ -460,3 +460,16 @@ test('ownership lost during the second tap cannot leave a deferred ghost dispatc
   assert.equal(h.intents.length, 0);
   assert(h.messages.some((m) => m.includes('易主')));
 });
+
+test('a second tap slipping just outside the city cancels its suspended single tap', () => {
+  const h = harness();
+  h.tap('A');
+  h.tap('B');
+  h.advance(80);
+  const b = h.point('B');
+  h.input.pointer('down', { x: b.x + 28, y: b.y }, 1);
+  h.input.pointer('up', { x: b.x + 32, y: b.y }, 1);
+  h.advance(500);
+  h.tap('C');
+  assert.equal(h.intents.length, 0);
+});
