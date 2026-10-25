@@ -2,11 +2,13 @@ import { glassTexture, backgroundTexture, panelTexture, shardTexture } from './s
 import {
   FIELD,
   PHYSICS,
+  RHYTHM,
   WIDTH,
   HEIGHT,
   brickCenter,
   targetProfile,
-  aimDirection,
+  aimVelocity,
+  previewShot,
 } from './core.mjs';
 import { LEVELS, UPGRADES } from './levels.mjs';
 const TAU = Math.PI * 2;
@@ -45,7 +47,8 @@ export function createView(cc, root, dimensions, actions) {
     ballNodes = new Map(),
     time = 0;
   let shards = [],
-    collectorPulse = 0;
+    collectorPulse = 0,
+    preview = null;
   const spareShards = [];
   const stats = { shatters: 0, absorptions: 0, returns: 0, recalls: 0, maxShards: 0 };
   const textures = new Map(),
@@ -165,13 +168,13 @@ export function createView(cc, root, dimensions, actions) {
     projectiles = node(arena),
     fx = graphics(arena),
     overlay = node(origin, 'Interface');
-  const launcher = orb(projectiles, 195, FIELD.floor - FIELD.radius, FIELD.radius + 1);
+  const launcher = orb(projectiles, 195, FIELD.launchY, FIELD.radius + 1);
   const aimGraphic = graphics(arena);
   const collector = graphics(arena);
   const fragmentRoot = node(arena, 'Glass fragments');
   const arenaAccess = document.createElement('div');
   arenaAccess.id = 'arena';
-  arenaAccess.setAttribute('aria-label', '弹珠场地：按住拖动瞄准，松手发射');
+  arenaAccess.setAttribute('aria-label', '弹珠场地：顶部向下发射，松手离发射口越远速度越快');
   arenaAccess.setAttribute('role', 'application');
   arenaAccess.className = 'arena-access';
   access.append(arenaAccess);
@@ -233,8 +236,8 @@ export function createView(cc, root, dimensions, actions) {
       line(
         arenaStatic,
         [
-          { x, y: 557 },
-          { x: x + 7, y: 557 },
+          { x, y: FIELD.top + 23 },
+          { x: x + 7, y: FIELD.top + 23 },
         ],
         C.rose,
         1.3,
@@ -651,7 +654,7 @@ export function createView(cc, root, dimensions, actions) {
     const min = touch(),
       compact = H < 740;
     label(null, '星轨弹珠', 195, compact ? 108 : 132, 42);
-    label(null, '折射 · 碎裂 · 连击', 195, compact ? 148 : 175, 13, C.mint);
+    label(null, '重力落珠 · 夹缝连弹', 195, compact ? 148 : 175, 13, C.mint);
     const center = H * (compact ? 0.365 : 0.405),
       g = graphics(homeArt);
     for (let j = 0; j < 3; j++)
@@ -827,10 +830,10 @@ export function createView(cc, root, dimensions, actions) {
     label(
       'shot-hint',
       game.phase === 'recall'
-        ? '星轨召回中'
+        ? '向下回收中'
         : game.phase === 'flight'
           ? '折射连击中'
-          : '拖动瞄准 · 松手发射',
+          : '向下瞄准 · 松手越远，弹得越快',
       195,
       y - 18,
       11,
@@ -842,7 +845,7 @@ export function createView(cc, root, dimensions, actions) {
       disabled: ['flight', 'recall'].includes(game.phase) || game.practice || game.challenge,
       tint: C.gold,
     });
-    button('recall', game.phase === 'recall' ? '归位中' : '收回', W - 14 - w, y, w, min, 'recall', {
+    button('recall', game.phase === 'recall' ? '落底中' : '收回', W - 14 - w, y, w, min, 'recall', {
       disabled: game.phase !== 'flight',
     });
   }
@@ -973,18 +976,15 @@ export function createView(cc, root, dimensions, actions) {
     button('help-back', '←', 28, top + 12, min, min, 'overlay-back', { aria: '返回设置' });
     label(null, '折射指南', 214, top + 38, 24, C.text, 200);
     const entries = [
-      [
-        '球数与伤害分开计算',
-        '每次碰撞扣当前伤害，重击最高 4，暴击翻倍。\n穿透一次只扣一次；反弹后再次命中会再扣。',
-      ],
-      ['紫色漩涡会吞球', '未击碎的吸收器会吞掉当前弹珠。\n本轮减少连弹机会，永久球数不变。'],
+      ['松手位置决定速度', '从顶部向下瞄准，松手离发射口越远越快。\n近处轻投、远处快投，虚线预览重力弧线。'],
+      ['借重力反复夹击', '切入两颗目标之间，反弹后再次命中会再扣。\n未击碎的紫色吸收器吞掉本轮弹珠。'],
       [
         '周围掉数来自技能',
         '爆裂余波伤邻珠，闪电连线指向连锁目标。\n爆裂晶体碎裂时，对邻珠造成自身满血 45% 伤害。',
       ],
       [
         '收回与成长',
-        '全部弹珠归位后珠群下降，每五轮选强化。\n补给可看广告：共鸣有 8% 概率额外扣 1。',
+        '球碰到珠子继续反弹，落底立即回收。\n本轮结束后珠群上升，越过顶部警戒线结束。',
       ],
     ];
     const step = (h - min - 105) / 4;
@@ -1035,7 +1035,7 @@ export function createView(cc, root, dimensions, actions) {
     if (next && !game.practice && !game.challenge)
       button('next', '下一星域  →', 38, y, 314, min, 'next', { primary: true });
     else if (game.phase === 'lost' && !game.practice && !game.challenge && !game.rewards?.rescue)
-      button('result-supply', '激励救援 · 清除底部两行', 38, y, 314, min, 'supply', {
+      button('result-supply', '激励救援 · 清除顶部两行', 38, y, 314, min, 'supply', {
         tint: C.gold,
       });
     button(
@@ -1084,7 +1084,7 @@ export function createView(cc, root, dimensions, actions) {
     );
     button(
       'reward-rescue',
-      '应急清行\n清除底部两行\n不计得分',
+      '应急清行\n清除顶部两行\n不计得分',
       201,
       y,
       165,
@@ -1177,7 +1177,6 @@ export function createView(cc, root, dimensions, actions) {
       }
       if (e.type === 'recall') {
         stats.recalls++;
-        collectorPulse = 0.7;
       }
       if (
         [
@@ -1262,6 +1261,7 @@ export function createView(cc, root, dimensions, actions) {
           C.text,
           p.radius * 1.65,
         );
+        label.enableWrapText = false;
         entry = { n, body, cracks, label, hit: 0, crackStage: -1 };
         targetNodes.set(b.id, entry);
       }
@@ -1279,6 +1279,7 @@ export function createView(cc, root, dimensions, actions) {
       }
     const liveBalls = new Set();
     trail.clear();
+    const segments = new Map(), ghosts = new Map();
     for (const ball of game.balls) {
       liveBalls.add(ball.id);
       let entry = ballNodes.get(ball.id);
@@ -1291,81 +1292,66 @@ export function createView(cc, root, dimensions, actions) {
       }
       entry.n.setPosition(ball.x, -ball.y);
       entry.hit = Math.max(0, entry.hit - dt);
-      const s = !reduced ? Math.sin((entry.hit / 0.16) * Math.PI) * 0.15 : 0;
-      const returningScale =
-        ball.returning && !reduced
-          ? 1 - Math.pow(ball.returnElapsed / ball.returnDuration, 3) * 0.6
-          : 1;
-      entry.n.setScale((1 + s) * returningScale, (1 - s) * returningScale, 1);
-      entry.n.angle = entry.hit > 0 ? (-Math.atan2(entry.ny, entry.nx) * 180) / Math.PI : 0;
+      const s = !reduced
+        ? entry.hit > 0 ? Math.sin((entry.hit / 0.16) * Math.PI) * 0.15
+          : Math.min(0.12, Math.hypot(ball.vx, ball.vy) / PHYSICS.maxSpeed * 0.12)
+        : 0;
+      entry.n.setScale(1 + s, 1 - s, 1);
+      entry.n.angle = (-Math.atan2(entry.hit > 0 ? entry.ny : ball.vy,
+        entry.hit > 0 ? entry.nx : ball.vx) * 180) / Math.PI;
       if (!reduced) {
-        const points = [...(ball.trail || []), ball];
-        for (let i = 1; i < points.length; i++)
-          line(
-            trail,
-            [points[i - 1], points[i]],
-            ball.returning ? C.gold : C.mint,
-            0.5 + (i / points.length) * 2.0,
-            Math.round((i / points.length) * 90),
-          );
+        const points = (ball.trail || []).filter((p) => game.elapsed - p.t <= RHYTHM.trailSeconds);
+        for (let i = 1; i < points.length; i++) {
+          const a = points[i - 1], b = points[i],
+            fade = Math.max(0, 1 - (game.elapsed - b.t) / RHYTHM.trailSeconds),
+            key = `${Math.round(a.x / 5)},${Math.round(a.y / 5)}:${Math.round(b.x / 5)},${Math.round(b.y / 5)}`;
+          // Overlapping volleys share one trail segment instead of stacking into white ribbons.
+          if (!segments.has(key) || segments.get(key).fade < fade)
+            segments.set(key, { a, b, fade, returning: ball.returning });
+          if (i % 8 === 0 && fade < 0.8) {
+            const ghostKey = `${Math.round(b.x / 12)},${Math.round(b.y / 12)}`;
+            if (!ghosts.has(ghostKey) || ghosts.get(ghostKey).fade < fade)
+              ghosts.set(ghostKey, { ...b, fade, returning: ball.returning });
+          }
+        }
       }
     }
+    for (const { a, b, fade, returning } of segments.values())
+      line(trail, [a, b], returning ? C.gold : C.mint, 0.7 + fade * 2, Math.round(fade * 65));
+    for (const ghost of ghosts.values())
+      circle(trail, ghost.x, ghost.y, FIELD.radius * (0.45 + ghost.fade * 0.3),
+        ghost.returning ? C.gold : C.mint, Math.round(ghost.fade * 48), 1, true);
     for (const [id, entry] of ballNodes)
       if (!liveBalls.has(id)) {
         entry.n.destroy();
         ballNodes.delete(id);
       }
     launcher.active = game.phase === 'aim';
-    launcher.setPosition(game.nextX ?? game.launchX, -FIELD.floor + FIELD.radius);
+    launcher.setPosition(game.launchX, -FIELD.launchY);
     collectorPulse = Math.max(0, collectorPulse - dt);
     collector.clear();
-    const cx = game.nextX ?? game.launchX,
-      cy = FIELD.floor + 5;
+    const cx = game.launchX,
+      cy = FIELD.launchY;
     circle(collector, cx, cy, 12, C.mint, 180, 2);
     circle(collector, cx, cy, 18 + (!reduced ? Math.sin(time * 5) * 2 : 0), C.purple, 100, 1);
     if (collectorPulse > 0 && !reduced)
-      circle(
-        collector,
-        cx,
-        cy,
-        12 + (1 - collectorPulse / 0.7) * 20,
-        C.gold,
-        Math.round(collectorPulse * 250),
-        2,
-      );
+      line(collector, [{ x: FIELD.left, y: FIELD.floor }, { x: FIELD.right, y: FIELD.floor }],
+        C.gold, 3, Math.round(collectorPulse / 0.32 * 140));
     aimGraphic.clear();
     if (aim && game.phase === 'aim') {
-      const dir = aimDirection(aim.x - game.launchX, aim.y - FIELD.floor + FIELD.radius + 1);
-      if (dir) {
-        let x = game.launchX,
-          y = FIELD.floor - FIELD.radius - 1,
-          dx = dir.x * 12,
-          dy = dir.y * 12;
-        const previewStep = 12 / FIELD.speed;
-        for (let i = 0; i < 65; i++) {
-          x += dx;
-          y += dy;
-          dy += PHYSICS.gravity * previewStep * previewStep;
-          if (x < FIELD.left + FIELD.radius || x > FIELD.right - FIELD.radius) {
-            x =
-              x < FIELD.left + FIELD.radius
-                ? 2 * (FIELD.left + FIELD.radius) - x
-                : 2 * (FIELD.right - FIELD.radius) - x;
-            dx *= -1;
-          }
-          if (y < FIELD.top) break;
-          circle(aimGraphic, x, y, i % 3 ? 1.35 : 2, '#caffee', Math.round(220 - i * 2.5), 1, true);
-          if (
-            game.bricks.some(
-              (b) =>
-                b.hp > 0 &&
-                b.kind !== 'pickup' &&
-                Math.hypot(x - brickCenter(b).x, y - brickCenter(b).y) <=
-                  targetProfile(b).radius + FIELD.radius,
-            )
-          )
-            break;
-        }
+      const velocity = aimVelocity(aim.x - game.launchX, aim.y - FIELD.launchY);
+      if (velocity) {
+        if (!preview || preview.game !== game || preview.bricks !== game.bricks || preview.turn !== game.turn ||
+          preview.x !== aim.x || preview.y !== aim.y)
+          preview = { game, bricks: game.bricks, turn: game.turn, x: aim.x, y: aim.y,
+            points: previewShot(game, aim.x - game.launchX, aim.y - FIELD.launchY) };
+        preview.points.forEach((p, i) => {
+          if (i % 2 === 0)
+            circle(aimGraphic, p.x, p.y, i % 6 ? 1.5 : 2.2, '#caffee', 210 - i, 1, true);
+        });
+        circle(aimGraphic, aim.x, aim.y, 10, C.gold, 130, 1.5);
+        line(aimGraphic, [{ x: cx - 42, y: FIELD.top - 13 }, { x: cx + 42, y: FIELD.top - 13 }], C.muted, 4, 70);
+        line(aimGraphic, [{ x: cx - 42, y: FIELD.top - 13 }, { x: cx - 42 + velocity.power * 84, y: FIELD.top - 13 }], C.gold, 4, 230);
       }
     }
     fx.clear();
@@ -1405,6 +1391,13 @@ export function createView(cc, root, dimensions, actions) {
         fx.stroke();
       }
       if (reduced) continue;
+      if (e.type === 'returned') {
+        // The collected body is gone; only a short glow sinks below the floor.
+        circle(fx, e.x, e.y + p * 15, FIELD.radius * (1 - p), C.mint, fade, 1, true);
+        line(fx, [{ x: e.x - 5 - p * 12, y: e.y }, { x: e.x + 5 + p * 12, y: e.y }],
+          C.gold, 2, fade);
+        continue;
+      }
       circle(
         fx,
         e.x,
@@ -1448,20 +1441,23 @@ export function createView(cc, root, dimensions, actions) {
     });
     shards = [];
     collectorPulse = 0;
+    preview = null;
     Object.keys(stats).forEach((k) => (stats[k] = 0));
     fx.clear();
     trail.clear();
   }
-  function updateHud(game) {
+  function updateHud(game, aim) {
+    const velocity = aim && aimVelocity(aim.x - game.launchX, aim.y - FIELD.launchY);
     const values = {
       score: `${game.score} 分`,
       'ball-count': `${game.count} 颗`,
       'shot-hint':
         game.phase === 'recall'
-          ? '星轨召回 · 全部归位后进入下一轮'
+          ? '向下回收 · 落底后进入下一轮'
           : game.phase === 'flight'
             ? `${game.collisionCount || 0} 次碰撞 · ${game.combo} 连碎${game.absorbed ? ' · 吞噬 ' + game.absorbed + ' 颗' : ''}`
-            : '拖动瞄准 · 松手发射',
+            : velocity ? `力度 ${Math.round(velocity.power * 100)}% · 松手发射`
+              : '向下瞄准 · 松手越远，弹得越快',
     };
     for (const [id, value] of Object.entries(values))
       if (hud[id] && hud[id].label.isValid && hud[id].label.string !== value) {
@@ -1496,6 +1492,7 @@ export function createView(cc, root, dimensions, actions) {
     get stats() {
       return {
         ...stats,
+        aimEnd: preview?.points.at(-1) ?? null,
         chains: effects.filter((e) => e.type === 'chain').length,
         blasts: effects.filter((e) => e.type === 'blast').length,
         shards: shards.length,
