@@ -2232,3 +2232,118 @@ test('cumulative Chase rewrite and Homebound change keep both real game consumer
     /Relevant deletion or rename/,
   );
 });
+
+test('Porcelain studio lock proof accepts only the pinned offline addition', () => {
+  const source = 'games/local/porcelain-puzzle',
+    manifest = source + '/package.json';
+  const tuple = '      three:\n        specifier: 0.180.0\n        version: 0.180.0\n';
+  const original =
+    '\n  ' +
+    source +
+    ':\n    devDependencies:\n' +
+    "      '@playwright/test':\n        specifier: 1.55.1\n        version: 1.55.1\n\n";
+  const studio = original.slice(0, -1) + tuple + '\n';
+  const pkg = {
+    name: '@coffeeeeffoc/porcelain-puzzle',
+    scripts: { build: 'node build.mjs', test: 'node --test tests/*.test.mjs' },
+    coffeeeeffoc: { role: 'game', engine: 'cocos-source-3.8.8' },
+    devDependencies: { '@playwright/test': '1.55.1' },
+  };
+  const nextPackage = {
+    ...pkg,
+    scripts: { ...pkg.scripts, 'art:render': 'node scripts/render-vessels.mjs' },
+    devDependencies: { ...pkg.devDependencies, three: '0.180.0' },
+  };
+  const before = {
+    [REGISTRY]: JSON.stringify([registration('porcelain-puzzle')]),
+    [SHELL]: JSON.stringify({ name: '@games/shell', dependencies: {} }),
+    [manifest]: JSON.stringify(pkg),
+    [LOCK]:
+      "lockfileVersion: '9.0'\n\nimporters:\n\n  tools/existing:\n    devDependencies:\n" +
+      tuple +
+      original +
+      'packages:\n  three@0.180.0: {}\n\nsnapshots:\n  three@0.180.0: {}\n',
+  };
+  const after = {
+    ...before,
+    [manifest]: JSON.stringify(nextPackage),
+    [LOCK]: before[LOCK].replace(original, studio),
+  };
+  const classify = (old, next, changedPaths = [LOCK, manifest]) =>
+    registrationFileScopes({
+      changedPaths,
+      gameSources: [source],
+      readBase: (file) => {
+        assert.ok(Object.hasOwn(old, file));
+        return old[file];
+      },
+      readHead: (file) => {
+        assert.ok(Object.hasOwn(next, file));
+        return next[file];
+      },
+    });
+  assert.deepEqual(classify(before, after).get(LOCK), [source]);
+  assert.deepEqual(
+    classify(
+      { ...before, [LOCK]: before[LOCK].replaceAll('\n', '\r\n') },
+      { ...after, [LOCK]: after[LOCK].replaceAll('\n', '\r\n') },
+    ).get(LOCK),
+    [source],
+  );
+  for (const value of [
+    after[LOCK].replace(studio, studio.replaceAll('0.180.0', '0.181.0')),
+    after[LOCK].replace(studio, studio + original),
+    after[LOCK].replace(studio, original.slice(0, -1) + '    dependencies:\n' + tuple + '\n'),
+    after[LOCK].replace(
+      'packages:\n  three@0.180.0: {}',
+      'packages:\n  three@0.180.0: {resolution: changed}',
+    ),
+    after[LOCK].replace(
+      'snapshots:\n  three@0.180.0: {}',
+      'snapshots:\n  three@0.180.0: {dependencies: {extra: 1.0.0}}',
+    ),
+    after[LOCK] + '\n# unrelated bytes\n',
+  ])
+    assert.equal(classify(before, { ...after, [LOCK]: value }).has(LOCK), false);
+  for (const value of [
+    { ...nextPackage, devDependencies: { ...nextPackage.devDependencies, three: '^0.180.0' } },
+    { ...nextPackage, devDependencies: { three: '0.180.0' } },
+    { ...nextPackage, devDependencies: { ...nextPackage.devDependencies, extra: '1.0.0' } },
+    { ...nextPackage, devDependencies: pkg.devDependencies, dependencies: { three: '0.180.0' } },
+    { ...nextPackage, scripts: { ...nextPackage.scripts, 'art:render': 'node scripts/other.mjs' } },
+    {
+      ...nextPackage,
+      scripts: {
+        ...nextPackage.scripts,
+        build: 'node scripts/render-vessels.mjs && node build.mjs',
+      },
+    },
+    {
+      ...nextPackage,
+      scripts: { ...nextPackage.scripts, postinstall: 'node scripts/render-vessels.mjs' },
+    },
+    { ...nextPackage, name: '@games/another' },
+    { ...nextPackage, coffeeeeffoc: { role: 'game', engine: 'three' } },
+  ])
+    assert.equal(
+      classify(before, { ...after, [manifest]: JSON.stringify(value) }).has(LOCK),
+      false,
+    );
+  for (const side of ['base', 'head']) {
+    const missing = { ...(side === 'base' ? before : after) };
+    delete missing[manifest];
+    assert.equal(
+      classify(side === 'base' ? missing : before, side === 'head' ? missing : after).has(LOCK),
+      false,
+    );
+  }
+  assert.equal(classify(before, after, [LOCK]).has(LOCK), false);
+  const noTuple = {
+    ...before,
+    [LOCK]: before[LOCK].replace(tuple, tuple.replaceAll('0.180.0', '0.179.0')),
+  };
+  assert.equal(
+    classify(noTuple, { ...after, [LOCK]: noTuple[LOCK].replace(original, studio) }).has(LOCK),
+    false,
+  );
+});

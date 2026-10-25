@@ -1,4 +1,5 @@
 import { VERSION, WIDTH, HEIGHT, outline, vesselFor, random, levelAt } from './content.mjs';
+const CONTOUR_VERSION = 3;
 export function contains(p, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -10,6 +11,24 @@ export function contains(p, poly) {
   return inside;
 }
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+function simplify(points) {
+  const a = points[0],
+    b = points.at(-1),
+    length = distance(a, b);
+  let farthest = 0.12,
+    index = 0;
+  for (let i = 1; i < points.length - 1; i++) {
+    const p = points[i],
+      d = Math.abs((b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)) / length;
+    if (d > farthest) {
+      farthest = d;
+      index = i;
+    }
+  }
+  return index
+    ? [...simplify(points.slice(0, index + 1)).slice(0, -1), ...simplify(points.slice(index))]
+    : [a, b];
+}
 function intersection(a, b, c, d) {
   const rx = b.x - a.x,
     ry = b.y - a.y,
@@ -58,14 +77,83 @@ function clip(poly, nx, ny, c) {
   }
   return out;
 }
-export function makePuzzle(level) {
-  const silhouette = outline(vesselFor(level)),
+export function makePuzzle(level, legacy = false) {
+  if (legacy === false) {
+    const source = makePuzzle(level, true),
+      silhouette = outline(vesselFor(level));
+    const sides = (poly) => [poly.slice(0, poly.length / 2), poly.slice(poly.length / 2).reverse()];
+    const [oldRight, oldLeft] = sides(source.silhouette),
+      [right, left] = sides(silhouette);
+    const at = (side, y) => {
+      if (y <= side[0].y) return side[0].x;
+      if (y >= side.at(-1).y) return side.at(-1).x;
+      let lo = 0,
+        hi = side.length - 1;
+      while (hi - lo > 1) {
+        const mid = (lo + hi) >> 1;
+        if (side[mid].y < y) lo = mid;
+        else hi = mid;
+      }
+      const a = side[lo],
+        b = side[hi];
+      return a.x + ((b.x - a.x) * (y - a.y)) / (b.y - a.y);
+    };
+    const warp = (p) => {
+      const y =
+          right[0].y +
+          ((p.y - oldRight[0].y) / (oldRight.at(-1).y - oldRight[0].y)) *
+            (right.at(-1).y - right[0].y),
+        a = at(oldLeft, p.y),
+        b = at(oldRight, p.y);
+      return { x: at(left, y) + ((p.x - a) / (b - a)) * (at(right, y) - at(left, y)), y };
+    };
+    // Warp the existing fracture pattern with the vessel, preserving every shard and shared seam.
+    const pieces = source.pieces.map((piece) => {
+      const polygon = piece.polygon.flatMap((a, i) => {
+        const b = piece.polygon[(i + 1) % piece.polygon.length],
+          n = Math.max(1, Math.ceil(distance(a, b)));
+        return simplify(
+          Array.from({ length: n + 1 }, (_, j) =>
+            warp({ x: a.x + ((b.x - a.x) * j) / n, y: a.y + ((b.y - a.y) * j) / n }),
+          ),
+        ).slice(0, -1);
+      });
+      const visible = [];
+      for (let y = piece.bounds.minY + 0.01; y < piece.bounds.maxY; y += 0.5) {
+        const intersections = [];
+        piece.polygon.forEach((a, i) => {
+          const b = piece.polygon[(i + 1) % piece.polygon.length];
+          if (a.y > y !== b.y > y)
+            intersections.push(a.x + ((b.x - a.x) * (y - a.y)) / (b.y - a.y));
+        });
+        const a = Math.max(at(oldLeft, y), Math.min(...intersections)),
+          b = Math.min(at(oldRight, y), Math.max(...intersections));
+        if (a <= b) visible.push(warp({ x: a, y }), warp({ x: b, y }));
+      }
+      if (!visible.length) throw Error(`Invisible studio fragment ${level.id}:${piece.id}`);
+      return {
+        ...piece,
+        polygon,
+        center: warp(piece.center),
+        bounds: {
+          minX: Math.min(...visible.map((p) => p.x)) - 1,
+          maxX: Math.max(...visible.map((p) => p.x)) + 1,
+          minY: Math.min(...visible.map((p) => p.y)) - 1,
+          maxY: Math.max(...visible.map((p) => p.y)) + 1,
+        },
+      };
+    });
+    return { ...source, silhouette, pieces };
+  }
+  const silhouette = outline(vesselFor(level), legacy),
+    // Keep seeded cuts and saved group identities stable while refining the visible contour.
+    samplingOutline = outline(vesselFor(level), true),
     rng = random(level.seed),
     seeds = [];
   const sample = () => {
     for (let n = 0; n < 10000; n++) {
       const p = { x: 8 + rng() * (WIDTH - 16), y: 8 + rng() * (HEIGHT - 16) };
-      if (contains(p, silhouette)) return p;
+      if (contains(p, samplingOutline)) return p;
     }
     throw Error('Empty silhouette');
   };
@@ -98,7 +186,28 @@ export function makePuzzle(level) {
           (t.x * t.x + t.y * t.y - s.x * s.x - s.y * s.y) / 2,
         );
     });
-    return { id, polygon, center: s, bounds: visibleBounds(polygon, silhouette), neighbors: [] };
+    const bounds = visibleBounds(polygon, silhouette),
+      inside = (point) => contains(point, silhouette) && contains(point, polygon);
+    let center = inside(s)
+      ? s
+      : {
+          x: (bounds.minX + bounds.maxX) / 2,
+          y: (bounds.minY + bounds.maxY) / 2,
+        };
+    if (!inside(center)) {
+      let nearest = Infinity;
+      for (let y = bounds.minY + 1; y < bounds.maxY; y += 2)
+        for (let x = bounds.minX + 1; x < bounds.maxX; x += 2) {
+          const point = { x, y },
+            d = distance(point, s);
+          if (d < nearest && inside(point)) {
+            nearest = d;
+            center = point;
+          }
+        }
+      if (!Number.isFinite(nearest)) throw Error(`Invisible fragment ${level.id}:${id}`);
+    }
+    return { id, polygon, center, bounds, neighbors: [] };
   });
   for (let i = 0; i < pieces.length; i++)
     for (let j = i + 1; j < pieces.length; j++) {
@@ -152,6 +261,7 @@ export function newAttempt(level = levelAt(1), id = `attempt-${Date.now()}`) {
   });
   return {
     version: VERSION,
+    contourVersion: CONTOUR_VERSION,
     id,
     levelId: level.id,
     number: level.number,
@@ -266,6 +376,7 @@ export function restore(raw) {
   if (
     !raw ||
     raw.version !== VERSION ||
+    (raw.contourVersion !== undefined && ![2, CONTOUR_VERSION].includes(raw.contourVersion)) ||
     !Number.isInteger(raw.number) ||
     raw.number < 1 ||
     raw.number > 100 ||
@@ -327,7 +438,10 @@ export function restore(raw) {
     return null;
   if (Math.abs(level.timeMs + raw.revives * level.reviveMs - raw.elapsedMs - raw.remainingMs) > 2)
     return null;
-  const puzzle = makePuzzle(level);
+  const puzzle = makePuzzle(
+    level,
+    raw.contourVersion === undefined ? true : raw.contourVersion === 2 ? 2 : false,
+  );
   for (const g of raw.groups) {
     const seen = new Set([g.pieces[0]]),
       queue = [g.pieces[0]];
@@ -340,6 +454,29 @@ export function restore(raw) {
     if (seen.size !== g.pieces.length) return null;
   }
   const state = structuredClone(raw);
+  if (raw.contourVersion !== CONTOUR_VERSION) {
+    // A receded outline can remove a seam; keep its fragments at their saved positions.
+    const current = makePuzzle(level);
+    state.groups = state.groups.flatMap((group) => {
+      const pending = new Set(group.pieces),
+        groups = [];
+      while (pending.size) {
+        const first = pending.values().next().value,
+          pieces = [],
+          queue = [first];
+        pending.delete(first);
+        while (queue.length) {
+          const id = queue.pop();
+          pieces.push(id);
+          for (const neighbor of current.pieces[id].neighbors)
+            if (pending.delete(neighbor)) queue.push(neighbor);
+        }
+        groups.push({ id: first, pieces, x: group.x, y: group.y });
+      }
+      return groups.length === 1 ? [group] : groups;
+    });
+    state.contourVersion = CONTOUR_VERSION;
+  }
   if (state.phase === 'playing') state.phase = 'paused';
   return state;
 }

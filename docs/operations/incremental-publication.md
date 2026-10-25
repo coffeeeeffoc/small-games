@@ -106,3 +106,5 @@ Tower 与并行合入的 Tetracube 构成九款 Creator Producer。组合证明�
 同一累计区间内，Shell manifest 同时移除旧全屏测试命令并新增青花拾光依赖，另以完整前后摘要绑定并保留 Shell 和青花拾光消费者；既有单独全屏移除证明继续保留。
 
 追逐游戏的独立浏览器操作模块 `apps/shell-web/scripts/game-checks/chase-thief.mjs` 按精确路径选择追逐游戏与 Shell 消费者；即使仅修复测试流程，也执行该游戏的真实嵌入／触屏回归，不能只留下通用导航样例。
+
+青花拾光离线美术工具仅允许现有 importer 新增 three 0.180.0 的固定 devDependencies tuple，并要求该 tuple 已存在于基线其他 importer。完整 manifest 只能增加 art:render 命令和这项开发依赖，保留 Cocos 身份及普通构建；归一化后其余锁文件必须逐字等于基线。证明选择青花及实际 Shell 消费者，版本漂移、额外依赖、运行依赖、生命周期脚本或其他锁文件字节仍阻断。游戏运行与正常构建只读取已烘焙素材，不加载离线三维制作工具。

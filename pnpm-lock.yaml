@@ -636,6 +636,9 @@ importers:
       '@playwright/test':
         specifier: 1.55.1
         version: 1.55.1
+      three:
+        specifier: 0.180.0
+        version: 0.180.0
 
   games/local/ball-roguelite: {}
 

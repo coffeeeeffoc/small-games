@@ -1,13 +1,16 @@
 {
-  "at": "2026-10-24T19:12:29.778Z",
-  "browser": "Chromium 140, Linux, mobile touch emulation, software WebGL",
+  "at": "2026-10-25T16:34:36.309Z",
+  "browser": "Chromium 140.0.7339.186, win32, mobile touch emulation, software WebGL",
   "checks": [
+    "all 100 studio vessels match collection/puzzle textures; assembled shards retain over 99% of each surface",
     "real touch cancellation preserves fragment position",
     "pause freezes clock and resume restores board transform",
     "complete level entirely by touch, with rigid group-to-group snapping",
     "celebration, travel, next vessel smash and next challenge",
+    "level 2 original reference, shards and touch regions share the corrected contour",
     "unavailable room service hides multiplayer entry and leaves solo playable",
-    "reward-port fixture resumes preserved fragments with 45 seconds; no live advertising claimed",
+    "level 3 shows an unobscured full original; hidden shards cannot move and return intact after pause/peek",
+    "legacy save migrates with preserved fragments; reward-port fixture adds 45 seconds, no live ad",
     "two independent browser players: ready together, authoritative organize, host exit, remaining player advances",
     "320x568 and 390x844 mobile layouts",
     "level 100: 40 visible shards, touchable small pieces and rigid group joins"

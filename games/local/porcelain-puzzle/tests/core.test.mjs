@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { levels, vessels, validateContent, levelAt } from '../src/content.mjs';
 import {
   makePuzzle,
@@ -38,8 +39,16 @@ test('100 distinct vessels; all 100 seeded puzzles are connected, visible and so
       assert.ok(contains(piece.center, p.silhouette));
       assert.ok(contains(piece.center, piece.polygon));
       let area = 0;
-      for (let y = 0; y < 300; y += 4)
-        for (let x = 0; x < 240; x += 4)
+      for (
+        let y = Math.ceil(Math.max(0, piece.bounds.minY) / 4) * 4;
+        y < Math.min(300, piece.bounds.maxY);
+        y += 4
+      )
+        for (
+          let x = Math.ceil(Math.max(0, piece.bounds.minX) / 4) * 4;
+          x < Math.min(240, piece.bounds.maxX);
+          x += 4
+        )
           if (contains({ x, y }, p.silhouette) && contains({ x, y }, piece.polygon)) area += 16;
       assert.ok(area > 120, `${level.id} tiny visible fragment ${piece.id}: ${area}`);
     }
@@ -149,4 +158,85 @@ test('hints consume fixed quota and do not move fragments', () => {
   assert.equal(hint(s, p), null);
   assert.deepEqual(s.groups, before);
   assert.equal(s.assisted, true);
+});
+
+test('studio shapes preserve original seed identities and shared seams in all 100 puzzles', () => {
+  const cuts = levels.map((level) => {
+    const old = makePuzzle(level, true),
+      current = makePuzzle(level);
+    assert.deepEqual(
+      current.pieces.map((p) => [p.id, p.neighbors]),
+      old.pieces.map((p) => [p.id, p.neighbors]),
+    );
+    return old.pieces.map((piece) => piece.polygon);
+  });
+  assert.equal(
+    createHash('sha256').update(JSON.stringify(cuts)).digest('hex'),
+    'da5fb1f106887aeab9f7d77969fdac53f3bd112e57e535dcb3130727cd92f591',
+  );
+});
+
+test('both older contour versions retain positions, time and progress', () => {
+  for (const version of [undefined, 2]) {
+    for (const number of [40, 59, 64]) {
+      const level = levelAt(number),
+        legacy = makePuzzle(level, version === undefined ? true : 2),
+        current = makePuzzle(level);
+      const a = legacy.pieces[0];
+      const b = a.neighbors[0];
+      const state = newAttempt(level, `old-${number}`);
+      start(state);
+      for (const group of state.groups) move(state, group.id, 500 + group.id * 10, 700);
+      move(state, a.id, 12, 40);
+      move(state, b, 12, 40);
+      snap(state, a.id, legacy);
+      tick(state, 1234);
+      state.contourVersion = version;
+      const untouched = structuredClone(state),
+        save = emptySave();
+      save.unlocked = number;
+      save.collection = ['vessel-001'];
+      save.attempt = state;
+      const loaded = loadSave({ getItem: () => JSON.stringify(save) }),
+        restored = loaded.attempt;
+      assert.equal(loaded.unlocked, number);
+      assert.deepEqual(loaded.collection, save.collection);
+      assert.equal(restored.remainingMs, state.remainingMs);
+      assert.equal(restored.elapsedMs, 1234);
+      assert.equal(restored.phase, 'paused');
+      assert.ok(restored.groups.length >= state.groups.length);
+      assert.equal(restored.contourVersion, 3);
+      for (const piece of current.pieces) {
+        const oldGroup = state.groups.find((group) => group.pieces.includes(piece.id)),
+          newGroup = restored.groups.find((group) => group.pieces.includes(piece.id));
+        assert.equal(newGroup.x, oldGroup.x);
+        assert.equal(newGroup.y, oldGroup.y);
+      }
+      assert.deepEqual(restore(restored), restored);
+      assert.deepEqual(state, untouched);
+      assert.equal(restore({ ...state, contourVersion: 99 }), null);
+    }
+  }
+});
+
+test('a version 2 group using a removed extra seam splits in place without losing progress', () => {
+  const level = levelAt(30),
+    legacy = makePuzzle(level, 2),
+    state = newAttempt(level, 'v2-edge');
+  start(state);
+  for (const group of state.groups) move(state, group.id, 500 + group.id * 10, 700);
+  move(state, 9, 12, 40);
+  move(state, 17, 12, 40);
+  snap(state, 9, legacy);
+  tick(state, 1234);
+  state.contourVersion = 2;
+  const restored = restore(state);
+  assert.equal(restored.groups.length, state.groups.length + 1);
+  assert.equal(restored.remainingMs, state.remainingMs);
+  assert.equal(restored.elapsedMs, 1234);
+  for (const id of [9, 17]) {
+    const group = restored.groups.find((g) => g.pieces.includes(id));
+    assert.deepEqual([group.x, group.y], [12, 40]);
+  }
+  assert.deepEqual(restore(restored), restored);
 });

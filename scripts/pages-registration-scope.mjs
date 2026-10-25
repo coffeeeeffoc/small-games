@@ -417,6 +417,43 @@ function lockWiringSources(before, after, additions, games, context) {
     current = current.replace(echoAfter, echoBefore);
     sources.add(echoSource);
   }
+  // Only the offline Porcelain studio may add this already locked dev dependency.
+  const porcelainSource = 'games/local/porcelain-puzzle';
+  const porcelainManifest = `${porcelainSource}/package.json`;
+  const porcelainBefore =
+    `\n  ${porcelainSource}:\n    devDependencies:\n` +
+    "      '@playwright/test':\n        specifier: 1.55.1\n        version: 1.55.1\n\n";
+  const studioTuple = '      three:\n        specifier: 0.180.0\n        version: 0.180.0\n';
+  const porcelainAfter = porcelainBefore.slice(0, -1) + studioTuple + '\n';
+  if (
+    changedPaths.includes(porcelainManifest) &&
+    games.some(
+      (game) =>
+        game.id === 'porcelain-puzzle' && game.source === porcelainSource && game.output === 'dist',
+    ) &&
+    importerBlock(base, porcelainSource) === porcelainBefore &&
+    importerBlock(current, porcelainSource) === porcelainAfter &&
+    proof.existingTuples.has(studioTuple)
+  ) {
+    const oldPackage = JSON.parse(readBase(porcelainManifest));
+    const newPackage = JSON.parse(readHead(porcelainManifest));
+    if (
+      oldPackage.name !== '@coffeeeeffoc/porcelain-puzzle' ||
+      oldPackage.coffeeeeffoc?.role !== 'game' ||
+      oldPackage.coffeeeeffoc?.engine !== 'cocos-source-3.8.8' ||
+      oldPackage.scripts?.build !== 'node build.mjs' ||
+      Object.hasOwn(oldPackage.scripts, 'art:render') ||
+      !isDeepStrictEqual(oldPackage.devDependencies, { '@playwright/test': '1.55.1' }) ||
+      !isDeepStrictEqual(newPackage, {
+        ...oldPackage,
+        scripts: { ...oldPackage.scripts, 'art:render': 'node scripts/render-vessels.mjs' },
+        devDependencies: { ...oldPackage.devDependencies, three: '0.180.0' },
+      })
+    )
+      throw new Error('Unproven Porcelain studio manifest');
+    current = current.replace(porcelainAfter, porcelainBefore);
+    sources.add(porcelainSource);
+  }
   if (current !== base) throw new Error('Unproven remaining lock changes');
   return [...sources];
 }
