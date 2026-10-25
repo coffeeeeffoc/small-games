@@ -4,15 +4,17 @@
   "sourceHash": "16c907c59219bcbafe065985e052e2d96342f532b720200503c7ac35a334cb04",
   "files": {
     "icon/icon.png": {
-      "bytes": 147720,
-      "sha256": "85d6839f4fe0d8c54f461208e11308e17c89db148db89c4a9dc201c7d9074178",
+      "bytes": 2565996,
+      "sha256": "c242dc6525a27e0ef0f25ec581c8ce573810ba77a8bb9f607d93dbf88e8750a3",
+      "updatedAt": "2026-10-26",
+      "source": "Built-in imagegen edit of icon/icon-20261024.png; publishing icon only, independent of the gameplay sourceHash above.",
       "media": {
         "programs": [],
         "stream_groups": [],
         "streams": [
           {
-            "width": 256,
-            "height": 256
+            "width": 1254,
+            "height": 1254
           }
         ],
         "format": {}
