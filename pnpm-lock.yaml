@@ -471,9 +471,6 @@ importers:
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
-      tangerine-express:
-        specifier: workspace:*
-        version: link:../../games/local/vibeJam-myself-delivery
     devDependencies:
       '@coffeeeeffoc/config-eslint':
         specifier: workspace:*
@@ -958,16 +955,6 @@ importers:
       vite:
         specifier: 8.2.4
         version: 8.2.4(@types/node@24.10.4)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)
-
-  games/local/vibeJam-myself-delivery:
-    dependencies:
-      three:
-        specifier: 0.180.0
-        version: 0.180.0
-    devDependencies:
-      vite:
-        specifier: 7.3.7
-        version: 7.3.7(@types/node@24.3.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.23.13)
 
   games/local/vibeJam-myself-history-guess:
     dependencies:

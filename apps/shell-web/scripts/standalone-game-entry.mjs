@@ -44,7 +44,6 @@ export const markers = {
 
   'travel-bund': '#enter-world',
 
-  'vibeJam-myself-delivery': '#start',
   'vibeJam-myself-history-guess': '#start',
   'vibeJam-myself-nullrange': '#deploy',
 };
@@ -100,8 +99,6 @@ export const legacyEntryIds = [
   'night-overwatch',
 
   'travel-bund',
-
-  'vibeJam-myself-delivery',
 ];
 
 export function entryMode(id) {

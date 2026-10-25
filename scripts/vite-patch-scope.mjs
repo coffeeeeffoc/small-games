@@ -36,7 +36,6 @@ const audited = {
     'games/local/merge-front',
     'games/local/travel-bund',
     'games/local/urban-breakout',
-    'games/local/vibeJam-myself-delivery',
     'games/local/vibeJam-myself-history-guess',
     'games/local/vibeJam-myself-nullrange',
     'packages/vite-smoke-test',

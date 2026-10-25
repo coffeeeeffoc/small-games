@@ -126,13 +126,6 @@
     "output": "dist"
   },
   {
-    "id": "vibeJam-myself-delivery",
-    "source": "games/local/vibeJam-myself-delivery",
-    "title": "橘风速递",
-    "description": "驾驶小摩托穿越海滨小岛，采购货物并完成配送。",
-    "output": "dist"
-  },
-  {
     "id": "vibeJam-myself-history-guess",
     "source": "games/local/vibeJam-myself-history-guess",
     "title": "此时 · 此地",
