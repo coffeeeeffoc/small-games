@@ -1,11 +1,26 @@
 {
-  "date": "2026-10-24",
+  "date": "2026-10-26",
   "environment": "Chromium touch emulation 390x844; actual local build; no ad fixture",
   "sourceHash": null,
   "files": {
-    "icon/leaf.svg": {
-      "bytes": 242,
-      "sha256": "9ce21471198798ff9a77969cb2163ac189c92f56d7d8885917ba3332b647b295"
+    "icon/moss-garden-completed-1024.png": {
+      "bytes": 832921,
+      "sha256": "e20a14f2f60a01a075bd0552c01db44598f4af9203b4a6107cceebb774c49c64",
+      "date": "2026-10-26",
+      "media": {
+        "format": "png",
+        "width": 1024,
+        "height": 1024,
+        "pixelFormat": "rgb24"
+      },
+      "source": {
+        "path": "../docs/design/expansion-2026-10-21/actual/bloom-result-390.png",
+        "sha256": "004029fc21c1277fc2a9bf70cdddf3ee05aa2da88e2907220ac9d82028b729f2",
+        "commit": "8afef9e0f64b6b48d3a1f9836b44c419550a2183",
+        "level": "moss-01",
+        "method": "Built-in imagegen edit of completed-level reference; FFmpeg Lanczos resize from 1254x1254 to 1024x1024. Derived icon, not an unedited gameplay screenshot.",
+        "prompt": "Edit the attached screenshot of the real completed first level of 苔光花园 (Moss Garden) into a clean square app icon, 1024x1024 PNG, opaque background. Extract the completed flower puzzle board as the central subject; preserve the exact 4x4 board geometry, region colors, region boundary lines, and four cream-white flowers with golden centers at row 1 col 2, row 2 col 4, row 3 col 1, row 4 col 3. Keep the flat, softly textured botanical illustration style from the screenshot. The green region consists of row1 all four cells, row2 col1-3, row3 col3; dusty pink region row2-4 col4; blue region rows3-4 col1-2; lavender region row4 col3. Dark forest green thick rounded-square outer border and region boundaries, thin muted grid lines. Scale board up to occupy about 80% of the square, perfectly centered. Warm ivory solid background all the way to four square corners. Retain only a small sage leafy sprig at top-left and bottom-right behind the board as in the real game. Remove all text, letters A B C D, digits, UI, buttons, indicators, timers and all other content. Do not add any new objects, extra flowers, invented game imagery, gradients, 3D, glow, titles, logo text or watermark. Keep the exact board completion arrangement from the image; this is a game icon derived from a completed task, not a new garden scene."
+      }
     },
     "gameplay/screenshots/home-390x844.png": {
       "bytes": 116216,
