@@ -65,7 +65,7 @@ describe('Web Shell routes', () => {
     ['tower-brake', 'challenge=tower-v1&level=first-brake&targetScore=450'],
     ['cage-rescue', 'challenge=rescue-v1&level=rescue-01&targetRescued=3&targetCombo=2'],
     ['ball-roguelite', 'challenge=orbit-v1&level=stardust&seed=42&targetScore=250'],
-    ['ember-bounce', 'emberChallenge=1&level=first-spark&turns=9'],
+    ['ember-bounce', 'emberChallenge=2&level=first-spark&turns=9'],
     ['three-choose-two', 'seed=42&variant=refill&targetScore=100'],
     ['flick-arena', 'seed=42&layout=triangle&targetShots=9'],
     ['moss-garden', 'level=moss-09&targetHints=1&targetMistakes=2&targetTime=5000'],

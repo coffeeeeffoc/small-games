@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LEVELS, createGame, fire, step, applyUpgrade } from '../core.mjs';
+import { LEGACY_LEVELS } from '../levels.mjs';
 import { checkpoint, restoreCheckpoint } from '../checkpoint.mjs';
 import { createStorage, STORAGE_KEY } from '../storage.mjs';
 import { readChallenge, challengeParams, compareChallenge } from '../challenge.mjs';
@@ -25,7 +26,9 @@ test('settled checkpoints preserve physical state and continue to the same real 
     volley(game, 68, 214);
     assert.equal(game.phase, 'upgrade');
     assert(applyUpgrade(game, 'power'));
-    volley(game, 68, 214);
+    volley(game, 235, 230);
+    volley(game, 235, 492);
+    volley(game, 275, 214);
     assert.equal(game.phase, 'won');
   }
   assert.equal(restored.score, original.score);
@@ -79,7 +82,7 @@ test('normal and invited checkpoints remain separate, survive settings and stora
   const normal = createGame(LEVELS[0].id);
   volley(normal);
   store.saveRun(normal);
-  const invite = { version: 1, levelId: LEVELS[2].id, turns: 4 };
+  const invite = { version: 2, levelId: LEVELS[2].id, turns: 4 };
   store.saveRun(createGame(invite.levelId), invite);
   store.settings({ sound: false });
   const resumed = createStorage(LEVELS, persistence).load();
@@ -98,18 +101,31 @@ test('normal and invited checkpoints remain separate, survive settings and stora
 });
 
 test('invitation parser rejects ambiguous or incompatible rules and keeps only public challenge data', () => {
-  const invitation = { version: 1, levelId: LEVELS[0].id, turns: 3 };
+  const invitation = { version: 2, levelId: LEVELS[0].id, turns: 3 };
   const query = new URLSearchParams(challengeParams(invitation));
   const url = `https://example.com/ember/?${query}`;
   assert.deepEqual(readChallenge(`${url}&dev=1&token=secret`), invitation);
-  for (const suffix of ['&turns=2', '&level=side-glow', '&emberChallenge=1'])
+  for (const suffix of ['&turns=2', '&level=side-glow', '&emberChallenge=2'])
     assert.equal(readChallenge(url + suffix), null);
   for (const value of ['0', '-1', '1.5', 'Infinity', '0003', '1001'])
     assert.equal(readChallenge(url.replace('turns=3', `turns=${value}`)), null);
-  assert.equal(readChallenge(url.replace('emberChallenge=1', 'emberChallenge=2')), null);
+  assert.equal(readChallenge(url.replace('emberChallenge=2', 'emberChallenge=1')), null);
   assert.equal(readChallenge(url.replace(LEVELS[0].id, 'unknown')), null);
   assert.equal(challengeParams({ ...invitation, turns: 0 }), null);
   assert.match(compareChallenge(2, 3), /少用 1 轮/);
   assert.match(compareChallenge(3, 3), /追平/);
   assert.match(compareChallenge(4, 3), /多用了 1 轮/);
+});
+
+test('legacy checkpoints keep their authored content, remaining damage and progress', () => {
+  const legacy = createGame(LEGACY_LEVELS[0]);
+  legacy.targets[0].hp = 1;
+  legacy.score = 42;
+  const restored = restoreCheckpoint(checkpoint(legacy));
+  assert(restored);
+  assert.deepEqual(restored.level, LEGACY_LEVELS[0]);
+  assert.equal(restored.targets[0].hp, 1);
+  assert.equal(restored.score, 42);
+  assert.equal(restored.ballCount, 8);
+  assert.deepEqual(checkpoint(restored), checkpoint(legacy));
 });
