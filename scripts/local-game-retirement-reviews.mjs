@@ -124,6 +124,122 @@ export const deliveryRetirementReviews = Object.freeze({
   },
 });
 
+// The saved Pages baseline also precedes the Place & Clear rename and the
+// reviewed Flick/Ball/Ember checks. Keep the original retirement fixture above intact.
+// This named table has its own proof identity; cloned tables cannot authorize deletion.
+export const deliveryRenameRetirementReviews = Object.freeze({
+  ...deliveryRetirementReviews,
+  'apps/shell-web/package.json': {
+    ...deliveryRetirementReviews['apps/shell-web/package.json'],
+    after: '26dcf3d5b147d3a27933f393e0fed076c48d2057584ebe43f21901d62a1edfe3',
+    sources: ['apps/shell-web', 'games/local/place-and-clear'],
+  },
+  'apps/shell-web/scripts/standalone-game-checks.mjs': {
+    ...deliveryRetirementReviews['apps/shell-web/scripts/standalone-game-checks.mjs'],
+    after: '6077695801dd1d07ee476a90583bd6140964792d11161b149c2d84ef00acea57',
+    sources: [
+      'apps/shell-web',
+      'games/local/place-and-clear',
+      'games/local/flick-arena',
+      'games/local/waterline-station',
+      'games/local/tianxia-chalu',
+    ],
+  },
+  'apps/shell-web/scripts/standalone-game-entry.mjs': {
+    ...deliveryRetirementReviews['apps/shell-web/scripts/standalone-game-entry.mjs'],
+    after: 'edf3241e0c8e5518462727e69683f541388808146e3c28d0358a9cc96466dc00',
+    sources: ['apps/shell-web', 'games/local/place-and-clear', 'games/local/waterline-station'],
+  },
+  'apps/shell-web/src/game-assessments.json': {
+    ...deliveryRetirementReviews['apps/shell-web/src/game-assessments.json'],
+    after: '28a60007f3c4db38d1702d163fe50fb6c2abf75d6b5a93ac6d91c8ab71f2a763',
+    sources: ['apps/shell-web', 'games/local/place-and-clear', 'games/local/waterline-station'],
+  },
+  'apps/shell-web/src/game-meta.json': {
+    ...deliveryRetirementReviews['apps/shell-web/src/game-meta.json'],
+    after: '02bdc8edc6c5bdd02360ff445b1e0a7b18ad17eb3f782d74e4f919ea889787b1',
+    sources: ['apps/shell-web', 'games/local/place-and-clear'],
+  },
+  'apps/shell-web/src/standalone-games.json': {
+    ...deliveryRetirementReviews['apps/shell-web/src/standalone-games.json'],
+    after: '1e795cdea2636d77dc63393cc137fff6e9ce1626d8b8173ab8b270b960b615d9',
+    sources: ['apps/shell-web', 'games/local/place-and-clear'],
+  },
+  'apps/shell-web/tests/catalog-assessments.test.ts': {
+    ...deliveryRetirementReviews['apps/shell-web/tests/catalog-assessments.test.ts'],
+    after: '5d1c1a1fa6d6851f51c64a2aebfc9b578e8589b2100720bf6a93d83d08e9893f',
+    sources: ['apps/shell-web', 'games/local/place-and-clear'],
+  },
+  'pnpm-lock.yaml': {
+    ...deliveryRetirementReviews['pnpm-lock.yaml'],
+    after: '56f6af17c621d5c8adfba776d8ad43d7e704ab42dd7fa4dc4904ab21bcb0e3b4',
+    sources: [
+      'apps/shell-web',
+      'games/local/place-and-clear',
+      'apps/shell-minigame',
+      'services/runtime-api',
+    ],
+  },
+  'scripts/publication-scopes.mjs': {
+    ...deliveryRetirementReviews['scripts/publication-scopes.mjs'],
+    after: 'c3704eb3d550d6c6357e32c2218a6d818fe1761799f9cdce3fb8744b67a465b6',
+  },
+  'scripts/publication-scopes.test.mjs': {
+    ...deliveryRetirementReviews['scripts/publication-scopes.test.mjs'],
+    after: 'eb5368f88370c9b189a18ebb7760f1f3aeb86a4328ea1e632e4eb10b03e45b75',
+  },
+  'apps/shell-web/src/game-sharing.ts': {
+    before: '60e545c5a1d690ce5dff0ed78c2c62c3558418ebe1a2dbe40b8726076d2b81eb',
+    after: 'c34479c7218d00663d603a2b33aa2933605a20e409cfe06e06c0ab978c7f8399',
+    sources: [
+      'apps/shell-web',
+      'games/local/place-and-clear',
+      'games/local/ball-roguelite',
+      'games/local/ember-bounce',
+    ],
+  },
+  'apps/shell-web/tests/game-sharing.test.tsx': {
+    before: '1b804dd9b9efee45b978dbce5e8ee173787725f3acbe9d3b76f464b86f8a10b5',
+    after: '5e6dcae90653dee6316c3136f2baf31ad692ec65c58da7d4afe380c07c973c82',
+    sources: [
+      'apps/shell-web',
+      'games/local/place-and-clear',
+      'games/local/ball-roguelite',
+      'games/local/ember-bounce',
+    ],
+  },
+  'apps/shell-web/tests/routes.integration.test.tsx': {
+    before: '4e0b6ecd2c75eefe8a3516bb51ca93079e6186e80a3f25445a0356596ccd6a00',
+    after: '593aa7ac4e1772b70ec317fff6881ec36e836e0cef82b2df18898cd87e4942bc',
+    sources: ['apps/shell-web', 'games/local/place-and-clear', 'games/local/ember-bounce'],
+  },
+  'apps/shell-web/scripts/pages-smoke.mjs': {
+    before: '3d6053ceaca61859f6a807932be4632a431c54ea7be6ce728010ec3aa024409e',
+    after: '5ade3cc3e03d6c3fda73f7bba3d0acb5e266a0444b0ac76ce929f278d1cf6978',
+    sources: ['apps/shell-web', 'games/local/place-and-clear', 'games/local/waterline-station'],
+  },
+  'apps/shell-web/src/StandaloneGame.tsx': {
+    before: 'a4618a25ec15ce38c17623aa988b68d6c80409bb162eb5f48280a492bc6a8d1c',
+    after: 'df1047df93eb138088b789445579398a918debe6aa761c6c62dd130685b63e48',
+    sources: ['apps/shell-web', 'games/local/place-and-clear', 'games/local/waterline-station'],
+  },
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': {
+    before: 'eb5561286268f0004e75f0f528e08a3db5120959cb13105f82aa9b7f283cd27f',
+    after: 'ff9be88547e36172b48f87518b4f7c370c1badfacf9cb21444892f76e432073e',
+    sources: ['apps/shell-web', 'games/local/place-and-clear', 'games/local/waterline-station'],
+  },
+  'apps/shell-web/tests/standalone.integration.test.tsx': {
+    before: 'd82ceb3fad5e81f1f9fce82eeba48ddee1978d77638ddcc41a971339e5887e0c',
+    after: '6d7521a9af1d93bb18361a1c514318d1b8001d499bae3493a757ccaec78dc9bc',
+    sources: ['apps/shell-web', 'games/local/place-and-clear', 'games/local/waterline-station'],
+  },
+  'scripts/test-game-dev-mode.mjs': {
+    before: 'd13197ae582a50792dd82a7aaa796e55d7913f1144a1b977d98ef9f0317e20e0',
+    after: '78dfd0740cfe543a05dbae3e3e24a5df1748305bb86238f6e8091be206191d3a',
+    sources: ['apps/shell-web', 'games/local/place-and-clear', 'games/local/waterline-station'],
+  },
+});
+
 // Reviewed removal of five local games; precise snapshots and finite surviving consumers.
 export const localRetirementBase = 'aa7e30777290989ac8a48f854f65eb1c8f242a8b';
 export const localRetirementTrees = Object.freeze({

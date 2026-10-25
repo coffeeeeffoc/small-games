@@ -777,7 +777,7 @@ test('publishing browsers run exact bounded suites with native gates off and fai
     ],
     'ball-roguelite': ['browser.mjs'],
     'ember-bounce': ['browser.mjs'],
-    'three-choose-two': ['publishing.browser.mjs'],
+    'place-and-clear': ['publishing.browser.mjs'],
     'flick-arena': ['publishing.browser.mjs'],
     'moss-garden': ['publishing.browser.mjs'],
     'chase-thief': ['publishing.browser.mjs'],

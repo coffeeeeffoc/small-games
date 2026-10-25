@@ -36,7 +36,7 @@
     "@coffeeeeffoc/game-castle-cannon": "workspace:*",
     "@coffeeeeffoc/platform-alipay": "workspace:*",
     "@coffeeeeffoc/platform-taptap": "workspace:*",
-    "@coffeeeeffoc/three-choose-two": "workspace:*"
+    "@coffeeeeffoc/place-and-clear": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-typescript": "workspace:*",

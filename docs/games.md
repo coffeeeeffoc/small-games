@@ -46,7 +46,7 @@
 | 重力方舱                 | `tetracube`                    | [tetracube](../games/local/tetracube/)                                       | 拖动并三轴旋转四连立方体，填满水平层；颠倒 8×8×18 容器，让方块向下落定，制造连锁消除。                                       |
 | 打破笼子接住人           | `cage-rescue`                  | [cage-rescue](../games/local/cage-rescue/)                                   | 拖动挡板反弹小球、击碎笼子，安排接球与接人的顺序，在六种阵形中救出至少四名队友。                                             |
 | 弹指擂台                 | `flick-arena`                  | [flick-arena](../games/local/flick-arena/)                                   | 向后拉，松手弹！和两位系统对手轮流出招，把圆盘撞出木质擂台，守住最后的落点。                                                 |
-| 三块选两块               | `three-choose-two`             | [three-choose-two](../games/local/three-choose-two/)                         | 拖动三块，摆下两块。留住棋盘空间，完成三十关取舍挑战，或在无尽练习中追逐交叉消除与连续高分。                                 |
+| 三块选两块               | `three-choose-two`             | [three-choose-two](../games/local/place-and-clear/)                          | 拖动三块，摆下两块。留住棋盘空间，完成三十关取舍挑战，或在无尽练习中追逐交叉消除与连续高分。                                 |
 
 ## 子模块游戏（1 款）
 

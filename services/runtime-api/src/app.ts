@@ -98,7 +98,7 @@ export function createRuntimeService(
         const module = (await import(url)) as { default: Rule };
         rules.set(module.default.id, module.default);
       }
-      const engineName = '@coffeeeeffoc/three-choose-two/engine';
+      const engineName = '@coffeeeeffoc/place-and-clear/engine';
       const engine = (await import(engineName)) as Engine;
       const reviewScore = z.coerce
         .number()

@@ -137,7 +137,7 @@ try {
           game.id === 'tianxia-chalu' ||
           game.id === 'ashfall-front' ||
           game.id === 'carrom-club' ||
-          game.id === 'three-choose-two' ||
+          game.id === 'place-and-clear' ||
           game.id === 'cage-rescue' ||
           game.id === 'chase-thief' ||
           game.id === 'merge-front' ||

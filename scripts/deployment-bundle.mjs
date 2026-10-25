@@ -23,7 +23,7 @@ const sources = {
     'games/local/tower-brake/engine.mjs',
     'games/local/tower-brake/levels.mjs',
     'games/local/flick-arena/src',
-    'games/local/three-choose-two/src',
+    'games/local/place-and-clear/src',
     'games/local/carrom-club/src/core.mjs',
     'games/local/carrom-club/src/content.mjs',
     'games/local/carrom-club/src/friends-core.mjs',

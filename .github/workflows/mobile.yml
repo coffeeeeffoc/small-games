@@ -29,7 +29,7 @@ jobs:
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
       TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
-      THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ github.workspace }}/games/local/three-choose-two/.prebuilt
+      PLACE_AND_CLEAR_PREBUILT_DIR: ${{ github.workspace }}/games/local/place-and-clear/.prebuilt
       CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
       ASHFALL_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/ashfall-front/.prebuilt
       GOMAXPROCS: '1'
@@ -81,8 +81,8 @@ jobs:
           path: games/local/tetracube/.prebuilt
       - uses: actions/download-artifact@v8
         with:
-          name: three-choose-two-${{ github.sha }}
-          path: games/local/three-choose-two/.prebuilt
+          name: place-and-clear-${{ github.sha }}
+          path: games/local/place-and-clear/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: game-castle-cannon-${{ github.sha }}
@@ -153,7 +153,7 @@ jobs:
       MERGE_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/merge-front/.prebuilt
       TOWER_BRAKE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tower-brake/.prebuilt
       TETRACUBE_PREBUILT_DIR: ${{ github.workspace }}/games/local/tetracube/.prebuilt
-      THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ github.workspace }}/games/local/three-choose-two/.prebuilt
+      PLACE_AND_CLEAR_PREBUILT_DIR: ${{ github.workspace }}/games/local/place-and-clear/.prebuilt
       CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
       ASHFALL_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/ashfall-front/.prebuilt
       GOMAXPROCS: '1'
@@ -204,8 +204,8 @@ jobs:
           path: games/local/tetracube/.prebuilt
       - uses: actions/download-artifact@v8
         with:
-          name: three-choose-two-${{ github.sha }}
-          path: games/local/three-choose-two/.prebuilt
+          name: place-and-clear-${{ github.sha }}
+          path: games/local/place-and-clear/.prebuilt
       - uses: actions/download-artifact@v8
         with:
           name: game-castle-cannon-${{ github.sha }}

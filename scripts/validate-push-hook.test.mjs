@@ -38,6 +38,7 @@ test('manual candidate validation checks exact-SHA snapshots and rejects invalid
       'incremental-validation.mjs',
       'nine-native-scope.mjs',
       'nine-lock-scope.mjs',
+      'game-rename-scope.mjs',
       'publication-scopes.mjs',
       'competition-ingress.mjs',
       'admin-csp.mjs',

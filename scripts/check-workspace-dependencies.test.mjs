@@ -628,8 +628,8 @@ test('identity fixtures reuse exact implementations without opening runtime or a
       ),
     },
     {
-      path: 'games/local/three-choose-two',
-      manifest: { name: '@coffeeeeffoc/three-choose-two' },
+      path: 'games/local/place-and-clear',
+      manifest: { name: '@coffeeeeffoc/place-and-clear' },
       files: Object.fromEntries(
         ['tests/online.browser.mjs', 'tests/unknown.browser.mjs', 'src/main.js'].map((file) => [
           file,

@@ -1,3 +1,4 @@
+import { writeLegacyGameRedirects } from './legacy-game-redirects.mjs';
 import { spawnSync } from 'node:child_process';
 import { access, cp, readFile, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -41,3 +42,8 @@ for (const game of catalog) {
   await access(new URL('index.html', source));
   await cp(source, new URL(`${game.id}/`, destination), { recursive: true });
 }
+
+await writeLegacyGameRedirects(
+  fileURLToPath(destination),
+  catalog.map((game) => game.id),
+);

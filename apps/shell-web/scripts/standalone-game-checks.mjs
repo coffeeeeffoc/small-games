@@ -63,8 +63,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       }
     }
   };
-  if (id === 'three-choose-two') {
-    const { snapshot, control, point, canvas, page } = threeChooseTwoInput(frame, mobile);
+  if (id === 'place-and-clear') {
+    const { snapshot, control, point, canvas, page } = placeAndClearInput(frame, mobile);
     await expect.poll(async () => (await snapshot())?.ready, { timeout: 60000 }).toBe(true);
     expect((await snapshot()).creator).toBe('3.8.8');
     await expect(canvas).toBeVisible();
@@ -1453,10 +1453,10 @@ async function pressWebGLControl(frame, control, selector, mobile = false, docum
   else await control.page().mouse.click(x, y);
 }
 
-export function threeChooseTwoInput(frame, mobile = false) {
+export function placeAndClearInput(frame, mobile = false) {
   const canvas = frame.locator('#GameCanvas'),
     page = canvas.page();
-  const snapshot = () => canvas.evaluate(() => globalThis.getThreeChooseTwoSnapshot?.());
+  const snapshot = () => canvas.evaluate(() => globalThis.getPlaceAndClearSnapshot?.());
   const point = async (p) => {
     const s = await snapshot(),
       b = await canvas.boundingBox();
@@ -1500,7 +1500,11 @@ export function threeChooseTwoInput(frame, mobile = false) {
     const p = await point({ x: c.x + c.w / 2, y: c.y + c.h / 2 });
     if (mobile) await page.touchscreen.tap(p.x, p.y);
     else await page.mouse.click(p.x, p.y);
-    await expect.poll(async () => (await snapshot()).controls.length).toBeGreaterThan(0);
+    // A high-DPR Creator repaint can exceed the default 5s on software WebGL.
+    // Still require the actual controls to return before inspecting or tapping them.
+    await expect
+      .poll(async () => (await snapshot()).controls.length, { timeout: 20000 })
+      .toBeGreaterThan(0);
     await page.waitForTimeout(80);
   };
   return { snapshot, control, point, canvas, page };

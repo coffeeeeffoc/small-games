@@ -1009,7 +1009,7 @@ test('shared competition protocol modules select all actual H5 consumers and nat
       ...(file.endsWith('client.js') ? ['flick-arena'] : []),
       'letters-words2',
       ...(file.endsWith('client.js') ? ['night-overwatch'] : []),
-      ...(file.endsWith('client.js') ? ['three-choose-two', 'tower-brake'] : []),
+      ...(file.endsWith('client.js') ? ['place-and-clear', 'tower-brake'] : []),
       'vibeJam-myself-history-guess',
       ...(file.endsWith('client.js') ? ['wulong-city'] : []),
       'xiangqi-five',

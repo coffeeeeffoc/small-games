@@ -4,6 +4,7 @@ import {
   deliveryRetirementBase,
   deliveryRetirementTrees,
   deliveryRetirementReviews,
+  deliveryRenameRetirementReviews,
   mazeVoiceRetirementBase,
   mazeVoiceRetirementTrees,
   mazeVoiceRetirementReviews,
@@ -31,6 +32,7 @@ export function localRetirementHeadQueryPaths(changedPaths) {
       ...changedPaths,
       ...Object.keys(deliveryRetirementTrees),
       ...Object.keys(deliveryRetirementReviews),
+      ...Object.keys(deliveryRenameRetirementReviews),
       ...Object.keys(mazeVoiceRetirementTrees),
       ...Object.keys(mazeVoiceRetirementReviews),
       ...Object.keys(catalogCleanupTrees),
@@ -107,7 +109,8 @@ export function localRetirementScopesForReview(context, trees, reviews, moves) {
       const value = Object.freeze([...(review?.sources ?? [])]);
       scopes.set(file, value);
       if (
-        (trees === deliveryRetirementTrees && reviews === deliveryRetirementReviews) ||
+        (trees === deliveryRetirementTrees &&
+          (reviews === deliveryRetirementReviews || reviews === deliveryRenameRetirementReviews)) ||
         (trees === mazeVoiceRetirementTrees && reviews === mazeVoiceRetirementReviews) ||
         (trees === catalogCleanupTrees && reviews === catalogCleanupReviews) ||
         (trees === localRetirementTrees && reviews === localRetirementReviews) ||
@@ -133,6 +136,13 @@ export function localRetirementScopesForReview(context, trees, reviews, moves) {
 export function localRetirementFileScopes(context) {
   return new Map([
     ...deliveryRetirementFileScopes(context),
+    ...(context.baseCommit === deliveryRetirementBase
+      ? localRetirementScopesForReview(
+          context,
+          deliveryRetirementTrees,
+          deliveryRenameRetirementReviews,
+        )
+      : []),
     ...(context.baseCommit === mazeVoiceRetirementBase
       ? localRetirementScopesForReview(
           context,
