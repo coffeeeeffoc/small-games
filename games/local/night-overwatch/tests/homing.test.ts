@@ -49,7 +49,9 @@ test('invalid targets never spend a round; dead or newly protected targets drop 
 
 test('reward save validation and every zoom tier produces genuine optical magnification', () => {
   for (const raw of [null, 'bad', 'null', '{"ammo":-1,"zoomLimit":999}', '{"ammo":1.2,"zoomLimit":6}'])
-    assert.deepEqual(readRewards(raw), { ammo: 0, zoomLimit: 5, pendingSupply: false });
+    assert.deepEqual(readRewards(raw), { ammo: 0, zoomLimit: 10, pendingSupply: false });
+  assert.deepEqual(readRewards('{"ammo":2,"zoomLimit":5,"pendingSupply":true}'), { ammo: 2, zoomLimit: 10, pendingSupply: true });
+  for (const zoomLimit of [10, 20, 40, 80, 160]) assert.equal(readRewards(JSON.stringify({ zoomLimit })).zoomLimit, zoomLimit);
   assert.deepEqual(readRewards('{"ammo":2,"zoomLimit":160}'), { ammo: 2, zoomLimit: 160, pendingSupply: false });
   assert.equal(readRewards('{"pendingSupply":true}').pendingSupply, true);
   assert.equal(readRewards('{"pendingSupply":"true"}').pendingSupply, false);
@@ -60,7 +62,7 @@ test('reward save validation and every zoom tier produces genuine optical magnif
     assert(Math.abs(magnification - zoom) < 1e-8);
     assert.deepEqual(frame.position, base.position);
   }
-  assert.equal(nextZoomLimit(5), 10); assert.equal(nextZoomLimit(160), undefined);
+  assert.equal(nextZoomLimit(readRewards(null).zoomLimit), 20); assert.equal(nextZoomLimit(160), undefined);
 });
 
 test('select, lock and the common trigger launch one missile without firing the previous gun', () => {

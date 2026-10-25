@@ -1,0 +1,9 @@
+*
+!.gitignore
+!results.json
+!interaction/
+!interaction/interaction-results.json
+!settings/
+!settings/results.json
+!support/
+!support/support-flow.json

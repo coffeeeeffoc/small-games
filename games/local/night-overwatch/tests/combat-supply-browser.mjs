@@ -189,7 +189,7 @@ try {
     const buffStarted = (await snapshot(page)).time;
     await press('zoomControls');
     if ((await snapshot(page)).buttons.some(b => b.id === 'zoomUpgrade')) await press('zoomUpgrade');
-    s = await snapshot(page); assert(!s.advert); assert.equal(s.zoomLimit, 5);
+    s = await snapshot(page); assert(!s.advert); assert.equal(s.zoomLimit, 10);
     await press('zoomControls'); await press('supply');
     if ((await snapshot(page)).buttons.some(b => b.id === 'supplyWatch')) await press('supplyWatch');
     s = await frozen(page, 'buff blocks supply and freezes buff time');
@@ -258,7 +258,7 @@ try {
       assert.equal((await snapshot(page)).homingAmmo, 2, 'duplicate completion cannot grant twice');
       await press('zoomControls'); await press('zoomUpgrade');
       await page.waitForFunction(() => !__night.snapshot().advert);
-      assert.equal((await snapshot(page)).zoomLimit, 10);
+      assert.equal((await snapshot(page)).zoomLimit, 20);
       await countdown(page);
     } else {
       assert.equal(s.pendingSupply, false); assert.equal(s.modal, 'supply:offer');
@@ -266,14 +266,14 @@ try {
       await press('zoomControls'); await press('zoomUpgrade');
       await page.waitForFunction(() => !__night.snapshot().advert);
       s = await snapshot(page);
-      assert.equal(s.zoomLimit, 5); assert.equal(s.pendingSupply, false); assert.equal(s.modal, 'pause');
-      assert.deepEqual(await page.evaluate(() => __supplyOffers.at(-1)), { id: 'night-overwatch:zoom', reward: { zoomLimit: 10 } });
+      assert.equal(s.zoomLimit, 10); assert.equal(s.pendingSupply, false); assert.equal(s.modal, 'pause');
+      assert.deepEqual(await page.evaluate(() => __supplyOffers.at(-1)), { id: 'night-overwatch:zoom', reward: { zoomLimit: 20 } });
       await press('resume');
       await page.waitForFunction(time => __night.snapshot().time > time, s.time);
     }
     assert.deepEqual(await page.evaluate(() => __supplyOffers), [
       { id: 'night-overwatch:supply', reward: { supplyChoice: 1 } },
-      { id: 'night-overwatch:zoom', reward: { zoomLimit: 10 } },
+      { id: 'night-overwatch:zoom', reward: { zoomLimit: 20 } },
     ]);
     report.results.push({ provider: outcome, contract: true, recovery: true });
     await page.close();

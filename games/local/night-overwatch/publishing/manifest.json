@@ -1,5 +1,5 @@
 {
-  "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
+  "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
   "verified": "2026-10-25",
   "previousDelivery": "manifest-2026-10-25-compact-hud.json",
   "files": [
@@ -105,7 +105,9 @@
       "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
       "origin": "Existing night-overwatch art, copied from outputs/six-taptap-submission-20261020/night-overwatch; reused unchanged",
       "width": 1024,
-      "height": 1024
+      "height": 1024,
+      "verifiedForSourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "reusedUnchanged": true
     },
     {
       "path": "promo/images/title-1440x1440.png",
@@ -113,7 +115,9 @@
       "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
       "origin": "Existing night-overwatch art, copied from outputs/six-taptap-submission-20261020/night-overwatch; reused unchanged",
       "width": 1440,
-      "height": 1440
+      "height": 1440,
+      "verifiedForSourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "reusedUnchanged": true
     },
     {
       "path": "promo/images/title-1920x1080.png",
@@ -121,7 +125,9 @@
       "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
       "origin": "Existing night-overwatch art, copied from outputs/six-taptap-submission-20261020/night-overwatch; reused unchanged",
       "width": 1920,
-      "height": 1080
+      "height": 1080,
+      "verifiedForSourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "reusedUnchanged": true
     },
     {
       "path": "gameplay/screenshots/2026-10-24-sync/normal-escort-success-844.png",
@@ -372,19 +378,25 @@
       "path": "copy/developer-note.md",
       "bytes": 1291,
       "sha256": "1a1e5d5f29536c541e6f61d183b4ef329286e2435e10fb1801851a7c99f7bc17",
-      "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c"
+      "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
+      "verifiedForSourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "reusedUnchanged": true
     },
     {
       "path": "copy/introduction.md",
       "bytes": 1197,
       "sha256": "cddbd107359a7be65ab08aab4d90fd715c2a3110ef50197f29bf4592f046bcb1",
-      "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c"
+      "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
+      "verifiedForSourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "reusedUnchanged": true
     },
     {
       "path": "copy/tagline.md",
       "bytes": 68,
       "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
-      "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c"
+      "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
+      "verifiedForSourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "reusedUnchanged": true
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/altitudeUp-844.png",
@@ -392,7 +404,8 @@
       "sha256": "24f28c36df968f79c1876fdae81f1243fff6e9541ddb6c4186cddd2db802bdb0",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/battle-844.png",
@@ -400,7 +413,8 @@
       "sha256": "4581ff454d5816896f3b5078a70e4022c617b1b5d84a161f52c1ce4aa08daec3",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/effects-reduced-844.png",
@@ -408,7 +422,8 @@
       "sha256": "0d18a9971475716fd22182751ebfb7a18b82d4b3d0e222cbd3ae52f9a2027a0b",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/exit-844.png",
@@ -416,7 +431,8 @@
       "sha256": "13d856773d79e9b183307681402338b53244fa81220f2117ff230588eb10974a",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/flight-before-844.png",
@@ -424,7 +440,8 @@
       "sha256": "145f68985452df53d731e3ef6479d382d15389be565dff4bb37972ef8b9fcd0d",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/guide-basic-844.png",
@@ -432,7 +449,8 @@
       "sha256": "323914b60e92cccc80fe92b4b98e190842e6852b40da1b4a766ca5bcd43c028e",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/guide-en-568.png",
@@ -440,7 +458,8 @@
       "sha256": "56dc2848b484739cfd77f12447f2e1bfce1de1be27394d108863cfe3c594dd9e",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 568,
-      "height": 320
+      "height": 320,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/guide-flight-844.png",
@@ -448,7 +467,8 @@
       "sha256": "72eff86682d223c0132bd78d795c18779348beeed55bf40a424e788a30c6bac1",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/guide-scroll-844.png",
@@ -456,7 +476,8 @@
       "sha256": "bd4e9e0c0c11ad11246ef22cb0fc1ef6661fb793d7dcbe0c07b040250e9c9e2c",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/home-1366.png",
@@ -464,7 +485,8 @@
       "sha256": "4fcdbb2cac2903a0984615b06246ca49f3d73723b958ccd93baa40d10545055a",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 1366,
-      "height": 768
+      "height": 768,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/home-390.png",
@@ -472,7 +494,8 @@
       "sha256": "a0113be626415730d8bf3b935b9edda1e0b0ce1a314eb77c1fca0017d0708f10",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 390,
-      "height": 844
+      "height": 844,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/home-568.png",
@@ -480,7 +503,8 @@
       "sha256": "d5d8479e45030c065e830565e982d5620e613c24cecf47c8d72d27a5c62d1c44",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 568,
-      "height": 320
+      "height": 320,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/home-844.png",
@@ -488,7 +512,8 @@
       "sha256": "d981cceb5c86a12830b8914cc7e12ce3fdce2beb6c11699dee67603e2e371a70",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/home-after-selection-844.png",
@@ -496,7 +521,8 @@
       "sha256": "d981cceb5c86a12830b8914cc7e12ce3fdce2beb6c11699dee67603e2e371a70",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/missions-844.png",
@@ -504,7 +530,8 @@
       "sha256": "76f9d0e93e85dac877adc2a05ca8b637c44f383073e60027fc30f25eaf42afc8",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/radiusOut-844.png",
@@ -512,7 +539,8 @@
       "sha256": "56f8dbb16621a35d6e249529e61dadad9cf84d570307bf01a234d8e2ed1efba3",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/rotateRight-844.png",
@@ -520,7 +548,8 @@
       "sha256": "866a3102959dc10370955a9252614a56d7c95df6f47f27e570a1a1f2e1c87ba7",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/selected-highland-844.png",
@@ -528,7 +557,8 @@
       "sha256": "b11d76d938c18266e94b47712ff2b854d3e28d271e908d7cc48bb8bcaf76709d",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/settings-844.png",
@@ -536,7 +566,8 @@
       "sha256": "65ab4effd3797d81f3478ca028a48cb66ef41791564c9f7cf0015d19e9177969",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/settings-en-844.png",
@@ -544,7 +575,8 @@
       "sha256": "5f7c03e571acdc8b79d31810617cef567cf2068cde43c8c23cd4647af56f9855",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/thermal-844.png",
@@ -552,7 +584,8 @@
       "sha256": "3c9de2a4b10eaa56d8e37bdcf0f687bed91c9142821cafe438d94bebda547328",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/screenshots/2026-10-25-settings/zoom-844.png",
@@ -560,7 +593,8 @@
       "sha256": "b8b5386d9e4b3ddec6cb3f3d90729de72dfe5073c047525f97356ba047e7f914",
       "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
       "width": 844,
-      "height": 390
+      "height": 390,
+      "role": "historical"
     },
     {
       "path": "gameplay/videos/mobile-settings-844x390-silent.mp4",
@@ -583,7 +617,8 @@
         }
       },
       "decoded": true,
-      "audio": "silent"
+      "audio": "silent",
+      "role": "historical"
     },
     {
       "path": "promo/videos/night-overwatch-settings-1280x720-silent.mp4",
@@ -606,15 +641,140 @@
         }
       },
       "decoded": true,
-      "audio": "silent"
+      "audio": "silent",
+      "role": "historical"
     },
     {
       "path": "promo/videos/settings-edit.json",
       "bytes": 3668,
       "sha256": "92fad27d265863e1625c61d3b266099720b9b846f29e19668fef6fae67428309",
-      "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c"
+      "sourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c",
+      "role": "historical"
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/tracking-844.png",
+      "bytes": 321527,
+      "sha256": "fac4a06b42a67d86e8091f67ca03c3c4a6d96beab8eb88d3fbadaebbf651e845",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/tracking-568.png",
+      "bytes": 198404,
+      "sha256": "ead878417a9707e06fee2ce02f7647287819206e546509ae6edf12059ba58f0f",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/tracking-1366.png",
+      "bytes": 737428,
+      "sha256": "db5cf89e529bed43932d2c60b84e6355d31ef86edddf73b7c5ccd4348c0b017c",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/tracking-390.png",
+      "bytes": 325121,
+      "sha256": "304eea5b88cfa9b0aaba03f68a4958a07fdace328eed42d9bcbf3ceba34c9d4a",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/tracking-ending-568.png",
+      "bytes": 98675,
+      "sha256": "1459454a7436a34626d93502d1385a68273cc3279f48bae7f7285f634201c224",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/tracking-expired-568.png",
+      "bytes": 108313,
+      "sha256": "4b2df51a7f5827641cfc3d1f498700597fe9a9d1d8edce0a64ed3d9054c3afd0",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/zoom-before-844.png",
+      "bytes": 327124,
+      "sha256": "bdb13d9d6464801a98719930a9cba962f15b9d5071aa79f651d954b2cced70da",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/zoom-after-844.png",
+      "bytes": 170274,
+      "sha256": "e77f35c48b58698d9005bb75de25c7fac63101b30be13be8b151102e7f1915a9",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/temporary-3x-1366.png",
+      "bytes": 650200,
+      "sha256": "a94b7c6363bc0a255d3f5a0fbc2a19b30b1ba096e4b02fb949db5f56bac0b192",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/home-844.png",
+      "bytes": 412431,
+      "sha256": "d981cceb5c86a12830b8914cc7e12ce3fdce2beb6c11699dee67603e2e371a70",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/settings-844.png",
+      "bytes": 184622,
+      "sha256": "29b1885c8d32da5e261b5161414d8496f78bd81ff86d2ae4eadef557b30bd235",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-25-tracking-zoom/zoom-844.png",
+      "bytes": 232116,
+      "sha256": "bf99f227a4ed314288df8ff8d5f9525cc89610c35b12d3490f8300a02999f18d",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "path": "promo/videos/tracking-zoom-edit.json",
+      "bytes": 689,
+      "sha256": "75b249112a7ba39f7c987ec7f78b01beaf4f61204809b9875ff5f2347ea7e2da",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef"
+    },
+    {
+      "path": "gameplay/videos/mobile-tracking-zoom-844x390-silent.mp4",
+      "bytes": 776382,
+      "sha256": "1b8fe7b6f4f0b4fe9704e44a0791a349417bfbac47bf9d966aca98944c215600",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 844,
+      "height": 390,
+      "duration": 7.44,
+      "audio": false
+    },
+    {
+      "path": "promo/videos/night-overwatch-tracking-zoom-1280x720-silent.mp4",
+      "bytes": 1499525,
+      "sha256": "59815d524dae8a3b973e73bc8bde7b5638b78fc8d122b7952be35968bcb97845",
+      "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+      "width": 1280,
+      "height": 720,
+      "duration": 10.44,
+      "audio": false
     }
   ],
   "currentGameplay": "gameplay/screenshots/2026-10-25-settings",
-  "notes": "Dedicated title cover, selected mission previews, guide and live paused settings: actual Creator Web/mobile captures. Older gameplay retains original sourceHash and historical role. No physical-device or real-ad validation."
+  "notes": "Dedicated title cover, selected mission previews, guide and live paused settings: actual Creator Web/mobile captures. Older gameplay retains original sourceHash and historical role. No physical-device or real-ad validation.",
+  "previousSourceHash": "61333bb1e524ec16e40cc9d7ab2643de9d447246f5953b5227a0421d10579b0c"
 }

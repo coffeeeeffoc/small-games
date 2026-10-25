@@ -293,8 +293,8 @@ export const ACTIONS = [
     binding: '+ / Wheel ↑ / X',
     touch: ['双指缩放、平移；也可点 +', 'Pinch and drag with two fingers, or tap +'],
     description: [
-      '默认上限 5×；倍率面板看广告逐档解锁至 160×。拖到边缘巡视，定位回到车队。',
-      'Default 5×; ads in the zoom panel unlock up to 160×. Pan at edges; LOCATE returns to convoy.',
+      '每次点击放大1.5倍；默认上限10×，倍率面板看广告逐档解锁至160×。拖到边缘巡视，定位回到车队。',
+      'Each tap zooms in 1.5×; default limit 10×, ads unlock up to 160×. Pan at edges; LOCATE returns to convoy.',
     ],
     event: 'zoom',
   },
@@ -305,7 +305,7 @@ export const ACTIONS = [
     keys: [],
     binding: 'RMB hold',
     touch: ['使用 + / −', 'Use + / −'],
-    description: ['右键松开恢复原倍率。', 'Release RMB to restore zoom.'],
+    description: ['按住右键临时放大3倍，不超过已解锁上限；松开恢复原倍率。', 'Hold RMB for 3× zoom within the unlocked limit; release to restore.'],
     event: 'zoom',
   },
   {

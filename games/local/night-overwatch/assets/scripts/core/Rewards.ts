@@ -13,9 +13,9 @@ export function readRewards(raw: string | null): RewardSave {
     const data = JSON.parse(raw || '{}');
     return {
       ammo: Number.isSafeInteger(data?.ammo) && data.ammo >= 0 ? data.ammo : 0,
-      zoomLimit: ZOOM_LEVELS.some(value => value === data?.zoomLimit) ? data.zoomLimit : 5,
+      zoomLimit: ZOOM_LEVELS.some(value => value === data?.zoomLimit) ? Math.max(10, data.zoomLimit) : 10,
       pendingSupply: data?.pendingSupply === true,
     };
-  } catch { return { ammo: 0, zoomLimit: 5, pendingSupply: false }; }
+  } catch { return { ammo: 0, zoomLimit: 10, pendingSupply: false }; }
 }
 export const nextZoomLimit = (limit: number) => ZOOM_LEVELS.find(value => value > limit);

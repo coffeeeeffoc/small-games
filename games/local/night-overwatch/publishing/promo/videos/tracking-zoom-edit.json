@@ -1,0 +1,16 @@
+{
+  "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef",
+  "date": "2026-10-25",
+  "title": {
+    "file": "promo/images/title-1920x1080.png",
+    "seconds": 3
+  },
+  "footage": {
+    "file": "gameplay/videos/mobile-tracking-zoom-844x390-silent.mp4",
+    "original": "reports/2026-10-25-tracking-zoom/9cf8355d9a559182cebf5b39faa5d6bb.webm",
+    "seconds": 7.44
+  },
+  "output": "promo/videos/night-overwatch-tracking-zoom-1280x720-silent.mp4",
+  "edit": "Title then continuous browser recording; fit and letterbox to 1280x720. No speed change. Silent recording, no added audio.",
+  "verified": "Both MP4s decoded fully with ffmpeg; preview frames inspected."
+}

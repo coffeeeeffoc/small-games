@@ -287,7 +287,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
   assert.match(actions.bindingLabel('zoomIn', 'zh'), /滚轮/);
   for (const description of actions.action('weapon1').description) assert(description.includes(String(data.WEAPONS[1].ammo)));
   assert(actions.action('zoomOut').description.every((d) => d.includes('0.65×')));
-  assert(actions.action('zoomIn').description.every((d) => d.includes('5×')));
+  assert(actions.action('zoomIn').description.every((d) => d.includes('10×')));
 });
 
 test('HUD: short-screen information priority, focus clearance and friendly group expansion', () => {
@@ -526,10 +526,16 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         sim.pause('settings', true); hud.update(sim, world); checkLayout();
         assert.equal(control('supply').label.color.hex, '#a2b5b5');
         sim.pause('settings', false); hud.update(sim, world);
-        assert.equal(hud.labels.get('buff').color.hex, '#5ed9f5');
+        assert(!hud.labels.get('buff').node.activeInHierarchy, 'tracking countdown moved into its button');
+        assert.equal(control('homing').label.color.hex, control('weapon' + sim.selected).label.color.hex);
+        assert(control('homing').label.isBold);
+        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n60秒' : 'HOMING\n60s');
+        hud.rewardsAvailable = false; hud.update(sim, world);
+        assert(control('homing'), 'active tracking remains visible without ad availability or homing ammo');
+        hud.rewardsAvailable = true;
         sim.buff.remaining = 4.2; hud.update(sim, world); checkLayout();
-        assert.equal(hud.labels.get('buff').color.hex, '#ffbf55');
-        assert.match(hud.labels.get('buff').string, /5/);
+        assert.equal(control('homing').label.color.hex, '#ffbf55');
+        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n5秒' : 'HOMING\n5s');
         sim.pause('settings', true); hud.zoomOpen = true; hud.update(sim, world); checkLayout();
         assert.equal(control('zoomUpgrade').label.color.hex, '#a2b5b5');
         assert.match(control('zoomUpgrade').label.string, lang === 'zh' ? /支援生效中/ : /SUPPORT ACTIVE/);
@@ -541,6 +547,11 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         hud.supplyOpen = false; sim.pause('supply', false);
         sim.buff = { kind: 'rate', remaining: 60 }; hud.update(sim, world); checkLayout();
         assert.match(hud.labels.get('buff').string, lang === 'zh' ? /射速提升/ : /RATE ×1\.3/);
+        assert(!control('homing').label.isBold, 'expiry clears the tracking highlight');
+        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n+' : 'HOMING\n+');
+        sim.homingAmmo = 2; sim.selectHoming(); hud.update(sim, world);
+        assert(control('homing').label.isBold, 'homing weapon selection still highlights independently');
+        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n2' : 'HOMING\n2');
         sim.buff = undefined; hud.update(sim, world); checkLayout();
         assert(!hud.labels.get('buff').node.activeInHierarchy);
         sim.pause('settings', true); hud.update(sim, world); checkLayout();

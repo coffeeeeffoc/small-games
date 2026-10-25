@@ -445,7 +445,7 @@ export class World {
   readonly aircraftModel: AircraftModel;
   center: Point = { x: 0, z: 0 };
   zoom = 1;
-  zoomLimit = 5;
+  zoomLimit = 10;
   follow = false;
   focusSpan?: { x: number; z: number };
   temporary = false;
@@ -1076,7 +1076,7 @@ export class World {
       this.plane,
       this.center,
       this.height,
-      Math.min(this.zoomLimit, this.zoom * (this.temporary ? 1.5 : 1)),
+      Math.min(this.zoomLimit, this.zoom * (this.temporary ? 3 : 1)),
       aspect,
       this.sensorRotation,
     );

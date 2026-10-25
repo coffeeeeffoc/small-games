@@ -5,7 +5,7 @@ import { chromium } from '@playwright/test';
 import { acceptanceBuild, assertLayout, snapshot, press, navigateMap, aimAt, waitForImpact } from './flight-browser.mjs';
 
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const dir = fileURLToPath(new URL('../reports/2026-10-25-settings/', import.meta.url));
+const dir = fileURLToPath(new URL('../reports/2026-10-25-tracking-zoom/settings/', import.meta.url));
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true,
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
@@ -62,7 +62,8 @@ try {
     await click('locate'); await click('close'); await click('zoomControls');
     const zoom = await snapshot(page);
     await click('lensIn'); const magnified = await snapshot(page);
-    assert(magnified.zoom > zoom.zoom && magnified.camera.fov < zoom.camera.fov);
+    assert.equal(magnified.zoom, Math.min(zoom.zoomLimit, zoom.zoom * 1.5));
+    assert(magnified.camera.fov < zoom.camera.fov);
     assert.deepEqual(combat(magnified), stopped); await capture('zoom');
     await click('lensOut'); assert(Math.abs((await snapshot(page)).zoom - zoom.zoom) < .0001);
     await click('sensor'); assert((await snapshot(page)).thermal !== zoom.thermal); await capture('thermal');

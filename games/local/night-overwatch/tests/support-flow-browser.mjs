@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { acceptanceBuild, snapshot, press, assertLayout } from './flight-browser.mjs';
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const dir = fileURLToPath(new URL('../reports/2026-10-25-settings/support/', import.meta.url));
+const dir = fileURLToPath(new URL('../reports/2026-10-25-tracking-zoom/support/', import.meta.url));
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const results = [], errors = [];
@@ -51,12 +51,14 @@ try {
         await hit('supplyLater');
         assert.equal((await snapshot(page)).resumeCountdown, 0);
         assert.equal((await snapshot(page)).modal, '');
+        assert.equal((await snapshot(page)).buttons.find(b => b.id === 'homing').bold, false, 'cancelled or failed ads never light tracking');
       }
     } else {
       const active = await snapshot(page); assert.equal(active.homingAmmo, 2); assert(!active.pendingSupply);
       assert.equal(await page.evaluate(() => __supportOffers), 0); assert.equal(active.buff, null);
     }
     assert.equal((await snapshot(page)).resumeCountdown > 0, ['background', 'offline-credit'].includes(mode));
+    assert.equal((await snapshot(page)).zoomLimit, 10, 'default and stored 5x limits both receive the free 10x view');
     await page.waitForFunction(() => __night.snapshot().resumeCountdown === 0 && !__night.snapshot().pauses.length);
     assert((await snapshot(page)).time >= frozenTime); assert.deepEqual((await snapshot(page)).held, []);
     results.push({ mode, returnedToBattle: true, offers: await page.evaluate(() => __supportOffers) });

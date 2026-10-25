@@ -88,7 +88,7 @@ export class HUD {
   reducedEffects = false;
   toolsOpen = false;
   zoomOpen = false;
-  zoomLimit = 5;
+  zoomLimit = 10;
   rewardsAvailable = false;
   supplyOpen = false;
   exitConfirm = false;
@@ -1046,10 +1046,11 @@ export class HUD {
     this.marks.clear();
     this.globalGraphics.clear();
     this.globalControls.setSiblingIndex(this.root.children.length - 1);
+    const tracking = s.buff?.kind === 'tracking' && s.buff.remaining > 0;
     for (const l of this.labels.values()) l.node.active = !key;
     for (const l of this.unitLabels.values()) l.node.active = false;
     for (const b of this.buttons) {
-      if (b.id === 'homing' && !s.homingAmmo && !this.rewardsAvailable && !this.pendingSupply) {
+      if (b.id === 'homing' && !tracking && !s.homingAmmo && !this.rewardsAvailable && !this.pendingSupply) {
         b.label.node.active = false;
         continue;
       }
@@ -1080,7 +1081,7 @@ export class HUD {
       this.rect(this.globalGraphics, toast.node.position.x + w / 2 - tw / 2, top + 8, tw, 36, C.ink);
     }
     const buff = this.labels.get('buff')!;
-    buff.node.active = !key && s.phase === 'playing' && !!s.buff;
+    buff.node.active = !key && s.phase === 'playing' && s.buff?.kind === 'rate';
     if (s.buff && buff.node.active) {
       const size = buff.node.getComponent(UITransform)!.contentSize, p = buff.node.position,
         name = s.buff.kind === 'tracking' ? this.t('追踪模式', 'TRACKING') : this.t('射速提升', 'RATE ×1.3'),
@@ -1151,8 +1152,9 @@ export class HUD {
     }
     for (const b of this.buttons.filter((b) => b.label.node.parent === this.root && b.label.node.active)) {
       if (b.id === 'priority') continue;
-      if (b.id === 'homing') b.label.string = this.t('追踪', 'HOMING') + '\n' + (s.homingAmmo || '+');
-      const selected = (!s.homingSelected && b.id === 'weapon' + s.selected) || (s.homingSelected && b.id === 'homing') || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
+      if (b.id === 'homing') b.label.string = this.t('追踪', 'HOMING') + '\n' + (tracking
+        ? this.t(`${Math.ceil(s.buff!.remaining)}秒`, `${Math.ceil(s.buff!.remaining)}s`) : s.homingAmmo || '+');
+      const selected = (!s.homingSelected && b.id === 'weapon' + s.selected) || ((s.homingSelected || tracking) && b.id === 'homing') || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
       if (b.id.startsWith('weapon')) {
         const i = Number(b.id.slice(-1)), a = s.guns[i];
         b.label.string = this.t(['速射', '爆破', '重炮'][i], ['RAPID', 'BURST', 'HEAVY'][i]) + '\n' + (a.ammo === Infinity ? '∞' : a.ammo);
@@ -1164,6 +1166,7 @@ export class HUD {
       const fire = b.id === 'fire';
       this.rect(g, b.x, b.y, b.w, b.h, fire ? danger ? '#482832' : C.mint : selected ? '#29463ee0' : '#0c171daa', fire && danger ? C.red : selected || fire ? C.mint : '#91e6cb55', fire ? b.w / 2 : 12);
       b.label.color = col(fire && !danger ? '#10252a' : selected ? C.mint : C.white);
+      if (b.id === 'homing' && tracking && s.buff!.remaining <= 5) b.label.color = col(C.amber);
       b.label.isBold = selected || fire;
       if (b.id.startsWith('weapon') || b.id === 'homing') {
         const x = b.x + 17 - w / 2, y = h / 2 - b.y - b.h / 2;

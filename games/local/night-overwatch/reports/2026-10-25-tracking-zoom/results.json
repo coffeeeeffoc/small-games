@@ -1,0 +1,43 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef"
+  },
+  "results": [
+    {
+      "width": 844,
+      "height": 390,
+      "zoomStep": 1.5,
+      "tracking": true,
+      "expiry": false,
+      "temporaryFocus": false
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "zoomStep": 1.5,
+      "tracking": true,
+      "expiry": true,
+      "temporaryFocus": false
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "zoomStep": 1.5,
+      "tracking": true,
+      "expiry": false,
+      "temporaryFocus": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "zoomStep": 1.5,
+      "tracking": true,
+      "expiry": false,
+      "temporaryFocus": false
+    }
+  ],
+  "errors": [],
+  "fixtures": "Public completed ad callback only. Real touch/mouse input; no simulation writes. Browser emulation, not device or real inventory."
+}

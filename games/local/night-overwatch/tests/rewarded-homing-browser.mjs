@@ -64,11 +64,11 @@ try {
     await countdown();
     assert.deepEqual((await snapshot(page)).held, []);
     await press(page, 'zoomControls', touch);
-    for (const limit of [10, 20, 40, 80, 160]) {
+    for (const limit of [20, 40, 80, 160]) {
       assertLayout(await snapshot(page), width, height);
       await press(page, 'zoomUpgrade', touch);
       assert.equal((await snapshot(page)).zoomLimit, limit / 2);
-      if (limit === 10) await capture('mock-zoom-10');
+      if (limit === 20) await capture('mock-zoom-20');
       await press(page, 'adClose', touch);
       assert.equal((await snapshot(page)).zoomLimit, limit);
       await countdown();

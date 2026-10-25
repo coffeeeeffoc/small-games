@@ -204,7 +204,7 @@ test('supply completion earns one choice, ammo grants two once, and inventory ne
     assert(!g.sim.paused); assert(g.platform.rewards.pendingSupply);
     await g.requestReward('zoom');
     assert(g.hud.supplyOpen, 'pending choice takes precedence over another ad');
-    assert.equal(g.world.zoomLimit, 5);
+    assert.equal(g.world.zoomLimit, 10);
     g.action('reward:ammo'); g.action('supplyWatch'); g.action('reward:ammo'); g.action('supplyWatch');
     assert.equal(g.sim.homingAmmo, 2); assert.equal(g.platform.rewards.ammo, 2);
     assert.equal(g.platform.rewards.pendingSupply, false); assert.equal(g.sim.resumeCountdown, 3);
@@ -213,7 +213,7 @@ test('supply completion earns one choice, ammo grants two once, and inventory ne
     assert(!g.sim.paused);
     g.platform.rewardProvider = async () => ({ status: 'completed' });
     await g.requestReward('zoom');
-    assert.equal(g.world.zoomLimit, 10); assert.equal(g.sim.resumeCountdown, 3);
+    assert.equal(g.world.zoomLimit, 20); assert.equal(g.sim.resumeCountdown, 3);
     for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
     g.retry(); assert.equal(g.sim.homingAmmo, 2);
     for (const status of ['dismissed', 'unavailable', 'failed']) {
@@ -621,7 +621,8 @@ test('settings controls stay paused, subpages return to settings, and system pau
   g.action('flightControls'); assert(g.hud.toolsOpen);
   g.action('sensor'); assert(g.world.thermal); assert(g.sim.paused);
   g.action('close'); assert(!g.hud.toolsOpen); assert(g.sim.paused);
-  g.action('zoomControls'); g.action('lensIn'); assert.equal(g.world.zoom, 1.2); assert(g.sim.paused);
+  g.action('zoomControls'); g.action('lensIn'); assert.equal(g.world.zoom, 1.5); assert(g.sim.paused);
+  g.action('lensOut'); assert.equal(g.world.zoom, 1); assert(g.sim.paused);
   g.action('close'); assert(!g.hud.zoomOpen); assert(g.sim.paused);
   g.action('convoy'); assert.equal(g.sim.convoy, 'holdRequested');
   g.hide(); g.action('convoy'); assert.equal(g.sim.convoy, 'holdRequested');

@@ -537,7 +537,7 @@ export class Overwatch extends Component {
       this.sim.completed.add('locate');
     }
     if (id === 'zoomIn' || id === 'zoomOut') {
-      this.world.adjustZoom(id === 'zoomIn' ? 1.2 : 1 / 1.2);
+      this.world.adjustZoom(id === 'zoomIn' ? 1.5 : 1 / 1.5);
       this.sim.completed.add('zoom');
     }
   }
@@ -1026,7 +1026,7 @@ export class Overwatch extends Component {
             b.label.node.activeInHierarchy &&
             (!this.hud.modal || b.label.node.parent === this.hud.modal || this.hud.isGlobalAction(b.id)),
         )
-        .map(({ id, x, y, w, h }) => ({ id, x, y, w, h })),
+        .map(({ id, x, y, w, h, label }) => ({ id, x, y, w, h, text: label.string, bold: label.isBold, color: label.color.toHEX() })),
       zoom: this.world.zoom,
       follow: this.world.follow,
       safe: this.hud.safe,

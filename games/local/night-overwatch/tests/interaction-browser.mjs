@@ -5,7 +5,7 @@ import { acceptanceBuild, assertLayout, snapshot, press, navigateMap, aimAt, wai
 
 const base = process.env.NIGHT_URL;
 const build = await acceptanceBuild(base);
-const dir = new URL('../reports/2026-10-25-settings/interaction/', import.meta.url);
+const dir = new URL('../reports/2026-10-25-tracking-zoom/interaction/', import.meta.url);
 await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true,
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
@@ -73,6 +73,17 @@ try {
       await page.keyboard.press('Equal');
       assert((await snapshot(page)).zoom > initialZoom, 'Keyboard + zooms');
       await page.keyboard.press('Minus');
+      const beforeFocus = await snapshot(page);
+      await page.mouse.down({ button: 'right' });
+      await page.waitForTimeout(120);
+      const focused = await snapshot(page);
+      const magnification = Math.tan(beforeFocus.camera.fov * Math.PI / 360) / Math.tan(focused.camera.fov * Math.PI / 360);
+      assert(Math.abs(magnification - 3) < .01, 'Holding RMB visibly triples the optical magnification');
+      assert.equal(focused.zoom, beforeFocus.zoom, 'Temporary focus preserves the selected zoom');
+      await page.screenshot({ path: new URL('focus-3x.png', dir).pathname.replace(/^\/([A-Z]:)/, '$1') });
+      await page.mouse.up({ button: 'right' });
+      await page.waitForTimeout(120);
+      assert(Math.abs((await snapshot(page)).camera.fov - beforeFocus.camera.fov) < .01, 'Releasing RMB restores the original view');
     } else {
       const cdp = await page.context().newCDPSession(page);
       const x = width * 0.48, y = height * 0.56;
