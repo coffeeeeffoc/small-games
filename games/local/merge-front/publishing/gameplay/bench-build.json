@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-25",
+  "creator": "3.8.8",
+  "target": "web-mobile",
+  "sourceHash": "909297d55a44db864ac0ad6c30a29c4758399c6abe32c76530f7e05e2e2ad6e1",
+  "producerCommit": "0f8a733afc780a2de66589f71dde79343b5b155f",
+  "workflow": "https://github.com/coffeeeeffoc/small-games/actions/runs/40208612339",
+  "artifactId": 12604028671,
+  "artifactZipSha256": "fb2ed80545e9c6caf5e6227f9ba82ca56af9c34ce2c185360fdd9be40a1c0ec6",
+  "producerChecks": [
+    "real Creator typecheck",
+    "43 tests",
+    "real Creator build",
+    "verifyPrebuilt"
+  ],
+  "consumerChecks": [
+    "verifyPrebuilt: matching source hash and all runtime file hashes",
+    "official typecheck and build using the verified artifact"
+  ],
+  "environment": "Windows Creator producer; Node24.21.0 and pnpm12.6.0; Chromium phone emulation consumer; no physical-device claim"
+}
