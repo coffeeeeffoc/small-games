@@ -6,7 +6,8 @@ import { chromium, expect } from '@playwright/test';
 import { getLevel } from '../src/levels.mjs';
 import { canPlace } from '../src/engine.mjs';
 import { inputFor } from './cocos-input.mjs';
-const output = new URL('../docs/design/cocos-2026-10-23/actual/', import.meta.url);
+// Keep repeatable test output separate from the historical release evidence.
+const output = new URL('../reports/browser/', import.meta.url);
 await mkdir(output, { recursive: true });
 let server,
   url = process.env.PLACE_AND_CLEAR_BROWSER_URL || process.env.GAME_URL;

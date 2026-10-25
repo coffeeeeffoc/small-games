@@ -6,6 +6,9 @@ test('fullscreen retirement accepts only reviewed bytes and proven deletions wit
   const root = fileURLToPath(new URL('../', import.meta.url));
   const catalog = await loadGameCatalog(root);
   // This fixture describes the pre-rename release, not today's public identity.
+  catalog.gameSources = catalog.gameSources.map((source) =>
+    source === 'games/local/place-and-clear' ? 'games/local/three-choose-two' : source,
+  );
   catalog.standaloneGames = catalog.standaloneGames.map((game) =>
     game.id === 'place-and-clear'
       ? { ...game, id: 'three-choose-two', source: 'games/local/three-choose-two' }

@@ -134,7 +134,7 @@ export const gameRenameReviews = Object.freeze({
   },
   'packages/native-game-shell/src/shell.ts': {
     before: 'c72628884fa2ec73010aaa7366594ab498886e13aaf8ddbfdc3fa96aad8f298f',
-    after: 'fddf9b484d9405b1d830e2db89997b59d22d5c5600c29f36d58a9bd93ec938a6',
+    after: '2005e820e26199c110e82d296ee7bebd6990670a469f569bbb2b99ca30ea528e',
     sources: ['games/local/place-and-clear', 'packages/native-game-shell', 'apps/shell-minigame'],
   },
   'scripts/build-games.test.mjs': {
