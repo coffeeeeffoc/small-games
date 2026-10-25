@@ -16,9 +16,12 @@ export async function assertCageRescueGameplay(frame, mobile = false) {
   }
   await click(frame.locator('#launch'));
   await expect.poll(async () => (await snapshot()).game.phase).toBe('playing');
-  const scene = frame.locator('#scene');
+  const scene = frame.locator(mobile ? '#paddle-control' : '#scene');
   const bounds = await scene.boundingBox();
-  const start = { x: bounds.x + bounds.width * 0.5, y: bounds.y + bounds.height * 0.85 };
+  const start = {
+    x: bounds.x + bounds.width * 0.5,
+    y: bounds.y + bounds.height * (mobile ? 0.55 : 0.85),
+  };
   const end = { x: bounds.x + bounds.width * 0.7, y: start.y };
   const initialX = (await snapshot()).game.paddle.x;
   if (mobile) {

@@ -1,0 +1,304 @@
+{
+  "verified": "2026-10-26 (Asia/Shanghai)",
+  "base": "7c026d5a3664a7744c6d6449f5b3a141fc00bb09",
+  "sourceSha256": {
+    "index.html": "dc38396bbe429db17ac2e9635f6fe7c92b86b9dd3ae550e40349a07673202d70",
+    "src/audio.mjs": "57fe85fbc43bc7836ca905316d01b6175f6681113a2ca40b88a71721f0101dbf",
+    "src/core.mjs": "a2358e2c69ca213d9cecf91386b0c98c964af8a69c0f6276efbc21ac07c752ee",
+    "src/host.mjs": "aafa589b4f7b27b7ea3806f36d187713e81e7858522c1e551f4551b85aa3f08c",
+    "src/levels.mjs": "9d36456ce1ebf037a9dbc68dee81301f8c47f2dde096c467c8cc378eef89ca67",
+    "src/main.mjs": "3690950662ba205b5dbabbc378f302ca9155014b9de5f873cc04d07a881544d2",
+    "src/progress.mjs": "7c18dfb4e793a0d388db78b5561754caf94b5c766a95c58682bfc58ae9642b52",
+    "src/render.mjs": "34d82c2086f975596fca8e2b0edca35855e4b184aeadc51636bde069365adfbc",
+    "style.css": "111546bd9bb8e72bbecbca75886b9f3b29e6f706729a95e063ccc7bc6456ba94"
+  },
+  "rules": {
+    "passed": 59,
+    "failed": 0
+  },
+  "browser": {
+    "browser": "140.0.7339.186",
+    "checks": [
+      {
+        "name": "touch flow 390x844",
+        "passed": true,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "touch": "native CDP drag, second touch ignored, cancel releases capture",
+        "progressReload": true
+      },
+      {
+        "name": "touch flow 320x568",
+        "passed": true,
+        "viewport": {
+          "width": 320,
+          "height": 568
+        },
+        "touch": "native CDP drag, second touch ignored, cancel releases capture",
+        "progressReload": true
+      },
+      {
+        "name": "touch flow 844x390",
+        "passed": true,
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "touch": "native CDP drag, second touch ignored, cancel releases capture",
+        "progressReload": true
+      },
+      {
+        "name": "touch flow 1280x900",
+        "passed": true,
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "touch": "native CDP drag, second touch ignored, cancel releases capture",
+        "progressReload": true
+      },
+      {
+        "name": "production development mode and trial save isolation",
+        "passed": true,
+        "modes": ["URL enabled", "storage enabled", "URL explicit off"],
+        "trialOutcomes": ["won", "lost"],
+        "progressSaved": false
+      },
+      {
+        "name": "blocked storage preserves startup, optional save and URL mode",
+        "passed": true,
+        "localGamePlayable": true,
+        "URLModePlayable": true
+      },
+      {
+        "name": "same-origin iframe mode forwarding and normal viewport",
+        "passed": true,
+        "fixture": true,
+        "crossOrigin": false,
+        "explicitModeForwarding": true,
+        "noFullscreenControls": true
+      },
+      {
+        "name": "cross-origin iframe mode forwarding and normal viewport",
+        "passed": true,
+        "fixture": true,
+        "crossOrigin": true,
+        "explicitModeForwarding": true,
+        "noFullscreenControls": true
+      },
+      {
+        "name": "natural pointer play all-person rescue and save",
+        "passed": true,
+        "phase": "won",
+        "rescued": 6,
+        "lives": 3,
+        "seconds": 38.44999999999846,
+        "trial": false,
+        "inputs": "CDP initial contact followed by PointerEvents; Playwright clock advances requestAnimationFrame without changing game state"
+      },
+      {
+        "name": "natural pointer play ball-loss failure and free retry",
+        "passed": true,
+        "phase": "lost",
+        "rescued": 0,
+        "lives": 0,
+        "seconds": 12.007833333333314,
+        "trial": false,
+        "inputs": "CDP initial contact followed by PointerEvents; Playwright clock advances requestAnimationFrame without changing game state"
+      },
+      {
+        "name": "natural pointer play first missed teammate and free retry",
+        "passed": true,
+        "phase": "lost",
+        "rescued": 1,
+        "lives": 3,
+        "seconds": 26.127583333332908,
+        "trial": false,
+        "inputs": "CDP initial contact followed by PointerEvents; Playwright clock advances requestAnimationFrame without changing game state"
+      },
+      {
+        "name": "cached field, idle screens, background return and disposal",
+        "passed": true,
+        "framesPerSimulatedSecond": 63,
+        "gradientsPerFrame": 3,
+        "idleFrames": 0
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "docs\\design\\actual-home.png",
+      "docs\\design\\actual-levels.png",
+      "docs\\design\\actual-play.png",
+      "docs\\design\\actual-pause.png",
+      "test-results\\flow-390x844.png",
+      "test-results\\flow-320x568.png",
+      "test-results\\flow-844x390.png",
+      "test-results\\flow-1280x900.png",
+      "test-results\\developer-win-ui-only.png",
+      "test-results\\natural-first-release.png",
+      "docs\\design\\actual-result.png",
+      "test-results\\natural-failure.png",
+      "test-results\\natural-first-release.png",
+      "docs\\design\\actual-miss-result.png"
+    ],
+    "limitations": [
+      "Chromium desktop and emulated touch viewports; no physical phone or native mini-game platform was tested.",
+      "Same-origin and cross-origin iframe fixtures exercise the production game and shared development-mode script; the complete Shell build is not launched by this test.",
+      "Developer result buttons verify UI and save isolation only. Natural play is recorded separately and uses pointer input without editing game state."
+    ],
+    "passed": true
+  },
+  "finalLayout": {
+    "browser": "140.0.7339.186",
+    "checks": [
+      {
+        "name": "touch flow 390x844",
+        "passed": true,
+        "viewport": {
+          "width": 390,
+          "height": 844
+        },
+        "touch": "native CDP drag, second touch ignored, cancel releases capture",
+        "progressReload": true
+      },
+      {
+        "name": "touch flow 320x568",
+        "passed": true,
+        "viewport": {
+          "width": 320,
+          "height": 568
+        },
+        "touch": "native CDP drag, second touch ignored, cancel releases capture",
+        "progressReload": true
+      },
+      {
+        "name": "touch flow 844x390",
+        "passed": true,
+        "viewport": {
+          "width": 844,
+          "height": 390
+        },
+        "touch": "native CDP drag, second touch ignored, cancel releases capture",
+        "progressReload": true
+      },
+      {
+        "name": "touch flow 1280x900",
+        "passed": true,
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "touch": "native CDP drag, second touch ignored, cancel releases capture",
+        "progressReload": true
+      }
+    ],
+    "errors": [],
+    "screenshots": [
+      "docs\\design\\actual-home.png",
+      "docs\\design\\actual-levels.png",
+      "docs\\design\\actual-play.png",
+      "docs\\design\\actual-pause.png",
+      "test-results\\flow-390x844.png",
+      "test-results\\flow-320x568.png",
+      "test-results\\flow-844x390.png",
+      "test-results\\flow-1280x900.png"
+    ],
+    "limitations": [
+      "Chromium desktop and emulated touch viewports; no physical phone or native mini-game platform was tested.",
+      "Same-origin and cross-origin iframe fixtures exercise the production game and shared development-mode script; the complete Shell build is not launched by this test.",
+      "Developer result buttons verify UI and save isolation only. Natural play is recorded separately and uses pointer input without editing game state."
+    ],
+    "passed": true
+  },
+  "touch": {
+    "browser": "140.0.7339.186",
+    "device": "Pixel 7 / 390×844 native Chromium touch emulation",
+    "checks": [
+      "Separate strip maps absolute positions and both boundaries precisely; field touches are ignored; capture, cancellation and slider keyboard endpoints work",
+      "Eight native control-strip drags immediately followed by pause each activate exactly once; resume remains available",
+      "Native touch cancellation and release outside the control produce no action",
+      "Keyboard Enter, mouse click, and real mouse immediately after touch retain their activation paths",
+      "Native touch releases after blur/pagehide and an 850 ms hold stay cancelled; immediate keyboard and fresh touch activation remain available"
+    ],
+    "errors": [],
+    "passed": true
+  },
+  "mechanisms": {
+    "browser": "140.0.7339.186",
+    "viewport": "390x844",
+    "checks": [
+      "Normal pointer input enters the slit, triggers three balls, freezes all balls during pause, resumes and rescues all six teammates.",
+      "Route 7: visible mechanic activated through pointer input.",
+      "Route 11: visible mechanic activated through pointer input.",
+      "Route 17: visible mechanic activated through pointer input.",
+      "Route 24: visible mechanic activated through pointer input.",
+      "Route 29: visible mechanic activated through pointer input."
+    ],
+    "shots": [
+      "home-390",
+      "levels-390",
+      "chamber-ready-390",
+      "chamber-multiball-390",
+      "multiball-pause-390",
+      "chamber-result-390",
+      "route-7-390",
+      "route-7-triggered-390",
+      "route-11-390",
+      "route-11-triggered-390",
+      "route-17-390",
+      "route-17-triggered-390",
+      "route-24-390",
+      "route-24-triggered-390",
+      "route-29-390",
+      "route-29-triggered-390",
+      "chamber-ready-320"
+    ],
+    "errors": [],
+    "limitation": "Desktop Chromium touch emulation. Saved-progress fixture selects later levels; gameplay uses native touch activation and scripted pointer moves, without changing simulation state. Recording runs at real speed.",
+    "passed": true
+  },
+  "expansion": {
+    "gameId": "cage-rescue",
+    "browser": "140.0.7339.186",
+    "checks": [
+      "30 routes, 29 locked, last route scrollable; two board types, safe names, milliseconds displayed as seconds, boards share one anonymous session and use authenticated reads",
+      "legacy clears unlock the next new route; offline endless entry, pause, resume and home remain usable",
+      "combined chapter artwork is rendered through normal selection with a prepared progress fixture",
+      "late optional module cannot restart a cancelled run; local retry remains playable",
+      "320px and landscape leaderboard controls remain touch sized; a module that never loads cannot freeze local input beyond startup timeout",
+      "artifact rule handshake: same version records; older/newer/missing responses and pre-handshake/updated server rejections show update prompt, allow local touch play, pause/resume/home and never upload"
+    ],
+    "screenshots": [
+      "actual-home.png",
+      "actual-levels.png",
+      "actual-leaderboard.png",
+      "actual-leaderboard-320.png",
+      "actual-leaderboard-844.png",
+      "actual-endless-pause.png",
+      "actual-mechanics.png",
+      "actual-rule-version-update.png"
+    ],
+    "limitations": [
+      "Desktop Chromium with emulated touch; no physical phone. API routes below are UI contract fixtures, not backend verification."
+    ],
+    "passed": true,
+    "errors": []
+  },
+  "shellGameplayContract": {
+    "mobileControlStrip": true,
+    "desktopMouse": true,
+    "environment": "Dedicated Shell contract on standalone production page; iframe flows covered by browser report. No full Shell production build."
+  },
+  "fullscreen": {
+    "passed": true,
+    "sourceFiles": 1146
+  },
+  "limits": ["No physical phone or native minigame validation.", "No upload or channel review."],
+  "publicationScopes": {
+    "selectedChecks": 9,
+    "passed": 9,
+    "note": "Final focused rerun includes the three corrected LF-hash cases and the two workspace-consumer cases after the pinned chess submodule was initialized. Initial broad run passed 110/115 before those corrections."
+  }
+}

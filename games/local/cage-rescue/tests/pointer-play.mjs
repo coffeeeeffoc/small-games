@@ -4,22 +4,22 @@ export async function steerWithPointer(
   context,
   { lose = false, miss = false, touch = true, topPage = page } = {},
 ) {
-  const bounds = await page.locator('#scene').boundingBox();
+  const bounds = await page.locator(touch ? '#paddle-control' : '#scene').boundingBox();
   let contact;
   if (touch) {
     contact = await context.newCDPSession(topPage);
     await contact.send('Input.dispatchTouchEvent', {
       type: 'touchStart',
-      touchPoints: [{ id: 1, x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height * 0.85 }],
+      touchPoints: [{ id: 1, x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height * (touch ? 0.55 : 0.85) }],
     });
   } else {
-    await topPage.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.85);
+    await topPage.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height * (touch ? 0.55 : 0.85));
     await topPage.mouse.down();
   }
   await page.evaluate(
     ({ lose, miss, touch }) => {
       const pointerId = window.__cageRescue.snapshot().activePointer;
-      const canvas = document.querySelector('#scene');
+      const canvas = document.querySelector(touch ? '#paddle-control' : '#scene');
       const reflectX = (x) => {
         const left = 23,
           span = 344;
@@ -70,7 +70,7 @@ export async function steerWithPointer(
             isPrimary: true,
             bubbles: true,
             clientX: rect.left + (target / 390) * rect.width,
-            clientY: rect.top + rect.height * 0.85,
+            clientY: rect.top + rect.height * (touch ? 0.55 : 0.85),
           }),
         );
         requestAnimationFrame(steer);

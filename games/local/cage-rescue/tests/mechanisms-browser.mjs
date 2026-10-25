@@ -6,12 +6,13 @@ import { chromium, expect } from '@playwright/test';
 import { LEVELS } from '../src/levels.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const evidence = new URL('../docs/design/mechanisms-2026-10-23/', import.meta.url);
+const evidence = new URL('../test-results/mechanisms/', import.meta.url);
 const publishing = new URL('../publishing/', import.meta.url);
 const port = 4478,
   origin = `http://127.0.0.1:${port}`;
 await mkdir(new URL('gameplay/screenshots/', publishing), { recursive: true });
 await mkdir(new URL('gameplay/videos/', publishing), { recursive: true });
+await mkdir(evidence, { recursive: true });
 execFileSync(process.execPath, ['build.mjs'], { cwd: root, stdio: 'inherit' });
 const server = spawn(process.execPath, ['server.mjs', '--dist'], {
   cwd: root,
@@ -45,20 +46,20 @@ async function shot(page, name) {
   report.shots.push(name);
 }
 async function startSteering(page, context) {
-  const rect = await page.locator('#scene').boundingBox();
+  const rect = await page.locator('#paddle-control').boundingBox();
   const paddleX = (await snap(page)).game.paddle.x;
   const contact = await context.newCDPSession(page);
   await contact.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
     touchPoints: [
-      { id: 1, x: rect.x + (rect.width * paddleX) / 390, y: rect.y + rect.height * 0.85 },
+      { id: 1, x: rect.x + (rect.width * paddleX) / 390, y: rect.y + rect.height * 0.55 },
     ],
   });
   await page.evaluate(async (url) => {
     const { createRoutePlayer } = await import(url),
       play = createRoutePlayer();
     const pointerId = window.__cageRescue.snapshot().activePointer;
-    const canvas = document.querySelector('#scene');
+    const canvas = document.querySelector('#paddle-control');
     window.__routeEvidence = { maxBalls: 1, damage: false, device: false, gates: false };
     window.__routeStop = false;
     function frame() {
@@ -81,7 +82,7 @@ async function startSteering(page, context) {
           isPrimary: true,
           bubbles: true,
           clientX: rect.left + (input.targetX / 390) * rect.width,
-          clientY: rect.top + rect.height * 0.85,
+          clientY: rect.top + rect.height * 0.55,
         }),
       );
       requestAnimationFrame(frame);

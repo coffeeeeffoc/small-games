@@ -2470,8 +2470,10 @@ function assertCageRescueGameplayModule(source) {
   // Pin the complete module, not just an import regex: nested eval/loaders and
   // executable injections cannot acquire a single-game classification.
   assert(
-    createHash('sha256').update(source).digest('hex') ===
+    [
       'd854f227aa1e1a59090f76e403937d4623a6c8d4ca82a0eaaa637734c862e3b9',
+      'cdb748df34911a85e2cd90f3a324358fcfa6b8d3599912ccba3d1b536c47099e',
+    ].includes(createHash('sha256').update(source).digest('hex')),
     'Unreviewed cage rescue gameplay checks',
   );
   const body = parsedSource(source).body;

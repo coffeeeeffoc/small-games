@@ -13,10 +13,20 @@
   box-sizing: border-box;
 }
 body {
+  --control-space: 0px;
+  --game-width: min(
+    calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right)),
+    calc(
+      (100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--control-space)) *
+        390 / 700
+    )
+  );
   margin: 0;
   min-height: 100dvh;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: radial-gradient(ellipse at 50% 35%, #102c43, transparent 66%), #030c17;
   overflow: hidden;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
@@ -33,6 +43,7 @@ button:disabled {
   cursor: default;
 }
 button:focus-visible,
+#paddle-control:focus-visible,
 canvas:focus-visible {
   outline: 3px solid var(--teal);
   outline-offset: 3px;
@@ -45,10 +56,8 @@ button:active:not(:disabled) {
 }
 #game {
   position: relative;
-  width: min(
-    100vw,
-    calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 390 / 700)
-  );
+  width: var(--game-width);
+  flex: none;
   aspect-ratio: 390/700;
   max-height: 100dvh;
   container-type: inline-size;
@@ -56,6 +65,62 @@ button:active:not(:disabled) {
   isolation: isolate;
   overflow: hidden;
   box-shadow: 0 0 100px #0008;
+}
+body:is([data-screen='play'], [data-screen='pause'], [data-screen='result']) {
+  --control-space: clamp(88px, 12dvh, 104px);
+}
+#paddle-control {
+  position: relative;
+  width: var(--game-width);
+  height: var(--control-space);
+  flex: none;
+  padding: 12px 10px;
+  border: 1px solid #50899a;
+  border-radius: 14px;
+  background: linear-gradient(#1d4c60, #0b2439);
+  color: #d3eeec;
+  text-align: center;
+  font-size: 12px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: ew-resize;
+}
+#paddle-control[data-active='true'] {
+  border-color: var(--gold);
+  background: linear-gradient(#285e6b, #102e42);
+}
+#paddle-control[aria-disabled='true'] {
+  opacity: 0.45;
+}
+.control-track {
+  position: absolute;
+  top: 55%;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #57818f;
+}
+#control-paddle {
+  position: absolute;
+  left: 50%;
+  width: 27%;
+  height: 14px;
+  top: -6px;
+  transform: translateX(-50%);
+  border: 2px solid #ffe093;
+  border-radius: 8px;
+  background: var(--gold);
+}
+.control-edges {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  color: #a6c6d0;
+  font-size: 11px;
 }
 #scene {
   display: block;
@@ -867,10 +932,8 @@ h1 em {
     border-radius: 24px;
   }
   body {
+    --game-width: min(calc(100vw - 32px), calc((100dvh - 32px - var(--control-space)) * 390 / 700));
     padding: 16px;
-  }
-  #game {
-    width: calc((100dvh - 32px) * 390 / 700);
   }
 }
 @media (max-height: 570px) {
@@ -1026,6 +1089,41 @@ h1 em {
   }
   .instructions article > b {
     font-size: 20px;
+  }
+}
+
+@container (max-width: 240px) {
+  .hud {
+    padding: 3px 4px;
+    gap: 3px;
+  }
+  .level-hud span,
+  .rescue-counter > span {
+    display: none;
+  }
+  .level-hud strong {
+    min-width: 26px;
+    font-size: 18px;
+  }
+  .rescue-hud b {
+    font-size: 18px;
+  }
+  .rescue-hud b span {
+    font-size: 16px;
+  }
+  .crew-progress {
+    gap: 2px;
+  }
+  .crew-progress i {
+    width: 5px;
+  }
+  .lives {
+    gap: 3px;
+    margin: 0;
+  }
+  .lives i {
+    width: 6px;
+    height: 6px;
   }
 }
 
