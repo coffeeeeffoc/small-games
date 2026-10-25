@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import { ready } from './ready.mjs';
+import { verifyDisplayAndAim } from './display-aim.mjs';
 import { levels } from '../src/levels.mjs';
 import { saveKey } from '../src/progress.mjs';
 
@@ -161,6 +162,7 @@ try {
     await page.locator('#resume').tap();
   }
   assert.deepEqual(errors, []);
+  report.displayAndAim = await verifyDisplayAndAim(browser, 'http://127.0.0.1:4540/', out);
   Object.assign(report, { engine, cache, rewards, errors, passed: true });
   report.checks = [
     'real Cocos WebGL scene and sprites/Graphics',
