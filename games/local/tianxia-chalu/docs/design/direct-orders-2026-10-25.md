@@ -17,4 +17,12 @@
 
 纯输入及队列行为使用 `tests/orders.test.mjs`；真实触屏回归在 `tests/browser.mjs`，权威服务触屏入口在 `services/tianxia-server/tests/browser.mjs`。覆盖占城接力、独立城池连续指令、双击防误发、兵线循环、多指取消、冷却、慢网络与易主。
 
-本地环境为 Linux，Node 24.21.0、pnpm 12.6.0、Chromium 手机触屏模拟。当前环境没有 Creator 3.8.8；开发调试可使用基线真实 Creator 渲染器并覆盖当前宿主脚本，明确标为开发验证，不改构建身份、不冒充重建产物。最终生产验证使用 CI Windows Creator 构建的匹配制品；记录在本节后续补充。原生平台和实体手机不在本次模拟验收范围。
+本地环境为 Linux，Node 24.21.0、pnpm 12.6.0、Chromium 手机触屏模拟。当前环境没有 Creator 3.8.8；开发调试可使用基线真实 Creator 渲染器并覆盖当前宿主脚本，明确标为开发验证，不改构建身份、不冒充重建产物。最终生产验证使用 CI Windows Creator 构建的匹配制品。原生平台和实体手机不在本次模拟验收范围。
+
+## 本轮证据
+
+- [Creator 构建](https://github.com/coffeeeeffoc/small-games/actions/runs/40203797776/job/121200633146)成功，制品源码指纹 `4b5635b14b5563117f2c5624dc693f6a85504c32f2c4854493a8b66b81ade88e`；下载摘要与来源在[媒体清单](../../publishing/verification/direct-orders-media.json)。
+- 新增 20 项输入／队列回归，游戏规则与存储等合计 70 项；服务规则 10 项通过。开发触屏覆盖全部 13 组游戏流程，旧进攻型自动 pilot 对几十毫秒的交互时序敏感，改为稳定的防守型 pilot；保留真实手势、军令生效、获胜、解锁和奖励断言，不改变游戏平衡。
+- 匹配生产制品的[HTTP 服务触屏回归](../../publishing/verification/direct-orders-server-browser.json)9 项通过，含慢回执期间两座城市的独立派兵、前后台、断线、恢复和退出。
+- [实际选中反馈](../../publishing/gameplay/screenshots/direct-orders-2026-10-25/selected-city-390x844.png)、[补给接力](../../publishing/gameplay/screenshots/direct-orders-2026-10-25/battle-390x844.png)、[拖拽预览](../../publishing/gameplay/screenshots/direct-orders-2026-10-25/drag-orders-390x844.png)及[正常时钟录屏](../../publishing/gameplay/videos/direct-orders-2026-10-25/duochengling-gameplay-390x844.webm)。只减少旧军令按钮，保留纸本山河风格与现有沙盘；窄屏、横屏及恢复竖屏的触控已覆盖。
+- 并行 `dev` 更新已合并保留，最终增量验证基线为 `4e97662fd910758595c345f2985a805d1a19095d`。最终候选提交后运行 `pnpm validate:candidate --base <准确远端SHA> --head <候选SHA>`；完整准确 SHA 和执行结果保存在交付日志。

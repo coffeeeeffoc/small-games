@@ -1,0 +1,167 @@
+{
+  "sourceHash": "4b5635b14b5563117f2c5624dc693f6a85504c32f2c4854493a8b66b81ade88e",
+  "verifiedAt": "2026-10-25",
+  "creatorRun": 40203797776,
+  "creatorJob": 121200633146,
+  "artifactId": 12602817367,
+  "artifactZipSha256": "90b4a69fe838ea0c28eaff31f9668d6bf3b85b81cc28e88129fc51d24730be5e",
+  "files": [
+    {
+      "file": "gameplay/screenshots/direct-orders-2026-10-25/battle-390x844.png",
+      "bytes": 356390,
+      "sha256": "58d3c39dd55026ba1cd419bbb2361c6b66092f4355d22f924851e251eced3259",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    {
+      "file": "gameplay/screenshots/direct-orders-2026-10-25/drag-orders-390x844.png",
+      "bytes": 356784,
+      "sha256": "d80401c5535f7c9374b2fc66d9a97348e606a0ede3c914e6723b3c03081d5afb",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    {
+      "file": "gameplay/screenshots/direct-orders-2026-10-25/hold-city-390x844.png",
+      "bytes": 356241,
+      "sha256": "6d11afafd2380ba43a22da5278d72419e028c1f0017a9bc1f39ef567a478c0d3",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    {
+      "file": "gameplay/screenshots/direct-orders-2026-10-25/home-390x844.png",
+      "bytes": 521295,
+      "sha256": "0122d4b7ba26eaa6892660d63bb6bc0651a4a630fe6b94040975e6538cfbb3dc",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    {
+      "file": "gameplay/screenshots/direct-orders-2026-10-25/levels-390x844.png",
+      "bytes": 148870,
+      "sha256": "2303b851d9a269d4e29774e4d71945033a4cf5c9c1b4b8fcea97680a2cf48311",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    {
+      "file": "gameplay/screenshots/direct-orders-2026-10-25/selected-city-390x844.png",
+      "bytes": 355904,
+      "sha256": "699b0229fc35388738a1be915d8e4804a7d81ea5052a8171ab9cded435c20970",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    {
+      "file": "gameplay/videos/direct-orders-2026-10-25/duochengling-gameplay-390x844.webm",
+      "bytes": 1162188,
+      "sha256": "82fc791d3d27a15eb65699fa699359c864cd3e60a29d4dfc2d42f3da2f4d1839",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "vp8",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "duration": "23.720000"
+        }
+      }
+    },
+    {
+      "file": "promo/images/direct-orders-2026-10-25/duochengling-home-390x844.png",
+      "bytes": 521295,
+      "sha256": "0122d4b7ba26eaa6892660d63bb6bc0651a4a630fe6b94040975e6538cfbb3dc",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "png",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {}
+      }
+    },
+    {
+      "file": "promo/videos/direct-orders-2026-10-25/duochengling-preview-390x844.mp4",
+      "bytes": 700785,
+      "sha256": "6cf0c2f73641895bb8a94289c3b6800f2642b36d8969e6fcf8e8af07a94106e6",
+      "media": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 390,
+            "height": 844
+          }
+        ],
+        "format": {
+          "duration": "23.720000"
+        }
+      }
+    }
+  ]
+}
