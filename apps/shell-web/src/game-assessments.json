@@ -56,7 +56,7 @@
     },
     {
       "id": "chase-thief",
-      "title": "追贼别撞墙",
+      "title": "小贼哪里跑",
       "source": "games/local/chase-thief",
       "disposition": "potential",
       "potential": ["potential"],

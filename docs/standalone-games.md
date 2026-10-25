@@ -36,7 +36,7 @@
 
 《熔光弹珠》位于 `games/local/ember-bounce`，workspace 包名为 `@coffeeeeffoc/ember-bounce`，通过 iframe 装载，独立地址为 `/games/ember-bounce/index.html`。玩家直接拖动球场瞄准，释放连续弹珠，通过反弹、熔晶碎裂与局内祝福推进关卡。竖屏布局适合向上瞄准与观察下落目标，规则、关卡、画面与本地存档分别维护。开发运行 `pnpm --filter @coffeeeeffoc/ember-bounce dev`，生产构建与验证使用 `build`、`test`、`test:browser`。
 
-《追贼别撞墙》位于 `games/local/chase-thief`，workspace 包名为 `@coffeeeeffoc/chase-thief`，通过 iframe 装载，独立地址为 `/games/chase-thief/index.html`。三条竖屏老街赛道支持滑动换道、跳跃和滑铲，连续通过三段障碍会冲刺缩短追逐距离，累计三次碰撞或 60 秒耗尽则失败。三个赛段依次解锁，规则、关卡配置、绘制、存档和音频分别维护。Shell 复用受来源和 origin 校验的 `small-games:display-state` 消息：游玩、暂停及结算隐藏外围导航，返回游戏主页后恢复“返回目录”。开发运行 `pnpm --filter @coffeeeeffoc/chase-thief dev`（默认端口 4417）；静态构建和验证使用 `build`、`test`、`test:browser`，`node server.mjs --dist` 可预览正式制品。
+《小贼哪里跑》位于 `games/local/chase-thief`，workspace 包名为 `@coffeeeeffoc/chase-thief`，通过 iframe 装载，独立地址为 `/games/chase-thief/index.html`。竖屏无尽城市追逐支持滑动换道、跳跃、滑铲和分岔选路，收集沿途掉落物并挑战距离纪录；累计三次碰撞或未跳过沟壑结束本局，没有倒计时或终点抓捕。三个出发街区直接可选，随后连续经过其他街区；规则、路线配置、渲染、存档和音频分别维护。Shell 复用受来源和 origin 校验的 `small-games:display-state` 消息：游玩、暂停及结算隐藏外围导航，返回游戏主页后恢复“返回目录”。开发运行 `pnpm --filter @coffeeeeffoc/chase-thief dev`（默认端口 4417）；静态构建和验证使用 `build`、`test`、`test:browser`，`node server.mjs --dist` 可预览正式制品。
 
 《双面机关盒》位于 `games/local/two-sided-box`，workspace 包名为 `@coffeeeeffoc/two-sided-box`，通过 iframe 装载，独立地址为 `/games/two-sided-box/index.html`。六面工坊提供五章 50 关，初始随机显示两个可用观察角度，随后免费逐面揭示；最后一级提示可查看支持透视的完整 3D，未使用该提示时通关先展示结构再结算。六面投影与孔板通行判断共用空间几何，核心规则、绘图和每个编号关卡独立维护。第 21–50 关经过所有双面组合的受限搜索，至少需要补充观察面才能完成。构建、规则验证和浏览器验收见游戏目录 README。
 

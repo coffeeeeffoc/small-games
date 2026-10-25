@@ -1,0 +1,3 @@
+# Keep published text checksums stable across Windows checkouts.
+publishing/copy/*.md text eol=lf
+publishing/gameplay/videos/recording.json text eol=lf

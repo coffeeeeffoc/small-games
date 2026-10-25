@@ -1,10 +1,11 @@
 {
-  "artifactSha256": "3088a5f0c9c224084395a465c51ad90428d6b6e28ccde4cf0b83986a7ac1090a",
+  "artifactSha256": "d2bcba76ff670bddfcc38b81c0fdd553dd1dd6621c882fe2d795a4a030cd8ccc",
   "engine": "Cocos Engine 3.8.8",
   "pipeline": "official-engine-source-web",
-  "date": "2026-10-24T14:53:53.741Z",
+  "date": "2026-10-25T14:03:06.675Z",
   "browser": "156.0.8078.47",
   "checks": [
+    "all three departures refresh paused preview immediately and start in their selected district",
     "normal touch menu/actions/pause/settings/resume/background/failure/retry/persist; dev API absent",
     "full-width action row and recessed trench captured in actual Cocos runtime",
     {
@@ -13,7 +14,7 @@
       "world": {
         "chunks": 6,
         "objects": 32,
-        "renderers": 97
+        "renderers": 99
       }
     },
     {

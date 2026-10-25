@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { stripTypeScriptTypes } from 'node:module';
 import * as route from '../assets/scripts/core/route.ts';
 import * as simulation from '../assets/scripts/core/simulation.ts';
+import { createHash } from 'node:crypto';
 
 async function compile(file, result, bindings) {
   const code = stripTypeScriptTypes(await readFile(new URL(file, import.meta.url), 'utf8'))
@@ -84,4 +85,70 @@ test('real road mesh removes trench surfaces and contains recessed floors across
     }
   assert.ok(checked >= 20);
   assert.ok(seam);
+});
+
+test('district scenery differs and obstacle variants retain silhouettes, clearance and a bounded cache', async () => {
+  const { Batch, rgb } = await compile('../assets/scripts/Geometry.ts', '{ Batch, rgb }', {
+    cc: {},
+  });
+  const chunks = new Map();
+  Batch.prototype.node = function (name) {
+    chunks.set(name, this.data);
+  };
+  class Node {
+    addChild() {}
+  }
+  const World = await compile('../assets/scripts/World.ts', 'World', {
+    cc: { Node, Color: class {}, utils: { createMesh: (data) => data } },
+    Batch,
+    rgb,
+    ...route,
+    ...simulation,
+  });
+  const world = Object.create(World.prototype);
+  world.root = new Node();
+  world.meshes = new Map();
+  world.art = JSON.parse(
+    await readFile(new URL('../assets/resources/art/city-models.json', import.meta.url)),
+  );
+  const fingerprint = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  const architecture = new Set(),
+    facades = new Set();
+  const bounds = (mesh, axis) => {
+    const values = mesh.positions.filter((_, i) => i % 3 === axis);
+    return [Math.min(...values), Math.max(...values)];
+  };
+  for (const district of route.DISTRICTS) {
+    world.chunk(0, simulation.createRun({ seed: 15, departure: district }));
+    architecture.add(fingerprint(chunks.get('Architecture and props').positions));
+    facades.add(fingerprint(chunks.get('Shop facades')));
+    for (const type of route.OBSTACLE_TYPES.filter((type) => type !== 'gap')) {
+      const variants = [];
+      for (const variant of [0, 1]) {
+        const mesh = world.obstacleMesh(type, district, variant);
+        assert.equal(world.obstacleMesh(type, district, variant), mesh);
+        assert.ok(mesh.positions.every(Number.isFinite));
+        for (const axis of [0, 1, 2]) {
+          const base = bounds(world.art.meshes[type], axis).map(
+            (n) => n - (type === 'barrel' && axis === 1 ? 0.35 : 0),
+          );
+          const actual = bounds(mesh, axis);
+          assert.ok(
+            actual[0] >= base[0] - 1e-5 && actual[1] <= base[1] + 1e-5,
+            `${district}/${type}/${variant} exceeds original silhouette on axis ${axis}`,
+          );
+        }
+        if (type === 'beam') {
+          const sourceVertices = world.art.meshes[type].positions.length;
+          for (let i = sourceVertices; i < mesh.positions.length; i += 3)
+            assert.ok(mesh.positions[i + 1] >= 1.25, 'decoration blocks slide clearance');
+        }
+        variants.push(fingerprint(mesh));
+      }
+      assert.notEqual(...variants, `${district}/${type} variants should differ`);
+    }
+  }
+  assert.equal(architecture.size, 3);
+  assert.equal(facades.size, 3);
+  assert.equal(world.meshes.size, 30);
 });

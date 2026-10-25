@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "追贼别撞墙：穿街过巷的 3D 无尽城市追逐",
+  "description": "小贼哪里跑：穿街过巷的 3D 无尽城市追逐",
   "coffeeeeffoc": {
     "role": "game",
     "engine": "cocos-source"

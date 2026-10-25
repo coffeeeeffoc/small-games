@@ -78,6 +78,7 @@ try {
   });
   const page = await context.newPage();
   await ready(page);
+  await expect(page).toHaveTitle('小贼哪里跑 · 无尽城市追逐');
   assert.equal(await page.evaluate(() => typeof globalThis.__chaseDev), 'undefined');
   await shot(page, 'home-390x844');
   await tap(page, 'help');
@@ -96,6 +97,25 @@ try {
   await screen(page, 'home');
   await tap(page, 'districts');
   await screen(page, 'districts');
+  for (const district of ['old-town', 'alley', 'market']) {
+    await tap(page, 'choose:' + district);
+    await expect.poll(async () => (await state(page)).departure).toBe(district);
+    assert.equal((await state(page)).distance, 0);
+    assert.equal((await state(page)).phase, 'paused');
+    await shot(page, 'preview-' + district);
+    await tap(page, 'start');
+    await expect
+      .poll(async () => (await state(page)).distance, { timeout: 20000 })
+      .toBeGreaterThan(60);
+    assert.equal((await state(page)).district, district);
+    await shot(page, 'district-' + district);
+    await tap(page, 'pause');
+    await tap(page, 'home');
+    await tap(page, 'districts');
+  }
+  report.checks.push(
+    'all three departures refresh paused preview immediately and start in their selected district',
+  );
   await shot(page, 'districts-390x844');
   await tap(page, 'choose:market');
   await tap(page, 'start');

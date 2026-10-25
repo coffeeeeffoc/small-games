@@ -8,7 +8,7 @@
   "sources": [
     [
       "ChaseGame.ts",
-      "ccc78c5d73ed66814c2169242d86197003784d3fd252b598da59c961ccbc285b"
+      "c24e8ea8a1946d476835887793af0a38d681243154df4c58df6d7020b1d14a2c"
     ],
     [
       "core/progress.ts",
@@ -28,7 +28,7 @@
     ],
     [
       "Hud.ts",
-      "878a6dce14ee9e7594606a585bdac5ca860c4edd5396ae04fc56bc8c3ce84ddd"
+      "7b02b3ca04282990e4a96247da548457cc79bcfc9b528e44f2c2d66ab89d1a6b"
     ],
     [
       "Materials.ts",
@@ -40,10 +40,10 @@
     ],
     [
       "World.ts",
-      "9f21dcadc3bce9489fd6b38906224db42b2c8695f26d0bf34a222a6fa80ad109"
+      "c2c9e8dec4861b52ab996201a519e285ef08a061dfd536d007c7e345b26916f3"
     ]
   ],
-  "artifactSha256": "3088a5f0c9c224084395a465c51ad90428d6b6e28ccde4cf0b83986a7ac1090a",
+  "artifactSha256": "d2bcba76ff670bddfcc38b81c0fdd553dd1dd6621c882fe2d795a4a030cd8ccc",
   "runtimeFiles": [
     {
       "path": "art/city-models.json",
@@ -97,13 +97,13 @@
     },
     {
       "path": "dev-mode.js",
-      "bytes": 14731,
-      "sha256": "fcc49bdcc071a234df52081bbb6f09ce0a002e4c633403cb460724c921cb4b39"
+      "bytes": 15074,
+      "sha256": "3f0edcb4143356376a57faa6b9790859e218f944d9d5d905a63675af6c4e1599"
     },
     {
       "path": "game/ChaseGame.js",
-      "bytes": 17414,
-      "sha256": "f1791fe963b8a73421c56de4b7c98ef6ba6464f9ee1dc08b4d1a84a9f83b6fcc"
+      "bytes": 18061,
+      "sha256": "3ea33194d5b76250a2b8481ad24acf7cd77a794240c9a0b7801ef6fa24caf5b3"
     },
     {
       "path": "game/core/progress.js",
@@ -127,8 +127,8 @@
     },
     {
       "path": "game/Hud.js",
-      "bytes": 13106,
-      "sha256": "b64f2444de53145fb28c222e5f5dc2e4ee0b827815a2d1b96ab914b17f8674df"
+      "bytes": 13482,
+      "sha256": "a6aaebc7b2732f7d2efc98f10f18d412313cff7af82cf1df1f7632e9f66699ba"
     },
     {
       "path": "game/Materials.js",
@@ -142,23 +142,23 @@
     },
     {
       "path": "game/World.js",
-      "bytes": 26476,
-      "sha256": "835d1aff8c973b5cf607e17b46d732f65955d5cc8d77500dd15dcefa4ddc471d"
+      "bytes": 33266,
+      "sha256": "f42c8ee257947997d6cd46392d30782e8e320ed6dfd95cf626d02c6df30a60a7"
     },
     {
       "path": "index.html",
-      "bytes": 1227,
-      "sha256": "dae7ae261546cfe6b67913170943e797743f718733e5ccee5a1c0f77791fcb37"
+      "bytes": 1255,
+      "sha256": "c88f990a2d4f170e3c7141191eb4991b8403f88b309f4129c6343911e2ce775d"
     },
     {
       "path": "style.css",
-      "bytes": 1441,
-      "sha256": "06e8ecfbef865a6a3cb9ce4b75ae02859f71ab59e50073893c1f925c13e89ce6"
+      "bytes": 1527,
+      "sha256": "3fff9b344524c66049dfdaf9b58cb240ae3fb2e9af28848fe440dc0b356b8b06"
     },
     {
       "path": "vendor/cocos/.gitattributes",
-      "bytes": 111,
-      "sha256": "468a29cc07304fa8653727e5f2e6d459c68f2429a3ffc25aedbbefd5f39c788a"
+      "bytes": 114,
+      "sha256": "2c8996e6c109b28da1bd487dcd71ab580a3e01ee3a6808e7ff69b95c5cd81d83"
     },
     {
       "path": "vendor/cocos/cc.js",

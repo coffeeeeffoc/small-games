@@ -1,4 +1,4 @@
-# 追贼别撞墙
+# 小贼哪里跑
 
 沿着起伏弯曲的老城街道，一路追着同一个橙衣小偷跑下去。真实 Cocos 3D 城市无尽跑酷：骑楼街、居民巷、集市连续变化，建筑与道具从远处进入、掠过身侧并回收。
 
@@ -20,11 +20,11 @@ pnpm --filter @coffeeeeffoc/chase-thief dev
 - 起跑 13 m/s，约 67 秒加速至 21 m/s；障碍间距 24 米。手机滑动达到阈值即执行，不必等抬手。沟壑从近沿到远沿均须保持跨越，不能在坑里落地。
 - 分路口提前选左右，中央分隔带不可穿过；有障碍的一侧拾取回报更多，另一侧更稳妥，两条路随后汇合。
 - 轻碰撞扣一点耐力并短暂减速；三次碰撞结束本局，未跳过沟壑直接结束。重试免费。暂停、设置、后台切换均冻结玩法。
-- 三个出发街区直接可选，随后仍会经过其他街区。声音、震动、减弱镜头动态及触控按钮设置保存在本地。
+- 三个出发街区直接可选，选中立即刷新场景预览，随后仍会经过其他街区。骑楼街有廊柱店招，居民巷有灰墙阳台和晾衣，集市有彩棚果蔬与货车；五类实体障碍各有三街区、两种装饰变体，沟壑继续使用真实凹陷路面，操作和碰撞规则不变。声音、震动、减弱镜头动态及触控按钮设置保存在本地。
 
 ## 实现与素材
 
-`assets/scripts/core/` 为纯 TypeScript 路线、固定步长模拟和存档；`World.ts` 使用 Cocos Scene / Camera / MeshRenderer 生成连续街区，`Hud.ts` 使用 Canvas / Graphics / Label 绘制菜单；输入、音效、生命周期由 Cocos 管理。HTML 只承担加载、全屏及公共开发工具接入。
+`assets/scripts/core/` 为纯 TypeScript 路线、固定步长模拟和存档；`World.ts` 使用 Cocos Scene / Camera / MeshRenderer 生成连续街区，`Hud.ts` 使用 Canvas / Graphics / Label 绘制菜单；输入、音效、生命周期由 Cocos 管理。HTML 只承担加载及公共开发工具接入。
 
 当前 Web 使用固定官方 **Cocos Engine 3.8.8** 源码构建，提交 `411f98df047c25902f93440d4b22925c2fb65461`，完整来源及 SHA-256 见 `vendor/cocos/provenance.json`。`build.mjs` 验证真实引擎后编译 TypeScript，产出 `dist/build-info.json`。这不是 Creator 编辑器导出制品。
 
@@ -44,7 +44,7 @@ Creator 工程生成在忽略的 `.creator-project/`，打开 `assets/scenes/mai
 
 旧 `chase-thief.progress.v1` 只读取设置及历史抓捕纪录，原键不改写；无尽纪录独立保存在 `chase-thief.progress.v2`。旧挑战链接明确提示规则已更新，不把旧用时当成无尽成绩。此前限时玩法、分享成绩协议和模拟插屏已退役；目前无广告奖励或付费续跑。
 
-复用公共 `dev-mode.js` / `fullscreen.js`。`?dev=1` 启用开发面板，`?dev=0` 显式关闭。`__chase.snapshot()` 是只读画面语义诊断；修改时钟、无敌和街区试玩仅在开发模式提供，都会隔离个人纪录。存储损坏时不覆盖原数据，存储被禁用时仍可玩。
+复用公共 `dev-mode.js`。`?dev=1` 启用开发面板，`?dev=0` 显式关闭。`__chase.snapshot()` 是只读画面语义诊断；修改时钟、无敌和街区试玩仅在开发模式提供，都会隔离个人纪录。存储损坏时不覆盖原数据，存储被禁用时仍可玩。
 
 ## 验证与交付
 

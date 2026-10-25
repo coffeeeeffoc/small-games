@@ -1,55 +1,76 @@
 {
-  "verified": "2026-10-24",
-  "artifactSha256": "3088a5f0c9c224084395a465c51ad90428d6b6e28ccde4cf0b83986a7ac1090a",
+  "verified": "2026-10-25",
+  "artifactSha256": "d2bcba76ff670bddfcc38b81c0fdd553dd1dd6621c882fe2d795a4a030cd8ccc",
   "files": [
     {
       "path": "copy/developer-note.md",
-      "bytes": 701,
-      "sha256": "9a889c32540afbb6ed6505c21c5cec2d8cd6aeecbac80b995c3a7c13610e2dd9"
+      "bytes": 979,
+      "sha256": "1f00a6a7ea8cae3b80035e4eb295539622e6ae56f0b417cd2ebbc1ce71833fba"
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 727,
-      "sha256": "d32bc77aebf5eb183b4e3fe8bc6ca8d68802442398283f85d3deb4db48f68e85"
+      "bytes": 959,
+      "sha256": "cfad4dcbc5ead59b4508adc40bf0d3dc4971dd62a62c4b8239e15a688b551f45"
     },
     {
       "path": "copy/tagline.md",
-      "bytes": 35,
-      "sha256": "2caa220cce9aa3545e8981a333de841e7711f623d4e3b7b8e9e23b6e51c77ad7"
+      "bytes": 34,
+      "sha256": "8276df066a3e3f7904e48c214ff8192bef2a58434b02626c1b224131d3fa295a"
     },
     {
       "path": "gameplay/screenshots/chase-390x844.png",
-      "bytes": 240694,
-      "sha256": "85c3d20536e3a371349aa0db6ec8a5d2e3fa4e33447f2a9126dcf837266df280",
+      "bytes": 187346,
+      "sha256": "44f2d4c4ff7aefb6c5ce872ee80dab39fb5de01fea48ef035d064ab66718ab9a",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/district-alley.png",
+      "bytes": 182954,
+      "sha256": "d6195518cf520846d16ff582817a72c50875cf25f42fa854002a6ae08d33ad48",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/district-market.png",
+      "bytes": 193636,
+      "sha256": "baa08acc6dd0b2ff4c6449a0bf88df845827246f3e278d0dfbf615459a2ce3a2",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "gameplay/screenshots/district-old-town.png",
+      "bytes": 182759,
+      "sha256": "ae5f86ebf174726e815389e75197b90c5a43e9b751df794d0e9db1e062664b2d",
       "width": 390,
       "height": 844
     },
     {
       "path": "gameplay/screenshots/districts-390x844.png",
-      "bytes": 101020,
-      "sha256": "58fc8ce2e5974b9248f657c33b6765f96be3808c8344541ec1d22f8a48e064c2",
+      "bytes": 109770,
+      "sha256": "82d7c695f2fdbc7ae5b0528c16f03b8d93e48290669a882816c4a2fa3be1b614",
       "width": 390,
       "height": 844
     },
     {
       "path": "gameplay/screenshots/home-390x844.png",
-      "bytes": 222607,
-      "sha256": "6fe75f92d4e008251cd737663d4f18850f59114c473cdf154dc3a9656aea0b7b",
+      "bytes": 184296,
+      "sha256": "204ec76c5946c573b259e962a8b03b4dcd94098d10e9ff486e905bd41e688ec9",
       "width": 390,
       "height": 844
     },
     {
       "path": "gameplay/screenshots/result-390x844.png",
-      "bytes": 78757,
-      "sha256": "44f3fa7b82e73bf9590b4470d589ea439b3d275f61d57f2589d55393f0721962",
+      "bytes": 70237,
+      "sha256": "3328a5ef1dfac3a21e12de60b50f4dfdcfabd6b5a31379d3506ab2ba1b83a6e6",
       "width": 390,
       "height": 844
     },
     {
       "path": "gameplay/videos/city-chase-390x844.webm",
-      "bytes": 5730042,
-      "sha256": "d51366bc0b926b3bc0991e8e3cb0e68328adf3af666b4ddf7b118befa82bd701",
-      "durationSeconds": 46,
+      "bytes": 5294703,
+      "sha256": "bd7a49110f628a276bd71664e2fbed06c9fcd20c0b4f7539bc9d4e27598be96a",
+      "durationSeconds": 41.76,
       "streams": [
         {
           "codec_name": "vp8",
@@ -61,8 +82,8 @@
     },
     {
       "path": "gameplay/videos/recording.json",
-      "bytes": 1223,
-      "sha256": "7a4282f685e65a9f042340492a5aa670c4290a67b5f0ad1a4571a3496cc1fcf4"
+      "bytes": 1208,
+      "sha256": "aa1866e258d5dc3862ccaca2f9c8f36a0e5e1ce3b8a63687af4e3ab811a18f2b"
     },
     {
       "path": "icon/city-chase-icon.png",
@@ -73,15 +94,15 @@
     },
     {
       "path": "promo/images/city-chase-concept-board.png",
-      "bytes": 2914996,
-      "sha256": "54127d0a43c9e0b121c86d85b7fa1e795bf1072e03b90dac4e380590b07ff1f4",
-      "width": 1702,
-      "height": 924
+      "bytes": 1893792,
+      "sha256": "2abd15810422a2a7b13e993b4ef8c87d9df97a0b1c71f2a8d2c5ecabb5093120",
+      "width": 1199,
+      "height": 1312
     },
     {
       "path": "promo/videos/city-chase-promo-390x844.mp4",
-      "bytes": 5080104,
-      "sha256": "01bbec9015c9e7dd5acb3b4b9bd70d3d793bffaf2b3f5a12a0c5d0788627a381",
+      "bytes": 7182987,
+      "sha256": "9cdef576a4738b820f1ea99a500eb3919e6aa299e3ec94914c86be0735917060",
       "durationSeconds": 24,
       "streams": [
         {

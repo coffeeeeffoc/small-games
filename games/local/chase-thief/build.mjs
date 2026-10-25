@@ -72,4 +72,4 @@ await writeFile(
     2,
   ),
 );
-console.log('追贼别撞墙：真实 Cocos 3D Web 制品已生成至 dist/（非 Creator 编辑器导出）。');
+console.log('小贼哪里跑：真实 Cocos 3D Web 制品已生成至 dist/（非 Creator 编辑器导出）。');

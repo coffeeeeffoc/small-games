@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "browserVersion": "151.0.7922.173",
+  "browserVersion": "156.0.8078.47",
   "builtIn": 0,
   "selected": [
     "chase-thief"
@@ -12,12 +12,12 @@
       "status": "passed",
       "phase": "complete",
       "timings": {
-        "embedded-load": 1298,
-        "embedded-gameplay": 22211,
-        "embedded-return": 17556,
-        "mobile-load": 1517,
-        "mobile-gameplay": 68494,
-        "mobile-screenshot": 1517
+        "embedded-load": 1105,
+        "embedded-gameplay": 12257,
+        "embedded-return": 883,
+        "mobile-load": 393,
+        "mobile-gameplay": 13006,
+        "mobile-screenshot": 552
       },
       "embedded": "passed",
       "viewport": {
@@ -25,7 +25,7 @@
         "height": 844
       },
       "directMobile": "passed",
-      "durationMs": 112888
+      "durationMs": 28546
     }
   ],
   "failures": []

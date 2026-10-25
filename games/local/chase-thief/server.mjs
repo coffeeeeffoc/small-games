@@ -88,6 +88,6 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
     process.exitCode = 1;
   });
   server.listen(port, values.host, () => {
-    console.log(`追贼别撞墙：http://${values.host}:${server.address().port}`);
+    console.log(`小贼哪里跑：http://${values.host}:${server.address().port}`);
   });
 }

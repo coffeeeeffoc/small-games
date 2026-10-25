@@ -1,40 +1,17 @@
-# 城市无尽追逐验收
+# 小贼哪里跑 · 当前验收
 
-2026-10-24，沟壑与追逐节奏维护版；以下素材证据记录于提交前，包含已有全屏入口移除改动。Node 24.21.0 / Windows / Chromium 156.0.8078.47；真实 Cocos Engine 3.8.8 source-Web，不是 Creator 编辑器导出。
+2026-10-25，名称及三个街区视觉维护版。Node 24.21.0 / pnpm 12.6.0 / Windows / Chromium 156.0.8078.47；真实 Cocos Engine 3.8.8 source-Web。
 
-运行制品 SHA-256：`3088a5f0c9c224084395a465c51ad90428d6b6e28ccde4cf0b83986a7ac1090a`。完整源码、资源与引擎指纹见 [build-info.json](build-info.json)，与浏览器报告、实际录像的 artifactSha256 一致。
+运行制品 SHA-256：`d2bcba76ff670bddfcc38b81c0fdd553dd1dd6621c882fe2d795a4a030cd8ccc`。完整指纹见 [build-info.json](build-info.json)，与 [browser-report.json](browser-report.json) 及[实录记录](../../../../publishing/gameplay/videos/recording.json)一致。
 
-## 当前验证
+- 31项游戏测试通过：`node --test tests/*.test.mjs`。新增检查验证三个街区的建筑与立面不同、30种实体障碍派生网格有界缓存、装饰不超出原网格轮廓、滑铲净空保留。既有路线、沟壑、存档及奖励测试继续通过。
+- `node tests/browser.mjs` 通过：三个起点立即更新暂停预览、各自街区实际起跑、触屏跑跳滑、暂停/恢复/后台、失败/重试/存档、鼠标单次触发、旧存档及禁存储兼容；390×844、360×640、430×932视口，零页面/控制台错误。超过31公里场景回收仍最多6个活跃街区。
+- Shell定向96项测试通过：`catalog-assessments.test.ts`、`catalog.integration.test.tsx`、`standalone.integration.test.tsx`；Shell TypeScript、Vite生产构建通过。
+- [Shell生产入口报告](shell-pages-report.json)：42条目录登记，选择本游戏执行桌面嵌入、返回、390×844触屏及独立入口、Runtime隔离检查，全部通过。
+- [骑楼街](../../../../publishing/gameplay/screenshots/district-old-town.png)、[居民巷](../../../../publishing/gameplay/screenshots/district-alley.png)、[集市](../../../../publishing/gameplay/screenshots/district-market.png)已打开与[效果参考](../district-concept.png)对照。廊柱店招／灰墙晾衣／彩棚果蔬在实际画面中可区分。新名称首页和上架截图、实录、宣传片均已更新，八类素材见[上架状态](../../../../publishing/STATUS.md)。
 
-| 范围       | 结果与证据                                                                                                                                                                |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 游戏测试   | 30 项通过：[unit-tests.txt](unit-tests.txt)。包括固定引擎完整性、Blender 资产、规则、存档、输入、奖励回调与静态服务                                                       |
-| 内容与通行 | 10,000 波次合法且可复现；三街区 × 五种子均在最高速无伤通过 3 公里；普通速度策略通过 2 公里；一小时模拟有界                                                                |
-| 操作约束   | 整排跳/滑动作正确、错误与缺省输入；车道间隙不能逃课；沟壑近沿、坑内换道与提前落地；暂停不推进时钟                                                                         |
-| 几何       | 直接检查实际 Batch 网格：路面缺口没有铺面三角形，坑底低于路面，安全车道保留，覆盖街区变化和 chunk 边缘                                                                    |
-| 手机输入   | 滑动达到阈值即触发、每次触摸一次、次要触点忽略、取消与按钮起手不误触                                                                                                      |
-| TypeScript | 纯 core 三模块，TypeScript 5.9.3 / strict / noEmit / NodeNext，通过；不冒称完整 Cocos API 类型验收                                                                        |
-| 生产浏览器 | [browser-report.json](browser-report.json)，所有断言通过，0 页面/控制台错误；触屏菜单与跑跳滑、暂停/恢复/后台、正常失败/重试/存档、鼠标单次触发、旧存档与禁存储、开发隔离 |
-| 视口与回收 | 390×844、360×640、430×932；31 公里以上场景回收保持最多六个活跃街区                                                                                                        |
-| 真实录像   | 普通模式菜单触屏与键盘操作，无无敌、无手动时钟或跳段；约 42 秒游玩到 589 米、耐力 3，0 页面错误。见 [录制证据](../../../../publishing/gameplay/videos/recording.json)     |
-| 媒体       | 46 秒 VP8 原录像与 24 秒 H.264 宣传片完整解码、ffprobe 和抽帧核验；八类资料见 [上架状态](../../../../publishing/STATUS.md)                                                |
+初次在原主工作区运行大厅目录检查，被已退役游戏的本机残留目录干扰；改用干净Git副本后96项通过，没有删除主工作区残留或放宽断言。浏览器新增的60米取景等待采用20秒上限，包含普通碰撞减速及软件渲染；仍要求实际推进到目标距离。
 
-`tests/browser.mjs` 的中间产物输出到仓库忽略目录 `outputs/chase-thief/browser/`，当前目录仅保留选定证据。测试服务退出显式关闭剩余 HTTP 连接。
+主会话为唯一写入者；只读reviewer检查 World、ChaseGame、Hud与新增验证，未发现可行动回归问题。保留游戏ID、存档键、路线、速度、六种障碍规则及奖励契约。
 
-## 画面对照
-
-保留既有暖色街道、蓝/橙人物与青绿 HUD。对照 [局部效果参考](../gap-concept.png)，实际实现使用挖空路面、分层暗坑壁、下沉坑底、断裂石沿和黄黑短标记；效果参考不是实机。已检查 [沟壑](gap-390x844.png)、[整排矮栏](action-row-390x844.png) 和实际录像抽帧；前两张为有标识的开发试玩画面，上架截图和录像来自普通模式。
-
-速度从 9–15 m/s 调整到 13–21 m/s，常规障碍间距从 32 米缩短到 24 米，整排矮栏和横杆交替要求跳跃/滑铲。没有增加追丢倒计时；减弱镜头动态、广告保护、旧存档键和免费重试保持原契约。
-
-Windows checkout 将固定 vendor 文件改成 CRLF，导致原完整性校验失败；仅在确认 LF 字节与原 provenance SHA-256 和长度完全一致后恢复，加入局部 `.gitattributes` 防止再次转换，未放宽校验或改写清单。
-
-## 提交前独立副本复核
-
-基于 `03884c4e5d43431e2ccc55fef182d3022ef0f407` 重新构建并通过 30 项游戏测试。游戏 TypeScript 源码指纹与上述素材构建完全相同；已提交的全屏清理使 `dev-mode.js`、`index.html`、`style.css` 的发行字节不同，因此重新执行生产浏览器流程，见 [push-browser-report.json](push-browser-report.json)。新制品 SHA-256：`8efbf613afdacab03fe4f44f525e3d28ca201fed078cfbbac790fed0f2b1b2f0`。历史录屏继续保留原始制品身份，不改写为新构建。
-
-本轮采用定向构建、规则与浏览器复核；没有声称执行 `validate:candidate`。
-
-## 验证边界
-
-未执行 Creator 编辑器导出、Android/iOS 物理手机、Safari、小游戏渠道或真实广告库存测试；桌面触屏模拟不能代表真机手感/帧率。未运行完整发布候选校验或渠道上传；CI 和部署状态须按推送后的提交单独核对。既有 Shell 与公共开发入口历史报告保留原身份，不视为本轮重跑证据。
+本轮为定向构建与入口验证，没有执行完整`validate:candidate`；未验证物理手机、Safari、Creator编辑器导出、原生渠道或真实广告库存，也未上传平台。此前未被本轮链接的截图/报告保留原日期与制品身份，不作为本轮重跑证据。Git提交与远端CI/Pages状态在交付时另行核对。

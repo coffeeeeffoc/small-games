@@ -1,4 +1,4 @@
-# 追贼别撞墙 · 当前设计
+# 小贼哪里跑 · 当前设计
 
 [城市无尽追逐方案](endless-city-2026-10-22/plan.md)、[当前场景验收](endless-city-2026-10-22/verification/README.md)、[奖励流程](rewards-2026-10-24.md)。
 

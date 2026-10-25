@@ -23,8 +23,8 @@
   {
     "id": "chase-thief",
     "source": "games/local/chase-thief",
-    "title": "追贼别撞墙",
-    "description": "沿着起伏弯曲的老城街道一路追逐，跳栏、滑铲、换道与分路选择，挑战无尽距离纪录。",
+    "title": "小贼哪里跑",
+    "description": "穿过热闹的老城街巷，追赶小贼，收集沿途掉落的物品！左右闪避、跳跃滑铲，挑战更远的追逐纪录。",
     "output": "dist"
   },
   {
