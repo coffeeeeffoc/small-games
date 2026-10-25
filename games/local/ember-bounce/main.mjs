@@ -10,12 +10,13 @@ import {
   recall,
   applyUpgrade,
   previewAim,
+  shotParameters,
 } from './core.mjs';
 import { createRenderer } from './render.mjs';
 import { createStorage } from './storage.mjs';
 import { createAudio } from './audio.mjs';
 import { restoreCheckpoint } from './checkpoint.mjs';
-import { readChallenge, challengeParams, compareChallenge, CHALLENGE_KEYS } from './challenge.mjs';
+import { readChallenge, challengeParams, compareChallenge, CHALLENGE_KEYS, CHALLENGE_VERSION } from './challenge.mjs';
 import { createH5Publishing } from './publishing.js';
 
 const $ = (id) => document.getElementById(id);
@@ -259,11 +260,11 @@ function syncPlay() {
   $('aim-hint').textContent =
     game.phase === 'flight'
       ? game.recalled
-        ? '弹珠正在返回'
-        : '连击中 · 等待弹珠返回'
+        ? `向下回收 · ${game.collected} / ${game.volleyCount}`
+        : `连弹中 · 已收回 ${game.collected} / ${game.volleyCount}`
       : pointerId !== null
-        ? '松手发射'
-        : '拖动瞄准 · 松手发射';
+        ? aim ? `力度 ${Math.round(shotParameters(aim.dx, aim.dy).power * 100)}% · 松手发射` : '移回场地瞄准'
+        : '拖远更快 · 松手发射';
   const visible = game.combo >= 4 && performance.now() < comboUntil && phase === 'playing';
   $('combo').classList.toggle('visible', visible);
   if (visible) $('combo').textContent = `${game.combo} 连击`;
@@ -350,7 +351,7 @@ function result() {
   $('result-score').textContent = String(game.score);
   $('result-turns').textContent = String(game.completedTurns);
   $('next').hidden = !won || !next || game.practice || Boolean(activeChallenge);
-  $('share-challenge').hidden = !won || game.practice;
+  $('share-challenge').hidden = !won || game.practice || game.level.rulesVersion !== CHALLENGE_VERSION;
   $('share-fallback').hidden = true;
   $('next').onclick = () => next && startLevel(next.id);
   show('result');
@@ -370,24 +371,30 @@ function consumeEvents() {
       win: 'win',
       loss: 'loss',
       upgrade: 'upgrade',
+      collect: 'collect',
+      recall: 'recall',
+      ricochet: 'ricochet',
     }[event.type];
     if (tone) audio.play(tone, game.combo);
     if (event.type === 'collision') comboUntil = performance.now() + 950;
     if (event.type === 'pickup') toast(`弹珠 +${event.value} · 下一轮加入`);
-    if (event.type === 'timeout') toast('已收回弹珠，继续下一轮');
+    if (event.type === 'timeout') toast('弹珠正在向下回收');
     if (event.type === 'turn') saveRound();
   }
 }
 function point(event) {
   const box = canvas.getBoundingClientRect();
   return {
-    x: ((event.clientX - box.left) * WIDTH) / box.width,
-    y: ((event.clientY - box.top) * HEIGHT) / box.height,
+    // Logical-pixel inputs keep the same release reproducible across viewport scaling.
+    x: Math.round(((event.clientX - box.left) * WIDTH) / box.width),
+    y: Math.round(((event.clientY - box.top) * HEIGHT) / box.height),
   };
 }
 function updateAim(event) {
   const target = point(event);
-  aim = { dx: target.x - game.launch.x, dy: Math.max(28, target.y - FIELD.launchY) };
+  aim = target.x < FIELD.left || target.x > FIELD.right || target.y <= FIELD.launchY + 12
+    || target.y > FIELD.bottom ? null
+    : { dx: target.x - game.launch.x, dy: target.y - FIELD.launchY };
 }
 listen(canvas, 'pointerdown', (event) => {
   if (phase !== 'playing' || game?.phase !== 'aim' || pointerId !== null || event.button !== 0)
@@ -441,9 +448,9 @@ $('back-home').onclick = home;
 $('result-home').onclick = home;
 $('retry').onclick = () => startLevel(game.levelId, game.practice, activeChallenge);
 $('share-challenge').onclick = async () => {
-  if (game?.phase !== 'won' || game.practice) return;
+  if (game?.phase !== 'won' || game.practice || game.level.rulesVersion !== CHALLENGE_VERSION) return;
   const resultGame = game;
-  const params = challengeParams({ version: 1, levelId: game.levelId, turns: game.completedTurns });
+  const params = challengeParams({ version: CHALLENGE_VERSION, levelId: game.levelId, turns: game.completedTurns });
   if (!params) return;
   $('share-challenge').disabled = true;
   try {
@@ -524,6 +531,12 @@ function readSnapshot() {
     shots,
     score: game?.score ?? 0,
     ballCount: game?.ballCount ?? 0,
+    shotSpeed: game?.shotSpeed ?? 0,
+    direction: game ? { ...game.direction } : null,
+    collected: game?.collected ?? 0,
+    volleyCount: game?.volleyCount ?? 0,
+    bestCombo: game?.bestCombo ?? 0,
+    balls: game?.balls.map(({ x, y, vx, vy, returning }) => ({ x, y, vx, vy, returning: Boolean(returning) })) ?? [],
     destroyed: game?.destroyed ?? 0,
     practice: game?.practice ?? false,
     challenge: activeChallenge ? { ...activeChallenge } : null,
@@ -574,6 +587,7 @@ function animate(now) {
         dt,
         aim: aim ? previewAim(game, aim.dx, aim.dy) : [],
         aiming: pointerId !== null,
+        power: aim ? shotParameters(aim.dx, aim.dy).power : null,
         reducedMotion: reducedMotion.matches,
       });
       syncPlay();
@@ -605,4 +619,6 @@ listen(window, 'pageshow', () => {
 });
 syncSettings();
 show('home');
+if (new URL(location.href).searchParams.has('emberChallenge') && !readChallenge(location.href))
+  toast('挑战链接已过期或规则不匹配，请好友重新分享');
 frameId = requestAnimationFrame(animate);

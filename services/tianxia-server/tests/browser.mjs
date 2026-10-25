@@ -115,14 +115,15 @@ try {
   await page.touchscreen.tap(point.x, point.y);
   await expect.poll(async () => (await snapshot()).selected).toBe(own.id);
   const ack = page.waitForResponse((r) => r.url().endsWith('/commands'));
-  await page.locator('#cycle').tap();
+  const target = (await snapshot()).cities.find((c) => c.id === junction.exits[0]).client;
+  await page.touchscreen.tap(target.x, target.y);
   assert.equal((await (await ack).json()).accepted, true);
   assert.equal(first.sequence, 1);
   assert.equal(junction.routeIndex, 0);
   advance(2000);
   await expect(page.locator('#clock')).toHaveText('2:58');
   checks.push(
-    'A real Cocos city touch plus direction control reaches the API and renders the accepted route and server time.',
+    'Real Cocos source and target city touches reaches the API and renders the accepted route and server time.',
   );
   await pause(first);
   const paused = first.state.time;
@@ -146,6 +147,66 @@ try {
   await screen('home');
   checks.push(
     'Pause, resume and BFCache-style pagehide keep the server match paused without abandoning it.',
+  );
+  const simultaneous = await create();
+  const troopSource = simultaneous.state.cities.find((c) => c.owner === 0);
+  const sourceJunction = simultaneous.state.junctions.find((j) => j.cityId === troopSource.id);
+  const relayId = sourceJunction.exits[0];
+  const touchCity = async (id) => {
+    await expect
+      .poll(async () => !!(await snapshot()).cities.find((c) => c.id === id)?.client)
+      .toBe(true);
+    const p = (await snapshot()).cities.find((c) => c.id === id).client;
+    await page.touchscreen.tap(p.x, p.y);
+  };
+  await touchCity(troopSource.id);
+  await touchCity(relayId);
+  await expect.poll(() => sourceJunction.routeIndex).toBe(0);
+  advance(9000);
+  await expect
+    .poll(async () => (await snapshot()).cities.find((c) => c.id === relayId).owner)
+    .toBe(0);
+  const relay = simultaneous.state.junctions.find((j) => j.cityId === relayId);
+  const enemy = simultaneous.state.cities.find((c) => c.owner === 1);
+  const commandReceived = gate(),
+    commandRelease = gate();
+  const commandsUrl = base + '/api/matches/' + simultaneous.id + '/commands';
+  let intercepted = 0;
+  const slowCommand = async (route) => {
+    const response = await route.fetch();
+    if (++intercepted === 1) {
+      commandReceived.resolve();
+      await commandRelease.promise;
+    }
+    await route.fulfill({ response });
+  };
+  await page.route(commandsUrl, slowCommand);
+  await touchCity(relayId);
+  await touchCity(enemy.id);
+  await commandReceived.promise;
+  await touchCity(troopSource.id);
+  assert.equal(
+    (await snapshot()).selected,
+    troopSource.id,
+    'selection stays responsive during the preceding acknowledgement',
+  );
+  await touchCity(sourceJunction.exits[1]);
+  assert.equal((await snapshot()).selected, null);
+  assert.equal((await snapshot()).queuedOrders, 1);
+  commandRelease.resolve();
+  await expect.poll(() => sourceJunction.routeIndex).toBe(1);
+  assert.equal(relay.routeIndex, relay.exits.indexOf(enemy.id));
+  assert.equal(
+    simultaneous.sequence,
+    3,
+    'both independent commands reached the authoritative service exactly once',
+  );
+  await page.unroute(commandsUrl, slowCommand);
+  await pause(simultaneous);
+  await page.locator('#leave').tap();
+  await screen('home');
+  checks.push(
+    'A captured relay and another city accept independent touch orders while the first HTTP acknowledgement is delayed.',
   );
   const created = gate(),
     release = gate();

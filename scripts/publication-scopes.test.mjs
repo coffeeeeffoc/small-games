@@ -948,8 +948,10 @@ test('fourth Creator classification works in a bare planner with only Prettier a
   const directory = await mkdtemp(join(tmpdir(), 'tianxia-bare-plan-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   for (const module of [
+    'game-rename-scope.mjs',
     'publication-scopes.mjs',
     'local-game-retirement-scope.mjs',
+    'pages-registration-scope.mjs',
     'local-game-retirement-reviews.mjs',
     'vite-patch-scope.mjs',
     'competition-ingress.mjs',
@@ -999,7 +1001,7 @@ const rewardH5Extras = [
   'ashfall-front',
   'merge-front',
   'tetracube',
-  'three-choose-two',
+  'place-and-clear',
   'bullet-garden',
   'tower-brake',
   'tianxia-chalu',
@@ -3039,8 +3041,10 @@ test('reviewed quality budget can be planned without installed YAML dependencies
   const directory = await mkdtemp(join(tmpdir(), 'quality-budget-no-deps-'));
   try {
     for (const module of [
+      'game-rename-scope.mjs',
       'publication-scopes.mjs',
       'local-game-retirement-scope.mjs',
+      'pages-registration-scope.mjs',
       'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
@@ -3091,8 +3095,10 @@ test('cache writer reduction has an exact dependency-free scope and rejects unre
   const directory = await mkdtemp(join(tmpdir(), 'cache-scope-no-deps-'));
   try {
     for (const module of [
+      'game-rename-scope.mjs',
       'publication-scopes.mjs',
       'local-game-retirement-scope.mjs',
+      'pages-registration-scope.mjs',
       'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
@@ -3976,8 +3982,8 @@ test('shared identity client proves all thirteen consumers and native compositio
       read('games/local/flick-arena/competition-client.js') + '\n',
     ],
     [
-      'games/local/three-choose-two/competition.js',
-      read('games/local/three-choose-two/competition.js') + '\n',
+      'games/local/place-and-clear/competition.js',
+      read('games/local/place-and-clear/competition.js') + '\n',
     ],
     [
       'platforms/competition/game-services.js',
@@ -4255,7 +4261,7 @@ test('identity gateway routing has exact consumers and rejects any other proxy c
   for (const source of [
     'games/local/cops-robbers',
     'games/local/flick-arena',
-    'games/local/three-choose-two',
+    'games/local/place-and-clear',
     'services/runtime-api',
     'apps/shell-web',
   ])
@@ -4568,8 +4574,10 @@ test('admin lock proof plans without installed YAML dependencies', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'admin-gates-no-deps-'));
   try {
     for (const module of [
+      'game-rename-scope.mjs',
       'publication-scopes.mjs',
       'local-game-retirement-scope.mjs',
+      'pages-registration-scope.mjs',
       'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
@@ -4775,8 +4783,10 @@ test('shared authority helper selects only its three backend consumers and bound
   try {
     // Keep this bare fixture explicit: scope planning must not need the probe or YAML installs.
     for (const module of [
+      'game-rename-scope.mjs',
       'publication-scopes.mjs',
       'local-game-retirement-scope.mjs',
+      'pages-registration-scope.mjs',
       'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',
@@ -5450,8 +5460,6 @@ test('Three Choose Two Creator wiring binds exact bytes, identities and both rel
   ];
   const historical = new Map();
   const read = (file) => {
-    if (!Object.hasOwn(threeChooseTwoCreatorReviews, file))
-      return readFileSync(new URL('../' + file, import.meta.url), 'utf8');
     if (!historical.has(file))
       historical.set(
         file,
@@ -5824,8 +5832,10 @@ test('Ashfall planning works with only pinned Prettier and preserves every lock 
   }));
   try {
     for (const name of [
+      'game-rename-scope.mjs',
       'publication-scopes.mjs',
       'local-game-retirement-scope.mjs',
+      'pages-registration-scope.mjs',
       'local-game-retirement-reviews.mjs',
       'vite-patch-scope.mjs',
       'competition-ingress.mjs',

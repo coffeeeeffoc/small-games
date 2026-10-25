@@ -123,6 +123,6 @@ export const gameNames: Record<string, string> = {
   'carrom-club': '卡罗姆俱乐部',
   'cage-rescue': '笼中救援',
   'tower-brake': '穿云落星',
-  'three-choose-two': '三选二',
+  'three-choose-two': '摆消乐',
   'carding-car': '卡丁车',
 };

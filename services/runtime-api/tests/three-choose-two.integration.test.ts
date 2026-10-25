@@ -15,7 +15,7 @@ integration(
   async () => {
     if (!databaseUrl || new URL(databaseUrl).pathname !== '/competition_test')
       throw new Error('Use the isolated competition_test database');
-    const moduleName = '@coffeeeeffoc/three-choose-two/engine';
+    const moduleName = '@coffeeeeffoc/place-and-clear/engine';
     const engine = (await import(moduleName)) as Engine;
     const database = openDatabase(databaseUrl, 'runtime');
     let time = Date.now();

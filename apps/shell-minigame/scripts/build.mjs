@@ -54,6 +54,8 @@ const checked = targets.map(({ game, platform }) => {
     preview: Boolean(values.preview),
     apiUrl:
       options.apiUrl ??
+      process.env.VITE_PLACE_AND_CLEAR_API_URL ??
+      process.env.PLACE_AND_CLEAR_API_URL ??
       process.env.VITE_THREE_CHOOSE_TWO_API_URL ??
       process.env.THREE_CHOOSE_TWO_API_URL,
   });
@@ -96,7 +98,7 @@ for (const { game, platform, appId, adUnitId, competitionConfig } of checked) {
           ${competitionConfig ? `globalThis.__COMPETITION_CONFIG__ = ${JSON.stringify(competitionConfig)};` : ''}
           const definition = { ...original, manifest: { ...original.manifest, entry: 'game.js', loadModes: ['native-package'] } };
           const reviewedContent = ${selected.configureAdvertising ? `{...content,payload:{...content.payload,advertisingConfigured:${Boolean(adUnitId)}}}` : 'content'};
-          export const ready = ${adapter.start}(typeof ${adapter.sdk} === 'undefined' ? undefined : ${adapter.sdk}, { definition, content: reviewedContent }${adapter.entryArguments({ title: selected.title, adUnitId }) ? ', ' + adapter.entryArguments({ title: selected.title, adUnitId }) : ''});
+          export const ready = ${adapter.start}(typeof ${adapter.sdk} === 'undefined' ? undefined : ${adapter.sdk}, { definition, content: reviewedContent, storageGameId: ${JSON.stringify(selected.storageGameId)} }${adapter.entryArguments({ title: selected.title, adUnitId }) ? ', ' + adapter.entryArguments({ title: selected.title, adUnitId }) : ''});
           ready.catch(error => { console.error('小游戏启动失败', error); });`;
         },
         async generateBundle() {

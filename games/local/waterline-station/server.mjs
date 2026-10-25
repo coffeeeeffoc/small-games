@@ -19,6 +19,9 @@ const mime = {
   '.mjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml',
+  '.wav': 'audio/wav',
+  '.png': 'image/png',
+  '.json': 'application/json',
 };
 const server = http.createServer(async (request, response) => {
   if (!['GET', 'HEAD'].includes(request.method)) return response.writeHead(405).end();
@@ -26,7 +29,8 @@ const server = http.createServer(async (request, response) => {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     let file = path.resolve(root, '.' + pathname);
     if (file !== path.resolve(root) && !file.startsWith(root)) return response.writeHead(403).end();
-    if (pathname === '/publishing.js' && !process.argv.includes('--dist')) file = fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url));
+    if (pathname === '/publishing.js' && !process.argv.includes('--dist'))
+      file = fileURLToPath(new URL('../../../platforms/h5/publishing.js', import.meta.url));
     if ((await stat(file)).isDirectory()) file = path.join(file, 'index.html');
     const body = await readFile(file);
     response.writeHead(200, {

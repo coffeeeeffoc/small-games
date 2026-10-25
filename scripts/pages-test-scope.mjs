@@ -1,3 +1,4 @@
+import { gameRenameFileScopes, isReviewedGameRename } from './game-rename-scope.mjs';
 import {
   fullscreenRemovalReviews,
   fullscreenRemovalFileScopes,
@@ -623,6 +624,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       const retiredScopes = new Map([
         ...retirementFileScopes(retirementContext),
         ...localRetirementFileScopes(retirementContext),
+        ...gameRenameFileScopes(retirementContext),
       ]);
       if (
         removed.some(
@@ -637,6 +639,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
             !isFullscreenRemovalDeletion({ change, ...catalog, ...retirementContext }) &&
             !isReviewedTetracubeMove({ change, ...catalog, ...retirementContext }) &&
             !isReviewedRetirementDeletion(change, retiredScopes) &&
+            !isReviewedGameRename(change, retiredScopes) &&
             !isReviewedLocalRetirementDeletion(change, retiredScopes),
         )
       )
@@ -705,6 +708,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
       fullscreenRemovalFileScopes,
       nineNativeFileScopes,
       nineLockFileScopes,
+      gameRenameFileScopes,
     ])
       for (const [file, sources] of classify(context)) {
         const existing = fileScopes.get(file);

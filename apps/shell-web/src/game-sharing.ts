@@ -146,7 +146,7 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
   },
   'ember-bounce': {
     fields: {
-      emberChallenge: oneOf('1'),
+      emberChallenge: oneOf('2'),
       level: oneOf(
         'first-spark',
         'side-glow',
@@ -161,7 +161,7 @@ const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
     },
     required: ['emberChallenge', 'level', 'turns'],
   },
-  'three-choose-two': {
+  'place-and-clear': {
     fields: {
       seed: integer(0xffffffff),
       variant: oneOf('classic', 'refill'),

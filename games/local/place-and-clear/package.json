@@ -1,0 +1,45 @@
+{
+  "name": "@coffeeeeffoc/place-and-clear",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "摆消乐：竖屏积木消除、三选二取舍与一百二十关空间挑战",
+  "exports": {
+    "./engine": {
+      "types": "./src/engine.d.mts",
+      "default": "./src/engine.mjs"
+    },
+    "./shapes": "./src/shapes.mjs",
+    "./levels": "./src/levels.mjs",
+    "./progress": "./src/progress.mjs",
+    "./canvas": "./native/canvas.mjs"
+  },
+  "scripts": {
+    "postinstall": "node scripts/prepare.mjs",
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs web-mobile",
+    "preview": "node scripts/serve.mjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "test:online:browser": "node tests/online.browser.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
+    "test:publishing:browser": "node tests/publishing.browser.mjs",
+    "build:native:legacy": "node ../../../apps/shell-minigame/scripts/build.mjs --game place-and-clear",
+    "test:native:legacy": "node ../../../scripts/native-game-smoke.mjs --standalone --game place-and-clear --platform wechat && node ../../../scripts/native-game-smoke.mjs --standalone --game place-and-clear --platform bilibili"
+  },
+  "dependencies": {
+    "@coffeeeeffoc/game-contract": "workspace:*"
+  },
+  "coffeeeeffoc": {
+    "role": "game"
+  },
+  "creator": {
+    "version": "3.8.8"
+  },
+  "uuid": "17c40c6c-8a7a-43fd-9d0a-c7f07b4f51da",
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "typescript": "7.0.2"
+  }
+}

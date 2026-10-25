@@ -1,0 +1,111 @@
+{
+  "game": "waterline-station",
+  "version": "2.0.0",
+  "runtimeSha256": "c4cbaaed5fe99430ab7201b3b6df4045ede87cb9ec6aabbb14c050606d0475a4",
+  "sourceFiles": {
+    "art.mjs": {
+      "sha256": "7f24740192da8c9b18b20bdd9ff26eb4b600ab6d4eebd79bec9cb53718b59973",
+      "bytes": 3044
+    },
+    "assets/audio/locked.wav": {
+      "sha256": "007224bc9f36037a73cceb58af04bc067a0950fdfc970f9b4320617b969aea77",
+      "bytes": 17684
+    },
+    "assets/audio/tap.wav": {
+      "sha256": "b8a30fe1a8d818ecd500e6f206917ac39fd4f5680428106e540b6dee464a8b43",
+      "bytes": 8864
+    },
+    "assets/audio/valve.wav": {
+      "sha256": "6b699c9d1340208fad9f2c7deefbc3ef5c39b3fde79508259b1ce8b1ed78d9bd",
+      "bytes": 17684
+    },
+    "assets/audio/win.wav": {
+      "sha256": "c0a400c39c21c4f2089db957a6fae41e78e6f8c04faa5a06f2c73cedf933f158",
+      "bytes": 35324
+    },
+    "build.mjs": {
+      "sha256": "cb357b75d4d8bfbdd807f805556a508a5cd87516f71bf413fc002dd7987063e3",
+      "bytes": 1088
+    },
+    "dev-mode.js": {
+      "sha256": "fcc49bdcc071a234df52081bbb6f09ce0a002e4c633403cb460724c921cb4b39",
+      "bytes": 14731
+    },
+    "engine.mjs": {
+      "sha256": "e1309bf768f6db3ad65b9ba42b4cc176a6be0c1f4a261a969f1afce48d206087",
+      "bytes": 8753
+    },
+    "game.mjs": {
+      "sha256": "2e883a0762ad599a047dc5dede7d1087c8be5d590b517113e5aca6257ca3bb25",
+      "bytes": 16972
+    },
+    "icon.svg": {
+      "sha256": "66f1b3730c2bf06fb14b884a729636a955af37901243272b1105182614494a67",
+      "bytes": 594
+    },
+    "index.html": {
+      "sha256": "b8d1c2b61de3cec6d378b2af5e318d4229805961ad3f866fe50d3f1bc990b1a9",
+      "bytes": 1584
+    },
+    "layout.mjs": {
+      "sha256": "f1f77386cdec5c0c33bf87324e0c4140d0c26371f7840d221dadd5ea37315bef",
+      "bytes": 1819
+    },
+    "levels.mjs": {
+      "sha256": "10dc1aef9fe38ab3e15a03aa977a3f3af1985c78c37b36fdaca2f6f9d48300db",
+      "bytes": 66299
+    },
+    "progress.mjs": {
+      "sha256": "28f4fd75426d9c9b44612143ff3b6f3ddf2cd479e519d465a456de64e3bf6a28",
+      "bytes": 1487
+    },
+    "render.mjs": {
+      "sha256": "0e0e71921ba250199d1487c0bc2d04b4f1183c813cfa047187df4f165c89961b",
+      "bytes": 32630
+    },
+    "style.css": {
+      "sha256": "8fcc09232f262fe32cc66916e37ecce896988232e4b7d3a977108cf384cd5b75",
+      "bytes": 2948
+    },
+    "vendor/cocos/LICENSE": {
+      "sha256": "e8799a9198184e8cc31e45e66521b1cca52f9099a932de7a56abb9d212311318",
+      "bytes": 1164
+    },
+    "vendor/cocos/README.md": {
+      "sha256": "d1ad071ec21ca467ef742ad4e1bcab95ca21bf17f29ab18bff9b6f0a352225a8",
+      "bytes": 2950
+    },
+    "vendor/cocos/bootstrap.mjs": {
+      "sha256": "f2ffe66639676fb1a7f7b16ce28594640327c152f7d756f1557572a7df8e160b",
+      "bytes": 3861
+    },
+    "vendor/cocos/cc.js": {
+      "sha256": "fffa27f1b13fa7e9385f39d3d6bd6fd8fec8a820d86db7aae77e1133ba521495",
+      "bytes": 1502556
+    },
+    "vendor/cocos/materials.mjs": {
+      "sha256": "12dc6ddbf01aec2778580d84d08c84183201b8f1e638c612a732f509759d8b8c",
+      "bytes": 5378
+    },
+    "vendor/cocos/provenance.json": {
+      "sha256": "57cf4abc6a2c5f91c2dea96e49f5a828ab6a75aae1ffcd3bf22cd01c07617e6a",
+      "bytes": 1091
+    }
+  },
+  "captureEnvironment": "Linux Chromium 151.0.7922.173 mobile viewport and browser touch; not a physical device",
+  "screenshots": "390x844",
+  "gameplayVideo": {
+    "file": "gameplay/videos/station-tour-390x844.webm",
+    "dimensions": "390x844",
+    "durationSeconds": 30.64,
+    "audio": false
+  },
+  "promoVideo": {
+    "file": "promo/videos/harbor-trailer-390x944.mp4",
+    "dimensions": "390x944",
+    "durationSeconds": 26,
+    "audio": false,
+    "source": "gameplay/videos/station-tour-390x844.webm; trimmed 2..28 seconds with title padding and fades"
+  },
+  "generatedArtwork": "promo/images/harbor-poster-1024x1536.png; promotional illustration, not gameplay"
+}

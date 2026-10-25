@@ -8,6 +8,7 @@ export function createAudio() {
   let context = null;
   let master = null;
   let lastHit = -Infinity;
+  let lastCollect = -Infinity;
   const voices = new Set();
 
   function stopVoices() {
@@ -121,10 +122,24 @@ export function createAudio() {
         if (now - lastHit < 60) return;
         lastHit = now;
       }
+      if (type === 'collect' || type === 'ricochet') {
+        const now = globalThis.performance?.now?.() ?? Date.now();
+        if (now - lastCollect < 85) return;
+        lastCollect = now;
+      }
       vibrate(type);
       if (!enabled) return;
       const step = Number.isFinite(combo) ? Math.max(1, Math.min(12, Math.floor(combo))) : 1;
       switch (type) {
+        case 'recall':
+          tone(180, 0.28, 0.08, 0, 'sine', 650);
+          break;
+        case 'collect':
+          tone(800 + step * 35, 0.05, 0.035, 0, 'sine', 1200);
+          break;
+        case 'ricochet':
+          tone(720 + step * 30, 0.07, 0.055, 0, 'triangle', 1100);
+          break;
         case 'fire':
           tone(240, 0.13, 0.16, 0, 'triangle', 520);
           break;

@@ -5,7 +5,8 @@ export function parseGameRoute(hash: string): { id: string; search: string } | u
   const match = /^#\/games\/([^/?#]+)(?:\?([^#]*))?$/.exec(hash);
   if (!match) return undefined;
   try {
-    const id = decodeURIComponent(match[1]);
+    const requestedId = decodeURIComponent(match[1]);
+    const id = requestedId === 'three-choose-two' ? 'place-and-clear' : requestedId;
     if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/.test(id)) return undefined;
     return { id, search: publicGameQuery(id, match[2] ?? '') };
   } catch {

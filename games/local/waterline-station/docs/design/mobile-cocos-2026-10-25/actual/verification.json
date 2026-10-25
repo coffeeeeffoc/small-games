@@ -1,0 +1,24 @@
+{
+  "environment": "Linux; Node 24.21.0; pnpm 12.6.0; Chromium 151.0.7922.173; browser mobile touch emulation",
+  "game": "waterline-station",
+  "version": "2.0.0",
+  "checks": [
+    { "command": "pnpm --filter @coffeeeeffoc/waterline-station test", "result": "80 passed" },
+    { "command": "pnpm --filter @coffeeeeffoc/waterline-station build", "result": "passed; pinned official Cocos engine verified" },
+    { "command": "pnpm --filter @coffeeeeffoc/waterline-station test:browser", "result": "passed; all 50 stations solved through actual Cocos touch input, four viewport sizes, progress and storage fallback" },
+    { "command": "node games/local/waterline-station/tests/publishing.browser.mjs", "result": "passed; four groups covering share, challenge isolation, assisted scores and selectable link fallback" },
+    { "command": "node scripts/run-selected-browser.mjs [waterline-station plan]", "result": "passed; desktop and mobile pointer input" },
+    { "command": "node scripts/run-selected-shell.mjs [waterline-station plan]", "result": "passed; production Shell embedding, direct entry, mobile touch, return navigation and Runtime isolation" },
+    { "command": "pnpm check:games waterline-station", "result": "39 registered games; zero issues" },
+    { "command": "pnpm check:dev-mode && pnpm test:dev-mode", "result": "39 games consistent; five unit tests passed" },
+    { "command": "DEV_MODE_GAME_IDS=waterline-station pnpm test:dev-mode:browser", "result": "ten browser checks passed; includes shared Wulong developer-control fixture" },
+    { "command": "pnpm test:no-fullscreen", "result": "1145 source files checked; passed" },
+    { "command": "ffprobe and complete ffmpeg decode for both publishing videos", "result": "passed; 30.64s VP8 gameplay and 26s H.264 promotional edit" }
+  ],
+  "limitations": [
+    "No physical iOS/Android device or native minigame SDK validation",
+    "Official Cocos source Web runtime, not a Creator editor export",
+    "One known non-cancelable touchcancel browser intervention is recorded separately from application errors",
+    "Exact committed candidate validation and remote push are recorded separately with base/head SHA"
+  ]
+}

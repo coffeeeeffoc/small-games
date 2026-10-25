@@ -272,7 +272,7 @@ test('runtime bundle includes multiplayer carrom physics and level data without 
     for (const filename of [
       'services/runtime-api/dist/main.js',
       'services/runtime-api/rules/carrom.mjs',
-      'games/local/three-choose-two/src/index.js',
+      'games/local/place-and-clear/src/index.js',
       'games/local/cage-rescue/src/core.mjs',
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
@@ -318,7 +318,7 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
     await put('services/runtime-api/package.json', '{"name":"@coffeeeeffoc/runtime-api"}');
     await put('services/runtime-api/dist/main.js', 'export {};');
     for (const name of [
-      'games/local/three-choose-two/src/index.js',
+      'games/local/place-and-clear/src/index.js',
       'games/local/cage-rescue/src/core.mjs',
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',

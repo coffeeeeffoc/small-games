@@ -1,0 +1,10 @@
+{
+  "browser": "151.0.7922.173",
+  "checks": [
+    "touch cancel spends no move; real clear; unassisted share includes score; assisted share omits score; sharing strips dev; challenge does not mutate normal save",
+    "challenge exit restores normal progress; normal results persist; next station clears invitation and target",
+    "normal level selection leaves challenge",
+    "unavailable and rejected clipboard expose selectable URL with close and page cleanup"
+  ],
+  "errors": []
+}

@@ -89,7 +89,21 @@ const platform = globalThis as typeof globalThis & {
   __mergeFront?: { snapshot(): unknown };
   MergeFrontHost?: { ads?: RewardPort };
 };
-type Press = { id: number; control: string; x: number; y: number; moved: boolean };
+type Press = {
+  id: number;
+  control: string;
+  x: number;
+  y: number;
+  moved: boolean;
+  started: number;
+  inspected: boolean;
+  stage: string;
+};
+const HAND_PAGE_SIZE = 6;
+const HAND = { x: 8, y: 326, w: 1136, h: 100 };
+const SELL = { x: 974, y: 216, w: 166, h: 96 };
+const contains = (r: typeof HAND, x: number, y: number) =>
+  x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
 
 @ccclass('MergeFront')
 export class MergeFront extends Component {
@@ -106,6 +120,10 @@ export class MergeFront extends Component {
   supplyIndex = 0;
   reducedMotion = false;
   cardInfo: { title: string; body: string } | null = null;
+  hoverInfo: { title: string; body: string; x: number; y: number } | null = null;
+  purchased = '';
+  purchasedUntil = 0;
+  shopSlots: number[] = [];
   handPage = 0;
   confirmRetry = false;
   codexKind: Kind = 'hero';
@@ -169,7 +187,7 @@ export class MergeFront extends Component {
     input.on(Input.EventType.TOUCH_START, this.touchStart, this);
     input.on(Input.EventType.TOUCH_MOVE, this.touchMove, this);
     input.on(Input.EventType.TOUCH_END, this.touchEnd, this);
-    input.on(Input.EventType.TOUCH_CANCEL, this.clear, this);
+    input.on(Input.EventType.TOUCH_CANCEL, this.touchCancel, this);
     input.on(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.on(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
     input.on(Input.EventType.MOUSE_UP, this.mouseUp, this);
@@ -267,6 +285,7 @@ export class MergeFront extends Component {
   }
   clear = () => {
     this.press = null;
+    this.hoverInfo = null;
     if (this.ui) this.ui.pressed = '';
   };
   suspend = () => {
@@ -324,6 +343,8 @@ export class MergeFront extends Component {
     });
     this.rewardPending = false;
     this.selected = 0;
+    this.handPage = 0;
+    this.shopSlots = [];
     this.lastEvent = 0;
     this.accumulator = 0;
     this.settlement = { settled: false, unlocks: [], medals: 0 };
@@ -343,6 +364,7 @@ export class MergeFront extends Component {
       this.save();
     }
     this.render();
+    return result;
   }
   provider() {
     return platform.MergeFrontHost?.ads || platform.SmallGamesRewardAds;
@@ -448,34 +470,7 @@ export class MergeFront extends Component {
         title: t.name,
         body: t.description + '\n只计算不同名字，合并不减少已激活的名字。',
       };
-    } else if (id.startsWith('offer:')) {
-      const offer = this.match?.sides[0].shop.find((o) => o.id === Number(id.slice(6)));
-      if (offer)
-        this.showItem(
-          offer.kind === 'part'
-            ? 'part:' + offer.part
-            : offer.kind === 'spell'
-              ? 'spellkey:' + offer.key
-              : 'key:' + offer.key,
-          '◆ ' + offer.cost + ' · 拖到手牌区购买',
-        );
-    } else if (id.startsWith('spell:')) {
-      const spell = this.match?.sides[0].spells.find((c) => c.id === Number(id.slice(6)));
-      if (spell) this.showItem('spellkey:' + spell.key);
-    } else if (id.startsWith('card:') || id.startsWith('unit:')) {
-      const card = this.heldCard(id);
-      if (card)
-        this.showItem(
-          'key:' + card.key,
-          'Lv.' +
-            card.level +
-            ' · 永久攻击 +' +
-            card.bonusDamage +
-            ' / 生命 +' +
-            card.bonusHp +
-            (card.entered ? ' · 已出战' : ' · 未出战'),
-        );
-    } else if (id.startsWith('part:')) this.showItem(id);
+    } else if (id.startsWith('offer:')) this.buyOffer(Number(id.slice(6)));
     else if (id === 'skip') {
       this.act({ type: 'skipTutorial' });
       if (!this.match?.practice) this.progress.tutorialStep = 6;
@@ -517,6 +512,16 @@ export class MergeFront extends Component {
   update(dt: number) {
     this.time += Math.min(dt, 0.1);
     const m = this.match;
+    if (this.press && this.press.stage !== (m?.roundStage || '')) this.clear();
+    const press = this.press;
+    if (press && !press.moved && !press.inspected && this.time - press.started >= 0.45) {
+      const info = this.itemInfo(press.control);
+      if (info) {
+        press.inspected = true;
+        this.hoverInfo = { ...info, x: press.x, y: press.y };
+        this.ui.pressed = '';
+      }
+    }
     if (m && this.screen === 'playing' && !this.rewardPending && !m.paused) {
       if (m.roundStage !== 'planning') {
         this.accumulator += Math.min(dt, 0.25);
@@ -546,6 +551,13 @@ export class MergeFront extends Component {
         this.lastSave = this.time;
         this.save();
       }
+    }
+    if (this.press && this.press.stage !== (m?.roundStage || '')) this.clear();
+    if (this.hoverInfo && this.press) {
+      const info = this.itemInfo(this.press.control);
+      // A defeated unit no longer has an inspectable live target.
+      if (info) Object.assign(this.hoverInfo, info);
+      else this.hoverInfo = null;
     }
     if (this.ui) this.render();
   }
@@ -589,7 +601,7 @@ export class MergeFront extends Component {
     else if (this.screen === 'result') this.resultView();
     else if (this.screen === 'help') this.helpView();
     else if (this.screen === 'settings') this.settingsView();
-    if (this.feedbackUntil > this.time) {
+    if (this.feedbackUntil > this.time && !this.hoverInfo) {
       u.panel(210, 84, 540, 52, '#102f2beb', C.gold, 16, 6);
       u.text('toast', this.feedback, 480, 110, 22, 520, C.paper, 7, 48);
     }
@@ -638,7 +650,7 @@ export class MergeFront extends Component {
                     : '吒'
                   : SPELLS.find((s) => s.id === o.key)!.name;
           }
-        } else if (id.startsWith('part:')) name = id.endsWith(':0') ? '哪' : '吒';
+        } else if (id.startsWith('part:')) name = id.includes('nezha:0') ? '哪' : '吒';
         else {
           const c = side.spells.find((c) => c.id === Number(id.slice(6)));
           name = SPELLS.find((s) => s.id === c?.key)?.name || '';
@@ -657,34 +669,126 @@ export class MergeFront extends Component {
       u.text('info-body', this.cardInfo.body, W / 2, 265, 23, 618, C.paper, 7, 142);
       u.button('info-close', '知道了', W / 2 - 115, 341, 230, 70, true, false, 6);
     }
+    if (this.hoverInfo) {
+      const info = this.hoverInfo,
+        width = 500,
+        height = 350;
+      const x =
+        info.x < W / 2 ? Math.min(W - width - 12, info.x + 58) : Math.max(12, info.x - width - 58);
+      const y = Math.max(78, Math.min(H - height - 12, info.y - height - 24));
+      u.panel(x + 5, y + 6, width, height, '#061e25aa', '', 18, 6);
+      u.panel(x, y, width, height, '#123d37fa', C.gold, 18, 6);
+      u.text('hover-title', info.title, x + width / 2, y + 29, 25, width - 24, C.gold, 7);
+      u.text('hover-body', info.body, x + width / 2, y + 190, 21, width - 32, C.paper, 7, 280);
+    }
     u.end();
     this.syncAccessibility();
   }
-  showItem(id: string, extra = '') {
-    if (id.startsWith('part:')) {
-      this.cardInfo = {
-        title: id.endsWith(':0') ? '哪' : '吒',
+  handItems() {
+    const side = this.match!.sides[0];
+    return [
+      ...side.hand.map((c) => ({ id: 'card:' + c.id, card: c, part: '', spell: '' })),
+      ...Object.keys(side.bag).flatMap((part) =>
+        Array.from({ length: side.bag[part] }, (_, i) => ({
+          id: 'part:' + part + ':' + i,
+          part,
+          spell: '',
+          card: undefined,
+        })),
+      ),
+      ...side.spells.map((c) => ({ id: 'spell:' + c.id, part: '', spell: c.key, card: undefined })),
+    ];
+  }
+  buyOffer(id: number) {
+    const side = this.match?.sides[0],
+      offer = side?.shop.find((o) => o.id === id);
+    if (!side || !offer) return;
+    const before = new Set(this.handItems().map((item) => item.id));
+    if (!this.act({ type: 'buy', offer: id })?.ok) return;
+    const items = this.handItems(),
+      index = items.findIndex((item) => !before.has(item.id));
+    if (index >= 0) {
+      this.handPage = Math.floor(index / HAND_PAGE_SIZE);
+      this.purchased = items[index].id;
+      this.purchasedUntil = this.time + 1.4;
+    }
+    this.notify(
+      '已购入手牌' + (offer.kind === 'part' && !side.bag[offer.part!] ? ' · 哪吒已合体' : ''),
+    );
+  }
+  itemInfo(control: string): { title: string; body: string } | null {
+    const m = this.match;
+    if (!m || this.screen !== 'playing') return null;
+    const side = m.sides[0];
+    let key = '',
+      extra = '',
+      card: Card | undefined;
+    if (control.startsWith('offer:')) {
+      const offer = side.shop.find((o) => o.id === Number(control.slice(6)));
+      if (!offer) return null;
+      key =
+        offer.kind === 'part'
+          ? 'part:' + offer.part
+          : offer.kind === 'spell'
+            ? 'spellkey:' + offer.key
+            : offer.key;
+      extra = '价格 ◆' + offer.cost + ' · 轻点购买到手牌';
+    } else if (control.startsWith('spell:')) {
+      const spell = side.spells.find((s) => s.id === Number(control.slice(6)));
+      if (!spell) return null;
+      key = 'spellkey:' + spell.key;
+    } else if (control.startsWith('part:')) key = control;
+    else if (control.startsWith('troop:')) {
+      const unit = m.units.find((u) => u.id === Number(control.slice(6)));
+      if (!unit) return null;
+      key = unit.key;
+      extra =
+        (unit.side ? '敌方' : '我方') +
+        ' · Lv.' +
+        unit.level +
+        ' · 攻击 ' +
+        unit.damage +
+        '\n生命 ' +
+        Math.ceil(unit.hp) +
+        '/' +
+        unit.maxHp +
+        ' · 护盾 ' +
+        Math.ceil(unit.shield);
+    } else {
+      card = control.startsWith('enemy:')
+        ? m.sides[1].formation.find((c) => c.id === Number(control.slice(6)))
+        : this.heldCard(control);
+      if (!card) return null;
+      key = card.key;
+      extra =
+        (control.startsWith('enemy:') ? '敌方' : '我方') +
+        ' · Lv.' +
+        card.level +
+        (card.entered ? ' · 已出战' : ' · 未出战') +
+        (card.ward ? '\n已施护符：下场 +30%生命护盾' : '');
+    }
+    if (key.startsWith('part:'))
+      return {
+        title: key.includes('nezha:0') ? '哪 · 残字' : '吒 · 残字',
         body:
-          '残字不能出战。哪 + 吒自动合为完整哪吒。\n持有一字后，下一次刷新保证出现另一字。\n' +
+          '不能单独上阵。哪 + 吒自动合为1级哪吒。\n持有一字后，下次刷新保证出现另一字。\n拖到弃置区移除，不返金币。\n' +
           extra,
       };
-      return;
-    }
-    if (id.startsWith('spellkey:')) {
-      const spell = SPELLS.find((s) => s.id === id.slice(9))!;
-      this.cardInfo = {
-        title: spell.name,
+    if (key.startsWith('spellkey:')) {
+      const spell = SPELLS.find((s) => s.id === key.slice(9));
+      if (!spell) return null;
+      return {
+        title: spell.name + ' · 法术',
         body:
           spell.description +
           '\n' +
-          (spell.id === 'inspire' ? '拖到己方场地施放。' : '拖到己方场上单位施放。') +
-          '\n' +
+          (spell.id === 'inspire' ? '整备时拖到己方场地施放。' : '整备时拖到己方场上单位施放。') +
+          '\n施放成功才消耗，取消或无效目标不消耗。\n' +
           extra,
       };
-      return;
     }
-    const spec = getSpec(id.slice(4)),
-      trait = getTrait(spec.id);
+    const spec = getSpec(key),
+      trait = getTrait(key);
     const trigger: Record<string, string> = {
       juling: '首次出战：最近另一友军永久+20生命。',
       leizhen: '首次出战：最近另一雷霆永久+4攻击。',
@@ -694,16 +798,41 @@ export class MergeFront extends Component {
       drone: '售出：+1金币，并存一次免费刷新。',
       ram: '胜局存活：额外攻晶1点，不叠加。',
     };
-    this.cardInfo = {
+    const special: Record<string, string> = {
+      guard: '受到的伤害减少20%。',
+      pierce: '穿透目标身后敌人，造成55%伤害。',
+      chain: '弹射附近至多2名敌人，造成55%伤害。',
+      slow: '命中使敌人减速。',
+      heal: '每6秒治疗附近友军，自身最大生命的12%。',
+      shield: '每6秒给附近友军18%最大生命护盾。',
+    };
+    const stats = control.startsWith('troop:')
+      ? ''
+      : '基础攻击 ' +
+        (Math.round(spec.damage * (1 + ((card?.level || 1) - 1) * 0.45)) +
+          (card?.bonusDamage || 0)) +
+        ' · 生命 ' +
+        (Math.round(spec.hp * (1 + ((card?.level || 1) - 1) * 0.45)) + (card?.bonusHp || 0)) +
+        '（含永久，未计流派）\n';
+    return {
       title: spec.name + ' · ' + trait.name,
       body:
-        spec.role +
-        ' · ' +
+        extra +
+        '\n' +
+        stats +
+        '基础间隔 ' +
+        spec.interval +
+        '秒 · 射程 ' +
+        spec.range +
+        '\n' +
         spec.skill +
+        '：' +
+        (special[spec.special || ''] || spec.role + '。') +
+        (spec.splash ? '范围溅射。' : '') +
         '\n' +
-        (trigger[spec.id] || '同名合并等级相加，或分兵独立出战。') +
+        trait.description +
         '\n' +
-        extra,
+        (trigger[key] || '同名合并等级相加；出售返1金币。'),
     };
   }
   homeView() {
@@ -830,7 +959,7 @@ export class MergeFront extends Component {
   }
   board() {
     const planning = this.match?.roundStage === 'planning';
-    return { x: 66, y: planning ? 120 : 144, w: W - 132, h: planning ? 216 : 312 };
+    return { x: 66, y: planning ? 122 : 144, w: W - 132, h: planning ? 176 : 312 };
   }
   fieldPoint(x: number, y: number) {
     const b = this.board();
@@ -960,10 +1089,10 @@ export class MergeFront extends Component {
             C.gold,
             2,
           );
-          if (side === 0 && this.screen === 'playing')
+          if (this.screen === 'playing')
             u.hit(
-              'unit:' + card.id,
-              spec.name + ' ' + card.level + '级，拖动调整',
+              (side ? 'enemy:' : 'unit:') + card.id,
+              spec.name + ' ' + card.level + '级，长按查看' + (side ? '' : '，拖动调整'),
               p.x - 40,
               p.y - 70,
               80,
@@ -1031,6 +1160,15 @@ export class MergeFront extends Component {
           2,
           24,
         );
+        if (this.screen === 'playing')
+          u.hit(
+            'troop:' + unit.id,
+            (unit.side ? '敌方' : '我方') + spec.name + '，长按查看',
+            p.x - 40,
+            p.y - size,
+            80,
+            size + 12,
+          );
       }
       attackEffects(u, m, (x, y) => this.fieldPoint(x, y), this.reducedMotion);
       if (m.roundStage === 'resolution') {
@@ -1060,17 +1198,95 @@ export class MergeFront extends Component {
       m = this.match!,
       side = m.sides[0];
     if (m.roundStage !== 'planning') return;
-    u.panel(0, 370, W, 170, '#103b34f5', '#a9a06b', 0);
-    u.line(488, 382, 488, 527, '#8a9c70', 2, 3);
-    u.text('coins', '◆ ' + side.coins, 58, 397, 27, 110, C.gold);
-    u.text('income', '下轮 +' + incomeForRound(m.roundNumber + 1), 58, 424, 16, 110, C.muted);
-    u.button('refresh', '↻', 12, 445, 88, 78, false, !side.freeRefresh && side.coins < 1);
-    u.text('refresh-cost', side.freeRefresh ? '免费' : '◆ 1', 56, 511, 17, 80, C.gold);
+    // A dedicated bench connects inventory to the battlefield; the shop stays below it.
+    u.panel(HAND.x, HAND.y, HAND.w, HAND.h, '#16483ff5', '#648d79', 14);
+    u.text('hand-title', '备战手牌', 84, 355, 21, 150, C.mint);
+    u.text('hand-count', inventoryCount(side) + '/12', 84, 387, 20, 140, C.paper);
+    const items = this.handItems(),
+      pages = Math.max(1, Math.ceil(items.length / HAND_PAGE_SIZE));
+    this.handPage = Math.max(0, Math.min(this.handPage, pages - 1));
+    if (pages > 1) {
+      u.button('hand-prev', '‹', 892, 332, 90, 90, false, this.handPage === 0);
+      u.button('hand-next', '›', 1048, 332, 90, 90, false, this.handPage === pages - 1);
+      u.text('hand-page', this.handPage + 1 + '/' + pages, 1015, 378, 20, 60, C.muted);
+    }
+    if (!items.length) u.text('empty-hand', '购买后在此备战', 520, 376, 23, 600, C.muted);
+    items
+      .slice(this.handPage * HAND_PAGE_SIZE, (this.handPage + 1) * HAND_PAGE_SIZE)
+      .forEach((item, i) => {
+        const x = 176 + i * 116,
+          y = 332;
+        if (this.press?.moved && this.press.control === item.id) return;
+        const name = item.card
+          ? getSpec(item.card.key).name
+          : item.part
+            ? item.part.endsWith(':0')
+              ? '哪'
+              : '吒'
+            : SPELLS.find((s) => s.id === item.spell)!.name;
+        const purchased = this.purchased === item.id && this.time < this.purchasedUntil;
+        u.panel(
+          x,
+          y,
+          108,
+          90,
+          item.part ? '#d8c59b' : item.spell ? '#294c60' : '#1c5b4e',
+          purchased ? C.paper : item.card ? getTrait(item.card.key).color : C.gold,
+          12,
+        );
+        if (purchased) u.panel(x + 3, y + 3, 102, 84, '#8ce4cb22', C.mint, 10);
+        if (item.card)
+          u.image(
+            'hand:' + item.id,
+            'unit' + getSpec(item.card.key).atlas,
+            x + 50,
+            y + 32,
+            65,
+            65,
+            4,
+          );
+        else
+          u.text(
+            'hand-glyph:' + item.id,
+            item.part
+              ? name
+              : { sharpen: '刃', fortify: '体', ward: '盾', inspire: '鼓' }[item.spell] || '符',
+            x + 54,
+            y + 31,
+            34,
+            100,
+            item.part ? C.ink : C.gold,
+          );
+        u.text('hand-name:' + item.id, name, x + 54, y + 74, 18, 104, item.part ? C.ink : C.paper);
+        if (item.card) {
+          u.text('hand-lv:' + item.id, 'Lv.' + item.card.level, x + 79, y + 11, 15, 58, C.gold);
+          if (item.card.ward) u.text('ward:' + item.id, '盾', x + 15, y + 15, 17, 28, '#a4e9ff');
+        }
+        u.hit(
+          item.id,
+          name +
+            '，长按查看，' +
+            (item.card ? '拖动上阵' : item.part ? '凑齐自动合体' : '拖到己方目标'),
+          x,
+          y,
+          108,
+          90,
+        );
+      });
+    u.panel(0, 432, W, 108, '#103b34f5', '', 0);
+    u.line(16, 432, W - 16, 432, '#8a9c70', 2, 3);
+    u.text('shop-title', '商店', 56, 451, 19, 104, C.gold);
+    u.text('coins', '◆ ' + side.coins, 56, 480, 27, 110, C.gold);
+    u.text('income', '下轮 +' + incomeForRound(m.roundNumber + 1), 56, 513, 16, 110, C.muted);
+    u.button('refresh', '↻', 112, 438, 96, 90, false, !side.freeRefresh && side.coins < 1);
+    u.text('refresh-cost', side.freeRefresh ? '免费' : '◆ 1', 160, 514, 17, 90, C.gold);
     u.controls[u.controls.length - 1].label = '刷新商店，' + (side.freeRefresh ? '免费' : '1金币');
-    u.text('shop-title', '商店', 291, 389, 19, 300, C.gold);
-    side.shop.forEach((o, i) => {
-      const x = 112 + i * 120,
-        y = 410;
+    // Keep vacancies after purchases, so a second tap cannot buy a shifted neighbour.
+    if (side.shop.some((o) => !this.shopSlots.includes(o.id)))
+      this.shopSlots = side.shop.map((o) => o.id);
+    side.shop.forEach((o) => {
+      const x = 224 + this.shopSlots.indexOf(o.id) * 232,
+        y = 438;
       const trait = o.kind === 'spell' ? null : getTrait(o.key),
         name =
           o.kind === 'spell'
@@ -1084,126 +1300,61 @@ export class MergeFront extends Component {
       u.panel(
         x,
         y,
-        108,
-        118,
+        220,
+        90,
         o.kind === 'spell' ? '#294c60' : '#215f52',
         trait?.color || '#a6b4f0',
         12,
       );
       if (o.kind === 'unit')
-        u.image('shop:' + o.id, 'unit' + getSpec(o.key).atlas, x + 54, y + 47, 78, 78, 4);
+        u.image('shop:' + o.id, 'unit' + getSpec(o.key).atlas, x + 47, y + 43, 80, 80, 4);
       else
         u.text(
           'shop-glyph:' + o.id,
           o.kind === 'part'
             ? name
             : { sharpen: '刃', fortify: '体', ward: '盾', inspire: '鼓' }[o.key] || '符',
-          x + 54,
-          y + 46,
+          x + 47,
+          y + 43,
           38,
-          94,
+          84,
           C.gold,
         );
-      u.text('shop-price:' + o.id, '◆' + o.cost, x + 85, y + 12, 17, 44, C.gold);
-      u.text('shop-name:' + o.id, name, x + 54, y + 96, 19, 104);
-      u.hit('offer:' + o.id, name + '，' + o.cost + '金币，拖到手牌购买', x, y, 108, 118);
-    });
-    const items = [
-      ...side.hand.map((c) => ({ id: 'card:' + c.id, card: c, part: '', spell: '' })),
-      ...Object.keys(side.bag).flatMap((part) =>
-        Array.from({ length: side.bag[part] }, (_, i) => ({
-          id: 'part:' + part + ':' + i,
-          part,
-          spell: '',
-          card: undefined,
-        })),
-      ),
-      ...side.spells.map((c) => ({ id: 'spell:' + c.id, part: '', spell: c.key, card: undefined })),
-    ];
-    const pages = Math.max(1, Math.ceil(items.length / 4));
-    this.handPage = Math.max(0, Math.min(this.handPage, pages - 1));
-    u.text('hand-title', '手牌 ' + inventoryCount(side) + '/12', 615, 389, 20, 240, C.gold);
-    if (pages > 1) {
-      u.button('hand-prev', '‹', 760, 341, 90, 62, false, this.handPage === 0);
-      u.button('hand-next', '›', 861, 341, 90, 62, false, this.handPage === pages - 1);
-      u.text('hand-page', this.handPage + 1 + '/' + pages, 977, 390, 17, 60, C.muted);
-    }
-    items.slice(this.handPage * 4, this.handPage * 4 + 4).forEach((item, i) => {
-      const x = 506 + i * 119,
-        y = 410;
-      const control = item.part ? 'part:' + item.part : item.id;
-      if (this.press?.moved && this.press.control === control) return;
-      const name = item.card
-        ? getSpec(item.card.key).name
-        : item.part
-          ? item.part.endsWith(':0')
-            ? '哪'
-            : '吒'
-          : SPELLS.find((s) => s.id === item.spell)!.name;
-      u.panel(
-        x,
-        y,
-        108,
-        118,
-        item.part ? '#d8c59b' : item.spell ? '#294c60' : '#1c5b4e',
-        item.card ? getTrait(item.card.key).color : C.gold,
-        12,
+      u.text('shop-name:' + o.id, name, x + 150, y + 27, 23, 132);
+      u.text(
+        'shop-price:' + o.id,
+        '◆ ' + o.cost,
+        x + 150,
+        y + 63,
+        22,
+        132,
+        side.coins < o.cost ? C.red : C.gold,
       );
-      if (item.card)
-        u.image(
-          'hand:' + item.id,
-          'unit' + getSpec(item.card.key).atlas,
-          x + 54,
-          y + 44,
-          80,
-          80,
-          4,
-        );
-      else
-        u.text(
-          'hand-glyph:' + item.id,
-          item.part
-            ? name
-            : { sharpen: '刃', fortify: '体', ward: '盾', inspire: '鼓' }[item.spell] || '符',
-          x + 54,
-          y + 44,
-          38,
-          100,
-          item.part ? C.ink : C.gold,
-        );
-      u.text('hand-name:' + item.id, name, x + 54, y + 94, 19, 104, item.part ? C.ink : C.paper);
-      if (item.card) {
-        u.text('hand-lv:' + item.id, 'Lv.' + item.card.level, x + 79, y + 12, 16, 58, C.gold);
-        if (item.card.ward) u.text('ward:' + item.id, '盾', x + 15, y + 15, 17, 28, '#a4e9ff');
-      }
-      u.hit(
-        control,
-        name +
-          (item.card
-            ? '完整卡，拖动上阵'
-            : item.part
-              ? '残字，凑齐自动合体'
-              : '法术，拖到己方目标'),
-        x,
-        y,
-        108,
-        118,
-      );
+      // Unaffordable offers remain inspectable; the core explains rejected purchases.
+      u.hit('offer:' + o.id, name + '，' + o.cost + '金币，点击购买，长按查看', x, y, 220, 90);
     });
-    u.text('population', side.formation.length + '/' + POPULATION_CAP, 1072, 397, 26, 140, C.gold);
-    u.button('start-round', '开战', 1008, 445, 132, 78, true, !side.formation.length);
+    u.text(
+      'population',
+      '上阵 ' + side.formation.length + '/' + POPULATION_CAP,
+      1038,
+      305,
+      21,
+      210,
+      C.gold,
+    );
+    u.button('start-round', '开战', 936, 438, 204, 90, true, !side.formation.length);
     if (this.press?.moved) {
       const id = this.press.control,
         held = this.heldCard(id);
       if (id.startsWith('offer:') || id.startsWith('unit:')) {
-        u.panel(498, 405, 484, 126, '#73d9bb22', C.mint, 14, 6);
+        u.panel(HAND.x, HAND.y, HAND.w, HAND.h, '#73d9bb22', C.mint, 14, 6);
         u.text(
           'drop-hint',
-          id.startsWith('offer:') ? '↓ 购买到手牌' : '↓ 回收',
-          740,
-          471,
+          id.startsWith('offer:') ? '↓ 购买到手牌' : '↓ 回收至手牌',
+          576,
+          375,
           26,
-          400,
+          700,
           C.mint,
           7,
         );
@@ -1218,18 +1369,29 @@ export class MergeFront extends Component {
               : held?.key === 'drone'
                 ? '+1 · 免费刷'
                 : '+1金币';
-        u.panel(1000, 278, 144, 92, '#753a36ec', C.red, 14, 6);
-        u.text('sell-hint', reward, 1072, 325, 22, 138, C.paper, 7);
+        u.panel(SELL.x, SELL.y, SELL.w, SELL.h, '#753a36ec', C.red, 14, 6);
+        u.text(
+          'sell-hint',
+          reward,
+          SELL.x + SELL.w / 2,
+          SELL.y + SELL.h / 2,
+          22,
+          SELL.w - 6,
+          C.paper,
+          7,
+        );
       }
     }
     if (m.tutorial && m.tutorialStep < 6)
       u.text(
         'planning-tip',
-        m.tutorialStep === 0 ? '拖手牌上阵 · 商店拖入手牌购买' : '同名拖一起升级 · 空地分兵',
+        m.tutorialStep === 0
+          ? '轻点商品购买 · 拖手牌上阵 · 长按看详情'
+          : '同名拖一起升级 · 空地分兵',
         W / 2,
-        350,
+        307,
         18,
-        720,
+        730,
         C.paper,
       );
   }
@@ -1463,8 +1625,8 @@ export class MergeFront extends Component {
     const u = this.ui;
     this.header('玩法说明');
     const items = [
-      ['商店', '三张商品 · 拖入手牌购买 · 1金刷新'],
-      ['合体', '哪+吒自动合体；同名拖叠等级相加'],
+      ['商店', '点击商品买入手牌 · 1金刷新'],
+      ['操作', '长按查看详情 · 拖上阵 · 同名合体'],
       ['流派', '不同名字凑2/4件；法术拖己方单位'],
       ['经营', '6人口 · 首次出战触发 · 拖出售出'],
     ];
@@ -1547,7 +1709,10 @@ export class MergeFront extends Component {
       board: this.board(),
       assets: this.ui?.frames.size || 0,
       supplyChoices: this.supplyChoices,
-      detailTitle: this.cardInfo?.title || null,
+      detailTitle: this.hoverInfo?.title || this.cardInfo?.title || null,
+      hoverInfo: this.hoverInfo ? { ...this.hoverInfo } : null,
+      handPage: this.handPage,
+      dropZones: { hand: { ...HAND }, sell: { ...SELL } },
       reducedMotion: this.reducedMotion,
       crystalStyle: this.match ? crystalStyle(this.match.seed, this.match.roundNumber) : null,
       visibleTroops: Array.from(this.ui?.nodes.keys() || []).filter(
@@ -1560,12 +1725,21 @@ export class MergeFront extends Component {
     const c = this.ui.at(x, y);
     if (!c) return;
     this.inputCount++;
-    this.press = { id, control: c.id, x, y, moved: false };
+    this.press = {
+      id,
+      control: c.id,
+      x,
+      y,
+      moved: false,
+      started: this.time,
+      inspected: false,
+      stage: this.match?.roundStage || '',
+    };
     this.pointer = { x, y };
     this.ui.pressed = c.id;
   }
   move(id: number, x: number, y: number) {
-    if (this.press?.id !== id) return;
+    if (this.press?.id !== id || this.press.inspected) return;
     this.pointer = { x, y };
     if (Math.hypot(x - this.press.x, y - this.press.y) > 10) this.press.moved = true;
   }
@@ -1573,17 +1747,24 @@ export class MergeFront extends Component {
     const p = this.press;
     if (!p || p.id !== id) return;
     const card = this.heldCard(p.control);
-    this.press = null;
-    this.ui.pressed = '';
+    this.clear();
+    if (p.inspected || p.stage !== (this.match?.roundStage || '')) {
+      this.render();
+      return;
+    }
     const target = this.ui.at(x, y);
     if (p.moved && this.screen === 'playing' && this.match?.roundStage === 'planning') {
       const b = this.board(),
         side = this.match.sides[0],
         world = { x: ((x - b.x) / b.w) * 1000, y: ((y - b.y) / b.h) * 360 };
       const own = legalPosition(0, world.x, world.y),
-        inHand = x >= 498 && x <= 992 && y >= 405 && y <= 540,
-        inSell = x >= 1000 && x <= 1144 && y >= 278 && y <= 370;
-      const merge = card ? this.mergeTarget(card, x, y) : undefined;
+        inHand = contains(HAND, x, y),
+        inSell = contains(SELL, x, y),
+        inBoard = contains(b, x, y);
+      // Top-row bodies extend above the floor rectangle. Honour their hit area,
+      // while the bench and sale area remain exclusive drop destinations.
+      const onFormation = !inHand && !inSell && (inBoard || target?.id.startsWith('unit:'));
+      const merge = card && onFormation ? this.mergeTarget(card, x, y) : undefined;
       const near = side.formation
         .filter((c) => c.id !== card?.id)
         .sort((a, b) => b.y - a.y)
@@ -1592,16 +1773,17 @@ export class MergeFront extends Component {
           return Math.hypot(q.x - x, q.y - y) < 48;
         });
       if (p.control.startsWith('offer:')) {
-        if (inHand) this.act({ type: 'buy', offer: Number(p.control.slice(6)) });
+        if (inHand) this.buyOffer(Number(p.control.slice(6)));
       } else if (p.control.startsWith('spell:')) {
         const spell = side.spells.find((c) => c.id === Number(p.control.slice(6)));
         if (spell) {
           if (spell.key === 'inspire' && own) this.act({ type: 'cast', spell: spell.id });
-          else if (spell.key !== 'inspire' && near)
+          else if (spell.key !== 'inspire' && onFormation && near)
             this.act({ type: 'cast', spell: spell.id, target: near.id });
         }
       } else if (p.control.startsWith('part:')) {
-        if (inSell) this.act({ type: 'discard', part: p.control.slice(5) });
+        if (inSell)
+          this.act({ type: 'discard', part: p.control.slice(5).split(':').slice(0, 2).join(':') });
       } else if (card) {
         if (inSell) this.act({ type: 'sell', card: card.id });
         else if (merge) this.act({ type: 'merge', from: card.id, to: merge.id });
@@ -1618,16 +1800,22 @@ export class MergeFront extends Component {
     this.render();
   }
 
+  touchCancel(e: EventTouch) {
+    this.lastTouch = this.time;
+    if (this.press?.id === (e.getID() ?? -2)) this.clear();
+  }
   touchStart(e: EventTouch) {
     this.lastTouch = this.time;
     const p = e.getUILocation();
     this.down(e.getID() ?? -2, p.x, H - p.y);
   }
   touchMove(e: EventTouch) {
+    this.lastTouch = this.time;
     const p = e.getUILocation();
     this.move(e.getID() ?? -2, p.x, H - p.y);
   }
   touchEnd(e: EventTouch) {
+    this.lastTouch = this.time;
     const p = e.getUILocation();
     this.up(e.getID() ?? -2, p.x, H - p.y);
   }
@@ -1654,7 +1842,7 @@ export class MergeFront extends Component {
     input.off(Input.EventType.TOUCH_START, this.touchStart, this);
     input.off(Input.EventType.TOUCH_MOVE, this.touchMove, this);
     input.off(Input.EventType.TOUCH_END, this.touchEnd, this);
-    input.off(Input.EventType.TOUCH_CANCEL, this.clear, this);
+    input.off(Input.EventType.TOUCH_CANCEL, this.touchCancel, this);
     input.off(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.off(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
     input.off(Input.EventType.MOUSE_UP, this.mouseUp, this);

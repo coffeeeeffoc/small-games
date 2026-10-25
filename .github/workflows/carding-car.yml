@@ -111,14 +111,14 @@ jobs:
           path: .scratch/ci-cocos/tetracube
           run-id: ${{ steps.producer.outputs.run_id }}
           github-token: ${{ github.token }}
-      - name: Download CI three-choose-two artifact
+      - name: Download CI place-and-clear artifact
         id: three
         if: steps.producer.outputs.run_id != ''
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
-          name: three-choose-two-${{ github.sha }}
-          path: .scratch/ci-cocos/three-choose-two
+          name: place-and-clear-${{ github.sha }}
+          path: .scratch/ci-cocos/place-and-clear
           run-id: ${{ steps.producer.outputs.run_id }}
           github-token: ${{ github.token }}
       - name: Download CI game-castle-cannon artifact
@@ -157,7 +157,7 @@ jobs:
           node scripts/reuse-cocos-artifacts.mjs verify merge-front .scratch/ci-cocos/merge-front
           node scripts/reuse-cocos-artifacts.mjs verify tower-brake .scratch/ci-cocos/tower-brake
           node scripts/reuse-cocos-artifacts.mjs verify tetracube .scratch/ci-cocos/tetracube
-          node scripts/reuse-cocos-artifacts.mjs verify three-choose-two .scratch/ci-cocos/three-choose-two
+          node scripts/reuse-cocos-artifacts.mjs verify place-and-clear .scratch/ci-cocos/place-and-clear
           node scripts/reuse-cocos-artifacts.mjs verify game-castle-cannon .scratch/ci-cocos/game-castle-cannon
           node scripts/reuse-cocos-artifacts.mjs verify ashfall-front .scratch/ci-cocos/ashfall-front
       - uses: actions/upload-artifact@v7
@@ -211,8 +211,8 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: steps.verify.outcome == 'success'
         with:
-          name: three-choose-two-${{ github.sha }}
-          path: .scratch/ci-cocos/three-choose-two
+          name: place-and-clear-${{ github.sha }}
+          path: .scratch/ci-cocos/place-and-clear
           if-no-files-found: error
       - uses: actions/upload-artifact@v7
         if: steps.verify.outcome == 'success'
@@ -242,7 +242,7 @@ jobs:
             bullet-garden,
             tower-brake,
             tetracube,
-            three-choose-two,
+            place-and-clear,
             game-castle-cannon,
             ashfall-front,
           ]
@@ -305,7 +305,7 @@ jobs:
           MERGE_FRONT_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/merge-front', github.workspace) || '' }}
           TOWER_BRAKE_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/tower-brake', github.workspace) || '' }}
           TETRACUBE_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/tetracube', github.workspace) || '' }}
-          THREE_CHOOSE_TWO_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/three-choose-two', github.workspace) || '' }}
+          PLACE_AND_CLEAR_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/place-and-clear', github.workspace) || '' }}
           CASTLE_CANNON_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/game-castle-cannon', github.workspace) || '' }}
           ASHFALL_FRONT_PREBUILT_DIR: ${{ steps.artifact.outputs.cache-hit == 'true' && format('{0}/games/local/ashfall-front', github.workspace) || '' }}
       - run: pnpm --dir games/local/${{ matrix.game }} run test

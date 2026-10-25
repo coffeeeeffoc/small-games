@@ -32,12 +32,13 @@ async function mounted(id = ink) {
 }
 
 it.each([
+  'waterline-station',
   'bullet-garden',
   'homebound-station',
   'tianxia-chalu',
   'ashfall-front',
   'carrom-club',
-  'three-choose-two',
+  'place-and-clear',
   'cage-rescue',
   'chase-thief',
   'merge-front',

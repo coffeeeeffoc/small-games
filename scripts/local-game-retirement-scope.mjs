@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto';
+import { registrationFileScopes } from './pages-registration-scope.mjs';
 import {
   deliveryRetirementBase,
   deliveryRetirementTrees,
   deliveryRetirementReviews,
+  deliveryRenameRetirementReviews,
   mazeVoiceRetirementBase,
   mazeVoiceRetirementTrees,
   mazeVoiceRetirementReviews,
@@ -30,6 +32,7 @@ export function localRetirementHeadQueryPaths(changedPaths) {
       ...changedPaths,
       ...Object.keys(deliveryRetirementTrees),
       ...Object.keys(deliveryRetirementReviews),
+      ...Object.keys(deliveryRenameRetirementReviews),
       ...Object.keys(mazeVoiceRetirementTrees),
       ...Object.keys(mazeVoiceRetirementReviews),
       ...Object.keys(catalogCleanupTrees),
@@ -106,7 +109,8 @@ export function localRetirementScopesForReview(context, trees, reviews, moves) {
       const value = Object.freeze([...(review?.sources ?? [])]);
       scopes.set(file, value);
       if (
-        (trees === deliveryRetirementTrees && reviews === deliveryRetirementReviews) ||
+        (trees === deliveryRetirementTrees &&
+          (reviews === deliveryRetirementReviews || reviews === deliveryRenameRetirementReviews)) ||
         (trees === mazeVoiceRetirementTrees && reviews === mazeVoiceRetirementReviews) ||
         (trees === catalogCleanupTrees && reviews === catalogCleanupReviews) ||
         (trees === localRetirementTrees && reviews === localRetirementReviews) ||
@@ -131,8 +135,13 @@ export function localRetirementScopesForReview(context, trees, reviews, moves) {
 }
 export function localRetirementFileScopes(context) {
   return new Map([
+    ...deliveryRetirementFileScopes(context),
     ...(context.baseCommit === deliveryRetirementBase
-      ? localRetirementScopesForReview(context, deliveryRetirementTrees, deliveryRetirementReviews)
+      ? localRetirementScopesForReview(
+          context,
+          deliveryRetirementTrees,
+          deliveryRenameRetirementReviews,
+        )
       : []),
     ...(context.baseCommit === mazeVoiceRetirementBase
       ? localRetirementScopesForReview(
@@ -161,6 +170,102 @@ export function localRetirementFileScopes(context) {
     ),
     ...mainRetirementDeletionScopes(context),
   ]);
+}
+
+// Later game updates may change a surviving host file without reviving the
+// retired source tree. Keep deletion evidence separate from each file's proof.
+export function deliveryRetirementFileScopes(context) {
+  const scopes = new Map();
+  if (context.baseCommit !== deliveryRetirementBase) return scopes;
+  try {
+    const roots = Object.keys(deliveryRetirementTrees);
+    for (const root of roots)
+      if (
+        context.readBaseEntry(root) !== deliveryRetirementTrees[root] ||
+        context.headHasPath(root) !== false
+      )
+        return scopes;
+    const games = JSON.parse(context.readHead('apps/shell-web/src/standalone-games.json'));
+    if (
+      !Array.isArray(games) ||
+      games.some(
+        (game) =>
+          typeof game.source !== 'string' ||
+          roots.some((root) => game.source === root || game.source.startsWith(root + '/')),
+      )
+    )
+      return scopes;
+    for (const file of context.changedPaths) {
+      if (roots.some((root) => file.startsWith(root + '/'))) {
+        if (
+          !/^(?:100644|100755) blob [a-f\d]{40}\t[^\n]+\n$/.test(context.readBaseEntry(file)) ||
+          context.headHasPath(file) !== false
+        )
+          return new Map();
+        const value = Object.freeze([]);
+        scopes.set(file, value);
+        proofs.set(value, { file, deleted: true });
+      } else {
+        const review = deliveryRetirementReviews[file];
+        if (
+          !review ||
+          digest(context.readBase(file)) !== review.before ||
+          context.headHasPath(file) !== true ||
+          digest(context.readHead(file)) !== review.after
+        )
+          continue;
+        if (file === 'pnpm-lock.yaml') {
+          const manifest = 'apps/shell-web/package.json';
+          const manifestReview = deliveryRetirementReviews[manifest];
+          if (
+            digest(context.readBase(manifest)) !== manifestReview.before ||
+            digest(context.readHead(manifest)) !== manifestReview.after
+          )
+            continue;
+        }
+        const value = Object.freeze([...review.sources]);
+        scopes.set(file, value);
+        proofs.set(value, { file, deleted: false, after: review.after });
+      }
+    }
+    const meta = 'apps/shell-web/src/game-meta.json';
+    if (context.changedPaths.includes(meta) && !scopes.has(meta)) {
+      const projected = deliveryRetirementMetadataScope(context, roots, games, meta);
+      if (projected) {
+        const value = Object.freeze([...projected]);
+        scopes.set(meta, value);
+        proofs.set(value, { file: meta, deleted: false, after: digest(context.readHead(meta)) });
+      }
+    }
+  } catch {
+    return new Map();
+  }
+  return scopes;
+}
+
+function deliveryRetirementMetadataScope(context, roots, games, meta) {
+  try {
+    const registry = 'apps/shell-web/src/standalone-games.json';
+    const keep = (game) => !roots.includes(game.source);
+    const oldGames = JSON.parse(context.readBase(registry)).filter(keep);
+    const oldMeta = JSON.parse(context.readBase(meta));
+    oldMeta.games = Object.fromEntries(
+      Object.entries(oldMeta.games).filter(([, game]) => keep(game)),
+    );
+    return registrationFileScopes({
+      changedPaths: [meta],
+      gameSources: games.map((game) => game.source),
+      readBase: (file) =>
+        file === registry
+          ? JSON.stringify(oldGames)
+          : file === meta
+            ? JSON.stringify(oldMeta)
+            : context.readBase(file),
+      readHead: context.readHead,
+    }).get(meta);
+  } catch {
+    return undefined;
+  }
 }
 
 export function mainRetirementTreesMatch(context) {

@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import { gameRenameRegistrationScopes } from './game-rename-scope.mjs';
 import path from 'node:path';
 
 const REGISTRY = 'apps/shell-web/src/standalone-games.json';
@@ -423,7 +424,7 @@ function lockWiringSources(before, after, additions, games, context) {
 
 /** A missing entry means full coverage; an empty selection still requires host validation. */
 export function registrationFileScopes({ changedPaths, readBase, readHead, gameSources }) {
-  const scopes = new Map();
+  const scopes = gameRenameRegistrationScopes({ changedPaths, readBase, readHead });
   if (!changedPaths.some((file) => [REGISTRY, META, SHELL, LOCK].includes(file))) return scopes;
   try {
     const before = registry(readBase(REGISTRY));
