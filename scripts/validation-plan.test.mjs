@@ -177,3 +177,41 @@ test('ordinary game static checks need shared emitted inputs, not unrelated Crea
     'a real emitted Creator dependency cannot be skipped',
   );
 });
+
+test('Shell-only changes retain shared build inputs without selecting unchanged games', async () => {
+  const { incrementalBuildTargets } = await import('./validation-plan.mjs');
+  const packages = [
+    {
+      name: 'core',
+      dir: 'packages/core',
+      scripts: { build: 'tsc' },
+      exports: './dist/index.js',
+    },
+    {
+      name: 'game',
+      dir: 'games/local/game',
+      scripts: { build: 'creator' },
+      exports: './dist/index.js',
+      dependencies: { core: 'workspace:*' },
+    },
+    {
+      name: 'shell',
+      dir: 'apps/shell-web',
+      scripts: { build: 'vite' },
+      exports: './src/index.ts',
+      dependencies: { core: 'workspace:*', game: 'workspace:*' },
+    },
+  ];
+  assert.deepEqual(
+    incrementalBuildTargets(packages, [], [packages[2]]).map((pkg) => pkg.name),
+    ['core'],
+  );
+  assert.deepEqual(
+    incrementalBuildTargets(packages, [packages[1]], [packages[2]]).map((pkg) => pkg.name),
+    ['core', 'game'],
+  );
+  assert.deepEqual(
+    incrementalBuildTargets(packages, [], [packages[1], packages[2]]).map((pkg) => pkg.name),
+    ['core', 'game'],
+  );
+});

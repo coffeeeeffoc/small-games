@@ -169,8 +169,6 @@ try {
         mode.enabled,
       );
       const debugField = {
-        'maze-wander': 'mazeDebug',
-
         'vibeJam-myself-nullrange': '__flight',
       }[game.id];
       if (debugField)

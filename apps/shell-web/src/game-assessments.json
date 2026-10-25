@@ -195,26 +195,6 @@
       ]
     },
     {
-      "id": "voiceprint-case",
-      "title": "声纹疑案",
-      "source": "games/local/voiceprint-case",
-      "disposition": "potential",
-      "potential": ["fun", "potential"],
-      "platforms": ["mobile"],
-      "primaryPlatform": "mobile",
-      "orientation": "portrait",
-      "genres": ["puzzle", "audio"],
-      "opportunities": ["challenge", "share"],
-      "schedule": "later",
-      "implementationStatus": "deferred",
-      "scheduleReason": "声音辨识题材有差异；后续需要试听环境、听觉可访问性与新录音内容验证，先确认首局正确理解再扩展。",
-      "strengths": ["同句不同声音与渐进噪声有辨识度，12关支持反复试听"],
-      "weaknesses": ["强依赖可听环境和听觉差异，内容量制约复玩"],
-      "improvements": ["增加非答案式重听提示与耳机校准，分享正确率而非答案"],
-      "evidence": ["games/local/voiceprint-case/README.md"],
-      "delivered": []
-    },
-    {
       "id": "echo-lab",
       "title": "回声实验室 · Echo Lab",
       "source": "games/local/echo-lab",
@@ -232,26 +212,6 @@
       "weaknesses": ["更接近声音实验工具，缺少明确胜负和短局动力"],
       "improvements": ["Web保留精确拖动，增加可选回声任务和作品试听卡"],
       "evidence": ["games/local/echo-lab/README.md"],
-      "delivered": []
-    },
-    {
-      "id": "maze-wander",
-      "title": "迷境漫游",
-      "source": "games/local/maze-wander",
-      "disposition": "potential",
-      "potential": ["fun", "potential"],
-      "platforms": ["web", "app"],
-      "primaryPlatform": "web",
-      "orientation": "landscape",
-      "genres": ["exploration", "puzzle"],
-      "opportunities": ["challenge", "share"],
-      "schedule": "later",
-      "implementationStatus": "deferred",
-      "scheduleReason": "20迷宫和空间记忆机制有探索价值；后续重点处理第一人称舒适性与移动转向，需独立输入和眩晕体验验证。",
-      "strengths": ["20迷宫、标记、镜面与捷径让空间记忆有变化"],
-      "weaknesses": ["第一人称移动对手机双指与眩晕敏感，节奏偏慢"],
-      "improvements": ["Web优先优化移动与转向，提供舒适设置和路线纪录分享"],
-      "evidence": ["games/local/maze-wander/README.md"],
       "delivered": []
     },
     {

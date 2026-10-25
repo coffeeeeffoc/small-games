@@ -45,6 +45,7 @@ import {
   workspacePackages,
   affectedPackages,
   staticBuildTargets,
+  incrementalBuildTargets,
   isDocumentation,
   shellContractTargets,
   shellContractFiles,
@@ -1131,7 +1132,11 @@ export async function validateTree({
           ]),
         ]
       : direct;
-  const buildTargets = staticBuildTargets(packages, buildDirect, affected).filter(
+  const buildTargets = (
+    incremental
+      ? incrementalBuildTargets(packages, buildDirect, affected)
+      : staticBuildTargets(packages, buildDirect, affected)
+  ).filter(
     (pkg) =>
       !(
         incrementalScope?.vite_patch &&

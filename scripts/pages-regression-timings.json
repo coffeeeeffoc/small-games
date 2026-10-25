@@ -2,9 +2,7 @@
   "sourceRun": "https://github.com/coffeeeeffoc/small-games/actions/runs/37181853091",
   "sourceSha": "bf38477a1bace4b57e6857a66fb6393220a2fd57",
   "milliseconds": {
-    "voiceprint-case": 7922,
     "echo-lab": 2220,
-    "maze-wander": 43347,
     "urban-breakout": 13212,
     "homebound-station": 39241,
     "carding-car": 70985,

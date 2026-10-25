@@ -861,7 +861,7 @@ test('Tianxia semantic checks change only its real AST branch and exact immersiv
   const context = tianxiaContext(file),
     after = context.readHead(file);
   for (const bad of [
-    after.replace("id === 'voiceprint-case'", "id === 'other'"),
+    after.replace("id === 'echo-lab'", "id === 'other'"),
     after.replace('const click = (locator)', 'const changed = (locator)'),
     after.replace("id === 'tianxia-chalu'", "id === 'other'"),
     after + '\nexport const leaked = true;\n',
