@@ -14,13 +14,13 @@
   "files": [
     {
       "file": "STATUS.md",
-      "bytes": 3407,
-      "sha256": "7e432920a17df1234d4cbbc910dcde684fb03a448588d63a7709ea5fa9b4a426"
+      "bytes": 3377,
+      "sha256": "cd1650b874e249d1944fabf608cba0f52f272e5be06f38efe64870a272f7d257"
     },
     {
       "file": "copy/introduction.md",
-      "bytes": 781,
-      "sha256": "8bdbd995299101c40273ea9be1168816d26adee4b30c1c0b28b9bcb082c04889"
+      "bytes": 776,
+      "sha256": "2cc566c49f8065fde6be305125122996a6a43aadc3bce1df2fe6a814ba8b57a8"
     },
     {
       "file": "copy/tagline.md",
@@ -29,13 +29,13 @@
     },
     {
       "file": "copy/developer-note.md",
-      "bytes": 726,
-      "sha256": "e0a01bead5fdc7e492730ceeb09111c8f639840b85571206700860ab09713fdb"
+      "bytes": 721,
+      "sha256": "03960ad3482888c69927d04ad09e1f11f8586cb0b6c4eb44c4c7259add4d808e"
     },
     {
       "file": "icon/orbit.svg",
-      "bytes": 357,
-      "sha256": "f8b567fba9ae7f178ae050a5cde28abba91c314e308ce90aa2d4c9e503e5c55c"
+      "bytes": 356,
+      "sha256": "e305d9aa44807bd4222e78aa5a7e7480b4139d20258e65d42727bc508645abae"
     },
     {
       "file": "promo/images/gravity-home-780x1688.png",
@@ -116,5 +116,6 @@
       "height": 1688
     }
   ],
-  "sourceHashEncoding": "SHA-256 of UTF-8 source normalized to LF"
+  "sourceHashEncoding": "SHA-256 of UTF-8 source normalized to LF",
+  "textFileHashEncoding": "Text file bytes and SHA-256 use UTF-8 normalized to LF, matching Git blobs; binary files use raw bytes"
 }
