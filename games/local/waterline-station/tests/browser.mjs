@@ -1,1054 +1,308 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { mkdir } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
-import { setTimeout as delay } from 'node:timers/promises';
-import { chromium } from '@playwright/test';
 import { LEVELS } from '../levels.mjs';
-import { createState, toggleGate, solve, isGateLocked } from '../engine.mjs';
+import { createState, toggleGate } from '../engine.mjs';
 import { STORAGE_KEY } from '../progress.mjs';
-
-const gameRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const outputDir = resolve(gameRoot, 'test-results');
-const gameUrl = process.env.GAME_URL || 'http://127.0.0.1:4411/';
-const runtimeErrors = [];
-let server;
-let browser;
-let serverOutput = '';
-let serverError;
-
-function stableState(state) {
-  const { volumes, gates, latched, wheelPower, moves, won, lost, bonusMoves } = state;
-  return { volumes, gates, latched, wheelPower, moves, won, lost, bonusMoves };
-}
-
-function stateKey(state) {
-  return JSON.stringify(stableState(state));
-}
-
-function expectedStatus(state) {
-  return state.won ? 'won' : state.lost ? 'lost' : 'playing';
-}
-
-async function snapshot(page) {
-  return page.evaluate(() => window.__waterlineSnapshot());
-}
-
-function sceneGate(page, gateId) {
-  return page.locator('#board-controls button[data-gate="' + gateId + '"]');
-}
-
-async function settled(page) {
-  await page.waitForFunction(
-    () =>
-      typeof window.__waterlineSnapshot === 'function' && !window.__waterlineSnapshot().animating,
-    null,
-    { timeout: 15_000 },
+import {
+  fixture,
+  snap,
+  ready,
+  tap,
+  settled,
+  cancelTouch,
+  stable,
+  moveDevButton,
+} from './browser-support.mjs';
+const f = await fixture(),
+  out = new URL(
+    process.env.CAPTURE_GAME_EVIDENCE === '1'
+      ? '../docs/design/mobile-cocos-2026-10-25/actual/'
+      : '../test-results/mobile-cocos/',
+    import.meta.url,
   );
-  return snapshot(page);
-}
-
-function recordErrors(page, label) {
-  page.on('pageerror', (error) => runtimeErrors.push(label + ': ' + error.message));
-  page.on('console', (message) => {
-    if (message.type() === 'error') runtimeErrors.push(label + ': ' + message.text());
+await mkdir(out, { recursive: true });
+const checks = [],
+  errors = [],
+  diagnostics = [];
+const context = await f.browser.newContext({
+  viewport: { width: 390, height: 844 },
+  hasTouch: true,
+  isMobile: true,
+  reducedMotion: 'reduce',
+});
+const page = await context.newPage();
+let activePage = page;
+const watch = (p) => {
+  p.on('pageerror', (e) => errors.push(e.message));
+  p.on('console', (m) => {
+    if (m.type() === 'error') {
+      const text = m.text();
+      if (
+        text ===
+        'Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.'
+      )
+        diagnostics.push(text);
+      else errors.push(text);
+    }
   });
-}
-
-async function openGame(context, label) {
-  const page = await context.newPage();
-  recordErrors(page, label);
-  page.setDefaultTimeout(15_000);
-  await page.goto(gameUrl, { waitUntil: 'networkidle', timeout: 30_000 });
-  await page.locator('#board').waitFor({ state: 'visible' });
-  await settled(page);
-  return page;
-}
-
-async function verifyBoard(page, levelIndex, expected, label) {
-  const actual = await settled(page);
-  assert.equal(actual.levelIndex, levelIndex, label + ': selected level');
-  assert.deepEqual(stableState(actual.state), stableState(expected), label + ': engine state');
-  assert.equal(
-    await page.locator('#board').getAttribute('data-level'),
-    String(levelIndex + 1),
-    label + ': board level',
-  );
-  assert.equal(
-    await page.locator('#board').getAttribute('data-status'),
-    expectedStatus(expected),
-    label + ': board status',
-  );
-  const movesLeft = Number((await page.locator('#moves-left').innerText()).trim());
-  assert.equal(
-    movesLeft,
-    Math.max(0, LEVELS[levelIndex].maxMoves + expected.bonusMoves - expected.moves),
-    label + ': remaining move counter',
-  );
-  for (const [index, gate] of LEVELS[levelIndex].gates.entries()) {
-    const button = sceneGate(page, gate.id);
-    assert.equal(
-      await button.getAttribute('aria-pressed'),
-      String(expected.gates[index]),
-      label + ': ' + gate.id + ' reflects the actual valve state',
-    );
-    assert.equal(
-      await button.getAttribute('aria-disabled'),
-      String(expected.won || expected.lost || isGateLocked(LEVELS[levelIndex], expected, gate.id)),
-      label + ': ' + gate.id + ' availability',
-    );
-  }
-  return actual;
-}
-
-async function clickGate(page, levelIndex, expected, gateId, label, touch = false) {
-  const before = await snapshot(page);
-  const gate = sceneGate(page, gateId);
-  try {
-    if (touch) await gate.tap();
-    else await gate.click();
-  } catch (error) {
-    throw new Error(label + ' (' + gateId + ') could not be clicked', { cause: error });
-  }
-  const next = toggleGate(LEVELS[levelIndex], expected, gateId);
-  assert.notEqual(stateKey(next), stateKey(expected), label + ': solver must make a legal move');
-  const actual = await verifyBoard(page, levelIndex, next, label);
-  assert.equal(actual.historyLength, before.historyLength + 1, label + ': undo history');
-  return next;
-}
-
-async function selectLevel(page, index) {
-  if (!(await page.locator('button[data-level-index="' + index + '"]').count())) {
-    await page.locator('[data-chapter-index="' + Math.floor(index / 10) + '"]').click();
-  }
-  await page.locator('button[data-level-index="' + index + '"]').click();
-  return verifyBoard(page, index, createState(LEVELS[index]), 'Select level ' + (index + 1));
-}
-
-async function undo(page) {
-  const result = page.locator('#result');
-  if (await result.isVisible()) await page.locator('#result-undo').click();
-  else await page.locator('#undo').click();
-  await settled(page);
-}
-
-async function verifySceneControls(page, levelIndex, label) {
-  assert.equal(await page.locator('#gate-controls').count(), 0, label + ': no remote gate panel');
-  assert.equal(
-    await page.locator('#board-controls button[data-gate]').count(),
-    LEVELS[levelIndex].gates.length,
-    label + ': each valve has a scene control',
-  );
-  const layout = await page.evaluate(() => {
-    const board = document.querySelector('#board').getBoundingClientRect();
+  p.on('response', (r) => {
+    if (r.status() >= 400 && r.url().startsWith(f.base)) errors.push(`${r.status()} ${r.url()}`);
+  });
+};
+watch(page);
+const shot = (name) => page.screenshot({ path: fileURLToPath(new URL(name + '.png', out)) });
+try {
+  await page.goto(f.base);
+  await ready(page);
+  const engine = await page.evaluate(async () => {
+    const { cc } = await import('./vendor/cocos/bootstrap.mjs');
+    const scene = cc.director.getScene();
     return {
-      board: { left: board.left, right: board.right, top: board.top, bottom: board.bottom },
-      gates: [...document.querySelectorAll('#board-controls button[data-gate]')].map((gate) => {
-        const bounds = gate.getBoundingClientRect();
-        return {
-          id: gate.dataset.gate,
-          inScene: Boolean(gate.closest('.board-wrap')),
-          left: bounds.left,
-          right: bounds.right,
-          top: bounds.top,
-          bottom: bounds.bottom,
-          width: bounds.width,
-          height: bounds.height,
-        };
-      }),
+      version: cc.VERSION,
+      scene: scene instanceof cc.Scene,
+      graphics: scene.getComponentsInChildren(cc.Graphics).length,
+      labels: scene.getComponentsInChildren(cc.Label).length,
+      webgl: document.querySelector('canvas').getContext('2d') === null,
     };
   });
-  for (const gate of layout.gates) {
-    assert.ok(gate.inScene, label + ': ' + gate.id + ' belongs to the station scene');
-    assert.ok(
-      gate.width >= 44 && gate.height >= 44,
-      label + ': ' + gate.id + ' needs a 44px touch target: ' + JSON.stringify(gate),
-    );
-    assert.ok(
-      gate.left >= layout.board.left - 1 &&
-        gate.right <= layout.board.right + 1 &&
-        gate.top >= layout.board.top - 1 &&
-        gate.bottom <= layout.board.bottom + 1,
-      label + ': ' + gate.id + ' remains inside the rendered board',
-    );
+  assert.equal(engine.version, '3.8.8');
+  assert.ok(engine.scene && engine.graphics > 0 && engine.labels > 0 && engine.webgl);
+  assert.equal((await snap(page)).screen, 'home');
+  await shot('home-390');
+  await tap(page, 'levels-button');
+  assert.equal((await snap(page)).screen, 'levels');
+  assert.equal(await page.locator('#level-1').isDisabled(), true);
+  await shot('levels-390');
+  await tap(page, 'back-home');
+  await tap(page, 'start');
+  await shot('play-390');
+  await cancelTouch(page, 'gate-AB');
+  assert.equal((await snap(page)).state.moves, 0);
+  await tap(page, 'gate-BC');
+  await settled(page);
+  assert.equal((await snap(page)).state.moves, 1);
+  await tap(page, 'gate-BC');
+  await settled(page);
+  assert.equal((await snap(page)).state.moves, 2);
+  await tap(page, 'undo');
+  assert.equal((await snap(page)).state.moves, 1);
+  await tap(page, 'pause');
+  await shot('pause-390');
+  const paused = stable((await snap(page)).state);
+  await page.waitForTimeout(150);
+  assert.deepEqual(stable((await snap(page)).state), paused);
+  await tap(page, 'restart');
+  await tap(page, 'predict');
+  await tap(page, 'gate-AB');
+  assert.equal((await snap(page)).state.moves, 0);
+  assert.deepEqual((await snap(page)).preview.volumes, [4, 4, 4]);
+  await shot('prediction-390');
+  await tap(page, 'gate-AB');
+  await settled(page);
+  assert.equal((await snap(page)).state.won, true);
+  assert.equal((await snap(page)).screen, 'result');
+  await shot('success-390');
+  assert.equal((await snap(page)).unlocked, 1);
+  await tap(page, 'result-undo');
+  assert.equal((await snap(page)).state.won, false);
+  assert.equal((await snap(page)).state.moves, 0);
+  await tap(page, 'gate-AB');
+  await settled(page);
+  await tap(page, 'next-level');
+  assert.equal((await snap(page)).levelIndex, 1);
+  await tap(page, 'gate-BC');
+  assert.equal((await snap(page)).state.moves, 0);
+  assert.match((await snap(page)).message, /先点亮/);
+  await tap(page, 'gate-AB');
+  await settled(page);
+  await tap(page, 'gate-BC');
+  await settled(page);
+  assert.equal((await snap(page)).state.won, true);
+  checks.push(
+    'home/locked levels/touch cancel/open-close/undo/pause/restart/prediction confirmation/result undo/next unlock/locked gate',
+  );
+  await page.reload();
+  await ready(page);
+  assert.equal((await snap(page)).progress.best[LEVELS[1].id], 2);
+  await tap(page, 'levels-button');
+  await tap(page, 'level-0');
+  for (let i = 0; i < 3; i++) {
+    await tap(page, 'gate-BC');
+    await settled(page);
   }
-  for (let first = 0; first < layout.gates.length; first += 1) {
-    for (let second = first + 1; second < layout.gates.length; second += 1) {
-      const a = layout.gates[first];
-      const b = layout.gates[second];
-      assert.ok(
-        a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top,
-        label + ': ' + a.id + ' and ' + b.id + ' touch targets overlap',
-      );
-    }
-  }
-}
-
-async function verifyFocusedConnection(page, connection, label) {
-  assert.equal(
-    (await snapshot(page)).focusedConnection,
-    connection,
-    label + ': selected connection',
+  assert.equal((await snap(page)).state.lost, true);
+  await shot('failure-390');
+  await tap(page, 'extra-move');
+  assert.equal((await snap(page)).state.bonusMoves, 1);
+  await tap(page, 'undo');
+  assert.equal((await snap(page)).extraClaimed, true);
+  assert.equal((await snap(page)).state.bonusMoves, 1);
+  await tap(page, 'pause');
+  await tap(page, 'pause-home');
+  await tap(page, 'settings');
+  await tap(page, 'sound');
+  assert.equal((await snap(page)).progress.sound, true);
+  await tap(page, 'back-home');
+  await tap(page, 'help');
+  await shot('help-390');
+  await tap(page, 'back-home');
+  checks.push(
+    'storage roundtrip/failure/free extra move cannot be reclaimed after undo/sound/help',
   );
-  assert.equal(
-    await page
-      .locator('#board g[data-connection="' + connection + '"]')
-      .getAttribute('data-focused'),
-    'true',
-    label + ': the source connection reflects focus',
-  );
-  assert.equal(
-    await page
-      .locator('#board-foreground [data-foreground-connection]')
-      .getAttribute('data-foreground-connection'),
-    connection,
-    label + ': the selected pipe is above unrelated scene controls',
-  );
-  if (connection.startsWith('overflow:')) return;
-  const layers = await page.locator('#board-controls button[data-gate]').evaluateAll((buttons) =>
-    buttons.map((button) => ({
-      id: button.dataset.gate,
-      z: Number(getComputedStyle(button).zIndex),
-    })),
-  );
-  const selected = layers.find((gate) => gate.id === connection);
-  assert.ok(selected, label + ': the pipe has an associated valve');
-  assert.ok(
-    layers.every((gate) => gate.id === connection || selected.z > gate.z),
-    label + ': the associated valve is above the other valves',
-  );
-}
-
-// Sample the actual SVG route and click an exposed stroke, not the bounding-box
-// center (which may be empty or belong to another pipe at a crossing).
-async function clickPipe(page, connection, touch = false) {
-  await page.locator('#board').scrollIntoViewIfNeeded();
-  const point = await page.evaluate((id) => {
-    const group = [...document.querySelectorAll('#board g[data-connection]')].find(
-      (node) => node.dataset.connection === id,
-    );
-    const path = group?.querySelector('.pipe-hit');
-    if (!path) return null;
-    const matrix = path.getScreenCTM();
-    for (let step = 5; step < 196; step += 1) {
-      const local = path.getPointAtLength((path.getTotalLength() * step) / 200);
-      const screen = new DOMPoint(local.x, local.y).matrixTransform(matrix);
-      if (screen.x < 2 || screen.y < 2 || screen.x > innerWidth - 2 || screen.y > innerHeight - 2)
-        continue;
-      const target = document.elementFromPoint(screen.x, screen.y);
-      const targetConnection = target?.closest('[data-connection], [data-foreground-connection]');
-      if (
-        targetConnection?.dataset.connection === id ||
-        targetConnection?.dataset.foregroundConnection === id
-      ) {
-        return { x: screen.x, y: screen.y };
-      }
-    }
-    return null;
-  }, connection);
-  assert.ok(point, connection + ' has a visible clickable pipe segment');
-  if (touch) await page.touchscreen.tap(point.x, point.y);
-  else await page.mouse.click(point.x, point.y);
-}
-
-async function verifyPipeInteraction(page, touch = false) {
-  // The five-tank finale has crossing connections, locks and an overflow pipe.
-  await selectLevel(page, 7);
-  if (!touch) {
-    await page.screenshot({
-      path: resolve(outputDir, 'waterline-desktop-five-tanks.png'),
-      fullPage: true,
-    });
-  }
-  let before = await snapshot(page);
-  for (const gate of LEVELS[7].gates) {
-    await clickPipe(page, gate.id, touch);
-    await verifyFocusedConnection(page, gate.id, 'Exposed segment ' + gate.id);
-    const after = await snapshot(page);
-    assert.deepEqual(
-      stableState(after.state),
-      stableState(before.state),
-      'Selecting a pipe moves no water and consumes no turn',
-    );
-    assert.equal(
-      after.historyLength,
-      before.historyLength,
-      'Selecting a pipe creates no undo entry',
-    );
-  }
-  await clickPipe(page, 'overflow:0', touch);
-  await verifyFocusedConnection(page, 'overflow:0', 'Overflow can also be brought forward');
-  const overflow = await snapshot(page);
-  assert.deepEqual(
-    stableState(overflow.state),
-    stableState(before.state),
-    'Selecting overflow cannot transfer water',
-  );
-  assert.equal(
-    overflow.historyLength,
-    before.historyLength,
-    'Selecting overflow creates no action',
-  );
-
-  await page.locator('#predict').click();
-  await sceneGate(page, 'AB').click();
-  before = await settled(page);
-  assert.equal(before.selectedGate, 'AB', 'Prediction is active before selecting another pipe');
-  const other = LEVELS[7].gates.find((gate) => gate.id !== 'AB').id;
-  await clickPipe(page, other, touch);
-  const after = await snapshot(page);
-  assert.equal(
-    after.selectedGate,
-    before.selectedGate,
-    'Pipe selection preserves the pending predicted gate',
-  );
-  assert.equal(after.prediction, before.prediction, 'Pipe selection preserves prediction mode');
-  assert.deepEqual(
-    stableState(after.state),
-    stableState(before.state),
-    'Pipe selection does not confirm a pending prediction',
-  );
-  await verifyFocusedConnection(page, other, 'Pipe selection while previewing');
-  const viewport = page.viewportSize();
-  await page.setViewportSize({
-    width: viewport.width === 320 ? 390 : viewport.width - 30,
-    height: viewport.height,
-  });
+  // Existing v1 records selected at any station remain playable after the migration.
   await page.evaluate(
-    () =>
-      new Promise((resolveFrame) =>
-        requestAnimationFrame(() => requestAnimationFrame(resolveFrame)),
-      ),
+    ({ key, last }) =>
+      localStorage.setItem(key, JSON.stringify({ selected: last, sound: false, best: {} })),
+    { key: STORAGE_KEY, last: 49 },
   );
-  await verifyFocusedConnection(page, other, 'Pipe selection survives responsive redraw');
-  await page.setViewportSize(viewport);
-  await page.locator('#predict').click();
-  await selectLevel(page, 0);
-}
-
-async function verifyChapterNavigation(page) {
-  assert.equal(
-    await page.locator('#chapter-nav [data-chapter-index]').count(),
-    5,
-    'Five chapters organize the fifty levels',
-  );
-  const before = await snapshot(page);
-  const reached = [];
-  for (let chapter = 0; chapter < 5; chapter += 1) {
-    await page.locator('[data-chapter-index="' + chapter + '"]').click();
-    const indices = await page
-      .locator('#level-nav [data-level-index]')
-      .evaluateAll((buttons) => buttons.map((button) => Number(button.dataset.levelIndex)));
-    assert.deepEqual(
-      indices,
-      Array.from({ length: 10 }, (_, offset) => chapter * 10 + offset),
-      'Chapter ' + (chapter + 1) + ' contains the correct ten stations',
-    );
-    reached.push(...indices);
-    const after = await snapshot(page);
-    assert.equal(after.levelIndex, before.levelIndex, 'Browsing chapters keeps the active puzzle');
-    assert.deepEqual(
-      stableState(after.state),
-      stableState(before.state),
-      'Browsing chapters preserves all puzzle state',
-    );
-    assert.equal(
-      after.historyLength,
-      before.historyLength,
-      'Browsing chapters preserves undo history',
-    );
-  }
-  assert.equal(
-    new Set(reached).size,
-    50,
-    'All fifty levels are reachable from the chapter selector',
-  );
-  await selectLevel(page, 0);
-}
-
-async function verifyRaisedPipeValveAccess(page) {
-  const index = 10;
-  await selectLevel(page, index);
-  let expected = createState(LEVELS[index]);
-  expected = await clickGate(page, index, expected, 'AB', 'Open AB in the four-tank junction');
-  expected = await clickGate(page, index, expected, 'AD', 'Raise AD across the other valve lane');
-  await verifyFocusedConnection(page, 'AD', 'AD is above the other connections');
-  const button = sceneGate(page, 'AB');
-  const bounds = await button.boundingBox();
-  const before = await snapshot(page);
-  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  expected = toggleGate(LEVELS[index], expected, 'AB');
-  const after = await verifyBoard(
-    page,
-    index,
-    expected,
-    'AB center remains clickable beneath the raised AD pipe',
-  );
-  assert.equal(
-    after.historyLength,
-    before.historyLength + 1,
-    'The center click performs exactly one valve operation',
-  );
-  await verifyFocusedConnection(page, 'AB', 'Clicking the other valve brings its pipe forward');
-  await selectLevel(page, 0);
-}
-
-async function verifyCompactHeader(page, label) {
-  const layout = await page.evaluate(() => ({
-    boardTop: document.querySelector('#board').getBoundingClientRect().top + scrollY,
-    mastheadHeight: document.querySelector('.masthead').getBoundingClientRect().height,
-  }));
-  assert.ok(
-    layout.boardTop <= 240,
-    label + ': gameplay starts near the top: ' + JSON.stringify(layout),
-  );
-  assert.ok(
-    layout.mastheadHeight <= 90,
-    label + ': title area stays compact: ' + JSON.stringify(layout),
-  );
-}
-
-async function verifyDirectValveInteraction(page) {
-  // Level four permits opening and closing the same valve without ending the run.
-  const levelIndex = 3;
-  const level = LEVELS[levelIndex];
-  await selectLevel(page, levelIndex);
-  await verifySceneControls(page, levelIndex, 'Desktop station valves');
-  let expected = createState(level);
-  const gate = sceneGate(page, 'AB');
-  const bounds = await gate.boundingBox();
-  assert.ok(bounds, 'Scene valve has a physical pointer target');
-  const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-  await page.mouse.click(center.x, center.y);
-  assert.equal((await snapshot(page)).animating, true, 'Opening a valve starts water animation');
-  assert.equal(
-    await gate.getAttribute('aria-disabled'),
-    'true',
-    'A moving station disables the valve',
-  );
-  // Raw pointer input must not wait for disabled controls to become enabled again.
-  await page.mouse.click(center.x, center.y);
-  await page.mouse.click(center.x, center.y);
-  await clickPipe(page, 'BC');
-  assert.equal((await snapshot(page)).animating, true, 'A pipe can be selected during water flow');
-  expected = toggleGate(level, expected, 'AB');
-  const opened = await verifyBoard(page, levelIndex, expected, 'Repeated clicks during water flow');
-  assert.equal(opened.historyLength, 1, 'Rapid clicks record exactly one operation');
-  await verifyFocusedConnection(page, 'BC', 'Pipe focus survives animation redraws');
-
-  expected = await clickGate(page, levelIndex, expected, 'AB', 'Click the open valve to close it');
-  assert.equal(expected.gates[0], false, 'The scene valve can be closed again');
-
-  await page.locator('#restart').click();
-  expected = createState(level);
-  await gate.focus();
-  await page.keyboard.press('Enter');
-  expected = toggleGate(level, expected, 'AB');
-  await verifyBoard(page, levelIndex, expected, 'Enter opens the focused valve');
-  assert.equal(
-    await gate.evaluate((button) => document.activeElement === button),
-    true,
-    'Focus remains on the valve after the water animation',
-  );
-  await page.keyboard.press('Space');
-  expected = toggleGate(level, expected, 'AB');
-  await verifyBoard(page, levelIndex, expected, 'Space closes the focused valve');
-
-  await selectLevel(page, 1);
-  const locked = sceneGate(page, 'BC');
-  assert.equal(
-    await locked.getAttribute('aria-disabled'),
-    'true',
-    'Level two starts with a locked scene valve',
-  );
-  const lockedBounds = await locked.boundingBox();
-  await page.mouse.click(
-    lockedBounds.x + lockedBounds.width / 2,
-    lockedBounds.y + lockedBounds.height / 2,
-  );
-  const unchanged = await verifyBoard(page, 1, createState(LEVELS[1]), 'Click a locked valve');
-  assert.equal(unchanged.historyLength, 0, 'Locked valves consume no operation');
-  await verifyFocusedConnection(page, 'BC', 'Locked valve still raises its connected pipe');
-  await locked.focus();
-  await page.keyboard.press('Enter');
-  await verifyFocusedConnection(page, 'BC', 'Keyboard activation can focus a locked valve');
-  assert.deepEqual(
-    stableState((await snapshot(page)).state),
-    stableState(unchanged.state),
-    'Keyboard activation of a locked valve consumes no operation',
-  );
-  expected = await clickGate(page, 1, createState(LEVELS[1]), 'AB', 'Lower the crate to unlock BC');
-  assert.equal(
-    await locked.getAttribute('aria-disabled'),
-    'false',
-    'The switch unlocks the scene valve',
-  );
-  await clickGate(page, 1, expected, 'BC', 'Open the unlocked scene valve');
-  await page.locator('#result').waitFor({ state: 'visible' });
-  await page.locator('#result-retry').click();
-  await selectLevel(page, 0);
-}
-
-// The puzzle engine finds an actual losing route, so this remains useful if
-// individual level solutions or move budgets change.
-function findLosingRoute(level, start = createState(level)) {
-  const queue = [{ state: start, path: [], states: [start] }];
-  const seen = new Set([stateKey(start)]);
-  for (let cursor = 0; cursor < queue.length && cursor < 30_000; cursor += 1) {
-    const entry = queue[cursor];
-    if (entry.state.lost) return entry;
-    if (entry.state.won) continue;
-    for (const gate of level.gates) {
-      const next = toggleGate(level, entry.state, gate.id);
-      const key = stateKey(next);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      queue.push({
-        state: next,
-        path: [...entry.path, gate.id],
-        states: [...entry.states, next],
-      });
-    }
-  }
-  return null;
-}
-
-async function verifyPredictionAndUndo(page) {
-  const level = LEVELS[0];
-  const initial = createState(level);
-  const initialSnapshot = await verifyBoard(page, 0, initial, 'Initial board');
-  const solution = solve(level, initial);
-  assert.ok(solution?.length, 'The first level must be solvable');
-
-  await page.locator('#predict').click();
-  const enabled = await settled(page);
-  assert.deepEqual(stableState(enabled.state), stableState(initial), 'Enabling prediction is free');
-  assert.equal(
-    enabled.historyLength,
-    initialSnapshot.historyLength,
-    'Prediction adds no undo entry',
-  );
-
-  const gate = sceneGate(page, solution[0]);
-  await gate.click();
-  const preview = await settled(page);
-  assert.ok(preview.prediction, 'The first gate click displays a prediction');
-  assert.equal(preview.selectedGate, solution[0], 'The selected gate awaits confirmation');
-  assert.deepEqual(
-    stableState(preview.state),
-    stableState(initial),
-    'Preview does not move water or use a turn',
-  );
-  assert.equal(
-    preview.historyLength,
-    initialSnapshot.historyLength,
-    'Preview keeps undo history unchanged',
-  );
-  assert.equal(
-    await gate.evaluate((button) => document.activeElement === button),
-    true,
-    'Prediction preserves focus on the selected scene valve',
-  );
-
-  await gate.click();
-  const next = toggleGate(level, initial, solution[0]);
-  const applied = await verifyBoard(page, 0, next, 'Confirm predicted gate');
-  assert.equal(applied.state.moves, initial.moves + 1, 'Only the confirmation consumes a move');
-  assert.equal(
-    applied.historyLength,
-    initialSnapshot.historyLength + 1,
-    'Confirmation creates one undo entry',
-  );
-
-  await undo(page);
-  const restored = await verifyBoard(page, 0, initial, 'Undo predicted move');
-  assert.equal(
-    restored.historyLength,
-    initialSnapshot.historyLength,
-    'Undo restores history length',
-  );
-  assert.equal(restored.extraClaimed, false, 'Undo does not claim a bonus');
-
-  // Restart clears the run; prediction is a player preference and may stay enabled.
-  await page.locator('#restart').click();
-  const reset = await verifyBoard(page, 0, initial, 'Restart after prediction');
-  assert.equal(reset.historyLength, 0, 'Restart clears undo history');
-  assert.equal(reset.extraClaimed, false, 'Restart clears bonus claim');
-  if (reset.prediction) await page.locator('#predict').click();
-}
-
-async function verifyAllLevels(page) {
-  assert.equal(LEVELS.length, 50, 'The campaign contains fifty levels');
-  const solvedMoves = new Map();
-  let checkedRestartAfterMove = false;
-  let checkedWheelUndo = false;
-  for (let index = 0; index < LEVELS.length; index += 1) {
-    const level = LEVELS[index];
-    let expected = createState(level);
-    await verifyBoard(page, index, expected, 'Start level ' + (index + 1));
-    assert.equal(
-      await page.locator('#level-nav [data-level-index]').count(),
-      10,
-      'Only the current ten-level chapter is shown',
-    );
-    assert.equal(
-      await page.locator('#level-nav [aria-current="step"]').getAttribute('data-level-index'),
-      String(index),
-      'Next level activates its chapter automatically',
-    );
-    const solution = level.solution ?? solve(level, expected);
-    assert.ok(solution?.length, 'Level ' + (index + 1) + ' must have a solution');
-    solvedMoves.set(level.id, solution.length);
-
-    // Exercise the actual restart control after a nonterminal move.
-    if (!checkedRestartAfterMove && solution.length > 1) {
-      expected = await clickGate(page, index, expected, solution[0], 'Move before restart');
-      await page.locator('#restart').click();
-      const reset = await verifyBoard(page, index, createState(level), 'Restart an active puzzle');
-      assert.equal(reset.historyLength, 0, 'Restart drops all previous moves');
-      assert.equal(reset.extraClaimed, false, 'Restart starts a fresh allowance');
-      expected = createState(level);
-      checkedRestartAfterMove = true;
-    }
-
-    for (let move = 0; move < solution.length; move += 1) {
-      const beforeMove = expected;
-      expected = await clickGate(
-        page,
-        index,
-        expected,
-        solution[move],
-        'Level ' + (index + 1) + ', move ' + (move + 1),
+  await page.reload();
+  await ready(page);
+  assert.equal((await snap(page)).unlocked, 49);
+  await tap(page, 'levels-button');
+  for (let i = 0; i < 4; i++) await tap(page, 'chapter-prev');
+  await tap(page, 'level-0');
+  for (let i = 0; i < LEVELS.length; i++) {
+    let expected = createState(LEVELS[i]);
+    assert.equal((await snap(page)).levelIndex, i);
+    for (const gate of LEVELS[i].solution) {
+      expected = toggleGate(LEVELS[i], expected, gate);
+      await tap(page, 'gate-' + gate);
+      await settled(page);
+      assert.deepEqual(
+        stable((await snap(page)).state),
+        stable(expected),
+        `station ${i + 1} gate ${gate}`,
       );
-      if (!checkedWheelUndo && expected.wheelPower > beforeMove.wheelPower) {
-        await undo(page);
-        await verifyBoard(page, index, beforeMove, 'Undo restores wheel power and overflow water');
-        expected = await clickGate(
-          page,
-          index,
-          beforeMove,
-          solution[move],
-          'Replay the overflow move',
-        );
-        checkedWheelUndo = true;
-      }
     }
-    assert.equal(expected.won, true, 'Level ' + (index + 1) + ' reaches its goals');
-    await page.locator('#result').waitFor({ state: 'visible' });
-    if (index < LEVELS.length - 1) {
-      await page.locator('#next-level').click();
-      await verifyBoard(page, index + 1, createState(LEVELS[index + 1]), 'Advance to next level');
-    }
+    assert.equal((await snap(page)).state.won, true, LEVELS[i].id);
+    if (i === 7) await shot('complex-result-390');
+    if (i < LEVELS.length - 1) await tap(page, 'next-level');
   }
-  assert.equal(checkedRestartAfterMove, true, 'At least one puzzle exercises restart after a move');
-  assert.equal(
-    checkedWheelUndo,
-    true,
-    'An overflow puzzle exercises undo after powering the wheel',
+  checks.push(
+    'all 50 authored stations solved by real Cocos touch input and compared to pure engine after every move; legacy v1 selected migration',
   );
-  return solvedMoves;
-}
-
-async function verifyPersistence(page, solvedMoves, initialProgress) {
-  const before = await snapshot(page);
-  assert.ok(before.progress && typeof before.progress === 'object', 'Progress is available');
-  // Compare the full stored progress object; this also preserves every best result.
-  const progress = structuredClone(before.progress);
-  assert.ok(Object.keys(progress).length, 'Completed puzzles produced a progress record');
-  assert.notDeepEqual(
-    progress,
-    initialProgress,
-    'Completing all levels changes persisted progress',
-  );
-  for (const [levelId, moves] of solvedMoves) {
-    assert.equal(progress.best[levelId], moves, levelId + ': shortest result is saved');
-  }
-  await page.reload({ waitUntil: 'networkidle' });
-  const after = await settled(page);
-  assert.deepEqual(after.progress, progress, 'All best results survive a reload');
-  assert.equal(solvedMoves.size, LEVELS.length, 'Every level contributed a completion result');
-}
-
-async function verifyFailureBonusAndRestart(page) {
-  let failingIndex = -1;
-  let route;
-  for (let index = 0; index < LEVELS.length; index += 1) {
-    route = findLosingRoute(LEVELS[index]);
-    if (route?.path.length) {
-      failingIndex = index;
-      break;
-    }
-  }
-  assert.ok(failingIndex >= 0, 'At least one level must have a reachable failure state');
-  const level = LEVELS[failingIndex];
-  await selectLevel(page, failingIndex);
-  let expected = createState(level);
-  for (let index = 0; index < route.path.length; index += 1) {
-    expected = await clickGate(
-      page,
-      failingIndex,
-      expected,
-      route.path[index],
-      'Failing route, move ' + (index + 1),
+  await tap(page, 'result-retry');
+  for (const [w, h] of [
+    [320, 568],
+    [568, 320],
+    [844, 390],
+    [390, 844],
+  ]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.waitForTimeout(150);
+    const before = stable((await snap(page)).state);
+    const data = await snap(page);
+    assert.deepEqual(
+      await page.evaluate(async () => {
+        const { cc } = await import('./vendor/cocos/bootstrap.mjs');
+        const c = cc.director.getScene().getChildByName('Camera').getComponent(cc.Camera).camera,
+          canvas = document.querySelector('canvas');
+        return [c.width, c.height];
+      }),
+      await page.evaluate(() => [
+        document.querySelector('canvas').width,
+        document.querySelector('canvas').height,
+      ]),
     );
-  }
-  assert.equal(expected.lost, true, 'Exhausting the budget opens the failure result');
-  await page.locator('#result').waitFor({ state: 'visible' });
-
-  await page.locator('#next-level').click();
-  const bonus = await settled(page);
-  assert.equal(bonus.extraClaimed, true, 'Failure offers one extra gate operation');
-  assert.equal(bonus.state.bonusMoves, expected.bonusMoves + 1, 'Exactly one move is granted');
-  assert.equal(bonus.state.moves, expected.moves, 'Claiming the extra move consumes no move');
-  assert.equal(bonus.state.lost, false, 'The extra move resumes play');
-  assert.deepEqual(
-    bonus.state.volumes,
-    expected.volumes,
-    'Claiming a bonus leaves water unchanged',
-  );
-  assert.deepEqual(bonus.state.gates, expected.gates, 'Claiming a bonus leaves gates unchanged');
-
-  const bonusControl = page.locator('#extra-move');
-  assert.ok(
-    (await bonusControl.isDisabled()) || !(await bonusControl.isVisible()),
-    'An already claimed bonus cannot be requested again',
-  );
-  await undo(page);
-  const afterUndo = await settled(page);
-  const previous = route.states[route.states.length - 2];
-  assert.deepEqual(
-    stableState(afterUndo.state),
-    stableState({ ...previous, bonusMoves: bonus.state.bonusMoves, lost: false }),
-    'Undo restores water, switches, wheel and gates while retaining the claimed allowance',
-  );
-  assert.equal(afterUndo.extraClaimed, true, 'Undo cannot reset the one-time bonus claim');
-  assert.equal(
-    afterUndo.historyLength,
-    route.path.length - 1,
-    'Undo removes exactly one gate action',
-  );
-  assert.ok(
-    (await bonusControl.isDisabled()) || !(await bonusControl.isVisible()),
-    'Undo does not make the bonus claimable again',
-  );
-
-  await page.locator('#restart').click();
-  const reset = await verifyBoard(
-    page,
-    failingIndex,
-    createState(level),
-    'Restart after bonus and undo',
-  );
-  assert.equal(reset.extraClaimed, false, 'Restart begins a new bonus allowance');
-  assert.equal(reset.historyLength, 0, 'Restart clears the failed run history');
-}
-
-async function assertNoHorizontalOverflow(page, label) {
-  const bounds = await page.evaluate(() => ({
-    viewport: window.innerWidth,
-    document: document.documentElement.scrollWidth,
-    body: document.body.scrollWidth,
-  }));
-  assert.ok(
-    bounds.document <= bounds.viewport + 1,
-    label + ': document overflows: ' + JSON.stringify(bounds),
-  );
-  assert.ok(
-    bounds.body <= bounds.viewport + 1,
-    label + ': body overflows: ' + JSON.stringify(bounds),
-  );
-}
-
-async function verifyMobile() {
-  for (const width of [390, 320]) {
-    const context = await browser.newContext({
-      viewport: { width, height: 844 },
-      deviceScaleFactor: 1,
-      isMobile: true,
-      hasTouch: true,
-      reducedMotion: 'reduce',
-    });
-    try {
-      const page = await openGame(context, 'mobile-' + width);
-      assert.equal(
-        await page.evaluate(() => navigator.maxTouchPoints > 0),
-        true,
-        'Mobile context supports touch',
+    for (const hit of data.hits) {
+      assert.ok(hit.width >= 44 && hit.height >= 44, hit.id);
+      assert.ok(
+        hit.x >= 0 &&
+          hit.y >= 0 &&
+          hit.x + hit.width <= data.viewport.width + 0.1 &&
+          hit.y + hit.height <= data.viewport.height + 0.1,
+        `${w}x${h} ${hit.id}`,
       );
-      await assertNoHorizontalOverflow(page, width + 'px initial board');
-      await verifyCompactHeader(page, width + 'px compact header');
-      await verifySceneControls(page, 0, width + 'px three-tank touch targets');
-      await page.screenshot({
-        path: resolve(outputDir, 'waterline-mobile-' + width + '.png'),
-        fullPage: true,
-      });
-      let expected = createState(LEVELS[0]);
-      const solution = solve(LEVELS[0], expected);
-      assert.ok(solution?.length, 'Mobile tutorial is solvable');
-      for (let index = 0; index < solution.length; index += 1) {
-        expected = await clickGate(
-          page,
-          0,
-          expected,
-          solution[index],
-          width + 'px tutorial tap ' + (index + 1),
-          true,
-        );
-      }
-      assert.equal(expected.won, true, 'The tutorial can be completed using scene touch taps');
-      await page.locator('#result').waitFor({ state: 'visible' });
-      await page.locator('#result-retry').tap();
-      await verifyPipeInteraction(page, true);
-      for (const index of [22, 23, 37, 49]) {
-        await selectLevel(page, index);
-        await verifySceneControls(
-          page,
-          index,
-          width + 'px station ' + (index + 1) + ' touch targets',
-        );
-        await assertNoHorizontalOverflow(page, width + 'px station ' + (index + 1));
-        const connection = LEVELS[index].gates[0].id;
-        await clickPipe(page, connection, true);
-        await verifyFocusedConnection(
-          page,
-          connection,
-          width + 'px station ' + (index + 1) + ' pipe selection',
-        );
-        if (index === 37) {
-          for (const overflow of ['overflow:0', 'overflow:1']) {
-            await clickPipe(page, overflow, true);
-            await verifyFocusedConnection(page, overflow, width + 'px dual overflow selection');
-          }
-        }
-        await verifyBoard(
-          page,
-          index,
-          createState(LEVELS[index]),
-          'Advanced station pipe selection is free',
-        );
-      }
-      await page.screenshot({
-        path: resolve(outputDir, 'waterline-mobile-final-' + width + '.png'),
-        fullPage: true,
-      });
-
-      // This five-tank puzzle requires opening and then closing CD before DE opens.
-      const levelIndex = 5;
-      const level = LEVELS[levelIndex];
-      await selectLevel(page, levelIndex);
-      await verifySceneControls(page, levelIndex, width + 'px five-tank touch targets');
-      await assertNoHorizontalOverflow(page, width + 'px five-tank board');
-      await page.screenshot({
-        path: resolve(outputDir, 'waterline-mobile-five-tanks-' + width + '.png'),
-        fullPage: true,
-      });
-      expected = createState(level);
-      const advancedSolution = solve(level, expected);
-      assert.ok(advancedSolution?.length, 'Five-tank mobile puzzle is solvable');
-      let closedValve = false;
-      for (let index = 0; index < advancedSolution.length; index += 1) {
-        if (index === 1) {
-          const resizedWidth = width === 390 ? 320 : 390;
-          await page.setViewportSize({ width: resizedWidth, height: 844 });
-          await verifySceneControls(page, levelIndex, resizedWidth + 'px resized touch targets');
-          await assertNoHorizontalOverflow(page, resizedWidth + 'px resized board');
-        }
-        const gateId = advancedSolution[index];
-        if (expected.gates[level.gates.findIndex((gate) => gate.id === gateId)]) {
-          closedValve = true;
-        }
-        expected = await clickGate(
-          page,
-          levelIndex,
-          expected,
-          gateId,
-          width + 'px five-tank tap ' + (index + 1),
-          true,
-        );
-      }
-      assert.equal(closedValve, true, 'Touch gameplay includes closing a valve');
-      assert.equal(expected.won, true, 'Five-tank puzzle completes after resizing with real taps');
-      await page.locator('#result').waitFor({ state: 'visible' });
-    } finally {
-      await context.close();
     }
+    await shot(`five-tanks-${w}`);
+    await tap(page, 'pause');
+    await shot(`pause-${w}`);
+    await tap(page, 'resume');
+    assert.deepEqual(stable((await snap(page)).state), before);
+    await tap(page, 'gate-' + LEVELS[49].solution[0]);
+    await settled(page);
+    assert.equal((await snap(page)).state.moves, 1);
+    await tap(page, 'pause');
+    await tap(page, 'restart');
   }
-}
-
-async function verifyLegacySave() {
-  const context = await browser.newContext({
-    viewport: { width: 1280, height: 900 },
+  checks.push(
+    '320/390 portrait and 568/844 landscape preserve state, valid touch targets and complex five-tank input',
+  );
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  assert.equal((await snap(page)).screen, 'paused');
+  await tap(page, 'resume');
+  checks.push('window blur pauses without advancing turns');
+  const denied = await f.browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
     reducedMotion: 'reduce',
   });
-  const legacy = {
-    selected: 7,
-    sound: false,
-    best: Object.fromEntries(LEVELS.slice(0, 8).map((level) => [level.id, level.par])),
-  };
-  await context.addInitScript(
-    ({ key, progress }) => {
-      if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(progress));
-    },
-    { key: STORAGE_KEY, progress: legacy },
-  );
-  try {
-    const page = await openGame(context, 'legacy-save');
-    await verifyBoard(
-      page,
-      7,
-      createState(LEVELS[7]),
-      'Existing eight-level save keeps its selected station',
-    );
-    assert.deepEqual(
-      (await snapshot(page)).progress.best,
-      legacy.best,
-      'The original eight best scores survive the campaign expansion',
-    );
-    await selectLevel(page, 49);
-    await page.reload({ waitUntil: 'networkidle' });
-    await verifyBoard(page, 49, createState(LEVELS[49]), 'A new station selection survives reload');
-    assert.equal(
-      await page.locator('#level-nav [aria-current="step"]').getAttribute('data-level-index'),
-      '49',
-      'Reload restores the correct chapter page',
-    );
-    assert.deepEqual(
-      (await snapshot(page)).progress.best,
-      legacy.best,
-      'Selecting a new chapter keeps earlier scores',
-    );
-  } finally {
-    await context.close();
-  }
-}
-
-async function verifyBlockedStorage() {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  await context.addInitScript(() => {
+  await denied.addInitScript(() =>
     Object.defineProperty(window, 'localStorage', {
-      configurable: true,
       get() {
-        throw new DOMException('Storage is blocked in this regression test', 'SecurityError');
+        throw Error('denied');
       },
-    });
-  });
-  try {
-    const page = await openGame(context, 'blocked-storage');
-    let expected = createState(LEVELS[0]);
-    await verifyBoard(page, 0, expected, 'Board with blocked localStorage');
-    const solution = solve(LEVELS[0], expected);
-    assert.ok(solution?.length, 'Tutorial remains solvable without storage');
-    for (let index = 0; index < solution.length; index += 1) {
-      expected = await clickGate(
-        page,
-        0,
-        expected,
-        solution[index],
-        'Blocked storage move ' + (index + 1),
-      );
-    }
-    assert.equal(expected.won, true, 'Blocked storage does not prevent completing a level');
-    await page.locator('#result').waitFor({ state: 'visible' });
-    await page.locator('#result-retry').click();
-    await verifyBoard(page, 0, createState(LEVELS[0]), 'Retry with blocked localStorage');
-  } finally {
-    await context.close();
-  }
-}
-
-async function startServer() {
-  if (process.env.GAME_URL) return;
-  server = spawn(
-    process.execPath,
-    [resolve(gameRoot, 'server.mjs'), '--dist', '--host', '127.0.0.1', '--port', '4411'],
-    { cwd: gameRoot, stdio: ['ignore', 'pipe', 'pipe'] },
+    }),
   );
-  for (const stream of [server.stdout, server.stderr]) {
-    stream.on('data', (chunk) => {
-      serverOutput = (serverOutput + chunk.toString()).slice(-8_000);
-    });
-  }
-  server.on('error', (error) => {
-    serverError = error;
+  const p = await denied.newPage();
+  activePage = p;
+  watch(p);
+  await p.goto(f.base + '?dev=0');
+  await ready(p);
+  await tap(p, 'start');
+  await tap(p, 'gate-AB');
+  await settled(p);
+  assert.equal((await snap(p)).state.won, true);
+  await denied.close();
+  checks.push('storage unavailable remains playable');
+  const devContext = await f.browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+    reducedMotion: 'reduce',
   });
-  const deadline = Date.now() + 15_000;
-  while (Date.now() < deadline) {
-    if (serverError) throw serverError;
-    if (server.exitCode !== null || server.signalCode !== null) {
-      throw new Error('Preview server exited before becoming ready:\n' + serverOutput);
-    }
-    try {
-      const response = await fetch(gameUrl, { signal: AbortSignal.timeout(1_000) });
-      if (response.ok) return;
-    } catch {
-      // Startup has a fixed deadline; retry only while the process is alive.
-    }
-    await delay(150);
+  const d = await devContext.newPage();
+  activePage = d;
+  watch(d);
+  await d.goto(f.base + '?dev=1');
+  await ready(d);
+  await moveDevButton(d);
+  await tap(d, 'levels-button');
+  await tap(d, 'chapter-next');
+  await tap(d, 'level-10');
+  assert.equal((await snap(d)).practice, true);
+  for (const gate of LEVELS[10].solution) {
+    await tap(d, 'gate-' + gate);
+    await settled(d);
   }
-  throw new Error('Preview server did not become ready within 15 seconds:\n' + serverOutput);
-}
-
-async function stopServer() {
-  if (!server || server.exitCode !== null || server.signalCode !== null) return;
-  const exited = new Promise((resolveExit) => server.once('exit', resolveExit));
-  server.kill('SIGTERM');
-  const stopped = await Promise.race([exited.then(() => true), delay(3_000).then(() => false)]);
-  if (!stopped) {
-    server.kill('SIGKILL');
-    await Promise.race([exited, delay(1_000)]);
-  }
-}
-
-try {
-  await mkdir(outputDir, { recursive: true });
-  await startServer();
-  const configuredBrowser = process.env.BROWSER_EXECUTABLE;
-  if (configuredBrowser && !existsSync(configuredBrowser)) {
-    throw new Error('BROWSER_EXECUTABLE does not exist: ' + configuredBrowser);
-  }
-  const executablePath =
-    configuredBrowser || (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);
-  browser = await chromium.launch({
-    headless: true,
-    ...(executablePath ? { executablePath } : {}),
-    args: ['--no-sandbox', '--disable-dev-shm-usage'],
-  });
-  const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
-  try {
-    const page = await openGame(desktop, 'desktop');
-    await verifyBoard(page, 0, createState(LEVELS[0]), 'Fresh desktop game');
-    await verifyCompactHeader(page, 'Desktop compact header');
-    await page.screenshot({ path: resolve(outputDir, 'waterline-desktop.png'), fullPage: true });
-    const initialProgress = (await snapshot(page)).progress;
-    await verifyDirectValveInteraction(page);
-    await verifyPipeInteraction(page);
-    await verifyChapterNavigation(page);
-    await verifyPredictionAndUndo(page);
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await verifyRaisedPipeValveAccess(page);
-    const solvedMoves = await verifyAllLevels(page);
-    await verifyPersistence(page, solvedMoves, initialProgress);
-    await verifyFailureBonusAndRestart(page);
-  } finally {
-    await desktop.close();
-  }
-  await verifyMobile();
-  await verifyLegacySave();
-  await verifyBlockedStorage();
-  assert.deepEqual(runtimeErrors, [], 'No browser runtime or console errors');
-  console.log(
-    'PASS: all 50 levels, chapter navigation, pipe/valve stacking, overflow selection, locks, keyboard, rapid clicks, prediction, undo, restart, bonus move, legacy/current persistence, compact headers, 320/390px touch targets and resize, and blocked storage.',
+  assert.deepEqual((await snap(d)).progress.best, {});
+  await devContext.close();
+  checks.push('dev-only level skip isolates practice progress');
+  assert.deepEqual(errors, []);
+  await writeFile(
+    new URL('browser-report.json', out),
+    JSON.stringify(
+      {
+        browser: await f.browser.version(),
+        environment:
+          'Linux Chromium mobile viewport and real browser touch simulation, not physical-device certification',
+        engine: 'Cocos Engine 3.8.8 official source runtime',
+        checks,
+        errors,
+        diagnostics,
+      },
+      null,
+      2,
+    ),
   );
-  console.log('Screenshots: ' + outputDir);
-} catch (error) {
-  console.error(error);
-  process.exitCode = 1;
+  console.log(JSON.stringify({ checks, errors, diagnostics }, null, 2));
+} catch (e) {
+  await activePage
+    .screenshot({ path: fileURLToPath(new URL('test-failure.png', out)) })
+    .catch(() => {});
+  throw e;
 } finally {
-  try {
-    if (browser) await browser.close();
-  } finally {
-    await stopServer();
-  }
+  await f.close();
 }

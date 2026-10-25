@@ -64,13 +64,114 @@ test('delivery retirement binds its original tree and surviving edits', async ()
     0,
   );
   const changed = Object.keys(deliveryRetirementReviews)[0];
-  assert.equal(
-    localRetirementFileScopes({
+  const drifted = localRetirementFileScopes({
+    ...context,
+    readHead: (file) => context.readHead(file) + (file === changed ? '\nextra' : ''),
+  });
+  assert(!drifted.has(changed), 'A changed surviving file must use ordinary validation');
+  assert(!drifted.has('pnpm-lock.yaml'), 'Lock proof also binds the Shell manifest');
+  for (const file of deleted)
+    assert(isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, drifted));
+  for (const cumulativeHead of [
+    '6c7125c11edf72f8906d77fdbc7627bad883e651',
+    '031384b2db466f7f332ec88a9f6d1efaa916e8ea',
+  ]) {
+    const cumulativeEntries = entries(cumulativeHead);
+    const cumulative = {
       ...context,
-      readHead: (file) => context.readHead(file) + (file === changed ? '\nextra' : ''),
-    }).size,
-    0,
-  );
+      readHeadEntry: (file) => cumulativeEntries.get(file) ?? '',
+      readHead: (file) => git('show', `${cumulativeHead}:${file}`),
+      headHasPath: (file) => cumulativeEntries.has(file),
+    };
+    const current = localRetirementFileScopes(cumulative);
+    for (const file of deleted) {
+      assert(isReviewedLocalRetirementDeletion({ status: 'D', paths: [file] }, current));
+      assert(
+        !isReviewedLocalRetirementDeletion({ status: 'R100', paths: [file, 'extra.mjs'] }, current),
+      );
+      assert(
+        !isReviewedLocalRetirementDeletion(
+          { status: 'D', paths: [file] },
+          new Map([[file, [...current.get(file)]]]),
+        ),
+      );
+    }
+    const meta = 'apps/shell-web/src/game-meta.json';
+    for (const [file, review] of Object.entries(deliveryRetirementReviews)) {
+      assert.equal(
+        current.has(file),
+        file === meta || hash(cumulative.readHead(file)) === review.after,
+        file,
+      );
+      if (current.has(file)) {
+        assert(hasLocalRetirementFileProof(file, current.get(file), cumulative.readHead));
+        assert(!hasLocalRetirementFileProof(file, [...current.get(file)], cumulative.readHead));
+      }
+    }
+    const metadata = JSON.parse(cumulative.readHead(meta));
+    const firstId = Object.keys(metadata.games)[0];
+    for (const mutate of [
+      (data) => {
+        data.extra = true;
+      },
+      (data) => {
+        data.games[firstId].source = root;
+      },
+      (data) => {
+        data.games[firstId].updated.commit = 'invalid';
+      },
+      (data) => {
+        data.games[firstId].updated.time = 'invalid';
+      },
+      (data) => {
+        data.games.unknown = data.games[firstId];
+      },
+      (data) => {
+        delete data.games[firstId];
+      },
+    ]) {
+      const invalid = structuredClone(metadata);
+      mutate(invalid);
+      const rejected = localRetirementFileScopes({
+        ...cumulative,
+        readHead: (file) => (file === meta ? JSON.stringify(invalid) : cumulative.readHead(file)),
+      });
+      assert(!rejected.has(meta), 'Invalid cumulative metadata cannot borrow retirement proof');
+      assert(isReviewedLocalRetirementDeletion({ status: 'D', paths: [deleted[0]] }, rejected));
+    }
+    const lockDrift = localRetirementFileScopes({
+      ...cumulative,
+      readHead: (file) => cumulative.readHead(file) + (file === 'pnpm-lock.yaml' ? '\nextra' : ''),
+    });
+    assert(!lockDrift.has('pnpm-lock.yaml'));
+    assert(lockDrift.has('apps/shell-web/package.json'));
+    for (const override of [
+      { baseCommit: cumulativeHead },
+      { readBaseEntry: (file) => (file === root ? '' : context.readBaseEntry(file)) },
+      { headHasPath: (file) => file === root || cumulative.headHasPath(file) },
+      { headHasPath: (file) => file === deleted[0] || cumulative.headHasPath(file) },
+      { headHasPath: () => undefined },
+      { readHead: () => JSON.stringify([{ source: root }]) },
+      { readHead: () => JSON.stringify([{ source: root + '/revived' }]) },
+      {
+        readHead: () => {
+          throw Error('query failed');
+        },
+      },
+      { changedPaths: [...context.changedPaths, root + '/unknown-extra.mjs'] },
+    ])
+      assert.equal(localRetirementFileScopes({ ...cumulative, ...override }).size, 0);
+    const unknown = 'scripts/unknown-deletion.mjs';
+    assert(
+      !isReviewedLocalRetirementDeletion(
+        { status: 'D', paths: [unknown] },
+        localRetirementFileScopes({
+          ...cumulative,
+          changedPaths: [...context.changedPaths, unknown],
+        }),
+      ),
+    );
+  }
 });
 test('maze and voice retirements bind the exact base trees and reject borrowed proofs', async () => {
   const { execFileSync } = await import('node:child_process');
