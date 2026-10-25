@@ -2,17 +2,18 @@ import assert from 'node:assert/strict';
 import { spawn, execFile } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import net from 'node:net';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import { chromium, expect } from '@playwright/test';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = process.env.EMBER_EVIDENCE_DIR
-  ? new URL(`file://${process.env.EMBER_EVIDENCE_DIR.replace(/\/$/, '')}/`)
+  ? pathToFileURL(`${process.env.EMBER_EVIDENCE_DIR.replace(/[\\/]$/, '')}/`)
   : new URL('../../../../.scratch/ember-bounce/', import.meta.url);
 await mkdir(output, { recursive: true });
 let server;
 let browser;
+let activePage;
 let url = process.env.EMBER_URL;
 const failures = [];
 const checks = [];
@@ -109,8 +110,11 @@ try {
     isMobile: true,
     hasTouch: true,
     deviceScaleFactor: 2,
+    recordVideo: { dir: fileURLToPath(new URL('recordings/', output)), size: { width: 390, height: 844 } },
   });
   const page = await phone.newPage();
+  activePage = page;
+  const video = page.video();
   await phone.addInitScript(() => {
     Object.defineProperty(navigator, 'share', { configurable: true, value: async (payload) => {
       window.__sharedChallenge = payload;
@@ -145,8 +149,23 @@ try {
   await expect.poll(async () => (await snapshot(page)).aiming).toBe(false);
   assert.equal((await snapshot(page)).shots, initial.shots, 'Cancelled aim must not launch');
   checks.push('portrait touch aim and cancellation');
+  await shot(page, { touch: true, x: 175 / 390, y: 214 / 600 });
+  assert((await snapshot(page)).shotSpeed < 500);
+  await page.locator('#recall').tap();
+  await expect.poll(async () => (await snapshot(page)).balls.some((ball) => ball.returning)).toBe(true);
+  await page.screenshot({ path: fileURLToPath(new URL('portrait-recall.png', output)) });
+  await page.locator('#pause').tap();
+  const frozenReturn = await snapshot(page);
+  await page.waitForTimeout(200);
+  assert.deepEqual((await snapshot(page)).balls, frozenReturn.balls, 'Pause freezes the return path too');
+  await page.reload();
+  await page.locator('#start').tap();
+  await shot(page, { touch: true, x: 1.05 });
+  assert.equal((await snapshot(page)).shots, 0, 'Releasing outside the field cancels the shot');
+  checks.push('short release is slower, recall remains visible and pauses, outside release cancels');
   await shot(page, { touch: true, capture: 'portrait-aim.png' });
   await expect.poll(async () => (await snapshot(page)).shots).toBeGreaterThan(initial.shots);
+  assert((await snapshot(page)).shotSpeed > 850);
   await page.screenshot({ path: fileURLToPath(new URL('mobile-volley.png', output)) });
   await expect
     .poll(async () => (await snapshot(page)).score, { timeout: 10_000 })
@@ -208,7 +227,11 @@ try {
   await expect(page.locator('#upgrade')).toBeVisible();
   await page.locator('[data-upgrade="power"]').tap();
   await expect.poll(async () => (await snapshot(page)).corePhase).toBe('aim');
-  await shot(page, { touch: true, x: 68 / 390, y: 214 / 600 });
+  await shot(page, { touch: true, x: 235 / 390, y: 230 / 600 });
+  await expect.poll(async () => (await snapshot(page)).corePhase, { timeout: 20_000 }).toBe('aim');
+  await shot(page, { touch: true, x: 235 / 390, y: 492 / 600 });
+  await expect.poll(async () => (await snapshot(page)).corePhase, { timeout: 20_000 }).toBe('aim');
+  await shot(page, { touch: true, x: 275 / 390, y: 214 / 600 });
   await expect(page.locator('body')).toHaveAttribute('data-phase', 'result', { timeout: 20_000 });
   await expect(page.locator('[data-outcome="won"]')).toBeVisible();
   const completed = await snapshot(page);
@@ -223,8 +246,8 @@ try {
   await page.locator('#share-challenge').tap();
   const share = await page.evaluate(() => window.__sharedChallenge);
   const invitationUrl = new URL(share.url);
-  assert.equal(invitationUrl.searchParams.get('emberChallenge'), '1');
-  assert.equal(invitationUrl.searchParams.get('turns'), '3');
+  assert.equal(invitationUrl.searchParams.get('emberChallenge'), '2');
+  assert.equal(invitationUrl.searchParams.get('turns'), '5');
   assert.equal(invitationUrl.searchParams.has('dev'), false);
   assert.equal(invitationUrl.searchParams.has('token'), false);
   assert.equal(invitationUrl.hash, '');
@@ -266,9 +289,12 @@ try {
   );
   await page.close();
   await phone.close();
+  await video.saveAs(fileURLToPath(new URL('mobile-touch-390x844.webm', output)));
+  await video.delete();
 
   const friendContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const friend = await friendContext.newPage();
+  activePage = friend;
   monitor(friend, 'friend-challenge');
   await friend.goto(url);
   await friend.locator('#start').tap();
@@ -277,10 +303,10 @@ try {
   const normalResume = (await snapshot(friend)).resume;
   await friend.goto(invitationUrl.href);
   await expect(friend.locator('body')).toHaveAttribute('data-phase', 'home');
-  await expect(friend.locator('#start')).toContainText('接受 3 轮挑战');
+  await expect(friend.locator('#start')).toContainText('接受 5 轮挑战');
   await friend.screenshot({ path: fileURLToPath(new URL('challenge-home.png', output)) });
   await friend.locator('#start').tap();
-  assert.equal((await snapshot(friend)).challenge.turns, 3);
+  assert.equal((await snapshot(friend)).challenge.turns, 5);
   await shot(friend, { touch: true, cancel: true });
   assert.equal((await snapshot(friend)).shots, 0);
   await shot(friend, { touch: true });
@@ -288,11 +314,15 @@ try {
   await friend.reload();
   await expect(friend.locator('#start')).toContainText('继续第 2 轮');
   await friend.locator('#start').tap();
-  assert.equal((await snapshot(friend)).challenge.turns, 3);
+  assert.equal((await snapshot(friend)).challenge.turns, 5);
   await shot(friend, { touch: true, x: 68 / 390, y: 214 / 600 });
   await expect(friend.locator('#upgrade')).toBeVisible({ timeout: 20_000 });
   await friend.locator('[data-upgrade="power"]').tap();
-  await shot(friend, { touch: true, x: 68 / 390, y: 214 / 600 });
+  await shot(friend, { touch: true, x: 235 / 390, y: 230 / 600 });
+  await expect.poll(async () => (await snapshot(friend)).corePhase, { timeout: 20_000 }).toBe('aim');
+  await shot(friend, { touch: true, x: 235 / 390, y: 492 / 600 });
+  await expect.poll(async () => (await snapshot(friend)).corePhase, { timeout: 20_000 }).toBe('aim');
+  await shot(friend, { touch: true, x: 275 / 390, y: 214 / 600 });
   await expect(friend.locator('body')).toHaveAttribute('data-phase', 'result', { timeout: 20_000 });
   await expect(friend.locator('#result-description')).toContainText('追平好友');
   assert.deepEqual((await snapshot(friend)).resume, normalResume);
@@ -311,6 +341,7 @@ try {
 
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const desk = await desktop.newPage();
+  activePage = desk;
   monitor(desk, 'desktop');
   await desk.goto(url);
   await desk.locator('#start').click();
@@ -382,6 +413,7 @@ try {
       } else if (mode.stored) localStorage.setItem('dev', mode.stored);
     }, mode);
     const testPage = await context.newPage();
+    activePage = testPage;
     monitor(testPage, mode.name);
     const location = new URL(url);
     location.search = mode.query;
@@ -416,6 +448,10 @@ try {
 } catch (error) {
   status = 'failed';
   failures.push({ error: String(error) });
+  if (activePage && !activePage.isClosed()) {
+    failures.push({ snapshot: await snapshot(activePage).catch(() => null) });
+    await activePage.screenshot({ path: fileURLToPath(new URL('failure.png', output)) });
+  }
   throw error;
 } finally {
   await writeFile(

@@ -20,7 +20,8 @@ const level = (data) => ({
   ...data,
 });
 
-export const LEVELS = [
+// Existing settled runs keep their original layout and earned progress.
+export const LEGACY_LEVELS = [
   level({
     id: 'first-spark',
     title: '第一束火花',
@@ -151,6 +152,32 @@ export const LEVELS = [
     ],
   }),
 ];
+
+const returnLanes = [
+  [wave(orb(55, 3), orb(125, 3), orb(265, 3), orb(335, 3)), wave(orb(155, 4), orb(235, 4))],
+  [wave(orb(55, 4), orb(125, 4), pickup(195), orb(265, 4), orb(335, 4)), wave(orb(90, 5), orb(195, 4), orb(300, 5))],
+  [wave(prism(105, 5, Math.PI / 2), prism(285, 5, -Math.PI / 2)), wave(orb(55, 5), prism(155, 5), prism(235, 5, Math.PI), orb(335, 5))],
+  [wave(orb(55, 5), burst(125, 3), burst(265, 3), orb(335, 5)), wave(prism(115, 5), burst(195, 4), prism(275, 5, Math.PI))],
+  [wave(orb(65, 6), pickup(145), pickup(245), orb(325, 6)), wave(prism(115, 6, Math.PI / 2), burst(195, 4), prism(275, 6, -Math.PI / 2))],
+  [wave(prism(65, 6), burst(145, 4), burst(245, 4), prism(325, 6, Math.PI)), wave(orb(55, 7), orb(125, 7), orb(265, 7), orb(335, 7))],
+  [wave(prism(105, 7, Math.PI / 2), burst(195, 4), prism(285, 7, -Math.PI / 2)), wave(orb(65, 8), burst(145, 5), burst(245, 5), orb(325, 8))],
+  [wave(prism(65, 8), orb(145, 8), orb(245, 8), prism(325, 8, Math.PI)), wave(prism(115, 9, Math.PI / 2), burst(195, 5), prism(275, 9, -Math.PI / 2))],
+];
+
+export const LEVELS = LEGACY_LEVELS.map((entry, index) => ({
+  ...entry,
+  rulesVersion: 2,
+  balls: [12, 14, 16, 18, 18, 20, 22, 24][index],
+  intro: index === 0 ? '在场地内拖动，离发射口越远，松手速度越快。借重力把弹珠送进目标夹缝。' : entry.intro,
+  hint: index === 0 ? '短拉让弧线更早下坠，长拉更快。瞄准两颗晶体之间，争取连续往返。' : entry.hint,
+  waves: [...entry.waves, ...returnLanes[index]].map((row, rowIndex) => ({
+    targets: row.targets.map((target, targetIndex) => ({
+      ...target,
+      hp: target.kind === 'pickup' ? 1 : target.hp * 7 + 10 + index * 3,
+      x: index === 0 && rowIndex === 0 ? [158, 232][targetIndex] : target.x,
+    })),
+  })),
+}));
 
 export function levelById(id) {
   return LEVELS.find((entry) => entry.id === id);
