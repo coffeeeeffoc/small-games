@@ -1,6 +1,12 @@
 import { DUEL_MAP, DUEL_RULES as R } from './duel-map.js';
 import type { DuelMessage } from './duel-protocol.js';
 import { DUEL_VERSION, type Command } from './duel-types.js';
+export function competitionEnabled() {
+  return (
+    (globalThis as typeof globalThis & { __COMPETITION_CONFIG__?: { enabled?: boolean } })
+      .__COMPETITION_CONFIG__?.enabled !== false
+  );
+}
 export function serverAddress(value = '') {
   const fallback = typeof location !== 'undefined' ? location.origin : '';
   const url = new URL(value || fallback);
