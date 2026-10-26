@@ -330,9 +330,11 @@ function drawRails(ctx, height) {
   ctx.strokeStyle = gradient;
   ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.moveTo(FIELD.left, top + 3);
+  ctx.moveTo(FIELD.left, FIELD.top);
+  ctx.lineTo(FIELD.right, FIELD.top);
+  ctx.moveTo(FIELD.left, FIELD.top);
   ctx.lineTo(FIELD.left, bottom);
-  ctx.moveTo(FIELD.right, top + 3);
+  ctx.moveTo(FIELD.right, FIELD.top);
   ctx.lineTo(FIELD.right, bottom);
   ctx.stroke();
   ctx.strokeStyle = 'rgba(182, 128, 69, .15)';
@@ -348,15 +350,19 @@ function drawRails(ctx, height) {
   ctx.stroke();
   ctx.restore();
 
-  const floor = ctx.createLinearGradient(FIELD.left, 0, FIELD.right, 0);
-  floor.addColorStop(0, 'rgba(225, 162, 83, .2)');
-  floor.addColorStop(0.5, 'rgba(255, 208, 118, .75)');
-  floor.addColorStop(1, 'rgba(225, 162, 83, .2)');
-  ctx.strokeStyle = floor;
-  ctx.lineWidth = 1.4;
+  const floor = ctx.createLinearGradient(0, bottom, 0, bottom + 25);
+  floor.addColorStop(0, 'rgba(255, 208, 118, .15)');
+  floor.addColorStop(1, 'rgba(8, 15, 31, .85)');
+  ctx.fillStyle = floor;
+  ctx.fillRect(FIELD.left, bottom, FIELD.right - FIELD.left, 25);
+  ctx.strokeStyle = 'rgba(255, 208, 118, .45)';
+  ctx.lineWidth = 1.2;
   ctx.beginPath();
-  ctx.moveTo(FIELD.left, bottom + 4);
-  ctx.quadraticCurveTo(WIDTH / 2, bottom + 11, FIELD.right, bottom + 4);
+  for (const x of [80, WIDTH / 2, 310]) {
+    ctx.moveTo(x - 4, bottom + 8);
+    ctx.lineTo(x, bottom + 12);
+    ctx.lineTo(x + 4, bottom + 8);
+  }
   ctx.stroke();
   const shade = ctx.createLinearGradient(0, bottom + 12, 0, height);
   shade.addColorStop(0, 'rgba(8, 15, 31, 0)');
@@ -484,7 +490,6 @@ export function createRenderer(canvas) {
   const particles = [];
   const effects = [];
   const hits = new Map();
-  const trails = new Map();
   const dust = Array.from({ length: 26 }, (_, index) => ({
     x: 27 + ((index * 137.53) % 336),
     y: 28 + ((index * 83.71) % 527),
@@ -599,6 +604,9 @@ export function createRenderer(canvas) {
           duration: 0.45,
           radius: 13,
         });
+      } else if (type === 'ricochet') {
+        if (!effects.some((effect) => effect.type === 'label' && effect.text === '连弹'))
+          addEffect({ type: 'label', x, y, color: '#ffe3a4', remaining: 0.55, duration: 0.55, text: '连弹' });
       } else if (type === 'collect') {
         addParticles(x, y, 'pickup', 3, 0.35);
         addEffect({
@@ -645,8 +653,6 @@ export function createRenderer(canvas) {
           duration: 1.0,
           radius: 50,
         });
-      } else if (type === 'turn') {
-        trails.clear();
       } else if (type === 'loss' || type === 'lose') {
         shake = 0.13;
       }
@@ -730,42 +736,36 @@ export function createRenderer(canvas) {
     }
   }
 
-  function drawBalls(balls, dt) {
-    const activeIds = new Set();
+  function drawTrails(balls) {
+    const occupied = new Set();
     for (const ball of balls) {
-      const id = ball.id;
-      activeIds.add(id);
-      let history = trails.get(id);
-      if (!history) {
-        if (trails.size >= 128) trails.delete(trails.keys().next().value);
-        history = [];
-        trails.set(id, history);
-      }
-      const previous = history[history.length - 1];
-      if (dt > 0 && (!previous || Math.hypot(ball.x - previous.x, ball.y - previous.y) > 0.8)) {
-        history.push({ x: ball.x, y: ball.y });
-        if (history.length > (reducedMotion ? 2 : 6)) history.shift();
-      }
+      const history = reducedMotion ? ball.trail.slice(-2) : ball.trail;
       if (history.length > 1) {
         ctx.save();
         ctx.lineCap = 'round';
         for (let index = 1; index < history.length; index += 1) {
           const previousPoint = history[index - 1];
           const point = history[index];
-          // A return/teleport must never draw a streak across the field.
+          const cell = `${Math.round(point.x / 7)}:${Math.round(point.y / 7)}`;
+          if (occupied.has(cell)) continue;
+          occupied.add(cell);
           if (Math.hypot(point.x - previousPoint.x, point.y - previousPoint.y) > 90) continue;
-          ctx.strokeStyle = `rgba(255, 208, 124, ${(index / history.length) * (reducedMotion ? 0.14 : 0.36)})`;
+          const alpha = Math.max(0, 1 - (ball.age - point.age) / 0.09);
+          ctx.strokeStyle = `rgba(255, 208, 124, ${alpha * (reducedMotion ? 0.08 : 0.24)})`;
           ctx.lineWidth = 0.65 + (index / history.length) * 2;
           ctx.beginPath();
           ctx.moveTo(previousPoint.x, previousPoint.y);
           ctx.lineTo(point.x, point.y);
           ctx.stroke();
+          if (!reducedMotion && index % 3 === 0) {
+            circle(ctx, point.x, point.y, FIELD.ballRadius * 0.72);
+            ctx.fillStyle = `rgba(255, 226, 163, ${alpha * 0.23})`;
+            ctx.fill();
+          }
         }
         ctx.restore();
       }
-      drawBall(ctx, ball.x, ball.y, FIELD.ballRadius || 4);
     }
-    for (const id of trails.keys()) if (!activeIds.has(id)) trails.delete(id);
   }
 
   function render(game, options = {}) {
@@ -801,7 +801,6 @@ export function createRenderer(canvas) {
     } else if (game) {
       drawRails(ctx, height);
       const launch = game.launch || { x: WIDTH / 2, y: FIELD.launchY };
-      drawPortal(ctx, WIDTH / 2, FIELD.bottom + 18, time, { reducedMotion });
       drawPortal(ctx, launch.x, launch.y, time, {
         small: true,
         active: game.phase === 'flight' || game.phase === 'aim',
@@ -809,11 +808,25 @@ export function createRenderer(canvas) {
       });
       if (game.phase === 'aim') drawBall(ctx, launch.x, launch.y + 12, 5);
       if (options.aim && game.phase === 'aim') drawAim(ctx, options.aim, time, reducedMotion);
+      if (options.power != null && game.phase === 'aim') {
+        ctx.strokeStyle = '#ffd681';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(launch.x, launch.y, 33, -Math.PI / 2, -Math.PI / 2 + TAU * options.power);
+        ctx.stroke();
+      }
+      drawTrails(game.balls || []);
+      drawEffects();
       (game.targets || [])
         .filter((target) => target.hp > 0)
         .forEach((target) => drawTarget(ctx, target, time, hits.get(target.id), reducedMotion));
-      drawBalls(game.balls || [], dt);
-      drawEffects();
+      // Every solid ball is drawn last so another ball's afterimage cannot cover it.
+      for (const ball of game.balls || []) {
+        const progress = ball.returning ? Math.min(1, ball.returning.time / ball.returning.duration) : 0;
+        ctx.globalAlpha = 1 - progress ** 3;
+        drawBall(ctx, ball.x, ball.y, FIELD.ballRadius * (1 - progress ** 4 * 0.7));
+      }
+      ctx.globalAlpha = 1;
     }
     ctx.restore();
   }
@@ -822,7 +835,6 @@ export function createRenderer(canvas) {
     particles.length = 0;
     effects.length = 0;
     hits.clear();
-    trails.clear();
     shake = 0;
     elapsed = 0;
   }

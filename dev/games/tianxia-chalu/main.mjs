@@ -13,6 +13,7 @@ import {
   applyResult,
   effectSources,
 } from './src/core/index.mjs';
+import { createMapInput, createOrderQueue } from './src/input/orders.mjs';
 import { readSave, writeSave } from './storage.mjs';
 import { RemoteMatch, normalizeServer } from './remote.mjs';
 import { createAudio } from './audio.mjs';
@@ -69,7 +70,7 @@ let lastFrame = 0,
   commandBusy = false,
   starting = false,
   noticeTimer,
-  gesture = null,
+  queuedOrders = 0,
   tutorialStep = 0,
   tutorialSeen = new Set(),
   startedCards = [],
@@ -92,6 +93,47 @@ globalThis.Tianxia = {
   pointer,
 };
 const bridge = globalThis.Tianxia;
+const orders = createOrderQueue({
+  read: () => ({ state, enabled: ['battle', 'prepare'].includes(screen) && !starting }),
+  send: sendOrder,
+  changed: (count) => {
+    queuedOrders = count;
+  },
+  completed: (intent) => {
+    tutorialSeen.add(intent.kind === 'hold' ? 'hold' : 'route');
+    updateTutorial();
+  },
+  failed: (error) => {
+    toast(error.message);
+    if (remote && error.code && !error.rejected && screen === 'battle')
+      void pause('连接中断，继续时重连并确认军令。');
+  },
+});
+const mapInput = createMapInput({
+  read: () => ({
+    state,
+    selected,
+    scale: bridge.layout?.scale ?? 1,
+    enabled: ['battle', 'prepare'].includes(screen) && !starting,
+  }),
+  select: (id) => {
+    selected = id;
+    bridge.selected = id;
+    if (state?.cities.find((c) => c.id === id)?.owner === 0) tutorialSeen.add('select');
+    updateHud();
+    updateTutorial();
+  },
+  preview: (point) => {
+    bridge.preview = point;
+  },
+  submit: (intent) => orders.push(intent),
+  notify: toast,
+});
+function cancelInput() {
+  mapInput.cancel();
+  orders.cancel();
+}
+
 const config = globalThis.SmallGamesPublishingConfig;
 const hostAds = globalThis.SmallGamesRewardAds;
 const provider =
@@ -144,14 +186,17 @@ function header(title, back = home) {
 function cancelUpgrade() {
   adEpoch++;
   if (adBusy) {
-    try { provider?.dispose?.(); } catch { /* Navigation remains available. */ }
+    try {
+      provider?.dispose?.();
+    } catch {
+      /* Navigation remains available. */
+    }
   }
   adBusy = false;
 }
 function show(next, html) {
   if (next !== screen) cancelUpgrade();
-  gesture = null;
-  bridge.preview = null;
+  cancelInput();
   screen = next;
   bridge.screen = next;
   bridge.state = state;
@@ -213,6 +258,7 @@ function nextLevel() {
 }
 function home() {
   generation++;
+  commandBusy = false;
   starting = false;
   backgrounded = document.hidden;
   void remote?.close();
@@ -302,6 +348,7 @@ function newSeed() {
 }
 function prepare(id, trial = false, sameSeed) {
   generation++;
+  commandBusy = false;
   starting = false;
   void remote?.close();
   remote = null;
@@ -340,10 +387,7 @@ function prepare(id, trial = false, sameSeed) {
       button('shuffle', '重新布阵') +
       '</header><p class="prepare-tip">' +
       esc(l.objective) +
-      '</p><div id="board" role="img" aria-label="可触控的出征沙盘"></div><footer class="battle-bottom"><p id="city-info">各方驻军与留守均为 0 · 可先下军令</p><div class="order-buttons">' +
-      button('hold', '屯兵') +
-      button('cycle', '换方向') +
-      '</div><div class="prepare-loadout">' +
+      '</p><div id="board" role="img" aria-label="可触控的出征沙盘，点击或拖拽派兵，双击己城屯兵"></div><footer class="battle-bottom"><p id="city-info">各方驻军与留守均为 0 · 可先下军令</p><div id="keyboard-targets" class="sr-only"></div><div class="prepare-loadout">' +
       (loadout.length
         ? loadout.map((c) => esc(CARD_NAMES[c.kind]) + ' · ' + TIERS[c.tier]).join(' / ')
         : '未装备军备卡') +
@@ -361,7 +405,6 @@ function prepare(id, trial = false, sameSeed) {
   });
   on('shuffle', () => prepare(id, trial));
   on('begin-battle', begin);
-  bindOrders();
   updateHud();
 }
 async function begin() {
@@ -374,6 +417,10 @@ async function begin() {
     toast('沙盘仍在加载，请稍候');
     return;
   }
+  const preparedGeneration = generation;
+  await mapInput.flush();
+  await orders.idle();
+  if (generation !== preparedGeneration || screen !== 'prepare' || starting) return;
   starting = true;
   const token = generation;
   const commands = state.junctions
@@ -439,10 +486,6 @@ async function begin() {
     if (token === generation) starting = false;
   }
 }
-function bindOrders() {
-  on('hold', () => issue(-1));
-  on('cycle', () => issue());
-}
 function battle() {
   const l = getLevel(state.levelId);
   bridge.preview = null;
@@ -460,11 +503,8 @@ function battle() {
       pauseIcon +
       '</button></header><div id="factions" class="factions"></div><div id="board" role="img" aria-label="城池与行军路线，点击己城再点相邻城下令"></div><p id="battle-message" class="battle-message" role="status"></p><div id="tutorial" class="tutorial" hidden><p id="tutorial-copy"></p>' +
       button('skip-tutorial', '跳过') +
-      '</div><footer class="battle-bottom"><div class="selection"><div><strong id="city-info">轻点己城，下达军令</strong><p id="route-name">也可从己城拖向相邻城池</p></div>' +
+      '</div><footer class="battle-bottom"><div class="selection"><div><strong id="city-info">轻点己城，下达军令</strong><p id="route-name">拖向邻城派兵 · 双击己城屯兵</p></div>' +
       button('intel', '军情') +
-      '</div><div class="order-buttons">' +
-      button('hold', '屯兵') +
-      button('cycle', '换方向') +
       '</div><div id="keyboard-targets" class="sr-only"></div></footer></section>',
   );
   on('pause', () => pause());
@@ -474,141 +514,50 @@ function battle() {
     persist();
     updateTutorial();
   });
-  bindOrders();
   audio.resume();
   updateHud();
   updateTutorial();
 }
-function nearest(p) {
-  return state?.cities
-    .map((c) => ({ c, d: Math.hypot(c.x - p.x, c.y - p.y) }))
-    .sort((a, b) => a.d - b.d)
-    .find((x) => x.d <= Math.max(29, 22 / (bridge.layout?.scale ?? 1)))?.c;
-}
-function arrowAt(p) {
-  return state?.cities.find((c) => {
-    if (c.owner !== 0) return false;
-    const j = state.junctions.find((j) => j.cityId === c.id),
-      target = state.cities.find((t) => t.id === j.exits[j.routeIndex]);
-    if (!target) return false;
-    const length = Math.hypot(target.x - c.x, target.y - c.y);
-    return (
-      Math.hypot(
-        p.x - c.x - ((target.x - c.x) / length) * 48,
-        p.y - c.y - ((target.y - c.y) / length) * 48,
-      ) < 20
-    );
-  });
-}
 function pointer(phase, p, id) {
-  if (!['battle', 'prepare'].includes(screen) || starting || commandBusy) return;
-  if (phase === 'cancel') {
-    gesture = null;
-    bridge.preview = null;
-    return;
-  }
-  if (phase === 'down') {
-    if (gesture) {
-      gesture = null;
-      bridge.preview = null;
-      return;
-    }
-    const arrow = arrowAt(p),
-      c = nearest(p) ?? arrow;
-    gesture = { id, start: p, city: c?.id, moved: false, from: selected, arrow: !!arrow };
-    const old = state.cities.find((c) => c.id === selected),
-      oldJunction = state.junctions.find((j) => j.cityId === selected);
-    if (
-      c?.owner === 0 &&
-      !(old?.owner === 0 && c.id !== old.id && oldJunction.exits.includes(c.id))
-    ) {
-      selected = c.id;
-      bridge.selected = selected;
-      tutorialSeen.add('select');
-    }
-    return;
-  }
-  if (!gesture || gesture.id !== id) return;
-  if (phase === 'move') {
-    gesture.moved ||= Math.hypot(p.x - gesture.start.x, p.y - gesture.start.y) > 7;
-    if (gesture.city && state.cities.find((c) => c.id === gesture.city)?.owner === 0)
-      bridge.preview = p;
-    return;
-  }
-  if (phase === 'up') {
-    const down = gesture;
-    gesture = null;
-    bridge.preview = null;
-    const target = nearest(p),
-      source = state.cities.find((c) => c.id === selected);
-    if (down.arrow && !down.moved && arrowAt(p)?.id === down.city) {
-      void issue();
-      return;
-    }
-    if (!target) {
-      selected = null;
-      bridge.selected = null;
-      updateHud();
-      return;
-    }
-    if (down.moved) {
-      if (down.city !== source?.id || source?.owner !== 0) return;
-      const j = state.junctions.find((j) => j.cityId === source.id),
-        index = j.exits.indexOf(target.id);
-      if (index >= 0) void issue(index);
-    } else if (source?.owner === 0 && target.id !== source.id) {
-      const j = state.junctions.find((j) => j.cityId === source.id),
-        index = j.exits.indexOf(target.id);
-      if (index >= 0) void issue(index);
-      else {
-        selected = target.id;
-        bridge.selected = selected;
-      }
-    } else if (target.owner === 0 && down.from === target.id) {
-      void issue();
-    } else {
-      selected = target.id;
-      bridge.selected = selected;
-    }
-    updateHud();
-    updateTutorial();
-  }
+  mapInput.pointer(phase, p, id);
 }
-async function issue(index) {
-  const source = state?.cities.find((c) => c.id === selected),
-    j = state?.junctions.find((j) => j.cityId === selected);
-  if (!j || source.owner !== 0 || commandBusy || !['battle', 'prepare'].includes(screen)) return;
+function issue(index) {
+  const j = state?.junctions.find((j) => j.cityId === selected);
+  if (!j || j.owner !== 0) return;
+  const sourceId = selected;
+  mapInput.cancel();
+  selected = bridge.selected = null;
+  orders.push(
+    index === -1
+      ? { kind: 'hold', sourceId }
+      : { kind: 'route', sourceId, targetId: j.exits[index] },
+  );
+  updateHud();
+}
+async function sendOrder({ sourceId, junctionId, index }) {
+  const token = generation,
+    client = remote;
   commandBusy = true;
-  const token = generation;
   try {
-    let ok = true;
-    if (remote) {
-      const client = remote;
-      const snapshot = await client.route(j.id, index);
+    if (client) {
+      const snapshot = await client.route(junctionId, index);
       if (token !== generation || client !== remote) return;
       state = snapshot.state;
     } else {
-      const result = switchRoute(state, 0, j.id, index);
-      ok = result.ok;
-      if (screen === 'prepare' && ok) j.lastSwitchTime = -1;
-      if (!ok && result.reason !== 'cooldown') toast('军令未生效：' + result.reason);
+      const result = switchRoute(state, 0, junctionId, index);
+      if (!result.ok) return result;
+      if (screen === 'prepare')
+        state.junctions.find((j) => j.id === junctionId).lastSwitchTime = -1;
     }
-    if (ok) {
-      const current = state.junctions.find((x) => x.id === j.id);
-      tutorialSeen.add(current.routeIndex === -1 ? 'hold' : 'route');
-      if (source.id !== state.spawns[0]) tutorialSeen.add('relay');
-      if (screen === 'prepare') audio.event(current.routeIndex === -1 ? 'hold' : 'switch');
-    }
+    tutorialSeen.add(index === -1 ? 'hold' : 'route');
+    if (sourceId !== state.spawns[0]) tutorialSeen.add('relay');
+    if (screen === 'prepare') audio.event(index === -1 ? 'hold' : 'switch');
     bridge.state = state;
     updateHud();
     updateTutorial();
-  } catch (error) {
-    if (token === generation) {
-      toast(error.message);
-      if (screen === 'battle') void pause('连接中断，继续时重连并确认军令。');
-    }
+    return { ok: true };
   } finally {
-    commandBusy = false;
+    if (token === generation) commandBusy = false;
   }
 }
 function updateHud() {
@@ -665,9 +614,9 @@ function updateHud() {
           ? '正在屯兵，停止新派兵'
           : '行军 → ' + state.cities.find((c) => c.id === j.exits[j.routeIndex]).name
         : '非己方城池，可观察城防与兵器'
-      : '也可从己城拖向相邻城池';
-  for (const id of ['hold', 'cycle'])
-    if ($(id)) $(id).disabled = !city || city.owner !== 0 || commandBusy;
+      : commandBusy || queuedOrders
+        ? '军令传达中 · 可继续指挥其他城池'
+        : '拖向邻城派兵 · 双击己城屯兵';
   if ($('engine-loading'))
     $('engine-loading').textContent =
       bridge.ready && bridge.artReady
@@ -679,11 +628,12 @@ function updateHud() {
       bridge.error && (!bridge.ready || !bridge.artReady) ? '重新载入沙盘' : '出征';
   }
   const keys = $('keyboard-targets');
-  if (keys && keys.dataset.selected !== selected) {
+  if (keys && keys.dataset.selected !== (selected ?? '')) {
     keys.dataset.selected = selected ?? '';
     keys.innerHTML =
       city?.owner === 0
-        ? j.exits
+        ? '<button data-target="-1">此城屯兵</button>' +
+          j.exits
             .map(
               (id, i) =>
                 '<button data-target="' +
@@ -706,7 +656,7 @@ const tutorials = [
     '占领后新城默认屯兵，再下军令接通补给。',
   ],
   [
-    '选中己城，点击「屯兵」，停止新派兵。',
+    '快速双击己方城池，停止这座城的新派兵。',
     '屯兵积累到12兵，已经出发的部队仍按原路行军。',
     '兵力足够后，改道出征。',
   ],
@@ -1093,7 +1043,7 @@ function armory(back = home) {
 function help(back = home, inBattle = false) {
   page(
     '军令手册',
-    '<div class="help-list"><h3>改道与屯兵</h3><p>点己城，再点相邻城池；也可直接拖动。再次点选中的己城或点「换方向」轮换军令。「屯兵」停止新派兵，已出发的部队继续行军。点击空白取消选城。所有道路均可双向通行，交叉处不相连。</p><h3>从0兵开始</h3><p>各方驻军和默认留守为0，归属不会因空城自动消失。城池满员停止产兵，援军在城外驻扎，仍可能被攻击。</p><h3>抓住地利</h3><p>兵营产兵快，关隘难攻；驿道快、山路慢。武器各有冷却。点将台稳定占领20秒招募将领，被围攻暂停，易主清零。</p><h3>局部军令</h3><p>「军情」展示各方加成，点来源查看圆形范围。同类取最大值，来源失守、将领退场或部队离圈会失去持续效果。</p><h3>胜负与军备</h3><p>无城、无兵、无将才会被消灭。限时先看存活，再看城数和兵力。结束免费得卡，广告仅将这张卡保证升一级；不观看也能继续征战。</p>' +
+    '<div class="help-list"><h3>改道与屯兵</h3><p>点己城选中，再点相邻城派兵；也可直接从己城拖向邻城。下令后自动取消选中，可立即操作其他城池。慢速再次点同城或点空白取消选中；快速双击己城屯兵，仅停止该城的新派兵，入城补给和已出发部队不受影响。重新派兵即可解除屯兵。点击道路在无兵线、正向、反向间循环；仅一端为己方时，在出兵和关闭之间切换。每城同时向一个方向持续派兵，重新指定目标会替换该城旧军令。不能操控敌方城池；道路交叉处不相连，请点连线其他位置。</p><h3>从0兵开始</h3><p>各方驻军和默认留守为0，归属不会因空城自动消失。城池满员停止产兵，援军在城外驻扎，仍可能被攻击。</p><h3>抓住地利</h3><p>兵营产兵快，关隘难攻；驿道快、山路慢。武器各有冷却。点将台稳定占领20秒招募将领，被围攻暂停，易主清零。</p><h3>局部军令</h3><p>「军情」展示各方加成，点来源查看圆形范围。同类取最大值，来源失守、将领退场或部队离圈会失去持续效果。</p><h3>胜负与军备</h3><p>无城、无兵、无将才会被消灭。限时先看存活，再看城数和兵力。结束免费得卡，广告仅将这张卡保证升一级；不观看也能继续征战。</p>' +
       button('replay-tutorial', '重看前四关教学') +
       '</div>',
     back,
@@ -1249,12 +1199,19 @@ function finish() {
 async function upgrade() {
   if (adBusy || screen !== 'result' || !reward || reward.tier >= 3) return;
   adBusy = true;
-  const id = runId, token = ++adEpoch, armory = save.armory;
+  const id = runId,
+    token = ++adEpoch,
+    armory = save.armory;
   $('upgrade-card').disabled = true;
   let result;
   try {
-    result = await provider?.show({ opportunityId: 'tianxia-chalu:rank-card-' + id, kind: 'rewarded' }) ?? { status: 'unavailable' };
-  } catch { result = { status: 'failed' }; }
+    result = (await provider?.show({
+      opportunityId: 'tianxia-chalu:rank-card-' + id,
+      kind: 'rewarded',
+    })) ?? { status: 'unavailable' };
+  } catch {
+    result = { status: 'failed' };
+  }
   if (token !== adEpoch || screen !== 'result' || runId !== id || save.armory !== armory) return;
   const changed = upgradeCard(armory, id, result.status);
   if (changed) persist();
@@ -1353,6 +1310,8 @@ function snapshot() {
     artReady: bridge.artReady,
     selected,
     preview: !!bridge.preview,
+    queuedOrders,
+    commandBusy,
     range,
     rankings: state ? getScore(state) : [],
     result: state?.result,
@@ -1375,13 +1334,11 @@ function snapshot() {
 }
 globalThis.tianxiaSnapshot = () => structuredClone(snapshot());
 window.addEventListener('resize', () => {
-  gesture = null;
-  bridge.preview = null;
+  cancelInput();
   syncBoard();
 });
 document.addEventListener('visibilitychange', () => {
-  gesture = null;
-  bridge.preview = null;
+  cancelInput();
   lastFrame = 0;
   backgrounded = document.hidden;
   if (document.hidden) {
@@ -1391,14 +1348,14 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('blur', () => {
   backgrounded = true;
-  gesture = null;
-  bridge.preview = null;
+  cancelInput();
   if (screen === 'battle') void pause();
 });
 window.addEventListener('focus', () => {
   backgrounded = document.hidden;
 });
 window.addEventListener('pagehide', () => {
+  cancelInput();
   cancelUpgrade();
   backgrounded = true;
   if (screen === 'battle') void pause();

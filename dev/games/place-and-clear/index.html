@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head><script type="module" src="./game-rewards.js"></script>
+  <meta charset="utf-8">
+
+  <title>摆消乐 · 给下一步留点空间</title>
+
+  <!--http://www.html5rocks.com/en/mobile/mobifying/-->
+  <meta name="viewport"
+        content="width=device-width,user-scalable=no,initial-scale=1,minimum-scale=1,maximum-scale=1,viewport-fit=cover"/>
+
+  <!--https://developer.apple.com/library/safari/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html-->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- force webkit on 360 -->
+  <meta name="renderer" content="webkit"/>
+  <meta name="force-rendering" content="webkit"/>
+  <!-- force edge on IE -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+  <meta name="msapplication-tap-highlight" content="no">
+
+  <!-- force full screen on some browser -->
+  <meta name="full-screen" content="yes"/>
+  <meta name="x5-fullscreen" content="true"/>
+  <meta name="360-fullscreen" content="true"/>
+
+  <!--fix fireball/issues/3568 -->
+  <!--<meta name="browsermode" content="application">-->
+  <meta name="x5-page-mode" content="app">
+
+  <!--<link rel="apple-touch-icon" href=".png" />-->
+  <!--<link rel="apple-touch-icon-precomposed" href=".png" />-->
+
+  <link rel="stylesheet" type="text/css" href="style.f76d1.css"/>
+
+<link rel="icon" href="./icon.png"><style>html,body{height:100%;width:100%;margin:0;background:#d0dfc2;overflow:hidden}canvas{touch-action:none;outline:none}#GameDiv{position:fixed;inset:0;width:100%;height:100%;border:0;margin:0}#GameCanvas{width:100%;height:100%}[hidden]{display:none!important}#place-and-clear-loading{position:fixed;inset:0;z-index:9999;background:#d0dfc2;color:#183c34;display:flex;align-items:center;justify-content:center;flex-direction:column;font:18px sans-serif;gap:18px}#place-and-clear-loading img{width:112px;border-radius:26px}#place-and-clear-loading button{padding:15px 30px;background:#ed896c;color:#fff9e6;border:0;border-radius:16px;font:inherit}#place-and-clear-loading progress{accent-color:#57b7a4;width:220px}</style><script src="./dev-mode.js"></script><script src="./competition.js"></script><script type="module" src="./host.js"></script><script src="./platform-config.js"></script></head>
+<body><div id="place-and-clear-loading" role="status"><img src="./icon.png" alt=""><strong>摆消乐</strong><progress id="place-and-clear-progress" max="1" value="0"></progress><span id="place-and-clear-status">正在准备积木…</span><button id="place-and-clear-retry" hidden>重新加载</button></div><script src="./loading.js"></script>
+  <div id="GameDiv" cc_exact_fit_screen="true">
+      <div id="Cocos3dGameContainer">
+        <canvas id="GameCanvas" oncontextmenu="event.preventDefault()" tabindex="99"></canvas>
+      </div>
+    </div>
+  
+
+<!-- Polyfills bundle. -->
+
+<script src="src/polyfills.bundle.5adbf.js" charset="utf-8"> </script>
+
+
+<!-- SystemJS support. -->
+<script src="src/system.bundle.543e6.js" charset="utf-8"> </script>
+
+<!-- Import map -->
+<script src="src/import-map.11da7.json" type="systemjs-importmap" charset="utf-8"> </script>
+
+<script>
+    System.import('./index.ed1fc.js').catch(function(err) { console.error(err); })
+</script>
+
+</body>
+</html>

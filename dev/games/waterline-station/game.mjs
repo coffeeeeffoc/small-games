@@ -1,645 +1,593 @@
 import { shareChallenge } from './publishing.js';
 import { LEVELS } from './levels.mjs';
-import {
-  createState,
-  toggleGate,
-  previewGate,
-  getObjectives,
-  solve,
-  isGateLocked,
-} from './engine.mjs';
-import { renderBoard, getBoardLayout } from './render.mjs';
+import { createState, toggleGate, previewGate, solve, isGateLocked } from './engine.mjs';
 import { readProgress, saveProgress } from './progress.mjs';
-
-const $ = (selector) => document.querySelector(selector);
+import { unlockedThrough } from './layout.mjs';
+import { createView } from './render.mjs';
+const stage = document.querySelector('#stage'),
+  canvas = document.querySelector('#GameCanvas');
+const listeners = new AbortController(),
+  signal = listeners.signal;
 let storage;
 try {
-  storage = window.localStorage;
+  storage = localStorage;
 } catch {
   storage = null;
 }
-const progress = readProgress(storage, LEVELS);
-const invitation = new URLSearchParams(location.search);
-const invitedIndex = LEVELS.findIndex(item => item.id === invitation.get('station'));
-let challenge = invitedIndex >= 0;
-const targetMoves = challenge && /^[1-9]\d?$/.test(invitation.get('target') || '') ? Number(invitation.get('target')) : null;
-let assisted = false;
-let levelIndex = challenge ? invitedIndex : progress.selected;
-let chapterIndex = Math.floor(levelIndex / 10);
-let level = LEVELS[levelIndex];
-let state;
-let history = [];
-let prediction = false;
-let selectedGate = null;
-let focusedConnection = null;
-let preview = null;
-let animating = false;
-let frame = 0;
-let extraClaimed = false;
-let audioContext;
-let displayedVolumes = [];
-let boardLayout;
-const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-const escapeHtml = (value) =>
-  String(value).replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
-  );
-const format = (value) => Number(value.toFixed(2)).toString();
-const persist = () => { if (!challenge) saveProgress(storage, progress); };
-function leaveChallenge(index) {
-  if (!challenge) return;
+let progress = readProgress(storage, LEVELS);
+let unlocked = unlockedThrough(progress, LEVELS);
+const invitation = new URLSearchParams(location.search),
+  invitedIndex = LEVELS.findIndex((l) => l.id === invitation.get('station'));
+let challenge = invitedIndex >= 0,
+  targetMoves =
+    challenge && /^[1-9]\d?$/.test(invitation.get('target') || '')
+      ? Number(invitation.get('target'))
+      : null;
+let levelIndex = challenge ? invitedIndex : progress.selected,
+  chapter = Math.floor(levelIndex / 10),
+  state = createState(LEVELS[levelIndex]);
+let screen = 'home',
+  returnScreen = 'home',
+  history = [],
+  prediction = false,
+  selectedGate = null,
+  preview = null,
+  animating = false,
+  extraClaimed = false,
+  assisted = false,
+  practice = false;
+let message = '点一道阀门，让水位联动',
+  shareStatus = '',
+  displayed = [...state.volumes],
+  animationFrom = [...state.volumes],
+  animationTime = 0,
+  time = 0;
+let runId = 0;
+let runtime,
+  view,
+  audioSource,
+  disposed = false,
+  activeTouch = null,
+  lastTouch = -1000,
+  pressed = null,
+  clips = {},
+  cleanups = [];
+const motion = matchMedia('(prefers-reduced-motion: reduce)');
+const dev = Boolean(window.SmallGamesDev?.isEnabled());
+function dimensions() {
+  return { width: Math.round(stage.clientWidth), height: Math.round(stage.clientHeight) };
+}
+function model() {
+  return {
+    screen,
+    returnScreen,
+    progress,
+    levelIndex,
+    chapter,
+    state,
+    historyLength: history.length,
+    prediction,
+    selectedGate,
+    preview,
+    animating,
+    extraClaimed,
+    assisted,
+    challenge,
+    targetMoves,
+    practice,
+    dev,
+    message,
+    shareStatus,
+    displayed,
+    time,
+  };
+}
+function persist() {
+  if (!challenge && !practice) {
+    progress.unlocked = unlocked;
+    saveProgress(storage, progress);
+  }
+}
+function announce(text) {
+  message = text;
+  document.querySelector('#announcement').textContent = text;
+}
+function emitDisplay() {
+  if (parent === window) return;
+  try {
+    const origin = new URL(document.referrer).origin;
+    if (origin !== 'null')
+      parent.postMessage(
+        {
+          type: 'small-games:display-state',
+          gameId: 'waterline-station',
+          screen: screen === 'home' ? 'home' : 'playing',
+        },
+        origin,
+      );
+  } catch {}
+}
+function draw() {
+  if (disposed) return;
+  view?.render(model());
+  emitDisplay();
+}
+function cancelInput() {
+  activeTouch = null;
+  pressed = null;
+}
+function show(next) {
+  cancelInput();
+  document.querySelector('#share-fallback').close();
+  screen = next;
+  draw();
+}
+function sound(kind) {
+  if (!progress.sound || document.hidden || disposed || !audioSource || !clips[kind]) return;
+  try {
+    audioSource.playOneShot(clips[kind], 0.6);
+  } catch {}
+}
+function clearChallenge() {
   challenge = false;
-  Object.assign(progress, readProgress(storage, LEVELS));
+  targetMoves = null;
   const url = new URL(location.href);
   url.searchParams.delete('station');
   url.searchParams.delete('target');
   window.history.replaceState(null, '', url);
-  loadLevel(Number.isInteger(index) ? index : progress.selected);
+  progress = readProgress(storage, LEVELS);
+  unlocked = unlockedThrough(progress, LEVELS);
 }
-async function shareResult() {
-  const result = await shareChallenge({ title: '水位联动站 · 同关挑战', text: `第 ${levelIndex + 1} 站，${assisted ? '一起解开联动水位' : `我用了 ${state.moves} 次操作`}。`, params: { station: level.id, ...(!assisted && state.won ? { target: state.moves } : {}) } });
-  $('#share-status').textContent = result.status === 'shared' ? '已打开分享面板' : result.status === 'copied' ? '同关链接已复制' : result.status === 'cancelled' ? '已取消分享' : `长按复制：${result.url}`;
-}
-
-function sound(kind = 'valve') {
-  if (!progress.sound || document.hidden) return;
-  try {
-    const Audio = window.AudioContext || window.webkitAudioContext;
-    if (!Audio) return;
-    audioContext ??= new Audio();
-    void audioContext.resume().catch(() => {});
-    const notes =
-      kind === 'win' ? [392, 494, 587, 784] : kind === 'switch' ? [523, 659] : [196, 294];
-    notes.forEach((frequency, i) => {
-      const oscillator = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      const time = audioContext.currentTime + i * 0.09;
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(frequency, time);
-      gain.gain.setValueAtTime(0, time);
-      gain.gain.linearRampToValueAtTime(0.055, time + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.28);
-      oscillator.connect(gain).connect(audioContext.destination);
-      oscillator.start(time);
-      oscillator.stop(time + 0.3);
-    });
-  } catch {
-    /* Audio is optional; denied media must not interrupt a turn. */
-  }
-}
-
-function message(text, label = '调度提示') {
-  $('#message').textContent = text;
-  $('#message-label').textContent = label;
-}
-
-function draw() {
-  const keyboardPipe = document.activeElement?.closest?.('#board [data-connection]')?.dataset
-    .connection;
-  renderBoard(
-    $('#board'),
-    level,
-    state,
-    displayedVolumes,
-    preview,
-    performance.now() / 1000,
-    boardLayout,
-    focusedConnection,
-  );
-  $('#board').dataset.level = String(levelIndex + 1);
-  $('#board').dataset.status = animating
-    ? 'flowing'
-    : state.won
-      ? 'won'
-      : state.lost
-        ? 'lost'
-        : 'playing';
-  $('#board').setAttribute(
-    'aria-label',
-    level.tanks
-      .map((tank, i) => `${tank.id}槽${tank.name}液位${format(state.volumes[i])}`)
-      .join('，'),
-  );
-  syncConnectionLayers();
-  if (keyboardPipe) $(`#board [data-connection="${keyboardPipe}"]`)?.focus({ preventScroll: true });
-}
-
-// The active pipe is above unrelated valve buttons; its own valve remains above the pipe.
-function syncConnectionLayers() {
-  const foreground = $('#board-foreground');
-  foreground.replaceChildren();
-  foreground.removeAttribute('data-focused-connection');
-  if (focusedConnection) {
-    const source = $(`#board [data-connection="${focusedConnection}"]`);
-    if (source) {
-      const front = source.cloneNode(true);
-      front.removeAttribute('data-connection');
-      front.removeAttribute('role');
-      front.removeAttribute('tabindex');
-      front.removeAttribute('id');
-      front.dataset.foregroundConnection = focusedConnection;
-      for (const node of front.querySelectorAll('[tabindex], [id]')) {
-        node.removeAttribute('tabindex');
-        node.removeAttribute('id');
-      }
-      foreground.append(front);
-      foreground.dataset.focusedConnection = focusedConnection;
-    }
-  }
-  for (const button of $('#board-controls').querySelectorAll('[data-gate]')) {
-    const active = button.dataset.gate === focusedConnection;
-    button.classList.toggle('is-focused', active);
-    button.style.zIndex = active ? '4' : '2';
-  }
-  $('#board').dataset.focusedConnection = focusedConnection || '';
-}
-
-function selectConnection(id) {
-  if (state.won || state.lost) return;
-  const exists =
-    level.gates.some((gate) => gate.id === id) ||
-    (level.overflow || []).some((_, index) => `overflow:${index}` === id);
-  if (!exists || id === focusedConnection) return;
-  focusedConnection = id;
-  const gate = level.gates.find(item => item.id === id);
-  if (gate) message(`${gate.a} 槽 ↔ ${gate.b} 槽 · ${state.gates[level.gates.indexOf(gate)] ? '连通中，再点阀门隔离' : '已隔离，点阀门连通'}；点管线不消耗操作。`, '已选管线');
-  draw();
-}
-
-function updateBoardLayout() {
-  boardLayout = getBoardLayout(level, $('#board').getBoundingClientRect().width);
-  $('#board').setAttribute('viewBox', `0 0 960 ${boardLayout.height}`);
-  $('#board-foreground').setAttribute('viewBox', `0 0 960 ${boardLayout.height}`);
-  $('#board').style.aspectRatio = `960 / ${boardLayout.height}`;
-  for (const gate of boardLayout.valves) {
-    const button = $(`#board-controls [data-gate="${gate.id}"]`);
-    button.style.left = `${(gate.x / 960) * 100}%`;
-    button.style.top = `${(gate.y / boardLayout.height) * 100}%`;
-  }
-}
-
-function renderRoutes() {
-  const chapters = Array.from({ length: Math.ceil(LEVELS.length / 10) }, (_, index) => {
-    const chapterLevels = LEVELS.slice(index * 10, index * 10 + 10);
-    const completed = chapterLevels.filter((item) => progress.best[item.id]).length;
-    const name = chapterLevels[0].chapter.replace(/^\d+\s*[·/．.]\s*/, '');
-    return `<button type="button" class="chapter-button ${index === chapterIndex ? 'active' : ''}" data-chapter-index="${index}" aria-pressed="${index === chapterIndex}"><span>${String(index + 1).padStart(2, '0')} ${escapeHtml(name)}</span><small>${completed}/${chapterLevels.length}</small></button>`;
-  });
-  $('#chapter-nav').innerHTML = chapters.join('');
-  const chapterNav = $('#chapter-nav');
-  const activeChapter = chapterNav.querySelector('.active');
-  const navBounds = chapterNav.getBoundingClientRect();
-  const activeBounds = activeChapter.getBoundingClientRect();
-  if (activeBounds.right > navBounds.right)
-    chapterNav.scrollLeft += activeBounds.right - navBounds.right;
-  else if (activeBounds.left < navBounds.left)
-    chapterNav.scrollLeft += activeBounds.left - navBounds.left;
-  $('#level-nav').innerHTML = LEVELS.slice(chapterIndex * 10, chapterIndex * 10 + 10)
-    .map((item, offset) => {
-      const index = chapterIndex * 10 + offset;
-      const best = progress.best[item.id];
-      const stars = best ? (best <= item.par ? 3 : best <= item.par + 1 ? 2 : 1) : 0;
-      return `<button class="level-button ${index === levelIndex ? 'active' : ''} ${best ? 'completed' : ''}" data-level-index="${index}" ${index === levelIndex ? 'aria-current="step"' : ''} aria-label="第${index + 1}关 ${escapeHtml(item.title)}${best ? `，最佳${best}步` : ''}"><span class="level-index">${String(index + 1).padStart(2, '0')}</span><span class="level-stars" aria-hidden="true">${stars ? '✦'.repeat(stars) : '·'}</span><span class="level-name">${escapeHtml(item.title)}</span></button>`;
-    })
-    .join('');
-  $('#route-progress').textContent =
-    `航站记录 ${Object.keys(progress.best).length} / ${LEVELS.length}`;
-}
-
-function renderControls() {
-  const objectives = getObjectives(level, state);
-  $('#moves-left').textContent = Math.max(
-    0,
-    level.maxMoves + (state.bonusMoves || 0) - state.moves,
-  );
-  const remaining = Math.max(0, level.maxMoves + (state.bonusMoves || 0) - state.moves);
-  $('.turn-display').classList.toggle('budget-low', remaining <= 2 && !state.won);
-  $('#move-budget').textContent = `已用 ${state.moves} · 三星 ≤ ${level.par}${challenge ? ' · 好友同关' : ''}${challenge && levelIndex === invitedIndex && targetMoves ? ` · 好友 ${targetMoves} 次` : ''}`;
-  $('#exit-challenge').hidden = !challenge;
-  $('#result-exit-challenge').hidden = !challenge;
-  $('#objective-count').textContent =
-    `${objectives.filter((o) => o.done).length} / ${objectives.length}`;
-  $('#objectives').innerHTML = objectives
-    .map(
-      (o) =>
-        `<li class="${o.done ? 'done' : ''}"><span class="objective-check" aria-hidden="true">✓</span><span>${escapeHtml(o.label)}${o.done ? '<span class="sr-only">（已完成）</span>' : ''}</span><span class="objective-value">${typeof o.value === 'number' ? format(o.value) : ''}${typeof o.target === 'number' ? ` / ${format(o.target)}` : ''}</span></li>`,
-    )
-    .join('');
-  // Keep buttons in place so updating a prediction preserves keyboard focus.
-  for (const [index, gate] of level.gates.entries()) {
-    const button = $(`[data-gate="${gate.id}"]`);
-    const locked = isGateLocked(level, state, gate.id);
-    const open = state.gates[index];
-    const selected = selectedGate === gate.id;
-    button.className = `scene-valve ${open ? 'open' : ''} ${locked ? 'locked' : ''} ${selected ? 'selected' : ''} ${focusedConnection === gate.id ? 'is-focused' : ''}`;
-    // Locked valves remain selectable; useGate prevents locked or animated operations.
-    button.disabled = state.won || state.lost;
-    button.setAttribute('aria-disabled', String(animating || button.disabled || locked));
-    button.setAttribute('aria-pressed', String(open));
-    const description = `${gate.a}到${gate.b}阀门，${locked ? `等待 ${[gate.requires].flat().join('、')} 箱子开关解锁` : selected ? '再次点击确认' : open ? '已打开，点击关闭' : '已关闭，点击打开'}`;
-    button.setAttribute('aria-label', description);
-    button.title = description;
-    button.querySelector('.valve-state').textContent = locked
-      ? '待解锁'
-      : selected
-        ? '再点确认'
-        : open
-          ? '已开'
-          : '已关';
-  }
-  $('#undo').disabled = animating || !history.length;
-  $('#restart').disabled = animating;
-  $('#predict').disabled = animating || state.won || state.lost;
-  $('#predict').setAttribute('aria-pressed', String(prediction));
-  $('#hint').disabled = animating || state.won || state.lost;
-  $('#extra-move').disabled = animating || extraClaimed || state.won;
-  $('#extra-move').innerHTML = extraClaimed
-    ? '✓ 已增加一次操作 <span>本关已领取</span>'
-    : '＋ 多一次操作 <span>本关一次 · 免费</span>';
-  $('#sound').setAttribute('aria-pressed', String(progress.sound));
-  $('#sound').setAttribute('aria-label', progress.sound ? '关闭音效' : '开启音效');
-  $('#sound').textContent = progress.sound ? '♫' : '♪';
-  $('#board-status').textContent = animating
-    ? '液位结算'
-    : preview
-      ? '预览 · 再点确认'
-      : state.won
-        ? '联动完成'
-        : state.lost
-          ? '操作已用尽'
-          : '点阀开关 · 点管置顶';
-  $('#volume-total').textContent =
-    `总水量 ${format(state.volumes.reduce((a, b) => a + b, 0))} · 守恒`;
-  $('#predict-note').textContent = prediction
-    ? '点击闸门看预测，再点同一闸门确认'
-    : '开启后，先看水位，再确认操作';
-}
-
-function setBackgroundInert(value) {
-  for (const selector of [
-    '.masthead',
-    '.stage-header',
-    '.board-scene',
-    '.control-panel',
-    '.route-panel',
-  ])
-    $(selector).inert = value;
-}
-
-function hideResult() {
-  $('#result').hidden = true;
-  setBackgroundInert(false);
-}
-
-function showResult() {
-  if (!state.won && !state.lost) return;
-  const won = state.won;
-  const last = levelIndex === LEVELS.length - 1;
-  $('.result-card').classList.toggle('loss', !won);
-  $('#result-mark').textContent = won ? '✦' : '⌁';
-  $('#result-kicker').textContent = won
-    ? 'STATION COMPLETE / 调度完成'
-    : 'TAKE A BREATH / 再想一步';
-  $('#result-title').textContent = won
-    ? last
-      ? '终站抵达，联动完成！'
-      : '全站联动成功'
-    : '水还在，换个思路。';
-  $('#result-copy').textContent = won
-    ? `用了 ${state.moves} 次操作 · 最佳目标 ${level.par} 次\n${state.moves <= level.par ? '恰到好处，每一阀都算数。' : '机关全部就位，小船顺利出航。'}`
-    : extraClaimed
-      ? '撤销上一步，重新安排水位。\n关阀隔离，也可以是关键一步。'
-      : '可以免费增加一次操作，\n也可以撤销，重新安排水位。';
-  $('#next-level').textContent = won
-    ? last
-      ? '返回首站，再试一次 →'
-      : '下一站 →'
-    : extraClaimed
-      ? '重新调度 →'
-      : '＋ 免费增加一次操作';
-  $('#share-result').hidden = !won;
-  $('#share-status').textContent = `${assisted ? '辅助通关 · 分享只邀请同关，不比较少步成绩。' : '同关少步挑战 · 提示与额外操作均免费。'}${challenge ? ' 本次不写入正常存档。' : ''}`;
-  $('#result-undo').hidden = !history.length;
-  $('#result').hidden = false;
-  setBackgroundInert(true);
-  $('#next-level').focus({ preventScroll: true });
-  if (window.innerWidth <= 780)
-    $('.board-wrap').scrollIntoView({
-      behavior: reduceMotion.matches ? 'instant' : 'smooth',
-      block: 'center',
-    });
-}
-
-function finishTurn() {
-  cancelAnimationFrame(frame);
-  animating = false;
-  displayedVolumes = [...state.volumes];
-  draw();
-  renderControls();
-  if (state.won) {
-    if (!challenge) progress.best[level.id] = Math.min(progress.best[level.id] ?? Infinity, state.moves);
-    persist();
-    renderRoutes();
-    sound('win');
-  }
-  showResult();
-}
-
-function animate(from) {
-  animating = true;
-  renderControls();
-  const duration = reduceMotion.matches || document.hidden ? 0 : 850;
-  const start = performance.now();
-  const tick = (time) => {
-    const ratio = duration ? Math.min(1, (time - start) / duration) : 1;
-    const ease = 1 - (1 - ratio) ** 3;
-    displayedVolumes = from.map((value, index) => value + (state.volumes[index] - value) * ease);
-    draw();
-    if (ratio < 1) frame = requestAnimationFrame(tick);
-    else finishTurn();
-  };
-  frame = requestAnimationFrame(tick);
-}
-
-function clearPreview() {
-  selectedGate = null;
-  preview = null;
-}
-
-function useGate(id) {
-  const gate = level.gates.find((item) => item.id === id);
-  if (!gate || state.won || state.lost) return;
-  selectConnection(id);
-  if (animating) return;
-  if (isGateLocked(level, state, id)) {
-    message(
-      `这条连接已置顶。先点亮 ${[gate.requires].flat().join('、')} 箱子开关，再操作 ${gate.a}—${gate.b}。`,
-      '联锁阀',
-    );
-    return;
-  }
-  if (prediction && selectedGate !== id) {
-    assisted = true;
-    selectedGate = id;
-    preview = previewGate(level, state, id);
-    message(
-      `${level.tanks.map((tank, index) => `${tank.id} ${format(state.volumes[index])} → ${format(preview.volumes[index])}`).join('  /  ')}。再次点击 ${gate.a} ↔ ${gate.b} 确认。`,
-      '液位预测 · 不消耗操作',
-    );
-    draw();
-    renderControls();
-    return;
-  }
-  const next = toggleGate(level, state, id);
-  if (next.moves === state.moves) return;
-  const previous = state;
-  history.push(structuredClone(state));
-  state = next;
-  clearPreview();
-  const events = state.events?.map((event) => event.text).filter(Boolean) || [];
-  message(events.join(' ') || '闸门已调度，相连的水槽正在分享水量。', '联动记录');
-  sound(state.latched.length > previous.latched.length ? 'switch' : 'valve');
-  animate(previous.volumes);
-}
-
-function undo() {
-  if (animating || !history.length) return;
-  assisted = true;
-  hideResult();
-  const from = [...state.volumes];
-  state = history.pop();
-  state.bonusMoves = extraClaimed ? 1 : 0;
-  state.lost = !state.won && state.moves >= level.maxMoves + state.bonusMoves;
-  clearPreview();
-  message('已恢复上一步的水位、闸门和机关。换一个连接，再试试看。', '撤销成功');
-  animate(from);
-}
-
-function addMove() {
-  if (animating || extraClaimed || state.won) return;
-  extraClaimed = true;
-  assisted = true;
-  state = { ...state, bonusMoves: 1, lost: false };
-  hideResult();
-  clearPreview();
-  message('增加了 1 次操作。这次调度已经领取过额外机会。', '继续调度');
-  draw();
-  renderControls();
-  $('#board-controls button:not(:disabled)')?.focus({ preventScroll: true });
-}
-
-function loadLevel(index) {
-  const wasResultVisible = !$('#result').hidden;
-  cancelAnimationFrame(frame);
+function load(index, { trial = false } = {}) {
+  runId++;
+  cancelInput();
   levelIndex = index;
-  chapterIndex = Math.floor(index / 10);
-  focusedConnection = null;
-  level = LEVELS[index];
-  state = createState(level);
+  chapter = Math.floor(index / 10);
+  state = createState(LEVELS[index]);
   history = [];
   extraClaimed = false;
   assisted = false;
+  practice = trial;
+  prediction = false;
+  selectedGate = null;
+  preview = null;
   animating = false;
-  clearPreview();
-  hideResult();
-  displayedVolumes = [...state.volumes];
-  progress.selected = index;
-  persist();
-  $('#level-number').textContent = String(index + 1).padStart(2, '0');
-  $('#level-name').textContent = level.title;
-  $('#chapter').textContent = level.chapter;
-  $('#board-controls').innerHTML = level.gates
-    .map(
-      (gate) =>
-        `<button type="button" data-gate="${escapeHtml(gate.id)}" class="scene-valve"><span class="valve-wheel" aria-hidden="true"></span><span class="valve-label" aria-hidden="true"><span>${escapeHtml(gate.a)}—${escapeHtml(gate.b)}</span><span class="valve-state"></span></span></button>`,
-    )
-    .join('');
-  updateBoardLayout();
-  message(level.intro);
-  renderControls();
-  renderRoutes();
-  draw();
-  if (wasResultVisible) $('#board-controls button:not(:disabled)')?.focus({ preventScroll: true });
+  animationTime = 0;
+  displayed = [...state.volumes];
+  shareStatus = '';
+  message = index === 0 ? '点击 A—B 阀门，看看箱子和小船' : '点一道阀门，让水位联动';
+  if (!challenge && !practice) {
+    progress.selected = index;
+    persist();
+  }
+  show('playing');
 }
-
-function pipeFromEvent(event) {
-  return event.target.closest('[data-connection], [data-foreground-connection]');
-}
-function focusPipe(event) {
-  const pipe = pipeFromEvent(event);
-  if (pipe) selectConnection(pipe.dataset.connection || pipe.dataset.foregroundConnection);
-}
-$('.board-scene').addEventListener('pointerdown', (event) => {
-  if (event.button !== 0) return;
-  const valve = event.target.closest('[data-gate]');
-  if (valve) selectConnection(valve.dataset.gate);
-  else focusPipe(event);
-});
-$('.board-scene').addEventListener('click', focusPipe);
-$('#board').addEventListener('keydown', (event) => {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
-  const pipe = pipeFromEvent(event);
-  if (!pipe) return;
-  event.preventDefault();
-  selectConnection(pipe.dataset.connection);
-});
-$('#chapter-nav').addEventListener('click', (event) => {
-  const button = event.target.closest('[data-chapter-index]');
-  if (!button) return;
-  chapterIndex = Number(button.dataset.chapterIndex);
-  renderRoutes();
-  $(`#chapter-nav [data-chapter-index="${chapterIndex}"]`)?.focus({ preventScroll: true });
-});
-$('#board-controls').addEventListener('click', (event) => {
-  const button = event.target.closest('[data-gate]');
-  if (button) useGate(button.dataset.gate);
-});
-$('#level-nav').addEventListener('click', (event) => {
-  const button = event.target.closest('[data-level-index]');
-  if (button && !animating) {
-    const nextIndex = Number(button.dataset.levelIndex);
-    if (challenge && nextIndex !== invitedIndex) leaveChallenge(nextIndex);
-    else loadLevel(nextIndex);
-    if (window.innerWidth <= 780)
-      $('.stage-header').scrollIntoView({
-        behavior: reduceMotion.matches ? 'instant' : 'smooth',
-        block: 'start',
-      });
-  }
-});
-$('#undo').addEventListener('click', undo);
-$('#result-undo').addEventListener('click', undo);
-$('#restart').addEventListener('click', () => loadLevel(levelIndex));
-$('#share-result').addEventListener('click', shareResult);
-$('#exit-challenge').addEventListener('click', () => leaveChallenge());
-$('#result-exit-challenge').addEventListener('click', () => leaveChallenge());
-$('#result-retry').addEventListener('click', () => loadLevel(levelIndex));
-$('#extra-move').addEventListener('click', addMove);
-$('#next-level').addEventListener('click', () => {
-  if (state.won) {
-    const nextIndex = (levelIndex + 1) % LEVELS.length;
-    if (challenge) leaveChallenge(nextIndex);
-    else loadLevel(nextIndex);
-  }
-  else if (!extraClaimed) addMove();
-  else loadLevel(levelIndex);
-});
-$('#predict').addEventListener('click', () => {
-  prediction = !prediction;
-  clearPreview();
-  message(
-    prediction ? '点一道闸门，虚线会显示结算后的液位。再点同一道闸门才执行。' : level.intro,
-    prediction ? '液位预测已开启' : '调度提示',
-  );
-  renderControls();
-  draw();
-});
-$('#hint').addEventListener('click', () => {
-  assisted = true;
-  const route = solve(level, state);
-  if (!route?.length) {
-    message(
-      '剩余操作内暂时无法完成。试试撤销，或重来后先处理箱子，再考虑把水留在哪个水槽。',
-      '调度提示',
-    );
-    return;
-  }
-  const index = level.gates.findIndex((gate) => gate.id === route[0]);
-  const gate = level.gates[index];
-  message(
-    `下一步试着${state.gates[index] ? '关闭' : '打开'} ${gate.a} ↔ ${gate.b}。从当前状态还需 ${route.length} 次操作即可完成。`,
-    '一点灵感',
-  );
-});
-$('#sound').addEventListener('click', () => {
-  progress.sound = !progress.sound;
-  persist();
-  renderControls();
-  sound();
-});
-$('#help').addEventListener('click', () => $('#help-dialog').showModal());
-for (const selector of ['#start-playing'])
-  $(selector).addEventListener('click', () => $('#help-dialog').close());
-$('#help-dialog').addEventListener('click', (event) => {
-  if (event.target === $('#help-dialog')) {
-    const bounds = event.target.getBoundingClientRect();
-    if (
-      event.clientX < bounds.left ||
-      event.clientX > bounds.right ||
-      event.clientY < bounds.top ||
-      event.clientY > bounds.bottom
-    )
-      event.target.close();
-  }
-});
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    if (animating) finishTurn();
-    void audioContext?.suspend().catch(() => {});
-  }
-});
-document.addEventListener('keydown', (event) => {
-  if (event.ctrlKey || event.metaKey || event.altKey || event.repeat || $('#help-dialog').open)
-    return;
-  if (!$('#result').hidden) {
-    if (event.key === 'Tab') {
-      const buttons = [...$('#result').querySelectorAll('button:not([hidden])')];
-      const first = buttons[0];
-      const last = buttons.at(-1);
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-    return;
-  }
-  if (event.key === 'Escape') {
-    clearPreview();
-    renderControls();
+function gate(id) {
+  if (screen !== 'playing' || animating || state.won || state.lost) return;
+  const l = LEVELS[levelIndex];
+  selectedGate = id;
+  if (isGateLocked(l, state, id)) {
+    const g = l.gates.find((g) => g.id === id);
+    announce(`先点亮 ${[g.requires].flat().join('、')} 箱子机关`);
+    sound('locked');
     draw();
     return;
   }
-  const keys = { z: '#undo', r: '#restart', h: '#hint', p: '#predict', '?': '#help' };
-  const selector = keys[event.key.toLowerCase()];
-  if (selector) {
-    event.preventDefault();
-    $(selector).click();
-  } else if (/^[1-5]$/.test(event.key)) {
-    const gate = level.gates[Number(event.key) - 1];
-    if (gate) {
-      event.preventDefault();
-      useGate(gate.id);
+  if (prediction && preview?.gateId !== id) {
+    assisted = true;
+    preview = { ...previewGate(l, state, id), gateId: id };
+    announce('白色虚线为预测水位，再点同一阀门确认');
+    draw();
+    return;
+  }
+  const next = toggleGate(l, state, id);
+  if (next.moves === state.moves) return;
+  history.push(structuredClone(state));
+  animationFrom = [...displayed];
+  state = next;
+  preview = null;
+  animating = true;
+  animationTime = 0;
+  announce(
+    next.events.find((e) => e.type === 'switch')?.text ||
+      next.events.find((e) => e.type === 'gate')?.text ||
+      '水位联动中',
+  );
+  sound(next.won ? 'win' : 'valve');
+  if (state.won && !challenge && !practice) {
+    const prev = progress.best[l.id];
+    if (!prev || state.moves < prev) progress.best[l.id] = state.moves;
+    unlocked = Math.max(unlocked, Math.min(LEVELS.length - 1, levelIndex + 1));
+    progress.selected = Math.min(LEVELS.length - 1, levelIndex + 1);
+    persist();
+  }
+  draw();
+}
+function undo() {
+  if (!history.length) return;
+  assisted = true;
+  state = history.pop();
+  if (extraClaimed) state.bonusMoves = 1;
+  state.lost = !state.won && state.moves >= LEVELS[levelIndex].maxMoves + (state.bonusMoves || 0);
+  displayed = [...state.volumes];
+  preview = null;
+  animating = false;
+  prediction = false;
+  if (!challenge && !practice) {
+    progress.selected = levelIndex;
+    persist();
+  }
+  announce('已撤销，水量与机关回到上一步');
+  show('playing');
+}
+function pause() {
+  cancelInput();
+  if (screen === 'playing') {
+    audioSource?.stop();
+    show('paused');
+  }
+}
+async function share() {
+  const session = runId;
+  const result = await shareChallenge({
+    title: '水位联动站 · 同关挑战',
+    text: `第 ${levelIndex + 1} 站，${assisted || practice ? '一起解开联动水位' : `我用了 ${state.moves} 次操作`}。`,
+    params: {
+      station: LEVELS[levelIndex].id,
+      ...(!assisted && !practice && state.won ? { target: state.moves } : {}),
+    },
+  });
+  if (disposed || session !== runId || screen !== 'result') return;
+  shareStatus =
+    result.status === 'shared'
+      ? '已打开分享面板'
+      : result.status === 'copied'
+        ? '同关链接已复制'
+        : result.status === 'cancelled'
+          ? '已取消分享'
+          : '请复制挑战链接';
+  draw();
+  if (['unavailable', 'failed'].includes(result.status) && result.url) {
+    const input = document.querySelector('#share-url');
+    input.value = result.url;
+    document.querySelector('#share-fallback').showModal();
+    input.focus();
+    input.select();
+  }
+}
+function activate(action) {
+  if (disposed) return;
+  sound('tap');
+  if (action.startsWith('gate:')) return gate(action.slice(5));
+  if (action.startsWith('focus:')) {
+    selectedGate = action.slice(6);
+    announce(
+      selectedGate.startsWith('overflow:')
+        ? '已选溢流管：超过出口线的水量推动水轮'
+        : '已选管线 ' + selectedGate + '，点击圆形阀门调度',
+    );
+    return draw();
+  }
+  if (action.startsWith('level:')) {
+    const i = Number(action.slice(6));
+    if (i > unlocked && !dev) return;
+    if (challenge) clearChallenge();
+    return load(i, { trial: i > unlocked });
+  }
+  switch (action) {
+    case 'start':
+      if (state.won || state.lost) return load(challenge ? levelIndex : progress.selected);
+      return show('playing');
+    case 'home':
+      prediction = false;
+      preview = null;
+      return show('home');
+    case 'levels':
+      chapter = Math.floor((challenge ? levelIndex : progress.selected) / 10);
+      return show('levels');
+    case 'chapter-prev':
+      chapter = Math.max(0, chapter - 1);
+      return draw();
+    case 'chapter-next':
+      chapter = Math.min(4, chapter + 1);
+      return draw();
+    case 'pause':
+      return pause();
+    case 'resume':
+      return show('playing');
+    case 'restart':
+      return load(levelIndex, { trial: practice });
+    case 'undo':
+      return undo();
+    case 'predict':
+      if (screen !== 'playing' || animating) return;
+      prediction = !prediction;
+      preview = null;
+      assisted = true;
+      announce(prediction ? '点阀门看预测，再点一次确认' : '已退出预测');
+      return draw();
+    case 'hint':
+      if (screen !== 'playing' || animating) return;
+      assisted = true;
+      {
+        const solution = solve(LEVELS[levelIndex], state);
+        announce(
+          solution?.length
+            ? `试试 ${solution[0]} 阀门，还需 ${solution.length} 步`
+            : solution
+              ? '目标已完成'
+              : '当前步数不足，撤销或重来试试',
+        );
+      }
+      return draw();
+    case 'extra':
+      if (extraClaimed || !state.lost) return;
+      extraClaimed = true;
+      assisted = true;
+      state = { ...state, bonusMoves: 1, lost: false };
+      announce('已增加 1 步，本局仅一次');
+      return show('playing');
+    case 'next': {
+      const next = levelIndex + 1;
+      if (next >= LEVELS.length) return;
+      if (challenge) clearChallenge();
+      if (next > unlocked && !dev) return show('levels');
+      return load(next, { trial: next > unlocked });
+    }
+    case 'exit-challenge':
+      clearChallenge();
+      practice = false;
+      load(progress.selected);
+      return show('home');
+    case 'share':
+      return void share();
+    case 'help':
+    case 'settings':
+      returnScreen = screen;
+      return show(action);
+    case 'sound':
+      progress.sound = !progress.sound;
+      if (!challenge && !practice) persist();
+      if (!progress.sound) audioSource?.stop();
+      else sound('valve');
+      return draw();
+    case 'playing':
+    case 'paused':
+      return show(action);
+  }
+}
+function tick(dt) {
+  if (disposed || !view) return;
+  if (screen !== 'playing' || document.hidden) return;
+  time += dt;
+  if (animating) {
+    animationTime += dt;
+    const duration = motion.matches ? 0.14 : 0.55;
+    const f = Math.min(1, animationTime / duration),
+      e = 1 - (1 - f) ** 3;
+    displayed = state.volumes.map((v, i) => animationFrom[i] + (v - animationFrom[i]) * e);
+    if (f === 1) {
+      animating = false;
+      displayed = [...state.volumes];
+      if (state.won || state.lost) {
+        show('result');
+        return;
+      }
+      draw();
     }
   }
-});
-Object.defineProperty(window, '__waterlineSnapshot', {
-  value: () =>
-    structuredClone({
-      levelIndex,
-      levelId: level.id,
-      state,
-      animating,
-      prediction,
-      selectedGate,
-      focusedConnection,
-      chapterIndex,
-      historyLength: history.length,
-      extraClaimed,
-      challenge,
-      assisted,
-      progress,
-    }),
-});
-loadLevel(levelIndex);
-// Resize only moves the native controls; it never recreates a focused valve.
-let boardWidth = $('#board').getBoundingClientRect().width;
-new ResizeObserver(([entry]) => {
-  if (Math.abs(entry.contentRect.width - boardWidth) < 0.5) return;
-  boardWidth = entry.contentRect.width;
-  updateBoardLayout();
-  draw();
-}).observe($('#board'));
+  if (animating || (!motion.matches && Math.floor(time * 24) !== Math.floor((time - dt) * 24)))
+    view.update(model());
+}
+function wireInput(cc) {
+  const point = (e) => {
+    const p = e.getUILocation();
+    return { x: p.x, y: runtime.height - p.y };
+  };
+  const begin = (e, id) => {
+    if (activeTouch !== null) return;
+    const p = point(e),
+      h = view.hit(p.x, p.y);
+    activeTouch = id;
+    pressed = h ? { ...h, start: p } : null;
+  };
+  const move = (e, id) => {
+    if (activeTouch !== id || !pressed) return;
+    const p = point(e);
+    if (Math.hypot(p.x - pressed.start.x, p.y - pressed.start.y) > 14) pressed = null;
+  };
+  const end = (e, id) => {
+    if (activeTouch !== id) return;
+    const p = point(e),
+      h = view.hit(p.x, p.y),
+      action = h && pressed && h.id === pressed.id ? h.action : null;
+    cancelInput();
+    if (action) activate(action);
+  };
+  const subs = [
+    [
+      cc.Input.EventType.TOUCH_START,
+      (e) => {
+        lastTouch = performance.now();
+        begin(e, e.getID());
+      },
+    ],
+    [cc.Input.EventType.TOUCH_MOVE, (e) => move(e, e.getID())],
+    [
+      cc.Input.EventType.TOUCH_END,
+      (e) => {
+        lastTouch = performance.now();
+        end(e, e.getID());
+      },
+    ],
+    [
+      cc.Input.EventType.TOUCH_CANCEL,
+      (e) => {
+        if (activeTouch === e.getID()) cancelInput();
+      },
+    ],
+    [
+      cc.Input.EventType.MOUSE_DOWN,
+      (e) => {
+        if (e.getButton() === 0 && performance.now() - lastTouch > 600) begin(e, 'mouse');
+      },
+    ],
+    [cc.Input.EventType.MOUSE_MOVE, (e) => move(e, 'mouse')],
+    [cc.Input.EventType.MOUSE_UP, (e) => end(e, 'mouse')],
+  ];
+  subs.forEach(([type, fn]) => cc.input.on(type, fn));
+  cleanups.push(() => subs.forEach(([type, fn]) => cc.input.off(type, fn)));
+}
+async function initAudio(cc) {
+  const n = new cc.Node('Station audio');
+  runtime.scene.addChild(n);
+  audioSource = n.addComponent(cc.AudioSource);
+  audioSource.playOnAwake = false;
+  for (const name of ['tap', 'valve', 'win', 'locked'])
+    cc.assetManager.loadRemote(
+      new URL(`./assets/audio/${name}.wav`, import.meta.url).href,
+      { ext: '.wav' },
+      (err, clip) => {
+        if (err) return;
+        if (disposed) {
+          clip?.destroy();
+          return;
+        }
+        clips[name] = clip;
+      },
+    );
+}
+function snapshot() {
+  return structuredClone({
+    ...model(),
+    engine: 'Cocos Engine 3.8.8',
+    ready: Boolean(view),
+    unlocked,
+    history: history.map((s) => structuredClone(s)),
+    activeTouch,
+    hits: view?.hits || [],
+    viewport: dimensions(),
+    layout: view?.layout || null,
+  });
+}
+async function boot() {
+  try {
+    const { startCocos } = await import('./vendor/cocos/bootstrap.mjs');
+    runtime = await startCocos(canvas, {
+      ...dimensions(),
+      background: [6, 29, 42, 255],
+      update: tick,
+    });
+    if (disposed) return;
+    view = createView(runtime, activate);
+    wireInput(runtime.cc);
+    await initAudio(runtime.cc);
+    window.__waterlineSnapshot = snapshot;
+    document.querySelector('#loading').hidden = true;
+    draw();
+    if (dev) {
+      cleanups.push(
+        window.SmallGamesDev.registerActions([
+          { id: 'station-levels', label: '调试选关', run: () => show('levels') },
+        ]),
+        window.SmallGamesDev.registerSnapshot(snapshot),
+      );
+    }
+  } catch (error) {
+    console.error(error);
+    document.querySelector('#loading-message').textContent =
+      '水站暂时无法启动。请确认浏览器支持 WebGL，然后重试。';
+    document.querySelector('#load-retry').hidden = false;
+  }
+}
+document.querySelector('#share-select').addEventListener(
+  'click',
+  () => {
+    const input = document.querySelector('#share-url');
+    input.focus();
+    input.select();
+  },
+  { signal },
+);
+document
+  .querySelector('#share-close')
+  .addEventListener('click', () => document.querySelector('#share-fallback').close(), { signal });
+document
+  .querySelector('#load-retry')
+  .addEventListener('click', () => location.reload(), { signal });
+window.addEventListener(
+  'resize',
+  () => {
+    cancelInput();
+    if (runtime && view) {
+      runtime.resize(dimensions().width, dimensions().height);
+      view.resize();
+      draw();
+    }
+  },
+  { signal },
+);
+window.addEventListener('blur', pause, { signal });
+document.addEventListener(
+  'visibilitychange',
+  () => {
+    if (document.hidden) {
+      pause();
+      runtime?.pause();
+      audioSource?.stop();
+    } else runtime?.resume();
+  },
+  { signal },
+);
+document.addEventListener(
+  'keydown',
+  (e) => {
+    if (document.querySelector('#share-fallback').open) return;
+    if (e.target instanceof HTMLElement && e.target.closest('#small-games-dev-panel')) return;
+    if (e.key === 'Escape') {
+      if (screen === 'playing')
+        prediction ? ((prediction = false), (preview = null), draw()) : pause();
+      else if (screen === 'paused') activate('resume');
+      else if (screen === 'help' || screen === 'settings') show(returnScreen);
+      else show('home');
+      return;
+    }
+    if (screen !== 'playing') return;
+    const key = e.key.toLowerCase();
+    if (/^[1-4]$/.test(key)) {
+      const g = LEVELS[levelIndex].gates[Number(key) - 1];
+      if (g) gate(g.id);
+    } else {
+      const action = { z: 'undo', p: 'predict', h: 'hint', r: 'restart', '?': 'help' }[key];
+      if (action) activate(action);
+    }
+  },
+  { signal },
+);
+window.addEventListener(
+  'pagehide',
+  (e) => {
+    pause();
+    audioSource?.stop();
+    if (e.persisted) {
+      runtime?.pause();
+      return;
+    }
+    disposed = true;
+    cleanups.forEach((fn) => fn?.());
+    Object.values(clips).forEach((clip) => clip.destroy());
+    view?.dispose();
+    runtime?.destroy();
+    listeners.abort();
+    delete window.__waterlineSnapshot;
+  },
+  { signal },
+);
+window.addEventListener(
+  'pageshow',
+  (e) => {
+    if (e.persisted && !disposed) runtime?.resume();
+  },
+  { signal },
+);
+void boot();

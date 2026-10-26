@@ -145,6 +145,15 @@ export class View {
   async home(vessel) {
     const gen = this.clear('home');
     this.background();
+    const shadow = canvas(240, 48),
+      ctx = shadow.getContext('2d');
+    ctx.scale(1, 0.2);
+    const gradient = ctx.createRadialGradient(120, 120, 4, 120, 120, 115);
+    gradient.addColorStop(0, '#493b2659');
+    gradient.addColorStop(1, '#493b2600');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 240, 240);
+    this.sprite(this.frame('home-contact-shadow', shadow), 202, this.h * 0.49 + 123, 132, 26);
     await this.vessel(vessel, 202, this.h * 0.49, 208);
     if (gen !== this.generation) return;
     this.babyAt(5, 81, this.h * 0.59, 139);
@@ -244,7 +253,8 @@ export class View {
     }
   }
   showGuide(on) {
-    if (this.guide) this.opacity(this.guide, on ? 180 : 20);
+    if (this.guide) this.opacity(this.guide, on ? 255 : 20);
+    for (const piece of this.pieces) piece.node.active = !on;
   }
   async prepareCeremony(state, mode = 'intro', compact = false) {
     const gen = this.clear(mode);

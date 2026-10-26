@@ -1,3 +1,4 @@
+import { vesselContours } from './vessel-contours.mjs';
 export const VERSION = 'porcelain-v1';
 export const WIDTH = 240;
 export const HEIGHT = 300;
@@ -302,19 +303,41 @@ export function levelAt(number) {
 export function vesselFor(level) {
   return vessels.find((v) => v.id === level.vesselId);
 }
-export function outline(vessel) {
+export function outline(vessel, legacy = false) {
+  if (legacy === false) return vesselContours[vessel.shape];
   const { profile, aspect = 1.25 } = shapes[vessel.shape];
   const height = Math.min(HEIGHT - 12, WIDTH * aspect),
     top = (HEIGHT - height) / 2;
+  const slopes = profile.slice(1).map(([y, r], i) => (r - profile[i][1]) / (y - profile[i][0]));
+  // Share tangents across landmarks instead of flattening every shoulder and belly segment.
+  const tangents = profile.map(([y], i) => {
+    if (i === 0) return slopes[0];
+    if (i === profile.length - 1) return slopes[i - 1];
+    const a = slopes[i - 1],
+      b = slopes[i];
+    if (a * b <= 0) return 0;
+    const before = y - profile[i - 1][0],
+      after = profile[i + 1][0] - y,
+      w1 = 2 * after + before,
+      w2 = after + 2 * before;
+    return (w1 + w2) / (w1 / a + w2 / b);
+  });
   const right = [];
-  for (let i = 0; i <= 48; i++) {
-    const y = i / 48;
+  const steps = legacy === true ? 48 : 96;
+  for (let i = 0; i <= steps; i++) {
+    const y = i / steps;
     let j = 1;
     while (j < profile.length - 1 && profile[j][0] < y) j++;
     const [y0, x0] = profile[j - 1],
       [y1, x1] = profile[j];
     const t = (y - y0) / (y1 - y0);
-    const w = x0 + (x1 - x0) * (t * t * (3 - 2 * t));
+    const w =
+      legacy === true
+        ? x0 + (x1 - x0) * (t * t * (3 - 2 * t))
+        : (2 * t ** 3 - 3 * t * t + 1) * x0 +
+          (t ** 3 - 2 * t * t + t) * (y1 - y0) * tangents[j - 1] +
+          (-2 * t ** 3 + 3 * t * t) * x1 +
+          (t ** 3 - t * t) * (y1 - y0) * tangents[j];
     right.push({ x: WIDTH / 2 + w, y: top + y * height });
   }
   return [...right, ...[...right].reverse().map((p) => ({ x: WIDTH - p.x, y: p.y }))];

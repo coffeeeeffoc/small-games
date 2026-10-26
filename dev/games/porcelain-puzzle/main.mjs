@@ -1,5 +1,6 @@
 import { startCocos } from './vendor/cocos/bootstrap.mjs';
 import { View } from './src/view.mjs';
+import { vesselImageUrl } from './src/art.mjs';
 import { levels, vessels, themes, levelAt, vesselFor, VERSION } from './src/content.mjs';
 import {
   newAttempt,
@@ -194,7 +195,7 @@ function collection() {
   setScreen(
     'collection',
     back('拾光藏阁') +
-      `<div class="gallery-subtitle">已修复 ${save.collection.length} / 100 件器物</div><div class="collection-grid">${list.map((v) => `<div class="collection-card ${save.collection.includes(v.id) ? '' : 'locked'}"><img src="./assets/vessels/${v.id}.svg" alt="${esc(v.name)}"/><span>${esc(v.name)}<br/>${save.collection.includes(v.id) ? '时光如初' : '静待修复'}</span></div>`).join('')}</div><div class="pager">${btn('‹', 'collection-prev', 'icon-button', 'aria-label="上一页" ' + (collectionPage === 0 ? 'disabled' : ''))}<span>${collectionPage + 1} / 17</span>${btn('›', 'collection-next', 'icon-button', 'aria-label="下一页" ' + (collectionPage === 16 ? 'disabled' : ''))}</div>`,
+      `<div class="gallery-subtitle">已修复 ${save.collection.length} / 100 件器物</div><div class="collection-grid">${list.map((v) => `<div class="collection-card ${save.collection.includes(v.id) ? '' : 'locked'}"><img src="${vesselImageUrl(v)}" alt="${esc(v.name)}"/><span>${esc(v.name)}<br/>${save.collection.includes(v.id) ? '时光如初' : '静待修复'}</span></div>`).join('')}</div><div class="pager">${btn('‹', 'collection-prev', 'icon-button', 'aria-label="上一页" ' + (collectionPage === 0 ? 'disabled' : ''))}<span>${collectionPage + 1} / 17</span>${btn('›', 'collection-next', 'icon-button', 'aria-label="下一页" ' + (collectionPage === 16 ? 'disabled' : ''))}</div>`,
   );
   view.clear('collection');
   view.background(true);
@@ -256,7 +257,7 @@ function playMarkup() {
         'aria-label="暂停"',
       ),
     ) +
-    `<div class="timer">${time(attempt.remainingMs)}</div><div class="progress-line"><i style="width:${progress(attempt)}%"></i></div><div class="piece-count">${attempt.groups.length} 组碎片 · ${levelAt(attempt.number).pieces} 片</div>${room ? '<div class="room-progress"></div>' : ''}<div class="context-note">${attempt.number === 1 ? '把相邻的花纹靠近，碎片就会吸在一起' : ''}</div><div class="tools">${btn(`<span>✧</span>提示 ${attempt.hints}`, 'hint', 'tool')}${btn('<span>▱</span>整理', 'organize', 'tool')}${btn('<span>▧</span>原图', 'original', 'tool')}${btn('<span>＋</span>缩放', 'zoom', 'tool')}</div>`
+    `<div class="timer">${time(attempt.remainingMs)}</div><div class="progress-line"><i style="width:${progress(attempt)}%"></i></div><div class="piece-count">${attempt.groups.length} 组碎片 · ${levelAt(attempt.number).pieces} 片</div>${room ? '<div class="room-progress"></div>' : ''}<div class="context-note">${attempt.number === 1 ? '把相邻的花纹靠近，碎片就会吸在一起' : ''}</div><div class="tools">${btn(`<span>✧</span>提示 ${attempt.hints}`, 'hint', 'tool')}${btn('<span>▱</span>整理', 'organize', 'tool')}${btn('<span>▧</span>原图', 'original', original ? 'tool on' : 'tool', `aria-pressed="${original}"`)}${btn('<span>＋</span>缩放', 'zoom', 'tool')}</div>`
   );
 }
 async function refreshBoard() {
@@ -264,6 +265,7 @@ async function refreshBoard() {
   zoom = 1;
   view.resize();
   await view.boardFor(attempt, puzzle);
+  view.showGuide(original);
 }
 async function play({ reuse = false } = {}) {
   const id = attempt.id;
@@ -753,9 +755,11 @@ async function action(name) {
     return;
   }
   if (name === 'original' && screen === 'playing') {
+    clearGesture();
     original = !original;
     view.showGuide(original);
     ui.querySelector('[data-action="original"]').classList.toggle('on', original);
+    ui.querySelector('[data-action="original"]').setAttribute('aria-pressed', String(original));
     return;
   }
   if (name === 'zoom' && screen === 'playing') {
@@ -881,6 +885,7 @@ function hit(point) {
 canvas.addEventListener('pointerdown', (e) => {
   if (
     screen !== 'playing' ||
+    original ||
     attempt.phase !== 'playing' ||
     roomBusy ||
     ui.querySelector('.room-wait')

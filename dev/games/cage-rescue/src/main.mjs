@@ -4,6 +4,7 @@ import {
   createEndlessGame,
   FIXED_STEP,
   RANKED_RULE_VERSION,
+  RULES,
   stepGame,
   launchBall,
   setPaused,
@@ -22,7 +23,9 @@ export async function mountCageRescue(host) {
   host ??= createLocalHost();
   const $ = (id) => document.getElementById(id);
   const canvas = $('scene'),
-    ctx = canvas.getContext('2d');
+    ctx = canvas.getContext('2d'),
+    control = $('paddle-control'),
+    controlPaddle = $('control-paddle');
   if (!ctx) throw new Error('Canvas unavailable');
   const abort = new AbortController();
   const on = (target, event, callback, options = {}) =>
@@ -36,6 +39,7 @@ export async function mountCageRescue(host) {
   let game = createGame(0),
     screen = 'home',
     activePointer = null,
+    pointerSurface = null,
     targetX = 195,
     grabOffset = 0;
   let challenge = false;
@@ -88,7 +92,8 @@ export async function mountCageRescue(host) {
     pageActive = true,
     saveQueue = Promise.resolve(),
     disposed = false;
-  let rewardEpoch = 0, activeReward;
+  let rewardEpoch = 0,
+    activeReward;
   let rewardBusy = false,
     lastHud = '',
     lastTip = '',
@@ -116,9 +121,7 @@ export async function mountCageRescue(host) {
       if (event.pointerType !== 'touch') return;
       const button = event.target.closest('button');
       touchAction =
-        button &&
-        $('game').contains(button) &&
-        !button.disabled
+        button && $('game').contains(button) && !button.disabled
           ? { button, id: event.pointerId, x: event.clientX, y: event.clientY }
           : null;
     },
@@ -167,11 +170,7 @@ export async function mountCageRescue(host) {
     document,
     'click',
     (event) => {
-      if (
-        event.isTrusted &&
-        event.detail > 0 &&
-        performance.now() - lastTouchActivation < 700
-      ) {
+      if (event.isTrusted && event.detail > 0 && performance.now() - lastTouchActivation < 700) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
@@ -201,15 +200,22 @@ export async function mountCageRescue(host) {
     // must stay suppressed even if focus was lost during a long press.
     if (touchAction) touchAction.cancelled = true;
     const id = activePointer;
+    const surface = pointerSurface;
     activePointer = null;
+    pointerSurface = null;
+    control.dataset.active = 'false';
     keys.clear();
     targetX = game.paddle.x;
-    if (id !== null && canvas.hasPointerCapture?.(id)) canvas.releasePointerCapture(id);
+    if (id !== null && surface?.hasPointerCapture?.(id)) surface.releasePointerCapture(id);
   }
   function cancelReward() {
     rewardEpoch++;
     rewardBusy = false;
-    try { activeReward?.cancel?.(); } catch { /* Navigation remains available. */ }
+    try {
+      activeReward?.cancel?.();
+    } catch {
+      /* Navigation remains available. */
+    }
     activeReward = undefined;
     $('revive').disabled = false;
   }
@@ -218,6 +224,9 @@ export async function mountCageRescue(host) {
     clearInput();
     screen = next;
     document.body.dataset.screen = next;
+    control.hidden = !['play', 'pause', 'result'].includes(next);
+    control.setAttribute('aria-disabled', String(next !== 'play'));
+    control.tabIndex = next === 'play' ? 0 : -1;
     if (window.parent !== window) {
       try {
         window.parent.postMessage(
@@ -414,7 +423,7 @@ export async function mountCageRescue(host) {
         game.lives < 3
           ? `还有 ${game.lives} 次球机会\n队友仍在下落，先接稳再发球`
           : game.levelIndex === 0
-            ? '左右拖动挡板，接球也接人'
+            ? '滑动下方操作区，接球也接人'
             : game.level.hint;
     }
     $('play-tip').hidden = game.phase === 'ready';
@@ -431,7 +440,7 @@ export async function mountCageRescue(host) {
                 ? '先接球，再移到队友下方'
                 : game.rescued
                   ? '打破下一个笼子，接队友回家'
-                  : `拖动挡板 · 救回全部 ${game.target} 位队友`;
+                  : `滑动下方操作区 · 救回全部 ${game.target} 位队友`;
     if (tip !== lastTip) {
       $('play-tip').textContent = tip;
       lastTip = tip;
@@ -494,7 +503,8 @@ export async function mountCageRescue(host) {
         `坚持到第 ${game.endlessWave} 波 · 本机最佳 ${progress.endlessBest} 人`;
       $('next').hidden = true;
     }
-    $('revive').hidden = !canRevive(game) || trial || (local && !globalThis.SmallGamesRewardAds?.available);
+    $('revive').hidden =
+      !canRevive(game) || trial || (local && !globalThis.SmallGamesRewardAds?.available);
     $('revive').disabled = false;
     $('reward-message').textContent =
       canRevive(game) && !trial && !local && host.session.adAuthority === 'none'
@@ -590,17 +600,18 @@ export async function mountCageRescue(host) {
   });
   on($('revive'), 'click', async () => {
     if (rewardBusy || !canRevive(game) || trial) return;
-    const attempt = game, token = ++rewardEpoch;
+    const attempt = game,
+      token = ++rewardEpoch;
     activeReward = local ? globalThis.SmallGamesRewardAds : host.ads;
     rewardBusy = true;
     $('revive').disabled = true;
     $('reward-message').textContent = '正在请求补球机会…';
     let outcome;
     try {
-      outcome = await activeReward?.offer({
+      outcome = (await activeReward?.offer({
         id: 'cage-rescue.revive',
         reward: { ballLives: 1, levelId: game.levelId },
-      }) ?? { status: 'unavailable' };
+      })) ?? { status: 'unavailable' };
     } catch {
       outcome = { status: 'failed' };
     }
@@ -624,26 +635,36 @@ export async function mountCageRescue(host) {
     const rect = canvas.getBoundingClientRect();
     return ((event.clientX - rect.left) * 390) / rect.width;
   }
-  on(canvas, 'pointerdown', (event) => {
-    if (screen !== 'play' || activePointer !== null || !event.isPrimary || event.button > 0) return;
-    event.preventDefault();
-    audio.unlock();
-    activePointer = event.pointerId;
-    canvas.setPointerCapture(event.pointerId);
-    const x = pointerX(event);
-    grabOffset = Math.abs(x - game.paddle.x) < game.paddle.w / 2 ? game.paddle.x - x : 0;
-    targetX = x + grabOffset;
-  });
-  on(canvas, 'pointermove', (event) => {
-    if (event.pointerId === activePointer) {
+  for (const surface of [canvas, control]) {
+    on(surface, 'pointerdown', (event) => {
+      if (screen !== 'play' || activePointer !== null || !event.isPrimary || event.button > 0)
+        return;
+      if (surface === canvas && event.pointerType !== 'mouse') return;
       event.preventDefault();
-      targetX = pointerX(event) + grabOffset;
-    }
-  });
-  for (const name of ['pointerup', 'pointercancel', 'lostpointercapture'])
-    on(canvas, name, (event) => {
-      if (event.pointerId === activePointer) clearInput();
+      audio.unlock();
+      activePointer = event.pointerId;
+      pointerSurface = surface;
+      surface.setPointerCapture(event.pointerId);
+      surface.focus({ preventScroll: true });
+      control.dataset.active = 'true';
+      const x = pointerX(event);
+      grabOffset =
+        surface === canvas && Math.abs(x - game.paddle.x) < game.paddle.w / 2
+          ? game.paddle.x - x
+          : 0;
+      targetX = x + grabOffset;
     });
+    on(surface, 'pointermove', (event) => {
+      if (event.pointerId === activePointer && surface === pointerSurface) {
+        event.preventDefault();
+        targetX = pointerX(event) + grabOffset;
+      }
+    });
+    for (const name of ['pointerup', 'pointercancel', 'lostpointercapture'])
+      on(surface, name, (event) => {
+        if (event.pointerId === activePointer) clearInput();
+      });
+  }
   on(window, 'keydown', (event) => {
     if (event.key === 'Escape') {
       if (screen === 'play') pause();
@@ -651,6 +672,10 @@ export async function mountCageRescue(host) {
       return;
     }
     if (screen !== 'play' || /^(BUTTON|INPUT|SELECT)$/.test(event.target?.tagName)) return;
+    if (event.target === control && ['Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      targetX = event.key === 'Home' ? 0 : 390;
+    }
     if (['ArrowLeft', 'ArrowRight', 'a', 'd', ' '].includes(event.key)) {
       event.preventDefault();
       if (event.key === ' ' && !event.repeat) launch();
@@ -686,6 +711,7 @@ export async function mountCageRescue(host) {
     invalidateScene();
   });
   function resize() {
+    clearInput();
     const rect = canvas.getBoundingClientRect(),
       ratio = Math.min(window.devicePixelRatio || 1, 2);
     const width = Math.max(1, Math.round(rect.width * ratio));
@@ -924,6 +950,13 @@ export async function mountCageRescue(host) {
       };
       if (['play', 'pause', 'result'].includes(screen)) drawGame(ctx, game, options);
       else drawHome(ctx, options);
+      if (!control.hidden) {
+        controlPaddle.style.left = `${(game.paddle.x / 390) * 100}%`;
+        controlPaddle.style.width = `${(game.paddle.w / 390) * 100}%`;
+        const travel = RULES.right - RULES.left - game.paddle.w;
+        const position = (game.paddle.x - RULES.left - game.paddle.w / 2) / travel;
+        control.setAttribute('aria-valuenow', String(Math.round(position * 100)));
+      }
       needsPaint = false;
     }
     if (screen === 'play' || animatedHome) requestFrame();
