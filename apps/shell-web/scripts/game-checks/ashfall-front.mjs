@@ -42,8 +42,23 @@ export async function ashfallInput(frame, mobile = false) {
     press,
     release,
     async tap(id) {
-      await press([id]);
-      await release();
+      if (!cdp) {
+        await press([id]);
+        await release();
+        return;
+      }
+      const p = await point(id);
+      active = true;
+      // Match Playwright's native tap: enqueue release without waiting for the
+      // press acknowledgement, which can otherwise turn a tap into held fire.
+      await Promise.all([
+        cdp.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ ...p, id: 1 }],
+        }),
+        cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }),
+      ]);
+      active = false;
     },
     async dispose() {
       await release(true);

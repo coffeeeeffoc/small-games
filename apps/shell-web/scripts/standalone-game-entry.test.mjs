@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { ashfallInput } from './game-checks/ashfall-front.mjs';
 import {
   markers,
   homeControls,
@@ -100,4 +101,89 @@ test('Ashfall uses the visible Creator canvas and game-owned touch flow', () => 
   assert.equal(markers['ashfall-front'], '#GameCanvas');
   assert.equal(homeControls['ashfall-front'], undefined);
   assert.equal(entryMode('ashfall-front'), 'legacy');
+});
+
+function ashfallTouchFixture(send) {
+  const cdp = { send, detach: async () => {} };
+  const page = { context: () => ({ newCDPSession: async () => cdp }) };
+  return {
+    locator: (selector) =>
+      selector === 'canvas'
+        ? { page: () => page }
+        : {
+            evaluate: async () => ({
+              controls: [{ id: 'fire', x: 10, y: 20, w: 50, h: 60 }],
+            }),
+            boundingBox: async () => ({ x: 100, y: 200 }),
+          },
+  };
+}
+
+test('Ashfall taps enqueue release before a delayed press acknowledgement and await both replies', async () => {
+  let acknowledgePress, acknowledgeRelease, signalPress;
+  const pressReply = new Promise((resolve) => (acknowledgePress = resolve));
+  const releaseReply = new Promise((resolve) => (acknowledgeRelease = resolve));
+  const pressSent = new Promise((resolve) => (signalPress = resolve));
+  const calls = [];
+  const input = await ashfallInput(
+    ashfallTouchFixture(async (method, params) => {
+      calls.push({ method, ...params });
+      if (params.type === 'touchStart') {
+        signalPress();
+        return pressReply;
+      }
+      return releaseReply;
+    }),
+    true,
+  );
+  let finished = false;
+  const tapping = input.tap('fire').then(() => (finished = true));
+  await pressSent;
+  try {
+    assert.deepEqual(
+      calls.map((call) => call.type),
+      ['touchStart', 'touchEnd'],
+    );
+    assert.deepEqual(calls[0].touchPoints, [{ x: 135, y: 250, id: 1 }]);
+    assert.deepEqual(calls[1].touchPoints, []);
+    assert(calls.every((call) => call.method === 'Input.dispatchTouchEvent'));
+    assert.equal(finished, false);
+    acknowledgePress();
+    await new Promise(setImmediate);
+    assert.equal(finished, false, 'release acknowledgement is still required');
+    acknowledgeRelease();
+    await tapping;
+    assert.equal(finished, true);
+  } finally {
+    acknowledgePress();
+    acknowledgeRelease();
+    await tapping;
+    await input.dispose();
+  }
+});
+
+test('Ashfall holds wait for explicit release and failed taps remain cancellable', async () => {
+  const held = [];
+  const holdInput = await ashfallInput(
+    ashfallTouchFixture(async (_method, params) => held.push(params.type)),
+    true,
+  );
+  await holdInput.press(['fire']);
+  assert.deepEqual(held, ['touchStart']);
+  await holdInput.release();
+  assert.deepEqual(held, ['touchStart', 'touchEnd']);
+  await holdInput.dispose();
+  assert.deepEqual(held, ['touchStart', 'touchEnd']);
+
+  const failed = [];
+  const failedInput = await ashfallInput(
+    ashfallTouchFixture(async (_method, params) => {
+      failed.push(params.type);
+      if (params.type === 'touchEnd') throw Error('release acknowledgement failed');
+    }),
+    true,
+  );
+  await assert.rejects(failedInput.tap('fire'), /release acknowledgement failed/);
+  await failedInput.dispose();
+  assert.deepEqual(failed, ['touchStart', 'touchEnd', 'touchCancel']);
 });
