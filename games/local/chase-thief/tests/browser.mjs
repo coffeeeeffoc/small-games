@@ -245,6 +245,13 @@ try {
     });
     const p = await c.newPage();
     await ready(p);
+    const home = await state(p);
+    for (const control of home.controls) {
+      assert.ok(control.x >= 0 && control.x + control.w <= home.width);
+      assert.ok(control.y >= 0 && control.y + control.h <= home.height);
+      assert.ok(control.w >= 44 && control.h >= 44);
+    }
+    await shot(p, `home-${viewport.width}x${viewport.height}`);
     for (const id of ['help', 'settings']) {
       await tap(p, id);
       const s = await state(p);

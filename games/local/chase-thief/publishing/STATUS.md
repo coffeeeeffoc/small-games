@@ -1,5 +1,26 @@
 # 小贼哪里跑 · 上架资料
 
+## 2026-10-27 当前交付
+
+首页、配色和人物更新；Game ID 与版本仍为 `chase-thief` / 0.2.0。当前 Cocos 3.8.8 source-Web 制品 SHA-256：`f5d7029d46d42b3eff8127baff26de57af2db31df2eaaa18b29f946c302f76c8`。玩法、存档及奖励契约保留。
+
+用户要求本轮宣传和录制素材仅保存在本地，不提交 Git。统一交付目录为仓库根目录 `outputs/chase-thief/delivery-2026-10-27/`；下表路径均相对该目录。新克隆不会包含这些文件，旧日期素材保留作历史记录。
+
+| 类别 | 当前状态与位置 |
+| --- | --- |
+| 游戏简介 | 复用 `publishing/copy/introduction.md`，标题与三街区追逐玩法仍适用 |
+| 一句话推荐语 | 复用 `publishing/copy/tagline.md` |
+| 开发者的话 | 复用 `publishing/copy/developer-note.md` |
+| 游戏图标 | 复用 `publishing/icon/city-chase-icon.png`，不放进宣传图 |
+| 宣传图 | `images/chase-thief-landscape-1920x1080.png`，1920×1080 PNG，2,553,523 bytes；`images/chase-thief-square-1024x1024.png`，1024×1024 PNG，1,417,556 bytes。仅含游戏标题，独立绘制，无图标或界面拼贴；横图由生成原图规范化导出 |
+| 宣传视频 | `video/chase-thief-trailer-1280x720.mp4`，1280×720、16:9、30 fps、22 秒，H.264/yuv420p + AAC，16,507,575 bytes；游戏资产重新编排分镜，与实录不同 |
+| 实际游戏截图 | `gameplay/home-600x1300.png`、`gameplay/chase-600x1300.png`，普通模式当前制品截图 |
+| 实际游戏录屏 | `gameplay/chase-thief-gameplay-600x1300.mp4`，600×1300、6:13、30 fps、37.97 秒，H.264/yuv420p，无声，21,078,206 bytes；Windows Chromium 真实运行和输入，无开发跳段、无敌或计时修改 |
+
+四份成品的尺寸、大小、SHA-256 和 Edge 连续播放结果记录于本地 `media-manifest.json`；两段视频完整解码及抽帧检查通过。`gameplay/recording.json` 和 `browser-report.json` 记录相同游戏制品身份。制作来源见 [ASSETS.md](../assets/ASSETS.md)，代码与消费者验证见[当前验收](../docs/design/endless-city-2026-10-22/verification/README.md)。未上传平台、提交审核或验证物理手机/原生渠道及真实广告库存。
+
+## 2026-10-25 历史交付
+
 - Game ID：`chase-thief`；更新：2026-10-25；版本：0.2.0，名称与街区视觉维护版。
 - 源码与运行制品身份：[构建清单](../docs/design/endless-city-2026-10-22/verification/build-info.json)，artifact SHA-256：`d2bcba76ff670bddfcc38b81c0fdd553dd1dd6621c882fe2d795a4a030cd8ccc`；浏览器报告和实际录像记录相同制品身份。
 - 当前交付：Cocos Engine 3.8.8 source-Web，竖屏浏览器版。开始、三街区选择预览、正常操作、失败结算、保存纪录与重试闭环已验证。
