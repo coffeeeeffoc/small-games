@@ -5,8 +5,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
 import { vessels, outline } from '../src/content.mjs';
-import { readVesselBatch, copyVesselBatch, renderVesselBatch } from '../scripts/vessel-batch.mjs';
+import {
+  batchModule,
+  readVesselBatch,
+  copyVesselBatch,
+  renderVesselBatch,
+} from '../scripts/vessel-batch.mjs';
 import { build } from '../build.mjs';
+import { vesselContours, vesselAssetHashes } from '../src/vessel-contours.mjs';
 
 const gameRoot = fileURLToPath(new URL('../', import.meta.url));
 const original = await readVesselBatch(gameRoot, vessels);
@@ -34,6 +40,73 @@ async function unchanged(root) {
   assert.equal(batch.text, original.text);
   for (const [id, bytes] of batch.images) assert.deepEqual(bytes, original.images.get(id));
 }
+
+test('fixed legacy and generated batch modules accept LF and CRLF as data', async () => {
+  const generated = batchModule(vesselContours, original.directory, vesselAssetHashes);
+  for (const text of [original.text, generated])
+    for (const eol of ['\n', '\r\n']) {
+      const batch = await readVesselBatch(gameRoot, vessels, text.replace(/\r?\n/g, eol));
+      assert.equal(batch.directory, original.directory);
+      for (const [id, bytes] of batch.images) assert.deepEqual(bytes, original.images.get(id));
+    }
+});
+
+test('candidate modules reject executable statements, non-JSON and structural drift without execution', async (t) => {
+  const marker = '__porcelainBatchParserExecuted';
+  assert.equal(Object.hasOwn(globalThis, marker), false);
+  t.after(() => delete globalThis[marker]);
+  const statement = 'globalThis.' + marker + ' = true;';
+  const lines = original.text.replace(/\r\n/g, '\n').trimEnd().split('\n');
+  const replace = (index, text) =>
+    lines.map((line, i) => (i === index ? text : line)).join('\n') + '\n';
+  const bad = [
+    ['extra statement', original.text + statement + '\n'],
+    ['same-line statement', replace(2, lines[2] + statement)],
+    [
+      'expression',
+      replace(2, 'export const vesselContours = (' + statement.slice(0, -1) + ', []);'),
+    ],
+    ['non-JSON object', replace(5, 'export const vesselAssetHashes = {unquoted: 1};')],
+    ['non-JSON number', replace(2, 'export const vesselContours = [NaN];')],
+    ['wrong declaration', replace(2, lines[2].replace('vesselContours', 'otherContours'))],
+    ['missing export', lines.slice(0, -1).join('\n')],
+    ['unknown header', replace(0, '// Another generator')],
+    ['bare carriage return', replace(2, lines[2].replace(' = ', ' = \r'))],
+    ['null contours', replace(2, 'export const vesselContours = null;')],
+    ['null manifest', replace(5, 'export const vesselAssetHashes = null;')],
+    ['array manifest', replace(5, 'export const vesselAssetHashes = [];')],
+  ];
+  for (const [name, text] of bad)
+    await t.test(name, async () => {
+      await assert.rejects(readVesselBatch(gameRoot, vessels, text), /contours|manifest/);
+      assert.equal(Object.hasOwn(globalThis, marker), false);
+    });
+});
+
+test('batch directories reject traversal, expressions and malformed batch identities', async (t) => {
+  for (const directory of [
+    '../vessels',
+    'assets/vessels/../vessels',
+    '/assets/vessels',
+    'assets\\vessels',
+    'assets/vessels\n',
+    'assets/vessel-batches/.staging-12345678-1234-1234-1234-123456789abc',
+    'assets/vessel-batches/batch-------------------------------------',
+    ['assets/vessels'],
+  ])
+    await t.test(JSON.stringify(directory), async () => {
+      const text = batchModule(vesselContours, directory, vesselAssetHashes);
+      await assert.rejects(readVesselBatch(gameRoot, vessels, text), /Invalid vessel batch path/);
+    });
+  const expression = batchModule(vesselContours, original.directory, vesselAssetHashes).replace(
+    /^export const vesselAssetDirectory = .*;$/m,
+    'export const vesselAssetDirectory = String.fromCharCode(97) + "ssets/vessels";',
+  );
+  await assert.rejects(
+    readVesselBatch(gameRoot, vessels, expression),
+    /Invalid vessel contours JSON/,
+  );
+});
 
 test('failures at image 1, 37 and 100 preserve every old image and contour', async (t) => {
   for (const failAt of [1, 37, 100])

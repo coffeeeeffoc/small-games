@@ -1,7 +1,7 @@
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
-import { verifyEngine } from './scripts/build-cocos-engine.mjs';
+import { verifyEngine } from './scripts/verify-cocos-engine.mjs';
 import { readVesselBatch, copyVesselBatch } from './scripts/vessel-batch.mjs';
 import { vessels, validateContent } from './src/content.mjs';
 

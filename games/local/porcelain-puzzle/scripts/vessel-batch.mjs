@@ -53,17 +53,63 @@ export function batchModule(outlines, directory, hashes) {
     ';\n'
   );
 }
-async function decodeModule(text) {
-  return import('data:text/javascript;base64,' + Buffer.from(text).toString('base64'));
+function decodeModule(text) {
+  // This module is also consumed by the browser, but build validation treats it
+  // only as data. Never execute a candidate module to discover its batch.
+  const lines = text.replace(/\r\n/g, '\n').replace(/\n$/, '').split('\n');
+  assert(
+    lines.length === 6 &&
+      lines.every((line) => !line.includes('\r')) &&
+      [
+        '// Alpha contours of the baked studio artwork; regenerate with pnpm art:render.',
+        '// Alpha contours and immutable artwork batch; regenerate with pnpm art:render.',
+      ].includes(lines[0]) &&
+      lines[1] === '// prettier-ignore' &&
+      lines[4] === '// prettier-ignore',
+    'Invalid vessel contours module structure',
+  );
+  function value(line, name) {
+    const prefix = 'export const ' + name + ' = ';
+    assert(
+      line.startsWith(prefix) && line.endsWith(';'),
+      'Invalid vessel contours declaration: ' + name,
+    );
+    let literal = line.slice(prefix.length, -1);
+    // The checked-in legacy directory is the only supported non-JSON literal.
+    if (name === 'vesselAssetDirectory' && literal === "'assets/vessels'")
+      literal = '"assets/vessels"';
+    try {
+      return JSON.parse(literal);
+    } catch {
+      throw new Error('Invalid vessel contours JSON: ' + name);
+    }
+  }
+  return {
+    vesselContours: value(lines[2], 'vesselContours'),
+    vesselAssetDirectory: value(lines[3], 'vesselAssetDirectory'),
+    vesselAssetHashes: value(lines[5], 'vesselAssetHashes'),
+  };
 }
 export async function readVesselBatch(root, vessels, text = undefined) {
   text ??= await readFile(join(root, modulePath), 'utf8');
-  const { vesselContours, vesselAssetDirectory, vesselAssetHashes } = await decodeModule(text);
+  const { vesselContours, vesselAssetDirectory, vesselAssetHashes } = decodeModule(text);
   assert(
-    /^assets\/(?:vessels|vessel-batches\/batch-[a-f0-9-]{36})$/.test(vesselAssetDirectory),
+    typeof vesselAssetDirectory === 'string' &&
+      /^assets\/(?:vessels|vessel-batches\/batch-[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$/.test(
+        vesselAssetDirectory,
+      ),
     'Invalid vessel batch path',
   );
-  assert(vesselContours.length === 10, 'Incomplete vessel contours');
+  assert(
+    Array.isArray(vesselContours) && vesselContours.length === 10,
+    'Incomplete vessel contours',
+  );
+  assert(
+    vesselAssetHashes !== null &&
+      typeof vesselAssetHashes === 'object' &&
+      !Array.isArray(vesselAssetHashes),
+    'Invalid vessel batch manifest',
+  );
   vesselContours.forEach(validateContour);
   assert(
     vessels.length === 100 && new Set(vessels.map((v) => v.id)).size === 100,

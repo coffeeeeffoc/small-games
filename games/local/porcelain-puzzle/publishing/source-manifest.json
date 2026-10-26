@@ -5,7 +5,7 @@
     "main.mjs": "1da0a29a0e42132b9c9bde5d15d93962935141e5c3293f00849a7a79c0f74537",
     "index.html": "245f00b7ea19522e414a8182ba9aca7124eb1e1356a01e65f0399668e24ad56f",
     "style.css": "1b589aff92a9ab4dc83430855e3f80b25e58b0446957082f404566d8c3ccef67",
-    "build.mjs": "81ea746503c32614675fcfd077058dd8b0a6ea1fbfe103ba9148eb31de5868c7",
+    "build.mjs": "0a500fd7e5ee31d92e36062d8a534de7033ba014eb9e7ca4be186b69e17d38b0",
     "server.mjs": "f6e44ce956127549f70c5c25f3fdcbe1d2007a9412975e64b990e761c5b74902",
     "platform-config.js": "5b3bd0d49ecddf7648b0a116337869fd40a1361fc2a47ab915def5f52f198c5f",
     "vendor/cocos/cc.js": "fffa27f1b13fa7e9385f39d3d6bd6fd8fec8a820d86db7aae77e1133ba521495",
@@ -137,8 +137,10 @@
     "docs/design/textures/rose-crystal.png": "f3515ddb207338e809c1ded063e894be5ac4353d4375452d44128ab88c8b56b5",
     "docs/design/textures/silver-moon.png": "122a25db75ab7bce1be28d7599cc840b7f5466e2924a64a23bacb218c0566198",
     "docs/design/textures/star-glass.png": "4f5e4d629c7436faf2c5aec6a8ee0c7095a1b6fb4aeb67100ec430531ce50006",
-    "scripts/vessel-batch.mjs": "066a203799653e3b7a786d5833b39ace2277c972e14792586e5cee795183ea09",
-    "tests/vessel-batch.test.mjs": "fd769dcaa22727a65667ff1580277fbccbfbf8888c9378a653d0b70f438701d1"
+    "scripts/vessel-batch.mjs": "e903ffdcd2b2d03d3dab43dbbf0aa5918ecd29846bb71c9c61b7fb22b463b43a",
+    "tests/vessel-batch.test.mjs": "020f3d34ff8cafcf260e1d552e96927fb8cc3d9a020fb380baa98e5e666f2825",
+    "scripts/build-cocos-engine.mjs": "cb3c046e5ae7673bf67d29717f085d50e8ff6b16acecd39b84d66d40333916ba",
+    "scripts/verify-cocos-engine.mjs": "08564725c379661c16002d032b6668e7c5833d1bda38ef86a0d34ef16b17705d"
   },
   "revision": "studio-vessels-v3-2026-10-26",
   "hashing": "SHA-256; UTF-8 text normalized to LF; binary bytes unchanged",
