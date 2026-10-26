@@ -1,5 +1,6 @@
 import { startCocos } from './vendor/cocos/bootstrap.mjs';
 import { View } from './src/view.mjs';
+import { vesselImageUrl } from './src/art.mjs';
 import { levels, vessels, themes, levelAt, vesselFor, VERSION } from './src/content.mjs';
 import {
   newAttempt,
@@ -194,7 +195,7 @@ function collection() {
   setScreen(
     'collection',
     back('拾光藏阁') +
-      `<div class="gallery-subtitle">已修复 ${save.collection.length} / 100 件器物</div><div class="collection-grid">${list.map((v) => `<div class="collection-card ${save.collection.includes(v.id) ? '' : 'locked'}"><img src="./assets/vessels/${v.id}.webp" alt="${esc(v.name)}"/><span>${esc(v.name)}<br/>${save.collection.includes(v.id) ? '时光如初' : '静待修复'}</span></div>`).join('')}</div><div class="pager">${btn('‹', 'collection-prev', 'icon-button', 'aria-label="上一页" ' + (collectionPage === 0 ? 'disabled' : ''))}<span>${collectionPage + 1} / 17</span>${btn('›', 'collection-next', 'icon-button', 'aria-label="下一页" ' + (collectionPage === 16 ? 'disabled' : ''))}</div>`,
+      `<div class="gallery-subtitle">已修复 ${save.collection.length} / 100 件器物</div><div class="collection-grid">${list.map((v) => `<div class="collection-card ${save.collection.includes(v.id) ? '' : 'locked'}"><img src="${vesselImageUrl(v)}" alt="${esc(v.name)}"/><span>${esc(v.name)}<br/>${save.collection.includes(v.id) ? '时光如初' : '静待修复'}</span></div>`).join('')}</div><div class="pager">${btn('‹', 'collection-prev', 'icon-button', 'aria-label="上一页" ' + (collectionPage === 0 ? 'disabled' : ''))}<span>${collectionPage + 1} / 17</span>${btn('›', 'collection-next', 'icon-button', 'aria-label="下一页" ' + (collectionPage === 16 ? 'disabled' : ''))}</div>`,
   );
   view.clear('collection');
   view.background(true);

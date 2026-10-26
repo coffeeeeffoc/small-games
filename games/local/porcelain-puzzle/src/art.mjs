@@ -1,4 +1,6 @@
 import { WIDTH, HEIGHT, random } from './content.mjs';
+import { vesselAssetDirectory } from './vessel-contours.mjs';
+export const vesselImageUrl = (vessel) => `./${vesselAssetDirectory}/${vessel.id}.webp`;
 export function canvas(w, h) {
   const c = document.createElement('canvas');
   c.width = Math.ceil(w);
@@ -12,7 +14,7 @@ export async function imageFrom(url) {
   return img;
 }
 export async function vesselCanvas(vessel) {
-  const image = await imageFrom(`./assets/vessels/${vessel.id}.webp`);
+  const image = await imageFrom(vesselImageUrl(vessel));
   const c = canvas(480, 600);
   c.getContext('2d').drawImage(image, 0, 0);
   return c;

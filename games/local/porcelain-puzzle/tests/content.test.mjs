@@ -3,27 +3,22 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { outline, vessels } from '../src/content.mjs';
+import { vesselAssetDirectory } from '../src/vessel-contours.mjs';
+import { validateContour, validateWebp, readVesselBatch } from '../scripts/vessel-batch.mjs';
+import { fileURLToPath } from 'node:url';
 
-test('100 distinct studio assets are full resolution and their contours stay within the canvas', () => {
+test('100 distinct studio assets and their contours pass the shared batch checks', () => {
   const hashes = new Set();
   for (const vessel of vessels) {
     const bytes = readFileSync(
-      new URL('../assets/vessels/' + vessel.id + '.webp', import.meta.url),
+      new URL('../' + vesselAssetDirectory + '/' + vessel.id + '.webp', import.meta.url),
     );
-    assert.equal(bytes.subarray(0, 4).toString(), 'RIFF');
-    assert.equal(bytes.subarray(8, 12).toString(), 'WEBP');
+    validateWebp(bytes);
+    validateContour(outline(vessel));
     hashes.add(createHash('sha256').update(bytes).digest('hex'));
-    const contour = outline(vessel),
-      half = contour.length / 2;
-    assert.ok(half > 100);
-    for (let i = 0; i < half; i++) {
-      const right = contour[i],
-        left = contour.at(-1 - i);
-      assert.equal(left.y, right.y);
-      assert.ok(left.x < right.x);
-      assert.ok(left.x > 0 && right.x < 240 && right.y > 0 && right.y < 300);
-      if (i) assert.ok(right.y > contour[i - 1].y);
-    }
   }
   assert.equal(hashes.size, 100);
+});
+test('active vessel batch has complete checked image hashes', async () => {
+  await readVesselBatch(fileURLToPath(new URL('../', import.meta.url)), vessels);
 });

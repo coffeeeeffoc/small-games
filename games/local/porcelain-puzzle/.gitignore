@@ -1,2 +1,5 @@
 node_modules
 dist/
+
+assets/vessel-batches/.staging-*/
+src/.vessel-contours-*.mjs

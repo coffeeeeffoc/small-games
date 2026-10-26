@@ -1,8 +1,9 @@
 import { createServer } from 'node:http';
 import assert from 'node:assert/strict';
-import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
+import { renderVesselBatch } from './vessel-batch.mjs';
 import { createRequire } from 'node:module';
-import { dirname, join, resolve, relative, isAbsolute, sep } from 'node:path';
+import { dirname, resolve, relative, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { vessels } from '../src/content.mjs';
@@ -40,29 +41,36 @@ const browser = await chromium.launch({
 try {
   const page = await browser.newPage();
   await page.goto(`http://127.0.0.1:${server.address().port}`);
-  const directory = join(root, 'assets/vessels');
-  await mkdir(directory, { recursive: true });
-  const outlines = [];
-  for (const vessel of vessels) {
-    const result = await page.evaluate(
-      async (v) => (await import('/scripts/ceramic-studio.mjs')).renderVessel(v),
-      vessel,
-    );
-    assert(result.outline.length > 200 && result.webp.length > 1000, `Empty artwork: ${vessel.id}`);
-    await writeFile(join(directory, `${vessel.id}.webp`), Buffer.from(result.webp, 'base64'));
-    if (vessel.theme === 0) outlines.push(result.outline);
-    else
-      assert.deepEqual(
-        result.outline,
-        outlines[vessel.shape],
-        `Material changed silhouette: ${vessel.id}`,
-      );
-    if (vessel.shape === 9) console.log(`Rendered ${vessel.theme + 1}/10 material collections`);
-  }
-  await writeFile(
-    join(root, 'src/vessel-contours.mjs'),
-    `// Alpha contours of the baked studio artwork; regenerate with pnpm art:render.\n// prettier-ignore\nexport const vesselContours = ${JSON.stringify(outlines)};\n`,
-  );
+  const directory = await renderVesselBatch({
+    root,
+    vessels,
+    render: (vessel) =>
+      page.evaluate(
+        async (v) => (await import('/scripts/ceramic-studio.mjs')).renderVessel(v),
+        vessel,
+      ),
+    validateImage: (bytes) =>
+      page.evaluate(async (base64) => {
+        const image = new Image();
+        image.src = 'data:image/webp;base64,' + base64;
+        await image.decode();
+        if (image.width !== 480 || image.height !== 600)
+          throw Error('Unexpected studio texture dimensions');
+        const canvas = document.createElement('canvas');
+        canvas.width = 480;
+        canvas.height = 600;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(image, 0, 0);
+        const pixels = ctx.getImageData(0, 0, 480, 600).data;
+        if (!pixels.some((value, i) => i % 4 === 3 && value === 255))
+          throw Error('Empty studio surface');
+      }, bytes.toString('base64')),
+    checkpoint: async (stage, count) => {
+      if (stage === 'image' && count % 10 === 0)
+        console.log(`Rendered ${count / 10}/10 material collections`);
+    },
+  });
+  console.log('Activated complete vessel batch: ' + directory);
 } finally {
   await browser.close();
   server.close();

@@ -183,7 +183,9 @@ try {
   await artPage.goto(base + '/_art-check');
   const artwork = await artPage.evaluate(async () => {
     const { vessels, levels } = await import('./src/content.mjs'),
-      { vesselCanvas, shardCanvas, imageFrom, canvas } = await import('./src/art.mjs'),
+      { vesselCanvas, shardCanvas, imageFrom, canvas, vesselImageUrl } = await import(
+        './src/art.mjs'
+      ),
       { makePuzzle } = await import('./src/core.mjs');
     let first;
     for (const vessel of vessels) {
@@ -192,7 +194,7 @@ try {
         ctx = exported.getContext('2d');
       if (source.width !== 480 || source.height !== 600)
         throw Error('Unexpected studio texture dimensions');
-      ctx.drawImage(await imageFrom(`./assets/vessels/${vessel.id}.webp`), 0, 0);
+      ctx.drawImage(await imageFrom(vesselImageUrl(vessel)), 0, 0);
       const pixels = source.getContext('2d').getImageData(0, 0, source.width, source.height).data,
         built = ctx.getImageData(0, 0, source.width, source.height).data;
       if (!pixels.some((value, i) => i % 4 === 3 && value === 255))
