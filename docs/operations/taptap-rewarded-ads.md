@@ -211,4 +211,4 @@ cops-robbers 曾仍有游戏端 `ads.js` 的 45 秒总超时，以及 `main.js` 
 
 双面机关盒优先保留显式 `twoSidedBoxHost`；独立H5才桥接 `SmallGamesRewardAds`。只在严格 completed 后展开一面，原免费提示保留，取消/异常/晚回调不发奖；公共端口管理打开超时及长播放，游戏取消同步释放端口。激励与插屏相互排斥。
 
-验证使用 fake Tap SDK：`platforms/h5/tests/publishing-host.test.mjs`、`games/local/two-sided-box/tests/h5-rewards.test.mjs` 和独立ZIP浏览器记录。未验证真实广告库存、实体手机或收益。
+验证使用 fake Tap SDK：`platforms/h5/tests/publishing-host.test.mjs`、`platforms/h5/tests/two-sided-box-rewards.test.mjs` 和独立ZIP浏览器记录。未验证真实广告库存、实体手机或收益。

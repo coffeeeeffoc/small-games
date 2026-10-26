@@ -509,7 +509,13 @@ export function incrementalPlan({
     publishing_host_checks: paths.some(
       (file) =>
         publishingHostScopePaths.includes(file) ||
-        ['platforms/h5/publishing.js', 'platforms/h5/interstitial.js'].includes(file),
+        [
+          'platforms/h5/publishing.js',
+          'platforms/h5/interstitial.js',
+          'platforms/h5/game-rewards.js',
+          'games/local/two-sided-box/rewards.mjs',
+          'games/local/two-sided-box/game.mjs',
+        ].includes(file),
     ),
     safe_area_checks: paths.some((file) => safeAreaScopePaths.includes(file)),
     platform_ads_checks: paths.some((file) => platformAdsScopePaths.includes(file)),

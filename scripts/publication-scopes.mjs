@@ -2691,6 +2691,7 @@ export const publishingHostConsumers = {
 export const publishingHostScopePaths = [
   'platforms/h5/publishing-host.js',
   'platforms/h5/tests/publishing-host.test.mjs',
+  'platforms/h5/tests/two-sided-box-rewards.test.mjs',
 ];
 export const safeAreaConsumers = {
   'cops-robbers': 'games/local/cops-robbers',

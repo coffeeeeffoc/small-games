@@ -169,7 +169,11 @@ test('publishing host dispatch runs its contract and only the five reviewed brow
     };
     return incrementalPlan({ ...context, fileScopes: reviewedSharedFileScopes(context) });
   };
-  const [runtime, unit] = publishingHostScopePaths;
+  const [runtime, ...units] = publishingHostScopePaths;
+  assert.deepEqual(units, [
+    'platforms/h5/tests/publishing-host.test.mjs',
+    'platforms/h5/tests/two-sided-box-rewards.test.mjs',
+  ]);
   for (const file of publishingHostScopePaths) {
     const selected = select([file]);
     const ids = file === runtime ? Object.keys(publishingHostConsumers).sort() : [];
@@ -186,7 +190,7 @@ test('publishing host dispatch runs its contract and only the five reviewed brow
       env: {},
       execute: (_command, args) => calls.push(args),
     });
-    assert.deepEqual(calls[0], ['--test', unit]);
+    assert.deepEqual(calls[0], ['--test', ...units]);
     assert.deepEqual(
       calls.slice(1),
       ids.map((id) => [
@@ -198,7 +202,11 @@ test('publishing host dispatch runs its contract and only the five reviewed brow
   assert.equal(combined.publishing_host_checks, true);
   assert.equal(combined.publishing_checks, true);
   assert.deepEqual(combined.publishing_browser_ids, Object.keys(publishingConsumers).sort());
-  for (const file of ['platforms/h5/publishing.js', 'platforms/h5/interstitial.js']) {
+  for (const file of [
+    'platforms/h5/publishing.js',
+    'platforms/h5/interstitial.js',
+    'platforms/h5/game-rewards.js',
+  ]) {
     const selected = incrementalPlan({
       changedPaths: [file],
       games: consumerGames,
@@ -207,6 +215,23 @@ test('publishing host dispatch runs its contract and only the five reviewed brow
       readSource: () => '',
     });
     assert.equal(selected.publishing_host_checks, true);
+  }
+  for (const file of [
+    'games/local/two-sided-box/rewards.mjs',
+    'games/local/two-sided-box/game.mjs',
+  ]) {
+    const selected = select([file]);
+    assert.equal(selected.publishing_host_checks, true);
+    assert(selected.browser_ids.every((id) => id === 'two-sided-box'));
+    const calls = [];
+    runIncrementalToolChecks({
+      plan: selected,
+      packages: consumerPackages,
+      root: '.',
+      env: {},
+      execute: (_command, args) => calls.push(args),
+    });
+    assert(calls.some((args) => JSON.stringify(args) === JSON.stringify(['--test', ...units])));
   }
 });
 

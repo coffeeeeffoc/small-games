@@ -1564,7 +1564,7 @@ test('publishing host loader selects five verified identities and its test stays
   const games = Object.entries(publishingHostConsumers).map(([id, source]) => ({ id, source }));
   const packages = games.map((game) => ({ name: game.id, dir: game.source }));
   const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
-  const [runtime, unit] = publishingHostScopePaths;
+  const [runtime, ...units] = publishingHostScopePaths;
   const context = { games, packages, changedPaths: [runtime], readHead };
   assert.deepEqual(
     reviewedSharedFileScopes(context).get(runtime),
@@ -1593,17 +1593,20 @@ test('publishing host loader selects five verified identities and its test stays
       /scope undefined/,
     );
   }
-  const unitContext = { changedPaths: [unit], games: [], packages: [] };
-  const fileScopes = reviewedSharedFileScopes(unitContext);
-  assert.deepEqual(fileScopes.get(unit), []);
-  const selected = incrementalPlan({ ...unitContext, fileScopes });
-  assert.equal(selected.publishing_host_checks, true);
-  assert.equal(selected.publishing_checks, false);
-  assert.deepEqual(selected.consumer_sources, []);
-  assert.deepEqual(selected.browser_ids, []);
+  for (const unit of units) {
+    const unitContext = { changedPaths: [unit], games: [], packages: [] };
+    const fileScopes = reviewedSharedFileScopes(unitContext);
+    assert.deepEqual(fileScopes.get(unit), []);
+    const selected = incrementalPlan({ ...unitContext, fileScopes });
+    assert.equal(selected.publishing_host_checks, true);
+    assert.equal(selected.publishing_checks, false);
+    assert.deepEqual(selected.consumer_sources, []);
+    assert.deepEqual(selected.browser_ids, []);
+  }
   for (const sibling of [
     'platforms/h5/publishing-host-extra.js',
     'platforms/h5/tests/publishing-host-extra.test.mjs',
+    'platforms/h5/tests/two-sided-box-rewards-extra.test.mjs',
   ]) {
     const unknown = { ...context, changedPaths: [sibling] };
     const rejected = reviewedSharedFileScopes(unknown);
