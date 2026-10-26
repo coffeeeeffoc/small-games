@@ -232,6 +232,13 @@ export function deliveryRetirementFileScopes(context) {
         proofs.set(value, { file, deleted: false, after: review.after });
       }
     }
+
+    for (const [file, review] of deliveryRetirementRegistrationProofs(context)) {
+      if (!context.changedPaths.includes(file)) continue;
+      const value = Object.freeze([...review.sources]);
+      scopes.set(file, value);
+      proofs.set(value, { file, deleted: false, after: review.after });
+    }
     if (context.changedPaths.includes('pnpm-lock.yaml')) {
       const sources = deliveryRetirementStudioLockScope(context, games);
       if (sources) {
@@ -254,6 +261,42 @@ export function deliveryRetirementFileScopes(context) {
     return new Map();
   }
   return scopes;
+}
+
+const deliveryRegistrationFiles = [
+  'apps/shell-web/package.json',
+  'apps/shell-web/src/standalone-games.json',
+  'apps/shell-web/src/game-meta.json',
+];
+function deliveryRenameManifestsMatch(context) {
+  const renamedManifests = [
+    'apps/shell-minigame/package.json',
+    'services/runtime-api/package.json',
+  ];
+  const scopes = gameRenameRegistrationScopes({
+    ...context,
+    changedPaths: renamedManifests,
+  });
+  return renamedManifests.every((file) => scopes.has(file));
+}
+// Reuse the previously reviewed complete registration transition independently
+// of later edits to unrelated validation tools. Called only after retirement gates.
+function deliveryRetirementRegistrationProofs(context) {
+  try {
+    for (const file of deliveryRegistrationFiles) {
+      const review = deliveryRenameRetirementReviews[file];
+      if (
+        context.headHasPath(file) !== true ||
+        digest(context.readBase(file)) !== review.before ||
+        digest(context.readHead(file)) !== review.after
+      )
+        return [];
+    }
+    if (!deliveryRenameManifestsMatch(context)) return [];
+    return deliveryRegistrationFiles.map((file) => [file, deliveryRenameRetirementReviews[file]]);
+  } catch {
+    return [];
+  }
 }
 
 // This lock is the already reviewed retirement/rename plus one existing dev tuple.
@@ -279,15 +322,7 @@ function deliveryRetirementStudioLockScope(context, games) {
       digest(context.readHead(shell)) !== shellReview.after
     )
       return null;
-    const renamedManifests = [
-      'apps/shell-minigame/package.json',
-      'services/runtime-api/package.json',
-    ];
-    const renameScopes = gameRenameRegistrationScopes({
-      ...context,
-      changedPaths: renamedManifests,
-    });
-    if (!renamedManifests.every((name) => renameScopes.has(name))) return null;
+    if (!deliveryRenameManifestsMatch(context)) return null;
     return [...review.sources, 'games/local/porcelain-puzzle'];
   } catch {
     return null;

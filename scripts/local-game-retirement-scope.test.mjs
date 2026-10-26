@@ -8,7 +8,7 @@ import {
 } from './local-game-retirement-scope.mjs';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 
-test('cumulative retirement rename and Porcelain studio lock retain exact consumer proofs', async () => {
+test('cumulative retirement rename and Porcelain studio lock retain exact registration and consumer proofs', async () => {
   const { execFileSync } = await import('node:child_process');
   const { deliveryRetirementFileScopes, hasLocalRetirementFileProof } = await import(
     './local-game-retirement-scope.mjs'
@@ -95,6 +95,53 @@ test('cumulative retirement rename and Porcelain studio lock retain exact consum
     },
   ])
     assert(!deliveryRetirementFileScopes({ ...options, ...extra }).has(lock));
+
+  const registrations = [
+    'apps/shell-web/package.json',
+    registry,
+    'apps/shell-web/src/game-meta.json',
+  ];
+  const registrationOptions = { ...options, changedPaths: registrations };
+  const registrationScopes = deliveryRetirementFileScopes(registrationOptions);
+  for (const file of registrations) {
+    assert.deepEqual(registrationScopes.get(file), [
+      'apps/shell-web',
+      'games/local/place-and-clear',
+    ]);
+    assert(hasLocalRetirementFileProof(file, registrationScopes.get(file), options.readHead));
+    assert(!hasLocalRetirementFileProof(file, [...registrationScopes.get(file)], options.readHead));
+    assert(!hasLocalRetirementDeletionProof(file, registrationScopes.get(file)));
+    assert(
+      !hasLocalRetirementFileProof(
+        file,
+        registrationScopes.get(file),
+        (name) => options.readHead(name) + '\n',
+      ),
+    );
+  }
+  for (const extra of [
+    ...registrations.flatMap((file) => [
+      drift(file, (text) => text + '\n'),
+      { readBase: (name) => options.readBase(name) + (name === file ? '\n' : '') },
+      { headHasPath: (name) => (name === file ? false : options.headHasPath(name)) },
+    ]),
+    drift('apps/shell-minigame/package.json', (text) => text + '\n'),
+    drift('services/runtime-api/package.json', (text) => text + '\n'),
+    drift('games/local/place-and-clear/package.json', (text) =>
+      text.replace('@coffeeeeffoc/place-and-clear', '@coffeeeeffoc/unknown'),
+    ),
+    { baseCommit: head },
+    { headHasPath: () => true },
+    { readBaseEntry: () => '' },
+    {
+      readHead: () => {
+        throw Error('blob unavailable');
+      },
+    },
+  ]) {
+    const rejected = deliveryRetirementFileScopes({ ...registrationOptions, ...extra });
+    for (const file of registrations) assert(!rejected.has(file), file);
+  }
 });
 
 test('saved Pages retirement plus rename binds exact files and retains every surviving consumer', async () => {
