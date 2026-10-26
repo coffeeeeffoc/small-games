@@ -1,6 +1,6 @@
 ## Git 提交约定
 
-- 后续所有 Git 提交的提交说明统一使用中文。
+- 后续所有 Git 提交的提交说明统一使用中文。同时继续沿用`docs(ashfall-front):`、 `feat(xxx):`等前缀
 
 ## Agent skills
 
