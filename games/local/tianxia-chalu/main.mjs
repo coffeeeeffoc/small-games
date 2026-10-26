@@ -556,9 +556,6 @@ async function sendOrder({ sourceId, junctionId, index }) {
     updateHud();
     updateTutorial();
     return { ok: true };
-  } catch (error) {
-    if (error.code === 'cooldown') return { ok: false, reason: 'cooldown' };
-    throw error;
   } finally {
     if (token === generation) commandBusy = false;
   }

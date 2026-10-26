@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMapInput, createOrderQueue, planOrder, nearestRoad } from '../src/input/orders.mjs';
+import { RemoteMatch } from '../remote.mjs';
 
 function map() {
   const cities = [
@@ -472,4 +473,203 @@ test('a second tap slipping just outside the city cancels its suspended single t
   h.advance(500);
   h.tap('C');
   assert.equal(h.intents.length, 0);
+});
+
+const flushNetwork = () => new Promise((resolve) => setImmediate(resolve));
+const response = (data, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
+const cooldown = () => response({ error: { code: 'cooldown', message: '冷却中' } }, 429);
+
+// Exercise the real RemoteMatch pending/sequence implementation through the queue.
+async function remoteQueue(reply, state = map()) {
+  const requests = [],
+    timers = new Map(),
+    delays = [],
+    errors = [],
+    completed = [];
+  let revision = 0,
+    sequence = 0,
+    inFlight = 0,
+    maxInFlight = 0,
+    queue;
+  const snapshot = () => ({ matchId: 'orders', revision, lastSequence: sequence, state });
+  const client = new RemoteMatch('http://localhost:43004', {
+    fetch: async (url, options) => {
+      if (url.endsWith('/api/matches'))
+        return response({ matchId: 'orders', token: 'fixture', snapshot: snapshot() });
+      if (!url.endsWith('/commands')) return response({ snapshot: snapshot() });
+      const command = JSON.parse(options.body);
+      requests.push(command);
+      maxInFlight = Math.max(maxInFlight, ++inFlight);
+      try {
+        const rejected = await reply(command, requests.length);
+        if (rejected) return rejected;
+        assert.equal(command.sequence, sequence + 1);
+        state.junctions.find((value) => value.id === command.junctionId).routeIndex =
+          command.routeIndex;
+        sequence = command.sequence;
+        revision++;
+        return response({ accepted: true, snapshot: snapshot() });
+      } finally {
+        inFlight--;
+      }
+    },
+  });
+  await client.start('crossroads', 'normal');
+  queue = createOrderQueue({
+    read: () => ({ state: client.snapshot.state, enabled: true }),
+    send: (command) => client.route(command.junctionId, command.index),
+    schedule: (fn, ms) => {
+      timers.set(fn, fn);
+      delays.push(ms);
+      return fn;
+    },
+    unschedule: (fn) => timers.delete(fn),
+    completed: (intent) => completed.push(intent),
+    failed: (error) => {
+      errors.push(error);
+      // main.mjs synchronously pauses/cancels input before reconnecting uncertain commands.
+      if (!error.rejected) queue.cancel();
+    },
+  });
+  return {
+    queue,
+    client,
+    requests,
+    timers,
+    delays,
+    errors,
+    completed,
+    get maxInFlight() {
+      return maxInFlight;
+    },
+    async tick() {
+      await flushNetwork();
+      assert.equal(timers.size, 1);
+      const [fn] = timers.keys();
+      timers.delete(fn);
+      fn();
+      await flushNetwork();
+    },
+  };
+}
+
+test('persistent explicit cooldown releases the next city without consuming a rejected sequence', async () => {
+  const h = await remoteQueue((command) => (command.junctionId === 'A-switch' ? cooldown() : null));
+  const first = { kind: 'route', sourceId: 'A', targetId: 'D' };
+  const next = { kind: 'route', sourceId: 'B', targetId: 'C' };
+  h.queue.push(first);
+  h.queue.push(next);
+  for (let i = 0; i < 5; i++) await h.tick();
+  await h.queue.idle();
+  assert.deepEqual(
+    h.requests.map((c) => [c.junctionId, c.sequence]),
+    [...Array.from({ length: 6 }, () => ['A-switch', 1]), ['B-switch', 1]],
+  );
+  assert.deepEqual(h.delays, [220, 220, 220, 220, 220]);
+  assert.equal(h.timers.size, 0);
+  assert.equal(h.errors.length, 1);
+  assert.equal(h.errors[0].code, 'cooldown-retry-exhausted');
+  assert.equal(h.errors[0].rejected, true);
+  assert.equal(h.errors[0].sourceId, 'A');
+  assert.match(h.errors[0].message, /本次切换未生效/);
+  assert.deepEqual(h.completed, [next]);
+  assert.equal(h.client.sequence, 1);
+  assert.equal(h.client.pending, null);
+  assert.equal(h.maxInFlight, 1);
+});
+
+test('ordinary cooldown recovers in sequence and identical queued routes do not resend', async () => {
+  const h = await remoteQueue((_command, count) => (count <= 2 ? cooldown() : null));
+  const first = { kind: 'route', sourceId: 'A', targetId: 'D' };
+  h.queue.push(first);
+  h.queue.push(first);
+  h.queue.push({ kind: 'route', sourceId: 'B', targetId: 'C' });
+  await h.tick();
+  await h.tick();
+  await h.queue.idle();
+  assert.deepEqual(
+    h.requests.map((c) => [c.junctionId, c.sequence]),
+    [
+      ['A-switch', 1],
+      ['A-switch', 1],
+      ['A-switch', 1],
+      ['B-switch', 2],
+    ],
+  );
+  assert.equal(h.errors.length, 0);
+  assert.equal(h.maxInFlight, 1);
+});
+
+test('a completed auxiliary stop is retained when the primary switch exhausts cooldown', async () => {
+  const state = map();
+  route(state, 'B', 'A');
+  const h = await remoteQueue(
+    (command) => (command.junctionId === 'A-switch' ? cooldown() : null),
+    state,
+  );
+  h.queue.push({ kind: 'route', sourceId: 'A', targetId: 'B' });
+  const next = { kind: 'route', sourceId: 'B', targetId: 'C' };
+  h.queue.push(next);
+  for (let i = 0; i < 5; i++) await h.tick();
+  await h.queue.idle();
+  assert.deepEqual(
+    h.requests.map((c) => [c.junctionId, c.routeIndex, c.sequence]),
+    [
+      ['B-switch', -1, 1],
+      ...Array.from({ length: 6 }, () => ['A-switch', 0, 2]),
+      ['B-switch', 1, 2],
+    ],
+  );
+  assert.deepEqual(h.completed, [next]);
+  assert.equal(h.errors.length, 1);
+  assert.equal(j(h.client.snapshot.state, 'A').routeIndex, -1);
+  assert.equal(j(h.client.snapshot.state, 'B').routeIndex, 1);
+});
+
+test('cancel during cooldown removes timers and queued commands without late retries', async () => {
+  const h = await remoteQueue(() => cooldown());
+  h.queue.push({ kind: 'route', sourceId: 'A', targetId: 'D' });
+  h.queue.push({ kind: 'route', sourceId: 'B', targetId: 'C' });
+  await flushNetwork();
+  const [lateWake] = h.timers.keys();
+  h.queue.cancel();
+  await h.queue.idle();
+  lateWake();
+  await flushNetwork();
+  assert.equal(h.requests.length, 1);
+  assert.equal(h.timers.size, 0);
+  assert.equal(h.errors.length, 0);
+  assert.equal(h.completed.length, 0);
+  assert.equal(h.client.pending, null);
+});
+
+test('uncertain responses including a 503 cooldown code preserve the exact pending instruction', async (t) => {
+  for (const [name, uncertain] of [
+    [
+      'lost acknowledgement',
+      () => {
+        throw new TypeError('connection reset');
+      },
+    ],
+    ['upstream cooldown error', () => response({ error: { code: 'cooldown' } }, 503)],
+  ])
+    await t.test(name, async () => {
+      const h = await remoteQueue((_command, count) => (count === 1 ? uncertain() : null));
+      h.queue.push({ kind: 'route', sourceId: 'A', targetId: 'D' });
+      h.queue.push({ kind: 'route', sourceId: 'B', targetId: 'C' });
+      await h.queue.idle();
+      assert.equal(h.requests.length, 1);
+      assert.equal(h.delays.length, 0);
+      assert.equal(h.errors[0].rejected, false);
+      assert.equal(h.client.sequence, 0);
+      assert.deepEqual(h.client.pending, h.requests[0]);
+      assert.equal(h.completed.length, 0);
+      // Reconnect first resolves the original instruction, regardless of new intent.
+      await h.client.route('B-switch', 1);
+      assert.deepEqual(h.requests[1], h.requests[0]);
+      assert.equal(h.client.pending, null);
+      await h.queue.push({ kind: 'route', sourceId: 'B', targetId: 'C' });
+      assert.deepEqual(h.requests[2], { junctionId: 'B-switch', sequence: 2, routeIndex: 1 });
+    });
 });

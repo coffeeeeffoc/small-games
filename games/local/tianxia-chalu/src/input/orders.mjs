@@ -209,6 +209,9 @@ export function createMapInput({
 }
 
 // Serial acknowledgements keep RemoteMatch's sequence/retry contract intact, without locking input.
+// The rule cooldown is 200 ms. Allow five 220 ms grace waits for simulation/network
+// scheduling, then release only a definitively rejected command, never an uncertain one.
+const MAX_COOLDOWN_RETRIES = 5;
 export function createOrderQueue({
   read,
   send,
@@ -252,6 +255,7 @@ export function createOrderQueue({
           if (!read().enabled) continue;
           const plan = planOrder(read().state, intent);
           for (const command of plan) {
+            let cooldownRetries = 0;
             while (token === epoch && read().enabled) {
               const state = read().state,
                 j = junction(state, command.sourceId);
@@ -268,11 +272,24 @@ export function createOrderQueue({
                 result = await send(command);
               } catch (error) {
                 if (command.stopTargetId && error.rejected && error.code === 'not-owner') break;
-                throw error;
+                if (error.rejected && error.code === 'cooldown')
+                  result = { ok: false, reason: 'cooldown' };
+                else throw error;
               }
               if (command.stopTargetId && result?.reason === 'not-owner') break;
               if (token !== epoch) break;
-              if (result?.reason === 'cooldown') {
+              if (result?.ok === false && result.reason === 'cooldown') {
+                if (cooldownRetries++ >= MAX_COOLDOWN_RETRIES)
+                  throw Object.assign(
+                    new Error(
+                      `${city(state, command.sourceId)?.name || '该城'}持续冷却，本次切换未生效，请稍后重新下令`,
+                    ),
+                    {
+                      code: 'cooldown-retry-exhausted',
+                      rejected: true,
+                      sourceId: command.sourceId,
+                    },
+                  );
                 await wait();
                 continue;
               }
