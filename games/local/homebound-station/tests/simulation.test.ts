@@ -20,6 +20,48 @@ import { solveLevel } from './support/solver.ts';
 import { LEGACY_TRAFFIC_CASES } from './fixtures/legacy-traffic.ts';
 import { stationEntryPath, stationDeparturePath } from '../assets/scripts/core/geometry.ts';
 
+// Independent oracle for the rendered 3m x 1.5m rectangles. Do not reuse the
+// traffic planner's safety radius: body intersection is a separate contract.
+function renderedBody(v: { position: { x: number; z: number }; angle: number }) {
+  return {
+    position: v.position,
+    forward: [Math.sin(v.angle), Math.cos(v.angle)],
+    side: [Math.cos(v.angle), -Math.sin(v.angle)],
+  };
+}
+function renderedBodiesOverlap(a: ReturnType<typeof renderedBody>, b: typeof a) {
+  const dx = b.position.x - a.position.x,
+    dz = b.position.z - a.position.z;
+  const radius = (v: typeof a, axis: number[]) =>
+    1.5 * Math.abs(v.forward[0]! * axis[0]! + v.forward[1]! * axis[1]!) +
+    0.75 * Math.abs(v.side[0]! * axis[0]! + v.side[1]! * axis[1]!);
+  // Preserve the existing 2cm rendering tolerance; the separate 3.43m
+  // center-distance safety assertion remains stricter and unchanged.
+  return ![a.forward, a.side, b.forward, b.side].some(
+    (axis) => Math.abs(dx * axis[0]! + dz * axis[1]!) >= radius(a, axis) + radius(b, axis) - 0.02,
+  );
+}
+
+test('独立车身SAT区分重叠、接触和旋转分离，不依赖中心距安全阈值', () => {
+  const body = (x: number, z: number, angle = 0) =>
+    renderedBody({ position: { x, z }, angle });
+  const a = body(0, 0);
+  for (const [name, b, overlap] of [
+    ['完全重叠', body(0, 0), true],
+    ['侧边重叠三厘米', body(1.47, 0), true],
+    ['侧边一厘米接近在原容差内', body(1.49, 0), false],
+    ['侧边刚好接触', body(1.5, 0), false],
+    ['车头刚好接触', body(0, 3), false],
+    ['旋转交叉', body(0, 0, Math.PI / 2), true],
+    // Both of a's axes overlap; only b's rotated side axis separates the pair.
+    ['旋转分离', body(2, -2, Math.PI / 4), false],
+  ] as const) {
+    assert(Math.hypot(b.position.x, b.position.z) < 3.43, '夹具独立于安全中心距');
+    assert.equal(renderedBodiesOverlap(a, b), overlap, name);
+    assert.equal(renderedBodiesOverlap(b, a), overlap, `${name}，交换车辆顺序`);
+  }
+});
+
 function invariant(s: Simulation) {
   const leaves = s.groups.filter((g) => !s.groups.some((c) => c.parentGroupId === g.id));
   const ids = leaves.flatMap((g) => g.passengers.map((p) => p.id));
@@ -83,8 +125,10 @@ function invariant(s: Simulation) {
       );
     }
   }
-  // Independent SAT check: rendered bodies are 3m long and 1.5m wide, including rotations.
   const cars = s.vehicles.filter((v) => v.state !== 'removed');
+  // Prepare each footprint once, but execute SAT for every pair independently
+  // of the stricter center-distance invariant below.
+  const bodies = cars.map(renderedBody);
   for (let i = 0; i < cars.length; i++)
     for (let j = i + 1; j < cars.length; j++) {
       const a = cars[i]!,
@@ -93,27 +137,8 @@ function invariant(s: Simulation) {
         Math.hypot(b.position.x - a.position.x, b.position.z - a.position.z) >= 3.43 - 1e-8,
         `安全距离不足 ${a.id}/${b.id} t=${s.time}`,
       );
-      // Independent broad phase: enclosing circles of the rendered 3m x 1.5m
-      // rectangles prove separation; close pairs still use the full SAT below.
-      if (
-        Math.hypot(b.position.x - a.position.x, b.position.z - a.position.z) >= Math.hypot(3, 1.5)
-      )
-        continue;
-      const axes = [a, b].flatMap((v) => [
-        [Math.sin(v.angle), Math.cos(v.angle)],
-        [Math.cos(v.angle), -Math.sin(v.angle)],
-      ]);
-      const radius = (v: typeof a, axis: number[]) =>
-        1.5 * Math.abs(Math.sin(v.angle) * axis[0]! + Math.cos(v.angle) * axis[1]!) +
-        0.75 * Math.abs(Math.cos(v.angle) * axis[0]! - Math.sin(v.angle) * axis[1]!);
       assert(
-        axes.some(
-          (axis) =>
-            Math.abs(
-              (b.position.x - a.position.x) * axis[0]! + (b.position.z - a.position.z) * axis[1]!,
-            ) >=
-            radius(a, axis) + radius(b, axis) - 0.02,
-        ),
+        !renderedBodiesOverlap(bodies[i]!, bodies[j]!),
         `车辆穿模 ${a.id}/${b.id} t=${s.time}`,
       );
     }
