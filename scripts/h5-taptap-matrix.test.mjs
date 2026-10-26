@@ -646,6 +646,11 @@ test('explicit profiles require twelve local QA variants and only three online-a
     'travel-bund': 'landscape',
     'letters-words2': 'portrait',
     'homebound-station': 'portrait',
+    'ember-bounce': 'portrait',
+    'fold-the-world': 'landscape',
+    'out-of-frame': 'landscape',
+    'surprise-kept': 'preserve',
+    'two-sided-box': 'landscape',
   });
   assert.equal(productionCompetitionApi, 'https://api.nenggongzhiren.cn/small-games/v1');
   assert.equal(matrixContract(fixture(false)).port, 43810);

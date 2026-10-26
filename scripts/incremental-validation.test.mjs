@@ -206,6 +206,7 @@ test('publishing host dispatch runs its contract and only the five reviewed brow
     'platforms/h5/publishing.js',
     'platforms/h5/interstitial.js',
     'platforms/h5/game-rewards.js',
+    'platforms/h5/platform-ads.js',
   ]) {
     const selected = incrementalPlan({
       changedPaths: [file],
@@ -219,6 +220,7 @@ test('publishing host dispatch runs its contract and only the five reviewed brow
   for (const file of [
     'games/local/two-sided-box/rewards.mjs',
     'games/local/two-sided-box/game.mjs',
+    'games/local/two-sided-box/faces.mjs',
   ]) {
     const selected = select([file]);
     assert.equal(selected.publishing_host_checks, true);
