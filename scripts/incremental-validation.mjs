@@ -2,6 +2,8 @@ import { hasLocalRetirementFileProof } from './local-game-retirement-scope.mjs';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
+import { deliveryRenameRetirementReviews } from './local-game-retirement-reviews.mjs';
 import { isDeepStrictEqual } from 'node:util';
 import { affectedPackages, isDocumentation, riskPlan } from './validation-plan.mjs';
 import { hasVitePatch, viteBuiltinSources } from './vite-patch-scope.mjs';
@@ -550,6 +552,29 @@ export function developerModeFileScopes({ changedPaths, readBase, readHead, game
       ]),
     ]);
     return scopes;
+  }
+  // Saved dev predates both the reviewed identity rename and Waterline's new guard.
+  // Bind the whole cumulative script; no other runner or assertion edit inherits this scope.
+  try {
+    const hash = (text) => createHash('sha256').update(text).digest('hex');
+    const review = deliveryRenameRetirementReviews[developerMode];
+    if (
+      hash(readBase(developerMode)) === review.before &&
+      hash(readHead(developerMode)) === review.after
+    ) {
+      const sources = ['waterline-station', 'place-and-clear', 'wulong-city'].map((id) => {
+        const source = `games/local/${id}`;
+        const entries = games.filter((game) => game.id === id || game.source === source);
+        assert.equal(entries.length, 1);
+        assert.equal(entries[0].id, id);
+        assert.equal(entries[0].source, source);
+        return source;
+      });
+      scopes.set(developerMode, sources);
+      return scopes;
+    }
+  } catch {
+    // Missing bytes or ambiguous identity cannot acquire this exact cumulative proof.
   }
   try {
     const parse = (source) => {

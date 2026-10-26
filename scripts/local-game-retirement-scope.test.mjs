@@ -7,6 +7,96 @@ import {
   isReviewedLocalRetirementDeletion,
 } from './local-game-retirement-scope.mjs';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
+
+test('cumulative retirement rename and Porcelain studio lock retain exact consumer proofs', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { deliveryRetirementFileScopes, hasLocalRetirementFileProof } = await import(
+    './local-game-retirement-scope.mjs'
+  );
+  const base = '4e97662fd910758595c345f2985a805d1a19095d';
+  const head = '95b1ca8121698c2ef38ffae2ef4f2c309cd06a7c';
+  const lock = 'pnpm-lock.yaml';
+  const studio = 'games/local/porcelain-puzzle/package.json';
+  const registry = 'apps/shell-web/src/standalone-games.json';
+  const cache = new Map();
+  const git = (...args) => {
+    const key = JSON.stringify(args);
+    if (!cache.has(key))
+      cache.set(
+        key,
+        execFileSync('git', args, {
+          cwd: new URL('../', import.meta.url),
+          encoding: 'utf8',
+          maxBuffer: 32 * 1024 * 1024,
+        }),
+      );
+    return cache.get(key);
+  };
+  const options = {
+    baseCommit: base,
+    changedPaths: [lock, studio],
+    readBase: (file) => git('show', base + ':' + file),
+    readHead: (file) => git('show', head + ':' + file),
+    readBaseEntry: (file) => git('--literal-pathspecs', 'ls-tree', base, '--', file),
+    readHeadEntry: (file) => git('--literal-pathspecs', 'ls-tree', head, '--', file),
+    headHasPath: (file) => git('--literal-pathspecs', 'ls-tree', head, '--', file) !== '',
+  };
+  const scopes = deliveryRetirementFileScopes(options);
+  assert.deepEqual(scopes.get(lock), [
+    'apps/shell-web',
+    'games/local/place-and-clear',
+    'apps/shell-minigame',
+    'services/runtime-api',
+    'games/local/porcelain-puzzle',
+  ]);
+  assert(hasLocalRetirementFileProof(lock, scopes.get(lock), options.readHead));
+  assert(!hasLocalRetirementFileProof(lock, [...scopes.get(lock)], options.readHead));
+  assert(!hasLocalRetirementDeletionProof(lock, scopes.get(lock)));
+  const drift = (file, transform) => ({
+    readHead: (name) =>
+      name === file ? transform(options.readHead(name)) : options.readHead(name),
+  });
+  for (const extra of [
+    { baseCommit: head },
+    { readBase: (file) => options.readBase(file) + (file === lock ? '\n' : '') },
+    drift(lock, (text) => text + '\n'),
+    drift(lock, (text) => text.replace('specifier: 0.180.0', 'specifier: 0.181.0')),
+    drift(lock, (text) => text.replace('integrity: sha512-', 'integrity: sha512-wrong')),
+    drift(lock, (text) =>
+      text.replace(
+        '\n  games/local/porcelain-puzzle:',
+        '\n  games/local/porcelain-puzzle: {}\n\n  games/local/porcelain-puzzle:',
+      ),
+    ),
+    drift(studio, (text) => text.replace('"devDependencies"', '"dependencies"')),
+    drift(studio, (text) => text.replace('node scripts/render-vessels.mjs', 'node unknown.mjs')),
+    drift('apps/shell-web/package.json', (text) => text + '\n'),
+    drift('apps/shell-minigame/package.json', (text) => text + '\n'),
+    drift('services/runtime-api/package.json', (text) => text + '\n'),
+    drift(registry, (text) =>
+      JSON.stringify([
+        ...JSON.parse(text),
+        JSON.parse(text).find((game) => game.id === 'porcelain-puzzle'),
+      ]),
+    ),
+    drift(registry, (text) =>
+      JSON.stringify([...JSON.parse(text), { id: 'place-and-clear', source: 'games/local/other' }]),
+    ),
+    { headHasPath: () => true },
+    {
+      headHasPath: () => {
+        throw Error('tree unavailable');
+      },
+    },
+    {
+      readHead: () => {
+        throw Error('blob unavailable');
+      },
+    },
+  ])
+    assert(!deliveryRetirementFileScopes({ ...options, ...extra }).has(lock));
+});
+
 test('saved Pages retirement plus rename binds exact files and retains every surviving consumer', async () => {
   const { execFileSync } = await import('node:child_process');
   const {

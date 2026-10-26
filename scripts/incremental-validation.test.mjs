@@ -542,6 +542,51 @@ test('developer-mode game guards select every old/new assertion consumer and ret
   }
 });
 
+test('cumulative rename and Waterline developer guard use only their exact reviewed bytes', () => {
+  const file = 'scripts/test-game-dev-mode.mjs';
+  const read = (ref) =>
+    execFileSync('git', ['show', ref + ':' + file], {
+      cwd: new URL('../', import.meta.url),
+      encoding: 'utf8',
+    });
+  const before = read('4e97662fd910758595c345f2985a805d1a19095d');
+  const after = read('95b1ca8121698c2ef38ffae2ef4f2c309cd06a7c');
+  assert.equal(
+    after,
+    before
+      .replace(
+        "          game.id === 'bullet-garden' ||",
+        "          game.id === 'waterline-station' ||\n          game.id === 'bullet-garden' ||",
+      )
+      .replace("game.id === 'three-choose-two'", "game.id === 'place-and-clear'"),
+  );
+  const games = ['waterline-station', 'place-and-clear', 'wulong-city'].map((id) => ({
+    id,
+    source: 'games/local/' + id,
+  }));
+  const options = { changedPaths: [file], games, readBase: () => before, readHead: () => after };
+  assert.deepEqual(
+    developerModeFileScopes(options).get(file),
+    games.map((g) => g.source),
+  );
+  for (const extra of [
+    { readBase: () => before + '\n' },
+    { readHead: () => after + '\n' },
+    { readHead: () => after.replace('toHaveCount(1)', 'toHaveCount(0)') },
+    {
+      readHead: () => {
+        throw Error('missing script');
+      },
+    },
+    { games: games.slice(1) },
+    { games: [...games, games[0]] },
+    { games: [...games, { id: 'waterline-station', source: 'games/local/other' }] },
+    { games: games.map((g) => ({ ...g, source: g.source + '-wrong' })) },
+    { changedPaths: [file + '.unknown'] },
+  ])
+    assert.equal(developerModeFileScopes({ ...options, ...extra }).has(file), false);
+});
+
 function nativeWiringFixture() {
   const shell = 'apps/shell-minigame/package.json';
   const game = 'games/local/a/package.json';

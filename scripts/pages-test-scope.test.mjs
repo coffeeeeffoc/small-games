@@ -1840,6 +1840,110 @@ test('accurate base/head admin lock additions select only admin checks and block
     });
 });
 
+test('Moss publishing replacement binds both assets, publication records and unique retained identity', async () => {
+  const { isReviewedMossIconReplacement: replacement } = await import('./pages-test-scope.mjs');
+  const source = 'games/local/game-moss-garden';
+  const oldIcon = source + '/publishing/icon/leaf.svg';
+  const base = '4e97662fd910758595c345f2985a805d1a19095d';
+  const head = '95b1ca8121698c2ef38ffae2ef4f2c309cd06a7c';
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+  const options = {
+    change: { status: 'D', paths: [oldIcon] },
+    standaloneGames: [{ id: 'moss-garden', source }],
+    gameSources: [source],
+    readBase: (file) => git('show', base + ':' + file),
+    readHeadEntry: (file) => git('--literal-pathspecs', 'ls-tree', head, '--', file),
+    headHasPath: (file) => git('--literal-pathspecs', 'ls-tree', head, '--', file) !== '',
+  };
+  assert(replacement(options));
+  for (const extra of [
+    { change: { status: 'R100', paths: [oldIcon, oldIcon + '.moved'] } },
+    { change: { status: 'M', paths: [oldIcon] } },
+    { change: { status: 'D', paths: [oldIcon, oldIcon] } },
+    { change: { status: 'D', paths: [source + '/publishing/icon/unknown.svg'] } },
+    { readBase: (file) => options.readBase(file) + '\n' },
+    {
+      readBase: () => {
+        throw Error('missing base blob');
+      },
+    },
+    { headHasPath: () => true },
+    { headHasPath: () => undefined },
+    {
+      headHasPath: () => {
+        throw Error('tree unavailable');
+      },
+    },
+    {
+      readHeadEntry: () => {
+        throw Error('tree unavailable');
+      },
+    },
+    { gameSources: [] },
+    { gameSources: [source, source] },
+    { standaloneGames: [] },
+    { standaloneGames: [{ id: 'game-moss-garden', source }] },
+    { standaloneGames: [...options.standaloneGames, ...options.standaloneGames] },
+    {
+      standaloneGames: [
+        ...options.standaloneGames,
+        { id: 'moss-garden', source: 'games/local/other' },
+      ],
+    },
+  ])
+    assert.equal(replacement({ ...options, ...extra }), false);
+  for (const file of [
+    source + '/publishing/icon/moss-garden-completed-1024.png',
+    source + '/publishing/media-manifest.json',
+    source + '/publishing/STATUS.md',
+  ]) {
+    for (const changed of [
+      '',
+      '100644 blob ' + '0'.repeat(40) + '\t' + file,
+      options.readHeadEntry(file).replace('100644', '120000'),
+    ]) {
+      assert.equal(
+        replacement({
+          ...options,
+          readHeadEntry: (name) => (name === file ? changed : options.readHeadEntry(name)),
+        }),
+        false,
+        file,
+      );
+    }
+  }
+});
+
+test('published dev cumulative comparison keeps every changed game after the exact Moss icon replacement', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const base = '4e97662fd910758595c345f2985a805d1a19095d';
+  const head = '95b1ca8121698c2ef38ffae2ef4f2c309cd06a7c';
+  const changed = collectChangedPaths({ root, base, head });
+  assert.equal(changed.length, 1035, 'complete Git tree delta, not the truncated compare API');
+  const selected = await main(
+    {
+      GITHUB_EVENT_NAME: 'push',
+      GITHUB_REF_NAME: 'dev',
+      PAGES_DIFF_BASE: head,
+      PAGES_VALIDATED_BASE: base,
+      PAGES_DIFF_HEAD: head,
+      VALIDATION_RISK_PLAN: 'true',
+    },
+    root,
+  );
+  assert.equal(selected.diff_base, base);
+  assert.equal(selected.diff_head, head);
+  assert.equal(selected.full, false);
+  assert.equal(selected.risk, 'incremental');
+  assert(selected.game_sources.includes('games/local/game-moss-garden'));
+  assert(selected.browser_ids.includes('moss-garden'));
+  assert(selected.publishing_browser_ids.includes('moss-garden'));
+  // The icon proof must not hide parallel changes elsewhere in the accumulated release.
+  for (const id of ['porcelain-puzzle', 'tianxia-chalu', 'homebound-station'])
+    assert(selected.game_sources.includes('games/local/' + id), id);
+});
+
 const cleanupPaths = [
   ...[
     'package-lock.json',

@@ -1,5 +1,9 @@
 import { createHash } from 'node:crypto';
-import { registrationFileScopes } from './pages-registration-scope.mjs';
+import {
+  registrationFileScopes,
+  withoutPorcelainStudioAddition,
+} from './pages-registration-scope.mjs';
+import { gameRenameRegistrationScopes } from './game-rename-scope.mjs';
 import {
   deliveryRetirementBase,
   deliveryRetirementTrees,
@@ -228,6 +232,15 @@ export function deliveryRetirementFileScopes(context) {
         proofs.set(value, { file, deleted: false, after: review.after });
       }
     }
+    if (context.changedPaths.includes('pnpm-lock.yaml')) {
+      const sources = deliveryRetirementStudioLockScope(context, games);
+      if (sources) {
+        const file = 'pnpm-lock.yaml';
+        const value = Object.freeze(sources);
+        scopes.set(file, value);
+        proofs.set(value, { file, deleted: false, after: digest(context.readHead(file)) });
+      }
+    }
     const meta = 'apps/shell-web/src/game-meta.json';
     if (context.changedPaths.includes(meta) && !scopes.has(meta)) {
       const projected = deliveryRetirementMetadataScope(context, roots, games, meta);
@@ -241,6 +254,44 @@ export function deliveryRetirementFileScopes(context) {
     return new Map();
   }
   return scopes;
+}
+
+// This lock is the already reviewed retirement/rename plus one existing dev tuple.
+// Do not couple its proof to later, unrelated edits of the validation tool sources.
+function deliveryRetirementStudioLockScope(context, games) {
+  try {
+    const file = 'pnpm-lock.yaml';
+    const review = deliveryRenameRetirementReviews[file];
+    const base = context.readBase(file);
+    const current = context.readHead(file);
+    if (digest(base) !== review.before) return null;
+    const normalized = withoutPorcelainStudioAddition({
+      ...context,
+      base,
+      current,
+      games,
+    });
+    if (normalized === null || digest(normalized) !== review.after) return null;
+    const shell = 'apps/shell-web/package.json';
+    const shellReview = deliveryRenameRetirementReviews[shell];
+    if (
+      digest(context.readBase(shell)) !== shellReview.before ||
+      digest(context.readHead(shell)) !== shellReview.after
+    )
+      return null;
+    const renamedManifests = [
+      'apps/shell-minigame/package.json',
+      'services/runtime-api/package.json',
+    ];
+    const renameScopes = gameRenameRegistrationScopes({
+      ...context,
+      changedPaths: renamedManifests,
+    });
+    if (!renamedManifests.every((name) => renameScopes.has(name))) return null;
+    return [...review.sources, 'games/local/porcelain-puzzle'];
+  } catch {
+    return null;
+  }
 }
 
 function deliveryRetirementMetadataScope(context, roots, games, meta) {

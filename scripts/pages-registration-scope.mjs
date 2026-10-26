@@ -418,7 +418,31 @@ function lockWiringSources(before, after, additions, games, context) {
     current = current.replace(echoAfter, echoBefore);
     sources.add(echoSource);
   }
-  // Only the offline Porcelain studio may add this already locked dev dependency.
+  const withoutStudio = withoutPorcelainStudioAddition({
+    base,
+    current,
+    changedPaths,
+    games,
+    readBase,
+    readHead,
+  });
+  if (withoutStudio !== null) {
+    current = withoutStudio;
+    sources.add('games/local/porcelain-puzzle');
+  }
+  if (current !== base) throw new Error('Unproven remaining lock changes');
+  return [...sources];
+}
+
+/** Remove only the existing offline studio tuple, preserving every other lock byte. */
+export function withoutPorcelainStudioAddition({
+  base,
+  current,
+  changedPaths,
+  games,
+  readBase,
+  readHead,
+}) {
   const porcelainSource = 'games/local/porcelain-puzzle';
   const porcelainManifest = `${porcelainSource}/package.json`;
   const porcelainBefore =
@@ -428,13 +452,15 @@ function lockWiringSources(before, after, additions, games, context) {
   const porcelainAfter = porcelainBefore.slice(0, -1) + studioTuple + '\n';
   if (
     changedPaths.includes(porcelainManifest) &&
+    games.filter((game) => game.id === 'porcelain-puzzle' || game.source === porcelainSource)
+      .length === 1 &&
     games.some(
       (game) =>
         game.id === 'porcelain-puzzle' && game.source === porcelainSource && game.output === 'dist',
     ) &&
     importerBlock(base, porcelainSource) === porcelainBefore &&
     importerBlock(current, porcelainSource) === porcelainAfter &&
-    proof.existingTuples.has(studioTuple)
+    existingDependencyTuples(base).has(studioTuple)
   ) {
     const oldPackage = JSON.parse(readBase(porcelainManifest));
     const newPackage = JSON.parse(readHead(porcelainManifest));
@@ -452,11 +478,9 @@ function lockWiringSources(before, after, additions, games, context) {
       })
     )
       throw new Error('Unproven Porcelain studio manifest');
-    current = current.replace(porcelainAfter, porcelainBefore);
-    sources.add(porcelainSource);
+    return current.replace(porcelainAfter, porcelainBefore);
   }
-  if (current !== base) throw new Error('Unproven remaining lock changes');
-  return [...sources];
+  return null;
 }
 
 /** A missing entry means full coverage; an empty selection still requires host validation. */

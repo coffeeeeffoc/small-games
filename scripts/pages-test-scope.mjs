@@ -244,6 +244,48 @@ export function isReviewedCleanupDeletion({
   }
 }
 
+// 38607c9 replaces this publishing-only SVG with the reviewed opaque 1024px PNG.
+// Bind the exact old asset and the replacement plus its two publication records.
+// This proves only this D record; all changed game files keep their real consumers.
+const mossIconSource = 'games/local/game-moss-garden';
+const mossIconDeletion = `${mossIconSource}/publishing/icon/leaf.svg`;
+const mossIconReplacementEntries = Object.freeze({
+  [`${mossIconSource}/publishing/icon/moss-garden-completed-1024.png`]:
+    '391589a7b564559dc629a14b71fae781720322fc',
+  [`${mossIconSource}/publishing/media-manifest.json`]: 'e37772f6f3b6edfac8a653cc9f0116fc30d23916',
+  [`${mossIconSource}/publishing/STATUS.md`]: '8e249306744e02da17d217b622f3229dcda8b8a5',
+});
+export function isReviewedMossIconReplacement({
+  change,
+  readBase,
+  readHeadEntry,
+  headHasPath,
+  standaloneGames,
+  gameSources,
+}) {
+  if (change.status !== 'D' || change.paths.length !== 1 || change.paths[0] !== mossIconDeletion)
+    return false;
+  try {
+    const entries = standaloneGames.filter(
+      (game) => game.id === 'moss-garden' || game.source === mossIconSource,
+    );
+    return (
+      entries.length === 1 &&
+      entries[0].id === 'moss-garden' &&
+      entries[0].source === mossIconSource &&
+      gameSources.filter((source) => source === mossIconSource).length === 1 &&
+      headHasPath(mossIconDeletion) === false &&
+      createHash('sha256').update(readBase(mossIconDeletion)).digest('hex') ===
+        '9ce21471198798ff9a77969cb2163ac189c92f56d7d8885917ba3332b647b295' &&
+      Object.entries(mossIconReplacementEntries).every(
+        ([file, blob]) => readHeadEntry(file).trim() === `100644 blob ${blob}\t${file}`,
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function isGameSource(value) {
   return typeof value === 'string' && GAME_SOURCE.test(value);
 }
@@ -591,6 +633,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
         ...new Set([
           ...changedPaths.filter((file) => Object.hasOwn(reviewedCleanupDeletions, file)),
           ...changedPaths.filter((file) => Object.hasOwn(fullscreenRemovalReviews, file)),
+          mossIconDeletion,
           ...Object.keys(tetracubeMoves),
           ...Object.values(tetracubeMoves).map((move) => move.to),
           ...retirementHeadQueryPaths(changedPaths),
@@ -638,6 +681,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
             }) &&
             !isFullscreenRemovalDeletion({ change, ...catalog, ...retirementContext }) &&
             !isReviewedTetracubeMove({ change, ...catalog, ...retirementContext }) &&
+            !isReviewedMossIconReplacement({ change, ...catalog, ...retirementContext }) &&
             !isReviewedRetirementDeletion(change, retiredScopes) &&
             !isReviewedGameRename(change, retiredScopes) &&
             !isReviewedLocalRetirementDeletion(change, retiredScopes),
