@@ -1,0 +1,3 @@
+# Pinned upstream artifacts are verified byte-for-byte by verify-cocos-engine.mjs.
+/vendor/cocos/cc.js -text
+/vendor/cocos/LICENSE -text
