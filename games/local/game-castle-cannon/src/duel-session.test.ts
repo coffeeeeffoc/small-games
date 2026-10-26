@@ -18,6 +18,22 @@ const host = () =>
     content: defaultCastleCannonEnvelope,
   });
 describe('对战输入与旧存档', () => {
+  it('H5 后端关闭时直接进入本地练习且不请求对战服务', async () => {
+    vi.stubGlobal('__COMPETITION_CONFIG__', { enabled: false });
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const s = await createDuelSession(host(), () => {});
+    try {
+      s.action('start');
+      await Promise.resolve();
+      expect(s.v.screen).toBe('playing');
+      expect(s.v.mode).toBe('practice');
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      await s.dispose();
+      vi.unstubAllGlobals();
+    }
+  });
   it.each(['silent', 'error', 'old-version', 'queue-error', 'queue-stalled'])(
     '匹配事件流 %s 时超时或失败后静默进入本地玩法',
     async (failure) => {

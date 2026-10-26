@@ -202,3 +202,13 @@ cops-robbers 曾仍有游戏端 `ads.js` 的 45 秒总超时，以及 `main.js` 
 ## 灰烬防线 / 2026-10-24
 
 新增`ashfall-front`的Creator Web/H5构建与公共奖励端口，手机方向为landscape。暂停补给恢复40%生命、失败续战恢复50%，各每关一次，普通开始和重试免费，辅助行动不计最佳。用户确认App998795（Developer492506）；本次MCP查询状态为未开通，默认广告关闭，无正式广告位，不使用其他应用的ID。开通后重新查询，再经`TAPTAP_ASHFALL_FRONT_AD_UNIT_ID`注入。当前只通过SDK夹具与Creator浏览器验证，不表示真机库存或上传通过。
+
+## 既有独立 H5 广告入口接线（2026-10-26）
+
+`ember-bounce`、`fold-the-world`、`out-of-frame`、`surprise-kept`、`two-sided-box` 已加入 H5 构建白名单。它们原有的自然结算插屏通过 `publishing-host.js` 注入 `createPublishingInterstitialProvider`，仍由原 `publishing.js` 管每三次自然结算、60 秒冷却、每会话最多六次尝试。只使用 Tap 的 `createInterstitialAd`，不会改成激励视频；库存未就绪立即跳过，不等待后补展示。关闭或失败不改变已结算成绩。
+
+前四款 `TAPTAP_<GAME>_AD_UNIT_ID` 表示本应用的 **H5 插屏位**。`two-sided-box` 同名变量表示既有“视频展开一面”的 **H5 激励位**，两类位不互相推断。统一构建入口的 v2 临时配置通过 `adUnits` 显式提供这一主广告位；v1 保留原有主广告位环境兼容行为，两个版本都清除环境中残留的第二广告位。双面机关盒的第二个结算插屏位仅支持直接 H5 CLI 的 `TAPTAP_TWO_SIDED_BOX_INTERSTITIAL_AD_UNIT_ID` 环境参数，统一构建配置尚不提供第二位。没有真实位时仍关闭，不降级模拟；不需要修改用户的本地配置文件。
+
+双面机关盒优先保留显式 `twoSidedBoxHost`；独立H5才桥接 `SmallGamesRewardAds`。只在严格 completed 后展开一面，原免费提示保留，取消/异常/晚回调不发奖；公共端口管理打开超时及长播放，游戏取消同步释放端口。激励与插屏相互排斥。
+
+验证使用 fake Tap SDK：`platforms/h5/tests/publishing-host.test.mjs`、`games/local/two-sided-box/tests/h5-rewards.test.mjs` 和独立ZIP浏览器记录。未验证真实广告库存、实体手机或收益。

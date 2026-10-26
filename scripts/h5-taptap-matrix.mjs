@@ -26,6 +26,11 @@ export const h5Orientations = Object.freeze({
   'travel-bund': 'landscape',
   'letters-words2': 'portrait',
   'homebound-station': 'portrait',
+  'ember-bounce': 'portrait',
+  'fold-the-world': 'landscape',
+  'out-of-frame': 'landscape',
+  'surprise-kept': 'preserve',
+  'two-sided-box': 'landscape',
 });
 export const productionCompetitionApi = 'https://api.nenggongzhiren.cn/small-games/v1';
 export const localCompetitionApi = 'http://127.0.0.1:43802/api/competition/v1';

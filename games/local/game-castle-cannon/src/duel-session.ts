@@ -104,6 +104,14 @@ export async function createDuelSession(
     if (next) bot = next;
   }
   async function match() {
+    if (
+      (globalThis as typeof globalThis & { __COMPETITION_CONFIG__?: { enabled?: boolean } })
+        .__COMPETITION_CONFIG__?.enabled === false
+    ) {
+      practice();
+      v.message = '离线练习';
+      return;
+    }
     cancel();
     connection?.dispose();
     const id = ++generation;

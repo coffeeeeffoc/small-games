@@ -1,6 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Rewards, RoomClient, shareURL, storagePort } from '../src/platform.mjs';
+
+test('disabled H5 backend does not probe, create or join a room', async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; throw Error('Unexpected request'); };
+  globalThis.__COMPETITION_CONFIG__ = { enabled: false };
+  try {
+    const client = new RoomClient();
+    assert.equal(await client.available(), false);
+    await assert.rejects(client.create({ name: '瓷友' }), /未启用好友服务/);
+    await assert.rejects(client.join('ABC123', '瓷友'), /未启用好友服务/);
+    assert.equal(calls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete globalThis.__COMPETITION_CONFIG__;
+  }
+});
 test('reward cancellation invalidates a late success without blocking a new request', async () => {
   let finish;
   globalThis.PorcelainHost = {

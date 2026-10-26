@@ -27,6 +27,8 @@ import {
   gameServiceScopePaths,
   publishingConsumers,
   publishingScopePaths,
+  publishingHostConsumers,
+  publishingHostScopePaths,
   safeAreaScopePaths,
   platformAdsScopePaths,
   deploymentBundleScopePaths,
@@ -306,11 +308,15 @@ export function incrementalPlan({
   if (hasVitePatch(paths, fileScopes))
     devModeIds.push(...ids, ...viteBuiltinSources.map((source) => source.split('/game-')[1]));
   const publishingChanged = paths.some((file) => publishingScopePaths.includes(file));
+  const publishingHostChanged = paths.some(
+    (file) => file === 'platforms/h5/publishing-host.js' || file === 'platforms/h5/interstitial.js',
+  );
   const publishingBrowserIds = Object.entries(publishingConsumers)
     .filter(
       ([id]) =>
         ids.has(id) &&
         (publishingChanged ||
+          (publishingHostChanged && Object.hasOwn(publishingHostConsumers, id)) ||
           directGames.some((game) => game.id === id) ||
           paths.some(
             (file) =>
@@ -500,6 +506,11 @@ export function incrementalPlan({
       ].includes(file),
     ),
     publishing_checks: publishingChanged,
+    publishing_host_checks: paths.some(
+      (file) =>
+        publishingHostScopePaths.includes(file) ||
+        ['platforms/h5/publishing.js', 'platforms/h5/interstitial.js'].includes(file),
+    ),
     safe_area_checks: paths.some((file) => safeAreaScopePaths.includes(file)),
     platform_ads_checks: paths.some((file) => platformAdsScopePaths.includes(file)),
     publishing_browser_ids: publishingBrowserIds.sort(),

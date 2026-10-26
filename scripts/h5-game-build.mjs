@@ -38,19 +38,25 @@ if (
     'flick-arena',
     'chase-thief',
     'cage-rescue',
+    'ember-bounce',
+    'out-of-frame',
+    'surprise-kept',
+    'two-sided-box',
   ].includes(game)
 ) {
   execFileSync(process.execPath, ['build.mjs'], { cwd: root, stdio: 'inherit' });
 } else {
   const require = createRequire(path.join(root, 'package.json'));
-  const tsc = path.join(path.dirname(require.resolve('typescript/package.json')), 'bin/tsc');
+  const tsc = ['travel-bund', 'moss-garden', 'fold-the-world'].includes(game)
+    ? path.join(path.dirname(require.resolve('typescript/package.json')), 'bin/tsc')
+    : undefined;
   if (game === 'moss-garden')
     for (const name of ['content-schema', 'game-contract'])
       execFileSync(process.execPath, [tsc, '-p', 'tsconfig.build.json'], {
         cwd: path.resolve(root, '../../../packages', name),
         stdio: 'inherit',
       });
-  if (['travel-bund', 'moss-garden'].includes(game))
+  if (['travel-bund', 'moss-garden', 'fold-the-world'].includes(game))
     execFileSync(process.execPath, [tsc, '--noEmit'], { cwd: root, stdio: 'inherit' });
   const { build } = await import(pathToFileURL(require.resolve('vite')).href);
   await build({ root, base: './' });

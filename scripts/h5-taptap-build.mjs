@@ -37,7 +37,7 @@ export const h5ExpandedBudgetBytes = 256 * 1024 * 1024;
 const retained = 'h5-packages';
 export function compilerEnvironment(env = process.env) {
   const allowed =
-    /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|LANG|LC_[A-Z_]+|CI|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|HOMEBOUND_STATION_PREBUILT_DIR|MERGE_FRONT_PREBUILT_DIR|TETRACUBE_PREBUILT_DIR|PLACE_AND_CLEAR_PREBUILT_DIR|BULLET_GARDEN_PREBUILT_DIR|TOWER_BRAKE_PREBUILT_DIR|TIANXIA_PREBUILT_DIR|H5_ADS_ENABLED|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|TAPTAP_(?:PORCELAIN_PUZZLE|ASHFALL_FRONT|COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE|CARDING_CAR|VIBEJAM_MYSELF_HISTORY_GUESS|WULONG_CITY|NIGHT_OVERWATCH|TRAVEL_BUND|LETTERS_WORDS2|HOMEBOUND_STATION|MERGE_FRONT|TETRACUBE|PLACE_AND_CLEAR|THREE_CHOOSE_TWO|BULLET_GARDEN|TOWER_BRAKE|TIANXIA_CHALU|BALL_ROGUELITE|FLICK_ARENA|CHASE_THIEF|MOSS_GARDEN|CAGE_RESCUE)_(?:AD_UNIT_ID|SERVICES))$/i;
+    /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|LANG|LC_[A-Z_]+|CI|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|HOMEBOUND_STATION_PREBUILT_DIR|MERGE_FRONT_PREBUILT_DIR|TETRACUBE_PREBUILT_DIR|PLACE_AND_CLEAR_PREBUILT_DIR|BULLET_GARDEN_PREBUILT_DIR|TOWER_BRAKE_PREBUILT_DIR|TIANXIA_PREBUILT_DIR|H5_ADS_ENABLED|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|TAPTAP_(?:PORCELAIN_PUZZLE|ASHFALL_FRONT|COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE|CARDING_CAR|VIBEJAM_MYSELF_HISTORY_GUESS|WULONG_CITY|NIGHT_OVERWATCH|TRAVEL_BUND|LETTERS_WORDS2|HOMEBOUND_STATION|MERGE_FRONT|TETRACUBE|PLACE_AND_CLEAR|THREE_CHOOSE_TWO|BULLET_GARDEN|TOWER_BRAKE|TIANXIA_CHALU|BALL_ROGUELITE|FLICK_ARENA|CHASE_THIEF|MOSS_GARDEN|CAGE_RESCUE|EMBER_BOUNCE|FOLD_THE_WORLD|OUT_OF_FRAME|SURPRISE_KEPT|TWO_SIDED_BOX)_(?:AD_UNIT_ID|INTERSTITIAL_AD_UNIT_ID|SERVICES))$/i;
   return {
     ...Object.fromEntries(
       Object.keys(env)
@@ -432,7 +432,7 @@ export async function buildH5Packages(
           },
         });
         // These newly supported packages have no backend variant yet; override compiled defaults too.
-        if (['tower-brake', 'cage-rescue', 'flick-arena'].includes(game)) {
+        if (['tower-brake', 'cage-rescue', 'flick-arena', 'porcelain-puzzle'].includes(game)) {
           assert.equal(service, false);
           await writeFile(
             path.join(dist, 'offline-config.js'),
@@ -488,7 +488,9 @@ export async function buildH5Packages(
           adsEnabled: ads,
           effectiveAdsEnabled: adConfig.adsEnabled,
           adMode: adConfig.adMode,
-          adUnitConfigured: Boolean(adConfig.adUnitId),
+          adUnitConfigured: Boolean(adConfig.adUnitId || adConfig.interstitialAdUnitId),
+          rewardedAdUnitConfigured: Boolean(adConfig.rewardedAdUnitId),
+          interstitialAdUnitConfigured: Boolean(adConfig.interstitialAdUnitId),
           serviceEnabled: service,
           apiUrl: serviceConfig.apiUrl,
           localValidation: Boolean(values.local),

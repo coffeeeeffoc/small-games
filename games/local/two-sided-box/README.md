@@ -108,3 +108,7 @@ node games/local/two-sided-box/tests/publishing.browser.mjs
 专项支持 `CHROMIUM_PATH` / `PLAYWRIGHT_EXECUTABLE_PATH` 和 `GAME_URL`，默认启动本款生产构建服务器。报告与桌面/触屏截图位于本游戏 `test-results/publishing/`。验收使用 Chromium 设备模拟，真实手机与渠道 SDK 仍待验证。
 
 可提交的实际截图与报告：[本轮验证记录](docs/verification/2026-10-11-challenge-expansion/README.md)。
+
+## 既有独立 H5 广告入口接线（2026-10-26）
+
+统一 H5 包已把原“视频展开一面”接到公共奖励端口，保留显式宿主优先权、免费提示和每次展开一面的规则；原结算插屏也已接线，两种广告需要分别核实位号。空位时关闭，不使用模拟回退。配置、超时/取消、频控与验证边界统一维护在[公共广告文档](../../../docs/operations/taptap-rewarded-ads.md#既有独立-h5-广告入口接线2026-10-26)。

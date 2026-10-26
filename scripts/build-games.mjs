@@ -263,9 +263,14 @@ export async function main(
           ...compilerEnvironment(env),
           COMPETITION_PUBLIC_API_URL: config.apiUrl ?? '',
         };
-        for (const game of h5PackageGames)
+        for (const game of h5PackageGames) {
           buildEnv[`TAPTAP_${game.toUpperCase().replaceAll('-', '_')}_AD_UNIT_ID`] =
             target.adUnits[game] ?? '';
+          // The unified entry point follows explicit target configuration only.
+          // The optional second slot remains a direct H5 CLI setting.
+          buildEnv[`TAPTAP_${game.toUpperCase().replaceAll('-', '_')}_INTERSTITIAL_AD_UNIT_ID`] =
+            '';
+        }
         for (const game of h5AdGames)
           buildEnv[tapServicesVariable(game)] = JSON.stringify(
             target.tapServices?.[game] || { enabled: false },
@@ -307,6 +312,8 @@ export async function main(
   };
   for (const [game, id] of Object.entries(config.adUnits))
     buildEnv[`TAPTAP_${game.toUpperCase().replaceAll('-', '_')}_AD_UNIT_ID`] = id;
+  for (const game of h5PackageGames)
+    buildEnv[`TAPTAP_${game.toUpperCase().replaceAll('-', '_')}_INTERSTITIAL_AD_UNIT_ID`] = '';
   console.log(
     `GAME_BUILD_SCOPE ${config.games.join(',')} platform=taptap-h5 variants=${config.modes.length} quality_checks=not-run deployment=none`,
   );

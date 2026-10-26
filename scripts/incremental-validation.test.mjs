@@ -15,6 +15,8 @@ import { shellContractTargets } from './validation-plan.mjs';
 import {
   publishingConsumers,
   publishingScopePaths,
+  publishingHostConsumers,
+  publishingHostScopePaths,
   reviewedSharedFileScopes,
 } from './publication-scopes.mjs';
 const packages = [
@@ -150,6 +152,62 @@ test('publishing UI regressions select only reviewed consumer browsers; shared p
       }),
     /Unreviewed publishing browser consumer/,
   );
+});
+
+test('publishing host dispatch runs its contract and only the five reviewed browser entries', async () => {
+  const { runIncrementalToolChecks } = await import('./validate-tree.mjs');
+  const consumerGames = Object.entries(publishingConsumers).map(([id, source]) => ({ id, source }));
+  const consumerPackages = consumerGames.map((game) => ({ name: game.id, dir: game.source }));
+  const select = (changedPaths) => {
+    const context = {
+      changedPaths,
+      games: consumerGames,
+      packages: consumerPackages,
+      readHead: () =>
+        `export const publishingInterstitialGames = ${JSON.stringify(Object.keys(publishingHostConsumers))};`,
+      readSource: () => 'export const rules = 1;',
+    };
+    return incrementalPlan({ ...context, fileScopes: reviewedSharedFileScopes(context) });
+  };
+  const [runtime, unit] = publishingHostScopePaths;
+  for (const file of publishingHostScopePaths) {
+    const selected = select([file]);
+    const ids = file === runtime ? Object.keys(publishingHostConsumers).sort() : [];
+    assert.equal(selected.full, false);
+    assert.equal(selected.publishing_host_checks, true);
+    assert.equal(selected.publishing_checks, false);
+    assert.deepEqual(selected.publishing_browser_ids, ids);
+    assert.deepEqual(selected.browser_ids, ids);
+    const calls = [];
+    runIncrementalToolChecks({
+      plan: selected,
+      packages: consumerPackages,
+      root: '.',
+      env: {},
+      execute: (_command, args) => calls.push(args),
+    });
+    assert.deepEqual(calls[0], ['--test', unit]);
+    assert.deepEqual(
+      calls.slice(1),
+      ids.map((id) => [
+        `${publishingHostConsumers[id]}/tests/${id === 'ember-bounce' ? 'browser.mjs' : 'publishing.browser.mjs'}`,
+      ]),
+    );
+  }
+  const combined = select([runtime, 'platforms/h5/publishing.js']);
+  assert.equal(combined.publishing_host_checks, true);
+  assert.equal(combined.publishing_checks, true);
+  assert.deepEqual(combined.publishing_browser_ids, Object.keys(publishingConsumers).sort());
+  for (const file of ['platforms/h5/publishing.js', 'platforms/h5/interstitial.js']) {
+    const selected = incrementalPlan({
+      changedPaths: [file],
+      games: consumerGames,
+      packages: consumerPackages,
+      fileScopes: new Map([[file, Object.values(publishingHostConsumers)]]),
+      readSource: () => '',
+    });
+    assert.equal(selected.publishing_host_checks, true);
+  }
 });
 
 test('large documentation changes check every file within Windows command limits and still reject formatting errors', async (t) => {

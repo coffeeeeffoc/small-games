@@ -293,11 +293,15 @@ test('H5 targets isolate public IDs and retain the batch index', async () => {
           ...h5Configuration,
           targets: [{ platform: 'taptap', type: 'h5', adUnits: { 'cops-robbers': 'h5-ad' } }],
         }),
-      env: { TAPTAP_COPS_ROBBERS_AD_UNIT_ID: 'old-ad' },
+      env: {
+        TAPTAP_COPS_ROBBERS_AD_UNIT_ID: 'old-ad',
+        TAPTAP_TWO_SIDED_BOX_INTERSTITIAL_AD_UNIT_ID: 'ambient-second-slot',
+      },
       build: async (values, options) => {
         calls++;
         assert.equal(options.env.TAPTAP_COPS_ROBBERS_AD_UNIT_ID, 'h5-ad');
         assert.equal(options.env.TAPTAP_COPS_ROBBERS_REALTIME_AD_UNIT_ID, '');
+        assert.equal(options.env.TAPTAP_TWO_SIDED_BOX_INTERSTITIAL_AD_UNIT_ID, '');
         assert(values.batch);
         return { variants: [] };
       },
@@ -353,7 +357,10 @@ test('missing local config never builds all; build-only entry passes only its de
     /BUILD_CONFIG_MISSING/,
   );
   assert.equal(calls, 0);
-  const env = { PATH: process.env.PATH };
+  const env = {
+    PATH: process.env.PATH,
+    TAPTAP_TWO_SIDED_BOX_INTERSTITIAL_AD_UNIT_ID: 'ambient-second-slot',
+  };
   Object.defineProperty(env, 'ADMIN_GITHUB_CLIENT_SECRET', {
     enumerable: true,
     get() {
@@ -370,6 +377,7 @@ test('missing local config never builds all; build-only entry passes only its de
       assert.equal(options.allowDirty, true);
       assert.equal(options.buildOnly, true);
       assert.equal(options.perGame, true);
+      assert.equal(options.env.TAPTAP_TWO_SIDED_BOX_INTERSTITIAL_AD_UNIT_ID, '');
       assert(!Object.hasOwn(options.env, 'ADMIN_GITHUB_CLIENT_SECRET'));
       assert(values.output.startsWith('outputs/game-builds/'));
     },

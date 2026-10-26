@@ -2,6 +2,13 @@ import { readFile, writeFile, copyFile } from 'node:fs/promises';
 import path from 'node:path';
 
 export const h5AdGames = ['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'];
+export const publishingInterstitialGames = [
+  'ember-bounce',
+  'fold-the-world',
+  'out-of-frame',
+  'surprise-kept',
+  'two-sided-box',
+];
 export const additionalH5Games = [
   'porcelain-puzzle',
   'ashfall-front',
@@ -23,6 +30,11 @@ export const additionalH5Games = [
   'homebound-station',
   'travel-bund',
   'letters-words2',
+  'ember-bounce',
+  'fold-the-world',
+  'out-of-frame',
+  'surprise-kept',
+  'two-sided-box',
 ];
 export const h5PackageGames = [...h5AdGames, ...additionalH5Games];
 export function h5AdConfig(game, { env = process.env, args = [] } = {}) {
@@ -41,6 +53,27 @@ export function h5AdConfig(game, { env = process.env, args = [] } = {}) {
   ).trim();
   if (adUnitId && (!/^[\w-]{1,160}$/.test(adUnitId) || /^(YOUR_|REPLACE_|TODO)/i.test(adUnitId)))
     throw new Error(`${key} must contain a real advertisement unit ID`);
+  if (publishingInterstitialGames.includes(game)) {
+    const rewarded = game === 'two-sided-box' ? adUnitId : '';
+    const interstitial =
+      game === 'two-sided-box'
+        ? (env.TAPTAP_TWO_SIDED_BOX_INTERSTITIAL_AD_UNIT_ID ?? '').trim()
+        : adUnitId;
+    if (
+      interstitial &&
+      (!/^[\w-]{1,160}$/.test(interstitial) || /^(YOUR_|REPLACE_|TODO)/i.test(interstitial))
+    )
+      throw new Error('A real game-specific TapTap H5 interstitial unit is required');
+    return {
+      adMode: rewarded || interstitial ? 'host' : 'off',
+      adsEnabled: Boolean(rewarded || interstitial),
+      platform: 'taptap-h5',
+      adUnitId: rewarded,
+      rewardedAdUnitId: rewarded,
+      interstitialAdUnitId: interstitial,
+      publishingInterstitials: true,
+    };
+  }
   return {
     adMode: adUnitId ? 'host' : 'off',
     adsEnabled: Boolean(adUnitId),
@@ -87,7 +120,10 @@ export async function prepareH5Ads(game, directory, options = {}) {
         '<script type="module" src="./rewarded-host.js"></script></head>',
       );
   }
-  if (additionalH5Games.includes(game)) {
+  if (
+    additionalH5Games.includes(game) &&
+    (!publishingInterstitialGames.includes(game) || game === 'two-sided-box')
+  ) {
     for (const name of ['platform-ads.js', 'game-rewards.js', 'interstitial.js'])
       await copyFile(
         new URL(`../platforms/h5/${name}`, import.meta.url),
@@ -98,6 +134,18 @@ export async function prepareH5Ads(game, directory, options = {}) {
     html = html.replace(
       /<head(?:\s[^>]*)?>/i,
       (head) => `${head}<script type="module" src="./game-rewards.js"></script>`,
+    );
+  }
+  if (publishingInterstitialGames.includes(game)) {
+    for (const name of ['interstitial.js', 'publishing-host.js'])
+      await copyFile(
+        new URL(`../platforms/h5/${name}`, import.meta.url),
+        path.join(directory, name),
+      );
+    html = html.replace(/<script[^>]*src=["']\.\/publishing-host\.js["'][^>]*><\/script>/g, '');
+    html = html.replace(
+      /<head(?:\s[^>]*)?>/i,
+      (head) => `${head}<script type="module" src="./publishing-host.js"></script>`,
     );
   }
   await writeFile(index, html);

@@ -72,10 +72,14 @@ const effects = [],
   cleanups = [];
 const board = $('board'),
   position = $('position');
+if (globalThis.__COMPETITION_CONFIG__?.enabled === false)
+  $('friends-open').style.display = 'none';
 const draw = createRenderer(board),
   drawHome = createRenderer($('home-board')),
   drawRoom = createRenderer($('room-preview-board'));
 async function loadCompetitionClient() {
+  if (globalThis.__COMPETITION_CONFIG__?.enabled === false)
+    throw new Error('本试包未启用好友服务');
   if (!globalThis.__competition) {
     await import(new URL('../competition-client.js', import.meta.url).href);
     globalThis.__installCompetition({
