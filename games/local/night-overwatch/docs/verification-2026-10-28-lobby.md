@@ -23,4 +23,12 @@
 
 ## 素材与发布
 
-[当前上架资料](../publishing/STATUS.md)记录六张截图、19.28 秒连续实机录屏、16 秒宣传片和源身份。素材由真实输入录制，没有改写战斗状态；视频无音轨，完成语音另作为游戏 WAV 资源验证。部署回执和最终提交身份在部署完成后追加。
+[当前上架资料](../publishing/STATUS.md)记录六张截图、19.28 秒连续实机录屏、16 秒宣传片和源身份。素材由真实输入录制，没有改写战斗状态；视频无音轨，完成语音另作为游戏 WAV 资源验证。实现提交 `55f3df97c35bf5d5a2fff8a43d13f409d48654aa` 已非强制推送 dev。
+
+## 生产结果
+
+Runtime release `55f3df97c35b-1793126016178-711b8c`；HTTPS proxy release `20261027183513-55f3df97c35b-c11c2f`。两者源提交均为上述实现提交。[部署回执](../reports/2026-10-28-lobby/backend-receipt.json)确认健康、备份、数据库未替换且无schema变更；按依赖关系重建Kart容器但保留原镜像。isolatedRestoreVerified=false，本次未作数据库隔离恢复演练。
+
+[线上定向证据](../reports/2026-10-28-lobby/production-evidence.json)：匿名身份、四类榜读取/迁移初始化、私密房隐藏、六位房号加入、观战退出不影响成员、连接轮换与旧租约409、两个HTTPS前缀、准备阶段退出无战绩均通过。会话已退出、等待房已销毁，未制造公开比赛积分。公开health为200，只代表存活；上述鉴权房间和榜单读取同时验证了实际数据库路径。
+
+本地只做准确基线/提交的范围规划（通过），未执行全量候选验证。独立[CI](https://github.com/coffeeeeffoc/small-games/actions/runs/40561014681)与[Pages](https://github.com/coffeeeeffoc/small-games/actions/runs/40561014815)截至2026-10-28 02:36仍运行/排队，后续证据文档提交会产生新的流水线，不能宣称本轮前端已上线。

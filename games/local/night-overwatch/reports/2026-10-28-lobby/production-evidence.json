@@ -1,0 +1,22 @@
+{
+  "sourceSHA": "55f3df97c35bf5d5a2fff8a43d13f409d48654aa",
+  "checkedAt": "2026-10-27T18:36:00.212Z",
+  "checks": [
+    "anonymous metadata lobby/history enabled",
+    "four leaderboard types and durable legacy initialization",
+    "private six-digit room, spectator join/leave, room join, lease rotation and stale rejection through both HTTPS prefixes",
+    "pre-start leave has no history or score"
+  ],
+  "health": {
+    "status": 200,
+    "body": {
+      "service": "runtime",
+      "status": "ok"
+    }
+  },
+  "proxy": {
+    "release": "20261027183513-55f3df97c35b-c11c2f",
+    "sourceSHA": "55f3df97c35bf5d5a2fff8a43d13f409d48654aa",
+    "completed": true
+  }
+}
