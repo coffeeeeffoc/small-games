@@ -49,7 +49,7 @@ for (let number = 4; number <= 120; number++) {
 export const TRAINING: MissionDefinition = {
   light: 'day', initialWeapon: 1,
   ...MISSION, id: 'training-60', map: 'valley', mode: 'training', duration: 60, speed: 0,
-  name: ['60 秒火控热身', '60s FIRE CONTROL'],
+  name: ['火控热身', 'FIRE CONTROL'],
   description: ['静止 / 巡逻 / 重甲 · 练切炮与提前量', 'Static / rover / armor · Switch & lead'],
   events: [
     { time: 0, progress: 0, kind: 'turret', x: -108, z: 25,
@@ -57,7 +57,7 @@ export const TRAINING: MissionDefinition = {
     { time: 0, progress: 0, kind: 'light', x: -109, z: 70,
       direction: ['巡逻目标：准星放到弹着时的位置', 'Rover: aim where it will be at impact'] },
     { time: 0, progress: 0, kind: 'heavy', x: -91, z: 49,
-      direction: ['练瞄准，友军仍不能误伤 · 60 秒清除三个目标', 'Practice aiming. Avoid allies. Clear three targets in 60s.'] },
+      direction: ['练瞄准，友军仍不能误伤 · 清除三个目标', 'Practice aiming. Avoid allies. Clear three targets.'] },
   ],
 };
 if (new Set([...profiles, TRAINING].map(mission => mission.id)).size !== profiles.length + 1) throw new Error('Duplicate mission ID.');

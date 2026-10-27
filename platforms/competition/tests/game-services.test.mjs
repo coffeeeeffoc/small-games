@@ -374,3 +374,54 @@ test('late version rejection cannot overwrite a newer recording or a timed out l
     assert.equal(recorder.status, timeout ? 'unavailable' : 'recording');
   }
 });
+
+test('lobby SDK preserves passwords in POST bodies, renews leases, rotates connections and reads history', async (t) => {
+  const f = authFixture(t),
+    api = createGameServices({ gameId: 'tower-brake' });
+  const base = f.respond;
+  f.respond = async (url, init) => {
+    const result = await base(url, init);
+    if (url.endsWith('/rooms') && init.body) return { code: '123456', leaseId: 'lease-1' };
+    if (url.endsWith('/connect')) return { code: '123456', leaseId: 'lease-2' };
+    return result;
+  };
+  await api.listRooms();
+  assert.equal(f.calls.at(-1).body, undefined);
+  await api.createRoom({ mode: 'friend', visibility: 'private', password: 'four' });
+  assert.deepEqual(f.calls.at(-1).body, {
+    mode: 'friend',
+    visibility: 'private',
+    password: 'four',
+  });
+  await api.getRoom({ code: '123456' });
+  assert(f.calls.at(-1).url.endsWith('/rooms/123456?leaseId=lease-1'));
+  await api.connectRoom({ code: '123456' });
+  assert.deepEqual(f.calls.at(-1).body, {});
+  await api.roomAction({
+    code: '123456',
+    operation: 'actions',
+    body: { seq: 1, action: { commands: [] } },
+  });
+  assert.equal(f.calls.at(-1).body.leaseId, 'lease-2');
+  await api.joinRoom({ code: '654321', password: 'secret' });
+  assert.deepEqual(f.calls.at(-1).body, { code: '654321', password: 'secret' });
+  await api.spectateRoom({ code: '654321', password: 'secret' });
+  assert(f.calls.at(-1).url.endsWith('/rooms/654321/spectate'));
+  assert.deepEqual(f.calls.at(-1).body, { password: 'secret' });
+  await api.history({ cursor: 'opaque+/' });
+  assert(f.calls.at(-1).url.endsWith('/history?cursor=opaque%2B%2F'));
+  assert(f.calls.every((call) => !call.url.includes('secret')));
+});
+test('updateProfile returns /me and updates the scoped identity cache', async (t) => {
+  const f = authFixture(t),
+    api = createGameServices({ gameId: 'tower-brake' }),
+    base = f.respond;
+  f.respond = async (url, init) => {
+    const result = await base(url, init);
+    return url.endsWith('/me')
+      ? { ...credential(), nickname: '夜航玩家', name: '夜航玩家', profileUpdatedAt: 100 }
+      : result;
+  };
+  assert.equal((await api.updateProfile({ nickname: '夜航玩家' })).nickname, '夜航玩家');
+  assert.equal((await api.session()).nickname, '夜航玩家');
+});

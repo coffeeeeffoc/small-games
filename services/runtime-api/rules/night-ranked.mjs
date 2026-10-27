@@ -10,14 +10,25 @@ export default {
   id: 'night-overwatch',
   title: '夜航守望',
   version: RANKED_RULE_VERSION,
-  boards: MISSIONS.map((mission) => ({
-    id: `level-${mission.id}`,
-    title: mission.name[0],
-    guestAllowed: true,
-    scoreUnit: '次',
-    secondaryUnit: 'milliseconds',
-    description: '本关经服务端验证的最快通关用时；辅助、试玩和失败不计入。',
-  })),
+  boardVersion: 'night-records-v1',
+  boards: [
+    ...['clears', 'points', 'win-rate'].map((id, i) => ({
+      id,
+      title: ['通关榜', '积分榜', '胜率榜'][i],
+      guestAllowed: true,
+      scoreUnit: ['关', '分', '比率'][i],
+      secondaryUnit: 'milliseconds',
+      description: ['不同关卡去重', '经服务端结算的累计积分', '真人开局胜场/场次'][i],
+    })),
+    ...MISSIONS.map((mission) => ({
+      id: `level-${mission.id}`,
+      title: mission.name[0],
+      guestAllowed: true,
+      scoreUnit: '次',
+      secondaryUnit: 'milliseconds',
+      description: '本关经服务端验证的最快通关用时；辅助、试玩和失败不计入。',
+    })),
+  ],
   create(board, _seed, levelId) {
     if (board !== `level-${levelId}` || !MISSIONS.some((mission) => mission.id === levelId))
       throw Error('Invalid level');
@@ -26,6 +37,6 @@ export default {
   apply: (state, frames) => applyNightReplay(structuredClone(state), frames),
   result(state) {
     const result = nightReplayResult(structuredClone(state));
-    return { ...result, score: result.eligible ? 1 : 0 };
+    return { ...result, eligible: result.cleared, score: result.cleared ? 1 : 0 };
   },
 };

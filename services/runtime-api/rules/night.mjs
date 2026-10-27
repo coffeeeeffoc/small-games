@@ -4,7 +4,7 @@ import {
   commandDuel,
   viewDuel,
   DUEL_VERSION,
-  DUEL_SECONDS,
+  takeoverDuel,
 } from '../../../games/local/night-overwatch/assets/scripts/core/Duel.ts';
 
 const copy = (state) => structuredClone(state);
@@ -14,8 +14,11 @@ export default {
   version: DUEL_VERSION,
   duel: true,
   unrated: true,
-  durationMs: DUEL_SECONDS * 1000,
-  pollMs: 200,
+  lobby: true,
+  noTimeLimit: true,
+  durationMs: 24 * 60 * 60 * 1000,
+  takeover: (state, seat) => takeoverDuel(copy(state), seat),
+  pollMs: 100,
   modes: [
     { id: 'friend', title: '好友对战' },
     { id: 'match', title: '随机匹配' },
@@ -41,7 +44,8 @@ export default {
   result(state, seat) {
     return {
       finished: state.finished,
-      eligible: false,
+      eligible: state.finished,
+      outcome: state.winner === null ? 'draw' : state.winner === seat ? 'win' : 'loss',
       score: state.finished && state.winner === seat ? 1 : 0,
       secondary: Math.round((state.ticks * 1000) / 60),
     };

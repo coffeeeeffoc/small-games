@@ -1,0 +1,23 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2"
+  },
+  "checks": [
+    "room code join, entry, spectator read-only and fullscreen enter/exit",
+    "short network loss and refresh restore the same match",
+    "30 second leave settlement, winner continues against bot, history has loser points",
+    "single player resumes without countdown"
+  ],
+  "errors": [],
+  "metrics": {
+    "frames": 151,
+    "networkSteps": 23,
+    "visualSteps": 151,
+    "reportedFps": 60.01984126984132
+  },
+  "gameplayStart": 62.104,
+  "gameplayDuration": 26.229,
+  "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-28-lobby\\bce4c66b688135ce9b76dfd7453dd6b0.webm"
+}

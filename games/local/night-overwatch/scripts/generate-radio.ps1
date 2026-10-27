@@ -1,9 +1,14 @@
+param([string]$Cue = '')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Speech
 $radioRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../assets/resources/audio'))
 $source = Get-Content (Join-Path $PSScriptRoot '../assets/scripts/Platform.ts') -Raw -Encoding utf8
-$lines = [regex]::Matches($source, "(?m)^  (day|night|priority|critical|clear): \['([^']+)', '([^']+)'\],")
-if ($lines.Count -ne 5) { throw 'Expected five bilingual radio cues.' }
+$lines = [regex]::Matches($source, "(?m)^  (day|night|priority|critical|clear|complete): \['([^']+)', '([^']+)'\],")
+if ($lines.Count -ne 6) { throw 'Expected six bilingual radio cues.' }
+if ($Cue) {
+  $lines = @($lines | Where-Object { $_.Groups[1].Value -eq $Cue })
+  if ($lines.Count -ne 1) { throw 'Unknown radio cue.' }
+}
 $speaker = New-Object System.Speech.Synthesis.SpeechSynthesizer
 try {
   foreach ($line in $lines) {

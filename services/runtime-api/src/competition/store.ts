@@ -1,8 +1,22 @@
 /* eslint-disable max-lines -- Room transactions and settlement share lock ordering; keep them visible in one store. */
-import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
+import {
+  createHash,
+  randomBytes,
+  randomInt,
+  randomUUID,
+  scrypt,
+  timingSafeEqual,
+} from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { openDatabase } from '@coffeeeeffoc/service-kit';
 import { CompetitionError, type Room, type Rule } from './types.js';
+import {
+  backfillNightClears,
+  nightBoard,
+  nightHistory,
+  nightSummary,
+  settleNightRoom,
+} from './night-ledger.js';
 import { createCompetitionIdentities } from './identity-store.js';
 import { publicProfile, publicResult, publicRoomResults } from './profile.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
@@ -16,6 +30,13 @@ import {
 
 type Database = ReturnType<typeof openDatabase>['db'];
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
+type RoomOptions = {
+  mode?: string;
+  role?: string;
+  initiative?: string;
+  visibility?: 'public' | 'private';
+  password?: string;
+};
 type RankingRow = ReturnType<typeof publicProfile> & {
   playerId: string;
   score: number;
@@ -35,6 +56,11 @@ type Ranking = {
   reason: string | null;
 };
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
+const passwordKey = (password: string, salt: string) =>
+  new Promise<Buffer>((resolve, reject) => {
+    scrypt(password, salt, 32, (error, key) => (error ? reject(error) : resolve(key)));
+  });
+const spectatorLeaseMs = 30_000;
 const json = (value: unknown) => JSON.stringify(value);
 const boardOf = (rule: Rule) => `${rule.id}:${rule.version}`;
 const ruleSeat = (rule: Rule, room: Room, seat: number) =>
@@ -75,15 +101,20 @@ export function createCompetitionStore(
       count(*) over()::int as total from runtime.competition_best b join runtime.competition_players p on p.id=b.player_id where board=${board}
     ) select * from ranked where position<=100 or "playerId"=${playerId}
       or position=(select max(position) from ranked where rank<(select rank from ranked where "playerId"=${playerId})) order by position`);
-    const rows = rankedRows.map((row) => ({
-      ...publicProfile(row),
-      playerId: String(row.playerId),
-      score: Number(row.score),
-      secondary: Number(row.secondary),
-      rank: Number(row.rank),
-      position: Number(row.position),
-      total: Number(row.total),
-    }));
+    const rows = await Promise.all(
+      rankedRows.map(async (row) => ({
+        ...publicProfile(row),
+        playerId: String(row.playerId),
+        score: Number(row.score),
+        secondary: Number(row.secondary),
+        rank: Number(row.rank),
+        position: Number(row.position),
+        total: Number(row.total),
+        ...(board === nightBoard('win-rate')
+          ? await nightSummary(executor, String(row.playerId))
+          : {}),
+      })),
+    );
     const top = rows.filter((row) => Number(row.position) <= 100);
     const me = rows.find((row) => row.playerId === playerId) ?? null;
     const previous = me
@@ -132,13 +163,14 @@ export function createCompetitionStore(
   async function create(
     auth: PlayerAuth,
     game: string,
-    options: { mode?: string; role?: string; initiative?: string } = {},
+    options: RoomOptions = {},
     executor: Database | Tx = db,
   ) {
     const playerId = playerIdOf(auth);
     const rule = ruleFor(game);
     const policy = await gamePolicy(control, executor, game);
     assertGameControl(policy, policy?.killEpoch, true);
+    if (rule.lobby) await lockMatch(executor, game);
     await assertResourceAuth(executor, auth, game, now());
     if (options.mode && !rule.modes?.some((mode) => mode.id === options.mode))
       throw new CompetitionError('INVALID_MODE', 422);
@@ -149,9 +181,37 @@ export function createCompetitionStore(
       (!rule.roles || ![...rule.roles, 'random'].includes(options.initiative))
     )
       throw new CompetitionError('INVALID_ROLE', 422);
+    if (rule.lobby) {
+      await lockMatch(executor, game);
+      const own = await activeRoom(executor, game, playerId);
+      if (own) {
+        if (own.version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
+        return own;
+      }
+    }
+    if (
+      options.visibility === 'private' &&
+      (!options.password || options.password.length < 4 || options.password.length > 64)
+    )
+      throw new CompetitionError('PASSWORD_REQUIRED', 422);
+    if (options.password && options.visibility !== 'private')
+      throw new CompetitionError('INVALID_PASSWORD', 422);
+    const salt = options.visibility === 'private' ? randomBytes(16).toString('hex') : undefined;
     const room: Room = {
+      id: randomUUID(),
+      visibility: options.visibility ?? (rule.lobby ? 'public' : 'private'),
+      ...(salt
+        ? {
+            passwordSalt: salt,
+            passwordHash: (await passwordKey(options.password!, salt)).toString('hex'),
+          }
+        : {}),
+      spectators: [],
+      spectatorSeenAt: {},
       killEpoch: policy?.killEpoch ?? 0,
-      code: randomBytes(6).toString('hex').toUpperCase(),
+      code: rule.lobby
+        ? String(randomInt(100000, 1000000))
+        : randomBytes(6).toString('hex').toUpperCase(),
       game,
       version: rule.version,
       status: 'waiting',
@@ -159,21 +219,40 @@ export function createCompetitionStore(
       mode: options.mode ?? rule.modes?.[0]?.id,
       initiative: rule.roles ? (options.initiative ?? 'random') : undefined,
       players: [
-        { id: playerId, role: options.role ?? rule.roles?.[0], ready: false, seq: 0, state: null },
+        {
+          id: playerId,
+          role: options.role ?? rule.roles?.[0],
+          ready: false,
+          seq: 0,
+          state: null,
+          ...(rule.lobby ? { leaseId: randomUUID(), seenAt: now() } : {}),
+        },
       ],
       createdAt: now(),
       deadline: now() + 15 * 60_000,
     };
-    await executor.execute(
-      sql`insert into runtime.competition_rooms values(${room.code},${json(room)}::jsonb,${room.deadline})`,
-    );
-    return room;
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const inserted = await executor.execute(
+        sql`insert into runtime.competition_rooms values(${room.code},${json(room)}::jsonb,${room.deadline}) on conflict do nothing returning code`,
+      );
+      if (inserted.length) return room;
+      room.code = rule.lobby
+        ? String(randomInt(100000, 1000000))
+        : randomBytes(6).toString('hex').toUpperCase();
+    }
+    throw new CompetitionError('ROOM_CODES_BUSY', 503);
   }
-  async function view(room: Room, playerId: string, executor: Database | Tx = db) {
+  async function view(
+    room: Room,
+    playerId: string,
+    executor: Database | Tx = db,
+    leaseId?: string,
+  ) {
     const rule = ruleFor(room.game);
     const seat = room.players.findIndex((p) => p.id === playerId);
-    if (seat < 0) throw new CompetitionError('NOT_A_MEMBER', 403);
-    const member = room.players[seat]!;
+    if (seat < 0 && !room.spectators?.includes(playerId))
+      throw new CompetitionError('NOT_A_MEMBER', 403);
+    const member = room.players[seat];
     const names = await executor.execute(
       sql`select id,display_name,profile from runtime.competition_players where id in (${sql.join(
         room.players.map((p) => sql`${p.id}::uuid`),
@@ -182,6 +261,7 @@ export function createCompetitionStore(
     );
     const profileOf = (id: string) => publicProfile(names.find((p) => p.id === id) ?? { id });
     return {
+      id: room.id ?? room.code,
       code: room.code,
       game: room.game,
       version: room.version,
@@ -192,27 +272,40 @@ export function createCompetitionStore(
       initiative: room.initiative,
       firstRole: room.firstRole,
       you: seat,
-      players: room.players.map(({ id, role, ready, result }) => ({
-        id,
-        ...profileOf(id),
-        role,
-        ready,
-        result: publicResult(result),
-      })),
-      seq: member.seq,
+      spectator: seat < 0,
+      visibility: room.visibility ?? 'private',
+      leaseId: member?.leaseId === leaseId ? leaseId : undefined,
+      settlement: member?.settlement ?? null,
+      players: room.players.map(
+        ({ id, role, ready, result, disconnected, reconnectUntil, takenOver, settlement }) => ({
+          id,
+          ...profileOf(id),
+          role,
+          ready,
+          disconnected: !!disconnected,
+          reconnectUntil,
+          takenOver: !!takenOver,
+          settlement,
+          result: publicResult(result),
+        }),
+      ),
+      seq: member?.seq ?? 0,
       startedAt: room.startedAt,
+      startsAt: room.startedAt,
       deadline: room.deadline,
       serverNow: now(),
       pollMs: rule.pollMs ?? 1200,
       state:
-        member.state === null
+        room.players[0]!.state === null
           ? null
           : rule.view(
-              rule.duel ? room.players[0]!.state : member.state,
-              ruleSeat(rule, room, seat),
+              rule.duel ? room.players[0]!.state : (member ?? room.players[0]!).state,
+              ruleSeat(rule, room, Math.max(0, seat)),
             ),
       opponent:
-        room.players.length === 2 ? publicResult(room.players[1 - seat]?.result ?? null) : null,
+        seat >= 0 && room.players.length === 2
+          ? publicResult(room.players[1 - seat]?.result ?? null)
+          : null,
       results: publicRoomResults(room.results),
       rematch: room.rematch,
     };
@@ -228,6 +321,10 @@ export function createCompetitionStore(
     }
     if (!timedOut && !room.players.every((p) => p.result?.finished)) return;
     room.status = 'finished';
+    if (room.game === 'night-overwatch') {
+      await settleNightRoom(tx, room, now(), 'elimination');
+      return;
+    }
     if (rule.unrated) {
       // Casual multiplayer series settle once in the room, never in the two-player ladder.
       room.results = room.players.map((player) => ({
@@ -296,19 +393,98 @@ export function createCompetitionStore(
     )
       return;
     room.status = 'playing';
-    room.startedAt = now();
-    room.deadline = room.startedAt + rule.durationMs;
+    room.startedAt = now() + (rule.lobby ? 1200 : 0);
+    room.deadline = rule.noTimeLimit ? Number.MAX_SAFE_INTEGER : room.startedAt + rule.durationMs;
     room.firstRole =
       room.initiative === 'random' ? rule.roles?.[randomInt(rule.roles.length)] : room.initiative;
     for (const player of room.players) {
+      if (rule.lobby) {
+        player.seenAt = room.startedAt;
+        player.disconnected = false;
+        delete player.reconnectUntil;
+      }
       player.state = rule.initial(room.seed, room.mode, room.firstRole);
       player.before = rule.unrated ? null : (await ranking(boardOf(rule), player.id, tx)).me;
     }
   }
-  async function lockMatch(tx: Tx, game: string) {
+  async function lockMatch(tx: Database | Tx, game: string) {
     await tx.execute(
       sql`select pg_advisory_xact_lock(hashtextextended('competition-match:' || ${game},0))`,
     );
+  }
+  async function activeRoom(tx: Database | Tx, game: string, playerId: string) {
+    const rows = await tx.execute(sql`select data from runtime.competition_rooms
+      where data->>'game'=${game} and data->>'status' in ('waiting','playing') and expires_at>${now()}
+      and data->>'version'=${ruleFor(game).version}
+      and exists(select 1 from jsonb_array_elements(data->'players') p where p->>'id'=${playerId} and coalesce((p->>'takenOver')::boolean,false)=false)
+      order by data->>'createdAt' desc limit 1 for update`);
+    return rows[0]?.data as Room | undefined;
+  }
+  async function password(room: Room, supplied?: string) {
+    if (
+      room.passwordHash &&
+      (!supplied ||
+        !timingSafeEqual(
+          Buffer.from(room.passwordHash, 'hex'),
+          await passwordKey(supplied, room.passwordSalt!),
+        ))
+    )
+      throw new CompetitionError('INVALID_PASSWORD', 403);
+  }
+  function pruneSpectators(room: Room) {
+    room.spectators = (room.spectators ?? []).filter(
+      (id) => now() - (room.spectatorSeenAt?.[id] ?? room.createdAt) < spectatorLeaseMs,
+    );
+    room.spectatorSeenAt = Object.fromEntries(
+      room.spectators.map((id) => [id, room.spectatorSeenAt?.[id] ?? room.createdAt]),
+    );
+  }
+  async function advanceLobby(room: Room, tx: Tx) {
+    pruneSpectators(room);
+    if (room.status !== 'playing') return;
+    const rule = ruleFor(room.game);
+    const elapsed = Math.max(0, now() - room.startedAt!);
+    const expired = room.players.filter(
+      (member) => !member.takenOver && now() >= (member.reconnectUntil ?? member.seenAt! + 30000),
+    );
+    for (const member of room.players) {
+      if (!member.takenOver && now() - member.seenAt! >= 2500) {
+        member.disconnected = true;
+        member.reconnectUntil ??= member.seenAt! + 30000;
+      }
+    }
+    if (expired.length) {
+      const cutoff = Math.max(
+        0,
+        Math.min(...expired.map((member) => member.reconnectUntil ?? member.seenAt! + 30000)) -
+          room.startedAt!,
+      );
+      room.players[0]!.state = rule.advance!(room.players[0]!.state, cutoff);
+      await finish(room, tx);
+      if (room.status !== 'playing') return;
+      for (const member of expired) {
+        member.takenOver = true;
+        member.disconnected = true;
+        room.players[0]!.state = rule.takeover!(
+          room.players[0]!.state,
+          room.players.indexOf(member),
+        );
+      }
+      const abandoned = room.players.every((member) => member.takenOver);
+      if (abandoned)
+        for (const member of room.players) {
+          member.takenOver = true;
+          member.disconnected = true;
+        }
+      await settleNightRoom(tx, room, now(), abandoned ? 'abandoned' : 'disconnect');
+      if (abandoned) {
+        room.status = 'abandoned';
+        return;
+      }
+    }
+    room.players[0]!.state = rule.advance!(room.players[0]!.state, elapsed);
+    await finish(room, tx);
+    room.deadline = Number.MAX_SAFE_INTEGER;
   }
   async function match(auth: PlayerAuth, game: string) {
     const playerId = playerIdOf(auth);
@@ -319,6 +495,47 @@ export function createCompetitionStore(
       const policy = await gamePolicy(control, tx, game);
       await lockMatch(tx, game);
       await assertResourceAuth(tx, auth, game, now());
+      if (rule.lobby) {
+        assertGameControl(policy, policy?.killEpoch, true);
+        let room = await activeRoom(tx, game, playerId);
+        if (room) {
+          if (room.version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
+          assertGameControl(policy, room.killEpoch ?? 0);
+          await advanceLobby(room, tx);
+          await tx.execute(
+            sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${room.code}`,
+          );
+        }
+        if (
+          room &&
+          (!['waiting', 'playing'].includes(room.status) ||
+            room.players.find((p) => p.id === playerId)?.takenOver)
+        )
+          room = undefined;
+        if (!room) {
+          const waiting =
+            await tx.execute(sql`select data from runtime.competition_rooms where data->>'game'=${game}
+            and data->>'version'=${rule.version} and data->>'visibility'='public' and data->>'mode'<>'bot'
+            and data->>'status'='waiting' and expires_at>${now()} and jsonb_array_length(data->'players')=1
+            and coalesce((data->>'killEpoch')::bigint,0)=${policy?.killEpoch ?? 0}
+            order by data->>'createdAt',code limit 1 for update`);
+          room = waiting[0]?.data as Room | undefined;
+          if (room)
+            room.players.push({
+              id: playerId,
+              ready: false,
+              seq: 0,
+              state: null,
+              leaseId: randomUUID(),
+              seenAt: now(),
+            });
+          else room = await create(auth, game, { mode: 'match', visibility: 'public' }, tx);
+        }
+        await tx.execute(
+          sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${room.code}`,
+        );
+        return view(room, playerId, tx, room.players.find((p) => p.id === playerId)?.leaseId);
+      }
       const own = await tx.execute(sql`select data from runtime.competition_rooms
         where data->>'game'=${game} and data->>'mode' in ('match','bot')
         and data->>'status' in ('waiting','playing') and expires_at>${now()}
@@ -371,6 +588,174 @@ export function createCompetitionStore(
       return view(room, playerId, tx);
     });
   }
+  async function lobbyAction(
+    room: Room,
+    playerId: string,
+    operation: string,
+    input: { seq?: number; action?: unknown; password?: string; leaseId?: string },
+    tx: Tx,
+    policy: Awaited<ReturnType<typeof gamePolicy>>,
+  ) {
+    const rule = ruleFor(room.game);
+    let member = room.players.find((p) => p.id === playerId);
+    const wasSpectator = room.spectators?.includes(playerId);
+    pruneSpectators(room);
+    if (!member && wasSpectator && operation === 'leave') {
+      room.spectators = room.spectators!.filter((id) => id !== playerId);
+      delete room.spectatorSeenAt![playerId];
+      await tx.execute(
+        sql`update runtime.competition_rooms set data=${json(room)}::jsonb where code=${room.code}`,
+      );
+      return { code: room.code, spectator: true, left: true };
+    }
+    const spectator = room.spectators?.includes(playerId);
+    if (!member && !spectator && !['join', 'spectate'].includes(operation))
+      throw new CompetitionError('NOT_A_MEMBER', 403);
+    if (!member && !['get', 'spectate', 'join'].includes(operation))
+      throw new CompetitionError('SPECTATOR_READ_ONLY', 403);
+    if (member && input.leaseId && input.leaseId !== member.leaseId)
+      throw new CompetitionError('STALE_LEASE');
+    if (
+      member &&
+      !['get', 'join', 'connect', 'spectate'].includes(operation) &&
+      input.leaseId !== member.leaseId
+    )
+      throw new CompetitionError('STALE_LEASE');
+    if (!member && ['join', 'spectate'].includes(operation)) await password(room, input.password);
+    if (
+      operation === 'leave' &&
+      policy &&
+      (policy.state === 'disabled' || policy.killEpoch !== (room.killEpoch ?? 0))
+    ) {
+      room.status = 'abandoned';
+      await tx.execute(
+        sql`update runtime.competition_rooms set data=${json(room)}::jsonb where code=${room.code}`,
+      );
+      return view(room, playerId, tx);
+    }
+    assertGameControl(
+      policy,
+      room.killEpoch ?? 0,
+      ['join', 'ready', 'rematch'].includes(operation),
+    );
+    await advanceLobby(room, tx);
+    if (room.status === 'waiting' && now() >= room.deadline) room.status = 'expired';
+    let exposeLease: string | undefined;
+    if (operation === 'spectate' && !member) {
+      if (!['waiting', 'playing'].includes(room.status)) throw new CompetitionError('MATCH_CLOSED');
+      room.spectators ??= [];
+      if (!spectator) {
+        if (room.spectators.length >= 256) throw new CompetitionError('ROOM_FULL');
+        room.spectators.push(playerId);
+      }
+    }
+    if (!member && (operation === 'spectate' || (operation === 'get' && spectator)))
+      room.spectatorSeenAt![playerId] = now();
+    if (operation === 'join' && !member) {
+      if (room.status !== 'waiting') throw new CompetitionError('INVITATION_EXPIRED');
+      if (room.players.length >= (rule.roomSize?.(room.mode) ?? 2))
+        throw new CompetitionError('ROOM_FULL');
+      const active = await activeRoom(tx, room.game, playerId);
+      if (active && active.code !== room.code) throw new CompetitionError('ACTIVE_ROOM');
+      member = {
+        id: playerId,
+        ready: false,
+        seq: 0,
+        state: null,
+        leaseId: randomUUID(),
+        seenAt: now(),
+      };
+      room.players.push(member);
+      room.spectators = room.spectators?.filter((id) => id !== playerId);
+      delete room.spectatorSeenAt![playerId];
+      exposeLease = member.leaseId;
+    }
+    if (member && operation === 'connect') {
+      if (member.takenOver) throw new CompetitionError('PLAYER_DISCONNECTED');
+      member.leaseId = randomUUID();
+      exposeLease = member.leaseId;
+    }
+    if (
+      member &&
+      !member.takenOver &&
+      (operation === 'connect' || input.leaseId === member.leaseId)
+    ) {
+      member.seenAt = now();
+      member.disconnected = false;
+      delete member.reconnectUntil;
+    }
+    if (operation === 'leave' && member) {
+      if (room.status === 'waiting') {
+        room.status = 'abandoned';
+        await tx.execute(sql`delete from runtime.competition_rooms where code=${room.code}`);
+        return view(room, playerId, tx);
+      }
+      if (room.status === 'playing' && now() < room.startedAt!) room.status = 'abandoned';
+      else if (room.status === 'playing' && !member.takenOver) {
+        member.disconnected = true;
+        member.reconnectUntil = now() + 30000;
+      }
+    } else if (operation === 'ready' && member) {
+      if (room.status === 'waiting') {
+        member.ready = true;
+        await start(room, tx);
+      } else if (room.status !== 'playing') throw new CompetitionError('MATCH_CLOSED');
+    } else if (operation === 'actions' && member) {
+      if (member.takenOver) throw new CompetitionError('PLAYER_DISCONNECTED');
+      const actionHash = hash(json(input.action));
+      const existing = await tx.execute(
+        sql`select action_hash from runtime.competition_actions where room_code=${room.code} and player_id=${playerId} and seq=${input.seq}`,
+      );
+      if (existing.length) {
+        if (existing[0]!.action_hash !== actionHash)
+          throw new CompetitionError('SEQUENCE_CONFLICT');
+      } else {
+        if (room.status !== 'playing') throw new CompetitionError('MATCH_CLOSED');
+        if (now() < room.startedAt!) throw new CompetitionError('MATCH_STARTING');
+        if (input.seq !== member.seq + 1) throw new CompetitionError('SEQUENCE_CONFLICT');
+        try {
+          room.players[0]!.state = rule.action(
+            room.players[0]!.state,
+            input.action,
+            now() - room.startedAt!,
+            room.players.indexOf(member),
+          );
+        } catch {
+          throw new CompetitionError('ILLEGAL_ACTION', 422);
+        }
+        member.seq = input.seq!;
+        await tx.execute(
+          sql`insert into runtime.competition_actions values(${room.code},${playerId},${input.seq},${actionHash},${now()})`,
+        );
+        await finish(room, tx);
+      }
+    } else if (operation === 'rematch' && member) {
+      if (!['finished', 'abandoned', 'expired'].includes(room.status))
+        throw new CompetitionError('MATCH_NOT_FINISHED');
+      if (!room.rematch) {
+        await tx.execute(
+          sql`update runtime.competition_rooms set data=${json(room)}::jsonb where code=${room.code}`,
+        );
+        const next = await create(
+          playerId,
+          room.game,
+          { mode: room.mode === 'bot' ? 'bot' : 'friend' },
+          tx,
+        );
+        next.visibility = room.visibility;
+        next.passwordHash = room.passwordHash;
+        next.passwordSalt = room.passwordSalt;
+        await tx.execute(
+          sql`update runtime.competition_rooms set data=${json(next)}::jsonb where code=${next.code}`,
+        );
+        room.rematch = next.code;
+      }
+    }
+    await tx.execute(
+      sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${room.code}`,
+    );
+    return view(room, playerId, tx, exposeLease);
+  }
   async function roomAction(
     auth: PlayerAuth,
     code: string,
@@ -381,6 +766,8 @@ export function createCompetitionStore(
       game?: string;
       role?: string;
       initiative?: string;
+      password?: string;
+      leaseId?: string;
     } = {},
   ) {
     const playerId = playerIdOf(auth);
@@ -391,8 +778,14 @@ export function createCompetitionStore(
       if (!preview[0]) throw new CompetitionError('INVITATION_NOT_FOUND', 404);
       const previewRoom = preview[0].data as Room;
       const policy =
-        operation !== 'leave' ? await gamePolicy(control, tx, previewRoom.game) : undefined;
-      if (previewRoom.mode === 'match' || previewRoom.mode === 'bot')
+        operation !== 'leave' || ruleFor(previewRoom.game).lobby
+          ? await gamePolicy(control, tx, previewRoom.game)
+          : undefined;
+      if (
+        ruleFor(previewRoom.game).lobby ||
+        previewRoom.mode === 'match' ||
+        previewRoom.mode === 'bot'
+      )
         await lockMatch(tx, previewRoom.game);
       const rows = await tx.execute(
         sql`select data from runtime.competition_rooms where code=${code} for update`,
@@ -404,6 +797,7 @@ export function createCompetitionStore(
       if (input.game && room.game !== input.game) throw new CompetitionError('WRONG_GAME', 409);
       const rule = ruleFor(room.game);
       if (room.version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
+      if (rule.lobby) return lobbyAction(room, playerId, operation, input, tx, policy);
       if (operation === 'leave') {
         if (!room.players.some((p) => p.id === playerId))
           throw new CompetitionError('NOT_A_MEMBER', 403);
@@ -555,6 +949,115 @@ export function createCompetitionStore(
     ruleFor,
     roomAction,
     match,
+    async sweepRooms() {
+      for (const rule of rules.values()) {
+        if (!rule.lobby) continue;
+        await db.transaction(async (tx) => {
+          const policy = await gamePolicy(control, tx, rule.id);
+          if (policy?.state === 'disabled') return;
+          await lockMatch(tx, rule.id);
+          const rows = await tx.execute(sql`select data from runtime.competition_rooms
+            where data->>'game'=${rule.id} and data->>'version'=${rule.version}
+            and coalesce((data->>'killEpoch')::bigint,0)=${policy?.killEpoch ?? 0}
+            and ((data->>'status'='playing' and exists(select 1 from jsonb_array_elements(data->'players') p
+              where coalesce((p->>'takenOver')::boolean,false)=false
+              and coalesce((p->>'reconnectUntil')::bigint,(p->>'seenAt')::bigint+30000)<=${now()}))
+              or exists(select 1 from jsonb_array_elements_text(coalesce(data->'spectators','[]'::jsonb)) s(id)
+                where coalesce((data->'spectatorSeenAt'->>s.id)::bigint,(data->>'createdAt')::bigint)<=${now() - spectatorLeaseMs}))
+            order by data->>'startedAt',code limit 10 for update`);
+          for (const row of rows) {
+            const room = row.data as Room;
+            pruneSpectators(room);
+            if (
+              room.status === 'playing' &&
+              room.players.some(
+                (member) =>
+                  !member.takenOver && now() >= (member.reconnectUntil ?? member.seenAt! + 30000),
+              )
+            )
+              await advanceLobby(room, tx);
+            await tx.execute(
+              sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${room.code}`,
+            );
+          }
+        });
+      }
+    },
+    async listRooms(auth: PlayerAuth, game: string) {
+      return db.transaction(async (tx) => {
+        const rule = ruleFor(game);
+        const policy = await gamePolicy(control, tx, game);
+        assertGameControl(policy, policy?.killEpoch, true);
+        await lockMatch(tx, game);
+        await assertResourceAuth(tx, auth, game, now());
+        const rows =
+          await tx.execute(sql`select data from runtime.competition_rooms where data->>'game'=${game}
+          and data->>'version'=${rule.version} and data->>'visibility'='public'
+          and data->>'status' in ('waiting','playing') and expires_at>${now()}
+          and coalesce((data->>'killEpoch')::bigint,0)=${policy?.killEpoch ?? 0}
+          order by data->>'createdAt' desc,code desc limit 50 for update`);
+        const rooms = [];
+        for (const row of rows) {
+          const room = row.data as Room;
+          if (rule.lobby) {
+            await advanceLobby(room, tx);
+            await tx.execute(
+              sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${room.code}`,
+            );
+          }
+          if (!['waiting', 'playing'].includes(room.status)) continue;
+          const profiles = await tx.execute(
+            sql`select id,display_name,profile from runtime.competition_players where id in (${sql.join(
+              room.players.map((p) => sql`${p.id}::uuid`),
+              sql`,`,
+            )})`,
+          );
+          const capacity = rule.roomSize?.(room.mode) ?? 2;
+          rooms.push({
+            code: room.code,
+            game,
+            status: room.status,
+            mode: room.mode,
+            capacity,
+            playerCount: room.players.length,
+            canJoin: room.status === 'waiting' && room.players.length < capacity,
+            canSpectate: !!rule.lobby,
+            players: room.players.map((p) => ({
+              id: p.id,
+              ...publicProfile(profiles.find((row) => row.id === p.id) ?? { id: p.id }),
+              ready: p.ready,
+              disconnected: !!p.disconnected,
+              reconnectUntil: p.reconnectUntil,
+              takenOver: !!p.takenOver,
+            })),
+          });
+        }
+        return { rooms, serverNow: now() };
+      });
+    },
+    async history(auth: PlayerAuth, game: string, cursor?: string) {
+      if (game !== 'night-overwatch') throw new CompetitionError('HISTORY_UNAVAILABLE', 404);
+      return db.transaction(async (tx) => {
+        const policy = await gamePolicy(control, tx, game);
+        await lockMatch(tx, game);
+        await assertResourceAuth(tx, auth, game, now());
+        const own = await activeRoom(tx, game, playerIdOf(auth));
+        if (own) {
+          assertGameControl(policy, own.killEpoch ?? 0);
+          await advanceLobby(own, tx);
+          await tx.execute(
+            sql`update runtime.competition_rooms set data=${json(own)}::jsonb,expires_at=${own.deadline} where code=${own.code}`,
+          );
+        }
+        return nightHistory(tx, playerIdOf(auth), cursor);
+      });
+    },
+    async prepareNightBoards(auth: PlayerAuth) {
+      await db.transaction(async (tx) => {
+        await assertResourceAuth(tx, auth, 'night-overwatch', now());
+        await backfillNightClears(tx, now());
+      });
+    },
     async startStreetRun(auth: PlayerAuth, config: Record<string, unknown>) {
       const playerId = playerIdOf(auth);
       return db.transaction(async (tx) => {
@@ -668,15 +1171,17 @@ export function createCompetitionStore(
         personalMs: rankingResult.me ? -Number(rankingResult.me.score) : null,
       };
     },
-    async create(
-      auth: PlayerAuth,
-      game: string,
-      options: { mode?: string; role?: string; initiative?: string } = {},
-    ) {
+    async create(auth: PlayerAuth, game: string, options: RoomOptions = {}) {
       if (options.mode === 'match') return match(auth, game);
-      return db.transaction(async (tx) =>
-        view(await create(auth, game, options, tx), playerIdOf(auth), tx),
-      );
+      return db.transaction(async (tx) => {
+        const room = await create(auth, game, options, tx);
+        return view(
+          room,
+          playerIdOf(auth),
+          tx,
+          room.players.find((p) => p.id === playerIdOf(auth))?.leaseId,
+        );
+      });
     },
     async board(game: string, auth: PlayerAuth | null) {
       assertGameScope(auth, game);

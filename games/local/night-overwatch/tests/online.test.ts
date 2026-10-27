@@ -21,7 +21,7 @@ test('persistent local pilots have UUIDs, distinct display suffixes and sanitize
   assert.match(playerLabel(a.identity), /#[A-F0-9]{8}$/);
   assert.equal(invitation('?room=A12BCD456789'), 'A12BCD456789'); assert.equal(invitation('?room=bad'), undefined);
   assert.equal(invitation('?room=A12BCD456789&room=A12BCD456789'), undefined);
-  assert.equal(roomLink('https://user:password@example.com/game?dev=1&token=secret#account', 'A12BCD456789'), 'https://example.com/game?room=A12BCD456789');
+  assert.equal(roomLink('https://user:password@example.com/game?dev=1&token=secret#account', 'A12BCD456789'), 'https://example.com/game?room=A12BCD456789&fullscreen=1');
 });
 
 test('late connection and ready failure cannot rejoin or alter a cancelled room', async () => {
@@ -47,7 +47,7 @@ test('leaderboard refresh recovers metadata after an initial network failure', a
 });
 
 test('paused and modal controls cannot fire, while release always reaches the duel', () => {
-  const online = new Online(storage(), () => {}); online.startBot(0);
+  const online = new Online(storage(), () => {}); online.startBot(0); online.enteringUntil = 0;
   const sim = Simulation.restore(online.view!.simulation); let modal = false;
   online.bind(sim, () => sim.paused || modal);
   sim.pause('settings', true); sim.setFire('space', true); sim.fire();
@@ -58,9 +58,9 @@ test('paused and modal controls cannot fire, while release always reaches the du
   assert.equal(online.bot!.pilots[0].held.length, 1);
   modal = true; sim.setFire('space', false); assert.deepEqual(online.bot!.pilots[0].held, []);
 });
-test('match waiting polls the matchmaking endpoint so the server can select a bot', async () => {
+test('match waiting keeps its room and never triggers an automatic bot', async () => {
   const f = fixture(), online = new Online(storage(), () => {}); await online.connect(f.bridge); await online.open('match');
-  await online.pump(100); assert.equal(f.count(), 2);
+  await online.pump(100); assert.equal(f.count(), 1);
   f.current.status = 'playing'; f.current.state = viewDuel(createDuel(41, true));
   await online.pump(9000); assert(online.active); assert(online.view!.bot);
 });
@@ -94,4 +94,60 @@ test('a room abandoned before readiness stops polling and refuses another ready 
   const f = fixture(), online = new Online(storage(), () => {}); await online.connect(f.bridge); await online.open('match');
   f.current.status = 'abandoned'; await online.pump(301); await online.pump(1301); await online.ready();
   assert.equal(f.count(), 1); assert.equal(f.received.length, 0); assert(!online.active);
+});
+
+test('lobby, nickname and history use the shared bridge and private room input is validated', async () => {
+  const f = fixture(), calls: unknown[] = [];
+  Object.assign(f.bridge.services, {
+    listRooms: async () => ({ rooms: [{ code: '123456', status: 'waiting', mode: 'friend', players: [], playerCount: 1, canJoin: true, canSpectate: true }] }),
+    updateProfile: async (input: { nickname: string }) => { calls.push(input); return { id: 'a', name: input.nickname }; },
+    history: async ({ cursor }: { cursor?: string }) => ({ summary: { wins: 1, losses: 1, draws: 0, games: 2, winRate: .5 },
+      matches: [{ id: cursor || 'first', code: '123456', opponent: { id: 'b', name: '好友' }, outcome: 'win', reason: 'disconnect', startedAt: 1, finishedAt: 30001, durationMs: 30000, points: 120 }],
+      ...(cursor ? {} : { nextCursor: 'next' }) }),
+  });
+  f.bridge.services.createRoom = async (input: any) => { calls.push(input); return room(); };
+  const online = new Online(storage(), () => {}); await online.connect(f.bridge);
+  online.show('menu'); await online.loadRooms(); assert.equal(online.rooms[0].code, '123456');
+  online.draftName = ' 新的昵称 '; await online.saveName(); assert.equal(online.identity.name, '新的昵称');
+  online.draftName = 'a'; await online.saveName(); assert.match(online.message, /2–24/);
+  await online.loadHistory(); await online.loadHistory(online.history!.nextCursor);
+  assert.equal(online.history!.matches.length, 2); assert.equal(online.history!.summary.games, 2);
+  online.privateRoom = true; online.draftPassword = 'abc'; await online.open('friend');
+  assert(!online.room); assert.match(online.message, /4–64/);
+  online.draftPassword = 'friend-123'; await online.open('friend');
+  assert.deepEqual(calls.at(-1), { mode: 'friend', visibility: 'private', password: 'friend-123' });
+});
+
+test('10Hz transport is serial, preserves opponent disconnect play and ends only the taken-over player view', async () => {
+  const f = fixture(), online = new Online(storage(), () => {});
+  await online.connect(f.bridge); await online.open('match');
+  f.current.status = 'playing'; f.current.players = [{ id: 'a' }, { id: 'b', name: '队友' }] as any;
+  f.current.state = viewDuel(createDuel(41)); await online.pump(0);
+  let resolve!: (value: any) => void, requests = 0;
+  f.bridge.services.roomAction = async () => { requests++; return new Promise(r => { resolve = r; }); };
+  const pending = online.pump(100); await online.pump(200); await online.pump(300);
+  assert.equal(requests, 1); resolve(f.current); await pending;
+  f.bridge.services.roomAction = async () => f.current;
+  Object.assign(f.current.players[1], { disconnected: true, reconnectUntil: Date.now() + 30000 });
+  await online.pump(400); assert.equal(online.offlineNotice, '队友 已下线'); assert(!online.view!.finished);
+  Object.assign(f.current.players[0], { disconnected: true, takenOver: true });
+  Object.assign(f.current, { settlement: { points: 40, outcome: 'loss', totalPoints: 40 } });
+  f.bridge.services.roomAction = async () => { throw Object.assign(Error('expired'), { code: 'PLAYER_DISCONNECTED' }); };
+  await online.pump(500);
+  assert.equal(online.room!.status, 'playing'); assert(online.view!.finished);
+  assert.equal(online.view!.simulation.phase, 'failure');
+  assert.equal(f.current.state.finished, false, 'shared authoritative snapshot is unchanged');
+});
+
+test('newer connection ownership stops retries and entry animation rejects firing', async () => {
+  const f = fixture(), online = new Online(storage(), () => {}); await online.connect(f.bridge); await online.open('match');
+  f.current.status = 'playing'; f.current.state = viewDuel(createDuel(41)); await online.pump(0);
+  let calls = 0;
+  f.bridge.services.roomAction = async () => { calls++; throw Object.assign(Error('new page'), { code: 'STALE_LEASE' }); };
+  await online.pump(100); await online.pump(3000); assert.equal(calls, 1); assert(online.connectionLost);
+  online.leave();
+  const bot = new Online(storage(), () => {}); bot.startBot(performance.now());
+  assert(bot.entering); bot.control({ command: 'setFire', args: ['mouse', true] });
+  assert.deepEqual(bot.bot!.pilots[0].held, []); bot.enteringUntil = 0;
+  bot.control({ command: 'setFire', args: ['mouse', true] }); assert.equal(bot.bot!.pilots[0].held.length, 1);
 });

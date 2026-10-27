@@ -5,16 +5,16 @@ import { pathToFileURL } from 'node:url';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const normalize = (text) => text.replaceAll('\r\n', '\n');
-// Source no longer exposes fullscreen. Keep reviewed source pins and staging receipts.
+// Native sources do not invoke browser fullscreen. Keep reviewed source pins and staging receipts.
 const recipe = [
   {
     file: 'assets/scripts/HUD.ts',
-    originalSha256: '6619ccb4d138127599da1c83ac97acea1bad02eee99dc5491456cff7ea168587',
+    originalSha256: '6c72a11d17c5a33f683961670544944f9f238412a311bde84cccdd29ac9034aa',
     changes: [],
   },
   {
     file: 'assets/scripts/Platform.ts',
-    originalSha256: 'ca294904e0d16147f2ae962ecec114c43ad4bc126ba1e0485822cc08d1093a8e',
+    originalSha256: 'dbaef88ebb80ea4dccfc4d58a499f95312d331071fe5b22ec171d01cd1c4a099',
     changes: [],
   },
 ];

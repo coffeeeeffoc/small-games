@@ -49,7 +49,7 @@ test('real warmup inputs reproduce the complete result across durable checkpoint
     applyNightReplay(state, frames.slice(offset, offset + 97));
   }
   assert.deepEqual(state.simulation, sim.checkpoint());
-  assert.deepEqual(nightReplayResult(state), { complete: true, eligible: true, score: 1,
+  assert.deepEqual(nightReplayResult(state), { complete: true, eligible: true, cleared: true, fastestEligible: true, assisted: false, score: 1,
     secondary: Math.round(sim.time * 1000) });
   assert.throws(() => applyNightReplay(state, [{ input: {}, ticks: 2 }]));
   state.assisted = true;
@@ -106,4 +106,19 @@ test('settings configuration and skipping an interrupted resume round-trip throu
   assert(!sim.resumeRequired); assert(!sim.paused); assert.equal(sim.resumeCountdown, 0);
   const state = createNightReplay('campaign', sim.mission.id); applyNightReplay(state, frames);
   assert.deepEqual(state.simulation, sim.checkpoint());
+});
+
+test('stored homing grants replay once and assisted clears retain completion but not fastest eligibility',()=>{
+  let state=createNightReplay('training');
+  for(const amount of [-1,0,.5,Number.MAX_SAFE_INTEGER+1,Infinity])
+    assert.throws(()=>applyNightReplay(state,[{input:{command:'grantHomingAmmo',args:[amount]},ticks:0}]));
+  const sim=new Simulation('training-60');sim.start();const frames:ReplayFrame[]=[];
+  observeNightInputs(sim,(input,ticks)=>frames.push({input,ticks}));
+  sim.grantHomingAmmo(2);applyNightReplay(state,frames);
+  assert.equal(state.simulation.homingAmmo,2);assert.equal(state.assisted,true);
+  assert.throws(()=>applyNightReplay(state,[{input:{command:'grantHomingAmmo',args:[Number.MAX_SAFE_INTEGER]},ticks:0}]));
+  const completed=warmupTrace();state=createNightReplay('training');
+  applyNightReplay(state,[{input:{command:'grantHomingAmmo',args:[2]},ticks:0},...completed.frames]);
+  const result=nightReplayResult(state);
+  assert.equal(result.cleared,true);assert.equal(result.fastestEligible,false);assert.equal(result.assisted,true);
 });

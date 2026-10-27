@@ -7,7 +7,7 @@ import { assertGameScope, type PlayerAuth } from './auth.js';
 import { basicServiceGames } from './service-games.js';
 
 const gameId = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/);
-const roomCode = z.string().regex(/^[A-F0-9]{12}$/);
+const roomCode = z.string().regex(/^(?:[0-9]{6}|[A-F0-9]{12})$/);
 const gameParams = (params: unknown) => z.object({ game: gameId }).parse(params);
 const runParams = (params: unknown) => z.object({ game: gameId, id: z.uuid() }).parse(params);
 const frame = z
@@ -48,7 +48,12 @@ export function registerGameRoutes(
       title: solo?.title ?? multiplayer?.title ?? basic,
       version: solo?.version ?? multiplayer?.version ?? 'identity-v1',
       versions: { ranked: solo?.version ?? null, multiplayer: multiplayer?.version ?? null },
-      capabilities: { identity: true, leaderboards: boards.length > 0, multiplayer: !!multiplayer },
+      capabilities: {
+        identity: true,
+        leaderboards: boards.length > 0,
+        multiplayer: !!multiplayer,
+        ...(multiplayer?.lobby ? { lobby: true, history: true } : {}),
+      },
       boards,
     };
   }
@@ -67,6 +72,7 @@ export function registerGameRoutes(
     assertGameScope(playerId, game);
     definition(game);
     if (ranked.rules.get(game)?.boards.some((item) => item.id === board)) {
+      if (game === 'night-overwatch') await store.prepareNightBoards(playerId);
       const { key, rule, definition: boardDefinition } = ranked.boardFor(game, board);
       return {
         game,
@@ -131,6 +137,18 @@ export function registerGameRoutes(
       throw new CompetitionError('MULTIPLAYER_UNAVAILABLE', 404);
     return game;
   };
+  routes.get('/games/:game/rooms', async (request) => {
+    const game = multiplayerGame(request.params);
+    return store.listRooms(await player(request.headers.authorization), game);
+  });
+  routes.get('/games/:game/history', async (request) => {
+    const game = multiplayerGame(request.params);
+    const { cursor } = z
+      .object({ cursor: z.string().max(200).optional() })
+      .strict()
+      .parse(request.query);
+    return store.history(await player(request.headers.authorization), game, cursor);
+  });
   routes.post('/games/:game/match', { bodyLimit: 1024 }, async (request) => {
     const game = multiplayerGame(request.params);
     z.object({})
@@ -138,66 +156,112 @@ export function registerGameRoutes(
       .parse(request.body ?? {});
     return store.match(await player(request.headers.authorization), game);
   });
-  routes.post('/games/:game/rooms', { bodyLimit: 2048 }, async (request) => {
-    const game = multiplayerGame(request.params);
-    const input = z
-      .object({
-        mode: z.string().max(40).optional(),
-        role: z.string().max(40).optional(),
-        initiative: z.string().max(40).optional(),
-      })
-      .strict()
-      .parse(request.body ?? {});
-    return store.create(await player(request.headers.authorization), game, input);
-  });
-  routes.post('/games/:game/rooms/join', { bodyLimit: 1024 }, async (request) => {
-    const game = multiplayerGame(request.params);
-    const { code } = z.object({ code: roomCode }).strict().parse(request.body);
-    return store.roomAction(await player(request.headers.authorization), code, 'join', { game });
-  });
+  routes.post(
+    '/games/:game/rooms',
+    { bodyLimit: 2048, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (request) => {
+      const game = multiplayerGame(request.params);
+      const input = z
+        .object({
+          mode: z.string().max(40).optional(),
+          role: z.string().max(40).optional(),
+          initiative: z.string().max(40).optional(),
+          visibility: z.enum(['public', 'private']).optional(),
+          password: z.string().min(4).max(64).optional(),
+        })
+        .strict()
+        .parse(request.body ?? {});
+      return store.create(await player(request.headers.authorization), game, input);
+    },
+  );
+  routes.post(
+    '/games/:game/rooms/join',
+    { bodyLimit: 1024, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (request) => {
+      const game = multiplayerGame(request.params);
+      const { code, password } = z
+        .object({ code: roomCode, password: z.string().max(64).optional() })
+        .strict()
+        .parse(request.body);
+      return store.roomAction(await player(request.headers.authorization), code, 'join', {
+        game,
+        password,
+      });
+    },
+  );
   routes.get('/games/:game/rooms/:code', async (request) => {
     const game = multiplayerGame(request.params);
     const { code } = z.object({ code: roomCode }).parse(request.params);
-    return store.roomAction(await player(request.headers.authorization), code, 'get', { game });
+    const { leaseId } = z.object({ leaseId: z.uuid().optional() }).strict().parse(request.query);
+    return store.roomAction(await player(request.headers.authorization), code, 'get', {
+      game,
+      leaseId,
+    });
   });
-  for (const operation of ['ready', 'leave', 'rematch', 'actions', 'role', 'initiative']) {
-    routes.post(`/games/:game/rooms/:code/${operation}`, { bodyLimit: 8192 }, async (request) => {
-      const game = multiplayerGame(request.params);
-      const { code } = z.object({ code: roomCode }).parse(request.params);
-      const input =
-        operation === 'actions'
-          ? z
-              .object({
-                seq: z.number().int().positive().max(100000),
-                action: z.record(z.string(), z.unknown()),
-              })
-              .strict()
-              .parse(request.body)
-          : operation === 'role'
+  for (const operation of [
+    'ready',
+    'leave',
+    'rematch',
+    'actions',
+    'role',
+    'initiative',
+    'spectate',
+    'connect',
+  ]) {
+    routes.post(
+      `/games/:game/rooms/:code/${operation}`,
+      {
+        bodyLimit: 8192,
+        ...(operation === 'spectate'
+          ? { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }
+          : {}),
+      },
+      async (request) => {
+        const game = multiplayerGame(request.params);
+        const { code } = z.object({ code: roomCode }).parse(request.params);
+        const input =
+          operation === 'actions'
             ? z
-                .object({ role: z.string().max(40) })
+                .object({
+                  seq: z.number().int().positive().max(100000),
+                  action: z.record(z.string(), z.unknown()),
+                  leaseId: z.uuid().optional(),
+                })
                 .strict()
                 .parse(request.body)
-            : operation === 'initiative'
+            : operation === 'role'
               ? z
-                  .object({ initiative: z.string().max(40) })
+                  .object({ role: z.string().max(40) })
                   .strict()
                   .parse(request.body)
-              : z
-                  .object({})
-                  .strict()
-                  .parse(request.body ?? {});
-      if (
-        'action' in input &&
-        Object.keys(input.action).some((key) =>
-          ['score', 'elapsed', 'elapsedMs', 'moves', 'playerId'].includes(key),
+              : operation === 'initiative'
+                ? z
+                    .object({ initiative: z.string().max(40) })
+                    .strict()
+                    .parse(request.body)
+                : operation === 'spectate'
+                  ? z
+                      .object({ password: z.string().max(64).optional() })
+                      .strict()
+                      .parse(request.body ?? {})
+                  : z
+                      .object({ leaseId: z.uuid().optional() })
+                      .strict()
+                      .parse(request.body ?? {});
+        if (
+          'action' in input &&
+          input.action &&
+          typeof input.action === 'object' &&
+          Object.keys(input.action).some((key) =>
+            ['score', 'elapsed', 'elapsedMs', 'moves', 'playerId'].includes(key),
+          )
         )
-      )
-        throw new CompetitionError('ILLEGAL_ACTION', 422);
-      return store.roomAction(await player(request.headers.authorization), code, operation, {
-        ...input,
-        game,
-      });
-    });
+          throw new CompetitionError('ILLEGAL_ACTION', 422);
+        return store.roomAction(await player(request.headers.authorization), code, operation, {
+          ...input,
+          game,
+        });
+      },
+    );
   }
 }

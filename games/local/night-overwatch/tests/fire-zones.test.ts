@@ -156,7 +156,7 @@ test('restock preserves current weapon, trigger and buff while adding only finit
 });
 
 test('incendiary, restock, paused fire and patrol state round-trip through durable v7 replay', () => {
-  assert.equal(RANKED_RULE_VERSION, 'night-input-replay-v7');
+  assert.equal(RANKED_RULE_VERSION, 'night-input-replay-v8');
   const sim = new Simulation('operation-007'); sim.start(); const frames: ReplayFrame[] = [];
   observeNightInputs(sim, (input, ticks) => frames.push({ input, ticks }));
   sim.choose(3); sim.setAim({ x: -80, z: -70 }); sim.setFire('touch', true);

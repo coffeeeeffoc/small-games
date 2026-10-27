@@ -58,7 +58,7 @@ test('warmup clears three different targets through real moving aircraft ballist
   assert.match(trainingNextGoal(sim)[0], /零友伤/);
 });
 
-test('pause freezes the 60-second range, and waiting or missing cannot clear it for free', () => {
+test('pause freezes the range without a time limit, and waiting or missing cannot clear it for free', () => {
   const sim = new Simulation('training-60'); sim.start();
   assert.deepEqual(sim.units.filter((unit) => !unit.friendly).map((unit) => unit.kind), ['turret', 'light', 'heavy']);
   const initial = sim.units.map((unit) => unit.hp);
@@ -66,12 +66,12 @@ test('pause freezes the 60-second range, and waiting or missing cannot clear it 
   assert.equal(sim.time, 0);
   sim.pause('manual', false); tick(sim, 59);
   assert.equal(sim.phase, 'playing'); assert.deepEqual(sim.units.map((unit) => unit.hp), initial);
-  tick(sim, 2); assert.equal(sim.phase, 'failure'); assert.equal(sim.failure, 'timeout');
-  assert.equal(sim.time, 60); assert.equal(sim.threatsRemaining, 3);
+  tick(sim, 2); assert.equal(sim.phase, 'playing'); assert.equal(sim.failure, '');
+  assert(Math.abs(sim.time - 61) < .0001); assert.equal(sim.threatsRemaining, 3);
   const miss = new Simulation('training-60'); miss.start(); miss.choose(1); miss.setAim({ x: 0, z: -60 });
   for (let shot = 0; shot < 8; shot++) { assert(miss.fire()); tick(miss, .9); }
   tick(miss, 60);
-  assert.equal(miss.phase, 'failure'); assert.equal(miss.kills, 0); assert.equal(miss.hitShots, 0);
+  assert.equal(miss.phase, 'playing'); assert.equal(miss.kills, 0); assert.equal(miss.hitShots, 0);
   assert.equal(miss.fired, 8);
 });
 
@@ -98,6 +98,11 @@ test('public task shortcuts choose only one known task, and the original three e
   }
   assert.equal(readTrainingRecord('{broken'), undefined);
   assert.equal(readTrainingRecord('{"time":10,"fired":1,"hitShots":2}'), undefined);
-  assert.equal(readTrainingRecord('{"time":61,"fired":10,"hitShots":5}'), undefined);
+  assert.deepEqual(readTrainingRecord('{"time":61,"fired":10,"hitShots":5}'), {time:61,fired:10,hitShots:5});
   assert.deepEqual(readTrainingRecord('{"time":20,"fired":10,"hitShots":5}'), { time: 20, fired: 10, hitShots: 5 });
+});
+
+test('campaign time beyond the old duration does not decide failure',()=>{
+  const sim=new Simulation(); sim.start(); sim.time=sim.mission.duration;
+  sim.step(1/60); assert.equal(sim.phase,'playing'); assert.equal(sim.failure,'');
 });

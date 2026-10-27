@@ -40,6 +40,28 @@ export async function registerCompetition(
   ranked?: ReturnType<typeof createRankedStore>,
   control?: CompetitionControl,
 ) {
+  // A single bounded sweep settles expired human leases even when nobody polls the room.
+  let sweeping = false;
+  const sweep = async () => {
+    if (sweeping || !store.sweepRooms) return;
+    sweeping = true;
+    try {
+      await store.sweepRooms();
+    } catch {
+      app.log.warn('Competition room sweep failed');
+    } finally {
+      sweeping = false;
+    }
+  };
+  let pendingSweep = Promise.resolve();
+  const timer = setInterval(() => {
+    if (!sweeping) pendingSweep = sweep();
+  }, 5000);
+  timer.unref();
+  app.addHook('onClose', async () => {
+    clearInterval(timer);
+    await pendingSweep;
+  });
   const cors = readCompetitionCors(env);
   const platforms = platformConfigSchema.parse(JSON.parse(env.COMPETITION_PLATFORM_CONFIG ?? '[]'));
   const internalKey = env.COMPETITION_INTERNAL_KEY;

@@ -1,3 +1,11 @@
+import {
+  backfillNightClears,
+  nightBoard,
+  nightLedgerLock,
+  nightPoints,
+  nightSummary,
+  refreshNightClears,
+} from './night-ledger.js';
 import { sql } from 'drizzle-orm';
 import type { openDatabase } from '@coffeeeeffoc/service-kit';
 import { CompetitionError } from './types.js';
@@ -44,7 +52,10 @@ export function createRankedStore(
         if (policy && policy.gameId !== run.game) throw new CompetitionError('WRONG_GAME');
         if (auth) await assertResourceAuth(tx, auth, run.game, now());
         if (
-          run.boardKey !== `${run.game}:${run.board}:${run.version}` ||
+          !new Set([
+            `${run.game}:${run.board}:${rules.get(run.game)?.boardVersion ?? run.version}`,
+            `${run.game}:${run.board}:${run.version}`,
+          ]).has(run.boardKey) ||
           !rules.get(run.game)?.boards.some((board) => board.id === run.board)
         )
           throw new CompetitionError('WRONG_GAME');
@@ -63,14 +74,35 @@ export function createRankedStore(
               values(${`ranked-action:${id}:${seq}`},${run.boardKey},${JSON.stringify(receipt)}::jsonb,${now()})`);
           },
           async record(settlement) {
+            if (run.game === 'night-overwatch') {
+              await backfillNightClears(tx, now());
+              await nightLedgerLock(tx);
+            }
             const matchId = `ranked-result:${id}:${run.board}`;
-            await tx.execute(sql`insert into runtime.competition_results(match_id,board,player_id,score,secondary,created_at)
-              values(${matchId},${run.boardKey},${run.playerId},${settlement.score},${settlement.secondary},${now()}) on conflict do nothing`);
-            await tx.execute(sql`insert into runtime.competition_best(board,player_id,score,secondary,match_id,updated_at)
+            const eventBoard =
+              run.game === 'night-overwatch' ? nightBoard(`clear-${run.levelId}`) : run.boardKey;
+            const inserted =
+              await tx.execute(sql`insert into runtime.competition_results(match_id,board,player_id,score,secondary,created_at)
+              values(${matchId},${eventBoard},${run.playerId},${settlement.score},${settlement.secondary},${now()}) on conflict do nothing returning player_id`);
+            if (!inserted.length) return;
+            if (settlement.fastestEligible !== false)
+              await tx.execute(sql`insert into runtime.competition_best(board,player_id,score,secondary,match_id,updated_at)
               values(${run.boardKey},${run.playerId},${settlement.score},${settlement.secondary},${matchId},${now()})
               on conflict(board,player_id) do update set score=excluded.score,secondary=excluded.secondary,match_id=excluded.match_id,updated_at=excluded.updated_at
               where excluded.score>runtime.competition_best.score or
               (excluded.score=runtime.competition_best.score and excluded.secondary<runtime.competition_best.secondary)`);
+            if (run.game === 'night-overwatch') {
+              settlement.points = 100;
+              settlement.totalPoints = await nightPoints(tx, `run:${id}`, run.playerId, 100, now());
+              await refreshNightClears(tx, now(), run.playerId);
+              const rows = await tx.execute(
+                sql`select score from runtime.competition_best where player_id=${run.playerId} and board=${nightBoard('clears')}`,
+              );
+              settlement.clears = Number(rows[0]!.score);
+              const summary = await nightSummary(tx, run.playerId);
+              settlement.wins = summary.wins;
+              settlement.games = summary.games;
+            }
           },
         });
         if (JSON.stringify(run) !== original)

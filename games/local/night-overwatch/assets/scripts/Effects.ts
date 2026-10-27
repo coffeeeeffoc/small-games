@@ -129,14 +129,19 @@ export function drawEffects(
       return project({ x: zone.x + Math.cos(angle) * zone.radius, z: zone.z + Math.sin(angle) * zone.radius }, .06);
     }), world.thermal ? new Color(235, 235, 235, 45 * fade) : new Color(201, 69, 19, 80 * fade));
     ring(zone, zone.radius, .45, .9 * fade);
-    for (let i = 0; i < (reduced ? 7 : 19); i++) {
-      const angle = i * 2.39996, radius = zone.radius * Math.sqrt((i + .5) / (reduced ? 7 : 19)) * .9;
-      const at = project({ x: zone.x + Math.cos(angle) * radius, z: zone.z + Math.sin(angle) * radius }, .15);
-      const flicker = .8 + Math.sin(age * 8 + i * 2.7) * .2;
-      const w = Math.max(2, Math.min(11, scale * .34)), h = Math.max(5, Math.min(30, scale * 1.2)) * flicker;
-      patch([{ x: at.x - w, y: at.y }, { x: at.x - w * .7, y: at.y + h * .5 },
-        { x: at.x + w * .3, y: at.y + h }, { x: at.x + w * .5, y: at.y + h * .3 }, { x: at.x + w, y: at.y }], color(.45, .85 * fade).clone());
-      blob({ x: at.x, y: at.y + h * .2 }, w * .45, h * .3, 1, .85 * fade);
+    // Connected sheets keep the burning area readable without a field of isolated sparks.
+    for (let band = 0; band < (reduced ? 2 : 3); band++) {
+      const z = zone.z + (band - 1) * zone.radius * .52;
+      const span = Math.sqrt(zone.radius ** 2 - (z - zone.z) ** 2) * .95;
+      const base = [], crest = [];
+      for (let i = 0; i <= 16; i++) {
+        const t = i / 16, x = zone.x + (t * 2 - 1) * span;
+        const edge = Math.sin(t * Math.PI), wave = .65 + .35 * Math.sin(t * Math.PI * 8 + age * (reduced ? 1.8 : 3) + band);
+        base.push(project({ x, z: z + zone.radius * .32 }, .08));
+        crest.push(project({ x, z }, .15 + edge * (1.5 + wave * 2)));
+      }
+      patch([...base, ...crest.reverse()], world.thermal ? new Color(245, 245, 235, 165 * fade)
+        : new Color(255, 94 + band * 37, 24, (155 + band * 20) * fade));
     }
     frame.fires!.push({ id: zone.id, age, life: zone.expires - zone.born });
   }

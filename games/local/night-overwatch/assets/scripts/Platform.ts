@@ -6,6 +6,7 @@ import { readTrainingRecord as parseTrainingRecord, type TrainingRecord } from '
 import { readRewards, nextZoomLimit, type RewardKind, type RewardSave, type RewardProvider, type SupplyReward } from './core/Rewards';
 import { readMissionTimes, type MissionTimes } from './core/BattleRecords';
 export const RADIO = {
+  complete: ['敌方威胁已全部清除。任务完成。', 'All hostile threats eliminated. Mission complete.'],
   day: ['指挥部：视野良好。拖动准星，清除友军附近的炮位。', 'Command: visibility clear. Drag the sight. Clear guns near our convoy.'],
   night: ['指挥部：进入夜间战区。切换热成像，优先处理红色标记。', 'Command: night operation. Use thermal vision. Prioritize the red marker.'],
   priority: ['车队呼叫！敌方即将开火，优先压制红色标记！', 'Convoy calling! Enemy preparing to fire. Suppress the red marker!'],
