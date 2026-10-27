@@ -12,6 +12,7 @@ import {
 } from '../content/levels.mjs';
 import { distance, point, effectSources, modifiersAt, positionOfPacket } from './effects.mjs';
 export * from '../content/levels.mjs';
+export * from './progression.mjs';
 export { effectSources, modifiersAt, positionOfPacket, positionOfGeneral } from './effects.mjs';
 
 export const DIFFICULTIES = Object.freeze({
@@ -110,6 +111,8 @@ export function createMatch({
         production: type.production,
         productionProgress: 0,
         dispatchProgress: 0,
+        dispatchWaves: 0,
+        dispatchCursor: 0,
         junctionId: c.junction.id,
         damage: 0,
         nextAttack: 0,
@@ -126,6 +129,7 @@ export function createMatch({
     junctions: level.cities.map((c) => ({
       ...c.junction,
       exits: [...c.junction.exits],
+      routeIndices: [],
       cityId: c.id,
       owner: level.factions.find((f) => assignment[f] === c.id) ?? null,
       lastSwitchTime: -1,
@@ -196,30 +200,86 @@ export function createMatch({
   return state;
 }
 
-export function switchRoute(state, factionId, junctionId, routeIndex) {
+function validateOrder(state, factionId, junctionId) {
   if (state.status !== 'playing') return { ok: false, reason: 'match-finished' };
   const junction = state.junctions.find((j) => j.id === junctionId);
   if (!junction) return { ok: false, reason: 'unknown-junction' };
   if (junction.owner !== factionId || !state.factions.includes(factionId))
     return { ok: false, reason: 'not-owner' };
+  return { ok: true, junction };
+}
+
+// Old snapshots and single-route callers remain readable; new commands own the full list.
+export function activeRoutes(junction) {
+  return Array.isArray(junction.routeIndices)
+    ? [...junction.routeIndices]
+    : junction.routeIndex >= 0
+      ? [junction.routeIndex]
+      : [];
+}
+
+function applyRoutes(state, factionId, junction, routes, changedIndex, enabled) {
+  if (state.time - junction.lastSwitchTime + EPS < RULES.switchCooldown)
+    return { ok: false, reason: 'cooldown' };
+  junction.routeIndices = routes;
+  junction.routeIndex = routes[0] ?? -1;
+  junction.lastSwitchTime = state.time;
+  if (routes.length === 0) {
+    const city = cityOf(state, junction.cityId);
+    city.dispatchProgress = 0;
+    city.dispatchWaves = 0;
+    city.dispatchCursor = 0;
+  }
+  if (factionId === state.playerFactionId) state.stats.switches++;
+  const result = {
+    ok: true,
+    junctionId: junction.id,
+    routeIndex: junction.routeIndex,
+    routeIndices: [...routes],
+    enabled,
+  };
+  emit(
+    state,
+    routes.length === 0 ? 'hold' : 'switch',
+    { factionId, ...result, changedIndex, cityId: junction.cityId },
+    cityOf(state, junction.cityId),
+  );
+  return result;
+}
+
+/** Add/remove one persistent route without replacing the city's other targets. */
+export function setRoute(state, factionId, junctionId, routeIndex, enabled = true) {
+  const checked = validateOrder(state, factionId, junctionId);
+  if (!checked.ok) return checked;
+  const { junction } = checked;
+  if (!Number.isInteger(routeIndex) || routeIndex < 0 || routeIndex >= junction.exits.length)
+    return { ok: false, reason: 'invalid-route' };
+  if (typeof enabled !== 'boolean') return { ok: false, reason: 'invalid-enabled' };
+  const current = activeRoutes(junction);
+  if (current.includes(routeIndex) === enabled)
+    return {
+      ok: true,
+      junctionId,
+      routeIndex: current[0] ?? -1,
+      routeIndices: current,
+      enabled,
+    };
+  const next = enabled ? [...current, routeIndex] : current.filter((index) => index !== routeIndex);
+  return applyRoutes(state, factionId, junction, next, routeIndex, enabled);
+}
+
+/** Legacy command: replace every target with one route, or clear all with -1. */
+export function switchRoute(state, factionId, junctionId, routeIndex) {
+  const checked = validateOrder(state, factionId, junctionId);
+  if (!checked.ok) return checked;
+  const { junction } = checked;
   const next =
     routeIndex === undefined
       ? ((junction.routeIndex + 2) % (junction.exits.length + 1)) - 1
       : routeIndex;
   if (!Number.isInteger(next) || next < -1 || next >= junction.exits.length)
     return { ok: false, reason: 'invalid-route' };
-  if (state.time - junction.lastSwitchTime + EPS < RULES.switchCooldown)
-    return { ok: false, reason: 'cooldown' };
-  junction.routeIndex = next;
-  junction.lastSwitchTime = state.time;
-  if (factionId === state.playerFactionId) state.stats.switches++;
-  emit(
-    state,
-    next === -1 ? 'hold' : 'switch',
-    { factionId, junctionId, routeIndex: next, cityId: junction.cityId },
-    cityOf(state, junction.cityId),
-  );
-  return { ok: true, junctionId, routeIndex: next };
+  return applyRoutes(state, factionId, junction, next < 0 ? [] : [next], next, next >= 0);
 }
 
 /** Commands only: useful for a replayable player pilot without mutating simulation internals. */
@@ -373,8 +433,36 @@ function sendPacket(state, packet, city, target) {
     progress: 0,
     elapsed: 0,
     duration: road.length / (RULES.speed * road.speed),
+    departedAt: state.time,
     engaged: false,
   });
+}
+
+function dispatchTo(state, city, target, budget) {
+  for (const stationed of state.packets
+    .filter((p) => p.phase === 'stationed' && p.targetCityId === city.id && p.owner === city.owner)
+    .sort((a, b) => a.id - b.id)) {
+    if (budget <= 0) break;
+    const count = Math.min(budget, stationed.troops);
+    if (count < stationed.troops) {
+      const packet = stationPacket(state, city, city.owner, count);
+      transferWounds(stationed, packet, count);
+      stationed.troops -= count;
+      sendPacket(state, packet, city, target);
+    } else sendPacket(state, stationed, city, target);
+    budget -= count;
+  }
+  const count = Math.min(budget, Math.max(0, city.troops - city.reserve));
+  const generals = generalsOf(state, city);
+  if (count <= 0 && generals.length === 0) return;
+  const packet = stationPacket(state, city, city.owner, count);
+  transferWounds(city, packet, count);
+  city.troops -= count;
+  sendPacket(state, packet, city, target);
+  for (const general of generals) {
+    general.cityId = null;
+    general.packetId = packet.id;
+  }
 }
 
 function produceAndDispatch(state) {
@@ -395,41 +483,58 @@ function produceAndDispatch(state) {
       if (city.troops === city.capacity) city.productionProgress = 0;
     } else city.productionProgress = 0;
     const junction = junctionOf(state, city);
-    if (junction.routeIndex === -1) {
+    const routes = activeRoutes(junction);
+    if (routes.length === 0) {
       city.dispatchProgress = 0;
+      city.dispatchWaves = 0;
+      city.dispatchCursor = 0;
       continue;
     }
+    // One city-wide budget includes overflow reinforcements. More targets never multiply it.
+    const available =
+      Math.max(0, city.troops - city.reserve) +
+      state.packets
+        .filter(
+          (p) => p.phase === 'stationed' && p.targetCityId === city.id && p.owner === city.owner,
+        )
+        .reduce((sum, packet) => sum + packet.troops, 0);
+    const momentum = Math.min(city.dispatchWaves ?? 0, RULES.maxDispatchMomentum);
+    const interval = Math.max(
+      RULES.minDispatchInterval,
+      RULES.dispatchInterval /
+        (1 +
+          Math.sqrt(available / RULES.dispatchStrengthScale) +
+          momentum * RULES.dispatchMomentum),
+    );
     city.dispatchProgress += RULES.step;
-    if (city.dispatchProgress + EPS < RULES.dispatchInterval) continue;
-    city.dispatchProgress -= RULES.dispatchInterval;
-    const target = cityOf(state, junction.exits[junction.routeIndex]);
-    let budget = RULES.packetSize;
-    for (const stationed of state.packets
-      .filter(
-        (p) => p.phase === 'stationed' && p.targetCityId === city.id && p.owner === city.owner,
-      )
-      .sort((a, b) => a.id - b.id)) {
-      if (budget <= 0) break;
-      const count = Math.min(budget, stationed.troops);
-      if (count < stationed.troops) {
-        const packet = stationPacket(state, city, city.owner, count);
-        transferWounds(stationed, packet, count);
-        stationed.troops -= count;
-        sendPacket(state, packet, city, target);
-      } else sendPacket(state, stationed, city, target);
-      budget -= count;
+    if (available === 0 && generalsOf(state, city).length === 0) {
+      city.dispatchProgress = Math.min(city.dispatchProgress, interval);
+      continue;
     }
-    const count = Math.min(budget, Math.max(0, city.troops - city.reserve));
-    const generals = generalsOf(state, city);
-    if (count <= 0 && generals.length === 0) continue;
-    const packet = stationPacket(state, city, city.owner, count);
-    transferWounds(city, packet, count);
-    city.troops -= count;
-    sendPacket(state, packet, city, target);
-    for (const general of generals) {
-      general.cityId = null;
-      general.packetId = packet.id;
+    if (city.dispatchProgress + EPS < interval) continue;
+    city.dispatchProgress -= interval;
+    // Bounded seeded variation changes formations without capping a large army at eight.
+    const variation = 1 + (random(state) * 2 - 1) * RULES.packetVariation;
+    const budget = Math.min(
+      available,
+      Math.max(
+        1,
+        Math.floor(
+          Math.max(RULES.packetSize, available * RULES.packetFraction) *
+            (1 + momentum * RULES.packetMomentum) *
+            variation,
+        ),
+      ),
+    );
+    const cursor = (city.dispatchCursor ?? 0) % routes.length;
+    for (let i = 0; i < routes.length; i++) {
+      const count = Math.floor(budget / routes.length) + Number(i < budget % routes.length);
+      if (count === 0 && (i !== 0 || generalsOf(state, city).length === 0)) continue;
+      const routeIndex = routes[(cursor + i) % routes.length];
+      dispatchTo(state, city, cityOf(state, junction.exits[routeIndex]), count);
     }
+    city.dispatchCursor = (cursor + Math.max(1, budget % routes.length)) % routes.length;
+    city.dispatchWaves = (city.dispatchWaves ?? 0) + 1;
   }
 }
 
@@ -714,12 +819,15 @@ function captureCities(state) {
     city.damage = 0;
     city.productionProgress = 0;
     city.dispatchProgress = 0;
+    city.dispatchWaves = 0;
+    city.dispatchCursor = 0;
     city.recruitProgress = 0;
     city.recruitReadyAt = state.time + RULES.recruitCooldown;
     city.capturedAt = state.time;
     const junction = junctionOf(state, city);
     junction.owner = city.owner;
     junction.routeIndex = -1;
+    junction.routeIndices = [];
     junction.lastSwitchTime = -1;
     if (city.weapon) {
       city.weapon.readyAt = state.time + 3;

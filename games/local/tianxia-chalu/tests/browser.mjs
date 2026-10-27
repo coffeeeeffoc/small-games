@@ -42,6 +42,42 @@ const snapshot = (page) => page.evaluate(() => globalThis.tianxiaSnapshot());
 const shot = (page, name) =>
   page.screenshot({ path: fileURLToPath(new URL(name + '.png', evidence)) });
 const advance = (page, ms) => page.clock.runFor(Math.max(1, Math.round(ms)));
+const routes = (junction) =>
+  junction.routeIndices ?? (junction.routeIndex < 0 ? [] : [junction.routeIndex]);
+async function leave(page) {
+  await page.locator('#battle-back').tap();
+  await expect(page.locator('#exit-confirm')).toBeVisible();
+  await page.locator('#surrender').tap();
+  await expect(page.locator('#start')).toBeVisible();
+}
+async function tapRoute(page, sourceId, targetId) {
+  await advance(page, 100);
+  const route = (await snapshot(page)).routePoints.find(
+    (r) => r.sourceId === sourceId && r.targetId === targetId,
+  );
+  assert(route, 'the active route has a rendered cancellation target');
+  await page.touchscreen.tap(route.x, route.y);
+  await advance(page, 400);
+}
+async function dragCity(page, sourceId, targetId) {
+  const { s } = await mapForInput(page);
+  const source = s.cities.find((c) => c.id === sourceId).client;
+  const target = s.cities.find((c) => c.id === targetId).client;
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ ...source, id: 1 }],
+  });
+  await advance(page, 40);
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ ...target, id: 1 }],
+  });
+  await advance(page, 40);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await advance(page, 400);
+  await cdp.detach();
+}
 async function session({
   viewport = { width: 390, height: 844 },
   seed = 3,
@@ -193,6 +229,12 @@ async function select(page, id) {
 async function command(page, junctionId, index) {
   const s = await snapshot(page);
   const j = s.junctions.find((j) => j.id === junctionId);
+  // The pilot requests one route; clear its previous plan using actual touches first.
+  // Direct input tests below exercise additive routes independently of this helper.
+  if (index !== -1 && routes(j).length && (routes(j).length > 1 || !routes(j).includes(index))) {
+    await command(page, junctionId, -1);
+    await advance(page, 350);
+  }
   if (index === -1) {
     await clearSelection(page);
     await tapCity(page, j.cityId);
@@ -355,7 +397,7 @@ try {
       await advance(page, 50);
       assert.equal((await snapshot(page)).junctions.find((x) => x.id === j.id).routeIndex, 1);
       await shot(page, 'battle-390x844');
-      await page.locator('#pause').tap();
+      await page.locator('#battle-back').tap();
       return {
         gestureChecks: [
           'select',
@@ -371,12 +413,12 @@ try {
     },
   );
   await check(
-    'Captured-city relay, independent orders, deselection, double tap and road cycles need no command buttons',
+    'Captured-city relay, additive drag routes and per-arrow cancellation preserve other orders',
     async () => {
       const page = await session();
       await begin(page);
       await page.locator('#skip-tutorial').tap();
-      assert.equal(await page.locator('#hold, #cycle').count(), 0);
+      assert.equal(await page.locator('#hold, #cycle, #pause').count(), 0);
       const initial = await snapshot(page);
       const a = initial.cities.find((c) => c.owner === 0);
       const aj = initial.junctions.find((j) => j.cityId === a.id);
@@ -389,71 +431,71 @@ try {
       await advance(page, 320);
       await tapCity(page, a.id);
       assert.equal((await snapshot(page)).selected, null);
-      assert.equal((await snapshot(page)).junctions.find((j) => j.id === aj.id).routeIndex, -1);
+      assert.deepEqual(routes((await snapshot(page)).junctions.find((j) => j.id === aj.id)), []);
       await command(page, aj.id, 0);
       for (
         let i = 0;
-        i < 12 && (await snapshot(page)).cities.find((v) => v.id === b.id).owner !== 0;
+        i < 20 && (await snapshot(page)).cities.find((v) => v.id === b.id).owner !== 0;
         i++
       )
         await advance(page, 1000);
       assert.equal((await snapshot(page)).cities.find((v) => v.id === b.id).owner, 0);
       await tapCity(page, b.id);
       await tapCity(page, c.id);
-      assert.equal(
-        (await snapshot(page)).junctions.find((j) => j.id === bj.id).routeIndex,
-        bj.exits.indexOf(c.id),
+      await advance(page, 400);
+      assert(
+        routes((await snapshot(page)).junctions.find((j) => j.id === bj.id)).includes(
+          bj.exits.indexOf(c.id),
+        ),
       );
-      assert.equal(
-        (await snapshot(page)).junctions.find((j) => j.id === aj.id).routeIndex,
-        0,
-        'A keeps supplying B',
+      await dragCity(page, a.id, d);
+      let active = routes((await snapshot(page)).junctions.find((j) => j.id === aj.id));
+      assert.deepEqual(
+        [...active].sort(),
+        [0, aj.exits.indexOf(d)].sort(),
+        'drag adds a second route without replacing supply',
       );
-      await tapCity(page, a.id);
-      await tapCity(page, d);
+      await dragCity(page, a.id, d);
       assert.equal(
-        (await snapshot(page)).junctions.find((j) => j.id === aj.id).routeIndex,
-        aj.exits.indexOf(d),
+        routes((await snapshot(page)).junctions.find((j) => j.id === aj.id)).length,
+        2,
+        'repeated drag is idempotent',
       );
-      assert.equal((await snapshot(page)).selected, null);
-      // A is selected, but a double tap on friendly B must only hold B.
+      await tapRoute(page, a.id, d);
+      assert.deepEqual(
+        routes((await snapshot(page)).junctions.find((j) => j.id === aj.id)),
+        [0],
+        'X cancels only its own route',
+      );
+      assert(
+        routes((await snapshot(page)).junctions.find((j) => j.id === bj.id)).includes(
+          bj.exits.indexOf(c.id),
+        ),
+        'independent relay keeps running',
+      );
       await advance(page, 350);
       await tapCity(page, a.id);
       await tapCity(page, b.id);
       await tapCity(page, b.id);
       await advance(page, 350);
-      assert.equal((await snapshot(page)).junctions.find((j) => j.id === bj.id).routeIndex, -1);
-      assert.equal(
-        (await snapshot(page)).junctions.find((j) => j.id === aj.id).routeIndex,
-        aj.exits.indexOf(d),
+      assert.deepEqual(routes((await snapshot(page)).junctions.find((j) => j.id === bj.id)), []);
+      assert.deepEqual(
+        routes((await snapshot(page)).junctions.find((j) => j.id === aj.id)),
+        [0],
+        'double-tap holds only the tapped city',
       );
-      const s = await snapshot(page),
-        road = s.roads.find((r) => [r.a, r.b].includes(a.id) && [r.a, r.b].includes(b.id));
-      const pa = s.cities.find((v) => v.id === road.a).client,
-        pb = s.cities.find((v) => v.id === road.b).client;
-      const tapRoad = async () => {
-        await page.touchscreen.tap((pa.x + pb.x) / 2, (pa.y + pb.y) / 2);
-        await advance(page, 550);
-      };
-      const direction = async (from, to) => {
-        const j = (await snapshot(page)).junctions.find((j) => j.cityId === from);
-        assert.equal(j.exits[j.routeIndex], to);
-      };
-      await tapRoad();
-      await direction(road.a, road.b);
-      await tapRoad();
-      await direction(road.a, undefined);
-      await direction(road.b, road.a);
-      await tapRoad();
-      await direction(road.a, undefined);
-      await direction(road.b, undefined);
       await shot(page, 'direct-orders-390x844');
-      await page.locator('#pause').tap();
-      return { relay: true, independentSources: true, doubleTapIsolation: true, roadCycle: true };
+      return {
+        relay: true,
+        additiveDrag: true,
+        idempotentRoute: true,
+        singleRouteCancellation: true,
+        doubleTapIsolation: true,
+      };
     },
   );
   await check(
-    'Military intelligence pauses simulation, exposes every faction and restores a visible local radius',
+    'Military intelligence and surrender confirmation keep the battle clock running',
     async () => {
       const page = await session();
       await begin(page);
@@ -461,22 +503,139 @@ try {
       await page.locator('#intel').tap();
       await expect(page.locator('[data-source]')).toHaveCount(2);
       const before = await snapshot(page);
-      await advance(page, 15000);
-      assert.equal((await snapshot(page)).time, before.time);
+      await advance(page, 3000);
+      assert(
+        (await snapshot(page)).time > before.time,
+        'reading intelligence does not pause battle',
+      );
       await shot(page, 'intel-390x844');
       await page.locator('[data-source="0"]').tap();
       await advance(page, 100);
       assert((await snapshot(page)).range.radius > 0);
       await shot(page, 'aura-390x844');
-      await page.locator('#pause').tap();
-      await shot(page, 'pause-390x844');
-      const paused = (await snapshot(page)).time;
-      await advance(page, 10000);
-      assert.equal((await snapshot(page)).time, paused);
-      await page.locator('#resume').tap();
-      await advance(page, 1100);
-      assert((await snapshot(page)).time > paused);
-      return { pausedSeconds: paused, range: (await snapshot(page)).range };
+      await page.locator('#battle-back').tap();
+      await expect(page.locator('#exit-confirm')).toContainText('投降');
+      const confirming = await snapshot(page);
+      assert.equal(confirming.screen, 'battle');
+      assert.equal(confirming.inputBlocked, true);
+      await advance(page, 2000);
+      assert((await snapshot(page)).time > confirming.time, 'confirmation never freezes armies');
+      await page.locator('#keep-battling').tap();
+      assert.equal((await snapshot(page)).exitConfirm, false);
+      assert.equal((await snapshot(page)).levelId, before.levelId);
+      await shot(page, 'continued-battle-390x844');
+      await leave(page);
+      return {
+        intelligenceRuns: true,
+        confirmationRuns: true,
+        cancelPreservesMatch: true,
+        confirmedSurrender: true,
+      };
+    },
+  );
+  await check(
+    'Zoom, map overview, hover and pinch preserve touch coordinates without accidental orders',
+    async () => {
+      const page = await session();
+      await begin(page);
+      await page.locator('#skip-tutorial').tap();
+      const { s, r } = await mapForInput(page);
+      const city = s.cities.find((c) => c.owner === 0);
+      await advance(page, 800);
+      await page.mouse.move(city.client.x, city.client.y);
+      await expect(page.locator('#GameCanvas')).toHaveCSS('cursor', 'pointer');
+      await select(page, city.id);
+      await page.locator('#view-city').tap();
+      await advance(page, 100);
+      assert((await snapshot(page)).view.zoom >= 1.8);
+      await clearSelection(page);
+      await tapCity(page, city.id);
+      assert.equal((await snapshot(page)).selected, city.id, 'zoomed projection remains clickable');
+      await page.locator('#view-map').tap();
+      await advance(page, 100);
+      assert.equal((await snapshot(page)).view.mode, 'map');
+      assert.equal((await snapshot(page)).view.zoom, 1);
+      const before = await snapshot(page);
+      const cdp = await page.context().newCDPSession(page);
+      const center = { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [
+          { x: center.x - 35, y: center.y, id: 1 },
+          { x: center.x + 35, y: center.y, id: 2 },
+        ],
+      });
+      await advance(page, 50);
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [
+          { x: center.x - 75, y: center.y, id: 1 },
+          { x: center.x + 75, y: center.y, id: 2 },
+        ],
+      });
+      await advance(page, 50);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await advance(page, 100);
+      const after = await snapshot(page);
+      assert(after.view.zoom > before.view.zoom, 'pinching apart zooms in');
+      assert.equal(
+        after.stats.switches,
+        before.stats.switches,
+        'pinch does not create military orders',
+      );
+      assert.equal(after.preview, false);
+      const openPoint = [
+        { x: r.x + r.width * 0.25, y: r.y + r.height * 0.45 },
+        { x: r.x + r.width * 0.4, y: r.y + r.height * 0.6 },
+        { x: r.x + r.width * 0.65, y: r.y + r.height * 0.3 },
+      ].find(
+        (p) =>
+          after.cities.every((c) => Math.hypot(c.client.x - p.x, c.client.y - p.y) > 50) &&
+          (after.routePoints ?? []).every((route) => Math.hypot(route.x - p.x, route.y - p.y) > 30),
+      );
+      assert(openPoint, 'an unoccupied camera-pan target exists');
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ ...openPoint, id: 1 }],
+      });
+      await advance(page, 50);
+      await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: openPoint.x + 22, y: openPoint.y + 18, id: 1 }],
+      });
+      await advance(page, 50);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await advance(page, 100);
+      const panned = await snapshot(page);
+      assert(
+        panned.cities.some((c) => {
+          const prior = after.cities.find((entry) => entry.id === c.id).client;
+          return Math.hypot(c.client.x - prior.x, c.client.y - prior.y) > 1;
+        }),
+        'dragging empty space pans the enlarged map',
+      );
+      assert.equal(panned.stats.switches, after.stats.switches);
+      await page.locator('#zoom-out').tap();
+      await advance(page, 100);
+      assert((await snapshot(page)).view.zoom < after.view.zoom);
+      await page.locator('#view-map').tap();
+      await advance(page, 100);
+      const initialZoom = (await snapshot(page)).view.zoom;
+      await page.mouse.move(center.x, center.y);
+      await page.mouse.wheel(0, -180);
+      await advance(page, 100);
+      assert((await snapshot(page)).view.zoom > initialZoom, 'mouse wheel zooms into the map');
+      await shot(page, 'zoom-city-390x844');
+      await cdp.detach();
+      return {
+        hover: true,
+        zoomedCityInput: true,
+        overview: true,
+        pinch: true,
+        pan: true,
+        wheel: true,
+        noAccidentalOrders: true,
+      };
     },
   );
   await check(
@@ -555,8 +714,7 @@ try {
         0,
         'starting consumes the equipped one-use card',
       );
-      await page.locator('#pause').tap();
-      await page.locator('#leave').tap();
+      await leave(page);
       await page.reload();
       await expect(page.locator('#start')).toBeVisible();
       await page.locator('#levels').tap();
@@ -636,8 +794,7 @@ try {
       await advance(page, 31000);
       assert.equal((await snapshot(page)).practice, true);
       await shot(page, 'battle-chapter8-390x844');
-      await page.locator('#pause').tap();
-      await page.locator('#leave').tap();
+      await leave(page);
       const saved = await page.evaluate(() =>
         JSON.parse(localStorage.getItem('tianxia-chalu:v1') ?? '{}'),
       );
@@ -692,8 +849,7 @@ try {
       await page.locator('#intel').tap();
       assert((await page.locator('[data-source]').count()) >= 4);
       await page.locator('#back').tap();
-      await page.locator('#pause').tap();
-      await page.locator('#leave').tap();
+      await leave(page);
       await page.locator('#codex').tap();
       await page.locator('[data-tab="general"]').tap();
       await expect(page.locator('.codex-card').filter({ hasText: '猛将' })).toContainText('已掌握');
@@ -731,7 +887,7 @@ try {
           (await snapshot(page)).junctions.find((x) => x.id === j.id).routeIndex,
           j.routeIndex,
         );
-        for (const id of ['pause', 'intel']) {
+        for (const id of ['battle-back', 'intel', 'zoom-in', 'zoom-out']) {
           const b = await page.locator('#' + id).boundingBox();
           assert(
             b.width >= 44 && b.height >= 44,
@@ -744,12 +900,12 @@ try {
         await shot(page, 'battle-' + viewport.width + 'x' + viewport.height);
         checks.push({ viewport, time: (await snapshot(page)).time, canvas });
       }
-      await page.locator('#pause').tap();
+      await page.locator('#battle-back').tap();
       return { checks };
     },
   );
   await check(
-    'Background and fullscreen preserve pause; blocked storage and fullscreen refusal remain playable',
+    'Local backgrounding avoids catch-up and blocked storage remains playable without pause controls',
     async () => {
       const page = await session();
       await begin(page);
@@ -758,7 +914,6 @@ try {
         Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
         document.dispatchEvent(new Event('visibilitychange'));
       });
-      assert.equal((await snapshot(page)).screen, 'pause');
       const at = (await snapshot(page)).time;
       await advance(page, 10000);
       assert.equal((await snapshot(page)).time, at);
@@ -766,11 +921,10 @@ try {
         Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
         document.dispatchEvent(new Event('visibilitychange'));
       });
-      await expect(page.locator('[data-game-fullscreen]')).toHaveCount(0);
-      assert.equal((await snapshot(page)).time, at);
-      await page.locator('#resume').tap();
+      await expect(page.locator('#pause, [data-game-fullscreen]')).toHaveCount(0);
       await advance(page, 600);
-      assert((await snapshot(page)).time > at);
+      const resumed = await snapshot(page);
+      assert(resumed.time > at && resumed.time - at < 1, 'local background time is not replayed');
       const denied = await session({
         init: () => {
           Object.defineProperty(window, 'localStorage', {
@@ -779,8 +933,6 @@ try {
               throw new DOMException('Storage disabled', 'SecurityError');
             },
           });
-          Element.prototype.requestFullscreen = () =>
-            Promise.reject(new DOMException('refused', 'NotAllowedError'));
         },
       });
       await begin(denied);
@@ -789,13 +941,12 @@ try {
       await command(denied, s.junctions.find((j) => j.cityId === c.id).id, 0);
       await advance(denied, 100);
       await expect(denied.locator('#notice')).toContainText('存档暂时不可用');
-      await denied.locator('#pause').tap();
-      await expect(denied.locator('[data-game-fullscreen]')).toHaveCount(0);
-      await denied.locator('#resume').tap();
+      await denied.locator('#battle-back').tap();
+      await denied.locator('#keep-battling').tap();
       assert.equal((await snapshot(denied)).screen, 'battle');
       return {
         background: 'simulated visibility event',
-        fullscreen: 'no fullscreen controls or automatic entry',
+        fullscreen: 'no controls or automatic entry',
         storage: 'SecurityError getter; play continued',
       };
     },

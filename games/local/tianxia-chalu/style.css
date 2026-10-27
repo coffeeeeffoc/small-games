@@ -1032,3 +1032,336 @@ h3 {
 [hidden] {
   display: none !important;
 }
+
+/* Commanders, records and map controls share the existing paper-and-ink palette. */
+.rank-summary {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border-color: #b39b69;
+  background: #294944ed;
+  color: #fff0cf;
+  text-align: left;
+}
+.rank-summary > span:nth-child(2) {
+  min-width: 0;
+}
+.rank-summary strong {
+  display: block;
+  font-family: 'STKaiti', 'KaiTi', serif;
+  font-size: 23px;
+}
+.rank-summary small {
+  color: #d9d5bb;
+  font-size: 10px;
+}
+.rank-seal {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 48px;
+  border: 1px solid #bc9b59;
+  border-radius: 50% 50% 42% 42%;
+  color: #e2bc70;
+  font-family: 'STKaiti', 'KaiTi', serif;
+  font-size: 28px;
+}
+.xp-track {
+  display: block;
+  height: 5px;
+  margin: 6px 0 4px;
+  border-radius: 5px;
+  background: #142c28;
+  overflow: hidden;
+}
+.xp-track i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #a68143, #f1d99c);
+}
+.rank-win {
+  display: grid;
+  gap: 5px;
+  text-align: right;
+  border-left: 1px solid #9c95644d;
+  padding-left: 10px;
+}
+.rank-win b {
+  font-size: 22px;
+}
+.home-actions #matchmaking {
+  background: #345953;
+  border-color: #b3a078;
+  color: #fff5d9;
+  font-size: 20px;
+  letter-spacing: 4px;
+  min-height: 52px;
+}
+.career-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.career-stats article {
+  padding: 16px 8px;
+  border: 1px solid #bcac8455;
+  border-radius: 8px;
+  text-align: center;
+  background: #fff8e866;
+}
+.career-stats strong {
+  display: block;
+  font-size: 27px;
+  margin: 10px 0;
+}
+.career-stats p {
+  font-size: 11px;
+  color: var(--muted);
+}
+.career-history {
+  display: grid;
+  gap: 10px;
+}
+.career-history article {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  border-bottom: 1px solid #b5a17e55;
+  padding: 12px 4px;
+}
+.career-history article > b {
+  font-family: 'STKaiti', 'KaiTi', serif;
+  font-size: 32px;
+}
+.career-history article > span {
+  flex: 1;
+}
+.career-history small {
+  display: block;
+  margin-top: 5px;
+}
+.career-history article > strong {
+  font-size: 13px;
+  color: #8c6c36;
+}
+.outcome-victory {
+  color: #aa3e33;
+}
+.outcome-defeat {
+  color: #467c9a;
+}
+.matchmaking-page {
+  display: grid;
+  gap: 24px;
+  align-content: center;
+  min-height: 65vh;
+  max-width: 410px;
+  margin: auto;
+  text-align: center;
+}
+.matchmaking-page > p {
+  color: #67776c;
+}
+.match-seal {
+  width: 90px;
+  height: 90px;
+  margin: 8px auto;
+  display: grid;
+  place-items: center;
+  color: #a43f32;
+  font-family: 'STKaiti', 'KaiTi', serif;
+  font-size: 52px;
+  border: 2px solid #ad8953;
+  border-radius: 50%;
+  box-shadow: 0 0 0 8px #b79a5720;
+}
+.match-seal.searching {
+  animation: searching 2s ease-in-out infinite;
+}
+@keyframes searching {
+  50% {
+    box-shadow: 0 0 0 16px #b79a5709;
+  }
+}
+.battle-title {
+  text-align: center;
+}
+.battle-top .battle-title h2 {
+  font-size: 19px;
+}
+.strength-bar {
+  position: absolute;
+  top: calc(95px + env(safe-area-inset-top));
+  left: 18px;
+  right: 18px;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  gap: 2px;
+  background: #c4b89b;
+}
+.strength-bar i {
+  min-width: 2px;
+  transition: flex 0.25s;
+}
+.map-controls {
+  position: absolute;
+  right: 12px;
+  bottom: calc(126px + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 6px;
+  pointer-events: auto;
+}
+.map-controls button {
+  width: 44px;
+  height: 44px;
+  padding: 5px;
+  background: #f6efdded;
+  border-color: #b2a27c;
+  box-shadow: 0 2px 5px #3e493720;
+  font-size: 24px;
+}
+.view-modes {
+  display: grid;
+  gap: 1px;
+}
+.view-modes button {
+  font-size: 12px;
+}
+.view-modes button[aria-pressed='true'] {
+  background: #36574e;
+  color: #fff1d1;
+}
+.confirm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #1b2e2966;
+  pointer-events: auto;
+}
+.confirm-card {
+  width: min(100%, 350px);
+  background: var(--paper);
+  border: 1px solid #b7a17a;
+  border-radius: 13px;
+  padding: 26px 16px 16px;
+  text-align: center;
+  box-shadow: 0 12px 60px #18251f55;
+}
+.confirm-card h2 {
+  font-size: 27px;
+}
+.confirm-card p {
+  font-size: 12px;
+  margin: 12px 0;
+  color: #6a786c;
+}
+.confirm-card #exit-error {
+  color: #a43f32;
+}
+.confirm-card .button-stack {
+  padding: 8px 0 0;
+}
+.connection-status {
+  position: absolute;
+  top: calc(108px + env(safe-area-inset-top));
+  left: 18px;
+  right: 18px;
+  padding: 10px;
+  border: 1px solid #b58a46;
+  border-radius: 8px;
+  background: #fff3d8ed;
+  color: #8b5d31;
+  text-align: center;
+  font-size: 12px;
+}
+.experience-gain {
+  color: #886128;
+  text-align: center;
+  font-size: 16px;
+}
+@media (max-height: 740px) and (orientation: portrait) {
+  .home {
+    padding-top: 24px;
+    gap: 12px;
+  }
+  .home h1 {
+    font-size: 58px;
+    margin: 10px 0;
+  }
+  .home-actions {
+    gap: 8px;
+    padding-top: 8px;
+  }
+  .home-actions > .primary,
+  .home-actions #matchmaking {
+    min-height: 46px;
+  }
+  .rank-summary {
+    padding: 8px 10px;
+  }
+  .rank-summary strong {
+    font-size: 21px;
+  }
+}
+@media (orientation: landscape) {
+  .home {
+    padding-block: 14px;
+    gap: 24px;
+  }
+  .home-actions {
+    gap: 6px;
+    padding: 4px 10px;
+  }
+  .home-actions > .primary,
+  .home-actions #matchmaking {
+    min-height: 44px;
+    padding: 8px;
+  }
+  .rank-summary {
+    padding: 6px 10px;
+  }
+  .battle-top .battle-title {
+    text-align: left;
+    margin-right: auto;
+  }
+  .strength-bar {
+    top: 49px;
+    left: 245px;
+    right: 95px;
+  }
+  .map-controls {
+    right: 12px;
+    bottom: 75px;
+    grid-template-columns: repeat(3, 44px);
+    align-items: end;
+  }
+  .view-modes {
+    grid-template-columns: repeat(2, 44px);
+    grid-column: 1 / -1;
+    justify-content: end;
+  }
+  .connection-status {
+    top: 58px;
+    left: 25%;
+    right: 25%;
+  }
+  .experience-gain {
+    grid-column: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .match-seal.searching {
+    animation: none;
+  }
+  .strength-bar i {
+    transition: none;
+  }
+}

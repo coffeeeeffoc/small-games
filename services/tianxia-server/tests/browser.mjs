@@ -13,7 +13,8 @@ const reportPath = path.join(
 );
 const directory = await mkdtemp(path.join(os.tmpdir(), 'tianxia-server-browser-'));
 const checks = [],
-  pageErrors = [];
+  pageErrors = [],
+  controlRequests = [];
 let app,
   browser,
   current = Date.now(),
@@ -23,6 +24,9 @@ const gate = () => {
   const promise = new Promise((done) => (resolve = done));
   return { promise, resolve };
 };
+const snapshot = (page) => page.evaluate(() => globalThis.tianxiaSnapshot());
+const screen = (page, name) => expect(page.locator('body')).toHaveAttribute('data-screen', name);
+const activeRoutes = (j) => j.routeIndices ?? (j.routeIndex < 0 ? [] : [j.routeIndex]);
 try {
   const build = JSON.parse(
     await readFile(path.join(repository, 'games/local/tianxia-chalu/dist/build-info.json'), 'utf8'),
@@ -41,23 +45,33 @@ try {
       ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
       : {}),
   });
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-  });
-  const page = await context.newPage();
-  page.on('pageerror', (e) => pageErrors.push(e.message));
-  await page.addInitScript(() =>
-    Object.defineProperty(Crypto.prototype, 'getRandomValues', {
-      value(array) {
-        array.fill(3);
-        return array;
-      },
-    }),
-  );
-  const screen = (name) => expect(page.locator('body')).toHaveAttribute('data-screen', name);
-  const snapshot = () => page.evaluate(() => globalThis.tianxiaSnapshot());
+  const session = async () => {
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    const page = await context.newPage();
+    page.on('pageerror', (e) => pageErrors.push(e.message));
+    page.on('request', (r) => {
+      if (/\/api\/matches\/[^/]+\/(pause|resume)$/.test(r.url())) controlRequests.push(r.url());
+    });
+    await page.addInitScript(() =>
+      Object.defineProperty(Crypto.prototype, 'getRandomValues', {
+        value(array) {
+          array.fill(3);
+          return array;
+        },
+      }),
+    );
+    await page.goto(base + '/play/');
+    await screen(page, 'home');
+    await page.waitForFunction(
+      () => globalThis.tianxiaSnapshot?.().ready && globalThis.tianxiaSnapshot?.().artReady,
+    );
+    return page;
+  };
+  const page = await session();
   const advance = (ms) => {
     for (let remaining = ms; remaining > 0; ) {
       const step = Math.min(1000, remaining);
@@ -66,7 +80,7 @@ try {
       remaining -= step;
     }
   };
-  const hidden = (value) =>
+  const hidden = (page, value) =>
     page.evaluate((isHidden) => {
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => isHidden });
       document.dispatchEvent(new Event('visibilitychange'));
@@ -79,22 +93,22 @@ try {
     );
     await page.locator('#begin-battle').tap();
     const created = await (await response).json();
-    await screen('battle');
+    await screen(page, 'battle');
     return app.matches.matches.get(created.matchId);
   };
-  const pause = async (match) => {
-    await page.locator('#pause').tap();
-    await screen('pause');
-    await expect(page.locator('#pause-note')).toContainText('服务端已暂停');
-    assert.equal(match.paused, true);
+  const touchCity = async (page, id) => {
+    await expect
+      .poll(async () => !!(await snapshot(page)).cities?.find((c) => c.id === id)?.client)
+      .toBe(true);
+    const p = (await snapshot(page)).cities.find((c) => c.id === id).client;
+    await page.touchscreen.tap(p.x, p.y);
   };
-  const resume = async (match) => {
-    await page.locator('#resume').tap();
-    await screen('battle');
-    assert.equal(match.paused, false);
+  const surrender = async (page) => {
+    await page.locator('#battle-back').tap();
+    await expect(page.locator('#exit-confirm')).toBeVisible();
+    await page.locator('#surrender').tap();
+    await screen(page, 'home');
   };
-  await page.goto(base + '/play/');
-  await screen('home');
   await expect(page).toHaveTitle('夺城令');
   await expect(page.locator('.home h1')).toHaveText('夺城令');
   await page.locator('#settings').tap();
@@ -108,63 +122,57 @@ try {
   const first = await create();
   const own = first.state.cities.find((c) => c.owner === 0),
     junction = first.state.junctions.find((j) => j.cityId === own.id);
-  await expect
-    .poll(async () => !!(await snapshot()).cities.find((c) => c.id === own.id)?.client)
-    .toBe(true);
-  const point = (await snapshot()).cities.find((c) => c.id === own.id).client;
-  await page.touchscreen.tap(point.x, point.y);
-  await expect.poll(async () => (await snapshot()).selected).toBe(own.id);
+  await touchCity(page, own.id);
+  await expect.poll(async () => (await snapshot(page)).selected).toBe(own.id);
   const ack = page.waitForResponse((r) => r.url().endsWith('/commands'));
-  const target = (await snapshot()).cities.find((c) => c.id === junction.exits[0]).client;
-  await page.touchscreen.tap(target.x, target.y);
+  await touchCity(page, junction.exits[0]);
   assert.equal((await (await ack).json()).accepted, true);
-  assert.equal(first.sequence, 1);
-  assert.equal(junction.routeIndex, 0);
+  assert.equal(first.seats[0].sequence, 1);
+  assert.deepEqual(activeRoutes(junction), [0]);
   advance(2000);
   await expect(page.locator('#clock')).toHaveText('2:58');
   checks.push(
-    'Real Cocos source and target city touches reaches the API and renders the accepted route and server time.',
+    'Real Cocos source/target touches reach the API and render accepted routes and server time.',
   );
-  await pause(first);
-  const paused = first.state.time;
-  advance(10000);
-  assert.equal(first.state.time, paused);
-  await resume(first);
+  await page.locator('#battle-back').tap();
+  await expect(page.locator('#exit-confirm')).toContainText('投降');
+  assert.equal(first.paused, false);
+  const confirming = first.state.time;
+  advance(2000);
+  await expect.poll(async () => (await snapshot(page)).time).toBe(confirming + 2);
+  assert.equal((await snapshot(page)).inputBlocked, true);
+  await page.locator('#keep-battling').tap();
+  await screen(page, 'battle');
+  await page.locator('#intel').tap();
+  const intelligence = first.state.time;
   advance(1000);
-  await expect(page.locator('#clock')).toHaveText('2:57');
-  await page.evaluate(() =>
-    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true })),
-  );
-  await screen('pause');
-  await expect(page.locator('#pause-note')).toContainText('服务端已暂停');
-  assert.equal(first.paused, true);
+  await expect.poll(async () => (await snapshot(page)).time).toBe(intelligence + 1);
+  await page.locator('#back').tap();
+  await hidden(page, true);
   advance(1000);
-  assert.equal(first.state.time, paused + 1);
-  await page.evaluate(() =>
-    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })),
-  );
-  await page.locator('#leave').tap();
-  await screen('home');
+  assert.equal(first.paused, false);
+  await hidden(page, false);
+  await expect.poll(async () => (await snapshot(page)).time).toBe(first.state.time);
+  await surrender(page);
   checks.push(
-    'Pause, resume and BFCache-style pagehide keep the server match paused without abandoning it.',
+    'Return confirmation, intelligence and backgrounding never pause the authoritative battle; cancellation continues the same match.',
   );
+
   const simultaneous = await create();
   const troopSource = simultaneous.state.cities.find((c) => c.owner === 0);
   const sourceJunction = simultaneous.state.junctions.find((j) => j.cityId === troopSource.id);
   const relayId = sourceJunction.exits[0];
-  const touchCity = async (id) => {
-    await expect
-      .poll(async () => !!(await snapshot()).cities.find((c) => c.id === id)?.client)
-      .toBe(true);
-    const p = (await snapshot()).cities.find((c) => c.id === id).client;
-    await page.touchscreen.tap(p.x, p.y);
-  };
-  await touchCity(troopSource.id);
-  await touchCity(relayId);
-  await expect.poll(() => sourceJunction.routeIndex).toBe(0);
-  advance(9000);
+  await touchCity(page, troopSource.id);
+  await touchCity(page, relayId);
+  await expect.poll(() => activeRoutes(sourceJunction)).toEqual([0]);
+  for (
+    let i = 0;
+    i < 20 && simultaneous.state.cities.find((c) => c.id === relayId).owner !== 0;
+    i++
+  )
+    advance(1000);
   await expect
-    .poll(async () => (await snapshot()).cities.find((c) => c.id === relayId).owner)
+    .poll(async () => (await snapshot(page)).cities.find((c) => c.id === relayId).owner)
     .toBe(0);
   const relay = simultaneous.state.junctions.find((j) => j.cityId === relayId);
   const enemy = simultaneous.state.cities.find((c) => c.owner === 1);
@@ -181,33 +189,32 @@ try {
     await route.fulfill({ response });
   };
   await page.route(commandsUrl, slowCommand);
-  await touchCity(relayId);
-  await touchCity(enemy.id);
+  await touchCity(page, relayId);
+  await touchCity(page, enemy.id);
   await commandReceived.promise;
-  await touchCity(troopSource.id);
+  await touchCity(page, troopSource.id);
   assert.equal(
-    (await snapshot()).selected,
+    (await snapshot(page)).selected,
     troopSource.id,
-    'selection stays responsive during the preceding acknowledgement',
+    'input stays responsive while acknowledgement is pending',
   );
-  await touchCity(sourceJunction.exits[1]);
-  assert.equal((await snapshot()).selected, null);
-  assert.equal((await snapshot()).queuedOrders, 1);
+  await touchCity(page, sourceJunction.exits[1]);
+  assert.equal((await snapshot(page)).selected, null);
+  assert.equal((await snapshot(page)).queuedOrders, 1);
   commandRelease.resolve();
-  await expect.poll(() => sourceJunction.routeIndex).toBe(1);
-  assert.equal(relay.routeIndex, relay.exits.indexOf(enemy.id));
+  await expect.poll(() => activeRoutes(sourceJunction)).toEqual([0, 1]);
+  assert(activeRoutes(relay).includes(relay.exits.indexOf(enemy.id)));
   assert.equal(
-    simultaneous.sequence,
+    simultaneous.seats[0].sequence,
     3,
-    'both independent commands reached the authoritative service exactly once',
+    'both independent commands are acknowledged exactly once',
   );
   await page.unroute(commandsUrl, slowCommand);
-  await pause(simultaneous);
-  await page.locator('#leave').tap();
-  await screen('home');
+  await surrender(page);
   checks.push(
-    'A captured relay and another city accept independent touch orders while the first HTTP acknowledgement is delayed.',
+    'A delayed command acknowledgement preserves independent selection and additive multi-target orders.',
   );
+
   const created = gate(),
     release = gate();
   const deferCreate = async (route) => {
@@ -221,75 +228,38 @@ try {
   await page.locator('#begin-battle').tap();
   const data = await created.promise,
     second = app.matches.matches.get(data.matchId);
-  await hidden(true);
+  await hidden(page, true);
   release.resolve();
-  await screen('pause');
-  await expect(page.locator('#pause-note')).toContainText('服务端已暂停');
-  assert.equal(second.paused, true);
-  advance(10000);
-  assert.equal(second.state.time, 0);
+  await screen(page, 'battle');
+  assert.equal(second.paused, false);
+  advance(1000);
   await page.unroute(base + '/api/matches', deferCreate);
-  await hidden(false);
-  await resume(second);
+  await hidden(page, false);
+  await expect.poll(async () => (await snapshot(page)).time).toBe(second.state.time);
   checks.push(
-    'Backgrounding during deferred creation pauses the late-created match before gameplay.',
+    'Backgrounding during a deferred creation keeps the late-created authoritative match running.',
   );
-  await pause(second);
-  const resumed = gate(),
-    resumeRelease = gate(),
-    resumeUrl = base + '/api/matches/' + second.id + '/resume';
-  const deferResume = async (route) => {
-    const response = await route.fetch();
-    resumed.resolve();
-    await resumeRelease.promise;
-    await route.fulfill({ response });
-  };
-  await page.route(resumeUrl, deferResume);
-  await page.locator('#resume').tap();
-  await resumed.promise;
-  await hidden(true);
-  resumeRelease.resolve();
-  await expect.poll(() => second.paused).toBe(true);
-  await screen('pause');
-  advance(10000);
-  assert.equal(second.state.time, 0);
-  await page.unroute(resumeUrl, deferResume);
-  await hidden(false);
-  await resume(second);
-  checks.push('Backgrounding during deferred resume returns to a paused authoritative match.');
   const outage = (route) => route.abort('internetdisconnected');
   await page.route(base + '/api/matches/**', outage);
-  await screen('pause');
-  await expect(page.locator('#pause-note')).toContainText('尚未确认服务端暂停');
+  await expect.poll(async () => (await snapshot(page)).connectionLost).toBe(true);
+  await expect(page.locator('#connection-status')).toContainText('仍在继续');
   assert.equal(second.paused, false);
   advance(180000);
   assert.equal(second.state.status, 'finished');
-  const resumeRequests = [];
-  const observe = (request) => {
-    if (request.url() === resumeUrl) resumeRequests.push(request.url());
-  };
-  page.on('request', observe);
   await page.unroute(base + '/api/matches/**', outage);
-  await page.locator('#resume').tap();
-  await screen('result');
-  await expect(page.locator('#result-sync')).toHaveText('服务端战报已保存');
-  assert.equal(resumeRequests.length, 0);
-  page.off('request', observe);
+  await screen(page, 'result');
+  await expect(page.locator('#result-sync')).toContainText('已保存');
+  await expect.poll(async () => (await snapshot(page)).career.pve.games).toBeGreaterThanOrEqual(1);
+  const pveProfile = (await snapshot(page)).career;
+  assert(
+    pveProfile.recent.some((result) => result.id === second.id && [8, 12, 20].includes(result.xp)),
+    'natural server PVE receives the smaller experience award',
+  );
   checks.push(
-    'An outage never falsely claims pause; reconnect fetches a terminal result without a rejected resume POST.',
+    'Connection loss blocks uncertain commands without pretending to pause; polling recovers the terminal result and the smaller PVE award.',
   );
   await page.locator('#result-home').tap();
-  const third = await create();
-  await pause(third);
-  advance(301000);
-  assert.equal(third.state.result.reason, 'expired');
-  await page.locator('#resume').tap();
-  await screen('result');
-  await expect(page.locator('.result-heading')).toContainText('离线过久');
-  await expect(page.locator('.result-heading')).not.toContainText('第 0 名');
-  await expect(page.locator('#result-sync')).toHaveText('服务端战报已保存');
-  checks.push('Expired match explains expiry and awards no card or invented rank.');
-  await page.locator('#result-home').tap();
+
   const cancelCreated = gate(),
     cancelRelease = gate();
   const cancelCreate = async (route) => {
@@ -303,16 +273,88 @@ try {
   await page.locator('#begin-battle').tap();
   const abandoned = await cancelCreated.promise;
   await page.locator('#back').tap();
-  await screen('levels');
+  await screen(page, 'levels');
   cancelRelease.resolve();
   await expect
     .poll(() => app.matches.matches.get(abandoned.matchId).state.result?.reason)
     .toBe('abandoned');
-  await screen('levels');
+  await screen(page, 'levels');
   await page.unroute(base + '/api/matches', cancelCreate);
-  checks.push(
-    'Leaving preparation cancels a deferred creation, abandons its late server match and never reopens battle.',
+  await page.locator('#back').tap();
+  checks.push('Leaving preparation abandons deferred creation and does not reopen battle.');
+
+  await page.locator('#matchmaking').tap();
+  await screen(page, 'matchmaking');
+  await expect(page.locator('#match-status')).toContainText('真人');
+  assert.equal([...app.matches.matches.values()].filter((m) => m.mode === 'matched').length, 0);
+  await page.locator('#match-cancel').tap();
+  await screen(page, 'home');
+  checks.push('A lone human remains queued with no AI substitution and can cancel.');
+  const opponent = await session();
+  await page.locator('#matchmaking').tap();
+  await expect(page.locator('#match-status')).toContainText('真人');
+  await opponent.locator('#matchmaking').tap();
+  await Promise.all([screen(page, 'battle'), screen(opponent, 'battle')]);
+  const [a, b] = await Promise.all([snapshot(page), snapshot(opponent)]);
+  assert.equal(a.mode, 'matched');
+  assert.equal(b.mode, 'matched');
+  assert.deepEqual(new Set([a.playerFactionId, b.playerFactionId]), new Set([0, 1]));
+  const duel = [...app.matches.matches.values()].find(
+    (m) => m.mode === 'matched' && m.finishedAt === null,
   );
+  assert(duel && duel.state.aiEnabled === false);
+  assert.equal(
+    duel.state.playerFactionId,
+    0,
+    'per-player projections never rewrite authoritative state',
+  );
+  const ownOrder = async (clientPage, snap) => {
+    const source = snap.cities.find((c) => c.owner === snap.playerFactionId);
+    const j = snap.junctions.find((entry) => entry.cityId === source.id);
+    await touchCity(clientPage, source.id);
+    await expect.poll(async () => (await snapshot(clientPage)).selected).toBe(source.id);
+    const response = clientPage.waitForResponse((r) => r.url().endsWith('/commands'));
+    await touchCity(clientPage, j.exits[0]);
+    const accepted = await (await response).json();
+    assert.equal(accepted.accepted, true);
+    assert.equal(accepted.sequence, 1);
+    assert.equal(accepted.snapshot.state.playerFactionId, snap.playerFactionId);
+  };
+  await Promise.all([ownOrder(page, a), ownOrder(opponent, b)]);
+  assert.deepEqual(
+    duel.seats.map((seat) => seat.sequence),
+    [1, 1],
+  );
+  await page.locator('#battle-back').tap();
+  advance(1000);
+  await expect.poll(async () => (await snapshot(opponent)).time).toBe(duel.state.time);
+  assert(duel.state.time >= 1);
+  await page.locator('#keep-battling').tap();
+  await surrender(page);
+  await screen(opponent, 'result');
+  await expect(opponent.locator('#result-sync')).toContainText('已保存');
+  const victory = await snapshot(opponent);
+  assert.equal(victory.result.outcome, 'victory');
+  assert.equal(victory.result.winnerId, b.playerFactionId);
+  await expect.poll(async () => (await snapshot(opponent)).career.matched.wins).toBe(1);
+  assert.equal((await snapshot(opponent)).career.xp, 100);
+  await expect.poll(async () => (await snapshot(page)).career.matched.losses).toBe(1);
+  const storedWinner = await opponent.evaluate(
+    (origin) => JSON.parse(localStorage.getItem('tianxia-chalu:v1')).onlineProfile[origin].career,
+    base,
+  );
+  assert.equal(storedWinner.matched.games, 1);
+  const winnerSeat = duel.seats.find((seat) => seat.factionId === b.playerFactionId);
+  await app.matches.result(duel.id, winnerSeat.token);
+  assert.equal(
+    app.players.profile(winnerSeat.playerId).career.xp,
+    100,
+    'reading a settled result cannot grant XP twice',
+  );
+  checks.push(
+    'Two isolated browsers match real humans, command their own seats with independent sequences and persist exactly one victory/defeat award.',
+  );
+  assert.deepEqual(controlRequests, [], 'the UI sends no pause/resume controls');
   assert.deepEqual(pageErrors, []);
 } catch (error) {
   failure = error;
@@ -329,7 +371,7 @@ try {
   const report = {
     status: failure ? 'failed' : 'passed',
     environment:
-      'Chromium 390x844 touch emulation; real HTTP service and real Creator artifact; injected service clock, no forged results',
+      'Chromium 390x844 touch emulation; real HTTP service and matching Creator artifact; injected service clock and client random seed, no forged state/results',
     checks,
     pageErrors,
     ...(failure ? { failure: failure.stack } : {}),

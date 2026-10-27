@@ -7,6 +7,8 @@ import {
   createMatch,
   tick,
   switchRoute,
+  setRoute,
+  activeRoutes,
   getScore,
   getUnlockedLevels,
   applyResult,
@@ -20,6 +22,7 @@ import {
 
 const fresh = (options = {}) => createMatch({ seed: 0, aiEnabled: false, ...options });
 const own = (s, f = 0) => s.cities.find((c) => c.owner === f);
+const cityOfTest = (s, id) => s.cities.find((c) => c.id === id);
 const junction = (s, c) => s.junctions.find((j) => j.cityId === c.id);
 const freeze = (s) => {
   for (const c of s.cities) {
@@ -84,6 +87,7 @@ test('initial ownership rotates fairly, every faction starts at zero and holds',
       assert.equal(s.spawns[0], level.spawnSets[0][seed]);
       assert.ok(s.cities.every((c) => c.troops === 0 && c.reserve === 0));
       assert.ok(s.junctions.every((j) => j.routeIndex === -1));
+      assert.ok(s.junctions.every((j) => j.routeIndices.length === 0));
       for (const f of s.factions) {
         assert.equal(s.cities.filter((c) => c.owner === f).length, 1);
         assert.ok(
@@ -113,6 +117,176 @@ test('hold, cycle, direct selection, ownership, type bounds and cooldown', () =>
   assert.deepEqual(s.events.at(-1).position, { x: own(s).x, y: own(s).y });
 });
 
+test('persistent targets are independent, idempotent, validated and compatible with old commands', () => {
+  const s = fresh(),
+    c = own(s),
+    j = junction(s, c);
+  assert.equal(setRoute(s, 1, j.id, 0).reason, 'not-owner');
+  for (const index of [-1, j.exits.length, 0.5, '0', null])
+    assert.equal(setRoute(s, 0, j.id, index).reason, 'invalid-route');
+  assert.equal(setRoute(s, 0, j.id, 0, 'true').reason, 'invalid-enabled');
+  assert.equal(setRoute(s, 0, j.id, 0).ok, true);
+  const switches = s.stats.switches;
+  assert.equal(setRoute(s, 0, j.id, 0).ok, true, 'an acknowledged setting can be retried');
+  assert.equal(s.stats.switches, switches);
+  assert.equal(setRoute(s, 0, j.id, 1).reason, 'cooldown');
+  tick(s, 0.2);
+  assert.deepEqual(setRoute(s, 0, j.id, 1).routeIndices, [0, 1]);
+  tick(s, 0.2);
+  assert.deepEqual(setRoute(s, 0, j.id, 0, false).routeIndices, [1]);
+  assert.equal(j.routeIndex, 1);
+  tick(s, 0.2);
+  assert.deepEqual(switchRoute(s, 0, j.id, 0).routeIndices, [0]);
+  tick(s, 0.2);
+  switchRoute(s, 0, j.id, -1);
+  assert.deepEqual(activeRoutes(j), []);
+  assert.equal(j.routeIndex, -1);
+  delete j.routeIndices;
+  j.routeIndex = 1;
+  delete c.dispatchWaves;
+  delete c.dispatchCursor;
+  c.troops = 10;
+  c.dispatchProgress = RULES.dispatchInterval;
+  assert.deepEqual(activeRoutes(j), [1], 'legacy JSON snapshots still dispatch');
+  tick(s, 0.1);
+  assert.ok(s.packets.some((p) => p.targetCityId === j.exits[1]));
+});
+
+test('multiple targets share one conserved wave and rotate scarce soldiers fairly', () => {
+  const s = fresh();
+  freeze(s);
+  const c = s.cities.find((v) => junction(s, v).exits.length === 3),
+    j = junction(s, c);
+  claim(s, c, 0);
+  for (let index = 0; index < j.exits.length; index++) {
+    assert.equal(setRoute(s, 0, j.id, index).ok, true);
+    tick(s, 0.2);
+  }
+  c.troops = 60;
+  c.dispatchProgress = RULES.dispatchInterval;
+  const single = structuredClone(s);
+  switchRoute(single, 0, j.id, 0);
+  tick(s, 0.1);
+  tick(single, 0.1);
+  const sent = s.packets.filter((p) => p.fromCityId === c.id && p.phase === 'road');
+  const total = sent.reduce((sum, p) => sum + p.troops, 0);
+  assert.equal(new Set(sent.map((p) => p.targetCityId)).size, 3);
+  assert.equal(total + c.troops, 60);
+  assert.equal(
+    total,
+    single.packets.reduce((sum, p) => sum + p.troops, 0),
+  );
+  assert.ok(Math.max(...sent.map((p) => p.troops)) - Math.min(...sent.map((p) => p.troops)) <= 1);
+
+  const scarce = structuredClone(s),
+    scarceCity = cityOfTest(scarce, c.id);
+  scarce.packets = [];
+  scarceCity.dispatchCursor = 0;
+  const destinations = [];
+  for (let wave = 0; wave < 3; wave++) {
+    scarceCity.troops = 1;
+    scarceCity.dispatchProgress = RULES.dispatchInterval;
+    tick(scarce, 0.1);
+    destinations.push(scarce.packets.at(-1).targetCityId);
+  }
+  assert.equal(new Set(destinations).size, 3);
+});
+
+test('removing one target stops only future waves and capture clears every old route', () => {
+  const s = fresh();
+  freeze(s);
+  const c = own(s),
+    j = junction(s, c);
+  c.troops = 60;
+  setRoute(s, 0, j.id, 0);
+  tick(s, 0.2);
+  setRoute(s, 0, j.id, 1);
+  c.dispatchProgress = RULES.dispatchInterval;
+  tick(s, 0.2);
+  const departed = s.packets.filter((p) => p.owner === 0);
+  const oldTargets = departed.map((p) => p.targetCityId);
+  setRoute(s, 0, j.id, 0, false);
+  const nextPacket = s.nextPacketId;
+  tick(s, 1.5);
+  assert.deepEqual(
+    departed.map((p) => p.targetCityId),
+    oldTargets,
+  );
+  assert.ok(
+    s.packets.filter((p) => p.id >= nextPacket).every((p) => p.targetCityId === j.exits[1]),
+  );
+  assert.deepEqual(j.routeIndices, [1]);
+  setRoute(s, 0, j.id, 0);
+  assert.equal(j.routeIndices.length, 2);
+  c.troops = 0;
+  c.dispatchProgress = -1000;
+  army(s, cityOfTest(s, j.exits[0]), c, 1, 50, 1, 'siege');
+  tick(s, 0.1);
+  assert.equal(c.owner, 1);
+  assert.deepEqual(j.routeIndices, []);
+  assert.equal(c.dispatchWaves, 0);
+});
+
+test('large armies launch earlier and larger waves, and defeat weaker equal-supply opponents', () => {
+  for (const [strongCount, weakCount] of [
+    [60, 20],
+    [120, 30],
+    [300, 60],
+  ]) {
+    for (let seed = 0; seed < 8; seed++) {
+      const s = fresh({ seed });
+      s.sources = [];
+      for (const c of s.cities) claim(s, c, null);
+      const a = s.cities[0],
+        b = cityOfTest(s, junction(s, a).exits[0]);
+      claim(s, a, 0);
+      claim(s, b, 1);
+      a.troops = strongCount;
+      b.troops = weakCount;
+      setRoute(s, 0, a.junctionId, junction(s, a).exits.indexOf(b.id));
+      setRoute(s, 1, b.junctionId, junction(s, b).exits.indexOf(a.id));
+      while (s.time < 1.2) tick(s, 0.1);
+      const strong = s.packets.filter((p) => p.owner === 0 && p.phase === 'road');
+      const weak = s.packets.filter((p) => p.owner === 1 && p.phase === 'road');
+      assert.ok(strong[0].departedAt < weak[0].departedAt);
+      const firstWave = (packets) =>
+        packets
+          .filter((p) => p.departedAt === packets[0].departedAt)
+          .reduce((sum, p) => sum + p.troops, 0);
+      assert.ok(firstWave(strong) > firstWave(weak));
+      tick(s, 65);
+      assert.equal(b.owner, 0, `${strongCount}:${weakCount}, seed ${seed} stalled`);
+      assert.equal(s.result?.winnerId, 0);
+    }
+  }
+});
+
+test('continuous reinforcement builds larger, faster waves with bounded seeded variation', () => {
+  const s = fresh();
+  freeze(s);
+  const c = own(s);
+  setRoute(s, 0, c.junctionId, 0);
+  c.dispatchProgress = 0;
+  const waves = [];
+  for (let step = 0; step < 120 && waves.length < 10; step++) {
+    // A steady supply fixture isolates momentum from changes in the available army.
+    c.troops = 60;
+    const before = c.dispatchWaves;
+    tick(s, 0.1);
+    if (c.dispatchWaves > before) {
+      const packets = s.packets.filter((p) => p.fromCityId === c.id && p.departedAt === s.time);
+      waves.push({ at: s.time, troops: packets.reduce((sum, p) => sum + p.troops, 0) });
+    }
+  }
+  assert.equal(waves.length, 10);
+  assert.ok(waves[9].at - waves[6].at < waves[3].at - waves[0].at);
+  assert.ok(
+    waves.slice(-3).reduce((n, w) => n + w.troops, 0) >
+      waves.slice(0, 3).reduce((n, w) => n + w.troops, 0),
+  );
+  assert.ok(new Set(waves.map((w) => w.troops)).size > 1);
+});
+
 test('hold produces to capacity, resumes without a production burst or forced reserve', () => {
   const s = fresh(),
     c = own(s),
@@ -124,13 +298,16 @@ test('hold produces to capacity, resumes without a production burst or forced re
   assert.equal(neutral.troops, 0);
   switchRoute(s, 0, c.junctionId, 0);
   tick(s, 2);
-  assert.equal(s.packets[0].troops, 8);
-  assert.equal(c.troops, c.capacity - 8);
+  assert.ok(s.packets[0].troops > RULES.packetSize);
+  assert.ok(c.troops < c.capacity - RULES.packetSize);
+  const total = getScore(s).find((r) => r.factionId === 0).troops;
+  assert.ok(total >= c.capacity && total <= c.capacity + 3, 'no stored production burst');
   const second = fresh();
   tick(second, 2);
   switchRoute(second, 0, own(second).junctionId, 0);
   tick(second, 2);
-  assert.equal(own(second).troops, 0);
+  assert.ok(second.packets.some((p) => p.owner === 0 && p.troops > 0));
+  assert.ok(own(second).troops <= 1, 'small garrisons retain no forced reserve');
 });
 
 test('departed armies retain their target after hold or a new command; capture defaults hold', () => {
@@ -147,6 +324,7 @@ test('departed armies retain their target after hold or a new command; capture d
   const captured = s.cities.find((city) => city.id === target);
   assert.equal(captured.owner, 0);
   assert.equal(junction(s, captured).routeIndex, -1);
+  assert.deepEqual(junction(s, captured).routeIndices, []);
   assert.equal(captured.recruitProgress, 0);
 });
 
@@ -164,10 +342,13 @@ test('friendly overflow remains visible, is counted and dispatches before garris
   assert.equal(getScore(s).find((r) => r.factionId === 0).troops, c.capacity + 12);
   c.dispatchProgress = 0;
   switchRoute(s, 0, c.junctionId, 0);
-  tick(s, 2);
-  assert.equal(c.troops, c.capacity);
-  assert.equal(p.troops, 4);
-  assert.equal(s.packets.find((v) => v.phase === 'road').troops, 8);
+  for (let step = 0; step < 20 && c.dispatchWaves === 0; step++) tick(s, 0.1);
+  assert.equal(c.dispatchWaves, 1);
+  const departing = s.packets.filter((v) => v.phase === 'road').reduce((n, v) => n + v.troops, 0);
+  assert.equal(p.phase, 'road', 'overflow departs before any garrison soldiers');
+  assert.equal(p.troops, 12);
+  assert.ok(departing > RULES.packetSize);
+  assert.equal(c.troops + departing, c.capacity + 12);
 });
 
 test('overflow participates in defense and cannot become a captor-owned army', () => {
@@ -362,7 +543,7 @@ test('full and split dispatch conserve wounds from actual combat', () => {
     const sent = s.packets.find((p) => p.owner === 0);
     assert.ok(sent);
     assert.ok(Math.abs(sent.damage + c.damage - wounds) < 1e-8);
-    assert.ok(Math.abs(sent.damage - (wounds * Math.min(count, RULES.packetSize)) / count) < 1e-8);
+    assert.ok(Math.abs(sent.damage - (wounds * sent.troops) / count) < 1e-8);
     if (count === 1) {
       assert.equal(c.troops, 0);
       assert.equal(c.damage, 0);

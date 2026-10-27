@@ -1,5 +1,46 @@
 import { migrateProgress } from './src/core/index.mjs';
 import { normalizeArmory } from './rewards.mjs';
+import { normalizeCareer, getRank, careerWinRate } from './src/core/progression.mjs';
+
+function onlineRecords(value, profile = false) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([origin, entry]) => {
+      try {
+        const url = new URL(origin);
+        if (
+          !['http:', 'https:'].includes(url.protocol) ||
+          url.origin !== origin ||
+          !entry ||
+          typeof entry.playerId !== 'string' ||
+          entry.playerId.length > 160
+        )
+          return [];
+        if (!profile)
+          return typeof entry.token === 'string' &&
+            entry.token.length >= 16 &&
+            entry.token.length <= 256
+            ? [[origin, { playerId: entry.playerId, token: entry.token }]]
+            : [];
+        const career = normalizeCareer(entry.career);
+        return [
+          [
+            origin,
+            {
+              playerId: entry.playerId,
+              name: String(entry.name ?? '').slice(0, 40),
+              career,
+              rank: getRank(career.xp),
+              winRate: careerWinRate(career),
+            },
+          ],
+        ];
+      } catch {
+        return [];
+      }
+    }),
+  );
+}
 
 const KEY = 'tianxia-chalu:v1';
 export function readSave(storage) {
@@ -9,6 +50,9 @@ export function readSave(storage) {
     tutorials: {},
     codex: {},
     armory: normalizeArmory(null),
+    career: normalizeCareer(null),
+    onlineIdentity: {},
+    onlineProfile: {},
     settings: { sound: true, music: true, difficulty: 'normal', serverUrl: '', online: false },
   };
   try {
@@ -30,6 +74,9 @@ export function readSave(storage) {
         ),
       ),
       armory: normalizeArmory(data.armory),
+      career: normalizeCareer(data.career),
+      onlineIdentity: onlineRecords(data.onlineIdentity),
+      onlineProfile: onlineRecords(data.onlineProfile, true),
       settings: {
         ...fallback.settings,
         sound: data.settings?.sound !== false,

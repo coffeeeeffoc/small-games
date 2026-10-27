@@ -164,3 +164,30 @@ test('fallback save objects do not share mutable progress or settings', () => {
   assert.deepEqual(second.completed, []);
   assert.equal(second.settings.sound, true);
 });
+
+test('career and service-scoped identities survive reload without trusting cached rank', () => {
+  const storage = memoryStorage();
+  const save = readSave(storage);
+  save.career.xp = 135;
+  save.onlineIdentity = {
+    'https://one.example': { playerId: 'player-one', token: 'a'.repeat(40) },
+    'https://two.example': { playerId: 'player-two', token: 'b'.repeat(40) },
+    'https://evil.example/path': { playerId: 'bad', token: 'c'.repeat(40) },
+  };
+  save.onlineProfile = {
+    'https://one.example': {
+      playerId: 'player-one',
+      name: '校场客',
+      career: { xp: 100 },
+      rank: { level: 999 },
+    },
+  };
+  assert.equal(writeSave(save, storage), true);
+  const restored = readSave(storage);
+  assert.equal(restored.career.xp, 135);
+  assert.equal(restored.onlineIdentity['https://one.example'].token, 'a'.repeat(40));
+  assert.equal(restored.onlineIdentity['https://two.example'].token, 'b'.repeat(40));
+  assert.equal(Object.keys(restored.onlineIdentity).length, 2);
+  assert.equal(restored.onlineProfile['https://one.example'].rank.level, 2);
+  assert.equal(restored.onlineProfile['https://one.example'].winRate, null);
+});

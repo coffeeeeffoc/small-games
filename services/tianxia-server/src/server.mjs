@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { ApiError, objectBody } from './errors.mjs';
 import { MatchService } from './matches.mjs';
 import { ResultStore } from './results.mjs';
+import { PlayerStore } from './players.mjs';
+import { Matchmaking } from './matchmaking.mjs';
 
 const BODY_LIMIT = 2048;
 const MEDIA = {
@@ -157,10 +159,17 @@ export async function createTianxiaServer({
   onError = console.error,
   matchOptions = {},
   resultOptions = {},
+  playerOptions = {},
+  matchmakingOptions = {},
 } = {}) {
   const results = new ResultStore(dataDir, resultOptions);
   await results.initialize(now());
-  const matches = new MatchService({ results, now, maxMatches, onError, ...matchOptions });
+  const players = new PlayerStore(path.join(dataDir, 'players'), playerOptions);
+  await players.initialize();
+  // Complete any result whose process stopped between the result and profile commits.
+  for (const record of results.records.values()) await players.settle(record);
+  const matches = new MatchService({ results, players, now, maxMatches, onError, ...matchOptions });
+  const matchmaking = new Matchmaking({ matches, players, now, ...matchmakingOptions });
   const limits = new RequestLimits();
   let staticRoot = null;
   try {
@@ -185,10 +194,11 @@ export async function createTianxiaServer({
       if (url.pathname.startsWith('/api/') && url.search)
         throw new ApiError(400, 'query-not-supported', 'API 凭证应放在 Authorization 请求头');
       const creating = request.method === 'POST' && url.pathname === '/api/matches';
-      limits.check(request.socket.remoteAddress || 'unknown', creating, now());
+      const createsIdentity = request.method === 'POST' && url.pathname === '/api/players';
+      limits.check(request.socket.remoteAddress || 'unknown', creating || createsIdentity, now());
       if (request.method === 'OPTIONS') {
         response.writeHead(204, {
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
           'Access-Control-Max-Age': '600',
         });
@@ -196,7 +206,12 @@ export async function createTianxiaServer({
         return;
       }
       if (request.method === 'GET' && url.pathname === '/health') {
-        json(response, 200, { status: 'ok', service: 'tianxia-server', protocol: 1 });
+        json(response, 200, {
+          status: 'ok',
+          service: 'tianxia-server',
+          protocol: 1,
+          matchmaking: true,
+        });
         return;
       }
       if (['GET', 'HEAD'].includes(request.method) && url.pathname.startsWith('/play/')) {
@@ -208,8 +223,32 @@ export async function createTianxiaServer({
         response.end();
         return;
       }
+      const token = /^Bearer ([A-Za-z0-9_-]+)$/.exec(request.headers.authorization || '')?.[1];
+      if (createsIdentity) {
+        objectBody(await body(request), []);
+        json(response, 201, await players.create());
+        return;
+      }
+      if (request.method === 'GET' && url.pathname === '/api/players/me') {
+        json(response, 200, { profile: players.profile(players.authenticate(token).playerId) });
+        return;
+      }
+      if (url.pathname === '/api/matchmaking') {
+        const player = players.authenticate(token);
+        if (request.method === 'POST') {
+          objectBody(await body(request), []);
+          json(response, 200, matchmaking.join(player));
+        } else if (request.method === 'GET') json(response, 200, matchmaking.poll(player));
+        else if (request.method === 'DELETE') json(response, 200, matchmaking.cancel(player));
+        else throw new ApiError(405, 'method-not-allowed', '不支持此请求方法');
+        return;
+      }
       if (creating) {
-        json(response, 201, matches.create(await body(request)));
+        const player = request.headers.authorization ? players.authenticate(token) : null;
+        const payload = await body(request);
+        if (player && matchmaking.waiting.has(player.playerId))
+          throw new ApiError(409, 'player-queued', '请先取消匹配');
+        json(response, 201, matches.create(payload, player));
         return;
       }
       const route =
@@ -218,7 +257,6 @@ export async function createTianxiaServer({
         );
       if (!route) throw new ApiError(404, 'not-found', '接口不存在');
       const [, id, action] = route;
-      const token = /^Bearer ([A-Za-z0-9_-]+)$/.exec(request.headers.authorization || '')?.[1];
       if (request.method === 'GET' && !action) {
         json(response, 200, matches.get(id, token));
         return;
@@ -255,7 +293,12 @@ export async function createTianxiaServer({
   server.setTimeout(5000, (socket) => socket.destroy());
   server.maxRequestsPerSocket = 1000;
   server.maxConnections = 256;
-  const ticker = autoTick ? setInterval(() => matches.advance(), 100) : null;
+  const ticker = autoTick
+    ? setInterval(() => {
+        matches.advance();
+        matchmaking.advance();
+      }, 100)
+    : null;
   ticker?.unref();
   const sweeper = autoTick
     ? setInterval(() => {
@@ -267,6 +310,8 @@ export async function createTianxiaServer({
     server,
     matches,
     results,
+    players,
+    matchmaking,
     async listen(port = 43004, host = '127.0.0.1') {
       await new Promise((resolve, reject) => {
         server.once('error', reject);
@@ -285,7 +330,9 @@ export async function createTianxiaServer({
           server.close(resolve);
           server.closeIdleConnections();
         });
+      await Promise.all([...matches.matches.values()].map((match) => match.persistence));
       await results.close();
+      await players.close();
     },
   };
 }
