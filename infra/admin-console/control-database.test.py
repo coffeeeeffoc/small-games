@@ -228,10 +228,10 @@ def actual_postgres(fixture_uuid, receipt_path):
             release = base/('fixture-'+fixture_uuid)
             release.mkdir(mode=0o700)
             (release/'migrations').mkdir(mode=0o700)
-            for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql'):
+            for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql','migrations/003-night-overwatch-control.sql'):
                 shutil.copyfile(HERE/name,release/name)
             manifest={'release':release.name,'sourceSHA':'1'*40,'migrationArtifactSha256':db.MIGRATION_SHA256,
-                      'files':{name:hashlib.sha256((release/name).read_bytes()).hexdigest() for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql')}}
+                      'files':{name:hashlib.sha256((release/name).read_bytes()).hexdigest() for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql','migrations/003-night-overwatch-control.sql')}}
             (release/'manifest.json').write_bytes(db.encoded_json(manifest))
             (private/release.name).mkdir(mode=0o700)
             with db.isolated_postgres(IMAGE,'source',fixture_uuid) as source:
@@ -270,6 +270,7 @@ COMMENT ON COLUMN runtime.competition_players.data IS 'column fixture'; COMMENT 
                 db.psql(source,(HERE/'migrations/001-admin-auth.sql').read_text(encoding='utf-8'))
                 db.psql(source,"""INSERT INTO admin_console.admin_oauth_flows VALUES(repeat('a',64),repeat('a',43),'https://fixture.invalid/callback',100);
 INSERT INTO admin_console.admin_sessions VALUES(repeat('b',64),repeat('c',64),true,'1','fixture','fixture@example.invalid',100);""")
+                db.psql(source,(HERE/'migrations/002-control-center.sql').read_text(encoding='utf-8'))
                 source_oids=db.psql(source,"SELECT jsonb_object_agg(rolname,oid) FROM pg_roles WHERE rolname IN('aa_control_canary','zz_control_canary','runtime_app','management_app');")
                 real_restore=db.restore_proof
                 def observer(event,clone):
@@ -296,7 +297,7 @@ INSERT INTO admin_console.admin_sessions VALUES(repeat('b',64),repeat('c',64),tr
                 db.require(pair.read_text(encoding='ascii')==hashlib.sha256(record.read_bytes()).hexdigest()+'\n','FIXTURE_PRECOMMIT_HASH')
                 for name in ('control-expected-full.json','control-expected-protected.json','control-expected-contract.json','control-database.dump','control-roles.sql'):
                     db.private_metadata(private/release.name/name)
-                passed.extend(['exact_002_twice_idempotent','actual_positive_and_42501_negative_permissions','protected_precommit_pair','source_same_transaction_full_and_contract_guards','verify_actual_read_only'])
+                passed.extend(['exact_schema2_to_3_upgrade_twice_idempotent','actual_positive_and_42501_negative_permissions','protected_precommit_pair','source_same_transaction_full_and_contract_guards','verify_actual_read_only'])
                 # Keep the old canary intact, then exercise real UUID session tables after 002.
                 db.psql(source, 'ALTER TABLE runtime.competition_players RENAME TO canary_players;')
                 for number in ('010-competition.sql','011-competition-profiles.sql','012-three-choose-two.sql','013-competition-identities.sql'):
@@ -404,9 +405,9 @@ def exercise_mutations(pg,parts,passed,changed):
     rejected('trigger_enabled','ALTER TABLE game_control.roles DISABLE TRIGGER immutable_builtin;','ALTER TABLE game_control.roles ENABLE TRIGGER immutable_builtin;')
     rejected('policy','CREATE POLICY control_proof_policy ON game_control.members USING(true);','DROP POLICY control_proof_policy ON game_control.members;')
     rejected('unknown_type',"CREATE TYPE game_control.control_proof_type AS ENUM('a');",'DROP TYPE game_control.control_proof_type;')
-    rejected('missing_version','DELETE FROM game_control.schema_version;','INSERT INTO game_control.schema_version VALUES(2);')
-    rejected('wrong_version','ALTER TABLE game_control.schema_version DROP CONSTRAINT schema_version_version_check; UPDATE game_control.schema_version SET version=1;',
-             'UPDATE game_control.schema_version SET version=2; ALTER TABLE game_control.schema_version ADD CONSTRAINT schema_version_version_check CHECK(version=2);')
+    rejected('missing_version','DELETE FROM game_control.schema_version;','INSERT INTO game_control.schema_version VALUES(3);')
+    rejected('wrong_version','ALTER TABLE game_control.schema_version DROP CONSTRAINT schema_version_version_check; UPDATE game_control.schema_version SET version=2;',
+             'UPDATE game_control.schema_version SET version=3; ALTER TABLE game_control.schema_version ADD CONSTRAINT schema_version_version_check CHECK(version=3);')
     for value in (None,dict(expected,projectionSha256='0'*64)):
         try:
             db.verify_control_database(pg_id=pg,migration_sha256=db.MIGRATION_SHA256,expected_contract=value)
