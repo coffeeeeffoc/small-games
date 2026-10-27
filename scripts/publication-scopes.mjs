@@ -1052,6 +1052,11 @@ function assertSixH5(games, packages, readHead) {
     'chase-thief',
     'moss-garden',
     'cage-rescue',
+    'ember-bounce',
+    'fold-the-world',
+    'out-of-frame',
+    'surprise-kept',
+    'two-sided-box',
   ];
   assert.deepEqual(
     registered.filter((id) => !extraIds.includes(id)),
@@ -2730,6 +2735,19 @@ export const publishingScopePaths = [
   'platforms/h5/publishing.js',
   'platforms/h5/publishing.d.ts',
   'platforms/h5/tests/publishing.test.mjs',
+];
+// The generated TapTap host loader is injected only into these five entries.
+export const publishingHostConsumers = {
+  'ember-bounce': publishingConsumers['ember-bounce'],
+  'fold-the-world': publishingConsumers['fold-the-world'],
+  'out-of-frame': publishingConsumers['out-of-frame'],
+  'surprise-kept': publishingConsumers['surprise-kept'],
+  'two-sided-box': publishingConsumers['two-sided-box'],
+};
+export const publishingHostScopePaths = [
+  'platforms/h5/publishing-host.js',
+  'platforms/h5/tests/publishing-host.test.mjs',
+  'platforms/h5/tests/two-sided-box-rewards.test.mjs',
 ];
 export const safeAreaConsumers = {
   'cops-robbers': 'games/local/cops-robbers',
@@ -5111,6 +5129,22 @@ export function reviewedSharedFileScopes({
           assert(packages.some((pkg) => pkg.dir === source));
         }
         scopes.set(file, Object.values(safeAreaConsumers));
+      } else if (publishingHostScopePaths.includes(file)) {
+        if (file.endsWith('.test.mjs')) scopes.set(file, []);
+        else {
+          assert.deepEqual(
+            literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'publishingInterstitialGames'),
+            Object.keys(publishingHostConsumers),
+          );
+          for (const [id, source] of Object.entries(publishingHostConsumers)) {
+            const entries = games.filter((game) => game.id === id || game.source === source);
+            assert.equal(entries.length, 1);
+            assert.equal(entries[0].id, id);
+            assert.equal(entries[0].source, source);
+            assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
+          }
+          scopes.set(file, Object.values(publishingHostConsumers));
+        }
       } else if (publishingScopePaths.includes(file)) {
         for (const [id, source] of Object.entries(publishingConsumers)) {
           assert(games.filter((game) => game.id === id && game.source === source).length === 1);

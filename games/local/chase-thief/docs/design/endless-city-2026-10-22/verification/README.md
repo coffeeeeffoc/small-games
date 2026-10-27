@@ -1,5 +1,20 @@
 # 小贼哪里跑 · 当前验收
 
+## 2026-10-27 首页与人物
+
+运行制品 SHA-256：`f5d7029d46d42b3eff8127baff26de57af2db31df2eaaa18b29f946c302f76c8`。基于远端 `c14053973c8b7de46488625f4cc5b4209ce874c8` 的独立副本重建并核对制品身份；保留并行代码，本轮不修改共享构建或广告配置。
+
+- 31 项 Node 游戏测试通过；Blender 网格去重后 2,566,855 bytes，几何、三角形朝向、颜色及法线等价检查通过，无运行时依赖增加。
+- Cocos Web 构建及浏览器回归通过：三街区、触屏跑跳滑、暂停/后台/恢复、失败/重试/存档、桌面鼠标、旧存档与禁存储；390×844、360×640、430×932，新增小屏首页热区至少 44 px 且在设计范围内。长距离场景回收最多 6 个活跃街区；页面错误为空。
+- Shell 两项接入测试共 109 项通过；定向 Vite Pages 构建及真实入口检查通过，39 条目录登记中选择本游戏，覆盖嵌入、触屏、返回和 Runtime 隔离。此项报告来自主工作区，不冒充完整候选验证。
+- 本地实际录屏与浏览器报告对应上述游戏制品。宣传片采用游戏资产另编镜头；两段视频经 ffprobe、完整解码、抽帧检查及 Microsoft Edge 连续播放至结尾。
+
+用户要求本轮媒体与报告仅留本地：仓库根目录 `outputs/chase-thief/delivery-2026-10-27/`（成品、`media-manifest.json`、`browser-report.json`、`gameplay/recording.json`），`outputs/chase-thief/browser/`（回归截图），`.scratch/game-integration/report.json`（Shell 入口）。旧报告和截图未覆盖，不作为本轮重跑证据。
+
+未运行完整 `validate:candidate`；未验证物理手机、Safari、Creator 编辑器导出、原生渠道或真实广告库存，未上传素材至平台。Git 推送及 CI/Pages 状态交付时单独核对。
+
+## 2026-10-25 历史验收
+
 2026-10-25，名称及三个街区视觉维护版。Node 24.21.0 / pnpm 12.6.0 / Windows / Chromium 156.0.8078.47；真实 Cocos Engine 3.8.8 source-Web。
 
 运行制品 SHA-256：`d2bcba76ff670bddfcc38b81c0fdd553dd1dd6621c882fe2d795a4a030cd8ccc`。完整指纹见 [build-info.json](build-info.json)，与 [browser-report.json](browser-report.json) 及[实录记录](../../../../publishing/gameplay/videos/recording.json)一致。

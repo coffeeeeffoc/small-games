@@ -145,6 +145,7 @@ export class RoomClient {
     this.generation = 0;
   }
   async available() {
+    if (globalThis.__COMPETITION_CONFIG__?.enabled === false) return false;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 1500);
     try {
@@ -159,6 +160,8 @@ export class RoomClient {
     }
   }
   async request(path, body, token) {
+    if (globalThis.__COMPETITION_CONFIG__?.enabled === false)
+      throw Error('本试包未启用好友服务');
     const controller = new AbortController(),
       timer = setTimeout(() => controller.abort(), 8000);
     try {

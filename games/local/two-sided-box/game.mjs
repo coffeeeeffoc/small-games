@@ -17,7 +17,7 @@ import { createStructureViewer } from './structure-view.mjs';
 import { createRevealAccess } from './reveal-access.mjs';
 import { readProgress, saveProgress } from './progress.mjs';
 import { installTouchButtons } from './touch-buttons.mjs';
-import { canOfferReward, offerFaceReward } from './rewards.mjs';
+import { canOfferReward, offerFaceReward, resolveRewardHost } from './rewards.mjs';
 
 installTouchButtons(document);
 
@@ -461,7 +461,7 @@ function renderHint() {
   $('#reward-reveal').hidden = !hidden.length;
   $('#reward-note').hidden = !hidden.length;
   $('#reward-reveal').disabled =
-    revealPending || ballMoving || state.completed || !canOfferReward(window.twoSidedBoxHost);
+    revealPending || ballMoving || state.completed || !canOfferReward(resolveRewardHost());
   $('#reward-reveal').textContent = rewardPending
     ? '等待视频奖励…'
     : rewardFace
@@ -469,7 +469,7 @@ function renderHint() {
       : '六面已全部展开';
   $('#reward-note').textContent =
     rewardFeedback ||
-    (canOfferReward(window.twoSidedBoxHost)
+    (canOfferReward(resolveRewardHost())
       ? '完整观看后展开这一面，也可以直接使用上方的免费提示。'
       : '当前暂无可用视频，可使用上方的免费提示展开。');
 }
@@ -522,7 +522,7 @@ async function requestRewardedFace() {
     ballMoving ||
     state.completed ||
     !hidden.length ||
-    !canOfferReward(window.twoSidedBoxHost)
+    !canOfferReward(resolveRewardHost())
   )
     return;
   const face = hidden.includes(selectedReveal) ? selectedReveal : hidden[0];
@@ -533,7 +533,7 @@ async function requestRewardedFace() {
   revealPending = true;
   rewardFeedback = '';
   update();
-  const outcome = await offerFaceReward(window.twoSidedBoxHost, face, {
+  const outcome = await offerFaceReward(resolveRewardHost(), face, {
     signal: rewardController.signal,
   });
   if (token !== generation || request !== observationRequest || !$('#hint-dialog').open) return;

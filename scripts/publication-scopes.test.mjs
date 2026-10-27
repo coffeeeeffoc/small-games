@@ -224,6 +224,8 @@ import {
   carromBackendFileScope,
   publishingConsumers,
   publishingScopePaths,
+  publishingHostConsumers,
+  publishingHostScopePaths,
   safeAreaConsumers,
   safeAreaScopePaths,
   platformAdsScopePaths,
@@ -1010,6 +1012,11 @@ const rewardH5Extras = [
   'chase-thief',
   'moss-garden',
   'cage-rescue',
+  'ember-bounce',
+  'fold-the-world',
+  'out-of-frame',
+  'surprise-kept',
+  'two-sided-box',
 ];
 const rewardH5Fixture = rewardH5Extras.map((id) => ({
   id,
@@ -1551,6 +1558,61 @@ test('publishing adapter selects all registered standalone consumers and rejects
     () => incrementalPlan({ games, packages, changedPaths: ['platforms/h5/unknown.js'] }),
     /scope undefined/,
   );
+});
+
+test('publishing host loader selects five verified identities and its test stays unit-only', () => {
+  const games = Object.entries(publishingHostConsumers).map(([id, source]) => ({ id, source }));
+  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const [runtime, ...units] = publishingHostScopePaths;
+  const context = { games, packages, changedPaths: [runtime], readHead };
+  assert.deepEqual(
+    reviewedSharedFileScopes(context).get(runtime),
+    games.map((game) => game.source),
+  );
+  for (const invalid of [
+    { games: games.slice(1) },
+    { games: [...games, games[0]] },
+    { games: [{ ...games[0], id: 'unknown' }, ...games.slice(1)] },
+    { games: [{ ...games[0], source: 'games/local/unknown' }, ...games.slice(1)] },
+    { packages: packages.slice(1) },
+    { packages: [...packages, packages[0]] },
+    {
+      readHead: () =>
+        `export const publishingInterstitialGames = ${JSON.stringify([
+          ...Object.keys(publishingHostConsumers),
+          'unknown',
+        ])};`,
+    },
+    { readHead: () => 'export const publishingInterstitialGames = getGames();' },
+  ]) {
+    const rejected = reviewedSharedFileScopes({ ...context, ...invalid });
+    assert.equal(rejected.has(runtime), false);
+    assert.throws(
+      () => incrementalPlan({ ...context, ...invalid, fileScopes: rejected }),
+      /scope undefined/,
+    );
+  }
+  for (const unit of units) {
+    const unitContext = { changedPaths: [unit], games: [], packages: [] };
+    const fileScopes = reviewedSharedFileScopes(unitContext);
+    assert.deepEqual(fileScopes.get(unit), []);
+    const selected = incrementalPlan({ ...unitContext, fileScopes });
+    assert.equal(selected.publishing_host_checks, true);
+    assert.equal(selected.publishing_checks, false);
+    assert.deepEqual(selected.consumer_sources, []);
+    assert.deepEqual(selected.browser_ids, []);
+  }
+  for (const sibling of [
+    'platforms/h5/publishing-host-extra.js',
+    'platforms/h5/tests/publishing-host-extra.test.mjs',
+    'platforms/h5/tests/two-sided-box-rewards-extra.test.mjs',
+  ]) {
+    const unknown = { ...context, changedPaths: [sibling] };
+    const rejected = reviewedSharedFileScopes(unknown);
+    assert.equal(rejected.has(sibling), false);
+    assert.throws(() => incrementalPlan({ ...unknown, fileScopes: rejected }), /scope undefined/);
+  }
 });
 
 test('H5 safe areas select the three standalone consumers and require their geometry checks', () => {

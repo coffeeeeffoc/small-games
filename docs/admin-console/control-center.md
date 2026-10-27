@@ -10,7 +10,7 @@ API 为 `/api/control` 下的 catalog、state、revisions、members、roles、au
 
 实际 Caddy 2.11.7 回环检查验证八页面、403、独立 nonce、条件／Range、HEAD／写方法、API／资源不执行模板及缺失 index 的失败关闭；官方归档和执行文件摘要见 `qa/csp-caddy-current.json`。测试使用已校验官方归档，在独占临时目录提取并清理进程，只监听本机回环，不是生产 TLS 或真实 GitHub 登录验收。前端生产 build、管理权限／历史／访问三文件 16 项、管理 typecheck/lint 通过；发布工具 122 项先通过 121 项，旧服务 Turbo 回归固定到其原历史版本后该唯一项通过，其他断言保留。
 
-公共配置只接受精确的 HTTP(S) origin（协议、域名、端口），不接受路径、通配符、凭据、查询参数或管理端 origin。快照包含已核实的 11 个 Runtime/Kart 游戏。夺城令另有独立 HTTP 服务，Shell ID 已核实为 `tianxia-chalu`，需要单独接入，不能把列出目录视为已生效。
+公共配置只接受精确的 HTTP(S) origin（协议、域名、端口），不接受路径、通配符、凭据、查询参数或管理端 origin。新快照包含已核实的 12 个 Runtime/Kart 游戏，包括夜航守望。历史 11 游戏快照先校验原摘要，再补齐夜航 disabled；历史行及摘要不重写。003 升级只增加夜航策略和扩展约束，夜航需单独发布 enabled。夺城令另有独立 HTTP 服务，Shell ID 已核实为 `tianxia-chalu`，需要单独接入，不能把列出目录视为已生效。
 
 草稿及发布记录只追加。发布采用版本 CAS，回退创建新版本，不修改历史。首次发布前版本为 0、`unpublished`，保留既有环境策略，不自动开放任何 Tap 共享域名。管理端显示 desired、partial、observed；只有已知消费者实例的新鲜报告均匹配版本和摘要时才显示 observed。过期实例仍列为 `expiredUnknown`，不会因新实例出现而自动宣称旧进程已停；没有预期实例注册表时 `observationCoverage.complete` 始终为 false。observed 表示已知报告的应用版本匹配，不是完整健康或部署覆盖证明。生产使用稳定逻辑实例 ID 之前须核实旧实例已停止且每个槽位仅有一个进程。
 

@@ -700,6 +700,18 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
       env,
       'logged',
     );
+  if (plan.publishing_host_checks)
+    execute(
+      process.execPath,
+      [
+        '--test',
+        'platforms/h5/tests/publishing-host.test.mjs',
+        'platforms/h5/tests/two-sided-box-rewards.test.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
   if (plan.platform_ads_checks)
     execute(
       process.execPath,

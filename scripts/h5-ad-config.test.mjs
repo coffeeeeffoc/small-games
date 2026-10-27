@@ -1,11 +1,55 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { h5AdConfig, h5PackageGames, prepareH5Ads } from './h5-ad-config.mjs';
+import {
+  h5AdConfig,
+  h5PackageGames,
+  prepareH5Ads,
+  publishingInterstitialGames,
+} from './h5-ad-config.mjs';
 import { mkdtemp, mkdir, readFile, writeFile, copyFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHintAccess } from '../games/submodules/xiangqi-five/rewarded-hints.js';
+
+test('existing publishing games keep explicit ad types and inject host before gameplay', async () => {
+  for (const game of publishingInterstitialGames) {
+    const key = `TAPTAP_${game.toUpperCase().replaceAll('-', '_')}_AD_UNIT_ID`;
+    const env = { H5_ADS_ENABLED: '1', [key]: 'fake-main-unit' };
+    const config = h5AdConfig(game, { env });
+    assert.equal(config.rewardedAdUnitId, game === 'two-sided-box' ? 'fake-main-unit' : '');
+    assert.equal(config.interstitialAdUnitId, game === 'two-sided-box' ? '' : 'fake-main-unit');
+    const directory = await mkdtemp(path.join(tmpdir(), 'publishing-host-wiring-'));
+    try {
+      await writeFile(
+        path.join(directory, 'index.html'),
+        '<html><head><script type="module" src="./game.mjs"></script></head></html>',
+      );
+      await prepareH5Ads(game, directory, { env });
+      await prepareH5Ads(game, directory, { env });
+      const html = await readFile(path.join(directory, 'index.html'), 'utf8');
+      assert.equal(html.match(/src="\.\/publishing-host.js"/g).length, 1);
+      assert(html.indexOf('publishing-host.js') < html.indexOf('game.mjs'));
+      assert.equal(html.includes('src="./game-rewards.js"'), game === 'two-sided-box');
+      assert(
+        (await readFile(path.join(directory, 'publishing-host.js'), 'utf8')).includes(
+          'createPublishingInterstitialProvider',
+        ),
+      );
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  }
+  const config = h5AdConfig('two-sided-box', {
+    env: {
+      H5_ADS_ENABLED: '1',
+      TAPTAP_TWO_SIDED_BOX_AD_UNIT_ID: 'fake-reward',
+      TAPTAP_TWO_SIDED_BOX_INTERSTITIAL_AD_UNIT_ID: 'fake-break',
+    },
+  });
+  assert.equal(config.rewardedAdUnitId, 'fake-reward');
+  assert.equal(config.interstitialAdUnitId, 'fake-break');
+});
 test('missing ad units use the free path; configured host failures never select it', () => {
   for (const game of h5PackageGames) {
     assert.deepEqual(h5AdConfig(game, { env: {} }), { adMode: 'off', adsEnabled: false });

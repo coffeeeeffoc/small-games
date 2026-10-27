@@ -2,7 +2,7 @@ import type { GameHost, JsonValue } from '@coffeeeeffoc/game-contract';
 import { activeGun, command } from './duel-actions.js';
 import { DuelBot } from './duel-bot.js';
 import { DUEL_RULES as R } from './duel-map.js';
-import { DuelConnection, serverAddress } from './duel-network.js';
+import { competitionEnabled, DuelConnection, serverAddress } from './duel-network.js';
 import { newProgress, readProgress } from './progress.js';
 import { beginCampaign, campaignAction, settleCampaign } from './campaign-session.js';
 import { preferenceAction, saveDuelRecord } from './duel-progress.js';
@@ -104,6 +104,7 @@ export async function createDuelSession(
     if (next) bot = next;
   }
   async function match() {
+    if (!competitionEnabled()) return practice();
     cancel();
     connection?.dispose();
     const id = ++generation;

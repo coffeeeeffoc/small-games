@@ -1,5 +1,13 @@
 # 管理配置中心发布与恢复
 
+## 夜航守望 schema3 升级（2026-10-27）
+
+当前候选将控制游戏从 11 个扩展到 12 个。`002-control-center.sql` 保持原始字节；`003-night-overwatch-control.sql` 校验并升级 schema2，保留既有修订、发布、审计、其他游戏策略及权限。夜航初始为 disabled，必须通过正常管理员会话保存并发布 enabled 配置。
+
+生产仍为 schema2 时，先正常提交、验证并推送准确候选，再运行 `pnpm deploy:admin --prepare-control` 和 `pnpm deploy:admin --adopt-control=<bundle>`。采用事务复用入口维护屏障、完整备份与隔离恢复验证，同步更新 Runtime、Kart、Management 和管理页面。不能先单独部署要求 12 条策略的新 Runtime。schema3 已采用并持有可信 proof 后，普通 `--reuse-remote-config` 和回退才可使用；仅数据库版本数字不足以证明部署成功。
+
+随后运行 `pnpm deploy:caddy --proxy-only`，更新两个公共 API 前缀下的 `/games/night-overwatch/match` 路由。保留其他游戏状态与现有来源，在管理台发布夜航开关后，验收匿名身份、120 个关卡榜、双人准备、真人匹配及 8 秒机器人回退。下面的 schema2/002 说明记录首次采用历史；当前清单、合同及普通更新要求为 schema3/003。迁移提交后的失败保持入口关闭，使用同一 bundle 的 `--recover-control` 恢复，不回退到仅认识 11 个游戏的旧镜像。
+
 当前入口为 `pnpm deploy:admin`，只接受下列显式模式。所有模式均不读取本地 `.env.admin.local`，不传输 OAuth 字段，不生成或轮换数据库密码。已有私有配置通过 Compose `env_file` 的 `format: raw` 原样复用；程序只核对规范路径、属主、0700 目录、0600 普通文件、单硬链接和 stat 身份，不读取其内容。
 
 SSH、coordinator 和 database helper 必须使用同一固定部署账号及其既有 Docker 权限；私有目录和文件属于该账号的有效 UID。数据库内仍通过 `platform_owner` 执行已批准迁移，应用角色权限保持原约束。不要为 helper 单独加 sudo、切换属主或放宽权限。UID 1000 的部署账号不再被 helper 的 root 断言拒绝。

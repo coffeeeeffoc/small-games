@@ -30,7 +30,9 @@ C = {
     "lightwood": (.63, .41, .21), "dark": (.095, .14, .145), "iron": (.13, .19, .18),
     "cream": (.83, .77, .61), "orange": (.87, .32, .075), "teal": (.08, .33, .29),
     "leaf": (.21, .36, .13), "leaflight": (.40, .49, .19), "terra": (.61, .27, .15),
-    "yellow": (.96, .69, .20), "red": (.74, .17, .08)
+    "yellow": (.96, .69, .20), "red": (.74, .17, .08),
+    "skinlight": (.74, .51, .35), "lip": (.48, .25, .18), "eye": (.92, .89, .81),
+    "iris": (.19, .12, .075)
 }
 for n, c in C.items(): mat(n, c)
 
@@ -40,7 +42,7 @@ def finish(obj, name, color, bone=None, bevel=0):
     if bevel:
         mod = obj.modifiers.new("Soft manufactured edges", 'BEVEL')
         mod.width = bevel
-        mod.segments = 1
+        mod.segments = 3 if bone else 1
     if bone: obj["bone"] = bone
     current.append(obj)
     return obj
@@ -53,7 +55,8 @@ def box(name, loc, scale, color, bone=None, bevel=.015):
     return finish(o, name, color, bone, bevel)
 
 def ball(name, loc, scale, color, bone=None, detail=12):
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=detail, ring_count=8, radius=1, location=loc)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=max(detail, 24) if bone else detail,
+                                       ring_count=16 if bone else 8, radius=1, location=loc)
     o = bpy.context.object
     o.scale = scale
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
@@ -87,31 +90,75 @@ bones = [
     ("footR", "shinR", (.125, .105, 0)),
 ]
 bone_positions = {n: Vector(p) for n, parent, p in bones}
-ball("Tailored jacket", (0, 1.28, 0), (.26, .32, .155), "jacket", "spine")
-box("Jacket hem", (0, 1.035, 0), (.43, .10, .28), "trim", "spine", .035)
-box("White undershirt", (0, 1.07, .151), (.20, .16, .016), "shirt", "spine")
-box("Back seam", (0, 1.29, -.156), (.016, .38, .012), "trim", "spine")
-box("Jacket zip", (0, 1.34, .151), (.013, .40, .015), "cream", "spine")
-ball("Hood", (0, 1.51, -.105), (.17, .095, .10), "trim", "spine")
+
+def profile(name, rings, color, bone):
+    """Elliptical clothing silhouette with smooth shared normals and rounded ends."""
+    vertices, faces = [], []
+    segments = 24
+    for y, rx, rz, cz in rings:
+        for i in range(segments):
+            a = i * math.tau / segments
+            vertices.append((rx * math.cos(a), y, cz + rz * math.sin(a)))
+    for r in range(len(rings) - 1):
+        for i in range(segments):
+            a = r * segments + i; b = r * segments + (i + 1) % segments
+            faces.append((a, a + segments, b + segments, b))
+    mesh = bpy.data.meshes.new(name); mesh.from_pydata(vertices, [], faces); mesh.update()
+    obj = bpy.data.objects.new(name, mesh); bpy.context.collection.objects.link(obj)
+    for p in mesh.polygons: p.use_smooth = True
+    return finish(obj, name, color, bone)
+
+def limb(name, a, b, radius, color, bone, depth=1):
+    midpoint = (Vector(a) + Vector(b)) / 2; direction = Vector(b) - Vector(a)
+    half = direction.length / 2
+    obj = profile(name, [(-half-radius*.4,.001,.001,0),(-half,radius*.96,radius*depth,0),
+        (-half*.35,radius,radius*depth,0),(half*.5,radius*.85,radius*.85*depth,0),
+        (half,radius*.78,radius*.78*depth,0),(half+radius*.4,.001,.001,0)], color, bone)
+    obj.location = midpoint
+    obj.rotation_euler = direction.to_track_quat('Y', 'Z').to_euler()
+    return obj
+
+profile("Fitted jacket", [(1.00,.18,.115,0),(1.04,.22,.145,0),(1.15,.215,.15,0),
+    (1.32,.25,.16,0),(1.43,.25,.145,0),(1.49,.19,.125,0),(1.52,.09,.09,0)], "jacket", "spine")
+ball("Soft jacket hem", (0,1.035,0),(.225,.055,.15),"trim","spine")
+box("Jacket zip", (0,1.29,.157),(.009,.40,.01),"cream","spine",.004)
+for sign in [-1,1]:
+    collar=box("Folded collar",(sign*.066,1.495,.082),(.065,.08,.026),"trim","spine",.012)
+    collar.rotation_euler.z=sign*.38
+    pocket=box("Welt pocket",(sign*.14,1.15,.135),(.10,.012,.014),"trim","spine",.006)
+    pocket.rotation_euler.z=sign*.22
 rod("Neck", (0, 1.49, 0), (0, 1.62, 0), .075, "skin", "head")
-ball("Face", (0, 1.72, .01), (.125, .165, .118), "skin", "head", 16)
-ball("Hair cap", (0, 1.80, -.016), (.132, .11, .12), "hair", "head", 16)
-for x in [-.12, .12]: ball("Ear", (x, 1.72, 0), (.027, .045, .027), "skin", "head")
-ball("Nose", (0, 1.72, .126), (.029, .038, .027), "skin", "head")
-for x in [-.045, .045]: ball("Eye", (x, 1.755, .118), (.013, .011, .009), "hair", "head")
-for i in range(5):
-    ball("Hair strands", ((i - 2) * .043, 1.88 + .01 * math.sin(i), -.005), (.037, .04, .09), "hair", "head")
-ball("Trousers hip", (0, .92, 0), (.22, .16, .15), "pants", "hips")
-box("Belt", (0, .995, .12), (.37, .045, .025), "shoe", "hips")
+profile("Face and jaw",[(1.565,.045,.035,.04),(1.59,.073,.067,.026),(1.63,.101,.095,.018),
+    (1.70,.121,.113,.008),(1.77,.123,.111,0),(1.83,.105,.09,-.01),(1.865,.05,.045,-.01),
+    (1.875,.001,.001,-.01)],"skinlight","head")
+profile("Shaped short hair",[(1.77,.12,.087,-.029),(1.80,.128,.109,-.018),(1.86,.119,.105,-.015),
+    (1.90,.078,.07,-.008),(1.915,.001,.001,0)],"hair","head")
+fringe=ball("Swept fringe",(-.037,1.825,.077),(.093,.047,.049),"hair","head");fringe.rotation_euler.z=-.22
+for x in [-.12,.12]:
+    ball("Ear",(x,1.715,0),(.025,.041,.022),"skin","head")
+ball("Nose bridge",(0,1.72,.112),(.021,.042,.026),"skinlight","head")
+ball("Nose tip",(0,1.698,.136),(.025,.019,.023),"skinlight","head")
+for sign in [-1,1]:
+    x=sign*.045
+    ball("Eye socket",(x,1.743,.106),(.023,.012,.009),"skin","head")
+    ball("Eye white",(x,1.746,.112),(.016,.006,.004),"eye","head")
+    ball("Iris",(x,1.746,.116),(.006,.006,.002),"iris","head")
+    brow=ball("Eyebrow",(x,1.764,.109),(.025,.004,.006),"hair","head");brow.rotation_euler.z=sign*-.1
+ball("Lower lip",(0,1.653,.111),(.032,.006,.008),"lip","head")
+ball("Trousers hip", (0, .92, 0), (.205, .15, .14), "pants", "hips")
 for sign, suffix in [(-1, "L"), (1, "R")]:
     x = .125 * sign
-    rod("Sleeve " + suffix, (sign * .245, 1.43, 0), (sign * .29, 1.12, .015), .10, "jacket", "arm"+suffix, .075)
-    rod("Forearm sleeve " + suffix, (sign * .29, 1.12, .015), (sign * .30, .94, .025), .076, "trim", "fore"+suffix, .058)
-    rod("Wrist " + suffix, (sign * .30, .97, .025), (sign * .30, .88, .03), .05, "skin", "fore"+suffix)
-    ball("Hand " + suffix, (sign * .30, .87, .04), (.052, .075, .04), "skin", "fore"+suffix)
-    rod("Thigh " + suffix, (x, .91, 0), (x, .49, 0), .115, "pants", "thigh"+suffix, .086)
-    rod("Shin " + suffix, (x, .49, 0), (x, .12, 0), .088, "pants", "shin"+suffix, .063)
-    box("Pocket " + suffix, (x + sign*.06, .77, .045), (.09, .13, .1), "hair", "thigh"+suffix, .025)
+    limb("Upper sleeve "+suffix,(sign*.23,1.45,0),(sign*.29,1.12,.015),.083,"jacket","arm"+suffix,1.08)
+    ball("Soft elbow "+suffix,(sign*.29,1.12,.015),(.065,.067,.068),"jacket","fore"+suffix)
+    limb("Lower sleeve "+suffix,(sign*.29,1.12,.015),(sign*.30,.96,.025),.066,"jacket","fore"+suffix)
+    ball("Cuff "+suffix,(sign*.30,.96,.025),(.054,.025,.055),"trim","fore"+suffix)
+    limb("Wrist "+suffix,(sign*.30,.97,.025),(sign*.30,.89,.03),.043,"skinlight","fore"+suffix)
+    ball("Hand "+suffix,(sign*.30,.87,.04),(.047,.066,.034),"skinlight","fore"+suffix)
+    ball("Thumb "+suffix,(sign*.265,.89,.062),(.024,.038,.024),"skin","fore"+suffix)
+    for i in range(3):ball("Fingers "+suffix,(sign*(.278+i*.019),.827,.048),(.012,.026,.023),"skinlight","fore"+suffix)
+    limb("Thigh "+suffix,(x,.92,0),(x,.49,0),.102,"pants","thigh"+suffix,1.1)
+    ball("Knee "+suffix,(x,.49,0),(.079,.08,.079),"pants","shin"+suffix)
+    limb("Calf "+suffix,(x,.49,0),(x,.14,0),.078,"pants","shin"+suffix)
     ball("Sneaker " + suffix, (x, .09, .055), (.092, .075, .17), "shoe", "foot"+suffix)
     box("Sole " + suffix, (x, .035, .055), (.18, .035, .29), "sole", "foot"+suffix, .02)
     for z in [.08, .12]: box("Lace", (x, .15, z), (.10, .008, .012), "cream", "foot"+suffix, 0)
@@ -223,6 +270,7 @@ for x in [-.28,-.14,0,.14,.28]: box("Grille",(x,0,.22),(.012,.43,.02),"cream",be
 depsgraph = bpy.context.evaluated_depsgraph_get()
 def export_objects(objects, bone=None):
     result = {"positions":[],"normals":[],"colors":[],"uvs":[],"indices":[]}
+    vertices = {}
     for obj in objects:
         ev = obj.evaluated_get(depsgraph)
         mesh = ev.to_mesh()
@@ -236,11 +284,17 @@ def export_objects(objects, bone=None):
                 p = obj.matrix_world @ vertex.co - inv
                 n = normal_matrix @ (vertex.normal if mesh.polygons[tri.polygon_index].use_smooth else tri.normal)
                 n.normalize()
-                result["indices"].append(len(result["positions"])//3)
-                result["positions"] += [round(v,5) for v in p]
-                result["normals"] += [round(v,5) for v in n]
-                result["colors"] += [round(v,4) for v in color]
-                result["uvs"] += [0,0]
+                position = tuple(round(v,5) for v in p)
+                normal = tuple(round(v,5) for v in n)
+                tint = tuple(round(v,4) for v in color)
+                key = position + normal + tint
+                if key not in vertices:
+                    vertices[key] = len(result["positions"]) // 3
+                    result["positions"].extend(position)
+                    result["normals"].extend(normal)
+                    result["colors"].extend(tint)
+                    result["uvs"].extend((0,0))
+                result["indices"].append(vertices[key])
         ev.to_mesh_clear()
     return result
 data = {"version":1,"generator":"Blender "+bpy.app.version_string,"units":"metres-Y-up","meshes":{},"rig":[]}

@@ -81,7 +81,7 @@ export class Hud {
       this.root.addChild(n);
       n.addComponent(cc.UITransform);
       l = n.addComponent(cc.Label);
-      l.fontFamily = 'Noto Sans CJK SC';
+      l.fontFamily = 'Microsoft YaHei, PingFang SC, Noto Sans CJK SC';
       l.useSystemFont = true;
       l.isBold = true;
       l.overflow = cc.Label.Overflow.SHRINK;
@@ -99,18 +99,32 @@ export class Hud {
     return l;
   }
   button(id: string, label: string, x: number, y: number, w: number, h = 54, primary = false) {
-    this.panel(x, y + 4, w, h, '#172b2b88');
-    this.panel(x, y, w, h, primary ? '#b8562d' : '#f2e4c9');
+    const home = this.screen === 'home';
+    const dark = home && !primary && id !== 'help';
+    const radius = home ? Math.min(28, h / 2) : 18;
+    this.panel(x, y + 5, w, h, primary ? '#934e20' : '#173d35', radius);
+    this.panel(x, y, w, h, primary ? '#f3a329' : dark ? '#236451' : '#fff1d1', radius);
+    this.panel(x + 3, y + 3, w - 6, h - 8, primary ? '#ffbc43' : dark ? '#2a705d' : '#fff5dd', radius - 2);
+    if (primary) this.panel(x + 14, y + 6, w - 28, 4, '#ffe29a', 2);
     this.text(
       'button:' + id,
       label,
       x + w / 2,
       y + h / 2,
-      primary ? 24 : 20,
-      primary ? '#fff7e5' : '#244641',
+      primary ? 27 : 20,
+      primary ? '#6f3616' : dark ? '#fff4d8' : '#244641',
       w - 14,
     );
     this.controls.push({ id, label, x, y, w, h });
+  }
+  title(id: string, value: string, x: number, y: number, size: number, width: number) {
+    const shadow = this.text(id + ':depth', value, x, y + 5, size, '#c58232', width);
+    const label = this.text(id, value, x, y, size, '#fff0b9', width);
+    for (const line of [shadow, label]) {
+      const outline = line.node.getComponent(cc.LabelOutline) || line.node.addComponent(cc.LabelOutline);
+      outline.color = color('#174d40');
+      outline.width = 4;
+    }
   }
   at(x: number, y: number) {
     return [...this.controls]
@@ -142,31 +156,29 @@ export class Hud {
       this.live.clear();
       for (const l of this.labels.values()) l.node.active = false;
       if (screen === 'home') {
-        this.panel(22, 64, 262, 148, '#153e3dcc', 22);
-        this.text('title1', '小贼', 144, 106, 45, '#fcf0cf', 232);
-        this.text('title2', '哪里跑', 154, 162, 43, '#f6ca83', 245);
-        this.text('subtitle', '穿街过巷 · 一路追下去', 180, 237, 17, '#fff4db', 330);
-        this.panel(20, h - 245, 350, 222, '#173c39dd', 23);
-        this.button('start', '开始追逐  ›', 38, h - 225, 314, 64, true);
+        this.title('title1', '小贼', 161, 91, 55, 205);
+        this.title('title2', '哪里跑', 194, 151, 57, 306);
         const best = Math.max(0, ...Object.values(progress.best).map((b: any) => b.distance));
-        this.text('record', '最远纪录  ' + best + ' m', 195, h - 139, 18, '#ead9b4');
-        this.button('districts', '街区出发点', 38, h - 113, 151, 52);
-        this.button('settings', '设置', 201, h - 113, 151, 52);
+        this.panel(88, h - 233, 214, 34, '#fff3d6e8', 17);
+        this.text('record', '最远纪录  ' + best + ' m', 195, h - 216, 17, '#285849', 210);
+        this.button('start', '开始追逐  ›', 38, h - 185, 314, 65, true);
+        this.button('districts', '街区出发点', 38, h - 101, 151, 49);
+        this.button('settings', '设置', 201, h - 101, 151, 49);
         this.text(
           'district',
-          '当前：' + DISTRICT_NAMES[progress.selected],
+          '—  ' + DISTRICT_NAMES[progress.selected] + '  —',
           195,
-          h - 38,
+          h - 24,
           14,
-          '#d5d8c0',
+          '#684e32',
         );
-        this.button('help', '?', 326, 32, 44, 44);
+        this.button('help', '?', 326, 27, 44, 44);
         if (state.legacyLink)
           this.text(
             'legacy',
             '旧版限时挑战已结束 · 开始新版无尽追逐',
             195,
-            286,
+            205,
             13,
             '#fff4db',
             360,
