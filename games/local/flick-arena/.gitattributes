@@ -1,0 +1,3 @@
+# Preserve the exact bytes pinned in vendor/cocos/provenance.json on Windows.
+vendor/cocos/cc.js text eol=lf
+vendor/cocos/LICENSE text eol=lf
