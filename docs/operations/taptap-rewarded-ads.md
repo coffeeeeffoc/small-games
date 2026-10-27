@@ -201,7 +201,7 @@ cops-robbers 曾仍有游戏端 `ads.js` 的 45 秒总超时，以及 `main.js` 
 
 ## 灰烬防线 / 2026-10-24
 
-新增`ashfall-front`的Creator Web/H5构建与公共奖励端口，手机方向为landscape。暂停补给恢复40%生命、失败续战恢复50%，各每关一次，普通开始和重试免费，辅助行动不计最佳。用户确认App998795（Developer492506）；本次MCP查询状态为未开通，默认广告关闭，无正式广告位，不使用其他应用的ID。开通后重新查询，再经`TAPTAP_ASHFALL_FRONT_AD_UNIT_ID`注入。当前只通过SDK夹具与Creator浏览器验证，不表示真机库存或上传通过。
+新增`ashfall-front`的Creator Web/H5构建与公共奖励端口，手机方向为landscape。暂停补给恢复40%生命、失败续战恢复50%，各每关一次，普通开始和重试免费，辅助行动不计最佳。2026-10-24曾核查旧App998795；用户已于2026-10-27更正为App1000862，当前应用及广告状态以下表为准。当前只通过SDK夹具与Creator浏览器验证，不表示真机库存或上传通过。
 
 ## 既有独立 H5 广告入口接线（2026-10-26）
 
@@ -212,3 +212,29 @@ cops-robbers 曾仍有游戏端 `ads.js` 的 45 秒总超时，以及 `main.js` 
 双面机关盒优先保留显式 `twoSidedBoxHost`；独立H5才桥接 `SmallGamesRewardAds`。只在严格 completed 后展开一面，原免费提示保留，取消/异常/晚回调不发奖；公共端口管理打开超时及长播放，游戏取消同步释放端口。激励与插屏相互排斥。
 
 验证使用 fake Tap SDK：`platforms/h5/tests/publishing-host.test.mjs`、`platforms/h5/tests/two-sided-box-rewards.test.mjs` 和独立ZIP浏览器记录。未验证真实广告库存、实体手机或收益。
+
+## 五款应用核对与 MCP 阻塞（2026-10-27）
+
+用户确认以下 AppID，Developer 均为 `492506`。逐款 `select_app → get_current_app_info(ignore_cache:true) → check_ads_status` 已确认名称、miniapp ID 和广告“已生效”。方向由用户确认，与 `h5-taptap-matrix.mjs` 一致。首次查询均缺方向；用户要求重试后，苔光花园已返回有效竖屏方向和广告位，其余四款仍缺方向。重试未调用更新或提审接口。
+
+| 游戏                         | AppID   | miniapp ID         | 用户确认方向 | 本次广告位结果                   |
+| ---------------------------- | ------- | ------------------ | ------------ | -------------------------------- |
+| 小贼哪里跑 / chase-thief     | 1003107 | tapmcaicnm1hdvvnsv | 竖屏 / 1     | 方向读取失败，未返回             |
+| 苔光花园 / moss-garden       | 1000893 | tapmcpffg9fvgjwmhj | 竖屏 / 1     | 重试取得 `1054324`，已填入根配置 |
+| 打破笼子接住人 / cage-rescue | 1000885 | tapmck2ow7kvzvxoly | 竖屏 / 1     | 方向读取失败，未返回             |
+| 子弹花园 / bullet-garden     | 1000882 | tapmcjfoeim8fjuprg | 竖屏 / 1     | 方向读取失败，未返回             |
+| 灰烬防线 / ashfall-front     | 1000862 | tapmcikevxsyjk1kri | 横屏 / 2     | 方向读取失败，未返回             |
+
+上次五款历史批次的根 `game-build.local.mjs` 选择了这五款和广告开启目标；苔光花园使用本应用当次查询返回的 `1054324`，用户随后手工填写另四款：chase-thief、cage-rescue、bullet-garden 为 `1054324`，ashfall-front 为 `1054323`，均保留原编辑，但当次 MCP 未返回这四款的广告位，不能视为已核实归属。保留现有奖励接线，不能复制其他应用的广告位或把 AppID 当广告位；其余游戏解除 MCP 阻塞后逐款重新查询、填入、构建并验证实际包。
+
+MCP `1.24.14` 的应用列表仅返回两个旧的未命名应用，已通过用户提供的 AppID 和当前应用查询纠正。其 `update_app_info` 实现调用 `/level/v1/submit`，并非仅保存方向：本次对苔光花园仅传 `screenOrientation:1` 后返回成功，但方向仍为 0，审核状态变为审核中；对小贼哪里跑的同类调用被首次发布额度拒绝。发现副作用后已停止该工具。经用户确认，已在后台撤销苔光花园本次意外提审；刷新后页面为“待提审”，`get_app_status` 确认为未发布(0)、未上线(0)。撤销接口曾报错但服务端状态已回退，未重复提交。后续需先修复 MCP/服务端方向读写兼容性，不能以重复提审来修复方向读取。
+
+本次公共回归：`node --test scripts/h5-ad-config.test.mjs platforms/h5/tests/platform-ads.test.mjs platforms/h5/tests/game-rewards.test.mjs`，36 项通过，覆盖完成、取消、失败、长播放、可见性及过期结果。五款奖励规则及笼子救援规则另有56项通过，共92项。修正根配置已退役的 `three-choose-two` 键为 `place-and-clear`，消除 `BUILD_AD_UNITS` 预检错误；首次 `pnpm build:games --dry-run` 通过，当时五款均为 `effectiveAdsEnabled:false`。后续重试进展见下文；未验证真实 TapTap 广告库存；意外提审撤销后的发布额度是否返还尚未确认。
+
+2026-10-27用户要求重试：五款均重新强制刷新身份并各查一次广告状态，苔光花园已返回 `screen_orientation=1` 和 `1054324`，其余四款仍缺方向；本轮没有调用 `update_app_info`。苔光花园已复用现有提示奖励端口构建广告开启、后端关闭包。交付为 `outputs/game-builds/20261026T165224430Z-192cf9/taptap-h5/moss-garden-taptap-h5-ads-on-service-off.zip`，SHA-256 `2b320cd60be2112b3584196791dbb9a00d682bdd9d42d831fcb78095a8030403`。
+
+实际包浏览器验证复用 `tests/expansion.browser.mjs` 的5组断言：临时测试改为读取该包的HTML、配置与公共奖励模块，仅模拟 `tap`，没有替换广告配置；确认SDK收到1054324，取消/失败/迟到回调不发奖、前后台两种顺序及重复回调只发一次、十分钟结束页不超时、开发模式隔离、无SDK保留普通玩法。日志和截图在 `outputs/moss-taptap-ads-20261027-qa/`。测试包未上传，真实TapTap宿主和库存仍未验证。
+
+上次五款历史批次中，用户手工填写后，配置结构预检显示五款 `effectiveAdsEnabled:true`；该布尔值仅表示配置中存在广告位，不能证明当次 MCP 未返回的四款广告位归属。当次只构建并验证苔光花园，其余四款未生成新的广告包。
+
+2026-10-27 提交前复核时，根配置已改为仅选择 `night-overwatch`，目标广告和后端均开启；五款广告位保留为未选择游戏的配置，其中四款手填值仍待本应用 MCP 核实。当前批次范围以根配置和 `pnpm build:games --dry-run` 为准，不能沿用上述历史批次结果。

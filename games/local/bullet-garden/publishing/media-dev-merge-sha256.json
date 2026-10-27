@@ -4,18 +4,21 @@
   "files": [
     {
       "path": "copy/introduction.md",
-      "bytes": 901,
-      "sha256": "dff88b069a308ba530e45b25b446b2b48c0cba24075b1931f653d84cf51bc245"
+      "bytes": 892,
+      "sha256": "f43c17a98e03d3994d622ffd9044f50779e0519c06c01c8c5f253d0db392dde8",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
     },
     {
       "path": "copy/tagline.md",
-      "bytes": 59,
-      "sha256": "b89a6491b6fb5f987be4d1e62ef52bb4fd9dd1715bb60ebdd8b758bb7cd58e96"
+      "bytes": 58,
+      "sha256": "60c86b734b081bba03991bc057a2fa154b7af45416dbb9bc61d127b9ecf18173",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
     },
     {
       "path": "copy/developer-note.md",
-      "bytes": 1217,
-      "sha256": "bb43bbb88043374adb2a294324b79762c7de37071d0806dca88875cdb78ab61a"
+      "bytes": 1206,
+      "sha256": "cd016d20e169948deaa340c083d00b8a69de31e38ac9cc4c03db2904b5201c32",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
     },
     {
       "path": "icon/icon-20261024.png",
@@ -292,5 +295,6 @@
       "bytes": 229010,
       "sha256": "94a0a553cba746f7d2dd82c3d000ba106b074e08866acaa2d90b63c68bce96d3"
     }
-  ]
+  ],
+  "copyVerified": "2026-10-27"
 }

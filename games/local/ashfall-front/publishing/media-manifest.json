@@ -1,0 +1,89 @@
+{
+  "verified": "2026-10-27",
+  "scope": "Current referenced copy and basic media; file identity only, not platform acceptance.",
+  "files": [
+    {
+      "path": "copy/introduction.md",
+      "bytes": 510,
+      "sha256": "04acb73281af3a324abc8bedb8a09692511ea2dea29804adfe33fac83a28f6a6",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 78,
+      "sha256": "56de09f2afa10569770460dd66b108e8168037de3a1f9171cb45e141eba93e4a",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
+    },
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 730,
+      "sha256": "9f0b5c7bd985bf1336e1a3ec8ca13eef63c04e77d7d561afe8d06ab1aa4ab551",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
+    },
+    {
+      "path": "icon/ashfall-front-512.png",
+      "bytes": 386265,
+      "sha256": "1cb1625627c19caed0d61a6c4aa5cad75eea13ff46bbb75af19848dd5b54822c"
+    },
+    {
+      "path": "promo/images/two-thumb-controls.png",
+      "bytes": 31614,
+      "sha256": "52a802c68ce543b2d3b81f1c3f28a33e80da035d6d17d412c60745873a259beb"
+    },
+    {
+      "path": "promo/videos/ashfall-two-thumb-20261026.mp4",
+      "bytes": 1312430,
+      "sha256": "11150ba54ccd4ad0e560ec3f2d5a6207ba8d6438ce0f9ca39003f28b2da0a8b8"
+    },
+    {
+      "path": "gameplay/videos/cocos-two-thumb-20261026.mp4",
+      "bytes": 833301,
+      "sha256": "507a7f796ff645ae1ba639bb07fc45ed1103c0c7676f840db69e6ba33749c4f8"
+    },
+    {
+      "path": "gameplay/screenshots/combat-844x390.png",
+      "bytes": 166457,
+      "sha256": "59f3682fa5fd99539f233b3de134aa9ed980eb095b317e04088e1dc47f694bea"
+    },
+    {
+      "path": "gameplay/screenshots/combat-live-844x390.png",
+      "bytes": 168386,
+      "sha256": "80dc597460ce931078d8d2297f08963d675eebfce799857fc240efe2d47aba84"
+    },
+    {
+      "path": "gameplay/screenshots/defeat-844x390.png",
+      "bytes": 90515,
+      "sha256": "64022e4aef4112acfee5e583e53d017c325acbb9cfdb24705de42918eb9438fe"
+    },
+    {
+      "path": "gameplay/screenshots/forward-encounter-844x390.png",
+      "bytes": 188059,
+      "sha256": "29cf0e9238a74a9bc242a7b8cf8e3a90a23d9de1c9377a9ae754e1dde48d2ae3"
+    },
+    {
+      "path": "gameplay/screenshots/home-844x390.png",
+      "bytes": 141254,
+      "sha256": "8ba08889ae70e277847ef46515effaea03552b36dddcd5b36c59913d1954bca5"
+    },
+    {
+      "path": "gameplay/screenshots/levels-844x390.png",
+      "bytes": 96754,
+      "sha256": "9818ab3a61a9c561c1d0a181f0114c0b71fb4d570dc9b22943c3c67c2a59ce62"
+    },
+    {
+      "path": "gameplay/screenshots/levels-normal-844x390.png",
+      "bytes": 101913,
+      "sha256": "6543c06dea4cf20a930b6046488c342d00f2195e3c5da48a830b165c4402de40"
+    },
+    {
+      "path": "gameplay/screenshots/pause-844x390.png",
+      "bytes": 92718,
+      "sha256": "9bc2549b7fbbec5fc82029f915a999446ddf94a038ba8f126235b2fb7f592399"
+    },
+    {
+      "path": "gameplay/screenshots/settings-844x390.png",
+      "bytes": 99358,
+      "sha256": "df964081f77087ca4f69c5b562e732ec2c1d0e361650593854658ef958ca4fa6"
+    }
+  ]
+}

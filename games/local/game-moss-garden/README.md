@@ -59,7 +59,7 @@ Web 全屏复用 `platforms/h5/fullscreen.js`，不支持时仍可正常游玩�
 
 后续 TapTap H5 打包复用仓库 `platforms/h5/game-rewards.js → platform-ads.js → tap.createRewardedVideoAd`，不要经旧 publishing.rewarded 的总超时层。打包注入 `SmallGamesPublishingConfig` 的 `adMode: 'host'`、`adsEnabled: true`、`platform: 'taptap-h5'` 及本游戏真实 `adUnitId`，在游戏入口前加载公共 game-rewards.js（连同 platform-ads.js、interstitial.js）。普通独立页面没有广告宿主时会明确提示不可用，不用模拟视频发奖。
 
-本轮不包含 TapTap 身份/广告位配置或正式包。现有统一 `build:games` H5 白名单尚未登记 moss；后续需在 `scripts/h5-ad-config.mjs` 登记、在 `h5-game-build.mjs` 与 `h5-taptap-build.mjs` 映射 `games/local/game-moss-garden`、增加 `TAPTAP_MOSS_GARDEN_AD_UNIT_ID` 透传、在 `h5-taptap-matrix.mjs` 登记 portrait 并补增量范围契约。无需再修改本游戏提示逻辑。原生 Canvas 使用宿主 GameHost 广告能力，原生 TapADN 需单独验收，不能复用 H5 广告位。
+统一 `build:games` 已登记 `moss-garden`、源码目录 `games/local/game-moss-garden`、广告位环境变量 `TAPTAP_MOSS_GARDEN_AD_UNIT_ID` 和 portrait 方向。2026-10-27重试 MCP 后确认 App1000893 广告已生效、竖屏方向有效，返回广告位1054324，已填写根 `game-build.local.mjs`，当前批次未选择本游戏；复用现有提示逻辑，无需另外安装 SDK。真实库存与 TapTap 宿主播放仍待验收。原生 Canvas 使用宿主 GameHost 广告能力，原生 TapADN 需单独验收，不能复用 H5 广告位。
 
 离线关卡可复现检查：`node games/local/game-moss-garden/scripts/generate-levels.mjs --check`。普通扩关不在运行时随机生成。
 

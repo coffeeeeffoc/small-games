@@ -7,7 +7,7 @@ export default {
     // 'cops-robbers',
     // 'cops-robbers-realtime',
     // 'xiangqi-five',
-    // 'night-overwatch',
+    'night-overwatch',
     // 'wulong-city',
     // 'carding-car',
     // 'letters-words2',
@@ -20,17 +20,18 @@ export default {
     // 'tianxia-chalu',
     // 'ball-roguelite',
     // 'flick-arena',
-    'chase-thief',
-    'moss-garden',
-    'cage-rescue',
-    'bullet-garden',
-    'ashfall-front',
+    // 'chase-thief',
+    // 'moss-garden',
+    // 'cage-rescue',
+    // 'bullet-garden',
+    // 'ashfall-front',
   ],
   targets: [
     {
       platform: 'taptap',
       type: 'h5',
       ads: [true],
+      backend: [true],
       adUnits: {
         // 'cops-robbers': '1054324',
         // 'cops-robbers-realtime': '1054324',
@@ -40,19 +41,20 @@ export default {
         'wulong-city': '1054323',
         'carding-car': '1054323',
         'letters-words2': '1054324',
-        // Fill only from each app's fresh TapTap MCP result. Empty IDs keep rewards off.
+        // Empty IDs keep rewards off; user-entered drafts below still need per-app MCP checks.
         'homebound-station': '',
-        'bullet-garden': '',
         'merge-front': '',
         'tower-brake': '',
         tetracube: '',
-        'three-choose-two': '',
+        'place-and-clear': '',
         'tianxia-chalu': '',
-        'ball-roguelite': '',
         'flick-arena': '',
-        'chase-thief': '',
-        'moss-garden': '',
-        'cage-rescue': '',
+        'ball-roguelite': '',
+        'bullet-garden': '1054324', // User-entered; App 1000882, portrait; MCP check pending.
+        'chase-thief': '1054324', // User-entered; App 1003107, portrait; MCP check pending.
+        'moss-garden': '1054324', // MCP verified 2026-10-27; App 1000893, portrait.
+        'cage-rescue': '1054324', // User-entered; App 1000885, portrait; MCP check pending.
+        'ashfall-front': '1054323', // User-entered; App 1000862, landscape; MCP check pending.
       },
       tapServices: {
         'cops-robbers': {

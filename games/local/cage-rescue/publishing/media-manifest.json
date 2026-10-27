@@ -379,6 +379,24 @@
           "duration": "24.000000"
         }
       }
+    },
+    {
+      "path": "copy/introduction.md",
+      "bytes": 846,
+      "sha256": "eccc2779d0b66717e1a3cba77783ca9737222a1940fbd7fd611946da1347cf86",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 79,
+      "sha256": "3caf58d871d2092204802ccab45efe79949a6577c4a308ef2d9f5a37feee4cbe",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
+    },
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 711,
+      "sha256": "e8fc0b5b83c53a9b3b0f272e7e736c431e5977b0074bb3be08660b234e1391ce",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
     }
   ],
   "notes": [
@@ -387,5 +405,6 @@
     "H.264 videos decoded successfully with ffmpeg. No native SDK, physical phone, upload, review or release was performed.",
     "2026-10-26: independent control strip below the field; updated 17 screenshots, promotional image and both MP4 videos. Real-time gameplay video is 38.4 seconds."
   ],
-  "sourceHashEncoding": "UTF-8 with LF line endings, matching Git text blobs"
+  "sourceHashEncoding": "UTF-8 with LF line endings, matching Git text blobs",
+  "copyVerified": "2026-10-27"
 }

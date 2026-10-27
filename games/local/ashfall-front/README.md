@@ -25,7 +25,7 @@ TapTap 采用 H5 游戏上架方式：官方上传工具接收 `dist/` 目录，
 
 暂停页突出继续战斗，帮助/设置独立返回，重开/离开需确认；失败页重试本关或返回主页。重试保留当前战区与已获得改装，不计无重试的最佳时间。普通守军随路段进入视野激活，各阵地仍按序接通，Boss保留前置条件；增援从前方进入，远离当前阵地不再积压后方增援。
 
-暂停补给恢复40%生命、失败续战恢复50%，各每关一次。仅公共`SmallGamesRewardAds`严格completed发奖；辅助行动可解锁关卡，不计最佳。隐藏仅暂停，pagehide/重开/回主页使旧请求失效。TapTap应用已确认998795，developer492506；2026-10-24平台查询未开通广告，无正式广告位，默认关闭，无SDK仍可免费游玩。
+暂停补给恢复40%生命、失败续战恢复50%，各每关一次。仅公共`SmallGamesRewardAds`严格completed发奖；辅助行动可解锁关卡，不计最佳。隐藏仅暂停，pagehide/重开/回主页使旧请求失效。2026-10-27用户确认TapTap应用1000862，developer492506，替代旧998795映射；MCP当次确认广告生效，但方向读取失败，未返回广告位。根配置保留用户手填1054323，归属待核实，当前批次未选择本游戏；无SDK仍可免费游玩。详见[当前广告核对记录](../../../docs/operations/taptap-rewarded-ads.md#五款应用核对与-mcp-阻塞2026-10-27)。
 
 `window.Ashfall.snapshot()`全模式只读，含ready/creator/screen/run/controls；controls坐标为CSS像素，供真实Creator触控测试。`window.Ashfall.dev(action,value)`仅公共dev开启存在，修改均隔离为试玩。`scripts/prepare.mjs`同步纯规则与meta，`scripts/build.mjs`调用真实Creator，`ASHFALL_FRONT_PREBUILT_DIR`须包含源码匹配dist和cc.d.ts；指纹包含共享奖励/开发模式/工具链与离线烘焙源。首次导入生成meta若改变输入须重建，不标记旧制品有效。
 

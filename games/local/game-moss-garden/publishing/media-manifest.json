@@ -115,6 +115,22 @@
           "duration": "8.000000"
         }
       }
+    },
+    "copy/introduction.md": {
+      "bytes": 186,
+      "sha256": "c80ac9e7e0eaff4567292a44dc67b7c30589d6fc732b96b00acc947437cce62c",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
+    },
+    "copy/tagline.md": {
+      "bytes": 40,
+      "sha256": "7c13b7a8f29e054a07b55318c7edf439da223a888ddfc296e2b9a0cc70fa7812",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
+    },
+    "copy/developer-note.md": {
+      "bytes": 172,
+      "sha256": "34acf256bc0df0390eeb801315118958309f67bba701492977d2a7e50c388c1f",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
     }
-  }
+  },
+  "copyVerified": "2026-10-27"
 }
