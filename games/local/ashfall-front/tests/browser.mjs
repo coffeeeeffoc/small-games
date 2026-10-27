@@ -123,35 +123,46 @@ try {
         );
     const cdp = await context.newCDPSession(page);
     try {
-      const right = { ...(await input.point('right')), id: 1 },
+      const left = { ...(await input.point('left')), id: 1 },
         jump = { ...(await input.point('jump')), id: 3 },
         dash = { ...(await input.point('dash')), id: 3 },
         shooting = { ...(await input.point('fire')), id: 2 };
       const send = (type, points) =>
         cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points });
-      await send('touchStart', [right, shooting, jump]);
-      // Keep this input-combination check away from forward guards so an XP
-      // choice cannot freeze velocity mid-assertion. Growth is exercised below.
-      await send('touchMove', [
-        right,
-        {
-          ...shooting,
-          x: shooting.x + (layout.rotated ? 0 : -28),
-          y: shooting.y + (layout.rotated ? -28 : 0),
-        },
-        jump,
+      const leftAim = {
+        ...shooting,
+        x: shooting.x + (layout.rotated ? 0 : -28),
+        y: shooting.y + (layout.rotated ? -28 : 0),
+      };
+      // Stay on the spawn side of the forward guards while testing controls.
+      // Moving right can overtake them and make backward fire trigger XP choices
+      // on a slow renderer. Rightward travel and combat are exercised separately.
+      // Queue the drag immediately: a delayed press ACK must not hold centre fire.
+      await Promise.all([
+        page.waitForFunction(
+          () => {
+            const { player, shots } = globalThis.Ashfall.snapshot().run;
+            return player.x < 420 && player.y < 560 && shots > 0;
+          },
+          undefined,
+          { timeout: 5000 },
+        ),
+        send('touchStart', [left, shooting, jump]),
+        send('touchMove', [left, leftAim, jump]),
       ]);
-      await page.waitForTimeout(140);
-      const jumping = await snapshot(page);
-      assert.ok(
-        jumping.run.player.x > 420 && jumping.run.player.y < 560 && jumping.run.shots > 0,
-        'left stick and right fire/jump combine',
-      );
-      await send('touchEnd', [jump]);
-      await send('touchStart', [right, shooting, dash]);
-      await page.waitForTimeout(60);
-      assert.ok((await snapshot(page)).run.player.dashCooldown > 0.3, 'right-hand dash');
-      await send('touchEnd', [dash]);
+      // CDP touchEnd requires an empty list; start a new complete gesture.
+      await send('touchEnd', []);
+      await Promise.all([
+        // Observe the transient in the page, before a slow protocol ACK can
+        // outlast the cooldown. The threshold still proves a real dash began.
+        page.waitForFunction(
+          () => globalThis.Ashfall.snapshot().run.player.dashCooldown > 0.3,
+          undefined,
+          { timeout: 5000 },
+        ),
+        send('touchStart', [left, shooting, dash]),
+        send('touchMove', [left, leftAim, dash]),
+      ]);
       const logicalAim = { x: -28, y: -28 };
       const aimed = {
         ...shooting,
@@ -159,7 +170,7 @@ try {
         y: shooting.y + (layout.rotated ? logicalAim.x : logicalAim.y),
       };
       const centre = { ...(await input.point('move')), id: 1 };
-      await send('touchMove', [centre, aimed]);
+      await send('touchMove', [centre, aimed, dash]);
       // Dash owns velocity until the simulation completes it. A fixed wall-clock
       // sleep can expire before that happens on a loaded Creator/CI renderer.
       await expect
@@ -181,7 +192,7 @@ try {
         .toBeLessThan(1);
       assert.ok(
         Math.abs((await snapshot(page)).run.player.aimAngle + Math.PI * 0.75) < 0.05,
-        'backward diagonal aim follows logical landscape',
+        'upper-left diagonal aim follows logical landscape',
       );
       await send('touchCancel', []);
       await page.waitForTimeout(220);

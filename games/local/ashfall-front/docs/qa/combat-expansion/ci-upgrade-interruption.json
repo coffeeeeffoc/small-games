@@ -1,0 +1,149 @@
+{
+  "source": "https://github.com/coffeeeeffoc/small-games/actions/runs/40535054522/job/122304602795",
+  "head": "45730ec83b9f9c6f10d2035f394768a1e264796b",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "snapshot": {
+    "phase": "upgrade",
+    "levelIndex": 0,
+    "player": {
+      "x": 1181.499963670969,
+      "y": 570,
+      "w": 34,
+      "h": 62,
+      "hp": 87,
+      "maxHp": 120,
+      "vx": 0,
+      "vy": 0,
+      "facing": 1,
+      "onGround": true,
+      "dashTime": 0,
+      "dashCooldown": 0,
+      "invulnerable": 0.23333333333333345,
+      "fireCooldown": 0.3366666666666664,
+      "hitFlash": 0,
+      "fireFlash": 0,
+      "aimAngle": -2.356194490192348,
+      "coyoteTime": 0.1,
+      "jumpBuffer": 0,
+      "climbing": null,
+      "burstLeft": 0,
+      "spin": 1,
+      "dashDirection": 1
+    },
+    "roomTime": 5.766666666666743,
+    "time": 5.766666666666743,
+    "waveIndex": 0,
+    "capture": 0.08333333333333333,
+    "checkpointComplete": false,
+    "enemies": [
+      {
+        "id": "e25",
+        "type": "turret",
+        "waveIndex": 0,
+        "x": 1370,
+        "y": 840,
+        "hp": 300,
+        "state": "guard"
+      },
+      {
+        "id": "e28",
+        "type": "drone",
+        "waveIndex": 0,
+        "x": 1155.000000000009,
+        "y": 365.1205955855003,
+        "hp": 60,
+        "state": "hover"
+      }
+    ],
+    "shots": 10,
+    "xp": 0,
+    "rank": 2,
+    "xpNext": 90,
+    "weapon": "shotgun",
+    "ammo": 28,
+    "choices": [
+      "rapid",
+      "mobility",
+      "overdrive"
+    ],
+    "upgradeReason": "experience",
+    "exitOpen": false,
+    "pickups": [
+      {
+        "x": 1470,
+        "y": 840,
+        "weapon": "flame",
+        "id": "loot2"
+      },
+      {
+        "x": 2280,
+        "y": 570,
+        "weapon": "burst",
+        "id": "loot3"
+      },
+      {
+        "x": 3020,
+        "y": 840,
+        "weapon": "machine",
+        "id": "loot4"
+      },
+      {
+        "x": 3980,
+        "y": 570,
+        "weapon": "flame",
+        "id": "loot5"
+      },
+      {
+        "x": 4720,
+        "y": 840,
+        "weapon": "cannon",
+        "id": "loot6"
+      },
+      {
+        "x": 5730,
+        "y": 570,
+        "weapon": "machine",
+        "id": "loot7"
+      },
+      {
+        "x": 6470,
+        "y": 840,
+        "weapon": "gatling",
+        "id": "loot8"
+      },
+      {
+        "x": 7550,
+        "y": 570,
+        "weapon": "cannon",
+        "id": "loot9"
+      },
+      {
+        "x": 8290,
+        "y": 840,
+        "weapon": "shotgun",
+        "id": "loot10"
+      },
+      {
+        "x": 9440,
+        "y": 570,
+        "weapon": "gatling",
+        "id": "loot11"
+      },
+      {
+        "x": 10180,
+        "y": 840,
+        "weapon": "burst",
+        "id": "loot12"
+      }
+    ],
+    "kills": 3,
+    "assisted": false,
+    "rewardUsed": {
+      "supply": false,
+      "revive": false
+    }
+  }
+}
