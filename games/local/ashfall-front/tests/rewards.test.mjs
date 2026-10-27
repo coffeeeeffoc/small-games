@@ -123,3 +123,32 @@ test('late advertisement cannot apply to a different rank or changed choices', a
     assert.equal(run.stats.damageMultiplier, 1);
   }
 });
+
+test('cancelled provider rejection cannot restore an obsolete reward screen', async () => {
+  const run = createRun();
+  run.player.hp = 30;
+  let reject;
+  let locked;
+  const rewards = createRewards({
+    current: () => run,
+    locked: (v) => {
+      locked = v;
+    },
+    port: () => ({
+      available: true,
+      offer: () =>
+        new Promise((_, r) => {
+          reject = r;
+        }),
+      cancel() {
+        throw new Error('optional cleanup');
+      },
+    }),
+  });
+  const pending = rewards.offer('supply');
+  rewards.cancel();
+  assert.equal(locked, false);
+  reject(new Error('late cancellation'));
+  assert.equal(await pending, 'expired');
+  assert.equal(run.player.hp, 30);
+});

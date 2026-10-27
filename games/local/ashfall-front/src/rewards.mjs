@@ -20,7 +20,11 @@ export function createRewards({ current, port, locked = (_value) => {} }) {
     cancel() {
       generation++;
       pending = false;
-      port()?.cancel?.();
+      try {
+        port()?.cancel?.();
+      } catch {
+        /* Optional provider cleanup. */
+      }
       locked(false);
     },
     async offer(kind) {
@@ -57,6 +61,7 @@ export function createRewards({ current, port, locked = (_value) => {} }) {
         } else if (!grantSupply(run)) return 'expired';
         return 'completed';
       } catch {
+        if (token !== generation || run !== current() || run.roomEpoch !== epoch) return 'expired';
         return 'failed';
       } finally {
         if (token === generation) {
