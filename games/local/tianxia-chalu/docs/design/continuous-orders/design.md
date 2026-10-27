@@ -28,4 +28,4 @@
 
 使用本地 `game-ui-ux`、`game-feel` 技能，反馈仅在呈现层，不改变权威时钟。此次规模较大，由主会话明确分配互不重叠的规则、渲染、客户端、服务文件范围；共享安装、构建与浏览器验证由主会话串行安排，复核只读。
 
-本地 Linux 无 Creator，连接的 Windows 设备离线。生产构建使用现有 GitHub Actions Windows Creator 流程生成匹配源码的制品，再下载执行手机尺寸 Chromium 触屏回归。不得改写旧制品指纹或将概念图当运行截图。最终证据与上架资料状态在完成验证后更新。
+本地 Linux 无 Creator，连接的 Windows 设备离线。生产构建使用现有 GitHub Actions Windows Creator 流程生成匹配源码的制品，再下载执行手机尺寸 Chromium 触屏回归。不得改写旧制品指纹或将概念图当运行截图。分轮结果、问题修复与最终制品证据见[验收记录](verification.md)，实际媒体见[上架资料状态](../../../publishing/STATUS.md)。

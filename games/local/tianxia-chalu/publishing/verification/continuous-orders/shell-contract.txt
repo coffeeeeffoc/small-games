@@ -1,0 +1,21 @@
+✔ every registered standalone has one explicit adapter or legacy mode and a gameplay branch (30.791577ms)
+✔ explicit legacy mode leaves the original native interaction flow in charge (0.821828ms)
+✔ entry adapters never force clicks and have only stable semantic selectors (1.830564ms)
+✔ word island readiness is home, with an explicit start adapter before board assertions (0.210652ms)
+✔ street chase uses real Cocos canvas controls (0.261737ms)
+✔ Place & Clear uses its visible Creator canvas and game-owned start flow (0.179854ms)
+✔ Tianxia enters its ready Creator battlefield through preparation (1.094706ms)
+✔ Tower Creator owns its native menu and touch flow (0.328541ms)
+✔ Tetracube waits for the real Creator scene and owns its canvas input flow (0.474873ms)
+✔ Castle Cannon uses the Creator canvas and game-owned portrait controls (0.737222ms)
+✔ Ashfall uses the visible Creator canvas and game-owned touch flow (0.329102ms)
+✔ Ashfall taps enqueue release before a delayed press acknowledgement and await both replies (5.422365ms)
+✔ Ashfall holds wait for explicit release and failed taps remain cancellable (1.329884ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 501.855652

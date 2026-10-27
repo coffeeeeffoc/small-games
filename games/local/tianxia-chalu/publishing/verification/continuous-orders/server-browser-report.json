@@ -1,0 +1,19 @@
+{
+  "status": "passed",
+  "environment": "Chromium 390x844 touch emulation; real HTTP service and matching Creator artifact; injected service clock and client random seed, no forged state/results",
+  "checks": [
+    "Production /play/ loads the real Cocos artifact and defaults to the authoritative service.",
+    "Real Cocos source/target touches reach the API and render accepted routes and server time.",
+    "Return confirmation, intelligence and backgrounding never pause the authoritative battle; cancellation continues the same match.",
+    "A delayed command acknowledgement preserves independent selection and additive multi-target orders.",
+    "Backgrounding during a deferred creation keeps the late-created authoritative match running.",
+    "Connection loss blocks uncertain commands without pretending to pause; polling recovers the terminal result and the smaller PVE award.",
+    "An expired non-completed match confirms zero XP without an endless settlement retry.",
+    "Leaving preparation abandons deferred creation and does not reopen battle.",
+    "A 401 while reading an expired identity offers recovery and returns home without an impossible queue cancellation.",
+    "A queue POST with a lost response remains uncertain; failed cancellation stays visible until a real DELETE confirms removal.",
+    "A lone human remains queued with no AI substitution and can cancel.",
+    "Two isolated browsers match real humans, command their own seats with independent sequences and persist exactly one victory/defeat award."
+  ],
+  "pageErrors": []
+}

@@ -788,6 +788,7 @@ try {
       const page = await session({
         seed: 0,
         init: () => {
+          if (localStorage.getItem('tianxia-chalu:v1')) return;
           localStorage.setItem(
             'tianxia-chalu:v1',
             JSON.stringify({

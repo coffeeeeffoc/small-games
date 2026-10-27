@@ -1,0 +1,23 @@
+{
+  "environment": "Production Cocos Creator 3.8.8 web-mobile; desktop Chromium mobile/touch emulation, not a physical device",
+  "checks": [
+    {
+      "name": "Offline PVE progression remains visible when an unrelated online career is cached",
+      "passed": true,
+      "durationMs": 131980,
+      "fixture": "Preexisting local and cached online save only; natural PVE result, no forged battle state",
+      "localExperience": 100,
+      "cachedOnlineExperience": 9000,
+      "displayedWinRate": "33%"
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "filter": "^Offline PVE",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "fca2416ac3f663f219b0bd0cef9ca2d9b94aacbda4d62966d6aaefa747c9003f"
+  },
+  "browser": "140.0.7339.186"
+}
