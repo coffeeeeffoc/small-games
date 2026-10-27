@@ -45,7 +45,7 @@ try {
       ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH }
       : {}),
   });
-  const session = async () => {
+  const session = async ({ init } = {}) => {
     const context = await browser.newContext({
       viewport: { width: 390, height: 844 },
       isMobile: true,
@@ -64,6 +64,7 @@ try {
         },
       }),
     );
+    if (init) await page.addInitScript(init);
     await page.goto(base + '/play/');
     await screen(page, 'home');
     await page.waitForFunction(
@@ -282,6 +283,92 @@ try {
   await page.unroute(base + '/api/matches', cancelCreate);
   await page.locator('#back').tap();
   checks.push('Leaving preparation abandons deferred creation and does not reopen battle.');
+
+  const invalidIdentity = await session({
+    init: () =>
+      localStorage.setItem(
+        'tianxia-chalu:v1',
+        JSON.stringify({
+          version: 2,
+          settings: { online: true, serverUrl: location.origin },
+          onlineIdentity: {
+            [location.origin]: {
+              playerId: 'expired-browser-identity',
+              token: 'invalid-identity-token-that-is-long-enough',
+            },
+          },
+        }),
+      ),
+  });
+  const invalidQueueRequests = [];
+  invalidIdentity.on('request', (request) => {
+    if (request.url() === base + '/api/matchmaking') invalidQueueRequests.push(request.method());
+  });
+  const unauthorized = invalidIdentity.waitForResponse(
+    (response) => response.url() === base + '/api/players/me' && response.status() === 401,
+  );
+  await invalidIdentity.locator('#matchmaking').tap();
+  await unauthorized;
+  await expect(invalidIdentity.locator('#reset-online-profile')).toBeVisible();
+  assert.equal((await snapshot(invalidIdentity)).queueMembership, 'none');
+  await invalidIdentity.locator('#cancel-match').tap();
+  await screen(invalidIdentity, 'home');
+  assert.deepEqual(
+    invalidQueueRequests,
+    [],
+    'a rejected identity that never joined cannot require a DELETE with the same invalid token',
+  );
+  checks.push(
+    'A 401 while reading an expired identity offers recovery and returns home without an impossible queue cancellation.',
+  );
+
+  const uncertainQueue = await session();
+  const joinedWithoutAck = gate();
+  let cancelUnavailable = true,
+    cancellations = 0;
+  const loseQueueResponse = async (route) => {
+    if (route.request().method() === 'POST') {
+      const response = await route.fetch();
+      assert.equal(response.status(), 200);
+      joinedWithoutAck.resolve();
+      await route.abort('connectionreset');
+    } else if (route.request().method() === 'DELETE') {
+      cancellations++;
+      if (cancelUnavailable) await route.abort('internetdisconnected');
+      else await route.continue();
+    } else await route.continue();
+  };
+  await uncertainQueue.route(base + '/api/matchmaking', loseQueueResponse);
+  await uncertainQueue.locator('#matchmaking').tap();
+  await joinedWithoutAck.promise;
+  await expect(uncertainQueue.locator('#match-title')).toHaveText('暂时无法匹配');
+  assert.equal((await snapshot(uncertainQueue)).queueMembership, 'uncertain');
+  const uncertainId = await uncertainQueue.evaluate(
+    (origin) =>
+      JSON.parse(localStorage.getItem('tianxia-chalu:v1')).onlineIdentity[origin].playerId,
+    base,
+  );
+  assert(
+    app.matchmaking.waiting.has(uncertainId),
+    'the POST reached the authoritative queue before its acknowledgement was lost',
+  );
+  await uncertainQueue.locator('#cancel-match').tap();
+  await expect(uncertainQueue.locator('#match-status')).toContainText('取消尚未确认');
+  await screen(uncertainQueue, 'matchmaking');
+  assert.equal((await snapshot(uncertainQueue)).queueMembership, 'uncertain');
+  assert(
+    app.matchmaking.waiting.has(uncertainId),
+    'a failed DELETE is not treated as a successful cancellation',
+  );
+  cancelUnavailable = false;
+  await uncertainQueue.locator('#cancel-match').tap();
+  await screen(uncertainQueue, 'home');
+  assert.equal(cancellations, 2);
+  assert.equal(app.matchmaking.waiting.has(uncertainId), false);
+  await uncertainQueue.unroute(base + '/api/matchmaking', loseQueueResponse);
+  checks.push(
+    'A queue POST with a lost response remains uncertain; failed cancellation stays visible until a real DELETE confirms removal.',
+  );
 
   await page.locator('#matchmaking').tap();
   await screen(page, 'matchmaking');

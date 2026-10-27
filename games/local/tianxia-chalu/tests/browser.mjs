@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { chromium, expect } from '@playwright/test';
-import { planRoutes, LEVELS } from '../src/core/index.mjs';
+import { planRoutes, LEVELS, getRank } from '../src/core/index.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const evidence = new URL('../reports/browser/', import.meta.url);
 await mkdir(evidence, { recursive: true });
@@ -779,6 +779,79 @@ try {
       await advance(page, 100);
       assert.equal((await snapshot(page)).seed, prepared.seed);
       return { result: s.result, retrySeed: prepared.seed };
+    },
+  );
+  await check(
+    'Offline PVE progression remains visible when an unrelated online career is cached',
+    async () => {
+      const page = await session({
+        seed: 0,
+        init: () => {
+          localStorage.setItem(
+            'tianxia-chalu:v1',
+            JSON.stringify({
+              version: 2,
+              settings: {
+                online: false,
+                serverUrl: 'https://ranked.example',
+                sound: false,
+                music: false,
+              },
+              career: { xp: 92, pve: { wins: 1, losses: 1, draws: 0 } },
+              onlineProfile: {
+                'https://ranked.example': {
+                  playerId: 'cached-online-player',
+                  name: '在线档案夹具',
+                  career: { xp: 9000, matched: { wins: 8, losses: 2, draws: 0 } },
+                },
+              },
+            }),
+          );
+        },
+      });
+      const initial = await snapshot(page);
+      assert.equal(initial.careerSource, 'local');
+      assert.equal(initial.career.xp, 92);
+      assert.equal(initial.onlineCareer.xp, 9000);
+      await expect(page.locator('#career-home')).toContainText('本机军衔');
+      await expect(page.locator('#career-home')).toContainText('人机胜率');
+      await expect(page.locator('#career-home .rank-win')).toContainText('50%');
+      await begin(page);
+      await page.locator('#skip-tutorial').tap();
+      await advance(page, 181000);
+      const result = await snapshot(page);
+      assert.equal(result.screen, 'result');
+      assert.equal(result.mode, 'local');
+      assert.equal(result.result.outcome, 'defeat');
+      assert.equal(result.localCareer.xp, 100, 'natural local defeat grants eight experience');
+      assert.equal(result.localCareer.pve.games, 3);
+      assert.equal(result.onlineCareer.xp, 9000, 'cached online progression is never overwritten');
+      await page.locator('#result-home').tap();
+      const home = await snapshot(page);
+      assert.equal(home.careerSource, 'local');
+      assert.deepEqual(home.career, home.localCareer);
+      await expect(page.locator('#career-home')).toContainText(getRank(100).name);
+      await expect(page.locator('#career-home')).toContainText('本机军衔');
+      await expect(page.locator('#career-home .rank-win')).toContainText('33%');
+      await page.locator('#career-home').tap();
+      await expect(page.locator('#records-local')).toHaveClass(/active/);
+      await expect(page.locator('#rank-detail')).toContainText(getRank(100).name);
+      await page.locator('#records-online').tap();
+      await expect(page.locator('#rank-detail')).toContainText(getRank(9000).name);
+      await expect(page.locator('#rank-detail .rank-win')).toContainText('80%');
+      await page.locator('#back').tap();
+      await page.reload();
+      await expect(page.locator('#start')).toBeVisible();
+      const reloaded = await snapshot(page);
+      assert.equal(reloaded.career.xp, 100);
+      assert.equal(reloaded.onlineCareer.xp, 9000);
+      return {
+        fixture:
+          'Preexisting local and cached online save only; natural PVE result, no forged battle state',
+        localExperience: 100,
+        cachedOnlineExperience: 9000,
+        displayedWinRate: '33%',
+      };
     },
   );
   await check(

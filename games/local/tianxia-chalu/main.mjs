@@ -94,6 +94,7 @@ let lastFrame = 0,
   connectionLost = false,
   careerReward = null,
   resultSyncBusy = null;
+const queueMemberships = new Map();
 const debug =
   globalThis.SmallGamesDev?.enabled === true || globalThis.SmallGamesDev?.isEnabled?.() === true;
 const audio = createAudio(() => save.settings);
@@ -291,13 +292,17 @@ function serviceOrigin() {
     return '';
   }
 }
-function currentCareer() {
-  const profile = save.onlineProfile?.[serviceOrigin()];
-  return normalizeCareer(profile?.career ?? save.career);
+function careerSource() {
+  return remote || matched || save.settings.online ? 'online' : 'local';
 }
-function rankCard(career, id) {
+function currentCareer(source = careerSource()) {
+  return normalizeCareer(
+    source === 'online' ? save.onlineProfile?.[serviceOrigin()]?.career : save.career,
+  );
+}
+function rankCard(career, id, source = careerSource()) {
   const rank = getRank(career.xp),
-    rate = careerWinRate(career, 'matched');
+    rate = careerWinRate(career, source === 'online' ? 'matched' : 'pve');
   return (
     '<button id="' +
     id +
@@ -306,10 +311,13 @@ function rankCard(career, id) {
     '</strong><span class="xp-track"><i style="width:' +
     Math.round(rank.progress * 100) +
     '%"></i></span><small>' +
+    (source === 'online' ? '在线军衔 · ' : '本机军衔 · ') +
     (rank.level === rank.maxLevel
       ? '已达最高军衔'
       : '经验 ' + rank.levelXp + ' / ' + rank.nextLevelXp) +
-    '</small></span><span class="rank-win"><small>匹配胜率</small><b>' +
+    '</small></span><span class="rank-win"><small>' +
+    (source === 'online' ? '匹配胜率' : '人机胜率') +
+    '</small><b>' +
     (rate === null ? '—' : Math.round(rate * 100) + '%') +
     '</b></span></button>'
   );
@@ -333,14 +341,14 @@ async function connectPlayer() {
   return client;
 }
 function records(
-  mode = serviceOrigin() && save.onlineProfile?.[serviceOrigin()] ? 'online' : 'local',
+  mode = careerSource() === 'online' && save.onlineProfile?.[serviceOrigin()] ? 'online' : 'local',
 ) {
   const profile = save.onlineProfile?.[serviceOrigin()];
   const career = normalizeCareer(mode === 'online' ? profile?.career : save.career);
   const rank = getRank(career.xp);
   page(
     '战绩与军衔',
-    rankCard(career, 'rank-detail') +
+    rankCard(career, 'rank-detail', mode) +
       '<div class="tabs"><button id="records-local" class="' +
       (mode === 'local' ? 'active' : '') +
       '">本机征战</button>' +
@@ -409,6 +417,24 @@ function records(
     toast('新卒 → 伍长 → 什长 → 百夫长 → 校尉 → 都尉 → 将军 → 统帅 → 传说；每阶五级');
   });
 }
+function membershipKey(client = playerClient) {
+  return client?.token ? client.origin + '\0' + client.token : null;
+}
+function queueMembership(client = playerClient) {
+  return queueMemberships.get(membershipKey(client)) ?? 'none';
+}
+function setQueueMembership(client, membership) {
+  const key = membershipKey(client);
+  if (key) queueMemberships.set(key, membership);
+}
+function acceptQueueStatus(client, data) {
+  if (!['idle', 'waiting', 'matched'].includes(data?.status))
+    throw new Error('匹配状态无法确认，请重试连接');
+  setQueueMembership(
+    client,
+    data.status === 'waiting' ? 'waiting' : data.status === 'idle' ? 'none' : 'uncertain',
+  );
+}
 async function matchmaking() {
   const origin = serviceOrigin();
   if (!origin) {
@@ -429,7 +455,7 @@ async function matchmaking() {
       button('cancel-match', '返回') +
       '<h2>真人匹配</h2><span></span></header><div class="matchmaking-page"><div class="match-seal searching">战</div>' +
       '<h3 id="match-title">正在连接军营</h3><p id="match-status" role="status">读取军衔与胜率…</p>' +
-      rankCard(currentCareer(), 'matching-rank') +
+      rankCard(currentCareer('online'), 'matching-rank', 'online') +
       '<p class="footnote">优先匹配实力相近的真人玩家。等待越久，范围逐步扩大；无人时不会以人机替代。</p>' +
       button('match-cancel', '取消匹配') +
       '</div></section>',
@@ -442,9 +468,17 @@ async function matchmaking() {
     $('matching-rank').outerHTML = rankCard(
       normalizeCareer(client.profile.career),
       'matching-rank',
+      'online',
     );
-    queueRequest = client.queue('join');
+    const previousMembership = queueMembership(client);
+    setQueueMembership(client, 'uncertain');
+    queueRequest = client.queue('join').catch((error) => {
+      // A completed rejection cannot have created a new membership. Preserve any older uncertainty.
+      if (error.rejected && previousMembership === 'none') setQueueMembership(client, 'none');
+      throw error;
+    });
     const data = await queueRequest;
+    acceptQueueStatus(client, data);
     if (epoch !== queueEpoch || screen !== 'matchmaking') return;
     if (acceptMatchmaking(data, client)) return;
     $('match-title').textContent = '寻找实力相近的对手';
@@ -481,6 +515,7 @@ function acceptMatchmaking(data, client) {
   generation++;
   const match = new RemoteMatch(client.origin);
   state = match.join(data).state;
+  setQueueMembership(client, 'none');
   remote = match;
   matched = true;
   practice = false;
@@ -505,6 +540,7 @@ async function pollMatchmaking(client, epoch) {
   try {
     queueRequest = client.queue();
     const data = await queueRequest;
+    acceptQueueStatus(client, data);
     if (epoch !== queueEpoch || screen !== 'matchmaking') return;
     if (acceptMatchmaking(data, client)) return;
     $('match-status').textContent =
@@ -535,10 +571,16 @@ async function cancelMatchmaking() {
   $('match-cancel').disabled = $('cancel-match').disabled = true;
   const client = playerClient;
   try {
-    await queueRequest?.catch(() => {});
-    if (client?.token) {
+    const pendingResult = await queueRequest?.catch(() => null);
+    if (pendingResult) {
+      acceptQueueStatus(client, pendingResult);
+      if (acceptMatchmaking(pendingResult, client)) return;
+    }
+    if (client?.token && queueMembership(client) !== 'none') {
       const data = await client.queue('cancel');
+      acceptQueueStatus(client, data);
       if (acceptMatchmaking(data, client)) return;
+      if (data.status !== 'idle') throw new Error('仍在队列中，请再次取消');
     }
     home();
   } catch (error) {
@@ -1762,6 +1804,10 @@ function snapshot() {
     mode: matched ? 'matched' : remote ? 'server' : 'local',
     playerFactionId: playerFaction(),
     career: currentCareer(),
+    careerSource: careerSource(),
+    localCareer: currentCareer('local'),
+    onlineCareer: save.onlineProfile?.[serviceOrigin()] ? currentCareer('online') : null,
+    queueMembership: queueMembership(),
     view: bridge.view,
     routePoints: bridge.routePoints,
     inputBlocked: bridge.inputBlocked,
