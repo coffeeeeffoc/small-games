@@ -1064,6 +1064,7 @@ export async function validateTree({
         'scripts/nine-native-scope.test.mjs',
         'scripts/nine-lock-scope.test.mjs',
         'scripts/publication-scopes.test.mjs',
+        'scripts/night-runtime-scope.test.mjs',
         'scripts/game-rename-scope.test.mjs',
         'scripts/vite-patch-scope.test.mjs',
         'scripts/prune-turbo-cache.test.mjs',

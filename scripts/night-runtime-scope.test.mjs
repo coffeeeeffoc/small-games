@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { incrementalPlan } from './incremental-validation.mjs';
 import {
   nightBackendFileScope,
   nightRuntimeInputs,
@@ -8,6 +9,16 @@ import {
   reviewedSharedFileScopes,
   nightServiceTurboOnly,
 } from './publication-scopes.mjs';
+
+test('Night scope test changes execute validation tooling rather than becoming unclassified', () => {
+  const plan = incrementalPlan({
+    packages: [],
+    games: [],
+    changedPaths: ['scripts/night-runtime-scope.test.mjs'],
+    readSource: () => '',
+  });
+  assert.equal(plan.validation_tools, true);
+});
 
 test('Night service cache inputs retain the game consumer and reject unrelated Turbo changes', () => {
   const after = JSON.parse(readFileSync(new URL('../turbo.json', import.meta.url), 'utf8'));
