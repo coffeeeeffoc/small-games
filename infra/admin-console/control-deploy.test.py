@@ -382,7 +382,8 @@ class ControlContracts(unittest.TestCase):
         calls = []
         with patch.object(control, 'domain_module', return_value=domain), patch.object(control, 'private_directory'), patch.object(control, 'private_json', return_value=state), patch.object(control, 'write_private'), patch.object(control, 'assert_nginx'), patch.object(control, 'target_inventory', return_value=state['inventory']['postgres']), patch.object(control, 'database_floor', return_value='schema3'), patch.object(control, 'read_precommit', return_value=(proof, 'f' * 64)), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'verified_database'), patch.object(control, 'activate_services', side_effect=control.Stopped('COMMAND_FAILED')), patch.object(control, 'command', side_effect=lambda *args: calls.append(args)), patch.object(control, 'restore_before_migration') as restore:
             with self.assertRaisesRegex(control.Stopped, 'COMMAND_FAILED'):
-                control.adopt(release, manifest(), Path('/caddy'), True)
+                with patch.object(Path, 'resolve', return_value=control.BASE / 'releases' / state['previous']):
+                    control.adopt(release, manifest(), Path('/caddy'), True)
             self.assertEqual(calls, [('docker', 'stop', '--time', '30', state['inventory']['nginx']['id'])])
             restore.assert_not_called()
             domain.provision_control_database.assert_not_called()
@@ -474,6 +475,146 @@ class ControlContracts(unittest.TestCase):
                 for bad in [dict(payload, targetRelease='../old'), dict(payload, targetManifestSHA256='0' * 64)]:
                     with self.assertRaises(control.Stopped):
                         control.recovery_target(base / 'releases/current', current, bad)
+
+
+class ApplicationRepair(unittest.TestCase):
+    @contextlib.contextmanager
+    def fixture(self):
+        with tempfile.TemporaryDirectory() as folder, contextlib.ExitStack() as stack:
+            base, private = Path(folder) / 'public', Path(folder) / 'private'
+            previous, target, release = (base / 'releases' / name for name in ('previous', 'failed', 'fixed'))
+            for directory in (previous, target, release): directory.mkdir(parents=True)
+            private.mkdir(mode=0o700)
+            (base / 'current').symlink_to(previous)
+            (target / 'manifest.json').write_text('{}')
+            stack.enter_context(patch.object(control, 'BASE', base))
+            stack.enter_context(patch.object(control, 'PRIVATE', private))
+            source = dict(journal(target), phase='recovery-required', initialFloor='schema2',
+                          precommitSHA256='9' * 64, runtimeIds=['7' * 64], kartRemovalAttempted=True)
+            source_dir = private / target.name
+            source_dir.mkdir(mode=0o700)
+            source_file = source_dir / 'control-journal.json'
+            control.write_private(source_file, source)
+            sessions = {'sourceSHA': SHA, 'migrationSHA256': '8' * 64, 'metadataSHA256': '6' * 64}
+            control.write_private(source_dir / 'player-sessions-complete.json', sessions)
+            value = dict(manifest(), files={'migrations/014-player-sessions.sql': '8' * 64})
+            fixed = dict(value, sourceSHA='f' * 40)
+            live = copy.deepcopy(source['inventory'])
+            for name in control.SERVICES:
+                live[name].update(image=IMAGE, update=target.name)
+            live['runtime']['id'] = '7' * 64
+            live['kart']['networkMode'] = 'container:' + live['runtime']['id']
+            live['nginx']['running'] = False
+            new_image, events = 'sha256:' + 'f' * 64, []
+            proof = {'controlContract': CONTRACT, 'databaseProof': {'backupSHA256': '1' * 64, 'oldStateSHA256': '2' * 64}}
+            domain = SimpleNamespace(load_sql=Mock(), player_session_metadata=Mock(return_value='6' * 64),
+                                     provision_player_sessions=Mock(), provision_control_database=Mock())
+            def command(*args, **kwargs):
+                events.append(args)
+                if args[:2] in (('docker', 'start'), ('docker', 'stop')):
+                    self.assertEqual(args[-1], live['nginx']['id'])
+                    live['nginx']['running'] = args[1] == 'start'
+            def ingress(_inventory, stopped): self.assertEqual(live['nginx']['running'], not stopped)
+            def switch(destination, old):
+                self.assertEqual(old, previous)
+                (base / 'current').unlink()
+                (base / 'current').symlink_to(destination)
+            def activate(destination, _manifest, activation, names):
+                self.assertEqual(destination, release)
+                self.assertEqual(names, ('management',))
+                self.assertEqual(activation['inventory']['runtime'], live['runtime'])
+                self.assertEqual(activation['inventory']['kart'], live['kart'])
+                live.setdefault('management', copy.deepcopy(activation['inventory']['management'])).update(image=new_image, id='8' * 64)
+                return {name: copy.deepcopy(live[name]) for name in control.SERVICES}
+            mocks = {}
+            for name, options in {
+                'domain_module': {'return_value': domain},
+                'read_precommit': {'return_value': ({'controlContract': CONTRACT}, '9' * 64)},
+                'assert_nginx': {'side_effect': ingress}, 'check_protected': {},
+                'database_floor': {'return_value': 'schema3'}, 'verified_database': {}, 'assert_env': {},
+                'target_inventory': {'side_effect': lambda name, **_: copy.deepcopy(live.get(name))},
+                'service_health': {}, 'assert_live_flags': {}, 'authority': {},
+                'build_image': {'return_value': new_image},
+                'scalar': {'side_effect': lambda *_: release.name if live['management']['image'] == new_image else target.name},
+                'contexts_for': {'return_value': source['contexts']},
+                'activate_services': {'side_effect': activate}, 'persist_control_proof': {'return_value': proof},
+                'read_control_proof': {'return_value': proof}, 'switch_pointer': {'side_effect': switch},
+                'command': {'side_effect': command}, 'public_probe': {}, 'stage': {},
+            }.items():
+                mocks[name] = stack.enter_context(patch.object(control, name, **options))
+            yield SimpleNamespace(base=base, private=private, target=target, release=release, source=source,
+                                  source_file=source_file, manifest=value, fixed=fixed, live=live,
+                                  mocks=mocks, domain=domain, events=events, new_image=new_image)
+
+    def run_repair(self, fixture):
+        return control.repair_application(fixture.release, fixture.fixed, fixture.target, fixture.manifest)
+
+    def test_repair_and_completed_retry_preserve_games_and_original_evidence(self):
+        with self.fixture() as f:
+            original, games = f.source_file.read_bytes(), copy.deepcopy(f.live)
+            receipt = self.run_repair(f)
+            self.assertEqual(receipt['services'], ['management'])
+            self.assertEqual(receipt['sourceSHA'], f.fixed['sourceSHA'])
+            self.assertEqual(receipt['activeImages']['management'], f.new_image)
+            for name in ('runtime', 'kart'): self.assertEqual(f.live[name], games[name])
+            self.assertEqual(self.run_repair(f), receipt)
+            f.mocks['activate_services'].assert_called_once()
+            f.domain.provision_player_sessions.assert_not_called()
+            f.domain.provision_control_database.assert_not_called()
+            self.assertEqual(f.source_file.read_bytes(), original)
+            self.assertTrue(f.live['nginx']['running'])
+            # A stale recover must not replace the repaired application.
+            with self.assertRaisesRegex(control.Stopped, 'RECOVERY_SUPERSEDED'):
+                control.adopt(f.target, f.manifest, f.base, True)
+
+    def test_failures_reclose_ingress_and_can_retry_without_remigrating(self):
+        for stage in ('activate_services', 'persist_control_proof', 'switch_pointer', 'public_probe'):
+            with self.subTest(stage=stage), self.fixture() as f:
+                operation = f.mocks[stage]
+                original_side_effect = operation.side_effect
+                operation.side_effect = control.Stopped('INJECTED_FAILURE')
+                with self.assertRaisesRegex(control.Stopped, 'INJECTED_FAILURE'): self.run_repair(f)
+                self.assertFalse(f.live['nginx']['running'])
+                self.assertEqual(control.private_json(f.private / 'fixed/application-repair.json')['phase'], 'recovery-required')
+                operation.side_effect = original_side_effect
+                if stage == 'activate_services': f.live.pop('management')
+                self.run_repair(f)
+                self.assertTrue(f.live['nginx']['running'])
+                f.domain.provision_player_sessions.assert_not_called()
+
+    def test_repair_rejects_missing_proof_or_drift_before_activation(self):
+        for failure in ('schema', 'precommit', 'sessions', 'runtime', 'kart', 'env', 'pointer', 'not-committed'):
+            with self.subTest(failure=failure), self.fixture() as f:
+                if failure == 'schema': f.mocks['database_floor'].return_value = 'schema2'
+                elif failure == 'precommit': f.mocks['read_precommit'].return_value = ({'controlContract': CONTRACT}, '0' * 64)
+                elif failure == 'sessions': f.domain.player_session_metadata.return_value = '0' * 64
+                elif failure == 'runtime': f.live['runtime']['id'] = '0' * 64
+                elif failure == 'kart': f.live['kart']['networkMode'] = 'host'
+                elif failure == 'env': f.mocks['assert_env'].side_effect = control.Stopped('ENV_CHANGED')
+                elif failure == 'pointer':
+                    (f.base / 'current').unlink(); (f.base / 'current').symlink_to(f.target)
+                else:
+                    f.source['newActivationAttempted'] = False
+                    control.write_private(f.source_file, f.source, True)
+                with self.assertRaises(control.Stopped): self.run_repair(f)
+                f.mocks['activate_services'].assert_not_called()
+                f.mocks['command'].assert_not_called()
+
+    def test_retry_rejects_changed_evidence_and_game_identity(self):
+        for failure in ('source', 'binding', 'runtime', 'management'):
+            with self.subTest(failure=failure), self.fixture() as f:
+                f.mocks['public_probe'].side_effect = control.Stopped('INJECTED_FAILURE')
+                with self.assertRaises(control.Stopped): self.run_repair(f)
+                f.mocks['activate_services'].reset_mock()
+                if failure == 'source':
+                    f.source['stopped'] = []
+                    control.write_private(f.source_file, f.source, True)
+                elif failure == 'binding': f.fixed['sourceSHA'] = '0' * 40
+                elif failure == 'runtime': f.live['runtime']['configHash'] = 'changed'
+                else: f.live['management']['image'] = 'sha256:' + '0' * 64
+                with self.assertRaises(control.Stopped): self.run_repair(f)
+                f.mocks['activate_services'].assert_not_called()
+                self.assertFalse(f.live['nginx']['running'])
 
 
 class DatabaseDiagnostics(unittest.TestCase):

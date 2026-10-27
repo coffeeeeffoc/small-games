@@ -272,15 +272,15 @@ class BackendContracts(unittest.TestCase):
             self.assertEqual(caught.exception.probeProcessId, 1234)
             self.assertEqual(caught.exception.originalCode, 'UNEXPECTED_FAILURE')
 
-    def test_control_schema_requires_exact_version_two_and_read_only_query(self):
-        for output in [b'[]', b'[1]', b'[2,2]', b'[2.0]', b'[true]', b'null', b'PRIVATE_CANARY']:
+    def test_control_schema_requires_exact_version_three_and_read_only_query(self):
+        for output in [b'[]', b'[1]', b'[2]', b'[4]', b'[3,3]', b'[3.0]', b'[true]', b'null', b'PRIVATE_CANARY']:
             with patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'command', return_value=output) as command:
                 with self.assertRaisesRegex(backend.Stopped, '^AUTHORITY_FALLBACK_REQUIRED$'):
                     backend.guard_control_schema()
                 sql = command.call_args.args[-1]
                 self.assertIn('BEGIN TRANSACTION READ ONLY', sql)
                 self.assertNotIn('CREATE', sql)
-        with patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'command', return_value=b'[2]'):
+        with patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'command', return_value=b'[3]'):
             backend.guard_control_schema()
 
     def test_existing_public_environment_must_already_match_before_mutation(self):

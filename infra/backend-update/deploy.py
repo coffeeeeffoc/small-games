@@ -273,7 +273,7 @@ def guard_control_schema():
         require(len(output) <= 64, 'AUTHORITY_FALLBACK_REQUIRED')
         versions = json.loads(output)
         require(isinstance(versions, list) and len(versions) == 1
-                and type(versions[0]) is int and versions[0] == 2, 'AUTHORITY_FALLBACK_REQUIRED')
+                and type(versions[0]) is int and versions[0] == 3, 'AUTHORITY_FALLBACK_REQUIRED')
     except Stopped as error:
         if str(error) == 'SIGNAL_INTERRUPTED':
             raise

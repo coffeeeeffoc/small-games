@@ -7,6 +7,7 @@ import { openDatabase, controlSnapshotDigest } from '@coffeeeeffoc/service-kit';
 import { createControlStore } from '../services/management-api/dist/admin/control-store.js';
 import { createControlService } from '../services/management-api/dist/admin/control-service.js';
 import { CONTROL_GAMES } from '../services/management-api/dist/admin/control-model.js';
+import { createManagementService } from '../services/management-api/dist/app.js';
 import {
   verifyRuntimeControl,
   verifyCompetitionIdentityLocks,
@@ -121,6 +122,27 @@ async function close() {
   for (const connection of [runtime, management, owner]) if (connection) await connection.close();
   owner = management = runtime = undefined;
 }
+async function managementHealth(status) {
+  const app = createManagementService(
+    {
+      MANAGEMENT_CAPABILITIES: 'admin',
+      MANAGEMENT_DATABASE_URL: `postgres://management_app:${appPassword}@127.0.0.1:${guard()}/control_test`,
+      ADMIN_ORIGIN: 'https://admin.nenggongzhiren.cn',
+      ADMIN_CONTROL_ENABLED: 'true',
+    },
+    false,
+  );
+  try {
+    assert.equal(
+      (await app.inject('/health')).statusCode,
+      status,
+      'control-enabled management readiness',
+    );
+    assert.equal((await app.inject('/health/live')).statusCode, 200);
+  } finally {
+    await app.close();
+  }
+}
 const fingerprint = `select md5(jsonb_build_object(
  'relations',(select jsonb_agg(jsonb_build_array(c.relname,c.relowner,c.relacl::text,c.relkind) order by c.relname) from pg_class c where c.relnamespace='game_control'::regnamespace),
  'columns',(select jsonb_agg(jsonb_build_array(c.relname,a.attname,a.attacl::text,a.atttypid,a.attnotnull) order by c.relname,a.attnum) from pg_attribute a join pg_class c on c.oid=a.attrelid where c.relnamespace='game_control'::regnamespace and a.attnum>0 and not a.attisdropped),
@@ -171,7 +193,9 @@ try {
     create role management_app login password '${appPassword}'; create role runtime_app login password '${runtimePassword}'; create role wrong_owner;
     grant connect on database control_test to management_app,runtime_app;
     create schema runtime; create table runtime.sentinel(id int primary key,value text); insert into runtime.sentinel values(1,'preserve rows and ACL');
-    create schema admin_console; create table admin_console.sentinel(id int primary key,value text); insert into admin_console.sentinel values(1,'preserve admin');`);
+    create schema admin_console; create table admin_console.sentinel(id int primary key,value text); insert into admin_console.sentinel values(1,'preserve admin');
+    create table admin_console.schema_version(version int primary key); insert into admin_console.schema_version values(1);
+    grant usage on schema admin_console to management_app; grant select on admin_console.schema_version to management_app;`);
   const sentinel = () =>
     psql(`select md5(jsonb_build_object('runtime',(select jsonb_agg(t) from runtime.sentinel t),'admin',(select jsonb_agg(t) from admin_console.sentinel t),
     'acl',(select jsonb_agg(jsonb_build_array(relowner,relacl::text) order by oid) from pg_class where oid in ('runtime.sentinel'::regclass,'admin_console.sentinel'::regclass)))::text)`);
@@ -194,6 +218,7 @@ try {
   assert.equal(psql(fingerprint), before);
   assert.equal(sentinel(), beforeSentinel);
   checked('migration-twice-existing-data-and-ACL-preserved');
+  await managementHealth(503);
   await connect();
   step('least-privilege');
   for (const statement of [
@@ -338,6 +363,8 @@ try {
   const preserved = history();
   psql(nightMigration);
   psql(nightMigration);
+  await managementHealth(200);
+  checked('control-enabled-management-health-rejects-schema2-and-accepts-schema3');
   assert.equal(history(), preserved);
   assert.equal(sentinel(), beforeSentinel);
   assert.equal(

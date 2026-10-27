@@ -48,6 +48,15 @@ coordinator 在迁移调用前持久化固定 precommit 路径。domain 在 COMM
 
 recover 重查精确 Nginx stopped、PG 身份、未变的不透明 env、原 Compose 上下文、候选镜像能力及预期合同，不从 live 重建 baseline，不重跑迁移。缺失/不匹配的 pair、未知 DB 结果或不兼容镜像保持闭锁并需人工审阅。恢复目标是原已审候选；替换故障候选镜像的 fix-forward 需独立审阅，不能暗换目标。未实测 Docker daemon 重启后的屏障持久性；恢复前始终再次确认精确 Nginx 已停止。
 
+数据库已经提交、Runtime/Kart 已健康启动而 Management 候选有缺陷时，使用明确的新应用恢复入口：
+
+```sh
+pnpm deploy:admin --prepare-control
+pnpm deploy:admin --repair-control=<failed-adoption-bundle> --application=<new-prepared-bundle>
+```
+
+新候选必须先通过相应 CI 并推送到 dev。当前 runner 将原采用 journal、precommit 摘要、014 完成证明与新应用清单绑定，实际只替换 Management；原数据库迁移、Runtime/Kart 镜像和容器身份保持不变。原采用证据不改写，新应用目录单独记录恢复阶段。中断后用同一对 bundle 重试，先重闭同一入口，再校验所有绑定、配置、数据库合同和容器边界；健康和公网探针通过后才重新开门。成功后旧 recover 会因管理指针已被替代而拒绝执行。该入口不处理未提交、提交结果未知或游戏服务不健康的事故。
+
 2026-10-17 的首守卫事故另有一个受限、显式恢复入口：
 
 ```sh
@@ -60,7 +69,7 @@ pnpm deploy:admin --recover-control=0d7bfdfe4087-1792248271760-eb122d --root-pre
 
 本次有限回归使用 WSL Python `-B`、实际非 root UID 1000 调用真实 helper/coordinator，Docker/数据库传输与服务生命周期为测试替身；覆盖停机前预检、停机后无数据库命令失败的旧容器恢复、COMMIT 超时闭锁、历史证据拒绝/成功和部分恢复重试。此证据不替代真实 PostgreSQL 事务演练、生产维护或公网回归。
 
-普通更新及回滚在停服务前要求 schema2、可信 control proof、现役三服务实际能力和显式控制 flag；回退目标必须同样兼容。历史 release 只提供 image/env/site 数据，执行逻辑始终来自当前 reviewed runner。失败恢复两个原管理指针，保留控制 flag，不回滚 Runtime、Caddy 或 DB。
+普通更新及回滚在停服务前要求 schema3、可信 control proof、现役三服务实际能力和显式控制 flag；回退目标必须同样兼容。历史 release 只提供 image/env/site 数据，执行逻辑始终来自当前 reviewed runner。失败恢复两个原管理指针，保留控制 flag，不回滚 Runtime、Caddy 或 DB。
 
 ## HTTPS、nonce 与 GitHub 边界
 

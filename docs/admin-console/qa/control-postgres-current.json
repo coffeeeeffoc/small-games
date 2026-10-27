@@ -1,5 +1,5 @@
 {
-  "runId": "game-control-294d3a26-5a82-487d-8b93-a900ac656d7d",
+  "runId": "game-control-9b44b1a4-e694-4358-8965-3cb7dd68472d",
   "isolated": true,
   "loopbackOnly": true,
   "productionAccess": false,
@@ -14,6 +14,7 @@
     "fail-closed-public-read",
     "fail-closed-foreign-key-namespace",
     "one-time-bootstrap-db-disable-and-concurrent-last-administrator",
+    "control-enabled-management-health-rejects-schema2-and-accepts-schema3",
     "v2-to-v3-idempotent-preserves-published-history-digest-and-ACL",
     "CAS-append-only-rollback-epoch-and-shared-advisory-order",
     "historical-v2-rollback-creates-new-v3-revision-without-rewriting-history",
@@ -32,7 +33,7 @@
   "nightMigrationSha256": "4d34f4dd305387dc3e1c0554ed752f15e1277c03db6074d8914653862f929797",
   "postgresVersion": "17.6",
   "runtimeControl": {
-    "observationLockMs": 1556,
+    "observationLockMs": 1560,
     "commitInFlight": "unknown-no-rollback-guarantee",
     "sourceSha256": {
       "controlDatabase": "6d9e8ba315cfec14447b64a47f9833f038a77bbedd2f72676ef128ce8e4f21c5",

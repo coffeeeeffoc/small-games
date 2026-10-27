@@ -824,6 +824,9 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
     journal_file = directory / 'control-journal.json'
     if recover:
         journal = adoption_journal(private_json(journal_file), release, manifest)
+        if journal['newActivationAttempted']:
+            require((BASE / 'current').resolve(strict=True) in
+                    (BASE / 'releases' / journal['previous'], release), 'RECOVERY_SUPERSEDED')
         if root_precondition and not journal.get('rootPreconditionEvidence'):
             prove_root_precondition(release, manifest, journal)
         if not journal['domainInvoked'] or journal['verifiedNotCommitted']:
@@ -967,6 +970,125 @@ def restore_pointers(saved, allowed):
             require(not file.exists(), 'ADMIN_POINTER')
 
 
+def repair_application(release, manifest, target, target_manifest):
+    """Replace only Management after a proven commit; retain the failed adoption evidence."""
+    require(manifest['kind'] == 'control-application' and 'management' in manifest['services']
+            and release != target, 'REPAIR_APPLICATION')
+    domain = domain_module()
+    source_file = PRIVATE / target.name / 'control-journal.json'
+    source = adoption_journal(private_json(source_file), target, target_manifest)
+    require(source['phase'] == 'recovery-required' and source['newActivationAttempted']
+            and source['domainInvoked'] and not source['verifiedNotCommitted'], 'REPAIR_COMMIT_REQUIRED')
+    precommit, checksum = read_precommit(target, target_manifest)
+    require(source['precommitSHA256'] == checksum, 'PRECOMMIT_PROOF')
+    binding = {'release': release.name, 'sourceSHA': manifest['sourceSHA'], 'target': target.name,
+               'targetManifestSHA256': hashlib.sha256((target / 'manifest.json').read_bytes()).hexdigest(),
+               'journalSHA256': hashlib.sha256(source_file.read_bytes()).hexdigest(), 'precommitSHA256': checksum}
+    directory = PRIVATE / release.name
+    private_directory(directory, True)
+    file = directory / 'application-repair.json'
+    record = private_json(file) if file.exists() else None
+    if record is not None:
+        require(isinstance(record, dict) and set(record) == {'version', 'binding', 'phase', 'activation'}
+                and record['version'] == 1 and record['binding'] == binding
+                and record['phase'] in ('prepared', 'activate', 'recovery-required', 'complete'), 'REPAIR_JOURNAL')
+    previous = BASE / 'releases' / source['previous']
+    require((BASE / 'current').resolve(strict=True) in (previous, release), 'RECOVERY_SUPERSEDED')
+    if record is not None and record['phase'] in ('activate', 'recovery-required'):
+        # Reclose the exact owned ingress if interruption occurred after the final start.
+        ingress = target_inventory('nginx')
+        assert_nginx(source['inventory'], not ingress['running'])
+        if ingress['running']:
+            command('docker', 'stop', '--time', '30', ingress['id'])
+    complete = record is not None and record['phase'] == 'complete'
+    assert_nginx(source['inventory'], not complete)
+    check_protected(source['inventory'], source['pointers'])
+    pg = source['inventory']['postgres']['id']
+    require(database_floor(pg) == 'schema3', 'DATABASE_OUTCOME_UNKNOWN')
+    verified_database(domain, pg, manifest, precommit['controlContract'])
+    sessions = private_json(PRIVATE / target.name / 'player-sessions-complete.json')
+    require(sessions.get('sourceSHA') == target_manifest['sourceSHA']
+            and sessions.get('migrationSHA256') == target_manifest['files']['migrations/014-player-sessions.sql']
+            and sessions.get('metadataSHA256') == domain.player_session_metadata(
+                pg, domain.load_sql(target / 'control-fingerprint.sql')), 'PLAYER_SESSIONS_PROOF')
+    assert_env(Path(source['envFile']), source['envMetadata'])
+    live = {name: target_inventory(name, optional=name == 'management') for name in SERVICES}
+    for name in ('runtime', 'kart'):
+        require(live[name]['running'] and live[name]['image'] == source['candidateImage']
+                and live[name].get('update') == target.name, 'SERVICE_IDENTITY')
+        candidate_boundary(name, live[name], source, target)
+        service_health(name, live[name])
+    require(live['runtime']['id'] in source['runtimeIds']
+            and live['kart']['networkMode'] == 'container:' + live['runtime']['id'], 'KART_NAMESPACE')
+    if record is None:
+        require((BASE / 'current').resolve(strict=True) == previous and live['management'] is not None
+                and live['management']['image'] == source['candidateImage']
+                and scalar('docker', 'inspect', '--format', '{{index .Config.Labels "io.small-games.admin"}}', live['management']['id']) == target.name,
+                'SERVICE_IDENTITY')
+        for name in SERVICES:
+            require(live[name]['ports'] == source['inventory'][name]['ports']
+                    and live[name]['mounts'] == source['inventory'][name]['mounts'], 'SERVICE_BOUNDARY')
+        assert_live_flags(live)
+        image = build_image(release)
+        authority({'management': image})
+        items = dict(source['inventory'], **live)
+        activation = {'candidateImage': image, 'inventory': items, 'contexts': contexts_for(items),
+                      'envFile': source['envFile'], 'envMetadata': source['envMetadata'],
+                      'pointers': source['pointers'], 'previous': source['previous']}
+        record = {'version': 1, 'binding': binding, 'phase': 'prepared', 'activation': activation}
+        write_private(file, record)
+    activation = record['activation']
+    require(isinstance(activation, dict) and set(activation) ==
+            {'candidateImage', 'inventory', 'contexts', 'envFile', 'envMetadata', 'pointers', 'previous'}
+            and re.fullmatch(r'sha256:[a-f0-9]{64}', activation['candidateImage'])
+            and all(activation[key] == source[key] for key in ('envFile', 'envMetadata', 'pointers', 'previous')),
+            'REPAIR_JOURNAL')
+    require(set(activation['inventory']) == set(source['inventory'])
+            and all(activation['inventory'][name] == source['inventory'][name] for name in ('postgres', 'nginx', 'web'))
+            and all(live[name] == activation['inventory'][name] for name in ('runtime', 'kart'))
+            and contexts_for(activation['inventory']) == activation['contexts'], 'PROTECTED_CONTAINER_CHANGED')
+    before = activation['inventory']['management']
+    current_management = live['management']
+    if current_management is None:
+        require(record['phase'] in ('activate', 'recovery-required'), 'SERVICE_IDENTITY')
+    elif current_management != before:
+        require(current_management['image'] == activation['candidateImage']
+                and current_management['ports'] == before['ports'] and current_management['mounts'] == before['mounts']
+                and scalar('docker', 'inspect', '--format', '{{index .Config.Labels "io.small-games.admin"}}', current_management['id']) == release.name,
+                'SERVICE_IDENTITY')
+    authority({'management': activation['candidateImage']})
+    if complete:
+        require((BASE / 'current').resolve(strict=True) == release and current_management is not None
+                and current_management['image'] == activation['candidateImage'], 'RECOVERY_SUPERSEDED')
+        proof = read_control_proof(release, manifest)
+        assert_live_flags(live)
+        service_health('management', current_management)
+        public_probe(release)
+        return public_receipt('repair', release, manifest, manifest['sourceSHA'], live, proof)
+    record['phase'] = 'activate'
+    write_private(file, record, True)
+    stage('service_start')
+    try:
+        current = activate_services(release, manifest, activation, ('management',))
+        verified_database(domain, pg, manifest, precommit['controlContract'])
+        check_protected(source['inventory'], source['pointers'])
+        require(hashlib.sha256(source_file.read_bytes()).hexdigest() == binding['journalSHA256'], 'REPAIR_JOURNAL')
+        proof = persist_control_proof(release, manifest, precommit, checksum)
+        switch_pointer(release, previous)
+        command('docker', 'start', source['inventory']['nginx']['id'])
+        assert_nginx(source['inventory'], False)
+        public_probe(release)
+        record['phase'] = 'complete'
+        write_private(file, record, True)
+        return public_receipt('repair', release, manifest, manifest['sourceSHA'], current, proof)
+    except BaseException:
+        command('docker', 'stop', '--time', '30', source['inventory']['nginx']['id'])
+        assert_nginx(source['inventory'], True)
+        record['phase'] = 'recovery-required'
+        write_private(file, record, True)
+        raise
+
+
 def guarded_management(release, expected_image):
     manifest = manifest_from(release)
     proof = read_control_proof(release, manifest)
@@ -1076,12 +1198,14 @@ def recovery_target(runner, manifest, payload):
 
 def main(args=None, payload=None):
     args = sys.argv[1:] if args is None else args
-    require(len(args) == 1 and args[0] in ('--adopt', '--recover', '--reuse', '--rollback'), 'ARGUMENTS')
+    require(len(args) == 1 and args[0] in ('--adopt', '--recover', '--repair', '--reuse', '--rollback'), 'ARGUMENTS')
     if payload is None:
         data = sys.stdin.buffer.read(8193)
         require(len(data) <= 8192, 'INPUT_TOO_LARGE')
         payload = json_value(data)
-    keys = {'caddyDirectory', 'sourceSHA'} | ({'targetRelease', 'targetManifestSHA256'} if args[0] == '--recover' else set())
+    keys = {'caddyDirectory', 'sourceSHA'} | ({'targetRelease', 'targetManifestSHA256'} if args[0] in ('--recover', '--repair') else set())
+    if args[0] == '--repair':
+        keys |= {'applicationRelease', 'applicationManifestSHA256'}
     root_precondition = isinstance(payload, dict) and payload.get('recoveryEvidence') == 'root-precondition-v1'
     if root_precondition and args[0] == '--recover':
         keys.add('recoveryEvidence')
@@ -1092,10 +1216,14 @@ def main(args=None, payload=None):
     manifest = manifest_from(release)
     require(manifest['sourceSHA'] == payload['sourceSHA'], 'SOURCE_MISMATCH')
     target, target_manifest = release, manifest
-    if args[0] == '--recover':
+    if args[0] in ('--recover', '--repair'):
         # Domain code and all tools come from this current reviewed runner. The
         # historical release is immutable application/journal data, never code.
         target, target_manifest = recovery_target(release, manifest, payload)
+    if args[0] == '--repair':
+        application, application_manifest = recovery_target(release, manifest, {
+            'targetRelease': payload['applicationRelease'], 'targetManifestSHA256': payload['applicationManifestSHA256']})
+        require(application_manifest['sourceSHA'] == manifest['sourceSHA'], 'SOURCE_MISMATCH')
     domain_module()
     caddy = Path(payload['caddyDirectory'])
     require(caddy.resolve(strict=True) == caddy and caddy != ROOT, 'CADDY_PATH')
@@ -1106,7 +1234,10 @@ def main(args=None, payload=None):
             lock = stack.enter_context(file.open('a'))
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         stage('preflight')
-        if args[0] in ('--adopt', '--recover'):
+        if args[0] == '--repair':
+            receipt = repair_application(application, application_manifest, target, target_manifest)
+            receipt['runnerSourceSHA'] = manifest['sourceSHA']
+        elif args[0] in ('--adopt', '--recover'):
             receipt = adopt(target, target_manifest, caddy, args[0] == '--recover', root_precondition)
             receipt['runnerSourceSHA'] = manifest['sourceSHA']
         else:

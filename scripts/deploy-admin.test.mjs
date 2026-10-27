@@ -466,6 +466,57 @@ test('recover uses a freshly reviewed runner when dev advanced; historical bundl
   assert.match(source, /python3 '\$\{releaseDir\}\/control-deploy\.py'/);
 });
 
+test('application repair requires two distinct bundles and keeps the reviewed runner separate', async () => {
+  const input = controlInput(['--repair-control=failed', '--application=fixed']);
+  assert.deepEqual(input, { mode: '--repair-control', bundle: 'failed', application: 'fixed' });
+  for (const args of [
+    ['--repair-control=failed'],
+    ['--repair-control=failed', '--application=failed'],
+    ['--repair-control=failed', '--application=../fixed'],
+    ['--repair-control=failed', '--application=fixed', '--root-precondition'],
+  ])
+    assert.throws(() => controlInput(args), /ARGUMENTS|CONTROL_MODE_REQUIRED/);
+  const options = [];
+  const read = async (directory) => ({
+    kind: 'control-application',
+    release: path.basename(directory),
+  });
+  const result = await controlExecution(
+    input,
+    async (option) => {
+      options.push(option);
+      return { directory: '/public/runner' };
+    },
+    read,
+    '/workspace',
+  );
+  assert.equal(result.target.manifest.release, 'failed');
+  assert.equal(result.application.manifest.release, 'fixed');
+  assert.equal(result.runner.manifest.release, 'runner');
+  assert.deepEqual(options, [{ services: ['management'], runnerOnly: true }]);
+  await assert.rejects(
+    controlExecution(
+      input,
+      () => assert.fail('prepared before validation'),
+      async () => ({ kind: 'control-runner' }),
+      '/workspace',
+    ),
+    /BUNDLE_UNSAFE/,
+  );
+  await assert.rejects(
+    controlExecution(
+      input,
+      async () => ({ directory: '/public/runner' }),
+      async (directory) => ({
+        kind: 'control-application',
+        sourceSHA: path.basename(directory) === 'fixed' ? 'old' : 'current',
+      }),
+      '/workspace',
+    ),
+    /HEAD_CHANGED/,
+  );
+});
+
 test('control receipt requires complete typed evidence and distinguishes runner from target SHA', () => {
   const value = {
     ok: true,
@@ -524,85 +575,116 @@ test('control receipt requires complete typed evidence and distinguishes runner 
   );
 });
 
-test('recover executes the current runner and guards current dev even for an old source target', async () => {
-  const folder = await mkdtemp(path.join(tmpdir(), 'admin-control-runner-'));
-  try {
-    const current = {
-      release: 'current',
-      sourceSHA: 'a'.repeat(40),
-      migrationArtifactSha256: 'f'.repeat(64),
-    };
-    const historical = { ...current, release: 'historical', sourceSHA: 'b'.repeat(40) };
-    const receipt = {
-      ok: true,
-      mode: 'recover',
-      runnerSourceSHA: current.sourceSHA,
-      sourceSHA: historical.sourceSHA,
-      release: historical.release,
-      services: [...controlServices],
-      activeImages: Object.fromEntries(
-        controlServices.map((name) => [name, 'sha256:' + 'c'.repeat(64)]),
-      ),
-      controlContract: {
-        version: 1,
-        schema: 'game_control',
-        schemaVersion: 3,
-        projectionSha256: 'd'.repeat(64),
-        metadataSha256: 'e'.repeat(64),
-      },
-      migrationArtifactSha256: 'f'.repeat(64),
-      controlEnabled: true,
-      remoteConfigReused: true,
-      internalHealthVerified: true,
-      publicHtmlVerified: true,
-      anonymousSessionVerified: true,
-      oauthStartVerified: true,
-      realGithubLoginVerified: false,
-      backupSHA256: '1'.repeat(64),
-      oldStateSHA256: '2'.repeat(64),
-    };
-    const guards = [],
-      calls = [],
-      uploaded = [];
-    const directory = path.join(folder, 'current');
-    const result = await main(['--recover-control=historical', '--root-precondition'], {
-      prepare: async (options) => {
-        assert.equal(options.runnerOnly, true);
-        return { directory };
-      },
-      readBundle: async (file) => (file === directory ? current : historical),
-      loadConfig: async () => ({
-        host: '192.0.2.10',
-        user: 'fixture',
-        port: '22',
-        caddyDirectory: '/opt/company',
-      }),
-      sameCandidate: (sha) => guards.push(sha),
-      sendBundle: async (_config, file, value) => {
-        uploaded.push([file, value]);
-        return '/opt/public/current';
-      },
-      run: async (_program, args, options) => {
-        calls.push([args, options]);
-        return options.stage === 'protected_remote_transaction' ? JSON.stringify(receipt) : '';
-      },
-    });
-    assert.deepEqual(result, receipt);
-    assert.deepEqual(guards, [current.sourceSHA, current.sourceSHA]);
-    assert.deepEqual(uploaded, [[directory, current]]);
-    assert.match(
-      calls[1][0].at(-1),
-      /^python3 '\/opt\/public\/current\/control-deploy.py' --recover$/,
-    );
-    const payload = JSON.parse(calls[1][1].input);
-    assert.equal(payload.sourceSHA, current.sourceSHA);
-    assert.equal(payload.targetRelease, historical.release);
-    assert.equal(payload.recoveryEvidence, 'root-precondition-v1');
-    assert.match(payload.targetManifestSHA256, /^[a-f0-9]{64}$/);
-  } finally {
-    await rm(folder, { recursive: true, force: true });
-  }
-});
+for (const operation of ['recover', 'repair-absent', 'repair-present']) {
+  test(`${operation} executes only the current runner and binds the exact application`, async () => {
+    const folder = await mkdtemp(path.join(tmpdir(), 'admin-control-runner-'));
+    try {
+      const current = {
+        release: 'current',
+        sourceSHA: 'a'.repeat(40),
+        migrationArtifactSha256: 'f'.repeat(64),
+      };
+      const historical = { ...current, release: 'historical', sourceSHA: 'b'.repeat(40) };
+      const application = {
+        ...current,
+        kind: 'control-application',
+        release: 'fixed',
+        sourceSHA: current.sourceSHA,
+      };
+      const repair = operation.startsWith('repair');
+      const target = repair ? application : historical;
+      const receipt = {
+        ok: true,
+        mode: repair ? 'repair' : 'recover',
+        runnerSourceSHA: current.sourceSHA,
+        sourceSHA: target.sourceSHA,
+        release: target.release,
+        services: repair ? ['management'] : [...controlServices],
+        activeImages: Object.fromEntries(
+          controlServices.map((name) => [name, 'sha256:' + 'c'.repeat(64)]),
+        ),
+        controlContract: {
+          version: 1,
+          schema: 'game_control',
+          schemaVersion: 3,
+          projectionSha256: 'd'.repeat(64),
+          metadataSha256: 'e'.repeat(64),
+        },
+        migrationArtifactSha256: 'f'.repeat(64),
+        controlEnabled: true,
+        remoteConfigReused: true,
+        internalHealthVerified: true,
+        publicHtmlVerified: true,
+        anonymousSessionVerified: true,
+        oauthStartVerified: true,
+        realGithubLoginVerified: false,
+        backupSHA256: '1'.repeat(64),
+        oldStateSHA256: '2'.repeat(64),
+      };
+      const guards = [],
+        calls = [],
+        uploaded = [];
+      const directory = path.join(folder, 'current');
+      const result = await main(
+        repair
+          ? ['--repair-control=historical', '--application=fixed']
+          : ['--recover-control=historical', '--root-precondition'],
+        {
+          prepare: async (options) => {
+            assert.equal(options.runnerOnly, true);
+            return { directory };
+          },
+          readBundle: async (file) =>
+            file === directory
+              ? current
+              : path.basename(file) === 'fixed'
+                ? application
+                : historical,
+          loadConfig: async () => ({
+            host: '192.0.2.10',
+            user: 'fixture',
+            port: '22',
+            caddyDirectory: '/opt/company',
+          }),
+          sameCandidate: (sha) => guards.push(sha),
+          sendBundle: async (_config, file, value) => {
+            uploaded.push([file, value]);
+            return '/opt/public/current';
+          },
+          run: async (_program, args, options) => {
+            calls.push([args, options]);
+            if (options.stage === 'application_presence')
+              return operation.endsWith('absent') ? 'absent' : 'present';
+            return options.stage === 'protected_remote_transaction' ? JSON.stringify(receipt) : '';
+          },
+        },
+      );
+      assert.deepEqual(result, receipt);
+      assert.deepEqual(guards, [current.sourceSHA, current.sourceSHA]);
+      assert.deepEqual(uploaded.at(-1), [directory, current]);
+      assert.equal(uploaded.length, operation === 'repair-absent' ? 2 : 1);
+      if (operation === 'repair-absent') assert.deepEqual(uploaded[0][1], application);
+      assert.match(
+        calls.at(-1)[0].at(-1),
+        new RegExp(
+          `^python3 '/opt/public/current/control-deploy.py' --${repair ? 'repair' : 'recover'}$`,
+        ),
+      );
+      const payload = JSON.parse(calls.at(-1)[1].input);
+      assert.equal(payload.sourceSHA, current.sourceSHA);
+      assert.equal(payload.targetRelease, historical.release);
+      assert.equal(payload.recoveryEvidence, repair ? undefined : 'root-precondition-v1');
+      assert.match(payload.targetManifestSHA256, /^[a-f0-9]{64}$/);
+      if (repair) {
+        assert.equal(payload.applicationRelease, application.release);
+        assert.match(payload.applicationManifestSHA256, /^[a-f0-9]{64}$/);
+        assert.notEqual(payload.applicationManifestSHA256, payload.targetManifestSHA256);
+      }
+    } finally {
+      await rm(folder, { recursive: true, force: true });
+    }
+  });
+}
 
 test('database failures preserve a finite cause and outcome without forwarding raw secrets', async () => {
   const python = await readFile(

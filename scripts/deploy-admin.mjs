@@ -61,6 +61,11 @@ for (const code of [
   'PREMIGRATION_RESTORED',
   'ROOT_PRECONDITION_UNPROVEN',
   'DATABASE_OUTCOME_UNKNOWN',
+  'REPAIR_APPLICATION',
+  'REPAIR_COMMIT_REQUIRED',
+  'REPAIR_JOURNAL',
+  'RECOVERY_SUPERSEDED',
+  'PLAYER_SESSIONS_PROOF',
 ])
   adminFailures.add(code);
 const errors = new Set([
@@ -433,6 +438,10 @@ const controlHelpers = {
 };
 
 export function controlInput(args) {
+  const repair = /^--repair-control=([a-z0-9-]{1,100})$/.exec(args[0]);
+  const application = /^--application=([a-z0-9-]{1,100})$/.exec(args[1]);
+  if (repair && application && args.length === 2 && repair[1] !== application[1])
+    return { mode: '--repair-control', bundle: repair[1], application: application[1] };
   const rootPrecondition = args.length === 2 && args[1] === '--root-precondition';
   if (args.length !== 1 && !rootPrecondition) stop('CONTROL_MODE_REQUIRED');
   if (rootPrecondition && !/^--recover-control=[a-z0-9-]{1,100}$/.test(args[0])) stop('ARGUMENTS');
@@ -697,15 +706,24 @@ export async function controlExecution(
     ? { directory: path.join(workspace, 'outputs/admin-deploy', input.bundle) }
     : null;
   if (target) target.manifest = await read(target.directory);
+  const application = input.application
+    ? { directory: path.join(workspace, 'outputs/admin-deploy', input.application) }
+    : null;
+  if (application) {
+    application.manifest = await read(application.directory);
+    if (application.manifest.kind !== 'control-application') stop('BUNDLE_UNSAFE');
+  }
   const runner =
     input.mode === '--adopt-control'
       ? target
       : await prepare({
           services: ['management'],
-          runnerOnly: ['--rollback', '--recover-control'].includes(input.mode),
+          runnerOnly: ['--rollback', '--recover-control', '--repair-control'].includes(input.mode),
         });
   runner.manifest = await read(runner.directory);
-  return { runner, target };
+  if (application && application.manifest.sourceSHA !== runner.manifest.sourceSHA)
+    stop('HEAD_CHANGED');
+  return { runner, target, application };
 }
 
 export function controlReceipt(text, mode, runnerSourceSHA) {
@@ -823,7 +841,7 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
   const input = controlInput(args); // No legacy executionInput/OAuth reader on any CLI route.
   if (input.mode === '--help') {
     console.log(
-      'pnpm deploy:admin --prepare-control | --adopt-control=<bundle> | --recover-control=<bundle> [--root-precondition] | --reuse-remote-config | --rollback\nprepare纯本地；root-precondition仅恢复已核实的2026-10-17首守卫故障；所有模式均不读取OAuth文件，旧001安装入口关闭。',
+      'pnpm deploy:admin --prepare-control | --adopt-control=<bundle> | --recover-control=<bundle> [--root-precondition] | --repair-control=<failed-bundle> --application=<prepared-bundle> | --reuse-remote-config | --rollback\nprepare纯本地；repair仅替换已迁移失败候选的Management；root-precondition仅恢复已核实的2026-10-17首守卫故障；所有模式均不读取OAuth文件，旧001安装入口关闭。',
     );
     return;
   }
@@ -842,11 +860,11 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
     return prepared;
   }
   // Validate every local artifact before even a harmless SSH call.
-  const { runner: prepared, target } = await controlExecution(
-    input,
-    prepare,
-    dependencies.readBundle ?? readControlBundle,
-  );
+  const {
+    runner: prepared,
+    target,
+    application,
+  } = await controlExecution(input, prepare, dependencies.readBundle ?? readControlBundle);
   const manifest = prepared.manifest;
   (dependencies.sameCandidate ?? sameCandidate)(manifest.sourceSHA);
   const execute = dependencies.run ?? run;
@@ -868,10 +886,26 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
   const modes = {
     '--adopt-control': 'adopt',
     '--recover-control': 'recover',
+    '--repair-control': 'repair',
     '--reuse-remote-config': 'reuse',
     '--rollback': 'rollback',
   };
   const mode = modes[input.mode];
+  if (application) {
+    // This bundle is data: only the freshly uploaded runner executes, and verifies every file before use.
+    const present = await execute('ssh', sshArguments(config, 'bash -s'), {
+      stage: 'application_presence',
+      remote: true,
+      input: `if test -e '${remoteRoot}/releases/${application.manifest.release}'; then printf present; else printf absent; fi\n`,
+    });
+    if (present.trim() === 'absent')
+      await (dependencies.sendBundle ?? sendPublicBundle)(
+        config,
+        application.directory,
+        application.manifest,
+      );
+    else if (present.trim() !== 'present') stop('REMOTE_FAILED');
+  }
   const releaseDir = await (dependencies.sendBundle ?? sendPublicBundle)(
     config,
     prepared.directory,
@@ -879,11 +913,17 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
   );
   (dependencies.sameCandidate ?? sameCandidate)(manifest.sourceSHA);
   const payload = { caddyDirectory: config.caddyDirectory, sourceSHA: manifest.sourceSHA };
-  if (mode === 'recover') {
+  if (mode === 'recover' || mode === 'repair') {
     if (input.recoveryEvidence) payload.recoveryEvidence = input.recoveryEvidence;
     payload.targetRelease = target.manifest.release;
     payload.targetManifestSHA256 = createHash('sha256')
       .update(JSON.stringify(target.manifest, null, 2) + '\n')
+      .digest('hex');
+  }
+  if (application) {
+    payload.applicationRelease = application.manifest.release;
+    payload.applicationManifestSHA256 = createHash('sha256')
+      .update(JSON.stringify(application.manifest, null, 2) + '\n')
       .digest('hex');
   }
   const text = await execute(
@@ -900,8 +940,10 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
   if (
     receipt.migrationArtifactSha256 !== manifest.migrationArtifactSha256 ||
     (mode !== 'rollback' &&
-      (receipt.sourceSHA !== (target?.manifest.sourceSHA ?? manifest.sourceSHA) ||
-        receipt.release !== (target?.manifest.release ?? manifest.release)))
+      (receipt.sourceSHA !==
+        (application?.manifest.sourceSHA ?? target?.manifest.sourceSHA ?? manifest.sourceSHA) ||
+        receipt.release !==
+          (application?.manifest.release ?? target?.manifest.release ?? manifest.release)))
   )
     stop('REMOTE_FAILED');
   await writeFile(`${prepared.directory}.receipt.json`, JSON.stringify(receipt, null, 2) + '\n');
