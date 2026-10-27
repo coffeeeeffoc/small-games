@@ -35,6 +35,8 @@ try {
   for (const width of [320, 390, 1280]) {
     const touch = width < 500;
     const page = await browser.newPage({ viewport: { width, height: 844 }, hasTouch: touch });
+    // Cold workspace module transforms on Windows can exceed the default navigation timeout.
+    page.setDefaultNavigationTimeout(120000);
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.route('**/games/tiny-signals/index.html?*', (route) =>
