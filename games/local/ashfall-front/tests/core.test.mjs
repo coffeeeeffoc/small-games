@@ -405,3 +405,23 @@ test('underground ceiling blocks crossing shots except through ladder shafts', (
   assert.equal(crossesFloor(level, tunnel.x + 300, 800, tunnel.x + 300, 520), true);
   assert.equal(crossesFloor(level, tunnel.x + 300, 780, tunnel.x + 400, 780), false);
 });
+
+test('jumping off a ladder near its mouth exits continuously; solid tunnel ceiling still blocks', () => {
+  const run = createRun(),
+    ladder = run.level.ladders[0];
+  run.enemies = [];
+  Object.assign(run.player, {
+    x: ladder.x,
+    y: 580,
+    climbing: ladder,
+    onGround: true,
+    coyoteTime: 0.1,
+  });
+  stepRun(run, { jump: true }, 1 / 60);
+  assert.ok(run.player.y < 580, 'shaft jump moves up instead of snapping down');
+  const blocked = createRun();
+  blocked.enemies = [];
+  Object.assign(blocked.player, { x: ladder.x + 120, y: 650, vy: -600, onGround: false });
+  stepRun(blocked, {}, 1 / 60);
+  assert.ok(blocked.player.y >= blocked.level.ground + blocked.player.h + 12);
+});

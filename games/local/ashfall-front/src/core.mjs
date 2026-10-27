@@ -423,7 +423,10 @@ function moveBody(body, level, dt) {
     body.x = clamp(body.x, underground.x + body.w / 2, underground.x + underground.w - body.w / 2);
   body.vy += GRAVITY * dt;
   body.y += body.vy * dt;
-  if (underground && body.vy < 0 && body.y - body.h < level.ground + 12) {
+  const inShaft = level.ladders.some(
+    (l) => l.top === level.ground && l.bottom > level.ground && Math.abs(body.x - l.x) <= 23,
+  );
+  if (underground && !inShaft && body.vy < 0 && body.y - body.h < level.ground + 12) {
     body.y = level.ground + body.h + 12;
     body.vy = 0;
   }
