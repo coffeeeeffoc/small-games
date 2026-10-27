@@ -899,7 +899,11 @@ export class Ashfall extends Component {
           );
           u.text(
             'reward-note',
-            '辅助行动可解锁关卡，不计最佳时间',
+            web.SmallGamesRewardAds?.available
+              ? '辅助行动可解锁关卡，不计最佳时间'
+              : this.rewardKind === 'overdrive'
+                ? '广告暂不可用 · 返回可选免费增益'
+                : '广告暂不可用 · 返回继续免费游玩',
             198,
             row + 38,
             448,
@@ -908,7 +912,11 @@ export class Ashfall extends Component {
           );
           u.button(
             'claim',
-            this.adLocked ? '等待广告关闭…' : '观看并领取',
+            this.adLocked
+              ? '等待广告关闭…'
+              : web.SmallGamesRewardAds?.available
+                ? '观看并领取'
+                : '广告暂不可用',
             198,
             row + pitch,
             448,

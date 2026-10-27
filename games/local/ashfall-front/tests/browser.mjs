@@ -200,6 +200,15 @@ try {
     const shots = (await snapshot(page)).run.shots;
     await page.waitForTimeout(220);
     assert.equal((await snapshot(page)).run.shots, shots, 'cancel releases fire');
+    // Released projectiles can finish a kill and open the real XP choice.
+    // Complete that choice through UI before exercising the pause control.
+    await page.waitForTimeout(400);
+    while ((await snapshot(page)).screen === 'upgrade') {
+      const free = (await snapshot(page)).controls.find(
+        (c) => c.id.startsWith('upgrade-') && c.id !== 'upgrade-overdrive',
+      );
+      await input.tap(free.id);
+    }
     await capture(page, `combat-${width}x${height}`);
     await input.tap('pause');
     await bounds();
