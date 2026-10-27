@@ -1,0 +1,25 @@
+{
+  "sourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+  "sourceVideo": "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-28-lobby\\bce4c66b688135ce9b76dfd7453dd6b0.webm",
+  "segments": [
+    {
+      "source": "home.png",
+      "duration": 2
+    },
+    {
+      "source": "room.png",
+      "duration": 2
+    },
+    {
+      "source": "sourceVideo",
+      "start": 12,
+      "duration": 12
+    }
+  ],
+  "gameplay": {
+    "start": 62.903999999999996,
+    "actualDuration": 19.28
+  },
+  "audio": "silent capture; no added voice",
+  "validation": "Both MP4 files fully decoded with ffmpeg"
+}

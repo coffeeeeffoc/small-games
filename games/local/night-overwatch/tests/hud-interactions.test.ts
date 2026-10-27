@@ -9,11 +9,13 @@ import * as actions from '../assets/scripts/core/Actions.ts';
 import * as data from '../assets/scripts/core/Data.ts';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { MISSIONS } from '../assets/scripts/core/MissionCatalog.ts';
+import { Online } from '../assets/scripts/Online.ts';
 
 // Exercise the real HUD layout/drawing logic without building or launching Creator.
 // These doubles record UI geometry; actual rendering still needs runtime QA.
 class Transform {
   contentSize = { width: 0, height: 0 };
+  setAnchorPoint() {}
   setContentSize(width: number, height: number) { this.contentSize = { width, height }; }
 }
 class SceneNode {
@@ -37,6 +39,8 @@ class SceneNode {
     return component;
   }
   getComponent(type: any) { return this.components.get(type); }
+  getComponentsInChildren(type: any): any[] { return [...(this.components.has(type) ? [this.components.get(type)] : []), ...this.children.flatMap(child => child.getComponentsInChildren(type))]; }
+  on() {}
   setPosition(x: number, y: number, z = 0) { this.position = { x, y, z }; }
   setSiblingIndex(index: number) {
     const parent = this.parent!;
@@ -63,6 +67,9 @@ for (const op of ['rect', 'roundRect', 'circle', 'moveTo', 'lineTo', 'close', 's
 const frame = { width: 568, height: 320 };
 let inset = 0;
 const cc = {
+  EditBox: class { static InputMode = { SINGLE_LINE: 0 }; static InputFlag = { PASSWORD: 0, DEFAULT: 1 }; static EventType = { TEXT_CHANGED: 'change' }; },
+  UIOpacity: class { opacity = 255; }, Tween: { stopAllByTarget() {} },
+  tween: (target: any) => ({ to(_time: number, values: object) { Object.assign(target, values); return this; }, call(callback: () => void) { callback(); return this; }, start() {} }),
   Node: SceneNode, UITransform: Transform, Graphics, Color,
   Camera: class { static ProjectionType = { ORTHO: 0 }; static ClearFlag = { DEPTH_ONLY: 0 }; },
   Canvas: class {}, Mask: class { static Type = { GRAPHICS_RECT: 0 }; },
@@ -109,7 +116,7 @@ test('HUD: identical names remain distinct, own ranking is highlighted, and clos
   const hud = new HUD(new SceneNode()), sim = new Simulation();
   const own = { playerId: '11111111-1111-4111-8111-111111111111', nickname: '夜航者', rank: 2, secondary: 1200 };
   const other = { ...own, playerId: '22222222-2222-4222-8222-222222222222', rank: 1, secondary: 1000 };
-  hud.online = { identity: own, panel: 'ranking', revision: 1, level: 0, rankPage: 0, ranking: { top: [other, own], me: own } };
+  hud.online = { identity: own, panel: 'ranking', revision: 1, board: 'level', level: 0, rankPage: 0, ranking: { top: [other, own], me: own } };
   hud.update(sim, world);
   const labels = hud.modal.children.map((node: any) => node.getComponent(cc.Label)).filter(Boolean);
   const mine = labels.find((label: any) => label.string.startsWith('2. 夜航者'));
@@ -120,7 +127,33 @@ test('HUD: identical names remain distinct, own ranking is highlighted, and clos
   hud.online.message = '房间已结束'; hud.online.revision++;
   hud.update(sim, world);
   const ids = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id);
-  assert.deepEqual(ids, ['online:back']);
+  assert.deepEqual(ids, ['online:dismiss', 'online:backLobby']);
+});
+
+test('HUD: lobby forms, records, boards and share control fit landscape phones and desktop', () => {
+  for (const [width, height] of [[568, 320], [844, 390], [1280, 720]]) {
+    Object.assign(frame, { width, height }); inset = 0;
+    const hud = new HUD(new SceneNode()), sim = new Simulation();
+    const online = new Online({ getItem: () => null, setItem() {} }, () => {});
+    hud.online = online; hud.touch = width < 1000; hud.screenControl = true; hud.resize();
+    online.rooms = Array.from({ length: 5 }, (_, i) => ({ code: String(123456 + i), status: 'waiting', mode: 'friend',
+      players: [{ id: 'a', name: '飞行员' }], playerCount: 1, canJoin: true, canSpectate: true }));
+    online.history = { summary: { games: 3, wins: 1, losses: 1, draws: 1, winRate: 1 / 3 },
+      matches: Array.from({ length: 3 }, (_, i) => ({ id: String(i), code: '123456', opponent: { name: '好友' },
+        outcome: 'win', reason: 'disconnect', startedAt: 1, finishedAt: 30001, durationMs: 30000, points: 120 })) };
+    for (const panel of ['', 'menu', 'profile', 'create', 'join', 'history', 'ranking'] as const) {
+      online.show(panel); hud.update(sim, world);
+      const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy && (!hud.modal || b.label.node.parent === hud.modal || hud.isGlobalAction(b.id)));
+      assert.equal(new Set(buttons.map((b: any) => b.id)).size, buttons.length, panel + ': duplicate controls');
+      for (let i = 0; i < buttons.length; i++) {
+        const b = buttons[i];
+        assert(b.x >= 0 && b.y >= 0 && b.x + b.w <= width && b.y + b.h <= height, panel + ': ' + b.id);
+        for (const other of buttons.slice(i + 1)) assert(!overlaps(b, other), panel + ': ' + b.id + '/' + other.id);
+      }
+      for (const field of hud.modal.getComponentsInChildren(cc.EditBox))
+        assert(field.node.getComponent(cc.UITransform).contentSize.width >= 180);
+    }
+  }
 });
 
 test('HUD: real urgent targets avoid convoy, supply and zoom controls on small screens', () => {

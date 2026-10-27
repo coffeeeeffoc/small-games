@@ -2,12 +2,12 @@ import { Simulation, type PauseReason } from './Simulation.ts';
 import { WEAPONS } from './Data.ts';
 import { MISSIONS, TRAINING } from './MissionCatalog.ts';
 
-export const RANKED_RULE_VERSION = 'night-input-replay-v7';
+export const RANKED_RULE_VERSION = 'night-input-replay-v8';
 export type ReplayFrame = { input: Record<string, unknown>; ticks: number };
 export type NightReplay = { simulation: ReturnType<Simulation['checkpoint']>; assisted: boolean };
 const commands = ['setOrbitDirection', 'adjustAltitude', 'adjustRadius', 'pause',
   'beginResumeCountdown', 'stepCountdown', 'clearInput', 'choose', 'selectHoming',
-  'lockHoming', 'setAim', 'setFire', 'command', 'fire', 'grantBuff', 'grantAmmoSupply', 'setExtractionRadioPending'] as const;
+  'lockHoming', 'setAim', 'setFire', 'command', 'fire', 'grantBuff', 'grantAmmoSupply', 'grantHomingAmmo', 'setExtractionRadioPending'] as const;
 const pauseReasons: PauseReason[] = ['help', 'settings', 'mission', 'manual', 'orientation',
   'background', 'focus', 'advert', 'supply', 'countdown'];
 function requireInput(ok: unknown): asserts ok {
@@ -66,6 +66,9 @@ function command(sim: Simulation, input: Record<string, unknown>, state: NightRe
     case 'setExtractionRadioPending':
       one(); requireInput(typeof args[0] === 'boolean'); sim.setExtractionRadioPending(args[0]); break;
     case 'fire': none(); sim.fire(); break;
+    case 'grantHomingAmmo':
+      one(); requireInput(Number.isSafeInteger(args[0]) && args[0] > 0);
+      sim.grantHomingAmmo(args[0]); state.assisted = true; break;
     case 'grantAmmoSupply': none(); state.assisted = true; sim.grantAmmoSupply(); break;
     case 'grantBuff':
       one(); requireInput(args[0] === 'tracking' || args[0] === 'rate');
@@ -99,9 +102,10 @@ export function nightReplayResult(state: NightReplay) {
   const sim = Simulation.restore(state.simulation);
   const complete = sim.phase === 'success' || sim.phase === 'failure';
   const training = sim.mission.mode === 'training';
-  const eligible = complete && sim.phase === 'success' && !sim.threatsRemaining &&
-    !sim.training && !state.assisted && (!training || !sim.friendlyDamage && !sim.friendlyLosses);
-  return { complete, eligible,
+  const cleared = complete && sim.phase === 'success' && !sim.threatsRemaining &&
+    !sim.training && (!training || !sim.friendlyDamage && !sim.friendlyLosses);
+  const eligible = cleared && !state.assisted;
+  return { complete, eligible, cleared, fastestEligible: eligible, assisted: state.assisted,
     score: eligible ? training ? 1 : MISSIONS.findIndex(item => item.id === sim.mission.id) + 1 : 0,
     secondary: Math.round((sim.completionTime ?? sim.time) * 1000) };
 }

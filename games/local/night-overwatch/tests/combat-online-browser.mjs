@@ -20,7 +20,7 @@ try {
   await check(); await shot('home');
   await press(page,'online:ranking',touch); await page.waitForFunction(() => __night.snapshot().online.panel === 'ranking' && __night.snapshot().modal.startsWith('online:ranking')); await check(); await shot('ranking-offline');
   await press(page,'online:back',touch); await page.waitForFunction(() => __night.snapshot().modal === 'home'); await press(page,'online:menu',touch); await page.waitForFunction(() => __night.snapshot().modal.startsWith('online:menu')); await check(); await shot('versus-menu');
-  await press(page,'online:bot',touch); await page.waitForFunction(() => __night.snapshot().online.active);
+  await press(page,'online:bot',touch); await page.waitForFunction(() => __night.snapshot().online.active && !__night.snapshot().modal);
   await check(); let state = await snapshot(page);
   assert.equal(state.units.filter(u=>u.friendly).length,8); assert.equal(state.units.filter(u=>!u.friendly).length,8);
   await press(page,'battleReport',touch); await check(); await shot('duel-report');
@@ -35,6 +35,7 @@ try {
   await page.waitForTimeout(700); await check(); await shot('incendiary');
   state = await snapshot(page); assert.equal(state.guns[3].ammo,11); assert(state.effects.fires?.length>0); assert(Number.isFinite(state.recoil.x));
   await press(page,'settings',touch); await press(page,'home',touch); await press(page,'exitConfirm',touch);
+  await press(page,'online:back',touch);
   await press(page,'missions',touch); await press(page,'start',touch);
   await page.waitForFunction(() => __night.snapshot().phase === 'playing');
   await page.waitForFunction(() => __night.snapshot().buttons.some(button => button.id === 'battleReport'));

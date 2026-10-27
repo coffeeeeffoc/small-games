@@ -61,6 +61,7 @@ async function setup(dual = false, conflict = false, scope = 'tower-brake') {
   const board = vi.fn(async () => ({ top: [], me: null }));
   const store = {
     auth: identity,
+    create: vi.fn(async () => ({ code: '123456' })),
     roomAction,
     ranking,
     board,
@@ -80,6 +81,36 @@ async function setup(dual = false, conflict = false, scope = 'tower-brake') {
   await registerCompetition(app, store, {}, undefined, undefined, ranked);
   return { app, roomAction, ranking, board };
 }
+it('limits password room routes before the store without throttling action polling', async () => {
+  const { app, roomAction } = await setup(true);
+  const base = '/api/competition/v1/games/tower-brake';
+  const headers = { authorization: 'Bearer ' + token };
+  for (const [url, payload] of [
+    ['/rooms', { visibility: 'private', password: 'secret' }],
+    ['/rooms/join', { code: '123456', password: 'secret' }],
+    ['/rooms/123456/spectate', { password: 'secret' }],
+  ] as const) {
+    for (let i = 0; i < 20; i++)
+      expect(
+        (await app.inject({ method: 'POST', url: base + url, headers, payload })).statusCode,
+      ).toBe(200);
+    const denied = await app.inject({ method: 'POST', url: base + url, headers, payload });
+    expect(denied.statusCode).toBe(429);
+    expect(denied.json()).toEqual({ error: 'RATE_LIMITED' });
+  }
+  expect(roomAction).toHaveBeenCalledTimes(40);
+  for (let seq = 1; seq <= 25; seq++)
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: base + '/rooms/123456/actions',
+          headers,
+          payload: { seq, action: { commands: [] } },
+        })
+      ).statusCode,
+    ).toBe(200);
+});
 it('public metadata and boards distinguish anonymous identity; expired credentials are not silently anonymous', async () => {
   const { app, ranking } = await setup();
   const path = '/api/competition/v1/games/tower-brake';

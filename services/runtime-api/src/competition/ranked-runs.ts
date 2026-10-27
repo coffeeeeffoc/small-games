@@ -50,7 +50,7 @@ export function createRankedRuns(
     const rule = ruleFor(game);
     const definition = rule.boards.find((item) => item.id === board);
     if (!definition) throw new CompetitionError('BOARD_UNAVAILABLE', 404);
-    return { rule, definition, key: `${game}:${board}:${rule.version}` };
+    return { rule, definition, key: `${game}:${board}:${rule.boardVersion ?? rule.version}` };
   };
   function assertOwner(run: RankedRun, playerId: string, game: string) {
     if (run.playerId !== playerId) throw new CompetitionError('NOT_A_MEMBER', 403);

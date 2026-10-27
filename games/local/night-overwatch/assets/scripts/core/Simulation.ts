@@ -302,6 +302,11 @@ export class Simulation {
     this.buff = { kind, remaining: COMBAT_BUFF.duration };
     return true;
   }
+  grantHomingAmmo(amount: number) {
+    if (!Number.isSafeInteger(amount) || amount <= 0 || !Number.isSafeInteger(this.homingAmmo + amount))
+      throw new Error('Invalid homing ammo grant');
+    this.homingAmmo += amount;
+  }
   grantAmmoSupply() {
     this.guns[1].ammo += 60;
     this.guns[2].ammo += 24;
@@ -686,7 +691,6 @@ export class Simulation {
   step(dt: number) {
     if (this.phase !== 'playing' || this.paused) return;
     if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) throw Error('Use fixed steps <= 0.1 seconds');
-    if (!this.duelMode && this.mission.mode === 'training') dt = Math.min(dt, Math.max(0, this.mission.duration - this.time));
     if (this.buff && this.buff.remaining > 1e-8 && this.buff.remaining < dt - 1e-8) {
       const remaining = this.buff.remaining;
       this.step(remaining);
@@ -860,9 +864,6 @@ export class Simulation {
     } else if ((this.convoy === 'arrived' && this.shots.length === 0 && !this.extractionRadioPending || this.mission.mode === 'training') && this.threatsRemaining === 0) {
       this.phase = 'success';
       if (this.mission.mode === 'escort') this.completed.add('arrived');
-    } else if (this.time >= this.mission.duration && this.extractionRemaining === undefined) {
-      this.phase = 'failure';
-      this.failure = 'timeout';
     }
     if (this.phase !== 'playing') {
       this.clearInput();

@@ -8,6 +8,9 @@ export type BoardDefinition = {
 };
 export type Frame = { ticks: number; input: Record<string, unknown> };
 export type RankedResult = {
+  cleared?: boolean;
+  fastestEligible?: boolean;
+  assisted?: boolean;
   complete: boolean;
   eligible: boolean;
   score: number;
@@ -17,12 +20,22 @@ export type RankedRule = {
   id: string;
   title: string;
   version: string;
+  boardVersion?: string;
   boards: readonly BoardDefinition[];
   create(board: string, seed: number, levelId?: string): unknown;
   apply(state: unknown, frames: Frame[]): unknown;
   result(state: unknown): RankedResult;
 };
-export type Settlement = RankedResult & { accepted: boolean; reason: string | null; runId: string };
+export type Settlement = RankedResult & {
+  accepted: boolean;
+  reason: string | null;
+  runId: string;
+  points?: number;
+  totalPoints?: number;
+  clears?: number;
+  wins?: number;
+  games?: number;
+};
 export type RankedRun = {
   killEpoch?: number;
   kind: 'ranked-run-v1';

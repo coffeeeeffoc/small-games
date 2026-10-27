@@ -1,4 +1,10 @@
-export type Result = { finished: boolean; eligible: boolean; score: number; secondary: number };
+export type Result = {
+  finished: boolean;
+  eligible: boolean;
+  score: number;
+  secondary: number;
+  outcome?: 'win' | 'loss' | 'draw';
+};
 export type Rule = {
   id: string;
   title: string;
@@ -6,6 +12,9 @@ export type Rule = {
   durationMs: number;
   description?: string;
   duel?: boolean;
+  lobby?: boolean;
+  noTimeLimit?: boolean;
+  takeover?(state: unknown, seat: number): unknown;
   /** Shared friend rooms can have more than two seats without entering ranked duels. */
   roomSize?(mode?: string): number;
   unrated?: boolean;
@@ -28,8 +37,22 @@ export type Member = {
   state: unknown;
   result?: Result;
   before?: unknown;
+  leaseId?: string;
+  seenAt?: number;
+  disconnected?: boolean;
+  reconnectUntil?: number;
+  takenOver?: boolean;
+  settlement?: {
+    points: number;
+    totalPoints: number;
+    wins: number;
+    games: number;
+    outcome: 'win' | 'loss' | 'draw';
+    reason: string;
+  };
 };
 export type Room = {
+  id?: string;
   killEpoch?: number;
   code: string;
   game: string;
@@ -45,6 +68,12 @@ export type Room = {
   deadline: number;
   results?: unknown;
   rematch?: string;
+  visibility?: 'public' | 'private';
+  passwordSalt?: string;
+  passwordHash?: string;
+  spectators?: string[];
+  spectatorSeenAt?: Record<string, number>;
+  settledAt?: number;
 };
 export class CompetitionError extends Error {
   constructor(

@@ -3,7 +3,7 @@ export type TrainingRecord = { time: number; fired: number; hitShots: number };
 function valid(value: unknown): value is TrainingRecord {
   if (!value || typeof value !== 'object') return false;
   const record = value as TrainingRecord;
-  return Number.isFinite(record.time) && record.time > 0 && record.time <= 60 &&
+  return Number.isFinite(record.time) && record.time > 0 &&
     Number.isInteger(record.fired) && record.fired > 0 && record.fired <= 1000 &&
     Number.isInteger(record.hitShots) && record.hitShots > 0 && record.hitShots <= record.fired;
 }

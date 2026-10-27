@@ -1,0 +1,34 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2"
+  },
+  "errors": [],
+  "fire": [
+    {
+      "id": 29,
+      "age": 0.8046658824227944,
+      "life": 25
+    },
+    {
+      "id": 33,
+      "age": 0.8046658824227944,
+      "life": 2.8
+    }
+  ],
+  "result": {
+    "phase": "success",
+    "time": 87.86666666666297,
+    "settlement": {
+      "points": 40,
+      "totalPoints": 40,
+      "wins": 0,
+      "games": 0,
+      "outcome": "win",
+      "reason": "elimination"
+    },
+    "radioPlaying": true,
+    "radioDuration": 4.285714
+  }
+}

@@ -2,10 +2,16 @@ import { expect, it } from 'vitest';
 import duel from '../rules/night.mjs';
 import ranked from '../rules/night-ranked.mjs';
 
-it('publishes 120 independent boards and binds each exact level without a combined leaderboard', () => {
-  expect(ranked.boards).toHaveLength(120);
-  expect(new Set(ranked.boards.map((board) => board.id)).size).toBe(120);
-  for (const board of ranked.boards) {
+it('publishes stable summary boards and binds sampled level replays', () => {
+  expect(ranked.boards).toHaveLength(123);
+  expect(new Set(ranked.boards.map((board) => board.id)).size).toBe(123);
+  expect(ranked.boardVersion).toBe('night-records-v1');
+  expect(ranked.boards.slice(0, 3).map((board) => board.id)).toEqual([
+    'clears',
+    'points',
+    'win-rate',
+  ]);
+  for (const board of ranked.boards.slice(3, 6)) {
     const state = ranked.create(board.id, 1, board.id.slice(6));
     expect(ranked.result(state)).toMatchObject({ complete: false, eligible: false, score: 0 });
     expect(() => ranked.create(board.id, 1, 'other')).toThrow();

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDuel, advanceDuel, commandDuel, viewDuel } from '../assets/scripts/core/Duel.ts';
+import { createDuel, advanceDuel, commandDuel, viewDuel, takeoverDuel } from '../assets/scripts/core/Duel.ts';
 test('duel has equal forces and ammunition, reproducible maps and player-relative views', () => {
   const state = createDuel(41), second = createDuel(41);
   assert.deepEqual(state, second);
@@ -21,7 +21,7 @@ test('server commands reject untrusted scores, ammo, targets and seats; firing l
   advanceDuel(state, 1500); assert.deepEqual(state.pilots[0].held, []);
   assert.throws(() => commandDuel(createDuel(4, true), 1, []));
 });
-test('eliminating the opposing ground team decides victory; timeout is a draw', () => {
+test('eliminating the opposing ground team decides victory; elapsed time does not decide victory', () => {
   const state = createDuel(4);
   state.simulation.units.filter(unit => unit.group === 1).forEach(unit => unit.hp = 0);
   advanceDuel(state, 100); assert.equal(state.winner, 0); assert(state.finished);
@@ -56,16 +56,23 @@ test('ground attack colors and sounds use the observing player side', () => {
   assert(first.length > 0); assert.equal(first.length, second.length);
   first.forEach((event, i) => { assert.equal(event.side, second[i].side); assert.equal(event.friendly, !second[i].friendly); });
 });
-test('both maps complete a bot match through real firing, and an untouched match reaches a draw', () => {
-  for (const seed of [41, 42]) {
-    const state = createDuel(seed, true); advanceDuel(state, 180000);
-    assert(state.finished); assert.equal(state.winner, 1); assert(state.ticks < 10800);
-    const bot = viewDuel(state, 1).simulation, player = viewDuel(state, 0).simulation;
+test('weak bots survive one minute and finish fixed seeds within 180–600 seconds', () => {
+  for (const seed of [41, 42, 7, 12, 1, 2]) {
+    const state = createDuel(seed, true); advanceDuel(state, 60000);
+    assert.equal(state.finished, false, `seed ${seed} at one minute`);
+    advanceDuel(state, 600000);
+    assert(state.finished, `seed ${seed} must finish`); assert.equal(state.winner, 1);
+    assert(state.ticks >= 180 * 60 && state.ticks <= 600 * 60);
+    const bot = viewDuel(state, 1).simulation;
     assert(bot.fired > 0); assert(bot.hits > 0); assert.equal(bot.friendlyDamage, 0);
-    assert.equal(player.fired, 0); assert.equal(player.friendlyDamage, 0);
-    assert(bot.units.filter(u => !u.friendly).every(u => u.hp === 0));
   }
+});
+test('no time limit and either pilot can be taken over without changing the initial mode', () => {
   const state = createDuel(41);
   state.simulation.units.forEach(unit => unit.attack = 10000);
-  advanceDuel(state, 180000); assert(state.finished); assert.equal(state.winner, null); assert.equal(state.ticks, 10800);
+  advanceDuel(state, 240000); assert.equal(state.finished, false); assert.equal(state.ticks, 14400);
+  takeoverDuel(state, 0); assert.equal(state.bot, false);
+  assert.throws(() => commandDuel(state, 0, []));
+  commandDuel(state, 1, []); advanceDuel(state, 600000);
+  assert(state.finished); assert.equal(state.winner, 0);
 });

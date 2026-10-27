@@ -56,6 +56,7 @@ const config = {
     '3d',
     '2d',
     'ui',
+    'tween',
     'graphics',
     'mask',
     'audio',

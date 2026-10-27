@@ -2,12 +2,13 @@ import { Simulation } from './Simulation.ts';
 import { WEAPONS, patrolPoint, type Point } from './Data.ts';
 import { MISSIONS } from './MissionCatalog.ts';
 
-export const DUEL_VERSION = 'night-duel-v1';
-export const DUEL_SECONDS = 180;
+export const DUEL_VERSION = 'night-duel-v2';
+// Retained for older presentation callers; authority has no match time limit.
+export const DUEL_SECONDS = 0;
 type Pilot = ReturnType<Simulation['pilotState']> & { leaseUntil: number };
 export type DuelCommand = { command: string; args: unknown[] };
 export type DuelState = { simulation: ReturnType<Simulation['checkpoint']>; pilots: Pilot[]; ticks: number;
-  seed: number; bot: boolean; winner: number | null; finished: boolean; botAt: number };
+  seed: number; bot: boolean; winner: number | null; finished: boolean; bots: boolean[]; botAt: number[] };
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 const check = (value: unknown) => { if (!value) throw Error('Invalid duel input'); };
 
@@ -29,7 +30,7 @@ export function createDuel(seed: number, bot = false): DuelState {
   second.flight.aircraft.x *= -1; second.flight.aircraft.z *= -1;
   second.flight.aircraft.yaw += Math.PI; second.flight.aircraft.heading = (second.flight.aircraft.heading + 180) % 360;
   first.aim = { ...formation[0] }; second.aim = { x: -formation[0].x, z: -formation[0].z };
-  return { simulation: sim.checkpoint(), pilots: [first, second], ticks: 0, seed, bot, winner: null, finished: false, botAt: 2 };
+  return { simulation: sim.checkpoint(), pilots: [first, second], ticks: 0, seed, bot, winner: null, finished: false, bots: [false, bot], botAt: [6, 6] };
 }
 function applyControl(sim: Simulation, input: DuelCommand) {
   check(input && typeof input === 'object' && Object.keys(input).length === 2 && Array.isArray(input.args));
@@ -54,7 +55,7 @@ function applyControl(sim: Simulation, input: DuelCommand) {
   }
 }
 export function commandDuel(state: DuelState, seat: number, commands: DuelCommand[]) {
-  check((seat === 0 || seat === 1) && !(state.bot && seat === 1) && !state.finished && Array.isArray(commands) && commands.length <= 64);
+  check((seat === 0 || seat === 1) && !state.bots[seat] && !state.finished && Array.isArray(commands) && commands.length <= 64);
   const sim = Simulation.restore(state.simulation), pilot = state.pilots[seat];
   sim.usePilot(pilot, seat);
   for (const command of commands) applyControl(sim, command);
@@ -62,25 +63,32 @@ export function commandDuel(state: DuelState, seat: number, commands: DuelComman
   sim.usePilot(state.pilots[0], 0); state.simulation = sim.checkpoint();
   return state;
 }
-function botControl(state: DuelState, sim: Simulation) {
-  if (sim.time < state.botAt) return;
-  state.botAt = sim.time + 1.1;
-  const targets = sim.units.filter(unit => unit.group === 0 && unit.hp > 0);
-  const enemy = targets[Math.floor(sim.time / 8) % targets.length];
+export function takeoverDuel(state: DuelState, seat: number) {
+  check(seat === 0 || seat === 1);
+  state.bots[seat] = true;
+  state.pilots[seat].held = [];
+  return state;
+}
+function botControl(state: DuelState, sim: Simulation, side: number) {
+  if (sim.time < state.botAt[side]) return;
+  state.botAt[side] = sim.time + 8;
+  const targets = sim.units.filter(unit => unit.group !== side && unit.hp > 0);
+  const enemy = targets[Math.floor(sim.time / 20) % targets.length];
   if (!enemy) return;
-  sim.choose(enemy.kind === 'heavy' ? 2 : 1);
-  let aim: Point = enemy;
-  for (let i = 0; i < 3; i++) {
-    const flight = sim.flightTime(sim.selected, aim);
-    if (enemy.kind === 'light' && Number.isFinite(flight)) aim = patrolPoint(enemy.origin, (enemy.patrolElapsed ?? 0) + flight, sim.mission.map);
-  }
-  sim.setAim({ x: aim.x + Math.sin(sim.time * 2 + state.seed) * 2.3, z: aim.z + Math.cos(sim.time * 1.7) * 2.3 });
+  sim.choose(enemy.kind !== 'turret' && sim.guns[2].ammo > 0 ? 2 : 1);
+  // A single rough lead deliberately underestimates flight; never solve the exact intercept.
+  const flight = sim.flightTime(sim.selected, enemy);
+  const aim = enemy.kind === 'light' && Number.isFinite(flight)
+    ? patrolPoint(enemy.origin, (enemy.patrolElapsed ?? 0) + flight * .7, sim.mission.map) : enemy;
+  const spread = 4;
+  sim.setAim({ x: aim.x + Math.sin(sim.time * 2 + state.seed) * spread,
+    z: aim.z + Math.cos(sim.time * 1.7 + side) * spread });
   if (!sim.friendlyRisk) sim.fire();
 }
 export function advanceDuel(state: DuelState, elapsedMs: number): DuelState {
   check(Number.isFinite(elapsedMs) && elapsedMs >= 0);
   if (state.finished) return state;
-  const target = Math.floor(Math.min(DUEL_SECONDS * 1000, elapsedMs) * 60 / 1000);
+  const target = Math.floor(elapsedMs * 60 / 1000);
   check(target >= state.ticks);
   const sim = Simulation.restore(state.simulation);
   while (state.ticks < target && !state.finished) {
@@ -88,12 +96,12 @@ export function advanceDuel(state: DuelState, elapsedMs: number): DuelState {
       const pilot = state.pilots[side]; sim.usePilot(pilot, side);
       if (sim.time >= pilot.leaseUntil) sim.clearInput();
       sim.stepPilot(1 / 60);
-      if (side === 1 && state.bot) botControl(state, sim);
+      if (state.bots[side]) botControl(state, sim, side);
       state.pilots[side] = copy({ ...sim.pilotState(), leaseUntil: pilot.leaseUntil });
     }
     sim.usePilot(state.pilots[0], 0); sim.step(1 / 60); state.ticks++;
     const alive = [0, 1].map(side => sim.units.some(unit => unit.group === side && unit.hp > 0));
-    if (!alive[0] || !alive[1] || state.ticks >= DUEL_SECONDS * 60) {
+    if (!alive[0] || !alive[1]) {
       state.finished = true; state.winner = alive[0] === alive[1] ? null : alive[0] ? 0 : 1;
     }
   }
@@ -105,7 +113,7 @@ export function viewDuel(state: DuelState, seat = 0) {
   const sim = Simulation.restore(state.simulation); sim.usePilot(state.pilots[seat], seat);
   for (const event of sim.events) if (event.friendly !== undefined && event.side !== undefined) event.friendly = event.side === seat;
   if (state.finished) sim.phase = state.winner === seat ? 'success' : 'failure';
-  return { simulation: sim.checkpoint(), seed: state.seed, bot: state.bot, finished: state.finished,
+  return { simulation: sim.checkpoint(), seed: state.seed, bot: state.bot, bots: [...state.bots], finished: state.finished,
     winner: state.winner, you: seat, enemyAircraft: copy(state.pilots[1 - seat].flight.aircraft),
-    remaining: Math.max(0, DUEL_SECONDS - sim.time) };
+    elapsed: sim.time, remaining: 0 };
 }

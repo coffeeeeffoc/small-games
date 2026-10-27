@@ -1,0 +1,13 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2"
+  },
+  "checks": [
+    "touch forms and four boards 568",
+    "touch forms and four boards 844"
+  ],
+  "errors": [],
+  "metrics": {}
+}

@@ -22,7 +22,7 @@ export async function buildNative(target, { configOnly = false, checkOutput = fa
   const config = {
     name: 'night-overwatch', platform: descriptor.platform, outputName: descriptor.outputName,
     debug: false, md5Cache: true, buildPath: 'project://build',
-    includeModules: ['base', 'gfx-webgl', 'gfx-webgl2', '3d', '2d', 'ui', 'graphics', 'mask', 'audio', 'primitive', 'profiler'],
+    includeModules: ['base', 'gfx-webgl', 'gfx-webgl2', '3d', '2d', 'ui', 'tween', 'graphics', 'mask', 'audio', 'primitive', 'profiler'],
     startScene: '47889f0b-3be6-4dbd-a05d-b4381a0277e9',
     scenes: [{ url: 'db://assets/scenes/main.scene', uuid: '47889f0b-3be6-4dbd-a05d-b4381a0277e9' }],
     packages: nativePackages(target, release),
