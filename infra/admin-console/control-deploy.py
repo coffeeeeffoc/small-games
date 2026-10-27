@@ -649,11 +649,28 @@ def pointers_for(caddy):
     return {str(file): str(file.resolve(strict=True)) for file in (ROOT / 'current', ROOT / 'backend-current', caddy / 'current')}
 
 
-def switch_pointer(release):
+def switch_pointer(release, expected_previous=None):
     tools = support('legacy-tools.py')
     if (BASE / 'current').is_symlink():
-        tools.atomic_pointer(BASE / 'previous', (BASE / 'current').resolve(strict=True))
+        current = (BASE / 'current').resolve(strict=True)
+        if current == release:
+            return
+        require(expected_previous is None or current == expected_previous, 'ADMIN_POINTER')
+        tools.atomic_pointer(BASE / 'previous', current)
+    else:
+        require(expected_previous is None, 'ADMIN_POINTER')
     tools.atomic_pointer(BASE / 'current', release)
+
+
+def restored_control_enabled(items):
+    # The restored container IDs are unchanged, so these are their original flags.
+    flags = []
+    for name in SERVICES:
+        key = 'ADMIN_CONTROL_ENABLED' if name == 'management' else 'COMPETITION_CONTROL_ENABLED'
+        flags.append(scalar('docker', 'exec', items[name]['id'], 'node', '-e',
+                            'process.stdout.write(process.env.' + key + ' ?? "false")'))
+    require(len(set(flags)) == 1 and flags[0] in ('true', 'false'), 'CONTROL_FLAG_REQUIRED')
+    return flags[0] == 'true'
 
 
 def public_receipt(mode, release, manifest, runner_sha, current, proof):
@@ -815,7 +832,7 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
                     'release': release.name, 'sourceSHA': manifest['sourceSHA'],
                     'runnerSourceSHA': manifest['sourceSHA'],
                     'migrationArtifactSha256': manifest['migrationArtifactSha256'],
-                    'controlEnabled': False, 'internalHealthVerified': True,
+                    'controlEnabled': restored_control_enabled(journal['inventory']), 'internalHealthVerified': True,
                     'restoredImages': {name: journal['inventory'][name]['image'] for name in SERVICES}}
         assert_nginx(journal['inventory'], True)
         require(target_inventory('postgres')['id'] == journal['inventory']['postgres']['id'], 'DATABASE_IDENTITY')
@@ -910,7 +927,7 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
         check_protected(journal['inventory'], journal['pointers'])
         assert_nginx(journal['inventory'], True)
         proof = persist_control_proof(release, manifest, precommit, checksum)
-        switch_pointer(release)
+        switch_pointer(release, BASE / 'releases' / journal['previous'])
         command('docker', 'start', journal['inventory']['nginx']['id'])
         assert_nginx(journal['inventory'], False)
         public_probe(release)

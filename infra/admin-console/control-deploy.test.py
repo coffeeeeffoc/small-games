@@ -54,6 +54,40 @@ def manifest():
 
 
 class ControlContracts(unittest.TestCase):
+    def test_pointer_retry_preserves_previous_and_rejects_unexpected_current(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            old, release, other = (base / name for name in ('old', 'candidate', 'other'))
+            for directory in (old, release, other): directory.mkdir()
+            (base / 'current').symlink_to(old)
+            def atomic(file, target):
+                file.unlink(missing_ok=True)
+                file.symlink_to(target)
+            with patch.object(control, 'BASE', base), patch.object(control, 'support', return_value=SimpleNamespace(atomic_pointer=atomic)):
+                control.switch_pointer(release, old)
+                # Retrying after a failed public probe must retain the rollback target.
+                control.switch_pointer(release, old)
+                control.switch_pointer(release, old)
+                self.assertEqual((base / 'previous').resolve(), old)
+                self.assertEqual((base / 'current').resolve(), release)
+                atomic(base / 'current', other)
+                with self.assertRaisesRegex(control.Stopped, 'ADMIN_POINTER'):
+                    control.switch_pointer(release, old)
+                self.assertEqual((base / 'previous').resolve(), old)
+
+    def test_recovery_reports_actual_restored_control_flags(self):
+        release = Path('/fixture/candidate')
+        state = dict(journal(release), initialFloor='schema2', phase='verified-not-committed',
+                     verifiedNotCommitted=True, newActivationAttempted=False)
+        for flag in ('true', 'false'):
+            with patch.object(control, 'domain_module'), patch.object(control, 'private_directory'), patch.object(control, 'private_json', return_value=copy.deepcopy(state)), patch.object(control, 'restore_before_migration'), patch.object(control, 'scalar', return_value=flag) as read:
+                receipt = control.adopt(release, manifest(), Path('/caddy'), True)
+                self.assertIs(receipt['controlEnabled'], flag == 'true')
+                self.assertEqual({call.args[2] for call in read.call_args_list}, {state['inventory'][name]['id'] for name in control.SERVICES})
+        for flags in (['true', 'false', 'true'], ['invalid'] * 3):
+            with patch.object(control, 'scalar', side_effect=flags), self.assertRaisesRegex(control.Stopped, 'CONTROL_FLAG_REQUIRED'):
+                control.restored_control_enabled(state['inventory'])
+
     def test_real_legacy_command_errors_retry_without_exposing_output(self):
         spec = importlib.util.spec_from_file_location('legacy_command_tested', Path(__file__).with_name('deploy.py'))
         legacy = importlib.util.module_from_spec(spec)
@@ -369,7 +403,7 @@ class ControlContracts(unittest.TestCase):
                 saved = control.private_json(private / release.name / 'control-journal.json')
                 self.assertTrue(saved['verifiedNotCommitted'])
                 self.assertEqual(saved['phase'], 'verified-not-committed')
-                with patch.object(control, 'restore_before_migration') as restore:
+                with patch.object(control, 'restore_before_migration') as restore, patch.object(control, 'restored_control_enabled', return_value=False):
                     self.assertEqual(control.adopt(release, manifest(), base, True)['outcome'], 'restored-before-migration')
                     restore.assert_called_once()
                     self.assertTrue(restore.call_args.kwargs['explicit_not_committed'])
@@ -608,6 +642,7 @@ class RootPreconditionRecovery(unittest.TestCase):
                 'contexts_for': lambda *_: state['contexts'], 'assert_nginx': lambda *_: None,
                 'database_floor': lambda *_: 'absent', 'target_inventory': lambda name: copy.deepcopy(live[name]),
                 'command': command, 'service_health': lambda *_: None,
+                'restored_control_enabled': lambda *_: False,
             }.items():
                 stack.enter_context(patch.object(control, name, side_effect=replacement))
             yield release, value, state, directory, live, events

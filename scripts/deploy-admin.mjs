@@ -732,7 +732,7 @@ export function controlReceipt(text, mode, runnerSourceSHA) {
       mode !== 'recover' ||
       value.mode !== mode ||
       value.ok !== true ||
-      value.controlEnabled !== false ||
+      typeof value.controlEnabled !== 'boolean' ||
       value.internalHealthVerified !== true ||
       Object.keys(value).sort().join(',') !== expected.sort().join(',') ||
       value.runnerSourceSHA !== runnerSourceSHA ||

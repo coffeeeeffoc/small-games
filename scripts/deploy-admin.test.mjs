@@ -721,8 +721,14 @@ test('pre-migration recovery reports restored services without claiming control 
     ),
   };
   assert.deepEqual(controlReceipt(JSON.stringify(value), 'recover', value.runnerSourceSHA), value);
+  const enabled = { ...value, controlEnabled: true };
+  assert.deepEqual(
+    controlReceipt(JSON.stringify(enabled), 'recover', value.runnerSourceSHA),
+    enabled,
+  );
   for (const patch of [
-    { controlEnabled: true },
+    { controlEnabled: 'true' },
+    { controlEnabled: null },
     { internalHealthVerified: false },
     { mode: 'adopt' },
     { restoredImages: {} },
