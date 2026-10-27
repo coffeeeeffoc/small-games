@@ -1649,15 +1649,18 @@ async function syncRemoteResult(client) {
       storeProfile(playerClient, data.profile);
     if (screen !== 'result' || client !== remote) return;
     const paid = data.profile?.career?.settledIds?.includes(client.id);
+    const expired =
+      data.persisted && data.result?.reason === 'expired' && data.result.completed === false;
     if (paid) {
       const rank = getRank(data.profile.career.xp);
       $('experience-gain').textContent =
         '+' + (data.experienceGained ?? 0) + ' 经验 · ' + rank.name;
-    } else $('experience-gain').textContent = '经验结算待确认';
+    } else
+      $('experience-gain').textContent = expired ? '对局已失效，本局不获得经验' : '经验结算待确认';
     $('result-sync').textContent = data.persisted
       ? '服务端战报已保存'
       : '服务端战报尚未保存，请重新确认结算';
-    $('retry-result').hidden = Boolean(data.persisted && paid);
+    $('retry-result').hidden = Boolean(data.persisted && (paid || expired));
   } catch {
     if (screen === 'result' && client === remote) {
       $('experience-gain').textContent = '经验结算待确认';

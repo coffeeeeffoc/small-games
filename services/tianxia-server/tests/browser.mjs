@@ -261,6 +261,25 @@ try {
   );
   await page.locator('#result-home').tap();
 
+  const beforeExpiry = (await snapshot(page)).career;
+  const expired = await create();
+  await page.route(base + '/api/matches/**', outage);
+  current += app.matches.idleMs + 1;
+  app.matches.advance();
+  await expired.persistence;
+  assert.equal(expired.state.result.reason, 'expired');
+  assert.equal(expired.state.result.completed, false);
+  await page.unroute(base + '/api/matches/**', outage);
+  await screen(page, 'result');
+  await expect(page.locator('#experience-gain')).toContainText('本局不获得经验');
+  await expect(page.locator('#result-sync')).toContainText('已保存');
+  await expect(page.locator('#retry-result')).toBeHidden();
+  assert.deepEqual((await snapshot(page)).career, beforeExpiry);
+  checks.push(
+    'An expired non-completed match confirms zero XP without an endless settlement retry.',
+  );
+  await page.locator('#result-home').tap();
+
   const cancelCreated = gate(),
     cancelRelease = gate();
   const cancelCreate = async (route) => {
