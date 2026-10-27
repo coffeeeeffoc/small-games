@@ -245,7 +245,7 @@ export class TianxiaBattle extends Component {
     input.on(Input.EventType.MOUSE_UP, this.mouseEnd, this);
     window.addEventListener('blur', this.resetGestures);
     window.addEventListener('resize', this.resetGestures);
-    document.addEventListener('wheel', this.preventWheel, { passive: false });
+    document.addEventListener('wheel', this.preventWheel, { passive: false, capture: true });
     assetManager.loadRemote<ImageAsset>(
       new URL('./art/units.png', location.href).href,
       (error, image) => {
@@ -1102,7 +1102,7 @@ export class TianxiaBattle extends Component {
     input.off(Input.EventType.MOUSE_UP, this.mouseEnd, this);
     window.removeEventListener('blur', this.resetGestures);
     window.removeEventListener('resize', this.resetGestures);
-    document.removeEventListener('wheel', this.preventWheel);
+    document.removeEventListener('wheel', this.preventWheel, true);
     this.touchCancel();
     if (window.Tianxia) window.Tianxia.setView = undefined;
     for (const frame of this.frames) frame.destroy();

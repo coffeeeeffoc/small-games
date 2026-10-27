@@ -13,6 +13,7 @@ const report = {
   checks: [],
   errors: [],
   passed: false,
+  filter: process.env.TIANXIA_BROWSER_FILTER ?? null,
   build: JSON.parse(await readFile(new URL('../dist/build-info.json', import.meta.url), 'utf8')),
 };
 let server;
