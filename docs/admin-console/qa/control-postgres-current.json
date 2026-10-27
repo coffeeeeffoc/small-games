@@ -1,5 +1,5 @@
 {
-  "runId": "game-control-45b2cb0d-81b6-4542-8a4e-1d568ac58612",
+  "runId": "game-control-294d3a26-5a82-487d-8b93-a900ac656d7d",
   "isolated": true,
   "loopbackOnly": true,
   "productionAccess": false,
@@ -29,10 +29,10 @@
     "publication-members-audit-survive-database-restart"
   ],
   "migrationSha256": "d16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451",
-  "nightMigrationSha256": "d59a71a23f452d2cb50177c5533471df8f14480a9d635dc59b534af57ca23ee5",
+  "nightMigrationSha256": "4d34f4dd305387dc3e1c0554ed752f15e1277c03db6074d8914653862f929797",
   "postgresVersion": "17.6",
   "runtimeControl": {
-    "observationLockMs": 1588,
+    "observationLockMs": 1556,
     "commitInFlight": "unknown-no-rollback-guarantee",
     "sourceSha256": {
       "controlDatabase": "6d9e8ba315cfec14447b64a47f9833f038a77bbedd2f72676ef128ce8e4f21c5",

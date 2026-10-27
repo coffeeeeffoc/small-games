@@ -15,6 +15,49 @@ import {
   renderBundleNginx,
 } from './deployment-bundle.mjs';
 import { validateDeploymentEnvironment } from '../infra/deployment/validate-env.mjs';
+import { prepareGameServices } from './h5-game-services.mjs';
+
+test('basic service bundles replace stale API configuration and honor disabled releases', async () => {
+  const temporary = await mkdtemp(path.join(tmpdir(), 'deployment-basic-'));
+  try {
+    const source = path.join(temporary, 'source');
+    await mkdir(source);
+    await writeFile(path.join(source, 'index.html'), '<html><head></head><body></body></html>');
+    await prepareGameServices('night-overwatch', source, {
+      env: {
+        COMPETITION_SERVICE_ENABLED: '1',
+        COMPETITION_PUBLIC_API_URL: 'https://old.example.test/v1',
+      },
+    });
+    for (const enabled of [true, false]) {
+      const destination = path.join(temporary, enabled ? 'enabled' : 'disabled');
+      await prepareBundleSite(source, destination, ['runtime'], 'off', {
+        COMPETITION_SERVICE_ENABLED: enabled ? '1' : '0',
+        COMPETITION_PUBLIC_API_URL: 'https://api.nenggongzhiren.cn/small-games/v1',
+      });
+      const context = {};
+      const html = await readFile(path.join(destination, 'index.html'), 'utf8');
+      vm.runInNewContext(html.match(/<script data-deployment-runtime>(.*?)<\/script>/)[1], context);
+      assert.equal(context.__COMPETITION_CONFIG__, undefined);
+      assert.equal(context.SmallGamesPublishingConfig.adMode, 'off');
+      vm.runInNewContext(
+        await readFile(path.join(destination, 'game-service-config.js'), 'utf8'),
+        context,
+      );
+      assert.equal(context.__COMPETITION_CONFIG__.competitionEnabled, enabled);
+      assert.equal(
+        context.__COMPETITION_CONFIG__.apiUrl,
+        enabled ? 'https://api.nenggongzhiren.cn/small-games/v1' : '',
+      );
+    }
+    assert.match(
+      await readFile(path.join(source, 'game-service-config.js'), 'utf8'),
+      /old.example.test/,
+    );
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
 
 test('service selection is explicit, excludes unknown services and prevents unbacked kart settlement', () => {
   assert.deepEqual(bundleConfig({}).services, ['runtime', 'kart', 'tianxia']);

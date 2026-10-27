@@ -14,7 +14,7 @@ import uuid
 BASE = Path('/opt/small-games/admin-console/releases')
 PRIVATE = Path('/opt/small-games/admin-private')
 BASELINE_SHA256 = 'd16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451'
-MIGRATION_SHA256 = 'd59a71a23f452d2cb50177c5533471df8f14480a9d635dc59b534af57ca23ee5'
+MIGRATION_SHA256 = '4d34f4dd305387dc3e1c0554ed752f15e1277c03db6074d8914653862f929797'
 PG_VERSION = '170006'
 FIXTURE_LABEL = 'io.small-games.control-fixture'
 MARKER = 'SG_CONTROL_JSON '

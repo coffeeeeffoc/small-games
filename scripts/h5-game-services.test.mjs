@@ -3,9 +3,33 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { prepareGameServices, h5BasicServiceGames } from './h5-game-services.mjs';
+import {
+  prepareGameServices,
+  reconfigureGameServices,
+  h5BasicServiceGames,
+} from './h5-game-services.mjs';
 import preset from '../infra/builds/five-taptap-h5.mjs';
 import { parseGameBuildConfig, gameBuildPlan } from './build-games.mjs';
+
+test('basic reconfiguration rejects executable and unknown external configuration', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'service-boundary-'));
+  const file = path.join(dir, 'index.html');
+  try {
+    await writeFile(file, '<html><head></head></html>');
+    assert.equal(await reconfigureGameServices(file, {}), false);
+    await prepareGameServices('night-overwatch', dir, { env: {} });
+    for (const source of [
+      'globalThis.__COMPETITION_CONFIG__ = execute();',
+      'globalThis.__COMPETITION_CONFIG__ = Object.freeze({"game":"unknown","platform":"h5"});',
+      'globalThis.__COMPETITION_CONFIG__ = Object.freeze({"game":"night-overwatch","platform":"native"});',
+    ]) {
+      await writeFile(path.join(dir, 'game-service-config.js'), source);
+      await assert.rejects(reconfigureGameServices(file, {}), /Invalid|Unsupported/);
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 
 test('five-game delivery enables verified slots and a separate no-UI service bootstrap', async () => {
   const jobs = gameBuildPlan(parseGameBuildConfig(preset));

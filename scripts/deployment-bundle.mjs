@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { competitionService, serviceEnvironment } from './competition-service-config.mjs';
 import { reconfigureH5Service } from './competition-h5-service.mjs';
+import { reconfigureGameServices } from './h5-game-services.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const serviceNames = {
@@ -370,12 +371,11 @@ export async function prepareBundleSite(source, destination, services, adMode = 
       if (entry.isDirectory()) await visit(filename);
       else if (entry.name.endsWith('.html')) {
         const managed = await reconfigureH5Service(filename, env, true);
+        const basic = !managed && (await reconfigureGameServices(filename, env, true));
         const html = await readFile(filename, 'utf8');
-        const pageCode = managed
-          ? code
-              .replace(/globalThis\.__COMPETITION_CONFIG__=.*?;/, '')
-              .replace(/globalThis\.SmallGamesPublishingConfig=.*?;/, '')
-          : code;
+        let pageCode =
+          managed || basic ? code.replace(/globalThis\.__COMPETITION_CONFIG__=.*?;/, '') : code;
+        if (managed) pageCode = pageCode.replace(/globalThis\.SmallGamesPublishingConfig=.*?;/, '');
         if (!/<head(?:\s[^>]*)?>/i.test(html)) throw new Error(`Missing HTML head: ${filename}`);
         if (code)
           await writeFile(

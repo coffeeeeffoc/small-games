@@ -149,8 +149,22 @@
     "@coffeeeeffoc/night-overwatch#build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
-      "env": ["COCOS_CREATOR", "NIGHT_OVERWATCH_PREBUILT_DIR"],
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/night-overwatch/.prebuilt/**"]
+      "env": [
+        "COCOS_CREATOR",
+        "NIGHT_OVERWATCH_PREBUILT_DIR",
+        "COMPETITION_SERVICE_ENABLED",
+        "COMPETITION_PUBLIC_API_URL",
+        "COMPETITION_LOCAL_BACKEND"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/games/local/night-overwatch/.prebuilt/**",
+        "$TURBO_ROOT$/scripts/h5-game-services.mjs",
+        "$TURBO_ROOT$/scripts/competition-service-config.mjs",
+        "$TURBO_ROOT$/platforms/competition/client.js",
+        "$TURBO_ROOT$/platforms/competition/game-services.js",
+        "$TURBO_ROOT$/platforms/competition/game-bootstrap.js"
+      ]
     },
     "test:rules": {
       "dependsOn": ["^build"],

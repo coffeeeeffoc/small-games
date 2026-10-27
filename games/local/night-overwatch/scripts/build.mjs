@@ -6,6 +6,7 @@ import { editor, runCreator } from '../../carding-car/scripts/toolchain.mjs';
 import { sourceHash, verifyPrebuilt } from './artifact.mjs';
 import { brandCocos } from '../../carding-car/scripts/cocos-branding.mjs';
 import { setTimeout as delay } from 'node:timers/promises';
+import { prepareGameServices } from '../../../../scripts/h5-game-services.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (['wechatgame', 'bilibili', 'douyin'].includes(target)) {
@@ -23,6 +24,7 @@ if (target === 'web-mobile' && process.env.NIGHT_OVERWATCH_PREBUILT_DIR) {
     await rm(dist, { recursive: true, force: true });
     await cp(source, dist, { recursive: true });
   }
+  await prepareGameServices('night-overwatch', dist, { local: process.env.COMPETITION_LOCAL_BACKEND === '1' });
   console.log('Restored verified Night Overwatch Creator artifact');
   process.exit(0);
 }
@@ -98,7 +100,6 @@ html = html.replace(
 );
 await writeFile(out + 'index.html', html);
 await cp(new URL('./dev-mode.js', import.meta.url), out + 'dev-mode.js');
-const { prepareGameServices } = await import('../../../../scripts/h5-game-services.mjs');
 await prepareGameServices('night-overwatch', out, { local: process.env.COMPETITION_LOCAL_BACKEND === '1' });
 const { installStartup } = await import('../startup/install.mjs');
 await brandCocos(out);

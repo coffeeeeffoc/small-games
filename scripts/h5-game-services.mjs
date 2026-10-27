@@ -42,3 +42,21 @@ export async function prepareGameServices(
   await writeFile(index, html);
   return config;
 }
+
+export async function reconfigureGameServices(filename, env, local = false) {
+  const html = await readFile(filename, 'utf8');
+  if (!/<script[^>]*src=["']\.\/game-service-config\.js["'][^>]*><\/script>/.test(html))
+    return false;
+  const source = await readFile(
+    path.join(path.dirname(filename), 'game-service-config.js'),
+    'utf8',
+  );
+  const match = source.match(
+    /^globalThis\.__COMPETITION_CONFIG__ = Object\.freeze\((\{[^]*\})\);\s*$/,
+  );
+  if (!match) throw Error('Invalid basic service configuration');
+  const { game, platform } = JSON.parse(match[1]);
+  if (platform !== 'h5') throw Error('Unsupported basic service platform');
+  await prepareGameServices(game, path.dirname(filename), { env, local });
+  return true;
+}

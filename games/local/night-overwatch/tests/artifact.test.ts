@@ -54,25 +54,37 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     assert.notEqual(await sourceHash(game), hash);
     await writeFile(script, 'const active = true;\n');
     await mkdir(path.join(prebuilt, 'dist'), { recursive: true });
-    await writeFile(path.join(prebuilt, 'dist/index.html'), '<title>Verified build</title>');
+    await writeFile(path.join(prebuilt, 'dist/index.html'), '<html><head><title>Verified build</title></head></html>');
     await writeFile(path.join(prebuilt, 'cc.d.ts'), '// engine types');
     const manifest = { creator: '3.8.8', target: 'web-mobile', sourceHash: hash };
     const info = path.join(prebuilt, 'dist/build-info.json');
     await writeFile(info, JSON.stringify(manifest));
-    const build = () => spawnSync(process.execPath, [path.join(game, 'scripts/build.mjs')], {
+    const build = (overrides = {}) => spawnSync(process.execPath, [path.join(game, 'scripts/build.mjs')], {
       encoding: 'utf8',
-      env: { ...process.env, COCOS_CREATOR: path.join(temp, 'missing-Creator.exe'), NIGHT_OVERWATCH_PREBUILT_DIR: prebuilt },
+      env: { ...process.env, COMPETITION_SERVICE_ENABLED: '0', COCOS_CREATOR: path.join(temp, 'missing-Creator.exe'), NIGHT_OVERWATCH_PREBUILT_DIR: prebuilt, ...overrides },
     });
     const accepted = build();
     assert.equal(accepted.status, 0, accepted.stderr);
     assert.match(accepted.stdout, /Restored verified/);
-    assert.equal(await readFile(path.join(game, 'dist/index.html'), 'utf8'), '<title>Verified build</title>');
+    const configFile = path.join(game, 'dist/game-service-config.js');
+    assert.match(await readFile(configFile, 'utf8'), /"competitionEnabled":false,"apiUrl":""/);
+    const enabled = { COMPETITION_SERVICE_ENABLED: '1', COMPETITION_PUBLIC_API_URL: 'https://api.nenggongzhiren.cn/small-games/v1' };
+    await writeFile(path.join(prebuilt, 'dist/game-service-config.js'), 'globalThis.__COMPETITION_CONFIG__={apiUrl:"https://old.example.test"};');
+    assert.equal(build(enabled).status, 0);
+    assert.match(await readFile(configFile, 'utf8'), /"competitionEnabled":true/);
+    assert((await readFile(configFile, 'utf8')).includes(enabled.COMPETITION_PUBLIC_API_URL));
+    await cp(path.join(prebuilt, 'cc.d.ts'), path.join(game, 'cc.d.ts'));
+    assert.equal(build({ NIGHT_OVERWATCH_PREBUILT_DIR: game }).status, 0);
+    assert.match(await readFile(configFile, 'utf8'), /"competitionEnabled":false,"apiUrl":""/);
+    const restoredHtml = await readFile(path.join(game, 'dist/index.html'), 'utf8');
+    assert.equal(restoredHtml.match(/src="\.\/game-service-config.js"/g)?.length, 1);
+    assert(restoredHtml.includes('<title>Verified build</title>'));
     for (const override of [{ sourceHash: 'stale' }, { creator: '3.8.7' }, { target: 'web-desktop' }]) {
       await writeFile(info, JSON.stringify({ ...manifest, ...override }));
       const rejected = build();
       assert.notEqual(rejected.status, 0);
       assert.match(rejected.stderr, /does not match/);
-      assert.equal(await readFile(path.join(game, 'dist/index.html'), 'utf8'), '<title>Verified build</title>');
+      assert.equal(await readFile(path.join(game, 'dist/index.html'), 'utf8'), restoredHtml);
     }
     await writeFile(info, JSON.stringify(manifest));
     await rm(path.join(prebuilt, 'cc.d.ts'));

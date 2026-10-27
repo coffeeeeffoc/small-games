@@ -6,7 +6,32 @@ import {
   nightRuntimeInputs,
   matchGatewayFileScope,
   reviewedSharedFileScopes,
+  nightServiceTurboOnly,
 } from './publication-scopes.mjs';
+
+test('Night service cache inputs retain the game consumer and reject unrelated Turbo changes', () => {
+  const after = JSON.parse(readFileSync(new URL('../turbo.json', import.meta.url), 'utf8'));
+  const before = structuredClone(after);
+  const task = before.tasks['@coffeeeeffoc/night-overwatch#build'];
+  task.env = ['COCOS_CREATOR', 'NIGHT_OVERWATCH_PREBUILT_DIR'];
+  task.inputs = ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/night-overwatch/.prebuilt/**'];
+  assert(nightServiceTurboOnly(JSON.stringify(before), JSON.stringify(after)));
+  const changed = structuredClone(after);
+  changed.tasks.build.cache = false;
+  assert(!nightServiceTurboOnly(JSON.stringify(before), JSON.stringify(changed)));
+  changed.tasks = structuredClone(after.tasks);
+  changed.tasks['@coffeeeeffoc/night-overwatch#build'].env.push('SECRET');
+  assert(!nightServiceTurboOnly(JSON.stringify(before), JSON.stringify(changed)));
+  const source = 'games/local/night-overwatch';
+  const options = {
+    changedPaths: ['turbo.json'],
+    games: [{ id: 'night-overwatch', source }],
+    packages: [{ dir: source }, { dir: 'services/runtime-api' }],
+    readBase: () => JSON.stringify(before),
+    readHead: (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8'),
+  };
+  assert.deepEqual(reviewedSharedFileScopes(options).get('turbo.json'), [source]);
+});
 
 test('Night pure cores select their authoritative Runtime consumer and fail closed without it', () => {
   const source = 'games/local/night-overwatch';

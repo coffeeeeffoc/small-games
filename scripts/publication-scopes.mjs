@@ -1468,6 +1468,43 @@ export const nightRuntimeInputs = Object.freeze(
     (name) => `games/local/night-overwatch/assets/scripts/core/${name}.ts`,
   ),
 );
+export function nightServiceTurboOnly(before, after) {
+  try {
+    const base = JSON.parse(before),
+      head = JSON.parse(after);
+    const key = '@coffeeeeffoc/night-overwatch#build';
+    const previous = {
+      dependsOn: ['^build'],
+      outputs: ['dist/**'],
+      env: ['COCOS_CREATOR', 'NIGHT_OVERWATCH_PREBUILT_DIR'],
+      inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/night-overwatch/.prebuilt/**'],
+    };
+    assert.deepEqual(base.tasks[key], previous);
+    assert.deepEqual(head.tasks[key], {
+      ...previous,
+      env: [
+        ...previous.env,
+        'COMPETITION_SERVICE_ENABLED',
+        'COMPETITION_PUBLIC_API_URL',
+        'COMPETITION_LOCAL_BACKEND',
+      ],
+      inputs: [
+        ...previous.inputs,
+        ...[
+          'scripts/h5-game-services.mjs',
+          'scripts/competition-service-config.mjs',
+          'platforms/competition/client.js',
+          'platforms/competition/game-services.js',
+          'platforms/competition/game-bootstrap.js',
+        ].map((file) => '$TURBO_ROOT$/' + file),
+      ],
+    });
+    head.tasks[key] = previous;
+    return isDeepStrictEqual(base, head);
+  } catch {
+    return false;
+  }
+}
 const nightImports = [
   'services/runtime-api/rules/night.mjs -> games/local/night-overwatch/assets/scripts/core/Duel.ts',
   'services/runtime-api/rules/night-ranked.mjs -> games/local/night-overwatch/assets/scripts/core/Replay.ts',
@@ -4995,6 +5032,11 @@ export function reviewedSharedFileScopes({
         ]);
         continue;
       }
+      if (file === 'turbo.json' && nightServiceTurboOnly(readBase(file), readHead(file))) {
+        assertNightRuntimeConsumer(games, packages, readHead);
+        scopes.set(file, ['games/local/night-overwatch']);
+        continue;
+      }
       if (
         nightRuntimeInputs.includes(file) ||
         (['scripts/deploy-tencent.mjs', 'scripts/check-workspace-dependencies.mjs'].includes(
@@ -5171,7 +5213,14 @@ export function reviewedSharedFileScopes({
           'services/runtime-api',
           'services/management-api',
           ...(['scripts/deployment-bundle.mjs', 'scripts/deployment-bundle.test.mjs'].includes(file)
-            ? [...competitionServiceIds.map((id) => competitionConsumers[id]), 'apps/shell-web']
+            ? [
+                ...competitionServiceIds.map((id) => competitionConsumers[id]),
+                ...sixH5Sources.filter(
+                  (source) =>
+                    !source.endsWith('/homebound-station') && !source.endsWith('/travel-bund'),
+                ),
+                'apps/shell-web',
+              ]
             : []),
         ]);
       } else if (

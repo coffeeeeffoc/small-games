@@ -20,6 +20,13 @@ IMAGE = 'sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8
 
 
 class Contracts(unittest.TestCase):
+    def test_upgrade_bytes_are_identical_across_checkout_platforms(self):
+        source = (HERE / 'migrations/003-night-overwatch-control.sql').read_bytes()
+        self.assertNotIn(b'\r', source)
+        self.assertEqual(hashlib.sha256(source).hexdigest(), db.MIGRATION_SHA256)
+        self.assertIn('migrations/003-night-overwatch-control.sql text eol=lf',
+                      (HERE / '.gitattributes').read_text())
+
     def test_ready_waits_for_final_tcp_server_before_using_socket(self):
         with patch.object(db, 'command', side_effect=[db.ControlDatabaseError('CONTROL_COMMAND_FAILED'), None]) as command, patch.object(db, 'psql', return_value='1') as query, patch.object(db.time, 'sleep') as sleep:
             db.ready('a' * 64)
