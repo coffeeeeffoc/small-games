@@ -600,7 +600,7 @@ export class Ashfall extends Component {
       (['help', 'settings'].includes(this.screen) && this.helpReturn === 'home');
     u.pressed = new Set(Array.from(this.pointers.values()).map((p) => p.id));
     u.begin();
-    u.world(this.run, menu, this.visualTime, this.reduced());
+    u.world(this.run, menu, this.visualTime, this.reduced(), this.screen === 'playing');
     for (const e of this.effects) {
       u.circle(
         (e.x - u.cameraX) * u.worldScale,

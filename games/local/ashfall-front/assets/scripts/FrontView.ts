@@ -303,7 +303,10 @@ export class FrontView {
     this.graphics.circle(x - this.W / 2, this.H / 2 - y, r);
     this.graphics.fill();
   }
-  world(run: any, menu: boolean, time: number, reduced: boolean) {
+  world(run: any, menu: boolean, time: number, reduced: boolean, labels = true) {
+    const worldText = (...args: Parameters<FrontView['text']>) => {
+      if (labels) this.text(...args);
+    };
     const s = (this.worldScale = this.H / 720),
       width = this.W / s;
     const cx = (this.cameraX = menu
@@ -331,6 +334,11 @@ export class FrontView {
     }
     if (!menu) {
       const g = this.terrain;
+      // The baked floor ends at y=720; continue solid bedrock below it as the camera descends.
+      const bedrockTop = Math.max(0, (720 - cy) * s);
+      g.fillColor = c('#182a20');
+      g.rect(-this.W / 2, -this.H / 2, this.W, this.H - bedrockTop);
+      g.fill();
       for (const t of run.level.tunnels) {
         g.fillColor = c('#11241d');
         g.rect(
@@ -475,7 +483,7 @@ export class FrontView {
       this.line(x + 16 * s, top - 8 * s, x + 16 * s, bottom, '#abb58b', 3);
       for (let y = top; y < bottom; y += 23 * s)
         this.line(x - 16 * s, y, x + 16 * s, y, '#bbc29a', 2);
-      this.text(
+      worldText(
         'ladder-' + i,
         l.bottom > run.level.ground ? '↓ 地下' : '↑ 攀梯',
         x - 48,
@@ -490,7 +498,7 @@ export class FrontView {
         y = (item.y - cy - 23) * s;
       if (x < -60 || x > this.W + 60) continue;
       this.box(x - 18 * s, y - 18 * s, 36 * s, 36 * s, '#40553b', '#efc77f');
-      this.text(
+      worldText(
         'pickup-' + item.id,
         WEAPONS[item.weapon as keyof typeof WEAPONS].mark,
         x - 16,
@@ -500,7 +508,7 @@ export class FrontView {
         '#ffe5a2',
         30,
       );
-      this.text(
+      worldText(
         'pickup-name-' + item.id,
         WEAPONS[item.weapon as keyof typeof WEAPONS].name,
         x - 45,
@@ -522,7 +530,7 @@ export class FrontView {
         run.exitOpen ? '#426b45' : '#334538',
         run.exitOpen ? '#d6e8a7' : '#ce9a61',
       );
-      this.text(
+      worldText(
         'exit-label',
         run.exitOpen ? '出口开放 →' : '出口封锁',
         exit - 70,
