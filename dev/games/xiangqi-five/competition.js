@@ -2936,7 +2936,7 @@ body.competition-active #mode-online { position:static; }
 		return factory;
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-Hnrxxh/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-hY1YJR/entry.mjs
 	if (globalThis.__COMPETITION_CONFIG__?.identityProvider === "taptap") installTapCompetitionIdentity();
 	mountCompetition("xiangqi-five", createRenderer);
 	//#endregion
