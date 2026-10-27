@@ -1,0 +1,38 @@
+[
+  {
+    "rate": 1,
+    "before": {
+      "time": 1.4499999999999973,
+      "dashTime": 0,
+      "vx": 278.64424998943633
+    },
+    "fixedSleep": {
+      "time": 1.7666666666666628,
+      "dashTime": 0,
+      "vx": 0
+    },
+    "settled": {
+      "time": 1.9166666666666623,
+      "dashTime": 0,
+      "vx": 0
+    }
+  },
+  {
+    "rate": 30,
+    "before": {
+      "time": 2.699999999999993,
+      "dashTime": 0,
+      "vx": 278.64424998943633
+    },
+    "fixedSleep": {
+      "time": 3.59999999999999,
+      "dashTime": 0,
+      "vx": 0
+    },
+    "settled": {
+      "time": 3.6416666666666564,
+      "dashTime": 0,
+      "vx": 0
+    }
+  }
+]

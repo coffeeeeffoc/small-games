@@ -130,6 +130,17 @@ try {
       const send = (type, points) =>
         cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points });
       await send('touchStart', [right, shooting, jump]);
+      // Keep this input-combination check away from forward guards so an XP
+      // choice cannot freeze velocity mid-assertion. Growth is exercised below.
+      await send('touchMove', [
+        right,
+        {
+          ...shooting,
+          x: shooting.x + (layout.rotated ? 0 : -28),
+          y: shooting.y + (layout.rotated ? -28 : 0),
+        },
+        jump,
+      ]);
       await page.waitForTimeout(140);
       const jumping = await snapshot(page);
       assert.ok(
@@ -149,11 +160,25 @@ try {
       };
       const centre = { ...(await input.point('move')), id: 1 };
       await send('touchMove', [centre, aimed]);
-      await page.waitForTimeout(250);
-      assert.ok(
-        Math.abs((await snapshot(page)).run.player.vx) < 1,
-        'centering the stick stops movement',
-      );
+      // Dash owns velocity until the simulation completes it. A fixed wall-clock
+      // sleep can expire before that happens on a loaded Creator/CI renderer.
+      await expect
+        .poll(
+          async () => {
+            const state = await snapshot(page);
+            assert.equal(
+              state.screen,
+              'playing',
+              `${width}x${height}: centering interrupted: ${JSON.stringify(state.run)}`,
+            );
+            return Math.abs(state.run.player.vx);
+          },
+          {
+            timeout: 5000,
+            message: 'centering the stick stops movement after the active dash',
+          },
+        )
+        .toBeLessThan(1);
       assert.ok(
         Math.abs((await snapshot(page)).run.player.aimAngle + Math.PI * 0.75) < 0.05,
         'backward diagonal aim follows logical landscape',
