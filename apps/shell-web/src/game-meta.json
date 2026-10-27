@@ -429,6 +429,17 @@
         "commit": "6fe66afa8002bca4beac3ffe953722951cb98335",
         "time": "2026-10-24T22:57:34+08:00"
       }
+    },
+    "skybound-odyssey": {
+      "source": "games/local/skybound-odyssey",
+      "created": {
+        "commit": "523b85d361aa348fbc706666b81c28abcc69133e",
+        "time": "2026-10-27T19:09:25Z"
+      },
+      "updated": {
+        "commit": "523b85d361aa348fbc706666b81c28abcc69133e",
+        "time": "2026-10-27T19:09:25Z"
+      }
     }
   }
 }
