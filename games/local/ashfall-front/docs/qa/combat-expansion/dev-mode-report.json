@@ -1,0 +1,62 @@
+{
+  "games": 1,
+  "checks": [
+    {
+      "game": "ashfall-front",
+      "entry": "independent",
+      "mode": "default",
+      "enabled": false
+    },
+    {
+      "game": "ashfall-front",
+      "entry": "shell",
+      "mode": "default",
+      "enabled": false
+    },
+    {
+      "game": "ashfall-front",
+      "entry": "independent",
+      "mode": "url",
+      "enabled": true
+    },
+    {
+      "game": "ashfall-front",
+      "entry": "shell",
+      "mode": "url",
+      "enabled": true
+    },
+    {
+      "game": "ashfall-front",
+      "entry": "independent",
+      "mode": "storage",
+      "enabled": true
+    },
+    {
+      "game": "ashfall-front",
+      "entry": "shell",
+      "mode": "storage",
+      "enabled": true
+    },
+    {
+      "game": "ashfall-front",
+      "entry": "independent",
+      "mode": "explicit-off",
+      "enabled": false
+    },
+    {
+      "game": "ashfall-front",
+      "entry": "shell",
+      "mode": "explicit-off",
+      "enabled": false
+    },
+    {
+      "mobile": "drag, resize, game modal, performance, touchcancel, persistence, exit"
+    },
+    {
+      "iframe": "same-origin inheritance and cross-origin URL opt-in"
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "browser": "140.0.7339.186"
+}

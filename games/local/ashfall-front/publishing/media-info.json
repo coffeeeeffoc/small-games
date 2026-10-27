@@ -1,41 +1,50 @@
 {
-  "source": "Cocos Creator 3.8.8 Web Mobile; Chromium touch emulation, 844x390; ordinary mode, no developer state changes",
-  "sourceHash": "37739ad8cd95c29ad69766e8a87233abc2dde8a83302db1e5e9846f8c20b1b98",
-  "verified": "2026-10-26",
+  "source": "Creator 3.8.8, Chromium touch emulation 1280x720",
+  "sourceHash": "2cff69208ed04588e5c5108bfbaa8900d7d9aae68349cada743fed5d39d6addf",
+  "verified": "2026-10-27",
   "audio": false,
-  "trialStates": false,
-  "shots": 48,
-  "kills": 7,
+  "normalStateMutations": false,
+  "promoContainsExplicitFixtures": true,
+  "normalFinalScreen": "result",
+  "normalShots": 33,
+  "normalKills": 3,
   "uploaded": false,
   "deviceVerified": false,
   "files": {
-    "gameplay/videos/cocos-two-thumb-20261026.mp4": {
-      "programs": [],
-      "stream_groups": [],
-      "streams": [
-        {
-          "codec_name": "h264",
-          "width": 844,
-          "height": 390
-        }
-      ],
-      "format": {
-        "duration": "13.200000"
-      }
-    },
-    "promo/videos/ashfall-two-thumb-20261026.mp4": {
+    "gameplay/videos/cocos-combat-20261027.mp4": {
       "programs": [],
       "stream_groups": [],
       "streams": [
         {
           "codec_name": "h264",
           "width": 1280,
-          "height": 720
+          "height": 720,
+          "pix_fmt": "yuv420p"
         }
       ],
       "format": {
-        "duration": "13.200000"
+        "duration": "18.033333",
+        "size": "1063597"
+      }
+    },
+    "promo/videos/ashfall-combat-20261027.mp4": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720,
+          "pix_fmt": "yuv420p"
+        }
+      ],
+      "format": {
+        "duration": "16.966667",
+        "size": "890350"
       }
     }
-  }
+  },
+  "promoSequence": "2.5s promotional illustration, 5s ordinary touch combat, 4.5s tunnel fixture, 3s upgrade fixture, 2s cleared-sector upgrade fixture",
+  "gameplay": "Continuous ordinary-mode touch recording trimmed only at beginning/end; no added narration, captions or picture-in-picture; battle begins in first seconds.",
+  "playbackReview": "Both MP4 streams fully decoded without error; sampled gameplay, underground combat, upgrade choice and final cleared-sector transition; first promo frame verified as title artwork."
 }

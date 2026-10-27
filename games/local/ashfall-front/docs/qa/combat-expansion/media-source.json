@@ -1,0 +1,631 @@
+{
+  "environment": "Creator 3.8.8, Chromium touch emulation 1280x720",
+  "normal": {
+    "contextAt": 1793113657665,
+    "before": {
+      "ready": true,
+      "creator": "3.8.8",
+      "screen": "playing",
+      "width": 1280,
+      "height": 720,
+      "rotated": false,
+      "logicalWidth": 844,
+      "logicalHeight": 474.75,
+      "controls": [
+        {
+          "id": "pause",
+          "label": "暂停",
+          "x": 1128.341232227488,
+          "y": 15.165876777251183,
+          "w": 109.19431279620852,
+          "h": 94.02843601895734,
+          "disabled": false
+        },
+        {
+          "id": "move",
+          "label": "移动 / 攀梯",
+          "x": 39.431279620853076,
+          "y": 562.2748815165876,
+          "w": 139.5260663507109,
+          "h": 130.4265402843602,
+          "disabled": false
+        },
+        {
+          "id": "fire",
+          "label": "射击 · 拖动瞄准",
+          "x": 1104.0758293838862,
+          "y": 556.2085308056871,
+          "w": 157.7251184834123,
+          "h": 136.49289099526067,
+          "disabled": false
+        },
+        {
+          "id": "jump",
+          "label": "跳跃",
+          "x": 985.781990521327,
+          "y": 595.6398104265403,
+          "w": 97.06161137440758,
+          "h": 97.06161137440758,
+          "disabled": false
+        },
+        {
+          "id": "dash",
+          "label": "冲刺",
+          "x": 985.781990521327,
+          "y": 477.345971563981,
+          "w": 97.06161137440758,
+          "h": 97.06161137440758,
+          "disabled": false
+        }
+      ],
+      "trial": false,
+      "adLocked": false,
+      "rewardAvailable": false,
+      "progress": {
+        "schemaVersion": 1,
+        "completed": [],
+        "bestTime": null,
+        "campaignVersion": 2,
+        "sound": true,
+        "reducedMotion": null
+      },
+      "run": {
+        "phase": "playing",
+        "levelIndex": 0,
+        "player": {
+          "x": 420,
+          "y": 570,
+          "w": 34,
+          "h": 62,
+          "hp": 120,
+          "maxHp": 120,
+          "vx": 0,
+          "vy": 0,
+          "facing": 1,
+          "onGround": true,
+          "dashTime": 0,
+          "dashCooldown": 0,
+          "invulnerable": 0.033333333333332965,
+          "fireCooldown": 0,
+          "hitFlash": 0,
+          "fireFlash": 0,
+          "aimAngle": 0,
+          "coyoteTime": 0.1,
+          "jumpBuffer": 0,
+          "climbing": null,
+          "burstLeft": 0,
+          "spin": 0
+        },
+        "roomTime": 0.366666666666667,
+        "time": 0.366666666666667,
+        "waveIndex": 0,
+        "capture": 0,
+        "checkpointComplete": false,
+        "enemies": [
+          {
+            "id": "e25",
+            "type": "turret",
+            "waveIndex": 0,
+            "x": 1370,
+            "y": 840,
+            "hp": 300,
+            "state": "aim"
+          },
+          {
+            "id": "e26",
+            "type": "shooter",
+            "waveIndex": 0,
+            "x": 940,
+            "y": 570,
+            "hp": 100,
+            "state": "aim"
+          },
+          {
+            "id": "e27",
+            "type": "chaser",
+            "waveIndex": 0,
+            "x": 1371.600000000004,
+            "y": 570,
+            "hp": 80,
+            "state": "chase"
+          },
+          {
+            "id": "e28",
+            "type": "drone",
+            "waveIndex": 0,
+            "x": 1476.2666666666673,
+            "y": 355.21638896340727,
+            "hp": 60,
+            "state": "aim"
+          },
+          {
+            "id": "e29",
+            "type": "shooter",
+            "waveIndex": 0,
+            "x": 1218.7333333333327,
+            "y": 442,
+            "hp": 100,
+            "state": "patrol"
+          }
+        ],
+        "shots": 0,
+        "xp": 0,
+        "rank": 1,
+        "xpNext": 60,
+        "weapon": "rifle",
+        "ammo": 0,
+        "choices": [],
+        "upgradeReason": null,
+        "exitOpen": false,
+        "pickups": [
+          {
+            "x": 730,
+            "y": 570,
+            "weapon": "shotgun",
+            "id": "loot1"
+          },
+          {
+            "x": 1470,
+            "y": 840,
+            "weapon": "flame",
+            "id": "loot2"
+          },
+          {
+            "x": 2280,
+            "y": 570,
+            "weapon": "burst",
+            "id": "loot3"
+          },
+          {
+            "x": 3020,
+            "y": 840,
+            "weapon": "machine",
+            "id": "loot4"
+          },
+          {
+            "x": 3980,
+            "y": 570,
+            "weapon": "flame",
+            "id": "loot5"
+          },
+          {
+            "x": 4720,
+            "y": 840,
+            "weapon": "cannon",
+            "id": "loot6"
+          },
+          {
+            "x": 5730,
+            "y": 570,
+            "weapon": "machine",
+            "id": "loot7"
+          },
+          {
+            "x": 6470,
+            "y": 840,
+            "weapon": "gatling",
+            "id": "loot8"
+          },
+          {
+            "x": 7550,
+            "y": 570,
+            "weapon": "cannon",
+            "id": "loot9"
+          },
+          {
+            "x": 8290,
+            "y": 840,
+            "weapon": "shotgun",
+            "id": "loot10"
+          },
+          {
+            "x": 9440,
+            "y": 570,
+            "weapon": "gatling",
+            "id": "loot11"
+          },
+          {
+            "x": 10180,
+            "y": 840,
+            "weapon": "burst",
+            "id": "loot12"
+          }
+        ],
+        "kills": 0,
+        "assisted": false,
+        "rewardUsed": {
+          "supply": false,
+          "revive": false
+        }
+      }
+    },
+    "startedAt": 1793113660657,
+    "after": {
+      "ready": true,
+      "creator": "3.8.8",
+      "screen": "result",
+      "width": 1280,
+      "height": 720,
+      "rotated": false,
+      "logicalWidth": 844,
+      "logicalHeight": 474.75,
+      "controls": [
+        {
+          "id": "retry",
+          "label": "重试本关  →",
+          "x": 300.2843601895734,
+          "y": 381.23222748815164,
+          "w": 679.431279620853,
+          "h": 81.89573459715639,
+          "disabled": false
+        },
+        {
+          "id": "home",
+          "label": "返回主页",
+          "x": 300.2843601895734,
+          "y": 475.260663507109,
+          "w": 679.431279620853,
+          "h": 81.89573459715639,
+          "disabled": false
+        }
+      ],
+      "trial": false,
+      "adLocked": false,
+      "rewardAvailable": false,
+      "progress": {
+        "schemaVersion": 1,
+        "completed": [],
+        "bestTime": null,
+        "campaignVersion": 2,
+        "sound": true,
+        "reducedMotion": null
+      },
+      "run": {
+        "phase": "lost",
+        "levelIndex": 0,
+        "player": {
+          "x": 1060,
+          "y": 840,
+          "w": 34,
+          "h": 62,
+          "hp": 0,
+          "maxHp": 120,
+          "vx": 0,
+          "vy": 0,
+          "facing": -1,
+          "onGround": true,
+          "dashTime": 0,
+          "dashCooldown": 0,
+          "invulnerable": 0.75,
+          "fireCooldown": 0.2863999999999997,
+          "hitFlash": 0.15,
+          "fireFlash": 0,
+          "aimAngle": 0,
+          "coyoteTime": 0.1,
+          "jumpBuffer": 0,
+          "climbing": null,
+          "burstLeft": 0,
+          "spin": 1
+        },
+        "roomTime": 12.716666666666585,
+        "time": 12.716666666666585,
+        "waveIndex": 0,
+        "capture": 10.950000000000019,
+        "checkpointComplete": false,
+        "enemies": [
+          {
+            "id": "e25",
+            "type": "turret",
+            "waveIndex": 0,
+            "x": 1370,
+            "y": 840,
+            "hp": 27,
+            "state": "guard"
+          },
+          {
+            "id": "e28",
+            "type": "drone",
+            "waveIndex": 0,
+            "x": 1293.0333333333376,
+            "y": 373.9550941995161,
+            "hp": 60,
+            "state": "aim"
+          },
+          {
+            "id": "e162",
+            "type": "shooter",
+            "waveIndex": 0,
+            "x": 1490,
+            "y": 570,
+            "hp": 100,
+            "state": "patrol"
+          },
+          {
+            "id": "e163",
+            "type": "chaser",
+            "waveIndex": 0,
+            "x": 1195.6000000000322,
+            "y": 570,
+            "hp": 80,
+            "state": "chase"
+          },
+          {
+            "id": "e164",
+            "type": "drone",
+            "waveIndex": 0,
+            "x": 1484.5000000000039,
+            "y": 338.0241148163455,
+            "hp": 60,
+            "state": "aim"
+          }
+        ],
+        "shots": 33,
+        "xp": 0,
+        "rank": 2,
+        "xpNext": 90,
+        "weapon": "shotgun",
+        "ammo": 4,
+        "choices": [],
+        "upgradeReason": "experience",
+        "exitOpen": false,
+        "pickups": [
+          {
+            "x": 1470,
+            "y": 840,
+            "weapon": "flame",
+            "id": "loot2"
+          },
+          {
+            "x": 2280,
+            "y": 570,
+            "weapon": "burst",
+            "id": "loot3"
+          },
+          {
+            "x": 3020,
+            "y": 840,
+            "weapon": "machine",
+            "id": "loot4"
+          },
+          {
+            "x": 3980,
+            "y": 570,
+            "weapon": "flame",
+            "id": "loot5"
+          },
+          {
+            "x": 4720,
+            "y": 840,
+            "weapon": "cannon",
+            "id": "loot6"
+          },
+          {
+            "x": 5730,
+            "y": 570,
+            "weapon": "machine",
+            "id": "loot7"
+          },
+          {
+            "x": 6470,
+            "y": 840,
+            "weapon": "gatling",
+            "id": "loot8"
+          },
+          {
+            "x": 7550,
+            "y": 570,
+            "weapon": "cannon",
+            "id": "loot9"
+          },
+          {
+            "x": 8290,
+            "y": 840,
+            "weapon": "shotgun",
+            "id": "loot10"
+          },
+          {
+            "x": 9440,
+            "y": 570,
+            "weapon": "gatling",
+            "id": "loot11"
+          },
+          {
+            "x": 10180,
+            "y": 840,
+            "weapon": "burst",
+            "id": "loot12"
+          }
+        ],
+        "kills": 3,
+        "assisted": false,
+        "rewardUsed": {
+          "supply": false,
+          "revive": false
+        }
+      }
+    },
+    "endedAt": 1793113679084,
+    "video": "/workspace/small-games/outputs/ashfall-front/combat-media/raw/489f3e0215fc133438901d4e3b4d1b08.webm"
+  },
+  "fixture": {
+    "contextAt": 1793113679714,
+    "undergroundAt": 1793113684500,
+    "upgradeAt": 1793113690593,
+    "victoryAt": 1793113695839,
+    "final": {
+      "ready": true,
+      "creator": "3.8.8",
+      "screen": "upgrade",
+      "width": 1280,
+      "height": 720,
+      "rotated": false,
+      "logicalWidth": 844,
+      "logicalHeight": 474.75,
+      "controls": [
+        {
+          "id": "upgrade-rapid",
+          "label": "快速扳机\n射速+8%\n免费装配",
+          "x": 288.1516587677725,
+          "y": 299.33649289099526,
+          "w": 224.45497630331752,
+          "h": 227.48815165876775,
+          "disabled": false
+        },
+        {
+          "id": "upgrade-mobility",
+          "label": "机动推进器\n冲刺更快恢复\n免费装配",
+          "x": 527.7725118483412,
+          "y": 299.33649289099526,
+          "w": 224.45497630331752,
+          "h": 227.48815165876775,
+          "disabled": false
+        },
+        {
+          "id": "upgrade-overdrive",
+          "label": "超载强化\n伤害+30% / 生命+30\n观看广告获取",
+          "x": 767.3933649289099,
+          "y": 299.33649289099526,
+          "w": 224.45497630331752,
+          "h": 227.48815165876775,
+          "disabled": false
+        }
+      ],
+      "trial": true,
+      "adLocked": false,
+      "rewardAvailable": false,
+      "progress": {
+        "schemaVersion": 1,
+        "completed": [],
+        "bestTime": null,
+        "campaignVersion": 2,
+        "sound": true,
+        "reducedMotion": null
+      },
+      "run": {
+        "phase": "upgrade",
+        "levelIndex": 0,
+        "player": {
+          "x": 10730,
+          "y": 570,
+          "w": 34,
+          "h": 62,
+          "hp": 68,
+          "maxHp": 120,
+          "vx": 0,
+          "vy": 0,
+          "facing": 1,
+          "onGround": true,
+          "dashTime": 0,
+          "dashCooldown": 0,
+          "invulnerable": 0.5416666666666674,
+          "fireCooldown": 0,
+          "hitFlash": 0,
+          "fireFlash": 0,
+          "aimAngle": 0,
+          "coyoteTime": 0.1,
+          "jumpBuffer": 0,
+          "climbing": null,
+          "burstLeft": 0,
+          "spin": 0
+        },
+        "roomTime": 8.558333333333488,
+        "time": 8.558333333333488,
+        "waveIndex": 5,
+        "capture": 55,
+        "checkpointComplete": true,
+        "enemies": [],
+        "shots": 27,
+        "xp": 0,
+        "rank": 2,
+        "xpNext": 60,
+        "weapon": "rifle",
+        "ammo": 0,
+        "choices": ["rapid", "mobility", "overdrive"],
+        "upgradeReason": "room",
+        "exitOpen": true,
+        "pickups": [
+          {
+            "x": 730,
+            "y": 570,
+            "weapon": "shotgun",
+            "id": "loot1"
+          },
+          {
+            "x": 1470,
+            "y": 840,
+            "weapon": "flame",
+            "id": "loot2"
+          },
+          {
+            "x": 2280,
+            "y": 570,
+            "weapon": "burst",
+            "id": "loot3"
+          },
+          {
+            "x": 3020,
+            "y": 840,
+            "weapon": "machine",
+            "id": "loot4"
+          },
+          {
+            "x": 3980,
+            "y": 570,
+            "weapon": "flame",
+            "id": "loot5"
+          },
+          {
+            "x": 4720,
+            "y": 840,
+            "weapon": "cannon",
+            "id": "loot6"
+          },
+          {
+            "x": 5730,
+            "y": 570,
+            "weapon": "machine",
+            "id": "loot7"
+          },
+          {
+            "x": 6470,
+            "y": 840,
+            "weapon": "gatling",
+            "id": "loot8"
+          },
+          {
+            "x": 7550,
+            "y": 570,
+            "weapon": "cannon",
+            "id": "loot9"
+          },
+          {
+            "x": 8290,
+            "y": 840,
+            "weapon": "shotgun",
+            "id": "loot10"
+          },
+          {
+            "x": 9440,
+            "y": 570,
+            "weapon": "gatling",
+            "id": "loot11"
+          },
+          {
+            "x": 10180,
+            "y": 840,
+            "weapon": "burst",
+            "id": "loot12"
+          }
+        ],
+        "kills": 0,
+        "assisted": false,
+        "rewardUsed": {
+          "supply": false,
+          "revive": false
+        }
+      }
+    },
+    "video": "/workspace/small-games/outputs/ashfall-front/combat-media/fixture/2082b7cdc98685dbda873e0fe86a9f13.webm"
+  },
+  "sourceHash": "2cff69208ed04588e5c5108bfbaa8900d7d9aae68349cada743fed5d39d6addf"
+}

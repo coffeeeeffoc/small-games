@@ -53,3 +53,7 @@ UI 基础边距左右26、上18、下20，结合环境 safe-area 向内移动。
 ## 2026-10-24 Cocos战役改版
 
 本页旧SVG用于历史初版参考；当前23关分页、补给确认及横屏战斗的实施前目标见[改版方案](cocos-campaign.md)和[cocos-campaign-concept.png](cocos-campaign-concept.png)。实际发行由Creator渲染，不运行旧Canvas入口。触屏逻辑采用等比视口并按引擎安全区调整，宽屏保留最小逻辑高度，防止弹层重叠和按钮缩小。实际截图与验证与效果图区分存放，见[QA](../qa/verification.md)。
+
+## 2026-10-27 战斗与探索改版
+
+当前双摇杆、经验选择、武器、地下路线与出口方案见[改版设计](combat-expansion-2026-10-27.md)，实施前效果图见[双状态概念图](combat-expansion-concept.svg)。

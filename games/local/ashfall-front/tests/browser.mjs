@@ -271,20 +271,25 @@ try {
     await page.evaluate(() => window.Ashfall.dev('tunnel'));
     const climbSession = await context.newCDPSession(page);
     const centre = await input.point('move');
-    const offset = (await snapshot(page)).rotated ? { x: -28, y: 0 } : { x: 0, y: 28 };
+    const climbLayout = await snapshot(page);
+    const movePad = climbLayout.controls.find((c) => c.id === 'move');
+    const travel = Math.min(movePad.w, movePad.h) * 0.42;
+    const offset = climbLayout.rotated ? { x: -travel, y: 0 } : { x: 0, y: travel };
     await climbSession.send('Input.dispatchTouchEvent', {
       type: 'touchStart',
       touchPoints: [{ x: centre.x + offset.x, y: centre.y + offset.y, id: 1 }],
     });
-    await page.waitForTimeout(1450);
-    assert.ok((await snapshot(page)).run.player.y > 800, 'touch stick descends into tunnel');
+    await expect
+      .poll(async () => (await snapshot(page)).run.player.y, { timeout: 4000 })
+      .toBeGreaterThan(800);
     await capture(page, `underground-${width}x${height}`);
     await climbSession.send('Input.dispatchTouchEvent', {
       type: 'touchMove',
       touchPoints: [{ x: centre.x - offset.x, y: centre.y - offset.y, id: 1 }],
     });
-    await page.waitForTimeout(1450);
-    assert.ok((await snapshot(page)).run.player.y <= 571, 'touch stick climbs back out');
+    await expect
+      .poll(async () => (await snapshot(page)).run.player.y, { timeout: 4000 })
+      .toBeLessThanOrEqual(571);
     await climbSession.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
     await climbSession.detach();
     await page.evaluate(() => window.Ashfall.dev('clear'));
