@@ -9,7 +9,7 @@ await mkdir(dir, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const results = [], errors = [];
 try {
-  for (const mode of ['dismissed', 'unavailable', 'failed', 'background', 'offline-credit']) {
+  for (const mode of ['completed', 'dismissed', 'unavailable', 'failed', 'background', 'offline-credit']) {
     const context = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true });
     await context.addInitScript(mode => {
       localStorage.setItem('night-overwatch-coach-v2', 'done');
@@ -32,17 +32,19 @@ try {
       assert((await snapshot(page)).advert); assert.equal((await snapshot(page)).time, frozenTime);
       if (mode === 'background') await page.evaluate(() => {
         Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
-        document.dispatchEvent(new Event('visibilitychange'));
+        document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
       });
       await page.evaluate(status => __completeSupport(status), mode === 'background' ? 'completed' : mode);
       await page.waitForFunction(() => !__night.snapshot().advert);
       const completed = await snapshot(page);
       if (mode === 'background') {
         assert(completed.pendingSupply); assert.equal(completed.buff, null); assert.equal(completed.resumeCountdown, 0);
-        await page.evaluate(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange')); });
-        await page.waitForFunction(() => __night.snapshot().resumeCountdown > 0);
-        const active = await snapshot(page); assert.equal(active.buff.kind, 'rate'); assert.equal(active.buff.remaining, 60);
+        await page.evaluate(() => { delete document.hidden; document.dispatchEvent(new Event('visibilitychange', { bubbles: true })); });
+        await page.waitForFunction(() => __night.snapshot().buff?.kind === 'rate');
+        const active = await snapshot(page); assert.equal(active.resumeCountdown, 0); assert(active.buff.remaining > 59);
         assert(!active.pendingSupply); assert.equal(await page.evaluate(() => __supportOffers), 1);
+      } else if (mode === 'completed') {
+        assert.equal(completed.homingAmmo, 2); assert(!completed.pendingSupply); assert.equal(completed.buff, null);
       } else {
         assert.equal(completed.modal, 'supply:offer'); assert(completed.supplyMessage.includes('未获得奖励'));
         assert.equal(completed.homingAmmo, 0); assert.equal(completed.buff, null); assert(!completed.pendingSupply);
@@ -57,10 +59,11 @@ try {
       const active = await snapshot(page); assert.equal(active.homingAmmo, 2); assert(!active.pendingSupply);
       assert.equal(await page.evaluate(() => __supportOffers), 0); assert.equal(active.buff, null);
     }
-    assert.equal((await snapshot(page)).resumeCountdown > 0, ['background', 'offline-credit'].includes(mode));
+    const resumed = await snapshot(page);
+    assert.equal(resumed.resumeCountdown, 0); assert.deepEqual(resumed.pauses, []); assert.equal(resumed.modal, '');
     assert.equal((await snapshot(page)).zoomLimit, 10, 'default and stored 5x limits both receive the free 10x view');
-    await page.waitForFunction(() => __night.snapshot().resumeCountdown === 0 && !__night.snapshot().pauses.length);
-    assert((await snapshot(page)).time >= frozenTime); assert.deepEqual((await snapshot(page)).held, []);
+    await page.waitForFunction(time => __night.snapshot().time > time, resumed.time, { timeout: 2000 });
+    assert((await snapshot(page)).time > frozenTime); assert.deepEqual((await snapshot(page)).held, []);
     results.push({ mode, returnedToBattle: true, offers: await page.evaluate(() => __supportOffers) });
     await context.close();
   }
