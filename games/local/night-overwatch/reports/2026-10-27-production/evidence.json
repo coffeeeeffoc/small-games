@@ -1,5 +1,5 @@
 {
-  "verifiedAt": "2026-10-27T12:22:00.957Z",
+  "verifiedAt": "2026-10-27T12:46:56.781Z",
   "applicationSourceSHA": "f2bebd64393e803e464883e47649f17bf6a489d1",
   "runtimeAndKartSourceSHA": "b4f6b64f52359432376979d56520342b310ffdb9",
   "adminRelease": "f2bebd64393e-1793102351708-6e63bd",
@@ -34,14 +34,93 @@
     "logoutRequested": true
   },
   "activation": {
-    "publication": 0,
-    "nightState": "disabled",
-    "productionGameplayVerified": false
+    "publication": 2,
+    "nightState": "enabled",
+    "operatorConfirmedPublication": true,
+    "productionGameplayVerified": true,
+    "verificationMethod": "HTTPS API requests with real server time; no server state or clock modification",
+    "rankedScoreSubmissionVerified": false
   },
   "notVerified": [
-    "administrator login and publication",
-    "production friend and matchmaking gameplay",
-    "physical devices and real rewarded ads",
+    "production browser UI on two physical devices",
+    "production ranked score submission",
+    "native runtimes and real rewarded ads",
+    "online latency/load testing",
     "channel upload and review"
+  ],
+  "deploymentVerifiedAt": "2026-10-27T12:22:00.957Z",
+  "gameplayChecks": [
+    "three unique guest identities, 120 boards, CORS",
+    "friend ready gate, equal units, outsider rejected, actual incendiary shot and fire area, idempotent ammunition debit, illegal supply rejected, leave closes room",
+    "two humans matched",
+    "empty queue server bot after 8 seconds",
+    "level leaderboard readable"
+  ],
+  "gameplayParticipants": 3,
+  "botCompletion": {
+    "time": "2026-10-27T12:45:13.652Z",
+    "api": "https://api.nenggongzhiren.cn/small-games/v1",
+    "realElapsedMs": 89398,
+    "simulationElapsedMs": 85667,
+    "mode": "bot",
+    "winner": 1,
+    "playerUnitsEliminated": 8,
+    "opponentSurvivors": 8,
+    "status": "finished",
+    "rated": false,
+    "resultStableOnRead": true,
+    "postFinishActionRejected": true,
+    "serverClockAltered": false,
+    "serverStateAltered": false
+  },
+  "publishedCorsChecks": [
+    {
+      "prefix": "/small-games/v1",
+      "origin": "http://localhost:8080",
+      "status": 204,
+      "allowed": "http://localhost:8080"
+    },
+    {
+      "prefix": "/small-games/v1",
+      "origin": "https://ma-h5-al.tapimg.com",
+      "status": 204,
+      "allowed": "https://ma-h5-al.tapimg.com"
+    },
+    {
+      "prefix": "/small-games/v1",
+      "origin": "https://coffeeeeffoc.github.io",
+      "status": 204,
+      "allowed": "https://coffeeeeffoc.github.io"
+    },
+    {
+      "prefix": "/small-games/v1",
+      "origin": "https://unlisted.example",
+      "status": 403,
+      "allowed": null
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "origin": "http://localhost:8080",
+      "status": 204,
+      "allowed": "http://localhost:8080"
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "origin": "https://ma-h5-al.tapimg.com",
+      "status": 204,
+      "allowed": "https://ma-h5-al.tapimg.com"
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "origin": "https://coffeeeeffoc.github.io",
+      "status": 204,
+      "allowed": "https://coffeeeeffoc.github.io"
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "origin": "https://unlisted.example",
+      "status": 403,
+      "allowed": null
+    }
   ]
 }

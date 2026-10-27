@@ -1,6 +1,6 @@
 # 夜航守望：战斗、排行榜与对战验证
 
-2026-10-27；现役 Creator 3.8.8 Web/mobile 制品源码身份 `42e8d6ca394a60cdc9a267aa4c7a7bca111339011e6e8d1dfcf0514be9842ba3`，已验证 [dev 独立入口](https://coffeeeeffoc.github.io/small-games/dev/games/night-overwatch/index.html)。代码已提交推送 dev，CI、Pages 与云服务器部署已完成；夜航控制台状态仍为 disabled，尚未完成生产对局验收或渠道提审。
+2026-10-27；现役 Creator 3.8.8 Web/mobile 制品源码身份 `42e8d6ca394a60cdc9a267aa4c7a7bca111339011e6e8d1dfcf0514be9842ba3`，已验证 [dev 独立入口](https://coffeeeeffoc.github.io/small-games/dev/games/night-overwatch/index.html)。代码已提交推送 dev，CI、Pages 与云服务器部署已完成；夜航已开放，生产HTTP对战流程和机器人完整结算已验收；尚未进行生产浏览器双端交互、真机或渠道提审。
 
 下述双端联机截图与宣传实录使用此前的素材录制构建 `81fcef6ad4597f0226928251154cf319d4d142b113dbf1d11b65f3547502bad3`（8,383,584 字节）。录制证据保留原始身份，不改标为现役制品。
 
@@ -50,6 +50,10 @@ Creator已经成功编译、安装入口并写出最终dist；最后写大小报
 
 公网 `/health` 返回200；两个API前缀 `/small-games/v1` 和 `/api/competition/v1` 均验证匿名玩家唯一UUID与随机昵称、120个关卡榜元数据、榜单读取、未认证匹配请求401以及Pages来源CORS。没有向生产榜单写入测试分数。
 
-当前控制配置 publication=0，夜航仍为 disabled。需管理员亲自登录控制台：先在公共配置保留 `http://localhost:8080`、`https://ma-h5-al.tapimg.com`、`https://coffeeeeffoc.github.io` 三个公共 API Origins 并发布，再仅将夜航设为“开放”并发布。尚未获得这次人工发布完成结果，生产好友房、真人匹配、机器人和成绩提交流程不记为通过。
+管理员已完成公共配置和夜航开放两次发布，数据库只读确认 publication=2、夜航 enabled。三个既有来源 `http://localhost:8080`、`https://ma-h5-al.tapimg.com`、`https://coffeeeeffoc.github.io` 在两个API前缀均返回204并匹配允许来源；未登记来源返回403。
 
-尚未验证实体手机、原生运行、真实奖励广告库存、线上延迟与压力；未完成管理员真实GitHub登录、夜航开放发布与生产完整对局；未执行渠道上传。没有实现直接攻击对方战机。
+生产HTTPS实测使用三个独立匿名玩家：好友建房／加入／双方准备、每方8单位、房间外玩家403、实际燃烧弹与落地火区、重复动作不重复扣弹、非法补给422、退房终止、两人真人匹配及空队列8秒机器人回退均通过。
+
+另开仅测试玩家和服务器机器人的独立对局，按真实时间轮询至完整结算：模拟用时85667毫秒，实际验证耗时89398毫秒，测试方8单位全部被击毁、机器人8单位存活，winner=1、status=finished。重复读取结果一致，结算后开火返回409；未修改服务器状态或时间。本局rated=false，没有产生排行榜成绩。证据均在上述生产报告中。
+
+尚未验证生产浏览器双端交互、实体手机、原生运行、真实奖励广告库存、线上延迟与压力；生产排行榜成绩提交未验收，已有隔离PostgreSQL真实回放验收。未执行渠道上传。没有实现直接攻击对方战机。
