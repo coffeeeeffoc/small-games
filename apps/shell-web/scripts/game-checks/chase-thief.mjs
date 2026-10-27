@@ -40,8 +40,27 @@ export async function assertChaseGameplay(frame, mobile = false) {
   ]) {
     await tapControl(frame, 'start', mobile);
     await expect.poll(async () => (await snapshot(frame))?.distance).toBeGreaterThan(0);
-    await tapControl(frame, id, mobile);
-    await expect.poll(async () => (await snapshot(frame))?.[key]).toBe(value);
+    const observed = await frame.locator('#GameCanvas').evaluateHandle(
+      (_, { key, value }) => {
+        const before = globalThis.__chase.snapshot().inputCount;
+        const result = { seen: false, frame: 0 };
+        const sample = () => {
+          const state = globalThis.__chase.snapshot();
+          result.seen ||= state.inputCount > before && state[key] === value;
+          if (!result.seen) result.frame = requestAnimationFrame(sample);
+        };
+        result.frame = requestAnimationFrame(sample);
+        return result;
+      },
+      { key, value },
+    );
+    try {
+      await tapControl(frame, id, mobile);
+      await expect.poll(() => observed.evaluate((state) => state.seen)).toBe(true);
+    } finally {
+      await observed.evaluate((state) => cancelAnimationFrame(state.frame));
+      await observed.dispose();
+    }
     if (id === 'jump') await expect.poll(async () => (await snapshot(frame))?.action).toBe('run');
     await tapControl(frame, 'pause', mobile);
     await expect.poll(async () => (await snapshot(frame))?.screen).toBe('paused');
