@@ -42,17 +42,29 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
         assert(await page.getByRole('button', { name: '保存草稿', exact: true }).isDisabled());
       }
       await origins.fill('https://new.example:8443');
+      assert.equal(fixture.state.snapshot.games['night-overwatch'], 'disabled');
       await activate(page.getByRole('button', { name: '保存草稿', exact: true }));
       await page.getByText('草稿已保存，尚未发布', { exact: true }).waitFor();
       assert.equal(fixture.writes.length, 1);
+      assert.equal(fixture.writes[0].body.snapshot.games['night-overwatch'], 'disabled');
       await page.getByRole('button', { name: '发布此草稿', exact: true }).click();
       await page.getByRole('button', { name: '确认发布', exact: true }).click();
       await page.getByText('当前版本 3', { exact: true }).waitFor();
       assert.equal(fixture.writes.length, 2);
+      assert.equal(fixture.state.snapshot.games['night-overwatch'], 'disabled');
       await page.getByRole('link', { name: '游戏状态', exact: true }).click();
       await page.getByRole('heading', { name: '游戏状态', exact: true }).waitFor();
+      await activate(page.getByRole('combobox', { name: 'night-overwatch 状态', exact: true }));
+      await page
+        .locator('.ant-select-dropdown:visible .ant-select-item-option')
+        .filter({ hasText: /^开放$/ })
+        .click();
+      await page.locator('.ant-select-dropdown:visible').waitFor({ state: 'hidden' });
       await activate(page.getByRole('combobox', { name: 'cops-robbers 状态', exact: true }));
-      await page.locator('.ant-select-item-option').filter({ hasText: '停止新局' }).click();
+      await page
+        .locator('.ant-select-dropdown:visible .ant-select-item-option')
+        .filter({ hasText: '停止新局' })
+        .click();
       await page.getByRole('textbox', { name: '变更理由', exact: true }).fill('drain game');
       if (diagnostic)
         console.log(
@@ -88,7 +100,13 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       await page.getByRole('button', { name: '保存草稿', exact: true }).click();
       await page.getByText('草稿已保存，尚未发布', { exact: true }).waitFor();
       assert.equal(fixture.writes.at(-1).body.snapshot.games['cops-robbers'], 'draining');
-      assert.equal(Object.keys(fixture.writes.at(-1).body.snapshot.games).length, 11);
+      assert.equal(Object.keys(fixture.writes.at(-1).body.snapshot.games).length, 12);
+      assert.equal(fixture.writes.at(-1).body.snapshot.games['night-overwatch'], 'enabled');
+      assert.equal(fixture.state.snapshot.games['night-overwatch'], 'disabled');
+      await page.getByRole('button', { name: '发布此草稿', exact: true }).click();
+      await page.getByRole('button', { name: '确认发布', exact: true }).click();
+      await page.getByText('当前版本 4', { exact: true }).waitFor();
+      assert.equal(fixture.state.snapshot.games['night-overwatch'], 'enabled');
       assert(
         await page.getByText('tianxia-chalu · 独立服务，尚未纳管', { exact: true }).isVisible(),
       );
@@ -111,7 +129,7 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
         .click();
       await page.getByRole('textbox', { name: '回退理由', exact: true }).fill('fixture rollback');
       await page.getByRole('button', { name: '确认回退', exact: true }).click();
-      await page.getByText('当前版本 4', { exact: true }).waitFor();
+      await page.getByText('当前版本 5', { exact: true }).waitFor();
       assert.equal(fixture.writes.at(-1).body.reason, 'fixture rollback');
       for (const [path, title] of [
         ['/members', '成员'],

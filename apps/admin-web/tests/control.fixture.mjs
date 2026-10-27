@@ -22,6 +22,7 @@ export const games = [
   'tower-brake',
   'three-choose-two',
   'carding-car',
+  'night-overwatch',
 ];
 const uuid = (value) => `00000000-0000-4000-8000-${String(value).padStart(12, '0')}`;
 const clone = (value) => structuredClone(value);
@@ -29,7 +30,9 @@ const clone = (value) => structuredClone(value);
 export async function installControlFixture(page, granted = permissions) {
   const snapshot = {
     apiOrigins: ['https://game.example'],
-    games: Object.fromEntries(games.map((id) => [id, 'enabled'])),
+    games: Object.fromEntries(
+      games.map((id) => [id, id === 'night-overwatch' ? 'disabled' : 'enabled']),
+    ),
   };
   const revision = (number, publishedVersion, data = snapshot) => ({
     id: uuid(number),
@@ -56,7 +59,12 @@ export async function installControlFixture(page, granted = permissions) {
       snapshot: clone(snapshot),
       digest: 'a'.repeat(64),
       status: 'observed',
-      policies: games.map((gameId) => ({ gameId, state: 'enabled', killEpoch: 0, revision: 2 })),
+      policies: games.map((gameId) => ({
+        gameId,
+        state: snapshot.games[gameId],
+        killEpoch: 0,
+        revision: 2,
+      })),
       observations: [
         {
           consumer: 'runtime',

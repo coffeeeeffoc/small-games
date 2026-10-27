@@ -1,5 +1,5 @@
 {
-  "testedAt": "2026-10-17T05:02:41.382Z",
+  "testedAt": "2026-10-27T03:24:31.210Z",
   "node": "v24.21.0",
   "platform": "win32",
   "caddy": {
@@ -12,10 +12,10 @@
   "realGithubLoginVerified": false,
   "realDeviceVerified": false,
   "sourceHashes": {
-    "scripts/admin-csp.mjs": "940aa2ba8caa47dc26239c0fc570731054072e8c13af78c09c9a374ec372f255",
-    "scripts/admin-caddy-fixture.mjs": "1c066ef310881a6eca05bebec8288ddcf9d69bddde102b392e8d81ba40183f3d",
-    "scripts/admin-caddy-fixture.test.mjs": "c04edddaefa420c50842e6e07dc22dc6d9ea8fa5dca6f6b346f0a257a6338522",
-    "scripts/competition-ingress.mjs": "d09cb06be322e545a26594da02d8d9eba2b517d70c159f89207b0b34a07d64c2"
+    "scripts/admin-csp.mjs": "3e0645c541d3849c0c92b1b73c042c0f30e0ce42ca533988c122c3ea9d41f4b6",
+    "scripts/admin-caddy-fixture.mjs": "c29db791898db586337357dad7f2eb226e61141d968bd80d725d7fccabc8b68b",
+    "scripts/admin-caddy-fixture.test.mjs": "dd1110061c0172345e1ad15564c3d938f5bad26017248bf42409060570711e14",
+    "scripts/competition-ingress.mjs": "87b284eddc5d92c4ad83231f4cf31e415dea55533201c9b88f502062977ff827"
   },
   "checks": [
     "eight-finite-documents-and-403",
