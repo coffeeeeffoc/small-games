@@ -28,12 +28,11 @@ try {
     const page = await browser.newPage({ viewport: { width, height }, hasTouch: touch, isMobile: touch });
     page.on('pageerror', e => errors.push(e.message));
     const capture = async name => page.screenshot({ path: fileURLToPath(new URL(`${width}-${name}.png`, dir)) });
-    const countdown = async () => {
+    const immediate = async () => {
       const before = await snapshot(page);
-      assert(before.resumeCountdown > 2 && before.resumeCountdown <= 3);
-      await page.waitForTimeout(250);
-      assert.equal((await snapshot(page)).time, before.time);
-      await page.waitForFunction(() => __night.snapshot().resumeCountdown === 0 && !__night.snapshot().pauses.length);
+      assert.equal(before.resumeCountdown, 0); assert.deepEqual(before.pauses, []); assert.equal(before.modal, '');
+      assert.deepEqual(before.held, []);
+      await page.waitForFunction(time => __night.snapshot().time > time, before.time, { timeout: 2000 });
     };
     const supply = async () => {
       const ammo = (await snapshot(page)).homingAmmo;
@@ -42,7 +41,7 @@ try {
       assert.equal((await snapshot(page)).homingAmmo, ammo + 2);
       assert.equal((await snapshot(page)).pendingSupply, false);
       assert.equal((await snapshot(page)).homingSelected, true);
-      await countdown();
+      await immediate();
     };
     await page.goto(base);
     await page.waitForFunction(() => globalThis.__night && !document.getElementById('night-startup'));
@@ -61,7 +60,7 @@ try {
     assert.equal((await snapshot(page)).homingAmmo, 2);
     assert.equal((await snapshot(page)).pendingSupply, false);
     assert.equal((await snapshot(page)).homingSelected, true);
-    await countdown();
+    await immediate();
     assert.deepEqual((await snapshot(page)).held, []);
     await press(page, 'zoomControls', touch);
     for (const limit of [20, 40, 80, 160]) {
@@ -71,7 +70,7 @@ try {
       if (limit === 20) await capture('mock-zoom-20');
       await press(page, 'adClose', touch);
       assert.equal((await snapshot(page)).zoomLimit, limit);
-      await countdown();
+      await immediate();
     }
     await press(page, 'zoomUpgrade', touch);
     assert(!(await snapshot(page)).advert, 'maximum tier never offers another ad');

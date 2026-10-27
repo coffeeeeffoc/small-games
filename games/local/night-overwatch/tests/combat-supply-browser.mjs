@@ -95,23 +95,13 @@ async function frozen(page, label, duration = 220) {
   assert.deepEqual(combat(await snapshot(page)), combat(before), `${label}: full simulation freeze`);
   return before;
 }
-async function countdown(page, capture) {
-  const start = await snapshot(page), digits = new Set();
-  assert(start.resumeCountdown > 2 && start.resumeCountdown <= 3, 'countdown restarts at three');
-  const deadline = Date.now() + 12000;
-  while (Date.now() < deadline) {
-    const s = await snapshot(page);
-    if (!s.resumeCountdown) break;
-    digits.add(Math.ceil(s.resumeCountdown));
-    assert.deepEqual(combat(s), combat(start), 'countdown freezes all combat including buff duration');
-    assert.deepEqual(s.held, []);
-    if (capture && digits.size === 1) { await capture('countdown'); capture = undefined; }
-    await page.waitForTimeout(120);
-  }
-  assert.deepEqual([...digits], [3, 2, 1]);
-  const end = await snapshot(page);
-  assert.equal(end.resumeCountdown, 0); assert.deepEqual(end.pauses, []);
-  assert.equal(end.phase, 'playing');
+async function immediate(page, capture) {
+  const start = await snapshot(page);
+  assert.equal(start.resumeCountdown, 0); assert.deepEqual(start.pauses, []);
+  assert.equal(start.modal, ''); assert.equal(start.phase, 'playing');
+  assert.deepEqual(start.held, []);
+  if (capture) await capture('immediate-reward');
+  await page.waitForFunction(time => __night.snapshot().time > time, start.time, { timeout: 2000 });
 }
 async function earn({ page, press }, kind = 'ammo') {
   const before = await snapshot(page);
@@ -122,7 +112,7 @@ async function earn({ page, press }, kind = 'ammo') {
   assert.equal(claimed.pendingSupply, false);
   assert.equal(claimed.homingAmmo, before.homingAmmo + (kind === 'ammo' ? 2 : 0));
   if (kind !== 'ammo') assert.equal(claimed.buff.kind, kind);
-  assert(claimed.resumeCountdown > 2);
+  assert.equal(claimed.resumeCountdown, 0); assert.deepEqual(claimed.pauses, []); assert.equal(claimed.modal, '');
 }
 async function aim({ page, tap }, target) {
   const map = (await snapshot(page)).ui.minimap;
@@ -149,7 +139,7 @@ try {
     let s = await snapshot(page);
     assert.equal(s.homingAmmo, 2); assert.equal(s.pendingSupply, false); assert.equal(s.buff, null);
     assert.equal(s.homingSelected, true); assert.equal(s.fired, held.fired, 'activation never auto-fires');
-    await countdown(page, capture);
+    await immediate(page, capture);
     await press('pause'); await press('home'); await page.reload(); await ready(page);
     assert.equal((await snapshot(page)).pendingSupply, false, 'consumed entitlement stays consumed');
     assert.equal((await snapshot(page)).homingAmmo, 2);
@@ -159,33 +149,31 @@ try {
     const kind = width === 568 ? 'rate' : 'tracking';
     await earn(ui, kind);
     s = await snapshot(page);
-    assert.deepEqual(s.buff, { kind, remaining: 60 }); assert.equal(s.homingAmmo, 2);
+    assert.equal(s.buff.kind, kind); assert(s.buff.remaining > 59 && s.buff.remaining <= 60); assert.equal(s.homingAmmo, 2);
     assert.equal(s.pendingSupply, false);
     if (width === 390) {
-      const frozenBattle = combat(s);
       // Playwright forces tab focus; exercise the real visibility handler through the approved boundary fixture.
       const hidden = await page.evaluate(async () => {
         const descriptor = Object.getOwnPropertyDescriptor(document, 'hidden');
         try {
           Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
-          document.dispatchEvent(new Event('visibilitychange'));
+          document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
           const before = __night.snapshot();
           await new Promise(resolve => setTimeout(resolve, 500));
           return { before, after: __night.snapshot() };
         } finally {
           if (descriptor) Object.defineProperty(document, 'hidden', descriptor);
           else delete document.hidden;
-          document.dispatchEvent(new Event('visibilitychange'));
+          document.dispatchEvent(new Event('visibilitychange', { bubbles: true }));
         }
       });
       assert(hidden.before.pauses.includes('background')); assert.equal(hidden.before.resumeCountdown, 0);
-      assert.deepEqual(combat(hidden.before), frozenBattle); assert.deepEqual(combat(hidden.after), frozenBattle);
-      await page.waitForFunction(() => !document.hidden && __night.snapshot().modal === 'pause');
-      s = await frozen(page, 'background interrupted countdown');
-      assert.equal(s.resumeCountdown, 0); assert.deepEqual(combat(s), frozenBattle);
-      await capture('background-pause'); await press('resume');
+      assert.deepEqual(combat(hidden.after), combat(hidden.before), 'background freezes the active reward');
+      await page.waitForFunction(() => !document.hidden && __night.snapshot().modal === '');
+      assert.equal((await snapshot(page)).resumeCountdown, 0);
+      await capture('background-resumed');
     }
-    await countdown(page, capture);
+    await immediate(page, capture);
     const buffStarted = (await snapshot(page)).time;
     await press('zoomControls');
     if ((await snapshot(page)).buttons.some(b => b.id === 'zoomUpgrade')) await press('zoomUpgrade');
@@ -194,7 +182,7 @@ try {
     if ((await snapshot(page)).buttons.some(b => b.id === 'supplyWatch')) await press('supplyWatch');
     s = await frozen(page, 'buff blocks supply and freezes buff time');
     assert(!s.advert); assert.equal(s.pendingSupply, false); assert.equal(s.buff.kind, kind);
-    await capture(`${kind}-blocked`); await press('supplyLater'); await countdown(page);
+    await capture(`${kind}-blocked`); await press('supplyLater'); await immediate(page);
     await press('weapon0');
     const target = (await snapshot(page)).units.find(u => !u.friendly && u.hp > 0);
     await aim(ui, target);
@@ -231,13 +219,13 @@ try {
       expiry = { time: s.time, elapsed: s.time - buffStarted };
       await capture('expired'); await press('supply'); await press('supplyWatch');
       assert.equal((await snapshot(page)).advert?.mock, true, 'advertising reopens after expiry');
-      await press('adCancel'); await press('supplyLater'); await countdown(page); await press('pause');
+      await press('adCancel'); await press('supplyLater'); await immediate(page); await press('pause');
     } else await press('pause');
     await press('home'); await press('start');
     assert.equal((await snapshot(page)).buff, null, 'timed buff does not survive a new mission');
     assert.equal((await snapshot(page)).homingAmmo, 2);
     report.results.push({ width, height, touch: true, fullFreeze: true, inventoryRefresh: true, oneOfThree: true,
-      inventory: 2, buff: kind, expiry, backgroundCountdown: width === 390,
+      inventory: 2, buff: kind, expiry, backgroundImmediateResume: width === 390,
       lifecycleBoundarySimulated: width === 390, realTabLifecycle: false });
     await page.close();
   }
@@ -254,15 +242,15 @@ try {
     if (outcome === 'duplicate') {
       assert.equal(s.pendingSupply, false);
       assert.equal((await snapshot(page)).homingAmmo, 2);
-      await countdown(page);
+      await immediate(page);
       assert.equal((await snapshot(page)).homingAmmo, 2, 'duplicate completion cannot grant twice');
       await press('zoomControls'); await press('zoomUpgrade');
       await page.waitForFunction(() => !__night.snapshot().advert);
       assert.equal((await snapshot(page)).zoomLimit, 20);
-      await countdown(page);
+      await immediate(page);
     } else {
       assert.equal(s.pendingSupply, false); assert.equal(s.modal, 'supply:offer');
-      await frozen(page, `${outcome} recovery`); await capture('failure'); await press('supplyLater'); await countdown(page);
+      await frozen(page, `${outcome} recovery`); await capture('failure'); await press('supplyLater'); await immediate(page);
       await press('zoomControls'); await press('zoomUpgrade');
       await page.waitForFunction(() => !__night.snapshot().advert);
       s = await snapshot(page);

@@ -139,6 +139,13 @@ test('HUD: real urgent targets avoid convoy, supply and zoom controls on small s
     assert(!hud.labels.get('priorityMarker').node.active);
     hud.zoomOpen = false; hud.toolsOpen = true; hud.update(sim, world);
     assert(!priority.label.node.activeInHierarchy); assert(!hud.labels.get('priorityMarker').node.active);
+    sim.pause('settings', false); hud.toolsOpen = false;
+    sim.pause('advert', true); hud.advert = { kind: 'supply', mock: false }; hud.update(sim, world);
+    hud.advert = undefined; sim.pause('advert', false); hud.update(sim, world);
+    assert.equal(hud.modalKey, '', 'returning from an ad has no overlay hiding the battlefield');
+    assert(hud.labels.get('priorityMarker').node.active, 'red priority marker returns on the first battle frame');
+    assert(hud.marks.calls.some((call: any) => call.op === 'stroke' && call.color === '#ff525b'),
+      'enemy markers are drawn again without advancing the simulation');
   }
 });
 
