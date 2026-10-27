@@ -774,8 +774,11 @@ test('coordination jobs gain normal registration gates if they start building so
   ]) {
     const original = await f.read(location);
     for (const command of [
+      'pnpm build',
+      'pnpm run build',
       'pnpm build:pages',
       'pnpm --filter @fixture/mini-front build',
+      'pnpm --filter @fixture/mini-front run build',
       'node scripts/ci-validation.mjs --stage core',
     ]) {
       const workflow = yaml.load(original);

@@ -327,8 +327,8 @@ export async function auditGameConfig(root = ROOT, { artifacts = false, meta = t
       if (name === 'pages' && jobLocation === location && id === 'deploy') continue;
       const jobRun = commands({ jobs: { current: job } });
       const buildsSources =
-        /\bpnpm (?:build:|games:(?:build|test)|android:|ios:)/.test(jobRun) ||
-        /\bpnpm --filter \S+ (?:build|test|typecheck)\b/.test(jobRun) ||
+        /\bpnpm (?:run )?(?:build\b|build:|games:(?:build|test)|android:|ios:)/.test(jobRun) ||
+        /\bpnpm --filter \S+ (?:run )?(?:build|test|typecheck)\b/.test(jobRun) ||
         executed(jobRun, 'node scripts/run-pages-game-tests.mjs') ||
         executed(jobRun, 'node scripts/ci-validation.mjs');
       // Scheduling and source-verified artifact transfer do not compile games.
