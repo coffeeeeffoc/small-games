@@ -519,7 +519,9 @@ export class TianxiaBattle extends Component {
     this.drag = null;
     this.activeTouch = null;
     this.suppressTouches = true;
-    const [a, b] = [...this.touches.values()].slice(0, 2).map((p) => this.eventClient(p));
+    const [a, b] = Array.from(this.touches.values())
+      .slice(0, 2)
+      .map((p) => this.eventClient(p));
     if (!a || !b) return;
     const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     if (!this.insideBoard(a) || !this.insideBoard(b)) return;
@@ -553,7 +555,9 @@ export class TianxiaBattle extends Component {
     if (!this.touches.has(id)) return;
     this.touches.set(id, { x: p.x, y: p.y });
     if (this.pinch && this.touches.size >= 2) {
-      const [a, b] = [...this.touches.values()].slice(0, 2).map((q) => this.eventClient(q));
+      const [a, b] = Array.from(this.touches.values())
+        .slice(0, 2)
+        .map((q) => this.eventClient(q));
       this.zoomAt(
         (this.pinch.zoom * Math.hypot(a.x - b.x, a.y - b.y)) / this.pinch.distance,
         this.pinch.anchor,
