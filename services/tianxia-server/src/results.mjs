@@ -2,6 +2,57 @@ import { mkdir, open, readdir, readFile, rename, rm, stat } from 'node:fs/promis
 import path from 'node:path';
 
 const UUID = /^[a-f0-9-]{36}$/;
+const HASH = /^[a-f0-9]{64}$/;
+
+function validRecord(record, matchId) {
+  if (
+    !record ||
+    record.matchId !== matchId ||
+    !HASH.test(record.tokenHash ?? '') ||
+    !Number.isFinite(record.finishedAt) ||
+    !record.result
+  )
+    return false;
+  if (record.version !== 2) return record.version === 1;
+  if (
+    !['pve', 'matched'].includes(record.mode) ||
+    !Array.isArray(record.seats) ||
+    record.seats.length !== (record.mode === 'matched' ? 2 : 1)
+  )
+    return false;
+  const factions = new Set(),
+    players = new Set();
+  for (const seat of record.seats) {
+    if (
+      !seat ||
+      !HASH.test(seat.tokenHash ?? '') ||
+      !Number.isInteger(seat.factionId) ||
+      seat.factionId < 0 ||
+      seat.factionId > 3 ||
+      factions.has(seat.factionId)
+    )
+      return false;
+    if (
+      seat.playerId !== null &&
+      (typeof seat.playerId !== 'string' || !UUID.test(seat.playerId) || players.has(seat.playerId))
+    )
+      return false;
+    const result = seat.result;
+    if (
+      !result ||
+      !['victory', 'defeat', 'draw'].includes(result.outcome) ||
+      typeof result.completed !== 'boolean' ||
+      typeof result.reason !== 'string' ||
+      !Number.isFinite(result.elapsed) ||
+      result.elapsed < 0 ||
+      !Array.isArray(result.rankings)
+    )
+      return false;
+    factions.add(seat.factionId);
+    if (seat.playerId !== null) players.add(seat.playerId);
+  }
+  return record.seats[0].tokenHash === record.tokenHash;
+}
 
 // Only server-generated terminal records enter this store. No live match is restored.
 export class ResultStore {
@@ -27,14 +78,7 @@ export class ResultStore {
         // Treat corrupted or oversized records as unavailable instead of blocking startup.
         if ((await stat(fullPath)).size > 64 * 1024) throw new Error('Oversized result');
         const record = JSON.parse(await readFile(fullPath, 'utf8'));
-        if (
-          record.matchId === filename.slice(0, -5) &&
-          typeof record.tokenHash === 'string' &&
-          /^[a-f0-9]{64}$/.test(record.tokenHash) &&
-          Number.isFinite(record.finishedAt) &&
-          record.result
-        )
-          this.records.set(record.matchId, record);
+        if (validRecord(record, filename.slice(0, -5))) this.records.set(record.matchId, record);
         else throw new Error('Invalid result');
       } catch {
         // A damaged private record must never become an authenticated result.

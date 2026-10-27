@@ -1,0 +1,20 @@
+{
+  "environment": "Real Creator artifact; current shared Shell consumer function exercised in a desktop iframe and direct phone touch viewport",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "bcae28758ed2c77051020fef14e788d99251cf46ca968efffa59dbad9908468b"
+  },
+  "checks": [
+    {
+      "mode": "iframe-mouse-1280x900",
+      "passed": true
+    },
+    {
+      "mode": "direct-touch-390x844",
+      "passed": true
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

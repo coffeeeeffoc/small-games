@@ -1,0 +1,208 @@
+{
+  "environment": "Production Cocos Creator 3.8.8 web-mobile; desktop Chromium mobile/touch emulation, not a physical device",
+  "checks": [
+    {
+      "name": "Home, 100-level catalogue and zero-troop preparation use actual Cocos art",
+      "passed": true,
+      "durationMs": 2120,
+      "maps": 100,
+      "initial": [
+        {
+          "id": "redgate",
+          "owner": 1,
+          "troops": 0
+        },
+        {
+          "id": "westford",
+          "owner": null,
+          "troops": 0
+        },
+        {
+          "id": "eastford",
+          "owner": null,
+          "troops": 0
+        },
+        {
+          "id": "bluegate",
+          "owner": 0,
+          "troops": 0
+        }
+      ],
+      "creator": "3.8.8",
+      "artReady": true
+    },
+    {
+      "name": "Tap and drag orders, hold, gesture cancellation and multitouch preserve intentions",
+      "passed": true,
+      "durationMs": 8724,
+      "gestureChecks": [
+        "select",
+        "tap-target",
+        "hold",
+        "departed route fixed",
+        "drag preview",
+        "touchcancel",
+        "multitouch",
+        "drag commit"
+      ]
+    },
+    {
+      "name": "Captured-city relay, additive drag routes and per-arrow cancellation preserve other orders",
+      "passed": true,
+      "durationMs": 15871,
+      "relay": true,
+      "additiveDrag": true,
+      "idempotentRoute": true,
+      "singleRouteCancellation": true,
+      "doubleTapIsolation": true
+    },
+    {
+      "name": "Military intelligence and surrender confirmation keep the battle clock running",
+      "passed": true,
+      "durationMs": 9403,
+      "intelligenceRuns": true,
+      "confirmationRuns": true,
+      "cancelPreservesMatch": true,
+      "confirmedSurrender": true
+    },
+    {
+      "name": "Zoom, map overview, hover and pinch preserve touch coordinates without accidental orders",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: mouse wheel zooms into the map\n    at file:///workspace/small-games/games/local/tianxia-chalu/tests/browser.mjs:628:7\n    at async check (file:///workspace/small-games/games/local/tianxia-chalu/tests/browser.mjs:263:21)\n    at async file:///workspace/small-games/games/local/tianxia-chalu/tests/browser.mjs:537:3"
+    },
+    {
+      "name": "Real touch pilot wins, persists unlock and grants one free card; an injected ad upgrades only that card",
+      "passed": true,
+      "durationMs": 48713,
+      "seed": 3,
+      "touchCommands": 9,
+      "result": {
+        "completed": true,
+        "rewardEligible": true,
+        "levelId": "crossroads",
+        "seed": 3,
+        "outcome": "victory",
+        "winnerId": 0,
+        "reason": "elimination",
+        "elapsed": 30.6,
+        "score": 4063,
+        "stars": 3,
+        "rankings": [
+          {
+            "factionId": 0,
+            "cities": 4,
+            "troops": 63,
+            "generals": 0,
+            "score": 4063,
+            "eliminatedAt": null,
+            "alive": true,
+            "rank": 1
+          },
+          {
+            "factionId": 1,
+            "cities": 0,
+            "troops": 0,
+            "generals": 0,
+            "score": 0,
+            "eliminatedAt": 30.6,
+            "alive": false,
+            "rank": 2
+          }
+        ]
+      },
+      "adEvidence": "Injected host provider only; no live SDK advertisement",
+      "freeCard": {
+        "id": "reward:a28ce676-22ae-4c8d-accb-c423cb201ca5",
+        "kind": "rate",
+        "tier": 1,
+        "duration": "single",
+        "expiresAt": 0
+      },
+      "upgraded": {
+        "id": "reward:a28ce676-22ae-4c8d-accb-c423cb201ca5",
+        "kind": "rate",
+        "tier": 2,
+        "duration": "single",
+        "expiresAt": 0
+      }
+    },
+    {
+      "name": "Offline PVE progression remains visible when an unrelated online career is cached",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n92 !== 100\n\n    at file:///workspace/small-games/games/local/tianxia-chalu/tests/browser.mjs:847:14\n    at async check (file:///workspace/small-games/games/local/tianxia-chalu/tests/browser.mjs:263:21)\n    at async file:///workspace/small-games/games/local/tianxia-chalu/tests/browser.mjs:785:3"
+    },
+    {
+      "name": "Small portrait, landscape and restored portrait retain canvas coordinates, 44px controls and match time",
+      "passed": true,
+      "durationMs": 9070,
+      "checks": [
+        {
+          "viewport": {
+            "width": 320,
+            "height": 568
+          },
+          "time": 1.1,
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 568
+          }
+        },
+        {
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "time": 3,
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 844,
+            "height": 390
+          }
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "time": 4.9,
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          }
+        }
+      ]
+    },
+    {
+      "name": "Local backgrounding avoids catch-up and blocked storage remains playable without pause controls",
+      "passed": true,
+      "durationMs": 8381,
+      "background": "simulated visibility event",
+      "fullscreen": "no controls or automatic entry",
+      "storage": "SecurityError getter; play continued"
+    },
+    {
+      "name": "Coordinate input waits for a real Creator map and rejects unavailable maps",
+      "passed": true,
+      "durationMs": 2165,
+      "delayedCreatorFrameMs": 600,
+      "unavailableMapsRejected": [
+        "home",
+        "unprojected prepare"
+      ]
+    }
+  ],
+  "errors": [],
+  "passed": false,
+  "filter": "^(?!Leaving|Ordinary|Developer|Equipped|Daily)",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "fca2416ac3f663f219b0bd0cef9ca2d9b94aacbda4d62966d6aaefa747c9003f"
+  },
+  "browser": "140.0.7339.186"
+}

@@ -1,0 +1,109 @@
+{
+  "date": "2026-10-28",
+  "environment": "Chromium 140.0.7339.186; 540x1168 viewport at DPR 1.5, real Creator 3.8.8 build; no clock/seed/battle/reward fixtures",
+  "sourceHash": "bcae28758ed2c77051020fef14e788d99251cf46ca968efffa59dbad9908468b",
+  "files": [
+    {
+      "path": "gameplay/screenshots/continuous-orders/map-810x1752.png",
+      "bytes": 1322683,
+      "sha256": "47a858c89b7708ad3a99ed9fc506c3fc45873583042e9d5153fee5bb3d61f62a",
+      "width": 810,
+      "height": 1752,
+      "mode": "RGB"
+    },
+    {
+      "path": "gameplay/screenshots/continuous-orders/levels-810x1752.png",
+      "bytes": 309498,
+      "sha256": "c51284b005ab7da179e262a9ef7846f086988378fe9ac8cd364b9e84ba275598",
+      "width": 810,
+      "height": 1752,
+      "mode": "RGB"
+    },
+    {
+      "path": "gameplay/screenshots/continuous-orders/records-810x1752.png",
+      "bytes": 197815,
+      "sha256": "33ac32f782ea2639b019ec15b1c1762c313d2604b8d1bba95d8c20ea4ac687a3",
+      "width": 810,
+      "height": 1752,
+      "mode": "RGB"
+    },
+    {
+      "path": "gameplay/screenshots/continuous-orders/city-810x1752.png",
+      "bytes": 899354,
+      "sha256": "73a2150ae0155969e48519ce4c358ee803b045ecb925e46358457d8d5de7455e",
+      "width": 810,
+      "height": 1752,
+      "mode": "RGB"
+    },
+    {
+      "path": "gameplay/screenshots/continuous-orders/return-confirm-810x1752.png",
+      "bytes": 1006234,
+      "sha256": "b575ce425b147e06b51df3509c63208afa6f2b58a7b363c20b8dc5dbedbeb39d",
+      "width": 810,
+      "height": 1752,
+      "mode": "RGB"
+    },
+    {
+      "path": "gameplay/screenshots/continuous-orders/home-810x1752.png",
+      "bytes": 1852890,
+      "sha256": "2841778d876a3aaac2467e4d6aeb7a936771856daf91ab3edfa56ca7831fe510",
+      "width": 810,
+      "height": 1752,
+      "mode": "RGB"
+    },
+    {
+      "path": "gameplay/screenshots/continuous-orders/multi-route-810x1752.png",
+      "bytes": 1403264,
+      "sha256": "3575b4e32e686582dd8117edbc5eb9b60d03ea744b97977217fea9be9f0cc0a6",
+      "width": 810,
+      "height": 1752,
+      "mode": "RGB"
+    },
+    {
+      "path": "gameplay/screenshots/continuous-orders/cancel-route-810x1752.png",
+      "bytes": 1326270,
+      "sha256": "2e42a9ce69e895acbac0b58f185f21a61003e930af52e699b234b72d0cc41f8a",
+      "width": 810,
+      "height": 1752,
+      "mode": "RGB"
+    },
+    {
+      "path": "gameplay/videos/continuous-orders/duochengling-540x1168.mp4",
+      "bytes": 1816941,
+      "sha256": "ea5c8a04abff28f7540ff16d1056921406b34f752495ae68eb5626ccabcd00fb",
+      "width": 540,
+      "height": 1168,
+      "codec": "h264",
+      "duration": 50.76,
+      "audio": false,
+      "fullDecode": "passed"
+    },
+    {
+      "path": "promo/videos/continuous-orders/duochengling-preview-540x1168.mp4",
+      "bytes": 616135,
+      "sha256": "644d4ec1f74b48202ceb52d927b1897e020d76e74c1d38e1b58cfb28badd2903",
+      "width": 540,
+      "height": 1168,
+      "codec": "h264",
+      "duration": 24.0,
+      "audio": false,
+      "fullDecode": "passed"
+    },
+    {
+      "path": "promo/images/continuous-orders/home-810x1752.png",
+      "bytes": 1852890,
+      "sha256": "2841778d876a3aaac2467e4d6aeb7a936771856daf91ab3edfa56ca7831fe510",
+      "width": 810,
+      "height": 1752,
+      "mode": "RGB"
+    },
+    {
+      "path": "icon/duochengling-opaque.png",
+      "bytes": 1957709,
+      "sha256": "e80a7d516a9480ec7c24022adb31c87cd4e505650d99a6cfecf97899f48a310d",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGB"
+    }
+  ]
+}

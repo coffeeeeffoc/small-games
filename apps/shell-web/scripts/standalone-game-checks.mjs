@@ -376,7 +376,9 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       )
       .toBe(true);
     const state = await snapshot();
-    const city = state.cities.find((entry) => entry.owner === 0 && entry.client);
+    const city = state.cities.find(
+      (entry) => entry.owner === (state.playerFactionId ?? 0) && entry.client,
+    );
     expect(city).toBeTruthy();
     const junction = state.junctions.find((entry) => entry.cityId === city.id);
     expect(junction).toBeTruthy();
@@ -398,18 +400,31 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     if (mobile) await page.touchscreen.tap(targetX, targetY);
     else await page.mouse.click(targetX, targetY);
     await expect
-      .poll(
-        async () =>
-          (await snapshot()).junctions.find((entry) => entry.id === junction.id).routeIndex,
-      )
-      .toBe(0);
+      .poll(async () => {
+        const current = (await snapshot()).junctions.find((entry) => entry.id === junction.id);
+        return current.routeIndices ?? (current.routeIndex < 0 ? [] : [current.routeIndex]);
+      })
+      .toEqual([0]);
     await expect.poll(async () => (await snapshot()).selected).toBe(null);
-    await click(frame.locator('#pause'));
-    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'pause');
-    await click(frame.locator('#resume'));
+    await expect(frame.locator('#pause')).toHaveCount(0);
+    await click(frame.locator('#battle-back'));
+    await expect(frame.locator('#exit-confirm')).toBeVisible();
+    await expect(frame.locator('#exit-confirm')).toContainText('投降并退出');
+    const confirming = await snapshot();
+    expect(confirming.inputBlocked).toBe(true);
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'battle');
-    await click(frame.locator('#pause'));
-    await click(frame.locator('#leave'));
+    await expect.poll(async () => (await snapshot()).time).toBeGreaterThan(confirming.time);
+    await click(frame.locator('#keep-battling'));
+    await expect(frame.locator('#exit-confirm')).toHaveCount(0);
+    await expect(frame.locator('body')).toHaveAttribute('data-screen', 'battle');
+    const continued = await snapshot();
+    expect(continued.levelId).toBe(state.levelId);
+    expect(continued.inputBlocked).toBe(false);
+    expect(continued.exitConfirm).toBe(false);
+    const current = continued.junctions.find((entry) => entry.id === junction.id);
+    expect(current.routeIndices ?? [current.routeIndex]).toContain(0);
+    await click(frame.locator('#battle-back'));
+    await click(frame.locator('#surrender'));
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'home');
     await expect(frame.locator('#start')).toBeVisible();
   } else if (id === 'tetracube') {

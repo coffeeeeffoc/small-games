@@ -1,0 +1,27 @@
+✔ human matching is idempotent; private seats independently own and sequence multi-route commands (173.036973ms)
+✔ server rank and win-rate filters widen gradually and reject client rating claims (62.590914ms)
+✔ waiting never invents a bot; cancellation is idempotent and absent queue entries expire (23.203003ms)
+✔ surrender records both players once, promotes the winner, and survives authenticated restart (44.163424ms)
+✔ real fixed-step timeout grants normal victory/defeat experience by seat (956.577358ms)
+✔ one disconnected seat forfeits after grace while a present opponent keeps playing (50.877737ms)
+✔ profile persistence failures stay unconfirmed and committed results replay exactly once on startup (37.245882ms)
+✔ associated PVE gives smaller authoritative experience and rejects concurrent sessions (62.780859ms)
+✔ corrupted v2 seats are discarded before startup replay without losing player identities (15.628703ms)
+✔ API validates creation, rejects forged scores/invalid seeds and protects every match operation (148.319883ms)
+✔ authoritative route commands enforce ownership, cooldown, order and idempotent retries (72.59202ms)
+✔ PVE creation accepts bounded loadout and seed for exact retries, without asserting card ownership (70.797809ms)
+✔ server advances only fixed 100 ms steps, pause freezes time and resume does not jump (30.395361ms)
+✔ fixed simulation computes final results and authenticated reports survive process restart (170.250651ms)
+✔ abandon is terminal; inactive matches expire and free bounded capacity after retention (39.800731ms)
+✔ disk failure never claims a durable result (17.261854ms)
+✔ HTTP rejects hostile origins, invalid and excessive bodies; creation rate is bounded (131.716406ms)
+✔ static game assets stay inside the built application, including with dev query (12.217611ms)
+✔ result storage applies bounded retention and record capacity (4.277886ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1665.467485

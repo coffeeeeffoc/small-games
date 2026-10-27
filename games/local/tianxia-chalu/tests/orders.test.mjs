@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createMapInput, createOrderQueue, planOrder, nearestRoad } from '../src/input/orders.mjs';
+import {
+  createMapInput,
+  createOrderQueue,
+  planOrder,
+  nearestRoad,
+  activeRoutes,
+} from '../src/input/orders.mjs';
 import { RemoteMatch } from '../remote.mjs';
 
 function map() {
@@ -31,7 +37,21 @@ function map() {
 }
 const j = (state, id) => state.junctions.find((j) => j.cityId === id);
 const route = (state, from, to) => {
-  j(state, from).routeIndex = to == null ? -1 : j(state, from).exits.indexOf(to);
+  const entry = j(state, from);
+  entry.routeIndex = to == null ? -1 : entry.exits.indexOf(to);
+  entry.routeIndices = entry.routeIndex < 0 ? [] : [entry.routeIndex];
+};
+const applyCommand = (state, command) => {
+  const entry = command.junctionId
+    ? state.junctions.find((entry) => entry.id === command.junctionId)
+    : j(state, command.sourceId);
+  const index = command.index ?? command.routeIndex;
+  const routes = new Set(activeRoutes(entry));
+  if (index < 0) routes.clear();
+  else if (command.enabled === false) routes.delete(index);
+  else routes.add(index);
+  entry.routeIndices = [...routes];
+  entry.routeIndex = entry.routeIndices[0] ?? -1;
 };
 function harness() {
   const state = map(),
@@ -221,17 +241,17 @@ test('friendly line cycles off→forward→reverse→off; unrelated lines surviv
     intent = { kind: 'road', a: 'A', b: 'B' };
   route(state, 'B', 'C');
   const apply = () => {
-    for (const c of planOrder(state, intent)) j(state, c.sourceId).routeIndex = c.index;
+    for (const c of planOrder(state, intent)) applyCommand(state, c);
   };
   apply();
   assert.equal(j(state, 'A').routeIndex, 0);
   assert.equal(j(state, 'B').routeIndex, 1);
   apply();
   assert.equal(j(state, 'A').routeIndex, -1);
-  assert.equal(j(state, 'B').routeIndex, 0);
+  assert.deepEqual(j(state, 'B').routeIndices, [1, 0]);
   route(state, 'A', 'D');
   apply();
-  assert.equal(j(state, 'B').routeIndex, -1);
+  assert.deepEqual(j(state, 'B').routeIndices, [1]);
   assert.equal(j(state, 'A').routeIndex, 1);
 });
 test('one-owned endpoint toggles outbound only and never changes enemy commands', () => {
@@ -244,8 +264,9 @@ test('one-owned endpoint toggles outbound only and never changes enemy commands'
   route(state, 'B', 'C');
   assert.deepEqual(
     planOrder(state, intent).map((c) => [c.sourceId, c.index]),
-    [['B', -1]],
+    [['B', 1]],
   );
+  assert.equal(planOrder(state, intent)[0].enabled, false);
   assert.throws(() => planOrder(state, { kind: 'route', sourceId: 'C', targetId: 'B' }), /不属于/);
 });
 test('direct reverse cancels only the opposite friendly route; nonadjacent orders fail', () => {
@@ -273,7 +294,7 @@ test('slow remote acknowledgements serialize independent commands without droppi
       await new Promise((r) => {
         release = r;
       });
-      j(state, command.sourceId).routeIndex = command.index;
+      applyCommand(state, command);
     },
   });
   queue.push({ kind: 'route', sourceId: 'B', targetId: 'C' });
@@ -300,18 +321,18 @@ test('rapid road clicks use acknowledged state, not an old network snapshot', as
     read: () => ({ state, enabled: true }),
     send: async (c) => {
       sent.push(c);
-      j(state, c.sourceId).routeIndex = c.index;
+      applyCommand(state, c);
     },
   });
   for (let i = 0; i < 3; i++) queue.push({ kind: 'road', a: 'A', b: 'B' });
   await queue.idle();
   assert.deepEqual(
-    sent.map((c) => [c.sourceId, c.index]),
+    sent.map((c) => [c.sourceId, c.index, c.enabled]),
     [
-      ['A', 0],
-      ['A', -1],
-      ['B', 0],
-      ['B', -1],
+      ['A', 0, true],
+      ['A', 0, false],
+      ['B', 0, true],
+      ['B', 0, false],
     ],
   );
 });
@@ -329,7 +350,7 @@ test('cooldown is retried, identical commands are idempotent, cancellation disca
     send: async (c) => {
       sent.push(c);
       if (sent.length === 1) return { ok: false, reason: 'cooldown' };
-      j(state, c.sourceId).routeIndex = c.index;
+      applyCommand(state, c);
     },
   });
   queue.push({ kind: 'route', sourceId: 'A', targetId: 'D' });
@@ -366,7 +387,7 @@ test('ownership changes and definitive failures do not poison later orders', asy
     send: async (c) => {
       sent.push(c);
       if (c.sourceId === 'A') throw new Error('rejected');
-      j(state, c.sourceId).routeIndex = c.index;
+      applyCommand(state, c);
     },
   });
   queue.push({ kind: 'route', sourceId: 'A', targetId: 'D' });
@@ -410,7 +431,7 @@ test('a captured opposite endpoint cannot cancel a valid attack during cooldown 
     send: async (c) => {
       sent.push(c);
       if (c.sourceId === 'B') return { ok: false, reason: 'cooldown' };
-      j(state, c.sourceId).routeIndex = c.index;
+      applyCommand(state, c);
     },
   });
   queue.push({ kind: 'route', sourceId: 'A', targetId: 'B' });
@@ -437,7 +458,7 @@ test('a server ownership rejection for auxiliary stop still allows the primary a
       sent.push(c);
       if (c.sourceId === 'B')
         throw Object.assign(new Error('not owner'), { code: 'not-owner', rejected: true });
-      j(state, c.sourceId).routeIndex = c.index;
+      applyCommand(state, c);
     },
   });
   await queue.push({ kind: 'route', sourceId: 'A', targetId: 'B' });
@@ -505,8 +526,7 @@ async function remoteQueue(reply, state = map()) {
         const rejected = await reply(command, requests.length);
         if (rejected) return rejected;
         assert.equal(command.sequence, sequence + 1);
-        state.junctions.find((value) => value.id === command.junctionId).routeIndex =
-          command.routeIndex;
+        applyCommand(state, command);
         sequence = command.sequence;
         revision++;
         return response({ accepted: true, snapshot: snapshot() });
@@ -518,7 +538,7 @@ async function remoteQueue(reply, state = map()) {
   await client.start('crossroads', 'normal');
   queue = createOrderQueue({
     read: () => ({ state: client.snapshot.state, enabled: true }),
-    send: (command) => client.route(command.junctionId, command.index),
+    send: (command) => client.route(command.junctionId, command.index, command.enabled),
     schedule: (fn, ms) => {
       timers.set(fn, fn);
       delays.push(ms);
@@ -616,7 +636,7 @@ test('a completed auxiliary stop is retained when the primary switch exhausts co
   assert.deepEqual(
     h.requests.map((c) => [c.junctionId, c.routeIndex, c.sequence]),
     [
-      ['B-switch', -1, 1],
+      ['B-switch', 0, 1],
       ...Array.from({ length: 6 }, () => ['A-switch', 0, 2]),
       ['B-switch', 1, 2],
     ],
@@ -670,6 +690,39 @@ test('uncertain responses including a 503 cooldown code preserve the exact pendi
       assert.deepEqual(h.requests[1], h.requests[0]);
       assert.equal(h.client.pending, null);
       await h.queue.push({ kind: 'route', sourceId: 'B', targetId: 'C' });
-      assert.deepEqual(h.requests[2], { junctionId: 'B-switch', sequence: 2, routeIndex: 1 });
+      assert.deepEqual(h.requests[2], {
+        junctionId: 'B-switch',
+        sequence: 2,
+        routeIndex: 1,
+        enabled: true,
+      });
     });
+});
+
+test('adding and cancelling one target preserves all other targets and duplicate orders are idempotent', async () => {
+  const state = map(),
+    sent = [];
+  const queue = createOrderQueue({
+    read: () => ({ state, enabled: true }),
+    send: async (command) => {
+      sent.push(command);
+      applyCommand(state, command);
+    },
+  });
+  await queue.push({ kind: 'route', sourceId: 'A', targetId: 'B' });
+  await queue.push({ kind: 'route', sourceId: 'A', targetId: 'D' });
+  await queue.push({ kind: 'route', sourceId: 'A', targetId: 'B' });
+  assert.deepEqual(j(state, 'A').routeIndices, [0, 1]);
+  assert.equal(sent.length, 2);
+  await queue.push({ kind: 'cancel-route', sourceId: 'A', targetId: 'B' });
+  assert.deepEqual(j(state, 'A').routeIndices, [1]);
+  await queue.push({ kind: 'cancel-route', sourceId: 'A', targetId: 'B' });
+  assert.equal(sent.length, 3);
+});
+
+test('second matched seat can command its own cities and cannot command the first seat', () => {
+  const state = map();
+  state.playerFactionId = 1;
+  assert.equal(planOrder(state, { kind: 'route', sourceId: 'C', targetId: 'B' })[0].enabled, true);
+  assert.throws(() => planOrder(state, { kind: 'route', sourceId: 'A', targetId: 'B' }), /不属于/);
 });

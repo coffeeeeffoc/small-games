@@ -7,15 +7,22 @@ import {
   createMatch,
   tick,
   switchRoute,
+  setRoute,
   getLevel,
   getScore,
   getUnlockedLevels,
   applyResult,
   effectSources,
 } from './src/core/index.mjs';
-import { createMapInput, createOrderQueue } from './src/input/orders.mjs';
+import {
+  normalizeCareer,
+  getRank,
+  applyCareerResult,
+  careerWinRate,
+} from './src/core/progression.mjs';
+import { createMapInput, createOrderQueue, activeRoutes } from './src/input/orders.mjs';
 import { readSave, writeSave } from './storage.mjs';
-import { RemoteMatch, normalizeServer } from './remote.mjs';
+import { RemoteMatch, RemotePlayer, normalizeServer } from './remote.mjs';
 import { createAudio } from './audio.mjs';
 import {
   TIERS,
@@ -76,12 +83,25 @@ let lastFrame = 0,
   startedCards = [],
   adBusy = false,
   adEpoch = 0,
-  backgrounded = false;
+  backgrounded = false,
+  matched = false,
+  playerClient = null,
+  queueTimer = null,
+  queueBusy = false,
+  queueRequest = null,
+  queueEpoch = 0,
+  exitConfirm = false,
+  connectionLost = false,
+  careerReward = null,
+  resultSyncBusy = null;
+const queueMemberships = new Map();
 const debug =
   globalThis.SmallGamesDev?.enabled === true || globalThis.SmallGamesDev?.isEnabled?.() === true;
 const audio = createAudio(() => save.settings);
-const pauseIcon =
-  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+const playerFaction = () => state?.playerFactionId ?? 0;
+const canOrder = () =>
+  ['battle', 'prepare'].includes(screen) && !starting && !exitConfirm && !connectionLost;
+const isLiveScreen = () => ['battle', 'intel', 'reconnect'].includes(screen);
 globalThis.Tianxia = {
   state: null,
   screen,
@@ -91,10 +111,14 @@ globalThis.Tianxia = {
   ready: false,
   artReady: false,
   pointer,
+  inputBlocked: false,
+  cancelRoute: (sourceId, targetId) => {
+    if (canOrder()) orders.push({ kind: 'cancel-route', sourceId, targetId });
+  },
 };
 const bridge = globalThis.Tianxia;
 const orders = createOrderQueue({
-  read: () => ({ state, enabled: ['battle', 'prepare'].includes(screen) && !starting }),
+  read: () => ({ state, enabled: canOrder() }),
   send: sendOrder,
   changed: (count) => {
     queuedOrders = count;
@@ -106,7 +130,7 @@ const orders = createOrderQueue({
   failed: (error) => {
     toast(error.message);
     if (remote && error.code && !error.rejected && screen === 'battle')
-      void pause('连接中断，继续时重连并确认军令。');
+      connectionFailure('连接中断，正在重新确认军令…');
   },
 });
 const mapInput = createMapInput({
@@ -114,12 +138,13 @@ const mapInput = createMapInput({
     state,
     selected,
     scale: bridge.layout?.scale ?? 1,
-    enabled: ['battle', 'prepare'].includes(screen) && !starting,
+    enabled: canOrder(),
   }),
   select: (id) => {
     selected = id;
     bridge.selected = id;
-    if (state?.cities.find((c) => c.id === id)?.owner === 0) tutorialSeen.add('select');
+    if (state?.cities.find((c) => c.id === id)?.owner === playerFaction())
+      tutorialSeen.add('select');
     updateHud();
     updateTutorial();
   },
@@ -196,6 +221,8 @@ function cancelUpgrade() {
 }
 function show(next, html) {
   if (next !== screen) cancelUpgrade();
+  exitConfirm = false;
+  bridge.inputBlocked = connectionLost;
   cancelInput();
   screen = next;
   bridge.screen = next;
@@ -205,7 +232,7 @@ function show(next, html) {
   lastFrame = 0;
   document.body.dataset.screen = next;
   $('game').innerHTML = html;
-  const playing = ['battle', 'prepare', 'intel', 'pause', 'result'].includes(next);
+  const playing = ['battle', 'prepare', 'intel', 'reconnect', 'result'].includes(next);
   try {
     if (parent !== window)
       parent.postMessage(
@@ -256,6 +283,311 @@ function nextLevel() {
     LEVELS[0]
   );
 }
+function serviceOrigin() {
+  const origin =
+    save.settings.serverUrl || (location.pathname.startsWith('/play') ? location.origin : '');
+  try {
+    return origin ? normalizeServer(origin) : '';
+  } catch {
+    return '';
+  }
+}
+function careerSource() {
+  return remote || matched || save.settings.online ? 'online' : 'local';
+}
+function currentCareer(source = careerSource()) {
+  return normalizeCareer(
+    source === 'online' ? save.onlineProfile?.[serviceOrigin()]?.career : save.career,
+  );
+}
+function rankCard(career, id, source = careerSource()) {
+  const rank = getRank(career.xp),
+    rate = careerWinRate(career, source === 'online' ? 'matched' : 'pve');
+  return (
+    '<button id="' +
+    id +
+    '" class="rank-summary"><span class="rank-seal" aria-hidden="true">令</span><span><strong>' +
+    esc(rank.name) +
+    '</strong><span class="xp-track"><i style="width:' +
+    Math.round(rank.progress * 100) +
+    '%"></i></span><small>' +
+    (source === 'online' ? '在线军衔 · ' : '本机军衔 · ') +
+    (rank.level === rank.maxLevel
+      ? '已达最高军衔'
+      : '经验 ' + rank.levelXp + ' / ' + rank.nextLevelXp) +
+    '</small></span><span class="rank-win"><small>' +
+    (source === 'online' ? '匹配胜率' : '人机胜率') +
+    '</small><b>' +
+    (rate === null ? '—' : Math.round(rate * 100) + '%') +
+    '</b></span></button>'
+  );
+}
+function storeProfile(client, profile) {
+  if (!profile) return;
+  save.onlineProfile ??= {};
+  save.onlineProfile[client.origin] = profile;
+  persist();
+}
+async function connectPlayer() {
+  const origin = serviceOrigin();
+  if (!origin) throw new Error('先在设置中填写对局服务地址，再寻找同服玩家');
+  if (!playerClient || playerClient.origin !== origin)
+    playerClient = new RemotePlayer(origin, save.onlineIdentity?.[origin]);
+  const client = playerClient;
+  const data = await client.connect();
+  save.onlineIdentity ??= {};
+  save.onlineIdentity[origin] = { playerId: data.playerId, token: data.token };
+  storeProfile(client, data.profile);
+  return client;
+}
+function records(
+  mode = careerSource() === 'online' && save.onlineProfile?.[serviceOrigin()] ? 'online' : 'local',
+) {
+  const profile = save.onlineProfile?.[serviceOrigin()];
+  const career = normalizeCareer(mode === 'online' ? profile?.career : save.career);
+  const rank = getRank(career.xp);
+  page(
+    '战绩与军衔',
+    rankCard(career, 'rank-detail', mode) +
+      '<div class="tabs"><button id="records-local" class="' +
+      (mode === 'local' ? 'active' : '') +
+      '">本机征战</button>' +
+      '<button id="records-online" class="' +
+      (mode === 'online' ? 'active' : '') +
+      '" ' +
+      (!profile ? 'disabled' : '') +
+      '>在线战绩</button></div>' +
+      '<p class="footnote">' +
+      (mode === 'online'
+        ? '按此服务保存的战绩匹配；本机经验不影响在线匹配。'
+        : '本机经验随当前浏览器保存；在线战绩独立记录。') +
+      '</p>' +
+      '<div class="career-stats">' +
+      ['pve', 'matched']
+        .map((key) => {
+          const stats = career[key],
+            rate = careerWinRate(career, key);
+          return (
+            '<article><h3>' +
+            (key === 'pve' ? '人机征战' : '真人匹配') +
+            '</h3><strong>' +
+            (rate === null ? '—' : Math.round(rate * 100) + '%') +
+            '</strong><p>' +
+            stats.games +
+            ' 场 · ' +
+            stats.wins +
+            ' 胜 · ' +
+            stats.losses +
+            ' 负 · ' +
+            stats.draws +
+            ' 平</p></article>'
+          );
+        })
+        .join('') +
+      '</div><p class="footnote">' +
+      (rank.level === rank.maxLevel
+        ? '已达最高军衔'
+        : '再获 ' + (rank.nextLevelXp - rank.levelXp) + ' 经验晋升') +
+      '</p>' +
+      '<h3>近期战绩</h3><div class="career-history">' +
+      (career.recent.length
+        ? career.recent
+            .map(
+              (entry) =>
+                '<article><b class="outcome-' +
+                entry.outcome +
+                '">' +
+                { victory: '胜', defeat: '败', draw: '和' }[entry.outcome] +
+                '</b><span>' +
+                (entry.mode === 'matched' ? '真人匹配' : '人机征战') +
+                '<small>' +
+                time(entry.elapsed) +
+                (entry.reason === 'abandoned' ? ' · 投降' : '') +
+                '</small></span><strong>+' +
+                entry.xp +
+                ' 经验</strong></article>',
+            )
+            .join('')
+        : '<p class="empty-state">出征后，战绩将在这里留下。</p>') +
+      '</div>',
+  );
+  on('records-local', () => records('local'));
+  on('records-online', () => records('online'));
+  on('rank-detail', () => {
+    toast('新卒 → 伍长 → 什长 → 百夫长 → 校尉 → 都尉 → 将军 → 统帅 → 传说；每阶五级');
+  });
+}
+function membershipKey(client = playerClient) {
+  return client?.token ? client.origin + '\0' + client.token : null;
+}
+function queueMembership(client = playerClient) {
+  return queueMemberships.get(membershipKey(client)) ?? 'none';
+}
+function setQueueMembership(client, membership) {
+  const key = membershipKey(client);
+  if (key) queueMemberships.set(key, membership);
+}
+function acceptQueueStatus(client, data) {
+  if (!['idle', 'waiting', 'matched'].includes(data?.status))
+    throw new Error('匹配状态无法确认，请重试连接');
+  setQueueMembership(
+    client,
+    data.status === 'waiting' ? 'waiting' : data.status === 'idle' ? 'none' : 'uncertain',
+  );
+}
+async function matchmaking() {
+  const origin = serviceOrigin();
+  if (!origin) {
+    page(
+      '真人匹配',
+      '<div class="matchmaking-page"><div class="match-seal">战</div><h3>与同服玩家争夺山河</h3><p>先连接对局服务，再按军衔与胜率寻找对手。</p>' +
+        button('match-settings', '设置服务地址', true) +
+        '</div>',
+    );
+    on('match-settings', settings);
+    return;
+  }
+  const epoch = ++queueEpoch;
+  clearTimeout(queueTimer);
+  show(
+    'matchmaking',
+    '<section class="screen"><header class="page-heading">' +
+      button('cancel-match', '返回') +
+      '<h2>真人匹配</h2><span></span></header><div class="matchmaking-page"><div class="match-seal searching">战</div>' +
+      '<h3 id="match-title">正在连接军营</h3><p id="match-status" role="status">读取军衔与胜率…</p>' +
+      rankCard(currentCareer('online'), 'matching-rank', 'online') +
+      '<p class="footnote">优先匹配实力相近的真人玩家。等待越久，范围逐步扩大；无人时不会以人机替代。</p>' +
+      button('match-cancel', '取消匹配') +
+      '</div></section>',
+  );
+  $('cancel-match').onclick = cancelMatchmaking;
+  $('match-cancel').onclick = cancelMatchmaking;
+  try {
+    const client = await connectPlayer();
+    if (epoch !== queueEpoch || screen !== 'matchmaking') return;
+    $('matching-rank').outerHTML = rankCard(
+      normalizeCareer(client.profile.career),
+      'matching-rank',
+      'online',
+    );
+    const previousMembership = queueMembership(client);
+    setQueueMembership(client, 'uncertain');
+    queueRequest = client.queue('join').catch((error) => {
+      // A completed rejection cannot have created a new membership. Preserve any older uncertainty.
+      if (error.rejected && previousMembership === 'none') setQueueMembership(client, 'none');
+      throw error;
+    });
+    const data = await queueRequest;
+    acceptQueueStatus(client, data);
+    if (epoch !== queueEpoch || screen !== 'matchmaking') return;
+    if (acceptMatchmaking(data, client)) return;
+    $('match-title').textContent = '寻找实力相近的对手';
+    queueTimer = setTimeout(() => pollMatchmaking(client, epoch), 1200);
+  } catch (error) {
+    if (epoch !== queueEpoch || screen !== 'matchmaking') return;
+    $('match-title').textContent = '暂时无法匹配';
+    $('match-status').textContent = error.message;
+    $('match-cancel').textContent = '重试连接';
+    $('match-cancel').onclick = () => matchmaking();
+    if (error.status === 401) {
+      const recovery = document.createElement('div');
+      recovery.className = 'identity-recovery';
+      recovery.innerHTML =
+        '<p>在线身份凭证已失效。可重新建立在线档案；旧在线战绩不会迁移，本机进度与其他服务档案会保留。</p>' +
+        button('reset-online-profile', '重新建立在线档案');
+      $('match-status').after(recovery);
+      on('reset-online-profile', () => {
+        delete save.onlineIdentity?.[origin];
+        delete save.onlineProfile?.[origin];
+        playerClient = null;
+        persist();
+        void matchmaking();
+      });
+    }
+  } finally {
+    queueRequest = null;
+  }
+}
+function acceptMatchmaking(data, client) {
+  if (data.status !== 'matched') return false;
+  clearTimeout(queueTimer);
+  queueEpoch++;
+  generation++;
+  const match = new RemoteMatch(client.origin);
+  state = match.join(data).state;
+  setQueueMembership(client, 'none');
+  remote = match;
+  matched = true;
+  practice = false;
+  settled = false;
+  careerReward = null;
+  connectionLost = false;
+  reward = null;
+  selected = range = null;
+  runId = match.id;
+  seed = state.seed;
+  lastEvent = 0;
+  startedCards = [];
+  bridge.setView?.('reset');
+  audio.unlock();
+  battle();
+  toast('对手已就位，你是' + FACTIONS[playerFaction()].name);
+  return true;
+}
+async function pollMatchmaking(client, epoch) {
+  if (queueBusy || epoch !== queueEpoch || screen !== 'matchmaking') return;
+  queueBusy = true;
+  try {
+    queueRequest = client.queue();
+    const data = await queueRequest;
+    acceptQueueStatus(client, data);
+    if (epoch !== queueEpoch || screen !== 'matchmaking') return;
+    if (acceptMatchmaking(data, client)) return;
+    $('match-status').textContent =
+      data.status === 'waiting'
+        ? '已等待 ' + Math.floor(data.waitedSeconds ?? 0) + ' 秒 · 寻找同服真人玩家'
+        : '排队已结束，请重新匹配';
+    if (data.status !== 'waiting') {
+      queueEpoch++;
+      $('match-cancel').textContent = '重新匹配';
+      $('match-cancel').onclick = () => matchmaking();
+      return;
+    }
+  } catch (error) {
+    if (epoch !== queueEpoch || screen !== 'matchmaking') return;
+    $('match-status').textContent = '连接波动，正在重试…';
+  } finally {
+    queueBusy = false;
+    queueRequest = null;
+    if (epoch === queueEpoch && screen === 'matchmaking')
+      queueTimer = setTimeout(() => pollMatchmaking(client, epoch), 1200);
+  }
+}
+async function cancelMatchmaking() {
+  if (screen !== 'matchmaking') return;
+  queueEpoch++;
+  clearTimeout(queueTimer);
+  $('match-status').textContent = '正在取消匹配…';
+  $('match-cancel').disabled = $('cancel-match').disabled = true;
+  const client = playerClient;
+  try {
+    const pendingResult = await queueRequest?.catch(() => null);
+    if (pendingResult) {
+      acceptQueueStatus(client, pendingResult);
+      if (acceptMatchmaking(pendingResult, client)) return;
+    }
+    if (client?.token && queueMembership(client) !== 'none') {
+      const data = await client.queue('cancel');
+      acceptQueueStatus(client, data);
+      if (acceptMatchmaking(data, client)) return;
+      if (data.status !== 'idle') throw new Error('仍在队列中，请再次取消');
+    }
+    home();
+  } catch (error) {
+    $('match-status').textContent = '取消尚未确认：' + error.message;
+    $('match-cancel').disabled = $('cancel-match').disabled = false;
+  }
+}
 function home() {
   generation++;
   commandBusy = false;
@@ -267,6 +599,10 @@ function home() {
   selected = null;
   range = null;
   audio.pause();
+  matched = false;
+  connectionLost = false;
+  clearTimeout(queueTimer);
+  queueEpoch++;
   const next = nextLevel();
   show(
     'home',
@@ -277,12 +613,15 @@ function home() {
       '　' +
       save.completed.length +
       '/100</p>' +
+      rankCard(currentCareer(), 'career-home') +
       button('start', save.completed.length ? '继续征战' : '启程征战', true) +
+      button('matchmaking', '真人匹配') +
       '<div class="home-links">' +
       button('levels', '山河图') +
-      button('codex', '图鉴') +
+      button('records', '战绩') +
       button('armory', '军备') +
       '</div><div class="quiet-links">' +
+      button('codex', '图鉴') +
       button('help', '玩法') +
       button('settings', '设置') +
       '</div></div></section>',
@@ -291,6 +630,9 @@ function home() {
   on('levels', () => levels(next.chapter));
   on('codex', () => codex());
   on('armory', () => armory());
+  on('records', () => records());
+  on('career-home', () => records());
+  on('matchmaking', () => matchmaking());
   on('help', () => help());
   on('settings', settings);
 }
@@ -353,6 +695,10 @@ function prepare(id, trial = false, sameSeed) {
   void remote?.close();
   remote = null;
   practice = trial;
+  matched = false;
+  connectionLost = false;
+  careerReward = null;
+  bridge.setView?.('reset');
   seed = sameSeed ?? newSeed();
   selected = null;
   range = null;
@@ -424,8 +770,8 @@ async function begin() {
   starting = true;
   const token = generation;
   const commands = state.junctions
-    .filter((j) => j.owner === 0 && j.routeIndex >= 0)
-    .map((j) => ({ id: j.id, index: j.routeIndex }));
+    .filter((j) => j.owner === playerFaction())
+    .flatMap((j) => activeRoutes(j).map((index) => ({ id: j.id, index })));
   const validCards = practice ? [] : equippedCards(save.armory).map((c) => ({ ...c }));
   if (JSON.stringify(validCards) !== JSON.stringify(loadout)) {
     loadout = validCards;
@@ -435,7 +781,10 @@ async function begin() {
       difficulty: save.settings.difficulty,
       loadout: loadout.map(({ kind, tier }) => ({ kind, tier })),
     });
-    for (const c of commands) switchRoute(state, 0, c.id, c.index);
+    for (const c of commands) {
+      setRoute(state, playerFaction(), c.id, c.index, true);
+      state.junctions.find((j) => j.id === c.id).lastSwitchTime = -1;
+    }
   }
   const prepared = state;
   $('begin-battle').disabled = true;
@@ -443,17 +792,21 @@ async function begin() {
   startedCards = [];
   try {
     if (save.settings.online && !practice) {
+      const player = await connectPlayer();
+      if (token !== generation) return;
       const client = new RemoteMatch(save.settings.serverUrl || location.origin);
       remote = client;
       state = (
         await client.start(prepared.levelId, save.settings.difficulty, {
           seed,
+          playerToken: player.token,
           loadout: loadout.map(({ kind, tier }) => ({ kind, tier })),
         })
       ).state;
       if (token !== generation || remote !== client) return;
       for (const c of commands) {
-        state = (await client.route(c.id, c.index)).state;
+        state = (await client.route(c.id, c.index, true)).state;
+        await new Promise((resolve) => setTimeout(resolve, 220));
       }
       if (token !== generation || remote !== client) return;
       runId = client.id;
@@ -470,10 +823,8 @@ async function begin() {
       persist();
     }
     discover();
-    if (backgrounded || document.hidden) {
-      screen = 'battle';
-      void pause('已在后台暂停。');
-    } else battle();
+    battle();
+    if (backgrounded || document.hidden) audio.pause();
   } catch (error) {
     if (token === generation) {
       void remote?.close();
@@ -486,35 +837,58 @@ async function begin() {
     if (token === generation) starting = false;
   }
 }
+function viewControls() {
+  return (
+    '<div class="map-controls" aria-label="地图视角">' +
+    '<div class="view-modes"><button id="view-map" aria-label="地图总览">地图</button><button id="view-city" aria-label="城池细节">城池</button></div>' +
+    '<button id="zoom-in" aria-label="放大地图">+</button><button id="zoom-out" aria-label="缩小地图">−</button></div>'
+  );
+}
+function bindViewControls() {
+  for (const [id, action] of [
+    ['view-map', 'map'],
+    ['view-city', 'city'],
+    ['zoom-in', 'in'],
+    ['zoom-out', 'out'],
+  ])
+    on(id, () => {
+      mapInput.cancel();
+      bridge.setView?.(action);
+      updateHud();
+    });
+}
 function battle() {
   const l = getLevel(state.levelId);
   bridge.preview = null;
   show(
     'battle',
-    '<section class="battle-screen"><header class="battle-top"><div><small>第 ' +
-      l.order +
-      ' 战 · ' +
-      (practice ? '开发试玩' : remote ? '服务端对局' : '百战山河') +
+    '<section class="battle-screen"><header class="battle-top">' +
+      button('battle-back', '‹ 返回') +
+      '<div class="battle-title"><small>' +
+      (matched ? '真人匹配' : practice ? '开发试玩' : '第 ' + l.order + ' 战') +
       '</small><h2>' +
       esc(l.name) +
       '</h2></div><strong id="clock">' +
       time(state.duration - state.time) +
-      '</strong><button id="pause" class="icon-button" aria-label="暂停">' +
-      pauseIcon +
-      '</button></header><div id="factions" class="factions"></div><div id="board" role="img" aria-label="城池与行军路线，点击己城再点相邻城下令"></div><p id="battle-message" class="battle-message" role="status"></p><div id="tutorial" class="tutorial" hidden><p id="tutorial-copy"></p>' +
+      '</strong></header><div id="factions" class="factions"></div>' +
+      '<div id="strength" class="strength-bar" aria-label="各方总兵力对比"></div>' +
+      '<div id="board" role="img" aria-label="城池与行军路线，点击或拖拽己城到邻城增加目标，点击箭头叉号撤线"></div>' +
+      viewControls() +
+      '<p id="battle-message" class="battle-message" role="status"></p><div id="tutorial" class="tutorial" hidden><p id="tutorial-copy"></p>' +
       button('skip-tutorial', '跳过') +
-      '</div><footer class="battle-bottom"><div class="selection"><div><strong id="city-info">轻点己城，下达军令</strong><p id="route-name">拖向邻城派兵 · 双击己城屯兵</p></div>' +
+      '</div><footer class="battle-bottom"><div class="selection"><div><strong id="city-info">轻点己城，下达军令</strong><p id="route-name">拖拽连线 · 点 × 撤线</p></div>' +
       button('intel', '军情') +
-      '</div><div id="keyboard-targets" class="sr-only"></div></footer></section>',
+      '</div><div id="keyboard-targets" class="sr-only"></div></footer><div id="connection-status" class="connection-status" hidden role="status"></div></section>',
   );
-  on('pause', () => pause());
-  on('intel', () => openIntel());
+  on('battle-back', confirmExit);
+  on('intel', openIntel);
+  bindViewControls();
   on('skip-tutorial', () => {
     save.tutorials[state.levelId] = true;
     persist();
     updateTutorial();
   });
-  audio.resume();
+  if (!backgrounded) audio.resume();
   updateHud();
   updateTutorial();
 }
@@ -523,7 +897,7 @@ function pointer(phase, p, id) {
 }
 function issue(index) {
   const j = state?.junctions.find((j) => j.cityId === selected);
-  if (!j || j.owner !== 0) return;
+  if (!j || j.owner !== playerFaction()) return;
   const sourceId = selected;
   mapInput.cancel();
   selected = bridge.selected = null;
@@ -534,23 +908,26 @@ function issue(index) {
   );
   updateHud();
 }
-async function sendOrder({ sourceId, junctionId, index }) {
+async function sendOrder({ sourceId, junctionId, index, enabled }) {
   const token = generation,
     client = remote;
   commandBusy = true;
   try {
     if (client) {
-      const snapshot = await client.route(junctionId, index);
+      const snapshot = await client.route(junctionId, index, enabled);
       if (token !== generation || client !== remote) return;
       state = snapshot.state;
     } else {
-      const result = switchRoute(state, 0, junctionId, index);
+      const result =
+        index < 0
+          ? switchRoute(state, playerFaction(), junctionId, index)
+          : setRoute(state, playerFaction(), junctionId, index, enabled ?? true);
       if (!result.ok) return result;
       if (screen === 'prepare')
         state.junctions.find((j) => j.id === junctionId).lastSwitchTime = -1;
     }
     tutorialSeen.add(index === -1 ? 'hold' : 'route');
-    if (sourceId !== state.spawns[0]) tutorialSeen.add('relay');
+    if (sourceId !== state.spawns[playerFaction()]) tutorialSeen.add('relay');
     if (screen === 'prepare') audio.event(index === -1 ? 'hold' : 'switch');
     bridge.state = state;
     updateHud();
@@ -577,8 +954,32 @@ function updateHud() {
   bridge.range = range;
   if (!state) return;
   if ($('clock')) $('clock').textContent = time(state.duration - state.time);
+  const scores = getScore(state);
+  if ($('strength')) {
+    const total = scores.reduce((sum, entry) => sum + entry.troops, 0);
+    $('strength').innerHTML = scores
+      .map(
+        (entry) =>
+          '<i title="' +
+          FACTIONS[entry.factionId].name +
+          ' ' +
+          entry.troops +
+          '兵" style="background:' +
+          FACTIONS[entry.factionId].color +
+          ';flex:' +
+          (total ? Math.max(0.01, entry.troops / total) : 1) +
+          '"></i>',
+      )
+      .join('');
+    $('strength').setAttribute(
+      'aria-label',
+      scores.map((entry) => FACTIONS[entry.factionId].name + entry.troops + '兵').join('，'),
+    );
+  }
+  for (const mode of ['map', 'city'])
+    $('view-' + mode)?.setAttribute('aria-pressed', String(bridge.view?.mode === mode));
   if ($('factions'))
-    $('factions').innerHTML = getScore(state)
+    $('factions').innerHTML = scores
       .map(
         (r) =>
           '<span class="faction" style="--faction:' +
@@ -586,6 +987,7 @@ function updateHud() {
           '"><b>' +
           FACTIONS[r.factionId].shortName +
           '</b> ' +
+          (r.factionId === playerFaction() ? '我方 ' : '') +
           r.cities +
           '城 <small>' +
           r.troops +
@@ -609,14 +1011,17 @@ function updateHud() {
         : '轻点己城，下达军令';
   if ($('route-name'))
     $('route-name').textContent = city
-      ? city.owner === 0
-        ? j.routeIndex === -1
+      ? city.owner === playerFaction()
+        ? activeRoutes(j).length === 0
           ? '正在屯兵，停止新派兵'
-          : '行军 → ' + state.cities.find((c) => c.id === j.exits[j.routeIndex]).name
+          : '派往 ' +
+            activeRoutes(j)
+              .map((index) => state.cities.find((c) => c.id === j.exits[index]).name)
+              .join('、')
         : '非己方城池，可观察城防与兵器'
       : commandBusy || queuedOrders
         ? '军令传达中 · 可继续指挥其他城池'
-        : '拖向邻城派兵 · 双击己城屯兵';
+        : '拖拽连线 · 点 × 撤线 · 双击屯兵';
   if ($('engine-loading'))
     $('engine-loading').textContent =
       bridge.ready && bridge.artReady
@@ -631,7 +1036,7 @@ function updateHud() {
   if (keys && keys.dataset.selected !== (selected ?? '')) {
     keys.dataset.selected = selected ?? '';
     keys.innerHTML =
-      city?.owner === 0
+      city?.owner === playerFaction()
         ? '<button data-target="-1">此城屯兵</button>' +
           j.exits
             .map(
@@ -673,6 +1078,10 @@ const tutorials = [
 ];
 function updateTutorial() {
   if (!$('tutorial') || !state) return;
+  if (matched) {
+    $('tutorial').hidden = true;
+    return;
+  }
   const order = getLevel(state.levelId).order;
   if (order > 4 || save.tutorials[state.levelId]) {
     $('tutorial').hidden = true;
@@ -682,7 +1091,10 @@ function updateTutorial() {
     tutorialStep = tutorialSeen.has('route') ? 2 : tutorialSeen.has('select') ? 1 : 0;
   if (order === 2) {
     if (tutorialSeen.has('hold')) tutorialStep = Math.max(tutorialStep, 1);
-    if (tutorialStep === 1 && state.cities.some((c) => c.owner === 0 && c.troops >= 12))
+    if (
+      tutorialStep === 1 &&
+      state.cities.some((c) => c.owner === playerFaction() && c.troops >= 12)
+    )
       tutorialStep = 2;
   }
   if (order === 3) tutorialStep = state.stats.captured > 0 ? 1 : 0;
@@ -714,131 +1126,131 @@ function discover() {
     }
   };
   state.cities.forEach((c) => {
-    mark('city:' + c.type, c.owner === 0);
-    if (c.weapon) mark('weapon:' + c.weapon.kind, c.owner === 0);
+    mark('city:' + c.type, c.owner === playerFaction());
+    if (c.weapon) mark('weapon:' + c.weapon.kind, c.owner === playerFaction());
     if (c.generalKind) mark('general:' + c.generalKind, false);
   });
-  state.generals.forEach((g) => mark('general:' + g.kind, g.owner === 0));
+  state.generals.forEach((g) => mark('general:' + g.kind, g.owner === playerFaction()));
   if (changed) persist();
 }
-async function stopRemote() {
-  if (!remote) return true;
-  const client = remote;
+function closeExitConfirm() {
+  exitConfirm = false;
+  bridge.inputBlocked = connectionLost;
+  $('exit-confirm')?.remove();
+  $('battle-back')?.focus();
+}
+function confirmExit() {
+  if (!state || state.status !== 'playing' || exitConfirm) return;
+  mapInput.cancel();
+  exitConfirm = true;
+  bridge.inputBlocked = true;
+  const dialog = document.createElement('div');
+  dialog.id = 'exit-confirm';
+  dialog.className = 'confirm-scrim';
+  dialog.innerHTML =
+    '<section class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="exit-title"><h2 id="exit-title">投降并退出？</h2>' +
+    '<p>退出将判为失败，不获得经验。战斗仍在继续。</p><p id="exit-error" role="status"></p><div class="button-stack">' +
+    button('keep-battling', '继续战斗', true) +
+    button('surrender', '投降并退出') +
+    '</div></section>';
+  $('game').appendChild(dialog);
+  on('keep-battling', closeExitConfirm);
+  on('surrender', surrender);
+  dialog.addEventListener('keydown', (event) => {
+    if (event.key !== 'Tab') return;
+    const actions = [...dialog.querySelectorAll('button:not(:disabled)')];
+    if (!actions.length) return;
+    if (event.shiftKey && document.activeElement === actions[0]) {
+      event.preventDefault();
+      actions.at(-1).focus();
+    }
+    if (!event.shiftKey && document.activeElement === actions.at(-1)) {
+      event.preventDefault();
+      actions[0].focus();
+    }
+  });
+  $('keep-battling').focus();
+}
+async function surrender() {
+  if (!exitConfirm || !state) return;
+  $('surrender').disabled = true;
+  const client = remote,
+    token = generation;
   try {
-    const snapshot = await client.action('pause');
-    if (remote !== client) return false;
-    state = snapshot.state;
-    bridge.state = state;
-    return snapshot.paused;
-  } catch {
-    return false;
+    if (client) {
+      state = (await client.action('abandon')).state;
+      if (client !== remote || token !== generation) return;
+      if (playerClient)
+        await client
+          .result()
+          .then((data) => storeProfile(playerClient, data.profile))
+          .catch(() => {});
+    } else if (!practice) {
+      save.career = applyCareerResult(save.career, {
+        id: runId,
+        mode: 'pve',
+        outcome: 'defeat',
+        reason: 'abandoned',
+        elapsed: state.time,
+      }).career;
+      persist();
+    }
+    home();
+  } catch (error) {
+    if (client !== remote || token !== generation || !$('exit-error')) return;
+    $('exit-error').textContent = '退出尚未确认，请重试：' + error.message;
+    $('surrender').disabled = false;
   }
 }
-async function pause(reason = '') {
-  if (!state || !['battle', 'prepare'].includes(screen)) return;
-  if (screen === 'prepare') return home();
-  audio.pause();
-  show(
-    'pause',
-    '<section class="screen pause-page"><p class="eyebrow">暂 歇 战 鼓</p><h2>鸣金暂歇</h2><p id="pause-note">' +
-      (remote ? '正在确认服务端暂停…' : '兵马已停，军令犹在。') +
-      '</p><div class="button-stack">' +
-      button('resume', '继续征战', true) +
-      button('retry', '重试相同布阵') +
-      button('battle-help', '玩法与教学') +
-      button('leave', '返回主页') +
-      '</div><div class="quiet-links">' +
-      button('sound-toggle', save.settings.sound ? '音效：开' : '音效：关') +
-      button('music-toggle', save.settings.music ? '氛围：开' : '氛围：关') +
-      '</div></section>',
-  );
-  on('resume', resume);
-  on('retry', () => prepare(state.levelId, practice, seed));
-  on('leave', home);
-  on('battle-help', () => help(() => pausePage(), true));
-  on('sound-toggle', () => {
-    save.settings.sound = !save.settings.sound;
-    persist();
-    $('sound-toggle').textContent = save.settings.sound ? '音效：开' : '音效：关';
-  });
-  on('music-toggle', () => {
-    save.settings.music = !save.settings.music;
-    persist();
-    $('music-toggle').textContent = save.settings.music ? '氛围：开' : '氛围：关';
-  });
-  $('resume').disabled = !!remote;
-  const token = generation;
-  const paused = await stopRemote();
-  if (token === generation && screen === 'pause') {
-    $('resume').disabled = false;
-    $('pause-note').textContent =
-      (remote
-        ? paused
-          ? '服务端已暂停。'
-          : '尚未确认服务端暂停，请重连；不会假称时间冻结。'
-        : '兵马已停，军令犹在。') + (reason ? ' ' + reason : '');
+function connectionFailure(message) {
+  if (!remote || !isLiveScreen()) return;
+  connectionLost = true;
+  bridge.inputBlocked = true;
+  cancelInput();
+  const status = $('connection-status');
+  if (status) {
+    status.hidden = false;
+    status.textContent = message;
   }
-}
-function pausePage() {
-  screen = 'battle';
-  void pause();
 }
 async function resume() {
   if (!state) return;
-  const client = remote;
-  const token = generation;
-  if ($('resume')) $('resume').disabled = true;
+  const client = remote,
+    token = generation;
   try {
     if (client) {
       state = (await client.poll()).state;
-      if (token !== generation || client !== remote) return;
-      if (state.status === 'finished') {
-        finish();
-        return;
-      }
-      try {
-        state = (await client.action('resume')).state;
-      } catch (error) {
-        if (error.code !== 'match-finished') throw error;
-        state = (await client.poll()).state;
-      }
-      if (token !== generation || client !== remote) return;
+      if (client !== remote || token !== generation) return;
       if (state.status === 'playing' && client.pending)
-        state = (await client.route(client.pending.junctionId, client.pending.routeIndex)).state;
-      if (token !== generation || client !== remote) return;
+        state = (
+          await client.route(
+            client.pending.junctionId,
+            client.pending.routeIndex,
+            client.pending.enabled,
+          )
+        ).state;
+      if (client !== remote || token !== generation) return;
     }
+    connectionLost = false;
+    bridge.inputBlocked = false;
     if (state.status === 'finished') finish();
-    else if (backgrounded || document.hidden) {
-      screen = 'battle';
-      void pause('已在后台暂停。');
-    } else battle();
+    else battle();
   } catch (error) {
+    connectionFailure(error.message);
     toast(error.message);
-    if ($('resume')) $('resume').disabled = false;
   }
 }
 async function openIntel() {
   if (!state) return;
   audio.pause();
   tutorialSeen.add('intel');
-  show(
-    'intel',
-    '<section class="screen document">' +
-      header('本场军情') +
-      '<p class="page-body">正在确认暂停…</p></section>',
-  );
-  on('back', resume);
-  $('back').disabled = !!remote;
-  const token = generation,
-    paused = await stopRemote();
-  if (token !== generation || screen !== 'intel') return;
   const sources = effectSources(state);
   show(
     'intel',
     '<section class="screen document">' +
       header('本场军情') +
       '<div class="page-body"><p class="footnote">' +
-      (!remote || paused ? '对局已暂停' : '服务端暂停未确认，信息可能继续变化') +
+      '战斗仍在继续' +
       ' · 点选来源查看范围</p><div class="intel-list">' +
       sources
         .map(
@@ -1043,7 +1455,7 @@ function armory(back = home) {
 function help(back = home, inBattle = false) {
   page(
     '军令手册',
-    '<div class="help-list"><h3>改道与屯兵</h3><p>点己城选中，再点相邻城派兵；也可直接从己城拖向邻城。下令后自动取消选中，可立即操作其他城池。慢速再次点同城或点空白取消选中；快速双击己城屯兵，仅停止该城的新派兵，入城补给和已出发部队不受影响。重新派兵即可解除屯兵。点击道路在无兵线、正向、反向间循环；仅一端为己方时，在出兵和关闭之间切换。每城同时向一个方向持续派兵，重新指定目标会替换该城旧军令。不能操控敌方城池；道路交叉处不相连，请点连线其他位置。</p><h3>从0兵开始</h3><p>各方驻军和默认留守为0，归属不会因空城自动消失。城池满员停止产兵，援军在城外驻扎，仍可能被攻击。</p><h3>抓住地利</h3><p>兵营产兵快，关隘难攻；驿道快、山路慢。武器各有冷却。点将台稳定占领20秒招募将领，被围攻暂停，易主清零。</p><h3>局部军令</h3><p>「军情」展示各方加成，点来源查看圆形范围。同类取最大值，来源失守、将领退场或部队离圈会失去持续效果。</p><h3>胜负与军备</h3><p>无城、无兵、无将才会被消灭。限时先看存活，再看城数和兵力。结束免费得卡，广告仅将这张卡保证升一级；不观看也能继续征战。</p>' +
+    '<div class="help-list"><h3>改道与屯兵</h3><p>点己城选中，再点相邻城派兵；也可直接从己城拖向邻城。下令后自动取消选中，可立即操作其他城池。慢速再次点同城或点空白取消选中；快速双击己城屯兵，仅停止该城的新派兵，入城补给和已出发部队不受影响。重新派兵即可解除屯兵。每城可同时向多个相邻城持续派兵，新目标不会覆盖已有路线；点击路线上的浅色×只撤销该条路线。兵越多，每波人数越多、波次间隔越短；每波人数有小幅随机变化。不能操控敌方城池；道路交叉处不相连，请点连线其他位置。</p><h3>从0兵开始</h3><p>各方驻军和默认留守为0，归属不会因空城自动消失。城池满员停止产兵，援军在城外驻扎，仍可能被攻击。</p><h3>抓住地利</h3><p>兵营产兵快，关隘难攻；驿道快、山路慢。武器各有冷却。点将台稳定占领20秒招募将领，被围攻暂停，易主清零。</p><h3>局部军令</h3><p>「军情」展示各方加成，点来源查看圆形范围。同类取最大值，来源失守、将领退场或部队离圈会失去持续效果。</p><h3>观察与退出</h3><p>双指或滚轮缩放，拖动空白平移；「地图」看全局，「城池」看士兵和局部战力。返回时需确认投降，确认期间战斗继续。</p><h3>军衔与匹配</h3><p>人机获胜20经验、失败8经验；真人匹配获胜100经验、失败35经验、平局50经验，投降不发经验。经验达标晋升军衔，战绩记录胜率。真人匹配不使用军备卡，无人时持续等待，可随时取消。</p><h3>胜负与军备</h3><p>无城、无兵、无将才会被消灭。限时先看存活，再看城数和兵力。结束免费得卡，广告仅将这张卡保证升一级；不观看也能继续征战。</p>' +
       button('replay-tutorial', '重看前四关教学') +
       '</div>',
     back,
@@ -1066,7 +1478,7 @@ function settings() {
       (save.settings.online ? 'checked' : '') +
       '></label><label class="field">配套服务地址<input id="server-url" type="url" value="' +
       esc(save.settings.serverUrl) +
-      '" placeholder="https://example.com"></label><p class="footnote">两种模式均与AI交战；关闭服务端模式可离线游玩。</p><button class="primary" type="submit">保存设置</button></form>',
+      '" placeholder="https://example.com"></label><p class="footnote">征战为人机对战，可离线游玩。真人匹配使用此地址寻找同服玩家，按等级与胜率匹配。</p><button class="primary" type="submit">保存设置</button></form>',
   );
   $('difficulty').value = save.settings.difficulty;
   $('settings-form').addEventListener('submit', (e) => {
@@ -1106,8 +1518,20 @@ function finish() {
     settled = true;
     audio.event(result.outcome);
     if (!practice) {
-      applyResult(save, result);
-      reward = drawCard(save.armory, result, runId);
+      if (!matched) {
+        applyResult(save, result);
+        reward = drawCard(save.armory, result, runId);
+      }
+      if (!remote) {
+        careerReward = applyCareerResult(save.career, {
+          id: runId,
+          mode: 'pve',
+          outcome: result.outcome,
+          reason: result.reason,
+          elapsed: result.elapsed,
+        });
+        save.career = careerReward.career;
+      }
       discover();
       persist();
     }
@@ -1119,13 +1543,18 @@ function finish() {
         ? '本场已主动退出，不计入奖励。'
         : null;
   const next = LEVELS.find((l) => l.order === getLevel(state.levelId).order + 1),
-    rank = result.rankings.find((r) => r.factionId === 0)?.rank ?? result.rankings.length,
+    rank =
+      result.rankings.find((r) => r.factionId === playerFaction())?.rank ?? result.rankings.length,
     receipt = save.armory.receipts[runId];
   reward = receipt?.card ?? reward;
   show(
     'result',
     '<section class="screen result"><div class="result-heading"><p class="eyebrow">' +
-      (practice ? '开发试玩 · 不计进度' : '第 ' + getLevel(state.levelId).order + ' 战 · 战报') +
+      (practice
+        ? '开发试玩 · 不计进度'
+        : matched
+          ? '真人匹配 · 战报'
+          : '第 ' + getLevel(state.levelId).order + ' 战 · 战报') +
       '</p><div class="result-seal">' +
       ({ victory: '捷', defeat: '憾', draw: '和' }[result.outcome] ?? '终') +
       '</div><h2>' +
@@ -1133,7 +1562,11 @@ function finish() {
         '征战结束') +
       '</h2><p>' +
       (explanation ??
-        '第 ' + rank + ' 名 · ' + time(result.elapsed) + ' · 夺城 ' + state.stats.captured) +
+        '第 ' +
+          rank +
+          ' 名 · ' +
+          time(result.elapsed) +
+          (matched ? '' : ' · 夺城 ' + state.stats.captured)) +
       '</p></div><div class="rank-list">' +
       result.rankings
         .map(
@@ -1144,7 +1577,7 @@ function finish() {
             FACTIONS[r.factionId].color +
             '">' +
             FACTIONS[r.factionId].name +
-            (r.factionId === 0 ? ' · 你' : '') +
+            (r.factionId === playerFaction() ? ' · 你' : '') +
             '</span><span>' +
             r.cities +
             '城 / ' +
@@ -1154,7 +1587,17 @@ function finish() {
             '</span></div>',
         )
         .join('') +
-      '</div>' +
+      '</div><p id="experience-gain" class="experience-gain">' +
+      (practice
+        ? '开发试玩不获取经验'
+        : careerReward
+          ? '+' +
+            careerReward.gained +
+            ' 经验 · ' +
+            careerReward.rank.name +
+            (careerReward.promoted ? ' · 晋升！' : '')
+          : '正在确认军衔经验…') +
+      '</p>' +
       (reward
         ? '<div id="earned-card">' +
           cardHTML(reward) +
@@ -1162,7 +1605,11 @@ function finish() {
           PROBABILITIES[rewardBand(rank, result.rankings.length)].join('/') +
           '%</p>'
         : '<p class="footnote">' +
-          (practice ? '开发试玩不发卡，也不推进关卡。' : '主动退出或失效对局不发卡。') +
+          (practice
+            ? '开发试玩不发卡，也不推进关卡。'
+            : matched
+              ? '真人匹配不使用军备卡，按战果获得经验。'
+              : '主动退出或失效对局不发卡。') +
           '</p>') +
       (provider && reward && reward.tier < 3 && !receipt.upgraded && !practice
         ? button(
@@ -1171,31 +1618,62 @@ function finish() {
           )
         : '') +
       '<div class="result-actions">' +
-      (result.outcome === 'victory' && next && !practice ? button('next', '下一战', true) : '') +
-      button('again', '重试此布阵', result.outcome !== 'victory') +
+      (result.outcome === 'victory' && next && !practice && !matched
+        ? button('next', '下一战', true)
+        : '') +
+      button('again', matched ? '再匹配一局' : '重试此布阵', result.outcome !== 'victory') +
       button('result-home', '返回主页') +
-      '</div><p id="result-sync" class="footnote"></p></section>',
+      '</div><p id="result-sync" class="footnote"></p><button id="retry-result" hidden>重新确认结算</button></section>',
   );
   on('next', () => prepare(next.id));
-  on('again', () => prepare(state.levelId, practice, seed));
+  on('again', () => {
+    if (matched) {
+      void remote?.close();
+      remote = null;
+      state = null;
+      void matchmaking();
+    } else prepare(state.levelId, practice, seed);
+  });
   on('result-home', home);
   on('upgrade-card', upgrade);
-  if (remote) {
-    const client = remote;
-    void client
-      .result()
-      .then((data) => {
-        if (screen === 'result' && client === remote)
-          $('result-sync').textContent = data.persisted
-            ? '服务端战报已保存'
-            : '本次战报未写入服务端';
-      })
-      .catch(() => {
-        if (screen === 'result' && client === remote)
-          $('result-sync').textContent = '服务端保存尚未确认';
-      });
+  on('retry-result', () => syncRemoteResult(remote));
+  if (remote) void syncRemoteResult(remote);
+}
+async function syncRemoteResult(client) {
+  if (!client || resultSyncBusy === client) return;
+  resultSyncBusy = client;
+  if ($('retry-result')) $('retry-result').disabled = true;
+  try {
+    const data = await client.result();
+    if (data.profile && playerClient?.origin === client.origin)
+      storeProfile(playerClient, data.profile);
+    if (screen !== 'result' || client !== remote) return;
+    const paid = data.profile?.career?.settledIds?.includes(client.id);
+    const expired =
+      data.persisted && data.result?.reason === 'expired' && data.result.completed === false;
+    if (paid) {
+      const rank = getRank(data.profile.career.xp);
+      $('experience-gain').textContent =
+        '+' + (data.experienceGained ?? 0) + ' 经验 · ' + rank.name;
+    } else
+      $('experience-gain').textContent = expired ? '对局已失效，本局不获得经验' : '经验结算待确认';
+    $('result-sync').textContent = data.persisted
+      ? '服务端战报已保存'
+      : '服务端战报尚未保存，请重新确认结算';
+    $('retry-result').hidden = Boolean(data.persisted && (paid || expired));
+  } catch {
+    if (screen === 'result' && client === remote) {
+      $('experience-gain').textContent = '经验结算待确认';
+      $('result-sync').textContent = '服务端保存尚未确认';
+      $('retry-result').hidden = false;
+    }
+  } finally {
+    if (resultSyncBusy === client) resultSyncBusy = null;
+    if (screen === 'result' && client === remote && $('retry-result'))
+      $('retry-result').disabled = false;
   }
 }
+
 async function upgrade() {
   if (adBusy || screen !== 'result' || !reward || reward.tier >= 3) return;
   adBusy = true;
@@ -1233,13 +1711,19 @@ function events() {
     lastEvent = event.id;
     let sound = event.type;
     if (event.type === 'capture')
-      sound = event.previousOwner === 0 ? 'lost' : event.factionId === 0 ? 'capture' : null;
-    if (['switch', 'hold'].includes(event.type) && event.factionId !== 0) sound = null;
+      sound =
+        event.previousOwner === playerFaction()
+          ? 'lost'
+          : event.factionId === playerFaction()
+            ? 'capture'
+            : null;
+    if (['switch', 'hold'].includes(event.type) && event.factionId !== playerFaction())
+      sound = null;
     if (sound && !['finished', 'battle'].includes(sound)) audio.event(sound);
     if ($('battle-message') && ['capture', 'general', 'elimination'].includes(event.type))
       $('battle-message').textContent =
         event.type === 'capture'
-          ? (event.factionId === 0 ? '夺下' : '易主：') +
+          ? (event.factionId === playerFaction() ? '夺下' : '易主：') +
             (state.cities.find((c) => c.id === event.cityId)?.name ?? '城池')
           : event.type === 'general'
             ? '将星出阵，留意光环范围'
@@ -1256,18 +1740,37 @@ async function poll() {
     state = snapshot.state;
     bridge.state = state;
     revision = snapshot.revision;
-    if (screen === 'battle') {
+    if (connectionLost && state.status === 'playing' && client.pending) {
+      state = (
+        await client.route(
+          client.pending.junctionId,
+          client.pending.routeIndex,
+          client.pending.enabled,
+        )
+      ).state;
+      if (client !== remote) return;
+      bridge.state = state;
+    }
+    connectionLost = false;
+    bridge.inputBlocked = exitConfirm;
+    if ($('connection-status')) $('connection-status').hidden = true;
+    if (isLiveScreen()) {
       events();
       if (state.status === 'finished') finish();
     }
   } catch {
-    if (client === remote && screen === 'battle') void pause('连接中断，请继续重连。');
+    if (client === remote && isLiveScreen())
+      connectionFailure('连接中断，正在重连；服务端战斗仍在继续。');
   } finally {
     pollBusy = false;
   }
 }
 function frame(now) {
-  if (screen === 'battle' && state?.status === 'playing') {
+  if (
+    isLiveScreen() &&
+    state?.status === 'playing' &&
+    (remote || (!backgrounded && !document.hidden))
+  ) {
     if (remote) {
       if (now - lastPoll > 350) {
         lastPoll = now;
@@ -1301,7 +1804,18 @@ function snapshot() {
     roads: state?.roads,
     duration: state?.duration,
     stats: state?.stats,
-    mode: remote ? 'server' : 'local',
+    mode: matched ? 'matched' : remote ? 'server' : 'local',
+    playerFactionId: playerFaction(),
+    career: currentCareer(),
+    careerSource: careerSource(),
+    localCareer: currentCareer('local'),
+    onlineCareer: save.onlineProfile?.[serviceOrigin()] ? currentCareer('online') : null,
+    queueMembership: queueMembership(),
+    view: bridge.view,
+    routePoints: bridge.routePoints,
+    inputBlocked: bridge.inputBlocked,
+    exitConfirm,
+    connectionLost,
     levelId: state?.levelId,
     time: state?.time,
     seed: state?.seed,
@@ -1341,24 +1855,31 @@ document.addEventListener('visibilitychange', () => {
   cancelInput();
   lastFrame = 0;
   backgrounded = document.hidden;
-  if (document.hidden) {
-    if (screen === 'battle') void pause();
-    audio.pause();
+  if (document.hidden) audio.pause();
+  else if (isLiveScreen()) {
+    audio.resume();
+    if (remote) void poll();
   }
 });
 window.addEventListener('blur', () => {
   backgrounded = true;
   cancelInput();
-  if (screen === 'battle') void pause();
+  lastFrame = 0;
+  audio.pause();
 });
 window.addEventListener('focus', () => {
   backgrounded = document.hidden;
+  lastFrame = 0;
+  if (isLiveScreen()) {
+    audio.resume();
+    if (remote) void poll();
+  }
 });
 window.addEventListener('pagehide', () => {
   cancelInput();
   cancelUpgrade();
   backgrounded = true;
-  if (screen === 'battle') void pause();
+  lastFrame = 0;
   audio.dispose();
   publishing.dispose();
 });
@@ -1367,7 +1888,10 @@ window.addEventListener('pageshow', (event) => {
   if (event.persisted) publishing = newPublishing();
 });
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && screen === 'battle') void pause();
+  if (e.key === 'Escape' && screen === 'battle') {
+    if (exitConfirm) closeExitConfirm();
+    else confirmExit();
+  }
 });
 if (location.pathname.startsWith('/play') && !save.settings.serverUrl) {
   save.settings.serverUrl = location.origin;

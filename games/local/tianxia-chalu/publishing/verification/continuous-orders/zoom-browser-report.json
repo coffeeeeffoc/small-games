@@ -1,0 +1,26 @@
+{
+  "environment": "Production Cocos Creator 3.8.8 web-mobile; desktop Chromium mobile/touch emulation, not a physical device",
+  "checks": [
+    {
+      "name": "Zoom, map overview, hover and pinch preserve touch coordinates without accidental orders",
+      "passed": true,
+      "durationMs": 4931,
+      "hover": true,
+      "zoomedCityInput": true,
+      "overview": true,
+      "pinch": true,
+      "pan": true,
+      "wheel": true,
+      "noAccidentalOrders": true
+    }
+  ],
+  "errors": [],
+  "passed": true,
+  "filter": "^Zoom",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "bcae28758ed2c77051020fef14e788d99251cf46ca968efffa59dbad9908468b"
+  },
+  "browser": "140.0.7339.186"
+}

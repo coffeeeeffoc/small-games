@@ -1,0 +1,284 @@
+{
+  "environment": "Production Cocos Creator 3.8.8 web-mobile; desktop Chromium mobile/touch emulation, not a physical device",
+  "checks": [
+    {
+      "name": "Home, 100-level catalogue and zero-troop preparation use actual Cocos art",
+      "passed": true,
+      "durationMs": 2240,
+      "maps": 100,
+      "initial": [
+        {
+          "id": "redgate",
+          "owner": 1,
+          "troops": 0
+        },
+        {
+          "id": "westford",
+          "owner": null,
+          "troops": 0
+        },
+        {
+          "id": "eastford",
+          "owner": null,
+          "troops": 0
+        },
+        {
+          "id": "bluegate",
+          "owner": 0,
+          "troops": 0
+        }
+      ],
+      "creator": "3.8.8",
+      "artReady": true
+    },
+    {
+      "name": "Tap and drag orders, hold, gesture cancellation and multitouch preserve intentions",
+      "passed": true,
+      "durationMs": 9714,
+      "gestureChecks": [
+        "select",
+        "tap-target",
+        "hold",
+        "departed route fixed",
+        "drag preview",
+        "touchcancel",
+        "multitouch",
+        "drag commit"
+      ]
+    },
+    {
+      "name": "Captured-city relay, additive drag routes and per-arrow cancellation preserve other orders",
+      "passed": true,
+      "durationMs": 16776,
+      "relay": true,
+      "additiveDrag": true,
+      "idempotentRoute": true,
+      "singleRouteCancellation": true,
+      "doubleTapIsolation": true
+    },
+    {
+      "name": "Military intelligence and surrender confirmation keep the battle clock running",
+      "passed": true,
+      "durationMs": 9355,
+      "intelligenceRuns": true,
+      "confirmationRuns": true,
+      "cancelPreservesMatch": true,
+      "confirmedSurrender": true
+    },
+    {
+      "name": "Zoom, map overview, hover and pinch preserve touch coordinates without accidental orders",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: pinching apart zooms in\n    at file:///workspace/small-games/games/local/tianxia-chalu/reports/browser-77.mjs:580:7\n    at async check (file:///workspace/small-games/games/local/tianxia-chalu/reports/browser-77.mjs:262:21)\n    at async file:///workspace/small-games/games/local/tianxia-chalu/reports/browser-77.mjs:536:3"
+    },
+    {
+      "name": "Real touch pilot wins, persists unlock and grants one free card; an injected ad upgrades only that card",
+      "passed": true,
+      "durationMs": 50647,
+      "seed": 3,
+      "touchCommands": 9,
+      "result": {
+        "completed": true,
+        "rewardEligible": true,
+        "levelId": "crossroads",
+        "seed": 3,
+        "outcome": "victory",
+        "winnerId": 0,
+        "reason": "elimination",
+        "elapsed": 30.5,
+        "score": 4064,
+        "stars": 3,
+        "rankings": [
+          {
+            "factionId": 0,
+            "cities": 4,
+            "troops": 64,
+            "generals": 0,
+            "score": 4064,
+            "eliminatedAt": null,
+            "alive": true,
+            "rank": 1
+          },
+          {
+            "factionId": 1,
+            "cities": 0,
+            "troops": 0,
+            "generals": 0,
+            "score": 0,
+            "eliminatedAt": 30.5,
+            "alive": false,
+            "rank": 2
+          }
+        ]
+      },
+      "adEvidence": "Injected host provider only; no live SDK advertisement",
+      "freeCard": {
+        "id": "reward:bbe63d45-2b00-41c0-95f2-279e2bfd73f8",
+        "kind": "rate",
+        "tier": 1,
+        "duration": "single",
+        "expiresAt": 0
+      },
+      "upgraded": {
+        "id": "reward:bbe63d45-2b00-41c0-95f2-279e2bfd73f8",
+        "kind": "rate",
+        "tier": 2,
+        "duration": "single",
+        "expiresAt": 0
+      }
+    },
+    {
+      "name": "Leaving the result invalidates a late card upgrade before mutating the armory",
+      "passed": true,
+      "durationMs": 132943,
+      "lateRewardIgnored": true
+    },
+    {
+      "name": "Ordinary defeat also grants its ranking card, and retry preserves the seed",
+      "passed": true,
+      "durationMs": 129699,
+      "result": {
+        "completed": true,
+        "rewardEligible": true,
+        "levelId": "crossroads",
+        "seed": 0,
+        "outcome": "defeat",
+        "winnerId": 1,
+        "reason": "elimination",
+        "elapsed": 36.3,
+        "score": 0,
+        "stars": 0,
+        "rankings": [
+          {
+            "factionId": 1,
+            "cities": 4,
+            "troops": 70,
+            "generals": 0,
+            "score": 4070,
+            "eliminatedAt": null,
+            "alive": true,
+            "rank": 1
+          },
+          {
+            "factionId": 0,
+            "cities": 0,
+            "troops": 0,
+            "generals": 0,
+            "score": 0,
+            "eliminatedAt": 36.3,
+            "alive": false,
+            "rank": 2
+          }
+        ]
+      },
+      "retrySeed": 0
+    },
+    {
+      "name": "Developer map trials, advanced weapons/generals and codex keep formal progress isolated",
+      "passed": true,
+      "durationMs": 56473,
+      "trialLevel": "campaign-071",
+      "formalProgress": []
+    },
+    {
+      "name": "Equipped weapons and automatically recruited generals render, expose local effects and persist codex mastery",
+      "passed": true,
+      "durationMs": 35656,
+      "fixture": "Inventory supplied only to exercise equipment rendering; not progression evidence",
+      "generals": [
+        {
+          "id": 1,
+          "kind": "warrior",
+          "owner": 0,
+          "originCityId": "bluegate",
+          "cityId": "bluegate",
+          "packetId": null,
+          "attack": 14,
+          "interval": 1.2,
+          "defense": 0.1,
+          "health": 65,
+          "maxHealth": 65,
+          "nextAttack": 15.7
+        }
+      ]
+    },
+    {
+      "name": "Small portrait, landscape and restored portrait retain canvas coordinates, 44px controls and match time",
+      "passed": true,
+      "durationMs": 7814,
+      "checks": [
+        {
+          "viewport": {
+            "width": 320,
+            "height": 568
+          },
+          "time": 1.1,
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 568
+          }
+        },
+        {
+          "viewport": {
+            "width": 844,
+            "height": 390
+          },
+          "time": 3,
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 844,
+            "height": 390
+          }
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "time": 4.9,
+          "canvas": {
+            "x": 0,
+            "y": 0,
+            "width": 390,
+            "height": 844
+          }
+        }
+      ]
+    },
+    {
+      "name": "Local backgrounding avoids catch-up and blocked storage remains playable without pause controls",
+      "passed": true,
+      "durationMs": 8126,
+      "background": "simulated visibility event",
+      "fullscreen": "no controls or automatic entry",
+      "storage": "SecurityError getter; play continued"
+    },
+    {
+      "name": "Coordinate input waits for a real Creator map and rejects unavailable maps",
+      "passed": true,
+      "durationMs": 2066,
+      "delayedCreatorFrameMs": 600,
+      "unavailableMapsRejected": [
+        "home",
+        "unprojected prepare"
+      ]
+    },
+    {
+      "name": "Daily equipment expires while preparing, preserving seed and planned orders",
+      "passed": true,
+      "durationMs": 82292,
+      "seed": 3,
+      "expiredCardRemoved": true
+    }
+  ],
+  "errors": [],
+  "passed": false,
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "4259f3e3b68b87410fbe1578da9228d9ab8e7037b0bad83152235c44923068bf"
+  },
+  "browser": "140.0.7339.186"
+}
