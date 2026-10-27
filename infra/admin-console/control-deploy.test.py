@@ -487,6 +487,7 @@ class ApplicationRepair(unittest.TestCase):
             private.mkdir(mode=0o700)
             (base / 'current').symlink_to(previous)
             (target / 'manifest.json').write_text('{}')
+            (release / 'manifest.json').write_text('{}')
             stack.enter_context(patch.object(control, 'BASE', base))
             stack.enter_context(patch.object(control, 'PRIVATE', private))
             source = dict(journal(target), phase='recovery-required', initialFloor='schema2',
@@ -524,7 +525,7 @@ class ApplicationRepair(unittest.TestCase):
                 self.assertEqual(names, ('management',))
                 self.assertEqual(activation['inventory']['runtime'], live['runtime'])
                 self.assertEqual(activation['inventory']['kart'], live['kart'])
-                live.setdefault('management', copy.deepcopy(activation['inventory']['management'])).update(image=new_image, id='8' * 64)
+                live.setdefault('management', copy.deepcopy(activation['inventory']['management'])).update(image=new_image, id='8' * 64, running=True)
                 return {name: copy.deepcopy(live[name]) for name in control.SERVICES}
             mocks = {}
             for name, options in {
@@ -600,8 +601,23 @@ class ApplicationRepair(unittest.TestCase):
                 f.mocks['activate_services'].assert_not_called()
                 f.mocks['command'].assert_not_called()
 
+    def test_retry_after_compose_stops_original_management(self):
+        with self.fixture() as f:
+            operation = f.mocks['activate_services']
+            original = operation.side_effect
+            def fail(*_):
+                f.live['management']['running'] = False
+                for network in f.live['management']['networks'].values():
+                    network.update(IPAddress='', IPPrefixLen=0, Gateway='')
+                raise control.Stopped('COMPOSE_INTERRUPTED')
+            operation.side_effect = fail
+            with self.assertRaisesRegex(control.Stopped, 'COMPOSE_INTERRUPTED'): self.run_repair(f)
+            operation.side_effect = original
+            self.run_repair(f)
+            self.assertTrue(f.live['nginx']['running'])
+
     def test_retry_rejects_changed_evidence_and_game_identity(self):
-        for failure in ('source', 'binding', 'runtime', 'management'):
+        for failure in ('source', 'binding', 'application-manifest', 'runtime', 'management'):
             with self.subTest(failure=failure), self.fixture() as f:
                 f.mocks['public_probe'].side_effect = control.Stopped('INJECTED_FAILURE')
                 with self.assertRaises(control.Stopped): self.run_repair(f)
@@ -610,6 +626,7 @@ class ApplicationRepair(unittest.TestCase):
                     f.source['stopped'] = []
                     control.write_private(f.source_file, f.source, True)
                 elif failure == 'binding': f.fixed['sourceSHA'] = '0' * 40
+                elif failure == 'application-manifest': (f.release / 'manifest.json').write_text('{"different":"same source and release"}')
                 elif failure == 'runtime': f.live['runtime']['configHash'] = 'changed'
                 else: f.live['management']['image'] = 'sha256:' + '0' * 64
                 with self.assertRaises(control.Stopped): self.run_repair(f)

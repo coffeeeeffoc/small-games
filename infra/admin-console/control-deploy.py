@@ -982,6 +982,7 @@ def repair_application(release, manifest, target, target_manifest):
     precommit, checksum = read_precommit(target, target_manifest)
     require(source['precommitSHA256'] == checksum, 'PRECOMMIT_PROOF')
     binding = {'release': release.name, 'sourceSHA': manifest['sourceSHA'], 'target': target.name,
+               'applicationManifestSHA256': hashlib.sha256((release / 'manifest.json').read_bytes()).hexdigest(),
                'targetManifestSHA256': hashlib.sha256((target / 'manifest.json').read_bytes()).hexdigest(),
                'journalSHA256': hashlib.sha256(source_file.read_bytes()).hexdigest(), 'precommitSHA256': checksum}
     directory = PRIVATE / release.name
@@ -1052,9 +1053,11 @@ def repair_application(release, manifest, target, target_manifest):
     if current_management is None:
         require(record['phase'] in ('activate', 'recovery-required'), 'SERVICE_IDENTITY')
     elif current_management != before:
-        require(current_management['image'] == activation['candidateImage']
+        stopped_original = (record['phase'] in ('activate', 'recovery-required')
+                            and stable_identity(current_management) == dict(stable_identity(before), running=False))
+        require(stopped_original or (current_management['image'] == activation['candidateImage']
                 and current_management['ports'] == before['ports'] and current_management['mounts'] == before['mounts']
-                and scalar('docker', 'inspect', '--format', '{{index .Config.Labels "io.small-games.admin"}}', current_management['id']) == release.name,
+                and scalar('docker', 'inspect', '--format', '{{index .Config.Labels "io.small-games.admin"}}', current_management['id']) == release.name),
                 'SERVICE_IDENTITY')
     authority({'management': activation['candidateImage']})
     if complete:
