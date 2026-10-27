@@ -47,9 +47,9 @@ export async function assertChaseGameplay(frame, mobile = false) {
         const sample = () => {
           const state = globalThis.__chase.snapshot();
           result.seen ||= state.inputCount > before && state[key] === value;
-          if (!result.seen) result.frame = requestAnimationFrame(sample);
+          if (!result.seen) result.frame = globalThis.requestAnimationFrame(sample);
         };
-        result.frame = requestAnimationFrame(sample);
+        result.frame = globalThis.requestAnimationFrame(sample);
         return result;
       },
       { key, value },
@@ -58,7 +58,7 @@ export async function assertChaseGameplay(frame, mobile = false) {
       await tapControl(frame, id, mobile);
       await expect.poll(() => observed.evaluate((state) => state.seen)).toBe(true);
     } finally {
-      await observed.evaluate((state) => cancelAnimationFrame(state.frame));
+      await observed.evaluate((state) => globalThis.cancelAnimationFrame(state.frame));
       await observed.dispose();
     }
     if (id === 'jump') await expect.poll(async () => (await snapshot(frame))?.action).toBe('run');
