@@ -17167,7 +17167,7 @@ body.competition-active #mode-online { position:static; }
 		return factory;
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-d12kHB/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-qk7otL/entry.mjs
 	if (globalThis.__COMPETITION_CONFIG__?.identityProvider === "taptap") installTapCompetitionIdentity();
 	mountCompetition("cops-robbers", createRenderer);
 	//#endregion
