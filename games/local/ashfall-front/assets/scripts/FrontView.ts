@@ -334,11 +334,15 @@ export class FrontView {
     }
     if (!menu) {
       const g = this.terrain;
-      // The baked floor ends at y=720; continue solid bedrock below it as the camera descends.
-      const bedrockTop = Math.max(0, (720 - cy) * s);
-      g.fillColor = c('#182a20');
-      g.rect(-this.W / 2, -this.H / 2, this.W, this.H - bedrockTop);
-      g.fill();
+      // SHOW_ALL can reveal horizontal margins beyond the logical canvas.
+      // Continue opaque ground across the camera's full width when descending.
+      if (cy > 0) {
+        const visibleWidth = Math.max(this.W, view.getFrameSize().width / this.scale);
+        const bedrockTop = Math.max(0, (run.level.ground - cy) * s);
+        g.fillColor = c('#182a20');
+        g.rect(-visibleWidth / 2, -this.H / 2, visibleWidth, this.H - bedrockTop);
+        g.fill();
+      }
       for (const t of run.level.tunnels) {
         g.fillColor = c('#11241d');
         g.rect(
