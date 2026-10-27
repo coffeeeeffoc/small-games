@@ -12,12 +12,14 @@
 | 一句话推荐语 | 复用 `publishing/copy/tagline.md` |
 | 开发者的话 | 复用 `publishing/copy/developer-note.md` |
 | 游戏图标 | 复用 `publishing/icon/city-chase-icon.png`，不放进宣传图 |
-| 宣传图 | `images/chase-thief-landscape-1920x1080.png`，1920×1080 PNG，2,553,523 bytes；`images/chase-thief-square-1024x1024.png`，1024×1024 PNG，1,417,556 bytes。仅含游戏标题，独立绘制，无图标或界面拼贴；横图由生成原图规范化导出 |
+| 宣传图 | `images/chase-thief-landscape-1920x1080.png`，1920×1080 PNG，2,553,523 bytes；`images/chase-thief-square-1440x1440.png`，1440×1440 PNG，2,545,609 bytes，用于竖版实录封面。两图仅含游戏标题，无图标或界面拼贴，蓝衣追逐者、橙衣小贼、骑楼街景、跨栏动作和标题风格一致；最终尺寸由生成原图规范化导出 |
 | 宣传视频 | `video/chase-thief-trailer-1280x720.mp4`，1280×720、16:9、30 fps、22 秒，H.264/yuv420p + AAC，16,507,575 bytes；游戏资产重新编排分镜，与实录不同 |
 | 实际游戏截图 | `gameplay/home-600x1300.png`、`gameplay/chase-600x1300.png`，普通模式当前制品截图 |
 | 实际游戏录屏 | `gameplay/chase-thief-gameplay-600x1300.mp4`，600×1300、6:13、30 fps、37.97 秒，H.264/yuv420p，无声，21,078,206 bytes；Windows Chromium 真实运行和输入，无开发跳段、无敌或计时修改 |
 
-四份成品的尺寸、大小、SHA-256 和 Edge 连续播放结果记录于本地 `media-manifest.json`；两段视频完整解码及抽帧检查通过。`gameplay/recording.json` 和 `browser-report.json` 记录相同游戏制品身份。制作来源见 [ASSETS.md](../assets/ASSETS.md)，代码与消费者验证见[当前验收](../docs/design/endless-city-2026-10-22/verification/README.md)。未上传平台、提交审核或验证物理手机/原生渠道及真实广告库存。
+四份成品的尺寸、大小、SHA-256 和 Edge 连续播放结果记录于本地 `media-manifest.json`；两段视频完整解码及抽帧检查通过。`gameplay/recording.json` 和 `browser-report.json` 记录相同游戏制品身份。制作来源见 [ASSETS.md](../assets/ASSETS.md)，代码与消费者验证见[当前验收](../docs/design/endless-city-2026-10-22/verification/README.md)。本次尚未代用户上传新封面或提交审核；未验证物理手机/原生渠道及真实广告库存。
+
+2026-10-27 方版封面更正：用户补充“已上传竖版实录，需额外 1:1 封面”，最低尺寸改为 1440×1440；原 1024×1024 仅保留本地历史文件，不再列为当前合格成品。用内置 imagegen 参考两张原宣传图重绘方图，输出 1254×1254，再经 Lanczos 规范化为 1440×1440；不是原生 1440 像素生成。已打开最终文件检查标题、清晰度、无图标及两种画幅核心视觉一致，并核验 PNG/RGB、1:1 和低于 4 MB。横图及宣传视频继续复用。完整用途、技术规格、内容限制和逐项验收统一维护在[上架资料规范](../../../../docs/game-publishing.md#宣传图)与[宣传片要求](../../../../docs/game-publishing.md#宣传片)，不以本表摘要代替。
 
 ## 2026-10-25 历史交付
 
