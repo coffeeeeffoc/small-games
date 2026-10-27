@@ -4139,6 +4139,23 @@ export function reviewedSharedFileScopes({
     packages,
   });
   for (const file of changedPaths) {
+    if (file === 'scripts/check-game-config.mjs') {
+      try {
+        const digest = (text) =>
+          createHash('sha256').update(text.replaceAll('\r\n', '\n')).digest('hex');
+        if (
+          digest(readBase(file)) ===
+            'b94272674ffaf5e9df04589f3a5e9b438d8049e51f05203519224d327c0cc38e' &&
+          digest(readHead(file)) ===
+            '2f707614d30d961c9d55f9ff1b5cc077ea83c50cfd098bdcc2286e4d01c9fe13'
+        ) {
+          scopes.set(file, []);
+          continue;
+        }
+      } catch {
+        /* Only the reviewed CI coordination gate repair is covered. */
+      }
+    }
     if (
       file === '.github/workflows/ci.yml' &&
       typeof readBase === 'function' &&

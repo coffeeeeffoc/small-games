@@ -6138,3 +6138,35 @@ test('CI stage workflow proof binds the entire immediate and cumulative baseline
   }
   assert(!ciStageWorkflowScope(undefined, after));
 });
+
+test('CI registration gate repair binds both baselines and retains its real checks', async () => {
+  const file = 'scripts/check-game-config.mjs';
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const base of ['64aa76f4baa0949a1e3eddf40a6c28bcc45a5b8a', '6dc7585f']) {
+    const before = execFileSync('git', ['show', base + ':' + file], { encoding: 'utf8' });
+    const options = {
+      changedPaths: [file],
+      readBase: () => before,
+      readHead: () => after,
+      games: [],
+      packages: [],
+    };
+    const scopes = reviewedSharedFileScopes(options);
+    assert.deepEqual(scopes.get(file), []);
+    assert(
+      incrementalPlan({ ...options, fileScopes: scopes, readSource: () => '' }).game_config_checks,
+    );
+    for (const changed of [
+      { readBase: () => before + '\n' },
+      { readHead: () => after + '\n' },
+      { readHead: () => after.replace("step.with?.submodules === 'recursive'", 'true') },
+      {
+        readHead: () => {
+          throw Error('unavailable');
+        },
+      },
+      { changedPaths: ['scripts/check-game-config-extra.mjs'] },
+    ])
+      assert.equal(reviewedSharedFileScopes({ ...options, ...changed }).size, 0);
+  }
+});
