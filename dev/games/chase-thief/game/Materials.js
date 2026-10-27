@@ -83,9 +83,9 @@ function source(version, textured, road) {
         ].join('\n')
       : '',
     'vec3 n=normalize(worldNormal);float sun=max(0.0,dot(n,normalize(vec3(-.42,.80,-.35))));',
-    'float sky=.68+.12*n.y;c.rgb*=sky+sun*.32;',
+    'float sky=.67+.15*n.y;c.rgb*=vec3(sky)+sun*vec3(.46,.41,.34);',
     'float fog=smoothstep(48.0,155.0,length(worldPos-cc_cameraPos.xyz));',
-    'c.rgb=mix(c.rgb,vec3(.73,.82,.83),fog*.93);',
+    'c.rgb=mix(c.rgb,vec3(.65,.81,.88),fog*.88);',
     (version === 3 ? 'fragColor' : 'gl_FragColor') + '=c;}',
   ].join('\n');
   return { vert, frag };

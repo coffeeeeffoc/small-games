@@ -13,7 +13,7 @@ import {
 import { visibleObstacles, visibleCoins, RULES } from './core/simulation.js';
                                                 
 
-const SKY = new cc.Color(186, 209, 212, 255);
+const SKY = new cc.Color(166, 207, 225, 255);
 const DISTRICT_STYLE = {
   'old-town': { facades: [0, 1], height: 9, road: '#c7b99b', tint: [1, 0.96, 0.88, 1] },
   alley: { facades: [2, 4], height: 5.6, road: '#8e9ba3', tint: [0.65, 0.73, 0.8, 1] },
@@ -49,24 +49,24 @@ class Runner {
   }
   pose(time        , speed        , action        , height        , thief = false, lost = false) {
     this.time = time;
-    const phase = time * speed * 1.55;
+    const phase = time * (9.5 + speed * 0.35);
     const swing = Math.sin(phase);
     const hips = this.joints.get('hips') ;
-    hips.setPosition(0, 0.91 + (action === 'run' ? Math.abs(Math.sin(phase)) * 0.035 : 0), 0);
+    hips.setPosition(0, 0.91 + (action === 'run' ? Math.abs(Math.sin(phase)) * 0.025 : 0), 0);
     for (const n of this.joints.values()) n.setRotationFromEuler(0, 0, 0);
     this.joints
       .get('spine') 
       .setRotationFromEuler(
-        15 + Math.max(0, speed - RULES.startSpeed) * 0.6,
-        Math.sin(phase) * 3,
-        Math.sin(phase) * 2,
+        9 + Math.max(0, speed - RULES.startSpeed) * 0.35,
+        Math.sin(phase) * 5,
+        Math.sin(phase) * 1.5,
       );
     for (const side of ['L', 'R']) {
       const v = side === 'L' ? swing : -swing;
-      this.joints.get('thigh' + side) .setRotationFromEuler(v * 37, 0, 0);
-      this.joints.get('shin' + side) .setRotationFromEuler(Math.max(0, -v) * 67, 0, 0);
-      this.joints.get('arm' + side) .setRotationFromEuler(-v * 40, 0, side === 'L' ? 5 : -5);
-      this.joints.get('fore' + side) .setRotationFromEuler(-50 - Math.max(0, v) * 18, 0, 0);
+      this.joints.get('thigh' + side) .setRotationFromEuler(v * 32 - 4, 0, 0);
+      this.joints.get('shin' + side) .setRotationFromEuler(8 + Math.max(0, -v) * 60, 0, 0);
+      this.joints.get('arm' + side) .setRotationFromEuler(-v * 28, 0, side === 'L' ? 7 : -7);
+      this.joints.get('fore' + side) .setRotationFromEuler(-65 - Math.max(0, v) * 12, 0, 0);
       this.joints.get('foot' + side) .setRotationFromEuler(-v * 14, 0, 0);
     }
     if (action === 'jump') {
@@ -88,6 +88,19 @@ class Runner {
     }
     if (thief) {
       this.joints.get('head') .setRotationFromEuler(0, Math.sin(time * 0.65) > 0.85 ? -65 : 0, 0);
+    }
+    if (action === 'idle') {
+      hips.setPosition(0, 0.90 + Math.sin(time * 1.6) * 0.006, 0);
+      this.joints.get('spine') .setRotationFromEuler(5, -8, -3);
+      this.joints.get('head') .setRotationFromEuler(-3, 18, 0);
+      this.joints.get('thighL') .setRotationFromEuler(-12, 0, -3);
+      this.joints.get('thighR') .setRotationFromEuler(9, 0, 3);
+      this.joints.get('shinL') .setRotationFromEuler(12, 0, 0);
+      this.joints.get('shinR') .setRotationFromEuler(8, 0, 0);
+      this.joints.get('armL') .setRotationFromEuler(-18, 0, 8);
+      this.joints.get('armR') .setRotationFromEuler(15, 0, -8);
+      this.joints.get('foreL') .setRotationFromEuler(-65, 0, 0);
+      this.joints.get('foreR') .setRotationFromEuler(-35, 0, 0);
     }
     if (lost) {
       hips.setPosition(0, 0.48, 0);
@@ -118,6 +131,7 @@ export class World {
   seed = 0;
   departure = '';
   cameraReady = false;
+  homeTime = 0;
   art     ;
   scene          ;
   constructor(scene          , art     , texture              ) {
@@ -708,6 +722,7 @@ export class World {
     n.destroy();
   }
   update(run     , dt        , home = false, reducedMotion = false) {
+    if (home && !reducedMotion) this.homeTime += dt;
     if (run.seed !== this.seed || run.departure !== this.departure) this.reset(run);
     const first = Math.floor((run.s - 36) / 40),
       last = Math.floor((run.s + 150) / 40);
@@ -811,6 +826,22 @@ export class World {
     }
     this.origin = origin;
     this.root.setPosition(0, 0, -this.origin);
+    if (home) {
+      this.player.root.setRotationFromEuler(0, p.heading * radians + 145, 0);
+      this.player.pose(this.homeTime, 0, 'idle', 0);
+      const heading = p.heading;
+      const local = (x        , y        , z        ) => new cc.Vec3(
+        p.x + Math.cos(heading) * x + Math.sin(heading) * z,
+        p.y + y,
+        p.z - Math.sin(heading) * x + Math.cos(heading) * z - this.origin,
+      );
+      const compact = cc.view.getDesignResolutionSize().height < 740;
+      this.camera.node.setPosition(local(1.2, 1.75, compact ? -6.5 : -5.4));
+      this.camera.node.lookAt(local(0.35, compact ? 0.6 : 0.95, 2.0));
+      this.camera.fov = 48;
+      this.cameraReady = false;
+      return;
+    }
     const back = sampleRoute(run.s - (home ? 6.5 : 6.0), run.seed, run.departure);
     const current = sampleRoute(run.s, run.seed, run.departure);
     const follow = (1 - run.laneVisual) * (current.laneWidth + current.split * 1.7) * 0.88;

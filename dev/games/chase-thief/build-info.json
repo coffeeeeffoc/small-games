@@ -16,11 +16,11 @@
     ],
     [
       "Hud.ts",
-      "8b953bbfbf8c21290a560d4f37d39327b22abf9f633bcc4321fff89e1c7e5c6b"
+      "d302752d354fabf245ee2c9888008e5787301bf11441f78e53613967f16dbdb3"
     ],
     [
       "Materials.ts",
-      "326ceafd67215013da06daeffe550f449db9e44c8cfb62683d62f3db0ce88475"
+      "d7c2d871b54faf82715002305f6dc44b36703c0f7b3641abf16b4a0338c83fb3"
     ],
     [
       "UiMaterials.ts",
@@ -28,7 +28,7 @@
     ],
     [
       "World.ts",
-      "e186f203044c293eec5744cfda51f0cc9cec851cc6e1588f7bed93fa05016976"
+      "0c2fbe221ecc33c8898c57d7edeedf705975a0ffa4c42d746c906a21bf5629c7"
     ],
     [
       "core/progress.ts",
@@ -43,12 +43,12 @@
       "0522891eccfc3bc7f1f6eb725f53b9ad8fbea8dfa683d4c120f3f6473e87c4f3"
     ]
   ],
-  "artifactSha256": "6e2dee4296cdb3a832750dc7d7efe28f32858c79bdc4f0b38965af78a9ff0d95",
+  "artifactSha256": "cae6d9183703fffde193caed7c24244fa0203abb8eef355fb7a4300365d61240",
   "runtimeFiles": [
     {
       "path": "art/city-models.json",
-      "bytes": 2903278,
-      "sha256": "a22ccdb46cc125a3b53896ee781f4a85d99b22ef34d20dbd462fe804521e4e46"
+      "bytes": 2566855,
+      "sha256": "563270f0fe1425cca3f6ea614699b21ca320c2a52e7a11ab584263d2ab687e61"
     },
     {
       "path": "art/click.wav",
@@ -127,13 +127,13 @@
     },
     {
       "path": "game/Hud.js",
-      "bytes": 13149,
-      "sha256": "f418b059436df7360c781ed783757bad2e6a59bfde4368a90ac602784a9216e9"
+      "bytes": 13880,
+      "sha256": "c2ceab6bb53ff966a852ce8ad5d234ac6a852f265fca32d875e34c2ff3f14f9a"
     },
     {
       "path": "game/Materials.js",
-      "bytes": 5939,
-      "sha256": "838ac80fad3a703389d61bd14fd9f3a86254477c67e9e7dac895defd250a312e"
+      "bytes": 5959,
+      "sha256": "6a336d4413527d91ba253c93bcbef1337a910267d78a321c9bec302bc57bdb2c"
     },
     {
       "path": "game/UiMaterials.js",
@@ -142,8 +142,8 @@
     },
     {
       "path": "game/World.js",
-      "bytes": 32401,
-      "sha256": "2c533071d85c148274ae8943392c3d5eca74c957b763c706bce14fddc4aa646f"
+      "bytes": 33945,
+      "sha256": "0cf5dfaefca2d4bb73e04f2eca2236b3231b4644d07bc24c1c4996c255b1dd29"
     },
     {
       "path": "index.html",

@@ -19,7 +19,11 @@ export function createGameRewards(environment = globalThis) {
     disposed = false,
     generation = 0,
     waiting;
-  const breaks = createInterstitials(environment, available ? config.adUnitId : '', () => pending);
+  const breaks = createInterstitials(
+    environment,
+    available && !config.publishingInterstitials ? config.adUnitId : '',
+    () => pending,
+  );
   const visible = () => {
     if (!environment.document?.hidden) waiting?.('completed');
   };
@@ -36,7 +40,15 @@ export function createGameRewards(environment = globalThis) {
   environment.addEventListener?.('pagehide', exit);
   environment.document?.addEventListener?.('visibilitychange', visible);
   async function offer(request = {}) {
-    if (disposed || !available || pending || breaks.pending || environment.document?.hidden)
+    if (
+      disposed ||
+      !available ||
+      pending ||
+      breaks.pending ||
+      (config.publishingInterstitials &&
+        environment.SmallGamesPublishingConfig?.provider?.pending) ||
+      environment.document?.hidden
+    )
       return { status: 'unavailable' };
     const id = request.id || request.opportunityId;
     if (typeof id !== 'string' || !id) return { status: 'unavailable' };
