@@ -8,7 +8,7 @@ import type { Rule } from '../src/competition/types.js';
 
 const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
-type Credential = { playerId: string; token: string };
+type Credential = { playerId: string; token: string; refreshToken: string };
 
 integration('Flick Arena rooms over real HTTP and PostgreSQL', () => {
   let database: ReturnType<typeof openDatabase>;
@@ -47,8 +47,8 @@ integration('Flick Arena rooms over real HTTP and PostgreSQL', () => {
     return value;
   }
 
-  async function player(): Promise<Credential> {
-    return request('/sessions/guest', undefined, { game: 'flick-arena' });
+  async function player(game = 'flick-arena'): Promise<Credential> {
+    return request('/sessions/guest', undefined, { game });
   }
 
   async function started(mode = 'duel', count = 2) {
@@ -236,6 +236,14 @@ integration('Flick Arena rooms over real HTTP and PostgreSQL', () => {
       // Only the injected server clock advances; clients never submit scores or timing.
       for (let tick = 0; tick < 200 && snapshot.status === 'playing'; tick++) {
         time += 30_001;
+        if (tick % 10 === 0)
+          for (const guest of players)
+            Object.assign(
+              guest,
+              await request('/sessions/refresh', undefined, {
+                refreshToken: guest.refreshToken,
+              }),
+            );
         snapshot = await request(`/rooms/${room.code}`, players[tick % count]);
       }
       expect(snapshot.status).toBe('finished');
@@ -258,12 +266,13 @@ integration('Flick Arena rooms over real HTTP and PostgreSQL', () => {
       expect(waiting.mode).toBe(mode);
       expect(waiting.status).toBe('waiting');
     },
+    30_000,
   );
 
   it('keeps existing two-player roles and readiness compatible', async () => {
-    const host = await player(),
-      guest = await player(),
-      outsider = await player();
+    const host = await player('cops-robbers'),
+      guest = await player('cops-robbers'),
+      outsider = await player('cops-robbers');
     const room = await request('/rooms', host, {
       game: 'cops-robbers',
       mode: 'survival',

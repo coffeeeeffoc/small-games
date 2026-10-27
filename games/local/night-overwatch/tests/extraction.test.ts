@@ -2,12 +2,24 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { terrainContact, shotPosition } from '../assets/scripts/core/Flight.ts';
-import { applyNightReplay, observeNightInputs, type ReplayFrame } from '../assets/scripts/core/Replay.ts';
+import { applyNightReplay, observeNightInputs, nightReplayResult, type ReplayFrame } from '../assets/scripts/core/Replay.ts';
 
 const tick = (s: Simulation, seconds: number) => {
   for (let i = 0; i < Math.round(seconds * 60); i++) s.step(1 / 60);
 };
 const clear = (s: Simulation) => { for (const u of s.units) if (!u.friendly) u.hp = 0; };
+
+test('ranked completion time is independent of radio playback and mute', () => {
+  const silent = new Simulation(), audible = new Simulation();
+  for (const sim of [silent, audible]) { sim.start(); clear(sim); }
+  audible.setExtractionRadioPending(true);
+  tick(silent, 4); tick(audible, 9);
+  assert.equal(silent.phase, 'success'); assert.equal(audible.phase, 'playing');
+  assert.equal(audible.completionTime, silent.completionTime);
+  audible.setExtractionRadioPending(false); audible.step(1 / 60);
+  assert.equal(nightReplayResult({ simulation: audible.checkpoint(), assisted: false }).secondary,
+    nightReplayResult({ simulation: silent.checkpoint(), assisted: false }).secondary);
+});
 
 test('clearing all threats resumes a held convoy and animates extraction in three seconds', () => {
   const s = new Simulation(); s.start(); s.convoy = 'holding'; s.held.add('space'); clear(s);

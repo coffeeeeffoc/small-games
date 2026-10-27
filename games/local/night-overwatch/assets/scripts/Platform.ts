@@ -4,6 +4,7 @@ import { missionDefinition, type MissionId } from './core/MissionCatalog';
 import { newMissionProgress, readMissionProgress, type MissionProgress } from './core/MissionProgress';
 import { readTrainingRecord as parseTrainingRecord, type TrainingRecord } from './core/TrainingRecords';
 import { readRewards, nextZoomLimit, type RewardKind, type RewardSave, type RewardProvider, type SupplyReward } from './core/Rewards';
+import { readMissionTimes, type MissionTimes } from './core/BattleRecords';
 export const RADIO = {
   day: ['指挥部：视野良好。拖动准星，清除友军附近的炮位。', 'Command: visibility clear. Drag the sight. Clear guns near our convoy.'],
   night: ['指挥部：进入夜间战区。切换热成像，优先处理红色标记。', 'Command: night operation. Use thermal vision. Prioritize the red marker.'],
@@ -29,6 +30,7 @@ export class Platform {
   cleanup: (() => void)[] = [];
   rewards: RewardSave = readRewards(null);
   missions: MissionProgress = newMissionProgress();
+  times: MissionTimes = {};
   // Install before launch; this may delegate directly to an authorized GameHost.ads.offer.
   rewardProvider?: RewardProvider;
   private readonly rewardPractice = this.developer;
@@ -38,6 +40,7 @@ export class Platform {
     this.clear = clear;
     try {
       this.rewards = readRewards(sys.localStorage.getItem(this.rewardStorageKey));
+      this.times = readMissionTimes(sys.localStorage.getItem('night-overwatch-times-v1'));
       this.muted = sys.localStorage.getItem('night-overwatch-muted') === 'true';
       const preference = sys.localStorage.getItem('night-overwatch-reduced-effects');
       this.reducedEffects =
@@ -152,6 +155,8 @@ export class Platform {
   }
   lastSound = '';
   play(id: string, gain = 1) {
+    if (id === 'incendiary') id = 'heavy';
+    if (id === 'impact3') id = 'impact2';
     const source = this.voices.get(id);
     if (source?.clip && this.activated && !this.muted) {
       source.volume = (id === 'heavy' ? .7 : id === 'blast' ? .5 : id === 'rapid' ? .32 : .3) * gain;
@@ -244,7 +249,7 @@ export class Platform {
     this.saveRewards();
   }
   claimSupply(reward: SupplyReward) {
-    if (!this.rewards.pendingSupply || !['tracking', 'ammo', 'rate'].includes(reward)) return false;
+    if (!this.rewards.pendingSupply || !['tracking', 'ammo', 'rate', 'restock'].includes(reward)) return false;
     this.rewards.pendingSupply = false;
     if (reward === 'ammo') this.rewards.ammo = Math.min(Number.MAX_SAFE_INTEGER, this.rewards.ammo + 2);
     this.saveRewards();
@@ -278,6 +283,10 @@ export class Platform {
     this.missions = progress;
     try { sys.localStorage.setItem('night-overwatch-progress-v1', JSON.stringify(progress)); }
     catch { /* All remaining operations can still unlock in the current session. */ }
+  }
+  saveTimes() {
+    try { sys.localStorage.setItem('night-overwatch-times-v1', JSON.stringify(this.times)); }
+    catch { /* Keep this session's personal best when optional storage is denied. */ }
   }
   readMission(): MissionId {
     try {

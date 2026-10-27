@@ -1458,6 +1458,62 @@ export const gameServiceScopePaths = Object.freeze([
   'scripts/competition-gateway.mjs',
   'scripts/competition-gateway.test.mjs',
 ]);
+export const nightRuntimeInputs = Object.freeze(
+  ['Duel', 'Replay', 'Simulation', 'MissionCatalog', 'Data', 'Flight'].map(
+    (name) => `games/local/night-overwatch/assets/scripts/core/${name}.ts`,
+  ),
+);
+const nightImports = [
+  'services/runtime-api/rules/night.mjs -> games/local/night-overwatch/assets/scripts/core/Duel.ts',
+  'services/runtime-api/rules/night-ranked.mjs -> games/local/night-overwatch/assets/scripts/core/Replay.ts',
+  'services/runtime-api/rules/night-ranked.mjs -> games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+];
+/** Exact additions only: unrelated deployment or boundary changes remain unclassified. */
+export function nightBackendFileScope(file, before, after) {
+  if (typeof before !== 'string' || typeof after !== 'string') return false;
+  before = before.replaceAll('\r\n', '\n');
+  after = after.replaceAll('\r\n', '\n');
+  let anchor, addition;
+  if (file === 'scripts/deploy-tencent.mjs') {
+    anchor = "    'services/runtime-api/rules',\n";
+    addition = nightRuntimeInputs.map((value) => `    '${value}',\n`).join('');
+  } else if (file === 'scripts/check-workspace-dependencies.mjs') {
+    anchor = 'const REPOSITORY_IMPORTS = new Set([\n';
+    addition = [
+      ...nightImports,
+      'games/local/night-overwatch/scripts/build.mjs -> scripts/h5-game-services.mjs',
+    ]
+      .map((value) => `  '${value}',\n`)
+      .join('');
+  } else return false;
+  return (
+    before.split(anchor).length === 2 &&
+    !before.includes(addition) &&
+    after === before.replace(anchor, anchor + addition)
+  );
+}
+export function matchGatewayFileScope(before, after) {
+  if (typeof before !== 'string' || typeof after !== 'string') return false;
+  const anchor = String.raw`(?:\/leaderboards\/`;
+  return (
+    before.split(anchor).length === 2 &&
+    after === before.replace(anchor, String.raw`(?:\/match|\/leaderboards\/`)
+  );
+}
+function assertNightRuntimeConsumer(games, packages, readHead) {
+  const source = 'games/local/night-overwatch';
+  assert.equal(
+    games.filter((game) => game.id === 'night-overwatch' && game.source === source).length,
+    1,
+  );
+  for (const dir of [source, 'services/runtime-api'])
+    assert.equal(packages.filter((pkg) => pkg.dir === dir).length, 1);
+  for (const edge of nightImports) {
+    const [from, to] = edge.split(' -> ');
+    assert(importsModule(readHead(from), '../../../' + to));
+  }
+  for (const file of nightRuntimeInputs) assert(readHead(file));
+}
 const rankedConsumers = {
   'cage-rescue': 'games/local/cage-rescue',
   'tower-brake': 'games/local/tower-brake',
@@ -2729,6 +2785,7 @@ export const adminControlDeploymentScopePaths = [
   'infra/admin-console/control-database.test.py',
   'infra/admin-console/control-fingerprint.sql',
   'infra/admin-console/migrations/002-control-center.sql',
+  'infra/admin-console/migrations/003-night-overwatch-control.sql',
 ];
 export const adminDeploymentScopePaths = [
   ...adminControlDeploymentScopePaths,
@@ -4899,12 +4956,16 @@ export function reviewedSharedFileScopes({
       if (
         gameServiceScopePaths.includes(file) &&
         (file !== 'scripts/competition-gateway.mjs' ||
-          rankedGatewayFileScope(readBase(file), readHead(file)))
+          rankedGatewayFileScope(readBase(file), readHead(file)) ||
+          matchGatewayFileScope(readBase(file), readHead(file)))
       ) {
         assertRankedConsumers(games, packages, readHead);
         assertGameServiceCopies(readHead);
         if (file === 'scripts/competition-gateway.mjs')
-          assert(rankedGatewayFileScope(readBase(file), readHead(file)));
+          assert(
+            rankedGatewayFileScope(readBase(file), readHead(file)) ||
+              matchGatewayFileScope(readBase(file), readHead(file)),
+          );
         const gateway = file.startsWith('scripts/');
         if (gateway) assert(packages.some((pkg) => pkg.dir === 'apps/shell-web'));
         scopes.set(file, [
@@ -4913,6 +4974,24 @@ export function reviewedSharedFileScopes({
             (source) => !source.endsWith('/travel-bund') && !source.endsWith('/homebound-station'),
           ),
           ...(gateway ? ['services/runtime-api', 'apps/shell-web'] : []),
+        ]);
+        continue;
+      }
+      if (
+        nightRuntimeInputs.includes(file) ||
+        (['scripts/deploy-tencent.mjs', 'scripts/check-workspace-dependencies.mjs'].includes(
+          file,
+        ) &&
+          typeof readBase === 'function' &&
+          typeof readHead === 'function' &&
+          nightBackendFileScope(file, readBase(file), readHead(file)))
+      ) {
+        assertNightRuntimeConsumer(games, packages, readHead);
+        scopes.set(file, [
+          'services/runtime-api',
+          ...(file === 'scripts/check-workspace-dependencies.mjs'
+            ? ['games/local/night-overwatch']
+            : []),
         ]);
         continue;
       }

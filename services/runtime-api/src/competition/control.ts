@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import {
   CONTROL_GAME_IDS,
   controlPublicationSchema,
+  normalizeControlSnapshot,
   gameControlPolicySchema,
   type ControlGameId,
   type CorsPolicy,
@@ -84,7 +85,14 @@ export function createCompetitionControl(
         throw unavailable();
       remaining();
       if (!publications.length) {
-        if (policies.some((p) => p.revision !== 0 || p.killEpoch !== 0 || p.state !== 'enabled'))
+        if (
+          policies.some(
+            (p) =>
+              p.revision !== 0 ||
+              p.killEpoch !== 0 ||
+              p.state !== (p.gameId === 'night-overwatch' ? 'disabled' : 'enabled'),
+          )
+        )
           throw unavailable();
         return { version: 0, digest: null, policy: fallback, policies };
       }
@@ -94,10 +102,10 @@ export function createCompetitionControl(
         digest: publications[0]!.digest,
         snapshot: publications[0]!.snapshot,
       });
+      const snapshot = normalizeControlSnapshot(publication.snapshot);
       if (
         policies.some(
-          (p) =>
-            p.revision !== publication.version || p.state !== publication.snapshot.games[p.gameId],
+          (p) => p.revision !== publication.version || p.state !== snapshot.games[p.gameId],
         )
       )
         throw unavailable();
@@ -141,12 +149,16 @@ export function createCompetitionControl(
     }
   }
   async function projection(tx: ControlExecutor, remaining: () => number) {
-    for (const game of [...CONTROL_GAME_IDS].sort())
-      await execute(
-        tx,
-        sql`select pg_advisory_xact_lock_shared(hashtextextended('game-control:' || ${game},0))`,
-        remaining,
-      );
+    // PostgreSQL evaluates this volatile output after sorting, preserving publication lock order.
+    const games = [...CONTROL_GAME_IDS]
+      .sort()
+      .map((game, index) => sql`(${game}::text,${index}::int)`);
+    await execute(
+      tx,
+      sql`select pg_advisory_xact_lock_shared(hashtextextended('game-control:' || game_id,0))
+        from (values ${sql.join(games, sql`,`)}) as games(game_id, position) order by position`,
+      remaining,
+    );
     return read(tx, remaining);
   }
   async function cors(): Promise<Publication> {

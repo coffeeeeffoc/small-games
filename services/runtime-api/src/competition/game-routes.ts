@@ -131,6 +131,13 @@ export function registerGameRoutes(
       throw new CompetitionError('MULTIPLAYER_UNAVAILABLE', 404);
     return game;
   };
+  routes.post('/games/:game/match', { bodyLimit: 1024 }, async (request) => {
+    const game = multiplayerGame(request.params);
+    z.object({})
+      .strict()
+      .parse(request.body ?? {});
+    return store.match(await player(request.headers.authorization), game);
+  });
   routes.post('/games/:game/rooms', { bodyLimit: 2048 }, async (request) => {
     const game = multiplayerGame(request.params);
     const input = z

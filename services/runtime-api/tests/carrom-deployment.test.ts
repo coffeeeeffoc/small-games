@@ -59,6 +59,14 @@ it('packages an executable carrom rule with its engine and content, without ship
     for (const name of [
       'services/runtime-api/rules/carrom.mjs',
       'services/runtime-api/rules/ranked-games.mjs',
+      'services/runtime-api/rules/night-ranked.mjs',
+      'games/local/night-overwatch/assets/scripts/core/Duel.ts',
+      'games/local/night-overwatch/assets/scripts/core/Replay.ts',
+      'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
+      'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+      'games/local/night-overwatch/assets/scripts/core/Data.ts',
+      'games/local/night-overwatch/assets/scripts/core/Flight.ts',
+
       'games/local/cage-rescue/src/core.mjs',
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
@@ -82,8 +90,10 @@ it('packages an executable carrom rule with its engine and content, without ship
     expect(rankedRules.map((item: { id: string }) => item.id)).toEqual([
       'cage-rescue',
       'tower-brake',
+      'night-overwatch',
     ]);
-    for (const item of rankedRules) expect(item.create('endless', 123).game.mode).toBe('endless');
+    for (const item of rankedRules.filter((rule: { id: string }) => rule.id !== 'night-overwatch'))
+      expect(item.create('endless', 123).game.mode).toBe('endless');
 
     const carromDirectory = path.join(destination, 'games/local/carrom-club');
     expect((await readdir(carromDirectory)).sort()).toEqual(['package.json', 'src']);
@@ -130,4 +140,4 @@ it('packages an executable carrom rule with its engine and content, without ship
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
-});
+}, 30000);

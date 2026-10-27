@@ -1240,7 +1240,7 @@ export class World {
       ...this.impactClouds.filter((e) => e.weapon === 0 && s.time - e.time < 1.5).slice(-8),
     ];
     const cursor = this.project(s.aim, 0, true);
-    this.recoil = s.paused || s.phase !== 'playing' ? { x: 0, y: 0 } : recoilOffset(s.events, s.time, reduced);
+    this.recoil = s.paused || s.phase !== 'playing' ? { x: 0, y: 0 } : recoilOffset(s.events.filter(e => !s.duelMode || e.side === s.pilotSide), s.time, reduced);
     const elapsed = this.cameraTime < 0 ? 0 : clamp(s.time - this.cameraTime, 0, 0.1);
     // Only user settings may reframe a frozen battle; system/advert pauses still block it.
     this.cameraPaused = s.paused && !s.canConfigure;
@@ -1273,7 +1273,7 @@ export class World {
     this.updateCamera();
     if (!s.paused && s.phase === 'playing' && elapsed > 0 && cursor.z >= 0) {
       const aim = this.aimAt(cursor.x, cursor.y);
-      if (aim) s.aim = aim;
+      if (aim) s.setAim(aim);
     }
     for (const u of s.units) {
       let v = this.views.get(u.id);

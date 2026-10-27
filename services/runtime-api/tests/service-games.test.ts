@@ -3,12 +3,12 @@ import { CONTROL_GAME_IDS } from '@coffeeeeffoc/service-kit';
 import { guestSessionSchema } from '../src/competition/identity-store.js';
 import { IDENTITY_GAME_IDS } from '../src/competition/service-games.js';
 
-it('new anonymous service identities do not alter the signed control registry', () => {
-  expect(CONTROL_GAME_IDS).toHaveLength(11);
+it('night is controlled while wulong remains identity-only', () => {
+  expect(CONTROL_GAME_IDS).toHaveLength(12);
   expect(IDENTITY_GAME_IDS).toHaveLength(13);
   for (const game of ['wulong-city', 'night-overwatch']) {
     expect(guestSessionSchema.parse({ game })).toEqual({ game });
-    expect(CONTROL_GAME_IDS).not.toContain(game);
+    expect(CONTROL_GAME_IDS.includes(game as never)).toBe(game === 'night-overwatch');
   }
   for (const game of ['unknown', '__proto__', 'wulong-city/../night-overwatch']) {
     expect(guestSessionSchema.safeParse({ game }).success).toBe(false);

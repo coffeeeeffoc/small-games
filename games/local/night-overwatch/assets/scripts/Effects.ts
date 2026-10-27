@@ -120,6 +120,26 @@ export function drawEffects(
     points.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y));
     g.close(); g.fill();
   };
+  for (const zone of s.fireZones) {
+    const age = s.time - zone.born, left = zone.expires - s.time;
+    if (age < 0 || left <= 0) continue;
+    const fade = Math.min(1, left / 2), scale = scaleAt(zone);
+    patch(Array.from({ length: 24 }, (_, i) => {
+      const angle = i * TAU / 24;
+      return project({ x: zone.x + Math.cos(angle) * zone.radius, z: zone.z + Math.sin(angle) * zone.radius }, .06);
+    }), world.thermal ? new Color(235, 235, 235, 45 * fade) : new Color(201, 69, 19, 80 * fade));
+    ring(zone, zone.radius, .45, .9 * fade);
+    for (let i = 0; i < (reduced ? 7 : 19); i++) {
+      const angle = i * 2.39996, radius = zone.radius * Math.sqrt((i + .5) / (reduced ? 7 : 19)) * .9;
+      const at = project({ x: zone.x + Math.cos(angle) * radius, z: zone.z + Math.sin(angle) * radius }, .15);
+      const flicker = .8 + Math.sin(age * 8 + i * 2.7) * .2;
+      const w = Math.max(2, Math.min(11, scale * .34)), h = Math.max(5, Math.min(30, scale * 1.2)) * flicker;
+      patch([{ x: at.x - w, y: at.y }, { x: at.x - w * .7, y: at.y + h * .5 },
+        { x: at.x + w * .3, y: at.y + h }, { x: at.x + w * .5, y: at.y + h * .3 }, { x: at.x + w, y: at.y }], color(.45, .85 * fade).clone());
+      blob({ x: at.x, y: at.y + h * .2 }, w * .45, h * .3, 1, .85 * fade);
+    }
+    frame.fires!.push({ id: zone.id, age, life: zone.expires - zone.born });
+  }
   for (const u of s.units) {
     const at = project(u);
     if (Math.abs(at.x) > width / 2 + 40 || Math.abs(at.y) > height / 2 + 40) continue;
@@ -324,7 +344,16 @@ export function drawEffects(
     g.fill();
     const head = tail[6], last = tail[5], heading = Math.atan2(head.y - last.y, head.x - last.x);
     const beforeHead = primitives;
-    line({ x: head.x - Math.cos(heading) * bodyLength, y: head.y - Math.sin(heading) * bodyLength }, head, 1, 0.95, bodyWidth);
+    const body = (along: number, across: number) => ({ x: head.x + Math.cos(heading) * along - Math.sin(heading) * across,
+      y: head.y + Math.sin(heading) * along + Math.cos(heading) * across });
+    // A pointed nose and tapered tail remain readable even when a round is only a few pixels long.
+    patch([body(1, 0), body(-bodyLength * .32, bodyWidth * .5), body(-bodyLength * .82, bodyWidth * .5),
+      body(-bodyLength, bodyWidth * .24), body(-bodyLength, -bodyWidth * .24),
+      body(-bodyLength * .82, -bodyWidth * .5), body(-bodyLength * .32, -bodyWidth * .5)], color(.85, .98).clone());
+    primitives++;
+    if (missile) for (const side of [-1, 1])
+      patch([body(-bodyLength * .6, side * bodyWidth * .3), body(-bodyLength, side * bodyWidth), body(-bodyLength * .9, 0)], color(.5, .9).clone());
+    line(body(-bodyLength * .75, -bodyWidth * .12), body(-bodyLength * .25, -bodyWidth * .12), 1, .8, Math.max(.6, bodyWidth * .2));
     if (primitives > beforeHead) frame.projectiles.push({ id: shot.id, weapon,
       x: head.x + width / 2, y: height / 2 - head.y, width: bodyWidth, length: bodyLength,
       speed: (shot.timeScale ?? 1) * Math.hypot(shot.velocity.x, shot.velocity.y - (shot.guidance ? 0 : FLIGHT.gravity * age * (shot.timeScale ?? 1)), shot.velocity.z) });

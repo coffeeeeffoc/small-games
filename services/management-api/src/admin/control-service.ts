@@ -1,3 +1,4 @@
+import { normalizeControlSnapshot } from '@coffeeeeffoc/service-kit';
 import { randomUUID } from 'node:crypto';
 import type { AdminSession } from './store.js';
 import { createControlAccess } from './control-access.js';
@@ -103,8 +104,9 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
     await checkVersion(tx, expected);
     if (revision.parentVersion !== expected || (await tx.published(revision.id)))
       throw new ControlError('VERSION_CONFLICT');
-    const snapshot = parseSnapshot(revision.snapshot, adminOrigin);
-    if (snapshotDigest(snapshot) !== revision.digest) throw new Error('Invalid revision digest');
+    if (snapshotDigest(revision.snapshot) !== revision.digest)
+      throw new Error('Invalid revision digest');
+    const snapshot = parseSnapshot(normalizeControlSnapshot(revision.snapshot), adminOrigin);
     if (!(await tx.setHead(expected, revision.id, actor.memberId, now(), snapshot)))
       throw new ControlError('VERSION_CONFLICT');
     await audit(tx, actor, 'revisions.publish', revision.id, {
@@ -168,11 +170,13 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
       return withPermission(session, 'control.publish', async (tx, actor) => {
         const target = await tx.revision(input.revisionId);
         if (!target || !(await tx.published(target.id))) throw new ControlError('NOT_FOUND', 404);
+        if (snapshotDigest(target.snapshot) !== target.digest)
+          throw new Error('Invalid revision digest');
         const revision = await newRevision(
           tx,
           actor,
           input.expectedVersion,
-          target.snapshot,
+          normalizeControlSnapshot(target.snapshot),
           input.reason,
           target.id,
         );

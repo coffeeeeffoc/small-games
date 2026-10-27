@@ -31,6 +31,11 @@ export async function sourceHash(directory = fileURLToPath(root)) {
   for (const file of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs', 'cocos-branding.mjs'])
     hash.update(await readFile(new URL('../../carding-car/scripts/' + file, import.meta.url), 'utf8')
       .then((source) => source.replaceAll('\r\n', '\n')));
+  for (const file of ['scripts/h5-game-services.mjs', 'scripts/competition-service-config.mjs',
+    'platforms/competition/client.js', 'platforms/competition/game-services.js', 'platforms/competition/game-bootstrap.js']) {
+    hash.update(file + '\0');
+    hash.update((await readFile(new URL('../../../../' + file, import.meta.url), 'utf8')).replaceAll('\r\n', '\n'));
+  }
   return hash.digest('hex');
 }
 

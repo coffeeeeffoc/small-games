@@ -12,8 +12,8 @@ const profiles: MissionDefinition[] = (['corridor-01', 'ambush-02', 'patrol-03']
   speed: routeLength(index === 1 ? 'highland' : 'valley') / 240,
   light: 'day', initialWeapon: 1, warmup: 18 - index * 3, attackInterval: 7,
   name: [['晨光护送', 'FIRST LIGHT'], ['高地警戒', 'HIGHLAND WATCH'], ['谷地支援', 'VALLEY SUPPORT']][index],
-  description: [`白天 · ${introductoryContacts[index].length} 个固定炮位 · 爆破炮上手`,
-    `DAY · ${introductoryContacts[index].length} stationary emplacements · Start with Burst`],
+  description: [`白天 · ${introductoryContacts[index].length} 个固定炮位 · 榴弹炮上手`,
+    `DAY · ${introductoryContacts[index].length} stationary emplacements · Start with HE`],
   events: introductoryContacts[index].map(i => ({ ...MISSION.events[i], kind: 'turret', time: 0, progress: 0,
     direction: ['指挥部：优先清除友军附近的固定炮位。', 'COMMAND: clear emplacements near our convoy first.'] })),
 }));
@@ -53,7 +53,7 @@ export const TRAINING: MissionDefinition = {
   description: ['静止 / 巡逻 / 重甲 · 练切炮与提前量', 'Static / rover / armor · Switch & lead'],
   events: [
     { time: 0, progress: 0, kind: 'turret', x: -108, z: 25,
-      direction: ['静止目标用爆破 · 巡逻目标看提前量 · 重甲用重炮', 'Burst for static · Lead rovers · Heavy for armor'] },
+      direction: ['静止目标用榴弹 · 巡逻目标看提前量 · 重甲用重炮', 'HE for static · Lead rovers · Heavy for armor'] },
     { time: 0, progress: 0, kind: 'light', x: -109, z: 70,
       direction: ['巡逻目标：准星放到弹着时的位置', 'Rover: aim where it will be at impact'] },
     { time: 0, progress: 0, kind: 'heavy', x: -91, z: 49,

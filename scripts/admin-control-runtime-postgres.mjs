@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
-import { openControlDatabase } from '@coffeeeeffoc/service-kit';
+import { CONTROL_GAME_IDS, openControlDatabase } from '@coffeeeeffoc/service-kit';
 import { createCompetitionControl } from '../services/runtime-api/dist/competition/control.js';
 import { assertStoredPlayerGame } from '../services/runtime-api/dist/competition/auth.js';
 
@@ -270,7 +270,22 @@ export async function verifyRuntimeControl({ url, owner, runtime, checked }) {
     let elapsed;
     try {
       const start = performance.now();
-      await assert.rejects(control.publicCors(), { code: 'CONTROL_UNAVAILABLE' });
+      const rejected = assert.rejects(control.publicCors(), { code: 'CONTROL_UNAVAILABLE' });
+      let readerPid;
+      while (!readerPid && performance.now() - start < 1200) {
+        const rows = await owner.db.execute(sql`select pid from pg_stat_activity
+          where usename='runtime_app' and wait_event_type='Lock'
+          and query like 'insert into game_control.application_observations%'`);
+        readerPid = rows[0]?.pid;
+      }
+      assert(readerPid, 'projection must reach the blocked observation');
+      const held = await owner.db.execute(sql`select count(*)::int as count from pg_locks
+        where pid=${readerPid} and locktype='advisory' and mode='ShareLock' and granted`);
+      assert.equal(held[0].count, CONTROL_GAME_IDS.length, 'all game locks survive until commit');
+      await rejected;
+      const released = await owner.db.execute(sql`select count(*)::int as count from pg_locks
+        where pid=${readerPid} and locktype='advisory' and granted`);
+      assert.equal(released[0].count, 0, 'timeout rolls back every projection lock');
       elapsed = performance.now() - start;
       assert.ok(
         elapsed <= 2300,

@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
-import { openDatabase } from '@coffeeeeffoc/service-kit';
+import { openDatabase, controlSnapshotDigest } from '@coffeeeeffoc/service-kit';
 import { createControlStore } from '../services/management-api/dist/admin/control-store.js';
 import { createControlService } from '../services/management-api/dist/admin/control-service.js';
 import { CONTROL_GAMES } from '../services/management-api/dist/admin/control-model.js';
@@ -42,6 +42,11 @@ const migration = await readFile(
   'utf8',
 );
 receipt.migrationSha256 = createHash('sha256').update(migration).digest('hex');
+const nightMigration = await readFile(
+  new URL('../infra/admin-console/migrations/003-night-overwatch-control.sql', import.meta.url),
+  'utf8',
+);
+receipt.nightMigrationSha256 = createHash('sha256').update(nightMigration).digest('hex');
 const psql = (statement) =>
   docker(
     [
@@ -64,7 +69,10 @@ const step = (name) => {
   stage = name;
   console.log(`CONTROL_PG_STAGE ${name}`);
 };
-const checked = (name) => receipt.checks.push(name);
+const checked = (name) => {
+  receipt.checks.push(name);
+  console.log(`CONTROL_PG_CHECK ${name}`);
+};
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function guard(requirePort = true) {
   const info = metadata('container', containerId);
@@ -304,22 +312,58 @@ try {
     { code: 'LAST_ADMINISTRATOR' },
   );
   checked('one-time-bootstrap-db-disable-and-concurrent-last-administrator');
+  step('v2-published-history-upgrade-to-v3');
+  const legacy = {
+    apiOrigins: ['http://localhost:8080'],
+    games: Object.fromEntries(
+      CONTROL_GAMES.filter((id) => id !== 'night-overwatch').map((id) => [id, 'enabled']),
+    ),
+  };
+  const legacyId = randomUUID(),
+    legacyDigest = controlSnapshotDigest(legacy);
+  await owner.db.execute(
+    sql`insert into game_control.revisions values(${legacyId},0,${JSON.stringify(legacy)}::jsonb,'historical v2',${currentMember.id},null,${legacyDigest},${Date.now()})`,
+  );
+  await owner.db.execute(
+    sql`insert into game_control.publications values(1,${legacyId},${currentMember.id},${Date.now()})`,
+  );
+  await owner.db.execute(
+    sql`update game_control.active_head set version=1,revision_id=${legacyId}`,
+  );
+  await owner.db.execute(sql`update game_control.current_policy set revision=1`);
+  const history = () =>
+    psql(
+      `select md5(jsonb_build_object('revisions',(select jsonb_agg(t order by id) from game_control.revisions t),'publications',(select jsonb_agg(t order by version) from game_control.publications t),'head',(select jsonb_agg(t) from game_control.active_head t),'acl',(select jsonb_agg(jsonb_build_array(relname,relowner,relacl::text) order by relname) from pg_class where relnamespace='game_control'::regnamespace))::text)`,
+    );
+  const preserved = history();
+  psql(nightMigration);
+  psql(nightMigration);
+  assert.equal(history(), preserved);
+  assert.equal(sentinel(), beforeSentinel);
+  assert.equal(
+    psql(
+      "select state||':'||revision from game_control.current_policy where game_id='night-overwatch'",
+    ),
+    'disabled:1',
+  );
+  assert.equal((await service.state(active)).digest, legacyDigest);
+  checked('v2-to-v3-idempotent-preserves-published-history-digest-and-ACL');
   step('CAS-publish-rollback-and-kill-epoch');
   const snapshot = {
     apiOrigins: ['http://localhost:8080'],
     games: Object.fromEntries(CONTROL_GAMES.map((id) => [id, 'enabled'])),
   };
   const revisions = await Promise.all([
-    service.draft(active, { expectedVersion: 0, snapshot, reason: 'first' }),
-    service.draft(active, { expectedVersion: 0, snapshot, reason: 'conflict' }),
+    service.draft(active, { expectedVersion: 1, snapshot, reason: 'first' }),
+    service.draft(active, { expectedVersion: 1, snapshot, reason: 'conflict' }),
   ]);
   const published = await Promise.allSettled(
-    revisions.map((revision) => service.publish(active, revision.id, 0)),
+    revisions.map((revision) => service.publish(active, revision.id, 1)),
   );
   assert.equal(published.filter((result) => result.status === 'fulfilled').length, 1);
   const original = (await service.state(active)).revisionId;
   const disable = await service.draft(active, {
-    expectedVersion: 1,
+    expectedVersion: 2,
     snapshot: { ...snapshot, games: { ...snapshot.games, 'cops-robbers': 'disabled' } },
     reason: 'disable',
   });
@@ -347,7 +391,7 @@ try {
     await releasePromise;
   });
   await enteredPromise;
-  const pendingPublish = service.publish(active, disable.id, 1);
+  const pendingPublish = service.publish(active, disable.id, 2);
   try {
     let waiting = false;
     for (let i = 0; i < 30; i++) {
@@ -374,14 +418,31 @@ try {
   assert.equal(state.policies.find((policy) => policy.gameId === 'cops-robbers').killEpoch, 1);
   await service.rollback(active, {
     revisionId: original,
-    expectedVersion: 2,
+    expectedVersion: 3,
     reason: 'restore current behavior only',
   });
   state = await service.state(active);
-  assert.equal(state.version, 3);
+  assert.equal(state.version, 4);
   assert.equal(state.policies.find((policy) => policy.gameId === 'cops-robbers').killEpoch, 1);
   assert.equal(state.policies.find((policy) => policy.gameId === 'cops-robbers').state, 'enabled');
   checked('CAS-append-only-rollback-epoch-and-shared-advisory-order');
+  await service.rollback(active, {
+    revisionId: legacyId,
+    expectedVersion: 4,
+    reason: 'rollback historical v2 with night disabled',
+  });
+  state = await service.state(active);
+  assert.equal(state.version, 5);
+  assert.equal(
+    state.policies.find((policy) => policy.gameId === 'night-overwatch').state,
+    'disabled',
+  );
+  assert.equal(
+    (await owner.db.execute(sql`select digest from game_control.revisions where id=${legacyId}`))[0]
+      .digest,
+    legacyDigest,
+  );
+  checked('historical-v2-rollback-creates-new-v3-revision-without-rewriting-history');
   step('runtime-bounded-control-transactions');
   receipt.runtimeControl = await verifyRuntimeControl({
     url: `postgres://runtime_app:${runtimePassword}@127.0.0.1:${guard()}/control_test`,
@@ -407,10 +468,10 @@ try {
     createControlStore(management.db),
     'https://admin.example.test',
   );
-  assert.equal((await restarted.state(active)).version, 3);
+  assert.equal((await restarted.state(active)).version, 5);
   assert.equal((await restarted.members(active)).filter((member) => member.active).length, 1);
   assert.equal(sentinel(), beforeSentinel);
-  psql(migration);
+  psql(nightMigration);
   checked('publication-members-audit-survive-database-restart');
   const evidence = new URL(
     '../docs/admin-console/qa/control-postgres-current.json',
@@ -420,7 +481,7 @@ try {
   await writeFile(evidence, JSON.stringify(receipt, null, 2) + '\n');
   console.log(`PASS: ${receipt.checks.length} isolated PostgreSQL control checks`);
 } catch (error) {
-  const detail = String(error.stderr ?? error.cause?.message ?? error.message)
+  const detail = String(error.stderr ?? error.stack ?? error.cause?.message ?? error.message)
     .replaceAll(password, '[fixture secret]')
     .replaceAll(appPassword, '[fixture secret]')
     .replaceAll(runtimePassword, '[fixture secret]');

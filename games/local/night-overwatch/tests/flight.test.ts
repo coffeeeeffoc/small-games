@@ -164,7 +164,8 @@ test('arrival cannot succeed while a threat is still alive', () => {
   const s = new Simulation('operation-007');
   assert.equal(s.threatsRemaining, 24, 'unspawned contacts also count');
   s.start();
-  s.progress = 10000;
+  s.progress = s.routeLength;
+  for (const unit of s.units) if (unit.routeOffset !== undefined) Object.assign(unit, s.routePoint(s.routeLength));
   s.step(0.01);
   assert.equal(s.phase, 'playing');
   assert(s.threatsRemaining >= 24);
@@ -413,4 +414,14 @@ test('every outpost must retain a survivor; the last lethal hit determines group
     assert.equal(fresh.failedGroup, undefined);
     assert.equal(fresh.failureCause, '');
   }
+});
+
+test('all four weapons and mixed events keep presentation recoil finite', async () => {
+  const { recoilOffset } = await import('../assets/scripts/core/Flight.ts');
+  for (const weapon of [0, 1, 2, 3, 99]) {
+    const result = recoilOffset([{ type: 'shot', weapon, time: 1 }], 1.01);
+    assert(Number.isFinite(result.x) && Number.isFinite(result.y));
+  }
+  const result = recoilOffset([0, 1, 2, 3].map(weapon => ({ type: 'shot', weapon, time: 1 })), 1.02);
+  assert(Number.isFinite(result.x) && Number.isFinite(result.y));
 });

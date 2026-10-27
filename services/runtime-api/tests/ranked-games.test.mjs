@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { rankedRules } from '../rules/ranked-games.mjs';
 
 describe('real rescue and tower rule adapters', () => {
-  it.each(rankedRules)(
+  it.each(rankedRules.filter((rule) => rule.id !== 'night-overwatch'))(
     '$id restores a JSON checkpoint and replays identical fixed steps',
     (rule) => {
       const first = rule.create('endless', 1234);

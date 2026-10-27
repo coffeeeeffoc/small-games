@@ -7,7 +7,7 @@ import { competitionService, serviceGames } from './competition-service-config.m
 import { h5ServiceConfig, serviceHtml, prepareH5Service } from './competition-h5-service.mjs';
 export function isPublicCompetitionPath(pathname) {
   if (pathname === '/api/competition/v1/runs/cops-robbers-realtime') return true;
-  return /^\/api\/competition\/v1\/(?:sessions\/(?:guest|platform|refresh|upgrade|logout)|me|boards\/[^/]+|rooms(?:\/[^/]+)?(?:\/(?:ready|leave|rematch|actions|role|initiative))?|games\/[A-Za-z0-9][A-Za-z0-9-]{0,79}(?:\/leaderboards\/[A-Za-z0-9][A-Za-z0-9-]{0,79}|\/runs(?:\/[a-f0-9-]{36}(?:\/(?:actions|finish))?)?|\/rooms(?:\/(?:join|[A-F0-9]{12}(?:\/(?:ready|leave|rematch|actions|role|initiative))?))?)?)$/.test(
+  return /^\/api\/competition\/v1\/(?:sessions\/(?:guest|platform|refresh|upgrade|logout)|me|boards\/[^/]+|rooms(?:\/[^/]+)?(?:\/(?:ready|leave|rematch|actions|role|initiative))?|games\/[A-Za-z0-9][A-Za-z0-9-]{0,79}(?:\/match|\/leaderboards\/[A-Za-z0-9][A-Za-z0-9-]{0,79}|\/runs(?:\/[a-f0-9-]{36}(?:\/(?:actions|finish))?)?|\/rooms(?:\/(?:join|[A-F0-9]{12}(?:\/(?:ready|leave|rematch|actions|role|initiative))?))?)?)$/.test(
     pathname,
   );
 }

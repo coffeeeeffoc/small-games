@@ -11,11 +11,13 @@ export {
   controlStateSchema,
   controlVersionSchema,
   controlSnapshotSchema,
+  storedControlSnapshotSchema,
   normalizeControlSnapshot,
   controlSnapshotDigest,
   controlPublicationSchema,
   gameControlPolicySchema,
   type ControlGameId,
   type ControlSnapshot,
+  type StoredControlSnapshot,
   type GameControlPolicy,
 } from './control-config.js';

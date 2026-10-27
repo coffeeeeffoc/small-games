@@ -98,6 +98,8 @@ html = html.replace(
 );
 await writeFile(out + 'index.html', html);
 await cp(new URL('./dev-mode.js', import.meta.url), out + 'dev-mode.js');
+const { prepareGameServices } = await import('../../../../scripts/h5-game-services.mjs');
+await prepareGameServices('night-overwatch', out, { local: process.env.COMPETITION_LOCAL_BACKEND === '1' });
 const { installStartup } = await import('../startup/install.mjs');
 await brandCocos(out);
 await installStartup(out, target);

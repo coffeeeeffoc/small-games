@@ -125,4 +125,5 @@ export const gameNames: Record<string, string> = {
   'tower-brake': '穿云落星',
   'three-choose-two': '摆消乐',
   'carding-car': '卡丁车',
+  'night-overwatch': '夜航守望',
 };

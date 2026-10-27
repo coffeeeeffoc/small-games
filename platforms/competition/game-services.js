@@ -14,6 +14,7 @@ export function createGameServices({ gameId, ruleVersion }) {
   const path = '/games/' + encodeURIComponent(gameId);
   const owners = new Map(),
     roomOwners = new Map();
+  let matchOwner;
   let storage;
   try {
     storage = sdk || globalThis.localStorage;
@@ -91,8 +92,10 @@ export function createGameServices({ gameId, ruleVersion }) {
       body,
       credential,
     );
-    if (operation === 'leave') roomOwners.delete(code);
-    else rememberRoom(code, credential);
+    if (operation === 'leave') {
+      roomOwners.delete(code);
+      matchOwner = undefined;
+    } else rememberRoom(code, credential);
     if (operation === 'rematch') rememberRoom(data.rematch, credential);
     return data;
   }
@@ -111,11 +114,19 @@ export function createGameServices({ gameId, ruleVersion }) {
     logout() {
       owners.clear();
       roomOwners.clear();
+      matchOwner = undefined;
       return auth.logout();
     },
     metadata: () => request(path),
     profile: (patch) => request('/me', patch),
     createRoom: (input = {}) => openRoom('', input),
+    async match() {
+      const credential = matchOwner ? await auth.forOwner(matchOwner) : await auth.current();
+      matchOwner = { ...credential };
+      const room = await request(path + '/match', {}, credential);
+      rememberRoom(room.code, credential);
+      return room;
+    },
     joinRoom: ({ code }) => openRoom('/join', { code }),
     getRoom: ({ code }) => roomRequest(code, '', undefined),
     roomAction({ code, operation, body = {} }) {

@@ -23,6 +23,10 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  'services/runtime-api/rules/night.mjs -> games/local/night-overwatch/assets/scripts/core/Duel.ts',
+  'services/runtime-api/rules/night-ranked.mjs -> games/local/night-overwatch/assets/scripts/core/Replay.ts',
+  'services/runtime-api/rules/night-ranked.mjs -> games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+  'games/local/night-overwatch/scripts/build.mjs -> scripts/h5-game-services.mjs',
   'games/local/ashfall-front/tests/browser.mjs -> apps/shell-web/scripts/game-checks/ashfall-front.mjs',
   'games/local/ashfall-front/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/ashfall-front/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',

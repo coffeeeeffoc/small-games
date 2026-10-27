@@ -1,7 +1,7 @@
 import { ZOOM_LEVELS } from './Data.ts';
 
 export type RewardKind = 'supply' | 'zoom';
-export type SupplyReward = 'tracking' | 'ammo' | 'rate';
+export type SupplyReward = 'tracking' | 'ammo' | 'rate' | 'restock';
 export type RewardOutcome = { status: 'completed' | 'dismissed' | 'unavailable' | 'failed' };
 // Structurally compatible with GameHost.ads.offer; the SDK bridge owns playback and completion.
 export type RewardProvider = (opportunity: {

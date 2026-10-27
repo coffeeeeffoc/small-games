@@ -19,6 +19,11 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     for (const name of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs', 'cocos-branding.mjs'])
       await cp(new URL('../../carding-car/scripts/' + name, import.meta.url),
         path.join(temp, 'games/local/carding-car/scripts', name));
+    for (const file of ['scripts/h5-game-services.mjs', 'scripts/competition-service-config.mjs',
+      'platforms/competition/client.js', 'platforms/competition/game-services.js', 'platforms/competition/game-bootstrap.js']) {
+      await mkdir(path.dirname(path.join(temp, file)), { recursive: true });
+      await cp(new URL('../../../../' + file, import.meta.url), path.join(temp, file));
+    }
     await writeFile(path.join(game, 'package.json'), '{"type":"module"}\n');
     for (const name of ['engine', 'project'])
       await writeFile(path.join(game, `settings/v2/packages/${name}.json`), '{}\n');

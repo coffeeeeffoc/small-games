@@ -1,28 +1,26 @@
 # 夜航守望 · 交付状态
 
-- 更新时间：2026-10-25；当前 Creator 3.8.8 Web/mobile 源码身份：`defe9fc62248366465c553f13da9e0f8836bb2f099faccc651a3d512b68772ef`，8,307,744 字节。
-- 已完成玩法闭环及既有首页／设置；本次补齐自动追踪按钮高亮、按钮内倒计时和更大倍率（默认10×、按次1.5倍、右键临时3倍）。旧5×存档自动提升，更高倍率与奖励资格保留。
-- 当前为本地实现与浏览器验证；未上传渠道或提审。实体手机、原生目标运行及真实广告仍待验证。
+更新时间：2026-10-27。本轮源码身份 `81fcef6ad4597f0226928251154cf319d4d142b113dbf1d11b65f3547502bad3`，Creator 3.8.8 Web/mobile，8,383,584 字节。已实现四武器、火区封路、轻车巡逻比例、战况表、个人用时、逐关排行榜和好友／匹配对战。当前为本地实现与隔离服务验收，未提交、推送、生产部署或渠道上传。
 
 ## 八类资料
 
-文件大小、SHA-256、图片尺寸和视频探测见 [manifest.json](manifest.json)。
+| 类别 | 状态 | 实际文件与核验 |
+| --- | --- | --- |
+| 游戏简介 | 已提供 | [introduction.md](copy/introduction.md)，已更新武器、战况、120关及联机条件 |
+| 一句话推荐语 | 已提供 | [tagline.md](copy/tagline.md)，沿用适用主题 |
+| 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，已更新封路、用时与公平对战 |
+| 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png)，复核既有原创图，非透明背景、无预制圆角 |
+| 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png)，既有标题插画，非实机截图 |
+| 宣传视频 | 已提供 | [1280×720 H.264 MP4，15.97秒](promo/videos/combat-online-1280x720-silent.mp4)，标题、好友准备室、燃烧封路与战况；[剪辑记录](promo/videos/combat-online-edit.json) |
+| 游戏内截图 | 已提供 | [护送开火](gameplay/screenshots/2026-10-27-combat-online/01-escort-fire.png)、[燃烧区域](gameplay/screenshots/2026-10-27-combat-online/02-duel-incendiary.png)、[战况表](gameplay/screenshots/2026-10-27-combat-online/03-duel-report.png)、[好友房](gameplay/screenshots/2026-10-27-combat-online/04-friend-room.png)、[个人最佳](gameplay/screenshots/2026-10-27-combat-online/05-personal-best.png)、[关卡榜](gameplay/screenshots/2026-10-27-combat-online/06-level-ranking.png)；6张均1280×720、16:9、单张小于4MB，玩法排在首位 |
+| 游戏内视频 | 已提供 | [1280×720 H.264 MP4，34.97秒](gameplay/videos/combat-online-1280x720-silent.mp4)，连续真实瞄准与开火；前5秒已进入核心玩法，全段保持战斗，无追加字幕或配音 |
 
-| 类别 | 状态 | 文件与规格 | 版本与核验 |
-| --- | --- | --- | --- |
-| 游戏简介 | 已提供 | [introduction.md](copy/introduction.md) | 任务预览、即时设置与手册 |
-| 一句话推荐语 | 已提供 | [tagline.md](copy/tagline.md) | 主题保持适用 |
-| 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md) | 独立封面与暂停调整说明 |
-| 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png) | 沿用原图，摘要一致 |
-| 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png) | 既有标题插画，摘要一致，非实机画面 |
-| 宣传视频 | 已提供 | [1280×720 MP4，10.44秒](promo/videos/night-overwatch-tracking-zoom-1280x720-silent.mp4) | 3秒既有标题图与本次连续实录；无音轨；[剪辑记录](promo/videos/tracking-zoom-edit.json) |
-| 游戏内截图 | 已提供 | [独立首页](gameplay/screenshots/2026-10-25-tracking-zoom/home-844.png)、[追踪高亮](gameplay/screenshots/2026-10-25-tracking-zoom/tracking-844.png)、[最后5秒](gameplay/screenshots/2026-10-25-tracking-zoom/tracking-ending-568.png)、[到期恢复](gameplay/screenshots/2026-10-25-tracking-zoom/tracking-expired-568.png)、[10倍画面](gameplay/screenshots/2026-10-25-tracking-zoom/zoom-after-844.png)、[倍率设置](gameplay/screenshots/2026-10-25-tracking-zoom/zoom-844.png) | 当前构建的实际浏览器画面，另含568小屏、1366桌面、390竖屏容器及临时3倍画面 |
-| 游戏内视频 | 已提供 | [844×390 MP4，7.44秒](gameplay/videos/mobile-tracking-zoom-844x390-silent.mp4) | 开局、选择追踪支援、准备恢复、高亮计时、放大及真实开火；连续实际输入录屏，仅转码，无音轨 |
+## 核验与环境
 
-## 证据与边界
+[本轮验证记录](../docs/verification-2026-10-27-combat-online.md)。本次6张截图与两条视频全部来自上述源码身份；两条视频已完整解码并检查首段、战斗中段与后段抽帧。宣传片展示双人对战与封路，实机录像展示单人护送，内容不同。录屏源位于本地 `reports/2026-10-27-live-online/source-1280x720.webm`，没有录入音轨，没有后加配音。浏览器以真实输入操作，未改写模拟状态、比分、弹药或时间。
 
-[本轮验证](../docs/verification-2026-10-25-compact-hud.md)：256项自动测试、类型检查、Creator构建，四尺寸追踪／倍率／设置、三尺寸输入与广告四种结果及后台／离线资格回归。当前新增截图和两条视频均来自上述源码身份，视频完整解码通过并查看抽帧。原始WebM保留于本地 `reports/2026-10-25-tracking-zoom/`。简介、推荐语、开发者的话、图标与宣传图逐项核对，原摘要一致且内容仍适用。
+[manifest.json](manifest.json)登记尺寸、字节数、SHA-256、编码、时长、复用来源和截图顺序。规格按仓库2026-10-26用户提供的TapTap上传页要求核对，正式提审仍需在实际账号和入口复核。概念图仅在设计目录，未作为实录。
 
-封面复用项目已有无文字夜航插画 `startup/background.png`；标题与按钮在Cocos内独立绘制。图标和宣传插画沿用原始资产；[概念图](../docs/design/2026-10-25-settings-home-guide.md)不充当实录。浏览器录制未捕获音轨，没有后配音。
+正式全站服务尚未启用：需部署Runtime纯核与003兼容迁移、配置HTTPS API与H5来源，再通过控制台发布夜航守望enabled。本地测试使用隔离PostgreSQL和匿名身份，不能代表线上可用。实体手机、原生渠道运行及真实奖励广告尚未验收；空对空射击未实现。
 
-历史实录保留原sourceHash并标为historical；[首页／设置版本记录](../docs/verification-2026-10-25-settings.md)、[更早状态](STATUS-2026-10-25-compact-hud.md)和[更早manifest](manifest-2026-10-25-compact-hud.json)仅作为当时证据。广告检查使用公开提供器和生命周期测试边界，不能代表真实库存或手机体验。未声称满足全部渠道最新提审规格。按用户要求提交并推送dev，结果以Git远端为准；未上传渠道或提审，CI／Pages另行确认。
+历史版本保存在 [旧状态](STATUS-2026-10-25-tracking-zoom.md) 与 [旧清单](manifest-2026-10-25-tracking-zoom.json)，旧录屏和旧摘要不作为本轮证据。

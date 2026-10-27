@@ -219,11 +219,11 @@ def manifest_from(release, historical=False):
             and set(value) == {'version', 'release', 'sourceSHA', 'kind', 'services', 'scope', 'qualityChecks', 'controlSchemaVersion', 'migrationArtifactSha256', 'cspContractSha256', 'adminHtml', 'files'}
             and value['kind'] in ('control-application', 'control-runner')
             and value['scope'] == 'admin-control' and value['qualityChecks'] == 'not-run'
-            and type(value['controlSchemaVersion']) is int and value['controlSchemaVersion'] == 2
+            and type(value['controlSchemaVersion']) is int and value['controlSchemaVersion'] == (2 if historical and value.get('controlSchemaVersion') == 2 else 3)
             and value['services'] in (list(SERVICES), ['management'], [])
             and {'control-deploy.py', 'control-database.py', 'control-fingerprint.sql', 'legacy-tools.py', 'backend-context.py', 'image-authority.py', 'migrations/002-control-center.sql', 'admin-csp-contract.json'} <= set(value['files'])
             and digest(value['migrationArtifactSha256'])
-            and value['migrationArtifactSha256'] == value['files']['migrations/002-control-center.sql']
+            and value['migrationArtifactSha256'] == value['files']['migrations/002-control-center.sql' if value['controlSchemaVersion'] == 2 else 'migrations/003-night-overwatch-control.sql']
             and value['cspContractSha256'] == value['files']['admin-csp-contract.json'], 'RELEASE_MANIFEST')
     if value['kind'] == 'control-runner':
         require(value['services'] == [] and value['adminHtml'] is None, 'RELEASE_MANIFEST')
@@ -238,7 +238,7 @@ def manifest_from(release, historical=False):
 def control_contract(value):
     require(isinstance(value, dict) and set(value) == {'version', 'schema', 'schemaVersion', 'projectionSha256', 'metadataSha256'}
             and type(value['version']) is int and value['version'] == 1 and value['schema'] == 'game_control'
-            and type(value['schemaVersion']) is int and value['schemaVersion'] == 2
+            and type(value['schemaVersion']) is int and value['schemaVersion'] == 3
             and digest(value['projectionSha256']) and digest(value['metadataSha256']), 'CONTROL_CONTRACT')
     return value
 
@@ -257,8 +257,10 @@ def database_floor(pg):
         absent = tools.psql(pg, "BEGIN TRANSACTION READ ONLY; SELECT to_regnamespace('game_control') IS NULL; COMMIT;")
         if absent == 't':
             return 'absent'
-        if absent == 'f' and tools.psql(pg, 'BEGIN TRANSACTION READ ONLY; SELECT version FROM game_control.schema_version; COMMIT;') == '2':
-            return 'schema2'
+        if absent == 'f':
+            version = tools.psql(pg, 'BEGIN TRANSACTION READ ONLY; SELECT version FROM game_control.schema_version; COMMIT;')
+            if version in ('2','3'): return 'schema' + version
+
     except Exception:
         pass
     raise Stopped('DATABASE_OUTCOME_UNKNOWN')
@@ -687,7 +689,7 @@ def adoption_journal(value, release, manifest):
     keys = {'version', 'release', 'sourceSHA', 'phase', 'inventory', 'contexts', 'candidateImage', 'previous',
             'envFile', 'envMetadata', 'pointers', 'precommitPath', 'precommitSHA256', 'newActivationAttempted',
             'stopped', 'runtimeIds', 'kartRemovalAttempted', 'domainInvoked', 'barrierAttempted', 'verifiedNotCommitted'}
-    require(isinstance(value, dict) and set(value) in (keys, keys | {'rootPreconditionEvidence'}) and type(value['version']) is int and value['version'] == 1
+    require(isinstance(value, dict) and set(value) in (keys, keys | {'rootPreconditionEvidence'}, keys | {'initialFloor'}) and type(value['version']) is int and value['version'] == 1
             and value['release'] == release.name and value['sourceSHA'] == manifest['sourceSHA']
             and value['phase'] in ('prepared', 'barrier', 'database', 'database-unknown', 'verified-not-committed', 'activate', 'recovery-required', 'restored')
             and value['precommitPath'] == str(PRIVATE / release.name / 'control-precommit.json')
@@ -703,6 +705,7 @@ def adoption_journal(value, release, manifest):
             and isinstance(value['inventory'], dict) and set(value['inventory']) == {*SERVICES, 'postgres', 'nginx', 'web'}
             and isinstance(value['contexts'], dict) and set(value['contexts']) == {'runtime', 'kart'}
             and isinstance(value['pointers'], dict), 'RECOVERY_REQUIRED')
+    require(value.get('initialFloor', 'absent') in ('absent', 'schema2'), 'RECOVERY_REQUIRED')
     require(all(isinstance(item, dict) and digest(item.get('id')) and isinstance(item.get('image'), str)
                 and re.fullmatch(r'sha256:[a-f0-9]{64}', item['image']) for item in value['inventory'].values()), 'RECOVERY_REQUIRED')
     require(not value['verifiedNotCommitted'] or (value['phase'] in ('verified-not-committed', 'restored')
@@ -771,7 +774,7 @@ def restore_before_migration(release, journal, *, explicit_not_committed=False):
                 and (BASE / 'current').resolve(strict=True) == BASE / 'releases' / journal['previous'],
                 'ROOT_PRECONDITION_UNPROVEN')
     items = journal['inventory']
-    require(database_floor(items['postgres']['id']) == 'absent', 'DATABASE_OUTCOME_UNKNOWN')
+    require(database_floor(items['postgres']['id']) == journal.get('initialFloor', 'absent'), 'DATABASE_OUTCOME_UNKNOWN')
     assert_env(Path(journal['envFile']), journal['envMetadata'])
     check_protected(items, journal['pointers'])
     require(contexts_for(items) == journal['contexts'], 'COMPOSE_CONTEXT_CHANGED')
@@ -816,7 +819,7 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
                     'restoredImages': {name: journal['inventory'][name]['image'] for name in SERVICES}}
         assert_nginx(journal['inventory'], True)
         require(target_inventory('postgres')['id'] == journal['inventory']['postgres']['id'], 'DATABASE_IDENTITY')
-        require(database_floor(journal['inventory']['postgres']['id']) == 'schema2', 'DATABASE_OUTCOME_UNKNOWN')
+        require(database_floor(journal['inventory']['postgres']['id']) == 'schema3', 'DATABASE_OUTCOME_UNKNOWN')
         precommit, checksum = read_precommit(release, manifest)
         require(journal.get('precommitSHA256') in (None, checksum), 'PRECOMMIT_PROOF')
         journal['precommitSHA256'] = checksum
@@ -832,7 +835,8 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
         except BaseException as error:
             raise database_failure('DATABASE_PREFLIGHT_FAILED', error) from None
         items = inventory()
-        require(database_floor(items['postgres']['id']) == 'absent', 'CONTROL_ALREADY_ADOPTED')
+        initial_floor = database_floor(items['postgres']['id'])
+        require(initial_floor in ('absent', 'schema2'), 'CONTROL_ALREADY_ADOPTED')
         previous = (BASE / 'current').resolve(strict=True)
         old = manifest_from(previous, True)
         require(items['management']['admin'] == previous.name, 'UNKNOWN_MANAGEMENT_SERVICE')
@@ -852,7 +856,7 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
                    'precommitPath': str(directory / 'control-precommit.json'), 'precommitSHA256': None,
                    'newActivationAttempted': False, 'stopped': [], 'runtimeIds': [],
                    'kartRemovalAttempted': False, 'domainInvoked': False, 'barrierAttempted': False,
-                   'verifiedNotCommitted': False}
+                   'verifiedNotCommitted': False, 'initialFloor': initial_floor}
         write_private(journal_file, journal)
         try:
             stage('service_stop')
@@ -880,7 +884,7 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
             precommit, checksum = read_precommit(release, manifest)
             require(all(result[key] == precommit[key] for key in ('controlContract', 'backupSHA256', 'oldStateSHA256')), 'PRECOMMIT_PROOF')
             journal['precommitSHA256'] = checksum
-            require(database_floor(items['postgres']['id']) == 'schema2', 'DATABASE_OUTCOME_UNKNOWN')
+            require(database_floor(items['postgres']['id']) == 'schema3', 'DATABASE_OUTCOME_UNKNOWN')
             verified_database(domain, items['postgres']['id'], manifest, result['controlContract'])
         except BaseException as error:
             # Never infer not_committed from a missing/late response or a failed SQL read.
@@ -888,7 +892,7 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
             journal['verifiedNotCommitted'] = known
             journal['phase'] = 'verified-not-committed' if known else 'database-unknown'
             write_private(journal_file, journal, True)
-            if known and database_floor(items['postgres']['id']) == 'absent':
+            if known and database_floor(items['postgres']['id']) == journal.get('initialFloor', 'absent'):
                 restore_before_migration(release, journal, explicit_not_committed=True)
                 raise database_failure('DATABASE_NOT_COMMITTED', error) from None
             raise database_failure('DATABASE_OUTCOME_UNKNOWN', error) from None
@@ -896,7 +900,7 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
     journal['phase'], journal['newActivationAttempted'] = 'activate', True
     write_private(journal_file, journal, True)
     try:
-        # 014 has a separate restore proof; 002's unchanged-data proof remains exact.
+        # 014 has a separate restore proof; the control upgrade preserves its own history.
         try:
             domain.provision_player_sessions(release, journal['inventory']['postgres']['id'])
         except BaseException as error:
@@ -959,7 +963,7 @@ def guarded_management(release, expected_image):
 def update(release, manifest, caddy, rollback=False):
     domain = domain_module()
     items = inventory()
-    require(database_floor(items['postgres']['id']) == 'schema2', 'CONTROL_NOT_ADOPTED')
+    require(database_floor(items['postgres']['id']) == 'schema3', 'CONTROL_NOT_ADOPTED')
     saved = saved_pointers()
     current_release = Path(saved['current'])
     old_manifest, old_proof, envfile, signature = guarded_management(current_release, items['management']['image'])

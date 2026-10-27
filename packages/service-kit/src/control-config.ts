@@ -14,6 +14,7 @@ export const CONTROL_GAME_IDS = [
   'tower-brake',
   'three-choose-two',
   'carding-car',
+  'night-overwatch',
 ] as const;
 export type ControlGameId = (typeof CONTROL_GAME_IDS)[number];
 export const controlStateSchema = z.enum(['enabled', 'draining', 'disabled']);
@@ -48,19 +49,36 @@ export const controlSnapshotSchema = z
   })
   .strict();
 export type ControlSnapshot = z.infer<typeof controlSnapshotSchema>;
+// Only the exact pre-night shape is historical; arbitrary missing keys remain invalid.
+export const storedControlSnapshotSchema = z.union([
+  controlSnapshotSchema,
+  controlSnapshotSchema.extend({
+    games: z.object(gameShape).omit({ 'night-overwatch': true }).strict(),
+  }),
+]);
+export type StoredControlSnapshot = z.infer<typeof storedControlSnapshotSchema>;
 export function normalizeControlSnapshot(value: unknown): ControlSnapshot {
-  const parsed = controlSnapshotSchema.parse(value);
+  const parsed = storedControlSnapshotSchema.parse(value);
+  const games = { 'night-overwatch': 'disabled' as const, ...parsed.games };
   return {
     apiOrigins: [...parsed.apiOrigins].sort(),
     games: Object.fromEntries(
-      CONTROL_GAME_IDS.map((id) => [id, parsed.games[id]]),
+      CONTROL_GAME_IDS.map((id) => [id, games[id]]),
     ) as ControlSnapshot['games'],
   };
 }
-export function controlSnapshotDigest(snapshot: ControlSnapshot) {
-  return createHash('sha256')
-    .update(JSON.stringify(normalizeControlSnapshot(snapshot)))
-    .digest('hex');
+export function controlSnapshotDigest(snapshot: unknown) {
+  const parsed = storedControlSnapshotSchema.parse(snapshot);
+  const canonical = {
+    apiOrigins: [...parsed.apiOrigins].sort(),
+    games: Object.fromEntries(
+      CONTROL_GAME_IDS.filter((id) => Object.hasOwn(parsed.games, id)).map((id) => [
+        id,
+        (parsed.games as Record<string, string>)[id],
+      ]),
+    ),
+  };
+  return createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
 }
 export const gameControlPolicySchema = z
   .object({
@@ -75,7 +93,7 @@ export const controlPublicationSchema = z
   .object({
     version: controlVersionSchema.refine((value) => value > 0),
     digest: z.string().regex(/^[a-f0-9]{64}$/),
-    snapshot: controlSnapshotSchema,
+    snapshot: storedControlSnapshotSchema,
   })
   .strict()
   .superRefine((value, context) => {

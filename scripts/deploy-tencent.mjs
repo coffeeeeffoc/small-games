@@ -252,6 +252,12 @@ export async function prepareBackend(destination, workspace = root) {
   for (const name of [
     'services/runtime-api/dist',
     'services/runtime-api/rules',
+    'games/local/night-overwatch/assets/scripts/core/Duel.ts',
+    'games/local/night-overwatch/assets/scripts/core/Replay.ts',
+    'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
+    'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+    'games/local/night-overwatch/assets/scripts/core/Data.ts',
+    'games/local/night-overwatch/assets/scripts/core/Flight.ts',
     'games/local/cage-rescue/src/core.mjs',
     'games/local/cage-rescue/src/levels.mjs',
     'games/local/tower-brake/engine.mjs',

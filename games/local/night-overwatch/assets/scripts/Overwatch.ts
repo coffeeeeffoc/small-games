@@ -18,10 +18,13 @@ import { ACTIONS, TUTORIAL } from './core/Actions';
 import { World } from './World';
 import { HUD } from './HUD';
 import { Platform, RADIO } from './Platform';
+import { Online } from './Online';
+import { observeNightInputs } from './core/Replay';
 import { MAP, WEAPONS, type Point } from './core/Data';
 import { MISSIONS, nextMission, readMissionSearch, type MissionId } from './core/MissionCatalog';
 import { completeMission, missionUnlocked } from './core/MissionProgress';
 import { bestTrainingRecord } from './core/TrainingRecords';
+import { recordMissionTime } from './core/BattleRecords';
 import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
 const { ccclass } = _decorator;
 type TouchRole = { role: string; x: number; y: number; originX?: number; originY?: number; button?: string; moved?: boolean };
@@ -31,6 +34,8 @@ export class Overwatch extends Component {
   world!: World;
   hud!: HUD;
   platform!: Platform;
+  online?: Online;
+  private starting?: Simulation;
   touches = new Map<number, TouchRole>();
   keys = new Set<number>();
   mouseButton = '';
@@ -60,6 +65,24 @@ export class Overwatch extends Component {
     this.world.camera.visibility = 1 << 30;
     this.platform = new Platform(this.node, this.pause, this.clear);
     this.prepareMission(sys.isBrowser ? location.search : '');
+    this.online = new Online(sys.localStorage, (state, start) => {
+      const previous = this.sim, pauses = new Set(previous.pauses);
+      this.sim = Simulation.restore(state.simulation);
+      this.sim.pauses = pauses;
+      if (!start) this.sim.aim = { ...previous.aim };
+      this.online!.bind(this.sim, () => this.sim.paused || !!this.hud.modal);
+      if (start) {
+        this.clear(); this.lastEvent = 0; this.accumulator = 0;
+        this.hud.reportOpen = false; this.hud.timeComparison = undefined;
+        this.hud.missionsOpen = false; this.hud.tutorial = false;
+        this.syncWorld(); this.world.follow = false; this.world.center = { x: 0, z: 0 }; this.world.updateCamera();
+      }
+      this.hud.modalKey = state.finished ? 'rebuild' : this.hud.modalKey;
+    });
+    this.hud.online = this.online;
+    void this.online.connect((globalThis as any).SmallGamesServices, sys.isBrowser ? location.search : '').then(() => {
+      if (!this.disposed) this.hud.modalKey = 'rebuild';
+    });
     this.syncWorld();
     this.hud.tutorial = this.platform.readCoach();
     this.hud.muted = this.platform.muted;
@@ -138,18 +161,20 @@ export class Overwatch extends Component {
     this.sim = new Simulation(this.sim.mission.id);
     for (const r of Array.from(pauses))
       if (['background', 'orientation', 'focus'].includes(r)) this.sim.pauses.add(r);
-    this.sim.start();
+    this.beginCampaign();
     this.accumulator = 0;
     this.lastEvent = 0;
     this.world.reset();
     this.syncRewards();
     this.hud.modalKey = 'rebuild';
-    this.hud.supplyOpen = false;
+    this.hud.supplyOpen = this.hud.reportOpen = false;
+    this.hud.timeComparison = undefined;
     this.hud.exitConfirm = this.hud.toolsOpen = this.hud.zoomOpen = false;
   }
   selectMission(id: MissionId, persist = false) {
     if (this.sim.phase === 'playing') return;
     this.deferredSupply = undefined;
+    this.online?.recorder?.invalidate();
     this.hud.developer = this.platform.developer;
     if (id !== 'training-60' && !this.hud.developer && !missionUnlocked(this.hud.missionProgress || this.platform.missions, id)) {
       this.hud.toast = this.hud.t('完成上一任务后解锁', 'COMPLETE THE PREVIOUS OPERATION TO UNLOCK');
@@ -171,7 +196,8 @@ export class Overwatch extends Component {
     this.syncWorld();
     this.lastEvent = this.accumulator = 0;
     this.hud.modalKey = 'rebuild';
-    this.hud.supplyOpen = false;
+    this.hud.supplyOpen = this.hud.reportOpen = false;
+    this.hud.timeComparison = undefined;
     this.hud.exitConfirm = this.hud.toolsOpen = this.hud.zoomOpen = false;
   }
   syncWorld() {
@@ -184,7 +210,28 @@ export class Overwatch extends Component {
     this.world.reset();
     this.syncRewards();
   }
+  beginCampaign() {
+    if (this.starting === this.sim) return;
+    this.online?.leave();
+    const sim = this.sim, recorder = this.online?.recorder;
+    const begin = () => { if (this.sim !== sim || this.disposed) return; sim.start();
+      if (recorder && this.online?.rankStatus !== 'recording') {
+        this.hud.toast = this.hud.t('本局成绩仅保存在本机，不计入全站榜', 'LOCAL RESULT · NOT RANKED'); this.hud.toastUntil = Date.now() + 5000;
+      }
+      if (recorder) observeNightInputs(sim, (input, ticks) => {
+        if (input.command === 'selectHoming' || input.command === 'grantBuff' || input.command === 'grantAmmoSupply') recorder.invalidate('practice');
+        else recorder.record(input, ticks);
+      });
+      if (recorder) for (const reason of sim.pauses) recorder.record({ command: 'pause', args: [reason, true] }, 0);
+    };
+    if (!recorder || sim.mission.mode !== 'escort') { begin(); return; }
+    this.starting = sim;
+    this.hud.toast = this.hud.t('正在准备计时…', 'PREPARING TIMER…'); this.hud.toastUntil = Date.now() + 2000;
+    void recorder.start({ mode: 'level-' + sim.mission.id, levelId: sim.mission.id,
+      practice: this.operationPractice || this.platform.developer }).then(begin, begin).finally(() => { if (this.starting === sim) this.starting = undefined; });
+  }
   syncRewards() {
+    if (this.sim.duelMode) { this.hud.rewardsAvailable = false; this.hud.pendingSupply = false; this.sim.homingAmmo = 0; return; }
     this.hud.rewardsAvailable = this.platform.rewardsAvailable;
     this.sim.homingAmmo = this.platform.rewards.ammo;
     this.world.zoomLimit = this.platform.rewards.zoomLimit;
@@ -193,7 +240,7 @@ export class Overwatch extends Component {
     this.world.updateCamera();
   }
   async requestReward(kind: RewardKind, supply?: SupplyReward) {
-    if (!this.platform.rewardsAvailable) return;
+    if (this.sim.duelMode || !this.platform.rewardsAvailable) return;
     if (this.rewardRequest || this.sim.phase !== 'playing' || this.sim.buff || this.sim.resumeCountdown > 0 ||
         ['background', 'focus', 'orientation', 'help', 'mission'].some(reason => this.sim.pauses.has(reason as PauseReason)) ||
         kind === 'zoom' && !nextZoomLimit(this.platform.rewards.zoomLimit)) return;
@@ -282,18 +329,21 @@ export class Overwatch extends Component {
   }
   claimSupply(reward: SupplyReward) {
     if (this.sim.phase !== 'playing' || !this.hud.supplyOpen || this.sim.buff ||
-        !['tracking', 'ammo', 'rate'].includes(reward) || !this.platform.claimSupply(reward)) return;
-    if (reward !== 'ammo') this.sim.grantBuff(reward);
+        !['tracking', 'ammo', 'rate', 'restock'].includes(reward) || !this.platform.claimSupply(reward)) return;
+    if (reward === 'restock') this.sim.grantAmmoSupply();
+    else if (reward !== 'ammo') this.sim.grantBuff(reward);
     this.syncRewards();
     if (reward === 'ammo') this.sim.selectHoming();
     this.hud.toast = this.hud.t(reward === 'ammo' ? '追踪弹 +2 · 点选敌人，再按开火' : reward === 'tracking' ? '自动追踪已启用 · 持续60秒' : '射速提升30% · 持续60秒',
       reward === 'ammo' ? '+2 HOMING · TAP ENEMY, THEN FIRE' : reward === 'tracking' ? 'AUTO TRACKING · 60 SECONDS' : '+30% FIRE RATE · 60 SECONDS');
     this.hud.toastUntil = Date.now() + 7500;
+    if (reward === 'restock') this.hud.toast = this.hud.t('弹药已补充：榴弹 +60 · 重炮 +24 · 燃烧 +6', 'RESTOCKED: HE +60 · HEAVY +24 · FIRE +6');
     this.hud.supplyOpen = false;
     this.pause('supply', false);
     this.resumeBattle();
   }
   resumeBattle() {
+    if (this.sim.duelMode) { this.sim.pauses.clear(); this.clear(); return; }
     this.clear();
     this.accumulator = 0;
     this.sim.beginResumeCountdown();
@@ -311,6 +361,10 @@ export class Overwatch extends Component {
     } catch { /* A public shortcut stays optional when browser history is unavailable. */ }
   }
   saveMissionResult() {
+    if (this.sim.duelMode) return;
+    void this.online?.recorder?.finish();
+    this.hud.timeComparison = recordMissionTime(this.platform.times, this.sim, this.operationPractice || this.platform.developer);
+    if (this.hud.timeComparison) this.platform.saveTimes();
     const previous = this.platform.missions;
     const next = completeMission(previous, this.sim.mission.id,
       this.sim.mission.mode === 'escort' && this.sim.phase === 'success' && this.sim.threatsRemaining === 0,
@@ -326,6 +380,35 @@ export class Overwatch extends Component {
     if (best && best !== previous) this.platform.saveWarmupRecord(best);
   }
   action(id: string) {
+    const online = this.online;
+    if (online && id.startsWith('online:')) {
+      const action = id.slice(7);
+      this.clear(); this.hud.modalKey = 'rebuild';
+      if (action === 'menu') { online.panel = 'menu'; online.message = ''; online.revision++; }
+      if (action === 'ranking') void online.loadRanking(Math.max(0, MISSIONS.findIndex(m => m.id === this.selectedMission)));
+      if (action === 'previous') void online.loadRanking(online.level - 1);
+      if (action === 'next') void online.loadRanking(online.level + 1);
+      if (action === 'refresh') void online.loadRanking();
+      if (action === 'pagePrev' || action === 'pageNext') { online.rankPage = Math.max(0, Math.min(Math.ceil((online.ranking?.top.length || 1) / 3) - 1, online.rankPage + (action === 'pageNext' ? 1 : -1))); online.revision++; }
+      if (action === 'friend' || action === 'match') void online.open(action);
+      if (action === 'bot') online.startBot(performance.now());
+      if (action === 'ready') void online.ready();
+      if (action === 'share' && sys.isBrowser) void online.share(location.href);
+      if (action === 'back') {
+        online.leave(); this.sim.phase = 'briefing'; this.selectMission(this.selectedMission); this.hud.missionsOpen = false;
+        if (sys.isBrowser) { const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url.href); }
+      }
+      return;
+    }
+    if (online?.panel && ['close', 'home', 'resume'].includes(id)) { this.action('online:back'); return; }
+    if (this.sim.duelMode && ['supply', 'homingReward', 'homing', 'zoomUpgrade', 'convoy', 'mission', 'retry', 'missionNext'].includes(id)) return;
+    if (this.sim.duelMode && (id === 'exitConfirm' || id === 'home' && this.sim.phase !== 'playing')) { this.action('online:back'); return; }
+    if (id === 'battleReport' && this.sim.phase === 'playing') {
+      this.clear(); this.hud.reportOpen = !this.hud.reportOpen; this.hud.modalKey = 'rebuild'; return;
+    }
+    if (this.hud.reportOpen && ['close', 'resume', 'pause'].includes(id)) {
+      this.hud.reportOpen = false; this.hud.modalKey = 'rebuild'; return;
+    }
     if (id === 'lensIn') id = 'zoomIn';
     if (id === 'lensOut') id = 'zoomOut';
     this.platform.activate();
@@ -356,7 +439,7 @@ export class Overwatch extends Component {
       if (id === 'supplyWatch') {
         if (this.platform.rewards.pendingSupply) this.claimSupply(this.hud.supplySelection);
         else void this.requestReward('supply', this.hud.supplySelection);
-      } else if (id.startsWith('reward:') && ['tracking', 'ammo', 'rate'].includes(id.slice(7))) {
+      } else if (id.startsWith('reward:') && ['tracking', 'ammo', 'rate', 'restock'].includes(id.slice(7))) {
         this.hud.supplySelection = id.slice(7) as SupplyReward;
         this.hud.modalKey = 'rebuild';
       }
@@ -384,6 +467,7 @@ export class Overwatch extends Component {
       return;
     }
     if (id === 'missions' || id === 'homeMenu') {
+      this.online?.leave();
       this.clear();
       this.hud.missionsOpen = id === 'missions';
       if (id === 'missions') this.hud.missionPage = Math.floor(Math.max(0, MISSIONS.findIndex(mission => mission.id === this.selectedMission)) / 3);
@@ -494,7 +578,7 @@ export class Overwatch extends Component {
     }
     if (id === 'start') {
       this.world.reset();
-      this.sim.start();
+      this.beginCampaign();
       return;
     }
     const menuAction = [...flightActions, 'sensor', 'convoy', 'locate', 'zoomIn', 'zoomOut'].includes(id);
@@ -524,8 +608,8 @@ export class Overwatch extends Component {
       this.clear();
       this.sim.selectHoming();
     }
-    if (id === 'previous') this.sim.choose((this.sim.selected + 2) % 3);
-    if (id === 'next') this.sim.choose((this.sim.selected + 1) % 3);
+    if (id === 'previous') this.sim.choose((this.sim.selected + WEAPONS.length - 1) % WEAPONS.length);
+    if (id === 'next') this.sim.choose((this.sim.selected + 1) % WEAPONS.length);
     if (id === 'sensor') {
       this.world.sensor();
       this.sim.completed.add('sensor');
@@ -777,7 +861,7 @@ export class Overwatch extends Component {
     }
     const a = ACTIONS.find((a) => (a.keys as readonly number[]).includes(e.keyCode));
     if (!a) return;
-    if (a.id === 'fire') this.sim.setFire('space', true);
+    if (a.id === 'fire') { if (!this.hud.modal && !this.sim.paused) this.sim.setFire('space', true); }
     else this.action(a.id);
   }
   keyUp(e: EventKeyboard) {
@@ -785,7 +869,7 @@ export class Overwatch extends Component {
     if (e.keyCode === 32) this.sim.setFire('space', false);
   }
   updateRadio(dt = 0) {
-    if (this.sim.phase !== 'playing') { this.platform.stopRadio(); return; }
+    if (this.sim.duelMode || this.sim.phase !== 'playing') { this.platform.stopRadio(); this.hud.radioText = ''; return; }
     if (this.sim.paused) { this.platform.stop(this.sim.extractionRemaining !== undefined && this.sim.extractionRadioPending); return; }
     let cue: keyof typeof RADIO | undefined;
     const threat = this.sim.priorityThreat;
@@ -826,13 +910,15 @@ export class Overwatch extends Component {
       this.world.updateCamera();
       this.pause('orientation', frame.width < frame.height);
     }
+    if (this.online) void this.online.pump(performance.now());
     const before = this.sim.phase;
     const wasExtracting = this.sim.extractionRemaining !== undefined;
     // Arm before stepping: a convoy already at its destination can clear on this very frame.
-    if (before === 'playing' && this.sim.mission.mode === 'escort' && !wasExtracting && !this.sim.extractionRadioPending)
+    if (!this.sim.duelMode && before === 'playing' && this.sim.mission.mode === 'escort' && !wasExtracting && !this.sim.extractionRadioPending)
       this.sim.setExtractionRadioPending(true);
     const buffBefore = this.sim.buff?.kind;
-    if (this.sim.resumeCountdown > 0) {
+    if (this.sim.duelMode) { this.accumulator = 0; }
+    else if (this.sim.resumeCountdown > 0) {
       this.sim.stepCountdown(Math.min(dt, 0.1));
       this.accumulator = 0;
     } else if (this.sim.phase === 'playing' && !this.sim.paused) {
@@ -851,7 +937,7 @@ export class Overwatch extends Component {
       this.hud.toast = buffBefore === 'tracking' ? this.hud.t('追踪模式已结束', 'TRACKING ENDED') : this.hud.t('射速已恢复', 'FIRE RATE RESTORED');
       this.hud.toastUntil = Date.now() + 3000;
     }
-    if (before === 'playing' && this.sim.phase !== 'playing') {
+    if (!this.sim.duelMode && before === 'playing' && this.sim.phase !== 'playing') {
       this.saveTrainingResult(); this.saveMissionResult();
       const finished = this.sim;
       (globalThis as typeof globalThis & { SmallGamesRewardAds?: { atBreak(id: object, current: () => boolean): void } })
@@ -887,7 +973,7 @@ export class Overwatch extends Component {
     }
     for (const e of this.sim.events)
       if (e.id > this.lastEvent) {
-        if (e.type === 'shot') this.platform.play(WEAPONS[e.weapon].id);
+        if (e.type === 'shot' && (!this.sim.duelMode || e.side === this.sim.pilotSide)) this.platform.play(WEAPONS[e.weapon].id);
         else if (e.type === 'impact') {
           if (e.weapon > 0) this.platform.play('impact' + e.weapon);
           if (e.outcome === 'hit' || e.outcome === 'destroyed') this.platform.play('hit');
@@ -897,7 +983,7 @@ export class Overwatch extends Component {
       }
     this.world.root.active = this.sim.phase !== 'briefing' || this.hud.missionsOpen;
     this.world.update(this.sim, this.platform.reducedEffects);
-    if (this.platform.rewards.ammo !== this.sim.homingAmmo) {
+    if (!this.sim.duelMode && this.platform.rewards.ammo !== this.sim.homingAmmo) {
       this.platform.rewards.ammo = this.sim.homingAmmo;
       this.platform.saveRewards();
     }
@@ -928,6 +1014,11 @@ export class Overwatch extends Component {
   }
   snapshot() {
     return {
+      online: this.online && { identity: this.online.identity, panel: this.online.panel, room: this.online.room,
+        active: this.online.active, message: this.online.message, rankStatus: this.online.rankStatus },
+      fireZones: this.sim.fireZones,
+      battleReport: this.hud.reportOpen,
+      timeComparison: this.hud.timeComparison,
       homingAmmo: this.sim.homingAmmo,
       homingSelected: this.sim.homingSelected,
       homingTarget: this.sim.homingSelected ? this.sim.homingTarget?.id : undefined,
@@ -948,6 +1039,7 @@ export class Overwatch extends Component {
       operationPractice: this.operationPractice,
       missionPage: this.hud.missionPage,
       time: this.sim.time,
+      completionTime: this.sim.completionTime,
       remaining: this.sim.remaining,
       pauses: Array.from(this.sim.pauses),
       convoy: this.sim.convoy,
@@ -1054,6 +1146,7 @@ export class Overwatch extends Component {
   }
   onDestroy() {
     this.disposed = true;
+    this.online?.leave(); this.online?.recorder?.invalidate();
     this.pauseControl?.remove();
     input.off(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
     input.off(Input.EventType.MOUSE_DOWN, this.mouseDown, this);

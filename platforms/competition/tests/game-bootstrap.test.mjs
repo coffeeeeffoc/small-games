@@ -54,6 +54,12 @@ test('normal startup creates game-scoped anonymous identity, reads metadata and 
   const offline = connectGameServices();
   assert.equal(await offline.ready, undefined);
   assert.equal(offline.status, 'offline');
+  t.mock.method(globalThis, 'fetch', async () => ({
+    status: 200,
+    json: async () => ({ game: 'letters-words2', capabilities: { identity: true }, boards: [] }),
+  }));
+  assert.equal((await offline.refresh()).game, 'letters-words2');
+  assert.equal(offline.status, 'ready');
   globalThis.__COMPETITION_CONFIG__ = { competitionEnabled: false, apiUrl: '' };
   assert.equal(connectGameServices(), undefined);
 });

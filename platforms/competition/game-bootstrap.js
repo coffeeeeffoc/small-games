@@ -1,4 +1,4 @@
-import { createGameServices } from './game-services.js';
+import { createGameServices, createRunRecorder } from './game-services.js';
 
 export function connectGameServices() {
   const config = globalThis.__COMPETITION_CONFIG__;
@@ -7,22 +7,27 @@ export function connectGameServices() {
   let status = 'connecting',
     metadata,
     error;
-  const ready = services.metadata().then(
-    (result) => {
-      metadata = result;
-      status = 'ready';
-      return result;
-    },
-    (cause) => {
-      status = 'offline';
-      error = cause.code || 'SERVICE_UNAVAILABLE';
-      return undefined;
-    },
-  );
+  const refresh = () =>
+    services.metadata().then(
+      (result) => {
+        metadata = result;
+        status = 'ready';
+        return result;
+      },
+      (cause) => {
+        status = 'offline';
+        error = cause.code || 'SERVICE_UNAVAILABLE';
+        return undefined;
+      },
+    );
+  const ready = refresh();
   // Games opt into existing service methods; local play never waits on ready.
   return Object.freeze({
     services,
+    createRecorder: (ruleVersion, options) =>
+      createRunRecorder(createGameServices({ gameId: config.game, ruleVersion }), options),
     ready,
+    refresh,
     get status() {
       return status;
     },

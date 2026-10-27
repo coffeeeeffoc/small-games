@@ -23,7 +23,13 @@ import {
 } from './control-common';
 
 const stateNames = { enabled: '开放', draining: '停止新局', disabled: '停用并终止旧局结算' };
+const editableSnapshot = (snapshot: Snapshot): Snapshot => ({
+  ...snapshot,
+  games: { 'night-overwatch': 'disabled', ...snapshot.games },
+});
 function Changes({ before, after }: { before: Snapshot | null; after: Snapshot }) {
+  before = before && editableSnapshot(before);
+  after = editableSnapshot(after);
   const rows = [
     ...after.apiOrigins
       .filter((origin) => !before?.apiOrigins.includes(origin))
@@ -92,10 +98,10 @@ export function ConfigWorkspace({
     const initial = nextState.snapshot ?? {
       apiOrigins: [],
       games: Object.fromEntries(
-        nextCatalog.games.map((id) => [id, 'enabled']),
+        nextCatalog.games.map((id) => [id, id === 'night-overwatch' ? 'disabled' : 'enabled']),
       ) as Snapshot['games'],
     };
-    setSnapshot(initial);
+    setSnapshot(editableSnapshot(initial));
     setOrigins(initial.apiOrigins.join('\n'));
     setSaved(undefined);
     setPublishConfirm(false);
@@ -402,7 +408,7 @@ export function ConfigWorkspace({
                             }
                             onClick={() => {
                               setBase(row.parentVersion);
-                              setSnapshot(row.snapshot);
+                              setSnapshot(editableSnapshot(row.snapshot));
                               setOrigins(row.snapshot.apiOrigins.join('\n'));
                               setReason(row.reason);
                               setSaved(row);

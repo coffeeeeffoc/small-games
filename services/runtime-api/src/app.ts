@@ -93,7 +93,16 @@ export function createRuntimeService(
   app.register(async (instance) => {
     if (env.COMPETITION_ENABLED === 'true') {
       const rules = new Map<string, Rule>();
-      for (const name of ['cops', 'letters', 'realtime', 'history', 'chess', 'carrom', 'flick']) {
+      for (const name of [
+        'cops',
+        'letters',
+        'realtime',
+        'history',
+        'chess',
+        'carrom',
+        'flick',
+        'night',
+      ]) {
         const url = new URL(`../rules/${name}.mjs`, import.meta.url).href;
         const module = (await import(url)) as { default: Rule };
         rules.set(module.default.id, module.default);

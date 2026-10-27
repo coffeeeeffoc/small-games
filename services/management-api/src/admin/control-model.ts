@@ -1,20 +1,14 @@
-import { createHash } from 'node:crypto';
+import {
+  CONTROL_GAME_IDS,
+  controlSnapshotSchema,
+  normalizeControlSnapshot,
+  controlSnapshotDigest,
+  type StoredControlSnapshot,
+} from '@coffeeeeffoc/service-kit';
 import { z } from 'zod';
 
 /** IDs backed by Runtime rules/ranked engines and the independent Kart service. */
-export const CONTROL_GAMES = [
-  'cops-robbers',
-  'cops-robbers-realtime',
-  'letters-words2',
-  'vibeJam-myself-history-guess',
-  'xiangqi-five',
-  'flick-arena',
-  'carrom-club',
-  'cage-rescue',
-  'tower-brake',
-  'three-choose-two',
-  'carding-car',
-] as const;
+export const CONTROL_GAMES = CONTROL_GAME_IDS;
 export const CONTROL_PERMISSIONS = [
   'control.read',
   'control.write',
@@ -53,38 +47,15 @@ export const publicOriginSchema = z
       return false;
     }
   }, 'A canonical HTTP(S) origin is required');
-const gameShape = Object.fromEntries(
-  CONTROL_GAMES.map((id) => [id, z.enum(['enabled', 'draining', 'disabled'])]),
-) as Record<
-  (typeof CONTROL_GAMES)[number],
-  z.ZodEnum<{ enabled: 'enabled'; draining: 'draining'; disabled: 'disabled' }>
->;
-export const snapshotSchema = z
-  .object({
-    apiOrigins: z
-      .array(publicOriginSchema)
-      .max(32)
-      .refine((items) => new Set(items).size === items.length),
-    games: z.object(gameShape).strict(),
-  })
-  .strict();
+export const snapshotSchema = controlSnapshotSchema;
 export type Snapshot = z.infer<typeof snapshotSchema>;
 export function parseSnapshot(input: unknown, adminOrigin?: string): Snapshot {
   const parsed = snapshotSchema.parse(input);
   if (adminOrigin && parsed.apiOrigins.includes(adminOrigin))
     throw new ControlError('INVALID_INPUT', 422);
-  return {
-    apiOrigins: [...parsed.apiOrigins].sort(),
-    games: Object.fromEntries(
-      CONTROL_GAMES.map((id) => [id, parsed.games[id]]),
-    ) as Snapshot['games'],
-  };
+  return normalizeControlSnapshot(parsed);
 }
-export function snapshotDigest(snapshot: Snapshot): string {
-  return createHash('sha256')
-    .update(JSON.stringify(parseSnapshot(snapshot)))
-    .digest('hex');
-}
+export const snapshotDigest = controlSnapshotDigest;
 export interface ControlRole {
   id: string;
   name: string;
@@ -106,7 +77,7 @@ export interface Principal {
 export interface Revision {
   id: string;
   parentVersion: number;
-  snapshot: Snapshot;
+  snapshot: StoredControlSnapshot;
   reason: string;
   actor: string;
   rollbackOf: string | null;

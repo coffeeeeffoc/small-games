@@ -427,6 +427,8 @@ const controlHelpers = {
   'backend-context.py': 'infra/backend-update/deploy.py',
   'image-authority.py': 'infra/deployment/image-authority.py',
   'migrations/002-control-center.sql': 'infra/admin-console/migrations/002-control-center.sql',
+  'migrations/003-night-overwatch-control.sql':
+    'infra/admin-console/migrations/003-night-overwatch-control.sql',
   'migrations/014-player-sessions.sql': 'infra/migrations/014-player-sessions.sql',
 };
 
@@ -525,8 +527,8 @@ export async function writeControlBundle(
     services: runnerOnly ? [] : [...services],
     scope: 'admin-control',
     qualityChecks: 'not-run',
-    controlSchemaVersion: 2,
-    migrationArtifactSha256: files['migrations/002-control-center.sql'],
+    controlSchemaVersion: 3,
+    migrationArtifactSha256: files['migrations/003-night-overwatch-control.sql'],
     cspContractSha256: files['admin-csp-contract.json'],
     adminHtml: runnerOnly
       ? null
@@ -613,7 +615,7 @@ export async function readControlBundle(directory) {
     typeof manifest.files !== 'object' ||
     manifest.scope !== 'admin-control' ||
     manifest.qualityChecks !== 'not-run' ||
-    manifest.controlSchemaVersion !== 2 ||
+    manifest.controlSchemaVersion !== 3 ||
     !['control-application', 'control-runner'].includes(manifest.kind)
   )
     stop('BUNDLE_UNSAFE');
@@ -675,7 +677,8 @@ export async function readControlBundle(directory) {
     Object.keys(controlHelpers)
       .filter((name) => name !== 'migrations/014-player-sessions.sql')
       .some((name) => !manifest.files[name]) ||
-    manifest.migrationArtifactSha256 !== manifest.files['migrations/002-control-center.sql'] ||
+    manifest.migrationArtifactSha256 !==
+      manifest.files['migrations/003-night-overwatch-control.sql'] ||
     manifest.cspContractSha256 !== manifest.files['admin-csp-contract.json'] ||
     (await readFile(path.join(directory, 'admin-csp-contract.json'), 'utf8')) !==
       JSON.stringify(controlCspContract, null, 2) + '\n'
@@ -799,7 +802,7 @@ export function controlReceipt(text, mode, runnerSourceSHA) {
       'metadataSha256,projectionSha256,schema,schemaVersion,version' ||
     contract.version !== 1 ||
     contract.schema !== 'game_control' ||
-    contract.schemaVersion !== 2 ||
+    contract.schemaVersion !== 3 ||
     ['projectionSha256', 'metadataSha256'].some(
       (key) => typeof contract[key] !== 'string' || !/^[a-f0-9]{64}$/.test(contract[key]),
     ) ||

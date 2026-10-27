@@ -31,6 +31,16 @@ async function fixture() {
       path.join(repository, 'games/local/carding-car/scripts', file),
       path.join(cardScripts, file),
     );
+  for (const file of [
+    'scripts/h5-game-services.mjs',
+    'scripts/competition-service-config.mjs',
+    'platforms/competition/client.js',
+    'platforms/competition/game-services.js',
+    'platforms/competition/game-bootstrap.js',
+  ]) {
+    await mkdir(path.dirname(path.join(temp, file)), { recursive: true });
+    await cp(path.join(repository, file), path.join(temp, file));
+  }
   const artifact = await import(pathToFileURL(path.join(gameRoot, 'scripts/artifact.mjs')));
   return { temp, gameRoot, artifact, stageBase: path.join(temp, '.scratch/nine-native-cocos') };
 }

@@ -55,6 +55,9 @@ for (const mission of MISSIONS) test(`${mission.name[0]} can be completed with f
         }
       }
       s.setAim(aim);
+      const flight = s.flightTime(gun, aim);
+      if (friends.some(friend => distance(aim, friend.routeOffset === undefined ? friend
+        : s.routePoint(s.progress + friend.routeOffset + s.mission.speed * flight)) <= WEAPONS[gun].radius + UNITS[friend.kind].radius + .1)) continue;
       if (s.friendlyRisk || !s.fire()) continue;
       pending.set(s.shots.at(-1)!.id, { unit: enemy.id, damage: WEAPONS[gun].damage * (enemy.kind === 'heavy' ? WEAPONS[gun].armor : 1) });
       break;

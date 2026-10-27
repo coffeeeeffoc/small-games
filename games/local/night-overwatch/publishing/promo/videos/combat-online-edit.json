@@ -1,0 +1,70 @@
+{
+  "sourceHash": "81fcef6ad4597f0226928251154cf319d4d142b113dbf1d11b65f3547502bad3",
+  "source": "reports/2026-10-27-live-online/source-1280x720.webm",
+  "environment": "Windows Chromium desktop,1280x720; actual input, no simulation writes",
+  "audio": "recording contains no audio; no added voice or captions",
+  "gameplay": {
+    "start": 56.099,
+    "duration": 35,
+    "edit": "continuous trim and H.264 transcode only"
+  },
+  "promo": {
+    "segments": [
+      {
+        "titleStill": 3
+      },
+      {
+        "room": 8.276,
+        "duration": 3
+      },
+      {
+        "duelFire": 22.503,
+        "duration": 7
+      },
+      {
+        "report": 30.151,
+        "duration": 3
+      }
+    ]
+  },
+  "videos": [
+    {
+      "path": "gameplay/videos/combat-online-1280x720-silent.mp4",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          }
+        ],
+        "format": {
+          "duration": "34.966667"
+        }
+      },
+      "decoded": true
+    },
+    {
+      "path": "promo/videos/combat-online-1280x720-silent.mp4",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          }
+        ],
+        "format": {
+          "duration": "15.966667"
+        }
+      },
+      "decoded": true
+    }
+  ]
+}

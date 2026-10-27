@@ -1,4 +1,4 @@
-"""Protected 002 database boundary. Import is inert; no service lifecycle or secrets."""
+"""Protected v2/v3 database boundary. Import is inert; no service lifecycle or secrets."""
 import contextlib
 import hashlib
 import json
@@ -13,7 +13,8 @@ import uuid
 
 BASE = Path('/opt/small-games/admin-console/releases')
 PRIVATE = Path('/opt/small-games/admin-private')
-MIGRATION_SHA256 = 'd16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451'
+BASELINE_SHA256 = 'd16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451'
+MIGRATION_SHA256 = 'd59a71a23f452d2cb50177c5533471df8f14480a9d635dc59b534af57ca23ee5'
 PG_VERSION = '170006'
 FIXTURE_LABEL = 'io.small-games.control-fixture'
 MARKER = 'SG_CONTROL_JSON '
@@ -187,23 +188,32 @@ def contract_expression(parts):
 
 def contract_value(value, parts):
     require(isinstance(value, dict) and set(value) == {'supported','versions','metadataSha256','readOnly'}
-            and value['supported'] is True and value['versions'] == [2] and digest(value['metadataSha256']), 'CONTROL_CONTRACT_MISMATCH')
-    return {'version': 1, 'schema': 'game_control', 'schemaVersion': 2,
+            and value['supported'] is True and value['versions'] == [3] and digest(value['metadataSha256']), 'CONTROL_CONTRACT_MISMATCH')
+    return {'version': 1, 'schema': 'game_control', 'schemaVersion': 3,
             'projectionSha256': parts['projection'], 'metadataSha256': value['metadataSha256']}
 
 
 def valid_contract(value):
     return (isinstance(value, dict) and set(value) == {'version','schema','schemaVersion','projectionSha256','metadataSha256'}
             and type(value['version']) is int and value['version'] == 1 and value['schema'] == 'game_control'
-            and type(value['schemaVersion']) is int and value['schemaVersion'] == 2
+            and type(value['schemaVersion']) is int and value['schemaVersion'] == 3
             and digest(value['projectionSha256']) and digest(value['metadataSha256']))
 
 
 def migration_file(release, checksum):
     require(checksum == MIGRATION_SHA256, 'CONTROL_MIGRATION_ARTIFACT')
-    file = release / 'migrations/002-control-center.sql'
-    require(file.resolve(strict=True) == file and hashlib.sha256(file.read_bytes()).hexdigest() == checksum, 'CONTROL_MIGRATION_ARTIFACT')
-    return migration_body(file.read_text(encoding='utf-8'))
+    bodies = []
+    for name, expected in [('002-control-center.sql', BASELINE_SHA256), ('003-night-overwatch-control.sql', checksum)]:
+        file = release / 'migrations' / name
+        require(file.resolve(strict=True) == file and hashlib.sha256(file.read_bytes()).hexdigest() == expected, 'CONTROL_MIGRATION_ARTIFACT')
+        bodies.append(migration_body(file.read_text(encoding='utf-8')))
+    # Reuse the immutable v2 verifier before changing its constraints. Never run it against v3.
+    return """DO $baseline$ DECLARE current_version integer; BEGIN
+IF to_regnamespace('game_control') IS NOT NULL THEN SELECT version INTO STRICT current_version FROM game_control.schema_version; END IF;
+IF current_version IS NULL OR current_version=2 THEN EXECUTE $baseline_v2$""" + bodies[0] + """$baseline_v2$;
+ELSIF current_version<>3 THEN RAISE EXCEPTION 'CONTROL_UNSUPPORTED_VERSION'; END IF;
+END $baseline$;
+""" + bodies[1]
 
 
 def verify_control_database(*, pg_id, migration_sha256, expected_contract):
@@ -223,7 +233,8 @@ def verify_control_database(*, pg_id, migration_sha256, expected_contract):
         raise ControlDatabaseError('CONTROL_VERIFY_FAILED') from None
 
 
-def transaction_sql(migration, parts, before, expected_full=None, expected_contract=None, fresh=True):
+def transaction_sql(migration, parts, before, expected_full=None, expected_contract=None, fresh=True, source_before=None):
+    source_guard = "IF pg_temp.sg_control_state(false) IS DISTINCT FROM " + sql_json(source_before) + " THEN RAISE EXCEPTION 'CONTROL_SOURCE_CHANGED'; END IF;" if source_before is not None else ''
     fresh_guard = "IF to_regnamespace('game_control') IS NOT NULL THEN RAISE EXCEPTION 'CONTROL_ALREADY_PRESENT'; END IF;" if fresh else ''
     full_guard = "IF actual_full IS DISTINCT FROM " + sql_json(expected_full) + " THEN RAISE EXCEPTION 'CONTROL_FULL_CHANGED'; END IF;" if expected_full is not None else ''
     contract_guard = "IF actual_contract->>'metadataSha256' IS DISTINCT FROM '" + expected_contract['metadataSha256'] + "' THEN RAISE EXCEPTION 'CONTROL_CONTRACT_CHANGED'; END IF;" if expected_contract is not None else ''
@@ -238,9 +249,9 @@ SELECT pg_advisory_xact_lock(hashtextextended('game-control:v1',0));
 """ + parts['session'] + parts['fingerprint'] + """
 DO $pre$ DECLARE item record; BEGIN
 IF EXISTS(SELECT FROM pg_stat_activity WHERE pid<>pg_backend_pid() AND backend_type='client backend') THEN RAISE EXCEPTION 'CONTROL_UNKNOWN_CLIENT'; END IF;
-""" + fresh_guard + """
+""" + fresh_guard + source_guard + """
 FOR item IN SELECT n.nspname,c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-WHERE n.nspname !~ '^pg_' AND n.nspname NOT IN('information_schema','game_control') AND c.relkind='r'
+WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND c.relkind='r'
 ORDER BY n.nspname COLLATE "C",c.relname COLLATE "C" LOOP
 EXECUTE format('LOCK TABLE ONLY %I.%I IN ACCESS EXCLUSIVE MODE',item.nspname,item.relname);
 END LOOP;
@@ -252,7 +263,7 @@ DO $post$ DECLARE actual_full jsonb; actual_contract jsonb; BEGIN
 IF pg_temp.sg_control_state(true) IS DISTINCT FROM """ + sql_json(before) + """ THEN RAISE EXCEPTION 'CONTROL_OLD_CHANGED'; END IF;
 actual_full := pg_temp.sg_control_state(false);
 """ + full_guard + '\n' + contract_expression(parts).replace('SELECT jsonb_build_object', 'SELECT jsonb_build_object', 1) + ' INTO actual_contract;\n' + """
-IF actual_contract->'supported' IS DISTINCT FROM 'true'::jsonb OR actual_contract->'versions' IS DISTINCT FROM '[2]'::jsonb THEN RAISE EXCEPTION 'CONTROL_CONTRACT_INVALID'; END IF;
+IF actual_contract->'supported' IS DISTINCT FROM 'true'::jsonb OR actual_contract->'versions' IS DISTINCT FROM '[3]'::jsonb THEN RAISE EXCEPTION 'CONTROL_CONTRACT_INVALID'; END IF;
 """ + contract_guard + """
 IF EXISTS(SELECT FROM pg_stat_activity WHERE pid<>pg_backend_pid() AND backend_type='client backend') THEN RAISE EXCEPTION 'CONTROL_UNKNOWN_CLIENT'; END IF;
 INSERT INTO pg_temp.sg_cf_result VALUES(jsonb_build_object('full',actual_full,'contract',actual_contract));
@@ -392,7 +403,7 @@ DO $public$ BEGIN PERFORM * FROM game_control.published_config; RAISE EXCEPTION 
 EXCEPTION WHEN insufficient_privilege THEN NULL; END $public$; ROLLBACK;""")
 
 
-def restore_proof(pg, backup, roles, migration, parts, before, directory, observer=None):
+def restore_proof(pg, backup, roles, migration, parts, before, directory, observer=None, protected=None):
     image = inspect_container(pg)['image']
     with isolated_postgres(image) as clone:
         require(psql(clone, "SELECT current_setting('server_version_num');", 'postgres') == PG_VERSION, 'CONTROL_PG_VERSION')
@@ -402,16 +413,17 @@ def restore_proof(pg, backup, roles, migration, parts, before, directory, observ
         require(state(clone, parts) == before, 'CONTROL_RESTORE_FINGERPRINT')
         if observer:
             observer('restored', clone)
-        first = output_json(psql(clone, transaction_sql(migration, parts, before)))
+        protected = before if protected is None else protected
+        first = output_json(psql(clone, transaction_sql(migration, parts, protected, fresh=False, source_before=before)))
         contract = contract_value(first['contract'], parts)
-        second = output_json(psql(clone, transaction_sql(migration, parts, before, first['full'], contract, fresh=False)))
+        second = output_json(psql(clone, transaction_sql(migration, parts, protected, first['full'], contract, fresh=False, source_before=first['full'])))
         require(second == first, 'CONTROL_NOT_IDEMPOTENT')
         permission_checks(clone)
-        require(state(clone, parts) == first['full'] and state(clone, parts, True) == before, 'CONTROL_PERMISSION_CHANGED_STATE')
+        require(state(clone, parts) == first['full'] and state(clone, parts, True) == protected, 'CONTROL_PERMISSION_CHANGED_STATE')
         if observer:
             observer('migrated', clone)
         write_private(directory / 'control-expected-full.json', encoded_json(first['full']))
-        write_private(directory / 'control-expected-protected.json', encoded_json(before))
+        write_private(directory / 'control-expected-protected.json', encoded_json(protected))
         write_private(directory / 'control-expected-contract.json', encoded_json(contract))
         return first['full'], contract
 
@@ -430,7 +442,7 @@ def preflight_control_database(*, release, source_sha, migration_sha256, invento
         manifest = json_value((release / 'manifest.json').read_bytes())
         require(manifest.get('sourceSHA') == source_sha and manifest.get('release') == release.name
                 and manifest.get('migrationArtifactSha256') == migration_sha256, 'CONTROL_MANIFEST')
-        for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql'):
+        for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql','migrations/003-night-overwatch-control.sql'):
             file = release / name
             require(file.resolve(strict=True) == file and manifest['files'].get(name) == hashlib.sha256(file.read_bytes()).hexdigest(), 'CONTROL_RELEASE_HASH')
         migration = migration_file(release, migration_sha256)
@@ -443,7 +455,7 @@ def preflight_control_database(*, release, source_sha, migration_sha256, invento
             require(re.fullmatch(r'[^\n]+ \(PostgreSQL\) 17\.6(?:\s+[^\n]*)?',
                     scalar('docker', 'exec', pg, tool, '--version')), 'CONTROL_PG_VERSION')
         idle = '' if writers_running else " AND NOT EXISTS(SELECT FROM pg_stat_activity WHERE pid<>pg_backend_pid() AND backend_type='client backend')"
-        require(psql(pg, "BEGIN READ ONLY; SELECT current_setting('transaction_read_only')='on' AND current_user='platform_owner' AND current_database()='small_games' AND current_setting('server_version_num')='170006' AND EXISTS(SELECT FROM pg_roles WHERE rolname=current_user AND rolsuper AND rolcanlogin) AND to_regnamespace('admin_console') IS NOT NULL AND to_regnamespace('game_control') IS NULL AND (SELECT count(*) FROM pg_roles WHERE rolname IN ('management_app','runtime_app') AND rolcanlogin AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls)=2" + idle + '; COMMIT;') == 't', 'CONTROL_DATABASE_IDENTITY')
+        require(psql(pg, "BEGIN READ ONLY; SELECT current_setting('transaction_read_only')='on' AND current_user='platform_owner' AND current_database()='small_games' AND current_setting('server_version_num')='170006' AND EXISTS(SELECT FROM pg_roles WHERE rolname=current_user AND rolsuper AND rolcanlogin) AND to_regnamespace('admin_console') IS NOT NULL AND (SELECT count(*) FROM pg_roles WHERE rolname IN ('management_app','runtime_app') AND rolcanlogin AND NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls)=2" + idle + '; COMMIT;') == 't', 'CONTROL_DATABASE_IDENTITY')
         profile = parts['contract'].replace(SCOPE, "WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema'").replace(VERSIONS, "'[]'::jsonb")
         require(psql(pg, 'BEGIN READ ONLY;\n' + parts['session'] + '\nSELECT supported FROM (' + profile + ') projected; COMMIT;') == 't', 'CONTROL_UNSUPPORTED_PROFILE')
         size = psql(pg, "BEGIN READ ONLY; SELECT pg_database_size(current_database()); COMMIT;")
@@ -464,14 +476,14 @@ def provision_control_database(*, release, source_sha, migration_sha256, invento
         migration, parts, pg, directory = preflight_control_database(
             release=release, source_sha=source_sha, migration_sha256=migration_sha256, inventory=inventory)
         before = state(pg, parts)
-        require(state(pg, parts, True) == before, 'CONTROL_UNEXPECTED_SCHEMA')
+        protected = state(pg, parts, True)
         write_private(directory / 'control-before.json', encoded_json(before))
         roles = command('docker','exec',pg,'pg_dumpall','-U','platform_owner','--roles-only','--no-role-passwords',timeout=600)
         write_private(directory / 'control-roles.sql', roles)
         backup = directory / 'control-database.dump'
         write_private(backup, command('docker','exec',pg,'pg_dump','-U','platform_owner','-d','small_games','--format=custom',timeout=600))
         require(state(pg, parts) == before, 'CONTROL_SOURCE_CHANGED')
-        full, contract = restore_proof(pg, backup, roles, migration, parts, before, directory)
+        full, contract = restore_proof(pg, backup, roles, migration, parts, before, directory, protected=protected)
         check_inventory(inventory)
         require(state(pg, parts) == before, 'CONTROL_SOURCE_CHANGED')
         backup_sha = hashlib.sha256(backup.read_bytes()).hexdigest()
@@ -484,12 +496,12 @@ def provision_control_database(*, release, source_sha, migration_sha256, invento
         write_private(directory / 'control-precommit.json', payload)
         write_private(directory / 'control-precommit.sha256', (hashlib.sha256(payload).hexdigest() + '\n').encode('ascii'))
         submitted = True
-        output = psql(pg, transaction_sql(migration, parts, before, full, contract))
+        output = psql(pg, transaction_sql(migration, parts, protected, full, contract, fresh=False, source_before=before))
         committed, preserved = True, True
         actual = output_json(output)
         require(actual['full'] == full and contract_value(actual['contract'],parts) == contract, 'CONTROL_PRODUCTION_PROOF')
         check_inventory(inventory)
-        require(state(pg,parts) == full and state(pg,parts,True) == before, 'CONTROL_POSTCOMMIT_STATE')
+        require(state(pg,parts) == full and state(pg,parts,True) == protected, 'CONTROL_POSTCOMMIT_STATE')
         return {'outcome':'committed', 'oldDataUnchanged':True, 'isolatedRestoreVerified':True,
                 'leastPrivilegeVerified':True, 'backupSHA256':backup_sha, 'oldStateSHA256':old_sha,
                 'controlContract':contract, 'migrationArtifactSha256':migration_sha256}

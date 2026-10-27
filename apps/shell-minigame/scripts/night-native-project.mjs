@@ -9,12 +9,12 @@ const normalize = (text) => text.replaceAll('\r\n', '\n');
 const recipe = [
   {
     file: 'assets/scripts/HUD.ts',
-    originalSha256: '50b912800aef61766c1ca2a70fe239a99994f091f844bd198139739d320f05a7',
+    originalSha256: '6619ccb4d138127599da1c83ac97acea1bad02eee99dc5491456cff7ea168587',
     changes: [],
   },
   {
     file: 'assets/scripts/Platform.ts',
-    originalSha256: '3709cffde1da1f1e3161936cdf2156a8310bfd6a348244a18a3e7d75a37f2db3',
+    originalSha256: 'ca294904e0d16147f2ae962ecec114c43ad4bc126ba1e0485822cc08d1093a8e',
     changes: [],
   },
 ];
@@ -119,6 +119,17 @@ export async function prepareNativeProject(gameRoot, { stageBase } = {}) {
       copied['carding-car/scripts/' + file] = await copyFile(
         path.join(cardRoot, 'scripts', file),
         path.join(session, 'games/local/carding-car/scripts', file),
+      );
+    for (const file of [
+      'scripts/h5-game-services.mjs',
+      'scripts/competition-service-config.mjs',
+      'platforms/competition/client.js',
+      'platforms/competition/game-services.js',
+      'platforms/competition/game-bootstrap.js',
+    ])
+      copied[file] = await copyFile(
+        path.resolve(gameRoot, '../../..', file),
+        path.join(session, file),
       );
     for (const input of inputs) await writeFile(path.join(projectRoot, input.file), input.output);
     let extension;

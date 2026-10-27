@@ -93,7 +93,7 @@ function authFixture(t, { initial = JSON.stringify(credential()), config = {} } 
       if (url.includes('/sessions/')) return fixture.login ? fixture.login() : fixture.fresh;
       if (url.endsWith('/runs')) return { id: 'run-' + ++sequence, version: 'v1' };
       if (url.endsWith('/finish')) return { accepted: true };
-      if (url.includes('/rooms')) return { code: 'ABCDEF123456' };
+      if (url.includes('/rooms') || url.endsWith('/match')) return { code: 'ABCDEF123456' };
       return { identity: { kind: 'account' }, top: [], me: { rank: 1 } };
     },
   };
@@ -142,6 +142,25 @@ test('switching accounts rejects old runs and rooms before sending any mutation'
     code: 'SESSION_CHANGED',
   });
   assert.equal(f.calls.length, count);
+});
+
+test('match retries retain the queue owner and a matched room can be cancelled', async (t) => {
+  const f = authFixture(t),
+    api = createGameServices({ gameId: 'tower-brake' });
+  const room = await api.match();
+  await api.match();
+  assert(
+    f.calls
+      .filter((call) => call.url.endsWith('/match'))
+      .every((call) => call.token === 'Bearer ' + 'a'.repeat(64)),
+  );
+  f.setStorage(JSON.stringify(credential('b')));
+  const count = f.calls.length;
+  await assert.rejects(api.match(), { code: 'SESSION_CHANGED' });
+  assert.equal(f.calls.length, count);
+  f.setStorage(JSON.stringify(credential('a')));
+  await api.roomAction({ code: room.code, operation: 'leave' });
+  assert(f.calls.at(-1).url.endsWith('/rooms/ABCDEF123456/leave'));
 });
 test('late room and run responses cannot populate caches after logout', async (t) => {
   const f = authFixture(t),

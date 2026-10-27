@@ -216,3 +216,15 @@ it('shows a selected manual link after clipboard failure and never reports cance
     container.remove();
   }
 });
+
+it('preserves validated Night invitations and mission IDs without development or account parameters', () => {
+  expect(publicGameQuery('night-overwatch', '?room=A12BCD456789&dev=1&token=secret')).toBe(
+    'room=A12BCD456789',
+  );
+  expect(publicGameQuery('night-overwatch', '?mission=ambush-02')).toBe('mission=ambush-02');
+  expect(publicGameQuery('night-overwatch', '?mission=operation-120')).toBe(
+    'mission=operation-120',
+  );
+  expect(publicGameQuery('night-overwatch', '?room=bad')).toBe('');
+  expect(publicGameQuery('night-overwatch', '?room=A12BCD456789&room=A12BCD456789')).toBe('');
+});

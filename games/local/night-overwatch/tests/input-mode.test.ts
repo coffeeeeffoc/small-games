@@ -61,6 +61,25 @@ function mission() {
   return g;
 }
 
+test('keyboard fire is blocked by battle reports and settings', () => {
+  const g = mission();
+  g.hud.modal = {}; g.keyDown({ keyCode: 32 }); g.keyUp({ keyCode: 32 });
+  assert.equal(g.sim.fired, 0); assert.deepEqual(Array.from(g.sim.held), []);
+  g.hud.modal = null; g.sim.pause('settings', true); g.keyDown({ keyCode: 32 }); g.keyUp({ keyCode: 32 });
+  assert.equal(g.sim.fired, 0); g.platform.dispose();
+});
+
+test('a new campaign can start while the previous recorder handshake is pending', async () => {
+  const g = mission(), requests: (() => void)[] = []; g.hud.t = (text: string) => text;
+  g.online = { leave() {}, recorder: { start: () => new Promise<void>(resolve => requests.push(resolve)), record() {}, invalidate() {} } };
+  g.sim.phase = 'briefing'; const first = g.sim; g.beginCampaign();
+  g.retry(); const second = g.sim; assert.notEqual(first, second); assert.equal(requests.length, 2);
+  requests[0](); await new Promise(resolve => setImmediate(resolve)); assert.equal(second.phase, 'briefing');
+  g.beginCampaign(); assert.equal(requests.length, 2, 'old finally cannot unlock the new request');
+  requests[1](); await new Promise(resolve => setImmediate(resolve)); assert.equal(second.phase, 'playing');
+  g.platform.dispose();
+});
+
 test('offset aim survives slow microdrags, release-only displacement, taps and cancelled gestures', () => {
   const g = mission();
   g.world.project = (p: any) => ({ x: p.x, y: p.z, z: .5 });
@@ -236,6 +255,23 @@ test('supply completion earns one choice, ammo grants two once, and inventory ne
   } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
 });
 
+test('completed restock grants the three ammunition amounts once; incomplete ads never grant', async () => {
+  try {
+    for (const status of ['dismissed', 'unavailable', 'failed', 'completed']) {
+      const g = mission(); g.hud.t = (zh: string) => zh; cc.sys.isBrowser = true;
+      try {
+        const before = g.sim.guns.slice(1).map((gun: any) => gun.ammo);
+        g.platform.rewardProvider = async () => ({ status });
+        g.action('supply'); g.action('reward:restock'); await g.requestReward('supply', 'restock');
+        g.finishReward(true); g.claimSupply('restock');
+        assert.deepEqual(g.sim.guns.slice(1).map((gun: any) => gun.ammo),
+          before.map((n: number, i: number) => n + (status === 'completed' ? [60, 24, 6][i] : 0)));
+        assert(!g.platform.rewards.pendingSupply);
+      } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
+    }
+  } finally { cc.sys.isBrowser = false; }
+});
+
 test('timed buffs block supply and zoom providers; cancellation never grants and expiry reopens ads', async () => {
   for (const reward of ['tracking', 'rate']) {
     const g = mission(); g.hud.t = (zh: string) => zh;
@@ -387,7 +423,7 @@ test('changing missions requires a briefing or result; retry preserves the chose
   assert.equal(g.sim.mission.id, 'ambush-02');
   assert.equal(g.sim.phase, 'playing', 'the result next-operation action starts the next task but retains lifecycle pauses');
   assert(g.sim.pauses.has('background'));
-  assert.equal(g.sim.guns[2].ammo, 30);
+  assert.equal(g.sim.guns[2].ammo, 45);
   g.action('start');
   g.sim.pause('background', false);
   g.sim.setFire('touch:99', true);
@@ -413,7 +449,7 @@ test('actual warmup entry, retry and return keep saved escort preferences and sy
     assert.equal(g.sim.mission.id, 'training-60', 'a live range cannot be abandoned by a hidden menu action');
     g.sim.guns[2].ammo = 1; g.retry();
     assert.equal(g.sim.time, 0); assert.equal(g.sim.spawned.size, 3);
-    assert.equal(g.sim.guns[2].ammo, 30); assert(g.sim.pauses.has('background'));
+    assert.equal(g.sim.guns[2].ammo, 45); assert(g.sim.pauses.has('background'));
     g.sim.phase = 'failure'; g.action('missionReturn');
     assert.equal(g.sim.mission.id, 'ambush-02'); assert.equal(g.sim.phase, 'briefing');
     assert(g.sim.pauses.has('background')); assert.deepEqual(writes, []);

@@ -6,7 +6,7 @@ const publicParameters: Readonly<Record<string, readonly string[]>> = {
   'vibeJam-myself-history-guess': ['daily', 'route', 'v', 'region', 'timed'],
   'xiangqi-five': ['challenge'],
   'travel-bund': ['route', 'renderDetail'],
-  'night-overwatch': ['mission'],
+  'night-overwatch': ['mission', 'room'],
   'wulong-city': ['challenge'],
 };
 
@@ -39,6 +39,16 @@ const boxFaces = (value: string) => {
 // Public challenge contracts, kept separate from development/session parameters.
 // A malformed or incomplete contract must not turn into a different valid challenge.
 const challengeProtocols: Readonly<Record<string, ChallengeProtocol>> = {
+  'night-overwatch': {
+    fields: {
+      mission: (value) =>
+        /^(corridor-01|ambush-02|patrol-03|training-60|operation-(00[4-9]|0[1-9]\d|1[01]\d|120))$/.test(
+          value,
+        ),
+      room: (value) => /^[A-F0-9]{12}$/.test(value),
+    },
+    required: [],
+  },
   'porcelain-puzzle': {
     fields: { level: integer(100, 1), room: (value) => /^[A-F0-9]{6}$/.test(value) },
     required: [],

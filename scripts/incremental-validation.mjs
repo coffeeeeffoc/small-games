@@ -479,8 +479,8 @@ export function incrementalPlan({
     ),
     ranked_deployment_checks:
       paths.includes('scripts/deploy-tencent.mjs') &&
-      ['games/local/cage-rescue', 'services/management-api'].some((source) =>
-        fileScopes.get('scripts/deploy-tencent.mjs')?.includes(source),
+      ['games/local/cage-rescue', 'services/management-api', 'services/runtime-api'].some(
+        (source) => fileScopes.get('scripts/deploy-tencent.mjs')?.includes(source),
       ),
     platform_process_checks: paths.some((file) =>
       [

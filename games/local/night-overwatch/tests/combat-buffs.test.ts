@@ -148,7 +148,8 @@ test('each ordinary weapon tracks moving targets at its own speed, damage, ammo 
       }
     }
     assert.equal(s.shots.length, 0); assert(distance(target, initial) > 1);
-    near(target.hp, 1000 - w.damage); assert.equal(s.hitShots, 1);
+    const burning = s.fireZones[0];
+    near(target.hp, 1000 - w.damage - (burning ? .2 * (s.time - burning.born) : 0)); assert.equal(s.hitShots, 1);
   }
 });
 
@@ -163,9 +164,10 @@ test('ordinary guidance preserves blast falloff, heavy armor and friendly fire',
     s.choose(weapon); s.setAim(target); s.grantBuff('tracking'); assert(s.fire()); settle(s, .05);
     const impact = s.events.find(e => e.type === 'impact')!;
     const range = Math.hypot(friend.x - impact.x, s.height(friend.x, friend.z) - impact.y!, friend.z - impact.z);
-    near(hp - friend.hp, impactDamage(weapon, 'escort', range)); assert(friend.hp < hp);
-    assert.equal(outside.hp, outside.maxHp); near(target.hp, 1000 - w.damage);
-    near(armor.hp, 1000 - w.damage * w.armor); near(s.friendlyDamage, hp - friend.hp);
+    const burning = s.fireZones[0], burn = burning ? .2 * (s.time - burning.born) : 0;
+    near(hp - friend.hp, impactDamage(weapon, 'escort', range) + burn); assert(friend.hp < hp);
+    assert.equal(outside.hp, outside.maxHp); near(target.hp, 1000 - w.damage - burn);
+    near(armor.hp, 1000 - w.damage * w.armor - burn); near(s.friendlyDamage, hp - friend.hp);
     assert.equal(impact.outcome, 'friendly');
   }
 });

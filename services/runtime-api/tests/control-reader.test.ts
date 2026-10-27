@@ -28,10 +28,12 @@ function fixture() {
     failRestore = false;
   let snapshot = normalizeControlSnapshot({
     apiOrigins: ['https://published.example'],
-    games: Object.fromEntries(CONTROL_GAME_IDS.map((id) => [id, 'enabled'])),
+    games: Object.fromEntries(
+      CONTROL_GAME_IDS.map((id) => [id, id === 'night-overwatch' ? 'disabled' : 'enabled']),
+    ),
   });
   const memory = controlDatabase((text, params) => {
-    if (!text.includes('set_config')) time += perQueryDelay;
+    time += perQueryDelay;
     if (text.includes("current_setting('statement_timeout')")) return [{ statement, lock }];
     if (text.includes('set_config') && params[0] === statement && failRestore)
       throw new Error('restore failed');
@@ -198,7 +200,20 @@ it('counts lock wait in its two-second budget and never falls back after errors 
     createCompetitionControl(broken.database, fallback, Date.now, 'x'.repeat(129)),
   ).toThrow();
 });
-it('uses the exact shared publication key, and all eleven games permanently reject an old epoch', async () => {
+it('reads a complete sorted projection within the budget despite round-trip latency', async () => {
+  const f = fixture();
+  f.publish();
+  f.queryDelay(200);
+  expect((await f.control.publicCors()).origins).toEqual(['https://published.example']);
+  const locks = f.queries.filter((q) => q.sql.includes('pg_advisory_xact_lock_shared'));
+  expect(locks).toHaveLength(1);
+  expect(locks[0]!.sql).toContain('order by position');
+  expect(locks[0]!.sql.match(/::int/g)).toHaveLength(CONTROL_GAME_IDS.length);
+  expect(locks[0]!.params).toEqual(
+    [...CONTROL_GAME_IDS].sort().flatMap((game, index) => [game, index]),
+  );
+});
+it('uses the exact shared publication key, and all twelve games permanently reject an old epoch', async () => {
   const f = fixture();
   f.publish();
   await f.db.transaction(async (tx) => f.control.lock(tx, 'cage-rescue'));

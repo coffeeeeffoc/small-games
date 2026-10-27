@@ -185,9 +185,9 @@ export function terrainContact(shot: Trajectory, from: number, to: number, heigh
 export function recoilOffset(events: readonly { type: string; weapon: number; time: number }[], time: number, reduced = false) {
   let x = 0, y = 0;
   for (const e of events.slice(-24)) {
-    const age = time - e.time, life = [.12, .24, .42][e.weapon];
+    const age = time - e.time, life = [.12, .24, .42, .3][e.weapon] ?? 0;
     if (e.type !== 'shot' || age < 0 || age >= life) continue;
-    const strength = [1.1, 3.4, 7][e.weapon] * (1 - age / life) ** 2 * (reduced ? .2 : 1);
+    const strength = ([1.1, 3.4, 7, 4][e.weapon] ?? 0) * (1 - age / life) ** 2 * (reduced ? .2 : 1);
     x += Math.sin(age * 105 + e.time * 8) * strength * .45;
     y += (Math.cos(age * 72) * .35 + .65) * strength;
   }

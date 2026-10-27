@@ -1,3 +1,4 @@
+import { playerId, playerLabel, type Online } from './Online';
 import {
   Camera,
   Canvas,
@@ -40,6 +41,7 @@ import { MISSIONS, TRAINING, type MissionLight } from './core/MissionCatalog';
 import { mapRoute, routeLength, riverX, type BattlefieldId } from './core/Data';
 import { trainingNextGoal, type TrainingRecord } from './core/TrainingRecords';
 import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
+import { battleCounts, formatTime, type TimeComparison } from './core/BattleRecords';
 
 const C = {
   ink: '#091b2df5',
@@ -73,7 +75,11 @@ export class HUD {
   labels = new Map<string, Label>();
   modal?: Node;
   modalKey = '';
+  private onlineRevision = -1;
   missionsOpen = false;
+  online?: Online;
+  reportOpen = false;
+  timeComparison?: TimeComparison;
   missionPage = 0;
   missionProgress: MissionProgress = newMissionProgress();
   developer = false;
@@ -243,21 +249,22 @@ export class HUD {
     const small = this.mouseDesktop, settingsX = right - 44 - (this.touch ? 88 : 0);
     this.live('status', settingsX - 40, top + 26, 11, 70, 40, C.white);
     this.button('settings', '', settingsX, top + 6, 44, 44, this.globalControls);
-    this.live('buff', (left + 164 + settingsX - 80) / 2, top + 26, 11,
-      Math.max(80, settingsX - 80 - left - 164), 40, C.mint).node.parent = this.globalControls;
+    this.live('buff', (left + 164 + settingsX - 160) / 2, top + 26, 11,
+      Math.max(40, settingsX - 160 - left - 164), 40, C.mint).node.parent = this.globalControls;
     const toastWidth = Math.min(420, settingsX - left - 12);
     this.live('globalToast', left + toastWidth / 2, top + 26, 12, toastWidth, 36, C.amber).node.parent = this.globalControls;
     const by = h - this.footer - this.safe.bottom;
-    const cardW = small ? 88 : this.compact ? 72 : 96;
+    const cardW = small ? 76 : this.compact ? Math.min(68, (right - left - 118) / 5 - 8) : 90;
     const fireW = this.compact ? 64 : 76;
-    const cardsLeft = this.desktop ? right - fireW - 18 - 4 * (cardW + 8) : left;
-    for (let i = 0; i < 3; i++) {
+    const cardsLeft = this.desktop ? right - fireW - 18 - 5 * (cardW + 8) : left;
+    for (let i = 0; i < WEAPONS.length; i++) {
       const label = this.button('weapon' + i, '', cardsLeft + i * (cardW + 8), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
       if (small) { label.fontSize = 12; label.lineHeight = 17; }
     }
-    this.button('homing', '', cardsLeft + 3 * (cardW + 8), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
+    this.button('homing', '', cardsLeft + 4 * (cardW + 8), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
+    this.button('battleReport', this.t('战况', 'REPORT'), settingsX - 148, top + 6, 56, 44);
     this.button('fire', '', right - fireW, h - this.safe.bottom - fireW - 10, fireW, fireW);
-    const stateX = this.desktop ? cardsLeft - 144 : left + 4 * (cardW + 8) + 4;
+    const stateX = this.desktop ? cardsLeft - 144 : left + 5 * (cardW + 8) + 4;
     const stateW = this.desktop ? 132 : right - fireW - stateX - 12;
     this.live('weaponState', stateX + stateW / 2, by + this.footer / 2, small ? 12 : this.compact ? 12 : 14, Math.max(60, stateW), this.footer - 14, C.dim);
     this.live('notice', w / 2, by - 17, this.compact ? 12 : 15, this.compact ? w - 40 : Math.min(w - 260, 560), this.compact ? 28 : 36, C.amber);
@@ -412,7 +419,7 @@ export class HUD {
       const titleWidth = Math.min(520, right - left), compact = h < 420,
         menuY = h - this.safe.bottom - (compact ? 108 : 146),
         titleY = Math.min(this.safe.top + (h - this.safe.top - this.safe.bottom) * .38, menuY - 72),
-        menuW = Math.min(248, (right - left) * .55);
+        menuW = Math.min(248, (right - left - 12) / 2);
       const title = (str: string, yy: number, size: number, height: number, color: string) => {
         const label = this.label(n, str, left + titleWidth / 2, yy, size, titleWidth, height, color);
         label.horizontalAlign = Label.HorizontalAlign.LEFT; return label;
@@ -425,6 +432,13 @@ export class HUD {
       primary.color = col('#10252a'); primary.isBold = true;
       this.rect(g, left, menuY + 56, menuW, 44, '#091b2dbb', C.line, 7);
       this.button('help', this.t('飞行手册  ›', 'FIELD GUIDE  ›'), left, menuY + 56, menuW, 44, n);
+      const x = left + menuW + 12;
+      for (const [i, id] of ['online:menu', 'online:ranking'].entries()) {
+        this.rect(g, x, menuY + i * 56, menuW, i ? 44 : 48, '#091b2ddd', C.mint, 7);
+        this.button(id, i ? this.t('关卡排行榜  ›', 'LEADERBOARDS  ›') : this.t('双人对战  ›', 'VERSUS  ›'), x, menuY + i * 56, menuW, i ? 44 : 48, n);
+      }
+      if (this.online) this.label(n, playerLabel(this.online.identity) + this.t(' · 你', ' · YOU'), left + (2 * menuW + 12) / 2,
+        menuY - 18, 11, 2 * menuW + 12, 26, C.mint);
       return;
     }
     this.rect(g, 0, 0, w, h, '#071a2d55');
@@ -505,11 +519,11 @@ export class HUD {
       return label;
     };
     if (flight) control('locate', this.t('定位', 'LOCATE'), px + pw - 80, py - 5, 64);
-    else this.label(n, this.t('已暂停', 'PAUSED'), px + pw - 48, py + 20, 10, 64, 24, C.mint);
+    else this.label(n, s.duelMode ? this.t('对战继续', 'BATTLE LIVE') : this.t('已暂停', 'PAUSED'), px + pw - 48, py + 20, 10, 64, 24, C.mint);
     if ((flight || zoom) && px - this.safe.left > 160) {
       const x = this.safe.left + 16, w = Math.min(190, px - x - 16);
       this.rect(g, x, py, w, 28, '#091b2dbb', undefined, 6);
-      this.label(n, this.t('实时画面 · 战斗暂停', 'LIVE VIEW · BATTLE PAUSED'), x + w / 2, py + 14, 10, w - 8, 20, C.mint);
+      this.label(n, s.duelMode ? this.t('对战继续 · 操作已松开', 'BATTLE LIVE · FIRE RELEASED') : this.t('实时画面 · 战斗暂停', 'LIVE VIEW · BATTLE PAUSED'), x + w / 2, py + 14, 10, w - 8, 20, C.mint);
     }
     if (flight) {
       const a = s.aircraft, cell = (pw - 40) / 2, row = short ? 64 : 86, top = py + (short ? 44 : 54);
@@ -529,7 +543,7 @@ export class HUD {
       this.label(n, this.t('盘旋方向', 'ORBIT DIRECTION'), x + cell / 2, y + 8, 10, cell, 16, C.dim);
       control('orbitLeft', this.t('逆时针', 'CCW'), x, y + 18, half, a.direction === -1);
       control('orbitRight', this.t('顺时针', 'CW'), x + half + 6, y + 18, half, a.direction === 1);
-      if (!short) this.label(n, this.t('调整立即生效，战斗计时保持暂停', 'CHANGES APPLY NOW · BATTLE STAYS PAUSED'), px + pw / 2, py + ph - 73, 10, pw - 32, 20, C.mint);
+      if (!short) this.label(n, s.duelMode ? this.t('服务器持续计时，关闭菜单后继续操作', 'SERVER CLOCK CONTINUES WHILE IN MENU') : this.t('调整立即生效，战斗计时保持暂停', 'CHANGES APPLY NOW · BATTLE STAYS PAUSED'), px + pw / 2, py + ph - 73, 10, pw - 32, 20, C.mint);
     } else if (zoom) {
       const y = py + 44, step = short ? 46 : 48, inner = pw - 32, half = (inner - 8) / 2;
       control('lensOut', '−', px + 16, y, 44, false, world.zoom <= .65);
@@ -557,7 +571,7 @@ export class HUD {
           ['mission', this.t('任务详情', 'MISSION BRIEF')],
           ['supply', this.supplyLabel(s)],
         ] : [['effects', this.reducedEffects ? this.t('特效 · 精简', 'FX · REDUCED') : this.t('特效 · 完整', 'FX · FULL')]]),
-      ].filter(([id]) => !(id === 'convoy' && s.mission.mode === 'training') && !(id === 'supply' && !this.rewardsAvailable && !this.pendingSupply));
+      ].filter(([id]) => !(s.duelMode && ['convoy', 'mission', 'supply'].includes(id)) && !(id === 'convoy' && s.mission.mode === 'training') && !(id === 'supply' && !this.rewardsAvailable && !this.pendingSupply));
       const cols = short ? 3 : 2, cw = (inner - (cols - 1) * 8) / cols;
       items.forEach(([id, caption], i) => {
         const bx = x + i % cols * (cw + 8), by = top + (playing ? step : 0) + Math.floor(i / cols) * step;
@@ -644,7 +658,81 @@ export class HUD {
     }
     if (pw >= 420) this.label(n, this.t('上下滑动查看更多', 'SCROLL FOR MORE'), px + 176 + (pw - 300) / 2, bottom + 22, 10, pw - 308, 26, C.dim);
   }
+  renderOnline(n: Node, g: Graphics, s: Simulation, result: boolean) {
+    const online = this.online!;
+    const pw = Math.min(720, this.w - this.safe.left - this.safe.right - 32),
+      ph = Math.min(380, this.h - this.safe.top - this.safe.bottom - 28), px = (this.w - pw) / 2, py = (this.h - ph) / 2;
+    this.panelFrame(g, px, py, pw, ph);
+    const label = (str: string, y: number, size = 14, color = C.white) => this.label(n, str, px + pw / 2, py + y, size, pw - 36, 28, color);
+    const button = (id: string, caption: string, x: number, y: number, width: number, primary = false) => {
+      this.rect(g, px + x, py + y, width, 44, primary ? C.amber : '#10283b', primary ? undefined : C.line, 6);
+      const text = this.button('online:' + id, caption, px + x, py + y, width, 44, n);
+      text.fontSize = pw < 600 ? 12 : 14; text.color = col(primary ? '#10252a' : C.white); text.isBold = primary;
+    };
+    const bottom = ph - 54, half = (pw - 44) / 2;
+    label(result ? this.t(online.view?.winner === null ? '对战平局' : s.phase === 'success' ? '对战胜利' : '对战结束',
+      online.view?.winner === null ? 'DRAW' : s.phase === 'success' ? 'VICTORY' : 'DEFEAT')
+      : online.panel === 'ranking' ? this.t('关卡排行榜', 'LEVEL LEADERBOARD')
+        : online.panel === 'room' ? this.t('作战准备室', 'READY ROOM') : this.t('双人对战', 'VERSUS'), 24, 21).isBold = true;
+    label(playerLabel(online.identity) + this.t(' · 你', ' · YOU'), 51, 12, C.mint);
+    if (result) {
+      label(playerLabel(online.opponent) + (online.view?.bot ? this.t(' · 机器人', ' · BOT') : ''), 88, 15, C.amber);
+      label(this.t(`本局用时 ${formatTime(s.time * 1000)}`, `TIME ${formatTime(s.time * 1000)}`), 126, 20);
+      label(this.t(`我方存活 ${s.units.filter(u => u.friendly && u.hp > 0).length} / 8    敌方存活 ${s.units.filter(u => !u.friendly && u.hp > 0).length} / 8`,
+        `ALLIES ${s.units.filter(u => u.friendly && u.hp > 0).length}/8    FOES ${s.units.filter(u => !u.friendly && u.hp > 0).length}/8`), 165);
+      label(online.message || this.t(online.view?.winner === null ? '双方仍有单位存活，或同时全灭' : '消灭对方全部地面单位的一方获胜',
+        online.view?.winner === null ? 'TIME LIMIT OR MUTUAL ELIMINATION' : 'ALL OPPOSING GROUND UNITS ELIMINATED'), bottom - 22, 12, C.dim);
+      button('back', this.t('返回基地', 'BACK TO BASE'), 18, bottom, pw - 36, true);
+      return;
+    }
+    if (online.panel === 'ranking') {
+      const mission = MISSIONS[online.level];
+      label(`${online.level + 1} / ${MISSIONS.length} · ${text(mission.name, this.lang)}`, 81, 13);
+      button('previous', '‹', 18, 62, 44); button('next', '›', pw - 62, 62, 44);
+      const rows = online.ranking?.top.slice(online.rankPage * 3, online.rankPage * 3 + 3) || [];
+      rows.forEach((row, i) => {
+        const own = playerId(row) === playerId(online.identity), y = 112 + i * 27;
+        if (own) this.rect(g, px + 18, py + y - 12, pw - 36, 26, '#164555', C.mint, 4);
+        label(`${row.rank}. ${playerLabel(row)}${own ? this.t(' · 你', ' · YOU') : ''}   ${formatTime(row.secondary)}`, y, 12, own ? C.mint : C.white);
+      });
+      if (!rows.length) label(online.message || (online.ranking ? this.t('本关暂无成绩，等你创造纪录', 'SET THE FIRST RECORD') : this.t('正在读取…', 'LOADING…')), 139, 12, C.dim);
+      const me = online.ranking?.me;
+      label(me ? this.t(`你的最佳 ${formatTime(me.secondary)} · 第 ${me.rank} 名`, `YOUR BEST ${formatTime(me.secondary)} · RANK ${me.rank}`)
+        : this.t('你 · 尚无上榜成绩', 'YOU · NO RANKED TIME'), 192, 12, C.mint);
+      label(this.t('按最短用时排列 · 无广告支援的成功护送', 'FASTEST FIRST · SUCCESSFUL ESCORTS WITHOUT AD SUPPORT'), bottom - 20, 10, C.dim);
+      const cw = (pw - 60) / 4;
+      for (const [i, [id, name]] of [['back', this.t('返回', 'BACK')], ['pagePrev', '‹'], ['pageNext', '›'], ['refresh', this.t('刷新', 'REFRESH')]].entries()) button(id, name, 18 + i * (cw + 8), bottom, cw);
+      return;
+    }
+    if (online.panel === 'menu') {
+      label(this.t('每方 4 轻车 · 2 炮台 · 2 重甲，随机地图', '4 LIGHT · 2 TURRETS · 2 ARMOR EACH · RANDOM MAP'), 90, 13, C.dim);
+      button('friend', this.t('好友对战 · 创建房间', 'FRIEND ROOM'), 18, 116, half, true);
+      button('match', this.t('匹配对战', 'MATCHMAKING'), 26 + half, 116, half);
+      label(this.t('匹配等待 8 秒，无真人对手时由机器人接战', '8 SECOND QUEUE · BOT OPPONENT IF NO PLAYER JOINS'), 179, 12, C.dim);
+      button('back', this.t('返回', 'BACK'), 18, bottom, half);
+      button('bot', this.t('机器人练习', 'BOT PRACTICE'), 26 + half, bottom, half);
+      return;
+    }
+    const room = online.room;
+    label(online.busy ? this.t('正在连接…', 'CONNECTING…') : room ? (room.mode === 'match' ? this.t('正在匹配 · 最长等待 8 秒', 'MATCHING · UP TO 8 SECONDS') : this.t('房间 ', 'ROOM ') + room.code) : '', 84, 16, C.amber);
+    for (let i = 0; i < 2; i++) {
+      const player = room?.players[i], own = player && playerId(player) === playerId(online.identity), y = 119 + i * 34;
+      if (own) this.rect(g, px + 18, py + y - 14, pw - 36, 30, '#164555', C.mint, 5);
+      label(player ? `${playerLabel(player)}${own ? this.t(' · 你', ' · YOU') : ''} · ${player.ready ? this.t('已准备', 'READY') : this.t('未准备', 'NOT READY')}`
+        : this.t('等待另一位飞行员', 'WAITING FOR ANOTHER PILOT'), y, 13, own ? C.mint : C.white);
+    }
+    label(online.message || this.t('分享链接邀请好友，双方准备后开始', 'SHARE THE LINK · BOTH PILOTS MUST BE READY'), bottom - 25, 11, C.dim);
+    const cw = (pw - 52) / 3;
+    button('back', this.t('离开', 'LEAVE'), 18, bottom, cw);
+    if (room?.mode === 'friend' && room.status === 'waiting') {
+      button('share', this.t('分享链接', 'SHARE LINK'), 26 + cw, bottom, cw);
+      button('ready', room.players[room.you]?.ready ? this.t('已准备', 'READY') : this.t('准备', 'READY UP'), 34 + cw * 2, bottom, cw, true);
+    }
+  }
   renderModal(key: string, s: Simulation, world: World) {
+    if (s.phase !== 'playing' && this.online && this.onlineRevision !== this.online.revision) {
+      this.onlineRevision = this.online.revision; this.modalKey = '';
+    }
     if (key === this.modalKey) return;
     this.buttons = this.buttons.filter((b) => {
       if (b.label.node.parent !== this.root && !this.isGlobalAction(b.id)) {
@@ -663,7 +751,27 @@ export class HUD {
     const n = this.node('Panel', this.root);
     this.modal = n;
     const g = n.addComponent(Graphics);
+    if (key.startsWith('online:') || key === 'duelResult') { this.renderOnline(n, g, s, key === 'duelResult'); return; }
     if (key === 'home' || key === 'missions') { this.renderHome(n, g, s); return; }
+    if (key.startsWith('report:')) {
+      const pw = Math.min(640, this.w - this.safe.left - this.safe.right - 32), ph = Math.min(310, this.h - this.safe.top - this.safe.bottom - 24);
+      const px = (this.w - pw) / 2, py = (this.h - ph) / 2;
+      this.panelFrame(g, px, py, pw, ph);
+      this.label(n, this.t('战况 · 敌方单位', 'BATTLE REPORT · HOSTILES'), px + pw / 2, py + 24, 20, pw - 32, 32, C.white).isBold = true;
+      if (s.duelMode && this.online) this.label(n, playerLabel(this.online.opponent) + (this.online.view?.bot ? ' · BOT' : ''), px + pw / 2, py + 47, 11, pw - 36, 22, C.amber);
+      const columns = [.17, .41, .57, .73, .9], headings = this.lang === 'zh' ? ['类型', '总数', '存活', '消灭', '未出场'] : ['TYPE', 'TOTAL', 'ALIVE', 'LOST', 'PENDING'];
+      headings.forEach((heading, i) => this.label(n, heading, px + pw * columns[i], py + (s.duelMode ? 72 : 58), 12, pw * .18, 24, C.dim));
+      const names = { light: ['轻车', 'LIGHT'], turret: ['炮台', 'TURRET'], heavy: ['重甲', 'ARMOR'], rescue: ['救援车', 'RESCUE'], escort: ['护卫', 'ESCORT'] };
+      const rows = battleCounts(s, false, s.duelMode);
+      rows.forEach((row, i) => {
+        const y = py + (s.duelMode ? 100 : 87) + i * 25;
+        [text(names[row.kind], this.lang), row.total, row.alive, row.destroyed, row.pending].forEach((value, column) =>
+          this.label(n, String(value), px + pw * columns[column], y, 14, pw * .18, 26, column === 3 ? C.mint : C.white));
+      });
+      this.label(n, this.t('查看战况时战斗继续', 'BATTLE CONTINUES WHILE VIEWING'), px + pw / 2, py + ph - 68, 11, pw - 24, 20, C.amber);
+      this.button('close', this.t('返回战斗', 'BACK TO BATTLE'), px + pw / 2 - 90, py + ph - 50, 180, 44, n);
+      return;
+    }
     if (key.startsWith('help')) { this.renderGuide(n, g); return; }
     if (key.startsWith('countdown:')) {
       const x = this.safe.left + (this.w - this.safe.left - this.safe.right) / 2,
@@ -687,6 +795,7 @@ export class HUD {
         ['tracking', this.t('自动追踪', 'AUTO TRACKING'), this.t('普通炮弹自动追踪敌人\n持续 60 秒', 'Regular rounds track foes\n60 seconds')],
         ['ammo', this.t('追踪弹 +2', 'HOMING +2'), this.t('点选敌人，再按开火\n立即补充 2 发', 'Tap an enemy, then FIRE\nAdds 2 rounds')],
         ['rate', this.t('射速提升', 'FIRE RATE'), this.t('普通炮射速提升 30%\n持续 60 秒', 'Fire rate +30%\n60 seconds')],
+        ['restock', this.t('弹药补给', 'RESTOCK'), this.t('榴弹 +60 · 重炮 +24\n燃烧弹 +6', 'HE +60 · HEAVY +24\nFIRE +6')],
       ];
       const selected = offers.find(([id]) => id === this.supplySelection)!;
       this.label(n, this.t('选择战斗支援', 'CHOOSE COMBAT SUPPORT'), px + pw / 2, py + 19, 20, pw - 32, 28, C.white).isBold = true;
@@ -694,7 +803,7 @@ export class HUD {
         : choice ? this.t('支援已获得 · 选择后直接启用', 'SUPPORT EARNED · SELECT AND ACTIVATE')
         : this.t('可选支援 · 完整观看广告后生效', 'OPTIONAL · WATCH A FULL AD TO ACTIVATE'),
         px + pw / 2, py + 43, 11, pw - 32, 18, choice ? C.mint : C.dim);
-      const cw = (pw - 48) / 3, cy = py + 58, ch = ph - 138, icons = ch >= 136;
+      const cw = (pw - 56) / 4, cy = py + 58, ch = ph - 138, icons = ch >= 136;
       for (const [i, [id, title, detail]] of offers.entries()) {
         const x = px + 16 + i * (cw + 8), active = id === this.supplySelection;
         this.rect(g, x, cy, cw, ch, active ? '#333022' : '#102b42', active ? C.amber : C.line, 3);
@@ -702,7 +811,7 @@ export class HUD {
         const label = this.button('reward:' + id, (active ? '✓ ' : '') + title, x, cy, cw, ch, n);
         label.node.setPosition(x + cw / 2 - this.w / 2, this.h / 2 - cy - (icons ? 50 : 15));
         label.node.getComponent(UITransform)!.setContentSize(cw - 8, 22);
-        label.fontSize = pw < 600 ? 13 : 17; label.color = col(active ? C.amber : C.white); label.isBold = true;
+        label.fontSize = pw < 600 ? 12 : 15; label.color = col(active ? C.amber : C.white); label.isBold = true;
         this.label(n, detail, x + cw / 2, cy + (icons ? 84 : 43), icons ? 14 : 11, cw - 10, icons ? 42 : 32, C.white);
         if (icons) this.label(n, active ? this.t('已选择', 'SELECTED') : this.t('点击选择', 'TAP TO SELECT'),
           x + cw / 2, cy + ch - 15, 11, cw - 12, 20, active ? C.amber : C.dim);
@@ -802,9 +911,9 @@ export class HUD {
       if (split) {
         this.label(n, 'NIGHT 07  /  ' + text(s.mission.name, this.lang), px + pw / 2, py + 86, 12, pw - 48, 24, C.mint);
         if (training) {
-          for (const [i, target] of [this.t('◇ 静止目标 → 爆破炮', '◇ STATIC → BURST'),
+          for (const [i, target] of [this.t('◇ 静止目标 → 榴弹炮', '◇ STATIC → HE'),
             this.t('◇ 巡逻目标 → 弹着提前量', '◇ ROVER → LEAD THE SHOT'),
-            this.t('◇ 重甲目标 → 重型炮', '◇ ARMOR → HEAVY')].entries())
+            this.t('◇ 重甲目标 → 重型榴弹炮', '◇ ARMOR → HEAVY')].entries())
             this.label(n, target, px + pw * .72, contentTop + 52 + i * 56, 17, pw * .43, 44, C.amber);
         } else {
           this.routeGraphic(g, px + pw * 0.48, contentTop + 28, pw * 0.46, ph - 235, s.progress, s.mission.map, s.mission.light, s.mission.events);
@@ -892,7 +1001,7 @@ export class HUD {
             `Light patrol: ${Math.round(mainThreat[1])} damage. Track with Rapid; lead its movement.`,
           ],
           turret: [
-            `炮台造成 ${Math.round(mainThreat[1])} 伤害。下次优先用爆破炮清除固定威胁。`,
+            `炮台造成 ${Math.round(mainThreat[1])} 伤害。下次优先用榴弹炮清除固定威胁。`,
             `Turrets: ${Math.round(mainThreat[1])} damage. Clear fixed threats with Burst first.`,
           ],
           heavy: [
@@ -915,13 +1024,15 @@ export class HUD {
         low ? 36 : 60,
         success ? C.mint : C.red,
       ).isBold = true;
+      const rankState: Record<string, [string, string]> = { finished: ['已入榜', 'RANKED'], syncing: ['上传中', 'SYNCING'], recording: ['计时中', 'RECORDING'], practice: ['练习', 'PRACTICE'], 'update-required': ['需更新', 'UPDATE'] };
+      const rank = rankState[this.online?.rankStatus || 'local'] || ['仅本地', 'LOCAL'];
       const statY = py + (low ? 110 : small ? 123 : 212),
         statW = (pw - 48) / 3,
         cleared = s.kills + s.friendlyKills;
       for (const [i, [value, caption]] of [
-        [training ? `${s.time.toFixed(1)}s` : `${allies - s.friendlyLosses} / ${allies}`, training
+        [training ? `${s.time.toFixed(1)}s` : formatTime(Math.round((s.completionTime ?? s.time) * 1000)), training
           ? this.trainingBest ? this.t(`用时 · 最佳${this.trainingBest.time.toFixed(1)}s`, `TIME · BEST ${this.trainingBest.time.toFixed(1)}s`)
-            : this.t('热身用时', 'WARMUP TIME') : this.t('友军存活', 'ALLIES ALIVE')],
+            : this.t('热身用时', 'WARMUP TIME') : this.t(`本次用时 · ${rank[0]}`, `TIME · ${rank[1]}`)],
         [training ? `${s.hitShots} / ${s.fired}` : `${cleared} / ${cleared + s.threatsRemaining}`, training ? this.t('命中发 / 已发射', 'HIT SHOTS / FIRED') : this.t('清除威胁', 'THREATS')],
         [`${Math.round(s.friendlyDamage)}`, this.t('友方损伤', 'FRIENDLY DAMAGE')],
       ].entries()) {
@@ -934,7 +1045,11 @@ export class HUD {
           `CLEARED ${s.kills}/3${this.trainingBest ? ` · CLEAN BEST ${this.trainingBest.time.toFixed(1)}s / ${this.trainingBest.fired} shots` : ''}`)
           : this.t(`空中 ${s.kills} · 地面 ${s.friendlyKills}`, `AIR ${s.kills} · GROUND ${s.friendlyKills}`),
         px + pw / 2, statY + 51, 11, training ? pw - 48 : statW - 8, 20, C.dim);
-      const advice = training ? text(trainingNextGoal(s), this.lang) : success
+      const comparison = !training && success ? this.timeComparison : undefined;
+      const advice = comparison ? this.t(
+        `${comparison.newRecord ? comparison.previousMs === undefined ? '首次完成 · 个人最佳' : '新纪录 · 个人最佳' : '个人最佳'} ${formatTime(comparison.bestMs)}${comparison.previousMs === undefined ? '' : ` · ${comparison.currentMs < comparison.previousMs ? '快' : comparison.currentMs > comparison.previousMs ? '慢' : '持平'}${comparison.currentMs === comparison.previousMs ? '' : ' ' + (Math.abs(comparison.currentMs - comparison.previousMs) / 1000).toFixed(2) + '秒'}`}`,
+        `${comparison.newRecord ? 'NEW PERSONAL BEST' : 'PERSONAL BEST'} ${formatTime(comparison.bestMs)}${comparison.previousMs === undefined ? '' : ` · ${(comparison.currentMs - comparison.previousMs) / 1000}s VS PREVIOUS`}`)
+        : training ? text(trainingNextGoal(s), this.lang) : success
         ? s.rating === 'S'
           ? this.t(
               `${text(s.mission.name, this.lang)} · ${Math.floor(s.time)}s · ${s.fired} 发。再战，减少耗弹。`,
@@ -1032,6 +1147,8 @@ export class HUD {
       }
     }
     let key = s.phase === 'briefing' ? this.missionsOpen ? 'missions' : 'home' : s.phase === 'playing' ? '' : s.phase;
+    if (this.online?.panel) key = `online:${this.online.panel}:${this.online.revision}:${this.lang}`;
+    else if (s.duelMode && this.online?.view?.finished) key = 'duelResult';
     if (this.advert) key = `advert:${this.advert.kind}:${this.advert.mock}:${this.lang}`;
     else if (this.exitConfirm) key = 'exit';
     else if (s.pauses.has('help')) key = 'help:' + this.helpGroup + this.helpTouch + this.lang;
@@ -1039,6 +1156,7 @@ export class HUD {
     else if (s.pauses.has('settings')) key = this.toolsOpen ? 'settings:flight' : this.zoomOpen ? 'settings:zoom' : 'settings';
     else if (s.pauses.has('orientation')) key = 'orientation';
     else if (this.supplyOpen) key = this.pendingSupply ? 'supply:choice' : 'supply:offer';
+    else if (this.reportOpen && s.phase === 'playing') key = `report:${Math.floor(s.time * 2)}`;
     else if (s.resumeCountdown > 0) key = `countdown:${Math.ceil(s.resumeCountdown)}`;
     else if (s.paused && s.phase !== 'briefing') key = 'pause';
     this.renderModal(key, s, world);
@@ -1050,6 +1168,7 @@ export class HUD {
     for (const l of this.labels.values()) l.node.active = !key;
     for (const l of this.unitLabels.values()) l.node.active = false;
     for (const b of this.buttons) {
+      if (s.duelMode && ['homing', 'convoy', 'supply', 'mission'].includes(b.id)) { b.label.node.active = false; continue; }
       if (b.id === 'homing' && !tracking && !s.homingAmmo && !this.rewardsAvailable && !this.pendingSupply) {
         b.label.node.active = false;
         continue;
@@ -1098,15 +1217,16 @@ export class HUD {
     const plane = s.aircraft;
     const flightTime = s.flightTime(), flightText = Number.isFinite(flightTime) ? flightTime.toFixed(1) + 's' : '—';
     const allies = s.units.filter((u) => u.friendly).length;
-    this.set('health', this.t(`□ 友军 ${allies - s.friendlyLosses} / ${allies}`, `□ ALLIES ${allies - s.friendlyLosses} / ${allies}`));
+    this.set('health', s.duelMode && this.online ? playerLabel(this.online.identity) + this.t(' · 你', ' · YOU') : this.t(`□ 友军 ${allies - s.friendlyLosses} / ${allies}`, `□ ALLIES ${allies - s.friendlyLosses} / ${allies}`));
     const bright = !world.thermal && s.mission.light === 'day';
-    this.labels.get('health')!.color = col(s.rescue.hp / s.rescue.maxHp < 0.3 ? bright ? '#982536' : C.red : bright ? '#124652' : C.mint);
+    this.labels.get('health')!.color = col(!s.duelMode && s.rescue.hp / s.rescue.maxHp < 0.3 ? bright ? '#982536' : C.red : bright ? '#124652' : C.mint);
     this.labels.get('progress')!.color = col(bright ? '#243c42' : C.dim);
     this.labels.get('status')!.color = col(bright ? '#123844' : C.white);
-    this.set('progress', s.mission.mode === 'training'
+    this.labels.get('health')!.fontSize = s.duelMode ? 10 : 13;
+    this.set('progress', s.duelMode ? this.t(`我 ${allies - s.friendlyLosses}/8 · 敌 ${s.units.filter(u => !u.friendly && u.hp > 0).length} / 8 · 全灭获胜`, `FOES ${s.units.filter(u => !u.friendly && u.hp > 0).length}/8 · ELIMINATE ALL`) : s.mission.mode === 'training'
       ? this.t(`热身清靶 ${s.kills} / 3 · 友伤 ${Math.round(s.friendlyDamage)}`, `WARMUP ${s.kills}/3 · FRIENDLY ${Math.round(s.friendlyDamage)}`)
       : this.t(`撤离 ${Math.floor(s.ratio * 100)}% · 威胁 ${s.threatsRemaining}`, `ROUTE ${Math.floor(s.ratio * 100)}% · THREATS ${s.threatsRemaining}`));
-    const clock = Math.ceil(s.remaining);
+    const clock = Math.ceil(s.duelMode ? this.online?.view?.remaining ?? 180 : s.remaining);
     this.set('status', `${world.thermal ? this.t('热像', 'IR') : this.t(s.mission.light === 'day' ? '白天' : s.mission.light === 'dusk' ? '黄昏' : '夜间', s.mission.light.toUpperCase())}\n${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
     this.set('weaponState', this.t(
       `${this.mouseDesktop ? '' : flightText + ' 弹着\n'}${gun.overheated ? '过热 · 冷却至40' : gun.cooldown > 0 && s.selected > 0 ? '装填 ' + gun.cooldown.toFixed(1) + 's' : '热量 ' + Math.round(gun.heat) + '%'}`,
@@ -1127,13 +1247,14 @@ export class HUD {
       : s.convoy === 'holding' ? this.t('清路后，点击「车队继续」', 'CLEAR THE ROAD, THEN GO')
       : s.warning === 'armor' ? this.t('重甲抗速射 · 切换重炮', 'ARMOR · SWITCH TO HEAVY')
       : s.warning === 'lead' ? this.t('预留弹着提前量', 'LEAD THE TARGET') : '';
+    if (s.duelMode) notice = this.online?.message || this.t('消灭对方全部地面单位 · 菜单不暂停对战', 'ELIMINATE ALL GROUND UNITS · MENUS DO NOT PAUSE');
     if (s.extractionRemaining === undefined && Date.now() < this.toastUntil) notice = this.toast;
     this.set('notice', notice || this.radioText);
     this.set('friendWarning', danger && s.extractionRemaining === undefined ? s.time - s.friendHitAt < 2
       ? this.t('！正在误伤友方 · 停止射击', '! FRIENDLY HIT · CEASE FIRE')
       : this.t('！范围内有友方 · 当心误伤', '! FRIENDLY IN BLAST RADIUS') : '');
     const step = TUTORIAL.find((e) => !s.completed.has(e));
-    this.set('tutorial', s.extractionRemaining !== undefined ? '' : s.mission.mode === 'training'
+    this.set('tutorial', s.duelMode || s.extractionRemaining !== undefined ? '' : s.mission.mode === 'training'
       ? this.t('清除 3 个目标', 'CLEAR 3 TARGETS')
       : this.tutorial && step && s.time < 12
       ? `${TUTORIAL.indexOf(step) + 1}/${TUTORIAL.length}  ${tutorialText(step, this.lang, this.touch)}`
@@ -1157,7 +1278,7 @@ export class HUD {
       const selected = (!s.homingSelected && b.id === 'weapon' + s.selected) || ((s.homingSelected || tracking) && b.id === 'homing') || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
       if (b.id.startsWith('weapon')) {
         const i = Number(b.id.slice(-1)), a = s.guns[i];
-        b.label.string = this.t(['速射', '爆破', '重炮'][i], ['RAPID', 'BURST', 'HEAVY'][i]) + '\n' + (a.ammo === Infinity ? '∞' : a.ammo);
+        b.label.string = this.t(['速射', '榴弹', '重炮', '燃烧'][i], ['RAPID', 'HE', 'HEAVY', 'FIRE'][i]) + '\n' + (a.ammo === Infinity ? '∞' : a.ammo);
       }
       if (b.id === 'fire') b.label.string = reason === 'extracting' ? this.t('停火', 'CEASE FIRE') : s.homingSelected
         ? s.homingAmmo <= 0 ? this.t('无弹药', 'EMPTY') : s.homingTarget ? this.t('发射', 'LAUNCH') : this.t('待锁定', 'LOCK')
@@ -1168,7 +1289,7 @@ export class HUD {
       b.label.color = col(fire && !danger ? '#10252a' : selected ? C.mint : C.white);
       if (b.id === 'homing' && tracking && s.buff!.remaining <= 5) b.label.color = col(C.amber);
       b.label.isBold = selected || fire;
-      if (b.id.startsWith('weapon') || b.id === 'homing') {
+      if ((b.id.startsWith('weapon') || b.id === 'homing') && b.w >= 64) {
         const x = b.x + 17 - w / 2, y = h / 2 - b.y - b.h / 2;
         g.strokeColor = col(selected ? C.mint : C.dim); g.lineWidth = 2;
         if (b.id === 'homing') {
@@ -1287,12 +1408,12 @@ export class HUD {
         l.node.destroy();
         this.unitLabels.delete(id);
       }
-    for (const p of PROTECTED) {
+    for (const p of s.duelMode ? [] : PROTECTED) {
       g.strokeColor = col('#729e9180');
       g.lineWidth = 1;
       groundRing(p, p.radius);
     }
-    for (const d of s.holdPoints) {
+    for (const d of s.duelMode ? [] : s.holdPoints) {
       const q = project(s.routePoint(d));
       if (!onScreen(q, 6)) continue;
       g.strokeColor = col(C.amber);
@@ -1481,7 +1602,7 @@ export class HUD {
     const target = s.aimedUnit;
     const recentImpacts = [...s.events]
       .reverse()
-      .filter((e) => e.type === 'impact' && s.time - e.time < 1.1);
+      .filter((e) => e.type === 'impact' && (!s.duelMode || e.side === s.pilotSide) && s.time - e.time < 1.1);
     // A following round landing on a wreck must not erase the destruction confirmation.
     const impact =
       recentImpacts.find((e) => e.outcome === 'friendly') ||

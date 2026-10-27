@@ -1,0 +1,246 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "81fcef6ad4597f0226928251154cf319d4d142b113dbf1d11b65f3547502bad3"
+  },
+  "errors": [],
+  "markers": {
+    "room": 8.276,
+    "duelFire": 22.503,
+    "report": 30.151,
+    "campaign": 54.099,
+    "campaignEnd": 111.385
+  },
+  "checks": [
+    "shared link, distinct identities and both-ready",
+    "shared authoritative fire, modal input blocked and duel clock continues",
+    "two browser human matchmaking",
+    "server bot after empty queue",
+    "real escort result submitted and own ranking received"
+  ],
+  "players": [
+    {
+      "userId": "be57b267-fa22-43e6-a78f-19b78a804bbe",
+      "nickname": "灵巧兔子",
+      "name": "灵巧兔子",
+      "avatarId": "panda",
+      "avatarUrl": "",
+      "region": null,
+      "profileSource": "default",
+      "profileUpdatedAt": null,
+      "avatarPolicy": {
+        "presets": [
+          "cat",
+          "fox",
+          "panda",
+          "rabbit",
+          "bear",
+          "owl",
+          "koala",
+          "tiger"
+        ],
+        "origins": [
+          "https://img.tapimg.net",
+          "https://img2.tapimg.com",
+          "https://wx.qlogo.cn",
+          "https://thirdwx.qlogo.cn",
+          "https://i0.hdslb.com",
+          "https://i1.hdslb.com",
+          "https://i2.hdslb.com"
+        ],
+        "maxBytes": 1048576
+      },
+      "playerId": "be57b267-fa22-43e6-a78f-19b78a804bbe",
+      "identityKind": "guest",
+      "provider": "guest",
+      "identityMode": "persistent",
+      "game": "night-overwatch",
+      "identityExpiresAt": null,
+      "kind": "guest",
+      "authenticated": false
+    },
+    {
+      "userId": "3b184f5f-1485-45ac-a5ab-84dd673e6457",
+      "nickname": "活力猫头鹰",
+      "name": "活力猫头鹰",
+      "avatarId": "koala",
+      "avatarUrl": "",
+      "region": null,
+      "profileSource": "default",
+      "profileUpdatedAt": null,
+      "avatarPolicy": {
+        "presets": [
+          "cat",
+          "fox",
+          "panda",
+          "rabbit",
+          "bear",
+          "owl",
+          "koala",
+          "tiger"
+        ],
+        "origins": [
+          "https://img.tapimg.net",
+          "https://img2.tapimg.com",
+          "https://wx.qlogo.cn",
+          "https://thirdwx.qlogo.cn",
+          "https://i0.hdslb.com",
+          "https://i1.hdslb.com",
+          "https://i2.hdslb.com"
+        ],
+        "maxBytes": 1048576
+      },
+      "playerId": "3b184f5f-1485-45ac-a5ab-84dd673e6457",
+      "identityKind": "guest",
+      "provider": "guest",
+      "identityMode": "persistent",
+      "game": "night-overwatch",
+      "identityExpiresAt": null,
+      "kind": "guest",
+      "authenticated": false
+    }
+  ],
+  "result": {
+    "time": 57.59999999999801,
+    "completionTime": 55.833333333331446,
+    "comparison": {
+      "currentMs": 55833,
+      "bestMs": 55833,
+      "newRecord": true
+    }
+  },
+  "ranking": {
+    "game": "night-overwatch",
+    "boardType": "level-corridor-01",
+    "version": "night-input-replay-v7",
+    "id": "level-corridor-01",
+    "title": "晨光护送",
+    "guestAllowed": true,
+    "scoreUnit": "次",
+    "secondaryUnit": "milliseconds",
+    "description": "本关经服务端验证的最快通关用时；辅助、试玩和失败不计入。",
+    "board": "night-overwatch:level-corridor-01:night-input-replay-v7",
+    "top": [
+      {
+        "userId": "24f832ff-35af-459c-a70d-21bc94fc2c1a",
+        "nickname": "好奇狐狸",
+        "name": "好奇狐狸",
+        "avatarId": "bear",
+        "avatarUrl": "",
+        "region": null,
+        "profileSource": "default",
+        "profileUpdatedAt": null,
+        "playerId": "24f832ff-35af-459c-a70d-21bc94fc2c1a",
+        "score": 1,
+        "secondary": 35933,
+        "rank": 1,
+        "position": 1,
+        "total": 5
+      },
+      {
+        "userId": "c4d6c6e5-99b0-4146-9cd8-6e865db48002",
+        "nickname": "灵巧猫头鹰",
+        "name": "灵巧猫头鹰",
+        "avatarId": "koala",
+        "avatarUrl": "",
+        "region": null,
+        "profileSource": "default",
+        "profileUpdatedAt": null,
+        "playerId": "c4d6c6e5-99b0-4146-9cd8-6e865db48002",
+        "score": 1,
+        "secondary": 35933,
+        "rank": 1,
+        "position": 2,
+        "total": 5
+      },
+      {
+        "userId": "cfaac6bc-6d99-4ef4-bd4f-1ab44e3ef44d",
+        "nickname": "悠闲考拉",
+        "name": "悠闲考拉",
+        "avatarId": "owl",
+        "avatarUrl": "",
+        "region": null,
+        "profileSource": "default",
+        "profileUpdatedAt": null,
+        "playerId": "cfaac6bc-6d99-4ef4-bd4f-1ab44e3ef44d",
+        "score": 1,
+        "secondary": 35933,
+        "rank": 1,
+        "position": 3,
+        "total": 5
+      },
+      {
+        "userId": "7141aa0b-648f-48b1-b599-2fbba476444b",
+        "nickname": "活力小熊",
+        "name": "活力小熊",
+        "avatarId": "panda",
+        "avatarUrl": "",
+        "region": null,
+        "profileSource": "default",
+        "profileUpdatedAt": null,
+        "playerId": "7141aa0b-648f-48b1-b599-2fbba476444b",
+        "score": 1,
+        "secondary": 55717,
+        "rank": 4,
+        "position": 4,
+        "total": 5
+      },
+      {
+        "userId": "be57b267-fa22-43e6-a78f-19b78a804bbe",
+        "nickname": "灵巧兔子",
+        "name": "灵巧兔子",
+        "avatarId": "panda",
+        "avatarUrl": "",
+        "region": null,
+        "profileSource": "default",
+        "profileUpdatedAt": null,
+        "playerId": "be57b267-fa22-43e6-a78f-19b78a804bbe",
+        "score": 1,
+        "secondary": 55833,
+        "rank": 5,
+        "position": 5,
+        "total": 5
+      }
+    ],
+    "me": {
+      "userId": "be57b267-fa22-43e6-a78f-19b78a804bbe",
+      "nickname": "灵巧兔子",
+      "name": "灵巧兔子",
+      "avatarId": "panda",
+      "avatarUrl": "",
+      "region": null,
+      "profileSource": "default",
+      "profileUpdatedAt": null,
+      "playerId": "be57b267-fa22-43e6-a78f-19b78a804bbe",
+      "score": 1,
+      "secondary": 55833,
+      "rank": 5,
+      "position": 5,
+      "total": 5
+    },
+    "previous": {
+      "userId": "7141aa0b-648f-48b1-b599-2fbba476444b",
+      "nickname": "活力小熊",
+      "name": "活力小熊",
+      "avatarId": "panda",
+      "avatarUrl": "",
+      "region": null,
+      "profileSource": "default",
+      "profileUpdatedAt": null,
+      "playerId": "7141aa0b-648f-48b1-b599-2fbba476444b",
+      "score": 1,
+      "secondary": 55717,
+      "rank": 4,
+      "position": 4,
+      "total": 5
+    },
+    "threshold": null,
+    "gap": {
+      "score": 0,
+      "secondary": 116
+    },
+    "eligiblePlayers": 5,
+    "reason": null
+  }
+}

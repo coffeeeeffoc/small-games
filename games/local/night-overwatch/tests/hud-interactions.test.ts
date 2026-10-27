@@ -1,3 +1,4 @@
+import { realpath } from 'node:fs/promises';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { registerHooks } from 'node:module';
@@ -75,7 +76,7 @@ const cc = {
 };
 // Exercise the same adapted inputs supplied to the real native Creator build.
 const nativeConfiguration = await buildPlatform('wechat', { configOnly: true, env: {} });
-const hudURL = pathToFileURL(path.join(path.dirname(path.dirname(nativeConfiguration.configuration)), 'assets/scripts/HUD.ts'));
+const hudURL = pathToFileURL(await realpath(path.join(path.dirname(path.dirname(nativeConfiguration.configuration)), 'assets/scripts/HUD.ts')));
 (globalThis as any).__nightHudTestCC = cc;
 const hooks = registerHooks({
   resolve(id, context, next) {
@@ -102,6 +103,25 @@ const world = { zoom: 1, thermal: false, project(p: data.Point, y = 0) {
   return { x: frame.width / 2 + p.x, y: frame.height / 2 - p.z + y * 10, z: 0.5 };
 } };
 const overlaps = (a: any, b: any) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+test('HUD: identical names remain distinct, own ranking is highlighted, and closed rooms offer only leave', () => {
+  Object.assign(frame, { width: 1280, height: 720 }); inset = 0;
+  const hud = new HUD(new SceneNode()), sim = new Simulation();
+  const own = { playerId: '11111111-1111-4111-8111-111111111111', nickname: '夜航者', rank: 2, secondary: 1200 };
+  const other = { ...own, playerId: '22222222-2222-4222-8222-222222222222', rank: 1, secondary: 1000 };
+  hud.online = { identity: own, panel: 'ranking', revision: 1, level: 0, rankPage: 0, ranking: { top: [other, own], me: own } };
+  hud.update(sim, world);
+  const labels = hud.modal.children.map((node: any) => node.getComponent(cc.Label)).filter(Boolean);
+  const mine = labels.find((label: any) => label.string.startsWith('2. 夜航者'));
+  const theirs = labels.find((label: any) => label.string.startsWith('1. 夜航者'));
+  assert.match(mine.string, /11111111 · 你/); assert.match(theirs.string, /22222222/);
+  assert.notEqual(mine.color.hex, theirs.color.hex);
+  hud.online.panel = 'room'; hud.online.room = { mode: 'friend', status: 'abandoned', code: 'A12BCD456789', players: [own, other], you: 0 };
+  hud.online.message = '房间已结束'; hud.online.revision++;
+  hud.update(sim, world);
+  const ids = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id);
+  assert.deepEqual(ids, ['online:back']);
+});
 
 test('HUD: real urgent targets avoid convoy, supply and zoom controls on small screens', () => {
   for (const [width, height] of [[1366, 768], [844, 390], [568, 320]]) {
@@ -496,10 +516,10 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert.equal(hud.modalKey, 'pause'); assert(control('supply'));
         hud.supplyOpen = true; sim.pause('supply', true); hud.update(sim, world); checkLayout();
         assert.equal(hud.modalKey, 'supply:offer');
-        assert.deepEqual(visible().map((b: any) => b.id), ['reward:tracking', 'reward:ammo', 'reward:rate', 'supplyLater', 'supplyWatch']);
+        assert.deepEqual(visible().map((b: any) => b.id), ['reward:tracking', 'reward:ammo', 'reward:rate', 'reward:restock', 'supplyLater', 'supplyWatch']);
         hud.pendingSupply = true; hud.update(sim, world); checkLayout();
         assert.equal(hud.modalKey, 'supply:choice');
-        assert.deepEqual(visible().map((b: any) => b.id), ['reward:tracking', 'reward:ammo', 'reward:rate', 'supplyLater', 'supplyWatch']);
+        assert.deepEqual(visible().map((b: any) => b.id), ['reward:tracking', 'reward:ammo', 'reward:rate', 'reward:restock', 'supplyLater', 'supplyWatch']);
         assert.match(panelText(), lang === 'zh' ? /点选敌人，再按开火/ : /Tap an enemy, then FIRE/);
         assert.match(panelText(), /60/); assert.match(panelText(), /\+2/); assert.match(panelText(), /30%/);
         assert.doesNotMatch(panelText(), /恢复耐久|治疗|HEAL/i);
@@ -784,7 +804,7 @@ test('HUD: minimal battle has no top backdrop and priority marker itself is a re
   Object.assign(enemy, { x: sim.rescue.x + 5, z: sim.rescue.z, born: -30, attack: 3 });
   hud.update(sim, world);
   const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
-  assert.deepEqual(buttons.map((b: any) => b.id).sort(), ['settings', 'weapon0', 'weapon1', 'weapon2', 'fire', 'priority'].sort());
+  assert.deepEqual(buttons.map((b: any) => b.id).sort(), ['settings', 'battleReport', 'weapon0', 'weapon1', 'weapon2', 'weapon3', 'fire', 'priority'].sort());
   assert(!hud.g.calls.some((c: any) => ['rect', 'roundRect'].includes(c.op) && c.args[2] === frame.width), 'no full-width HUD backing');
   const priority = buttons.find((b: any) => b.id === 'priority');
   assert.equal(hud.hit(priority.x + 48, priority.y + 24)?.id, 'priority');

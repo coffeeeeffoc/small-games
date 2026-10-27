@@ -23,8 +23,8 @@ export const ACTIONS = [
     touchTap: ['点按开火', 'Tap to fire'],
     touch: ['按住开火键', 'Hold FIRE'],
     description: [
-      '速射与爆破按住连射；重型炮每次按下只发一发。',
-      'Hold rapid/burst fire. Heavy fires once per press.',
+      '速射与榴弹炮按住连射；重型榴弹炮和燃烧弹每次按下只发一发。',
+      'Hold Rapid/HE Cannon. Heavy Howitzer and Incendiary fire once per press.',
     ],
     event: 'fire',
   },
@@ -44,10 +44,10 @@ export const ACTIONS = [
   {
     id: 'weapon1',
     group: 'basic',
-    name: ['爆破炮', 'Burst'],
+    name: ['榴弹炮', 'HE Cannon'],
     keys: [50],
     binding: '2',
-    touch: ['点击爆破炮', 'Tap Burst'],
+    touch: ['点击榴弹炮', 'Tap HE Cannon'],
     description: [
       `固定威胁与集群：范围攻击，每关 ${WEAPONS[1].ammo} 发。`,
       `Emplacements and groups: area damage, ${WEAPONS[1].ammo} rounds.`,
@@ -57,14 +57,24 @@ export const ACTIONS = [
   {
     id: 'weapon2',
     group: 'basic',
-    name: ['重型炮', 'Heavy'],
+    name: ['重型榴弹炮', 'Heavy Howitzer'],
     keys: [51],
     binding: '3',
-    touch: ['点按重型炮，再点开火', 'Tap Heavy, then FIRE'],
+    touch: ['点按重型榴弹炮，再点开火', 'Tap Heavy Howitzer, then FIRE'],
     description: [
       `重甲：${WEAPONS[2].ammo} 发弹药，${WEAPONS[2].interval} 秒装填；弹着时间随斜距与高度变化。`,
       `Armor: ${WEAPONS[2].ammo} rounds, ${WEAPONS[2].interval}s reload. Flight varies with range and altitude.`,
     ],
+    event: 'weapon',
+  },
+  {
+    id: 'weapon3',
+    group: 'basic',
+    name: ['燃烧弹', 'Incendiary'],
+    keys: [53],
+    binding: '5',
+    touch: ['点击燃烧弹，再点开火', 'Tap Incendiary, then FIRE'],
+    description: ['12 发，5 秒装填；半径 8 的火区燃烧 25 秒，阻挡双方车辆，区内车辆可向外退出。', '12 rounds, 5s reload. An 8-unit fire zone lasts 25s, blocking vehicles on both sides while allowing escape.'],
     event: 'weapon',
   },
   {
@@ -85,8 +95,8 @@ export const ACTIONS = [
     binding: '',
     touch: ['点击战斗补给或暂停页入口', 'Tap Combat Supply or its pause entry'],
     description: [
-      '暂停观看广告，完成后三选一：普通弹追踪60秒、手动追踪弹+2发、射速×1.3持续60秒。领取后倒计时3秒继续；稍后选择保留资格。计时增益期间所有广告暂停，其他时候不限次数。',
-      'Pause for an ad, then choose guided regular rounds for 60s, +2 manually fired homing rounds, or ×1.3 fire rate for 60s. Claim starts a 3s countdown; Choose Later keeps the reward. Timed buffs block all ads; otherwise ads are unlimited.',
+      '暂停观看广告，完成后四选一：普通弹追踪60秒、手动追踪弹+2发、射速×1.3持续60秒、弹药补给（榴弹炮+60、重型榴弹炮+24、燃烧弹+6）。领取后倒计时3秒继续；稍后选择保留资格。计时增益期间所有广告暂停，其他时候不限次数。',
+      'Pause for an ad, then choose guided regular rounds for 60s, +2 manually fired homing rounds, ×1.3 fire rate for 60s, or +60 HE / +24 Heavy / +6 Incendiary rounds. Claim starts a 3s countdown; Choose Later keeps the reward. Timed buffs block all ads; otherwise ads are unlimited.',
     ],
   },
   {
@@ -109,7 +119,7 @@ export const ACTIONS = [
     keys: [69],
     binding: 'E',
     touch: ['直接点击武器', 'Tap a weapon'],
-    description: ['也可按 1 / 2 / 3 直接选枪；滚轮用于缩放。', 'Use 1 / 2 / 3 to select a weapon; wheel zooms.'],
+    description: ['也可按 1 / 2 / 3 / 5 直接选枪；滚轮用于缩放。', 'Use 1 / 2 / 3 / 5 to select a weapon; wheel zooms.'],
     event: 'weapon',
   },
   {
@@ -474,11 +484,11 @@ export function tutorialText(event: string, lang: Language, touch: boolean) {
     return text(
       touch
         ? [
-            '点「爆破炮」对付炮台；重甲出现时用重型炮。',
-            'Tap Burst for turrets. Use Heavy when armor arrives.',
+            '点「榴弹炮」对付炮台；重甲出现时用重型榴弹炮。',
+            'Tap HE Cannon for turrets. Use Heavy when armor arrives.',
           ]
         : [
-            '按 2 切爆破炮对付炮台；重甲出现时按 3。',
+            '按 2 切榴弹炮对付炮台；重甲出现时按 3。',
             'Press 2 for turrets. Press 3 when armor arrives.',
           ],
       lang,

@@ -277,6 +277,12 @@ test('runtime bundle includes multiplayer carrom physics and level data without 
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
       'games/local/tower-brake/levels.mjs',
+      'games/local/night-overwatch/assets/scripts/core/Duel.ts',
+      'games/local/night-overwatch/assets/scripts/core/Replay.ts',
+      'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
+      'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+      'games/local/night-overwatch/assets/scripts/core/Data.ts',
+      'games/local/night-overwatch/assets/scripts/core/Flight.ts',
       'games/local/carrom-club/src/core.mjs',
       'games/local/carrom-club/src/content.mjs',
       'games/local/carrom-club/src/friends-core.mjs',
@@ -323,6 +329,12 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
       'games/local/tower-brake/levels.mjs',
+      'games/local/night-overwatch/assets/scripts/core/Duel.ts',
+      'games/local/night-overwatch/assets/scripts/core/Replay.ts',
+      'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
+      'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+      'games/local/night-overwatch/assets/scripts/core/Data.ts',
+      'games/local/night-overwatch/assets/scripts/core/Flight.ts',
       'games/local/carrom-club/src/core.mjs',
       'games/local/carrom-club/src/content.mjs',
       'games/local/carrom-club/src/friends-core.mjs',
@@ -339,10 +351,18 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       'services/runtime-api/rules/flick.mjs',
       'games/local/flick-arena/src',
       'services/runtime-api/rules/ranked-games.mjs',
+      'services/runtime-api/rules/night.mjs',
+      'services/runtime-api/rules/night-ranked.mjs',
       'games/local/cage-rescue/src/core.mjs',
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
       'games/local/tower-brake/levels.mjs',
+      'games/local/night-overwatch/assets/scripts/core/Duel.ts',
+      'games/local/night-overwatch/assets/scripts/core/Replay.ts',
+      'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
+      'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+      'games/local/night-overwatch/assets/scripts/core/Data.ts',
+      'games/local/night-overwatch/assets/scripts/core/Flight.ts',
     ]) {
       const target = path.join(source, name);
       await mkdir(path.dirname(target), { recursive: true });
@@ -360,9 +380,21 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
     );
     assert.deepEqual(
       rankedRules.map((item) => item.id),
-      ['cage-rescue', 'tower-brake'],
+      ['cage-rescue', 'tower-brake', 'night-overwatch'],
     );
-    for (const item of rankedRules) assert.equal(item.create('endless', 7).game.mode, 'endless');
+    const night = rankedRules.find((item) => item.id === 'night-overwatch');
+    assert.equal(night.boards.length, 120);
+    assert(night.create(night.boards[0].id, 7, night.boards[0].id.slice(6)).simulation);
+    const duel = (
+      await import(pathToFileURL(path.join(output, 'services/runtime-api/rules/night.mjs')).href)
+    ).default;
+    assert.equal(duel.view(duel.initial(7, 'bot'), 0).bot, true);
+    await assert.rejects(
+      stat(path.join(output, 'games/local/night-overwatch/assets/scripts/Overwatch.ts')),
+      { code: 'ENOENT' },
+    );
+    for (const item of rankedRules.filter((rule) => rule.id !== 'night-overwatch'))
+      assert.equal(item.create('endless', 7).game.mode, 'endless');
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

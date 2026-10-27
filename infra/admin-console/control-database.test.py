@@ -65,9 +65,9 @@ class Contracts(unittest.TestCase):
 
     def test_verify_uses_actual_readonly_and_never_temp_setup(self):
         parts = db.load_sql()
-        expected = {'version':1,'schema':'game_control','schemaVersion':2,'projectionSha256':parts['projection'],'metadataSha256':'a'*64}
+        expected = {'version':1,'schema':'game_control','schemaVersion':3,'projectionSha256':parts['projection'],'metadataSha256':'a'*64}
         for readonly in (True,False):
-            result = db.MARKER + json.dumps({'supported':True,'versions':[2],'metadataSha256':'a'*64,'readOnly':readonly})
+            result = db.MARKER + json.dumps({'supported':True,'versions':[3],'metadataSha256':'a'*64,'readOnly':readonly})
             with patch.object(db,'psql',return_value=result) as execute:
                 if readonly:
                     actual = db.verify_control_database(pg_id='b'*64,migration_sha256=db.MIGRATION_SHA256,expected_contract=expected)
@@ -82,8 +82,8 @@ class Contracts(unittest.TestCase):
 
     def test_wrong_versions_projection_metadata_and_unknown_profile_fail(self):
         parts = db.load_sql()
-        expected = {'version':1,'schema':'game_control','schemaVersion':2,'projectionSha256':parts['projection'],'metadataSha256':'a'*64}
-        for versions,supported,sha in [([],True,'a'*64),([1],True,'a'*64),([2],False,'a'*64),([2],True,'b'*64)]:
+        expected = {'version':1,'schema':'game_control','schemaVersion':3,'projectionSha256':parts['projection'],'metadataSha256':'a'*64}
+        for versions,supported,sha in [([],True,'a'*64),([1],True,'a'*64),([3],False,'a'*64),([3],True,'b'*64)]:
             value = db.MARKER+json.dumps({'supported':supported,'versions':versions,'metadataSha256':sha,'readOnly':True})
             with patch.object(db,'psql',return_value=value):
                 with self.assertRaises(db.ControlDatabaseError):
@@ -145,7 +145,7 @@ class Contracts(unittest.TestCase):
             backup = directory / 'control-database.dump'
             backup.write_bytes(b'fixture-backup')
             parts = db.load_sql()
-            contract = {'version': 1, 'schema': 'game_control', 'schemaVersion': 2,
+            contract = {'version': 1, 'schema': 'game_control', 'schemaVersion': 3,
                         'projectionSha256': parts['projection'], 'metadataSha256': 'a' * 64}
             with patch.object(db, 'preflight_control_database', return_value=('SELECT 1;', parts, 'a' * 64, directory)), patch.object(db, 'state', return_value={}), patch.object(db, 'write_private'), patch.object(db, 'command', return_value=b'fixture'), patch.object(db, 'restore_proof', return_value=({}, contract)), patch.object(db, 'check_inventory'), patch.object(db, 'psql', side_effect=db.ControlDatabaseError('CONTROL_COMMAND_TIMEOUT')) as execute:
                 with self.assertRaises(db.ControlDatabaseError) as caught:

@@ -1,5 +1,5 @@
 {
-  "runId": "game-control-614b0628-e72f-4696-b4f9-000709d8b9cc",
+  "runId": "game-control-45b2cb0d-81b6-4542-8a4e-1d568ac58612",
   "isolated": true,
   "loopbackOnly": true,
   "productionAccess": false,
@@ -14,7 +14,9 @@
     "fail-closed-public-read",
     "fail-closed-foreign-key-namespace",
     "one-time-bootstrap-db-disable-and-concurrent-last-administrator",
+    "v2-to-v3-idempotent-preserves-published-history-digest-and-ACL",
     "CAS-append-only-rollback-epoch-and-shared-advisory-order",
+    "historical-v2-rollback-creates-new-v3-revision-without-rewriting-history",
     "runtime-control-restores-caller-timeouts-with-shared-lock-held-through-business-sql",
     "runtime-control-shared-lock-still-fails-closed-within-existing-budget",
     "runtime-control-observation-lock-bounded-rollback-retry",
@@ -27,24 +29,25 @@
     "publication-members-audit-survive-database-restart"
   ],
   "migrationSha256": "d16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451",
+  "nightMigrationSha256": "d59a71a23f452d2cb50177c5533471df8f14480a9d635dc59b534af57ca23ee5",
   "postgresVersion": "17.6",
   "runtimeControl": {
-    "observationLockMs": 1697,
+    "observationLockMs": 1588,
     "commitInFlight": "unknown-no-rollback-guarantee",
     "sourceSha256": {
       "controlDatabase": "6d9e8ba315cfec14447b64a47f9833f038a77bbedd2f72676ef128ce8e4f21c5",
-      "runtimeControl": "863609cf1ad601d16ef217d7414169e7b332259f473df65003557ccc2098162f"
+      "runtimeControl": "5a3791b9438daa27f03769532a13ce62ef7746ac55caf38d39b6e8b15ffdd2ef"
     },
     "executedModuleSha256": {
       "controlDatabase": "5e61c1ca49480997287331c189d87a19a612d1df71fc01718e679d6ffc522a57",
-      "runtimeControl": "7d74c12cf91c3051516e7aea5f74f626e31388d1ed284894e62e278c35568c2a"
+      "runtimeControl": "bf089689452f962bf4d8b73a497d6c731338a7c992080cd0052772bc7c16ed3f"
     }
   },
   "identityLocks": {
     "fixture": "real-010-tables-no-additional-grants-owner-only-lock-regression",
     "oldLock": "40P01-reproduced",
     "productionLock": "two-settlements-committed-upgrade-lock-serialized",
-    "sourceSha256": "f153d1c6bc9d03c103779bfc135c9e2d092326bda81701a51e50a053e8468f9f",
-    "executedModuleSha256": "7a91c8ba64057e841cd9e817fae6627ef63f0971c53f8569944f975f1472efeb"
+    "sourceSha256": "d55aa6e1bb9a32fac64166f167d8b58e9f177e2d96345253c31cd43fa4c58f0c",
+    "executedModuleSha256": "b40dce53ac7bedf0b3ea414d365cf3019e014f699310dc7cea097297a4ca1425"
   }
 }

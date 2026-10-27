@@ -19,7 +19,7 @@ control = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(control)
 SHA = 'a' * 40
 IMAGE = 'sha256:' + 'b' * 64
-CONTRACT = {'version': 1, 'schema': 'game_control', 'schemaVersion': 2,
+CONTRACT = {'version': 1, 'schema': 'game_control', 'schemaVersion': 3,
             'projectionSha256': 'c' * 64, 'metadataSha256': 'd' * 64}
 
 
@@ -346,7 +346,7 @@ class ControlContracts(unittest.TestCase):
         proof = {'controlContract': CONTRACT}
         domain = SimpleNamespace(provision_control_database=Mock(), provision_player_sessions=Mock())
         calls = []
-        with patch.object(control, 'domain_module', return_value=domain), patch.object(control, 'private_directory'), patch.object(control, 'private_json', return_value=state), patch.object(control, 'write_private'), patch.object(control, 'assert_nginx'), patch.object(control, 'target_inventory', return_value=state['inventory']['postgres']), patch.object(control, 'database_floor', return_value='schema2'), patch.object(control, 'read_precommit', return_value=(proof, 'f' * 64)), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'verified_database'), patch.object(control, 'activate_services', side_effect=control.Stopped('COMMAND_FAILED')), patch.object(control, 'command', side_effect=lambda *args: calls.append(args)), patch.object(control, 'restore_before_migration') as restore:
+        with patch.object(control, 'domain_module', return_value=domain), patch.object(control, 'private_directory'), patch.object(control, 'private_json', return_value=state), patch.object(control, 'write_private'), patch.object(control, 'assert_nginx'), patch.object(control, 'target_inventory', return_value=state['inventory']['postgres']), patch.object(control, 'database_floor', return_value='schema3'), patch.object(control, 'read_precommit', return_value=(proof, 'f' * 64)), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'verified_database'), patch.object(control, 'activate_services', side_effect=control.Stopped('COMMAND_FAILED')), patch.object(control, 'command', side_effect=lambda *args: calls.append(args)), patch.object(control, 'restore_before_migration') as restore:
             with self.assertRaisesRegex(control.Stopped, 'COMMAND_FAILED'):
                 control.adopt(release, manifest(), Path('/caddy'), True)
             self.assertEqual(calls, [('docker', 'stop', '--time', '30', state['inventory']['nginx']['id'])])
@@ -475,7 +475,7 @@ class HelperBoundary(unittest.TestCase):
             release = base / 'releases/candidate'
             (release / 'migrations').mkdir(parents=True)
             (private / release.name).mkdir(mode=0o700)
-            files = ('control-database.py', 'control-fingerprint.sql', 'migrations/002-control-center.sql', 'migrations/014-player-sessions.sql')
+            files = ('control-database.py', 'control-fingerprint.sql', 'migrations/002-control-center.sql', 'migrations/003-night-overwatch-control.sql', 'migrations/014-player-sessions.sql')
             for name in files:
                 shutil.copyfile((Path(control.__file__).parent.parent if name.endswith('014-player-sessions.sql') else Path(control.__file__).parent) / name, release / name)
             value = dict(manifest(), release=release.name, migrationArtifactSha256=db.MIGRATION_SHA256,
@@ -642,7 +642,7 @@ class RootPreconditionRecovery(unittest.TestCase):
                 elif failure == 'kart-removal': state['kartRemovalAttempted'] = True
                 elif failure == 'stopped': state['stopped'] = ['runtime']
                 elif failure == 'container': live['runtime']['id'] = 'f' * 64
-                elif failure == 'schema2': stack.enter_context(patch.object(control, 'database_floor', return_value='schema2'))
+                elif failure == 'schema2': stack.enter_context(patch.object(control, 'database_floor', return_value='schema3'))
                 elif failure == 'pointer': state['previous'] = 'other'
                 control.write_private(directory / 'control-journal.json', state)
                 with self.assertRaises(control.Stopped):

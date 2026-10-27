@@ -6,6 +6,7 @@ export type Language = 'zh' | 'en';
 export const ZOOM_LEVELS = [5, 10, 20, 40, 80, 160] as const;
 export const HOMING = { speed: 70, damage: 120 } as const;
 export const COMBAT_BUFF = { duration: 60, rateMultiplier: 1.3, trackingRadius: 8 } as const;
+export const FIRE_ZONE = { duration: 25, damagePerSecond: 0.2 } as const;
 // Spread the actual route, contacts and posts together; keep the 240-second convoy journey.
 export const BATTLEFIELD_SCALE = 1.4;
 const spread = <T extends Point>(p: T): T => ({ ...p, x: p.x * BATTLEFIELD_SCALE, z: p.z * BATTLEFIELD_SCALE });
@@ -89,15 +90,15 @@ export const WEAPONS = [
   {
     id: 'blast',
     muzzle: AIRFRAME.muzzles[1],
-    name: ['爆破炮', 'Burst'],
-    interval: 0.8,
+    name: ['榴弹炮', 'HE Cannon'],
+    interval: 0.65,
     speed: 56,
     calibre: 0.004,
     length: 0.021,
     tracerTime: 0.055,
     damage: 60, // Keep the dispersed mission forgiving with smaller vehicle hit hulls.
     radius: 3.4,
-    ammo: 80,
+    ammo: 120,
     heat: 15,
     armor: 0.65,
     automatic: true,
@@ -105,17 +106,33 @@ export const WEAPONS = [
   {
     id: 'heavy',
     muzzle: AIRFRAME.muzzles[2],
-    name: ['重型炮', 'Heavy'],
-    interval: 3,
+    name: ['重型榴弹炮', 'Heavy Howitzer'],
+    interval: 2.4,
     speed: 32,
     calibre: 0.0105,
     length: 0.05,
     tracerTime: 0.075,
     damage: 140,
     radius: 6.5,
-    ammo: 30,
+    ammo: 45,
     heat: 0,
     armor: 1,
+    automatic: false,
+  },
+  {
+    id: 'incendiary',
+    muzzle: AIRFRAME.muzzles[1],
+    name: ['燃烧弹', 'Incendiary'],
+    interval: 5,
+    speed: 40,
+    calibre: 0.004,
+    length: 0.021,
+    tracerTime: 0.055,
+    damage: 2,
+    radius: 8,
+    ammo: 12,
+    heat: 0,
+    armor: 0.2,
     automatic: false,
   },
 ] as const;
@@ -277,11 +294,22 @@ export function routePoint(d: number, map: BattlefieldId = 'valley'): Point3 & {
   }
   return { ...route[0], y: terrainHeight(route[0].x, route[0].z, map) + TERRAIN.roadLift, heading: 0 };
 }
-export function patrolPoint(origin: Point, elapsed: number, map: BattlefieldId = 'valley'): Point & { heading: number } {
-  const angle = elapsed * UNITS.light.speed / 7;
+export function patrolPoint(origin: Point & { patrolId?: number }, elapsed: number, map: BattlefieldId = 'valley', unitId = origin.patrolId ?? 0): Point & { heading: number } {
+  let seed = 2166136261;
+  for (const char of `${unitId}:${origin.x}:${origin.z}`) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619) >>> 0;
+  const radius = seed % 10 === 0 ? 6 + (seed >>> 8) % 201 / 100 : 16 + (seed >>> 8) % 801 / 100;
+  const side = origin.x - riverX(origin.z) < 0 ? -1 : 1;
+  // Keep the whole circle on its bank; projecting each frame onto the river creates sharp turns.
+  const bank = 5 + Math.max(0, (MAP.halfDepth - 75) / 100) * 32;
+  const minX = map === 'valley' && side > 0 ? bank + radius : -MAP.halfWidth + radius + .5;
+  const maxX = map === 'valley' && side < 0 ? -bank - radius : MAP.halfWidth - radius - .5;
+  const x = Math.max(minX, Math.min(maxX, origin.x));
+  const z = Math.max(-MAP.halfDepth + radius + .5, Math.min(MAP.halfDepth - radius - .5, origin.z - radius));
+  const direction = seed & 1 ? 1 : -1;
+  const angle = Math.atan2(origin.x - x, origin.z - z) + direction * Math.max(0, elapsed) * UNITS.light.speed / radius;
   return {
-    ...landPoint({ x: origin.x + Math.sin(angle) * 7, z: origin.z + (Math.cos(angle) - 1) * 3 }, map, origin.x - riverX(origin.z)),
-    heading: Math.atan2(7 * Math.cos(angle), -3 * Math.sin(angle)),
+    x: x + Math.sin(angle) * radius, z: z + Math.cos(angle) * radius,
+    heading: Math.atan2(direction * Math.cos(angle), -direction * Math.sin(angle)),
   };
 }
 export const text = (pair: readonly string[], language: Language) =>

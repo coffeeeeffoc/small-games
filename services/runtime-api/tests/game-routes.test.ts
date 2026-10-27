@@ -12,7 +12,7 @@ afterEach(async () => {
   await Promise.all(apps.splice(0).map((app) => app.close()));
 });
 const token = 'a'.repeat(64);
-it.each(['carding-car', 'wulong-city', 'night-overwatch'])(
+it.each(['carding-car', 'wulong-city'])(
   'basic %s metadata does not invent ranked rules',
   async (game) => {
     const { app } = await setup(false, false, game);

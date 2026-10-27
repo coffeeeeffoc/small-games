@@ -62,7 +62,7 @@ const internalCompetitionPaths = [
   '/api/competition/v1/runs/cops-robbers-realtime(?:/start)?',
   '/api/competition/v1/three-choose-two/(?:board|session(?:/[a-f0-9-]{36}(?:/(?:actions|finish))?)?)',
   '/api/competition/v1/carrom/rooms(?:/(?:join|[A-F0-9]{12}(?:/(?:settings|ready|start|rematch|leave|shoot))?))?',
-  '/api/competition/v1/games/[A-Za-z0-9][A-Za-z0-9-]{0,79}(?:/leaderboards/[A-Za-z0-9][A-Za-z0-9-]{0,79}|/runs(?:/[a-f0-9-]{36}(?:/(?:actions|finish))?)?|/rooms(?:/(?:join|[A-F0-9]{12}(?:/(?:ready|leave|rematch|actions|role|initiative))?))?)?',
+  '/api/competition/v1/games/[A-Za-z0-9][A-Za-z0-9-]{0,79}(?:/match|/leaderboards/[A-Za-z0-9][A-Za-z0-9-]{0,79}|/runs(?:/[a-f0-9-]{36}(?:/(?:actions|finish))?)?|/rooms(?:/(?:join|[A-F0-9]{12}(?:/(?:ready|leave|rematch|actions|role|initiative))?))?)?',
 ];
 export const competitionIngressPaths = internalCompetitionPaths.flatMap((route) => [
   route.replace('/api/competition/v1/', '/small-games/v1/'),
