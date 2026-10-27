@@ -1,41 +1,44 @@
+import { WEAPONS, SPECIAL_WEAPONS } from './weapons.mjs';
+export { WEAPONS };
 import { LEVELS, validateLevels } from './levels.mjs';
 export { LEVELS, validateLevels };
 
 export const UPGRADES = [
   {
-    id: 'scatter',
-    name: '散射弹匣',
-    short: '三发齐射',
-    icon: 'scatter',
-    description: '每次射出 3 发子弹，单发伤害降为 9。',
-  },
-  {
-    id: 'pierce',
-    name: '穿甲弹芯',
-    short: '贯穿目标',
+    id: 'power',
+    name: '强化弹药',
+    short: '伤害+10%',
     icon: 'pierce',
-    description: '子弹额外贯穿 1 个目标，可连续命中 2 名敌人。',
+    description: '所有武器伤害提升 10%，最多提升至 3 倍。',
   },
   {
-    id: 'salvage',
-    name: '战地回收',
-    short: '爆破回血',
+    id: 'medical',
+    name: '战地急救',
+    short: '回复25生命',
     icon: 'salvage',
-    description: '爆炸击杀额外回复 15 生命，每次爆炸最多回复 30。',
+    description: '回复 25 生命，生命上限增加 5。',
   },
   {
     id: 'rapid',
     name: '快速扳机',
-    short: '更快连射',
+    short: '射速+8%',
     icon: 'rapid',
-    description: '缩短射击间隔，让火力持续压制敌人。',
+    description: '射击间隔缩短 8%，可叠加。',
   },
   {
     id: 'mobility',
     name: '机动推进器',
-    short: '灵活闪避',
+    short: '冲刺更快恢复',
     icon: 'mobility',
-    description: '冲刺冷却缩短至 0.55 秒，移动速度提升 15%。',
+    description: '冲刺冷却缩短 12%，并回复 10 生命。',
+  },
+  {
+    id: 'overdrive',
+    name: '超载强化',
+    short: '伤害+30% / 生命+30',
+    icon: 'scatter',
+    rewarded: true,
+    description: '伤害提升 30%，生命上限增加 30 并回复 30。需完整观看广告。',
   },
 ];
 
@@ -44,6 +47,7 @@ const ENEMY_STATS = {
   shooter: { w: 36, h: 60, hp: 100 },
   chaser: { w: 40, h: 58, hp: 80 },
   drone: { w: 48, h: 32, hp: 60 },
+  turret: { w: 64, h: 62, hp: 300 },
   boss: { w: 112, h: 140, hp: 900 },
 };
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -68,6 +72,8 @@ function spawnEnemy(run, config, waveIndex = run.waveIndex) {
     waveIndex,
     ...stats,
     maxHp: stats.hp,
+    fired: false,
+    engaged: false,
     x: config.x,
     y: config.y,
     baseY: config.y,
@@ -79,7 +85,7 @@ function spawnEnemy(run, config, waveIndex = run.waveIndex) {
     fireFlash: 0,
     aimAngle: Math.PI,
     state: config.type === 'boss' ? 'idle' : 'patrol',
-    timer: config.type === 'boss' ? 0.85 : 0.9 + random(run) * 0.9,
+    timer: config.type === 'boss' ? 0.85 : 0.35 + random(run) * 0.12,
     phase: 1,
     attack: null,
     nextAttack: 'charge',
@@ -121,6 +127,9 @@ function loadRoom(run, levelIndex) {
   run.rewardUsed = { supply: false, revive: false };
   run.roomEpoch++;
   run.choices = [];
+  run.exitOpen = false;
+  run.supplyUsed = false;
+  run.pickups = run.level.pickups.map((item) => ({ ...item, id: nextId(run, 'loot') }));
   run.bullets = [];
   run.enemies = [];
   run.encounters = run.level.waves.map(() => ({ guards: false, boss: false }));
@@ -149,6 +158,9 @@ function loadRoom(run, levelIndex) {
     aimAngle: 0,
     coyoteTime: 0.1,
     jumpBuffer: 0,
+    climbing: null,
+    burstLeft: 0,
+    spin: 0,
   });
   run.wavesTotal = run.level.waves.length;
   spawnWave(run, 0);
@@ -176,6 +188,12 @@ export function createRun(
     barrels: [],
     events: [],
     upgrades: [],
+    xp: 0,
+    xpNext: 60,
+    rank: 1,
+    upgradeReason: null,
+    weapon: 'rifle',
+    ammo: 0,
     choices: [],
     roomsCleared: [],
     time: 0,
@@ -192,6 +210,8 @@ export function createRun(
     nextWaveDelay: null,
     stats: {
       damage: 20,
+      damageMultiplier: 1,
+      rateMultiplier: 1,
       fireInterval: 0.15,
       moveSpeed: 300,
       jumpSpeed: 780,
@@ -256,11 +276,15 @@ function hurtPlayer(run, damage, cause) {
 
 function hurtEnemy(run, enemy, damage, cause, direction = 0) {
   if (enemy.hp <= 0) return false;
-  const armour = enemy.type === 'boss' && enemy.state !== 'recover' ? 0.16 : 1;
+  const armour =
+    enemy.type === 'boss' && enemy.state !== 'recover' ? 0.16 : enemy.type === 'turret' ? 0.55 : 1;
+  enemy.engaged = true;
   const taken = Math.min(enemy.hp, Math.max(1, Math.round(damage * armour)));
-  enemy.hp -= taken;
+  // A visible first-volley shield prevents an entire encounter dying before it can fire.
+  enemy.hp =
+    enemy.type !== 'boss' && !enemy.fired ? Math.max(1, enemy.hp - taken) : enemy.hp - taken;
   enemy.hitFlash = 0.065;
-  if (enemy.type !== 'boss') enemy.knockback += direction * 85;
+  if (!['boss', 'turret'].includes(enemy.type)) enemy.knockback += direction * 85;
   emit(run, 'hit', {
     x: enemy.x,
     y: centreY(enemy),
@@ -271,8 +295,13 @@ function hurtEnemy(run, enemy, damage, cause, direction = 0) {
   });
   if (enemy.hp > 0) return false;
   run.kills++;
+  run.xp += enemy.type === 'boss' ? 100 : enemy.type === 'turret' ? 40 : 20;
+  if (enemy.type === 'turret' || run.kills % 5 === 0) {
+    const weapon = SPECIAL_WEAPONS[(run.kills + run.levelIndex) % SPECIAL_WEAPONS.length];
+    run.pickups.push({ id: nextId(run, 'loot'), weapon, x: enemy.x, y: enemy.y });
+  }
   run.score += enemy.type === 'boss' ? 1000 : 100;
-  heal(run, 2);
+  heal(run, 3);
   emit(run, 'kill', { x: enemy.x, y: centreY(enemy), enemyType: enemy.type, cause });
   return true;
 }
@@ -340,17 +369,7 @@ function playerAim(run, input) {
     (direction.x !== 0 || direction.y !== 0)
   )
     return Math.atan2(direction.y, direction.x);
-  let target = null,
-    best = 950;
-  for (const enemy of run.enemies) {
-    if (enemy.hp <= 0 || (enemy.x - p.x) * p.facing < -12) continue;
-    const d = distance(x, y, enemy.x, centreY(enemy));
-    if (d < best) {
-      best = d;
-      target = enemy;
-    }
-  }
-  return target ? Math.atan2(centreY(target) - y, target.x - x) : p.facing > 0 ? 0 : Math.PI;
+  return p.facing > 0 ? 0 : Math.PI;
 }
 
 function shootPlayer(run) {
@@ -359,18 +378,31 @@ function shootPlayer(run) {
   // Start inside the player silhouette, so overlapping enemies cannot evade the muzzle.
   const x = p.x + Math.cos(angle) * 6,
     y = p.y - p.h * 0.61 + Math.sin(angle) * 6;
-  const spread = run.stats.pellets === 3 ? [-0.115, 0, 0.115] : [0];
-  for (const offset of spread)
+  const weapon = WEAPONS[run.weapon];
+  for (const offset of weapon.spread) {
     addBullet(
       run,
       'player',
       x,
       y,
       angle + offset,
-      run.stats.pellets === 3 ? 9 : run.stats.damage,
-      1260,
-      run.stats.pierce,
+      weapon.damage * run.stats.damageMultiplier,
+      weapon.speed,
+      weapon.pierce || run.stats.pierce,
     );
+    Object.assign(run.bullets.at(-1), {
+      life: weapon.life,
+      weapon: run.weapon,
+      blast: weapon.blast || 0,
+      radius: run.weapon === 'flame' ? 10 : run.weapon === 'cannon' ? 7 : 2.5,
+    });
+  }
+  if (run.weapon !== 'rifle' && --run.ammo <= 0) {
+    run.weapon = 'rifle';
+    run.ammo = 0;
+    p.burstLeft = 0;
+    emit(run, 'weapon', { weapon: 'rifle' });
+  }
   run.shots++;
   p.fireFlash = 0.08;
   emit(run, 'shoot', {
@@ -383,12 +415,27 @@ function shootPlayer(run) {
 
 function moveBody(body, level, dt) {
   const previousY = body.y;
+  const underground = level.tunnels.find(
+    (t) => body.y > level.ground + 1 && body.x >= t.x && body.x <= t.x + t.w,
+  );
   body.x = clamp(body.x + body.vx * dt, body.w / 2 + 8, level.width - body.w / 2 - 8);
+  if (underground)
+    body.x = clamp(body.x, underground.x + body.w / 2, underground.x + underground.w - body.w / 2);
   body.vy += GRAVITY * dt;
   body.y += body.vy * dt;
+  const inShaft = level.ladders.some(
+    (l) => l.top === level.ground && l.bottom > level.ground && Math.abs(body.x - l.x) <= 23,
+  );
+  if (underground && !inShaft && body.vy < 0 && body.y - body.h < level.ground + 12) {
+    body.y = level.ground + body.h + 12;
+    body.vy = 0;
+  }
   body.onGround = false;
   if (body.vy >= 0) {
-    let floor = level.ground;
+    const tunnel = level.tunnels.find(
+      (t) => body.x >= t.x && body.x <= t.x + t.w && previousY > level.ground + 1,
+    );
+    let floor = tunnel ? tunnel.floor : level.ground;
     for (const platform of level.platforms) {
       if (
         body.x + body.w * 0.36 > platform.x &&
@@ -431,15 +478,45 @@ function updatePlayer(run, input, dt) {
     p.vx = p.dashDirection * run.stats.dashSpeed;
     p.dashTime = Math.max(0, p.dashTime - dt);
   } else p.vx = move * run.stats.moveSpeed;
-  moveBody(p, run.level, dt);
+  const climb = clamp(Number(input.climb) || 0, -1, 1);
+  const ladder = run.level.ladders.find(
+    (l) => Math.abs(p.x - l.x) < 28 && p.y >= l.top - 3 && p.y <= l.bottom + 3,
+  );
+  if (ladder && Math.abs(climb) > 0.2 && p.dashTime <= 0) p.climbing = ladder;
+  if (p.climbing && (input.jump || input.dash || Math.abs(move) > 0.6)) p.climbing = null;
+  if (p.climbing) {
+    const l = p.climbing;
+    p.x = l.x;
+    p.vx = 0;
+    p.vy = 0;
+    p.y = clamp(p.y + climb * 210 * dt, l.top, l.bottom);
+    p.onGround = true;
+    if ((p.y === l.top && climb < 0) || (p.y === l.bottom && climb > 0)) p.climbing = null;
+  } else moveBody(p, run.level, dt);
   p.aimAngle = playerAim(run, input);
-  if (input.fire && p.fireCooldown <= 0) {
+  const weapon = WEAPONS[run.weapon];
+  p.spin = input.fire ? Math.min(1, p.spin + dt) : 0;
+  if (
+    (input.fire || p.burstLeft > 0) &&
+    p.fireCooldown <= 0 &&
+    (!weapon.spinup || p.spin >= weapon.spinup)
+  ) {
+    if (!p.burstLeft) p.burstLeft = weapon.burst || 1;
+    p.burstLeft--;
     shootPlayer(run);
-    p.fireCooldown = run.stats.fireInterval;
+    p.fireCooldown = (p.burstLeft > 0 ? 0.065 : weapon.interval) * run.stats.rateMultiplier;
   }
+  for (const item of run.pickups) {
+    if (!item.taken && distance(p.x, p.y - 22, item.x, item.y - 22) < 48) {
+      equipWeapon(run, item.weapon);
+      item.taken = true;
+    }
+  }
+  run.pickups = run.pickups.filter((item) => !item.taken);
 }
 
 function enemyShot(run, enemy, angles, damage = 10, speed = 340) {
+  enemy.fired = true;
   const x = enemy.x,
     y = enemy.y - enemy.h * 0.62;
   for (const angle of angles) addBullet(run, 'enemy', x, y, angle, damage, speed);
@@ -552,9 +629,25 @@ function updateEnemies(run, dt) {
       range = Math.abs(dx);
     enemy.facing = Math.sign(dx) || enemy.facing;
     enemy.aimAngle = Math.atan2(centreY(run.player) - (enemy.y - enemy.h * 0.62), dx);
-    enemy.timer -= dt;
+    if (range < 750 || enemy.engaged) enemy.timer -= dt;
     enemy.knockback *= Math.pow(0.035, dt);
-    if (enemy.type === 'chaser') {
+    if (!enemy.fired && enemy.timer <= 0 && (range < 750 || enemy.engaged)) {
+      enemyShot(run, enemy, [enemy.aimAngle], 12, 360);
+      enemy.timer = 1.25;
+    }
+    if (enemy.type === 'turret') {
+      enemy.state = enemy.timer < 0.45 ? 'aim' : 'guard';
+      if (range < 850 && enemy.timer <= 0) {
+        enemyShot(
+          run,
+          enemy,
+          [-0.18, 0, 0.18].map((a) => a + enemy.aimAngle),
+          14,
+          385,
+        );
+        enemy.timer = 1.45;
+      }
+    } else if (enemy.type === 'chaser') {
       enemy.state = 'chase';
       enemy.vx = (range > 30 ? enemy.facing * 132 : 0) + enemy.knockback;
       if (enemy.onGround && run.player.y < enemy.y - 85 && range < 310 && enemy.timer <= 0) {
@@ -570,7 +663,7 @@ function updateEnemies(run, dt) {
       enemy.y = enemy.baseY + Math.sin(run.roomTime * 2.1 + enemy.floatOffset) * 24;
       if (range < 600 && enemy.timer <= 0) {
         enemyShot(run, enemy, [enemy.aimAngle], 8, 310);
-        enemy.timer = 2.25;
+        enemy.timer = 1.4;
       }
     } else {
       enemy.vx = (range > 590 ? enemy.facing * 58 : 0) + enemy.knockback;
@@ -578,11 +671,19 @@ function updateEnemies(run, dt) {
       moveBody(enemy, run.level, dt);
       if (range < 670 && enemy.timer <= 0) {
         enemyShot(run, enemy, [enemy.aimAngle], 10, 335);
-        enemy.timer = 1.75 + random(run) * 0.35;
+        enemy.timer = 1.15 + random(run) * 0.25;
       }
     }
-    if (range > 760) enemy.timer = Math.max(enemy.timer, 0.5);
+    if (range > 850 && !enemy.engaged) enemy.timer = Math.max(enemy.timer, 0.35);
   }
+}
+
+export function crossesFloor(level, x1, y1, x2, y2) {
+  if (y1 <= level.ground === y2 <= level.ground) return false;
+  const x = x1 + ((x2 - x1) * (level.ground - y1)) / (y2 - y1);
+  return !level.ladders.some(
+    (l) => l.top === level.ground && l.bottom > level.ground && Math.abs(x - l.x) < 23,
+  );
 }
 
 function updateBullets(run, dt) {
@@ -593,6 +694,10 @@ function updateBullets(run, dt) {
     bullet.x += bullet.vx * dt;
     bullet.y += bullet.vy * dt;
     bullet.life -= dt;
+    if (crossesFloor(run.level, bullet.px, bullet.py, bullet.x, bullet.y)) {
+      bullet.dead = true;
+      continue;
+    }
     if (bullet.owner === 'player') {
       const hits = [];
       for (const target of [...run.enemies, ...run.barrels]) {
@@ -616,6 +721,15 @@ function updateBullets(run, dt) {
           });
           if (target.hp <= 0) explode(run, target);
         } else hurtEnemy(run, target, bullet.damage, 'bullet', Math.sign(bullet.vx));
+        if (bullet.blast) {
+          emit(run, 'explode', { x: target.x, y: centreY(target), radius: bullet.blast });
+          for (const other of run.enemies)
+            if (
+              other !== target &&
+              distance(target.x, centreY(target), other.x, centreY(other)) < bullet.blast
+            )
+              hurtEnemy(run, other, bullet.damage * 0.7, 'explosion');
+        }
         if (bullet.pierce <= 0) {
           bullet.dead = true;
           break;
@@ -633,7 +747,7 @@ function updateBullets(run, dt) {
       bullet.x < -80 ||
       bullet.x > run.level.width + 80 ||
       bullet.y < -100 ||
-      bullet.y > run.level.ground + 120
+      bullet.y > Math.max(run.level.ground, ...run.level.tunnels.map((t) => t.floor)) + 120
     )
       bullet.dead = true;
   }
@@ -662,20 +776,25 @@ function contactDamage(run) {
 }
 
 function upgradeChoices(run) {
-  const available = UPGRADES.filter((upgrade) => !run.upgrades.includes(upgrade.id));
-  // The first clear introduces all three core builds; the second never repeats a choice already owned.
-  const core = available.filter((upgrade) => ['scatter', 'pierce', 'salvage'].includes(upgrade.id));
-  const support = available.filter(
-    (upgrade) => !['scatter', 'pierce', 'salvage'].includes(upgrade.id),
-  );
-  const choices = !run.upgrades.length
-    ? core
-    : [...core, support[Math.floor(random(run) * support.length)]].filter(Boolean).slice(0, 3);
-  for (let index = choices.length - 1; index > 0; index--) {
-    const other = Math.floor(random(run) * (index + 1));
-    [choices[index], choices[other]] = [choices[other], choices[index]];
-  }
-  return choices.map((upgrade) => upgrade.id);
+  return [run.rank % 2 ? 'power' : 'rapid', run.rank % 2 ? 'medical' : 'mobility', 'overdrive'];
+}
+
+export function equipWeapon(run, id) {
+  if (!WEAPONS[id]) return false;
+  run.weapon = id;
+  run.ammo = WEAPONS[id].ammo;
+  run.player.burstLeft = 0;
+  run.player.spin = 0;
+  emit(run, 'weapon', { weapon: id });
+  return true;
+}
+
+export function grantSupply(run) {
+  if (run.phase !== 'playing' || run.supplyUsed) return false;
+  run.supplyUsed = true;
+  heal(run, 40);
+  equipWeapon(run, 'machine');
+  return true;
 }
 
 function checkProgress(run, dt) {
@@ -718,7 +837,8 @@ function checkProgress(run, dt) {
     return;
   }
   if (run.enemies.some((enemy) => enemy.hp > 0)) return;
-  if (wave.captureSeconds && run.player.x < run.level.exitX - 80) return;
+  run.exitOpen = true;
+  if (run.player.x < run.level.exitX - 35 || Math.abs(run.player.y - run.level.ground) > 4) return;
   if (!run.roomsCleared.includes(run.level.id)) {
     run.roomsCleared.push(run.level.id);
     heal(run, run.level.reward.heal);
@@ -730,6 +850,7 @@ function checkProgress(run, dt) {
   }
   if (!run.singleLevel && run.level.unlocks.length && run.level.reward.upgrade) {
     run.phase = 'upgrade';
+    run.upgradeReason = 'room';
     run.choices = upgradeChoices(run);
   } else {
     run.phase = 'won';
@@ -771,35 +892,53 @@ export function stepRun(run, input = {}, dt = 1 / 60) {
     if (run.phase === 'playing') contactDamage(run);
     run.enemies = run.enemies.filter((enemy) => enemy.hp > 0);
     for (const barrel of run.barrels) barrel.hitFlash = Math.max(0, barrel.hitFlash - slice);
+    if (run.phase === 'playing' && run.xp >= run.xpNext) {
+      run.xp -= run.xpNext;
+      run.xpNext = Math.min(120, run.xpNext + 30);
+      run.rank++;
+      run.phase = 'upgrade';
+      run.upgradeReason = 'experience';
+      run.choices = upgradeChoices(run);
+    }
     checkProgress(run, slice);
   }
   return run;
 }
 
 /** Returns true only once, when a displayed upgrade is successfully applied. */
-export function chooseUpgrade(run, id) {
-  if (run.phase !== 'upgrade' || !run.choices.includes(id) || run.upgrades.includes(id))
-    return false;
+export function chooseUpgrade(run, id, { rewarded = false } = {}) {
+  if (run.phase !== 'upgrade' || !run.choices.includes(id)) return false;
   const upgrade = UPGRADES.find((item) => item.id === id);
-  if (!upgrade) return false;
+  if (!upgrade || (upgrade.rewarded && !rewarded)) return false;
   run.upgrades.push(id);
-  if (id === 'scatter') run.stats.pellets = 3;
-  if (id === 'pierce') run.stats.pierce = 1;
-  if (id === 'salvage') run.stats.salvage = true;
-  if (id === 'rapid') run.stats.fireInterval = 0.11;
+  if (id === 'power') run.stats.damageMultiplier = Math.min(3, run.stats.damageMultiplier * 1.1);
+  if (id === 'medical') {
+    run.player.maxHp += 5;
+    heal(run, 25);
+  }
+  if (id === 'rapid') run.stats.rateMultiplier = Math.max(0.5, run.stats.rateMultiplier * 0.92);
   if (id === 'mobility') {
-    run.stats.dashCooldown = 0.55;
-    run.stats.moveSpeed = 345;
+    run.stats.dashCooldown = Math.max(0.35, run.stats.dashCooldown * 0.88);
+    heal(run, 10);
+  }
+  if (id === 'overdrive') {
+    run.stats.damageMultiplier = Math.min(3, run.stats.damageMultiplier * 1.3);
+    run.player.maxHp += 30;
+    heal(run, 30);
   }
   emit(run, 'upgrade', { upgradeId: id });
   run.choices = [];
+  if (run.upgradeReason === 'experience') {
+    run.phase = 'playing';
+    return true;
+  }
   return continueRun(run);
 }
 
 /** A fully modified build still advances for free. */
 export function continueRun(run) {
   if (run.phase !== 'upgrade') return false;
-  if (run.choices.some((id) => !run.upgrades.includes(id))) return false;
+  if (run.choices.length) return false;
   const nextIndex = LEVELS.findIndex((level) => level.id === run.level.unlocks[0]);
   if (nextIndex >= 0) loadRoom(run, nextIndex);
   else {

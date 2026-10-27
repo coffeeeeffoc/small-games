@@ -18,6 +18,8 @@ const KeyCode = Object.fromEntries(
     'SPACE',
     'KEY_W',
     'ARROW_UP',
+    'KEY_S',
+    'ARROW_DOWN',
     'SHIFT_LEFT',
     'SHIFT_RIGHT',
     'KEY_J',
@@ -48,8 +50,10 @@ function controller() {
     H: 430,
     worldScale: 0.6,
     cameraX: 0,
+    cameraY: 0,
     controls: [],
-    hit: (x) => (x < 10 ? { id: 'fire' } : x < 20 ? { id: 'right' } : null),
+    hit: (x) =>
+      x < 10 ? { id: 'fire' } : x < 20 ? { id: 'move', x: 0, y: 0, w: 30, h: 30 } : null,
   };
   game.draw = () => {};
   game.audio = { stop() {} };
@@ -59,10 +63,9 @@ function controller() {
 function movementController() {
   const game = controller();
   game.ui.controls = [
-    { id: 'dash', x: 20, y: 230, w: 70, h: 70 },
-    { id: 'jump', x: 100, y: 230, w: 70, h: 70 },
-    { id: 'left', x: 20, y: 310, w: 70, h: 70 },
-    { id: 'right', x: 100, y: 310, w: 70, h: 70 },
+    { id: 'move', x: 20, y: 280, w: 100, h: 100 },
+    { id: 'dash', x: 630, y: 230, w: 70, h: 70 },
+    { id: 'jump', x: 630, y: 310, w: 70, h: 70 },
     { id: 'fire', x: 730, y: 300, w: 90, h: 90 },
   ];
   game.ui.hit = (x, y) =>
@@ -72,56 +75,52 @@ function movementController() {
   return game;
 }
 
-test('one movement thumb slides through gaps into jump and dash while the other keeps firing', () => {
+test('left stick moves independently while right jump/dash and fire combine', () => {
   const game = movementController();
-  game.down(1, { x: 135, y: 345 });
+  game.down(1, { x: 103, y: 330 });
   game.down(2, { x: 775, y: 345 });
+  game.down(3, { x: 665, y: 345 });
   game.update(1 / 60);
-  game.move(1, { x: 135, y: 305 });
-  assert.equal(game.held('right'), true, 'gap in the movement cluster retains direction');
-  game.move(1, { x: 135, y: 265 });
+  assert.ok(game.run.player.x > 420);
+  assert.ok(game.run.player.vy < 0);
+  assert.equal(game.run.shots, 1);
+  game.up(3, { x: 665, y: 345 });
+  game.down(3, { x: 665, y: 265 });
   game.update(1 / 60);
-  assert.ok(game.run.player.vy < 0, 'sliding into jump triggers jump');
-  assert.equal(game.held('right'), true, 'jump keeps the accepted rightward movement');
-  game.move(1, { x: 55, y: 265 });
-  game.update(1 / 60);
-  assert.equal(game.run.player.dashDirection, 1, 'dash uses the movement thumb direction');
-  assert.ok(game.run.player.dashCooldown > 0);
-  game.move(1, { x: 55, y: 345 });
-  assert.equal(game.held('left'), true);
-  assert.equal(game.held('right'), false);
-  game.move(1, { x: 400, y: 200 });
-  assert.equal(game.held('left'), false, 'leaving the cluster stops movement');
-  assert.equal(game.held('fire'), true, 'movement exit does not cancel the shooting thumb');
+  assert.equal(game.run.player.dashDirection, 1);
+  game.move(1, { x: 37, y: 330 });
+  assert.equal(game.pointers.get(1).move, -1);
+  game.move(1, { x: 70, y: 330 });
+  assert.equal(game.pointers.get(1).move, 0, 'centering the stick stops movement');
+  assert.equal(game.held('fire'), true);
 });
 
-test('cancelled fingers release only their own controls and queued actions', () => {
+test('movement stick climbs and cancelled fingers release only their own actions', () => {
   const game = movementController();
-  game.down(1, { x: 135, y: 345 });
+  const ladder = game.run.level.ladders.find((l) => l.top === 570 && l.bottom > 570);
+  game.run.player.x = ladder.x;
+  game.down(1, { x: 70, y: 365 });
   game.down(2, { x: 775, y: 345 });
+  game.update(1 / 60);
+  assert.ok(game.run.player.y > 570, 'stick down enters ladder');
   game.touchCancel({ getTouches: () => [{ getID: () => 1 }] });
-  assert.equal(game.held('right'), false);
+  assert.equal(game.held('move'), false);
   assert.equal(game.held('fire'), true);
   game.touchCancel({ getTouches: () => [{ getID: () => 2 }] });
+  const shots = game.run.shots;
   game.update(1 / 60);
-  assert.equal(game.run.shots, 0, 'cancelled fire must not leave a queued shot');
+  assert.equal(game.run.shots, shots);
 });
 
-test('a stationary thumb on jump or dash does not retrigger and cooldown presses do not queue', () => {
+test('a stationary thumb on jump does not retrigger and a second move finger is ignored', () => {
   const game = movementController();
-  game.down(1, { x: 135, y: 345 });
-  game.move(1, { x: 135, y: 265 });
+  game.down(1, { x: 103, y: 330 });
+  game.down(2, { x: 37, y: 330 });
+  assert.equal(game.pointers.has(2), false);
+  game.down(3, { x: 665, y: 345 });
   game.update(1 / 60);
-  game.move(1, { x: 136, y: 266 });
+  game.move(3, { x: 666, y: 346 });
   assert.equal(game.jump, false);
-  game.ui.controls.find((b) => b.id === 'dash').disabled = true;
-  game.move(1, { x: 55, y: 265 });
-  assert.equal(game.dash, false);
-  game.ui.controls.find((b) => b.id === 'dash').disabled = false;
-  game.move(1, { x: 56, y: 266 });
-  assert.equal(game.dash, false, 'cooldown completion must not trigger a held gesture');
-  game.up(1, { x: 56, y: 266 });
-  assert.equal(game.held('right'), false);
 });
 
 test('disabled movement controls block mouse scene fire', () => {
@@ -159,8 +158,8 @@ test('cancel, pause and moving off movement controls release input without queue
   game.update(1 / 60);
   assert.equal(game.run.shots, 0);
   game.down(1, { x: 15, y: 5 });
-  game.move(1, { x: 100, y: 5 });
-  assert.equal(game.held('right'), false);
+  game.touchCancel({ getTouches: () => [{ getID: () => 1 }] });
+  assert.equal(game.held('move'), false);
   game.down(1, { x: 5, y: 5 });
   game.hide();
   game.setScreen('playing');
@@ -206,4 +205,23 @@ test('queued diagonal keys and dragged shots retain manual aim after release dur
   for (let tick = 0; tick < 8; tick++) game.update(1 / 60);
   assert.equal(game.run.shots, 1);
   assert.ok(Math.abs(game.run.player.aimAngle + Math.PI / 4) < 0.01);
+});
+
+test('reward wait can be cancelled by touch and late completion cannot regain the screen', () => {
+  const game = movementController();
+  let cancelled = false;
+  game.rewards = {
+    cancel() {
+      cancelled = true;
+      game.adLocked = false;
+    },
+  };
+  game.adLocked = true;
+  game.screen = 'reward';
+  game.rewardReturn = 'upgrade';
+  game.ui.controls = [{ id: 'cancel', x: 100, y: 100, w: 200, h: 60 }];
+  game.down(1, { x: 150, y: 130 });
+  game.up(1, { x: 150, y: 130 });
+  assert.equal(cancelled, true);
+  assert.equal(game.screen, 'upgrade');
 });

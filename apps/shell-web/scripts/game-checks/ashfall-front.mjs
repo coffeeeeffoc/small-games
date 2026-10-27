@@ -8,10 +8,15 @@ export async function ashfallInput(frame, mobile = false) {
   let active = false;
   async function point(id) {
     const s = await snapshot(frame),
-      b = s.controls.find((c) => c.id === id && !c.disabled);
+      movement = id === 'left' || id === 'right',
+      b = s.controls.find((c) => c.id === (movement ? 'move' : id) && !c.disabled);
     expect(b, `available Creator control ${id}`).toBeTruthy();
     const bounds = await frame.locator('body').boundingBox();
-    return { x: bounds.x + b.x + b.w / 2, y: bounds.y + b.y + b.h / 2 };
+    const offset = movement ? (id === 'right' ? 1 : -1) * (s.rotated ? b.h : b.w) * 0.32 : 0;
+    return {
+      x: bounds.x + b.x + b.w / 2 + (s.rotated ? 0 : offset),
+      y: bounds.y + b.y + b.h / 2 + (s.rotated ? offset : 0),
+    };
   }
   async function press(ids) {
     active = true;

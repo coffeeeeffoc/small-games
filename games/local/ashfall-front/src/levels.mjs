@@ -1,9 +1,10 @@
-export const CONTENT_SCHEMA_VERSION = 1;
+import { WEAPONS } from './weapons.mjs';
+export const CONTENT_SCHEMA_VERSION = 2;
 
 // Character positions use a centre x and a feet y. Platforms use left/top.
 export const LEVELS = [
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'foundry-entry',
     name: '运输车间',
     subtitle: '突破前哨，寻找出路',
@@ -45,7 +46,7 @@ export const LEVELS = [
     unlocks: ['furnace-crossing'],
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'furnace-crossing',
     name: '熔炉走廊',
     subtitle: '清空两波守卫',
@@ -93,7 +94,7 @@ export const LEVELS = [
     unlocks: ['dismantler-core'],
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'dismantler-core',
     name: '核心机库',
     subtitle: '击败拆解者',
@@ -181,20 +182,36 @@ for (const [index, level] of LEVELS.entries()) {
   level.targetSeconds = [360, 540];
   level.platforms = [];
   level.barrels = [];
+  level.tunnels = [];
+  level.ladders = [];
+  level.pickups = [];
   level.waves = positions.map((x, checkpoint) => {
     const upper = formation[checkpoint] === 'U';
     const platformX = x + (upper ? -240 : 180);
     level.platforms.push({ x: platformX, y: 442, w: upper ? 320 : 280, h: 22 });
     if (upper) level.platforms.push({ x: x + 30, y: 328, w: 220, h: 22 });
     level.barrels.push({ x: x + 250, y: 570 }, { x: x + 380, y: 570 });
+    const tunnelX = x + 120;
+    level.tunnels.push({ x: tunnelX, w: 620, floor: 840 });
+    level.ladders.push(
+      { x: tunnelX + 40, top: 570, bottom: 840 },
+      { x: tunnelX + 570, top: 570, bottom: 840 },
+      { x: platformX + 80, top: 442, bottom: 570 },
+    );
+    if (upper) level.ladders.push({ x: x + 60, top: 328, bottom: 442 });
+    const arsenal = ['shotgun', 'burst', 'flame', 'machine', 'cannon', 'gatling'];
+    level.pickups.push(
+      { x: x - 170, y: 570, weapon: arsenal[(index + checkpoint) % 6] },
+      { x: tunnelX + 450, y: 840, weapon: arsenal[(index + checkpoint + 2) % 6] },
+    );
     const enemies = [
+      { type: 'turret', x: tunnelX + 350, y: 840 },
       { type: 'shooter', x: x + 40, y: 570 },
       { type: 'chaser', x: x + 520, y: 570 },
       { type: 'drone', x: x + 610, y: 365 },
       { type: upper ? 'drone' : 'shooter', x: platformX + 160, y: upper ? 320 : 442 },
     ];
-    if (checkpoint === positions.length - 1 && (index === 2 || index === 22 || index % 5 === 4))
-      enemies.push({ type: 'boss', x: x + 700, y: 570 });
+    if (checkpoint === positions.length - 1) enemies.push({ type: 'boss', x: x + 700, y: 570 });
     return {
       id: `${level.id}-relay-${checkpoint + 1}`,
       checkpointX: x,
@@ -214,7 +231,7 @@ for (const [index, level] of LEVELS.entries()) {
   level.unlocks = index + 1 < LEVELS.length ? [LEVELS[index + 1].id] : [];
 }
 
-const ENEMY_TYPES = new Set(['shooter', 'chaser', 'drone', 'boss']);
+const ENEMY_TYPES = new Set(['shooter', 'chaser', 'drone', 'turret', 'boss']);
 
 /** Validate this game's content schema without DOM or build-tool dependencies. */
 export function validateLevels(levels = LEVELS) {
@@ -239,10 +256,42 @@ export function validateLevels(levels = LEVELS) {
       x >= 40 &&
       x <= level.width - 40 &&
       y >= 140 &&
-      y <= level.ground;
+      y <= Math.max(level.ground, ...(level.tunnels || []).map((t) => t.floor));
     if (!level.spawn || !inside(level.spawn.x, level.spawn.y) || level.spawn.y !== level.ground)
       errors.push(`${label}: 起点必须位于安全地面`);
-    // Each room has an uninterrupted floor; any in-bounds floor exit is reachable.
+    for (const t of level.tunnels || []) {
+      if (
+        ![t.x, t.w, t.floor].every(Number.isFinite) ||
+        t.x < 40 ||
+        t.x + t.w > level.width - 40 ||
+        t.w < 100 ||
+        t.floor <= level.ground ||
+        t.floor > level.ground + 400
+      )
+        errors.push(`${label}: 地下路径越界`);
+      if (
+        !(level.ladders || []).some(
+          (l) => l.x > t.x && l.x < t.x + t.w && l.top === level.ground && l.bottom === t.floor,
+        )
+      )
+        errors.push(`${label}: 地下路径缺少出口梯子`);
+    }
+    for (const l of level.ladders || []) {
+      const floorAt = (y) =>
+        y === level.ground ||
+        (level.tunnels || []).some((t) => y === t.floor && l.x > t.x && l.x < t.x + t.w) ||
+        (level.platforms || []).some((p) => y === p.y && l.x >= p.x && l.x <= p.x + p.w);
+      if (
+        !inside(l.x, l.top) ||
+        !inside(l.x, l.bottom) ||
+        l.top >= l.bottom ||
+        !floorAt(l.top) ||
+        !floorAt(l.bottom)
+      )
+        errors.push(`${label}: 梯子不可达`);
+    }
+    for (const item of level.pickups || [])
+      if (!WEAPONS[item.weapon] || !inside(item.x, item.y)) errors.push(`${label}: 无效武器补给`);
     if (!Number.isFinite(level.exitX) || level.exitX < 40 || level.exitX > level.width - 40)
       errors.push(`${label}: 出口不可达`);
     if (!Array.isArray(level.platforms)) errors.push(`${label}: 缺少平台配置`);

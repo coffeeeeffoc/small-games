@@ -13,6 +13,7 @@ export async function sourceHash(directory = root) {
     'src/progress.mjs',
     'src/host.mjs',
     'src/rewards.mjs',
+    'src/weapons.mjs',
     'src/render.mjs',
   ];
   for (const folder of ['assets', 'scripts', 'settings', 'startup']) {

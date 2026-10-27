@@ -1,3 +1,4 @@
+import { WEAPONS } from './core/weapons.js';
 import {
   Camera,
   Canvas,
@@ -33,6 +34,7 @@ export class FrontView {
   root: Node;
   camera: Camera;
   graphics: Graphics;
+  terrain: Graphics;
   controls: Control[] = [];
   pressed = new Set<string>();
   nodes = new Map<string, Node>();
@@ -43,6 +45,7 @@ export class FrontView {
   disposed = false;
   error = '';
   cameraX = 0;
+  cameraY = 0;
   worldScale = 1;
   spriteIndex = 0;
   safe = { left: 0, top: 0, right: 844, bottom: 430 };
@@ -62,6 +65,7 @@ export class FrontView {
     this.camera.clearFlags = Camera.ClearFlag.SOLID_COLOR;
     this.camera.clearColor = c('#0b1c16');
     canvas.cameraComponent = this.camera;
+    this.terrain = this.node('TerrainGraphics').addComponent(Graphics);
     this.graphics = this.node('WorldGraphics').addComponent(Graphics);
     this.resize();
     const names = ['far', 'floor', 'mid-0', 'mid-1', 'mid-2', 'barrel', 'platform'];
@@ -121,6 +125,7 @@ export class FrontView {
     this.seen.clear();
     this.controls = [];
     this.graphics.clear();
+    this.terrain.clear();
     this.spriteIndex = 0;
   }
   end() {
@@ -200,6 +205,11 @@ export class FrontView {
       line(7, 0, 20, 0);
       line(0, -20, 0, -7);
       line(0, 7, 0, 20);
+    } else if (id === 'move') {
+      line(-24, 0, -18, 0);
+      line(18, 0, 24, 0);
+      line(0, -24, 0, -18);
+      line(0, 18, 0, 24);
     } else if (id === 'jump') {
       line(-10, 0, 0, -10);
       line(0, -10, 10, 0);
@@ -234,7 +244,7 @@ export class FrontView {
       ink = disabled ? '#879589' : primary ? '#fff1d6' : '#e5e8d7',
       fill = disabled ? '#17271fe0' : pressed ? '#526b49f5' : primary ? '#a9753bea' : '#19352ac9',
       stroke = disabled ? '#3d5145' : primary ? '#e9b879' : '#607b67',
-      pad = ['left', 'right', 'jump', 'dash', 'fire', 'pause'].includes(id),
+      pad = ['move', 'jump', 'dash', 'fire', 'pause'].includes(id),
       visualH = h >= 100 ? h - 8 : Math.min(h - 10, pad ? 74 : 44),
       top = y + (h - visualH) / 2;
     if (pad) {
@@ -293,12 +303,18 @@ export class FrontView {
     this.graphics.circle(x - this.W / 2, this.H / 2 - y, r);
     this.graphics.fill();
   }
-  world(run: any, menu: boolean, time: number, reduced: boolean) {
+  world(run: any, menu: boolean, time: number, reduced: boolean, labels = true) {
+    const worldText = (...args: Parameters<FrontView['text']>) => {
+      if (labels) this.text(...args);
+    };
     const s = (this.worldScale = this.H / 720),
       width = this.W / s;
     const cx = (this.cameraX = menu
       ? 160
       : Math.max(0, Math.min(run.level.width - width, run.player.x - width * 0.34)));
+    const cy = (this.cameraY = menu
+      ? 0
+      : Math.max(0, Math.min(300, run.player.y - run.level.ground)));
     // Higher sibling indices paint over the previous layer.
     for (const [layer, speed] of [
       ['far', 0.17],
@@ -307,10 +323,74 @@ export class FrontView {
     ] as [string, number][]) {
       const offset = (cx * speed) % 1800;
       for (let i = 0; i < 3; i++)
-        this.image(`${layer}-${i}`, layer, (i * 1800 - offset) * s, 0, 1800 * s, this.H);
+        this.image(
+          `${layer}-${i}`,
+          layer,
+          (i * 1800 - offset) * s,
+          layer === 'floor' ? -cy * s : 0,
+          1800 * s,
+          this.H,
+        );
+    }
+    if (!menu) {
+      const g = this.terrain;
+      // SHOW_ALL can reveal horizontal margins beyond the logical canvas.
+      // Continue opaque ground across the camera's full width when descending.
+      if (cy > 0) {
+        const visibleWidth = Math.max(this.W, view.getFrameSize().width / this.scale);
+        const bedrockTop = Math.max(0, (run.level.ground - cy) * s);
+        g.fillColor = c('#182a20');
+        g.rect(-visibleWidth / 2, -this.H / 2, visibleWidth, this.H - bedrockTop);
+        g.fill();
+      }
+      for (const t of run.level.tunnels) {
+        g.fillColor = c('#11241d');
+        g.rect(
+          (t.x - cx) * s - this.W / 2,
+          this.H / 2 - (t.floor - cy + 60) * s,
+          t.w * s,
+          (t.floor - run.level.ground + 52) * s,
+        );
+        g.fill();
+        g.strokeColor = c('#7c8a65');
+        g.lineWidth = 4;
+        g.moveTo((t.x - cx) * s - this.W / 2, this.H / 2 - (t.floor - cy) * s);
+        g.lineTo((t.x + t.w - cx) * s - this.W / 2, this.H / 2 - (t.floor - cy) * s);
+        g.stroke();
+      }
+      this.terrain.node.setSiblingIndex(this.spriteIndex++);
     }
     const actor = (a: any, id: string, player = false) => {
       if (a.x < cx - 220 || a.x > cx + width + 220) return;
+      if (a.type === 'turret') {
+        const x = (a.x - cx) * s,
+          y = (a.y - cy) * s;
+        this.box(
+          x - 32 * s,
+          y - 40 * s,
+          64 * s,
+          40 * s,
+          a.hitFlash > 0 ? '#efcb89' : '#67765a',
+          '#c3a56b',
+        );
+        this.line(
+          x,
+          y - 38 * s,
+          x + Math.cos(a.aimAngle) * 44 * s,
+          y - 38 * s + Math.sin(a.aimAngle) * 44 * s,
+          '#c9bc8b',
+          8 * s,
+        );
+        this.line(
+          x - 28 * s,
+          y - 55 * s,
+          x - 28 * s + (56 * s * a.hp) / a.maxHp,
+          y - 55 * s,
+          '#dca55c',
+          4,
+        );
+        return;
+      }
       const boss = a.type === 'boss',
         name = player ? 'player' : a.type;
       const frame = reduced
@@ -327,15 +407,43 @@ export class FrontView {
         id,
         `${name}-${frame}`,
         (a.x - cx - bw / 2) * s,
-        (a.y - feet) * s,
+        (a.y - feet - cy) * s,
         bw * s,
         bh * s,
-        a.facing < 0,
+        player ? Math.cos(a.aimAngle) < 0 : a.facing < 0,
         a.hitFlash > 0,
       );
+      if (player) {
+        const x = (a.x - cx) * s,
+          y = (a.y - a.h * 0.61 - cy) * s;
+        this.line(
+          x,
+          y,
+          x + Math.cos(a.aimAngle) * 42 * s,
+          y + Math.sin(a.aimAngle) * 42 * s,
+          '#d1c7a3',
+          5 * s,
+        );
+        this.circle(
+          x + Math.cos(a.aimAngle) * 65 * s,
+          y + Math.sin(a.aimAngle) * 65 * s,
+          2,
+          '#f3d293',
+        );
+      }
+      if (a.type !== 'boss' && !player && !a.fired) {
+        this.line(
+          (a.x - cx - a.w / 2) * s,
+          (a.y - a.h - 8 - cy) * s,
+          (a.x - cx + a.w / 2) * s,
+          (a.y - a.h - 8 - cy) * s,
+          '#e7bb67',
+          3,
+        );
+      }
       if (a.fireFlash > 0) {
         const x = (a.x - cx + Math.cos(a.aimAngle) * 32) * s,
-          y = (a.y - a.h * 0.61 + Math.sin(a.aimAngle) * 32) * s;
+          y = (a.y - a.h * 0.61 + Math.sin(a.aimAngle) * 32 - cy) * s;
         this.circle(x, y, 7 * s, '#ffcc70');
         this.line(
           x,
@@ -347,10 +455,10 @@ export class FrontView {
         );
       }
       if (boss) {
-        this.box((a.x - cx - 75) * s, (a.y - 165) * s, 150 * s, 7, '#14231c');
+        this.box((a.x - cx - 75) * s, (a.y - 165 - cy) * s, 150 * s, 7, '#14231c');
         this.box(
           (a.x - cx - 75) * s,
-          (a.y - 165) * s,
+          (a.y - 165 - cy) * s,
           Math.max(1, (150 * s * a.hp) / a.maxHp),
           7,
           '#db9e58',
@@ -358,9 +466,9 @@ export class FrontView {
         if (a.state === 'telegraph')
           this.line(
             (a.x - cx) * s,
-            (a.y - 6) * s,
+            (a.y - 6 - cy) * s,
             (a.attack.targetX - cx) * s,
-            (a.y - 6) * s,
+            (a.y - 6 - cy) * s,
             '#ffb55d',
             5,
           );
@@ -370,27 +478,107 @@ export class FrontView {
       actor({ ...run.player, x: cx + width * 0.76, y: 570, facing: -1 }, 'hero', true);
       return;
     }
+    for (const [i, l] of run.level.ladders.entries()) {
+      const x = (l.x - cx) * s,
+        top = (l.top - cy) * s,
+        bottom = (l.bottom - cy) * s;
+      if (x < -50 || x > this.W + 50) continue;
+      this.line(x - 16 * s, top - 8 * s, x - 16 * s, bottom, '#abb58b', 3);
+      this.line(x + 16 * s, top - 8 * s, x + 16 * s, bottom, '#abb58b', 3);
+      for (let y = top; y < bottom; y += 23 * s)
+        this.line(x - 16 * s, y, x + 16 * s, y, '#bbc29a', 2);
+      worldText(
+        'ladder-' + i,
+        l.bottom > run.level.ground ? '↓ 地下' : '↑ 攀梯',
+        x - 48,
+        top - 29,
+        96,
+        14,
+        '#e1c386',
+      );
+    }
+    for (const item of run.pickups) {
+      const x = (item.x - cx) * s,
+        y = (item.y - cy - 23) * s;
+      if (x < -60 || x > this.W + 60) continue;
+      this.box(x - 18 * s, y - 18 * s, 36 * s, 36 * s, '#40553b', '#efc77f');
+      worldText(
+        'pickup-' + item.id,
+        WEAPONS[item.weapon as keyof typeof WEAPONS].mark,
+        x - 16,
+        y - 15,
+        32,
+        18,
+        '#ffe5a2',
+        30,
+      );
+      worldText(
+        'pickup-name-' + item.id,
+        WEAPONS[item.weapon as keyof typeof WEAPONS].name,
+        x - 45,
+        y - 37,
+        90,
+        13,
+        '#f3d6a0',
+        20,
+      );
+    }
+    const exit = (run.level.exitX - cx) * s,
+      ground = (run.level.ground - cy) * s;
+    if (exit > -60 && exit < this.W + 60) {
+      this.box(
+        exit - 32 * s,
+        ground - 120 * s,
+        64 * s,
+        120 * s,
+        run.exitOpen ? '#426b45' : '#334538',
+        run.exitOpen ? '#d6e8a7' : '#ce9a61',
+      );
+      worldText(
+        'exit-label',
+        run.exitOpen ? '出口开放 →' : '出口封锁',
+        exit - 70,
+        ground - 120 * s - 32,
+        140,
+        17,
+        '#f0cc8c',
+        28,
+      );
+    }
     for (const [i, p] of run.level.platforms.entries())
       if (p.x + p.w > cx && p.x < cx + width)
-        this.image('platform-' + i, 'platform', (p.x - cx) * s, (p.y - 4) * s, p.w * s, 48 * s);
+        this.image(
+          'platform-' + i,
+          'platform',
+          (p.x - cx) * s,
+          (p.y - 4 - cy) * s,
+          p.w * s,
+          48 * s,
+        );
     for (const b of run.barrels)
       if (b.active && b.x > cx - 60 && b.x < cx + width + 60)
-        this.image(b.id, 'barrel', (b.x - cx - 50) * s, (b.y - 85) * s, 100 * s, 100 * s);
+        this.image(b.id, 'barrel', (b.x - cx - 50) * s, (b.y - 85 - cy) * s, 100 * s, 100 * s);
     for (const a of run.enemies) actor(a, a.id);
     actor(run.player, 'player', true);
     for (const b of run.bullets)
       this.line(
         (b.px - cx) * s,
-        b.py * s,
+        (b.py - cy) * s,
         (b.x - cx) * s,
-        b.y * s,
-        b.owner === 'player' ? '#ffe2a0' : '#ed8f64',
-        b.owner === 'player' ? 3 : 4,
+        (b.y - cy) * s,
+        b.weapon === 'flame' ? '#f49e4b' : b.owner === 'player' ? '#ffe2a0' : '#ed8f64',
+        b.weapon === 'flame'
+          ? 11 * s
+          : b.weapon === 'cannon'
+            ? 7 * s
+            : b.owner === 'player'
+              ? 3
+              : 4,
       );
     const wave = run.level.waves[run.waveIndex],
       x = (wave.checkpointX - cx) * s;
-    this.line(x, 570 * s, x, 400 * s, '#e3b46d', 4);
-    this.circle(x, 400 * s, 8, '#ffc76b');
+    this.line(x, (570 - cy) * s, x, (400 - cy) * s, '#e3b46d', 4);
+    this.circle(x, (400 - cy) * s, 8, '#ffc76b');
   }
   hit(x: number, y: number, includeDisabled = false) {
     return this.controls.findLast(

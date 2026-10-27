@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="844" height="820" viewBox="0 0 844 820">
+<defs><linearGradient id="bg" x2="0" y2="1"><stop stop-color="#1b302b"/><stop offset="1" stop-color="#091714"/></linearGradient></defs>
+<rect width="844" height="820" fill="#081411"/>
+<g font-family="sans-serif" fill="#e1dfb7"><rect width="844" height="390" fill="url(#bg)"/>
+<path d="M0 110H70V50H130V180H210V100H310V170H450V70H510V160H660V90H750V150H844V300H0" fill="#34463a"/>
+<path d="M0 263H844M270 198H440M490 330H730" stroke="#91a080" stroke-width="10"/>
+<path d="M490 270V325H730V270" fill="#111d19" stroke="#6b7c62" stroke-width="3"/>
+<g stroke="#d2ad66" stroke-width="3"><path d="M500 248V330M520 248V330M700 248V330M720 248V330M300 198V263M320 198V263"/><path d="M500 270H520M500 285H520M500 300H520M500 315H520M700 270H720M700 285H720M700 300H720M700 315H720M300 212H320M300 228H320M300 245H320"/></g>
+<rect x="205" y="218" width="20" height="43" fill="#d5d4a6"/><path d="M215 230L245 210" stroke="#edc77a" stroke-width="8"/>
+<path d="M260 200L280 186M290 180L310 166" stroke="#efbf68" stroke-width="3"/>
+<rect x="610" y="293" width="36" height="31" fill="#8a7561"/><path d="M628 300L595 285" stroke="#dfa468" stroke-width="8"/>
+<rect x="760" y="186" width="48" height="76" fill="#27372c" stroke="#dfa468" stroke-width="3"/>
+<text x="755" y="176" font-size="12">出口 · 封锁</text><text x="550" y="318" font-size="12" fill="#ffd38b">F 喷火枪</text>
+<text x="24" y="29" font-size="13">先锋  120 / 120</text><rect x="24" y="38" width="140" height="5" fill="#b8c695"/>
+<text x="24" y="60" font-size="11">机关枪 · 160发  LV2  30/90</text><text x="340" y="29" font-size="14">01 / 运输车间</text><text x="340" y="48" font-size="11">剩余目标 3 · 地下 ↘</text>
+<rect x="800" y="20" width="5" height="18"/><rect x="811" y="20" width="5" height="18"/>
+<g fill="#213c32cc" stroke="#b5c59b"><circle cx="81" cy="314" r="46"/><circle cx="94" cy="301" r="18"/><circle cx="650" cy="322" r="25"/><circle cx="692" cy="260" r="24"/></g>
+<circle cx="765" cy="316" r="42" fill="#c79652"/><circle cx="780" cy="300" r="14" fill="none" stroke="#233d2e" stroke-width="3"/>
+<text x="54" y="376" font-size="11">移动 / 攀梯</text><text x="636" y="326" font-size="11">跳跃</text><text x="680" y="264" font-size="11">冲刺</text><text x="741" y="376" font-size="11">瞄准射击</text>
+<text x="24" y="435" font-size="12" fill="#d5ae65">FIELD UPGRADE / 经验升级</text><text x="24" y="474" font-size="27">选择本次增益</text><text x="24" y="502" font-size="13">战斗已暂停 · 免费选择也能继续突破</text>
+<g fill="#23372c" stroke="#6e8061"><rect x="24" y="530" width="250" height="235" rx="10"/><rect x="297" y="530" width="250" height="235" rx="10"/><rect x="570" y="530" width="250" height="235" rx="10" stroke="#e8b965"/></g>
+<text x="44" y="578" font-size="20">强化弹药</text><text x="44" y="616" font-size="14">伤害 +10%</text><text x="44" y="735" font-size="14">免费装配 →</text>
+<text x="317" y="578" font-size="20">战地急救</text><text x="317" y="616" font-size="14">回复 25 生命</text><text x="317" y="735" font-size="14">免费装配 →</text>
+<text x="590" y="578" font-size="20" fill="#efc878">超载强化</text><text x="590" y="616" font-size="14">伤害 +30% · 生命上限 +30</text><text x="590" y="735" font-size="14" fill="#efc878">观看广告获取 →</text>
+<text x="24" y="801" font-size="12" fill="#92a58e">两张手机横屏关键状态概念图 · 保留原有主页与选关风格</text></g></svg>

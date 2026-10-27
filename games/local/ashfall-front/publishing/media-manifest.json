@@ -1,11 +1,17 @@
 {
   "verified": "2026-10-27",
-  "scope": "Current referenced copy and basic media; file identity only, not platform acceptance.",
+  "scope": "Current and historical publishing file identity; current deliverables are selected by STATUS.md and media-info.json, not by manifest membership.",
   "files": [
     {
+      "path": "copy/developer-note.md",
+      "bytes": 899,
+      "sha256": "f1f75de98e1d73674bb3a2e48b931c4e4401fd3247ff3c4bc1fc503207142fdd",
+      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
+    },
+    {
       "path": "copy/introduction.md",
-      "bytes": 510,
-      "sha256": "04acb73281af3a324abc8bedb8a09692511ea2dea29804adfe33fac83a28f6a6",
+      "bytes": 684,
+      "sha256": "73f64c9b431b9832383bffdd2cc65a8263a90d96971c1426935be1cfd20fe712",
       "encoding": "UTF-8 with LF line endings, matching Git text blobs"
     },
     {
@@ -15,10 +21,85 @@
       "encoding": "UTF-8 with LF line endings, matching Git text blobs"
     },
     {
-      "path": "copy/developer-note.md",
-      "bytes": 730,
-      "sha256": "9f0b5c7bd985bf1336e1a3ec8ca13eef63c04e77d7d561afe8d06ab1aa4ab551",
-      "encoding": "UTF-8 with LF line endings, matching Git text blobs"
+      "path": "gameplay/screenshots/combat-844x390.png",
+      "bytes": 180085,
+      "sha256": "cc973262d269462b4eafcabd4d3857c4b93aff1a91dcc3a219e0a2f3ca0b05e2"
+    },
+    {
+      "path": "gameplay/screenshots/combat-live-844x390.png",
+      "bytes": 181436,
+      "sha256": "25238b68b32a7a892e1f4eec0ed08ade8d0b385f20df916d44813b36b176addf"
+    },
+    {
+      "path": "gameplay/screenshots/defeat-844x390.png",
+      "bytes": 86884,
+      "sha256": "6b221a6049668cbc385f60802adb614381f2eaee75efb5905eceaed3243da4a1"
+    },
+    {
+      "path": "gameplay/screenshots/encounter-normal-1280x720.png",
+      "bytes": 297944,
+      "sha256": "f38530bf271f71c24e84aef47ede831d0e98efdb7a9f5e12a359d5ad176413c6"
+    },
+    {
+      "path": "gameplay/screenshots/forward-encounter-844x390.png",
+      "bytes": 191531,
+      "sha256": "e026a4a45f567dabd2b7b46580ee337b7d4a8f485ef1f79c17d5e790b5ff905a"
+    },
+    {
+      "path": "gameplay/screenshots/home-844x390.png",
+      "bytes": 141148,
+      "sha256": "7f1c026c6e44c1233267e3b4f14974655889231479e549ecf6f5b9332c0a623a"
+    },
+    {
+      "path": "gameplay/screenshots/levels-844x390.png",
+      "bytes": 98008,
+      "sha256": "6a713a04f4d900927e8ff4d5f40ad41d80126a8bd92c2d9a9b930ea7375c0d43"
+    },
+    {
+      "path": "gameplay/screenshots/levels-normal-844x390.png",
+      "bytes": 103297,
+      "sha256": "03041f89ea0733529c3c7f3571651835d0d19b89a929c084c26d8055869e1b24"
+    },
+    {
+      "path": "gameplay/screenshots/pause-844x390.png",
+      "bytes": 89417,
+      "sha256": "a9a00ab6e54995ab234fb28ba7c545ce409ca1e2ba58dd5d65b4b29af3963222"
+    },
+    {
+      "path": "gameplay/screenshots/settings-844x390.png",
+      "bytes": 97186,
+      "sha256": "277a4873eb726ff306aee83312b9b6e657084bbabbff335b39dc53c3b895c6e9"
+    },
+    {
+      "path": "gameplay/screenshots/surface-normal-1280x720.png",
+      "bytes": 390850,
+      "sha256": "2dc744402ae720251f273ce2033d9501b705d6ad8609d41d8619c3f825004997"
+    },
+    {
+      "path": "gameplay/screenshots/underground-fixture-1280x720.png",
+      "bytes": 311971,
+      "sha256": "96b112bd3b8ed166d179473b226d2c144f84d241f8ea11a2fe055e53166dc01b"
+    },
+    {
+      "path": "gameplay/screenshots/upgrade-fixture-1280x720.png",
+      "bytes": 174417,
+      "sha256": "c669f50149aa3eaa5a17a9a2faffcc4a465da83eb262f8156eb11acf069e3d3a"
+    },
+    {
+      "path": "gameplay/screenshots/victory-fixture-1280x720.png",
+      "bytes": 212231,
+      "sha256": "cfb35aa53223814ac8eb513e819abcbbd2e202297890c424154e4b7c6a5cbeb4"
+    },
+    {
+      "path": "gameplay/videos/cocos-combat-20261027.mp4",
+      "bytes": 1063597,
+      "sha256": "9952911e2e08b5b9173d0457d59003d58f09590d6930cb02fd56f73a8c70bb88"
+    },
+    {
+      "path": "gameplay/videos/cocos-two-thumb-20261026.mp4",
+      "bytes": 833301,
+      "sha256": "507a7f796ff645ae1ba639bb07fc45ed1103c0c7676f840db69e6ba33749c4f8",
+      "usage": "historical"
     },
     {
       "path": "icon/ashfall-front-512.png",
@@ -26,64 +107,26 @@
       "sha256": "1cb1625627c19caed0d61a6c4aa5cad75eea13ff46bbb75af19848dd5b54822c"
     },
     {
+      "path": "promo/images/combat-expansion-keyart.png",
+      "bytes": 1971391,
+      "sha256": "7bb0c03af95f4a6c4030ab3b77cd45994ceb8f9ed82df0a144473266deadf7d4"
+    },
+    {
       "path": "promo/images/two-thumb-controls.png",
       "bytes": 31614,
-      "sha256": "52a802c68ce543b2d3b81f1c3f28a33e80da035d6d17d412c60745873a259beb"
+      "sha256": "52a802c68ce543b2d3b81f1c3f28a33e80da035d6d17d412c60745873a259beb",
+      "usage": "historical"
+    },
+    {
+      "path": "promo/videos/ashfall-combat-20261027.mp4",
+      "bytes": 890350,
+      "sha256": "829f81d845500306e99edc2be2d2794acf68fa711f844d5cf5fa45dc5298a5ce"
     },
     {
       "path": "promo/videos/ashfall-two-thumb-20261026.mp4",
       "bytes": 1312430,
-      "sha256": "11150ba54ccd4ad0e560ec3f2d5a6207ba8d6438ce0f9ca39003f28b2da0a8b8"
-    },
-    {
-      "path": "gameplay/videos/cocos-two-thumb-20261026.mp4",
-      "bytes": 833301,
-      "sha256": "507a7f796ff645ae1ba639bb07fc45ed1103c0c7676f840db69e6ba33749c4f8"
-    },
-    {
-      "path": "gameplay/screenshots/combat-844x390.png",
-      "bytes": 166457,
-      "sha256": "59f3682fa5fd99539f233b3de134aa9ed980eb095b317e04088e1dc47f694bea"
-    },
-    {
-      "path": "gameplay/screenshots/combat-live-844x390.png",
-      "bytes": 168386,
-      "sha256": "80dc597460ce931078d8d2297f08963d675eebfce799857fc240efe2d47aba84"
-    },
-    {
-      "path": "gameplay/screenshots/defeat-844x390.png",
-      "bytes": 90515,
-      "sha256": "64022e4aef4112acfee5e583e53d017c325acbb9cfdb24705de42918eb9438fe"
-    },
-    {
-      "path": "gameplay/screenshots/forward-encounter-844x390.png",
-      "bytes": 188059,
-      "sha256": "29cf0e9238a74a9bc242a7b8cf8e3a90a23d9de1c9377a9ae754e1dde48d2ae3"
-    },
-    {
-      "path": "gameplay/screenshots/home-844x390.png",
-      "bytes": 141254,
-      "sha256": "8ba08889ae70e277847ef46515effaea03552b36dddcd5b36c59913d1954bca5"
-    },
-    {
-      "path": "gameplay/screenshots/levels-844x390.png",
-      "bytes": 96754,
-      "sha256": "9818ab3a61a9c561c1d0a181f0114c0b71fb4d570dc9b22943c3c67c2a59ce62"
-    },
-    {
-      "path": "gameplay/screenshots/levels-normal-844x390.png",
-      "bytes": 101913,
-      "sha256": "6543c06dea4cf20a930b6046488c342d00f2195e3c5da48a830b165c4402de40"
-    },
-    {
-      "path": "gameplay/screenshots/pause-844x390.png",
-      "bytes": 92718,
-      "sha256": "9bc2549b7fbbec5fc82029f915a999446ddf94a038ba8f126235b2fb7f592399"
-    },
-    {
-      "path": "gameplay/screenshots/settings-844x390.png",
-      "bytes": 99358,
-      "sha256": "df964081f77087ca4f69c5b562e732ec2c1d0e361650593854658ef958ca4fa6"
+      "sha256": "11150ba54ccd4ad0e560ec3f2d5a6207ba8d6438ce0f9ca39003f28b2da0a8b8",
+      "usage": "historical"
     }
   ]
 }

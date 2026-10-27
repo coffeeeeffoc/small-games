@@ -22,6 +22,7 @@ import {
   retryRoom,
   LEVELS,
   UPGRADES,
+  WEAPONS,
 } from './core/core.js';
 import { readProgress, recordProgress, unlockedCount } from './core/progress.js';
 import { createLocalHost } from './core/host.js';
@@ -29,7 +30,7 @@ import { createRewards, rewardEligible } from './core/rewards.js';
 import { FrontView } from './FrontView';
 const web = globalThis as any;
 const { ccclass } = _decorator;
-const movementControls = ['left', 'right', 'jump', 'dash'];
+const movementControls = ['move'];
 const clock = (t: number) =>
   `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 @ccclass('Ashfall')
@@ -54,7 +55,7 @@ export class Ashfall extends Component {
   messageLeft = 0;
   pointers = new Map<
     number,
-    { id: string; x: number; y: number; dx: number; dy: number; move?: number }
+    { id: string; x: number; y: number; dx: number; dy: number; move?: number; climb?: number }
   >();
   keys = new Set<number>();
   jump = false;
@@ -130,6 +131,24 @@ export class Ashfall extends Component {
           this.run.player.x = this.run.level.exitX;
           stepRun(this.run, {}, 1 / 60);
           this.setScreen(this.run.phase === 'upgrade' ? 'upgrade' : 'result');
+        }
+        if (action === 'upgrade') {
+          this.run.phase = 'upgrade';
+          this.run.upgradeReason = 'experience';
+          this.run.rank++;
+          this.run.choices = ['power', 'medical', 'overdrive'];
+          this.setScreen('upgrade');
+        }
+        if (action === 'tunnel') {
+          const ladder = this.run.level.ladders.find(
+            (l: any) => l.top === this.run.level.ground && l.bottom > l.top,
+          );
+          if (ladder) {
+            this.run.player.x = ladder.x;
+            this.run.player.y = ladder.top;
+            this.run.player.vy = 0;
+            this.setScreen('playing');
+          }
         }
         if (action === 'heal') this.run.player.hp = this.run.player.maxHp;
         this.draw();
@@ -226,7 +245,8 @@ export class Ashfall extends Component {
       });
   }
   action(id: string) {
-    if (this.adLocked || !this.ready || !this.ui.ready || this.ui.error) return;
+    if ((this.adLocked && id !== 'cancel') || !this.ready || !this.ui.ready || this.ui.error)
+      return;
     if (id === 'start') this.begin(Math.min(this.progress.completed.length, 22));
     else if (id === 'campaign') this.begin(0);
     else if (id === 'levels') {
@@ -268,6 +288,10 @@ export class Ashfall extends Component {
       this.progress.reducedMotion = !this.reduced();
       this.save();
       this.draw();
+    } else if (id === 'upgrade-overdrive') {
+      this.rewardKind = 'overdrive';
+      this.rewardReturn = 'upgrade';
+      this.setScreen('reward');
     } else if (id.startsWith('upgrade-')) {
       if (chooseUpgrade(this.run, id.slice(8))) this.setScreen('playing');
     } else if (id === 'continue') {
@@ -276,8 +300,10 @@ export class Ashfall extends Component {
       this.rewardKind = id;
       this.rewardReturn = this.screen;
       this.setScreen('reward');
-    } else if (id === 'cancel') this.setScreen(this.rewardReturn);
-    else if (id === 'claim') void this.claim();
+    } else if (id === 'cancel') {
+      this.rewards.cancel();
+      this.setScreen(this.rewardReturn);
+    } else if (id === 'claim') void this.claim();
   }
   async claim() {
     const current = this.run;
@@ -291,7 +317,11 @@ export class Ashfall extends Component {
           : '未完成观看，未领取补给';
     this.messageLeft = 5;
     this.setScreen(
-      result === 'completed' && this.rewardKind === 'revive' ? 'paused' : this.rewardReturn,
+      result === 'completed' && this.rewardKind === 'overdrive'
+        ? 'playing'
+        : result === 'completed' && this.rewardKind === 'revive'
+          ? 'paused'
+          : this.rewardReturn,
     );
   }
   point(e: EventTouch | EventMouse) {
@@ -299,23 +329,28 @@ export class Ashfall extends Component {
     return { x: p.x, y: this.ui.H - p.y };
   }
   down(id: number, p: { x: number; y: number }) {
-    if (!this.ready || !this.ui.ready || this.ui.error || this.adLocked || this.pointers.has(id))
-      return;
+    if (!this.ready || !this.ui.ready || this.ui.error || this.pointers.has(id)) return;
     const b = this.ui.hit(p.x, p.y);
-    if (!b) return;
+    if (!b || (this.adLocked && b.id !== 'cancel')) return;
+    if (
+      ['move', 'fire'].includes(b.id) &&
+      Array.from(this.pointers.values()).some((a) => a.id === b.id)
+    )
+      return;
     this.pointers.set(id, {
       id: b.id,
       ...p,
       dx: 0,
       dy: 0,
-      move: movementControls.includes(b.id)
-        ? b.id === 'right'
-          ? 1
-          : b.id === 'left'
-            ? -1
-            : 0
-        : undefined,
+      move: b.id === 'move' ? 0 : undefined,
+      climb: b.id === 'move' ? 0 : undefined,
     });
+    if (b.id === 'move') {
+      const pointer = this.pointers.get(id)!;
+      pointer.x = b.x + b.w / 2;
+      pointer.y = b.y + b.h / 2;
+      this.move(id, p);
+    }
     if (b.id === 'jump') {
       this.jump = true;
       this.jumpPointer = id;
@@ -337,44 +372,18 @@ export class Ashfall extends Component {
       a.dy = p.y - a.y;
       if (a.id === 'fire' && this.fireTap && this.firePointer === id)
         this.tapDirection = Math.hypot(a.dx, a.dy) > 12 ? { x: a.dx, y: a.dy } : undefined;
-      if (a.move !== undefined) {
-        const buttons = this.ui.controls.filter((b) => movementControls.includes(b.id));
-        const inside =
-          buttons.length &&
-          p.x >= Math.min(...buttons.map((b) => b.x)) &&
-          p.x <= Math.max(...buttons.map((b) => b.x + b.w)) &&
-          p.y >= Math.min(...buttons.map((b) => b.y)) &&
-          p.y <= Math.max(...buttons.map((b) => b.y + b.h));
-        if (!inside) {
-          this.cancelPointer(id);
-          return;
-        }
-        const b = buttons.find(
-          (b) => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h,
-        );
-        if (b && b.id !== a.id) {
-          a.id = b.id;
-          if (b.id === 'left' || b.id === 'right') a.move = b.id === 'left' ? -1 : 1;
-          if (b.id === 'jump' && !b.disabled) {
-            this.jump = true;
-            this.jumpPointer = id;
-          }
-          if (b.id === 'dash' && !b.disabled) {
-            this.dash = true;
-            this.dashPointer = id;
-          }
-        }
+      if (a.id === 'move') {
+        const length = Math.hypot(a.dx, a.dy);
+        const scale = length > 8 ? Math.min(length / 32, 1) / length : 0;
+        a.move = a.dx * scale;
+        a.climb = a.dy * scale;
       }
     }
   }
   up(id: number, p: { x: number; y: number }) {
     const a = this.pointers.get(id);
     this.pointers.delete(id);
-    if (
-      a &&
-      this.ui.hit(p.x, p.y)?.id === a.id &&
-      !['left', 'right', 'fire', 'jump', 'dash'].includes(a.id)
-    )
+    if (a && this.ui.hit(p.x, p.y)?.id === a.id && !['move', 'fire', 'jump', 'dash'].includes(a.id))
       this.action(a.id);
   }
   touchStart(e: EventTouch) {
@@ -418,7 +427,7 @@ export class Ashfall extends Component {
     if (
       e.getButton() !== 0 ||
       this.visualTime - this.touched <= 0.5 ||
-      this.adLocked ||
+      (this.adLocked && this.ui.hit(this.point(e).x, this.point(e).y)?.id !== 'cancel') ||
       !this.ready ||
       !this.ui.ready ||
       this.ui.error
@@ -433,7 +442,10 @@ export class Ashfall extends Component {
     } else this.down(-1, p);
   }
   aimMouse(p: { x: number; y: number }) {
-    this.mouseAim = { x: p.x / this.ui.worldScale + this.ui.cameraX, y: p.y / this.ui.worldScale };
+    this.mouseAim = {
+      x: p.x / this.ui.worldScale + this.ui.cameraX,
+      y: p.y / this.ui.worldScale + this.ui.cameraY,
+    };
   }
   mouseMove(e: EventMouse) {
     const p = this.point(e);
@@ -448,6 +460,10 @@ export class Ashfall extends Component {
   keyDown(e: EventKeyboard) {
     const k = e.keyCode;
     if (k === KeyCode.ESCAPE) {
+      if (this.screen === 'reward') {
+        this.action('cancel');
+        return;
+      }
       if (this.screen === 'playing') this.action('pause');
       else if (this.screen === 'paused') this.action('resume');
       else if (['help', 'settings'].includes(this.screen)) this.action('back');
@@ -460,7 +476,7 @@ export class Ashfall extends Component {
     }
     if (this.screen !== 'playing' || this.adLocked) return;
     if (!this.keys.has(k)) {
-      if ([KeyCode.SPACE, KeyCode.KEY_W, KeyCode.ARROW_UP].includes(k)) {
+      if (k === KeyCode.SPACE) {
         this.jump = true;
         this.jumpPointer = null;
       }
@@ -484,9 +500,8 @@ export class Ashfall extends Component {
   }
   held(id: string, codes: number[] = []) {
     return (
-      Array.from(this.pointers.values()).some((p) =>
-        id === 'left' || id === 'right' ? p.move === (id === 'left' ? -1 : 1) : p.id === id,
-      ) || codes.some((k) => this.keys.has(k))
+      Array.from(this.pointers.values()).some((p) => p.id === id) ||
+      codes.some((k) => this.keys.has(k))
     );
   }
   update(dt: number) {
@@ -501,14 +516,20 @@ export class Ashfall extends Component {
         if (fire && Math.hypot(fire.dx, fire.dy) > 12) direction = { x: fire.dx, y: fire.dy };
         if (this.keys.has(KeyCode.KEY_I)) direction = { x: this.run.player.facing, y: -1 };
         if (this.keys.has(KeyCode.KEY_K)) direction = { x: this.run.player.facing, y: 1 };
+        const stick = Array.from(this.pointers.values()).find((p) => p.id === 'move');
         const shots = this.run.shots;
         stepRun(
           this.run,
           {
             viewWidth: this.ui.W / this.ui.worldScale,
             move:
+              stick?.move ??
               Number(this.held('right', [KeyCode.KEY_D, KeyCode.ARROW_RIGHT])) -
-              Number(this.held('left', [KeyCode.KEY_A, KeyCode.ARROW_LEFT])),
+                Number(this.held('left', [KeyCode.KEY_A, KeyCode.ARROW_LEFT])),
+            climb:
+              stick?.climb ??
+              Number(this.held('down', [KeyCode.KEY_S, KeyCode.ARROW_DOWN])) -
+                Number(this.held('up', [KeyCode.KEY_W, KeyCode.ARROW_UP])),
             fire:
               this.fireTap ||
               this.held('fire', [KeyCode.KEY_J, KeyCode.KEY_I, KeyCode.KEY_K]) ||
@@ -532,6 +553,10 @@ export class Ashfall extends Component {
         this.accumulator -= 1 / 60;
         const played = new Set<string>();
         for (const e of this.run.events) {
+          if (e.type === 'weapon') {
+            this.message = '已装备 ' + WEAPONS[e.weapon as keyof typeof WEAPONS].name;
+            this.messageLeft = 2;
+          }
           if (['hit', 'explode', 'kill', 'checkpoint'].includes(e.type))
             this.effects.push({
               x: e.x,
@@ -575,11 +600,11 @@ export class Ashfall extends Component {
       (['help', 'settings'].includes(this.screen) && this.helpReturn === 'home');
     u.pressed = new Set(Array.from(this.pointers.values()).map((p) => p.id));
     u.begin();
-    u.world(this.run, menu, this.visualTime, this.reduced());
+    u.world(this.run, menu, this.visualTime, this.reduced(), this.screen === 'playing');
     for (const e of this.effects) {
       u.circle(
         (e.x - u.cameraX) * u.worldScale,
-        e.y * u.worldScale,
+        (e.y - u.cameraY) * u.worldScale,
         this.reduced() ? 5 : ((e.type === 'explode' ? 35 : 7) * e.life) / 0.3,
         e.type === 'explode' ? '#edb46b88' : '#fff0bccc',
       );
@@ -686,11 +711,11 @@ export class Ashfall extends Component {
         }
       } else
         [
-          '左手移动：下排方向，上排冲刺与跳跃',
-          '按方向后滑向上排，可保持移动并跳跃或冲刺',
+          '左摇杆移动 / 上下攀梯；右侧跳跃与冲刺',
+          '地下武器箱与炮台；拾取换枪，弹药耗尽回步枪',
           '右手点射 / 长按连射；拖动开火键自由瞄准',
           '前往金色中继，清除附近敌人并守住接通进度',
-          'A/D移动 · 空格跳跃 · Shift冲刺 · J/I/K射击',
+          'A/D移动 · W/S攀梯 · 空格跳跃 · Shift冲刺',
         ].forEach((s, i) =>
           u.text('help-' + i, s, 166, top + 104 + i * 35, 512, 20, '#d4ddcb', 30, true),
         );
@@ -726,37 +751,88 @@ export class Ashfall extends Component {
             : '全线接通 · 前往出口 →'
           : Math.abs(delta) > wave.radius
             ? `${delta > 0 ? '前往中继 →' : '← 返回中继'} · 阵地 ${this.run.waveIndex + 1}/${this.run.wavesTotal}`
-            : `阵地 ${this.run.waveIndex + 1}/${this.run.wavesTotal} · ${Math.floor((100 * this.run.capture) / wave.captureSeconds)}% ${this.run.contested ? '清除阵地内敌人' : '守住接通'}`;
-        u.text('target', target, 214, 43, 472, 19, '#e3bd7e');
+            : `阵地 ${this.run.waveIndex + 1}/${this.run.wavesTotal} · ${Math.floor((100 * this.run.capture) / wave.captureSeconds)}% ${this.run.contested ? '清除阵地内敌人' : '守住接通 ' + Math.ceil(wave.captureSeconds - this.run.capture) + 's'}`;
+        const enemy = this.run.enemies
+          .filter((e: any) => e.hp > 0 && e.waveIndex === this.run.waveIndex)
+          .sort(
+            (a: any, b: any) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y),
+          )[0];
+        const enemyHint = enemy
+          ? enemy.y > p.y + 100
+            ? ' · 地下 ↓'
+            : enemy.y < p.y - 85
+              ? ' · 高处 ↑'
+              : enemy.x < p.x
+                ? ' · 敌人 ←'
+                : ' · 敌人 →'
+          : '';
+        u.text('target', target + enemyHint, 214, 43, 472, 18, '#e3bd7e');
+        u.text(
+          'weapon',
+          WEAPONS[this.run.weapon as keyof typeof WEAPONS].name +
+            (this.run.weapon === 'rifle' ? ' · 无限弹药' : ' · ' + this.run.ammo + ' 发'),
+          24,
+          66,
+          210,
+          17,
+          '#edc991',
+        );
+        u.text(
+          'experience',
+          `LV ${this.run.rank} · 经验 ${this.run.xp}/${this.run.xpNext}`,
+          24,
+          88,
+          210,
+          16,
+          '#bdd3ad',
+        );
         u.button('pause', '暂停', 744, 10, 72, 62);
         const pad = Math.max(64, 44 / u.scale),
           left = Math.max(26, u.safe.left + 12),
           y = Math.min(H, u.safe.bottom) - pad - 18,
-          upper = y - pad - 10;
-        u.button('left', '向左移动', left, y, pad, pad);
-        u.button('right', '向右移动', left + pad + 10, y, pad, pad);
-        u.button('jump', '跳跃', left + pad + 10, upper, pad, pad);
-        u.button('dash', '冲刺', left, upper, pad, pad, false, p.dashCooldown > 0);
-        const fire = u.button(
-          'fire',
-          '开火 · 拖动瞄准',
-          u.safe.right - 114,
-          u.safe.bottom - 110,
-          102,
-          92,
-          true,
+          right = u.safe.right - 12;
+        const stick = u.button('move', '移动 / 攀梯', left, y - 22, pad + 28, pad + 22);
+        const pointer = Array.from(this.pointers.values()).find((a) => a.id === 'move');
+        u.circle(
+          stick.x + stick.w / 2 + (pointer?.move || 0) * 22,
+          stick.y + stick.h / 2 + (pointer?.climb || 0) * 22,
+          16,
+          '#bdc79d99',
         );
-        u.text('jump-caption', '跳跃', left + pad + 10, upper - 24, pad, 16, '#c5cfbb');
+        u.text('move-caption', '移动 / 攀梯', stick.x, stick.y - 24, stick.w, 16, '#c5cfbb');
+        const fire = u.button('fire', '射击 · 拖动瞄准', right - 104, y - 26, 104, pad + 26, true);
+        const jump = u.button('jump', '跳跃', right - 104 - pad - 14, y, pad, pad);
+        const dash = u.button(
+          'dash',
+          '冲刺',
+          right - 104 - pad - 14,
+          y - pad - 14,
+          pad,
+          pad,
+          false,
+          p.dashCooldown > 0,
+        );
+        u.text('jump-caption', '跳跃', jump.x, jump.y - 20, jump.w, 15, '#c5cfbb');
         u.text(
           'dash-caption',
           p.dashCooldown > 0 ? `${p.dashCooldown.toFixed(1)}s` : '冲刺',
-          left,
-          upper - 24,
-          pad,
-          16,
+          dash.x,
+          dash.y - 22,
+          dash.w,
+          15,
           '#c5cfbb',
         );
-        u.text('fire-caption', '开火', fire.x, fire.y - 24, fire.w, 16, '#edc991');
+        u.text('fire-caption', '瞄准射击', fire.x, fire.y - 24, fire.w, 16, '#edc991');
+        const aim = Array.from(this.pointers.values()).find((a) => a.id === 'fire');
+        if (aim && Math.hypot(aim.dx, aim.dy) > 12) {
+          const f = 24 / Math.hypot(aim.dx, aim.dy);
+          u.circle(
+            fire.x + fire.w / 2 + aim.dx * f,
+            fire.y + fire.h / 2 + aim.dy * f,
+            7,
+            '#ffe3a1',
+          );
+        }
       } else {
         u.box(0, 0, u.W, H, '#06130e99', '#06130e99');
         const panelH = Math.max(320, pitch * 3 + 116),
@@ -768,7 +844,7 @@ export class Ashfall extends Component {
           heading('行动暂停', sector, top + 22);
           const supply = !!web.SmallGamesRewardAds?.available && rewardEligible(this.run, 'supply');
           u.button('resume', '继续战斗  →', 198, row, supply ? 218 : 448, h, true);
-          if (supply) u.button('supply', '补给 · 观看广告', 428, row, 218, h);
+          if (supply) u.button('supply', '广告补给 · 生命+40 / 机关枪', 428, row, 218, h);
           u.button('restart', '重试本关', 198, row + pitch, 218, h);
           u.button('leave', '返回主页', 428, row + pitch, 218, h);
           u.button('help', '操作指引', 198, row + pitch * 2, 218, h, false, false, true);
@@ -801,13 +877,21 @@ export class Ashfall extends Component {
           );
         } else if (this.screen === 'reward') {
           heading(
-            this.rewardKind === 'supply' ? '战地补给' : '续战支援',
-            '自愿观看 · 每关一次',
+            this.rewardKind === 'overdrive'
+              ? '超载强化'
+              : this.rewardKind === 'supply'
+                ? '战地补给'
+                : '续战支援',
+            this.rewardKind === 'overdrive' ? '自愿观看 · 本次升级三选一' : '自愿观看 · 每关一次',
             top + 22,
           );
           u.text(
             'reward-copy',
-            `完整观看后恢复${this.rewardKind === 'supply' ? '40%' : '50%'}生命`,
+            this.rewardKind === 'overdrive'
+              ? '伤害+30% · 生命上限+30并回复30'
+              : this.rewardKind === 'supply'
+                ? '回复40生命 + 机关枪160发'
+                : '完整观看后恢复50%生命',
             198,
             row,
             448,
@@ -815,7 +899,11 @@ export class Ashfall extends Component {
           );
           u.text(
             'reward-note',
-            '辅助行动可解锁关卡，不计最佳时间',
+            web.SmallGamesRewardAds?.available
+              ? '辅助行动可解锁关卡，不计最佳时间'
+              : this.rewardKind === 'overdrive'
+                ? '广告暂不可用 · 返回可选免费增益'
+                : '广告暂不可用 · 返回继续免费游玩',
             198,
             row + 38,
             448,
@@ -824,7 +912,11 @@ export class Ashfall extends Component {
           );
           u.button(
             'claim',
-            this.adLocked ? '等待广告关闭…' : '观看并领取',
+            this.adLocked
+              ? '等待广告关闭…'
+              : web.SmallGamesRewardAds?.available
+                ? '观看并领取'
+                : '广告暂不可用',
             198,
             row + pitch,
             448,
@@ -832,21 +924,13 @@ export class Ashfall extends Component {
             true,
             this.adLocked || !web.SmallGamesRewardAds?.available,
           );
-          u.button(
-            'cancel',
-            '取消 · 返回',
-            284,
-            row + pitch * 2,
-            276,
-            h,
-            false,
-            this.adLocked,
-            true,
-          );
+          u.button('cancel', '取消 · 返回', 284, row + pitch * 2, 276, h, false, false, true);
         } else if (this.screen === 'upgrade') {
           heading(
             this.run.choices.length ? '选择战地改装' : '改装已齐备',
-            '战区已突破 · 继续推进下一战区',
+            this.run.upgradeReason === 'experience'
+              ? `经验升级 · LV ${this.run.rank} · 选完继续战斗`
+              : '战区已突破 · 继续推进下一战区',
             top + 22,
           );
           if (!this.run.choices.length)
@@ -856,11 +940,12 @@ export class Ashfall extends Component {
               const item = UPGRADES.find((x: any) => x.id === id)!;
               u.button(
                 'upgrade-' + id,
-                `${item.name}\n${item.short}`,
+                `${item.name}\n${item.short}\n${item.rewarded ? '观看广告获取' : '免费装配'}`,
                 190 + i * 158,
                 row + 8,
                 148,
-                126,
+                150,
+                Boolean(item.rewarded),
               );
             });
         } else if (this.screen === 'result') {
@@ -958,6 +1043,15 @@ export class Ashfall extends Component {
           state: e.state,
         })),
         shots: this.run.shots,
+        xp: this.run.xp,
+        rank: this.run.rank,
+        xpNext: this.run.xpNext,
+        weapon: this.run.weapon,
+        ammo: this.run.ammo,
+        choices: [...this.run.choices],
+        upgradeReason: this.run.upgradeReason,
+        exitOpen: this.run.exitOpen,
+        pickups: structuredClone(this.run.pickups),
         kills: this.run.kills,
         assisted: this.run.assisted,
         rewardUsed: { ...this.run.rewardUsed },

@@ -10,7 +10,7 @@ import {
 } from '../../../../apps/shell-web/scripts/game-checks/ashfall-front.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const url = process.env.ASHFALL_TEST_URL || 'http://127.0.0.1:4469';
-const output = new URL('../../../../outputs/ashfall-front/two-thumb/', import.meta.url);
+const output = new URL('../../../../outputs/ashfall-front/combat-expansion/', import.meta.url);
 await mkdir(output, { recursive: true });
 await mkdir(new URL('../publishing/gameplay/screenshots/', import.meta.url), { recursive: true });
 const server = process.env.ASHFALL_TEST_URL
@@ -104,17 +104,17 @@ try {
     await input.tap('start');
     await bounds();
     const layout = await snapshot(page);
-    const movement = layout.controls.filter((b) =>
-      ['left', 'right', 'jump', 'dash'].includes(b.id),
-    );
+    const movement = layout.controls.filter((b) => b.id === 'move');
     for (const b of movement) {
       assert.ok(
         layout.rotated ? b.y + b.h < height / 2 : b.x + b.w < width / 2,
         `${b.id} stays in the left-hand half of the logical landscape`,
       );
     }
-    const fire = layout.controls.find((b) => b.id === 'fire');
-    assert.ok(layout.rotated ? fire.y > height / 2 : fire.x > width / 2);
+    for (const id of ['fire', 'jump', 'dash']) {
+      const b = layout.controls.find((b) => b.id === id);
+      assert.ok(layout.rotated ? b.y > height / 2 : b.x > width / 2, id + ' in right-hand half');
+    }
     for (const [index, a] of layout.controls.entries())
       for (const b of layout.controls.slice(index + 1))
         assert.ok(
@@ -123,59 +123,54 @@ try {
         );
     const cdp = await context.newCDPSession(page);
     try {
-      const right = await input.point('right'),
-        jump = await input.point('jump'),
-        dash = await input.point('dash'),
+      const right = { ...(await input.point('right')), id: 1 },
+        jump = { ...(await input.point('jump')), id: 3 },
+        dash = { ...(await input.point('dash')), id: 3 },
         shooting = { ...(await input.point('fire')), id: 2 };
-      const send = (type, position, keepFire = true) =>
-        cdp.send('Input.dispatchTouchEvent', {
-          type,
-          touchPoints: [
-            ...(position ? [{ ...position, id: 1 }] : []),
-            ...(keepFire ? [shooting] : []),
-          ],
-        });
-      await send('touchStart', right);
-      await page.waitForTimeout(100);
-      const beforeSlide = await snapshot(page);
-      await send('touchMove', { x: (right.x + jump.x) / 2, y: (right.y + jump.y) / 2 });
-      await page.waitForTimeout(80);
-      assert.ok(
-        (await snapshot(page)).run.player.x > beforeSlide.run.player.x,
-        'direction survives the button gap',
-      );
-      await send('touchMove', jump);
-      await page.waitForTimeout(100);
+      const send = (type, points) =>
+        cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points });
+      await send('touchStart', [right, shooting, jump]);
+      await page.waitForTimeout(140);
       const jumping = await snapshot(page);
-      assert.ok(jumping.run.player.y < beforeSlide.run.player.y - 10, 'left thumb slide jumps');
       assert.ok(
-        jumping.run.player.x > beforeSlide.run.player.x &&
-          jumping.run.shots > beforeSlide.run.shots,
-        'two thumbs move, jump and fire simultaneously',
+        jumping.run.player.x > 420 && jumping.run.player.y < 560 && jumping.run.shots > 0,
+        'left stick and right fire/jump combine',
       );
-      await send('touchMove', dash);
-      await page.waitForTimeout(50);
-      assert.ok((await snapshot(page)).run.player.dashCooldown > 0.3, 'left thumb slide dashes');
-      await send('touchMove', { x: width / 2, y: height / 2 });
+      await send('touchEnd', [jump]);
+      await send('touchStart', [right, shooting, dash]);
+      await page.waitForTimeout(60);
+      assert.ok((await snapshot(page)).run.player.dashCooldown > 0.3, 'right-hand dash');
+      await send('touchEnd', [dash]);
+      const logicalAim = { x: -28, y: -28 };
+      const aimed = {
+        ...shooting,
+        x: shooting.x + (layout.rotated ? -logicalAim.y : logicalAim.x),
+        y: shooting.y + (layout.rotated ? logicalAim.x : logicalAim.y),
+      };
+      const centre = { ...(await input.point('move')), id: 1 };
+      await send('touchMove', [centre, aimed]);
       await page.waitForTimeout(250);
       assert.ok(
         Math.abs((await snapshot(page)).run.player.vx) < 1,
-        'leaving the movement cluster stops movement',
+        'centering the stick stops movement',
       );
-      const stillFiring = (await snapshot(page)).run.shots;
-      await send('touchEnd', { x: width / 2, y: height / 2 }, false);
-      await page.waitForTimeout(220);
       assert.ok(
-        (await snapshot(page)).run.shots > stillFiring,
-        'lifting left thumb leaves right firing',
+        Math.abs((await snapshot(page)).run.player.aimAngle + Math.PI * 0.75) < 0.05,
+        'backward diagonal aim follows logical landscape',
       );
-      await send('touchEnd', null, false);
+      await send('touchCancel', []);
       await page.waitForTimeout(220);
       const released = (await snapshot(page)).run.shots;
       await page.waitForTimeout(220);
-      assert.equal((await snapshot(page)).run.shots, released);
+      assert.equal((await snapshot(page)).run.shots, released, 'cancel releases both sticks');
     } finally {
       await cdp.detach();
+    }
+    if ((await snapshot(page)).screen === 'upgrade') {
+      const free = (await snapshot(page)).controls.find(
+        (c) => c.id.startsWith('upgrade-') && c.id !== 'upgrade-overdrive',
+      );
+      await input.tap(free.id);
     }
     await input.tap('pause');
     await input.tap('restart');
@@ -205,6 +200,15 @@ try {
     const shots = (await snapshot(page)).run.shots;
     await page.waitForTimeout(220);
     assert.equal((await snapshot(page)).run.shots, shots, 'cancel releases fire');
+    // Released projectiles can finish a kill and open the real XP choice.
+    // Complete that choice through UI before exercising the pause control.
+    await page.waitForTimeout(400);
+    while ((await snapshot(page)).screen === 'upgrade') {
+      const free = (await snapshot(page)).controls.find(
+        (c) => c.id.startsWith('upgrade-') && c.id !== 'upgrade-overdrive',
+      );
+      await input.tap(free.id);
+    }
     await capture(page, `combat-${width}x${height}`);
     await input.tap('pause');
     await bounds();
@@ -251,6 +255,43 @@ try {
     await input.tap('leave');
     await input.tap('confirm');
     await page.evaluate(() => window.Ashfall.dev('level', 0));
+    await page.evaluate(() => window.Ashfall.dev('upgrade'));
+    await expect.poll(async () => (await snapshot(page)).screen).toBe('upgrade');
+    const cards = (await snapshot(page)).controls.filter((c) => c.id.startsWith('upgrade-'));
+    assert.equal(cards.length, 3);
+    assert.equal(cards.filter((c) => c.label.includes('免费')).length, 2);
+    await capture(page, `upgrade-${width}x${height}`);
+    const room = (await snapshot(page)).run.levelIndex;
+    await input.tap('upgrade-power');
+    assert.equal(
+      (await snapshot(page)).run.levelIndex,
+      room,
+      'experience choice stays in same room',
+    );
+    await page.evaluate(() => window.Ashfall.dev('tunnel'));
+    const climbSession = await context.newCDPSession(page);
+    const centre = await input.point('move');
+    const climbLayout = await snapshot(page);
+    const movePad = climbLayout.controls.find((c) => c.id === 'move');
+    const travel = Math.min(movePad.w, movePad.h) * 0.42;
+    const offset = climbLayout.rotated ? { x: -travel, y: 0 } : { x: 0, y: travel };
+    await climbSession.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: centre.x + offset.x, y: centre.y + offset.y, id: 1 }],
+    });
+    await expect
+      .poll(async () => (await snapshot(page)).run.player.y, { timeout: 4000 })
+      .toBeGreaterThan(800);
+    await capture(page, `underground-${width}x${height}`);
+    await climbSession.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: [{ x: centre.x - offset.x, y: centre.y - offset.y, id: 1 }],
+    });
+    await expect
+      .poll(async () => (await snapshot(page)).run.player.y, { timeout: 4000 })
+      .toBeLessThanOrEqual(571);
+    await climbSession.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    await climbSession.detach();
     await page.evaluate(() => window.Ashfall.dev('clear'));
     await expect.poll(async () => (await snapshot(page)).screen).toBe('result');
     await capture(page, `victory-${width}x${height}`);
@@ -384,6 +425,12 @@ try {
     await input.press(['fire']);
     await page.waitForTimeout(3600);
     await input.release();
+    if ((await snapshot(page)).screen === 'upgrade') {
+      const free = (await snapshot(page)).controls.find(
+        (c) => c.id.startsWith('upgrade-') && c.id !== 'upgrade-overdrive',
+      );
+      await input.tap(free.id);
+    }
     await input.tap('pause');
     await input.tap('restart');
     await input.tap('confirm');
@@ -395,6 +442,12 @@ try {
     await page.waitForTimeout(2500);
     await capture(page, 'combat-live-844x390');
     await input.release();
+    if ((await snapshot(page)).screen === 'upgrade') {
+      const free = (await snapshot(page)).controls.find(
+        (c) => c.id.startsWith('upgrade-') && c.id !== 'upgrade-overdrive',
+      );
+      await input.tap(free.id);
+    }
     await input.tap('pause');
     await input.dispose();
     const video = page.video();
@@ -449,6 +502,7 @@ try {
     'close-hidden',
     'return-first',
     'stale',
+    'cancel',
   ]) {
     await page.evaluate(() => {
       window.Ashfall.dev('level', 0);
@@ -460,7 +514,10 @@ try {
     const hp = (await snapshot(page)).run.player.hp;
     await input.tap('claim');
     await expect.poll(async () => (await snapshot(page)).adLocked).toBe(true);
-    if (result === 'failed') await page.evaluate(() => __ad.error({ errCode: 1004 }));
+    if (result === 'cancel') {
+      await input.tap('cancel');
+      await page.evaluate(() => __ad.close?.({ isEnded: true }));
+    } else if (result === 'failed') await page.evaluate(() => __ad.error({ errCode: 1004 }));
     else if (result === 'stale') {
       await page.evaluate(() => window.Ashfall.dev('level', 1));
       await page.evaluate(() => __ad.close({ isEnded: true }));
@@ -492,10 +549,25 @@ try {
       result === 'stale'
         ? 120
         : ['completed', 'close-hidden', 'return-first'].includes(result)
-          ? hp + 48
+          ? hp + 40
           : hp,
     );
     report.checks.push('SDK fixture: ' + result);
+  }
+  for (const ended of [false, true]) {
+    await page.evaluate(() => {
+      window.Ashfall.dev('level', 0);
+      window.Ashfall.dev('upgrade');
+    });
+    await input.tap('upgrade-overdrive');
+    await input.tap('claim');
+    await expect.poll(async () => (await snapshot(page)).adLocked).toBe(true);
+    await page.evaluate((ended) => __ad.close({ isEnded: ended }), ended);
+    await expect.poll(async () => (await snapshot(page)).adLocked).toBe(false);
+    const upgraded = await snapshot(page);
+    assert.equal(upgraded.screen, ended ? 'playing' : 'upgrade');
+    assert.equal(upgraded.run.player.maxHp, ended ? 150 : 120);
+    if (!ended) await input.tap('upgrade-medical');
   }
   await page.evaluate(() => {
     window.Ashfall.dev('level', 0);

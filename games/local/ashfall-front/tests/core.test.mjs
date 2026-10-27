@@ -7,6 +7,10 @@ import {
   LEVELS,
   UPGRADES,
   validateLevels,
+  equipWeapon,
+  WEAPONS,
+  grantSupply,
+  crossesFloor,
 } from '../src/core.mjs';
 // Isolate the original combat contracts from the campaign's new capture/exit gates.
 const createRun = (index = 0) => {
@@ -15,6 +19,7 @@ const createRun = (index = 0) => {
     ...run.level,
     waves: run.level.waves.map((w) => ({ ...w, captureSeconds: 0, checkpointX: null })),
   };
+  run.enemies = run.enemies.filter((e) => e.type !== 'turret');
   run.enemies[2] = { ...run.enemies[2], type: 'shooter', baseY: 570, y: 570 };
   if (index === 2) {
     Object.assign(run.enemies[0], {
@@ -87,13 +92,14 @@ test('fast projectiles and enemies overlapping the muzzle are hit by inclusive s
   for (const offset of [2, 105]) {
     const run = createRun();
     const enemy = run.enemies[0];
-    Object.assign(enemy, { x: run.player.x + offset, y: 570, hp: 20, timer: 50 });
+    Object.assign(enemy, { x: run.player.x + offset, y: 570, hp: 20, timer: 50, fired: true });
     run.enemies = [enemy];
     run.barrels = [];
     run.waveIndex = run.wavesTotal - 1;
     stepRun(run, { fire: true, aim: { x: enemy.x, y: enemy.y - 32 } }, 0.1);
     assert.equal(run.kills, 1, `target offset ${offset}`);
-    assert.equal(run.phase, 'upgrade');
+    assert.equal(run.phase, 'playing');
+    assert.equal(run.exitOpen, true);
   }
 });
 
@@ -103,9 +109,9 @@ test('a shot detonates connected barrels once and explosion salvage healing has 
   run.player.hp = 50;
   run.stats.salvage = true;
   const [a, b, c, distant] = run.enemies;
-  Object.assign(a, { x: 550, y: 570, hp: 40, timer: 50 });
-  Object.assign(b, { x: 585, y: 570, hp: 40, timer: 50 });
-  Object.assign(c, { x: 610, y: 570, hp: 40, timer: 50 });
+  Object.assign(a, { x: 550, y: 570, hp: 40, timer: 50, fired: true });
+  Object.assign(b, { x: 585, y: 570, hp: 40, timer: 50, fired: true });
+  Object.assign(c, { x: 610, y: 570, hp: 40, timer: 50, fired: true });
   Object.assign(distant, { x: 2250, y: 570, hp: 1000, timer: 50 });
   run.enemies = [a, b, c, distant];
   run.barrels = run.barrels.slice(0, 2);
@@ -120,7 +126,7 @@ test('a shot detonates connected barrels once and explosion salvage healing has 
   assert.equal(events.filter((event) => event.type === 'explode' && event.chain).length, 1);
   assert.equal(run.largestChain, 2);
   assert.equal(run.kills, 3);
-  assert.equal(run.player.hp, 86); // 3 × 2 ordinary healing + capped 30 salvage.
+  assert.equal(run.player.hp, 89); // 3 × 3 ordinary healing + capped 30 salvage.
   assert.ok(run.barrels.every((barrel) => !barrel.active));
 });
 
@@ -193,6 +199,7 @@ test('dash grants temporary invulnerability and cooldown; projectiles expire', (
 test('clear rewards and upgrades apply once, freeze between rooms, and reset on a new run', () => {
   const run = createRun();
   run.player.hp = 60;
+  run.player.x = run.level.exitX;
   run.enemies = [];
   run.waveIndex = run.wavesTotal - 1;
   stepRun(run, {}, 1 / 60);
@@ -204,10 +211,10 @@ test('clear rewards and upgrades apply once, freeze between rooms, and reset on 
   assert.equal(run.time, time);
   assert.equal(run.player.hp, 90);
   assert.equal(chooseUpgrade(run, 'invalid'), false);
-  assert.equal(chooseUpgrade(run, 'scatter'), true);
-  assert.equal(chooseUpgrade(run, 'scatter'), false);
+  assert.equal(chooseUpgrade(run, 'power'), true);
+  assert.equal(chooseUpgrade(run, 'power'), false);
   assert.equal(run.levelIndex, 1);
-  assert.equal(run.stats.pellets, 3);
+  assert.equal(run.stats.damageMultiplier, 1.1);
   assert.deepEqual(run.roomsCleared, [LEVELS[0].id]);
   const fresh = createRun();
   assert.deepEqual(fresh.upgrades, []);
@@ -220,8 +227,8 @@ test('clear rewards and upgrades apply once, freeze between rooms, and reset on 
 test('piercing hits two aligned targets while fatal damage freezes the lost run', () => {
   const run = createRun();
   const [first, second] = run.enemies;
-  Object.assign(first, { x: run.player.x + 65, y: 570, hp: 20, timer: 50 });
-  Object.assign(second, { x: run.player.x + 105, y: 570, hp: 20, timer: 50 });
+  Object.assign(first, { x: run.player.x + 65, y: 570, hp: 20, timer: 50, fired: true });
+  Object.assign(second, { x: run.player.x + 105, y: 570, hp: 20, timer: 50, fired: true });
   run.enemies = [first, second];
   run.barrels = [];
   run.stats.pierce = 1;
@@ -274,4 +281,147 @@ test('reinforcements give a nearby player time to move clear before taking conta
   for (let i = 0; i < 5; i++) stepRun(run, { move: -1 }, 0.1);
   assert.equal(run.player.hp, 120);
   assert.ok(run.player.x <= spawnX - 145);
+});
+
+test('every ordinary enemy fires before its first-volley shield permits a kill', () => {
+  const run = createRun();
+  run.barrels = [];
+  const target = run.enemies[0];
+  target.x = run.player.x + 110;
+  run.enemies = [target];
+  run.stats.damageMultiplier = 100;
+  target.type = 'shooter';
+  stepRun(run, { fire: true }, 0.1);
+  assert.ok(target.hp >= 1);
+  assert.equal(target.fired, false);
+  let shot = false;
+  for (let i = 0; i < 12; i++) {
+    stepRun(run, { fire: true }, 0.1);
+    shot ||= run.events.some((e) => e.type === 'shoot' && e.owner === 'enemy');
+  }
+  assert.ok(shot);
+  assert.equal(run.kills, 1);
+});
+
+test('exit stays locked for living guards and opens only after all waves; reaching it advances', () => {
+  const run = createRun();
+  run.player.x = run.level.exitX;
+  stepRun(run, {}, 1 / 60);
+  assert.equal(run.phase, 'playing');
+  assert.equal(run.exitOpen, false);
+  run.enemies = [];
+  run.waveIndex = run.wavesTotal - 1;
+  run.player.x = 1700;
+  stepRun(run, {}, 1 / 60);
+  assert.equal(run.exitOpen, true);
+  assert.equal(run.phase, 'playing');
+  run.player.x = run.level.exitX;
+  stepRun(run, {}, 1 / 60);
+  assert.equal(run.phase, 'upgrade');
+  assert.equal(run.upgradeReason, 'room');
+  assert.equal(chooseUpgrade(run, run.choices[0]), true);
+  assert.equal(run.levelIndex, 1);
+});
+
+test('ladder descends into tunnel, holds still, crosses floor and climbs out', () => {
+  for (let index = 0; index < LEVELS.length; index++) {
+    const run = createRun(index);
+    run.enemies = [];
+    run.encounters.forEach((e) => {
+      e.guards = true;
+      e.boss = true;
+    });
+    run.nextWaveDelay = 1000;
+    const [entry, exit] = run.level.ladders;
+    run.player.x = entry.x;
+    for (let i = 0; i < 90; i++) stepRun(run, { climb: 1 }, 1 / 60);
+    assert.equal(run.player.y, entry.bottom);
+    for (let i = 0; i < 250 && run.player.x < exit.x - 4; i++) stepRun(run, { move: 1 }, 1 / 60);
+    assert.ok(Math.abs(run.player.x - exit.x) < 10);
+    for (let i = 0; i < 90; i++) stepRun(run, { climb: -1 }, 1 / 60);
+    assert.equal(run.player.y, entry.top);
+  }
+});
+
+test('weapons differ by spread, burst, range, splash and spin-up; ammo exhaustion returns rifle', () => {
+  for (const id of Object.keys(WEAPONS)) {
+    const run = createRun();
+    run.enemies = [];
+    run.barrels = [];
+    run.encounters.forEach((e) => {
+      e.guards = true;
+      e.boss = true;
+    });
+    run.nextWaveDelay = 1000;
+    equipWeapon(run, id);
+    for (let i = 0; i < 30; i++)
+      stepRun(run, { fire: true, aimDirection: { x: 0, y: -1 } }, 1 / 60);
+    assert.ok(run.shots > 0, id);
+    if (id === 'shotgun') assert.ok(run.bullets.length >= 5);
+    if (id === 'burst') assert.ok(run.shots >= 3);
+    if (id === 'flame') assert.ok(run.bullets.every((b) => b.life <= 0.46 && b.pierce === 3));
+    if (id === 'cannon') assert.ok(run.bullets.some((b) => b.blast === 115));
+    if (id !== 'rifle') {
+      run.ammo = 1;
+      run.player.fireCooldown = 0;
+      stepRun(run, { fire: true }, 1 / 60);
+      assert.equal(run.weapon, 'rifle');
+      assert.equal(run.ammo, 0);
+    }
+  }
+});
+
+test('XP upgrade pauses in-place, offers two free and one rewarded choice, and keeps overflow', () => {
+  const run = createRun();
+  run.xp = 80;
+  stepRun(run, {}, 1 / 60);
+  assert.equal(run.phase, 'upgrade');
+  assert.equal(run.xp, 20);
+  assert.equal(run.choices.filter((id) => UPGRADES.find((u) => u.id === id).rewarded).length, 1);
+  const before = run.time,
+    x = run.player.x;
+  stepRun(run, { move: 1 }, 0.1);
+  assert.equal(run.time, before);
+  assert.equal(chooseUpgrade(run, 'overdrive'), false);
+  assert.equal(chooseUpgrade(run, 'overdrive', { rewarded: true }), true);
+  assert.equal(chooseUpgrade(run, 'overdrive', { rewarded: true }), false);
+  assert.equal(run.levelIndex, 0);
+  assert.equal(run.player.x, x);
+  assert.equal(run.player.maxHp, 150);
+  assert.equal(run.roomsCleared.length, 0);
+  run.player.hp = 40;
+  assert.equal(grantSupply(run), true);
+  assert.equal(run.player.hp, 80);
+  assert.equal(run.weapon, 'machine');
+  assert.equal(grantSupply(run), false);
+});
+
+test('underground ceiling blocks crossing shots except through ladder shafts', () => {
+  const level = LEVELS[0],
+    ladder = level.ladders[0],
+    tunnel = level.tunnels[0];
+  assert.equal(crossesFloor(level, tunnel.x + 300, 520, tunnel.x + 300, 820), true);
+  assert.equal(crossesFloor(level, ladder.x, 520, ladder.x, 820), false);
+  assert.equal(crossesFloor(level, tunnel.x + 300, 800, tunnel.x + 300, 520), true);
+  assert.equal(crossesFloor(level, tunnel.x + 300, 780, tunnel.x + 400, 780), false);
+});
+
+test('jumping off a ladder near its mouth exits continuously; solid tunnel ceiling still blocks', () => {
+  const run = createRun(),
+    ladder = run.level.ladders[0];
+  run.enemies = [];
+  Object.assign(run.player, {
+    x: ladder.x,
+    y: 580,
+    climbing: ladder,
+    onGround: true,
+    coyoteTime: 0.1,
+  });
+  stepRun(run, { jump: true }, 1 / 60);
+  assert.ok(run.player.y < 580, 'shaft jump moves up instead of snapping down');
+  const blocked = createRun();
+  blocked.enemies = [];
+  Object.assign(blocked.player, { x: ladder.x + 120, y: 650, vy: -600, onGround: false });
+  stepRun(blocked, {}, 1 / 60);
+  assert.ok(blocked.player.y >= blocked.level.ground + blocked.player.h + 12);
 });

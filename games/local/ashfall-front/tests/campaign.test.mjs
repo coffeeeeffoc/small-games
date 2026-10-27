@@ -86,44 +86,88 @@ test('all five modifications can be exhausted without blocking free continuation
   assert.equal(p.bestTime, null);
 });
 
+const intentions = new WeakMap();
 export function naturalInput(run, frame) {
   const p = run.player,
-    wave = run.level.waves[run.waveIndex];
-  const destination = run.checkpointComplete
-    ? (run.level.waves[run.waveIndex + 1]?.checkpointX ?? run.level.exitX)
-    : wave.checkpointX;
-  let move = Math.abs(destination - p.x) > 70 ? Math.sign(destination - p.x) : 0;
-  const nearest = run.enemies.reduce(
+    w = run.level.waves[run.waveIndex];
+  const local = run.enemies.filter((e) => e.waveIndex === run.waveIndex);
+  const below = p.y > run.level.ground + 20;
+  const same = local.filter((e) => e.y > run.level.ground + 30 === below);
+  const nearest = same.reduce(
     (a, e) => (!a || Math.hypot(e.x - p.x, e.y - p.y) < Math.hypot(a.x - p.x, a.y - p.y) ? e : a),
     null,
   );
-  if (nearest && Math.abs(nearest.x - p.x) < 150 && Math.abs(p.x - wave.checkpointX) < 250)
-    move = -Math.sign(nearest.x - p.x);
-  let jump = frame % 43 === 0,
-    dash = Math.abs(destination - p.x) > 450 && frame % 70 === 0;
-  const boss = run.enemies.find((e) => e.type === 'boss');
-  if (boss?.state === 'telegraph' && boss.attack.kind === 'charge' && boss.timer < 0.25)
-    jump = true;
-  if (boss?.state === 'charge' && Math.abs(boss.x - p.x) < 300) {
+  let dest = run.checkpointComplete
+    ? (run.level.waves[run.waveIndex + 1]?.checkpointX ?? run.level.exitX)
+    : w.checkpointX;
+  let climb = 0,
+    jump = frame % 43 === 0,
+    dash = false;
+  if (!nearest && (below || local.some((e) => e.y > run.level.ground + 30))) {
+    const target = local.find((e) => e.y > run.level.ground + 30);
+    const ladders = run.level.ladders.filter(
+      (l) => l.bottom > run.level.ground && (!below || Math.abs(l.x - p.x) < 650),
+    );
+    const ladder = ladders.reduce(
+      (a, l) =>
+        !a || Math.abs(l.x - (target?.x ?? p.x)) < Math.abs(a.x - (target?.x ?? p.x)) ? l : a,
+      null,
+    );
+    dest = ladder.x;
+    jump = false;
+    if (Math.abs(p.x - dest) < 12) {
+      climb = below ? -1 : 1;
+      intentions.set(run, climb);
+    }
+  }
+  let move = Math.abs(dest - p.x) > 10 ? Math.sign(dest - p.x) : 0;
+  if (p.climbing) {
+    move = 0;
+    climb = intentions.get(run) || -1;
+    jump = false;
+  }
+  if (nearest) {
+    if (below || run.weapon === 'flame') {
+      move =
+        Math.abs(nearest.x - p.x) > (run.weapon === 'flame' ? 130 : 260)
+          ? Math.sign(nearest.x - p.x)
+          : 0;
+    } else if (Math.abs(nearest.x - p.x) < 160 && Math.abs(p.x - w.checkpointX) < 250)
+      move = -Math.sign(nearest.x - p.x);
+  }
+  const boss = local.find((e) => e.type === 'boss');
+  if (boss?.state === 'telegraph' && boss.attack.kind === 'charge' && boss.timer < 0.3) jump = true;
+  if (boss?.state === 'charge' && Math.abs(boss.x - p.x) < 250) {
     jump = true;
     dash = true;
     move = -Math.sign(boss.vx);
   }
   return {
     move,
-    fire: true,
+    climb,
     jump,
     dash,
+    fire: true,
     aim: nearest ? { x: nearest.x, y: nearest.y - nearest.h * 0.55 } : null,
   };
 }
-
 for (const index of [0, 2, 22])
   test(`natural movement/fire bot clears sector ${index + 1} with sustained active defence`, (t) => {
     const run = createRun(index, { seed: 0x41a5f00d, singleLevel: true });
     let frame = 0,
       peak = 0;
-    while (run.phase === 'playing' && frame < 60 * 900) {
+    while (!['won', 'lost'].includes(run.phase) && frame < 60 * 900) {
+      if (run.phase === 'upgrade') {
+        chooseUpgrade(
+          run,
+          run.choices.includes('medical') && run.player.hp < run.player.maxHp - 15
+            ? 'medical'
+            : run.choices.includes('mobility') && run.player.hp < 60
+              ? 'mobility'
+              : run.choices[0],
+        );
+        continue;
+      }
       stepRun(run, naturalInput(run, frame++), 1 / 60);
       peak = Math.max(peak, run.bullets.length);
     }
@@ -164,7 +208,7 @@ test('all 23 sector transitions remain free after modifications are exhausted an
     run.roomsCleared,
     LEVELS.map((level) => level.id),
   );
-  assert.equal(run.upgrades.length, UPGRADES.length);
+  assert.equal(run.upgrades.length, LEVELS.length - 1);
   const progress = readProgress(null);
   assert.equal(recordProgress(progress, run), true);
   assert.equal(progress.completed.length, 23);
@@ -181,7 +225,7 @@ test('running past uncleared relays activates visible forward guards only once, 
     run.player.x += 10;
     stepRun(run, { viewWidth, move: 1, jump: true, dash: true }, 1 / 60);
     const guards = run.enemies.filter((e) => e.waveIndex === 1);
-    assert.equal(guards.length, 4);
+    assert.equal(guards.length, 5);
     assert.ok(guards.every((e) => e.x > run.player.x));
     assert.equal(run.waveIndex, 0);
     assert.equal(run.checkpointComplete, false);
@@ -240,7 +284,7 @@ test('reinforcements arrive ahead while defending, and stop accumulating behind 
   assert.equal(run.reinforcementTime, time);
 });
 
-test('touch-style automatic fire engages newly visible forward guards while old enemies remain behind', () => {
+test('manual horizontal fire engages forward guards while old enemies remain behind', () => {
   const run = createRun(0, { seed: 1 });
   run.player.x = run.level.waves[1].checkpointX - 400;
   stepRun(run, { viewWidth: 1413 }, 1 / 60);
@@ -248,7 +292,7 @@ test('touch-style automatic fire engages newly visible forward guards while old 
   const hp = target.hp;
   assert.ok(run.enemies.some((e) => e.waveIndex === 0 && e.x < run.player.x));
   for (let tick = 0; tick < 120; tick++) stepRun(run, { fire: true, viewWidth: 1413 }, 1 / 60);
-  assert.ok(target.hp < hp, 'automatic fire hits the forward encounter without manual aim');
+  assert.ok(target.hp < hp, 'horizontal manual fire hits aligned forward guards');
   assert.equal(run.player.facing, 1);
   assert.equal(run.waveIndex, 0);
 });
@@ -265,7 +309,7 @@ test('retry keeps current sector and earned upgrades, invalidates pending reward
   retryRoom(run);
   assert.equal(run.levelIndex, 1);
   assert.deepEqual(run.upgrades, ['rapid']);
-  assert.equal(run.stats.fireInterval, 0.11);
+  assert.equal(run.stats.rateMultiplier, 0.92);
   assert.equal(run.player.hp, 120);
   assert.equal(run.roomEpoch, epoch + 1);
   assert.equal(run.rewardUsed.revive, false);
