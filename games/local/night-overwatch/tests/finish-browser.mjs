@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { acceptanceBuild, press, snapshot, aimAt, predictUnit } from './flight-browser.mjs';
+import { acceptanceBuild, press, snapshot, aimAt, predictUnit, assertLayout } from './flight-browser.mjs';
 import { MAP } from '../assets/scripts/core/Data.ts';
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const out = new URL('../reports/2026-10-28-lobby/', import.meta.url);
+const out = new URL(process.env.NIGHT_REPORT_URL || '../reports/2026-10-28-lobby/', import.meta.url);
+await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true, args: ['--use-angle=d3d11'] });
 const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
 const page = await context.newPage(), errors = [];
@@ -54,6 +55,11 @@ try {
   assert(state.radioPlaying && state.radioDuration > 0, 'Completion audio is playing with the result panel');
   await page.waitForTimeout(700); assert.equal((await snapshot(page)).time, state.time);
   await page.screenshot({ path: fileURLToPath(new URL('settlement.png', out)) });
+  if (process.env.NIGHT_STYLE_REVIEW === '1') for (const [width, height] of [[568, 320], [844, 390], [1280, 720]]) {
+    await page.setViewportSize({ width, height }); await page.waitForTimeout(400);
+    assertLayout(await snapshot(page), width, height);
+    await page.screenshot({ path: fileURLToPath(new URL('settlement-' + width + '.png', out)) });
+  }
   await press(page, 'online:backLobby');
   await page.waitForFunction(() => __night.snapshot().online.panel === 'menu' && !__night.snapshot().online.active);
   assert.deepEqual(errors, []);

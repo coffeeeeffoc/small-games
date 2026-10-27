@@ -1,0 +1,142 @@
+{
+  "sourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+  "verified": "2026-10-28",
+  "previousDelivery": "manifest-2026-10-27-combat-online.json",
+  "files": [
+    {
+      "path": "copy/introduction.md",
+      "bytes": 1246,
+      "sha256": "94e5e8923b8d233432a6f614b65d08557b18f1ff77d98f02c8e8e9bf62b05961",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2"
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 68,
+      "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2"
+    },
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 671,
+      "sha256": "96192e76ff21ea7f79d91f7d16c8ef3ce1b807eba36575d202f5aa969e6d4128",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2"
+    },
+    {
+      "path": "icon/icon-1024.png",
+      "bytes": 1168540,
+      "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "width": 1024,
+      "height": 1024,
+      "visualInspection": "2026-10-27; unchanged SHA-256 confirmed 2026-10-28",
+      "reusedUnchanged": true,
+      "origin": "Existing original title illustration; not gameplay"
+    },
+    {
+      "path": "promo/images/title-1920x1080.png",
+      "bytes": 2392478,
+      "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "width": 1920,
+      "height": 1080,
+      "visualInspection": "2026-10-27; unchanged SHA-256 confirmed 2026-10-28",
+      "reusedUnchanged": true,
+      "origin": "Existing original title illustration; not gameplay"
+    },
+    {
+      "path": "promo/images/title-1440x1440.png",
+      "bytes": 2285613,
+      "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "width": 1440,
+      "height": 1440,
+      "visualInspection": "2026-10-27; unchanged SHA-256 confirmed 2026-10-28",
+      "reusedUnchanged": true,
+      "origin": "Existing original title illustration; not gameplay"
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-lobby/01-single-fire.png",
+      "bytes": 748770,
+      "sha256": "15910b34b84b529a674dfc28d27b0d88c976e31da3688569291253c758fefd22",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "width": 1280,
+      "height": 720,
+      "visualInspection": "2026-10-28"
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-lobby/02-continuous-fire.png",
+      "bytes": 484293,
+      "sha256": "12c80660d685548bbf9f4bdbc645854160d38ac123d0570b44ac3b58a15e200d",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "width": 1280,
+      "height": 720,
+      "visualInspection": "2026-10-28"
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-lobby/03-room-code.png",
+      "bytes": 688464,
+      "sha256": "f09b180f7e5c144ddf272d59fcc3d3daabdaba34723b969deadfeba708924465",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "width": 1280,
+      "height": 720,
+      "visualInspection": "2026-10-28"
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-lobby/04-battle-history.png",
+      "bytes": 679834,
+      "sha256": "a989427f40322ef1af46e38b94e9921cce36ac2f302851cf2f06bd7ae194e90b",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "width": 1280,
+      "height": 720,
+      "visualInspection": "2026-10-28"
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-lobby/05-offline-notice.png",
+      "bytes": 655783,
+      "sha256": "ee5a7ecc2e26b1ffcf1cdd0a79cab4dd6cc43cf9cc1cb24bfc44901aea9f2421",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "width": 1280,
+      "height": 720,
+      "visualInspection": "2026-10-28"
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-lobby/06-home.png",
+      "bytes": 999242,
+      "sha256": "469fae6f5546e7a6f88d345b78f92001f7f9170aa2470f4a7cd4c5cd3fa1a27f",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "width": 1280,
+      "height": 720,
+      "visualInspection": "2026-10-28"
+    },
+    {
+      "path": "gameplay/videos/lobby-2026-10-28-1280x720-silent.mp4",
+      "bytes": 5330868,
+      "sha256": "8152d9d34273c6006861c9612a69938fa27e5107ade4cf93d68f990c776c7532",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "duration": 19.28,
+      "audio": "none",
+      "fullDecodeVerified": true
+    },
+    {
+      "path": "promo/videos/lobby-2026-10-28-1280x720-silent.mp4",
+      "bytes": 3295470,
+      "sha256": "8b778c76a79bf5b3caaa7e8c3625d97ac159c21d3e048447dce58c0205333d18",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2",
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "duration": 16,
+      "audio": "none",
+      "fullDecodeVerified": true
+    },
+    {
+      "path": "promo/videos/lobby-2026-10-28-edit.json",
+      "bytes": 659,
+      "sha256": "6e9ec916ae1d528e39892832c4269d956eb27b9b9bbac5223ef5a03a753a4dc1",
+      "verifiedForSourceHash": "0fb79e080bcfaa230d935525a2e31ce046990cfc155d02ecc21fa6eaab1dfaf2"
+    }
+  ]
+}
