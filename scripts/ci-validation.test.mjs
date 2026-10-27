@@ -59,19 +59,19 @@ test('workflow skips are tied to explicit shared risk; metadata retains static a
   const validation = await load('.github/workflows/pages-validate.yml');
   const tap = await load('.github/workflows/taptap-cocos.yml');
   assert.equal(
-    ci.jobs.quality.env.MINIGAME_RELEASE_GATES,
+    ci.jobs.validate.env.MINIGAME_RELEASE_GATES,
     "${{ vars.MINIGAME_RELEASE_GATES || '0' }}",
   );
   assert.equal(tap.jobs.producer.if, "vars.MINIGAME_RELEASE_GATES == '1'");
   assert.equal(tap.jobs.consumer.needs, 'producer');
   assert.equal(ci.jobs.kart.if, "needs.plan.outputs.cocos == 'true'");
   assert(
-    ci.jobs.quality.if.includes(
+    ci.jobs.validate.if.includes(
       "needs.plan.outputs.cocos == 'false' && needs.kart.result == 'skipped'",
     ),
   );
   assert(
-    ci.jobs.quality.if.includes(
+    ci.jobs.validate.if.includes(
       "needs.plan.outputs.cocos == 'true' && needs.kart.result == 'success'",
     ),
   );
@@ -125,7 +125,7 @@ test('Linux and Windows independently exercise production hooks and gate quality
   assert(job.steps.some((step) => step.run?.includes('scripts/validate-push-hook.test.mjs')));
   assert(job.steps.some((step) => step.run?.includes('scripts/validate-push.test.mjs')));
   assert(ci.jobs.quality.needs.includes('validation-tools'));
-  assert(ci.jobs.quality.if.includes("needs.validation-tools.result == 'success'"));
+  assert(ci.jobs.validate.if.includes("needs.validation-tools.result == 'success'"));
 });
 
 test('full CI retains original dialog and dependency checker gates', async () => {
@@ -141,7 +141,7 @@ test('full CI retains original dialog and dependency checker gates', async () =>
   const ci = yaml.load(
     await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'),
   );
-  assert(ci.jobs.quality.steps.some((step) => step.run === 'pnpm test:boundaries'));
+  assert(ci.jobs.validate.steps.some((step) => step.run === 'pnpm test:boundaries'));
 });
 
 test('deferred full rules require aggregate success before contract, interaction or smoke gates', async () => {

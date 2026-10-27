@@ -2408,3 +2408,116 @@ test('node-only dependency scanning distinguishes generated modules from executa
     );
   }
 });
+
+test('split tree stages retain all default commands, build prerequisites before browsers and isolate Castle', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'ci-stage-tree-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const put = async (file, value) => {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await writeFile(
+      path.join(root, file),
+      typeof value === 'string' ? value : JSON.stringify(value),
+    );
+  };
+  await put('package.json', {
+    volta: { node: process.versions.node },
+    packageManager: 'pnpm@12.6.0',
+  });
+  const source = 'games/local/fixture';
+  await put('apps/shell-web/src/standalone-games.json', [
+    { id: 'castle-cannon', source, output: 'dist' },
+  ]);
+  await put('apps/shell-web/package.json', { name: 'shell', scripts: { test: 'vitest run' } });
+  await put('packages/emitted/package.json', {
+    name: 'emitted',
+    exports: './dist/index.js',
+    scripts: { build: 'node build.mjs' },
+  });
+  await put(source + '/package.json', {
+    name: 'fixture',
+    dependencies: { emitted: 'workspace:*' },
+    scripts: { build: 'node build.mjs', 'test:rules': 'node --test rules.test.mjs' },
+  });
+  await put(source + '/rules.test.mjs', "import assert from 'node:assert/strict'; assert(true);\n");
+  await put(source + '/ui.css', 'body{}');
+  const captured = {};
+  for (const stage of ['all', 'core', 'castle', 'standalone']) {
+    const calls = [];
+    const scope = await validateTree({
+      root,
+      incremental: true,
+      stage,
+      env: {},
+      prepareBrowser: () => calls.push(['prepare-browser']),
+      selectScope: async () => ({ required: true, full: false, risk: 'interaction' }),
+      execute: (command, args) => {
+        if (command === 'git') return args[0] === 'ls-tree' ? source + '/ui.css\0' : '';
+        if (args[0] === '--version') return '12.6.0';
+        calls.push(args);
+      },
+    });
+    assert.deepEqual(scope.browser_ids, ['castle-cannon']);
+    const buildIndex = calls.findIndex((args) => args.includes('--recursive'));
+    assert(buildIndex >= 0);
+    assert(calls[buildIndex].includes('--filter=emitted'));
+    assert(calls[buildIndex].includes('--filter=fixture'));
+    const shellIndex = calls.findIndex((args) => args[0] === 'scripts/run-selected-shell.mjs');
+    const castleIndex = calls.findIndex(
+      (args) => args[0] === 'games/local/game-castle-cannon/scripts/cocos-smoke.mjs',
+    );
+    assert.equal(shellIndex >= 0, ['all', 'core'].includes(stage));
+    assert.equal(castleIndex >= 0, ['all', 'castle'].includes(stage));
+    if (shellIndex >= 0) assert(shellIndex > buildIndex);
+    if (castleIndex >= 0) assert(castleIndex > buildIndex);
+    captured[stage] = calls;
+  }
+  const defaultCommands = captured.all.filter((args) => args[0] !== 'prepare-browser');
+  const combined = [
+    ...captured.core.filter((args) => args[0] !== 'prepare-browser'),
+    captured.castle.find((args) => args[0].endsWith('/cocos-smoke.mjs')),
+  ];
+  assert.deepEqual(combined.map(JSON.stringify).sort(), defaultCommands.map(JSON.stringify).sort());
+  await assert.rejects(validateTree({ root, stage: 'skip' }), /Unknown tree validation stage/);
+});
+
+test('core retains no-game-browser Admin, service and root contracts with native gates disabled', () => {
+  const options = {
+    stage: 'core',
+    root: '/candidate',
+    env: { MINIGAME_RELEASE_GATES: '0' },
+    plan: {
+      browser: false,
+      browser_ids: [],
+      admin_console_checks: true,
+      game_config_checks: true,
+      native_consumers: [],
+      developer_mode_ids: [],
+      service_rule_sources: ['services/runtime-api'],
+    },
+    packages: [
+      {
+        name: '@coffeeeeffoc/admin-web',
+        dir: 'apps/admin-web',
+        scripts: { test: 'pnpm build && node tests/browser.mjs' },
+      },
+      { name: 'runtime', dir: 'services/runtime-api', scripts: { test: 'vitest run' } },
+    ],
+  };
+  const calls = [];
+  runIncrementalToolChecks({ ...options, execute: (command, args) => calls.push(args) });
+  assert.deepEqual(calls, [
+    ['--test', 'scripts/check-game-config.test.mjs'],
+    ['--filter', 'runtime', 'test'],
+    ['apps/admin-web/tests/browser.mjs'],
+  ]);
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute: () => {
+          throw Error('core gate failure');
+        },
+      }),
+    /core gate failure/,
+  );
+});

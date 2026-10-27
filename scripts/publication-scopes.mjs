@@ -744,6 +744,17 @@ function exactCacheWorkflow(file, before, after) {
   return !!hashes && digest(before) === hashes[0] && digest(after) === hashes[1];
 }
 
+// CI orchestration only, from both 64aa76f4 (last successful dev CI) and 6dc7585f.
+// Bind the entire workflow; an extra command, permission or missing phase is not covered.
+export function ciStageWorkflowScope(before, after) {
+  if (typeof before !== 'string' || typeof after !== 'string') return false;
+  const digest = (text) => createHash('sha256').update(text.replaceAll('\r\n', '\n')).digest('hex');
+  return (
+    digest(before) === 'd51bd123442361243b8226280bb7869d07d115602c44b97fc1a50af451fa76ed' &&
+    digest(after) === '1e7599cffbc73f70405a415f0b09c8ec7d779387a6f568a3c8162a04a36571c3'
+  );
+}
+
 // Reviewed role instructions only; extra permissions, hooks and MCP settings need a new review.
 const codexAgentHashes = {
   '.codex/agents/repo_explorer.toml':
@@ -4128,6 +4139,20 @@ export function reviewedSharedFileScopes({
     packages,
   });
   for (const file of changedPaths) {
+    if (
+      file === '.github/workflows/ci.yml' &&
+      typeof readBase === 'function' &&
+      typeof readHead === 'function'
+    ) {
+      try {
+        if (ciStageWorkflowScope(readBase(file), readHead(file))) {
+          scopes.set(file, []);
+          continue;
+        }
+      } catch {
+        /* Missing comparison evidence remains unclassified. */
+      }
+    }
     if (renameScopes.has(file)) {
       scopes.set(file, renameScopes.get(file));
       continue;

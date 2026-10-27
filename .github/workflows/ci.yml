@@ -8,6 +8,10 @@ on:
       - dev
       - test
 
+permissions:
+  contents: read
+  actions: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -41,7 +45,7 @@ jobs:
           VALIDATION_RISK_PLAN: true
           PAGES_DIFF_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           PAGES_DIFF_HEAD: ${{ github.sha }}
-        run: node scripts/pages-test-scope.mjs
+        run: node scripts/ci-baseline.mjs
   kart:
     needs: plan
     if: needs.plan.outputs.cocos == 'true'
@@ -69,14 +73,18 @@ jobs:
         run: node --test scripts/check-staged-format.test.mjs scripts/validate-push.test.mjs scripts/validate-push-hook.test.mjs scripts/validate-tree.test.mjs scripts/validation-plan.test.mjs scripts/cocos-validation.test.mjs scripts/workspace-bootstrap.test.mjs
         env:
           PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: false
-  quality:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        stage: [core, castle, standalone]
     needs: [plan, kart, validation-tools]
     if: >-
       always() && !cancelled() && needs.plan.result == 'success' && needs.validation-tools.result == 'success' &&
       ((needs.plan.outputs.cocos == 'true' && needs.kart.result == 'success') ||
        (needs.plan.outputs.cocos == 'false' && needs.kart.result == 'skipped'))
     runs-on: ubuntu-latest
-    # Full validation includes serial browser smoke tests after builds and rule tests.
+    # Isolated runners retain the same source/build inputs without sharing mutable fixtures.
     timeout-minutes: 90
     env:
       MINIGAME_RELEASE_GATES: ${{ vars.MINIGAME_RELEASE_GATES || '0' }}
@@ -190,30 +198,44 @@ jobs:
         run: pnpm check:games
 
       - name: Test game registration checker
+        if: matrix.stage == 'core'
         run: pnpm test:game-config
 
       - name: Test CI optimization gates
-        run: node --test scripts/pages-regression-shards.test.mjs scripts/reuse-cocos-artifacts.test.mjs scripts/prune-turbo-cache.test.mjs scripts/prune-actions-cache.test.mjs scripts/validate-push.test.mjs scripts/validation-plan.test.mjs scripts/validate-tree.test.mjs scripts/ci-validation.test.mjs scripts/cocos-validation.test.mjs scripts/workspace-bootstrap.test.mjs apps/shell-web/scripts/standalone-game-entry.test.mjs
+        if: matrix.stage == 'core'
+        run: node --test scripts/pages-regression-shards.test.mjs scripts/reuse-cocos-artifacts.test.mjs scripts/prune-turbo-cache.test.mjs scripts/prune-actions-cache.test.mjs scripts/validate-push.test.mjs scripts/validation-plan.test.mjs scripts/validate-tree.test.mjs scripts/ci-validation.test.mjs scripts/ci-stages.test.mjs scripts/ci-baseline.test.mjs scripts/cocos-validation.test.mjs scripts/workspace-bootstrap.test.mjs apps/shell-web/scripts/standalone-game-entry.test.mjs
 
       - name: Test local format hooks
+        if: matrix.stage == 'core'
         run: pnpm test:hooks
 
       - name: Test Pages environment assembly
+        if: matrix.stage == 'core'
         run: python3 scripts/test-pages-deploy.py
 
       - name: Test dependency checker
+        if: matrix.stage == 'core'
         run: pnpm test:boundaries
 
       - name: Validate shared change risk and affected packages
         env:
           GH_TOKEN: ${{ github.token }}
           VALIDATION_RISK_PLAN: true
-        run: node scripts/ci-validation.mjs
+        run: node scripts/ci-validation.mjs --stage ${{ matrix.stage }}
+
+      - name: Record completed phase for this exact plan
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-stage-${{ github.sha }}-${{ matrix.stage }}
+          path: .scratch/ci-validation/${{ matrix.stage }}.json
+          include-hidden-files: true
+          if-no-files-found: error
 
       - name: Bound local Turborepo task cache
+        if: matrix.stage == 'core'
         run: node scripts/prune-turbo-cache.mjs
       - name: Save bounded Turborepo cache
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') && steps.turbo.outputs.cache-hit != 'true'
+        if: matrix.stage == 'core' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') && steps.turbo.outputs.cache-hit != 'true'
         uses: actions/cache/save@v5
         with:
           path: |
@@ -221,3 +243,25 @@ jobs:
             .turbo/cache/*-meta.json
             .turbo/cache/*-manifest.json
           key: ${{ steps.turbo.outputs.cache-primary-key }}
+
+  quality:
+    needs: [plan, kart, validation-tools, validate]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CI_VALIDATION_PLAN: ${{ needs.plan.outputs.plan }}
+      TURBO_SCM_HEAD: ${{ github.sha }}
+      CI_NEEDS_JSON: ${{ toJSON(needs) }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: ci-stage-${{ github.sha }}-*
+          path: .scratch/ci-validation
+          merge-multiple: true
+      - name: Require every phase and identical validated scope
+        run: node scripts/ci-stages.mjs

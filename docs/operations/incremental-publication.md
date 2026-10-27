@@ -18,7 +18,9 @@ Optional, separately approved competition HTTPS ingress uses the exact `competit
 
 2026-10-24 全屏移除由 `fullscreen-removal-scope.mjs` 绑定已审阅的共享文件前后摘要，以及控制器／副本／旧工具的原始摘要和候选树不存在证明；游戏删除保留真实游戏消费者，公共控制器与命令调整保留游戏和 Shell 消费者。Pages 范围规划与候选执行共用这套分类及候选树查询，避免规划通过后执行阶段遗漏证明。未知字节、复活文件和重命名仍阻断；`test:no-fullscreen` 检查普通 Web 入口不再提供全屏调用。
 
-CI 的 `quality` 总时限为 90 分钟，容纳软件渲染环境下串行执行的嵌入/触屏、四尺寸 Cocos 与完整关卡、独立入口检查；命令、断言及各项等待上限不变。`ebc1536a` 的四尺寸及关卡检查已通过，但末尾独立入口检查触发原 60 分钟总时限。仅此次 60→90 的准确文件摘要可在未安装 YAML 依赖的规划任务中按配置变更处理；累计 Creator 接线仍保留 Castle 消费者，额外修改仍执行原有验证规则。
+CI 将同一冻结计划分为三个隔离 runner：`core` 保留构建、静态／规则、Shell 全部选中游戏嵌入、其他游戏专项、Tap 恢复、原生及后台／管理台检查；`castle` 仅承担原 Castle 四尺寸专项；`standalone` 承担末尾所有选中游戏桌面／触屏独立入口及 builtin smoke。各阶段仍走候选真实依赖构建及 Creator 制品校验，不共享会被 fixture 改写的输出，每个阶段上限 90 分钟。最终 `quality` 无条件汇总必要 jobs 和三份当前 run 的成功凭据，核对同一 SHA、base、冻结计划及实际 `incrementalScope` 摘要；失败、取消、缺失、重复、未知阶段及意外跳过均不能通过。无增量 base 时，core 继续执行原五项 aggregate：`test`、`test:contract`、`test:integration`、`test:dialogs`、`smoke`，其他阶段明确委托给 core。本地未指定阶段的 `validate:candidate`／`validateTree` 路径保持原完整串行顺序。
+
+CI 的 dev push 基线由 `ci-baseline.mjs` 查询本仓库 `ci.yml` 最新成功 dev push（固定 workflow、branch=dev、event=push、status=success），核对仓库、40 位 SHA、Git 对象存在及祖先关系后，通过既有 `PAGES_VALIDATED_BASE` 注入共享 selector。首次无记录、API 失败或身份／SHA 不符直接阻断，不退回 Pages 或空 diff；其他分支和 PR 保留原比较方式，Pages 本身仍使用成功 Pages 基线。2026-10-27 的串行超时修复需从最后成功主 CI `64aa76f4baa0949a1e3eddf40a6c28bcc45a5b8a` 累计验证；已有成功 Pages 不会推进主 CI 基线。推送最终候选后，核对 plan 的 base/head、三个阶段及 `quality` 全部成功，并将运行 URL 与最终 SHA 一起留证。
 
 未显式执行时没有本地候选校验通过记录，远端 CI/Pages 仍可能失败。正式发布的候选验证及部署验收继续按本文执行；不能把普通推送当作验证通过。
 

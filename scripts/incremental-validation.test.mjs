@@ -1483,3 +1483,24 @@ test('every actual chess H5 or shared Canvas consumer retains the standalone bui
   ])
     assert.equal(select(file).xiangqi_build_checks, false, file);
 });
+
+test('CI phase and baseline helpers are exact validation-tool paths; unknown siblings stay blocked', () => {
+  for (const file of [
+    'scripts/ci-baseline.mjs',
+    'scripts/ci-baseline.test.mjs',
+    'scripts/ci-stages.mjs',
+    'scripts/ci-stages.test.mjs',
+  ]) {
+    const actual = plan([file]);
+    assert.equal(actual.validation_tools, true);
+    assert.equal(actual.browser, false);
+    assert.deepEqual(actual.browser_ids, []);
+  }
+  for (const file of [
+    'scripts/ci-baseline-extra.mjs',
+    'scripts/ci-stages-extra.mjs',
+    'scripts/ci-baseline.unknown.mjs',
+    'scripts/ci-stages.unknown.mjs',
+  ])
+    assert.throws(() => plan([file]), /Incremental scope undefined/);
+});

@@ -426,7 +426,26 @@ export function runNineNativeChecks({
   }
 }
 
-export function runIncrementalToolChecks({ plan, packages, root, env, execute = run }) {
+export function runCastleBrowserCheck({ plan, root, env, execute = run }) {
+  if (plan.browser && plan.browser_ids?.includes('castle-cannon'))
+    execute(
+      process.execPath,
+      ['games/local/game-castle-cannon/scripts/cocos-smoke.mjs'],
+      root,
+      env,
+      'logged',
+    );
+}
+
+export function runIncrementalToolChecks({
+  plan,
+  packages,
+  root,
+  env,
+  execute = run,
+  stage = 'all',
+}) {
+  assert(['all', 'core'].includes(stage), 'Unknown tool validation stage');
   if (plan.platform_process_checks)
     execute(process.execPath, ['--test', 'scripts/platform-process.test.mjs'], root, env, 'logged');
   if (plan.game_config_checks)
@@ -674,14 +693,7 @@ export function runIncrementalToolChecks({ plan, packages, root, env, execute = 
   }
   if (plan.browser && plan.browser_ids?.includes('ashfall-front'))
     execute(process.execPath, ['games/local/ashfall-front/tests/browser.mjs'], root, env, 'logged');
-  if (plan.browser && plan.browser_ids?.includes('castle-cannon'))
-    execute(
-      process.execPath,
-      ['games/local/game-castle-cannon/scripts/cocos-smoke.mjs'],
-      root,
-      env,
-      'logged',
-    );
+  if (stage === 'all') runCastleBrowserCheck({ plan, root, env, execute });
   if (plan.safe_area_checks) {
     execute(
       process.execPath,
@@ -914,10 +926,14 @@ export async function validateTree({
   env = process.env,
   execute = run,
   deferIdenticalRulesToAggregate = false,
+  stage = 'all',
   incremental = false,
   prepareBrowser = () => {},
   selectScope: selectValidationScope = selectScope,
 }) {
+  assert(['all', 'core', 'castle', 'standalone'].includes(stage), 'Unknown tree validation stage');
+  assert(stage === 'all' || incremental, 'Split tree validation requires an incremental scope');
+  const core = stage === 'all' || stage === 'core';
   const clean = { ...cleanGitEnv(env), PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN: 'false' };
   console.log(
     `Native platform publication gates: ${nativeReleaseGatesEnabled(clean) ? 'enabled' : 'deferred (Web validation remains required)'}`,
@@ -935,7 +951,7 @@ export async function validateTree({
         .split('\0')
         .filter(Boolean);
   // Formatting has no browser/build dependencies and is checked even for docs.
-  if (incremental) {
+  if (core && incremental) {
     const files = [];
     for (const file of paths)
       if ((await stat(path.join(root, file)).catch(() => null))?.isFile()) files.push(file);
@@ -947,7 +963,7 @@ export async function validateTree({
         root,
         clean,
       );
-  } else execute(pnpm, ['format:check'], root, clean);
+  } else if (core) execute(pnpm, ['format:check'], root, clean);
   execute(pnpm, ['check:games'], root, clean);
   const sourcePaths = paths.filter((file) => !isDocumentation(file));
   if (!sourcePaths.length)
@@ -1033,16 +1049,23 @@ export async function validateTree({
     : null;
   if (incrementalScope) console.log(`Incremental scope: ${JSON.stringify(incrementalScope)}`);
   if (
-    incrementalScope?.browser ||
-    incrementalScope?.admin_console_checks ||
-    incrementalScope?.tap_services_checks ||
-    incrementalScope?.submodule_dialog_ids?.length
+    !core &&
+    (!incrementalScope.browser ||
+      (stage === 'castle' && !incrementalScope.browser_ids.includes('castle-cannon')))
+  )
+    return incrementalScope;
+  if (
+    core &&
+    (incrementalScope?.browser ||
+      incrementalScope?.admin_console_checks ||
+      incrementalScope?.tap_services_checks ||
+      incrementalScope?.submodule_dialog_ids?.length)
   ) {
     prepareBrowser();
     for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
       if (env[key]) clean[key] = env[key];
   }
-  if (incrementalScope?.pages_deploy)
+  if (core && incrementalScope?.pages_deploy)
     execute(
       process.platform === 'win32' ? 'python' : 'python3',
       ['scripts/test-pages-deploy.py'],
@@ -1050,7 +1073,7 @@ export async function validateTree({
       clean,
       'logged',
     );
-  if (incrementalScope?.validation_tools) {
+  if (core && incrementalScope?.validation_tools) {
     if (sourcePaths.some((file) => workspaceBoundaryScopePaths.includes(file)))
       execute(pnpm, ['test:boundaries'], root, clean, 'logged');
     execute(pnpm, ['test:validation'], root, clean, 'logged');
@@ -1065,6 +1088,8 @@ export async function validateTree({
         'scripts/nine-lock-scope.test.mjs',
         'scripts/publication-scopes.test.mjs',
         'scripts/night-runtime-scope.test.mjs',
+        'scripts/ci-baseline.test.mjs',
+        'scripts/ci-stages.test.mjs',
         'scripts/game-rename-scope.test.mjs',
         'scripts/vite-patch-scope.test.mjs',
         'scripts/prune-turbo-cache.test.mjs',
@@ -1190,6 +1215,16 @@ export async function validateTree({
       root,
       clean,
     );
+  if (!core) {
+    if (stage === 'castle') {
+      prepareBrowser();
+      for (const key of ['CHROMIUM_PATH', 'PLAYWRIGHT_EXECUTABLE_PATH'])
+        if (env[key]) clean[key] = env[key];
+      runCastleBrowserCheck({ plan: incrementalScope, root, env: clean, execute });
+    }
+    // Standalone uses these same built prerequisites in ci-validation.
+    return incrementalScope;
+  }
   for (const pkg of shellContractTargets(packages, consumerPaths, full)) {
     execute(
       process.execPath,
@@ -1210,7 +1245,14 @@ export async function validateTree({
     execute(pnpm, ['check:dependencies'], root, clean);
     execute(pnpm, ['test:game-config'], root, clean);
     if (incrementalScope)
-      runIncrementalToolChecks({ plan: incrementalScope, packages, root, env: clean, execute });
+      runIncrementalToolChecks({
+        plan: incrementalScope,
+        packages,
+        root,
+        env: clean,
+        execute,
+        stage,
+      });
     return incrementalScope || plan;
   }
   for (const task of ['typecheck', 'lint']) {
@@ -1269,7 +1311,14 @@ export async function validateTree({
       },
     });
   if (incrementalScope)
-    runIncrementalToolChecks({ plan: incrementalScope, packages, root, env: clean, execute });
+    runIncrementalToolChecks({
+      plan: incrementalScope,
+      packages,
+      root,
+      env: clean,
+      execute,
+      stage,
+    });
   return incrementalScope || plan;
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

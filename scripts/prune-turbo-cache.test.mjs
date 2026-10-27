@@ -53,12 +53,14 @@ test('every Turbo writer saves only bounded task entries after a successful prun
         assert(restore.with.key.includes('-build-'));
         continue;
       }
-      assert(['quality', 'build'].includes(id));
+      assert.equal(id, name === 'ci.yml' ? 'validate' : 'build');
+      assert.equal(steps[prune]?.if, name === 'ci.yml' ? "matrix.stage == 'core'" : undefined);
       assert(prune >= 0 && save > prune);
       assert.equal(steps[save].uses, 'actions/cache/save@v5');
       assert.equal(
         steps[save].if,
-        "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') && steps.turbo.outputs.cache-hit != 'true'",
+        (name === 'ci.yml' ? "matrix.stage == 'core' && " : '') +
+          "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/test') && steps.turbo.outputs.cache-hit != 'true'",
       );
       assert(!steps[save].with.path.includes('cookies'));
       assert(steps[save].with.path.includes('.turbo/cache/*.tar.zst'));

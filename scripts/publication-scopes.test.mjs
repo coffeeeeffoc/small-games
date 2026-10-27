@@ -6089,3 +6089,52 @@ test('Chase browser helper changes retain the game and Shell consumers', () => {
   ]);
   assert.equal(reviewedSharedFileScopes({ ...options, changedPaths: [file + '.unknown'] }).size, 0);
 });
+
+test('CI stage workflow proof binds the entire immediate and cumulative baseline without YAML loading', async () => {
+  const { ciStageWorkflowScope, reviewedSharedFileScopes } = await import(
+    './publication-scopes.mjs'
+  );
+  const file = '.github/workflows/ci.yml';
+  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+    '\r\n',
+    '\n',
+  );
+  for (const base of [
+    '64aa76f4baa0949a1e3eddf40a6c28bcc45a5b8a',
+    '6dc7585f0429c6dc3f15ac28d951ccfa60999700',
+  ]) {
+    const before = execFileSync('git', ['show', base + ':' + file], { encoding: 'utf8' });
+    assert(ciStageWorkflowScope(before, after));
+    assert.deepEqual(
+      reviewedSharedFileScopes({
+        changedPaths: [file],
+        readBase: () => before,
+        readHead: () => after,
+        games: [],
+        packages: [],
+      }).get(file),
+      [],
+    );
+    for (const modified of [
+      after + '\n',
+      after.replace('contents: read', 'contents: write'),
+      after.replace('[core, castle, standalone]', '[core, standalone]'),
+      after.replace('timeout-minutes: 90', 'timeout-minutes: 180'),
+      after.replace('if: always()', 'if: success()'),
+    ]) {
+      assert(!ciStageWorkflowScope(before, modified));
+      assert.equal(
+        reviewedSharedFileScopes({
+          changedPaths: [file],
+          readBase: () => before,
+          readHead: () => modified,
+          games: [],
+          packages: [],
+        }).size,
+        0,
+      );
+    }
+    assert(!ciStageWorkflowScope(before + '\n', after));
+  }
+  assert(!ciStageWorkflowScope(undefined, after));
+});
