@@ -319,10 +319,25 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(canvas).toBeVisible();
     const snapshot = () => canvas.evaluate(() => globalThis.tianxiaSnapshot());
     await expect
-      .poll(async () => {
-        const state = await snapshot();
-        return state.ready && state.artReady;
-      })
+      .poll(() =>
+        canvas.evaluate(() => {
+          const state = globalThis.tianxiaSnapshot();
+          const { layout, cityPoints } = globalThis.Tianxia;
+          // Ready can precede the first projection after the prepare-to-battle resize.
+          return !!(
+            state.ready &&
+            state.artReady &&
+            layout &&
+            state.cities?.length &&
+            state.cities.every((city) => {
+              const point = cityPoints?.[city.id];
+              const x = layout.left + (layout.rotated ? city.y : city.x) * layout.scale;
+              const y = layout.top + (layout.rotated ? 390 - city.x : city.y) * layout.scale;
+              return point && Math.hypot(point.x - x, point.y - y) < 1;
+            })
+          );
+        }),
+      )
       .toBe(true);
     const state = await snapshot();
     const city = state.cities.find((entry) => entry.owner === 0 && entry.client);
