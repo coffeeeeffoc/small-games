@@ -291,7 +291,7 @@ export class Overwatch extends Component {
       }
       else if (!completed) this.hud.supplyMessage = this.hud.t('未领取支援，可重试或继续战斗', 'NO REWARD · RETRY OR RESUME');
     }
-    else if (completed) this.resumeBattle();
+    else if (completed) this.resumeBattle(false);
     this.hud.modalKey = 'rebuild';
   }
   openSupply() {
@@ -340,13 +340,17 @@ export class Overwatch extends Component {
     if (reward === 'restock') this.hud.toast = this.hud.t('弹药已补充：榴弹 +60 · 重炮 +24 · 燃烧 +6', 'RESTOCKED: HE +60 · HEAVY +24 · FIRE +6');
     this.hud.supplyOpen = false;
     this.pause('supply', false);
-    this.resumeBattle();
+    this.resumeBattle(false);
   }
-  resumeBattle() {
+  resumeBattle(countdown = true) {
     if (this.sim.duelMode) { this.sim.pauses.clear(); this.clear(); return; }
     this.clear();
     this.accumulator = 0;
-    this.sim.beginResumeCountdown();
+    if (countdown) this.sim.beginResumeCountdown();
+    else {
+      this.pause('countdown', false);
+      this.pause('manual', false);
+    }
   }
   syncMissionAddress() {
     if (!sys.isBrowser) return;

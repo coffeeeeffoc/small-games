@@ -153,21 +153,11 @@ try {
         const claimed = await snapshot(frame);
         assert.equal(claimed.homingAmmo, initial.homingAmmo + 2); assert.equal(claimed.pendingSupply, false);
         assert.equal(claimed.buff, null); assert.equal(claimed.fired, initial.fired);
-        assert(claimed.resumeCountdown > 2 && claimed.resumeCountdown <= 3);
-        await capture('countdown');
-        const digits = new Set([Math.ceil(claimed.resumeCountdown)]), deadline = Date.now() + 12000;
-        let current = claimed;
-        while (current.resumeCountdown > 0 && Date.now() < deadline) {
-          digits.add(Math.ceil(current.resumeCountdown));
-          assert.deepEqual(combat(current), combat(claimed), 'countdown never advances combat');
-          assert.deepEqual(current.held, []);
-          await page.waitForTimeout(100); current = await snapshot(frame);
-        }
-        assert.deepEqual([...digits], [3, 2, 1]); assert.equal(current.resumeCountdown, 0);
-        assert.deepEqual(current.pauses, []);
+        assert.equal(claimed.resumeCountdown, 0); assert.equal(claimed.modal, '');
+        assert.deepEqual(claimed.pauses, []); assert.deepEqual(claimed.held, []);
+        await capture('immediate-reward');
         await expect.poll(async () => (await snapshot(frame)).time).toBeGreaterThan(claimed.time);
-        result.countdownDigits = [...digits];
-        result.checks.push('one choice grants exactly two rounds without firing; 3/2/1 freezes combat then resumes');
+        result.checks.push('one choice grants exactly two rounds without firing; battle resumes immediately without countdown');
         await press('pause'); await frozen('post-claim pause remains usable'); await resume();
         assert.equal((await snapshot(frame)).homingAmmo, initial.homingAmmo + 2);
         result.checks.push('post-claim pause/resume preserves inventory');

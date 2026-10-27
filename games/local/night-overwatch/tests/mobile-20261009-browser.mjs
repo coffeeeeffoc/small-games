@@ -70,13 +70,12 @@ try {
     await press('reward:ammo'); await layout(); await capture('reward-choice'); await press('supplyWatch');
     await page.waitForFunction(() => typeof globalThis.__testAdClose === 'function');
     await page.evaluate(() => globalThis.__testAdClose(true));
-    await page.waitForFunction(() => __night.snapshot().resumeCountdown > 0);
-    const countdown = await snapshot(page);
-    assert(countdown.resumeCountdown > 2 && countdown.resumeCountdown <= 3);
-    assert(countdown.homingSelected); assert.equal(countdown.homingAmmo, 2);
-    assert.equal(countdown.pendingSupply, false);
-    await page.waitForTimeout(250); assert.equal((await snapshot(page)).time, countdown.time);
-    await page.waitForFunction(() => __night.snapshot().resumeCountdown === 0 && !__night.snapshot().pauses.length);
+    await page.waitForFunction(() => !__night.snapshot().advert);
+    const claimed = await snapshot(page);
+    assert.equal(claimed.resumeCountdown, 0); assert.deepEqual(claimed.pauses, []); assert.equal(claimed.modal, '');
+    assert(claimed.homingSelected); assert.equal(claimed.homingAmmo, 2);
+    assert.equal(claimed.pendingSupply, false);
+    await page.waitForFunction(time => __night.snapshot().time > time, claimed.time, { timeout: 2000 });
     const target = (await snapshot(page)).units.find(u => !u.friendly && u.kind === 'light');
     const map = (await snapshot(page)).ui.minimap;
     await tap(map.x + 8 + (target.x + MAP.halfWidth) / (2 * MAP.halfWidth) * (map.w - 16),

@@ -33,9 +33,10 @@ try {
     await hit('start');
     assert(!tracking(await snapshot(page)).bold);
     await hit('homing'); await hit('reward:tracking'); await hit('supplyWatch');
-    await page.waitForFunction(() => __night.snapshot().resumeCountdown > 0);
-    assert.equal((await snapshot(page)).buff.remaining, 60);
-    await page.waitForFunction(() => !__night.snapshot().pauses.length);
+    await page.waitForFunction(() => __night.snapshot().buff?.kind === 'tracking');
+    const claimed = await snapshot(page);
+    assert.equal(claimed.resumeCountdown, 0); assert.deepEqual(claimed.pauses, []); assert.equal(claimed.modal, '');
+    assert(claimed.buff.remaining > 59 && claimed.buff.remaining <= 60);
     let active = await capture('tracking');
     assert.equal(active.buff.kind, 'tracking'); assert(tracking(active).bold);
     assert.equal(tracking(active).text, `追踪\n${Math.ceil(active.buff.remaining)}秒`);
