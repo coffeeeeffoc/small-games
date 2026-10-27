@@ -329,10 +329,15 @@ export async function auditGameConfig(root = ROOT, { artifacts = false, meta = t
       const buildsSources =
         /\bpnpm (?:build:|games:(?:build|test)|android:|ios:)/.test(jobRun) ||
         /\bpnpm --filter \S+ (?:build|test|typecheck)\b/.test(jobRun) ||
-        executed(jobRun, 'node scripts/run-pages-game-tests.mjs');
+        executed(jobRun, 'node scripts/run-pages-game-tests.mjs') ||
+        executed(jobRun, 'node scripts/ci-validation.mjs');
       // Scheduling and source-verified artifact transfer do not compile games.
       const coordinatesOnly =
         (executed(jobRun, 'node scripts/pages-test-scope.mjs') && !buildsSources) ||
+        (name === 'ci' &&
+          jobLocation === location &&
+          ((id === 'plan' && executed(jobRun, 'node scripts/ci-baseline.mjs')) ||
+            (id === 'quality' && executed(jobRun, 'node scripts/ci-stages.mjs')))) ||
         (jobLocation === '.github/workflows/pages-validate.yml' &&
           id === 'plan' &&
           executed(jobRun, 'node scripts/pages-regression-shards.mjs')) ||

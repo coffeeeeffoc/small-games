@@ -767,17 +767,43 @@ test('requires both split Pages gates or the complete legacy browser command', a
 test('coordination jobs gain normal registration gates if they start building sources', async (t) => {
   const f = await fixture(t);
   for (const [location, id] of [
+    ['.github/workflows/ci.yml', 'plan'],
+    ['.github/workflows/ci.yml', 'quality'],
     ['.github/workflows/pages-validate.yml', 'plan'],
     ['.github/workflows/carding-car.yml', 'reuse'],
   ]) {
     const original = await f.read(location);
-    for (const command of ['pnpm build:pages', 'pnpm --filter @fixture/mini-front build']) {
+    for (const command of [
+      'pnpm build:pages',
+      'pnpm --filter @fixture/mini-front build',
+      'node scripts/ci-validation.mjs --stage core',
+    ]) {
       const workflow = yaml.load(original);
       workflow.jobs[id].steps.push({ run: command });
       await f.write(location, yaml.dump(workflow));
       requireCodes(await auditGameConfig(f.root), ['workflow-gate']);
     }
     await f.write(location, original);
+  }
+});
+
+test('CI validation matrix retains recursive checkout and registration gates', async (t) => {
+  const f = await fixture(t);
+  const location = '.github/workflows/ci.yml';
+  const source = await f.read(location);
+  assert.deepEqual((await auditGameConfig(f.root)).errors, []);
+  for (const mutate of [
+    (steps) => {
+      delete steps.find((step) => /actions\/checkout@/.test(step.uses || '')).with.submodules;
+    },
+    (steps) => {
+      steps.find((step) => step.run === 'pnpm check:games').run = 'echo skipped';
+    },
+  ]) {
+    const workflow = yaml.load(source);
+    mutate(workflow.jobs.validate.steps);
+    await f.write(location, yaml.dump(workflow));
+    requireCodes(await auditGameConfig(f.root), ['workflow-gate']);
   }
 });
 
