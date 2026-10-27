@@ -34,6 +34,12 @@
 
 推送前使用最终已提交SHA执行 `ASHFALL_FRONT_PREBUILT_DIR=/tmp/ashfall-release-artifact pnpm validate:candidate --base <远端准确SHA> --head <最终提交SHA>`，工具链固定Node24.21.0/pnpm12.6.0，实际完整日志保存在工作区 `outputs/ashfall-front/final-candidate.log`。只有命令输出 `CANDIDATE_VALIDATED` 后才将该SHA非强制推送至dev；远端如推进则正常合并并重新验证。最终SHA和线上CI/Pages状态在交付时核对，不以草稿PR构建代替dev发布成功。
 
+## 远端CI归中检查修正
+
+F3提交的本地准确候选校验通过后，[远端CI](https://github.com/coffeeeeffoc/small-games/actions/runs/40529680046)在 `browser.mjs` 的“固定等待250毫秒后摇杆归中”断言失败，日志未包含当时的速度/冲刺快照。规则在dashTime大于0时持续设置冲刺速度，Creator每帧最多累计0.1秒模拟时间；因此固定墙钟等待并不能保证冲刺模拟已结束。
+
+将该断言改为最多5秒轮询同一 `abs(vx) < 1` 要求，保留失败边界并让失败日志输出实际速度；没有修改移动规则、跳过断言或扩大速度容差。正常与30倍CPU节流的真实Creator诊断均观测到归中后速度为0，见[诊断快照](centering-check.json)；这两次诊断未复现原固定等待失败，不把推断当作已捕获的CI失败状态。修正后从远端F3重新执行准确候选校验，仍使用同一源码指纹和真实制品，再非强制推送新的测试修复提交。
+
 ## 平台边界
 
 TapTap App998795正式广告沿用关闭配置；完成/取消/失败测试使用隔离SDK，不代表正式库存。未验物理手机、Safari、TapTap真宿主/真实广告、原生包、后台上传与审核。本次为dev分支代码更新，素材归档不代表提交上架。
