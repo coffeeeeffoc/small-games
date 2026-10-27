@@ -1007,7 +1007,10 @@ def repair_application(release, manifest, target, target_manifest):
     pg = source['inventory']['postgres']['id']
     require(database_floor(pg) == 'schema3', 'DATABASE_OUTCOME_UNKNOWN')
     verified_database(domain, pg, manifest, precommit['controlContract'])
-    sessions = private_json(PRIVATE / target.name / 'player-sessions-complete.json')
+    sessions_file = PRIVATE / target.name / 'player-sessions-complete.json'
+    private_metadata(sessions_file)
+    # Migration proofs include full before/after snapshots, beyond the small-config limit.
+    sessions = json_value(sessions_file.read_bytes())
     require(sessions.get('sourceSHA') == target_manifest['sourceSHA']
             and sessions.get('migrationSHA256') == target_manifest['files']['migrations/014-player-sessions.sql']
             and sessions.get('metadataSHA256') == domain.player_session_metadata(

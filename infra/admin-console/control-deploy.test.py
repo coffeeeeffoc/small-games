@@ -616,6 +616,21 @@ class ApplicationRepair(unittest.TestCase):
             self.run_repair(f)
             self.assertTrue(f.live['nginx']['running'])
 
+    def test_full_session_snapshot_exceeds_config_limit_but_keeps_private_file_guard(self):
+        for unsafe_mode in (False, True):
+            with self.subTest(unsafe_mode=unsafe_mode), self.fixture() as f:
+                file = f.private / f.target.name / 'player-sessions-complete.json'
+                proof = control.private_json(file)
+                proof['before'] = {'snapshot': 'a' * 300000}
+                control.write_private(file, proof, True)
+                self.assertGreater(file.stat().st_size, 262144)
+                if unsafe_mode:
+                    file.chmod(0o644)
+                    with self.assertRaisesRegex(control.Stopped, 'PRIVATE_FILE'): self.run_repair(f)
+                    f.mocks['activate_services'].assert_not_called()
+                else:
+                    self.assertTrue(self.run_repair(f)['ok'])
+
     def test_retry_rejects_changed_evidence_and_game_identity(self):
         for failure in ('source', 'binding', 'application-manifest', 'runtime', 'management'):
             with self.subTest(failure=failure), self.fixture() as f:
