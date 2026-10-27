@@ -810,6 +810,10 @@ function drawSoldier(
     ],
     scarf,
   );
+  if (actor.bodyOnly) {
+    ctx.restore();
+    return;
+  }
   const angle = Number.isFinite(actor.aimAngle) ? actor.aimAngle : facing > 0 ? 0 : Math.PI;
   const localAngle = Math.atan2(Math.sin(angle), Math.cos(angle) * facing);
   ctx.save();
@@ -1700,6 +1704,7 @@ export function bakeArt() {
           w: boss ? 112 : 40,
           h: boss ? 140 : 62,
           facing: 1,
+          bodyOnly: kind === 'player',
           vx: frame ? 120 : 0,
           onGround: true,
           hp: 100,

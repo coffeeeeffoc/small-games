@@ -11,9 +11,17 @@ test('SVG checkout line endings are normalized while source and binary changes i
   for (const folder of ['assets', 'scripts', 'settings', 'startup', 'src'])
     await mkdir(path.join(directory, folder));
   for (const file of [
-    'package.json', 'tsconfig.json', 'src/core.mjs', 'src/levels.mjs',
-    'src/progress.mjs', 'src/host.mjs', 'src/rewards.mjs', 'src/render.mjs',
-  ]) await writeFile(path.join(directory, file), '{}\n');
+    'package.json',
+    'tsconfig.json',
+    'src/core.mjs',
+    'src/levels.mjs',
+    'src/progress.mjs',
+    'src/host.mjs',
+    'src/rewards.mjs',
+    'src/weapons.mjs',
+    'src/render.mjs',
+  ])
+    await writeFile(path.join(directory, file), '{}\n');
 
   const svg = path.join(directory, 'assets/emblem.svg');
   await writeFile(svg, '<svg>\n</svg>\n');

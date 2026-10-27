@@ -91,7 +91,7 @@ export async function prepare() {
     await writeFile(path.join(root, 'assets/resources', name + '.wav'), bytes);
   }
   await mkdir(path.join(root, 'assets/scripts/core'), { recursive: true });
-  for (const name of ['core', 'levels', 'progress', 'host', 'rewards']) {
+  for (const name of ['core', 'levels', 'progress', 'host', 'rewards', 'weapons']) {
     const source = await readFile(path.join(root, 'src', name + '.mjs'), 'utf8');
     await writeFile(
       path.join(root, 'assets/scripts/core', name + '.js'),
