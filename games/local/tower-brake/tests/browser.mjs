@@ -83,6 +83,9 @@ await context.route(isCompetitionRequest, async (route) => {
 });
 const page = await context.newPage(),
   cdp = await context.newCDPSession(page);
+// Protocol latency must not advance a floor between sampling and the real touch gesture.
+await page.clock.install();
+await page.clock.pauseAt(new Date());
 const videoStart = performance.now();
 report.videoCues = [];
 const errors = new Set(),
@@ -125,13 +128,24 @@ const snap = async () => {
   }
   return s;
 };
-const waitScreen = (screen) =>
-  page.waitForFunction((value) => globalThis.__tower?.snapshot().screen === value, screen);
+async function waitSnapshot(predicate, description) {
+  const deadline = performance.now() + 30_000;
+  while (performance.now() < deadline) {
+    if (predicate(await snap())) return;
+    await page.clock.runFor(100);
+    await page.waitForTimeout(20); // Asset loading and API responses use real I/O.
+  }
+  throw new Error('Timed out waiting for ' + description);
+}
+async function waitScreen(screen) {
+  await page.clock.runFor(32); // Present Cocos nodes after an input changes the scene.
+  await waitSnapshot((s) => s?.screen === screen, screen);
+}
 let canvasGeometry;
 async function ready(query = '') {
   await page.goto(origin + '/' + query);
-  await page.waitForFunction(() => globalThis.__tower?.snapshot().assetReady);
-  await page.waitForTimeout(120);
+  await waitSnapshot((s) => s?.assetReady, 'Cocos assets');
+  await page.clock.runFor(120);
   const s = await snap();
   const box = await page.locator('#GameCanvas').boundingBox();
   assert.ok(box?.width && box?.height, 'ready canvas has a visible layout');
@@ -153,7 +167,7 @@ async function tap(id) {
   assert.ok(c, 'enabled ' + id);
   const p = await point(c.x + c.w / 2, c.y + c.h / 2);
   await page.touchscreen.tap(p.x, p.y);
-  await page.waitForTimeout(40);
+  await page.clock.runFor(40);
 }
 async function turn(angle, cancel = false) {
   if (Math.abs(angle) < 0.003) return;
@@ -170,28 +184,32 @@ async function turn(angle, cancel = false) {
     type: cancel ? 'touchCancel' : 'touchEnd',
     touchPoints: [],
   });
-  await page.waitForTimeout(20);
+  await page.clock.runFor(20);
 }
 async function shot(name) {
   const path = fileURLToPath(new URL(name + '.png', screenshots));
+  await page.clock.runFor(32);
   await page.screenshot({ path });
   report.screenshots.push(name + '.png');
   report.videoCues.push({ name, timeSeconds: (performance.now() - videoStart) / 1000 });
 }
 async function win() {
-  // Keep a real finger down while steering; restarting a gesture for every sample
-  // adds three protocol round trips and can miss a fast layer transition.
-  let x = 180;
+  // Keep a real finger down to avoid repeated gesture setup between samples.
+  let x = 180, latencyChecked = false;
   const touch = async (type) => cdp.send('Input.dispatchTouchEvent', {
     type,
     touchPoints: type === 'touchEnd' ? [] : [{ ...(await point(x, 350)), id: 1 }],
   });
   await touch('touchStart');
-  const deadline = performance.now() + 30_000;
   try {
-    for (let i = 0; i < 500 && performance.now() < deadline; i++) {
+    for (let i = 0; i < 500; i++) {
       const s = await snap();
       if (s.screen === 'result') break;
+      if (!latencyChecked && s.landing?.number === 3 && s.landing.y - s.state.y < 70) {
+        latencyChecked = true;
+        await page.waitForTimeout(600);
+        assert.deepEqual((await snap()).state, s.state, 'driver latency cannot cross a floor');
+      }
       const dx = (-(s.landing?.rotationToGap || 0) / (Math.PI * 1.7)) * 360;
       if (x + dx < 20 || x + dx > 340) {
         await touch('touchEnd');
@@ -201,12 +219,13 @@ async function win() {
       }
       x += dx;
       await touch('touchMove');
-      await page.waitForTimeout(16);
+      await page.clock.runFor(32);
     }
   } finally {
     await touch('touchEnd');
   }
   const result = await snap();
+  if (result.selected === 0) assert.ok(latencyChecked, 'first route exercises delayed input');
   assert.equal(
     result.state.status,
     'won',
@@ -214,10 +233,8 @@ async function win() {
   );
 }
 async function lose() {
-  // A frame or screenshot can cross a floor before a physical drag reaches the canvas.
   // Keep aiming at the current landing, including a second hit after a shield bounce.
-  const deadline = performance.now() + 30_000;
-  for (let attempt = 0; attempt < 500 && performance.now() < deadline; attempt++) {
+  for (let attempt = 0; attempt < 500; attempt++) {
     const s = await snap();
     if (s.screen === 'result') break;
     const l =
@@ -235,7 +252,7 @@ async function lose() {
           Math.PI,
       ) - Math.PI;
     await turn(angle);
-    await page.waitForTimeout(40);
+    await page.clock.runFor(40);
   }
   assert.equal((await snap()).screen, 'result');
   assert.equal((await snap()).state.status, 'lost');
@@ -286,7 +303,7 @@ try {
   assert.notEqual((await snap()).state.rotation, before.state.rotation);
   await tap('pause');
   const frozen = (await snap()).state;
-  await page.waitForTimeout(350);
+  await page.clock.runFor(350);
   assert.deepEqual((await snap()).state, frozen);
   await shot('05-pause-390x844');
   await tap('resume');
@@ -345,7 +362,7 @@ try {
     [26, '09b-low-rain'],
   ]) {
     await challenge(index);
-    await page.waitForTimeout(500);
+    await page.clock.runFor(500);
     await shot(name + '-390x844');
     assert.equal((await snap()).environment.from, index === 8 ? 1 : index === 18 ? 2 : 3);
     await win();
@@ -385,7 +402,7 @@ try {
   requestGate = null;
   await waitScreen('paused');
   assert.equal((await snap()).state.elapsed, 0, 'blur during connection must not start the clock');
-  await page.waitForTimeout(250);
+  await page.clock.runFor(250);
   assert.equal((await snap()).state.elapsed, 0);
   await tap('resume');
   await waitScreen('playing');
@@ -400,7 +417,7 @@ try {
   const endlessStart = await snap();
   for (let i = 0; i < 1400 && (await snap()).state.totalFloors < 80; i++) {
     await turn((await snap()).landing.rotationToGap);
-    await page.waitForTimeout(40);
+    await page.clock.runFor(40);
   }
   assert.ok((await snap()).state.totalFloors >= 80);
   assert.equal((await snap()).environment.from, 1);
