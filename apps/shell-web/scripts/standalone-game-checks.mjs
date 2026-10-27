@@ -10,6 +10,42 @@ export async function exerciseStandalone(frame, id, mobile = false) {
 }
 
 export async function assertStandaloneGameplay(frame, id, mobile = false) {
+  if (id === 'skybound-odyssey') {
+    const click = (locator) => (mobile ? locator.tap() : locator.click());
+    await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'play');
+    await expect
+      .poll(async () => Number(await frame.locator('#game').getAttribute('data-distance')))
+      .toBeGreaterThan(0);
+    const page = frame.locator('canvas').page();
+    const session = mobile ? await page.context().newCDPSession(page) : null;
+    try {
+      if (session) {
+        const box = await frame.locator('#steer-right').boundingBox();
+        await session.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }],
+        });
+      } else await page.keyboard.down('ArrowRight');
+      await expect
+        .poll(async () => Number(await frame.locator('#game').getAttribute('data-x')))
+        .toBeGreaterThan(0.1);
+    } finally {
+      if (session) {
+        await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await session.detach();
+      } else await page.keyboard.up('ArrowRight');
+    }
+    await click(frame.getByRole('button', { name: '暂停', exact: true }));
+    await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'pause');
+    await click(frame.getByRole('button', { name: '继续滑行', exact: true }));
+    await expect(frame.locator('#game')).toHaveAttribute('data-screen', 'play');
+    await click(frame.getByRole('button', { name: '暂停', exact: true }));
+    await click(
+      frame.locator('#pause-screen').getByRole('button', { name: '返回主页', exact: true }),
+    );
+    await expect(frame.locator('#start-game')).toBeVisible();
+    return;
+  }
   if (id === 'porcelain-puzzle') {
     const click = (locator) => (mobile ? locator.tap() : locator.click());
     await expect(frame.locator('body')).toHaveAttribute('data-screen', 'playing', {

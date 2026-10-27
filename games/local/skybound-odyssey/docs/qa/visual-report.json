@@ -1,0 +1,24 @@
+{
+  "environment": "Desktop Chromium, mobile viewport + native CDP multi-touch. Not a physical phone.",
+  "browser": "151.0.7922.173",
+  "checks": [
+    "Natural multi-touch completes all five scenes and all three vehicles; real canvas recording captured",
+    "New journey changes seed; endless entry starts",
+    "Explicit dev=0 disables game diagnostics",
+    "667×320 touch flow works with blocked storage",
+    "Unreadable existing storage is never overwritten by settings"
+  ],
+  "errors": [],
+  "screenshots": [],
+  "runs": [
+    {
+      "seed": 452812210,
+      "route": "wavecrest",
+      "distance": 1200,
+      "elapsed": 52.84999999999764,
+      "status": "complete",
+      "vehicle": "surf"
+    }
+  ],
+  "passed": true
+}

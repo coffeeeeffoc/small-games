@@ -1,0 +1,55 @@
+{
+  "environment": "Desktop Chromium, mobile viewport + native CDP multi-touch. Not a physical phone.",
+  "browser": "151.0.7922.173",
+  "checks": [
+    "Real multi-touch steer + brake and touchCancel release",
+    "Pause freezes simulation; blur pauses without auto-resume",
+    "Uncontrolled run fails; retry preserves seed",
+    "Portrait CSS rotation maps real touch correctly; resize preserves and pauses run",
+    "Natural touch completes first two routes; progression and refresh restore work",
+    "Natural multi-touch completes all five scenes and all three vehicles; real canvas recording captured",
+    "New journey changes seed; endless entry starts",
+    "Explicit dev=0 disables game diagnostics",
+    "667×320 touch flow works with blocked storage",
+    "Unreadable existing storage is never overwritten by settings"
+  ],
+  "errors": [],
+  "screenshots": [
+    "home-844x390.png",
+    "routes-844x390.png",
+    "help-844x390.png",
+    "settings-844x390.png",
+    "play-844x390.png",
+    "pause-844x390.png",
+    "failure-844x390.png",
+    "home-390x844.png",
+    "complete-844x390.png"
+  ],
+  "runs": [
+    {
+      "seed": 3806100481,
+      "route": "snowline",
+      "distance": 720,
+      "elapsed": 34.94999999999866,
+      "status": "complete",
+      "vehicle": "glider"
+    },
+    {
+      "seed": 477280067,
+      "route": "cloudpass",
+      "distance": 960,
+      "elapsed": 43.89999999999815,
+      "status": "complete",
+      "vehicle": "glider"
+    },
+    {
+      "seed": 1272480710,
+      "route": "wavecrest",
+      "distance": 1200,
+      "elapsed": 52.73333333333098,
+      "status": "complete",
+      "vehicle": "surf"
+    }
+  ],
+  "passed": true
+}

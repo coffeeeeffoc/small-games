@@ -1,5 +1,12 @@
 [
   {
+    "id": "skybound-odyssey",
+    "source": "games/local/skybound-odyssey",
+    "title": "无界滑行",
+    "description": "从雪山跃入云海，从古树冲向浪尖。滑板、滑翔机与冲浪板接力，在不同种子的航线里躲障碍、减速过门，失败后再闯远一点。",
+    "output": "dist"
+  },
+  {
     "id": "ashfall-front",
     "source": "games/local/ashfall-front",
     "title": "灰烬防线",

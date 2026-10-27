@@ -1,0 +1,16 @@
+{
+  "version": "0.1.0",
+  "files": {
+    "index.html": "5d8fac5e495071ca16dfbc58c3df56df718f637373767af0a27ff8af727fb075",
+    "style.css": "7c3e7f01fac2bdf7fb14559ae41e44690c50f3892500c6d5160c9d3773eb36d1",
+    "dev-mode.js": "fcc49bdcc071a234df52081bbb6f09ce0a002e4c633403cb460724c921cb4b39",
+    "src/content.mjs": "d84e7ccbade5f077094b65453f474184e7dab1dec3ed9746af665914bda2df01",
+    "src/core.mjs": "1dbe24bbc7c5bb1677099663afd6cf9da4ccc157555be93d416c718ac20b2e58",
+    "src/display.mjs": "b64e0177559a9cc144482f6bf25f6cff027db20cdc009380e25df9ccc5834dbc",
+    "src/host.mjs": "fa5e3171fd925b3ed94a217e795fce04c1314da043cb25563828cdc14fa0b06c",
+    "src/icon.svg": "c97db1900e7618cf171d251d7ed0e8764f3c4d8a2965b10bd055ad2193f594cc",
+    "src/main.mjs": "924d5c1e61b0d171d3b1efff0ff5a55d4fe3f8a061a4bcdaaef2a97ba0f1581f",
+    "src/progress.mjs": "e00a5c44633b9173587d979874b51c085c558af10e5624e811158ab36f0c3d1b",
+    "src/render.mjs": "45cf1000988674f70c38565ee1087bdbba88816b304c2d64c50993f3d4f1d17b"
+  }
+}

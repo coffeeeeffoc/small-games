@@ -1,0 +1,19 @@
+{
+  "method": "Chromium full playback to ended at 2x; contact sheets visually reviewed separately",
+  "checks": [
+    {
+      "file": "games/local/skybound-odyssey/publishing/gameplay/videos/browser-canvas-1280x720.mp4",
+      "ended": true,
+      "duration": 52.8,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "file": "games/local/skybound-odyssey/publishing/promo/videos/journey-montage-1280x720.mp4",
+      "ended": true,
+      "duration": 18,
+      "width": 1280,
+      "height": 720
+    }
+  ]
+}

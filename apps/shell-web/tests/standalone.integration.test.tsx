@@ -59,6 +59,7 @@ it.each(games)('opens standalone Game $id and removes its frame on exit', async 
       id === 'bullet-garden' ||
       id === 'homebound-station' ||
       id === 'tianxia-chalu' ||
+      id === 'skybound-odyssey' ||
       id === 'ashfall-front' ||
       id === 'carrom-club' ||
       id === 'place-and-clear' ||

@@ -36,6 +36,7 @@ it.each([
   'bullet-garden',
   'homebound-station',
   'tianxia-chalu',
+  'skybound-odyssey',
   'ashfall-front',
   'carrom-club',
   'place-and-clear',

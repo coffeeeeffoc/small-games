@@ -4,6 +4,29 @@
   "basis": "静态人工初评：逐款阅读目录登记与可用 README；本次未进行全量真机、用户留存或付费验证。潜力判断与改造排期独立；平台为推荐目标，分享/对战为适合方向，不代表渠道或功能已经上线。已落实记录只列有实现依据的改造。2026-10-13 按用户决定将追贼别撞墙归为毫无潜力并暂缓投入。",
   "games": [
     {
+      "id": "skybound-odyssey",
+      "title": "无界滑行",
+      "source": "games/local/skybound-odyssey",
+      "disposition": "potential",
+      "potential": ["potential"],
+      "platforms": ["mobile", "web"],
+      "primaryPlatform": "mobile",
+      "orientation": "landscape",
+      "genres": ["racing", "action"],
+      "opportunities": ["challenge"],
+      "schedule": "current",
+      "implementationStatus": "implemented",
+      "scheduleReason": "本次实现H5规则与手感原型，后续根据真实试玩扩展Cocos移动端版本。",
+      "strengths": ["同种子重试、变化航线与三载具衔接形成可学习的速度挑战"],
+      "weaknesses": ["目前为透视Canvas原型，体感手感和持续游玩意愿尚需手机真机与用户测试"],
+      "improvements": ["验证手机姿态与手感，再扩展移动平台和更多载具"],
+      "evidence": [
+        "games/local/skybound-odyssey/README.md",
+        "games/local/skybound-odyssey/docs/design/product.md"
+      ],
+      "delivered": ["五种场景、三载具、三航线解锁、种子重试及无尽远征的H5原型"]
+    },
+    {
       "id": "carrom-club",
       "title": "克朗棋 · Carrom Club",
       "source": "games/local/carrom-club",

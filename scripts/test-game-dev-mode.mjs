@@ -135,6 +135,7 @@ try {
           game.id === 'bullet-garden' ||
           game.id === 'homebound-station' ||
           game.id === 'tianxia-chalu' ||
+          game.id === 'skybound-odyssey' ||
           game.id === 'ashfall-front' ||
           game.id === 'carrom-club' ||
           game.id === 'place-and-clear' ||

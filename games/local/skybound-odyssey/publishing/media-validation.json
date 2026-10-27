@@ -1,0 +1,161 @@
+{
+  "date": "2026-10-28",
+  "environment": "Desktop Chromium with real CDP touch input; actual Canvas capture, not a physical phone.",
+  "files": [
+    {
+      "path": "publishing/gameplay/screenshots/cloud-1280x720.png",
+      "bytes": 136804,
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "png",
+          "width": 1280,
+          "height": 720,
+          "pix_fmt": "rgb24"
+        }
+      ],
+      "format": {
+        "size": "136804"
+      }
+    },
+    {
+      "path": "publishing/gameplay/screenshots/falls-1280x720.png",
+      "bytes": 144460,
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "png",
+          "width": 1280,
+          "height": 720,
+          "pix_fmt": "rgb24"
+        }
+      ],
+      "format": {
+        "size": "144460"
+      }
+    },
+    {
+      "path": "publishing/gameplay/screenshots/forest-1280x720.png",
+      "bytes": 134289,
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "png",
+          "width": 1280,
+          "height": 720,
+          "pix_fmt": "rgb24"
+        }
+      ],
+      "format": {
+        "size": "134289"
+      }
+    },
+    {
+      "path": "publishing/gameplay/screenshots/ocean-1280x720.png",
+      "bytes": 150563,
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "png",
+          "width": 1280,
+          "height": 720,
+          "pix_fmt": "rgb24"
+        }
+      ],
+      "format": {
+        "size": "150563"
+      }
+    },
+    {
+      "path": "publishing/gameplay/screenshots/snow-1280x720.png",
+      "bytes": 137248,
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "png",
+          "width": 1280,
+          "height": 720,
+          "pix_fmt": "rgb24"
+        }
+      ],
+      "format": {
+        "size": "137248"
+      }
+    },
+    {
+      "path": "publishing/gameplay/videos/browser-canvas-1280x720.mp4",
+      "bytes": 3484983,
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720,
+          "pix_fmt": "yuv420p"
+        }
+      ],
+      "format": {
+        "duration": "52.800000",
+        "size": "3484983"
+      }
+    },
+    {
+      "path": "publishing/icon/icon-1254.png",
+      "bytes": 1317093,
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "png",
+          "width": 1254,
+          "height": 1254,
+          "pix_fmt": "rgb24"
+        }
+      ],
+      "format": {
+        "size": "1317093"
+      }
+    },
+    {
+      "path": "publishing/promo/images/cover-1672x941.png",
+      "bytes": 1640897,
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "png",
+          "width": 1672,
+          "height": 941,
+          "pix_fmt": "rgb24"
+        }
+      ],
+      "format": {
+        "size": "1640897"
+      }
+    },
+    {
+      "path": "publishing/promo/videos/journey-montage-1280x720.mp4",
+      "bytes": 1235514,
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720,
+          "pix_fmt": "yuv420p"
+        }
+      ],
+      "format": {
+        "duration": "18.000000",
+        "size": "1235514"
+      }
+    }
+  ]
+}

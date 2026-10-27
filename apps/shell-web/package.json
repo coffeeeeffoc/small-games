@@ -71,7 +71,8 @@
     "@coffeeeeffoc/cage-rescue": "workspace:*",
     "@coffeeeeffoc/place-and-clear": "workspace:*",
     "@coffeeeeffoc/ashfall-front": "workspace:*",
-    "@coffeeeeffoc/porcelain-puzzle": "workspace:*"
+    "@coffeeeeffoc/porcelain-puzzle": "workspace:*",
+    "@coffeeeeffoc/skybound-odyssey": "workspace:*"
   },
   "devDependencies": {
     "@coffeeeeffoc/config-eslint": "workspace:*",

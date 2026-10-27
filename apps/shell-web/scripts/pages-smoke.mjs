@@ -21,6 +21,7 @@ const immersiveGame = (id) =>
     'bullet-garden',
     'homebound-station',
     'tianxia-chalu',
+    'skybound-odyssey',
     'ashfall-front',
     'carrom-club',
     'place-and-clear',
@@ -250,6 +251,7 @@ try {
         game.id === 'waterline-station' ||
         game.id === 'bullet-garden' ||
         game.id === 'tianxia-chalu' ||
+        game.id === 'skybound-odyssey' ||
         game.id === 'ashfall-front' ||
         game.id === 'cage-rescue' ||
         game.id === 'ball-roguelite' ||
