@@ -2,7 +2,7 @@
 
 # 玩具小镇视觉改版
 
-先生成 [三屏效果图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/cartoon-refresh-2026-10-05/concept.png)，再实施首页、准备页、游戏页。效果图为视觉方向参考；实现沿用现有角色与街区资产、四种玩法及真实道路图，不采用效果图中虚构的玩法名。
+先生成 [三屏效果图](https://github.com/coffeeeeffoc/small-games/blob/57f0f85a9c69231108b1a2e172cb38993206985b/games/local/cops-robbers-realtime/docs/design/cartoon-refresh-2026-10-05/concept.png)，再实施首页、准备页、游戏页。效果图为完整视觉实现与验收依据；角色与街区资产按图落实，保留四种玩法及真实道路图，不采用效果图中虚构的玩法名。
 
 - 蓝天、奶油色与糖果蓝构成主色，橙色对应小偷，薄荷绿对应地图与榜单。
 - 首页增加角色对话气泡、立体操作卡片。设置齿轮置于右上角，声音、全屏移入独立设置页。

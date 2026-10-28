@@ -1,6 +1,6 @@
 # 小城救援队场景效果图
 
-使用内置 `image_gen` 生成。效果图：[rescue-town-concept.png](./rescue-town-concept.png)。这是实现前的美术方向图，不是运行截图。实际游戏以 SVG 实现可交互道路、现场和车辆，沿用暖纸、墨绿、砖红的街区风格。
+使用内置 `image_gen` 生成。效果图：[rescue-town-concept.png](./rescue-town-concept.png)。这是实现前的美术方向图，不是运行截图。实际游戏以 SVG 实现可交互道路、现场和车辆，暖纸、墨绿、砖红街区的构图、材质与细节按本次认可效果图落实。
 
 ## 完整提示词
 

@@ -1,3 +1,5 @@
+Archived generation prompt. Earlier character/style references are evidence of that generation only; future work follows the user's latest requirements and currently approved designs.
+
 2026-10-18整改更新：以下为旧警察主题生成历史，旧成图已替换，不应作为当前提审提示词。当前保安主题提示词见 ../security-guards-2026-10-18/production-generation.txt 和 image-generation.txt。
 
 Built-in image_gen tool; no fallback CLI.

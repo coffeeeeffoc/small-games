@@ -9,23 +9,37 @@ description: >
   aspect ratio, safe area, controller/keyboard menu navigation, or wiring UI to game state.
 ---
 
-## small-games project override (local modification, 2026-10-11)
+## small-games project override (local modification, 2026-10-28)
 
 Read [project usage and constraints](../README.md) before applying this skill. The
-repository [AGENTS.md](../../../AGENTS.md), game-specific rules, and approved design
-references take precedence over the general guidance and engine examples below.
-Use the existing TypeScript/JavaScript stack and rendering APIs; translate Godot/Unity
-examples conceptually, never migrate engines or install related skills automatically.
+repository [AGENTS.md](../../../AGENTS.md) applies to every game. The user's latest
+requirements and currently approved design references take precedence over older
+game documents, prompts, existing styles, and the engine examples below.
+Use the project TypeScript/JavaScript stack and rendering APIs; translate Godot/Unity
+examples conceptually. Engine choices follow the repository development policy and user
+authorization; examples alone do not authorize migration or installing related skills.
 Mobile touch is primary: preserve approximately 44 CSS px effective targets, safe areas,
 gesture cancellation, pause/resume, and lifecycle cleanup. Keyboard/gamepad support,
 screen stacks, and event-driven HUDs are context-dependent patterns, not mandatory rewrites.
 Normal logic fixes do not require loading this skill.
 
-For UI reviews, inspect the approved phone-proportion designs and current screen flow
-first. Keep the project mobile-first, sparse, and directly playable by touch. Do not
-force desktop/TV/gamepad conventions, extra modal stacks, a global HUD architecture,
-or a new design style onto an existing game. Preserve screen transitions, safe areas,
-touch coordinate mapping, pointer cancellation, pause/resume, and cleanup on exit.
+For UI work, inspect the currently approved phone-proportion designs and screen flow
+first. When the user requests a new style, implement that style throughout the affected
+screens and states; existing art and widgets are not constraints. Preserve gameplay,
+save compatibility, safe areas, touch mapping, pointer cancellation, pause/resume, and
+cleanup while rebuilding presentation as needed. Avoid unnecessary information and
+modal stacks without discarding the reference's visual detail.
+
+Follow the [project visual acceptance policy](../../../docs/game-development.md#新样式要求与完整视觉验收).
+This project also requires visual fidelity: map each reference screen to its actual
+composition, palette and tonal balance, typography, spacing, icons, illustration,
+materials, lighting, and interaction states. Produce the assets or rendering needed
+for that result. Prototype geometry and functional completeness are not delivery
+standards. Compare reference and runtime screenshots side by side at the same viewport,
+record unresolved differences, and report visual acceptance separately from functional
+checks. Do not replace the approved reference or accept an old prototype screenshot
+as the baseline to hide a mismatch. This workflow does not require installing another
+engine skill or changing engines.
 
 # Game UI/UX
 
@@ -42,8 +56,9 @@ concrete widget API to the engine UI skill.
   can't be used with a controller, or is wired to game state by per-frame polling.
 - Use to structure screen flow (title → game → pause → settings) as a stack, not flag soup.
 
-**When _not_ to use:** for the engine's concrete UI nodes/components and styling, use
-`godot-ui-control` or Unity UI (UGUI/UI Toolkit). For _visual_ punch (button pop, damage
+For concrete UI nodes/components and styling, use the current engine's APIs and the
+project visual-fidelity workflow above; Godot/Unity examples are optional references.
+For _visual_ punch (button pop, damage
 numbers, shake) use `game-feel`. For branching conversation UI use `dialogue-systems`. For
 translating UI strings, that is localization (see `references/` and `input-systems` for
 rebinding screens). For card/board layout specifics, the `card-game` genre composes this skill.

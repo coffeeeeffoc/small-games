@@ -34,7 +34,7 @@
 
 - 已选 Cocos Creator + TypeScript，优先采用 3.8 系列并在实施时固定经渠道验证的补丁版本。React Three Fiber、Drei、Rapier、Zustand 和 Vite 不再作为游戏首版必需依赖，H5 由同一 Creator 工程导出。
 - 赛道由 spline / curve 程序化生成，不整体生成赛道模型。
-- Hyper3D / Rodin 优先用于车辆、轮胎护栏、路锥、树木、岩石、标志、看台、路灯等视觉资产。先程序化占位验证驾驶，再优先生成车辆，首批最多三次生成任务（含重试）；具体环境资产后定。
+- Hyper3D / Rodin 优先用于车辆、轮胎护栏、路锥、树木、岩石、标志、看台、路灯等视觉资产。占位仅用于内部驾驶与导入验证；车辆和环境资产按本次认可效果图补齐，交付前替换占位并逐页视觉验收，不以旧生成次数预算限制画面质量。
 - 视觉模型与碰撞体分离。碰撞体优先 Cuboid / Capsule / Cylinder，不直接拿复杂视觉模型做碰撞。
 - 美术统一为玩具比例、柔和圆润、色彩鲜明、干净有趣的 stylized arcade 风格。
 - 模块职责至少覆盖 KartController、KartPhysics、KartConfig、Track、TrackGenerator、RaceManager、LapSystem、CheckpointSystem、RankingSystem、KartAI、RacingLine、ChaseCamera、HUD；在 Creator 中实现为职责明确的 TypeScript 模块／组件，不堆进巨型入口脚本。
@@ -59,7 +59,7 @@
 2. 漂移学习门槛：容易进入、容易救回的街机漂移，技巧主要体现在入弯时机、线路与释放 Boost 的位置。
 3. AI 公平策略：相同车辆性能，以不同刹车点和线路体现水平，不随玩家排名暗改速度。
 4. 比赛节奏：三圈约三分钟，失误后容易继续，结算可立即再赛；以改善线路、圈速和名次形成重玩动机。
-5. Rodin 资产投入：先用程序化占位验证驾驶，再优先生成一辆 Kart；首批最多三次生成任务（含重试）。
+5. Rodin 资产投入：早期曾限制首批车辆生成次数；该限制不再作为交付标准。内部验证后按本次认可效果图补齐车辆与场景资产。
 
 ## 已确认的第二轮决定
 
