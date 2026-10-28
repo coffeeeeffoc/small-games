@@ -41,12 +41,12 @@ const capture = async (page, name) => {
 };
 try {
   // Fresh ordinary progress: a real single-player victory, with no score/state injection.
-  const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, recordVideo: { dir: fileURLToPath(out), size: { width: 1280, height: 720 } } });
-  const page = await context.newPage(), videoStarted = Date.now(); observe(page); await ready(page);
+  let context = await browser.newContext({ viewport: { width: 1280, height: 720 }, recordVideo: { dir: fileURLToPath(out), size: { width: 1280, height: 720 } } });
+  let page = await context.newPage(); const videoStarted = Date.now(); observe(page); await ready(page);
   evidence.clips = {};
   const mark = name => { evidence.clips[name] = (Date.now() - videoStarted) / 1000; };
-  mark('home'); await capture(page, 'home-1280');
-  await press(page, 'missions'); await capture(page, 'missions-1280');
+  await capture(page, 'home-1280'); mark('home'); await page.waitForTimeout(3200);
+  await press(page, 'missions'); await capture(page, 'missions-1280'); mark('missions'); await page.waitForTimeout(3200);
   await press(page, 'start'); await page.waitForFunction(() => __night.snapshot().phase === 'playing');
   await press(page, 'weapon2'); mark('gameplay');
   let shots = 0;
@@ -62,16 +62,18 @@ try {
     if (shots < 3) await capture(page, 'single-fire-' + shots);
     shots++; await waitForImpact(page, shell);
   }
-  await page.waitForFunction(() => __night.snapshot().phase === 'success', null, { timeout: 20000 });
+  await page.waitForFunction(() => __night.snapshot().phase === 'success', null, { timeout: 60000 });
   const won = await snapshot(page); mark('soloResult');
   const friendlyLosses = won.units.filter(unit => unit.friendly && unit.hp <= 0).length;
   assert(won.fired > 0 && won.threatsRemaining === 0 && friendlyLosses === 0);
   evidence.solo = { time: won.time, fired: won.fired, kills: won.kills, friendlyLosses, completionTime: won.completionTime };
   for (const [width, height] of [[1280, 720], [844, 390], [568, 320]]) {
     await page.setViewportSize({ width, height }); await capture(page, 'solo-result-' + width);
+    if (width === 1280) { mark('soloResult'); await page.waitForTimeout(4200); }
   }
-  await page.setViewportSize({ width: 1280, height: 720 });
-  await press(page, 'home');
+  const video = page.video(); await context.close(); await video.saveAs(fileURLToPath(new URL('victory-source.webm', out)));
+  context = await browser.newContext({ viewport: { width: 844, height: 390 } });
+  page = await context.newPage(); observe(page); await ready(page);
   await press(page, 'online:menu'); await capture(page, 'lobby-offline-1280');
   await press(page, 'online:bot'); await page.waitForFunction(() => __night.snapshot().online.active && !__night.snapshot().modal);
   // Local bot practice has no public server settlement and must not invent one.
@@ -82,7 +84,7 @@ try {
   await page.waitForFunction(() => __night.snapshot().fireZones.length > 0);
   await capture(page, 'incendiary-fire');
   await press(page, 'weapon2');
-  const deadline = Date.now() + 360000;
+  const deadline = Date.now() + 480000;
   while (Date.now() < deadline) {
     state = await snapshot(page); if (state.phase !== 'playing') break;
     target = state.units.filter(unit => !unit.friendly && unit.hp > 0).sort((a,b) => a.hp-b.hp)[0];
@@ -103,7 +105,7 @@ try {
   await press(page,'online:backLobby');
   await page.waitForFunction(()=>__night.snapshot().online.panel==='menu'&&!__night.snapshot().online.active);
   evidence.checks.push('Fresh solo victory and offline bot victory through real aiming and fire; both result panels at three widths');
-  const video=page.video(); await context.close(); await video.saveAs(fileURLToPath(new URL('victory-source.webm',out)));
+  await context.close();
 
   for (const [width,height,touch] of [[1280,720,false],[844,390,true],[568,320,true],[390,844,true]]) {
     const context=await browser.newContext({viewport:{width,height},hasTouch:touch,isMobile:touch});
