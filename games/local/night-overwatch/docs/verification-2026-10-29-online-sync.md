@@ -36,4 +36,6 @@
 
 TapTap服务端Secret仍未提供，官方身份配置尚未启用；不能将本次Runtime代码发布视为已完成真实Tap账号绑定。GitHub [CI](https://github.com/coffeeeeffoc/small-games/actions/runs/40731302502)与[Pages](https://github.com/coffeeeeffoc/small-games/actions/runs/40731302506)在推送后观察时均运行中。
 
+后续Pages检查发现Flick Arena和摆消乐的共享身份镜像未同步，导致消费范围验证拒绝继续。已将两份镜像与共享客户端逐字同步；“shared competition files keep actual Creator H5 consumers”和“shared identity client proves all thirteen consumers”两项回归通过，保留13个真实消费者与原生/Creator要求。未放宽检查规则。整份历史范围测试试运行后停止，最终仅采用上述两项相关通过证据；最终流水线状态需另行核对。
+
 未运行全仓候选、原生Creator/官方打包、实体手机/真实广告或真实Tap身份登录；独立CI/Pages未据本地通过作成功推断。
