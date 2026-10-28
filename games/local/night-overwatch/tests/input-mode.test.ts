@@ -156,7 +156,14 @@ test('silent, unavailable and rejected audio cannot strand extraction; retry dro
     } else {
       for (let i = 0; i < 240; i++) { g.sim.step(1 / 60); g.updateRadio(1 / 60); }
       assert.equal(g.sim.phase, 'success', mode); assert(!g.sim.extractionRadioPending, mode);
-      if (p.radioPending) assert.equal(p.radio.clip, p.clips.get('radio-complete-zh'), mode + ': only the result voice may remain');
+      if (mode === 'missing' || mode === 'stalled' || mode === 'rejected') {
+        assert(p.radioPending, mode + ': completion speech may continue after extraction');
+        assert.equal(p.radio.clip, p.clips.get('radio-complete-zh'));
+      }
+      if (mode === 'missing') {
+        p.radio.playing = false; p.radio.node.emit(AudioSource.EventType.ENDED);
+        assert(!p.radioPending, 'completion ENDED releases its audio wait');
+      }
       const completedAt = g.sim.time;
       for (let i = 0; i < 130; i++) { g.sim.step(1 / 60); g.updateRadio(1 / 60); }
       assert(!p.radioPending, mode + ': a stalled result voice is released');
