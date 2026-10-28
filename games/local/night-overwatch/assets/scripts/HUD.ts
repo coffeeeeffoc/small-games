@@ -1426,7 +1426,7 @@ export class HUD {
       if (b.label.node.parent === this.root)
         b.label.node.active = !key && b.id !== 'priority' && (b.id !== 'fire' || this.touch || s.homingSelected);
       if (this.isGlobalAction(b.id)) {
-        b.label.node.active = !this.advert && !this.supplyOpen && !this.exitConfirm && !key.startsWith('countdown:') &&
+        b.label.node.active = !this.advert && !this.supplyOpen && !this.exitConfirm && key !== 'duelResult' && !key.startsWith('countdown:') &&
           (b.id !== 'settings' || !key.startsWith('online:history:'));
         if (!b.label.node.active) continue;
         const gx = b.x + b.w / 2 - w / 2, gy = h / 2 - b.y - b.h / 2, gear = this.globalGraphics;

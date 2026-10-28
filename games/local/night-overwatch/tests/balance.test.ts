@@ -30,7 +30,7 @@ test('larger battlefield disperses mission actors, preserves journey time and us
   }
 });
 
-test('defenders withstand three minutes without air support, but cannot win the mission alone', (t) => {
+test('defenders withstand the old mission limit without air support but still need the player to clear threats', (t) => {
   const s = new Simulation('operation-007'); s.start();
   tick(s, 180);
   assert.equal(s.phase, 'playing');
@@ -40,8 +40,9 @@ test('defenders withstand three minutes without air support, but cannot win the 
   assert(s.units.some(u => !u.friendly && u.hp < u.maxHp), 'ground defenders actually return fire');
   const at180 = { allyHp: s.units.filter(u => u.friendly).map(u => u.hp), threats: s.threatsRemaining };
   tick(s, MISSION.duration);
-  assert.equal(s.phase, 'failure');
-  assert.equal(s.failure, 'timeout');
+  assert(s.time > s.mission.duration);
+  assert.equal(s.phase, 'playing');
+  assert.equal(s.failure, '');
   assert(s.threatsRemaining > 0);
   assert.equal(s.kills, 0, 'ground fire is not counted as player kills');
   t.diagnostic(JSON.stringify({ at180, end: s.time, allyHp: s.units.filter(u => u.friendly).map(u => u.hp),

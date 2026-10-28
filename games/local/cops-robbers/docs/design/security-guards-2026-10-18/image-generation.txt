@@ -1,3 +1,5 @@
+历史生成提示词存档；保留原始输入供追溯，不作为后续沿用旧样式的要求。后续按用户最新要求和本次认可效果图实现完整视觉。
+
 工具：内置 image_gen，未使用 CLI/API 回退。
 参考图：assets/home-chase.webp；publishing-2026-10-18/promo-v2-1920x1080.jpg；home-polish-2026-10-18/home-mobile.png；publishing-2026-10-18/screenshots/01-surround-challenge.png。
 状态：概念预览，等待用户确认后实施。

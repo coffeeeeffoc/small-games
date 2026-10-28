@@ -165,6 +165,22 @@ test('HUD: identical names remain distinct, own ranking is highlighted, and clos
   assert.deepEqual(ids, ['online:dismiss', 'online:backLobby']);
 });
 
+test('HUD: duel results keep global settings and share controls away from the close target after resize', () => {
+  for(const [width,height] of [[568,320],[844,390],[1280,720]]){
+    Object.assign(frame,{width,height});inset=0;
+    const hud=new HUD(new SceneNode()),sim=new Simulation();
+    hud.online=new Online({getItem:()=>null,setItem(){}},()=>{});
+    hud.online.view={finished:true,winner:0};sim.duelMode=true;sim.phase='success';
+    hud.screenControl=true;hud.touch=false;hud.resize();hud.update(sim,world);
+    assert.equal(hud.modalKey,'duelResult');
+    assert(!hud.buttons.some((b:any)=>hud.isGlobalAction(b.id)&&b.label.node.activeInHierarchy));
+    for(const b of hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy)){
+      assert.equal(hud.hit(b.x+b.w/2,b.y+b.h/2)?.id,b.id);
+      assert(b.y>=0&&b.y+b.h<=height&&b.x>=0&&b.x+b.w<=width);
+    }
+  }
+});
+
 test('HUD: lobby forms, records, boards and share control fit landscape phones and desktop', () => {
   for (const [width, height] of [[568, 320], [844, 390], [1280, 720]]) {
     Object.assign(frame, { width, height }); inset = 0;
@@ -279,7 +295,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
       const sim = new Simulation('training-60'); hud.modalKey = 'rebuild'; hud.update(sim, world);
       hud.trainingBest = { time: 20, fired: 5, hitShots: 5 };
       for (const phase of ['briefing', 'success', 'failure'] as const) {
-        sim.phase = phase; sim.failure = phase === 'failure' ? 'timeout' : '';
+        sim.phase = phase; sim.failure = phase === 'failure' ? 'vehicle' : '';
         hud.update(sim, world);
         const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
         assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionsPrevious', 'missionsNext', 'mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['resultClose', 'home', 'retry']);

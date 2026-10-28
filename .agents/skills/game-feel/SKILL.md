@@ -9,13 +9,15 @@ description: >
   frames, or feedback/polish on hits, jumps, pickups, and deaths.
 ---
 
-## small-games project override (local modification, 2026-10-11)
+## small-games project override (local modification, 2026-10-28)
 
 Read [project usage and constraints](../README.md) before applying this skill. The
-repository [AGENTS.md](../../../AGENTS.md), game-specific rules, and approved design
-references take precedence over the general guidance and engine examples below.
+repository [AGENTS.md](../../../AGENTS.md) and [development policy](../../../docs/game-development.md)
+apply. The user's latest requirements and currently approved references take precedence
+over older game documents and the general guidance and engine examples below.
 Use the existing TypeScript/JavaScript stack and rendering APIs; translate Godot/Unity
-examples conceptually, never migrate engines or install related skills automatically.
+examples conceptually; they do not authorize engine migration or installing skills.
+Engine choices follow the repository policy and user authorization.
 Mobile touch is primary: preserve approximately 44 CSS px effective targets, safe areas,
 gesture cancellation, pause/resume, and lifecycle cleanup. Keyboard/gamepad support,
 screen stacks, and event-driven HUDs are context-dependent patterns, not mandatory rewrites.

@@ -1,3 +1,5 @@
+Archived generation prompt. This records an earlier input, not a constraint on future work. Follow the user's latest requirements and currently approved designs for the full visual style and detail.
+
 Tool: built-in image_gen
 Final export: cops-robbers-promo-square-1440.jpg
 The generator returned 1254 x 1254 pixels. Final image was resampled to 1440 x 1440 using high-quality bicubic interpolation and exported as JPEG quality 96.
