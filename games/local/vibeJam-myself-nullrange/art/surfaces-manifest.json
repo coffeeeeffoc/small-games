@@ -1,0 +1,35 @@
+{
+  "source": "Original Blender procedural material bake",
+  "sourceHash": "7fe295af1e3a07fe21ab03e80d6b8874e0aa0af6f1c8402d0f0d0b20393a2c7c",
+  "tool": "5.2.1 LTS",
+  "assets": [
+    {
+      "name": "slate-albedo.jpg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 171800,
+      "sha256": "0ad733c023a282bf408f2bf5878eaea840c2dbad51094bf4bc8e8a5eaccf5d5d"
+    },
+    {
+      "name": "detail-normal.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 629102,
+      "sha256": "834eb245683cc989e50032a308a3598719b8608f52c468829d48d626d88293b2"
+    },
+    {
+      "name": "ground-albedo.jpg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 130029,
+      "sha256": "3af6912cbc39108ab1c07809ec979f5638812382aef03467c1be27969db86ec5"
+    },
+    {
+      "name": "moon-albedo.jpg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 135095,
+      "sha256": "b2173df64d9fef93865384759b9496ed4ac8bf8c139546ea270a1bd3f9d0b4a3"
+    }
+  ]
+}

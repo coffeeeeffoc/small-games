@@ -1,0 +1,42 @@
+{
+  "ver": "1.0.27",
+  "importer": "image",
+  "imported": true,
+  "uuid": "0afea27e-bcf3-2c1b-351c-ea66be5755a8",
+  "files": [
+    ".jpg",
+    ".json"
+  ],
+  "subMetas": {
+    "6c48a": {
+      "ver": "1.0.22",
+      "importer": "texture",
+      "imported": true,
+      "uuid": "0afea27e-bcf3-2c1b-351c-ea66be5755a8@6c48a",
+      "files": [
+        ".json"
+      ],
+      "subMetas": {},
+      "id": "6c48a",
+      "name": "texture",
+      "displayName": "moon-albedo",
+      "userData": {
+        "wrapModeS": "repeat",
+        "wrapModeT": "repeat",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "linear",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "0afea27e-bcf3-2c1b-351c-ea66be5755a8",
+        "visible": false
+      }
+    }
+  },
+  "userData": {
+    "type": "texture",
+    "hasAlpha": false,
+    "redirect": "0afea27e-bcf3-2c1b-351c-ea66be5755a8@6c48a",
+    "fixAlphaTransparencyArtifacts": false
+  }
+}

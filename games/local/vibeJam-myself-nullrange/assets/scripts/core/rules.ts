@@ -1,5 +1,8 @@
 import { MISSIONS, validateMission } from './content.ts';
 import type { Mission } from './content.ts';
+import { terrainHeight, obstacleHeight, FLIGHT_CEILING } from './terrain.ts';
+import { airframeFloor } from './flight-geometry.ts';
+export { terrainHeight } from './terrain.ts';
 export const DT = 1 / 60;
 export type Point = { x: number; y: number; z: number };
 export type Controls = {
@@ -42,8 +45,6 @@ export const direction = (yaw: number, pitch = 0): Point => ({
   z: -Math.cos(yaw) * Math.cos(pitch),
 });
 export const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-export const terrainHeight = (x: number, z: number) =>
-  12 + 6 * Math.sin(x * 0.008) * Math.cos(z * 0.006) + 4 * Math.sin(z * 0.016);
 export function createRun(mission: Mission = MISSIONS[0]) {
   validateMission(mission);
   return {
@@ -210,14 +211,15 @@ export function step(s: State, input: Partial<Controls> = {}) {
   p.x += d.x * p.speed * DT;
   p.y += d.y * p.speed * DT;
   p.z += d.z * p.speed * DT;
-  const floor = terrainHeight(p.x, p.z) + 7;
+  const floor = airframeFloor(p);
   if (p.y < floor) {
     p.y = floor;
     p.pitch = 0.3;
+    p.y = Math.max(p.y, airframeFloor(p));
     damagePlayer(s, 35, '撞击地形 · 保持高度');
   }
-  if (p.y > 360) {
-    p.y = 360;
+  if (p.y > FLIGHT_CEILING) {
+    p.y = FLIGHT_CEILING;
     p.pitch = -0.2;
     tell(s, '空域上限 · 降低高度');
   }
@@ -267,7 +269,7 @@ export function step(s: State, input: Partial<Controls> = {}) {
     e.x += Math.sin(e.yaw) * speed * DT;
     e.z -= Math.cos(e.yaw) * speed * DT;
     e.y += clamp(p.y - e.y + Math.sin(s.tick * DT * 0.8 + e.phase) * 16, -22, 22) * DT;
-    e.y = Math.max(terrainHeight(e.x, e.z) + 25, e.y);
+    e.y = Math.max(terrainHeight(e.x, e.z) + 25, obstacleHeight(e.x, e.z) + 15, e.y);
     e.cooldown -= DT;
     if (e.cooldown <= 0 && dist < 600 && dist > 35) {
       const lead = Math.min(1, dist / 230) * 0.55;
@@ -312,7 +314,8 @@ export function step(s: State, input: Partial<Controls> = {}) {
       damagePlayer(s, 14, '敌方炮火击穿机体');
       shot.life = 0;
     }
-    if (shot.y < terrainHeight(shot.x, shot.z)) shot.life = 0;
+    if (shot.y < Math.max(terrainHeight(shot.x, shot.z), obstacleHeight(shot.x, shot.z)))
+      shot.life = 0;
   }
   s.shots = s.shots.filter((b) => b.life > 0);
   s.enemies = s.enemies.filter((e) => e.hp > 0);

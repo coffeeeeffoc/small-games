@@ -1,0 +1,93 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "4b40f8f0-e90f-4d01-9587-0c110929c10e",
+  "files": [],
+  "subMetas": {
+    "bcac8": {
+      "importer": "gltf-mesh",
+      "uuid": "4b40f8f0-e90f-4d01-9587-0c110929c10e@bcac8",
+      "displayName": "",
+      "id": "bcac8",
+      "name": "Icosphere.003.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 720
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "20da4": {
+      "importer": "gltf-material",
+      "uuid": "4b40f8f0-e90f-4d01-9587-0c110929c10e@20da4",
+      "displayName": "",
+      "id": "20da4",
+      "name": "Ivory vapor.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "bd237": {
+      "importer": "gltf-scene",
+      "uuid": "4b40f8f0-e90f-4d01-9587-0c110929c10e@bd237",
+      "displayName": "",
+      "id": "bd237",
+      "name": "cloud-1.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "4b40f8f0-e90f-4d01-9587-0c110929c10e@bcac8"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "4b40f8f0-e90f-4d01-9587-0c110929c10e@20da4"
+      ],
+      "scenes": [
+        "4b40f8f0-e90f-4d01-9587-0c110929c10e@bd237"
+      ]
+    }
+  }
+}

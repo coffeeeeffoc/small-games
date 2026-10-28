@@ -1,0 +1,127 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f",
+  "files": [],
+  "subMetas": {
+    "83963": {
+      "importer": "gltf-material",
+      "uuid": "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f@83963",
+      "displayName": "",
+      "id": "83963",
+      "name": "Lunar crater rims.material",
+      "userData": {
+        "gltfIndex": 2
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "727ac": {
+      "importer": "gltf-mesh",
+      "uuid": "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f@727ac",
+      "displayName": "",
+      "id": "727ac",
+      "name": "Icosphere.021.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 1280
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "af9e0": {
+      "importer": "gltf-material",
+      "uuid": "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f@af9e0",
+      "displayName": "",
+      "id": "af9e0",
+      "name": "Lunar surface.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "497b2": {
+      "importer": "gltf-material",
+      "uuid": "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f@497b2",
+      "displayName": "",
+      "id": "497b2",
+      "name": "Lunar maria.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "1f32d": {
+      "importer": "gltf-scene",
+      "uuid": "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f@1f32d",
+      "displayName": "",
+      "id": "1f32d",
+      "name": "moon.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f@727ac"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f@af9e0",
+        "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f@497b2",
+        "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f@83963"
+      ],
+      "scenes": [
+        "3b2f9f48-f192-40aa-aee3-a39f73a0fc2f@1f32d"
+      ]
+    }
+  }
+}

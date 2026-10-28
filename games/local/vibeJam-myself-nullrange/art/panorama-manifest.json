@@ -1,0 +1,11 @@
+{
+  "name": "alpine-panorama.png",
+  "format": "PNG",
+  "width": 1774,
+  "height": 887,
+  "bytes": 2429178,
+  "sha256": "4ab4809db8a0222d4f75ffc872cf949e652d95f9578c4fd7965450972610b5f7",
+  "source": "OpenAI generated image exec-14cf3de8-f567-4b03-825f-0a49be9e1009.png, supplied by main session on 2026-10-29; original bytes retained",
+  "use": "Unreachable sky and remote alpine panorama only; foreground/midground remain native 3D terrain and GLBs",
+  "runtime": "textures/alpine-panorama/texture; sky-no-fog.effect, mirrored twice around a cylinder with clamped image edges"
+}

@@ -69,3 +69,65 @@ Creator矩阵扩展到12款，预构建变量、复用验证、CI/Pages/Android/
 - 三个历史范围fixture失败在B0测试/实现模块下同样复现，保留`reports/shared-wiring/b0-historical-fixtures.log`，未放宽规则或宣称整份历史测试通过。
 
 本批仍为技术基础，完整视觉、六任务、玩家对战和正式素材继续按B2–B6推进。远端CI/Pages和真机结论独立记录。
+
+B1交付：实现提交 5d0d0924，正常合并远端 eaed23d3 后候选 35587c10b510fb22123fc9a0697bf6b8d0b00e21 已推 dev；合并后的完整增量selector、workspace边界、真实制品指纹复核通过，游戏源码指纹仍为 dff80491…。B1未运行全仓候选或宣称CI完成。
+
+## B2 本地三维资产接入与交回（2026-10-29）
+
+本节是当前证据，前述B1记录保留历史身份。B2基于已推送 `35587c10b510fb22123fc9a0697bf6b8d0b00e21` 的指定worktree，仅修改游戏目录与总计划；未提交、未推送。主会话已有两条B1push记录保留，`UI.ts` / `FlightInput.ts` 未修改。B2完成后交还仓库写入权，后续UI/视觉由B3收敛。
+
+当前 `dist/build-info.json`、浏览器报告和归档截图共同对应 sourceHash：`32544a280a10dd63b7d02ca2b4dceed7419a9fdbe781598c76214e98e5b1003a`。真实Creator 3.8.8 Web Mobile制品91个登记运行文件、11,021,175字节（不含build-info本身，未压缩），含完整逐文件SHA与真实声明哈希。`.py`、effect等文本统一LF参与源码摘要，生成器清单的sourceHash也对LF归一化，避免跨平台换行误报；资产/可编辑源的字节仍真实参与指纹。没有放宽导入漂移或预构建门禁。
+
+### 实现与资源证据
+
+- 原生 `resources.load('models/<name>/<name>', Prefab)` 实际加载17个原创GLB、5张纹理（原图PNG + 3张albedo JPG + 共享normal PNG）；17模型合计25,000三角面、3,131,924字节。细化Falcon为4024三角面/7种PBR材质，保留舱框、面板缝、翼面分色和双喷口；喷口与火焰坐标一致。来源/哈希/编辑源见 [art/README.md](art/README.md)。没有下载Hyper3D。
+- 递归3D layer、共享网格/材质，使用 `Material.copy` 的宏覆盖实际启用GPU实例化；林块每块10树、距离LOD/裁切，静态对象按世界格子稳定放置与回收。暂停时模型实例累计数不增长。
+- 49块地形采用同一20m格子的三角插值；绿地/层理岩石/雪线由PBR表面混合。不可到达的全景与远山不进入可玩碰撞区域；近中景为实际三维地形/树林/岩石。天空专用无雾effect，偶数次镜像闭合与夹取边缘消除了初版倒置、矩形色差和细缝。
+- 首页改低角度3/4机身展示，保留天空/山谷/月亮。原UI在窄屏仍遮住部分机体；没有修改UI把这一差距藏掉。
+- `NullRange.ts` 仅增加只读world统计、成功加载后撤去原加载页，以及加载未完成时拒绝开始；资源失败沿用已有45秒重试。未改存档、权威时钟或奖励。
+
+### Pauli审查的两项P2
+
+1. **翼尖穿山**：按当前Falcon边界对中心、双翼尖、机头、尾翼与喷口下侧做8点采样；纯函数严格匹配Cocos的YZX姿态变换。审查坐标 `(350,171.883612,-308.466667)` 现在触发地形伤害、护盾由70降为35，反弹姿态后再次计算机体净空，所有探针保留至少2.5m余量。
+2. **追尾相机埋地**：纯 `cameraView` 将最终位置限制为地形/林岩体积上方6m，并检查机体到相机的视线，必要时缩短跟随距离。审查第1471步坐标与连续操纵轨迹均有回归；不改变模拟状态或时钟。
+
+### 实际命令与结果
+
+检查串行执行，只覆盖本游戏；未重复无关全库或B1存档专项。
+
+| 命令                                                                                            | 结果                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `D:/setup/Blender/blender.exe --background --python art/build_environment.py`                   | 实际导出16个环境/敌机模型与可编辑源；`reports/b2-model-export.log`                                                                                   |
+| `D:/setup/Blender/blender.exe --background --python art/build_falcon.py`                        | 实际追加细化Falcon、源与清单；`reports/b2-falcon-export.log`                                                                                         |
+| `D:/setup/Blender/blender.exe --background --python art/bake_surfaces.py`                       | 实际烘焙4张有效贴图；`reports/b2-surface-bake.log`                                                                                                   |
+| `pnpm --filter null-range-mobile-cn test`                                                       | 接入早期15项通过（含原有存档/制品契约）；后续只重跑受影响项目                                                                                        |
+| `node --test tests/flight-geometry.test.mjs tests/assets-terrain.test.mjs tests/rules.test.mjs` | 最终14项通过，GLB有效载荷/索引/法线/UV/边界/预算/来源、地形三角一致、机体/相机P2及真实操纵规则；`reports/b2-terrain-regression.log`                  |
+| `pnpm --filter null-range-mobile-cn typecheck`                                                  | 最终真实cc.d.ts检查通过；`reports/b2-typecheck.log`                                                                                                  |
+| `pnpm --filter null-range-mobile-cn build`                                                      | 最终真实Creator构建通过；`reports/b2-build-command.log`、`reports/build-web-mobile.log`。首次GLB导入及更换主机引发的meta漂移均先被拒绝，再规范化重建 |
+| `pnpm --filter null-range-mobile-cn test:browser`                                               | 13项命名检查与4组视口数据通过；0页面/HTTP资源/非豁免console错误；`reports/b2-browser-command.log`、`reports/browser/report.json`                     |
+| `node tests/prebuilt.mjs`                                                                       | 实际源码匹配制品复制复用/类型检查成功，篡改入口、伪造声明、新增未登记文件拒绝；`reports/b2-prebuilt.log`                                             |
+| 定向Prettier及 `git diff --check`                                                               | 仅本批路径格式化/空白检查；无UI/Input改动，无提交/推送                                                                                               |
+
+浏览器沿用只读snapshot与真实Cocos触屏/键盘事件，没有修改state/血量/时钟：327 ticks（5.45秒）、3击落、900分自然胜利；337 ticks正常俯冲失败，原因“撞击地形 · 保持高度”，随后可重开。该速度只证明闭环，不是2–5分钟任务节奏达成。原有touchcancel精确引擎诊断保留单独记录，触点清理断言通过。
+
+### 画面与实际渲染开销
+
+归档 [evidence.json](docs/design/b2/evidence.json) 将以下PNG、sourceHash与运行统计绑定。已打开检查六张指定尺寸截图，对照本轮目标图；932×430额外样本保留于reports。
+
+| 视口    | 首页                                        | 战斗                                          | 战斗draw calls / 三角面 |
+| ------- | ------------------------------------------- | --------------------------------------------- | ----------------------- |
+| 667×375 | [首页](docs/design/b2/home-667x375.png)     | [战斗](docs/design/b2/flight-667x375.png)     | 122 / 95,088            |
+| 844×390 | [首页](docs/design/b2/home-844x390.png)     | [战斗](docs/design/b2/flight-844x390.png)     | 122 / 104,312           |
+| 390×844 | [竖持首页](docs/design/b2/home-390x844.png) | [竖持战斗](docs/design/b2/flight-390x844.png) | 122 / 104,312           |
+
+首页实测121 draw calls / 96,046三角面，67个唯一网格（含49地形网格）、29个共享材质；场景池109、当前活动renderer184，759个pass确认启用了实例化。统计来自Cocos实际gfx device，不是只按模型静态面数相加；这里是单帧样本，不是峰值预算或手机FPS证明。首轮错误调用共享材质recompileShaders时约229 draw calls，已改为copy overrides并实测下降；原始失败截图不作为验收基线。
+
+**视觉仍未通过**：山谷断崖与层理尺度、植被自然分布、白云体积感、飞机高频细节/光影与参考图仍有差距。窄屏首页按钮挡住部分机体、战斗提示覆盖机身是B3旧UI收敛项。B2实现了真实3D和可观察的美术进步，没有把当前模块化效果宣称精确达到参考标准。Hyper3D三模型仍待用户下载指示；完整六任务、玩家对战及八类正式上架资料继续按原批次处理。
+
+未运行全库、正式准确提交候选、CI/Pages、原生宿主、真实手机/Safari/广告或远端联机；没有发布成功结论。所有临时测试服务器已由finally关闭。最终素材/发布和B3整合交由主会话。
+
+### 主会话整合：CI规划下载修复
+
+B1推送后的 [CI](https://github.com/coffeeeeffoc/small-games/actions/runs/40741917586) 和 [Pages](https://github.com/coffeeeeffoc/small-games/actions/runs/40741917669) 均在首个完整历史fetch耗尽5分钟预算，尚未进入游戏验证；CI的validation-tools双平台已通过。两处planner仅增加历史blob按需下载并将预算调整为15分钟，保留完整历史和完整当前检出、锁定子模块及原门禁。
+
+独立网络clone实测历史索引2.61MiB、非浅仓库，完整当前检出及历史blob读取成功；即时 `35587c10..41692788`、累计成功CI基线 `8c4c821a..41692788` 的真实selector均通过。3项范围证明正反例及29项CI基线/阶段/门禁契约通过，临时检出提交pre-commit通过；相同4文件整合为 `728d7494`。这些结果不表示修复后的远端CI/Pages已经通过。

@@ -1,0 +1,161 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "8d48086f-0435-43ae-b34a-f5299e2d3d76",
+  "files": [],
+  "subMetas": {
+    "298e8": {
+      "importer": "gltf-mesh",
+      "uuid": "8d48086f-0435-43ae-b34a-f5299e2d3d76@298e8",
+      "displayName": "",
+      "id": "298e8",
+      "name": "Sculpted fuselage.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 1680
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "95fae": {
+      "importer": "gltf-material",
+      "uuid": "8d48086f-0435-43ae-b34a-f5299e2d3d76@95fae",
+      "displayName": "",
+      "id": "95fae",
+      "name": "Hostile vermilion.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "285b0": {
+      "importer": "gltf-material",
+      "uuid": "8d48086f-0435-43ae-b34a-f5299e2d3d76@285b0",
+      "displayName": "",
+      "id": "285b0",
+      "name": "Midnight ceramic.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "a5ef7": {
+      "importer": "gltf-material",
+      "uuid": "8d48086f-0435-43ae-b34a-f5299e2d3d76@a5ef7",
+      "displayName": "",
+      "id": "a5ef7",
+      "name": "Amber identification.material",
+      "userData": {
+        "gltfIndex": 2
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "4da2e": {
+      "importer": "gltf-material",
+      "uuid": "8d48086f-0435-43ae-b34a-f5299e2d3d76@4da2e",
+      "displayName": "",
+      "id": "4da2e",
+      "name": "Smoked canopy.material",
+      "userData": {
+        "gltfIndex": 3
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e820f": {
+      "importer": "gltf-material",
+      "uuid": "8d48086f-0435-43ae-b34a-f5299e2d3d76@e820f",
+      "displayName": "",
+      "id": "e820f",
+      "name": "Ion exhaust.material",
+      "userData": {
+        "gltfIndex": 4
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "8c21b": {
+      "importer": "gltf-scene",
+      "uuid": "8d48086f-0435-43ae-b34a-f5299e2d3d76@8c21b",
+      "displayName": "",
+      "id": "8c21b",
+      "name": "interceptor.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "8d48086f-0435-43ae-b34a-f5299e2d3d76@298e8"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "8d48086f-0435-43ae-b34a-f5299e2d3d76@95fae",
+        "8d48086f-0435-43ae-b34a-f5299e2d3d76@285b0",
+        "8d48086f-0435-43ae-b34a-f5299e2d3d76@a5ef7",
+        "8d48086f-0435-43ae-b34a-f5299e2d3d76@4da2e",
+        "8d48086f-0435-43ae-b34a-f5299e2d3d76@e820f"
+      ],
+      "scenes": [
+        "8d48086f-0435-43ae-b34a-f5299e2d3d76@8c21b"
+      ]
+    }
+  }
+}

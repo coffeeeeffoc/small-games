@@ -42,6 +42,7 @@ export class NullRange extends Component {
   uiClock = 0;
   practice = false;
   cleanupDev?: () => void;
+  worldShown = false;
   onLoad() {
     try {
       this.storage = sys.localStorage;
@@ -87,7 +88,6 @@ export class NullRange extends Component {
       web.__nullrange = Object.freeze({ snapshot: () => this.snapshot() });
     this.draw();
     this.world.update(this.state, true, this.progress.reduced);
-    web.NullRangeHost?.ready();
   }
   snapshot() {
     return JSON.parse(
@@ -108,6 +108,7 @@ export class NullRange extends Component {
         lock: targetInCone(this.state, 25, 900)?.id,
         progress: this.progress,
         engine: 'Cocos Creator 3.8.8',
+        world: this.world.snapshot(),
       }),
     );
   }
@@ -144,6 +145,7 @@ export class NullRange extends Component {
   }
   action(id: string) {
     if (id === 'start' || id === 'restart') {
+      if (!this.world.ready) return;
       this.state = createRun();
       this.practice = !!web.SmallGamesDev?.isEnabled();
       this.change('playing');
@@ -199,6 +201,10 @@ export class NullRange extends Component {
   }
   update(dt: number) {
     if (!this.world) return;
+    if (this.world.ready && !this.worldShown) {
+      this.worldShown = true;
+      web.NullRangeHost?.ready();
+    }
     if (this.screen === 'playing') {
       this.accumulator += Math.min(0.1, Math.max(0, dt));
       while (this.accumulator >= DT && this.screen === 'playing') {

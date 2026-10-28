@@ -1,0 +1,21 @@
+{
+  "name": "falcon",
+  "tool": "Blender 5.2.1 LTS",
+  "authoring": "Original procedural meshes from the Null Range aircraft reference; no downloaded Hyper3D geometry",
+  "triangles": 4024,
+  "bytes": 201832,
+  "bounds": {
+    "min": [
+      -10.62475299835205,
+      -1.100000023841858,
+      -14.149999618530273
+    ],
+    "max": [
+      10.62475299835205,
+      4.300000190734863,
+      9.149999618530273
+    ]
+  },
+  "sha256": "a7f96ca526d65fc2527d63dee1b182f8165e049fc3404d0d61c558b2a09be702",
+  "sourceHash": "92cf19a29e3940364a3a57d0887690ac2e3c2bef12f646b5ca7c040c5797cdc6"
+}

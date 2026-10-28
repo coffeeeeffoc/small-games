@@ -1,0 +1,35 @@
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: sky-vs:vert
+      frag: sky-fs:frag
+      rasterizerState: { cullMode: none }
+      properties:
+        mainTexture: { value: white }
+        tint: { value: [1, 1, 1, 1] }
+}%
+CCProgram sky-vs %{
+  precision highp float;
+  #include <legacy/input>
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/local-batch>
+  out vec2 uv;
+  vec4 vert () {
+    vec4 p; CCVertInput(p);
+    mat4 world; CCGetWorldMatrix(world);
+    uv = a_texCoord;
+    return cc_matProj * cc_matView * world * p;
+  }
+}%
+CCProgram sky-fs %{
+  precision highp float;
+  #include <legacy/output-standard>
+  in vec2 uv;
+  uniform sampler2D mainTexture;
+  uniform SkyColor { vec4 tint; };
+  vec4 frag () {
+    vec4 color = texture(mainTexture, vec2(1.0 - abs(mod(uv.x, 2.0) - 1.0), uv.y)) * tint;
+    color.rgb = SRGBToLinear(color.rgb);
+    return CCFragOutput(color);
+  }
+}%

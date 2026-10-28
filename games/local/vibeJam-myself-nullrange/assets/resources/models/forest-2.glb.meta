@@ -1,0 +1,144 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347",
+  "files": [],
+  "subMetas": {
+    "56124": {
+      "importer": "gltf-scene",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@56124",
+      "displayName": "",
+      "id": "56124",
+      "name": "forest-2.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "99550": {
+      "importer": "gltf-material",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@99550",
+      "displayName": "",
+      "id": "99550",
+      "name": "Pine needles middle.material",
+      "userData": {
+        "gltfIndex": 3
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "d8c3f": {
+      "importer": "gltf-mesh",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@d8c3f",
+      "displayName": "",
+      "id": "d8c3f",
+      "name": "Cone.036.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 4040
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "61d5e": {
+      "importer": "gltf-material",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@61d5e",
+      "displayName": "",
+      "id": "61d5e",
+      "name": "Weathered cedar bark.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "a1abc": {
+      "importer": "gltf-material",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@a1abc",
+      "displayName": "",
+      "id": "a1abc",
+      "name": "Pine needles shadow.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "32c5c": {
+      "importer": "gltf-material",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@32c5c",
+      "displayName": "",
+      "id": "32c5c",
+      "name": "Pine needles tips.material",
+      "userData": {
+        "gltfIndex": 2
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@d8c3f"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@61d5e",
+        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@a1abc",
+        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@32c5c",
+        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@99550"
+      ],
+      "scenes": [
+        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@56124"
+      ]
+    }
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "58446dac-273d-4b60-ad1f-00db6275bd78",
+  "files": [],
+  "subMetas": {
+    "58640": {
+      "importer": "gltf-material",
+      "uuid": "58446dac-273d-4b60-ad1f-00db6275bd78@58640",
+      "displayName": "",
+      "id": "58640",
+      "name": "Ivory.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "65753": {
+      "importer": "gltf-material",
+      "uuid": "58446dac-273d-4b60-ad1f-00db6275bd78@65753",
+      "displayName": "",
+      "id": "65753",
+      "name": "Steel.material",
+      "userData": {
+        "gltfIndex": 5
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "368a4": {
+      "importer": "gltf-mesh",
+      "uuid": "58446dac-273d-4b60-ad1f-00db6275bd78@368a4",
+      "displayName": "",
+      "id": "368a4",
+      "name": "Continuous sculpted fuselage.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 4024
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "0a033": {
+      "importer": "gltf-material",
+      "uuid": "58446dac-273d-4b60-ad1f-00db6275bd78@0a033",
+      "displayName": "",
+      "id": "0a033",
+      "name": "Navy.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "2665e": {
+      "importer": "gltf-material",
+      "uuid": "58446dac-273d-4b60-ad1f-00db6275bd78@2665e",
+      "displayName": "",
+      "id": "2665e",
+      "name": "Glass.material",
+      "userData": {
+        "gltfIndex": 2
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "b0bdd": {
+      "importer": "gltf-material",
+      "uuid": "58446dac-273d-4b60-ad1f-00db6275bd78@b0bdd",
+      "displayName": "",
+      "id": "b0bdd",
+      "name": "Amber.material",
+      "userData": {
+        "gltfIndex": 3
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "77cf4": {
+      "importer": "gltf-material",
+      "uuid": "58446dac-273d-4b60-ad1f-00db6275bd78@77cf4",
+      "displayName": "",
+      "id": "77cf4",
+      "name": "Seam.material",
+      "userData": {
+        "gltfIndex": 4
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "ba68d": {
+      "importer": "gltf-material",
+      "uuid": "58446dac-273d-4b60-ad1f-00db6275bd78@ba68d",
+      "displayName": "",
+      "id": "ba68d",
+      "name": "Cyan.material",
+      "userData": {
+        "gltfIndex": 6
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f5cb0": {
+      "importer": "gltf-scene",
+      "uuid": "58446dac-273d-4b60-ad1f-00db6275bd78@f5cb0",
+      "displayName": "",
+      "id": "f5cb0",
+      "name": "falcon.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "58446dac-273d-4b60-ad1f-00db6275bd78@368a4"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "58446dac-273d-4b60-ad1f-00db6275bd78@58640",
+        "58446dac-273d-4b60-ad1f-00db6275bd78@0a033",
+        "58446dac-273d-4b60-ad1f-00db6275bd78@2665e",
+        "58446dac-273d-4b60-ad1f-00db6275bd78@b0bdd",
+        "58446dac-273d-4b60-ad1f-00db6275bd78@77cf4",
+        "58446dac-273d-4b60-ad1f-00db6275bd78@65753",
+        "58446dac-273d-4b60-ad1f-00db6275bd78@ba68d"
+      ],
+      "scenes": [
+        "58446dac-273d-4b60-ad1f-00db6275bd78@f5cb0"
+      ]
+    }
+  }
+}

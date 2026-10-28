@@ -17,7 +17,7 @@ async function filesIn(directory) {
 }
 export async function sourceHash(directory = root) {
   const files = ['package.json', 'tsconfig.json'];
-  for (const folder of ['assets', 'settings', 'scripts', 'startup'])
+  for (const folder of ['assets', 'settings', 'scripts', 'startup', 'art'])
     for (const f of await filesIn(path.join(directory, folder))) {
       // Scene and PCM bytes are reproducible outputs of prepare; core TS remains source.
       if (
@@ -25,6 +25,7 @@ export async function sourceHash(directory = root) {
         (/^scenes\/main\.scene/.test(f) || f.startsWith('resources/audio/'))
       )
         continue;
+      if (folder === 'art' && f.endsWith('.md')) continue;
       files.push(folder + '/' + f);
     }
   const hash = createHash('sha256');
@@ -32,7 +33,7 @@ export async function sourceHash(directory = root) {
     const bytes = await readFile(path.join(directory, file));
     hash.update(file + '\0');
     hash.update(
-      /\.(ts|js|mjs|json|meta|scene|mtl|html|css|svg)$/.test(file)
+      /\.(ts|js|mjs|py|json|meta|scene|mtl|effect|html|css|svg)$/.test(file)
         ? bytes.toString('utf8').replaceAll('\r\n', '\n')
         : bytes,
     );

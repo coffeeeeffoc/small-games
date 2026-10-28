@@ -1,0 +1,144 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "b272fd14-5f98-45cf-8c2d-121a510a6379",
+  "files": [],
+  "subMetas": {
+    "50201": {
+      "importer": "gltf-material",
+      "uuid": "b272fd14-5f98-45cf-8c2d-121a510a6379@50201",
+      "displayName": "",
+      "id": "50201",
+      "name": "Slate blue stone.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "95690": {
+      "importer": "gltf-mesh",
+      "uuid": "b272fd14-5f98-45cf-8c2d-121a510a6379@95690",
+      "displayName": "",
+      "id": "95690",
+      "name": "Cone.023.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 180
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "285b0": {
+      "importer": "gltf-material",
+      "uuid": "b272fd14-5f98-45cf-8c2d-121a510a6379@285b0",
+      "displayName": "",
+      "id": "285b0",
+      "name": "Midnight ceramic.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "2200c": {
+      "importer": "gltf-material",
+      "uuid": "b272fd14-5f98-45cf-8c2d-121a510a6379@2200c",
+      "displayName": "",
+      "id": "2200c",
+      "name": "Titanium ivory.material",
+      "userData": {
+        "gltfIndex": 2
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e820f": {
+      "importer": "gltf-material",
+      "uuid": "b272fd14-5f98-45cf-8c2d-121a510a6379@e820f",
+      "displayName": "",
+      "id": "e820f",
+      "name": "Ion exhaust.material",
+      "userData": {
+        "gltfIndex": 3
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "2a355": {
+      "importer": "gltf-scene",
+      "uuid": "b272fd14-5f98-45cf-8c2d-121a510a6379@2a355",
+      "displayName": "",
+      "id": "2a355",
+      "name": "beacon.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "b272fd14-5f98-45cf-8c2d-121a510a6379@95690"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "b272fd14-5f98-45cf-8c2d-121a510a6379@50201",
+        "b272fd14-5f98-45cf-8c2d-121a510a6379@285b0",
+        "b272fd14-5f98-45cf-8c2d-121a510a6379@2200c",
+        "b272fd14-5f98-45cf-8c2d-121a510a6379@e820f"
+      ],
+      "scenes": [
+        "b272fd14-5f98-45cf-8c2d-121a510a6379@2a355"
+      ]
+    }
+  }
+}

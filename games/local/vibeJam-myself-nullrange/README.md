@@ -1,6 +1,6 @@
 # 零域 · NULL RANGE
 
-当前为 [全面重构计划](../../../docs/plans/2026-10-29-nullrange-rebuild.md) 的 **B1 技术阶段**：真实 Cocos Creator 3.8.8 工程，一关单机空战。几何战机与环境用于验证飞行、射击及完整胜负流程，**未通过最终视觉验收**。[单机概念图](docs/design/target-mobile-v2.png)、[玩家对战概念图](docs/design/target-online-v2.png)均不是运行截图。
+当前为 [全面重构计划](../../../docs/plans/2026-10-29-nullrange-rebuild.md) 的 **B2 本地三维资产接入阶段**：真实 Cocos Creator 3.8.8 工程、一关单机空战，17个原创Blender GLB、PBR地形/材质、分层山谷、树林/岩石/白云/陨坑月球与4024三角面Falcon主机已进入真实运行画面。**未通过最终视觉验收**，尚未下载或接入Hyper3D。[单机概念图](docs/design/target-mobile-v2.png)、[玩家对战概念图](docs/design/target-online-v2.png)均不是运行截图。
 
 Game ID `vibeJam-myself-nullrange`、包名 `null-range-mobile-cn`、独立入口 `/games/vibeJam-myself-nullrange/index.html` 和 `dist/` 保持。旧 Vite / Three / DOM 生产入口与测试已移除，历史原型可从 `8c4c821addb627e4196ccdc0b9437475e4b60f47` 找回。
 
@@ -47,7 +47,9 @@ pnpm --filter null-range-mobile-cn test:browser
 
 ## 后续批次与共享整合
 
-B2在 `assets/resources/models/player`、`models/drone`、`models/valley` 提供Prefab（GLB导入或Blender网格均可），`World.MODEL_PATHS` 为唯一资源路径；战机原点为中心、米制、机头沿-Z、Y向上。视觉模型不承担规则碰撞，地形必须保持与 `terrainHeight()` 的真实高度关系。
+B2原生GLB实际路径为 `models/<name>/<name>`，由 `World.MODEL_NAMES` 统一加载。来源、建模脚本、可编辑源与SHA清单见 [art/README.md](art/README.md)；不保留重复运行二进制。`core/terrain.ts` 让实时网格与碰撞共用20m网格三角形插值；`core/flight-geometry.ts` 绑定当前主机尺寸与Cocos姿态，检查中心/翼尖/机头/尾部净空，并为相机提供避让。
+
+地形49块回收，林块10树合并并按距离切换单树LOD，材料/网格共享且GPU实例化实测生效；远景专用无雾effect与闭合镜像采样避免全局雾和全景边缘接缝。只读开发快照 `world` 给出17模型/5纹理加载状态、错误、池与网格数量、实际draw calls和三角面。加载全部成功后才撤下加载页、接受开始输入，失败沿用45秒重试入口；不增加UI控件。
 
 B3对照概念图完成精细UI/机库/完整视觉与安全区验收；B4扩展任务、敌型和机体并调节节奏（B1自动驾驶通关约5秒，不是2–5分钟目标达成）；B5使用通用服务 `Rule={initial,advance,action,view,result}`、`duel:true`两席共享状态和输入序号去重，新增游戏专属Duel适配。本批没有实现后端或宣称联网可用。
 

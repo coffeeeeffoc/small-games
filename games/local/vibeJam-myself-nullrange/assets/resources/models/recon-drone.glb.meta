@@ -1,0 +1,144 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "75ecd9f2-fafc-404b-81d5-dadd755bdbad",
+  "files": [],
+  "subMetas": {
+    "eef94": {
+      "importer": "gltf-mesh",
+      "uuid": "75ecd9f2-fafc-404b-81d5-dadd755bdbad@eef94",
+      "displayName": "",
+      "id": "eef94",
+      "name": "Sculpted fuselage.001.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 1680
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "285b0": {
+      "importer": "gltf-material",
+      "uuid": "75ecd9f2-fafc-404b-81d5-dadd755bdbad@285b0",
+      "displayName": "",
+      "id": "285b0",
+      "name": "Midnight ceramic.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "a5ef7": {
+      "importer": "gltf-material",
+      "uuid": "75ecd9f2-fafc-404b-81d5-dadd755bdbad@a5ef7",
+      "displayName": "",
+      "id": "a5ef7",
+      "name": "Amber identification.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "4da2e": {
+      "importer": "gltf-material",
+      "uuid": "75ecd9f2-fafc-404b-81d5-dadd755bdbad@4da2e",
+      "displayName": "",
+      "id": "4da2e",
+      "name": "Smoked canopy.material",
+      "userData": {
+        "gltfIndex": 2
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e820f": {
+      "importer": "gltf-material",
+      "uuid": "75ecd9f2-fafc-404b-81d5-dadd755bdbad@e820f",
+      "displayName": "",
+      "id": "e820f",
+      "name": "Ion exhaust.material",
+      "userData": {
+        "gltfIndex": 3
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "bb05c": {
+      "importer": "gltf-scene",
+      "uuid": "75ecd9f2-fafc-404b-81d5-dadd755bdbad@bb05c",
+      "displayName": "",
+      "id": "bb05c",
+      "name": "recon-drone.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "75ecd9f2-fafc-404b-81d5-dadd755bdbad@eef94"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "75ecd9f2-fafc-404b-81d5-dadd755bdbad@285b0",
+        "75ecd9f2-fafc-404b-81d5-dadd755bdbad@a5ef7",
+        "75ecd9f2-fafc-404b-81d5-dadd755bdbad@4da2e",
+        "75ecd9f2-fafc-404b-81d5-dadd755bdbad@e820f"
+      ],
+      "scenes": [
+        "75ecd9f2-fafc-404b-81d5-dadd755bdbad@bb05c"
+      ]
+    }
+  }
+}

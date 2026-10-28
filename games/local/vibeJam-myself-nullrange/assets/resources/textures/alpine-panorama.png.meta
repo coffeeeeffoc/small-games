@@ -1,0 +1,42 @@
+{
+  "ver": "1.0.27",
+  "importer": "image",
+  "imported": true,
+  "uuid": "d08ddc1b-9777-c1c6-7ef5-984c51436314",
+  "files": [
+    ".json",
+    ".png"
+  ],
+  "subMetas": {
+    "6c48a": {
+      "ver": "1.0.22",
+      "importer": "texture",
+      "imported": true,
+      "uuid": "d08ddc1b-9777-c1c6-7ef5-984c51436314@6c48a",
+      "files": [
+        ".json"
+      ],
+      "subMetas": {},
+      "id": "6c48a",
+      "name": "texture",
+      "displayName": "alpine-panorama",
+      "userData": {
+        "wrapModeS": "clamp-to-edge",
+        "wrapModeT": "clamp-to-edge",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "linear",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "d08ddc1b-9777-c1c6-7ef5-984c51436314",
+        "visible": false
+      }
+    }
+  },
+  "userData": {
+    "type": "texture",
+    "hasAlpha": false,
+    "redirect": "d08ddc1b-9777-c1c6-7ef5-984c51436314@6c48a",
+    "fixAlphaTransparencyArtifacts": false
+  }
+}

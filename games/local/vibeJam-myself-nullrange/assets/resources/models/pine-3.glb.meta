@@ -1,0 +1,144 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "e1301032-eba1-476c-9d86-45467c50cd80",
+  "files": [],
+  "subMetas": {
+    "99550": {
+      "importer": "gltf-material",
+      "uuid": "e1301032-eba1-476c-9d86-45467c50cd80@99550",
+      "displayName": "",
+      "id": "99550",
+      "name": "Pine needles middle.material",
+      "userData": {
+        "gltfIndex": 3
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "91ddc": {
+      "importer": "gltf-mesh",
+      "uuid": "e1301032-eba1-476c-9d86-45467c50cd80@91ddc",
+      "displayName": "",
+      "id": "91ddc",
+      "name": "Cone.002.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 404
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "61d5e": {
+      "importer": "gltf-material",
+      "uuid": "e1301032-eba1-476c-9d86-45467c50cd80@61d5e",
+      "displayName": "",
+      "id": "61d5e",
+      "name": "Weathered cedar bark.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "a1abc": {
+      "importer": "gltf-material",
+      "uuid": "e1301032-eba1-476c-9d86-45467c50cd80@a1abc",
+      "displayName": "",
+      "id": "a1abc",
+      "name": "Pine needles shadow.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "32c5c": {
+      "importer": "gltf-material",
+      "uuid": "e1301032-eba1-476c-9d86-45467c50cd80@32c5c",
+      "displayName": "",
+      "id": "32c5c",
+      "name": "Pine needles tips.material",
+      "userData": {
+        "gltfIndex": 2
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "8c1cf": {
+      "importer": "gltf-scene",
+      "uuid": "e1301032-eba1-476c-9d86-45467c50cd80@8c1cf",
+      "displayName": "",
+      "id": "8c1cf",
+      "name": "pine-3.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "e1301032-eba1-476c-9d86-45467c50cd80@91ddc"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "e1301032-eba1-476c-9d86-45467c50cd80@61d5e",
+        "e1301032-eba1-476c-9d86-45467c50cd80@a1abc",
+        "e1301032-eba1-476c-9d86-45467c50cd80@32c5c",
+        "e1301032-eba1-476c-9d86-45467c50cd80@99550"
+      ],
+      "scenes": [
+        "e1301032-eba1-476c-9d86-45467c50cd80@8c1cf"
+      ]
+    }
+  }
+}

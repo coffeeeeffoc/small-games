@@ -1,0 +1,163 @@
+{
+  "environment": "Windows / Playwright 1.55.1 Chromium mobile UA, deviceScaleFactor 1; not physical phone",
+  "date": "2026-10-28T18:58:09.158Z",
+  "sourceHash": "32544a280a10dd63b7d02ca2b4dceed7419a9fdbe781598c76214e98e5b1003a",
+  "creator": "3.8.8",
+  "world": {
+    "ready": true,
+    "modelsLoaded": 17,
+    "texturesLoaded": 5,
+    "errors": [],
+    "terrainTiles": 49,
+    "terrainMeshes": 49,
+    "sceneryPool": 109,
+    "activeScenery": 109,
+    "modelInstancesCreated": 202,
+    "meshes": 67,
+    "materials": 29,
+    "renderers": 254,
+    "activeRenderers": 184,
+    "instancedPasses": 759,
+    "drawCalls": 121,
+    "triangles": 96046,
+    "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+    "terrainHeight": 12
+  },
+  "viewports": [
+    {
+      "viewport": "667x375",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 17,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 109,
+        "activeScenery": 109,
+        "modelInstancesCreated": 202,
+        "meshes": 67,
+        "materials": 29,
+        "renderers": 254,
+        "activeRenderers": 184,
+        "instancedPasses": 759,
+        "drawCalls": 122,
+        "triangles": 95088,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": 11.131796292699516
+      }
+    },
+    {
+      "viewport": "844x390",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 17,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 109,
+        "activeScenery": 109,
+        "modelInstancesCreated": 202,
+        "meshes": 67,
+        "materials": 29,
+        "renderers": 254,
+        "activeRenderers": 184,
+        "instancedPasses": 759,
+        "drawCalls": 122,
+        "triangles": 104312,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": 11.131796292699516
+      }
+    },
+    {
+      "viewport": "932x430",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 17,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 109,
+        "activeScenery": 109,
+        "modelInstancesCreated": 202,
+        "meshes": 67,
+        "materials": 29,
+        "renderers": 254,
+        "activeRenderers": 184,
+        "instancedPasses": 759,
+        "drawCalls": 122,
+        "triangles": 104312,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": 11.131796292699516
+      }
+    },
+    {
+      "viewport": "390x844",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 17,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 109,
+        "activeScenery": 109,
+        "modelInstancesCreated": 202,
+        "meshes": 67,
+        "materials": 29,
+        "renderers": 254,
+        "activeRenderers": 184,
+        "instancedPasses": 759,
+        "drawCalls": 122,
+        "triangles": 104312,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": 11.131796292699516
+      }
+    }
+  ],
+  "victory": {
+    "ticks": 327,
+    "kills": 3,
+    "score": 900
+  },
+  "failure": {
+    "ticks": 337,
+    "reason": "撞击地形 · 保持高度"
+  },
+  "errors": [],
+  "screenshots": [
+    {
+      "file": "home-667x375.png",
+      "bytes": 256932,
+      "sha256": "25ae77803da3f2b370423f266faacc18eae48793aba049750478037ee210b438"
+    },
+    {
+      "file": "flight-667x375.png",
+      "bytes": 293874,
+      "sha256": "39b5c8a7387464cb7fc198ceb4a4313f28a90a5b8f84922f5ba91cc3ff5b5016"
+    },
+    {
+      "file": "home-844x390.png",
+      "bytes": 326472,
+      "sha256": "2eafb9dac4a578a94b511c1f8247ed8c8e8914b31d3192d773b4b346ee879fc6"
+    },
+    {
+      "file": "flight-844x390.png",
+      "bytes": 381485,
+      "sha256": "548b1d8388d9aae22909cb03fd0e730bc2cf26cca13b540222f27ec988041cae"
+    },
+    {
+      "file": "home-390x844.png",
+      "bytes": 340342,
+      "sha256": "beb916e072f4b7d1785faf3b22fff14c8cf8b83d322344e8fe719cc8bb490e3b"
+    },
+    {
+      "file": "flight-390x844.png",
+      "bytes": 395373,
+      "sha256": "ad176ca3d3f75b70d4f94be542f8bed5e92edcf21cb9081e0c37accefdbadc88"
+    }
+  ],
+  "visualAcceptance": "not passed; B2 local asset integration only"
+}

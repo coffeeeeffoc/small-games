@@ -124,6 +124,8 @@ export async function prepare() {
           '.ts': 'typescript',
           '.js': 'javascript',
           '.png': 'image',
+          '.jpg': 'image',
+          '.effect': 'effect',
           '.scene': 'scene',
           '.wav': 'audio-clip',
           '.mtl': 'material',
@@ -137,10 +139,11 @@ export async function prepare() {
       scene: '1.1.50',
       'audio-clip': '1.0.12',
       material: '1.0.21',
+      effect: '1.7.1',
     }[importer];
     const meta = { ver, importer, imported: true, uuid, files: [], subMetas: {}, userData: {} };
-    if (ext === '.png') {
-      meta.files = ['.json', '.png'];
+    if (ext === '.png' || ext === '.jpg') {
+      meta.files = ['.json', ext];
       meta.userData = { type: 'texture', hasAlpha: false, redirect: uuid + '@6c48a' };
       meta.subMetas['6c48a'] = {
         ver: '1.0.22',
@@ -153,11 +156,11 @@ export async function prepare() {
         name: 'texture',
         displayName: entry.name.slice(0, -4),
         userData: {
-          wrapModeS: 'clamp-to-edge',
-          wrapModeT: 'clamp-to-edge',
+          wrapModeS: entry.name.includes('panorama') ? 'clamp-to-edge' : 'repeat',
+          wrapModeT: entry.name.includes('panorama') ? 'clamp-to-edge' : 'repeat',
           minfilter: 'linear',
           magfilter: 'linear',
-          mipfilter: 'none',
+          mipfilter: 'linear',
           anisotropy: 0,
           isUuid: true,
           imageUuidOrDatabaseUri: uuid,

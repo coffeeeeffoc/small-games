@@ -72,10 +72,21 @@ try {
     localStorage.setItem('nullrange-cn-muted', 'true');
   });
   await page.goto(base + '?dev=1');
-  await page.waitForFunction(() => globalThis.__nullrange?.snapshot().screen === 'home', null, {
+  await page.waitForFunction(() => globalThis.__nullrange?.snapshot().world.ready, null, {
     timeout: 60000,
   });
   const snap = () => page.evaluate(() => __nullrange.snapshot());
+  const world = (await snap()).world;
+  assert.equal(world.modelsLoaded, 17);
+  assert.equal(world.texturesLoaded, 5);
+  assert.deepEqual(world.errors, []);
+  assert.equal(world.terrainMeshes, 49);
+  assert.ok(world.instancedPasses > 0);
+  assert.ok(world.meshes <= 70);
+  assert.ok(world.drawCalls > 0 && world.drawCalls < 200);
+  assert.ok(world.triangles > 10000 && world.triangles < 180000);
+  report.world = world;
+  check('17 native GLB Prefabs + 5 textures loaded, collidable terrain and actual GPU counters');
   const point = async (x, y) => {
     const s = await snap(),
       v = page.viewportSize();
@@ -110,6 +121,8 @@ try {
     await tap('start');
     assert.equal((await snap()).screen, 'playing');
     const running = await snap();
+    await shot(`flight-${width}x${height}`);
+    report.checks.push({ viewport: `${width}x${height}`, world: running.world });
     assert.ok(running.controls.every((c) => Math.min(c.w, c.h) * running.scale >= 43.9));
     await tap('pause');
     assert.equal((await snap()).screen, 'paused');
@@ -149,8 +162,14 @@ try {
   assert.equal(paused.screen, 'paused');
   assert.equal(paused.input.keys, 0);
   const tick = paused.state.tick;
+  const allocated = paused.world.modelInstancesCreated;
   await page.waitForTimeout(400);
   assert.equal((await snap()).state.tick, tick);
+  assert.equal(
+    (await snap()).world.modelInstancesCreated,
+    allocated,
+    'stationary scene allocates no model instances',
+  );
   await page.keyboard.up('Space');
   await page.keyboard.up('KeyD');
   check('blur clears input and pauses without catch-up');
@@ -208,12 +227,12 @@ try {
   assert.equal((await snap()).screen, 'paused');
   const preferences = (await snap()).progress;
   await page.reload();
-  await page.waitForFunction(() => globalThis.__nullrange?.snapshot().screen === 'home');
+  await page.waitForFunction(() => globalThis.__nullrange?.snapshot().world.ready);
   assert.deepEqual((await snap()).progress, preferences);
   check('settings persistence and pause return path');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
-  await page.waitForFunction(() => globalThis.__nullrange?.snapshot().screen === 'home');
+  await page.waitForFunction(() => globalThis.__nullrange?.snapshot().world.ready);
   await tap('online');
   assert.equal((await snap()).screen, 'online');
   await tap('back');
@@ -227,7 +246,9 @@ try {
     }),
   );
   await page.goto(base + 'host-fixture');
-  await page.waitForFunction(() => !!document.querySelector('iframe')?.contentWindow.__nullrange);
+  await page.waitForFunction(
+    () => document.querySelector('iframe')?.contentWindow.__nullrange?.snapshot().world.ready,
+  );
   const frame = page.frames().find((f) => f.url().endsWith('/?dev=1'));
   const frameTap = async (id) => {
     const s = await frame.evaluate(() => __nullrange.snapshot()),

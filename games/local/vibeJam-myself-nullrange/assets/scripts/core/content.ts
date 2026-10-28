@@ -1,4 +1,4 @@
-export const RULE_VERSION = 'nullrange-b1-v1';
+export const RULE_VERSION = 'nullrange-b2-v1';
 export const GAME_ID = 'vibeJam-myself-nullrange';
 export type Mission = {
   id: string;
