@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { reviewedDeveloperModeScript } from './incremental-validation.fixture.mjs';
 import {
   incrementalPlan,
   cacheToolPaths,
@@ -629,20 +631,18 @@ test('developer-mode game guards select every old/new assertion consumer and ret
 
 test('cumulative rename and Waterline developer guard use only their exact reviewed bytes', () => {
   const file = 'scripts/test-game-dev-mode.mjs';
-  const read = (ref) =>
-    execFileSync('git', ['show', ref + ':' + file], {
-      cwd: new URL('../', import.meta.url),
-      encoding: 'utf8',
-    });
-  // Tooling CI uses a shallow checkout. Read Git's unfiltered current blob and
-  // reconstruct only the reviewed delta; the classifier still verifies both hashes.
-  const after = read('HEAD');
+  // The reviewed bytes predate later registrations, including Skybound Odyssey.
+  // An inert fixture also works in tooling CI's shallow Windows/Linux checkouts.
+  const after = reviewedDeveloperModeScript;
   const before = after
     .replace(
       "          game.id === 'waterline-station' ||\n          game.id === 'bullet-garden' ||",
       "          game.id === 'bullet-garden' ||",
     )
     .replace("game.id === 'place-and-clear'", "game.id === 'three-choose-two'");
+  const hash = (text) => createHash('sha256').update(text).digest('hex');
+  assert.equal(hash(after), '78dfd0740cfe543a05dbae3e3e24a5df1748305bb86238f6e8091be206191d3a');
+  assert.equal(hash(before), 'd13197ae582a50792dd82a7aaa796e55d7913f1144a1b977d98ef9f0317e20e0');
   assert.equal(
     after,
     before

@@ -244,10 +244,10 @@ test('HUD: escort and range entries are discoverable, and range results show a s
       const sim = new Simulation('training-60'); hud.modalKey = 'rebuild'; hud.update(sim, world);
       hud.trainingBest = { time: 20, fired: 5, hitShots: 5 };
       for (const phase of ['briefing', 'success', 'failure'] as const) {
-        sim.phase = phase; sim.failure = phase === 'failure' ? 'timeout' : '';
+        sim.phase = phase; sim.failure = phase === 'failure' ? 'vehicle' : '';
         hud.update(sim, world);
         const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
-        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionsPrevious', 'missionsNext', 'mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['home', 'retry']);
+        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionsPrevious', 'missionsNext', 'mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['resultClose', 'home', 'retry']);
         for (const button of buttons) {
           assert(button.w >= 44 && button.h >= 44);
           assert(button.y >= inset + 58 && button.y + button.h <= height - inset);
@@ -349,7 +349,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
       assert.doesNotMatch(active()[0].string, /%/);
       const calls = hud.marks.calls;
       assert(!calls.some((c: any) => c.op === 'rect' && c.args[3] === 2), 'no unit health bars');
-      assert(calls.some((c: any) => c.op === 'rect' && c.color === '#5ed9f5' && c.width === 2), 'friendly squares keep their color in thermal');
+      assert(calls.some((c: any) => c.op === 'rect' && c.color === '#9acbb9' && c.width === 2), 'friendly squares keep their color in thermal');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 95 && c.color === '#ff525b' && c.width === 2), '10px hostile diamonds keep their color in thermal');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 32 && c.args[1] === 0 && c.width === 6 && c.color === '#061116'), 'reticle has a wide dark outline');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 32 && c.args[1] === 0 && c.width === 3), 'reticle spans 64 pixels');
@@ -435,7 +435,7 @@ test('HUD: short-screen information priority, focus clearance and friendly group
   hud.mousePointer = undefined;
   const visibleLabels = () => [...hud.unitLabels.values()].filter((l: any) => l.node.activeInHierarchy) as any[];
   const counts = () => visibleLabels().filter((l) => l.string.startsWith('×'));
-  const squares = () => hud.marks.calls.filter((c: any) => c.op === 'rect' && c.args[2] === c.args[3] && c.color === '#5ed9f5' && c.width === 2);
+  const squares = () => hud.marks.calls.filter((c: any) => c.op === 'rect' && c.args[2] === c.args[3] && c.color === '#9acbb9' && c.width === 2);
   for (const thermal of [false, true]) {
     distant.thermal = thermal;
     hud.update(sim, distant);
@@ -614,7 +614,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert.equal(hud.modalKey, '');
         assert(!control('supply'));
         sim.pause('settings', true); hud.update(sim, world); checkLayout();
-        assert.equal(control('supply').label.color.hex, '#a2b5b5');
+        assert.equal(control('supply').label.color.hex, '#a6b7b0');
         sim.pause('settings', false); hud.update(sim, world);
         assert(!hud.labels.get('buff').node.activeInHierarchy, 'tracking countdown moved into its button');
         assert.equal(control('homing').label.color.hex, control('weapon' + sim.selected).label.color.hex);
@@ -624,14 +624,14 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert(control('homing'), 'active tracking remains visible without ad availability or homing ammo');
         hud.rewardsAvailable = true;
         sim.buff.remaining = 4.2; hud.update(sim, world); checkLayout();
-        assert.equal(control('homing').label.color.hex, '#ffbf55');
+        assert.equal(control('homing').label.color.hex, '#d3b477');
         assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n5秒' : 'HOMING\n5s');
         sim.pause('settings', true); hud.zoomOpen = true; hud.update(sim, world); checkLayout();
-        assert.equal(control('zoomUpgrade').label.color.hex, '#a2b5b5');
+        assert.equal(control('zoomUpgrade').label.color.hex, '#a6b7b0');
         assert.match(control('zoomUpgrade').label.string, lang === 'zh' ? /支援生效中/ : /SUPPORT ACTIVE/);
         hud.zoomOpen = false; sim.pause('settings', false); hud.supplyOpen = true; sim.pause('supply', true); hud.update(sim, world); checkLayout();
         assert.equal(hud.modalKey, 'supply:offer', 'buff still allows opening the offer');
-        assert.equal(control('supplyWatch').label.color.hex, '#a2b5b5');
+        assert.equal(control('supplyWatch').label.color.hex, '#a6b7b0');
         assert.match(panelText(), lang === 'zh' ? /支援已生效，结束后可再次领取/ : /SUPPORT ACTIVE.*WAIT UNTIL IT ENDS/);
         assert(control('supplyLater'), 'blocked offer can return to pause');
         hud.supplyOpen = false; sim.pause('supply', false);
@@ -645,7 +645,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         sim.buff = undefined; hud.update(sim, world); checkLayout();
         assert(!hud.labels.get('buff').node.activeInHierarchy);
         sim.pause('settings', true); hud.update(sim, world); checkLayout();
-        assert.equal(control('supply').label.color.hex, '#eef3ea');
+        assert.equal(control('supply').label.color.hex, '#e9e9dd');
       }
   } finally {
     cc.sys.isBrowser = false; inset = 0;
@@ -712,12 +712,29 @@ test('HUD: every operation page keeps three reachable cards and pagination withi
     const captions = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
     assert.match(captions, /可出动/);
     sim.phase = 'success'; hud.update(sim, world);
-    assert.deepEqual(hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id), ['home', 'retry', 'missionNext']);
+    assert.deepEqual(hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id), ['resultClose', 'home', 'retry', 'missionNext']);
   }
   inset = 0;
 });
 
 const panelLabels = (hud: any) => hud.modal.children.map((node: any) => node.getComponent(cc.Label)).filter(Boolean);
+const closedDrawingBounds = (calls: Graphics['calls']) => {
+  const shapes: { op: string; color: string; fill: string; x: number; y: number; w: number; h: number }[] = [];
+  let points: number[][] = [], closed = false;
+  for (const call of calls) {
+    if (call.op === 'moveTo') { points = [call.args]; closed = false; }
+    else if (call.op === 'lineTo') points.push(call.args);
+    else if (call.op === 'close') closed = true;
+    else if (call.op === 'rect' || call.op === 'roundRect' || call.op === 'circle') { points = []; closed = false; }
+    else if ((call.op === 'fill' || call.op === 'stroke') && closed && points.length) {
+      const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
+      const x = Math.min(...xs), y = Math.min(...ys);
+      shapes.push({ op: call.op, color: call.color, fill: call.fill, x, y,
+        w: Math.max(...xs) - x, h: Math.max(...ys) - y });
+    }
+  }
+  return shapes;
+};
 const labelBounds = (hud: any, label: any) => {
   const size = label.node.getComponent(Transform).contentSize, p = label.node.position;
   return { x: p.x + hud.w / 2 - size.width / 2, y: hud.h / 2 - p.y - size.height / 2, w: size.width, h: size.height };
@@ -757,10 +774,13 @@ test('HUD: independent title cover precedes mission previews and compact setting
       const captions = panelLabels(hud).map((l: any) => l.string);
       assert(captions.includes(lang === 'zh' ? '战斗设置' : 'BATTLE SETTINGS'));
       const graphics = hud.modal.getComponent(Graphics).calls;
-      const panel = graphics.find((c: any) => c.op === 'roundRect' && c.fill === '#091b2df5');
-      assert(panel && panel.args[2] <= 640 && panel.args[3] <= 304);
+      const shapes = closedDrawingBounds(graphics);
+      const panel = shapes.find(c => c.op === 'fill' && c.fill === '#101a1ef5');
+      assert(panel && panel.w > 0 && panel.h > 0 && panel.w <= 640 && panel.h <= 304);
       const resume = hud.buttons.find((b: any) => b.id === 'resume');
-      assert(graphics.some((c: any) => c.op === 'roundRect' && c.fill === '#ffbf55' && c.args[0] === resume.x - width / 2), 'resume is the amber primary action');
+      assert(shapes.some(c => c.op === 'stroke' && c.color === '#d3b477'
+        && c.x === resume.x - width / 2 && c.y === height / 2 - resume.y - resume.h
+        && c.w === resume.w && c.h === resume.h), 'resume keeps its brass outline and full touch target');
       for (const pending of [false, true]) {
         hud.supplyOpen = true; hud.pendingSupply = pending; hud.update(sim, world);
         assertPanelTargets(hud);
@@ -828,10 +848,10 @@ test('HUD: flight values, direction selection and display controls stay separate
     const left = hud.buttons.find((b: any) => b.id === 'altitudeDown').x;
     assert(left > width * .3, 'keep part of the actual battlefield visible');
     assert(panelLabels(hud).some((l: any) => l.string === '1000'));
-    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitRight').label.color.hex, '#5ed9f5');
+    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitRight').label.color.hex, '#9acbb9');
     sim.adjustAltitude(20); sim.setOrbitDirection(-1); hud.modalKey = 'rebuild'; hud.update(sim, world);
     assert(panelLabels(hud).some((l: any) => l.string === '1200'));
-    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitLeft').label.color.hex, '#5ed9f5');
+    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitLeft').label.color.hex, '#9acbb9');
     hud.toolsOpen = false; hud.zoomOpen = true; hud.update(sim, world); assertPanelTargets(hud);
     for (const id of ['sensor', 'effects', 'lensIn', 'lensOut', 'zoomUpgrade'])
       assert(hud.buttons.some((b: any) => b.id === id && b.label.node.parent === hud.modal));
@@ -846,7 +866,7 @@ test('mission previews draw distinct terrain and lighting, with actual contacts 
   for (const [map, light] of [['valley', 'day'], ['highland', 'day'], ['valley', 'dusk'], ['valley', 'night']]) {
     const g = new Graphics(); hud.routeGraphic(g, 0, 0, 240, 120, 0, map, light, MISSIONS[0].events);
     assert(g.calls.filter(c => c.op === 'fill').length > 1000, 'height-field terrain replaces the empty rectangle');
-    assert(g.calls.some(c => c.op === 'stroke' && c.color === '#5ed9f5'));
+    assert(g.calls.some(c => c.op === 'stroke' && c.color === '#9acbb9'));
     assert.equal(g.calls.filter(c => c.op === 'stroke' && c.color === '#ff525b').length, MISSIONS[0].events.length);
     assert(g.calls.every(c => c.args.every(Number.isFinite)));
     pictures.push(JSON.stringify(g.calls));

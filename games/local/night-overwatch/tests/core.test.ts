@@ -227,7 +227,7 @@ test('separate trigger sources do not double-fire and releasing one leaves the o
   settle(s);
   assert.equal(s.fired, count);
 });
-test('critical destruction fails before arrival; timeout fails; fresh retry has no leftovers', () => {
+test('critical destruction fails before arrival; elapsed time has no limit; fresh retry has no leftovers', () => {
   const s = start();
   s.progress = ROUTE_LENGTH - 0.001;
   s.rescue.hp = 0;
@@ -238,7 +238,9 @@ test('critical destruction fails before arrival; timeout fails; fresh retry has 
   const t = start();
   t.time = t.mission.duration - 0.001;
   t.step(1 / 60);
-  assert.equal(t.failure, 'timeout');
+  assert(t.time > t.mission.duration);
+  assert.equal(t.phase, 'playing');
+  assert.equal(t.failure, '');
   const fresh = new Simulation();
   assert.equal(fresh.time, 0);
   assert.equal(fresh.units.length, 12);
