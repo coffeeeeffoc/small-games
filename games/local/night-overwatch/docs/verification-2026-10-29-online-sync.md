@@ -30,4 +30,10 @@
 - 同构建12种广告返回场景通过：倍率、射速、追踪、补弹 × 完成回调、可见事件、画布接触；含广告中横竖屏切换。逐帧检查完整红菱形路径，前后均3个、暂停清空、没有悬挂输入和残留弹层，见[广告证据](../reports/ad-return/evidence.json)。广告供应方和焦点事件为fixture，**不代表真实广告库存或真机验证**。
 - 八类上架资料核对；更新5张菜单截图，沿用3张玩法截图和两条15/16秒视频，沿用项保留来源指纹及摘要。未重新录制视频，未声称旧视频采自本构建。
 
-部署结果在完成服务器发布后记录。未运行全仓候选、原生Creator/官方打包、实体手机/真实广告或真实Tap身份登录；独立CI/Pages未据本地通过作成功推断。
+## 服务器发布
+
+代码提交 `07ba5ebffa140ac5b73aeb79ab40fb667c17227c` 已正常推送 `origin/dev`，随后使用 `pnpm deploy:backend --services runtime` 发布。发布号 `07ba5ebffa14-1793206801136-b20c7c`，Runtime及其网络命名空间配套Kart健康检查通过，HTTPS探测通过。备份已创建；未替换数据库、未改变schema，未执行隔离恢复演练。发布保护及失败回滚机制保留，没有绕过活动对局检查。详见[脱敏部署回执](../reports/online-sync/deployment-receipt.json)。后续部署记录提交只更新文档与回执，服务器代码对应上述SHA。
+
+TapTap服务端Secret仍未提供，官方身份配置尚未启用；不能将本次Runtime代码发布视为已完成真实Tap账号绑定。GitHub [CI](https://github.com/coffeeeeffoc/small-games/actions/runs/40731302502)与[Pages](https://github.com/coffeeeeffoc/small-games/actions/runs/40731302506)在推送后观察时均运行中。
+
+未运行全仓候选、原生Creator/官方打包、实体手机/真实广告或真实Tap身份登录；独立CI/Pages未据本地通过作成功推断。
