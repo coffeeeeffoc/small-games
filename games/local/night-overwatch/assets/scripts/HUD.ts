@@ -274,21 +274,35 @@ export class HUD {
   }
   button(id: string, str: string, x: number, y: number, w: number, h = 44, parent = this.root) {
     const l = this.label(parent, str, x + w / 2, y + h / 2, this.compact ? 13 : 14, w - 8, h - 2);
-    this.buttons.push({ id, x, y, w, h, label: l });
+    this.buttons.push({ id, x, y, w, h, label: l, visual: { x: x + 2, y: y + 2, w: w - 4, h: h - 4 } });
     return l;
   }
-  artwork(name: string, x: number, y: number, w: number, h: number) {
+  artwork(name: string, x: number, y: number, w: number, h: number, tone?: string) {
     const frame = this.uiFrames.get(name);
     if (!frame || !this.surfaces) return false;
-    const n = this.node('Skin:' + name, this.surfaces), sprite = n.addComponent(Sprite);
+    let parent = this.surfaces;
+    if (name === 'button') {
+      const crop = this.node('ButtonSilhouette', parent);
+      crop.setPosition(x + w / 2 - this.w / 2, this.h / 2 - y - h / 2);
+      crop.getComponent(UITransform)!.setContentSize(w, h);
+      const mask = crop.addComponent(Mask); mask.type = Mask.Type.GRAPHICS_STENCIL;
+      const silhouette = mask.subComp as Graphics || crop.getComponent(Graphics) || crop.addComponent(Graphics);
+      const cut = Math.min(8, h * .18), l = -w / 2, r = w / 2, t = h / 2, b = -h / 2;
+      silhouette.clear(); silhouette.fillColor = col('#ffffff');
+      silhouette.moveTo(l + cut, t); silhouette.lineTo(r - cut, t); silhouette.lineTo(r, t - cut);
+      silhouette.lineTo(r, b + cut); silhouette.lineTo(r - cut, b); silhouette.lineTo(l + cut, b);
+      silhouette.lineTo(l, b + cut); silhouette.lineTo(l, t - cut); silhouette.close(); silhouette.fill();
+      parent = crop;
+    }
+    const n = this.node('Skin:' + name, parent), sprite = n.addComponent(Sprite);
     const scale = name === 'button' ? .18 : name === 'panel' ? .2 : 1;
-    n.setPosition(x + w / 2 - this.w / 2, this.h / 2 - y - h / 2);
+    n.setPosition(name === 'button' ? 0 : x + w / 2 - this.w / 2, name === 'button' ? 0 : this.h / 2 - y - h / 2);
     n.setScale(scale, scale, 1);
     sprite.sizeMode = Sprite.SizeMode.CUSTOM;
     sprite.type = name === 'insignia' ? Sprite.Type.SIMPLE : Sprite.Type.SLICED;
     sprite.spriteFrame = frame;
     n.getComponent(UITransform)!.setContentSize(w / scale, h / scale);
-    sprite.color = col(name === 'panel' ? '#b6c6d4' : '#ffffff');
+    sprite.color = col(tone || (name === 'panel' ? '#b6c6d4' : '#ffffff'));
     return true;
   }
   controlIcon(g: Graphics, kind: string, x: number, y: number, size = 18, color = C.dim) {
@@ -319,7 +333,7 @@ export class HUD {
   styleButton(g: Graphics, b: ButtonRect, kind: 'primary' | 'secondary' | 'quiet' = 'secondary', icon = '') {
     const v = b.visual = { x: b.x + 2, y: b.y + 4, w: b.w - 4, h: b.h - 8 };
     if (kind === 'primary') {
-      if (!this.artwork('button',v.x,v.y,v.w,v.h)) this.rect(g,v.x,v.y,v.w,v.h,'#4a3d24',C.amber,3);
+      if (!this.artwork('button',v.x,v.y,v.w,v.h,b.disabled?'#75808c99':undefined)) this.rect(g,v.x,v.y,v.w,v.h,b.disabled?'#242d35':'#4a3d24',C.amber,3);
     } else if (kind === 'secondary') this.rect(g,v.x,v.y,v.w,v.h,'#14233188','#72899688',3);
     b.label.color = col(b.disabled ? '#72818a' : kind === 'primary' ? '#fff0d0' : C.white);
     b.label.isBold = kind === 'primary';
@@ -455,7 +469,7 @@ export class HUD {
       g.moveTo(l + c, t); g.lineTo(r - c, t); g.lineTo(r, t - c); g.lineTo(r, b + c);
       g.lineTo(r - c, b); g.lineTo(l + c, b); g.lineTo(l, b + c); g.lineTo(l, t - c); g.close();
     };
-    const skinned = gold && g.node.parent === this.modal && this.artwork('button', x, y, w, h);
+    const skinned = gold && g.node.parent === this.modal && this.artwork('button', x + 2, y + 2, w - 4, h - 4);
     if (!skinned) { g.fillColor = col('#01070cb0'); path(0, -3); g.fill(); }
     if (!skinned) this.gradient(g, x, y, w, h, gold ? '#b88c3cf2' : fill === '#382730' ? '#492c37' : active ? '#244b65ed' : '#20384aed', gold ? '#443018fa' : fill === '#382730' ? '#21111d' : '#07121ff2', cut, h > 90 ? 16 : 8);
     if (gold) {
@@ -650,7 +664,7 @@ export class HUD {
     const w = this.w, h = this.h, left = this.safe.left + 24, right = w - this.safe.right - 24;
     const light = (number: number) => ({ day: this.t('白天', 'DAY'), dusk: this.t('黄昏', 'DUSK'), night: this.t('夜间', 'NIGHT') })[MISSIONS[number - 1]?.light || 'day'];
     const number = Math.max(0, MISSIONS.findIndex(mission => mission.id === s.mission.id)) + 1;
-    this.rect(g, 0, 0, w, h, '#07121c28');
+    this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#07121c28');
     if (!this.missionsOpen) {
       const compact = h < 420, wide = right - left >= 680,
         menuY = h - this.safe.bottom - (wide ? 76 : 114),
@@ -695,7 +709,7 @@ export class HUD {
       }
       return;
     }
-    this.rect(g, 0, 0, w, h, '#071a2d55');
+    this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#071a2d55');
     this.label(n, this.t('任务地图', 'MISSION MAP'), left + 78, this.safe.top + 80, 22, 156, 42).isBold = true;
     const page = Math.max(0, Math.min(Math.ceil(MISSIONS.length / 3) - 1, this.missionPage));
     const pagerWidth = this.compact ? 54 : 78, pagerY = this.safe.top + 58;
@@ -788,7 +802,7 @@ export class HUD {
     g.lineTo(cx - 7, cy - 12); g.lineTo(cx - w * .30, cy - h * .10); g.lineTo(cx - w * .30, cy - h * .06); g.lineTo(cx - 8, cy + 5); g.close(); g.stroke();
     for (const side of [-1, 1]) for (const end of [-1, 1]) {
       const xx = side < 0 ? x + 4 : x + w - 35, yy = end < 0 ? y + 4 : y + h - 24;
-      this.gradient(g, xx, yy, 31, 20, '#4b5a60', '#1b2c34', 5, 6);
+      this.gradient(g, xx, yy, 31, 20, skinned ? '#4b5a6070' : '#4b5a60', skinned ? '#1b2c3444' : '#1b2c34', 5, 6);
       this.rect(g, xx + 5, yy + 3, 21, 1, '#c5d5d363');
       g.fillColor = col('#07131b'); g.circle(xx + 8 - this.w / 2, this.h / 2 - yy - 10, 2.5); g.fill();
       g.strokeColor = col('#d8ba6c80'); g.lineWidth = 1; g.circle(xx + 8 - this.w / 2, this.h / 2 - yy - 10, 2.5); g.stroke();
@@ -1207,7 +1221,7 @@ export class HUD {
       const x = this.safe.left + (this.w - this.safe.left - this.safe.right) / 2,
         y = this.safe.top + (this.h - this.safe.top - this.safe.bottom) / 2,
         r = Math.min(88, (this.h - this.safe.top - this.safe.bottom - 100) / 2);
-      this.rect(g, 0, 0, this.w, this.h, '#05090c55');
+      this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#05090c55');
       g.strokeColor = col('#91e6cb66'); g.lineWidth = 2;
       g.circle(x - this.w / 2, this.h / 2 - y, r); g.stroke();
       this.label(n, key.slice(10), x, y - 14, 72, r * 2, 104, C.mint).isBold = true;
@@ -1282,7 +1296,7 @@ export class HUD {
       const ph = Math.min(244, this.h - this.safe.top - this.safe.bottom - 74);
       const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2;
       const py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
-      this.rect(g, 0, 0, this.w, this.h, '#05090cb8');
+      this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#05090cb8');
       this.plate(g, px, py, pw, ph, C.ink, C.mint, 10);
       this.label(n, this.advert?.mock ? this.t('模拟广告', 'SIMULATED AD') : this.t('广告加载中', 'LOADING AD'),
         px + pw / 2, py + 34, 24, pw - 32, 42, C.white).isBold = true;
@@ -1303,7 +1317,7 @@ export class HUD {
     }
     const allies = s.units.filter((u) => u.friendly).length;
     const training = s.mission.mode === 'training';
-    this.rect(g, 0, 0, this.w, this.h, '#06111655');
+    this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#06111655');
     const result = key === 'success' || key === 'failure';
     const pw = Math.min(result ? 720 : 880, this.w - this.safe.left - this.safe.right - 32),
       ph = Math.min(result ? 340 : 540, this.h - this.safe.top - this.safe.bottom - 72);
