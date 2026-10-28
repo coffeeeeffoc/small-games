@@ -1,9 +1,10 @@
 # 素材台账
 
-运行资产由本项目原创代码及本地 Blender 建模生成，无第三方素材采购或外部上传。可编辑源包括 TypeScript / JavaScript、Blender Python 和 .blend；未使用 Draco、KTX2 或外部解码器。布局效果图由内置 imagegen 生成，仅作设计参考，不作运行背景。
+场景资产由本项目原创代码及本地 Blender 建模生成；首页与界面皮肤由内置 imagegen 生成，无第三方素材采购。可编辑源包括 TypeScript / JavaScript、Blender Python 和 .blend；未使用 Draco、KTX2 或外部解码器。布局效果图是设计依据，不冒充运行截图；独立生成的无文字皮肤才作为运行素材。
 
 | assetId | 来源 | 构成与预算 |
 | --- | --- | --- |
+| ui.panel / ui.button / ui.insignia | 内置 imagegen，2026-10-28 | `assets/resources/ui/` 三张 PNG，面板与按钮按九宫格拉伸，徽章保持透明和比例；生成约束及使用边界见 [当前视觉规范](design/interface.md)，总文件约4.68MB，无新增付费素材或字体依赖 |
 | terrain.ground / ridges | World.ts | 按三角面烘焙明暗的起伏山地、低模岩石与路肩 |
 | terrain.roads / markings | World.ts | 16 节点连续路面、弯道接缝、中心虚线与待命标线 |
 | terrain.water / structures | World.ts | 河道、水面纹理几何、跨河桥梁护栏、村屋和通信塔 |

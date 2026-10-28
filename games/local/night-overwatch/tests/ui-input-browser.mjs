@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { acceptanceBuild, press, snapshot, assertLayout, navigateMap, aimAt } from './flight-browser.mjs';
 
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const out = new URL('../reports/2026-10-28-ui-input/', import.meta.url);
+const out = process.env.NIGHT_REPORT_URL ? new URL(process.env.NIGHT_REPORT_URL) : new URL('../reports/2026-10-28-ui-input/', import.meta.url);
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true, args: ['--use-angle=d3d11'] });
 const evidence = { build, checks: [], errors: [], clips: {} };
@@ -21,7 +21,7 @@ try {
     // This UI regression must not edit a real account or create a public match.
     await page.route('**/api/competition/**', route => route.abort());
     await page.goto(base + '?dev=0');
-    await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().buttons.some(b => b.id === 'online:profile'));
+    await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().ui.interfaceArtworkReady && __night.snapshot().buttons.some(b => b.id === 'online:profile'));
     await page.waitForTimeout(600);
     const click = id => press(page, id, touch, false);
     const capture = async name => {

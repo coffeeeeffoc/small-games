@@ -1,5 +1,7 @@
 # 给 Codex + Astra 的执行提示词
 
+> 历史原型任务，仅保留初建阶段的范围与取舍，不再用于当前游戏维护。M0/M1、灰盒停点、占位资源、固定镜头及不做多人等约束已被后续确认需求覆盖。当前工作从 [游戏 README](../README.md) 和 [设计入口](../docs/design/README.md) 开始；界面按 [当前视觉与交互规范](../docs/design/interface.md) 实现及验收，不能用以下历史许可降低成品质量。
+
 你在当前仓库中担任本项目的游戏开发工程师。请实现一款原创的横屏“空中火力支援与车队护送”小游戏，工作名《夜航守望》。请先阅读同目录 GAME_REQUIREMENTS.md、SOURCES.md 和 ASSET_MANIFEST.example.json，然后开始实施，不要只输出方案。
 
 ## 目标与参考边界

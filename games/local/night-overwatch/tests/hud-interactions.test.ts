@@ -42,6 +42,7 @@ class SceneNode {
   getComponentsInChildren(type: any): any[] { return [...(this.components.has(type) ? [this.components.get(type)] : []), ...this.children.flatMap(child => child.getComponentsInChildren(type))]; }
   on() {}
   setPosition(x: number, y: number, z = 0) { this.position = { x, y, z }; }
+  setScale() {}
   setSiblingIndex(index: number) {
     const parent = this.parent!;
     parent.children.splice(parent.children.indexOf(this), 1);
@@ -66,6 +67,7 @@ for (const op of ['rect', 'roundRect', 'circle', 'moveTo', 'lineTo', 'close', 's
   };
 const frame = { width: 568, height: 320 };
 let inset = 0;
+let artworkAvailable = false;
 const cc = {
   EditBox: class { static InputMode = { SINGLE_LINE: 0 }; static InputFlag = { PASSWORD: 0, DEFAULT: 1 }; static EventType = { TEXT_CHANGED: 'change' }; isFocused() { return false; } },
   UIOpacity: class { opacity = 255; }, Tween: { stopAllByTarget() {} },
@@ -73,8 +75,8 @@ const cc = {
   Node: SceneNode, UITransform: Transform, Graphics, Color,
   Camera: class { static ProjectionType = { ORTHO: 0 }; static ClearFlag = { DEPTH_ONLY: 0 }; },
   Canvas: class {}, Mask: class { static Type = { GRAPHICS_RECT: 0 }; },
-  Sprite: class { static SizeMode = { CUSTOM: 0 }; }, SpriteFrame: class {}, Texture2D: class {},
-  resources: { load(_name: string, _type: any, done: any) { done(new Error('unavailable art')); } },
+  Sprite: class { static SizeMode = { CUSTOM: 0 }; static Type = { SIMPLE: 0, SLICED: 1 }; }, SpriteFrame: class {}, Texture2D: class {},
+  resources: { load(name: string, _type: any, done: any) { if(artworkAvailable&&!name.includes('home'))done(null,{width:1024,height:512});else done(new Error('unavailable art')); } },
   isValid: () => true,
   Label: class { static Overflow = { CLAMP: 0 }; static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0 }; },
   Layers: { Enum: { UI_2D: 1 } }, ResolutionPolicy: { EXACT_FIT: 0 },
@@ -110,6 +112,39 @@ const world = { zoom: 1, thermal: false, project(p: data.Point, y = 0) {
   return { x: frame.width / 2 + p.x, y: frame.height / 2 - p.z + y * 10, z: 0.5 };
 } };
 const overlaps = (a: any, b: any) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+test('HUD: skins are mounted, visual bounds stay inside touch targets, and unavailable pagination rejects input', () => {
+  Object.assign(frame,{width:844,height:390});inset=0;artworkAvailable=true;
+  try {
+    const hud=new HUD(new SceneNode()),sim=new Simulation();
+    hud.online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.update(sim,world);
+    assert(hud.interfaceArtworkReady);
+    assert(hud.modal.getComponentsInChildren(cc.Sprite).some((s:any)=>s.type===cc.Sprite.Type.SLICED));
+    const primary=hud.buttons.find((b:any)=>b.id==='missions');
+    assert(primary.h>=44&&primary.visual.h<primary.h);
+    assert.equal(hud.hit(primary.x+primary.w/2,primary.y+1)?.id,'missions','invisible padding remains tappable');
+    hud.pressedButton='missions';hud.update(sim,world);
+    assert(hud.globalGraphics.calls.some((c:any)=>c.fill==='#e5d5b433'),'press paints immediate feedback');
+    hud.online.show('menu');hud.update(sim,world);
+    assert.equal(hud.pressedButton,'','page change clears feedback');
+    const next=hud.buttons.find((b:any)=>b.id==='online:roomNext');
+    assert(next.disabled);assert.equal(hud.hit(next.x+22,next.y+22),undefined);
+    assert(next.w<60,'pagination has its own compact shape');
+    assert(hud.modal.getComponentsInChildren(Graphics).some((g:any)=>g.calls.some((c:any)=>c.op==='stroke'&&c.color==='#72818a')),'disabled arrows are visibly muted');
+    assert(hud.modal.getComponentsInChildren(cc.Sprite).some((s:any)=>s.type===cc.Sprite.Type.SLICED));
+  } finally {artworkAvailable=false;}
+});
+
+test('HUD: history keeps next page enabled while the server has another cursor', () => {
+  Object.assign(frame,{width:844,height:390});inset=0;
+  const hud=new HUD(new SceneNode()),sim=new Simulation();
+  hud.online=new Online({getItem:()=>null,setItem(){}},()=>{});
+  hud.online.history={matches:[],nextCursor:'older-records'};hud.online.show('history');hud.update(sim,world);
+  const next=()=>hud.buttons.find((b:any)=>b.id==='online:historyNext');
+  assert(!next().disabled);assert.equal(hud.hit(next().x+22,next().y+22)?.id,'online:historyNext');
+  hud.online.history.nextCursor=null;hud.online.revision++;hud.update(sim,world);
+  assert(next().disabled);assert.equal(hud.hit(next().x+22,next().y+22),undefined);
+});
 
 test('HUD: identical names remain distinct, own ranking is highlighted, and closed rooms offer only leave', () => {
   Object.assign(frame, { width: 1280, height: 720 }); inset = 0;
@@ -172,7 +207,7 @@ test('HUD: focused forms survive refresh, records hide settings, and report sits
     online.show('history'); hud.update(sim, world);
     const settings = hud.buttons.find((b: any) => b.id === 'settings');
     assert(!settings.label.node.activeInHierarchy);
-    assert.equal(hud.hit(settings.x + 22, settings.y + 22), undefined);
+    assert.notEqual(hud.hit(settings.x + 22, settings.y + 22)?.id, 'settings');
     online.show(''); sim.start(); hud.update(sim, world);
     assert(settings.label.node.activeInHierarchy);
     const report = hud.buttons.find((b: any) => b.id === 'battleReport'), map = hud.minimapLayout;
@@ -247,7 +282,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
         sim.phase = phase; sim.failure = phase === 'failure' ? 'timeout' : '';
         hud.update(sim, world);
         const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
-        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionsPrevious', 'missionsNext', 'mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['home', 'retry']);
+        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionsPrevious', 'missionsNext', 'mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['resultClose', 'home', 'retry']);
         for (const button of buttons) {
           assert(button.w >= 44 && button.h >= 44);
           assert(button.y >= inset + 58 && button.y + button.h <= height - inset);
@@ -349,7 +384,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
       assert.doesNotMatch(active()[0].string, /%/);
       const calls = hud.marks.calls;
       assert(!calls.some((c: any) => c.op === 'rect' && c.args[3] === 2), 'no unit health bars');
-      assert(calls.some((c: any) => c.op === 'rect' && c.color === '#5ed9f5' && c.width === 2), 'friendly squares keep their color in thermal');
+      assert(calls.some((c: any) => c.op === 'rect' && c.color === '#9acbb9' && c.width === 2), 'friendly squares keep their color in thermal');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 95 && c.color === '#ff525b' && c.width === 2), '10px hostile diamonds keep their color in thermal');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 32 && c.args[1] === 0 && c.width === 6 && c.color === '#061116'), 'reticle has a wide dark outline');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 32 && c.args[1] === 0 && c.width === 3), 'reticle spans 64 pixels');
@@ -435,7 +470,7 @@ test('HUD: short-screen information priority, focus clearance and friendly group
   hud.mousePointer = undefined;
   const visibleLabels = () => [...hud.unitLabels.values()].filter((l: any) => l.node.activeInHierarchy) as any[];
   const counts = () => visibleLabels().filter((l) => l.string.startsWith('×'));
-  const squares = () => hud.marks.calls.filter((c: any) => c.op === 'rect' && c.args[2] === c.args[3] && c.color === '#5ed9f5' && c.width === 2);
+  const squares = () => hud.marks.calls.filter((c: any) => c.op === 'rect' && c.args[2] === c.args[3] && c.color === '#9acbb9' && c.width === 2);
   for (const thermal of [false, true]) {
     distant.thermal = thermal;
     hud.update(sim, distant);
@@ -563,7 +598,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
             assert(b.x >= safe && b.x + b.w <= width - safe, `${physicalWidth}x${physicalHeight}: ${b.id} horizontal safe area`);
             assert(b.y >= safe && b.y + b.h <= height - safe, `${b.id}: vertical safe area`);
             assert(!buttons.some((other: any) => other !== b && overlaps(b, other)), `${b.id}: no overlapping controls`);
-            assert.equal(hud.hit(b.x + b.w / 2, b.y + b.h / 2)?.id, b.id, `${b.id}: touch target is reachable`);
+            assert.equal(hud.hit(b.x + b.w / 2, b.y + b.h / 2)?.id, b.disabled ? undefined : b.id, `${b.id}: disabled targets reject touches`);
             if (b.id === 'supply' || b.id === 'supplyLater' || b.id === 'supplyWatch' || b.id.startsWith('reward:'))
               assert(b.w >= 44 && b.h >= 44);
           }
@@ -614,7 +649,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert.equal(hud.modalKey, '');
         assert(!control('supply'));
         sim.pause('settings', true); hud.update(sim, world); checkLayout();
-        assert.equal(control('supply').label.color.hex, '#a2b5b5');
+        assert(control('supply').disabled); assert.equal(hud.hit(control('supply').x+10,control('supply').y+10),undefined);
         sim.pause('settings', false); hud.update(sim, world);
         assert(!hud.labels.get('buff').node.activeInHierarchy, 'tracking countdown moved into its button');
         assert.equal(control('homing').label.color.hex, control('weapon' + sim.selected).label.color.hex);
@@ -624,14 +659,14 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert(control('homing'), 'active tracking remains visible without ad availability or homing ammo');
         hud.rewardsAvailable = true;
         sim.buff.remaining = 4.2; hud.update(sim, world); checkLayout();
-        assert.equal(control('homing').label.color.hex, '#ffbf55');
+        assert.equal(control('homing').label.color.hex, '#d3b477');
         assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n5秒' : 'HOMING\n5s');
         sim.pause('settings', true); hud.zoomOpen = true; hud.update(sim, world); checkLayout();
-        assert.equal(control('zoomUpgrade').label.color.hex, '#a2b5b5');
+        assert.equal(control('zoomUpgrade').label.color.hex, '#72818a');
         assert.match(control('zoomUpgrade').label.string, lang === 'zh' ? /支援生效中/ : /SUPPORT ACTIVE/);
         hud.zoomOpen = false; sim.pause('settings', false); hud.supplyOpen = true; sim.pause('supply', true); hud.update(sim, world); checkLayout();
         assert.equal(hud.modalKey, 'supply:offer', 'buff still allows opening the offer');
-        assert.equal(control('supplyWatch').label.color.hex, '#a2b5b5');
+        assert.equal(control('supplyWatch').label.color.hex, '#a6b7b0');
         assert.match(panelText(), lang === 'zh' ? /支援已生效，结束后可再次领取/ : /SUPPORT ACTIVE.*WAIT UNTIL IT ENDS/);
         assert(control('supplyLater'), 'blocked offer can return to pause');
         hud.supplyOpen = false; sim.pause('supply', false);
@@ -645,7 +680,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         sim.buff = undefined; hud.update(sim, world); checkLayout();
         assert(!hud.labels.get('buff').node.activeInHierarchy);
         sim.pause('settings', true); hud.update(sim, world); checkLayout();
-        assert.equal(control('supply').label.color.hex, '#eef3ea');
+        assert.equal(control('supply').label.color.hex, '#e9e9dd');
       }
   } finally {
     cc.sys.isBrowser = false; inset = 0;
@@ -699,7 +734,7 @@ test('HUD: every operation page keeps three reachable cards and pagination withi
         assert(button.w >= 44 && button.h >= 44, `${button.id}: thumb-sized target`);
         assert(button.x >= safe && button.x + button.w <= width - safe);
         assert(button.y >= safe + 58 && button.y + button.h <= height - safe);
-        assert.equal(hud.hit(button.x + button.w / 2, button.y + button.h / 2)?.id, button.id);
+        assert.equal(hud.hit(button.x + button.w / 2, button.y + button.h / 2)?.id, button.disabled ? undefined : button.id);
         assert(!buttons.some((other: any) => other !== button && overlaps(button, other)));
       }
       const captions = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
@@ -712,7 +747,7 @@ test('HUD: every operation page keeps three reachable cards and pagination withi
     const captions = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
     assert.match(captions, /可出动/);
     sim.phase = 'success'; hud.update(sim, world);
-    assert.deepEqual(hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id), ['home', 'retry', 'missionNext']);
+    assert.deepEqual(hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id), ['resultClose', 'home', 'retry', 'missionNext']);
   }
   inset = 0;
 });
@@ -729,7 +764,7 @@ const assertPanelTargets = (hud: any) => {
     assert(button.x >= inset && button.x + button.w <= hud.w - inset);
     assert(button.y >= inset && button.y + button.h <= hud.h - inset);
     assert(!buttons.some((other: any) => other !== button && overlaps(button, other)), `${button.id}: no overlap`);
-    assert.equal(hud.hit(button.x + button.w / 2, button.y + button.h / 2)?.id, button.id);
+    assert.equal(hud.hit(button.x + button.w / 2, button.y + button.h / 2)?.id, button.disabled ? undefined : button.id);
   }
   const labels = panelLabels(hud).filter((label: any) => label.string);
   for (const label of labels) {
@@ -756,17 +791,17 @@ test('HUD: independent title cover precedes mission previews and compact setting
       assertPanelTargets(hud);
       const captions = panelLabels(hud).map((l: any) => l.string);
       assert(captions.includes(lang === 'zh' ? '战斗设置' : 'BATTLE SETTINGS'));
-      const graphics = hud.modal.getComponent(Graphics).calls;
-      const panel = graphics.find((c: any) => c.op === 'roundRect' && c.fill === '#091b2df5');
+      const graphics = hud.modal.getComponentsInChildren(Graphics).flatMap((g: any) => g.calls);
+      const panel = graphics.find((c: any) => c.op === 'roundRect' && c.fill === '#101a1ef5');
       assert(panel && panel.args[2] <= 640 && panel.args[3] <= 304);
       const resume = hud.buttons.find((b: any) => b.id === 'resume');
-      assert(graphics.some((c: any) => c.op === 'roundRect' && c.fill === '#ffbf55' && c.args[0] === resume.x - width / 2), 'resume is the amber primary action');
+      assert(graphics.some((c: any) => c.op === 'roundRect' && c.fill === '#4a3d24' && c.args[0] === resume.visual.x - width / 2), 'resume is the amber primary action');
       for (const pending of [false, true]) {
         hud.supplyOpen = true; hud.pendingSupply = pending; hud.update(sim, world);
         assertPanelTargets(hud);
         const copy = panelLabels(hud).map((l: any) => l.string).join('\n');
         assert.match(copy, /60/); assert.match(copy, /\+2/); assert.match(copy, /30%/);
-        if (height >= 390) assert(hud.modal.getComponent(Graphics).calls.some((c: any) => c.op === 'circle' && c.args[2] === 9), 'tracking offer has a drawn icon');
+        if (height >= 390) assert(hud.modal.getComponentsInChildren(Graphics).flatMap((g: any) => g.calls).some((c: any) => c.op === 'circle' && c.args[2] === 9), 'tracking offer has a drawn icon');
         assert.match(copy, pending ? lang === 'zh' ? /启用并返回战斗/ : /ACTIVATE & RESUME/ : lang === 'zh' ? /看广告并启用/ : /WATCH AD & ACTIVATE/);
       }
       hud.supplyOpen = false; hud.pendingSupply = false; hud.rewardsAvailable = false; hud.modalKey = 'rebuild'; hud.update(sim, world);
@@ -828,10 +863,10 @@ test('HUD: flight values, direction selection and display controls stay separate
     const left = hud.buttons.find((b: any) => b.id === 'altitudeDown').x;
     assert(left > width * .3, 'keep part of the actual battlefield visible');
     assert(panelLabels(hud).some((l: any) => l.string === '1000'));
-    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitRight').label.color.hex, '#5ed9f5');
+    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitRight').label.color.hex, '#9acbb9');
     sim.adjustAltitude(20); sim.setOrbitDirection(-1); hud.modalKey = 'rebuild'; hud.update(sim, world);
     assert(panelLabels(hud).some((l: any) => l.string === '1200'));
-    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitLeft').label.color.hex, '#5ed9f5');
+    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitLeft').label.color.hex, '#9acbb9');
     hud.toolsOpen = false; hud.zoomOpen = true; hud.update(sim, world); assertPanelTargets(hud);
     for (const id of ['sensor', 'effects', 'lensIn', 'lensOut', 'zoomUpgrade'])
       assert(hud.buttons.some((b: any) => b.id === id && b.label.node.parent === hud.modal));
@@ -846,7 +881,7 @@ test('mission previews draw distinct terrain and lighting, with actual contacts 
   for (const [map, light] of [['valley', 'day'], ['highland', 'day'], ['valley', 'dusk'], ['valley', 'night']]) {
     const g = new Graphics(); hud.routeGraphic(g, 0, 0, 240, 120, 0, map, light, MISSIONS[0].events);
     assert(g.calls.filter(c => c.op === 'fill').length > 1000, 'height-field terrain replaces the empty rectangle');
-    assert(g.calls.some(c => c.op === 'stroke' && c.color === '#5ed9f5'));
+    assert(g.calls.some(c => c.op === 'stroke' && c.color === '#9acbb9'));
     assert.equal(g.calls.filter(c => c.op === 'stroke' && c.color === '#ff525b').length, MISSIONS[0].events.length);
     assert(g.calls.every(c => c.args.every(Number.isFinite)));
     pictures.push(JSON.stringify(g.calls));
@@ -885,9 +920,9 @@ test('HUD: minimal battle has no top backdrop and priority marker itself is a re
 test('HUD: sound states draw different icons and ad feedback never paints over action buttons', () => {
   Object.assign(frame, { width: 568, height: 320 }); inset = 12;
   const hud = new HUD(new SceneNode()), sim = new Simulation(); sim.start(); sim.pause('settings', true);
-  hud.update(sim, world); const on = hud.modal.getComponent(Graphics).calls;
+  hud.update(sim, world); const on = hud.modal.getComponentsInChildren(Graphics).flatMap((g: any) => g.calls);
   hud.muted = true; hud.modalKey = 'rebuild'; hud.update(sim, world);
-  const off = hud.modal.getComponent(Graphics).calls;
+  const off = hud.modal.getComponentsInChildren(Graphics).flatMap((g: any) => g.calls);
   assert.notDeepEqual(on, off); assert(panelLabels(hud).some((l: any) => l.string === '声音 关'));
   sim.pause('settings', false); hud.supplyOpen = true; hud.rewardsAvailable = true; sim.pause('supply', true);
   hud.supplyMessage = '观看已中断，未获得奖励'; hud.toast = hud.supplyMessage; hud.toastUntil = Date.now() + 4000;
