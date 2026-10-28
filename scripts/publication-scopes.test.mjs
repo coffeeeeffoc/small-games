@@ -6170,3 +6170,156 @@ test('CI registration gate repair binds both baselines and retains its real chec
       assert.equal(reviewedSharedFileScopes({ ...options, ...changed }).size, 0);
   }
 });
+
+function nullrangeWiringFixture(reviews) {
+  const source = 'games/local/vibeJam-myself-nullrange';
+  const base = new Map(),
+    head = new Map();
+  for (const file of [...Object.keys(reviews), source + '/package.json']) {
+    if (reviews[file]?.[0] !== null)
+      base.set(
+        file,
+        execFileSync('git', ['show', '2b6a4e18:' + file], { encoding: 'utf8' }).replaceAll(
+          '\r\n',
+          '\n',
+        ),
+      );
+    head.set(
+      file,
+      readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n'),
+    );
+  }
+  return {
+    changedPaths: Object.keys(reviews),
+    games: [
+      { id: 'vibeJam-myself-nullrange', source, output: 'dist' },
+      { id: 'wulong-city', source: 'games/local/wulong-city', output: 'dist' },
+    ],
+    packages: [
+      { dir: source, ...JSON.parse(head.get(source + '/package.json')) },
+      { dir: 'apps/shell-web', name: '@coffeeeeffoc/shell-web' },
+      { dir: 'games/local/wulong-city', name: '@coffeeeeffoc/wulong-city' },
+    ],
+    readBase: (file) => base.get(file),
+    readHead: (file) => head.get(file),
+  };
+}
+
+test('Nullrange B1 shared proof binds reviewed bytes, stable identity and real consumers', async () => {
+  const { nullrangeCreatorReviews: reviews, nullrangeCreatorFileScopes: scope } = await import(
+    './publication-scopes.mjs'
+  );
+  const context = nullrangeWiringFixture(reviews),
+    source = context.games[0].source;
+  const scopes = reviewedSharedFileScopes(context);
+  assert.equal(scopes.size, Object.keys(reviews).length);
+  for (const file of context.changedPaths) {
+    assert(scopes.get(file).includes(source), file);
+    if (file.startsWith('apps/shell-web/')) assert(scopes.get(file).includes('apps/shell-web'));
+    for (const side of ['readBase', 'readHead']) {
+      if (side === 'readBase' && reviews[file][0] === null) continue;
+      assert.equal(
+        scope({ ...context, changedPaths: [file], [side]: (f) => context[side](f) + '\n' }).size,
+        0,
+        file,
+      );
+      assert.equal(
+        scope({
+          ...context,
+          changedPaths: [file],
+          [side]: () => {
+            throw Error('tree unavailable');
+          },
+        }).size,
+        0,
+        file,
+      );
+    }
+  }
+  for (const mutate of [
+    (c) => c.games.push({ ...c.games[0], id: 'alias' }),
+    (c) => c.games.push({ ...c.games[0], source: 'games/local/alias' }),
+    (c) => (c.games[0].output = 'other'),
+    (c) => (c.packages[0].name = 'alias'),
+    (c) => c.packages.push({ ...c.packages[0], dir: 'games/local/alias' }),
+    (c) => (c.packages[0].creator.version = '3.8.9'),
+    (c) => (c.packages[0].scripts.build = 'node bypass.mjs'),
+  ]) {
+    const identities = structuredClone({ games: context.games, packages: context.packages });
+    mutate(identities);
+    assert.equal(scope({ ...context, ...identities }).size, 0);
+  }
+  const plan = incrementalPlan({ ...context, fileScopes: scopes });
+  assert.equal(plan.full, false);
+  assert(plan.consumer_sources.includes(source));
+  assert(plan.consumer_sources.includes('apps/shell-web'));
+  assert(plan.developer_mode_ids.includes('vibeJam-myself-nullrange'));
+  assert(plan.developer_mode_ids.includes('wulong-city'));
+  assert(plan.browser_ids.includes('vibeJam-myself-nullrange'));
+  for (const file of ['scripts/nullrange-unknown.mjs', '.github/workflows/nullrange-unknown.yml']) {
+    const extra = { ...context, changedPaths: [...context.changedPaths, file] };
+    assert(!reviewedSharedFileScopes(extra).has(file));
+    assert.throws(
+      () => incrementalPlan({ ...extra, fileScopes: reviewedSharedFileScopes(extra) }),
+      /scope undefined/,
+    );
+  }
+});
+
+test('Nullrange lock migration replaces only its actual Three/Vite importer with existing tool tuples', async () => {
+  const {
+    nullrangeCreatorReviews: reviews,
+    nullrangeLockOnly: check,
+    nullrangeCreatorFileScopes: scope,
+  } = await import('./publication-scopes.mjs');
+  const context = nullrangeWiringFixture(reviews),
+    file = 'pnpm-lock.yaml',
+    manifestFile = context.games[0].source + '/package.json';
+  const before = context.readBase(file),
+    after = context.readHead(file);
+  const oldManifest = JSON.parse(context.readBase(manifestFile)),
+    manifest = JSON.parse(context.readHead(manifestFile));
+  assert(check(before, after, oldManifest, manifest));
+  assert(check(before, after.replaceAll('\n', '\r\n'), oldManifest, manifest));
+  for (const mutate of [
+    (s) => s + '\n# unrelated bytes\n',
+    (s) => s.replace('resolution:', 'unreviewedResolution:'),
+    (s) =>
+      s.replace(
+        'games/local/waterline-station: {}',
+        'games/local/waterline-station: {unknown: true}',
+      ),
+    (s) =>
+      s.replace(
+        'games/local/vibeJam-myself-nullrange:',
+        'games/local/vibeJam-myself-nullrange: {}\n\n  games/local/vibeJam-myself-nullrange:',
+      ),
+  ])
+    assert.throws(() => check(before, mutate(after), oldManifest, manifest));
+  for (const mutate of [
+    (m) => (m.devDependencies.typescript = '7.0.3'),
+    (m) => (m.dependencies = { three: '0.170.0' }),
+    (m) => (m.devDependencies.extra = '1.0.0'),
+    (m) => (m.creator.version = '3.8.9'),
+  ]) {
+    const wrong = structuredClone(manifest);
+    mutate(wrong);
+    assert.throws(() => check(before, after, oldManifest, wrong));
+    assert.equal(
+      scope({
+        ...context,
+        changedPaths: [file],
+        readHead: (f) => (f === manifestFile ? JSON.stringify(wrong) : context.readHead(f)),
+      }).size,
+      0,
+    );
+  }
+  assert.throws(() =>
+    check(
+      before.replaceAll('specifier: 1.55.1', 'specifier: 1.55.0'),
+      after,
+      oldManifest,
+      manifest,
+    ),
+  );
+});

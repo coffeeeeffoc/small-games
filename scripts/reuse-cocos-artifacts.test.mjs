@@ -27,7 +27,7 @@ const jobs = games.map((game) => ({
   status: 'completed',
   conclusion: 'success',
 }));
-test('reuse waits for all eleven successful producer gates, not downstream CI', () => {
+test('reuse waits for all twelve successful producer gates, not downstream CI', () => {
   assert.deepEqual(games, [
     'carding-car',
     'night-overwatch',
@@ -40,6 +40,7 @@ test('reuse waits for all eleven successful producer gates, not downstream CI', 
     'place-and-clear',
     'game-castle-cannon',
     'ashfall-front',
+    'vibeJam-myself-nullrange',
   ]);
   assert.equal(inspectProducer(run, jobs, expected), 'ready');
   for (let i = 0; i < games.length; i++) {
@@ -147,7 +148,7 @@ test('CI is the sole producer direction and fallback retains original gates', as
   const verify = producer.jobs.reuse.steps.find((step) => step.id === 'verify');
   assert.equal(
     verify.if,
-    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success' && steps.garden.outcome == 'success' && steps.tower.outcome == 'success' && steps.tetra.outcome == 'success' && steps.three.outcome == 'success' && steps.castle.outcome == 'success' && steps.ashfall.outcome == 'success'",
+    "steps.kart.outcome == 'success' && steps.night.outcome == 'success' && steps.tianxia.outcome == 'success' && steps.homebound.outcome == 'success' && steps.merge.outcome == 'success' && steps.garden.outcome == 'success' && steps.tower.outcome == 'success' && steps.tetra.outcome == 'success' && steps.three.outcome == 'success' && steps.castle.outcome == 'success' && steps.ashfall.outcome == 'success' && steps.nullrange.outcome == 'success'",
   );
   for (const game of games) {
     const transfers = producer.jobs.reuse.steps.filter(
@@ -214,6 +215,7 @@ test('reuse verifies and republishes every Creator game before skipping the prod
         'place-and-clear': 'three',
         'game-castle-cannon': 'castle',
         'ashfall-front': 'ashfall',
+        'vibeJam-myself-nullrange': 'nullrange',
       }[game],
     );
     assert(verify.if.includes(`steps.${download.id}.outcome == 'success'`));
@@ -230,4 +232,42 @@ test('reuse verifies and republishes every Creator game before skipping the prod
     () => inspectProducer({ ...run, status: 'completed' }, jobs.slice(0, -1), expected),
     /lacks successful/,
   );
+});
+
+test('Nullrange Creator output reaches every CI, Pages and mobile consumer', async () => {
+  for (const name of ['ci', 'pages-validate', 'mobile']) {
+    const workflow = yaml.load(
+      await readFile(new URL('../.github/workflows/' + name + '.yml', import.meta.url), 'utf8'),
+    );
+    let consumers = 0;
+    for (const job of Object.values(workflow.jobs)) {
+      if (!job.env?.ASHFALL_FRONT_PREBUILT_DIR) continue;
+      consumers++;
+      assert.equal(
+        job.env.NULLRANGE_PREBUILT_DIR,
+        '${{ github.workspace }}/games/local/vibeJam-myself-nullrange/.prebuilt',
+      );
+      const download = job.steps.find(
+        (step) => step.with?.name === 'vibeJam-myself-nullrange-${{ github.sha }}',
+      );
+      assert(download?.uses.startsWith('actions/download-artifact@'));
+      assert.equal(download.with.path, 'games/local/vibeJam-myself-nullrange/.prebuilt');
+      assert.equal(download['continue-on-error'], undefined);
+    }
+    assert(consumers > 0);
+  }
+  const turbo = JSON.parse(await readFile(new URL('../turbo.json', import.meta.url), 'utf8'));
+  assert(turbo.globalPassThroughEnv.includes('NULLRANGE_PREBUILT_DIR'));
+  assert.deepEqual(
+    Object.entries(turbo.tasks)
+      .filter(([, task]) => task.env?.includes('NULLRANGE_PREBUILT_DIR'))
+      .map(([name]) => name),
+    ['null-range-mobile-cn#build'],
+  );
+  assert.deepEqual(turbo.tasks['null-range-mobile-cn#build'], {
+    dependsOn: ['^build'],
+    outputs: ['dist/**'],
+    env: ['COCOS_CREATOR', 'NULLRANGE_PREBUILT_DIR'],
+    inputs: ['$TURBO_DEFAULT$', '$TURBO_ROOT$/games/local/vibeJam-myself-nullrange/.prebuilt/**'],
+  });
 });

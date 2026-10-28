@@ -72,6 +72,7 @@ jobs:
       PLACE_AND_CLEAR_PREBUILT_DIR: ${{ github.workspace }}/games/local/place-and-clear/.prebuilt
       CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
       ASHFALL_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/ashfall-front/.prebuilt
+      NULLRANGE_PREBUILT_DIR: ${{ github.workspace }}/games/local/vibeJam-myself-nullrange/.prebuilt
       PAGES_BASE_PATH: /${{ github.event.repository.name }}/${{ (github.base_ref || github.ref_name) == 'dev' && 'dev/' || (github.base_ref || github.ref_name) == 'test' && 'test/' || '' }}
     steps:
       - uses: actions/checkout@v5
@@ -139,6 +140,10 @@ jobs:
         with:
           name: ashfall-front-${{ github.sha }}
           path: games/local/ashfall-front/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: vibeJam-myself-nullrange-${{ github.sha }}
+          path: games/local/vibeJam-myself-nullrange/.prebuilt
       - run: pnpm check:games
       - run: pnpm build:pages
       - name: Build and validate the company website
@@ -184,6 +189,7 @@ jobs:
       PLACE_AND_CLEAR_PREBUILT_DIR: ${{ github.workspace }}/games/local/place-and-clear/.prebuilt
       CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
       ASHFALL_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/ashfall-front/.prebuilt
+      NULLRANGE_PREBUILT_DIR: ${{ github.workspace }}/games/local/vibeJam-myself-nullrange/.prebuilt
       PAGES_FULL_REGRESSION: ${{ inputs.full }}
       PAGES_GAME_SOURCES: ${{ inputs.game_sources }}
     steps:
@@ -253,6 +259,10 @@ jobs:
         with:
           name: ashfall-front-${{ github.sha }}
           path: games/local/ashfall-front/.prebuilt
+      - uses: actions/download-artifact@v8
+        with:
+          name: vibeJam-myself-nullrange-${{ github.sha }}
+          path: games/local/vibeJam-myself-nullrange/.prebuilt
       - run: pnpm check:games
       - run: pnpm test:game-config
       - run: node --test scripts/pages-test-scope.test.mjs apps/shell-web/scripts/pages-validation.test.mjs

@@ -137,6 +137,7 @@ try {
           game.id === 'tianxia-chalu' ||
           game.id === 'skybound-odyssey' ||
           game.id === 'ashfall-front' ||
+          game.id === 'vibeJam-myself-nullrange' ||
           game.id === 'carrom-club' ||
           game.id === 'place-and-clear' ||
           game.id === 'cage-rescue' ||
@@ -171,13 +172,28 @@ try {
         mode.enabled,
       );
       const debugField = {
-        'vibeJam-myself-nullrange': '__flight',
+        'vibeJam-myself-nullrange': '__nullrange',
       }[game.id];
-      if (debugField)
+      if (debugField) {
+        await expect(surface.locator('#nullrange-loading')).toHaveCount(0, { timeout: 60000 });
         await surface.waitForFunction(({ field, enabled }) => Boolean(window[field]) === enabled, {
           field: debugField,
           enabled: mode.enabled,
         });
+        if (mode.enabled) {
+          assert.deepEqual(await surface.evaluate(() => Object.keys(window.__nullrange)), [
+            'snapshot',
+          ]);
+          assert.equal(
+            await surface.evaluate(() => {
+              const copy = window.__nullrange.snapshot();
+              copy.screen = 'forged';
+              return window.__nullrange.snapshot().screen === 'forged';
+            }),
+            false,
+          );
+        }
+      }
       if (game.id === 'bullet-garden')
         await surface.waitForFunction(
           (enabled) => window.__bulletGarden?.snapshot().controls.developerMode === enabled,

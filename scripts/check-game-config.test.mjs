@@ -164,6 +164,7 @@ test('all Cocos consumers download every source-verified artifact and pass them 
     'place-and-clear': 'PLACE_AND_CLEAR_PREBUILT_DIR',
     'game-castle-cannon': 'CASTLE_CANNON_PREBUILT_DIR',
     'ashfall-front': 'ASHFALL_FRONT_PREBUILT_DIR',
+    'vibeJam-myself-nullrange': 'NULLRANGE_PREBUILT_DIR',
   };
   const producer = await read('.github/workflows/carding-car.yml');
   assert.deepEqual(producer.jobs.creator.strategy.matrix.game, Object.keys(artifacts));

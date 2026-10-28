@@ -66,6 +66,31 @@ const SHARED_COCOS_SCRIPTS = new Set(
 // 457bc63. Keep the deleted paths in normal game regression selection; this
 // proof only permits those exact D records through the global deletion guard.
 const reviewedCleanupDeletions = Object.freeze({
+  // Nullrange B1 replaces these exact B0 Web files; retained Creator gameplay still runs.
+  'games/local/vibeJam-myself-nullrange/dev-mode.d.ts':
+    'b72515b11a1a65cf101125ce3bc23bf2aa3236cdb2331e0b018a962571f7a195',
+  'games/local/vibeJam-myself-nullrange/dev-mode.js':
+    'fcc49bdcc071a234df52081bbb6f09ce0a002e4c633403cb460724c921cb4b39',
+  'games/local/vibeJam-myself-nullrange/index.html':
+    '5e7934246b06b54826e1fd0579f0094dc60ab50281ec52ef006a112d5488d560',
+  'games/local/vibeJam-myself-nullrange/pnpm-lock.yaml':
+    '0345ed7e8a2dfaeee24edfa659e2200c140a1e53792b854582406785d1238c96',
+  'games/local/vibeJam-myself-nullrange/src/input.js':
+    'a336fe6322e748e2aa06e5ace8f9287e7898142f1f4b801cd63d082c5b2cf66c',
+  'games/local/vibeJam-myself-nullrange/src/main.js':
+    'a6dd848c2b458a81cfa9e5475e113d3c6061f62eab8125eed647a4b6f6982bb7',
+  'games/local/vibeJam-myself-nullrange/src/sim.js':
+    '700904c331fee10be6b37d68e2a0df87cb4a81627882ad99800048640426fc92',
+  'games/local/vibeJam-myself-nullrange/src/style.css':
+    '5fc2d0e16a56ff2d882928a5a187d4a0a0a51657df9154d8f0261f2a217e0706',
+  'games/local/vibeJam-myself-nullrange/src/view.js':
+    'be50fe240f2f96907023a5e419a8a33af2aa27f4738e149911b5300758d4153c',
+  'games/local/vibeJam-myself-nullrange/tests/browser.js':
+    '1510453178c2d731354216780ea90158811146c9398f0d210c7b542435d791ec',
+  'games/local/vibeJam-myself-nullrange/tests/input.test.js':
+    'b151a80574d3ad2e6fc224e70186e7f5f0d7c8d25fe2af303cc0449ec71d9de7',
+  'games/local/vibeJam-myself-nullrange/tests/sim.test.js':
+    'b81e969b3d7014e357649588f8da2a8dfadbb0d814336783334827c7772b7ad6',
   // Former Canvas renderer and superseded browser suites; Cocos owns the full flow.
   'games/local/tower-brake/leaderboard.mjs':
     '6e6b2688c126ef77d5e3411ae14f7d29bc9c4a1d78c75f58dd494c98c40e1606',
@@ -166,7 +191,15 @@ const reviewedCleanupDeletions = Object.freeze({
   'games/local/cops-robbers/scripts/generate-levels.mjs':
     '5792406bf617165e74a34887cb045b582416c657c03b402bd942b00f4e758bc7',
 });
-const tetracubeMoves = Object.freeze({
+const creatorScriptMoves = Object.freeze({
+  'games/local/vibeJam-myself-nullrange/dev-mode.js': {
+    to: 'games/local/vibeJam-myself-nullrange/scripts/dev-mode.js',
+    hash: 'fcc49bdcc071a234df52081bbb6f09ce0a002e4c633403cb460724c921cb4b39',
+  },
+  'games/local/vibeJam-myself-nullrange/dev-mode.d.ts': {
+    to: 'games/local/vibeJam-myself-nullrange/scripts/dev-mode.d.ts',
+    hash: 'b72515b11a1a65cf101125ce3bc23bf2aa3236cdb2331e0b018a962571f7a195',
+  },
   'games/local/tetracube/dev-mode.js': {
     to: 'games/local/tetracube/scripts/dev-mode.js',
     hash: '986844491337ac0bb53394d44917356a820f346f0d2b0d63b2ab34e36a7a4a2f',
@@ -180,7 +213,7 @@ const tetracubeMoves = Object.freeze({
     hash: '72acd28e8258e9e49b91288dc67b9af8f857c9eda6eaa5b80a4dfaa4009bedc7',
   },
 });
-export function isReviewedTetracubeMove({
+export function isReviewedCreatorScriptMove({
   change,
   readBase,
   readHead,
@@ -189,15 +222,16 @@ export function isReviewedTetracubeMove({
   gameSources,
 }) {
   const [from, to] = change.paths,
-    review = tetracubeMoves[from],
-    source = 'games/local/tetracube';
+    review = creatorScriptMoves[from],
+    source = typeof from === 'string' ? from.split('/').slice(0, 3).join('/') : '',
+    id = source.split('/').at(-1);
   if (change.status !== 'R100' || change.paths.length !== 2 || !review || to !== review.to)
     return false;
   try {
-    const entries = standaloneGames.filter((g) => g.id === 'tetracube' || g.source === source);
+    const entries = standaloneGames.filter((g) => g.id === id || g.source === source);
     if (
       entries.length !== 1 ||
-      entries[0].id !== 'tetracube' ||
+      entries[0].id !== id ||
       entries[0].source !== source ||
       gameSources.filter((s) => s === source).length !== 1
     )
@@ -213,6 +247,8 @@ export function isReviewedTetracubeMove({
     return false;
   }
 }
+
+export { isReviewedCreatorScriptMove as isReviewedTetracubeMove };
 
 export function isReviewedCleanupDeletion({
   change,
@@ -634,8 +670,8 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
           ...changedPaths.filter((file) => Object.hasOwn(reviewedCleanupDeletions, file)),
           ...changedPaths.filter((file) => Object.hasOwn(fullscreenRemovalReviews, file)),
           mossIconDeletion,
-          ...Object.keys(tetracubeMoves),
-          ...Object.values(tetracubeMoves).map((move) => move.to),
+          ...Object.keys(creatorScriptMoves),
+          ...Object.values(creatorScriptMoves).map((move) => move.to),
           ...retirementHeadQueryPaths(changedPaths),
           ...localRetirementHeadQueryPaths(changedPaths),
         ]),
@@ -680,7 +716,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
               headHasPath,
             }) &&
             !isFullscreenRemovalDeletion({ change, ...catalog, ...retirementContext }) &&
-            !isReviewedTetracubeMove({ change, ...catalog, ...retirementContext }) &&
+            !isReviewedCreatorScriptMove({ change, ...catalog, ...retirementContext }) &&
             !isReviewedMossIconReplacement({ change, ...catalog, ...retirementContext }) &&
             !isReviewedRetirementDeletion(change, retiredScopes) &&
             !isReviewedGameRename(change, retiredScopes) &&

@@ -23,6 +23,10 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  'games/local/vibeJam-myself-nullrange/scripts/build.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/vibeJam-myself-nullrange/scripts/build.mjs -> games/local/carding-car/scripts/cocos-branding.mjs',
+  'games/local/vibeJam-myself-nullrange/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
+  'games/local/vibeJam-myself-nullrange/tests/artifact.test.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'services/runtime-api/rules/night.mjs -> games/local/night-overwatch/assets/scripts/core/Duel.ts',
   'services/runtime-api/rules/night-ranked.mjs -> games/local/night-overwatch/assets/scripts/core/Replay.ts',
   'services/runtime-api/rules/night-ranked.mjs -> games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',

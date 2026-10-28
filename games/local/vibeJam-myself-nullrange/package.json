@@ -1,14 +1,23 @@
 {
   "name": "null-range-mobile-cn",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
+  "description": "零域 · NULL RANGE，Cocos 3D 空战",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 43170 --strictPort",
-    "build": "vite build --base=./",
-    "preview": "vite preview --host 0.0.0.0 --port 43171 --strictPort",
-    "test": "node tests/sim.test.js && node tests/input.test.js"
+    "dev": "node scripts/serve.mjs",
+    "preview": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs web-mobile",
+    "typecheck": "node scripts/typecheck.mjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs"
   },
-  "dependencies": { "three": "0.170.0" },
-  "devDependencies": { "vite": "6.4.4" }
+  "devDependencies": {
+    "@playwright/test": "1.55.1",
+    "typescript": "7.0.2"
+  },
+  "creator": {
+    "version": "3.8.8"
+  },
+  "uuid": "f856a7d4-ac08-4a6a-9917-8479707b4a98"
 }

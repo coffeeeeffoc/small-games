@@ -14,6 +14,7 @@ for (const [game, variable] of [
   ['place-and-clear', 'PLACE_AND_CLEAR_PREBUILT_DIR'],
   ['game-castle-cannon', 'CASTLE_CANNON_PREBUILT_DIR'],
   ['ashfall-front', 'ASHFALL_FRONT_PREBUILT_DIR'],
+  ['vibeJam-myself-nullrange', 'NULLRANGE_PREBUILT_DIR'],
 ])
   test(`${game}: required Cocos inputs are checked before cache reuse`, async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'cocos-input-'));

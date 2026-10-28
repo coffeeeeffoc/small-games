@@ -23,6 +23,7 @@ const immersiveGame = (id) =>
     'tianxia-chalu',
     'skybound-odyssey',
     'ashfall-front',
+    'vibeJam-myself-nullrange',
     'carrom-club',
     'place-and-clear',
     'cage-rescue',
@@ -225,6 +226,20 @@ try {
         await frame.locator('#home-button').click();
         await expect(frame.locator('#focus-button')).toBeVisible();
         await expect(frame.locator('#board')).toBeHidden();
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
+      } else if (game.id === 'vibeJam-myself-nullrange') {
+        const { tapControl, snapshot } = await import('./game-checks/nullrange.mjs');
+        await expect(page.locator('.standalone-page nav')).toBeVisible();
+        await tapControl(frame, 'missions');
+        await tapControl(frame, 'start');
+        await expect.poll(async () => (await snapshot(frame)).screen).toBe('playing');
+        await expect(page.locator('.standalone-page nav')).toBeHidden();
+        await tapControl(frame, 'pause');
+        await expect.poll(async () => (await snapshot(frame)).screen).toBe('paused');
+        await expect(page.locator('.standalone-page nav')).toBeHidden();
+        await tapControl(frame, 'home');
+        await expect.poll(async () => (await snapshot(frame)).screen).toBe('home');
         await expect(page.locator('.standalone-page nav')).toBeVisible();
         await expect(page.getByRole('link', { name: '独立打开' })).toHaveCount(0);
       } else if (game.id === 'chase-thief') {

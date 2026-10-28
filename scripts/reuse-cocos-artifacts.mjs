@@ -15,6 +15,7 @@ export const games = [
   'place-and-clear',
   'game-castle-cannon',
   'ashfall-front',
+  'vibeJam-myself-nullrange',
 ];
 const creator = '3.8.8';
 const platform = 'web-mobile';

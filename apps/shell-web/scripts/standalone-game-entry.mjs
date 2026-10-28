@@ -46,7 +46,7 @@ export const markers = {
   'travel-bund': '#enter-world',
 
   'vibeJam-myself-history-guess': '#start',
-  'vibeJam-myself-nullrange': '#deploy',
+  'vibeJam-myself-nullrange': '#GameCanvas',
 };
 
 // Semantic IDs are intentionally independent of layout, position and display wording.
@@ -70,12 +70,12 @@ export const homeControls = {
   'letters-words2': '#focus-button',
 
   'vibeJam-myself-history-guess': ['#start', '#begin-level'],
-  'vibeJam-myself-nullrange': '#deploy',
 };
 
 // Explicit compatibility list: these existing assertions still own their setup flow.
 export const legacyEntryIds = [
   'ashfall-front',
+  'vibeJam-myself-nullrange',
   'castle-cannon',
   'tower-brake',
   'place-and-clear',

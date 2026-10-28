@@ -30,7 +30,8 @@
     "TETRACUBE_PREBUILT_DIR",
     "PLACE_AND_CLEAR_PREBUILT_DIR",
     "CASTLE_CANNON_PREBUILT_DIR",
-    "ASHFALL_FRONT_PREBUILT_DIR"
+    "ASHFALL_FRONT_PREBUILT_DIR",
+    "NULLRANGE_PREBUILT_DIR"
   ],
   "tasks": {
     "dev": {
@@ -239,6 +240,15 @@
       "outputs": ["dist/**", "server-dist/**"],
       "env": ["COCOS_CREATOR", "CASTLE_CANNON_PREBUILT_DIR"],
       "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/local/game-castle-cannon/.prebuilt/**"]
+    },
+    "null-range-mobile-cn#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["COCOS_CREATOR", "NULLRANGE_PREBUILT_DIR"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/games/local/vibeJam-myself-nullrange/.prebuilt/**"
+      ]
     },
     "@coffeeeeffoc/ashfall-front#build": {
       "dependsOn": ["^build"],

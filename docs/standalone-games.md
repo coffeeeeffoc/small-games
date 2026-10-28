@@ -47,6 +47,8 @@
 
 `app-game-research`、`prompts`、`vibeJam` 未导入；`xiangqi-five-promo` 为宣传素材，不作为游戏注册。
 
+《零域 · NULL RANGE》保留 `vibeJam-myself-nullrange`、包名 `null-range-mobile-cn` 和原独立地址，B1 改为 Creator 3.8.8 Web Mobile。`NULLRANGE_PREBUILT_DIR` 指向包含 `dist/` 和真实 `cc.d.ts` 的源码匹配制品，沿现有 Creator producer、CI／Pages／Mobile 消费链复用。Shell 使用沉浸式 iframe，游玩与暂停隐藏导航，回机库恢复返回目录。入口验证使用真实 Cocos 输入；正式默认无调试对象，显式开发模式仅提供只读 `__nullrange.snapshot()`。B1 仅技术阶段，视觉、联机和素材边界见[验证记录](../games/local/vibeJam-myself-nullrange/TEST_REPORT.md)。
+
 ## 独立 Git 子模块
 
 《星轨弹珠》位于 `games/local/ball-roguelite`，workspace 包名为 `@coffeeeeffoc/ball-roguelite`，通过 iframe 装载，独立地址为 `/games/ball-roguelite/index.html`。基于上传的弹珠肉鸽原型，提供六个依次解锁星域、无尽挑战与六种组合强化；竖屏触控瞄准、回合存档及运行边界见 [游戏 README](../games/local/ball-roguelite/README.md)。

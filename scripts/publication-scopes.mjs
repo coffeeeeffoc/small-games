@@ -4092,6 +4092,209 @@ export function porcelainH5FileScopes({ changedPaths, readBase, readHead, games,
   return scopes;
 }
 
+// B1 shared wiring reviewed against 2b6a4e18; unknown bytes keep the existing scope guard.
+export const nullrangeCreatorReviews = Object.freeze({
+  'pnpm-lock.yaml': [
+    'c1c3b174acc1430149209c2155611019935730c61c0969b5bfdbf5537a99b030',
+    'ebafbfc7ebc0fe4f2e4e9f267868e4d69d44569f03cbb841608d5c98be890534',
+  ],
+  'turbo.json': [
+    'd3367a8c79a29efa8d4518f84d080958307617cef8f921be083b0ba66d429268',
+    '6731d27d4c8e58300c97b77a4793bd3dc82d7b47748a9d1c78c499f52bca0994',
+  ],
+  'scripts/cocos-validation.mjs': [
+    '730e7f81607fc83c4f83922ab19f4bf770e496c39f4104efae91bc1655114fc8',
+    '5c005662fe4972cd755fdc439bd8ef2ac9419d65741631400053360bb83e8739',
+  ],
+  'scripts/cocos-validation.test.mjs': [
+    'f6a27a96af374a9988e82b24cbd7f5b05bc3d32c2ee161840e29c1fd2846bafa',
+    '1120f870d7aa77b98b43b9352bc757d32565a283b1b0e9ca7882796af0b311c9',
+  ],
+  'scripts/reuse-cocos-artifacts.mjs': [
+    '8a93df0a01f67d30f41993d5b29893bd0ce7224a152246484ca82173185fe378',
+    'b3baea80429b2ac1ff2c9686371b58fe01821ec2e43309aaa43002218137a159',
+  ],
+  'scripts/reuse-cocos-artifacts.test.mjs': [
+    'ae0729854468680e1445340799686b379a7612582644fbe8c64c5b7e884d5f6c',
+    '7bda3b96c13c3fbd176d28dbaed374b497fdc638ae8bd207b0f66d4b09b3aba6',
+  ],
+  'scripts/test-game-dev-mode.mjs': [
+    'ff37d9ea32e508972fd4ccef576cddad78f7614ae86d1a2b96e0f511870868dd',
+    '0e479160713a66a075ac65df058539eea4313be1ed1e108eeab604617948ad49',
+  ],
+  '.github/workflows/carding-car.yml': [
+    '28f7f7f7c22ce1b2e4d94f046ef1ad3da31c634066f7711d7b288144bff3e5ca',
+    '01c4ccc9d72f27e38f95af1637fc1f224796875e646dd4599cc03a1ae3ae1ee9',
+  ],
+  '.github/workflows/ci.yml': [
+    '1e7599cffbc73f70405a415f0b09c8ec7d779387a6f568a3c8162a04a36571c3',
+    'bf4633cebeee4c9b8b5c7030246e11a664ddd364a8f9901095720aca5ff88221',
+  ],
+  '.github/workflows/pages-validate.yml': [
+    'f9e1a4964375f0c6e5376afa84bec6fdc8ed122c87a5babe92c07dea6435f22b',
+    '42124d77909b385fafbbd7f2a30a11a124902f87dd225ffb0de4f30ae4ccbca6',
+  ],
+  '.github/workflows/mobile.yml': [
+    '49a7113afe2ed48a2e72a732e0ea8427fc247d069c0818000030dab95923acc2',
+    '88e1c267d58ef8c8bbbc4b57b7b24b307dfa0100660669b8ea64d768918c4ae0',
+  ],
+  'apps/shell-web/scripts/pages-smoke.mjs': [
+    '2364ebce7fbd1ee96034ff7eaae40233ab3fae72c8693e63edba8b887c30ad5d',
+    '5e84773e5a75456ece5e245f96ccc90e2a8b2eee33974291ca4b3479ba23a9d7',
+  ],
+  'apps/shell-web/scripts/standalone-game-checks.mjs': [
+    '84afe8c2578d637d87c9b38b9abb817493b80be42ba0d794b412bb6f0c438447',
+    '95cf0e066977513328a0d9fbcc250d31ffb1939e1e85734ac06a8646832d307c',
+  ],
+  'apps/shell-web/scripts/standalone-game-entry.mjs': [
+    'a55098b4008a2423cc3e78a73c42257dcee5308f71f6553cb2420e5235786810',
+    'e54f9efa88b9382b38ba2135f39a9a8a47bf55ddcfa7c8323b1e2e6c9309b6e7',
+  ],
+  'apps/shell-web/scripts/standalone-game-entry.test.mjs': [
+    '74c2965e10a27f68f4010b0b41410f7ba38f26495529f7108337b90f347ea668',
+    '5bf5a81ead0d1759e7f47861805e62a2478deb6be1702b3435a90d254acad2a2',
+  ],
+  'apps/shell-web/src/StandaloneGame.tsx': [
+    'ab27967b440f3ff8d662b2ae62cab09070a5eacba2de983af04d611b979cd16e',
+    '660906eed48994da99cab4839ff1257479a9e3a40a9485e5c1d153a9c47f5e6d',
+  ],
+  'apps/shell-web/tests/standalone-immersive.integration.test.tsx': [
+    '44ab187caff826893417b19739bb961faf6d5f5767e8eb44db57f492ac75811d',
+    '7292f3eed6a4e207d19df8eb414c022bc4c9e7d08588a1f48edcd4fd413e4b3e',
+  ],
+  'apps/shell-web/tests/standalone.integration.test.tsx': [
+    'c3db90c2c9ea82ee4bda83acdbc62bfbf26eb218f4c327382813ca1b41916ffa',
+    'a579be352a2e6fc7b48225da5845093cd48456708de305cc3783b60f492781fd',
+  ],
+  'apps/shell-web/scripts/game-checks/nullrange.mjs': [
+    null,
+    '3c6d24fcbbe179c616e8985bcd3bfa60cbb4b4f517616c50e72cb5eb75e991a6',
+  ],
+  'scripts/check-game-config.test.mjs': [
+    'd0b77aa70fddacc02de8b987bd3f16ddb8db2ce1c753c64f0d8f3b9e39949248',
+    '7bd94b07c8f895f36f264e2508077db02091576de8fa3d6d771fe9d91b998574',
+  ],
+  'scripts/pages-test-scope.mjs': [
+    'ef6ed59c81536dfa99d1bdaeb63945f6839be5924d4caf04d621433abaccdfb0',
+    'ec5e3f9b7eba41b8a247a533a0895b8890e4e944304586f5911a447f9ca34ef8',
+  ],
+  'scripts/pages-test-scope.test.mjs': [
+    '367959098e1fd5c58f0e5e199bb2ba8dac684df6e18ea57b69aa846553b3e4bd',
+    '22ebe25cd8ac84560a3bea875b8f97e6c6891fe028f7ab2546e55a2dab090971',
+  ],
+});
+
+export function nullrangeLockOnly(before, after, oldManifest, manifest) {
+  before = before.replaceAll('\r\n', '\n');
+  after = after.replaceAll('\r\n', '\n');
+  const source = 'games/local/vibeJam-myself-nullrange';
+  const oldDocuments = planningYaml(before),
+    currentDocuments = planningYaml(after);
+  assert.equal(oldDocuments.length, 2);
+  assert.equal(currentDocuments.length, 2);
+  const old = oldDocuments.at(-1),
+    current = currentDocuments.at(-1);
+  assert.equal(oldManifest.name, 'null-range-mobile-cn');
+  assert.deepEqual(oldManifest.dependencies, { three: '0.170.0' });
+  assert.deepEqual(oldManifest.devDependencies, { vite: '6.4.4' });
+  assert.equal(manifest.name, oldManifest.name);
+  assert.equal(manifest.creator?.version, '3.8.8');
+  assert.equal(manifest.scripts?.build, 'node scripts/build.mjs web-mobile');
+  assert.equal(manifest.dependencies, undefined);
+  assert.deepEqual(manifest.devDependencies, { '@playwright/test': '1.55.1', typescript: '7.0.2' });
+  assert.deepEqual(old.importers[source], {
+    dependencies: { three: { specifier: '0.170.0', version: '0.170.0' } },
+    devDependencies: {
+      vite: {
+        specifier: '6.4.4',
+        version:
+          '6.4.4(@types/node@24.10.1)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.51.2)(tsx@4.21.0)',
+      },
+    },
+  });
+  const tools = Object.fromEntries(
+    Object.entries(manifest.devDependencies).map(([name, version]) => [
+      name,
+      { specifier: version, version },
+    ]),
+  );
+  assert.deepEqual(current.importers[source], { devDependencies: tools });
+  for (const [name, tuple] of Object.entries(tools))
+    assert(
+      Object.values(old.importers).some((entry) =>
+        isDeepStrictEqual(entry.devDependencies?.[name], tuple),
+      ),
+    );
+  // Restore only this importer; all remaining lock bytes, including resolutions, must be identical.
+  const block = /^  games\/local\/vibeJam-myself-nullrange:[^\n]*\n(?:(?!  \S|\S)[^\n]*\n)*/gm;
+  const previous = before.match(block),
+    next = after.match(block);
+  assert.equal(previous?.length, 1);
+  assert.equal(next?.length, 1);
+  assert.equal(
+    after.replace(block, () => previous[0]),
+    before,
+  );
+  return true;
+}
+
+export function nullrangeCreatorFileScopes({
+  changedPaths,
+  readBase,
+  readHead,
+  games,
+  packages = [],
+}) {
+  const scopes = new Map(),
+    source = 'games/local/vibeJam-myself-nullrange',
+    id = 'vibeJam-myself-nullrange';
+  try {
+    const entries = games.filter((g) => g.id === id || g.source === source);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].id, id);
+    assert.equal(entries[0].source, source);
+    assert.equal(entries[0].output, 'dist');
+    const targets = packages.filter((p) => p.dir === source || p.name === 'null-range-mobile-cn');
+    assert.equal(targets.length, 1);
+    assert.equal(targets[0].dir, source);
+    assert.equal(targets[0].name, 'null-range-mobile-cn');
+    assert.equal(targets[0].creator?.version, '3.8.8');
+    assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
+    const digest = (text) =>
+      createHash('sha256').update(text.replaceAll('\r\n', '\n')).digest('hex');
+    for (const file of changedPaths) {
+      const review = nullrangeCreatorReviews[file];
+      if (!review) continue;
+      try {
+        if (
+          digest(readHead(file)) !== review[1] ||
+          (review[0] !== null && digest(readBase(file)) !== review[0])
+        )
+          continue;
+        if (file === 'pnpm-lock.yaml') {
+          nullrangeLockOnly(
+            readBase(file),
+            readHead(file),
+            JSON.parse(readBase(source + '/package.json')),
+            JSON.parse(readHead(source + '/package.json')),
+          );
+        }
+        const consumers = [source];
+        if (file.startsWith('apps/shell-web/') || file === 'scripts/test-game-dev-mode.mjs')
+          consumers.push('apps/shell-web');
+        if (file === 'scripts/test-game-dev-mode.mjs') consumers.push('games/local/wulong-city');
+        for (const dir of consumers) assert.equal(packages.filter((p) => p.dir === dir).length, 1);
+        scopes.set(file, consumers);
+      } catch {
+        /* Missing comparison or manifest evidence cannot authorize this file. */
+      }
+    }
+  } catch {
+    /* Ambiguous runtime identity keeps all paths unclassified. */
+  }
+  return scopes;
+}
+
 export function reviewedSharedFileScopes({
   changedPaths,
   readBase,
@@ -4108,6 +4311,13 @@ export function reviewedSharedFileScopes({
     games,
     packages,
     ...treeContext,
+  });
+  const nullrangeScopes = nullrangeCreatorFileScopes({
+    changedPaths,
+    readBase,
+    readHead,
+    games,
+    packages,
   });
   const porcelainScopes = porcelainH5FileScopes({
     changedPaths,
@@ -4172,6 +4382,10 @@ export function reviewedSharedFileScopes({
     }
     if (renameScopes.has(file)) {
       scopes.set(file, renameScopes.get(file));
+      continue;
+    }
+    if (nullrangeScopes.has(file)) {
+      scopes.set(file, nullrangeScopes.get(file));
       continue;
     }
     if (porcelainScopes.has(file)) {

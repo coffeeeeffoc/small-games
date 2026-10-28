@@ -1,3 +1,12 @@
+library/
+temp/
+local/
+profiles/
+build/
+.prebuilt/
+reports/
 node_modules/
 dist/
-artifacts/
+cc.d.ts
+assets/scenes/main.scene*
+assets/resources/audio/

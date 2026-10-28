@@ -648,6 +648,28 @@ test('identity fixtures reuse exact implementations without opening runtime or a
   );
 });
 
+test('Nullrange Creator tools allow exact build and test edges without exposing runtime imports', async (t) => {
+  const root = await createWorkspace([
+    {
+      path: 'games/local/vibeJam-myself-nullrange',
+      manifest: { name: 'null-range-mobile-cn' },
+      files: {
+        'scripts/build.mjs':
+          "import '../../carding-car/scripts/toolchain.mjs';\nimport '../../carding-car/scripts/cocos-branding.mjs';",
+        'scripts/typecheck.mjs': "import '../../carding-car/scripts/toolchain.mjs';",
+        'tests/artifact.test.mjs': "import '../../carding-car/scripts/toolchain.mjs';",
+        'scripts/other.mjs': "import '../../carding-car/scripts/toolchain.mjs';",
+        'assets/scripts/main.ts': "import '../../../carding-car/scripts/toolchain.mjs';",
+      },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const violations = await validateWorkspace(root);
+  assert.equal(violations.length, 2);
+  assert(violations.every((entry) => entry.code === 'cross-package-relative'));
+  assert(violations.every((entry) => /other|main/.test(entry.message)));
+});
+
 test('homebound Creator reuse is limited to the declared build and typecheck tools', async (t) => {
   const root = await createWorkspace([
     {

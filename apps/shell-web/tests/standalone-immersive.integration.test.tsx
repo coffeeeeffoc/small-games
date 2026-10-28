@@ -38,6 +38,7 @@ it.each([
   'tianxia-chalu',
   'skybound-odyssey',
   'ashfall-front',
+  'vibeJam-myself-nullrange',
   'carrom-club',
   'place-and-clear',
   'cage-rescue',

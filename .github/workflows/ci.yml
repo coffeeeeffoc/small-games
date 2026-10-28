@@ -99,6 +99,7 @@ jobs:
       PLACE_AND_CLEAR_PREBUILT_DIR: ${{ github.workspace }}/games/local/place-and-clear/.prebuilt
       CASTLE_CANNON_PREBUILT_DIR: ${{ github.workspace }}/games/local/game-castle-cannon/.prebuilt
       ASHFALL_FRONT_PREBUILT_DIR: ${{ github.workspace }}/games/local/ashfall-front/.prebuilt
+      NULLRANGE_PREBUILT_DIR: ${{ github.workspace }}/games/local/vibeJam-myself-nullrange/.prebuilt
       TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
       TURBO_SCM_HEAD: ${{ github.sha }}
       CI_VALIDATION_PLAN: ${{ needs.plan.outputs.plan }}
@@ -193,6 +194,12 @@ jobs:
         with:
           name: ashfall-front-${{ github.sha }}
           path: games/local/ashfall-front/.prebuilt
+
+      - uses: actions/download-artifact@v8
+        if: needs.plan.outputs.cocos == 'true'
+        with:
+          name: vibeJam-myself-nullrange-${{ github.sha }}
+          path: games/local/vibeJam-myself-nullrange/.prebuilt
 
       - name: Check all game registrations
         run: pnpm check:games

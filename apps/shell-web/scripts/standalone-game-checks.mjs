@@ -1446,12 +1446,8 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       /公里误差|年误差|正确答案|对照地图/,
     );
   } else if (id === 'vibeJam-myself-nullrange') {
-    await expect(frame.locator('#hud')).toBeVisible();
-    await click(frame.locator('#missile'));
-    await expect(frame.locator('#missile-status')).not.toHaveText('× 6');
-    await click(frame.locator('#pause'));
-    await expect(frame.locator('#pause-dialog')).toBeVisible();
-    await click(frame.locator('#resume'));
+    const { assertNullrangeGameplay } = await import('./game-checks/nullrange.mjs');
+    await assertNullrangeGameplay(frame, mobile);
   } else {
     throw new Error(`Missing interaction check for ${id}`);
   }

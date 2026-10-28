@@ -187,3 +187,20 @@ test('Ashfall holds wait for explicit release and failed taps remain cancellable
   await failedInput.dispose();
   assert.deepEqual(failed, ['touchStart', 'touchEnd', 'touchCancel']);
 });
+
+test('Nullrange preserves its ID and uses native Creator controls with scaled, rotated iframe coordinates', async () => {
+  const { controlPoint } = await import('./game-checks/nullrange.mjs');
+  assert.equal(markers['vibeJam-myself-nullrange'], '#GameCanvas');
+  assert.equal(homeControls['vibeJam-myself-nullrange'], undefined);
+  assert.equal(entryMode('vibeJam-myself-nullrange'), 'legacy');
+  const control = { x: 100, y: 50, w: 60, h: 48 };
+  const state = { scale: 0.5 };
+  assert.deepEqual(controlPoint(state, control, { x: 20, y: 30, width: 844, height: 390 }), {
+    x: 85,
+    y: 67,
+  });
+  assert.deepEqual(controlPoint(state, control, { x: 20, y: 30, width: 390, height: 844 }), {
+    x: 373,
+    y: 95,
+  });
+});

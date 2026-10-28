@@ -2464,3 +2464,140 @@ test('Porcelain studio lock proof accepts only the pinned offline addition', () 
     false,
   );
 });
+
+const nullrangeSource = 'games/local/vibeJam-myself-nullrange';
+const nullrangeOldPaths = [
+  'dev-mode.d.ts',
+  'dev-mode.js',
+  'index.html',
+  'pnpm-lock.yaml',
+  'src/input.js',
+  'src/main.js',
+  'src/sim.js',
+  'src/style.css',
+  'src/view.js',
+  'tests/browser.js',
+  'tests/input.test.js',
+  'tests/sim.test.js',
+].map((file) => nullrangeSource + '/' + file);
+const nullrangeOriginals = new Map();
+function nullrangeOriginal(file) {
+  if (!nullrangeOriginals.has(file))
+    nullrangeOriginals.set(
+      file,
+      execFileSync('git', ['show', '2b6a4e18:' + file], { encoding: 'utf8' }),
+    );
+  return nullrangeOriginals.get(file);
+}
+
+test('Nullrange migration binds exactly twelve legacy paths, bytes, identity and two original script moves', async () => {
+  const { isReviewedCleanupDeletion: deletion, isReviewedCreatorScriptMove: move } = await import(
+    './pages-test-scope.mjs'
+  );
+  const context = {
+    standaloneGames: [{ id: 'vibeJam-myself-nullrange', source: nullrangeSource }],
+    gameSources: [nullrangeSource],
+    readBase: nullrangeOriginal,
+    headHasPath: () => false,
+  };
+  for (const file of nullrangeOldPaths) {
+    const change = { status: 'D', paths: [file] };
+    assert(deletion({ ...context, change }), file);
+    for (const extra of [
+      { readBase: (f) => nullrangeOriginal(f) + '\n' },
+      { headHasPath: () => true },
+      { headHasPath: () => undefined },
+      {
+        headHasPath: () => {
+          throw Error('missing tree');
+        },
+      },
+      { standaloneGames: [...context.standaloneGames, ...context.standaloneGames] },
+      { standaloneGames: [{ ...context.standaloneGames[0], id: 'alias' }] },
+      { gameSources: [] },
+      { change: { status: 'R100', paths: [file, file + '.unknown'] } },
+    ])
+      assert.equal(deletion({ ...context, change, ...extra }), false, file);
+  }
+  assert.equal(
+    deletion({ ...context, change: { status: 'D', paths: [nullrangeSource + '/unreviewed.mjs'] } }),
+    false,
+  );
+  for (const name of ['dev-mode.js', 'dev-mode.d.ts']) {
+    const from = nullrangeSource + '/' + name,
+      to = nullrangeSource + '/scripts/' + name;
+    const change = { status: 'R100', paths: [from, to] };
+    const options = {
+      ...context,
+      change,
+      readHead: () => nullrangeOriginal(from),
+      headHasPath: (file) => file === to,
+    };
+    assert(move(options));
+    for (const extra of [
+      { readBase: () => nullrangeOriginal(from) + '\n' },
+      { readHead: () => nullrangeOriginal(from) + '\n' },
+      { headHasPath: () => true },
+      { headHasPath: () => false },
+      { change: { ...change, status: 'R099' } },
+      { change: { ...change, paths: [from, to + '.unknown'] } },
+      { standaloneGames: [...context.standaloneGames, ...context.standaloneGames] },
+    ])
+      assert.equal(move({ ...options, ...extra }), false);
+  }
+});
+
+test('Nullrange selector handles deletion and exact moves before shared classification, rejects additional deletion or rename', async (t) => {
+  const { root, git } = await temporaryRepository(t);
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await writeFile(
+    path.join(root, REGISTRY),
+    JSON.stringify([{ id: 'vibeJam-myself-nullrange', source: nullrangeSource, output: 'dist' }]),
+  );
+  for (const file of [...nullrangeOldPaths, nullrangeSource + '/package.json']) {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await writeFile(path.join(root, file), nullrangeOriginal(file));
+  }
+  const neighbor = nullrangeSource + '/unreviewed.mjs';
+  await writeFile(path.join(root, neighbor), 'export const keep = true;\n');
+  git('add', '.');
+  git('commit', '-m', 'test(nullrange): 固定迁移基线');
+  const base = git('rev-parse', 'HEAD');
+  await mkdir(path.join(root, nullrangeSource, 'scripts'), { recursive: true });
+  for (const name of ['dev-mode.js', 'dev-mode.d.ts'])
+    git('mv', nullrangeSource + '/' + name, nullrangeSource + '/scripts/' + name);
+  git('rm', ...nullrangeOldPaths.filter((file) => !/dev-mode\./.test(file)));
+  await writeFile(
+    path.join(root, nullrangeSource, 'package.json'),
+    readFileSync(new URL('../' + nullrangeSource + '/package.json', import.meta.url)),
+  );
+  git('add', '.');
+  git('commit', '-m', 'test(nullrange): 固定Creator迁移候选');
+  const candidate = git('rev-parse', 'HEAD');
+  const selected = await main({ PAGES_DIFF_BASE: base, VALIDATION_RISK_PLAN: 'true' }, root);
+  assert.equal(selected.full, false);
+  assert(selected.cocos);
+  assert.deepEqual(selected.game_sources, [nullrangeSource]);
+  assert.deepEqual(selected.browser_ids, ['vibeJam-myself-nullrange']);
+  assert(nullrangeOldPaths.every((file) => collectChangedPaths({ root, base }).includes(file)));
+  git('rm', neighbor);
+  git('commit', '-m', 'test(nullrange): 拒绝额外删除');
+  await assert.rejects(
+    main({ PAGES_DIFF_BASE: base, VALIDATION_RISK_PLAN: 'true' }, root),
+    /Relevant deletion or rename/,
+  );
+  git('checkout', '--detach', candidate);
+  git('mv', neighbor, neighbor + '.renamed');
+  git('commit', '-m', 'test(nullrange): 拒绝额外重命名');
+  await assert.rejects(
+    main({ PAGES_DIFF_BASE: base, VALIDATION_RISK_PLAN: 'true' }, root),
+    /Relevant deletion or rename/,
+  );
+  git('checkout', '--detach', base);
+  git('mv', nullrangeOldPaths[0], nullrangeOldPaths[0] + '.renamed');
+  git('commit', '-m', 'test(nullrange): 拒绝旧路径迁往未知目标');
+  await assert.rejects(
+    main({ PAGES_DIFF_BASE: base, VALIDATION_RISK_PLAN: 'true' }, root),
+    /Relevant deletion or rename/,
+  );
+});
