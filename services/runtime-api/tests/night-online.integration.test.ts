@@ -619,12 +619,108 @@ integration('Night real HTTP and PostgreSQL', () => {
       await refreshNightClears(tx, time, a.playerId);
     });
     expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(3);
+    const achieved = await database.db.execute(
+      sql`select updated_at from runtime.competition_best where board=${nightBoard('clears')} and player_id=${a.playerId}`,
+    );
+    await database.db.transaction(async (tx) => {
+      await nightLedgerLock(tx);
+      await refreshNightClears(tx, time + 1000, a.playerId);
+    });
+    expect(
+      await database.db.execute(
+        sql`select updated_at from runtime.competition_best where board=${nightBoard('clears')} and player_id=${a.playerId}`,
+      ),
+    ).toEqual(achieved);
     expect(
       await database.db.execute(
         sql`select * from runtime.competition_best where board=${nightBoard('clears')} and player_id=${b.playerId}`,
       ),
     ).toEqual(before);
     expect((await request(path + '/leaderboards/level-patrol-03', a)).me).toBeNull();
+  });
+
+  it('orders night boards by performance, points, recorded time and UUID with unique ranks beyond the top 100', async () => {
+    const pilots = await Promise.all(Array.from({ length: 105 }, () => player()));
+    const entries = pilots.map((pilot, i) => ({
+      ...pilot,
+      score: i === 0 ? 120 : i < 5 ? 119 : 118,
+      points: i === 1 ? 500 : i < 5 && i > 1 ? 400 : 0,
+      at: i === 4 ? time + 30 : time + 10,
+    }));
+    try {
+      for (const entry of entries) {
+        await database.db.execute(sql`insert into runtime.competition_best values
+        (${nightBoard('clears')},${entry.playerId},${entry.score},0,${randomUUID()},${entry.at}),
+        (${nightBoard('points')},${entry.playerId},${entry.points},0,${randomUUID()},${entry.at})`);
+      }
+      const expected = [...entries].sort(
+        (a, b) =>
+          b.score - a.score ||
+          b.points - a.points ||
+          a.at - b.at ||
+          a.playerId.localeCompare(b.playerId),
+      );
+      const last = expected.at(-1)!;
+      const board = await request(path + '/leaderboards/clears', last);
+      expect(board.top.map((row: { playerId: string }) => row.playerId)).toEqual(
+        expected.slice(0, 100).map((p) => p.playerId),
+      );
+      expect(board.top.map((row: { rank: number }) => row.rank)).toEqual(
+        Array.from({ length: 100 }, (_, i) => i + 1),
+      );
+      expect(board.me).toMatchObject({ playerId: last.playerId, rank: 105, position: 105 });
+      expect(board.previous).toMatchObject({ playerId: expected[103]!.playerId, rank: 104 });
+      expect((await request(path + '/leaderboards/clears', last)).top).toEqual(board.top);
+      await database.db.execute(
+        sql`update runtime.competition_best set score=600 where board=${nightBoard('points')} and player_id=${entries[4]!.playerId}`,
+      );
+      expect((await request(path + '/leaderboards/clears', entries[4])).me.rank).toBe(2);
+      for (const name of ['points', 'win-rate', 'level-corridor-01']) {
+        const ranking = await request(path + '/leaderboards/' + name, last);
+        expect(ranking.top.map((row: { rank: number }) => row.rank)).toEqual(
+          ranking.top.map((_: unknown, i: number) => i + 1),
+        );
+      }
+    } finally {
+      await database.db.execute(sql`delete from runtime.competition_best where player_id in
+        (${sql.join(
+          pilots.map((p) => sql`${p.playerId}::uuid`),
+          sql`,`,
+        )})`);
+    }
+  });
+
+  it('renaming a user updates existing rankings, history and rooms without a second identity', async () => {
+    const [a, b] = await Promise.all([player(), player()]);
+    const room = await pair(a, b);
+    await eliminate(room.code, 0);
+    await request(roomPath(room.code), a);
+    const prior = await request(path + '/leaderboards/points', a);
+    expect((await request(path + '/history', b)).matches[0].opponent.id).toBe(a.playerId);
+    const waiting = await request(path + '/rooms', a, {});
+    const renamed = await request('/me', a, { nickname: '  新的夜航员  ' });
+    expect(renamed).toMatchObject({ userId: a.playerId, nickname: '新的夜航员' });
+    const current = await request(path + '/leaderboards/points', a);
+    expect(current.me).toMatchObject({
+      userId: a.playerId,
+      nickname: '新的夜航员',
+      score: prior.me.score,
+      rank: prior.me.rank,
+    });
+    expect((await request(path + '/history', b)).matches[0].opponent).toMatchObject({
+      id: a.playerId,
+      name: '新的夜航员',
+    });
+    const rooms = (await request(path + '/rooms', b)).rooms;
+    expect(rooms.find((r: { code: string }) => r.code === waiting.code).players[0]).toMatchObject({
+      userId: a.playerId,
+      nickname: '新的夜航员',
+    });
+    expect(
+      await database.db.execute(
+        sql`select id from runtime.competition_players where id=${a.playerId}`,
+      ),
+    ).toHaveLength(1);
   });
 
   it('replays actual controls, ranks per level, retains faster times and rejects another player', async () => {

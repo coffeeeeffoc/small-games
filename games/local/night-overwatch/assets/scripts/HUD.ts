@@ -334,7 +334,7 @@ export class HUD {
     const v = b.visual = { x: b.x + 2, y: b.y + 4, w: b.w - 4, h: b.h - 8 };
     if (kind === 'primary') {
       if (!this.artwork('button',v.x,v.y,v.w,v.h,b.disabled?'#75808c99':undefined)) this.rect(g,v.x,v.y,v.w,v.h,b.disabled?'#242d35':'#4a3d24',C.amber,3);
-    } else if (kind === 'secondary') this.rect(g,v.x,v.y,v.w,v.h,'#14233188','#72899688',3);
+    } else if (kind === 'secondary') this.rect(g,v.x,v.y,v.w,v.h,b.disabled?'#14233188':'#263e50ed',b.disabled?'#72899655':'#8ba9ba',3);
     b.label.color = col(b.disabled ? '#72818a' : kind === 'primary' ? '#fff0d0' : C.white);
     b.label.isBold = kind === 'primary';
     if (icon) {
@@ -690,13 +690,17 @@ export class HUD {
       ];
       for (const [i, [id, caption, symbol]] of entries.entries()) {
         const x = left + (wide ? i : i % 2) * (menuW + 12), y = menuY + (wide ? 0 : Math.floor(i / 2) * 54), primary = i === 0;
-        this.plate(g, x, y, menuW, 48, primary ? C.amber : '#111d21dc', primary ? C.amber : '#52748d', 5);
+        this.plate(g, x, y, menuW, 48, primary ? C.amber : '#111d21dc', primary ? C.amber : '#8ba9ba', 5);
+        if (!primary) {
+          this.rect(g, x + 6, y + 5, menuW - 12, 38, '#59778b33');
+          this.rect(g, x + 6, y + 12, 2, 24, C.mint);
+        }
         this.icon(g, symbol, x + 23, y + 24, 18, primary ? C.action : C.mint);
         const button = this.button(id, caption + '  ›', x, y, menuW, 48, n);
         button.node.setPosition(x + menuW / 2 + 11 - w / 2, h / 2 - y - 24);
         button.node.getComponent(UITransform)!.setContentSize(menuW - 42, 44);
         this.buttons[this.buttons.length - 1].visual = { x: x + 2, y: y + 2, w: menuW - 4, h: 44 };
-        button.fontSize = menuW < 170 ? 13 : 15; button.color = col(primary ? C.action : C.white); button.isBold = primary;
+        button.fontSize = menuW < 170 ? 13 : 15; button.color = col(primary ? C.action : C.white); button.isBold = true;
       }
       if (this.online) {
         const settingsLeft = this.buttons.find(button => button.id === 'settings')!.x;
@@ -814,11 +818,11 @@ export class HUD {
   renderSettings(n: Node, g: Graphics, s: Simulation, world: World, key: string) {
     const flight = this.toolsOpen, zoom = this.zoomOpen, playing = s.phase === 'playing';
     const short = this.h - this.safe.top - this.safe.bottom < 360;
-    const pw = Math.min(flight || zoom ? Math.max(344, Math.min(420, this.w * .5)) : short ? 600 : 440,
+    const pw = Math.min(flight || zoom ? Math.max(344, Math.min(420, this.w * .5)) : 640,
       this.w - this.safe.left - this.safe.right - 32);
-    const ph = Math.min(zoom ? this.rewardsAvailable && nextZoomLimit(this.zoomLimit) ? 248 : 222 : short ? 236 : !playing && !flight && this.h >= 540 ? 390 : 304, this.h - this.safe.top - this.safe.bottom - 60);
-    const px = this.w - this.safe.right - 16 - pw,
-      py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
+    const ph = Math.min(zoom ? this.rewardsAvailable && nextZoomLimit(this.zoomLimit) ? 248 : 222 : short ? 260 : flight ? 304 : 360, this.h - this.safe.top - this.safe.bottom - 32);
+    const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2,
+      py = this.safe.top + (this.h - this.safe.top - this.safe.bottom - ph) / 2;
     this.panelFrame(g, px, py, pw, ph, C.mint, flight || zoom ? '#050f1d18' : '#050f1d45');
     const title = flight ? this.t('飞行 / 视野', 'FLIGHT / VIEW') : zoom ? this.t('画面 / 倍率', 'DISPLAY / ZOOM')
       : this.t(playing ? '战斗设置' : '设置', playing ? 'BATTLE SETTINGS' : 'SETTINGS');
@@ -885,7 +889,7 @@ export class HUD {
           ['supply', this.supplyLabel(s)],
         ] : [['online:profile', this.t('玩家昵称', 'PLAYER NAME')], ['effects', this.reducedEffects ? this.t('特效 · 精简', 'FX · REDUCED') : this.t('特效 · 完整', 'FX · FULL')]]),
       ].filter(([id]) => !(s.duelMode && ['convoy', 'mission', 'supply'].includes(id)) && !(id === 'convoy' && s.mission.mode === 'training') && !(id === 'supply' && !this.rewardsAvailable && !this.pendingSupply));
-      const cols = short ? 3 : playing || this.h < 540 ? 2 : 1, cw = (inner - (cols - 1) * 16) / cols;
+      const cols = short ? 3 : 2, cw = (inner - (cols - 1) * 16) / cols;
       items.forEach(([id, caption], i) => {
         const bx=x+i%cols*(cw+16),by=top+(playing?step:0)+Math.floor(i/cols)*step;
         const glyph = ({sound:this.muted?'muted':'sound',language:'language',help:'guide','online:profile':'profile',effects:'effects',mission:'mission',convoy:'next',supply:'plus'} as Record<string,string>)[id];
@@ -985,7 +989,7 @@ export class HUD {
       // Label setters use the initial multiline mode; restore single-line alignment.
       label.verticalAlign = Label.VerticalAlign.CENTER;
     }
-    edit.maxLength = key === 'draftName' ? 24 : key === 'draftCode' ? 12 : 64;
+    edit.maxLength = key === 'draftName' ? 16 : key === 'draftCode' ? 12 : 64;
     edit.inputFlag = key === 'draftPassword' ? EditBox.InputFlag.PASSWORD : EditBox.InputFlag.DEFAULT;
     edit.string = this.online![key];
     field.on(EditBox.EventType.TEXT_CHANGED, () => { this.online![key] = edit.string; });
@@ -1015,7 +1019,7 @@ export class HUD {
       heading.horizontalAlign=Label.HorizontalAlign.LEFT;heading.isBold=true;
       this.controlIcon(g,online.panel==='menu'?'lobby':online.panel==='ranking'?'ranking':online.panel==='history'?'history':'profile',px+31,py+25,22,C.amber);
     }
-    button('dismiss','',pw-58,4,44,false,true,'close');
+    if (online.panel !== 'ranking') button('dismiss','',pw-58,4,44,false,true,'close');
     if (result) {
       const short=ph<320,mid=short?158:199;
       this.artwork('insignia',px+pw/2-(short?50:65),py+12,short?100:130,short?37:48);
@@ -1043,7 +1047,7 @@ export class HUD {
     if (['profile', 'create', 'join'].includes(online.panel)) {
       if (online.panel === 'profile') {
         this.inputField(n, g, 'draftName', this.t('玩家昵称', 'PLAYER NAME'), px + 18, py + 83, pw - 36);
-        label(this.t('2–24个字符，昵称会显示在房间和战绩中', '2–24 CHARACTERS · SHOWN IN ROOMS AND RECORDS'), 151, 11, C.dim);
+        label(this.t('2–16个字符，昵称会显示在房间和战绩中', '2–16 CHARACTERS · SHOWN IN ROOMS AND RECORDS'), 151, 11, C.dim);
       } else if (online.panel === 'create') {
         button('public', this.t('公开房间', 'PUBLIC'), 18, 65, half, !online.privateRoom);
         button('private', this.t('好友私密房', 'PRIVATE'), 26 + half, 65, half, online.privateRoom);
@@ -1056,7 +1060,7 @@ export class HUD {
       label(online.message || (online.busy ? this.t('正在处理…', 'PLEASE WAIT…') : online.panel === 'create' && online.privateRoom ? this.t('设置4–64位密码，分享时另行告知好友', 'SET A 4–64 CHARACTER PASSWORD') : ''), bottom - 24, 11, C.amber);
       button('back', this.t('返回', 'BACK'), 18, bottom,100,false,true,'back');
       button(online.panel === 'profile' ? 'saveName' : online.panel === 'create' ? 'createConfirm' : 'joinConfirm',
-        online.busy ? this.t('请稍候', 'PLEASE WAIT') : this.t('确定', 'CONFIRM'),pw-198,bottom,180,true); return;
+        online.busy ? this.t('请稍候', 'PLEASE WAIT') : this.t('确定', 'CONFIRM'),pw-198,bottom,180,online.panel !== 'profile'); return;
     }
     if (online.panel === 'ranking') {
       const tabW = (pw - 60) / 4;
@@ -1072,7 +1076,7 @@ export class HUD {
       rows.forEach((row, i) => {
         const own = playerId(row) === playerId(online.identity), y = 160 + i * 27;
         if (own) this.plate(g, px + 18, py + y - 12, pw - 36, 26, '#29423c', C.mint, 4);
-        label(String(row.rank) + '. ' + playerLabel(row) + (own ? this.t(' · 你', ' · YOU') : '') + '   ' + value(row), y, 12, own ? C.mint : C.white);
+        label(String(row.rank) + '. ' + playerLabel(row) + (own ? this.t(' · 你', ' · YOU') : '') + '   ' + value(row), y, 12, own ? C.mint : C.white).horizontalAlign = Label.HorizontalAlign.LEFT;
       });
       if (!rows.length) label(online.message || (online.ranking ? this.t('暂无成绩，等你创造纪录', 'SET THE FIRST RECORD') : this.t('正在读取…', 'LOADING…')), 174, 12, C.dim);
       const me = online.ranking?.me;
@@ -1632,8 +1636,7 @@ export class HUD {
       if (b.label.node.parent === this.root)
         b.label.node.active = !key && b.id !== 'priority' && (b.id !== 'fire' || this.touch || s.homingSelected);
       if (this.isGlobalAction(b.id)) {
-        b.label.node.active = key !== 'duelResult' && !this.advert && !this.supplyOpen && !this.exitConfirm && !key.startsWith('countdown:') &&
-          (b.id !== 'settings' || !key.startsWith('online:history:'));
+        b.label.node.active = !key || key === 'home';
         if (!b.label.node.active) continue;
         const gx = b.x + b.w / 2 - w / 2, gy = h / 2 - b.y - b.h / 2, gear = this.globalGraphics;
         gear.strokeColor = col(!key && !world.thermal && s.mission.light === 'day' ? '#123844' : C.white); gear.lineWidth = 2;

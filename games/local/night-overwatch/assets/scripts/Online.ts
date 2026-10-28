@@ -151,9 +151,9 @@ export class Online {
   }
   async saveName() {
     if (this.busy) return;
-    const nickname = this.draftName.trim();
-    if (Array.from(nickname).length < 2 || Array.from(nickname).length > 24 || /[\u0000-\u001f\u007f]/u.test(nickname)) {
-      this.message = '昵称需要 2–24 个字符'; this.revision++; return;
+    const nickname = this.draftName.normalize('NFKC').trim().replace(/\s+/g, ' ');
+    if (this.draftName.length > 100 || Array.from(nickname).length < 2 || Array.from(nickname).length > 16 || !/^[\p{L}\p{N} ·_-]+$/u.test(nickname)) {
+      this.message = '昵称需为 2–16 个字，可用文字、数字、空格、·、_、-'; this.revision++; return;
     }
     this.busy = true;
     try {
@@ -162,7 +162,7 @@ export class Online {
         this.identity = { ...this.identity, name: nickname, nickname };
         this.storage.setItem('night-overwatch-pilot-v1', JSON.stringify(this.identity));
       }
-      this.message = this.available ? '昵称已保存' : '昵称已保存在本机'; this.draftName = nickname;
+      this.message = this.available ? '昵称已保存' : '昵称已保存在本机'; this.draftName = this.identity.nickname || this.identity.name || nickname;
     } catch { this.message = '昵称保存失败，请重试'; }
     finally { this.busy = false; this.revision++; }
   }

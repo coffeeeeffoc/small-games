@@ -46,6 +46,21 @@ test('leaderboard refresh recovers metadata after an initial network failure', a
   assert(!online.ranked); await online.loadRanking(); assert(online.ranked); assert(online.ranking);
 });
 
+test('nickname edits keep the same user and adopt the saved server profile', async () => {
+  const f = fixture(), online = new Online(storage(), () => {}), calls: string[] = [];
+  Object.assign(f.bridge.services, { updateProfile: async ({ nickname }: { nickname: string }) => {
+    calls.push(nickname); return { id: 'a', name: '服务端昵称', nickname: '服务端昵称' };
+  } });
+  await online.connect(f.bridge);
+  online.draftName = '  ＡＢ  飞行员  '; await online.saveName();
+  assert.deepEqual(calls, ['AB 飞行员']); assert.equal(playerId(online.identity), 'a');
+  assert.equal(online.draftName, '服务端昵称');
+  for (const invalid of ['飞'.repeat(17), '<昵称>', 'a']) {
+    online.draftName = invalid; await online.saveName(); assert.match(online.message, /2–16/);
+  }
+  assert.equal(calls.length, 1); assert.equal(online.identity.nickname, '服务端昵称');
+});
+
 test('paused and modal controls cannot fire, while release always reaches the duel', () => {
   const online = new Online(storage(), () => {}); online.startBot(0); online.enteringUntil = 0;
   const sim = Simulation.restore(online.view!.simulation); let modal = false;
@@ -109,7 +124,7 @@ test('lobby, nickname and history use the shared bridge and private room input i
   const online = new Online(storage(), () => {}); await online.connect(f.bridge);
   online.show('menu'); await online.loadRooms(); assert.equal(online.rooms[0].code, '123456');
   online.draftName = ' 新的昵称 '; await online.saveName(); assert.equal(online.identity.name, '新的昵称');
-  online.draftName = 'a'; await online.saveName(); assert.match(online.message, /2–24/);
+  online.draftName = 'a'; await online.saveName(); assert.match(online.message, /2–16/);
   await online.loadHistory(); await online.loadHistory(online.history!.nextCursor);
   assert.equal(online.history!.matches.length, 2); assert.equal(online.history!.summary.games, 2);
   online.privateRoom = true; online.draftPassword = 'abc'; await online.open('friend');

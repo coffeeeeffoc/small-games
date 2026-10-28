@@ -94,11 +94,15 @@ export function createCompetitionStore(
         return ranking(board, auth.playerId, tx);
       });
     const playerId = auth;
+    const night = board.startsWith('night-overwatch:');
+    const order = sql`b.score desc,b.secondary asc${board === nightBoard('clears') ? sql`,coalesce(points.score,0) desc` : sql``}${night ? sql`,b.updated_at asc` : sql``},b.player_id`;
     const rankedRows = await executor.execute(sql`with ranked as (
-      select player_id as "playerId", p.display_name,p.profile, score, secondary,
-      rank() over(order by score desc,secondary asc)::int as rank,
-      row_number() over(order by score desc,secondary asc,player_id)::int as position,
-      count(*) over()::int as total from runtime.competition_best b join runtime.competition_players p on p.id=b.player_id where board=${board}
+      select b.player_id as "playerId", p.display_name,p.profile, b.score, b.secondary,
+      ${night ? sql`row_number() over(order by ${order})` : sql`rank() over(order by b.score desc,b.secondary asc)`}::int as rank,
+      row_number() over(order by ${order})::int as position,
+      count(*) over()::int as total from runtime.competition_best b join runtime.competition_players p on p.id=b.player_id
+      ${board === nightBoard('clears') ? sql`left join runtime.competition_best points on points.player_id=b.player_id and points.board=${nightBoard('points')}` : sql``}
+      where b.board=${board}
     ) select * from ranked where position<=100 or "playerId"=${playerId}
       or position=(select max(position) from ranked where rank<(select rank from ranked where "playerId"=${playerId})) order by position`);
     const rows = await Promise.all(

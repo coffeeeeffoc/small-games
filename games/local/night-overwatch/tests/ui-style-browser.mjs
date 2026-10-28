@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { acceptanceBuild, snapshot, assertLayout } from './flight-browser.mjs';
 import { press, settleVisuals } from './visual-helpers.mjs';
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
+const apiUrl = process.env.NIGHT_LOBBY_URL;
+if (apiUrl) assert(['127.0.0.1', 'localhost', '[::1]'].includes(new URL(apiUrl).hostname), 'Only an isolated local backend');
 const out = process.env.NIGHT_REPORT_URL ? new URL(process.env.NIGHT_REPORT_URL) : new URL('../reports/2026-10-28-visual-rebuild/style/', import.meta.url);
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined, args: process.platform === 'win32' ? ['--use-angle=d3d11'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -17,7 +19,9 @@ try {
     page.setDefaultTimeout(60000);
     page.on('pageerror', error => evidence.errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error' && /TypeError|ReferenceError|Error \d+/.test(message.text())) evidence.errors.push(message.text()); });
-    await page.route('**/api/competition/**', route => route.abort());
+    if (apiUrl) await page.route('**/game-service-config.js', route => route.fulfill({ status: 200, contentType: 'text/javascript', body:
+      'globalThis.__COMPETITION_CONFIG__ = Object.freeze(' + JSON.stringify({ game: 'night-overwatch', platform: 'h5', competitionEnabled: true, apiUrl }) + ');' }));
+    else await page.route('**/api/competition/**', route => route.abort());
     await page.goto(base + '?dev=0');
     await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().ui.interfaceArtworkReady && __night.snapshot().buttons.some(b => b.id === 'online:profile'));
     await page.waitForFunction(() => !document.getElementById('night-startup'));
@@ -35,6 +39,10 @@ try {
         });
       });
       const state=await snapshot(page);
+      if (name !== 'home' && name !== 'pressed' && name !== 'battle') {
+        assert(!state.buttons.some(b => b.id === 'settings'), name + ': no settings control over a panel');
+        assert(await page.getByRole('button', { name: '设置', exact: true }).isHidden());
+      }
       for(const skin of skins){
         assert(skin.x>=-1&&skin.y>=-1&&skin.x+skin.w<=width+1&&skin.y+skin.h<=height+1,name+': artwork stays inside viewport');
         if(skin.name==='Skin:button') assert(state.buttons.some(b=>{
@@ -43,6 +51,10 @@ try {
         }),name+': actual Sprite bounds match the intended button skin');
         if(skin.name==='Skin:insignia')assert(skin.w<=120&&skin.h<=60,name+': emblem remains subordinate to the title');
         if(skin.name==='Skin:panel'&&name!=='missions')assert(skin.w>=300&&skin.h>=150,name+': panel was not reset to texture dimensions');
+        if(skin.name==='Skin:panel'&&['settings','battle-settings','flight-controls'].includes(name)) {
+          assert(Math.abs(skin.x + skin.w / 2 - width / 2) < 1, name + ': centered horizontally');
+          assert(Math.abs(skin.y + skin.h / 2 - height / 2) < 1, name + ': centered vertically');
+        }
       }
       await page.screenshot({ path: fileURLToPath(new URL(name + '-' + width + '.png', out)) });
       evidence.screens.push(name + '-' + width);
@@ -68,10 +80,24 @@ try {
     await click('settings'); await capture('settings'); await click('close');
     await click('help'); await capture('help'); await click('close');
     await click('online:menu'); await capture('lobby');
-    assert((await snapshot(page)).buttons.find(b => b.id === 'online:roomNext').disabled);
+    if (!apiUrl) assert((await snapshot(page)).buttons.find(b => b.id === 'online:roomNext').disabled);
     await click('online:friend'); await click('online:private'); await capture('private-room'); await click('online:dismiss');
     await click('online:profile'); await capture('nickname'); await click('online:dismiss');
-    await click('online:ranking'); await capture('ranking'); await click('online:dismiss');
+    await click('online:ranking');
+    if (apiUrl) {
+      await page.waitForFunction(() => __night.snapshot().online.ranking?.top.length > 0);
+      const ranks = (await snapshot(page)).online.ranking.top.map(row => row.rank);
+      assert.deepEqual(ranks, ranks.map((_, i) => i + 1));
+      const alignments = await page.evaluate(async () => {
+        const { director, Label } = await System.import('cc');
+        return director.getScene().getComponentsInChildren(Label).filter(label => label.node.activeInHierarchy && /^\d+\. /.test(label.string))
+          .map(label => label.horizontalAlign === Label.HorizontalAlign.LEFT);
+      });
+      assert(alignments.length > 0 && alignments.every(Boolean), 'ranked rows are left aligned');
+    }
+    await capture('ranking');
+    assert(!(await snapshot(page)).buttons.some(b => b.id === 'online:dismiss'));
+    await click('online:back');
     await click('online:history'); await capture('history'); await click('online:dismiss');
     await click('missions'); await capture('missions'); await click('start');
     await page.waitForFunction(() => __night.snapshot().phase === 'playing');

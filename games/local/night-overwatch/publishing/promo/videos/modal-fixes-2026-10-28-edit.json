@@ -1,0 +1,32 @@
+{
+  "sourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
+  "environment": "Windows Chromium / Cocos 3.8.8 Web/mobile, real mouse input, local fixture API for menus",
+  "sourceVideo": {
+    "path": ".scratch/night-modal-captures/input/90e2da667395f05997ce3ebb88257a4f.webm",
+    "sha256": "f7e46d3390956ed63ac5795a6de656f3d4dfa5dfabdf18026e9583d8f471007a"
+  },
+  "gameplay": {
+    "start": 25.354,
+    "duration": 15
+  },
+  "promo": [
+    {
+      "source": "gameplay/screenshots/2026-10-28-modal-fixes/04-home.png",
+      "duration": 3
+    },
+    {
+      "source": "gameplay/screenshots/2026-10-28-modal-fixes/05-settings.png",
+      "duration": 3
+    },
+    {
+      "source": "gameplay/screenshots/2026-10-28-modal-fixes/06-nickname.png",
+      "duration": 4
+    },
+    {
+      "source": "gameplay/videos/modal-fixes-2026-10-28-1280x720-silent.mp4",
+      "start": 0,
+      "duration": 6
+    }
+  ],
+  "note": "Promo uses actual stills plus gameplay; gameplay is continuous real input, trimmed before menus. No added subtitles, voiceover or audio."
+}

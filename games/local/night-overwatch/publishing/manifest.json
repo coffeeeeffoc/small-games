@@ -1,172 +1,148 @@
 {
-  "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+  "sourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
   "verified": "2026-10-28",
-  "previousDelivery": "manifest-2026-10-28-interface.json",
-  "environment": "Creator 3.8.8 Web/mobile; Chromium/SwiftShader mouse at 1280x720; room UI uses isolated local HTTP service; not native-device capture",
+  "previousDelivery": "manifest-2026-10-28-visual-rebuild.json",
+  "environment": "Windows Chromium Cocos Web/mobile; mouse at 1280x720; ranking uses isolated test PostgreSQL; not native capture",
   "files": [
     {
       "path": "copy/introduction.md",
       "bytes": 1246,
       "sha256": "94e5e8923b8d233432a6f614b65d08557b18f1ff77d98f02c8e8e9bf62b05961",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "reusedUnchanged": true
     },
     {
       "path": "copy/tagline.md",
-      "bytes": 67,
-      "sha256": "03e7b3e10ff1016535b9f2fae318cfa669770ee805392aa05e0680731f21d99d",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "bytes": 68,
+      "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "reusedUnchanged": true
     },
     {
       "path": "copy/developer-note.md",
       "bytes": 671,
       "sha256": "96192e76ff21ea7f79d91f7d16c8ef3ce1b807eba36575d202f5aa969e6d4128",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "reusedUnchanged": true
     },
     {
       "path": "icon/icon-1024.png",
       "bytes": 1168540,
       "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
-      "reusedUnchanged": true,
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1024,
       "height": 1024,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "reusedUnchanged": true
     },
     {
       "path": "promo/images/title-1920x1080.png",
       "bytes": 2392478,
       "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
-      "reusedUnchanged": true,
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1920,
       "height": 1080,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "reusedUnchanged": true
     },
     {
       "path": "promo/images/title-1440x1440.png",
       "bytes": 2285613,
       "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
-      "reusedUnchanged": true,
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1440,
       "height": 1440,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "reusedUnchanged": true
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-visual-rebuild/01-fire.png",
-      "bytes": 925115,
-      "sha256": "d8686f74b4816c5e5a39ecbc7b329581dda1b2a9548aa5b7e3d4a6050b0555f6",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "path": "gameplay/screenshots/2026-10-28-modal-fixes/01-fire.png",
+      "bytes": 938278,
+      "sha256": "2933ed208308479effd08db2be0f91c7882a080efbd4cdfc09fa24e5f7c48db1",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1280,
-      "height": 720,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-visual-rebuild/02-fire.png",
-      "bytes": 939853,
-      "sha256": "2ce67b2cb262081650813d4bca3de9d4c99aa2d587a69884edfc74684fb7e0a6",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "path": "gameplay/screenshots/2026-10-28-modal-fixes/02-fire.png",
+      "bytes": 947507,
+      "sha256": "6e246122212bd371c6a828fe22c7e10582380da32acca267c1539db87e1177bd",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1280,
-      "height": 720,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-visual-rebuild/03-night.png",
-      "bytes": 779447,
-      "sha256": "6503f7c4c67be2b5f6927d8a1a3f7468fda3cf6e0baad91c97429810d0a73caa",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "path": "gameplay/screenshots/2026-10-28-modal-fixes/03-fire.png",
+      "bytes": 960063,
+      "sha256": "9decfeb6f2c6d900f2d4654e29fc8fd8c1c5e1600607c47339de918dcd715ae2",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1280,
-      "height": 720,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-visual-rebuild/04-home.png",
-      "bytes": 1042534,
-      "sha256": "b84605ebde77011898b051dc6908df6512615cc1fd6136220e4b9523607d238a",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "path": "gameplay/screenshots/2026-10-28-modal-fixes/04-home.png",
+      "bytes": 1037154,
+      "sha256": "71cff5717798da0389b3e32f64614b8d89d15dd6c4cf1fa390dc9ac5a758a822",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1280,
-      "height": 720,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-visual-rebuild/05-missions.png",
-      "bytes": 1156150,
-      "sha256": "ff17ffb8affe89668552c6fc47586691b44bace5dbc2a1d6f3abc7cacbd8c9d3",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "path": "gameplay/screenshots/2026-10-28-modal-fixes/05-settings.png",
+      "bytes": 947443,
+      "sha256": "e8b54b89757a84abbf7d29fe665dfd313419a2fd4f143fe9a17dcf10fb9438aa",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1280,
-      "height": 720,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-visual-rebuild/06-lobby.png",
-      "bytes": 934191,
-      "sha256": "7683eb24f0b04e317028fd0ecc5b8eebc87c52ec8e8282cead34662be0063f72",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "path": "gameplay/screenshots/2026-10-28-modal-fixes/06-nickname.png",
+      "bytes": 888045,
+      "sha256": "d58be1716733b652ab0cdad9360462a91fa809fd98a46d3b8327ceb1c32c3f09",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1280,
-      "height": 720,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-visual-rebuild/07-solo-result.png",
-      "bytes": 684465,
-      "sha256": "feaea67b39448062eddcba80fa19cefac80e479fc960cd147cab845cf9f71a0b",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "path": "gameplay/screenshots/2026-10-28-modal-fixes/07-ranking.png",
+      "bytes": 901119,
+      "sha256": "7b1586c159403533e61e461b88f62b924981480fad35a733df0a8ec5837c7deb",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1280,
-      "height": 720,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-visual-rebuild/08-bot-result.png",
-      "bytes": 838327,
-      "sha256": "3c2f865c9c2195d7772877123f500192dd761d69387c93a57fca782e51649abe",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "path": "gameplay/screenshots/2026-10-28-modal-fixes/08-missions.png",
+      "bytes": 1156592,
+      "sha256": "ac7f1dedcaec7fb2cfdba49525843de91b263b49989f10b0417bb375b90ba4f7",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1280,
-      "height": 720,
-      "codec": "png",
-      "pixelFormat": "RGB"
+      "height": 720
     },
     {
-      "path": "gameplay/videos/visual-rebuild-2026-10-28-1280x720-silent.mp4",
-      "bytes": 3292951,
-      "sha256": "fbca2831984ef6705cc3081dd6da137d7adb2d320119a168ee680de7201e6f44",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "path": "gameplay/videos/modal-fixes-2026-10-28-1280x720-silent.mp4",
+      "bytes": 3973999,
+      "sha256": "d61a7b8fc3bf3fcd73fcbab801479f17507211f553bc95e6d93cc5cd9aabafaf",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1280,
       "height": 720,
       "codec": "h264",
-      "pixelFormat": "yuv420p",
-      "durationSeconds": 20.0,
+      "durationSeconds": 15,
       "audio": false
     },
     {
-      "path": "promo/videos/visual-rebuild-2026-10-28-1280x720-silent.mp4",
-      "bytes": 1828921,
-      "sha256": "5d9742a8d732c639ab8cb690684c9affdbd4b05485ea5365a431238df6f371ef",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+      "path": "promo/videos/modal-fixes-2026-10-28-1280x720-silent.mp4",
+      "bytes": 1802856,
+      "sha256": "a151423f9c6c7fbe66f9b13d69a612ce8027dee99a1385864cb36910ad468778",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "width": 1280,
       "height": 720,
       "codec": "h264",
-      "pixelFormat": "yuv420p",
-      "durationSeconds": 16.0,
+      "durationSeconds": 16,
       "audio": false
     },
     {
-      "path": "promo/videos/visual-rebuild-2026-10-28-edit.json",
-      "bytes": 1336,
-      "sha256": "90492488fa25ecd97b9f0722c139e11dd804cd1496e1ea8a06f3f909dce277d1",
-      "verifiedForSourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd"
+      "path": "promo/videos/modal-fixes-2026-10-28-edit.json",
+      "bytes": 1079,
+      "sha256": "a780b4ad4a3309f034d4c8f774d363eea35ee0dedda3301eca18bebe632f0eb7",
+      "verifiedForSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     }
   ]
 }

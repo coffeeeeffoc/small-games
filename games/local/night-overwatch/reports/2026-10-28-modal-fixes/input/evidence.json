@@ -1,0 +1,61 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+  },
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    }
+  ],
+  "errors": [],
+  "clips": {
+    "home": {
+      "start": 1.898,
+      "duration": 3
+    },
+    "nickname": {
+      "start": 7.192,
+      "duration": 3
+    },
+    "records": {
+      "start": 13.152,
+      "duration": 3
+    },
+    "report": {
+      "start": 20.527,
+      "duration": 4
+    },
+    "gameplay": {
+      "start": 25.354,
+      "duration": 20
+    }
+  },
+  "video": "F:\\playground\\playground-ai\\small-games\\.scratch\\night-modal-captures\\input\\90e2da667395f05997ce3ebb88257a4f.webm",
+  "recordedVideoPath": "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-28-modal-fixes\\input\\90e2da667395f05997ce3ebb88257a4f.webm"
+}

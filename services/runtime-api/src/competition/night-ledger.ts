@@ -40,7 +40,8 @@ export async function refreshNightClears(tx: Tx, at: number, playerId?: string) 
       where board like 'night-overwatch:level-%:night-records-v1' and score>0 ${player}
       union select player_id,substring(split_part(board,':',2) from 7) as level from runtime.competition_results
       where board like 'night-overwatch:clear-%:night-records-v1' and score>0 ${player}) cleared group by player_id
-    on conflict(board,player_id) do update set score=excluded.score,updated_at=excluded.updated_at`);
+    on conflict(board,player_id) do update set score=excluded.score,updated_at=excluded.updated_at
+    where runtime.competition_best.score<>excluded.score`);
 }
 
 export async function nightSummary(tx: Tx | Database, playerId: string) {

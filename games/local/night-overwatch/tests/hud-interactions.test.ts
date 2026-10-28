@@ -164,6 +164,10 @@ test('HUD: identical names remain distinct, own ranking is highlighted, and clos
   const theirs = labels.find((label: any) => label.string.startsWith('1. 夜航者'));
   assert.match(mine.string, /11111111 · 你/); assert.match(theirs.string, /22222222/);
   assert.notEqual(mine.color.hex, theirs.color.hex);
+  assert.equal(mine.horizontalAlign, cc.Label.HorizontalAlign.LEFT);
+  assert.equal(theirs.horizontalAlign, cc.Label.HorizontalAlign.LEFT);
+  assert(!hud.buttons.some((button: any) => button.id === 'online:dismiss'));
+  assert(hud.buttons.some((button: any) => button.id === 'online:back'));
   hud.online.panel = 'room'; hud.online.room = { mode: 'friend', status: 'abandoned', code: 'A12BCD456789', players: [own, other], you: 0 };
   hud.online.message = '房间已结束'; hud.online.revision++;
   hud.update(sim, world);
@@ -210,6 +214,10 @@ test('HUD: lobby forms, records, boards and share control fit landscape phones a
         outcome: 'win', reason: 'disconnect', startedAt: 1, finishedAt: 30001, durationMs: 30000, points: 120 })) };
     for (const panel of ['', 'menu', 'profile', 'create', 'join', 'history', 'ranking'] as const) {
       online.show(panel); hud.update(sim, world);
+      const gear = hud.buttons.find((b: any) => b.id === 'settings');
+      assert.equal(gear.label.node.activeInHierarchy, panel === '', panel + ': settings only on the home page');
+      if (panel) assert.notEqual(hud.hit(gear.x + 22, gear.y + 22)?.id, 'settings');
+      if (panel === 'profile') assert(!hud.buttons.find((b: any) => b.id === 'online:saveName').label.isBold, 'name confirmation uses the quiet secondary style');
       const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy && (!hud.modal || b.label.node.parent === hud.modal || hud.isGlobalAction(b.id)));
       assert.equal(new Set(buttons.map((b: any) => b.id)).size, buttons.length, panel + ': duplicate controls');
       for (let i = 0; i < buttons.length; i++) {
@@ -336,7 +344,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
   inset = 0;
 });
 
-test('HUD: persistent global actions, compact modal layout, focus markers and zoom bindings', () => {
+test('HUD: global actions hide behind panels, with safe modal layout, focus markers and zoom bindings', () => {
   for (const [width, height] of [[568, 320], [844, 390], [1366, 768], [320, 568]]) {
     Object.assign(frame, { width, height });
     for (const lang of ['zh', 'en']) for (const safe of [0, 12]) {
@@ -354,6 +362,10 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
         hud.update(sim, world);
         assert.equal(hud.root.children.at(-1), hud.globalControls, 'global graphics render above the modal');
         for (const b of globals) {
+          if (!['briefing', 'playing'].includes(reason)) {
+            assert(!b.label.node.activeInHierarchy, reason + ': global action stays hidden');
+            continue;
+          }
           assert.equal(hud.hit(b.x + b.w / 2, b.y + b.h / 2)?.id, b.id, `${width}x${height} ${reason}: ${b.id}`);
           assert(b.w >= 44 && b.h >= (hud.mouseDesktop ? 32 : 44) && b.x >= safe && b.x + b.w <= width - safe);
           assert(b.y >= safe && b.y + b.h <= height - safe);
@@ -361,7 +373,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
         }
         const controls = hud.buttons.filter((b: any) => hud.modal && b.label.node.parent === hud.modal);
         for (const b of controls) {
-          assert(b.y >= safe + 58 && b.y + b.h <= height - safe, `${reason}: panel control stays below the global row`);
+          assert(b.y >= safe && b.y + b.h <= height - safe, `${reason}: panel control stays within the safe area`);
           assert(!controls.some((other: any) => other !== b && overlaps(b, other)), `${reason}: panel controls do not overlap`);
         }
         if (reason === 'help') {
@@ -740,7 +752,7 @@ test('HUD: browser and native hosts have no fullscreen control or state in any s
         assert.equal(hud.buttons.some((button: any) => /fullscreen/i.test(button.id)), false, reason);
         assert.equal('fullscreen' in hud, false, 'removed state must not return');
         assert.equal(hud.isGlobalAction('fullscreen'), false);
-        assert.equal(hud.buttons.filter((button: any) => button.id === 'settings' && button.label.node.activeInHierarchy).length, hud.supplyOpen ? 0 : 1);
+        assert.equal(hud.buttons.filter((button: any) => button.id === 'settings' && button.label.node.activeInHierarchy).length, ['home', 'playing'].includes(reason) ? 1 : 0);
       }
     }
   } finally {
@@ -825,7 +837,9 @@ test('HUD: independent title cover precedes mission previews and compact setting
       assert(captions.includes(lang === 'zh' ? '战斗设置' : 'BATTLE SETTINGS'));
       const graphics = hud.modal.getComponentsInChildren(Graphics).flatMap((g: any) => g.calls);
       const panel = graphics.find((c: any) => c.op === 'rect' && c.fill === '#b7b09488');
-      assert(panel && panel.args[2] <= 622 && panel.args[3] === 1, 'header separator stays inside the compact drawer');
+      assert(panel && panel.args[2] <= 622 && panel.args[3] === 1, 'header separator stays inside the centered panel');
+      assert.equal(panel.args[0] + panel.args[2] / 2, 0, 'settings are horizontally centered');
+      assert(panel.args[2] >= Math.min(640, width - safe * 2 - 32) - 28, 'settings use the available width');
       const resume = hud.buttons.find((b: any) => b.id === 'resume');
       assert(graphics.some((c: any) => c.op === 'roundRect' && c.fill === '#4a3d24' && c.args[0] === resume.visual.x - width / 2), 'resume is the amber primary action');
       for (const pending of [false, true]) {
@@ -886,14 +900,14 @@ test('HUD: compact guide keeps its tabs and footer reachable while content scrol
   inset = 0;
 });
 
-test('HUD: flight values, direction selection and display controls stay separate in a live-view drawer', () => {
+test('HUD: flight values, direction selection and display controls stay separate in a centered panel', () => {
   for (const [width, height] of [[568, 320], [844, 390], [1366, 768]]) for (const safe of [0, 12]) for (const lang of ['zh', 'en']) {
     Object.assign(frame, { width, height }); inset = safe;
     const hud = new HUD(new SceneNode()), sim = new Simulation(); sim.start(); sim.pause('settings', true);
     hud.lang = lang; hud.toolsOpen = true; hud.rewardsAvailable = true; hud.update(sim, world);
     assertPanelTargets(hud);
     const left = hud.buttons.find((b: any) => b.id === 'altitudeDown').x;
-    assert(left > width * .3, 'keep part of the actual battlefield visible');
+    assert(left > safe + 80, 'keep the actual battlefield visible beside the centered panel');
     assert(panelLabels(hud).some((l: any) => l.string === '1000'));
     assert.equal(hud.buttons.find((b: any) => b.id === 'orbitRight').label.color.hex, '#82c9ed');
     sim.adjustAltitude(20); sim.setOrbitDirection(-1); hud.modalKey = 'rebuild'; hud.update(sim, world);
