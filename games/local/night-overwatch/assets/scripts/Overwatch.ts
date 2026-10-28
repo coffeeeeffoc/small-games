@@ -956,7 +956,8 @@ export class Overwatch extends Component {
     if (!this.hud) return;
     const frame = view.getFrameSize(),
       key = frame.width + 'x' + frame.height + ':' + this.hud.touch;
-    if (key !== this.resizeKey) {
+    // Keyboard resize and input-mode changes must not destroy an active EditBox.
+    if (key !== this.resizeKey && !this.hud.editing) {
       this.resizeKey = key;
       this.hud.resize();
       this.world.updateCamera();
@@ -1045,6 +1046,7 @@ export class Overwatch extends Component {
     this.updateRadio(Math.min(dt, .1));
     this.hud.update(presented, this.world);
     if (this.pauseControl) {
+      this.pauseControl.hidden = !this.hud.buttons.find(button => button.id === 'settings')?.label.node.activeInHierarchy;
       this.pauseControl.disabled = !!this.rewardRequest || this.hud.supplyOpen || this.sim.resumeCountdown > 0 || this.hud.exitConfirm;
       this.pauseControl.setAttribute('aria-pressed', String(this.sim.pauses.has('settings') || this.sim.pauses.has('manual')));
     }

@@ -1,0 +1,61 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834"
+  },
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    }
+  ],
+  "errors": [],
+  "clips": {
+    "home": {
+      "start": 1.787,
+      "duration": 3
+    },
+    "nickname": {
+      "start": 7.355,
+      "duration": 3
+    },
+    "records": {
+      "start": 14.254,
+      "duration": 3
+    },
+    "report": {
+      "start": 22.118,
+      "duration": 4
+    },
+    "gameplay": {
+      "start": 26.89,
+      "duration": 20
+    }
+  },
+  "video": "outputs/night-overwatch-ui-fix/capture.webm",
+  "videoStorage": "Local diagnostic recording; final MP4 files are in publishing/."
+}

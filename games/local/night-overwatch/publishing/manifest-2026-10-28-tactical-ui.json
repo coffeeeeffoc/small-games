@@ -1,0 +1,127 @@
+{
+  "sourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+  "verified": "2026-10-28",
+  "previousDelivery": "manifest-2026-10-28-lobby.json",
+  "files": [
+    {
+      "path": "copy/introduction.md",
+      "bytes": 1246,
+      "sha256": "94e5e8923b8d233432a6f614b65d08557b18f1ff77d98f02c8e8e9bf62b05961",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "reusedUnchanged": true
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 68,
+      "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "reusedUnchanged": true
+    },
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 671,
+      "sha256": "96192e76ff21ea7f79d91f7d16c8ef3ce1b807eba36575d202f5aa969e6d4128",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "reusedUnchanged": true
+    },
+    {
+      "path": "icon/icon-1024.png",
+      "bytes": 1168540,
+      "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "width": 1024,
+      "height": 1024,
+      "reusedUnchanged": true
+    },
+    {
+      "path": "promo/images/title-1920x1080.png",
+      "bytes": 2392478,
+      "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "width": 1920,
+      "height": 1080,
+      "reusedUnchanged": true
+    },
+    {
+      "path": "promo/images/title-1440x1440.png",
+      "bytes": 2285613,
+      "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "width": 1440,
+      "height": 1440,
+      "reusedUnchanged": true
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-tactical-ui/01-single-fire.png",
+      "bytes": 617032,
+      "sha256": "b94a09534d4c935a111cb919941a5cec6b878a37324ab56c1b9f51bdcd7e0c9d",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-tactical-ui/02-continuous-fire.png",
+      "bytes": 477051,
+      "sha256": "a67fbfc1f2895612b9fdb9a97fa8487590f97319a41c98a3d55ae74bded3dedc",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-tactical-ui/03-settlement.png",
+      "bytes": 285118,
+      "sha256": "fbf0f2392c7cafbf5a62c0f20ffb929a8fc4cf3084b2ca4ebbc0ab8ea3f11452",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-tactical-ui/04-settings.png",
+      "bytes": 789970,
+      "sha256": "7ee186145cd3ad90cc64851ba894ddd0fc453019d1bdee71dfb30c85a95cd874",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-tactical-ui/05-lobby.png",
+      "bytes": 690081,
+      "sha256": "bceaf493d947c569c2d7ea46ced9305d1e922a4e38c1adf6eb27ea8bd6f4d473",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-28-tactical-ui/06-home.png",
+      "bytes": 987934,
+      "sha256": "520ddd54c5b98f9a61ca66e9f40e0cec0a5442a27af1119f6e00f9c5de4760b4",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/videos/tactical-ui-2026-10-28-1280x720-silent.mp4",
+      "bytes": 5213667,
+      "sha256": "60755915dbcdae2daab3cf259b5bc6f76a57ee9da9110bd7820fbfa27d7474a1",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "duration": 20,
+      "audio": "none",
+      "fullDecodeVerified": true
+    },
+    {
+      "path": "promo/videos/tactical-ui-2026-10-28-1280x720-silent.mp4",
+      "bytes": 2401959,
+      "sha256": "9a72fd9764fd7ff1fb4dd9934496a31883e8a446172a550efc78eb40de5fbf53",
+      "verifiedForSourceHash": "9d64ae94452964d985d93bf055032dc96d0ccbf9c17e984d0667209802fcfe61",
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "duration": 16,
+      "audio": "none",
+      "fullDecodeVerified": true
+    }
+  ]
+}

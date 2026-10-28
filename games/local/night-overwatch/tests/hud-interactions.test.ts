@@ -67,7 +67,7 @@ for (const op of ['rect', 'roundRect', 'circle', 'moveTo', 'lineTo', 'close', 's
 const frame = { width: 568, height: 320 };
 let inset = 0;
 const cc = {
-  EditBox: class { static InputMode = { SINGLE_LINE: 0 }; static InputFlag = { PASSWORD: 0, DEFAULT: 1 }; static EventType = { TEXT_CHANGED: 'change' }; },
+  EditBox: class { static InputMode = { SINGLE_LINE: 0 }; static InputFlag = { PASSWORD: 0, DEFAULT: 1 }; static EventType = { TEXT_CHANGED: 'change' }; isFocused() { return false; } },
   UIOpacity: class { opacity = 255; }, Tween: { stopAllByTarget() {} },
   tween: (target: any) => ({ to(_time: number, values: object) { Object.assign(target, values); return this; }, call(callback: () => void) { callback(); return this; }, start() {} }),
   Node: SceneNode, UITransform: Transform, Graphics, Color,
@@ -154,6 +154,36 @@ test('HUD: lobby forms, records, boards and share control fit landscape phones a
         assert(field.node.getComponent(cc.UITransform).contentSize.width >= 180);
     }
   }
+});
+
+test('HUD: focused forms survive refresh, records hide settings, and report sits below the map', () => {
+  for (const [width, height] of [[568, 320], [844, 390], [1280, 720]]) for (const safe of [0, 12]) {
+    Object.assign(frame, { width, height }); inset = safe;
+    const hud = new HUD(new SceneNode()), sim = new Simulation();
+    const online = new Online({ getItem: () => null, setItem() {} }, () => {});
+    hud.online = online; online.show('profile'); hud.update(sim, world);
+    const panel = hud.modal, field = panel.getComponentsInChildren(cc.EditBox)[0];
+    field.isFocused = () => true;
+    online.revision++; hud.update(sim, world);
+    assert.equal(hud.modal, panel, 'background responses do not replace the focused input');
+    assert(hud.editing);
+    field.isFocused = () => false; hud.update(sim, world);
+    assert.notEqual(hud.modal, panel, 'refresh resumes after editing ends');
+    online.show('history'); hud.update(sim, world);
+    const settings = hud.buttons.find((b: any) => b.id === 'settings');
+    assert(!settings.label.node.activeInHierarchy);
+    assert.equal(hud.hit(settings.x + 22, settings.y + 22), undefined);
+    online.show(''); sim.start(); hud.update(sim, world);
+    assert(settings.label.node.activeInHierarchy);
+    const report = hud.buttons.find((b: any) => b.id === 'battleReport'), map = hud.minimapLayout;
+    assert.equal(report.x + report.w, map.x + map.w);
+    assert(report.y >= map.y + map.h + 6 && report.h >= 44);
+    assert.equal(hud.hit(report.x + report.w / 2, report.y + report.h / 2)?.id, 'battleReport');
+    assert(!hud.buttons.some((b: any) => b !== report && b.label.node.activeInHierarchy && overlaps(b, report)));
+    assert(report.y + report.h < height - hud.footer - safe);
+    assert(hud.g.calls.some((c: any) => c.op === 'roundRect' && c.fill === '#101a1e88'));
+  }
+  inset = 0;
 });
 
 test('HUD: real urgent targets avoid convoy, supply and zoom controls on small screens', () => {

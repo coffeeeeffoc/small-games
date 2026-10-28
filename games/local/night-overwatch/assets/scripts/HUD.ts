@@ -129,6 +129,9 @@ export class HUD {
   get mouseDesktop() {
     return this.desktop && !this.touch;
   }
+  get editing() {
+    return this.modal?.getComponentsInChildren(EditBox).some(field => field.isFocused()) ?? false;
+  }
   get minimapLayout() {
     const w = this.compact ? 112 : 156;
     return { x: this.w - 12 - this.safe.right - w, y: this.safe.top + 64, w, h: this.compact ? 84 : 108 };
@@ -272,7 +275,6 @@ export class HUD {
       if (small) { label.fontSize = 12; label.lineHeight = 17; }
     }
     this.button('homing', '', cardsLeft + 4 * (cardW + 8), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
-    this.button('battleReport', this.t('战况', 'REPORT'), settingsX - 148, top + 6, 56, 44);
     this.button('fire', '', right - fireW, h - this.safe.bottom - fireW - 10, fireW, fireW);
     const stateX = this.desktop ? cardsLeft - 144 : left + 5 * (cardW + 8) + 4;
     const stateW = this.desktop ? 132 : right - fireW - stateX - 12;
@@ -288,6 +290,7 @@ export class HUD {
     priority.isBold = true;
     this.labels.set('priorityMarker', priority);
     const map = this.minimapLayout;
+    this.button('battleReport', this.t('战况', 'REPORT'), map.x + map.w - 88, map.y + map.h + 6, 88, 44).fontSize = 12;
     this.live('mapLegend', map.x + map.w / 2, map.y + 11, 10, map.w - 4, 20, C.dim);
   }
   rect(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke?: string, radius = 0) {
@@ -711,17 +714,19 @@ export class HUD {
     // Configure before preload creates the native input and default labels.
     field.active = false;
     field.setPosition(x + 102 + (width - 102) / 2 - this.w / 2, this.h / 2 - y - 22);
-    field.getComponent(UITransform)!.setContentSize(width - 102, 44);
+    field.getComponent(UITransform)!.setContentSize(width - 122, 44);
     const edit = field.addComponent(EditBox);
     edit.textLabel = this.label(field, '', this.w / 2, this.h / 2, 14, width - 122, 42);
     edit.placeholder = key === 'draftCode' ? this.t('6位房间号', 'ROOM NUMBER') : key === 'draftPassword' ? this.t('公开房无需密码', 'OPTIONAL FOR PUBLIC ROOM') : '';
     edit.placeholderLabel = this.label(field, edit.placeholder, this.w / 2, this.h / 2, 12, width - 122, 42, C.dim);
+    edit.inputMode = EditBox.InputMode.SINGLE_LINE;
     for (const label of [edit.textLabel, edit.placeholderLabel]) {
       label.node.getComponent(UITransform)!.setAnchorPoint(0, 1);
       label.horizontalAlign = Label.HorizontalAlign.LEFT;
+      // Label setters use the initial multiline mode; restore single-line alignment.
+      label.verticalAlign = Label.VerticalAlign.CENTER;
     }
     edit.maxLength = key === 'draftName' ? 24 : key === 'draftCode' ? 12 : 64;
-    edit.inputMode = EditBox.InputMode.SINGLE_LINE;
     edit.inputFlag = key === 'draftPassword' ? EditBox.InputFlag.PASSWORD : EditBox.InputFlag.DEFAULT;
     edit.string = this.online![key];
     field.on(EditBox.EventType.TEXT_CHANGED, () => { this.online![key] = edit.string; });
@@ -860,6 +865,8 @@ export class HUD {
     }
   }
   renderModal(key: string, s: Simulation, world: World) {
+    const family = key.startsWith('online:') ? key.split(':').slice(0, 2).join(':') : key.split(':')[0];
+    if (family === this.modalFamily && this.editing) return;
     if (s.phase !== 'playing' && this.online && this.onlineRevision !== this.online.revision) {
       this.onlineRevision = this.online.revision; this.modalKey = '';
     }
@@ -870,7 +877,6 @@ export class HUD {
       }
       return true;
     });
-    const family = key.startsWith('online:') ? key.split(':').slice(0, 2).join(':') : key.split(':')[0];
     const animate = !this.reducedEffects && family !== this.modalFamily;
     const previous = this.modal;
     if (previous) {
@@ -1334,7 +1340,8 @@ export class HUD {
       if (b.label.node.parent === this.root)
         b.label.node.active = !key && b.id !== 'priority' && (b.id !== 'fire' || this.touch || s.homingSelected);
       if (this.isGlobalAction(b.id)) {
-        b.label.node.active = !this.advert && !this.supplyOpen && !this.exitConfirm && !key.startsWith('countdown:');
+        b.label.node.active = !this.advert && !this.supplyOpen && !this.exitConfirm && !key.startsWith('countdown:') &&
+          (b.id !== 'settings' || !key.startsWith('online:history:'));
         if (!b.label.node.active) continue;
         const gx = b.x + b.w / 2 - w / 2, gy = h / 2 - b.y - b.h / 2, gear = this.globalGraphics;
         gear.strokeColor = col(!key && !world.thermal && s.mission.light === 'day' ? '#123844' : C.white); gear.lineWidth = 2;
@@ -1440,6 +1447,10 @@ export class HUD {
     }
     for (const b of this.buttons.filter((b) => b.label.node.parent === this.root && b.label.node.active)) {
       if (b.id === 'priority') continue;
+      if (b.id === 'battleReport') {
+        this.rect(g, b.x, b.y, b.w, b.h, '#101a1e88', '#9acbb966', 6);
+        continue;
+      }
       if (b.id === 'homing') b.label.string = this.t('追踪', 'HOMING') + '\n' + (tracking
         ? this.t(`${Math.ceil(s.buff!.remaining)}秒`, `${Math.ceil(s.buff!.remaining)}s`) : s.homingAmmo || '+');
       const selected = (!s.homingSelected && b.id === 'weapon' + s.selected) || ((s.homingSelected || tracking) && b.id === 'homing') || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
