@@ -1,6 +1,6 @@
 # 首页与分享调整 · 2026-10-18
 
-沿用现有[卡通界面效果图](../cartoon-ui-concept.png)与场景素材；局部布局按用户截图调整，并与街区围捕的[左上控件效果图](../../../../cops-robbers-realtime/docs/design/home-polish-2026-10-18/concept.png)保持一致。
+当轮参考[卡通界面效果图](../cartoon-ui-concept.png)，后续以最新认可图更新场景和界面；局部布局按用户截图调整，并与街区围捕的[左上控件效果图](../../../../cops-robbers-realtime/docs/design/home-polish-2026-10-18/concept.png)保持一致。
 
 首页标识仅避让刘海/状态栏加 4px，音效、设置在下方竖排；中央标题避让右侧胶囊。移除全屏按钮，无服务包隐藏好友 PK。隐藏入口后菜单自动填满可用列；横屏取消重复的顶栏留白。
 
