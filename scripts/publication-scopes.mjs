@@ -4401,6 +4401,10 @@ export function reviewedSharedFileScopes({
       scopes.set(file, porcelainScopes.get(file));
       continue;
     }
+    if (file === 'apps/shell-web/scripts/game-checks/nullrange.mjs') {
+      scopes.set(file, ['games/local/vibeJam-myself-nullrange', 'apps/shell-web']);
+      continue;
+    }
     if (file === 'apps/shell-web/scripts/game-checks/chase-thief.mjs') {
       scopes.set(file, ['games/local/chase-thief', 'apps/shell-web']);
       continue;

@@ -6117,21 +6117,28 @@ test('cumulative Ashfall and Porcelain lock changes retain both games and Shell'
     assert.equal(reviewedSharedFileScopes({ ...context, ...extra }).has(file), false);
 });
 
-test('Chase browser helper changes retain the game and Shell consumers', () => {
-  const file = 'apps/shell-web/scripts/game-checks/chase-thief.mjs';
-  const options = {
-    changedPaths: [file],
-    games: [],
-    packages: [],
-    readBase: () => '',
-    readHead: () => '',
-  };
-  assert.deepEqual(reviewedSharedFileScopes(options).get(file), [
-    'games/local/chase-thief',
-    'apps/shell-web',
-  ]);
-  assert.equal(reviewedSharedFileScopes({ ...options, changedPaths: [file + '.unknown'] }).size, 0);
-});
+for (const [name, game] of [
+  ['Chase', 'chase-thief'],
+  ['Nullrange', 'vibeJam-myself-nullrange'],
+])
+  test(`${name} browser helper changes retain the game and Shell consumers`, () => {
+    const file = `apps/shell-web/scripts/game-checks/${name === 'Nullrange' ? 'nullrange' : game}.mjs`;
+    const options = {
+      changedPaths: [file],
+      games: [],
+      packages: [],
+      readBase: () => '',
+      readHead: () => '',
+    };
+    assert.deepEqual(reviewedSharedFileScopes(options).get(file), [
+      'games/local/' + game,
+      'apps/shell-web',
+    ]);
+    assert.equal(
+      reviewedSharedFileScopes({ ...options, changedPaths: [file + '.unknown'] }).size,
+      0,
+    );
+  });
 
 test('CI stage workflow proof binds the entire immediate and cumulative baseline without YAML loading', async () => {
   const { ciStageWorkflowScope, reviewedSharedFileScopes } = await import(
@@ -6229,7 +6236,9 @@ function nullrangeWiringFixture(reviews) {
       );
     head.set(
       file,
-      readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n'),
+      execFileSync('git', ['show', '7270d1243a67c3760c93cb33e2fde767e4177d56:' + file], {
+        encoding: 'utf8',
+      }).replaceAll('\r\n', '\n'),
     );
   }
   return {
