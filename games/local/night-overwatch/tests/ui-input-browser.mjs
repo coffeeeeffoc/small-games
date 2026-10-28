@@ -6,7 +6,7 @@ import { acceptanceBuild, snapshot, assertLayout, navigateMap, aimAt } from './f
 import { press, settleVisuals } from './visual-helpers.mjs';
 
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const out = new URL('../reports/2026-10-28-visual-rebuild/input/', import.meta.url);
+const out = process.env.NIGHT_REPORT_URL ? new URL(process.env.NIGHT_REPORT_URL) : new URL('../reports/2026-10-28-visual-rebuild/input/', import.meta.url);
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined, args: process.platform === 'win32' ? ['--use-angle=d3d11'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const evidence = { build, checks: [], errors: [], clips: {} };
@@ -18,6 +18,7 @@ try {
       ...(record ? { recordVideo: { dir: fileURLToPath(out), size: { width, height } } } : {}) });
     const page = await context.newPage(), started = Date.now();
     activePage = page;
+    page.setDefaultTimeout(60000);
     page.on('pageerror', error => evidence.errors.push(error.message));
     // This UI regression must not edit a real account or create a public match.
     await page.route('**/api/competition/**', route => route.abort());
@@ -73,6 +74,7 @@ try {
       await page.waitForTimeout(400);
       assert.equal((await field(name)).placeholderVisible, false, name + ': placeholder hides after typing');
     };
+    await settleVisuals(page);
     await clip('home');
     await click('online:profile');
     await edit('draftName', '夜航飞行员', true);

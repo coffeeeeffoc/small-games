@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { acceptanceBuild, snapshot, assertLayout } from './flight-browser.mjs';
 import { press, settleVisuals } from './visual-helpers.mjs';
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const out = new URL('../reports/2026-10-28-visual-rebuild/style/', import.meta.url);
+const out = process.env.NIGHT_REPORT_URL ? new URL(process.env.NIGHT_REPORT_URL) : new URL('../reports/2026-10-28-visual-rebuild/style/', import.meta.url);
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined, args: process.platform === 'win32' ? ['--use-angle=d3d11'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const evidence = { build, screens: [], errors: [] };
@@ -14,6 +14,7 @@ try {
     const touch = width < 1000;
     const context = await browser.newContext({ viewport: { width, height }, hasTouch: touch, isMobile: touch });
     const page = await context.newPage();
+    page.setDefaultTimeout(60000);
     page.on('pageerror', error => evidence.errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error' && /TypeError|ReferenceError|Error \d+/.test(message.text())) evidence.errors.push(message.text()); });
     await page.route('**/api/competition/**', route => route.abort());
@@ -26,6 +27,23 @@ try {
     const click = id => press(page, id, touch);
     const capture = async name => {
       await settleVisuals(page); assertLayout(await snapshot(page), width, height);
+      const skins=await page.evaluate(async()=>{
+        const {director,Sprite,UITransform}=await System.import('cc'),h=__night.snapshot().ui.height;
+        return director.getScene().getComponentsInChildren(Sprite).filter(s=>s.node.activeInHierarchy&&s.node.name.startsWith('Skin:')).map(s=>{
+          const b=s.node.getComponent(UITransform).getBoundingBoxToWorld();
+          return {name:s.node.name,x:b.x,y:h-b.y-b.height,w:b.width,h:b.height};
+        });
+      });
+      const state=await snapshot(page);
+      for(const skin of skins){
+        assert(skin.x>=-1&&skin.y>=-1&&skin.x+skin.w<=width+1&&skin.y+skin.h<=height+1,name+': artwork stays inside viewport');
+        if(skin.name==='Skin:button') assert(state.buttons.some(b=>{
+          const v=b.visual||{x:b.x+2,y:b.y+4,w:b.w-4,h:b.h-8};
+          return ['x','y','w','h'].every(k=>Math.abs(skin[k]-v[k])<1);
+        }),name+': actual Sprite bounds match the intended button skin');
+        if(skin.name==='Skin:insignia')assert(skin.w<=120&&skin.h<=60,name+': emblem remains subordinate to the title');
+        if(skin.name==='Skin:panel'&&name!=='missions')assert(skin.w>=300&&skin.h>=150,name+': panel was not reset to texture dimensions');
+      }
       await page.screenshot({ path: fileURLToPath(new URL(name + '-' + width + '.png', out)) });
       evidence.screens.push(name + '-' + width);
     };

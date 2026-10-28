@@ -1118,7 +1118,7 @@ export class HUD {
         else this.controlIcon(g,room.canJoin?'lobby':'mission',px+43,py+y+23,22,room.canJoin?C.amber:C.mint);
         const names=room.players.map(player=>player.nickname||player.name||'飞行员').join(' / '),textW=pw-176;
         const name=this.label(n,names,px+70+textW/2,py+y+14,13,textW,24,C.white);name.horizontalAlign=Label.HorizontalAlign.LEFT;
-        const detail=this.label(n,'#'+room.code+'  ·  '+room.playerCount+'/2  ·  '+(room.canJoin?this.t('等待加入','WAITING'):this.t('对战中','IN BATTLE')),px+70+textW/2,py+y+35,10,textW,20,C.dim);detail.horizontalAlign=Label.HorizontalAlign.LEFT;
+        const detail=this.label(n,'#'+room.code+'  ·  '+room.playerCount+'/2  ·  '+(room.status === 'waiting' ? room.canJoin ? this.t('等待加入','WAITING') : this.t('等待开战','READY ROOM') : this.t('对战中','IN BATTLE')),px+70+textW/2,py+y+35,10,textW,20,C.dim);detail.horizontalAlign=Label.HorizontalAlign.LEFT;
         button((room.canJoin?'joinCode:':'watchCode:')+room.code,room.canJoin?this.t('加入','JOIN'):this.t('观战','WATCH'),pw-102,y+2,82);
       });
       if(!rows.length){const yy=ph<340?108:144;this.controlIcon(g,'lobby',px+pw/2,py+yy,34,C.line);label(this.t('空域待命，等你出发','THE SKIES ARE QUIET'),yy+32,16,C.white);if(ph>=340)label(this.t('创建房间邀请好友，或先进行人机练习','CREATE A ROOM FOR FRIENDS OR PRACTICE WITH A BOT'),yy+58,11,C.dim);}

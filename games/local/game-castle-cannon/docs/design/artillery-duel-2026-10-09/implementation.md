@@ -13,9 +13,9 @@
 - 新增 `src/duel-{types,map,actions,physics,simulation,bot,network,session,scene,world,hud}.ts`：共享规则、配置、输入、网络、场景与画面。
 - 修改 `src/index.ts`、`src/definition.ts`：现有 Canvas/Game Host 入口切换至新玩法，保留原生本地练习与 H5 网络边界。
 - 新增 `src/duel-server.ts`、`vite.server.config.ts`：真实匹配、8 秒机器人补位、重连和退出，提供同源 `/play/` 静态入口。
-- 保留 `src/progress.ts` 旧进度和外观，新增独立对战记录；开发试玩不写记录。
+- 保留 `src/progress.ts` 旧进度，外观按最新认可图更新；新增独立对战记录；开发试玩不写记录。
 - 修改游戏浏览器脚本、Shell 当前游戏的行为断言和简介。公共 dev/fullscreen 实现不修改。
-- 地堡使用 Hyper3D 新模型，其余美术复用；设计参考为 `concept.png`，不是运行截图。
+- 地堡当轮使用 Hyper3D 新模型，其余美术按最新视觉目标选用或重做；设计参考为 `concept.png`，不是运行截图。
 
 ## 实施与检查
 

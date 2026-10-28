@@ -187,6 +187,16 @@ test('HUD: duel results keep global settings and share controls away from the cl
   }
 });
 
+test('HUD: a full waiting room remains labelled as awaiting battle', () => {
+  Object.assign(frame, { width: 844, height: 390 }); inset = 0;
+  const hud = new HUD(new SceneNode()), sim = new Simulation();
+  hud.online = new Online({ getItem: () => null, setItem() {} }, () => {});
+  hud.online.rooms = [{ code: '123456', status: 'waiting', players: [{ name: '甲' }, { name: '乙' }], playerCount: 2, canJoin: false, canSpectate: true }];
+  hud.online.show('menu'); hud.update(sim, world);
+  const caption = hud.modal.getComponentsInChildren(cc.Label).map((label: any) => label.string).find((text: string) => text.startsWith('#123456'));
+  assert.match(caption, /等待开战/); assert(!caption.includes('对战中'));
+});
+
 test('HUD: lobby forms, records, boards and share control fit landscape phones and desktop', () => {
   for (const [width, height] of [[568, 320], [844, 390], [1280, 720]]) {
     Object.assign(frame, { width, height }); inset = 0;

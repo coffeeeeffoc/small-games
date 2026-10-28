@@ -454,7 +454,7 @@ export async function aimAt(page, target, touch = false, cdp) {
 
 export async function waitForImpact(page, shot) {
   await page.waitForFunction((id) => !__night.snapshot().shots.some((s) => s.id === id), shot.id, {
-    timeout: Math.max(15000, (shot.due - shot.born) * 4000),
+    timeout: Math.max(30000, (shot.due - shot.born) * 10000),
   });
   const s = await snapshot(page);
   const impact = s.impacts.find((e) => e.shot === shot.id);

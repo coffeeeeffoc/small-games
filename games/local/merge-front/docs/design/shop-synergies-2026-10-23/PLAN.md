@@ -4,7 +4,7 @@
 
 ## 2026-10-25 商店与备战席
 
-先绘制 [手机横屏布局图](03-shop-layout.svg)，再实施。图中以角色名标示既有精灵的位置，是布局效果图，不是运行截图。保留现有国风场景和角色，1152×540 逻辑视口不变；棋盘下沿为横向备战手牌，最底层为独立商店，金币/刷新紧邻商品，开战固定右下，上阵人数明确标注。
+先绘制 [手机横屏布局图](03-shop-layout.svg)，再实施。图中以角色名标示既有精灵的位置，是布局效果图，不是运行截图。场景和角色按最新认可图实现；当轮使用1152×540逻辑视口，棋盘下沿为横向备战手牌，最底层为独立商店，金币/刷新紧邻商品，开战固定右下，上阵人数明确标注。
 
 参考开源 Creature Chess 的 [棋盘与备战席](https://github.com/Jameskmonger/creature-chess/blob/master/apps/web-game/src/components/game/board/GameBoard.tsx)、[商店信息组织](https://github.com/Jameskmonger/creature-chess/blob/master/apps/web-game/src/components/game/cardShop/presentation/cardShop.tsx) 和 [直接购买动作](https://github.com/Jameskmonger/creature-chess/blob/master/apps/web-game/src/components/game/cardShop/cardShop.tsx)。仅借鉴交互和布局，不复制资源或代码。
 
