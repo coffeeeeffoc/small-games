@@ -23,10 +23,12 @@
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "pending-current-visual-review-2026-10-28",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
-        "douyin": "not-tested"
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
       },
       "historicalValidation": [
         {
@@ -60,10 +62,12 @@
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "pending-current-visual-review-2026-10-28",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
-        "douyin": "not-tested"
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
       },
       "historicalValidation": [
         {
@@ -124,10 +128,12 @@
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "pending-current-visual-review-2026-10-28",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
-        "douyin": "not-tested"
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
       },
       "historicalValidation": [
         {
@@ -674,10 +680,12 @@
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "pending-current-visual-review-2026-10-28",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
-        "douyin": "not-tested"
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
       },
       "historicalValidation": [
         {
@@ -765,10 +773,12 @@
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "pending-current-visual-review-2026-10-28",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
-        "douyin": "not-tested"
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
       },
       "historicalValidation": [
         {
@@ -886,10 +896,12 @@
       "validation": {
         "engine": "Cocos Creator 3.8.8",
         "resourceChain": "HUD node integration tests passed",
-        "web": "pending-current-visual-review-2026-10-28",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
-        "douyin": "not-tested"
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
       }
     },
     {
@@ -917,10 +929,12 @@
       "validation": {
         "engine": "Cocos Creator 3.8.8",
         "resourceChain": "HUD node integration tests passed",
-        "web": "pending-current-visual-review-2026-10-28",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
-        "douyin": "not-tested"
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
       }
     },
     {
@@ -948,10 +962,12 @@
       "validation": {
         "engine": "Cocos Creator 3.8.8",
         "resourceChain": "HUD node integration tests passed",
-        "web": "pending-current-visual-review-2026-10-28",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
-        "douyin": "not-tested"
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
       }
     },
     {
@@ -981,10 +997,108 @@
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "pending-actual-Creator-and-shader-compilation",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
-        "douyin": "not-tested"
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      }
+    },
+    {
+      "assetId": "ui.panel",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/panel.png",
+      "runtimeAsset": "assets/resources/ui/panel.png",
+      "license": {
+        "source": "Built-in imagegen; introduced by commit 02eba10a, retained unchanged during integration",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1254,
+        "height": 1254,
+        "hasAlpha": false,
+        "bytes": 1882742,
+        "sha256": "c0f700e8af30a3a763999b888fb55fc841a210fa4be7712318faaa511aaafd29",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "nine-slice"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "merged HUD node integration tests passed",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      }
+    },
+    {
+      "assetId": "ui.button",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/button.png",
+      "runtimeAsset": "assets/resources/ui/button.png",
+      "license": {
+        "source": "Built-in imagegen; introduced by commit 02eba10a, retained unchanged during integration",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 2172,
+        "height": 724,
+        "hasAlpha": false,
+        "bytes": 1689252,
+        "sha256": "5d8dd4c1dc824a1a816d82d932c818b3ea20119d3744ada3f532321e119e4f6d",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "nine-slice with a chamfer silhouette mask"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "merged HUD node integration tests passed",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      }
+    },
+    {
+      "assetId": "ui.insignia",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/insignia.png",
+      "runtimeAsset": "assets/resources/ui/insignia.png",
+      "license": {
+        "source": "Built-in imagegen; introduced by commit 02eba10a, retained unchanged during integration",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 2098,
+        "height": 749,
+        "hasAlpha": true,
+        "bytes": 1110698,
+        "sha256": "8cdc1b43afb051dd003a0ad9ab0c8e3d979bebde77307145c644aa80c3f63696",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "transparent emblem"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "merged HUD node integration tests passed",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
       }
     }
   ]

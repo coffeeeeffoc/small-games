@@ -1,0 +1,48 @@
+{
+  "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+  "environment": "Creator 3.8.8 Web/mobile in Linux Chromium/SwiftShader; 1280x720 mouse; offline services",
+  "sources": [
+    {
+      "path": "reports/2026-10-28-visual-rebuild/input/8f68ebfcd010dbb407f3b8aad3b09429.webm",
+      "sha256": "7773c867cd0eceb6615c062b0a42e87aed955819d153d33765aceeeb84b1ff56",
+      "bytes": 10044694
+    },
+    {
+      "path": "reports/2026-10-28-visual-rebuild/victory-source.webm",
+      "sha256": "6294e0e8b184f17ab4ca4840f40fe9c533a7f7f9ff0e9c3ff712f0ce54806223",
+      "bytes": 29891979
+    }
+  ],
+  "gameplay": {
+    "sourceIndex": 0,
+    "start": 51.28,
+    "duration": 20
+  },
+  "promo": [
+    {
+      "sourceIndex": 1,
+      "start": 8.883,
+      "duration": 3,
+      "scene": "home"
+    },
+    {
+      "sourceIndex": 1,
+      "start": 16.993,
+      "duration": 3,
+      "scene": "missions"
+    },
+    {
+      "sourceIndex": 0,
+      "start": 55.28,
+      "duration": 6,
+      "scene": "gameplay"
+    },
+    {
+      "sourceIndex": 1,
+      "start": 238.762,
+      "duration": 4,
+      "scene": "result"
+    }
+  ],
+  "notes": "Real browser input; no composited screenshots, extra captions, voiceover, speed changes or audio track. Raw WebM captures are local review sources; final MP4 files are versioned."
+}

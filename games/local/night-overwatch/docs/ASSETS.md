@@ -41,4 +41,4 @@
 
 三张新 PNG 均未二次绘图或重采样，生成原图完整保留在运行源目录。图集由 `SpriteFrame.rect` 切成724×724，以 Mask 等比裁切到卡片；关卡名、昼夜、敌数、选中/解锁状态均为实时文字。图像不替代地图或规则数据。
 
-本轮技术预检包括真实 Creator3.8.8 引擎声明类型检查、22项 HUD（含成功加载资源链/小屏布局）、11项边界/插值/startup及7项原生源码指纹检查。真实 Creator 构建、GPU shader 编译/运行、逐页效果图对照与移动设备性能仍需本轮实际证据；不得沿用旧验收作本轮视觉通过。运行只读快照 `visualMaterialStatus` 必须为 `ready`、`visualMaterialError` 为空；`error` 只表示回退可玩，不能验收新材质。
+本轮通过真实Creator 3.8.8构建、306项测试及同源浏览器逐页对图；新增素材成功加载，shader在Chromium/SwiftShader实际编译运行，记录见[本轮验证](verification-2026-10-28-visual-rebuild.md)。移动设备性能及原生渠道仍未验收；不得沿用旧版本记录作本轮通过。运行只读快照 `visualMaterialStatus` 必须为 `ready`、`visualMaterialError` 为空；`error` 只表示回退可玩，不能验收新材质。

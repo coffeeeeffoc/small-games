@@ -1,0 +1,60 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd"
+  },
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    }
+  ],
+  "errors": [],
+  "clips": {
+    "home": {
+      "start": 9.232,
+      "duration": 3
+    },
+    "nickname": {
+      "start": 15.66,
+      "duration": 3
+    },
+    "records": {
+      "start": 26.56,
+      "duration": 3
+    },
+    "report": {
+      "start": 45.035,
+      "duration": 4
+    },
+    "gameplay": {
+      "start": 51.28,
+      "duration": 20
+    }
+  },
+  "video": "/workspace/small-games/games/local/night-overwatch/reports/2026-10-28-visual-rebuild/input/8f68ebfcd010dbb407f3b8aad3b09429.webm"
+}

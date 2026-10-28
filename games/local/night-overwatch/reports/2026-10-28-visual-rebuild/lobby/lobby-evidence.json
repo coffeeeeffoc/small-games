@@ -1,0 +1,38 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd"
+  },
+  "backend": "Isolated in-memory storage with production HTTP routes; no production accounts, database or matches",
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "roomCode": "914302",
+      "realHttpList": true,
+      "pagination": true,
+      "joined": true,
+      "left": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "roomCode": "695995",
+      "realHttpList": true,
+      "pagination": true,
+      "joined": true,
+      "left": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "roomCode": "252994",
+      "realHttpList": true,
+      "pagination": true,
+      "joined": true,
+      "left": true
+    }
+  ],
+  "errors": []
+}

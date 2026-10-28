@@ -129,9 +129,9 @@ node tests/flight-browser.mjs
 
 2026-10-25 [首页、手册与即时设置设计](docs/design/2026-10-25-settings-home-guide.md)：首页使用独立夜航封面；点击选择任务后再展示关卡与场景预览；手册分层展示操作、绑定和完整说明，固定导航与返回。设置验收：设置上述构建环境变量后执行 `node tests/settings-browser.mjs`，在弹窗打开期间检查真实投影变化及战斗冻结。当时暂停配置使用v6；本轮四武器、巡逻与计时统一升级为 `night-input-replay-v7`，旧版本输入不能混用。
 
-界面回归入口：设置 `NIGHT_URL` 与 `NIGHT_EXPECTED_SOURCE_HASH`，运行 `node tests/ui-style-browser.mjs`（布局、皮肤、按下与拖出取消）和 `node tests/ui-input-browser.mjs`（输入框、键盘缩屏、战况与实际操作）。设置 `NIGHT_REPORT_URL` 为新的 `file:///.../` 目录以保留旧证据；结算修改追加 `NIGHT_STYLE_REVIEW=1 node tests/finish-browser.mjs`。实际打开各尺寸截图对照设计，测试通过不等于视觉达标。
+界面回归入口：设置 `NIGHT_URL` 与 `NIGHT_EXPECTED_SOURCE_HASH`，运行 `node tests/ui-style-browser.mjs`（布局、皮肤、按下与拖出取消）和 `node tests/ui-input-browser.mjs`（输入框、键盘缩屏、战况与实际操作）。设置 `NIGHT_REPORT_URL` 为新的 `file:///.../` 目录以保留旧证据；结算修改追加 `NIGHT_STYLE_REVIEW=1 node tests/finish-browser.mjs`。实际打开各尺寸截图对照设计，测试通过不等于视觉达标。 本次大改另以 `node tests/visual-rebuild-browser.mjs` 验证真实单人/人机胜利、三尺寸结算及四尺寸光照；`node tests/lobby-visual-browser.mjs` 需设置隔离本地 `NIGHT_LOBBY_URL`，检查有房间大厅与加入/离开。当前结果见[视觉重做验证](docs/verification-2026-10-28-visual-rebuild.md)。
 
-任务地图现在按实际地形高度、路线、敌我位置绘制地形预览。[地图与支援流程验证](docs/verification-2026-10-24-flow.md)。清除全部威胁（含后续波次）后，立即停火，车队约3秒抵达，在途普通弹按4倍速度走完原剩余弹道、保留地形碰撞与友伤。只有车队抵达、弹药全部处理完、清敌语音播放结束三项都完成，才进入正式结算；先完成的等待其他项。暂停/后台冻结撤离并保留未播完语音，恢复后续播；静音、音频缺失或播放进度连续2秒停滞时跳过语音等待。[同步撤离验证](docs/verification-2026-10-24-extraction-sync.md)。
+任务地图使用独立场景插画，叠加真实关卡名称、光照、敌数与解锁状态；插画仅作场景预览，战场位置以实机小地图为准。[地图与支援流程验证](docs/verification-2026-10-24-flow.md)。清除全部威胁（含后续波次）后，立即停火，车队约3秒抵达，在途普通弹按4倍速度走完原剩余弹道、保留地形碰撞与友伤。只有车队抵达、弹药全部处理完、清敌语音播放结束三项都完成，才进入正式结算；先完成的等待其他项。暂停/后台冻结撤离并保留未播完语音，恢复后续播；静音、音频缺失或播放进度连续2秒停滞时跳过语音等待。[同步撤离验证](docs/verification-2026-10-24-extraction-sync.md)。
 
 
 ## 战况、计时与对战

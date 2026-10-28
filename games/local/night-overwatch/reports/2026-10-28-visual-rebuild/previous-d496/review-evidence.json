@@ -1,0 +1,432 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "d496e971479798124f8dda788400fb8ddfc1892f01e34701c20cd14a00dde736"
+  },
+  "errors": [],
+  "checks": [
+    "Fresh solo victory and offline bot victory through real aiming and fire; both result panels at three widths",
+    {
+      "width": 1280,
+      "height": 720,
+      "touch": false,
+      "lighting": true,
+      "portraitFallback": false
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "lighting": true,
+      "portraitFallback": false
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "lighting": true,
+      "portraitFallback": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "touch": true,
+      "lighting": true,
+      "portraitFallback": true
+    }
+  ],
+  "screens": [
+    {
+      "name": "home-1280",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "day",
+      "modal": "home",
+      "time": 0
+    },
+    {
+      "name": "missions-1280",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "day",
+      "modal": "missions",
+      "time": 0
+    },
+    {
+      "name": "single-fire-0",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "day",
+      "modal": "",
+      "time": 0.8333333333333343
+    },
+    {
+      "name": "single-fire-1",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "day",
+      "modal": "",
+      "time": 7.816666666666644
+    },
+    {
+      "name": "single-fire-2",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "day",
+      "modal": "",
+      "time": 16.000000000000373
+    },
+    {
+      "name": "solo-result-1280",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "day",
+      "modal": "success",
+      "time": 44.99999999999873
+    },
+    {
+      "name": "solo-result-844",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "light": "day",
+      "modal": "success",
+      "time": 44.99999999999873
+    },
+    {
+      "name": "solo-result-568",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "light": "day",
+      "modal": "success",
+      "time": 44.99999999999873
+    },
+    {
+      "name": "lobby-offline-844",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "light": "day",
+      "modal": "online:menu:3:zh",
+      "time": 0
+    },
+    {
+      "name": "incendiary-fire",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "light": "day",
+      "modal": "",
+      "time": 7.733333333333311
+    },
+    {
+      "name": "bot-result-1280",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "day",
+      "modal": "duelResult",
+      "time": 94.06666666666261
+    },
+    {
+      "name": "bot-result-844",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "light": "day",
+      "modal": "duelResult",
+      "time": 94.06666666666261
+    },
+    {
+      "name": "bot-result-568",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "light": "day",
+      "modal": "duelResult",
+      "time": 94.06666666666261
+    },
+    {
+      "name": "home-1280x720",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "day",
+      "modal": "home",
+      "time": 0
+    },
+    {
+      "name": "mission-cards-1280x720",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "day",
+      "modal": "missions",
+      "time": 0
+    },
+    {
+      "name": "day-1280x720",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "day",
+      "modal": "",
+      "time": 0.41666666666666663
+    },
+    {
+      "name": "dusk-1280x720",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "dusk",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "night-1280x720",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "night",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "thermal-1280x720",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      },
+      "light": "night",
+      "modal": "",
+      "time": 1.4166666666666665
+    },
+    {
+      "name": "home-844x390",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "light": "day",
+      "modal": "home",
+      "time": 0
+    },
+    {
+      "name": "mission-cards-844x390",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "light": "day",
+      "modal": "missions",
+      "time": 0
+    },
+    {
+      "name": "day-844x390",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "light": "day",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "dusk-844x390",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "light": "dusk",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "night-844x390",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "light": "night",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "thermal-844x390",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "light": "night",
+      "modal": "",
+      "time": 1.5999999999999992
+    },
+    {
+      "name": "home-568x320",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "light": "day",
+      "modal": "home",
+      "time": 0
+    },
+    {
+      "name": "mission-cards-568x320",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "light": "day",
+      "modal": "missions",
+      "time": 0
+    },
+    {
+      "name": "day-568x320",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "light": "day",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "dusk-568x320",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "light": "dusk",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "night-568x320",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "light": "night",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "thermal-568x320",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "light": "night",
+      "modal": "",
+      "time": 1.5999999999999992
+    },
+    {
+      "name": "home-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "light": "day",
+      "modal": "home",
+      "time": 0
+    },
+    {
+      "name": "mission-cards-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "light": "day",
+      "modal": "missions",
+      "time": 0
+    },
+    {
+      "name": "day-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "light": "day",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "dusk-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "light": "dusk",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "night-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "light": "night",
+      "modal": "",
+      "time": 0.39999999999999997
+    },
+    {
+      "name": "thermal-390x844",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "light": "night",
+      "modal": "",
+      "time": 1.5999999999999992
+    }
+  ],
+  "fixtures": "Offline services. Day/dusk/night review uses saved unlocks only; victory uses fresh progress and real input.",
+  "clips": {
+    "home": 9.48,
+    "missions": 17.839,
+    "gameplay": 23.331,
+    "soloResult": 232.827
+  },
+  "solo": {
+    "time": 44.99999999999873,
+    "fired": 5,
+    "kills": 4,
+    "friendlyLosses": 0,
+    "completionTime": 44.99999999999873
+  },
+  "bot": {
+    "time": 94.06666666666261,
+    "phase": "success",
+    "localPractice": true
+  },
+  "resumedFrom": "review-before-mobile-ua-fix.json",
+  "setupCorrection": "The prior 390x844 context retained a desktop user agent. Recheck only the unfinished portrait case with an Android Mobile UA; preserve completed same-source victories, video and landscape checks."
+}

@@ -4,6 +4,7 @@ import { mkdir, writeFile, readFile, copyFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { acceptanceBuild, snapshot, assertLayout, navigateMap, aimAt, waitForImpact, predictUnit } from './flight-browser.mjs';
 import { press, settleVisuals } from './visual-helpers.mjs';
+import { MAP } from '../assets/scripts/core/Data.ts';
 
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
 const out = new URL('../reports/2026-10-28-visual-rebuild/', import.meta.url);
@@ -11,24 +12,18 @@ await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true,
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined,
   args: ['--autoplay-policy=no-user-gesture-required', ...(process.platform === 'win32' ? ['--use-angle=d3d11'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])] });
-const resumePortrait = process.env.NIGHT_VISUAL_RESUME_PORTRAIT === '1';
+const reuseSolo = process.env.NIGHT_REUSE_SOLO_EVIDENCE === '1';
 let evidence = { build, errors: [], checks: [], screens: [], fixtures: 'Offline services. Day/dusk/night review uses saved unlocks only; victory uses fresh progress and real input.' };
-if (resumePortrait) {
+if (reuseSolo) {
   const previous = JSON.parse(await readFile(new URL('review-evidence.json', out), 'utf8'));
-  assert.deepEqual(previous.build, build, 'Only resume evidence from the exact same running source');
+  assert.deepEqual(previous.build, build, 'Completed solo evidence must match the running source');
   assert.deepEqual(previous.errors, []);
-  assert.equal(previous.failure, 'page.waitForFunction: Timeout 30000ms exceeded.');
-  assert.equal(previous.last?.modal, 'orientation');
-  assert.equal(previous.last?.ui.width, 390); assert.equal(previous.last?.ui.height, 844);
-  assert.equal(previous.last?.visualMaterialStatus, 'ready');
-  assert(previous.solo?.kills === 4 && previous.solo.friendlyLosses === 0 && previous.bot?.phase === 'success');
-  assert.deepEqual(previous.checks.filter(c => typeof c === 'object').map(c => [c.width, c.height]), [[1280,720],[844,390],[568,320]]);
-  await copyFile(new URL('review-evidence.json', out), new URL('review-before-mobile-ua-fix.json', out));
-  await copyFile(new URL('failure.png', out), new URL('desktop-portrait-orientation.png', out));
-  evidence = previous;
-  evidence.resumedFrom = 'review-before-mobile-ua-fix.json';
-  evidence.setupCorrection = 'The prior 390x844 context retained a desktop user agent. Recheck only the unfinished portrait case with an Android Mobile UA; preserve completed same-source victories, video and landscape checks.';
-  delete evidence.failure; delete evidence.last;
+  assert(previous.solo?.kills === 4 && previous.solo.friendlyLosses === 0 && previous.solo.fired > 0);
+  for (const width of [1280,844,568]) assert(previous.screens.some(screen => screen.name === 'solo-result-'+width && screen.modal === 'success'));
+  await copyFile(new URL('review-evidence.json', out), new URL('review-before-duel-navigation-fix.json', out));
+  evidence = { ...evidence, solo: previous.solo, clips: previous.clips,
+    screens: previous.screens.filter(screen => !screen.name.startsWith('bot-') && !screen.name.startsWith('lobby-') && screen.name !== 'incendiary-fire'),
+    reusedCompletedSoloEvidence: 'review-before-duel-navigation-fix.json' };
 }
 let currentPage;
 const observe = page => {
@@ -63,11 +58,25 @@ const unitVertexColors = page => page.evaluate(async () => {
     .filter(renderer => renderer.node.activeInHierarchy && renderer.node.name.startsWith('asset:vehicle.'))
     .map(renderer => renderer.getMaterial(0).passes[0].defines.USE_VERTEX_COLOR);
 });
+// Duel aiming continues through command processing after a map click. Verify
+// actual camera navigation here; aimAt supplies the subsequent firing point.
+const locateDuel = async (page, target) => {
+  const before = await snapshot(page), map = before.ui.minimap;
+  assert(Math.abs(target.x)<=MAP.halfWidth && Math.abs(target.z)<=MAP.halfDepth);
+  await page.mouse.click(map.x+8+(target.x+MAP.halfWidth)/(2*MAP.halfWidth)*(map.w-16),
+    map.y+25+(target.z+MAP.halfDepth)/(2*MAP.halfDepth)*(map.h-33));
+  const tolerance = Math.hypot(2*MAP.halfWidth/(map.w-16),2*MAP.halfDepth/(map.h-33))*1.1;
+  await page.waitForFunction(({target,tolerance}) => {
+    const p=__night.snapshot().camera.center;return Math.hypot(p.x-target.x,p.z-target.z)<=tolerance;
+  },{target,tolerance});
+  assert.equal((await snapshot(page)).fired,before.fired,'Duel map navigation does not fire through');
+};
 try {
-  if (!resumePortrait) {
+  let context, page;
+  if (!reuseSolo) {
   // Fresh ordinary progress: a real single-player victory, with no score/state injection.
-  let context = await browser.newContext({ viewport: { width: 1280, height: 720 }, recordVideo: { dir: fileURLToPath(out), size: { width: 1280, height: 720 } } });
-  let page = await context.newPage(); const videoStarted = Date.now(); observe(page); await ready(page);
+  context = await browser.newContext({ viewport: { width: 1280, height: 720 }, recordVideo: { dir: fileURLToPath(out), size: { width: 1280, height: 720 } } });
+  page = await context.newPage(); const videoStarted = Date.now(); observe(page); await ready(page);
   evidence.clips = {};
   const mark = name => { evidence.clips[name] = (Date.now() - videoStarted) / 1000; };
   await capture(page, 'home-1280'); mark('home'); await page.waitForTimeout(3200);
@@ -97,6 +106,7 @@ try {
     if (width === 1280) { mark('soloResult'); await page.waitForTimeout(4200); }
   }
   const video = page.video(); await context.close(); await video.saveAs(fileURLToPath(new URL('victory-source.webm', out)));
+  }
   context = await browser.newContext({ viewport: { width: 844, height: 390 } });
   page = await context.newPage(); observe(page); await ready(page);
   await press(page, 'online:menu'); await capture(page, 'lobby-offline-844');
@@ -104,7 +114,7 @@ try {
   // Local bot practice has no public server settlement and must not invent one.
   await press(page, 'weapon3');
   let state = await snapshot(page), target = state.units.find(unit => !unit.friendly && unit.kind === 'turret' && unit.hp > 0);
-  assert(target); await navigateMap(page, target); await aimAt(page, target);
+  assert(target); await locateDuel(page, target); await aimAt(page, target);
   await page.mouse.down(); await page.waitForTimeout(100); await page.mouse.up();
   await page.waitForFunction(() => __night.snapshot().fireZones.length > 0);
   await capture(page, 'incendiary-fire');
@@ -114,9 +124,14 @@ try {
     state = await snapshot(page); if (state.phase !== 'playing') break;
     target = state.units.filter(unit => !unit.friendly && unit.hp > 0).sort((a,b) => a.hp-b.hp)[0];
     if (!target) { await page.waitForTimeout(300); continue; }
+    const preferred = target.kind === 'light' ? 0 : target.kind === 'heavy' ? 2 : 1;
+    const weapon = state.guns[preferred].ammo === 0 ? 0 : preferred;
+    if (state.selected !== weapon) await press(page,'weapon'+weapon);
+    state = await snapshot(page); target = state.units.find(unit=>unit.id===target.id);
+    if (!target || target.hp<=0) continue;
     let lead = target;
-    for (let i=0;i<3;i++) lead = predictUnit(state,target,await page.evaluate(p=>__night.flightTime(p,2),lead)+.2);
-    await navigateMap(page, lead); await aimAt(page, lead);
+    for (let i=0;i<3;i++) lead = predictUnit(state,target,await page.evaluate(({p,weapon})=>__night.flightTime(p,weapon),{p:lead,weapon})+.2);
+    await locateDuel(page, lead); await aimAt(page, lead);
     await page.mouse.down(); await page.waitForTimeout(800); await page.mouse.up();
   }
   await page.waitForFunction(() => __night.snapshot().modal === 'duelResult', null, { timeout: 10000 });
@@ -131,9 +146,8 @@ try {
   await page.waitForFunction(()=>__night.snapshot().online.panel==='menu'&&!__night.snapshot().online.active);
   evidence.checks.push('Fresh solo victory and offline bot victory through real aiming and fire; both result panels at three widths');
   await context.close();
-  }
 
-  for (const [width,height,touch] of resumePortrait ? [[390,844,true]] : [[1280,720,false],[844,390,true],[568,320,true],[390,844,true]]) {
+  for (const [width,height,touch] of [[1280,720,false],[844,390,true],[568,320,true],[390,844,true]]) {
     const context=await browser.newContext({viewport:{width,height},hasTouch:touch,isMobile:touch,
       ...(height>width ? {userAgent:'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36'} : {})});
     await context.addInitScript(()=>localStorage.setItem('night-overwatch-progress-v1',JSON.stringify({version:1,cleared:['corridor-01','ambush-02','patrol-03','operation-004','operation-005']})));
