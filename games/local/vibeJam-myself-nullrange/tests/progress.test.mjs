@@ -23,7 +23,7 @@ test('legacy storage migrates only validated best/muted; blocked storage remains
   const stale = { ...p, best: 0 };
   assert.equal(saveProgress(storage, stale, 'best'), true);
   assert.equal(stale.best, 600);
-  map.set('nullrange-progress-v1', '{"version":2,"best":700}');
+  map.set('nullrange-progress-v1', '{"version":3,"best":700}');
   assert.equal(saveProgress(storage, p, 'best'), false);
   const blocked = {
     getItem() {

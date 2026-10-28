@@ -14,7 +14,7 @@ test('normal flight / pulse / missiles wins deterministically without changing g
   const runs = [createRun(), createRun()];
   for (const s of runs) for (let i = 0; i < 10800 && s.status === 'running'; i++) step(s, pilot(s));
   assert.equal(runs[0].status, 'won');
-  assert.equal(runs[0].kills, 3);
+  assert.equal(runs[0].kills, 6);
   assert.ok(runs[0].tick > 60);
   assert.deepEqual(runs[0], runs[1]);
   const score = runs[0].score;

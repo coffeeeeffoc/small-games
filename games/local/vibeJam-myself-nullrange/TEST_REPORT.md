@@ -197,3 +197,72 @@ B2远端CI `40752182151` / Pages `40752182157` 后续门禁实际失败，12项C
 19GLB总58,832三角面/6,304,748字节；远景山体单个18,432面，树林LOD单片120面，实际首页98,521面/86 calls，战斗86,377–92,217面/102–104 calls。预算调整由实际LOD后计数支持，不宣称真机FPS。
 
 画面构图/自然密林/机体材质/云雾纵深仍未精确达标，保留未通过；B4/B5继续，B6最终视觉及八类素材不可跳过。未验证真机、Safari、原生宿主、听感、生产后端/平台登录或全仓候选。B2远端失败结论保留，本批远端CI以推送后的实际运行结果为准。
+
+B3推送：`01ce24b5d80ad048e000cacff5bc457fa7608dd7` → `7270d1243a67c3760c93cb33e2fde767e4177d56` 已非强制推到dev并核实远端一致。准确推送范围和从8c4c821a的CI累计范围选择通过；未运行全仓候选，不把推送视为远端CI/Pages成功。
+
+## B4完整内容、成长与反馈交接（2026-10-29）
+
+最终Creator源码身份：`8e06e750d66c6eb49d7244d6308a4542690cd7df53390f269745311e1e9dcc65`；`RULE_VERSION=nullrange-b4-v1`。基于已推送B3 `7270d1243a67c3760c93cb33e2fde767e4177d56`。本节追加在主会话真实B3推送记录之后，未覆盖历史。实现者没有commit/push、派生代理、下载Hyper3D或修改生产后端。
+
+### 实际行为与文件
+
+- `core/content.ts`：六个稳定任务、三机体、五类目标union与进度条件波次。任务分别需要清除、优先追逐逃逸目标、扫描回收、守护运输机、混合火网决策、分阶段精英。无任务ID特判、六份循环或凑时长定时器。
+- `core/rules.ts`：三种普通AI与精英，真实前射角/蓄能/齐射；阶段阈值与护航护盾链接；存活逃逸目标边界、护航生命/终点、回收总数、超时失败；目标残骸不失效。共享`advanceFlight`/`advanceWeapons`/`consumeMissile`/`sweptDistance`保持确定性、无Cocos依赖，供B5单一权威Duel复用。未实现Duel，不把真人视作AI。
+- `core/flight-geometry.ts`：保留Falcon原8点及变换，允许传入各机型实际采样；`core/progress.ts`：同键v2迁移、星级/最佳分/最快时间极值合并、正常解锁和开发隔离。未来/损坏/空字符串/读取失败拒绝覆盖，旧分数不推断胜场。
+- `NullRange.ts`：任务/机型选择门禁、终局记录、Web Locks跨页串行写入，捕获每次偏好修改值避免排队期间被其他字段合并覆盖。`FlightInput.ts`未改，原取消/暂停/失焦/旋转保护保留。
+- `UI.ts`、`core/presentation.ts`：原生六格SpriteFrame图卡、两页真实任务、机库三机型、真实目标/导航/倒计时/星级/下一任务；保留Web安全区仅映射一次及native回退。
+- `World.ts`：三款实际GLB、独立喷口、选中机型缓存；弹丸/敌机/残骸池和32个固定FX节点；命中/破盾/爆炸/回收、重机蓄能、近地/加速反馈。复用现有10音库。减弱动态取消震动/FOV/命中闪烁；不改变权威步进、时钟或暂停。
+- `art/build_variants.py`、两份`.blend`、`variants-manifest.json`与总manifest、新GLB/meta：从主会话原创源适配后重新生成；图集及来源manifest/meta。`tests/campaign.test.mjs`、`campaign.browser.mjs`、`progression.browser.mjs`与既有定向测试更新。README、上架三份文案中的简介/开发者说明、STATUS及单一计划同步。
+
+### 普通输入与正常成长实测
+
+以下六关只用公开Controls调用`step`，未改state/HP/时钟；测试fixture的边界注入与这些可玩性样本分开。`reports/b4-campaign.json`、`reports/b4-tests.log`保存完整数据。先Falcon两关，再实际解锁Kestrel两关，再解锁Warden两关；正常胜利幂等写入，重入结果不重复收益，开发试玩与失败不解锁。
+
+| 任务     | 机型    | 实际秒数 | 首次命中秒 | 击落/回收 | 剩余机体 |
+| -------- | ------- | -------- | ---------- | --------- | -------- |
+| 晨雾巡航 | Falcon  | 26.90    | 0.53       | 6/5       | 100      |
+| 山脊截击 | Falcon  | 148.45   | 1.18       | 9/5       | 100      |
+| 回声回收 | Kestrel | 146.90   | 1.38       | 12/12     | 62.68/75 |
+| 峡谷护航 | Kestrel | 156.15   | 2.50       | 10/10     | 65.48/75 |
+| 交叉火网 | Warden  | 147.35   | 1.78       | 15/14     | 145      |
+| 终光决战 | Warden  | 146.75   | 1.18       | 7/6       | 145      |
+
+策略：优先逃逸目标；精英护航存活时先打护航；近处残骸不足盾/回收任务时转向收集，420m内开扫描；正前方远目标才加速；过热松火，冷却且锁定时点导弹；按前方160m地面净空调整俯仰。其余以真实相对位置转向，近敌小幅偏移规避碰撞。JSON中`actions`/`inputTrueTicks`为请求为真的tick数，不是实际发射数。教学短局允许短于两分钟，其余五关样本落在2–5分钟。
+
+正式模式Chromium全触屏（dev=0）前两关：28.9833 / 161.1333秒；墙钟29.259 / 161.519秒；首命中0.70 / 1.433秒；分别6/9击落、5/5回收、均机体100/三星，完成成绩写入、第二关解锁、Kestrel资格及重载核对。日志`reports/b4-campaign-browser-console.log`、`reports/campaign/report.json`；后四关未重复浏览器长局，使用上述纯规则可玩性证据。
+
+首次CDP驾驶器错误地向touchEnd传入剩余触点，造成5个触点残留和超时；另修正按钮仍处于冷却不可用时不把拒绝的触点当成成功按下。保留`reports/campaign/failed-touch-driver.*`，失败未计通过。依据已安装Playwright protocol修正为空列表松手、重新按住、再移动，并断言释放后的触点数；最终实测未改游戏时限/生命来绕过。该缺陷属于测试驾驶器，原游戏触控生命周期保持。
+
+### 实际执行及增量复用
+
+| 命令（游戏目录）                                                                  | 结果                                                                                                                                                        |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `D:/setup/Blender/blender.exe --background --python art/build_variants.py`        | 两款机体重新导出，`reports/b4-variants.log`；本次generator hash见下                                                                                         |
+| `node scripts/typecheck.mjs`                                                      | 真实Creator 3.8.8声明通过，最后空字符串修复后再次通过                                                                                                       |
+| `node scripts/build.mjs web-mobile`                                               | 最终真实构建通过；首次新资源导入改变meta的候选被指纹保护拒绝，稳定后重建；最终`reports/b4-build-console.log`                                                |
+| `node --test --test-concurrency=1 tests/*.test.mjs`                               | 当时32/32，0跳过；`reports/b4-tests.log`。规则/内容/资产未再改                                                                                              |
+| `node --test --test-name-pattern='actual AI\|phase-born' tests/campaign.test.mjs` | 新追加2/2通过：四行为真实弹速前射锥、精英阶段同tick出生护航扫掠；共34项唯一用例已有通过证据                                                                 |
+| `node --test --test-name-pattern='v1 migration' tests/campaign.test.mjs`          | 最后空字符串保护改动后1/1通过，覆盖v1/合法字段/非法ID/未来版/损坏/空字符串保护                                                                              |
+| `node tests/browser.mjs`                                                          | 同批四尺寸完整页面/非对称安全区/真实输入/正常胜败/取消/冷热旋转/前后台/音频/iframe通过，`reports/b4-browser-console.log`；来源`510e91fd…`                   |
+| `$env:NULLRANGE_CAMPAIGN_LIMIT='2'; node tests/campaign.browser.mjs`              | 前两关正式全触屏自然胜利与重载通过；来源`3f3561eb…`；0页面/HTTP错误                                                                                         |
+| `node tests/progression.browser.mjs`                                              | 最终`8e06e750…`通过：两个真实页面、真实写锁占用、三次排队偏好、v1迁移/锁定、开发选择隔离、三机型喷口、两页卡片四尺寸、损坏/未来/空字符串字节保护；0页面错误 |
+| `verifyPrebuilt(process.cwd())`（`scripts/artifact.mjs`）                         | 最终完整来源/Creator/声明/逐文件清单校验通过；没有伪造预构建输入                                                                                            |
+| `pnpm exec prettier --write <本批游戏文件与计划>`、`git diff --check`             | 仅格式化授权范围，检查无空白错误                                                                                                                            |
+
+复用范围明确：`510e91fd…`完整四尺寸后只增加捕获排队偏好值，得到`3f3561eb…`；再把空字符串解析从“当作未存档”改为“损坏并拒写”，得到最终`8e06e750…`。Core飞行/战斗/内容、UI、World、FlightInput和资源字节在这两个最后修复中没有变化。最终类型/Creator/存档专项重测，正常触屏与四尺寸其他路径保留各自来源，不反复全量也不伪称来自同一运行。
+
+### 资产、GPU与视觉
+
+21个GLB总 **65,920面 / 6,640,468字节**，保留B3的19个资产与树林LOD；单山≤20k，其余≤6k，总数按实际65920验证。Kestrel3272面/161112字节，Warden3816面/174608字节；不同模型、喷口、机型物理量及包围范围均有测试/真实Creator截图。
+
+生成器sourceHash：`cb2fa5057c62d0a3da6cee913e3ba473f4724a273d453828d00bb49035653d38`；Kestrel GLB `5bff55a58e7e1643ee079ca7b0a30f746bb774bf7fb9146ff5829a04f72579ea`；Warden GLB `683241832d0e4adac727c15b34c2fc925588b512ceb9a369b4e82d582206a054`。原外部sourceHash未复制使用。任务atlas2048×768，SHA `6fc3e0fe0950e6daa615cfb245cf0bdac3bc3a53a18b590a14b27d45cfea2299`；按[0,683,1365,2048]裁三列/384高两排，来源明示为主会话生成插画。
+
+实际首页86 calls/98,521面；四尺寸短战斗102 calls/90,062–90,542面；三机体准备页93 calls，Falcon85,646 / Kestrel84,894 / Warden85,438面。正式前两关约55ms加工具开销采样，最高122/130 calls、122,380/124,545面。没有把模型总面数当GPU计数，也没有宣称全关峰值或手机60fps。六关纯规则最多3活敌、29弹；硬预算8活敌/96弹/32FX。
+
+[十张实测图、来源哈希及对照](docs/design/b4/README.md)已保存；原`docs/design/b3`与`b3-scene`未改。**完整视觉未通过**：自然密林、谷地构图、飞机材质/布光、天空空气层次仍与固定目标不同。任务卡/新机体/真实状态已落地，不替换参考图、不把现有场景说成精确达标。
+
+### 交回范围与未完成项
+
+唯一canonical写入权交回主会话；改动仅在本游戏目录及`docs/plans/2026-10-29-nullrange-rebuild.md`。主会话的B3推送记录保留。共享Shell当前消费者有自然终局/锁定锥时序缺陷，主会话明确接手修改并对B4定稿产物验证，本实现者未改共享路径、未宣称该消费者B4通过。远端CI runtime-api max-lines拆分同理由主会话整合。
+
+未做commit/push、准确已提交候选/远端CI或Pages核验、全仓检查、真实手机/Safari/原生宿主、听感、生产后端/平台登录、B5真正双人权威Duel或平台上传；B6最终视觉和八类正式素材仍开放。免费重试与正常成长完整可用，本批没有添加广告机会或竞技增益。

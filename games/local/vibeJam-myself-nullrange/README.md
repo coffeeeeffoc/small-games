@@ -1,64 +1,66 @@
 # 零域 · NULL RANGE
 
-当前为 [全面重构计划](../../../docs/plans/2026-10-29-nullrange-rebuild.md) 的 **B3手机交互与环境迭代版本**。原生Cocos全页面与四尺寸真实触屏、安全区、缓存和规则验证通过；画面验收仍未完成，机体质感、自然林海、山谷构图和空气层次继续跟进。本批推送不是完整游戏交付。
+当前为[全面重构计划](../../../docs/plans/2026-10-29-nullrange-rebuild.md)的 **B4 内容、成长与反馈版本**：六个单机任务，三类普通 AI 与三阶段精英，Falcon / Kestrel / Warden 三种实际三维机体及正常解锁。真实 Cocos Creator 3.8.8 渲染，固定 60Hz 纯规则，`RULE_VERSION=nullrange-b4-v1`。
 
-场景加载19个Blender GLB、5张显式纹理，含连续河道、实体岩壁、树林LOD和有署名的NASA月面；Falcon为4024三角面。Hyper3D已生成但尚未下载接入。固定[单机效果图](docs/design/target-mobile-v2.png)和[对战效果图](docs/design/target-online-v2.png)不变；[本批实测与逐页对照](docs/design/b3-scene/README.md)保留准确来源。按B4六任务/三机型、B5通用后端真人对战、B6完整画面与素材验收继续执行。
+[单机目标图](docs/design/target-mobile-v2.png)和[对战目标图](docs/design/target-online-v2.png)保持原样。任务卡片使用主会话提供的六格插画；它不是玩法截图。[B3历史证据](docs/design/b3-scene/README.md)保留；自然林海、山谷构图、机体材质与空气层次仍未达到最终视觉要求。B5真实双人权威对战、B6完整视觉/素材验收继续由主会话推进，当前没有假房间、假网络成绩或生产后端改动。
 
-Game ID `vibeJam-myself-nullrange`、包名 `null-range-mobile-cn`、独立入口 `/games/vibeJam-myself-nullrange/index.html` 和 `dist/` 保持。旧 Vite / Three / DOM 生产入口与测试已移除，历史原型可从 `8c4c821addb627e4196ccdc0b9437475e4b60f47` 找回。
+Game ID `vibeJam-myself-nullrange`、包名 `null-range-mobile-cn`、独立入口 `/games/vibeJam-myself-nullrange/index.html` 和 `dist/` 保持。旧 Vite/Three 原型可从 `8c4c821addb627e4196ccdc0b9437475e4b60f47` 找回，不是生产入口。
 
-## 构建与运行
+## 任务与机体
 
-仓库根使用 Node 24.21.0 / pnpm 12.6.0，安装现有锁定依赖。真实编辑器位置默认 `D:/tools/cocos/CocosCreator.exe`，可用 `COCOS_CREATOR` 指定 **3.8.8**。
+| 任务     | 实际决策与胜负                                                                             |
+| -------- | ------------------------------------------------------------------------------------------ |
+| 晨雾巡航 | 三段短教学；转向/散热/锁定，六敌清除即胜                                                   |
+| 山脊截击 | 三批逃逸信标与护航；加速优先截击，任一信标越过10500m逃逸距离即失败                         |
+| 回声回收 | 四组巡逻，每回收三份激活下一组；十二份全部回收才胜，目标残骸不超时消失                     |
+| 峡谷护航 | 沿五点路线守护真实运输机；航程激活五波，运输机失去280机体即失败，安全抵达终点即胜          |
+| 交叉火网 | 五组左右交替的截击/游击/重机组合；清空立即推进，不用定时空等                               |
+| 终光决战 | 精英在2/3、1/3机体阈值进入新阶段；护航存在时精英护盾免伤，清护航后攻击核心，齐射随阶段变化 |
+
+| 机体         | 解锁         | 巡航/加速m/s | 转向rad/s | 机体/护盾 | 单发热量/导弹 |
+| ------------ | ------------ | ------------ | --------- | --------- | ------------- |
+| Falcon 战隼  | 初始         | 92/165       | 1.42      | 100/70    | .105/6        |
+| Kestrel 红隼 | 完成山脊截击 | 108/192      | 1.90      | 75/48     | .120/5        |
+| Warden 守望  | 完成峡谷护航 | 80/144       | 1.12      | 145/100   | .074/8        |
+
+纯规则正常输入解锁链样本：26.90 / 148.45 / 146.90 / 156.15 / 147.35 / 146.75 秒；后五关均约2–3分钟。前两关用Falcon，中两关用Kestrel，末两关用Warden。驾驶策略、浏览器实际结果和限制见[TEST_REPORT](TEST_REPORT.md)。这些是具体策略的实测值，不保证所有玩家/机型均为同一用时。
+
+## 操作、成长与反馈
+
+- 左摇杆驾驶/升降，右侧长按开火/加速、点按导弹/扫描。键盘 WASD/方向键、空格、Shift、E、Q、Esc 补充。脉冲前方12°/760m辅助瞄准；导弹25°/900m锁定；目标和弹道须有地形视线。
+- 三类 AI 分别追击后脱离、侧向绕飞、蓄能重机通场；18°前射角限制，精英三阶段齐射。动态波次的新生目标使用安全的前后位置，死亡敌机不再移动/射击。
+- 扫描6秒/冷却10秒，420m内吸引残骸，回收补盾20、能量25与分数50。任务HUD展示真实回收数/逃逸百分比/运输机血量与航程/精英阶段，导航菱形指向实际对象。
+- 命中十字、破盾、销毁碎片、回收光点、重机蓄能、近地提示与加速视角均来自真实事件。复用10类原创音效；固定32个FX节点，弹丸/敌机/残骸复用池。减弱动态关闭镜头偏移、FOV变化和命中闪烁，不改变规则、计时或暂停。
+- 正常胜利记录任务最高分、最高星级与最快ticks，并解锁下一关及对应机型；失败/开发试玩不写成长。最高分、星级与最快时间按幂等极值合并，没有货币、重复领取或广告必经门槛。免费即时重试已覆盖本批失败恢复需求，未增加可选广告收益或PvP优势。
+- 保留 `nullrange-progress-v1` 键，schema升级为2；v1/旧best与muted只迁移合法数据，不从旧分数发明胜场。每次写入重新读取并只修改明确字段，Web Locks串行跨页写入；损坏/未来版本/读取失败拒绝覆盖，存储不可用时本次会话仍可推进。
+- 手机横屏，竖持旋转完整画布与触控；Web CSS物理安全区只映射一次，原生使用系统安全区。双指取消、拖出、旋转、失焦/后台暂停、设置返回及退出清理保持。没有浏览器全屏入口。
+- [统一开发模式](../../../docs/game-dev-mode.md)默认关闭，启用可自由预览/试玩六关三机型，`__nullrange.snapshot()`仅返回脱离状态的只读数据。正式模式的诊断可通过既有 `SmallGamesDev.inspect().game`读取，不改变开关或游戏状态。
+
+## 构建与验证
+
+Node 24.21.0 / pnpm 12.6.0，现有锁定依赖，真实 Creator 默认 `D:/tools/cocos/CocosCreator.exe`，`COCOS_CREATOR`可指定3.8.8。
 
 ```powershell
-pnpm --filter null-range-mobile-cn test
 pnpm --filter null-range-mobile-cn typecheck
 pnpm --filter null-range-mobile-cn build
-pnpm --filter null-range-mobile-cn dev
+pnpm --filter null-range-mobile-cn test
 pnpm --filter null-range-mobile-cn test:browser
+# 游戏目录内：默认正式模式实际输入战役链（较长，按需运行）
+node tests/campaign.browser.mjs
 ```
 
-`dev` / `preview` 提供已经构建的 `dist/`，默认 `http://127.0.0.1:43170`，支持 `--host` / `--port`。日志、截图与浏览器报告在忽略的 `reports/`。没有安装编辑器时不能伪造引擎、声明或 runtime。
+`dev`/`preview`只服务已构建dist，默认43170；报告/日志放忽略的`reports/`。`tests/campaign.test.mjs`以普通Controls验证全链，独立边界测试可设置fixture但不作为自然可玩证明。
 
-复用制品目录包含 `dist/`（含 `build-info.json`）和编辑器原始 `cc.d.ts`。设置 `NULLRANGE_PREBUILT_DIR` 后，`typecheck` / `build` 先验证 `sourceHash`、Creator版本、Game ID、声明哈希和完整逐文件清单；源码、依赖工具或文件变化均拒绝复用。`scripts/artifact.mjs` 导出 `sourceHash(directory?)`、`verifyPrebuilt(directory)`、`runtimeManifest(dist)`。`build` 和 `typecheck` 均将已验证的真实声明保存在游戏根 `cc.d.ts`，不提交它；下一CI步骤即使没有编辑器或不继承prebuilt环境变量，制品测试也可读取该声明。纯制品测试不再导入带进程执行能力的toolchain。
+`NULLRANGE_PREBUILT_DIR`制品必须含真实dist、build-info与cc.d.ts；sourceHash、逐文件哈希、声明与Creator身份不符均拒绝。首次资源导入修改meta时需再次构建，不能绕过指纹保护。根声明缓存/缺失时真实安装声明回读保护继续保留。
 
-## 代码与生成物归属
+## 实现与资源归属
 
-| 路径                                  | 职责                                                                   |
-| ------------------------------------- | ---------------------------------------------------------------------- |
-| `assets/scripts/core/content.ts`      | 版本、稳定任务ID、任务配置与校验                                       |
-| `assets/scripts/core/rules.ts`        | 固定60Hz确定性飞行、敌机、锁定、扫掠碰撞、热量、护盾、导弹、回收及终局 |
-| `assets/scripts/core/progress.ts`     | 可选存储端口、旧best/muted迁移与版本化偏好                             |
-| `assets/scripts/core/presentation.ts` | 安全区坐标变换、真实敌机雷达投影与基于任务结果的展示星级               |
-| `assets/scripts/FlightInput.ts`       | Cocos Touch/Mouse/Keyboard，多指归属与释放/取消清理                    |
-| `assets/scripts/World.ts`             | Camera、MeshRenderer、光照/雾、地形与模型加载点                        |
-| `assets/scripts/UI.ts`                | 真实Cocos Canvas、Graphics、Label及布局/热区                           |
-| `assets/scripts/NullRange.ts`         | 页面状态、固定步驱动、AudioSource、生命周期与开发快照                  |
-| `scripts/prepare.mjs`                 | 可再生成 `assets/scenes/main.scene`、音效PCM和缺失元数据               |
-| `scripts/sound-bank.mjs`              | 唯一音效生成器：10类确定性原创音效，替代旧单音生成                     |
-| `startup/`                            | 自有加载图标、加载失败重试和Shell沉浸消息；无游戏DOM控件               |
+- `core/content.ts`：唯一任务/机体目录、目标union、条件波次与配置校验；没有按任务ID写六份规则。
+- `core/rules.ts`：单机组合与固定步进；导出的`advanceFlight`、`advanceWeapons`、`consumeMissile`、`sweptDistance`等不依赖AI或引擎，可供B5单一权威Duel复用，不把两份solo互相模拟当联机。
+- `core/progress.ts`：v2迁移/显式字段写入/解锁/幂等；`presentation.ts`：安全区、雷达、导航、目标文案与星级。
+- `NullRange.ts`：页面、正常模式门禁、存档写锁、音频、生命周期；`FlightInput.ts`：保留既有双拇指与键盘取消逻辑；`UI.ts`：原生Sprite图卡/Graphics/Label；`World.ts`：Prefab、摄像机、地形与池化反馈。
+- 21个GLB总65,920面/6,640,468字节。新Kestrel3272面、Warden3816面，三机型有独立外形、喷口和8点碰撞采样。原19模型及其树林LOD、岩壁/NASA月面均保留。实际GPU计数见报告，不能当作手机FPS结论。
+- [art/README.md](art/README.md)及manifest保存原创Blender生成器/可编辑源/哈希，运行GLB只存在`assets/resources/models`；Creator唯一路径仍为`models/<name>/<name>`。Hyper3D未下载。
+- `scripts/prepare.mjs`生成场景、PCM与缺失meta；声音生成器仍是唯一10音库。library/temp/build/dist/cc.d.ts/reports为生成物，不提交伪造引擎内容。
 
-`core/*.ts` 是唯一规则源码，直接供Node测试、未来服务端adapter与Cocos调用，不生成另一份规则。元数据、材质、工程配置是版本化输入。`main.scene`、`resources/audio/*.wav`、Creator的 `library/temp/build` 与 `dist/cc.d.ts/reports` 为生成物；场景和声音生成器本身参与源码摘要。
-
-## 已实现操作与边界
-
-- 首页左品牌、右侧完整主机、右下“单机任务”与“玩家对战”；后者明确显示未开放，可返回首页或进入单机，不模拟在线玩家。只有真实的一关任务与Falcon准备页，不摆放未来假卡片。单机不访问网络服务。
-- 左摇杆转向/升降，松手回平；右侧开火/加速为长按，导弹/扫描为释放触发。桌面WASD/方向键、空格、Shift、E、Q、Esc补充。导弹只能锁定前方25°、900m内活目标。
-- 脉冲12°辅助瞄准；热量过高停火；脱战恢复护盾；导弹6枚、冷却3秒；扫描6秒、冷却10秒；残骸补充护盾/能量和本机分数。
-- 手机横屏布局，竖持由Creator旋转完整画布和输入坐标；合并 `sys.getSafeAreaRect(false)` 与Web CSS `env()`实测安全区，旋转时转换物理边距。四目标尺寸的控件至少44 CSS px且不重叠。触控取消、拖出、热旋转清理输入；失焦/后台暂停，恢复需主动继续，不补算离线时间。
-- 设置提供音效、减弱动态和灵敏度。旧 `nullrange-cn-best` / `nullrange-cn-muted` 只迁移合法分数与布尔偏好，不推断旧任务进度。新数据键 `nullrange-progress-v1`；存储不可用仍可玩。
-- HUD圆形双拇指控件带冷却、不可用、热量/能量反馈；右上雷达显示当前活敌机的真实相对方位，暂停图标为两实心竖条。设置从暂停返回仍暂停。结算显示真实成绩；星级只按完成任务及剩余机体≥50%/≥80%计算，不授予虚构奖励。
-- 10类音效合计427774字节；独立可停止的AudioSource保证静音、暂停和退出清理。已做生成自检与浏览器生命周期断言，尚未听感/真实设备验收。正式无字图标已接入加载页，来源见上架清单。
-- 开发模式复用[统一契约](../../../docs/game-dev-mode.md)，默认关闭。仅启用时提供只读 `__nullrange.snapshot()`，浏览器验证通过真实输入驾驶；开发试玩不写最高分。
-
-## 后续批次与共享整合
-
-B2原生GLB实际路径为 `models/<name>/<name>`，由 `World.MODEL_NAMES` 统一加载。来源、建模脚本、可编辑源与SHA清单见 [art/README.md](art/README.md)；不保留重复运行二进制。`core/terrain.ts` 让实时网格与碰撞共用20m网格三角形插值；`core/flight-geometry.ts` 绑定当前主机尺寸与Cocos姿态，检查中心/翼尖/机头/尾部净空，并为相机提供避让。
-
-地形49块回收，B3林块20树合并并按距离切换单树LOD，MASK双面枝片保留导入贴图宏；材料/网格共享且GPU实例化实测生效。只读开发快照 `world` 给出17模型/5张显式纹理加载状态、叶片材质宏、错误、池与网格数量、实际draw calls和三角面。加载全部成功后才撤下加载页、接受开始输入，失败沿用45秒重试入口。B3保留了独立展示镜头、渐变尾焰及未验收的装饰水面/远山shader；未修改B2地形高度、机翼8点、相机避障、权威时钟与胜负规则。
-
-B3尚需主会话完成场景视觉收敛及验收后发布；B4再扩展任务、敌型和机体并调节节奏（当前真实输入通关约5秒，不是2–5分钟目标达成）；B5使用通用服务 `Rule={initial,advance,action,view,result}`、`duel:true`两席共享状态和输入序号去重，新增游戏专属Duel适配。本批没有实现后端或宣称联网可用。
-
-共享整合已接通：`NULLRANGE_PREBUILT_DIR` 进入 Creator 生产、复用、CI/Pages/Mobile消费者及Turbo；工具引用只允许准确构建/类型/制品测试边界。Shell通过真实Cocos输入、只读快照验证入口和沉浸返回，旧DOM选择器已移除。增量范围验证覆盖完整迁移、锁文件以及10个删除/2个精确移动，额外删除或错误移动仍阻断。本地Shell通过不代表远端CI/Pages成功。
-
-验收结果见 [TEST_REPORT.md](TEST_REPORT.md)，上架资料核对见 [publishing/STATUS.md](publishing/STATUS.md)。
+[当前上架资料](publishing/STATUS.md)准确区分B4实测证据与B6尚未完成的正式八类素材；本地通过不代表真机、平台上传、CI/Pages或远端联机通过。

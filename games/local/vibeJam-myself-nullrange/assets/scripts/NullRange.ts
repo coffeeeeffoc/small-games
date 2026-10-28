@@ -11,9 +11,15 @@ import {
   view,
 } from 'cc';
 import { DT, createRun, step, targetInCone } from './core/rules';
-import { readProgress, saveProgress } from './core/progress';
+import {
+  readProgress,
+  saveProgress,
+  recordVictory,
+  missionUnlocked,
+  craftUnlocked,
+} from './core/progress';
 import type { Progress, StoragePort } from './core/progress';
-import { RULE_VERSION } from './core/content';
+import { RULE_VERSION, MISSIONS, craftById } from './core/content';
 import { FlightInput } from './FlightInput';
 import { UI } from './UI';
 import type { Screen } from './UI';
@@ -47,6 +53,12 @@ export class NullRange extends Component {
       this.storage = sys.localStorage;
     } catch {}
     this.progress = readProgress(this.storage);
+    this.state = createRun(
+      MISSIONS.find(
+        (m) => !this.progress.completed[m.id] && missionUnlocked(this.progress, m.id),
+      ) || MISSIONS[0],
+      craftById(this.progress.selectedCraft),
+    );
     this.ui = new UI(this.node);
     this.world = new World(this.node, this.surface!);
     this.engine = this.node.addComponent(AudioSource);
@@ -105,6 +117,7 @@ export class NullRange extends Component {
         scale: this.ui.scale,
         safe: this.ui.safe,
         controls: this.ui.controls,
+        atlasReady: this.ui.atlasReady,
         audio: {
           muted: this.progress.muted,
           engine: this.engine.playing,
@@ -142,7 +155,12 @@ export class NullRange extends Component {
     this.engine?.stop();
   };
   draw() {
-    this.ui.draw(this.screen, this.state, this.progress, this.practice);
+    this.ui.draw(
+      this.screen,
+      this.state,
+      this.progress,
+      this.practice || !!web.SmallGamesDev?.isEnabled(),
+    );
   }
   change(screen: Screen) {
     this.controls.clear();
@@ -157,14 +175,52 @@ export class NullRange extends Component {
     this.draw();
   }
   action(id: string) {
+    const dev = !!web.SmallGamesDev?.isEnabled();
+    if (id.startsWith('mission:') && this.screen === 'missions') {
+      const m = MISSIONS.find((m) => m.id === id.slice(8));
+      if (m) this.state = createRun(m, this.state.craft);
+      this.draw();
+      return;
+    }
+    if (id === 'mission-page') {
+      const i = MISSIONS.indexOf(this.state.mission);
+      this.state = createRun(MISSIONS[i < 3 ? 3 : 0], this.state.craft);
+      this.draw();
+      return;
+    }
+    if (id.startsWith('craft:') && this.screen === 'prepare') {
+      const c = craftById(id.slice(6));
+      if (c && (dev || craftUnlocked(this.progress, c.id))) {
+        this.state = createRun(this.state.mission, c);
+        if (!dev) {
+          this.progress.selectedCraft = c.id;
+          this.persistField('selectedCraft');
+        }
+        this.draw();
+      }
+      return;
+    }
+    if (id === 'next') {
+      const i = MISSIONS.indexOf(this.state.mission);
+      this.state = createRun(MISSIONS[Math.min(i + 1, MISSIONS.length - 1)], this.state.craft);
+      this.change('missions');
+      return;
+    }
+
     if (id === 'prepare' || id === 'prepare-detail') {
       this.returnScreen = 'missions';
       this.change('prepare');
       return;
     }
     if (id === 'start' || id === 'restart') {
-      if (!this.world.ready) return;
-      this.state = createRun(this.state.mission);
+      if (
+        !this.world.ready ||
+        (!dev &&
+          (!missionUnlocked(this.progress, this.state.mission.id) ||
+            !craftUnlocked(this.progress, this.state.craft.id)))
+      )
+        return;
+      this.state = createRun(this.state.mission, this.state.craft);
       this.practice = !!web.SmallGamesDev?.isEnabled();
       this.change('playing');
       return;
@@ -210,11 +266,39 @@ export class NullRange extends Component {
       const options = [0.7, 1, 1.3];
       this.progress.sensitivity = options[(options.indexOf(this.progress.sensitivity) + 1) % 3];
     } else return;
-    saveProgress(this.storage, this.progress, changed);
+    this.persistField(changed);
     this.draw();
   }
+  persistField(field: 'muted' | 'reduced' | 'sensitivity' | 'selectedCraft') {
+    const value = this.progress[field];
+    this.persist(() => {
+      const next = { ...this.progress, [field]: value };
+      saveProgress(this.storage, next, field);
+      Object.assign(this.progress, next);
+    });
+  }
+  persist(write: () => unknown) {
+    const run = () => {
+      write();
+      if (this.isValid) this.draw();
+    };
+    // Web Locks serializes same-origin tabs; native JS storage executes synchronously.
+    if (typeof navigator !== 'undefined' && navigator.locks)
+      void navigator.locks.request('nullrange-progress-v2', run).catch(() => {});
+    else run();
+  }
   sound(name: string) {
-    const source = this.sounds.get(name);
+    const source = this.sounds.get(
+      (
+        {
+          shield: 'hit',
+          phase: 'scan',
+          wave: 'scan',
+          'escort-hit': 'damage',
+          danger: 'damage',
+        } as Record<string, string>
+      )[name] || name,
+    );
     if (source && !this.progress.muted) {
       source.stop();
       source.play();
@@ -236,10 +320,9 @@ export class NullRange extends Component {
         this.accumulator -= DT;
         for (const event of this.state.events) this.sound(event);
         if (this.state.status !== 'running') {
-          if (!this.practice) {
-            this.progress.best = Math.max(this.progress.best, this.state.score);
-            saveProgress(this.storage, this.progress, 'best');
-          }
+          const terminal = this.state,
+            practice = this.practice;
+          this.persist(() => recordVictory(this.storage, this.progress, terminal, practice));
           this.change('result');
         }
       }

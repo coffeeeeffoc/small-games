@@ -1,0 +1,40 @@
+{
+  "assets": [
+    {
+      "name": "kestrel",
+      "triangles": 3272,
+      "bytes": 161112,
+      "sha256": "5bff55a58e7e1643ee079ca7b0a30f746bb774bf7fb9146ff5829a04f72579ea",
+      "bounds": {
+        "min": [-7.0, -0.7271999716758728, -10.001697540283203],
+        "max": [7.0, 3.1500000953674316, 7.349999904632568]
+      },
+      "nozzles": [
+        [-0.72, -0.1, 7.1],
+        [0.72, -0.1, 7.1]
+      ],
+      "generator": "build_variants.py",
+      "sourceHash": "cb2fa5057c62d0a3da6cee913e3ba473f4724a273d453828d00bb49035653d38",
+      "authoring": "Original Blender meshes authored for Null Range; no downloaded model geometry",
+      "tool": "Blender 5.2.1 LTS"
+    },
+    {
+      "name": "warden",
+      "triangles": 3816,
+      "bytes": 174608,
+      "sha256": "683241832d0e4adac727c15b34c2fc925588b512ceb9a369b4e82d582206a054",
+      "bounds": {
+        "min": [-10.300000190734863, -1.1100000143051147, -11.002041816711426],
+        "max": [10.300000190734863, 3.950000047683716, 8.300000190734863]
+      },
+      "nozzles": [
+        [-1.5, -0.1, 8.05],
+        [1.5, -0.1, 8.05]
+      ],
+      "generator": "build_variants.py",
+      "sourceHash": "cb2fa5057c62d0a3da6cee913e3ba473f4724a273d453828d00bb49035653d38",
+      "authoring": "Original Blender meshes authored for Null Range; no downloaded model geometry",
+      "tool": "Blender 5.2.1 LTS"
+    }
+  ]
+}

@@ -1,4 +1,6 @@
 import type { State } from './rules.ts';
+import { rating } from './progress.ts';
+import { totalEnemies } from './content.ts';
 
 export type Insets = { left: number; top: number; right: number; bottom: number };
 export const ZERO_INSETS: Insets = { left: 0, top: 0, right: 0, bottom: 0 };
@@ -48,7 +50,39 @@ export function radarContacts(s: State, range = 900) {
       };
     });
 }
-export function missionRating(s: State) {
-  // A debrief assessment only: no currency, unlock or reward is granted here.
-  return s.status === 'won' ? 1 + Number(s.player.hull >= 50) + Number(s.player.hull >= 80) : 0;
+export const missionRating = rating;
+export function objectiveText(s: State) {
+  const o = s.mission.objective;
+  if (o.kind === 'recover')
+    return `回收 ${s.recovered}/${o.count} · 波次 ${s.wave + 1}/${s.mission.waves.length}`;
+  if (o.kind === 'escort' && s.transport)
+    return `护航 ${Math.round((s.transport.travel / s.transport.total) * 100)}% · 运输机 ${Math.ceil((s.transport.hull / o.hull) * 100)}%`;
+  if (o.kind === 'elite') {
+    const e = s.enemies.find((e) => e.kind === 'elite');
+    return `精英 ${s.eliteStage}/3 · ${e ? Math.ceil((e.hp / e.maxHp) * 100) : 0}% ${s.enemies.length > 1 ? '护盾链接' : ''}`;
+  }
+  if (o.kind === 'intercept') {
+    const e = s.enemies.find((e) => e.priority);
+    return `截击 ${s.wave + 1}/${s.mission.waves.length} · 逃逸 ${e ? Math.round((e.travel / o.escapeDistance) * 100) : 0}%`;
+  }
+  return `击落 ${s.kills}/${totalEnemies(s.mission)} · 波次 ${s.wave + 1}/${s.mission.waves.length}`;
+}
+export function navigationTarget(s: State) {
+  const nearest = (a: { x: number; y: number; z: number }[]) =>
+    a.reduce(
+      (best, e) =>
+        !best ||
+        Math.hypot(e.x - s.player.x, e.z - s.player.z) <
+          Math.hypot(best.x - s.player.x, best.z - s.player.z)
+          ? e
+          : best,
+      null as { x: number; y: number; z: number } | null,
+    );
+  if (s.mission.objective.kind === 'recover' && s.pickups.length)
+    return { point: nearest(s.pickups)!, label: '回收残骸' };
+  const priority = s.enemies.find((e) => e.priority);
+  if (priority) return { point: priority, label: '逃逸信标' };
+  if (s.transport) return { point: s.transport, label: '友方运输机' };
+  const e = nearest(s.enemies);
+  return e ? { point: e, label: '敌方目标' } : null;
 }

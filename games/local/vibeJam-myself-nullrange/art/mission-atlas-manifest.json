@@ -1,0 +1,19 @@
+{
+  "name": "mission-atlas.png",
+  "source": "Main-session image generation exec-f3359e61-1442-4c09-a3d7-9dc5d2730b0c, 2026-10-29",
+  "purpose": "Concept illustration for mission selection, NOT gameplay screenshots",
+  "width": 2048,
+  "height": 768,
+  "sha256": "6fc3e0fe0950e6daa615cfb245cf0bdac3bc3a53a18b590a14b27d45cfea2299",
+  "bytes": 3244406,
+  "xBounds": [0, 683, 1365, 2048],
+  "rowHeight": 384,
+  "missions": [
+    "dawn-patrol",
+    "ridge-intercept",
+    "echo-recovery",
+    "valley-escort",
+    "crosswind",
+    "last-light"
+  ]
+}

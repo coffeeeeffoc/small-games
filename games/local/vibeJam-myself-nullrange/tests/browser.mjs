@@ -80,7 +80,7 @@ try {
   });
   const snap = () => page.evaluate(() => __nullrange.snapshot());
   const world = (await snap()).world;
-  assert.equal(world.modelsLoaded, 19);
+  assert.equal(world.modelsLoaded, 21);
   assert.equal(world.texturesLoaded, 5);
   assert.deepEqual(world.errors, []);
   assert.equal(world.terrainMeshes, 49);
@@ -92,7 +92,7 @@ try {
   assert.ok(world.drawCalls > 0 && world.drawCalls < 200);
   assert.ok(world.triangles > 10000 && world.triangles < 180000);
   report.world = world;
-  check('19 native GLB Prefabs + 5 textures loaded, collidable terrain and actual GPU counters');
+  check('21 native GLB Prefabs + 5 textures loaded, collidable terrain and actual GPU counters');
   const point = async (x, y) => {
     const s = await snap(),
       v = page.viewportSize();
@@ -160,6 +160,7 @@ try {
     await tap('missions');
     await layout();
     await shot(`mission-${width}x${height}`);
+    await tap('mission:dawn-patrol');
     await tap('prepare');
     assert.equal((await snap()).screen, 'prepare');
     await layout();
@@ -233,7 +234,7 @@ try {
   await tap('start');
   // Browser pilot drives actual Cocos keyboard events; snapshots are read-only.
   let held = new Set();
-  for (let i = 0; i < 650; i++) {
+  for (let i = 0; i < 2400; i++) {
     const state = (await snap()).state;
     if (state.status !== 'running') break;
     const desired = pilot(state),
@@ -243,6 +244,7 @@ try {
     if (desired.y > 0.12) next.add('KeyW');
     if (desired.y < -0.12) next.add('KeyS');
     if (desired.fire) next.add('Space');
+    if (desired.boost) next.add('ShiftLeft');
     for (const key of held) if (!next.has(key)) await page.keyboard.up(key);
     for (const key of next) if (!held.has(key)) await page.keyboard.down(key);
     held = next;
@@ -350,6 +352,7 @@ try {
     }
     await tap('missions');
     await layout();
+    await tap('mission:dawn-patrol');
     await tap('prepare');
     await layout();
     await tap('back');

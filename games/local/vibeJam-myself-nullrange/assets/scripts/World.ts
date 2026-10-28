@@ -23,6 +23,8 @@ import type { State, Point } from './core/rules';
 import { TILE_SIZE, WATER_LEVEL, terrainGeometry, sceneryAt, terrainHeight } from './core/terrain';
 export const MODEL_NAMES = [
   'falcon',
+  'kestrel',
+  'warden',
   'interceptor',
   'recon-drone',
   'beacon',
@@ -62,6 +64,12 @@ export class World {
   clouds: Node[] = [];
   disposed = false;
   private sphere: Mesh;
+  private craftNodes = new Map<string, Node>();
+  private currentCraft = '';
+  private objectKinds = new Map<number, string>();
+  private objectPools = new Map<string, Node[]>();
+  private fx: Node[] = [];
+  private ally?: Node;
   private groundKey = '';
   private groveKey = '';
   private terrainMaterial!: Material;
@@ -194,7 +202,7 @@ export class World {
           }
         }
       }
-      this.model('falcon', this.player);
+      this.craftNodes.set('falcon', this.model('falcon', this.player));
       const plume = new Material();
       plume.initialize({
         effectAsset: exhaustEffect as EffectAsset,
@@ -259,6 +267,11 @@ export class World {
       }
       for (let i = 0; i < 49; i++)
         this.tiles.push({ node: this.node('Terrain', this.root), key: '' });
+      for (let i = 0; i < 32; i++) {
+        const n = this.shape(this.root, i < 16 ? '#f6bb69' : '#5ed5ce', [0, 0, 0], [1, 1, 1]);
+        n.active = false;
+        this.fx.push(n);
+      }
       this.ready = true;
     } catch (error) {
       if (this.disposed) return;
@@ -408,10 +421,29 @@ export class World {
       view.target.y = p.y + 14;
       view.target.z = p.z - 10;
     }
-    this.camera.fov = 54;
-    cam.setPosition(view.position.x, view.position.y, view.position.z);
+    const latest = s.impacts
+      .filter((e) => e.kind === 'kill' || e.kind === 'damage' || e.kind === 'shield')
+      .at(-1);
+    const recoil =
+      !reduced && !menu && latest ? Math.max(0, 1 - (s.tick - latest.tick) / 24) * 0.55 : 0;
+    this.camera.fov += ((reduced || menu ? 54 : s.boosting ? 59 : 54) - this.camera.fov) * 0.12;
+    cam.setPosition(
+      view.position.x + Math.sin(s.tick * 0.7) * recoil,
+      view.position.y + Math.sin(s.tick * 0.9) * recoil,
+      view.position.z,
+    );
     cam.lookAt(new Vec3(view.target.x, view.target.y, view.target.z));
     if (!this.ready) return;
+    if (this.currentCraft !== s.craft.id) {
+      let selected = this.craftNodes.get(s.craft.id);
+      if (!selected) {
+        selected = this.model(s.craft.id, this.player);
+        this.craftNodes.set(s.craft.id, selected);
+      }
+      for (const [id, n] of this.craftNodes) n.active = id === s.craft.id;
+      s.craft.nozzles.forEach((p, i) => this.engines[i].setPosition(p[0], p[1], p[2]));
+      this.currentCraft = s.craft.id;
+    }
     this.player.active = screen !== 'missions';
     this.background.setPosition(p.x, 0, p.z);
     this.terrain(p);
@@ -424,48 +456,107 @@ export class World {
         menu ? 0.45 : s.boosting ? 1.6 : reduced ? 0.85 : 0.85 + Math.sin(s.tick * 1.7) * 0.035,
       );
     const ids = new Set<number>();
-    for (const e of s.enemies) {
-      ids.add(e.id);
-      let n = this.objects.get(e.id);
-      if (!n) {
-        n = this.model(e.id % 2 ? 'interceptor' : 'recon-drone', this.root);
-        this.objects.set(e.id, n);
+    const object = (id: number, kind: string, make: () => Node) => {
+      ids.add(id);
+      let n = this.objects.get(id);
+      if (n && this.objectKinds.get(id) !== kind) {
+        n.active = false;
+        const oldKind = this.objectKinds.get(id)!;
+        if (!this.objectPools.has(oldKind)) this.objectPools.set(oldKind, []);
+        this.objectPools.get(oldKind)!.push(n);
+        this.objects.delete(id);
+        n = undefined;
       }
+      if (!n) {
+        n = this.objectPools.get(kind)?.pop() || make();
+        this.objects.set(id, n);
+        this.objectKinds.set(id, kind);
+      }
+      return n;
+    };
+    for (const e of s.enemies) {
+      const n = object(e.id, e.kind, () =>
+        this.model(e.kind === 'skirmisher' ? 'recon-drone' : 'interceptor', this.root),
+      );
       n.setPosition(e.x, e.y, e.z);
-      n.setRotationFromEuler(0, (-e.yaw * 180) / Math.PI, 0);
+      n.setRotationFromEuler((e.pitch * 180) / Math.PI, (-e.yaw * 180) / Math.PI, 0);
+      const size = e.kind === 'elite' ? 2.1 : e.kind === 'heavy' ? 1.45 : 1;
+      n.setScale(size, size, size);
     }
     for (const b of s.shots) {
-      ids.add(b.id);
-      let n = this.objects.get(b.id);
-      if (!n) {
-        n = this.shape(
+      const kind = b.owner === 'enemy' ? 'enemy-shot' : b.missile ? 'missile' : 'pulse';
+      const n = object(b.id, kind, () =>
+        this.shape(
           this.root,
           b.owner === 'enemy' ? '#ff8055' : b.missile ? '#eef3e5' : '#f6bb69',
           [0, 0, 0],
           b.missile ? [1.5, 1.5, 5] : [1.1, 1.1, 7],
-        );
-        this.objects.set(b.id, n);
-      }
+        ),
+      );
       n.setPosition(b.x, b.y, b.z);
       n.lookAt(new Vec3(b.x + b.velocity.x, b.y + b.velocity.y, b.z + b.velocity.z));
     }
     for (const item of s.pickups) {
-      ids.add(item.id);
-      let n = this.objects.get(item.id);
-      if (!n) {
-        n = this.model('beacon', this.root);
-        n.setScale(0.65, 0.65, 0.65);
-        this.objects.set(item.id, n);
-      }
+      const n = object(item.id, 'beacon', () => this.model('beacon', this.root));
+      n.setScale(0.65, 0.65, 0.65);
       n.setPosition(item.x, item.y - 4, item.z);
       n.setRotationFromEuler(0, reduced ? 45 : s.tick, 0);
     }
     for (const [id, n] of this.objects)
       if (!ids.has(id)) {
-        n.destroy();
+        const kind = this.objectKinds.get(id)!;
+        let pool = this.objectPools.get(kind);
+        if (!pool) {
+          pool = [];
+          this.objectPools.set(kind, pool);
+        }
+        n.active = false;
+        pool.push(n);
         this.objects.delete(id);
+        this.objectKinds.delete(id);
       }
     for (const n of this.objects.values()) n.active = !menu;
+    if (s.transport && !this.ally) {
+      this.ally = this.model('warden', this.root);
+      this.ally.setScale(1.45, 1.45, 1.45);
+    }
+    if (this.ally) {
+      this.ally.active = !!s.transport && !menu;
+      if (s.transport) {
+        this.ally.setPosition(s.transport.x, s.transport.y, s.transport.z);
+        this.ally.setRotationFromEuler(0, (-s.transport.yaw * 180) / Math.PI, 0);
+      }
+    }
+    for (const n of this.fx) n.active = false;
+    let warm = 0,
+      cool = 16;
+    if (!menu)
+      for (const e of s.impacts) {
+        if (reduced && e.kind !== 'kill' && e.kind !== 'pickup') continue;
+        const age = (s.tick - e.tick) / 60,
+          life = e.kind === 'kill' ? 0.75 : 0.28;
+        if (age > life) continue;
+        const blue = e.kind === 'shield' || e.kind === 'pickup',
+          count = reduced ? 1 : e.kind === 'kill' ? 5 : 1;
+        for (let j = 0; j < count; j++) {
+          const index = blue ? cool++ : warm++;
+          if (index >= (blue ? 32 : 16)) break;
+          const n = this.fx[index],
+            spread = reduced ? 0 : age * (e.kind === 'kill' ? 34 : 8),
+            angle = j * 2.4 + e.id;
+          n.active = true;
+          n.setPosition(
+            e.x + Math.cos(angle) * spread,
+            e.y + Math.sin(angle * 2) * spread * 0.5,
+            e.z + Math.sin(angle) * spread,
+          );
+          const size =
+            (e.kind === 'kill' ? 9 : e.kind === 'shield' ? 7 : 3) *
+            (1 - age / life) *
+            (reduced ? 0.45 : 1);
+          n.setScale(size, size, size);
+        }
+      }
   }
   snapshot() {
     const renderers = this.root.getComponentsInChildren(MeshRenderer),
@@ -499,7 +590,11 @@ export class World {
         })),
       drawCalls: device?.numDrawCalls ?? null,
       triangles: device?.numTris ?? null,
-      aircraft: 'Original Blender falcon; Hyper3D not downloaded',
+      aircraft: this.currentCraft,
+      craftInstances: this.craftNodes.size,
+      nozzles: this.engines.map((n) => ({ x: n.position.x, y: n.position.y, z: n.position.z })),
+      pooledObjects: Array.from(this.objectPools.values()).reduce((n, p) => n + p.length, 0),
+      fxBudget: this.fx.length,
       terrainHeight: terrainHeight(this.player.position.x, this.player.position.z),
     };
   }

@@ -1,5 +1,10 @@
 import {
   Camera,
+  Sprite,
+  SpriteFrame,
+  Texture2D,
+  Rect,
+  resources,
   Canvas,
   Color,
   Graphics,
@@ -15,13 +20,16 @@ import {
 import { DT, distance, targetInCone, terrainHeight } from './core/rules';
 import type { State } from './core/rules';
 import type { Progress } from './core/progress';
-import { MISSIONS } from './core/content';
+import { missionUnlocked, craftUnlocked } from './core/progress';
+import { MISSIONS, CRAFTS, totalEnemies } from './core/content';
 import {
   logicalInsets,
   safeBounds,
   ZERO_INSETS,
   radarContacts,
   missionRating,
+  objectiveText,
+  navigationTarget,
 } from './core/presentation';
 import type { Insets } from './core/presentation';
 export type Screen =
@@ -65,6 +73,9 @@ export class UI {
   scale = 1;
   safe = safeBounds(844, 390, ZERO_INSETS, ZERO_INSETS);
   controls: Control[] = [];
+  cards: Sprite[] = [];
+  atlasReady = false;
+  private disposed = false;
   labels = new Map<string, Label>();
   seen = new Set<string>();
   pressed = new Set<string>();
@@ -89,6 +100,31 @@ export class UI {
     this.root.addChild(drawing);
     drawing.addComponent(UITransform);
     this.graphics = drawing.addComponent(Graphics);
+    for (let i = 0; i < 6; i++) {
+      const n = new Node('MissionIllustration' + i);
+      n.layer = Layers.Enum.UI_2D;
+      this.root.addChild(n);
+      n.addComponent(UITransform);
+      this.cards.push(n.addComponent(Sprite));
+      n.active = false;
+    }
+    resources.load('textures/mission-atlas/texture', Texture2D, (err, texture) => {
+      if (err || this.disposed) return;
+      const bounds = [0, 683, 1365, 2048];
+      this.cards.forEach((sprite, i) => {
+        const f = new SpriteFrame();
+        f.texture = texture;
+        f.rect = new Rect(
+          bounds[i % 3],
+          Math.floor(i / 3) * 384,
+          bounds[(i % 3) + 1] - bounds[i % 3],
+          384,
+        );
+        sprite.spriteFrame = f;
+        sprite.sizeMode = Sprite.SizeMode.CUSTOM;
+      });
+      this.atlasReady = true;
+    });
     this.resize();
   }
   resize() {
@@ -547,15 +583,15 @@ export class UI {
     }
     this.text('diagram-label', '左侧驾驶  ·  右侧武器', x, y + h + 17, 12, C.muted, w, center);
   }
-  hud(s: State, practice: boolean) {
+  hud(s: State, practice: boolean, reduced: boolean) {
     const a = this.safe,
       x = a.left,
       y = a.top,
       w = a.width;
     this.plate(x, y, 202, 76, '#0a202bab', '#6a95a338', 4);
     for (const [id, name, value, max, dy] of [
-      ['shield', '护盾', s.player.shield, 70, 17],
-      ['plane', '机体', s.player.hull, 100, 39],
+      ['shield', '护盾', s.player.shield, s.craft.shield, 17],
+      ['plane', '机体', s.player.hull, s.craft.hull, 39],
     ] as const) {
       this.icon(id, x + 12, y + dy, 14);
       this.text(id, name, x + 27, y + dy, 12, C.white, 30);
@@ -590,15 +626,7 @@ export class UI {
       '',
       C.amber,
     );
-    this.text(
-      'objective',
-      `清除无人机  ${s.kills} / ${s.mission.enemies.length}`,
-      x + 27,
-      y + 60,
-      12,
-      C.white,
-      170,
-    );
+    this.text('objective', objectiveText(s), x + 27, y + 60, 12, C.white, 245);
     this.text(
       'speed',
       `${Math.round(s.player.speed * 3.6)} km/h  ·  ${Math.round(s.player.y - terrainHeight(s.player.x, s.player.z))} m`,
@@ -736,6 +764,62 @@ export class UI {
       116,
       center,
     );
+    const nav = navigationTarget(s);
+    if (nav) {
+      const delta =
+        Math.atan2(nav.point.x - s.player.x, -(nav.point.z - s.player.z)) - s.player.yaw;
+      const heading = Math.atan2(Math.sin(delta), Math.cos(delta));
+      const nx = cx + Math.max(-150, Math.min(150, heading * 110));
+      this.polygon(
+        [
+          [nx, cy + 61],
+          [nx + 5, cy + 66],
+          [nx, cy + 71],
+          [nx - 5, cy + 66],
+        ],
+        '',
+        C.cyan,
+        1.5,
+      );
+      this.text(
+        'navigation',
+        `${heading < -0.3 ? '‹ ' : heading > 0.3 ? '› ' : ''}${nav.label} ${Math.round(distance(nav.point, s.player))}m`,
+        nx - 85,
+        cy + 84,
+        11,
+        C.cyan,
+        170,
+        center,
+      );
+    }
+    const threat = s.enemies.find((e) => e.telegraph > 0.1);
+    if (threat)
+      this.text(
+        'threat',
+        `${threat.kind === 'elite' ? '精英' : '重机'}蓄能 · 侧向规避`,
+        cx - 100,
+        y + 76,
+        12,
+        C.red,
+        200,
+        center,
+        true,
+      );
+    this.text(
+      'timer',
+      `${Math.ceil(s.mission.timeLimit - s.tick * DT)}s`,
+      x + 212,
+      y + 39,
+      11,
+      C.white,
+      55,
+    );
+    const hit = !reduced && s.impacts.some((e) => e.kind === 'hit' && s.tick - e.tick < 12);
+    if (hit) {
+      for (const a of [-1, 1])
+        for (const b of [-1, 1])
+          this.line(cx + a * 5, cy + b * 5, cx + a * 9, cy + b * 9, C.amber, 2);
+    }
     const message =
       s.noticeTime > 0 ? s.notice : s.tick * DT < 5 ? '左侧驾驶 · 右侧开火 · 松手回平' : '';
     if (message) {
@@ -754,7 +838,8 @@ export class UI {
     this.controls = [];
     this.seen.clear();
     this.graphics.clear();
-    if (screen === 'playing') this.hud(s, practice);
+    for (const card of this.cards) card.node.active = false;
+    if (screen === 'playing') this.hud(s, practice, p.reduced);
     if (screen === 'home') {
       this.shade('left', 0.79);
       this.text(
@@ -793,65 +878,87 @@ export class UI {
       this.button('settings', '设置', px + 24, py + 137, pw - 48, 46);
       this.button('home', '返回机库', px + 24, py + 195, pw - 48, 46);
     } else if (screen === 'missions') {
-      this.header('任务选择', 'home', false);
-      const top = y + 68,
-        bottom = b - 67,
-        cw = Math.min(330, w * 0.44),
-        ch = bottom - top;
-      this.plate(x, top, cw, ch, '#0a283c22', C.amber, 8);
-      this.text('card-number', '01  /  单机行动', x + 16, top + 21, 12, C.amber, cw - 32);
-      this.rect(x + 1, top + ch * 0.56, cw - 2, ch * 0.44 - 1, '#071c2bec');
-      const mission = MISSIONS.find((m) => m.id === s.mission.id) || MISSIONS[0];
+      this.header('任务选择', 'home');
+      const selected = Math.max(
+          0,
+          MISSIONS.findIndex((m) => m.id === s.mission.id),
+        ),
+        page = Math.floor(selected / 3);
+      const top = y + 67,
+        cw = (w - 24) / 3,
+        ch = h - 146;
+      for (let i = 0; i < 3; i++) {
+        const index = page * 3 + i,
+          m = MISSIONS[index],
+          cx = x + i * (cw + 12),
+          unlocked = practice || missionUnlocked(p, m.id),
+          active = index === selected;
+        this.plate(cx, top, cw, ch, '#0a2438ee', active ? C.amber : C.edge, 4);
+        const image = this.cards[index],
+          ih = Math.min(ch - 70, ((cw - 4) * 384) / 683);
+        image.node.active = this.atlasReady;
+        image.node.getComponent(UITransform)!.setContentSize(cw - 4, ih);
+        image.node.setPosition(cx + cw / 2 - this.width / 2, this.height / 2 - top - 2 - ih / 2);
+        this.text(
+          'mission-title' + i,
+          m.title,
+          cx + 12,
+          top + ch - 48,
+          20,
+          unlocked ? C.white : C.muted,
+          cw - 24,
+          Label.HorizontalAlign.LEFT,
+          true,
+        );
+        this.text(
+          'mission-meta' + i,
+          unlocked
+            ? `${totalEnemies(m)} 架 · ${m.objective.kind === 'recover' ? '扫描回收' : m.objective.kind === 'escort' ? '守护航程' : m.objective.kind === 'intercept' ? '优先截击' : m.objective.kind === 'elite' ? '三阶段精英' : '清除波次'}`
+            : '完成上一任务解锁',
+          cx + 12,
+          top + ch - 22,
+          12,
+          C.muted,
+          cw - 24,
+        );
+        const medal = p.completed[m.id]?.medal || 0;
+        this.text(
+          'mission-rating' + i,
+          medal ? '★'.repeat(medal) : String(index + 1).padStart(2, '0'),
+          cx + cw - 69,
+          top + ch - 48,
+          12,
+          C.amber,
+          56,
+          right,
+        );
+        this.hot('mission:' + m.id, m.title, cx, top, cw, ch);
+      }
       this.text(
-        'mission-title',
-        mission.title,
-        x + 17,
-        top + ch * 0.7,
-        24,
-        C.white,
-        cw - 34,
-        Label.HorizontalAlign.LEFT,
-        true,
-      );
-      this.text(
-        'mission-count',
-        `清除 ${mission.enemies.length} 架无人机`,
-        x + 17,
-        top + ch * 0.86,
-        13,
+        'mission-brief',
+        s.mission.briefing,
+        x,
+        b - 67,
+        11,
         C.muted,
-        cw - 34,
-      );
-      this.hot('prepare', '查看任务与机体', x, top, cw, ch);
-      const dx = x + cw + 26,
-        dw = w - cw - 26;
-      this.plate(dx - 12, top, dw + 12, ch, '#071b2be8');
-      this.text('mission-label', '任务简报', dx, top + 18, 16, C.amber, dw);
-      this.text(
-        'brief',
-        mission.briefing,
-        dx,
-        top + 75,
-        16,
-        C.white,
-        dw,
+        w,
         Label.HorizontalAlign.LEFT,
         false,
-        3,
+        1,
       );
-      this.line(dx, top + 127, a.right, top + 127, C.edge);
-      this.text(
-        'mission-meta',
-        `行动时限 ${Math.round(mission.timeLimit / 60)} 分钟 / 单机成绩`,
-        dx,
-        top + 153,
-        13,
-        C.muted,
-        dw,
+      this.button('mission-page', page ? '前 3 关' : '后 3 关', x, b - 50, 118, 48, false);
+      this.button('prepare', '机体准备', x + 130, b - 50, 146, 48, false, 'plane');
+      this.button(
+        'start',
+        missionUnlocked(p, s.mission.id) || practice ? '部署任务' : '任务未解锁',
+        a.right - 194,
+        b - 50,
+        194,
+        48,
+        true,
+        '',
+        !practice && !missionUnlocked(p, s.mission.id),
       );
-      this.text('mission-selected', '已选任务 · ' + mission.title, dx, top + 183, 13, C.cyan, dw);
-      this.button('prepare-detail', '机体准备', x, b - 50, 164, 48, false, 'plane');
-      this.button('start', '部署任务', a.right - 208, b - 50, 208, 48, true);
     } else if (screen === 'prepare') {
       this.shade('right', 0.94);
       this.hot('back', '返回任务', x, y, 46, 46);
@@ -869,10 +976,10 @@ export class UI {
       );
       const dx = x + w * 0.56,
         dw = w * 0.44;
-      this.text('craft-id', 'FALCON / 01', dx, y + 77, 14, C.amber, dw);
+      this.text('craft-id', s.craft.id.toUpperCase(), dx, y + 77, 14, C.amber, dw);
       this.text(
         'craft-name',
-        '战隼',
+        s.craft.name,
         dx,
         y + 112,
         34,
@@ -881,11 +988,11 @@ export class UI {
         Label.HorizontalAlign.LEFT,
         true,
       );
-      this.text('craft-role', '均衡巡航机', dx, y + 149, 14, C.muted, dw);
+      this.text('craft-role', s.craft.role, dx, y + 149, 14, C.muted, dw);
       this.line(dx, y + 172, a.right, y + 172, C.edge);
       this.text(
         'loadout',
-        '脉冲机炮 / 6 枚导弹\n护盾 70 / 机体 100\n加速推进 / 残骸扫描',
+        `导弹 ${s.craft.missiles} / 护盾 ${s.craft.shield} / 机体 ${s.craft.hull}\n巡航 ${s.craft.speed} / 加速 ${s.craft.boost} m/s\n转向 ${s.craft.turn.toFixed(2)} / 热量 ${s.craft.heat}`,
         dx,
         y + 220,
         15,
@@ -904,7 +1011,42 @@ export class UI {
         C.white,
         w * 0.52,
       );
-      this.button('start', '部署任务', dx, b - 53, dw, 50, true, 'plane');
+      const sw = (w * 0.52 - 20) / 3;
+      for (const [i, c] of CRAFTS.entries()) {
+        const unlocked = practice || craftUnlocked(p, c.id);
+        this.button(
+          'craft:' + c.id,
+          c.name,
+          x + i * (sw + 6),
+          b - 112,
+          sw,
+          48,
+          c.id === s.craft.id,
+          '',
+          !unlocked,
+        );
+        this.text(
+          'craft-unlock' + i,
+          unlocked ? '已解锁' : `通过第 ${c.id === 'kestrel' ? 2 : 4} 关`,
+          x + i * (sw + 6),
+          b - 122,
+          10,
+          C.muted,
+          sw,
+          center,
+        );
+      }
+      this.button(
+        'start',
+        '部署任务',
+        dx,
+        b - 53,
+        dw,
+        50,
+        true,
+        'plane',
+        !practice && !missionUnlocked(p, s.mission.id),
+      );
     } else if (screen === 'result') {
       this.shade('right', 0.97);
       const dx = x + w * 0.57,
@@ -976,7 +1118,11 @@ export class UI {
       );
       this.text(
         'result-practice',
-        practice ? '开发试玩 · 不记录成绩' : '按本机纪录规则结算',
+        practice
+          ? '开发试玩 · 不记录成绩与解锁'
+          : s.status === 'won'
+            ? `已记录 ${s.mission.title} · ${p.completed[s.mission.id]?.medal || 0} 星`
+            : '失败不解锁 · 可立即重试',
         x + 10,
         b - 23,
         12,
@@ -984,7 +1130,7 @@ export class UI {
         w * 0.49,
       );
       const bw = (dw - 10) / 2;
-      this.button('home', '机库', dx, b - 49, bw, 48);
+      this.button(won ? 'next' : 'home', won ? '下一任务' : '机库', dx, b - 49, bw, 48);
       this.button('restart', '再出击', dx + bw + 10, b - 49, bw, 48, true);
     } else if (screen === 'settings') {
       this.header('设置', 'back');
@@ -1186,6 +1332,8 @@ export class UI {
     for (const [id, l] of this.labels) if (!this.seen.has(id)) l.node.active = false;
   }
   dispose() {
+    this.disposed = true;
+    for (const c of this.cards) c.spriteFrame?.destroy();
     this.root.destroy();
     this.camera.node.destroy();
   }

@@ -1,0 +1,195 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "02156c85-30d9-4e36-9c0d-f5236ea6b531",
+  "files": [],
+  "subMetas": {
+    "58640": {
+      "importer": "gltf-material",
+      "uuid": "02156c85-30d9-4e36-9c0d-f5236ea6b531@58640",
+      "displayName": "",
+      "id": "58640",
+      "name": "Ivory.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "65753": {
+      "importer": "gltf-material",
+      "uuid": "02156c85-30d9-4e36-9c0d-f5236ea6b531@65753",
+      "displayName": "",
+      "id": "65753",
+      "name": "Steel.material",
+      "userData": {
+        "gltfIndex": 5
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "eef94": {
+      "importer": "gltf-mesh",
+      "uuid": "02156c85-30d9-4e36-9c0d-f5236ea6b531@eef94",
+      "displayName": "",
+      "id": "eef94",
+      "name": "Sculpted fuselage.001.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 3816
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "0a033": {
+      "importer": "gltf-material",
+      "uuid": "02156c85-30d9-4e36-9c0d-f5236ea6b531@0a033",
+      "displayName": "",
+      "id": "0a033",
+      "name": "Navy.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "2665e": {
+      "importer": "gltf-material",
+      "uuid": "02156c85-30d9-4e36-9c0d-f5236ea6b531@2665e",
+      "displayName": "",
+      "id": "2665e",
+      "name": "Glass.material",
+      "userData": {
+        "gltfIndex": 2
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "b0bdd": {
+      "importer": "gltf-material",
+      "uuid": "02156c85-30d9-4e36-9c0d-f5236ea6b531@b0bdd",
+      "displayName": "",
+      "id": "b0bdd",
+      "name": "Amber.material",
+      "userData": {
+        "gltfIndex": 3
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "77cf4": {
+      "importer": "gltf-material",
+      "uuid": "02156c85-30d9-4e36-9c0d-f5236ea6b531@77cf4",
+      "displayName": "",
+      "id": "77cf4",
+      "name": "Seam.material",
+      "userData": {
+        "gltfIndex": 4
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "ba68d": {
+      "importer": "gltf-material",
+      "uuid": "02156c85-30d9-4e36-9c0d-f5236ea6b531@ba68d",
+      "displayName": "",
+      "id": "ba68d",
+      "name": "Cyan.material",
+      "userData": {
+        "gltfIndex": 6
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "60d16": {
+      "importer": "gltf-scene",
+      "uuid": "02156c85-30d9-4e36-9c0d-f5236ea6b531@60d16",
+      "displayName": "",
+      "id": "60d16",
+      "name": "warden.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "02156c85-30d9-4e36-9c0d-f5236ea6b531@eef94"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [
+        "02156c85-30d9-4e36-9c0d-f5236ea6b531@58640",
+        "02156c85-30d9-4e36-9c0d-f5236ea6b531@0a033",
+        "02156c85-30d9-4e36-9c0d-f5236ea6b531@2665e",
+        "02156c85-30d9-4e36-9c0d-f5236ea6b531@b0bdd",
+        "02156c85-30d9-4e36-9c0d-f5236ea6b531@77cf4",
+        "02156c85-30d9-4e36-9c0d-f5236ea6b531@65753",
+        "02156c85-30d9-4e36-9c0d-f5236ea6b531@ba68d"
+      ],
+      "scenes": [
+        "02156c85-30d9-4e36-9c0d-f5236ea6b531@60d16"
+      ]
+    }
+  }
+}

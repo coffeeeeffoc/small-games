@@ -14,14 +14,17 @@ export const AIRFRAME_SAMPLES = [
 ] as const;
 export const surfaceHeight = (x: number, z: number) =>
   Math.max(WATER_LEVEL, terrainHeight(x, z), obstacleHeight(x, z));
-export function airframeSamples(p: Pose): Point[] {
+export function airframeSamples(
+  p: Pose,
+  samples: readonly (readonly number[])[] = AIRFRAME_SAMPLES,
+): Point[] {
   const cp = Math.cos(p.pitch),
     sp = Math.sin(p.pitch),
     cr = Math.cos(p.roll),
     sr = Math.sin(p.roll);
   const cy = Math.cos(p.yaw),
     sy = Math.sin(p.yaw);
-  return AIRFRAME_SAMPLES.map(([x, y, z]) => {
+  return samples.map(([x, y, z]) => {
     // Same YZX Euler quaternion as Cocos Node.setRotationFromEuler(pitch, -yaw, roll).
     const py = y * cp - z * sp,
       pz = y * sp + z * cp;
@@ -30,9 +33,9 @@ export function airframeSamples(p: Pose): Point[] {
     return { x: p.x + rx * cy - pz * sy, y: p.y + ry, z: p.z + rx * sy + pz * cy };
   });
 }
-export function airframeFloor(p: Pose) {
+export function airframeFloor(p: Pose, samples: readonly (readonly number[])[] = AIRFRAME_SAMPLES) {
   let floor = surfaceHeight(p.x, p.z) + 7;
-  for (const point of airframeSamples(p))
+  for (const point of airframeSamples(p, samples))
     floor = Math.max(floor, surfaceHeight(point.x, point.z) + 2.5 - (point.y - p.y));
   return floor;
 }

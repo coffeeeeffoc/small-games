@@ -20,7 +20,7 @@ const digest = (b) => createHash('sha256').update(b).digest('hex');
 const sourceDigest = (b) => digest(b.toString('utf8').replaceAll('\r\n', '\n'));
 test('authored GLB payloads, normals, indices, bounds, triangle budgets and source provenance', async () => {
   const manifest = JSON.parse(await readFile(new URL('art/manifest.json', root), 'utf8'));
-  assert.equal(manifest.assets.length, 19);
+  assert.equal(manifest.assets.length, 21);
   assert.equal(
     manifest.sourceHash,
     sourceDigest(await readFile(new URL('art/build_environment.py', root))),
@@ -121,7 +121,7 @@ test('authored GLB payloads, normals, indices, bounds, triangle budgets and sour
     assert.ok(triangles <= (asset.name.startsWith('ridge-') ? 20000 : 6000), asset.name);
     total += triangles;
   }
-  assert.ok(total < 65000);
+  assert.ok(total === 65920);
 });
 test('four shared baked textures match generator and content hashes', async () => {
   const manifest = JSON.parse(await readFile(new URL('art/surfaces-manifest.json', root), 'utf8'));
@@ -189,4 +189,15 @@ test('the valley river remains continuous and both forest banks stay above its w
     assert.ok(terrainHeight(x - 125, z) > WATER_LEVEL + 10);
     assert.ok(terrainHeight(x + 125, z) > WATER_LEVEL + 10);
   }
+});
+test('mission illustration atlas is the supplied original, with exact six-cell crop boundaries', async () => {
+  const m = JSON.parse(await readFile(new URL('art/mission-atlas-manifest.json', root), 'utf8'));
+  const bytes = await readFile(new URL('assets/resources/textures/' + m.name, root));
+  assert.equal(digest(bytes), m.sha256);
+  assert.equal(bytes.length, m.bytes);
+  assert.equal(bytes.readUInt32BE(16), 2048);
+  assert.equal(bytes.readUInt32BE(20), 768);
+  assert.deepEqual(m.xBounds, [0, 683, 1365, 2048]);
+  assert.equal(m.rowHeight, 384);
+  assert.equal(new Set(m.missions).size, 6);
 });

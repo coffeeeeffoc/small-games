@@ -20,7 +20,9 @@ test('two stale tabs patch only explicit preferences and score preserves latest 
   a.best = 900;
   assert.equal(saveProgress(storage, a, 'best'), true);
   assert.deepEqual(readProgress(storage), {
-    version: 1,
+    version: 2,
+    selectedCraft: 'falcon',
+    completed: {},
     best: 900,
     muted: true,
     reduced: true,
@@ -33,7 +35,9 @@ test('two stale tabs patch only explicit preferences and score preserves latest 
   a.muted = false;
   assert.equal(saveProgress(storage, a, 'muted'), true);
   assert.deepEqual(readProgress(storage), {
-    version: 1,
+    version: 2,
+    selectedCraft: 'falcon',
+    completed: {},
     best: 900,
     muted: false,
     reduced: true,
@@ -58,13 +62,26 @@ test('read failure then recovery never turns default preferences into an implici
   assert.deepEqual(JSON.parse(data.get(key)), initial);
   failing = false;
   assert.equal(saveProgress(flaky, a, 'best'), true);
-  assert.deepEqual(readProgress(storage), { ...initial, best: 500 });
+  assert.deepEqual(readProgress(storage), {
+    ...initial,
+    version: 2,
+    selectedCraft: 'falcon',
+    completed: {},
+    best: 500,
+  });
   failing = true;
   const b = readProgress(flaky);
   failing = false;
   b.reduced = false;
   assert.equal(saveProgress(flaky, b, 'reduced'), true);
-  assert.deepEqual(readProgress(storage), { ...initial, best: 500, reduced: false });
+  assert.deepEqual(readProgress(storage), {
+    ...initial,
+    version: 2,
+    selectedCraft: 'falcon',
+    completed: {},
+    best: 500,
+    reduced: false,
+  });
 });
 test('fresh writes preserve legacy preferences and reject malformed explicit patches', () => {
   const { data, storage } = memory();

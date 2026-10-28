@@ -1,0 +1,526 @@
+{
+  "date": "2026-10-29",
+  "sourceHash": "8e06e750d66c6eb49d7244d6308a4542690cd7df53390f269745311e1e9dcc65",
+  "ruleVersion": "nullrange-b4-v1",
+  "screenshots": [
+    {
+      "file": "cards-portrait.png",
+      "sourceHash": "8e06e750d66c6eb49d7244d6308a4542690cd7df53390f269745311e1e9dcc65",
+      "sha256": "9f34ad99cf095faf7205aff881790eedf0fdbb5eb46e96c9fb3b40c6c68130bb",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "flight-dawn.png",
+      "sourceHash": "3f3561eb343b75faa3970bbbf75cbff64608825351b9572355690c6df554b161",
+      "sha256": "1c2c7ce5ebb12fcdb72b242f71663fdac1753b460c0ee6fd617fd671d878c16e",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "flight-intercept.png",
+      "sourceHash": "3f3561eb343b75faa3970bbbf75cbff64608825351b9572355690c6df554b161",
+      "sha256": "bcbc01292e0f277a0d9757c8854050eb52e9c6ccb87c8106399ab5a5f0a771a5",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "hangar-falcon.png",
+      "sourceHash": "8e06e750d66c6eb49d7244d6308a4542690cd7df53390f269745311e1e9dcc65",
+      "sha256": "70779b8f2feb9689015cd3c24c7fd3e04567681ef47d4db3729658e828851cc2",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "hangar-kestrel.png",
+      "sourceHash": "8e06e750d66c6eb49d7244d6308a4542690cd7df53390f269745311e1e9dcc65",
+      "sha256": "784a882b4b69d5a8a2acc77ddffd9c14c40750df24710e7d4172067c435ac99b",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "hangar-warden.png",
+      "sourceHash": "8e06e750d66c6eb49d7244d6308a4542690cd7df53390f269745311e1e9dcc65",
+      "sha256": "23ba4a750724b535235fd9ce793b076ff0b3296dfcbbe6a9bece62baeb3b6e70",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "missions-1-3.png",
+      "sourceHash": "3f3561eb343b75faa3970bbbf75cbff64608825351b9572355690c6df554b161",
+      "sha256": "a01824a137b4e5923fae8447a8df523786f076ae74797787643744521b2738d1",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "missions-4-6.png",
+      "sourceHash": "8e06e750d66c6eb49d7244d6308a4542690cd7df53390f269745311e1e9dcc65",
+      "sha256": "ab7ffb854308388e6a2a74eee72c49e6b4366e7d0a341f679114837da95a31b6",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "file": "portrait-warden.png",
+      "sourceHash": "8e06e750d66c6eb49d7244d6308a4542690cd7df53390f269745311e1e9dcc65",
+      "sha256": "bdc6f9d4db7d970fe3cede5ee4837855ceb20eb7b40e759b81c89316c1c3cdcf",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "result-intercept.png",
+      "sourceHash": "3f3561eb343b75faa3970bbbf75cbff64608825351b9572355690c6df554b161",
+      "sha256": "6229ae846fd0ee18b7955422fbdeb723e771f91133c3c2305a235cc70db39fcd",
+      "width": 844,
+      "height": 390
+    }
+  ],
+  "normalTouchCampaign": [
+    {
+      "mission": "dawn-patrol",
+      "craft": "falcon",
+      "status": "won",
+      "reason": "空域已肃清",
+      "seconds": 28.983333333333334,
+      "wallSeconds": 29.259,
+      "firstContact": 0.7,
+      "kills": 6,
+      "recovered": 5,
+      "hull": 100,
+      "progress": {
+        "version": 2,
+        "best": 1350,
+        "muted": false,
+        "reduced": false,
+        "sensitivity": 1,
+        "selectedCraft": "falcon",
+        "completed": {
+          "dawn-patrol": {
+            "best": 1350,
+            "medal": 3,
+            "time": 1739
+          }
+        }
+      },
+      "maxDraws": 122,
+      "maxTriangles": 122380,
+      "world": {
+        "ready": true,
+        "modelsLoaded": 21,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 202,
+        "activeScenery": 192,
+        "modelInstancesCreated": 273,
+        "meshes": 69,
+        "materials": 30,
+        "renderers": 379,
+        "activeRenderers": 261,
+        "instancedPasses": 652,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 94,
+        "triangles": 85652,
+        "aircraft": "falcon",
+        "craftInstances": 1,
+        "nozzles": [
+          {
+            "x": -1.18,
+            "y": -0.16,
+            "z": 8.8
+          },
+          {
+            "x": 1.18,
+            "y": -0.16,
+            "z": 8.8
+          }
+        ],
+        "pooledObjects": 25,
+        "fxBudget": 32,
+        "terrainHeight": -12
+      }
+    },
+    {
+      "mission": "ridge-intercept",
+      "craft": "falcon",
+      "status": "won",
+      "reason": "全部逃逸信标已拦截",
+      "seconds": 161.13333333333333,
+      "wallSeconds": 161.519,
+      "firstContact": 1.4333333333333333,
+      "kills": 9,
+      "recovered": 5,
+      "hull": 100,
+      "progress": {
+        "version": 2,
+        "best": 1650,
+        "muted": false,
+        "reduced": false,
+        "sensitivity": 1,
+        "selectedCraft": "falcon",
+        "completed": {
+          "dawn-patrol": {
+            "best": 1350,
+            "medal": 3,
+            "time": 1739
+          },
+          "ridge-intercept": {
+            "best": 1650,
+            "medal": 3,
+            "time": 9668
+          }
+        }
+      },
+      "maxDraws": 130,
+      "maxTriangles": 124545,
+      "world": {
+        "ready": true,
+        "modelsLoaded": 21,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 243,
+        "activeScenery": 192,
+        "modelInstancesCreated": 320,
+        "meshes": 69,
+        "materials": 30,
+        "renderers": 433,
+        "activeRenderers": 261,
+        "instancedPasses": 783,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 94,
+        "triangles": 85652,
+        "aircraft": "falcon",
+        "craftInstances": 1,
+        "nozzles": [
+          {
+            "x": -1.18,
+            "y": -0.16,
+            "z": 8.8
+          },
+          {
+            "x": 1.18,
+            "y": -0.16,
+            "z": 8.8
+          }
+        ],
+        "pooledObjects": 23,
+        "fxBudget": 32,
+        "terrainHeight": -12
+      }
+    }
+  ],
+  "pureCampaign": [
+    {
+      "mission": "dawn-patrol",
+      "craft": "falcon",
+      "seconds": 26.9,
+      "firstContact": 0.5333333333333333,
+      "hull": 100,
+      "kills": 6,
+      "recovered": 5,
+      "phases": [],
+      "maxEnemies": 2,
+      "maxShots": 18,
+      "actions": {
+        "fire": 767,
+        "boost": 31,
+        "missile": 5,
+        "scan": 3
+      }
+    },
+    {
+      "mission": "ridge-intercept",
+      "craft": "falcon",
+      "seconds": 148.45,
+      "firstContact": 1.1833333333333333,
+      "hull": 100,
+      "kills": 9,
+      "recovered": 5,
+      "phases": [],
+      "maxEnemies": 3,
+      "maxShots": 23,
+      "actions": {
+        "fire": 4127,
+        "boost": 6191,
+        "missile": 3956,
+        "scan": 4
+      }
+    },
+    {
+      "mission": "echo-recovery",
+      "craft": "kestrel",
+      "seconds": 146.9,
+      "firstContact": 1.3833333333333333,
+      "hull": 62.68333333333332,
+      "kills": 12,
+      "recovered": 12,
+      "phases": [],
+      "maxEnemies": 3,
+      "maxShots": 20,
+      "actions": {
+        "fire": 3761,
+        "boost": 93,
+        "missile": 5,
+        "scan": 10
+      }
+    },
+    {
+      "mission": "valley-escort",
+      "craft": "kestrel",
+      "seconds": 156.15,
+      "firstContact": 2.5,
+      "hull": 65.48333333333339,
+      "kills": 10,
+      "recovered": 10,
+      "phases": [],
+      "maxEnemies": 3,
+      "maxShots": 18,
+      "actions": {
+        "fire": 2821,
+        "boost": 323,
+        "missile": 5,
+        "scan": 6
+      }
+    },
+    {
+      "mission": "crosswind",
+      "craft": "warden",
+      "seconds": 147.35,
+      "firstContact": 1.7833333333333332,
+      "hull": 145,
+      "kills": 15,
+      "recovered": 14,
+      "phases": [],
+      "maxEnemies": 3,
+      "maxShots": 25,
+      "actions": {
+        "fire": 5449,
+        "boost": 254,
+        "missile": 8,
+        "scan": 8
+      }
+    },
+    {
+      "mission": "last-light",
+      "craft": "warden",
+      "seconds": 146.75,
+      "firstContact": 1.1833333333333333,
+      "hull": 145,
+      "kills": 7,
+      "recovered": 6,
+      "phases": [2, 3],
+      "maxEnemies": 3,
+      "maxShots": 29,
+      "actions": {
+        "fire": 5417,
+        "boost": 15,
+        "missile": 58,
+        "scan": 4
+      }
+    }
+  ],
+  "progression": {
+    "sourceHash": "8e06e750d66c6eb49d7244d6308a4542690cd7df53390f269745311e1e9dcc65",
+    "checks": [
+      "two stale real pages, held Web Lock, three queued field-specific changes preserved; v1 migrated without wins",
+      "three actual GLB selections, authored nozzle transforms, both card pages in four sizes; developer mode leaves progress untouched",
+      "real UI changes preserve corrupt and future storage bytes"
+    ],
+    "crafts": [
+      {
+        "id": "falcon",
+        "world": {
+          "ready": true,
+          "modelsLoaded": 21,
+          "texturesLoaded": 5,
+          "errors": [],
+          "terrainTiles": 49,
+          "terrainMeshes": 49,
+          "sceneryPool": 192,
+          "activeScenery": 192,
+          "modelInstancesCreated": 261,
+          "meshes": 69,
+          "materials": 28,
+          "renderers": 346,
+          "activeRenderers": 261,
+          "instancedPasses": 625,
+          "foliage": [
+            {
+              "name": "B3 masked pine needles",
+              "albedo": true,
+              "alphaTest": true,
+              "textured": true
+            },
+            {
+              "name": "B3 masked pine silhouette",
+              "albedo": true,
+              "alphaTest": true,
+              "textured": true
+            }
+          ],
+          "drawCalls": 93,
+          "triangles": 85646,
+          "aircraft": "falcon",
+          "craftInstances": 1,
+          "nozzles": [
+            {
+              "x": -1.18,
+              "y": -0.16,
+              "z": 8.8
+            },
+            {
+              "x": 1.18,
+              "y": -0.16,
+              "z": 8.8
+            }
+          ],
+          "pooledObjects": 2,
+          "fxBudget": 32,
+          "terrainHeight": -12
+        }
+      },
+      {
+        "id": "kestrel",
+        "world": {
+          "ready": true,
+          "modelsLoaded": 21,
+          "texturesLoaded": 5,
+          "errors": [],
+          "terrainTiles": 49,
+          "terrainMeshes": 49,
+          "sceneryPool": 192,
+          "activeScenery": 192,
+          "modelInstancesCreated": 262,
+          "meshes": 70,
+          "materials": 28,
+          "renderers": 347,
+          "activeRenderers": 261,
+          "instancedPasses": 632,
+          "foliage": [
+            {
+              "name": "B3 masked pine needles",
+              "albedo": true,
+              "alphaTest": true,
+              "textured": true
+            },
+            {
+              "name": "B3 masked pine silhouette",
+              "albedo": true,
+              "alphaTest": true,
+              "textured": true
+            }
+          ],
+          "drawCalls": 93,
+          "triangles": 84894,
+          "aircraft": "kestrel",
+          "craftInstances": 2,
+          "nozzles": [
+            {
+              "x": -0.72,
+              "y": -0.1,
+              "z": 7.1
+            },
+            {
+              "x": 0.72,
+              "y": -0.1,
+              "z": 7.1
+            }
+          ],
+          "pooledObjects": 2,
+          "fxBudget": 32,
+          "terrainHeight": -12
+        }
+      },
+      {
+        "id": "warden",
+        "world": {
+          "ready": true,
+          "modelsLoaded": 21,
+          "texturesLoaded": 5,
+          "errors": [],
+          "terrainTiles": 49,
+          "terrainMeshes": 49,
+          "sceneryPool": 192,
+          "activeScenery": 192,
+          "modelInstancesCreated": 263,
+          "meshes": 70,
+          "materials": 28,
+          "renderers": 348,
+          "activeRenderers": 261,
+          "instancedPasses": 639,
+          "foliage": [
+            {
+              "name": "B3 masked pine needles",
+              "albedo": true,
+              "alphaTest": true,
+              "textured": true
+            },
+            {
+              "name": "B3 masked pine silhouette",
+              "albedo": true,
+              "alphaTest": true,
+              "textured": true
+            }
+          ],
+          "drawCalls": 93,
+          "triangles": 85438,
+          "aircraft": "warden",
+          "craftInstances": 3,
+          "nozzles": [
+            {
+              "x": -1.5,
+              "y": -0.1,
+              "z": 8.05
+            },
+            {
+              "x": 1.5,
+              "y": -0.1,
+              "z": 8.05
+            }
+          ],
+          "pooledObjects": 2,
+          "fxBudget": 32,
+          "terrainHeight": -12
+        }
+      }
+    ],
+    "errors": []
+  },
+  "reusedFourViewportSourceHash": "510e91fd3d0f9a2bd022939c31b6f7a3b90d9708e3bc3b9db6b04faffce17b6a",
+  "reuseReason": "Full UI/lifecycle four-viewports at 510e91fd; captured preference patch added at 3f3561eb, then only empty-string storage parse changed to reject at 8e06e750. Core, UI, World, FlightInput and asset bytes unchanged across these last candidates. Final Creator/typecheck/progression/asset provenance rechecked; normal touch first two missions at 3f3561eb reused.",
+  "visualAccepted": false,
+  "limits": [
+    "No hardware/Safari/native host/audio listening or online multiplayer verification",
+    "No Shell consumer success claim: main owns pending shared consumer repair",
+    "Formal eight publishing categories and final target fidelity remain B6 work"
+  ],
+  "normalTouchSourceHash": "3f3561eb343b75faa3970bbbf75cbff64608825351b9572355690c6df554b161"
+}
