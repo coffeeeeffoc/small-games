@@ -365,8 +365,8 @@ export const ACTIONS = [
     binding: 'M',
     touch: ['点击任务', 'Tap MISSION'],
     description: [
-      `护送并清除全部威胁：12 辆友军分守车队与 3 处据点，装甲可抵御 80% 敌方地面火力，护卫会弱火力反击。每处至少一辆存活；救援车被毁、任一据点全灭或 ${MISSION.duration} 秒超时则失败。`,
-      `Escort and clear every threat. 12 allies guard the convoy and 3 outposts; armor resists 80% of ground fire and escorts return light fire. Keep a survivor at each post. Losing rescue or a post, or ${MISSION.duration}s timeout, fails.`,
+      `护送并清除全部威胁：12 辆友军分守车队与 3 处据点，装甲可抵御 80% 敌方地面火力，护卫会弱火力反击。每处至少一辆存活；救援车被毁或任一据点全灭则失败；作战计时显示已用时间，不设超时判负。`,
+      `Escort and clear every threat. 12 allies guard the convoy and 3 outposts; armor resists 80% of ground fire and escorts return light fire. Keep a survivor at each post. Losing rescue or a post fails. The clock tracks elapsed time without a time limit.`,
     ],
   },
   {

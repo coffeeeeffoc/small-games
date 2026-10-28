@@ -1,0 +1,76 @@
+// Authored terrain surface. World-space detail keeps the physical heightfield and camera unchanged.
+CCEffect %{
+  techniques:
+  - passes:
+    - vert: terrain-vs:vert
+      frag: terrain-fs:frag
+      properties:
+        mainColor: { value: [1, 1, 1, 1], linear: true, editor: { type: color } }
+        surfaceParams: { value: [0, 0, 0, 1] }
+}%
+CCProgram terrain-vs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #include <builtin/uniforms/cc-local>
+  in vec3 a_position;
+  in vec3 a_normal;
+  in vec4 a_color;
+  out vec3 v_position;
+  out vec3 v_normal;
+  out vec4 v_color;
+  vec4 vert () {
+    vec4 position = cc_matWorld * vec4(a_position, 1.0);
+    v_position = position.xyz;
+    v_normal = normalize(mat3(cc_matWorldIT) * a_normal);
+    v_color = a_color;
+    return cc_matViewProj * position;
+  }
+}%
+CCProgram terrain-fs %{
+  precision highp float;
+  #include <builtin/uniforms/cc-global>
+  #include <legacy/output>
+  in vec3 v_position;
+  in vec3 v_normal;
+  in vec4 v_color;
+  uniform Terrain {
+    vec4 mainColor;
+    vec4 surfaceParams;
+  };
+  float hash21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  float noise21(vec2 p) {
+    vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x), mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0)), f.x), f.y);
+  }
+  vec4 frag () {
+    vec2 p = v_position.xz;
+    float grain = noise21(p * 3.7);
+    float patches = noise21(p * .42) * .65 + noise21(p * 1.5) * .35;
+    vec3 base = v_color.rgb * mainColor.rgb;
+    float detail = .83 + patches * .23 + grain * .16;
+    if (surfaceParams.x < .5) {
+      float steep = smoothstep(.09, .38, 1.0 - normalize(v_normal).y);
+      float strata = smoothstep(.42, .58, noise21(vec2(p.x * .42 + p.y * .08, v_position.y * 2.5)));
+      detail *= mix(1.0, .76 + strata * .4, steep);
+      base *= mix(vec3(.94, 1.02, .98), vec3(1.08, 1.02, .94), smoothstep(.53, .72, patches));
+    } else if (surfaceParams.x < 1.5) {
+      float time = surfaceParams.y;
+      float waves = sin(p.y * 4.5 + noise21(p * .7) * 5.0 - time * .65) * .5 + .5;
+      vec3 eye = normalize(cc_cameraPos.xyz - v_position);
+      float fresnel = pow(1.0 - max(dot(eye, normalize(v_normal)), 0.0), 3.0);
+      float glimmer = pow(waves, 18.0) * (.3 + noise21(p * 2.0) * .7);
+      base = base * (.83 + patches * .24) + vec3(.11, .17, .21) * fresnel * surfaceParams.w;
+      base += vec3(.12, .16, .18) * glimmer * surfaceParams.w;
+      detail = 1.0;
+    } else if (surfaceParams.x < 2.5) {
+      detail = .78 + grain * .27;
+    } else if (surfaceParams.x < 3.5) {
+      detail = .65 + patches * .42 + grain * .22;
+    } else {
+      detail = .78 + patches * .24 + grain * .16;
+    }
+    // Thermal remains a clean reading of the existing authoritative palette.
+    base = mix(base * detail, v_color.rgb * mainColor.rgb, surfaceParams.z);
+    return CCFragOutput(vec4(base, mainColor.a * v_color.a));
+  }
+}%

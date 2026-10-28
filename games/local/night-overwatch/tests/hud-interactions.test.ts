@@ -19,6 +19,9 @@ class Transform {
   setContentSize(width: number, height: number) { this.contentSize = { width, height }; }
 }
 class SceneNode {
+  static EventType = { NODE_DESTROYED: 'destroyed' };
+  name: string;
+  constructor(name = '') { this.name = name; }
   children: SceneNode[] = [];
   components = new Map();
   owner?: SceneNode;
@@ -41,6 +44,7 @@ class SceneNode {
   getComponent(type: any) { return this.components.get(type); }
   getComponentsInChildren(type: any): any[] { return [...(this.components.has(type) ? [this.components.get(type)] : []), ...this.children.flatMap(child => child.getComponentsInChildren(type))]; }
   on() {}
+  once() {}
   setPosition(x: number, y: number, z = 0) { this.position = { x, y, z }; }
   setSiblingIndex(index: number) {
     const parent = this.parent!;
@@ -73,7 +77,8 @@ const cc = {
   Node: SceneNode, UITransform: Transform, Graphics, Color,
   Camera: class { static ProjectionType = { ORTHO: 0 }; static ClearFlag = { DEPTH_ONLY: 0 }; },
   Canvas: class {}, Mask: class { static Type = { GRAPHICS_RECT: 0 }; },
-  Sprite: class { static SizeMode = { CUSTOM: 0 }; }, SpriteFrame: class {}, Texture2D: class {},
+  Sprite: class { static SizeMode = { CUSTOM: 0 }; }, SpriteFrame: class { texture: any; rect: any; get originalSize() { return this.texture; } destroy() {} }, Texture2D: class {},
+  Rect: class { x: number; y: number; width: number; height: number; constructor(x: number, y: number, width: number, height: number) { Object.assign(this, { x, y, width, height }); } },
   resources: { load(_name: string, _type: any, done: any) { done(new Error('unavailable art')); } },
   isValid: () => true,
   Label: class { static Overflow = { CLAMP: 0 }; static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0 }; },
@@ -247,7 +252,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
         sim.phase = phase; sim.failure = phase === 'failure' ? 'timeout' : '';
         hud.update(sim, world);
         const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
-        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionsPrevious', 'missionsNext', 'mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['home', 'retry']);
+        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionsPrevious', 'missionsNext', 'mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['resultClose', 'home', 'retry']);
         for (const button of buttons) {
           assert(button.w >= 44 && button.h >= 44);
           assert(button.y >= inset + 58 && button.y + button.h <= height - inset);
@@ -349,7 +354,7 @@ test('HUD: persistent global actions, compact modal layout, focus markers and zo
       assert.doesNotMatch(active()[0].string, /%/);
       const calls = hud.marks.calls;
       assert(!calls.some((c: any) => c.op === 'rect' && c.args[3] === 2), 'no unit health bars');
-      assert(calls.some((c: any) => c.op === 'rect' && c.color === '#5ed9f5' && c.width === 2), 'friendly squares keep their color in thermal');
+      assert(calls.some((c: any) => c.op === 'rect' && c.color === '#82c9ed' && c.width === 2), 'friendly squares keep their color in thermal');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 95 && c.color === '#ff525b' && c.width === 2), '10px hostile diamonds keep their color in thermal');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 32 && c.args[1] === 0 && c.width === 6 && c.color === '#061116'), 'reticle has a wide dark outline');
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 32 && c.args[1] === 0 && c.width === 3), 'reticle spans 64 pixels');
@@ -435,7 +440,7 @@ test('HUD: short-screen information priority, focus clearance and friendly group
   hud.mousePointer = undefined;
   const visibleLabels = () => [...hud.unitLabels.values()].filter((l: any) => l.node.activeInHierarchy) as any[];
   const counts = () => visibleLabels().filter((l) => l.string.startsWith('×'));
-  const squares = () => hud.marks.calls.filter((c: any) => c.op === 'rect' && c.args[2] === c.args[3] && c.color === '#5ed9f5' && c.width === 2);
+  const squares = () => hud.marks.calls.filter((c: any) => c.op === 'rect' && c.args[2] === c.args[3] && c.color === '#82c9ed' && c.width === 2);
   for (const thermal of [false, true]) {
     distant.thermal = thermal;
     hud.update(sim, distant);
@@ -614,7 +619,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert.equal(hud.modalKey, '');
         assert(!control('supply'));
         sim.pause('settings', true); hud.update(sim, world); checkLayout();
-        assert.equal(control('supply').label.color.hex, '#a2b5b5');
+        assert.equal(control('supply').label.color.hex, '#9bb4c8');
         sim.pause('settings', false); hud.update(sim, world);
         assert(!hud.labels.get('buff').node.activeInHierarchy, 'tracking countdown moved into its button');
         assert.equal(control('homing').label.color.hex, control('weapon' + sim.selected).label.color.hex);
@@ -624,14 +629,14 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert(control('homing'), 'active tracking remains visible without ad availability or homing ammo');
         hud.rewardsAvailable = true;
         sim.buff.remaining = 4.2; hud.update(sim, world); checkLayout();
-        assert.equal(control('homing').label.color.hex, '#ffbf55');
+        assert.equal(control('homing').label.color.hex, '#e5b65c');
         assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n5秒' : 'HOMING\n5s');
         sim.pause('settings', true); hud.zoomOpen = true; hud.update(sim, world); checkLayout();
-        assert.equal(control('zoomUpgrade').label.color.hex, '#a2b5b5');
+        assert.equal(control('zoomUpgrade').label.color.hex, '#9bb4c8');
         assert.match(control('zoomUpgrade').label.string, lang === 'zh' ? /支援生效中/ : /SUPPORT ACTIVE/);
         hud.zoomOpen = false; sim.pause('settings', false); hud.supplyOpen = true; sim.pause('supply', true); hud.update(sim, world); checkLayout();
         assert.equal(hud.modalKey, 'supply:offer', 'buff still allows opening the offer');
-        assert.equal(control('supplyWatch').label.color.hex, '#a2b5b5');
+        assert.equal(control('supplyWatch').label.color.hex, '#9bb4c8');
         assert.match(panelText(), lang === 'zh' ? /支援已生效，结束后可再次领取/ : /SUPPORT ACTIVE.*WAIT UNTIL IT ENDS/);
         assert(control('supplyLater'), 'blocked offer can return to pause');
         hud.supplyOpen = false; sim.pause('supply', false);
@@ -645,7 +650,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         sim.buff = undefined; hud.update(sim, world); checkLayout();
         assert(!hud.labels.get('buff').node.activeInHierarchy);
         sim.pause('settings', true); hud.update(sim, world); checkLayout();
-        assert.equal(control('supply').label.color.hex, '#eef3ea');
+        assert.equal(control('supply').label.color.hex, '#e5edf3');
       }
   } finally {
     cc.sys.isBrowser = false; inset = 0;
@@ -712,7 +717,7 @@ test('HUD: every operation page keeps three reachable cards and pagination withi
     const captions = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
     assert.match(captions, /可出动/);
     sim.phase = 'success'; hud.update(sim, world);
-    assert.deepEqual(hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id), ['home', 'retry', 'missionNext']);
+    assert.deepEqual(hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id), ['resultClose', 'home', 'retry', 'missionNext']);
   }
   inset = 0;
 });
@@ -750,17 +755,19 @@ test('HUD: independent title cover precedes mission previews and compact setting
       assert(hud.homeBackground.active, 'cover stays opaque even when artwork fails');
       assert(!panelLabels(hud).some((l: any) => l.string.includes(data.text(sim.mission.name, lang))));
       hud.missionsOpen = true; hud.update(sim, world);
-      assert(!hud.homeBackground.active); assert(hud.buttons.some((b: any) => b.id === 'start'));
+      assert(hud.homeBackground.active, 'mission selection retains the illustrated theater background'); assert(hud.buttons.some((b: any) => b.id === 'start'));
       hud.missionsOpen = false;
       sim.start(); sim.time = 38; sim.pause('manual', true); hud.update(sim, world);
       assertPanelTargets(hud);
       const captions = panelLabels(hud).map((l: any) => l.string);
       assert(captions.includes(lang === 'zh' ? '战斗设置' : 'BATTLE SETTINGS'));
       const graphics = hud.modal.getComponent(Graphics).calls;
-      const panel = graphics.find((c: any) => c.op === 'roundRect' && c.fill === '#091b2df5');
-      assert(panel && panel.args[2] <= 640 && panel.args[3] <= 304);
+      const panel = graphics.find((c: any) => c.op === 'rect' && c.fill === '#37536a55');
+      assert(panel && panel.args[2] <= 622 && panel.args[3] === 36, 'armored header belongs to the compact settings drawer');
+      assert(graphics.filter((c: any) => c.op === 'circle' && c.args[2] === 2.5).length >= 4, 'drawer has machined corner hardware');
       const resume = hud.buttons.find((b: any) => b.id === 'resume');
-      assert(graphics.some((c: any) => c.op === 'roundRect' && c.fill === '#ffbf55' && c.args[0] === resume.x - width / 2), 'resume is the amber primary action');
+      assert.equal(resume.label.color.hex, '#ffe3a4'); assert(resume.label.isBold);
+      assert(graphics.some((c: any) => c.op === 'moveTo' && c.color === '#e5b65c' && c.args[0] >= resume.x - width / 2 && c.args[0] <= resume.x + resume.w - width / 2), 'resume has a brass primary-action outline');
       for (const pending of [false, true]) {
         hud.supplyOpen = true; hud.pendingSupply = pending; hud.update(sim, world);
         assertPanelTargets(hud);
@@ -828,10 +835,10 @@ test('HUD: flight values, direction selection and display controls stay separate
     const left = hud.buttons.find((b: any) => b.id === 'altitudeDown').x;
     assert(left > width * .3, 'keep part of the actual battlefield visible');
     assert(panelLabels(hud).some((l: any) => l.string === '1000'));
-    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitRight').label.color.hex, '#5ed9f5');
+    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitRight').label.color.hex, '#82c9ed');
     sim.adjustAltitude(20); sim.setOrbitDirection(-1); hud.modalKey = 'rebuild'; hud.update(sim, world);
     assert(panelLabels(hud).some((l: any) => l.string === '1200'));
-    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitLeft').label.color.hex, '#5ed9f5');
+    assert.equal(hud.buttons.find((b: any) => b.id === 'orbitLeft').label.color.hex, '#82c9ed');
     hud.toolsOpen = false; hud.zoomOpen = true; hud.update(sim, world); assertPanelTargets(hud);
     for (const id of ['sensor', 'effects', 'lensIn', 'lensOut', 'zoomUpgrade'])
       assert(hud.buttons.some((b: any) => b.id === id && b.label.node.parent === hud.modal));
@@ -846,7 +853,7 @@ test('mission previews draw distinct terrain and lighting, with actual contacts 
   for (const [map, light] of [['valley', 'day'], ['highland', 'day'], ['valley', 'dusk'], ['valley', 'night']]) {
     const g = new Graphics(); hud.routeGraphic(g, 0, 0, 240, 120, 0, map, light, MISSIONS[0].events);
     assert(g.calls.filter(c => c.op === 'fill').length > 1000, 'height-field terrain replaces the empty rectangle');
-    assert(g.calls.some(c => c.op === 'stroke' && c.color === '#5ed9f5'));
+    assert(g.calls.some(c => c.op === 'stroke' && c.color === '#82c9ed'));
     assert.equal(g.calls.filter(c => c.op === 'stroke' && c.color === '#ff525b').length, MISSIONS[0].events.length);
     assert(g.calls.every(c => c.args.every(Number.isFinite)));
     pictures.push(JSON.stringify(g.calls));
@@ -906,4 +913,32 @@ test('HUD: sound states draw different icons and ad feedback never paints over a
   assert.equal(hud.modalKey, 'exit'); assertPanelTargets(hud);
   assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.activeInHierarchy).map((b: any) => b.id), ['exitCancel', 'exitConfirm']);
   assert(panelLabels(hud).some((l: any) => l.string === '将会中断本次游戏并退出。')); inset = 0;
+});
+
+
+test('HUD: authored metal title and three day illustrations are loaded and cropped as runtime resources', () => {
+  const load = cc.resources.load;
+  const requested: string[] = [];
+  cc.resources.load = (name: string, _type: any, done: any) => {
+    requested.push(name); done(null, { width: 2172, height: 724 });
+  };
+  try {
+    for (const [width, height] of [[568, 320], [844, 390], [1366, 768]]) {
+      Object.assign(frame, { width, height }); inset = 12;
+      const hud = new HUD(new SceneNode()), sim = new Simulation();
+      hud.resize(); hud.update(sim, world);
+      assert(hud.modal.children.some((node: any) => node.name === 'MetalWordmark' && node.getComponent(cc.Sprite)?.spriteFrame), 'home uses the authored transparent metal title');
+      hud.missionsOpen = true; hud.update(sim, world); assertPanelTargets(hud);
+      const cards = hud.modal.children.filter((node: any) => node.name.startsWith('MissionIllustration-'));
+      assert.equal(cards.length, 3);
+      assert.deepEqual(cards.map((node: any) => node.children[0].getComponent(cc.Sprite).spriteFrame.rect.x), [0, 724, 1448], 'first three day missions use three different authored images');
+      for (const crop of cards) {
+        assert(crop.getComponent(cc.Mask), 'image crop has a real UI mask');
+        const image = crop.children[0].getComponent(cc.Sprite), size = crop.getComponent(Transform).contentSize;
+        assert.equal(image.spriteFrame.rect.width, 724); assert.equal(image.spriteFrame.rect.height, 724);
+        assert(size.width >= 44 && size.height > 30, 'illustration remains visible on small phones');
+      }
+    }
+    assert.deepEqual([...new Set(requested)].sort(), ['ui/home/texture', 'ui/mission-atlas/texture', 'ui/mission-day-atlas/texture', 'ui/title-metal/texture']);
+  } finally { cc.resources.load = load; inset = 0; }
 });

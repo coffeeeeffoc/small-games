@@ -97,9 +97,12 @@ test('convoy, shells and radio all gate success independently; waiting remains r
   }
 });
 
-test('clearing at the deadline reserves the short extraction, while uncleared missions still time out', () => {
+test('clearing beyond the old duration completes extraction while uncleared missions remain active', () => {
   const s = new Simulation(); s.start(); s.time = s.mission.duration - .02; clear(s);
   tick(s, 3.1); assert.equal(s.phase, 'success');
   const unfinished = new Simulation(); unfinished.start(); unfinished.time = unfinished.mission.duration - .02;
-  tick(unfinished, .1); assert.equal(unfinished.failure, 'timeout');
+  tick(unfinished, .1);
+  assert.equal(unfinished.phase, 'playing'); assert.equal(unfinished.failure, '');
+  assert(unfinished.time > unfinished.mission.duration && unfinished.threatsRemaining > 0);
+  assert.equal(unfinished.extractionRemaining, undefined);
 });

@@ -5,9 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { acceptanceBuild, press, snapshot, assertLayout, navigateMap, aimAt } from './flight-browser.mjs';
 
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const out = new URL('../reports/2026-10-28-ui-input/', import.meta.url);
+const out = new URL('../reports/2026-10-28-visual-rebuild/input/', import.meta.url);
 await mkdir(out, { recursive: true });
-const browser = await chromium.launch({ headless: true, args: ['--use-angle=d3d11'] });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined, args: process.platform === 'win32' ? ['--use-angle=d3d11'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const evidence = { build, checks: [], errors: [], clips: {} };
 let activePage;
 try {

@@ -1184,6 +1184,8 @@ export class Overwatch extends Component {
       temporary: this.world.temporary,
       thermal: this.world.thermal,
       modelImport: this.world.modelImport,
+      visualMaterialStatus: this.world.visualMaterialStatus,
+      visualMaterialError: this.world.visualMaterialError,
       audio: this.platform.audioStatus,
       enginePlaying: this.platform.engine.playing,
       radioPlaying: this.platform.radio.playing,

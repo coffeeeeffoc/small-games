@@ -15,6 +15,7 @@ import {
   Sprite,
   SpriteFrame,
   Texture2D,
+  Rect,
   resources,
   isValid,
   EditBox,
@@ -48,13 +49,13 @@ import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Reward
 import { battleCounts, formatTime, type TimeComparison } from './core/BattleRecords';
 
 const C = {
-  ink: '#101a1ef5',
-  line: '#4c605e',
-  white: '#e9e9dd',
-  dim: '#a6b7b0',
-  mint: '#9acbb9',
-  amber: '#d3b477',
-  action: '#f2dfb5',
+  ink: '#081725f5',
+  line: '#456780',
+  white: '#e5edf3',
+  dim: '#9bb4c8',
+  mint: '#82c9ed',
+  amber: '#e5b65c',
+  action: '#ffe3a4',
   red: '#ff525b',
 };
 const col = (hex: string) => new Color().fromHEX(hex);
@@ -68,6 +69,10 @@ export class HUD {
   globalGraphics: Graphics;
   homeBackground: Node;
   homeArtwork: Sprite;
+  private titleArtwork?: SpriteFrame;
+  private missionArtwork: SpriteFrame[] = [];
+  private dayArtwork: SpriteFrame[] = [];
+  private artworkFrames: SpriteFrame[] = [];
   w = 960;
   h = 540;
   lang: Language = 'zh';
@@ -148,6 +153,7 @@ export class HUD {
     this.root = new Node('OverwatchHUD');
     parent.addChild(this.root);
     this.root.layer = Layers.Enum.UI_2D;
+    this.root.once(Node.EventType.NODE_DESTROYED, () => { for (const frame of this.artworkFrames) frame.destroy(); });
     this.root.addComponent(UITransform);
     const canvas = this.root.addComponent(Canvas),
       cn = new Node('UICamera');
@@ -167,8 +173,22 @@ export class HUD {
     resources.load('ui/home/texture', Texture2D, (error, texture) => {
       if (!error && isValid(this.root)) {
         const frame = new SpriteFrame(); frame.texture = texture;
-        this.homeArtwork.spriteFrame = frame;
+        this.homeArtwork.spriteFrame = frame; this.artworkFrames.push(frame);
       }
+    });
+    // These are original unlettered illustrations and a separate transparent wordmark.
+    // All mission data, interaction and status text remain live Cocos UI.
+    for (const asset of ['title-metal', 'mission-atlas', 'mission-day-atlas']) resources.load('ui/' + asset + '/texture', Texture2D, (error, texture) => {
+      if (error || !isValid(this.root)) return;
+      const count = asset === 'title-metal' ? 1 : 3;
+      for (let index = 0; index < count; index++) {
+        const frame = new SpriteFrame(); frame.texture = texture;
+        if (count === 3) frame.rect = new Rect(index * texture.width / 3, 0, texture.width / 3, texture.height);
+        this.artworkFrames.push(frame);
+        if (asset === 'mission-day-atlas') this.dayArtwork.push(frame);
+        else if (count === 3) this.missionArtwork.push(frame); else this.titleArtwork = frame;
+      }
+      if (!this.editing) this.modalKey = '';
     });
     this.g = this.node('Backdrop', this.root).addComponent(Graphics);
     this.marks = this.node('Telemetry', this.root).addComponent(Graphics);
@@ -308,10 +328,45 @@ export class HUD {
       g.stroke();
     }
   }
+  image(parent: Node, name: string, frame: SpriteFrame | undefined, x: number, y: number, w: number, h: number) {
+    if (!frame || w <= 0 || h <= 0) return;
+    const node = this.node(name, parent), sprite = node.addComponent(Sprite);
+    sprite.sizeMode = Sprite.SizeMode.CUSTOM; sprite.spriteFrame = frame;
+    node.getComponent(UITransform)!.setContentSize(w, h);
+    node.setPosition(x + w / 2 - this.w / 2, this.h / 2 - y - h / 2);
+    return sprite;
+  }
+  // A separate overlay after a Sprite preserves the border/text layer ordering.
+  coverImage(parent: Node, name: string, frame: SpriteFrame, x: number, y: number, w: number, h: number) {
+    const crop = this.node(name, parent);
+    crop.setPosition(x + w / 2 - this.w / 2, this.h / 2 - y - h / 2);
+    crop.getComponent(UITransform)!.setContentSize(w, h);
+    crop.addComponent(Mask).type = Mask.Type.GRAPHICS_RECT;
+    const picture = this.node(name + '-Art', crop), sprite = picture.addComponent(Sprite);
+    sprite.sizeMode = Sprite.SizeMode.CUSTOM; sprite.spriteFrame = frame;
+    const size = Math.max(w, h); picture.getComponent(UITransform)!.setContentSize(size, size);
+    return crop;
+  }
+  artOverlay(parent: Node, name: string) { return this.node(name, parent).addComponent(Graphics); }
+  mix(a: string, b: string, t: number) {
+    const channels = (value: string) => [1, 3, 5, 7].map((offset) => parseInt(value.slice(offset, offset + 2) || 'ff', 16));
+    return '#' + channels(a).map((value, index) => Math.round(value + (channels(b)[index] - value) * t).toString(16).padStart(2, '0')).join('');
+  }
+  gradient(g: Graphics, x: number, y: number, w: number, h: number, top: string, bottom: string, cut = 0, steps = 12) {
+    for (let i = 0; i < steps; i++) {
+      const ya = h * i / steps, yb = h * (i + 1) / steps;
+      const inset = (v: number) => Math.max(0, cut - v, cut - (h - v));
+      g.fillColor = col(this.mix(top, bottom, (i + .5) / steps));
+      g.moveTo(x + inset(ya) - this.w / 2, this.h / 2 - y - ya);
+      g.lineTo(x + w - inset(ya) - this.w / 2, this.h / 2 - y - ya);
+      g.lineTo(x + w - inset(yb) - this.w / 2, this.h / 2 - y - yb);
+      g.lineTo(x + inset(yb) - this.w / 2, this.h / 2 - y - yb); g.close(); g.fill();
+    }
+  }
   plate(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke = C.line, cut = 7) {
     if (w <= 0 || h <= 0) return;
-    const emphasis = fill === C.amber || fill === C.mint;
-    if (emphasis) { stroke = fill; fill = fill === C.amber ? '#393326f5' : '#233a34f2'; }
+    const gold = fill === C.amber, active = fill === C.mint || stroke === C.mint, emphasis = gold || fill === C.mint;
+    if (emphasis) stroke = gold ? C.amber : C.mint;
     cut = Math.min(cut, w / 5, h / 4);
     const path = (inset = 0, dy = 0) => {
       const l = x - this.w / 2 + inset, r = x + w - this.w / 2 - inset,
@@ -319,12 +374,63 @@ export class HUD {
       g.moveTo(l + c, t); g.lineTo(r - c, t); g.lineTo(r, t - c); g.lineTo(r, b + c);
       g.lineTo(r - c, b); g.lineTo(l + c, b); g.lineTo(l, b + c); g.lineTo(l, t - c); g.close();
     };
-    g.fillColor = col('#03090b88'); path(0, -3); g.fill();
-    g.fillColor = col(fill); path(); g.fill();
-    g.lineWidth = 1; g.strokeColor = col(stroke); path(); g.stroke();
-    g.strokeColor = col('#e9f4df17'); path(3); g.stroke();
-    this.rect(g, x + cut + 2, y + 2, w - cut * 2 - 4, 2, emphasis ? stroke + '88' : '#dce9e52a');
-    if (emphasis) this.rect(g, x + w / 2 - Math.min(18, w / 6), y + h - 4, Math.min(36, w / 3), 2, stroke);
+    g.fillColor = col('#01070cb0'); path(0, -3); g.fill();
+    this.gradient(g, x, y, w, h, gold ? '#73572eea' : fill === '#382730' ? '#492c37' : active ? '#244b65ed' : '#20384aed', gold ? '#211d17f5' : fill === '#382730' ? '#21111d' : '#07121ff2', cut, h > 90 ? 16 : 8);
+    g.lineWidth = gold ? 1.5 : 1; g.strokeColor = col(stroke); path(); g.stroke();
+    g.strokeColor = col(gold ? '#f9d58b59' : '#a5cbe229'); path(2); g.stroke();
+    this.rect(g, x + cut + 3, y + 3, w - cut * 2 - 6, 1, gold ? '#ffe2a0a0' : '#d3e9f34d');
+    this.rect(g, x + cut + 3, y + h - 3, w - cut * 2 - 6, 1, '#010812a0');
+    if (gold) {
+      for (const side of [-1, 1]) {
+        const cx = x + (side < 0 ? 9 : w - 9) - this.w / 2, cy = this.h / 2 - y - h / 2;
+        g.strokeColor = col('#efd39388'); g.lineWidth = 1;
+        g.moveTo(cx - side * 2, cy + 3); g.lineTo(cx, cy); g.lineTo(cx - side * 2, cy - 3); g.stroke();
+      }
+    }
+  }
+  inset(g: Graphics, x: number, y: number, w: number, h: number, accent = C.line) {
+    this.gradient(g, x, y, w, h, '#030c17f2', '#1a3041ed', 3, 12);
+    g.strokeColor = col('#02070de6'); g.lineWidth = 2; g.rect(x - this.w / 2, this.h / 2 - y - h, w, h); g.stroke();
+    g.strokeColor = col(accent); g.lineWidth = 1; g.rect(x + 2 - this.w / 2, this.h / 2 - y - h + 2, w - 4, h - 4); g.stroke();
+    this.rect(g, x + 7, y + h - 1, w - 14, 1, '#aec8d047');
+    this.rect(g, x + 8, y + 6, 18, 2, accent);
+  }
+  emblem(g: Graphics, x: number, y: number, radius: number, color = C.amber) {
+    const cx = x - this.w / 2, cy = this.h / 2 - y;
+    g.strokeColor = col(color); g.lineWidth = 1.5;
+    g.circle(cx, cy, radius * .8); g.stroke();
+    for (const side of [-1, 1]) for (let i = 0; i < 3; i++) {
+      g.fillColor = col(this.mix(color, '#142231', .15 + i * .16));
+      g.moveTo(cx + side * radius * .7, cy + radius * .15 - i * 5);
+      g.lineTo(cx + side * (radius * 1.6 - i * 5), cy + radius * .15 - i * 5);
+      g.lineTo(cx + side * (radius * 1.4 - i * 5), cy - radius * .02 - i * 5);
+      g.lineTo(cx + side * radius * .65, cy - radius * .02 - i * 5); g.close(); g.fill();
+    }
+    g.fillColor = col(color);
+    for (let i = 0; i < 8; i++) {
+      const angle = Math.PI / 2 + i * Math.PI / 4, r = i % 2 ? radius * .25 : radius;
+      const px = cx + Math.cos(angle) * r, py = cy + Math.sin(angle) * r;
+      if (i) g.lineTo(px, py); else g.moveTo(px, py);
+    }
+    g.close(); g.fill();
+    g.fillColor = col('#fff1ca'); g.moveTo(cx, cy + radius); g.lineTo(cx, cy); g.lineTo(cx - radius * .25, cy + radius * .25); g.close(); g.fill();
+  }
+  icon(g: Graphics, kind: string, x: number, y: number, size = 16, color = C.mint) {
+    const cx = x - this.w / 2, cy = this.h / 2 - y, r = size / 2;
+    g.strokeColor = col(color); g.fillColor = col(color); g.lineWidth = 1.8;
+    if (kind === 'mountain') {
+      g.moveTo(cx - r, cy - r * .65); g.lineTo(cx - r * .1, cy + r); g.lineTo(cx + r * .35, cy + r * .1); g.lineTo(cx + r * .7, cy + r * .65); g.lineTo(cx + r * 1.3, cy - r * .65); g.close(); g.fill();
+    } else if (kind === 'ranking') {
+      for (const [i, h] of [r, r * 1.7, r * 1.3].entries()) { g.rect(cx - r + i * r * .7, cy - r, r * .45, h); g.fill(); }
+    } else if (kind === 'book') {
+      for (const side of [-1, 1]) { g.moveTo(cx, cy - r * .8); g.lineTo(cx + side * r, cy - r * .5); g.lineTo(cx + side * r, cy + r); g.lineTo(cx, cy + r * .7); g.close(); g.stroke(); }
+    } else if (kind === 'battle') {
+      for (const side of [-1, 1]) { g.moveTo(cx - side * r, cy - r); g.lineTo(cx + side * r, cy + r); g.moveTo(cx - side * r * .8, cy - r * .2); g.lineTo(cx - side * r * .2, cy - r * .8); } g.stroke();
+    } else if (kind === 'clock') {
+      g.circle(cx, cy, r); g.stroke(); g.moveTo(cx, cy + r * .65); g.lineTo(cx, cy); g.lineTo(cx + r * .45, cy - r * .2); g.stroke();
+    } else {
+      g.circle(cx, cy, r); g.stroke(); g.moveTo(cx - r * 1.35, cy); g.lineTo(cx + r * 1.35, cy); g.moveTo(cx, cy - r * 1.35); g.lineTo(cx, cy + r * 1.35); g.stroke();
+    }
   }
   isGlobalAction(id: string) {
     return id === 'settings' || id === 'screen';
@@ -447,26 +553,36 @@ export class HUD {
     const number = Math.max(0, MISSIONS.findIndex(mission => mission.id === s.mission.id)) + 1;
     this.rect(g, 0, 0, w, h, '#07121c28');
     if (!this.missionsOpen) {
-      const titleWidth = Math.min(520, right - left), compact = h < 420,
-        menuY = h - this.safe.bottom - (compact ? 108 : 146),
-        titleY = Math.min(this.safe.top + (h - this.safe.top - this.safe.bottom) * .38, menuY - 72),
-        menuW = Math.min(248, (right - left - 12) / 2);
-      const title = (str: string, yy: number, size: number, height: number, color: string) => {
-        const label = this.label(n, str, left + titleWidth / 2, yy, size, titleWidth, height, color);
-        label.horizontalAlign = Label.HorizontalAlign.LEFT; return label;
-      };
-      title('N I G H T   O V E R W A T C H', titleY - (compact ? 37 : 52), compact ? 10 : 13, 24, C.mint);
-      title(this.t('夜航守望', 'OVERWATCH'), titleY + (compact ? 7 : 0), compact ? 44 : 64, compact ? 64 : 76, C.white).isBold = true;
-      title(this.t('长夜之上，守住归途。', 'ABOVE THE NIGHT. BRING THEM HOME.'), titleY + 53, 12, 28, C.dim);
-      this.plate(g, left, menuY, menuW, 48, C.amber, undefined, 7);
-      const primary = this.button('missions', this.t('单人模式  →', 'SINGLE PLAYER  →'), left, menuY, menuW, 48, n);
-      primary.color = col(C.action); primary.isBold = true;
-      this.plate(g, left, menuY + 56, menuW, 44, '#111d21dc', C.line, 7);
-      this.button('help', this.t('飞行手册  ›', 'FIELD GUIDE  ›'), left, menuY + 56, menuW, 44, n);
-      const x = left + menuW + 12;
-      for (const [i, id] of ['online:menu', 'online:ranking'].entries()) {
-        this.plate(g, x, menuY + i * 56, menuW, i ? 44 : 48, '#111d21ed', C.mint, 7);
-        this.button(id, i ? this.t('排行榜  ›', 'LEADERBOARDS  ›') : this.t('对战大厅  ›', 'BATTLE LOBBY  ›'), x, menuY + i * 56, menuW, i ? 44 : 48, n);
+      const compact = h < 420, wide = right - left >= 680,
+        menuY = h - this.safe.bottom - (wide ? 76 : 114),
+        titleW = Math.min(wide ? 500 : 390, (right - left) * .62),
+        titleH = titleW / 3,
+        titleY = Math.min(this.safe.top + (compact ? 70 : 112), menuY - titleH - 46);
+      // The title is an authored transparent metal wordmark, not a font approximation.
+      if (this.titleArtwork && this.lang === 'zh') this.image(n, 'MetalWordmark', this.titleArtwork, left - 8, titleY, titleW, titleH);
+      else {
+        const title = this.label(n, this.t('夜航守望', 'OVERWATCH'), left + titleW / 2, titleY + titleH / 2, compact ? 42 : 62, titleW, Math.min(titleH - 20, 76), C.white);
+        title.horizontalAlign = Label.HorizontalAlign.LEFT; title.isBold = true;
+      }
+      const strap = this.label(n, 'N I G H T   O V E R W A T C H', left + titleW / 2, titleY + titleH + 2, compact ? 10 : 12, titleW, 24, C.action);
+      strap.horizontalAlign = Label.HorizontalAlign.LEFT;
+      const subtitle = this.label(n, this.t('长夜之上，守住归途。', 'ABOVE THE NIGHT. BRING THEM HOME.'), left + titleW / 2, titleY + titleH + 28, 12, titleW, 24, '#b8cbd8');
+      subtitle.horizontalAlign = Label.HorizontalAlign.LEFT;
+      const menuW = wide ? (right - left - 36) / 4 : Math.min(248, (right - left - 12) / 2);
+      const entries = [
+        ['missions', this.t('单人模式', 'SINGLE PLAYER'), 'mountain'],
+        ['online:menu', this.t('对战大厅', 'BATTLE LOBBY'), 'battle'],
+        ['online:ranking', this.t('排行榜', 'LEADERBOARDS'), 'ranking'],
+        ['help', this.t('飞行手册', 'FIELD GUIDE'), 'book'],
+      ];
+      for (const [i, [id, caption, symbol]] of entries.entries()) {
+        const x = left + (wide ? i : i % 2) * (menuW + 12), y = menuY + (wide ? 0 : Math.floor(i / 2) * 54), primary = i === 0;
+        this.plate(g, x, y, menuW, 48, primary ? C.amber : '#111d21dc', primary ? C.amber : '#52748d', 5);
+        this.icon(g, symbol, x + 23, y + 24, 18, primary ? C.action : C.mint);
+        const button = this.button(id, caption + '  ›', x, y, menuW, 48, n);
+        button.node.setPosition(x + menuW / 2 + 11 - w / 2, h / 2 - y - 24);
+        button.node.getComponent(UITransform)!.setContentSize(menuW - 42, 44);
+        button.fontSize = menuW < 170 ? 13 : 15; button.color = col(primary ? C.action : C.white); button.isBold = primary;
       }
       if (this.online) {
         const settingsLeft = this.buttons.find(button => button.id === 'settings')!.x;
@@ -494,31 +610,39 @@ export class HUD {
     }
     this.label(n, `${page * 3 + 1}–${Math.min(MISSIONS.length, page * 3 + 3)} / ${MISSIONS.length}`,
       previousX + pagerWidth + 50, pagerY + 22, 12, 100, 32, C.dim);
-    const y = this.safe.top + 110, bottom = h - this.safe.bottom - 58;
-    const gap = 10, cw = (right - left - gap * 2) / 3, ch = Math.min(380, bottom - y - 8);
+    const top = this.safe.top + 110, bottom = h - this.safe.bottom - 58;
+    const gap = 10, cw = (right - left - gap * 2) / 3;
+    const ch = Math.min(300, Math.max(112, cw * .7), bottom - top - 8);
+    const y = top + Math.max(0, bottom - top - 8 - ch) * .35;
     for (const [i, mission] of MISSIONS.slice(page * 3, page * 3 + 3).entries()) {
       const x = left + i * (cw + gap), selected = mission.id === s.mission.id, number = page * 3 + i + 1;
       const unlocked = this.developer || missionUnlocked(this.missionProgress, mission.id), smallCard = ch < 180;
-      this.plate(g, x, y, cw, ch, selected ? '#2c3a35' : '#152226', selected ? C.amber : C.line, 3);
-      this.rect(g, x, y, 3, ch, selected ? C.amber : unlocked ? C.mint : C.line);
-      this.label(n, String(number).padStart(3, '0'), x + 30, y + 14, 16, 44, 24, C.amber).isBold = true;
-      if (!smallCard) this.label(n, selected ? this.t('当前', 'SELECTED') : unlocked ? '' : this.t('锁定', 'LOCKED'),
-        x + cw - 46, y + 14, 10, 76, 22, selected ? C.amber : C.dim);
+      this.plate(g, x, y, cw, ch, '#101e2c', selected ? C.mint : C.line, 3);
+      const artTop = y + 4, artH = Math.max(32, ch - (smallCard ? 54 : 76));
+      const artIndex = mission.light === 'night' ? 2 : mission.map === 'highland' || mission.light === 'dusk' ? 1 : 0;
+      const artwork = mission.light === 'day' ? this.dayArtwork[number <= 3 ? number - 1 : mission.map === 'highland' ? 1 : number % 3 === 0 ? 2 : 0] : this.missionArtwork[artIndex];
+      if (artwork) this.coverImage(n, 'MissionIllustration-' + mission.id, artwork, x + 4, artTop, cw - 8, artH);
+      else this.routeGraphic(g, x + 4, artTop, cw - 8, artH, 0, mission.map, mission.light, mission.events);
+      const overlay = this.artOverlay(n, 'MissionSurface-' + mission.id);
+      this.gradient(overlay, x + 4, artTop, cw - 8, Math.min(40, artH), '#04131bca', '#04131b00');
+      this.gradient(overlay, x + 4, artTop + Math.max(0, artH - 35), cw - 8, Math.min(35, artH), '#04131b00', '#04131bf0');
+      this.gradient(overlay, x + 4, y + ch - (smallCard ? 54 : 76), cw - 8, smallCard ? 50 : 72, '#142a3df5', '#07131ff8');
+      overlay.strokeColor = col(selected ? '#9ddcf4' : '#58788d'); overlay.lineWidth = selected ? 2 : 1;
+      overlay.rect(x - w / 2 + 2, h / 2 - y - ch + 2, cw - 4, ch - 4); overlay.stroke();
+      this.rect(overlay, x + 14, y + ch - 3, cw - 28, 2, selected ? C.mint : '#45678055');
+      this.label(n, String(number).padStart(3, '0'), x + 29, y + 18, 15, 42, 25, C.action).isBold = true;
+      this.label(n, selected ? this.t('当前', 'SELECTED') : unlocked ? light(number) : this.t('锁定', 'LOCKED'), x + cw - 48, y + 18, 10, 80, 22, selected ? C.mint : C.white);
       const label = this.button('mission:' + mission.id, text(mission.name, this.lang), x, y, cw, ch, n);
-      label.node.setPosition(x + cw / 2 + (smallCard ? 26 : 0) - w / 2, h / 2 - y - (smallCard ? 14 : 39));
-      label.node.getComponent(UITransform)!.setContentSize(cw - (smallCard ? 60 : 16), 26);
-      label.fontSize = smallCard ? 12 : cw < 180 ? 12 : 20; label.color = col(unlocked ? C.white : C.dim); label.isBold = true;
+      label.node.setPosition(x + cw / 2 - w / 2, h / 2 - y - ch + (smallCard ? 48 : 61));
+      label.node.getComponent(UITransform)!.setContentSize(cw - 20, smallCard ? 24 : 26);
+      label.fontSize = cw < 180 ? 12 : smallCard ? 15 : 19; label.color = col(unlocked ? C.white : C.dim); label.isBold = true;
       const tier = number <= 3 ? this.t('入门', 'INTRO') : number <= 60 ? this.t('进阶', 'ADVANCED') : this.t('挑战', 'EXPERT');
-      if (!smallCard) this.label(n, `${light(number)} · ${tier}`, x + cw / 2, y + 61, cw < 180 ? 11 : 12, cw - 16, 18, C.dim);
-      this.routeGraphic(g, x + 8, y + (smallCard ? 32 : 76), cw - 16, ch - (smallCard ? 80 : 124), 0, mission.map, mission.light, mission.events);
-      this.label(n, smallCard ? `${light(number)} · ${tier} · ` + this.t(`敌方 ${mission.events.length}`, `${mission.events.length} HOSTILES`)
-        : this.t(`敌方 ${mission.events.length} · ${mission.map === 'valley' ? '山谷' : '高地'}`,
-          `${mission.events.length} HOSTILES · ${mission.map === 'valley' ? 'VALLEY' : 'HIGHLAND'}`),
-        x + cw / 2, y + ch - 37, smallCard ? 9 : cw < 180 ? 10 : 13, cw - 16, 22, smallCard ? C.white : C.red);
+      this.label(n, `${light(number)} · ${tier} · ` + this.t(`敌方 ${mission.events.length}`, `${mission.events.length} HOSTILES`),
+        x + cw / 2, y + ch - (smallCard ? 27 : 36), cw < 180 ? 9 : 11, cw - 16, smallCard ? 16 : 20, '#bdd0dd');
       const status = this.missionProgress.cleared.includes(mission.id) ? this.t('已完成', 'CLEARED')
         : unlocked ? this.developer ? this.t('试玩 · 不计进度', 'PRACTICE') : this.t('可出动', 'AVAILABLE')
           : this.t('完成上一关解锁', 'COMPLETE PREVIOUS');
-      this.label(n, (smallCard ? selected ? this.t('当前 · ', 'SELECTED · ') : !unlocked ? this.t('锁定 · ', 'LOCKED · ') : '' : '') + status, x + cw / 2, y + ch - 14, smallCard ? 10 : 11, cw - 12, 22, unlocked ? C.mint : C.dim);
+      this.label(n, status, x + cw / 2, y + ch - (smallCard ? 10 : 15), smallCard ? 9 : 11, cw - 12, smallCard ? 16 : 19, unlocked ? C.mint : C.dim);
     }
     const bw = (right - left - 24) / 3;
     for (const [i, id] of ['homeMenu', 'training', 'start'].entries()) {
@@ -531,21 +655,32 @@ export class HUD {
   }
   panelFrame(g: Graphics, x: number, y: number, w: number, h: number, accent = C.mint, dim = '#050f1d55') {
     this.rect(g, 0, 0, this.w, this.h, dim);
-    this.plate(g, x, y, w, h, C.ink, C.line, 14);
-    this.rect(g, x + 14, y + 7, w - 28, 40, '#25303370');
-    this.rect(g, x + 18, y + 48, w - 36, 1, '#72867d44');
-    this.rect(g, x + w / 2 - 24, y + 48, 48, 2, accent);
-    for (const side of [-1, 1]) {
-      const sx = x + w / 2 + side * (w / 2 - 9) - this.w / 2;
-      for (const yy of [y + 19, y + h - 19]) {
-        const sy = this.h / 2 - yy, direction = yy < y + h / 2 ? -1 : 1;
-        g.strokeColor = col(accent); g.lineWidth = 1.5;
-        g.moveTo(sx, sy + direction * 11); g.lineTo(sx, sy);
-        g.lineTo(sx - side * 9, sy - direction * 9); g.stroke();
-      }
+    // Separate load-bearing frame, recessed display and machined corner hardware.
+    this.plate(g, x - 4, y + 3, w + 8, h + 2, '#162838', '#020b12', 18);
+    this.gradient(g, x, y, w, h, '#526675', '#101d29', 15, 22);
+    this.gradient(g, x + 5, y + 5, w - 10, h - 10, '#162c40', '#060f1b', 11, 22);
+    this.rect(g, x + 9, y + 9, w - 18, 36, '#37536a55');
+    this.rect(g, x + 14, y + 47, w - 28, 1, '#b7b09488');
+    this.rect(g, x + 14, y + h - 66, w - 28, 1, '#45677c66');
+    // Quiet instrument grid and a wing planform live behind the readable controls.
+    for (let xx = x + 22; xx < x + w - 20; xx += 24) this.rect(g, xx, y + 51, 1, Math.max(0, h - 120), '#a3c6df07');
+    for (let yy = y + 58; yy < y + h - 68; yy += 24) this.rect(g, x + 18, yy, w - 36, 1, '#a3c6df07');
+    const cx = x + w / 2 - this.w / 2, cy = this.h / 2 - y - h * .54;
+    g.strokeColor = col('#8eafc414'); g.lineWidth = 1;
+    g.moveTo(cx, cy + h * .21); g.lineTo(cx + 8, cy + 5); g.lineTo(cx + w * .30, cy - h * .06);
+    g.lineTo(cx + w * .30, cy - h * .10); g.lineTo(cx + 7, cy - 12); g.lineTo(cx + 5, cy - h * .20);
+    g.lineTo(cx + w * .09, cy - h * .24); g.lineTo(cx - w * .09, cy - h * .24); g.lineTo(cx - 5, cy - h * .20);
+    g.lineTo(cx - 7, cy - 12); g.lineTo(cx - w * .30, cy - h * .10); g.lineTo(cx - w * .30, cy - h * .06); g.lineTo(cx - 8, cy + 5); g.close(); g.stroke();
+    for (const side of [-1, 1]) for (const end of [-1, 1]) {
+      const xx = side < 0 ? x + 4 : x + w - 35, yy = end < 0 ? y + 4 : y + h - 24;
+      this.gradient(g, xx, yy, 31, 20, '#6e818b', '#263c4d', 5, 6);
+      this.rect(g, xx + 5, yy + 3, 21, 1, '#c5d5d383');
+      g.fillColor = col('#07131b'); g.circle(xx + 8 - this.w / 2, this.h / 2 - yy - 10, 2.5); g.fill();
+      g.strokeColor = col('#d8ba6c80'); g.lineWidth = 1; g.circle(xx + 8 - this.w / 2, this.h / 2 - yy - 10, 2.5); g.stroke();
     }
-    this.rect(g, x + 24, y + h - 9, Math.min(64, w / 5), 1, '#72867d66');
-    this.rect(g, x + w - 24 - Math.min(64, w / 5), y + h - 9, Math.min(64, w / 5), 1, '#72867d66');
+    this.rect(g, x + 45, y + 3, w - 90, 1, '#e4d19995');
+    this.rect(g, x + w / 2 - 30, y + 47, 60, 2, accent);
+    this.rect(g, x + 44, y + h - 5, w - 88, 1, '#c6ac7080');
   }
   renderSettings(n: Node, g: Graphics, s: Simulation, world: World, key: string) {
     const flight = this.toolsOpen, zoom = this.zoomOpen, playing = s.phase === 'playing';
@@ -709,7 +844,7 @@ export class HUD {
   }
   inputField(n: Node, g: Graphics, key: 'draftName' | 'draftCode' | 'draftPassword', caption: string, x: number, y: number, width: number) {
     this.label(n, caption, x + 46, y + 22, 12, 92, 40, C.dim);
-    this.plate(g, x + 102, y, width - 102, 44, '#0c1619', C.line, 5);
+    this.inset(g, x + 102, y, width - 102, 44);
     const field = this.node(key, n);
     // Configure before preload creates the native input and default labels.
     field.active = false;
@@ -755,11 +890,13 @@ export class HUD {
       label(this.t(s.phase === 'success' ? '敌方威胁已全部清除。任务完成。' : '本次行动结束，整备后再战。',
         s.phase === 'success' ? 'ALL HOSTILE THREATS ELIMINATED.' : 'REGROUP AND RETURN TO THE FIGHT.'), 60, 13, C.amber);
       label(playerLabel(online.opponent), 88, 12, C.dim);
+      this.emblem(g, px + 63, py + 77, 16);
       const settlement = online.room?.settlement;
       const cw = (pw - 60) / 2, cy = py + 110, ch = bottom - 150;
       for (let i = 0; i < 2; i++) {
         const x = px + 24 + i * (cw + 12), cx = x + cw / 2;
-        this.plate(g, x, cy, cw, ch, '#1c2a2cbb', '#586c6366', 10);
+        this.inset(g, x, cy, cw, ch, i ? '#ac8e4d99' : '#5b859d99');
+        this.icon(g, i ? 'ranking' : 'clock', x + 21, cy + 22, 17, i ? C.amber : C.mint);
         this.label(n, i ? this.t('本局积分', 'POINTS EARNED') : this.t('作战用时', 'OPERATION TIME'), cx, cy + 18, 11, cw - 20, 22, C.dim);
         this.label(n, i ? settlement ? '+' + settlement.points : '—' : formatTime(s.time * 1000), cx, cy + ch / 2 + 3,
           pw < 600 ? 24 : 30, cw - 20, 40, i ? C.action : C.white).isBold = true;
@@ -836,10 +973,16 @@ export class HUD {
       const rows = online.rooms.slice(online.roomPage * count, (online.roomPage + 1) * count);
       rows.forEach((room, i) => {
         const y = 81 + i * 48;
-        this.plate(g, px + 18, py + y, pw - 36, 44, '#1c2a2e', C.line, 5);
-        this.label(n, '#' + room.code + '  ' + room.players.map(player => player.nickname || player.name || '飞行员').join(' / ') + '  ' + room.playerCount + '/2',
-          px + (pw - 96) / 2, py + y + 22, 11, pw - 142, 40, C.white);
-        button((room.canJoin ? 'joinCode:' : 'watchCode:') + room.code, room.canJoin ? this.t('加入', 'JOIN') : this.t('观战', 'WATCH'), pw - 96, y, 78);
+        this.inset(g, px + 18, py + y, pw - 36, 44, room.canJoin ? '#49778c' : '#465667');
+        if (this.missionArtwork[0]) this.coverImage(n, 'RoomTerrain-' + room.code, this.missionArtwork[0], px + 23, py + y + 4, 60, 36);
+        else this.icon(g, 'mountain', px + 51, py + y + 22, 23);
+        const lx = px + 95, lw = pw - 201;
+        const name = this.label(n, '#' + room.code + '  ' + room.players.map(player => player.nickname || player.name || '飞行员').join(' / '),
+          lx + lw / 2, py + y + 14, 11, lw, 23, C.white);
+        name.horizontalAlign = Label.HorizontalAlign.LEFT;
+        const state = this.label(n, (room.status === 'waiting' ? this.t('等待中', 'WAITING') : this.t('战斗中', 'IN BATTLE')) + ' · ' + room.playerCount + '/2', lx + lw / 2, py + y + 33, 10, lw, 18, room.canJoin ? C.mint : C.dim);
+        state.horizontalAlign = Label.HorizontalAlign.LEFT;
+        button((room.canJoin ? 'joinCode:' : 'watchCode:') + room.code, room.canJoin ? this.t('加入', 'JOIN') : this.t('观战', 'WATCH'), pw - 96, y, 78, room.canJoin);
       });
       if (!rows.length) label(this.t('创建房间，让其他飞行员找到你', 'CREATE A ROOM SO OTHERS CAN JOIN'), 125, 13, C.dim);
       const cw = (pw - 60) / 4;
@@ -1148,6 +1291,7 @@ export class HUD {
       );
     } else if (key === 'success' || key === 'failure') {
       const success = key === 'success';
+      this.emblem(g, px + 66, py + (low ? 73 : 78), low ? 15 : 19, success ? C.amber : '#c99580');
       const lostOutpost = s.failedGroup !== undefined && s.failedGroup > 0;
       const mainThreat = Object.entries(s.damageByThreat).sort((a, b) => b[1] - a[1])[0];
       const threatAdvice =
@@ -1194,6 +1338,8 @@ export class HUD {
         [`${Math.round(s.friendlyDamage)}`, this.t('友方损伤', 'FRIENDLY DAMAGE')],
       ].entries()) {
         const x = px + 24 + statW * (i + 0.5);
+        this.inset(g, x - statW / 2 + 4, statY - 20, statW - 8, low ? 63 : 68, i === 0 ? '#a98c4a80' : '#49657b99');
+        if (statW >= 170) this.icon(g, i === 0 ? 'clock' : i === 1 ? 'target' : 'battle', x - statW / 2 + 24, statY + 1, 17, i === 0 ? C.amber : C.mint);
         this.label(n, value, x, statY, small ? 21 : 32, statW - 8, low ? 36 : 44, C.white);
         this.label(n, caption, x, statY + 29, 12, statW - 8, 22, C.dim);
       }
@@ -1293,7 +1439,7 @@ export class HUD {
     this.effects = { impacts: [], projectiles: [] };
     const w = this.w, h = this.h, g = this.g, top = this.safe.top,
       left = 12 + this.safe.left, right = w - this.safe.right - 12, by = h - this.footer - this.safe.bottom;
-    this.homeBackground.active = s.phase === 'briefing' && !this.missionsOpen;
+    this.homeBackground.active = s.phase === 'briefing';
     if (this.homeBackground.active) {
       const background = this.homeBackground.getComponent(Graphics)!;
       background.clear(); this.rect(background, 0, 0, w, h, '#071522');

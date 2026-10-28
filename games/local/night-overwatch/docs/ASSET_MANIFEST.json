@@ -18,15 +18,25 @@
         "units": "project-world-unit",
         "up": "+Y",
         "forward": "+Z",
-        "textureCount": 0
+        "textureCount": 0,
+        "presentationRevision": "2026-10-28"
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "verified-2026-09-28-refinement",
+        "web": "pending-current-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
         "douyin": "not-tested"
-      }
+      },
+      "historicalValidation": [
+        {
+          "engine": "Cocos Creator 3.8.8",
+          "web": "verified-2026-09-28-refinement",
+          "mobileDevice": "not-tested",
+          "wechat": "not-tested",
+          "douyin": "not-tested"
+        }
+      ]
     },
     {
       "assetId": "terrain.roads",
@@ -45,15 +55,25 @@
         "units": "project-world-unit",
         "up": "+Y",
         "forward": "+Z",
-        "textureCount": 0
+        "textureCount": 0,
+        "presentationRevision": "2026-10-28"
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "verified-2026-09-28-refinement",
+        "web": "pending-current-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
         "douyin": "not-tested"
-      }
+      },
+      "historicalValidation": [
+        {
+          "engine": "Cocos Creator 3.8.8",
+          "web": "verified-2026-09-28-refinement",
+          "mobileDevice": "not-tested",
+          "wechat": "not-tested",
+          "douyin": "not-tested"
+        }
+      ]
     },
     {
       "assetId": "terrain.markings",
@@ -99,15 +119,25 @@
         "units": "project-world-unit",
         "up": "+Y",
         "forward": "+Z",
-        "textureCount": 0
+        "textureCount": 0,
+        "presentationRevision": "2026-10-28"
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "verified-2026-09-28-refinement",
+        "web": "pending-current-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
         "douyin": "not-tested"
-      }
+      },
+      "historicalValidation": [
+        {
+          "engine": "Cocos Creator 3.8.8",
+          "web": "verified-2026-09-28-refinement",
+          "mobileDevice": "not-tested",
+          "wechat": "not-tested",
+          "douyin": "not-tested"
+        }
+      ]
     },
     {
       "assetId": "terrain.structures",
@@ -639,15 +669,25 @@
         "units": "project-world-unit",
         "up": "+Y",
         "forward": "+Z",
-        "textureCount": 0
+        "textureCount": 0,
+        "presentationRevision": "2026-10-28"
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "verified-2026-09-28-refinement",
+        "web": "pending-current-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
         "douyin": "not-tested"
-      }
+      },
+      "historicalValidation": [
+        {
+          "engine": "Cocos Creator 3.8.8",
+          "web": "verified-2026-09-28-refinement",
+          "mobileDevice": "not-tested",
+          "wechat": "not-tested",
+          "douyin": "not-tested"
+        }
+      ]
     },
     {
       "assetId": "terrain.fields",
@@ -720,15 +760,25 @@
         "units": "project-world-unit",
         "up": "+Y",
         "forward": "+Z",
-        "textureCount": 0
+        "textureCount": 0,
+        "presentationRevision": "2026-10-28"
       },
       "validation": {
         "engine": "Cocos Creator 3.8.8",
-        "web": "verified-2026-09-28-refinement",
+        "web": "pending-current-visual-review-2026-10-28",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
         "douyin": "not-tested"
-      }
+      },
+      "historicalValidation": [
+        {
+          "engine": "Cocos Creator 3.8.8",
+          "web": "verified-2026-09-28-refinement",
+          "mobileDevice": "not-tested",
+          "wechat": "not-tested",
+          "douyin": "not-tested"
+        }
+      ]
     },
     {
       "assetId": "audio.impact1",
@@ -806,6 +856,132 @@
       "validation": {
         "engine": "Cocos Creator 3.8.8",
         "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.title-metal",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/title-metal.png",
+      "runtimeAsset": "assets/resources/ui/title-metal.png",
+      "license": {
+        "source": "Built-in imagegen generated specifically for this project; original output retained unchanged",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No external stock asset was imported; retain generation provenance."
+      },
+      "metadata": {
+        "generatedSource": "exec-89accca5-1663-444d-b075-d17ec2b0c8b9.png",
+        "width": 2172,
+        "height": 724,
+        "hasAlpha": true,
+        "sha256": "cedb41c70ca984b1ed8761b01454356a39f51d6b062103f232b7362246b37eb1",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "sliceCount": 1
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "HUD node integration tests passed",
+        "web": "pending-current-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.mission-atlas",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/mission-atlas.png",
+      "runtimeAsset": "assets/resources/ui/mission-atlas.png",
+      "license": {
+        "source": "Built-in imagegen generated specifically for this project; original output retained unchanged",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No external stock asset was imported; retain generation provenance."
+      },
+      "metadata": {
+        "generatedSource": "exec-8e6857bd-e1e1-447e-a6ac-cd22578971be.png",
+        "width": 2172,
+        "height": 724,
+        "hasAlpha": false,
+        "sha256": "55475cb5e3e03fd2ebe316c1a63018ec5be55382dc807057f4f1a1db095faf68",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "sliceCount": 3
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "HUD node integration tests passed",
+        "web": "pending-current-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.mission-day-atlas",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/mission-day-atlas.png",
+      "runtimeAsset": "assets/resources/ui/mission-day-atlas.png",
+      "license": {
+        "source": "Built-in imagegen generated specifically for this project; original output retained unchanged",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No external stock asset was imported; retain generation provenance."
+      },
+      "metadata": {
+        "generatedSource": "exec-2f75896a-c191-4be6-ab46-30c5c99d8bf0.png",
+        "width": 2172,
+        "height": 724,
+        "hasAlpha": false,
+        "sha256": "9209132989f813172ac0c9965fd41598709d88bc30f7db347dde63cc15d97255",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "sliceCount": 3
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "HUD node integration tests passed",
+        "web": "pending-current-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.surface-material",
+      "status": "original-shader",
+      "sourceFile": "assets/resources/terrain-surface.effect",
+      "runtimeAsset": "assets/resources/terrain-surface.effect",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "Source follows project licensing."
+      },
+      "metadata": {
+        "surfaces": [
+          "ground",
+          "water",
+          "roads",
+          "ridges",
+          "riverbank",
+          "forest"
+        ],
+        "geometryAuthority": "core/Data.terrainHeight unchanged",
+        "runtimeEvidence": "__night.snapshot().visualMaterialStatus must equal ready"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "pending-actual-Creator-and-shader-compilation",
         "mobileDevice": "not-tested",
         "wechat": "not-tested",
         "douyin": "not-tested"

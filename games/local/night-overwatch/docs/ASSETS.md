@@ -1,21 +1,21 @@
 # 素材台账
 
-运行资产由本项目原创代码及本地 Blender 建模生成，无第三方素材采购或外部上传。可编辑源包括 TypeScript / JavaScript、Blender Python 和 .blend；未使用 Draco、KTX2 或外部解码器。布局效果图由内置 imagegen 生成，仅作设计参考，不作运行背景。
+当前运行资产包含项目原创代码/Blender 模型、已有炮艇夜谷插画，以及2026-10-28通过内置 imagegen 为运行界面生成的透明金属标题和两组三任务插画。效果图与运行素材分别保留身份：设计效果图用于对照，运行 PNG 原图直接进入 Cocos resources；不将整张带界面的效果图覆盖为游戏。可编辑源包括 TypeScript / JavaScript、Blender Python、.blend 和 Cocos effect；未使用 Draco、KTX2 或外部解码器。
 
 | assetId | 来源 | 构成与预算 |
 | --- | --- | --- |
-| terrain.ground / ridges | World.ts | 按三角面烘焙明暗的起伏山地、低模岩石与路肩 |
+| terrain.ground / ridges | World.ts + resources/terrain-surface.effect | 保留物理高度场，追加世界坐标草土颗粒/坡面岩层材质；战区外山脊、光照与远景雾色重做 |
 | terrain.roads / markings | World.ts | 16 节点连续路面、弯道接缝、中心虚线与待命标线 |
 | terrain.water / structures | World.ts | 河道、水面纹理几何、跨河桥梁护栏、村屋和通信塔 |
 | terrain.fields / roofs / details | World.ts | 农田垄沟、坡屋顶、门窗和塔架；静态物体按材质合批 |
-| terrain.forest | World.ts / scripts/model-trees.mjs | 620 棵近景与 1399 棵远景树，暗绿不规则叶簇、冠缘缺口、裸露树干、分叉与倾斜，混合常绿/阔叶轮廓；240216 三角面、约 8.44MB 几何缓冲，复用原材质合批，无新增贴图；补偿 ACES 暗部压缩后，以实际截图复核树冠暗于地面且仍有层次，热成像保持冷暗 |
+| terrain.forest / distantForest / canopyShadows | World.ts | 本轮近树最多400棵、远景最多1440棵（布局剔除后以实际快照为准），层叠不规则针叶枝冠为主、少量阔叶树、地形贴合渐淡树影；按材质合批，每批保持16位顶点预算。旧版240216三角面/8.44MB记录不代表本次版本 |
 | vehicle.rescue / escort / light / heavy / turret | World.ts + core/Data.ts | 共享车型网格；圆轮、轮毂、玻璃、车厢、炮塔/炮管；每辆单独热值材质 |
 | zone.shelter / exit | World.ts + HUD.ts | 保护区边界、标志、撤离营地和帐篷；伤害保护独立于外观 |
 | prop.beacon / beaconFallback | generate-assets.mjs / World.ts | 原创 glTF 灯塔：12 面共享网格、3 实例；保留程序化后备 |
 | aircraft.cabin | scripts/model-aircraft.py / AircraftModel.ts | Blender 原创舱壁、炮管、支架；顶点色运行网格，机体固定坐标炮口与弹道共用位置；源文件 art/aircraft-assets.blend |
 | house / pine | scripts/model-aircraft.py | Blender 原创村屋/松树已导出 GLB 与运行 JSON；当前场景仍使用 World.ts 生成的村屋和树林 |
 | fx.impact / tracer | Effects.ts | 最多 16 弹道、24 爆炸、8 条敌方攻击、8 个残骸烟；落空也绘制弹着，短曳光与细长弹体按口径区分；复用 Graphics，无持续新增节点 |
-| fx.warning / fire-control UI | HUD.ts | 原创火控席布局；青绿方框友方、琥珀菱形敌方，红色仅表示危险；命中、击毁、低伤与落空来自真实弹着事件 |
+| fx.warning / fire-control UI | HUD.ts | 深海蓝仪表玻璃、银钢装甲、黄铜主操作；浅蓝方框友方、红色菱形敌方，命中/击毁/低伤/落空来自真实弹着事件 |
 | audio.rapid / blast / heavy / hit / alert | generate-assets.mjs | 原创确定性噪声与正弦波，22.05kHz 单声道 16bit PCM |
 | audio.impact1 / impact2 / engine | generate-assets.mjs | 独立弹着爆炸声与两秒无缝引擎循环；Cocos AudioSource 管理、可整体停止 |
 
@@ -26,3 +26,17 @@
 来源许可：原创源码遵循项目许可；Cocos 与系统字体沿用其各自许可，不打包系统字体文件。没有第三方署名要求。未调用 Hyper3D，未声称取得外部 AI 模型。
 
 所有素材的实体手机 GPU、微信、抖音宿主验证均尚未进行。
+
+## 2026-10-28 运行插画与材质
+
+| 运行资源 | 来源与使用 |
+| --- | --- |
+| `assets/resources/ui/home.png` | 沿用已认可炮艇夜谷原画；首页、任务选择及基地大厅使用完整背景，战斗弹窗保留实时场景 |
+| `assets/resources/ui/title-metal.png` | 内置 imagegen 原始透明 RGBA，2172×724；仅标题金属字/徽章，中文标题独立 Sprite |
+| `assets/resources/ui/mission-day-atlas.png` | 内置 imagegen 原始 RGB，2172×724；白天河桥/高地/林谷三幅，前三任务各用不同帧 |
+| `assets/resources/ui/mission-atlas.png` | 内置 imagegen 原始 RGB，2172×724；日出山谷/黄昏高地/月光林路，当前暮色与夜间任务使用对应帧 |
+| `assets/resources/terrain-surface.effect` | 本项目原创 GLSL：草土/岩层/路面/水流/枝叶材质；热像使用原有热值配色，减弱动态停止水流时间扰动 |
+
+三张新 PNG 均未二次绘图或重采样，生成原图完整保留在运行源目录。图集由 `SpriteFrame.rect` 切成724×724，以 Mask 等比裁切到卡片；关卡名、昼夜、敌数、选中/解锁状态均为实时文字。图像不替代地图或规则数据。
+
+本轮技术预检包括真实 Creator3.8.8 引擎声明类型检查、22项 HUD（含成功加载资源链/小屏布局）、11项边界/插值/startup及7项原生源码指纹检查。真实 Creator 构建、GPU shader 编译/运行、逐页效果图对照与移动设备性能仍需本轮实际证据；不得沿用旧验收作本轮视觉通过。运行只读快照 `visualMaterialStatus` 必须为 `ready`、`visualMaterialError` 为空；`error` 只表示回退可玩，不能验收新材质。

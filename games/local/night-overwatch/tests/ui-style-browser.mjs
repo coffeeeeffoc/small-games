@@ -4,9 +4,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { acceptanceBuild, press, snapshot, assertLayout } from './flight-browser.mjs';
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
-const out = new URL('../reports/2026-10-28-tactical-ui/', import.meta.url);
+const out = new URL('../reports/2026-10-28-visual-rebuild/style/', import.meta.url);
 await mkdir(out, { recursive: true });
-const browser = await chromium.launch({ headless: true, args: ['--use-angle=d3d11'] });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined, args: process.platform === 'win32' ? ['--use-angle=d3d11'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const evidence = { build, screens: [], errors: [] };
 try {
   for (const [width, height] of [[568, 320], [844, 390], [1280, 720]]) {
@@ -15,8 +15,9 @@ try {
     const page = await context.newPage();
     page.on('pageerror', error => evidence.errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error' && /TypeError|ReferenceError|Error \d+/.test(message.text())) evidence.errors.push(message.text()); });
+    await page.route('**/api/competition/**', route => route.abort());
     await page.goto(base + '?dev=0');
-    await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().online.identity.playerId);
+    await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().buttons.some(b => b.id === 'online:profile'));
     await page.waitForTimeout(800);
     const click = id => press(page, id, touch);
     const capture = async name => {

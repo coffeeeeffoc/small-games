@@ -155,7 +155,12 @@ test('silent, unavailable and rejected audio cannot strand extraction; retry dro
       assert.equal(p.radio.clip, p.clips.get('radio-day-zh'));
     } else {
       for (let i = 0; i < 240; i++) { g.sim.step(1 / 60); g.updateRadio(1 / 60); }
-      assert.equal(g.sim.phase, 'success', mode); assert(!p.radioPending, mode);
+      assert.equal(g.sim.phase, 'success', mode); assert(!g.sim.extractionRadioPending, mode);
+      if (p.radioPending) assert.equal(p.radio.clip, p.clips.get('radio-complete-zh'), mode + ': only the result voice may remain');
+      const completedAt = g.sim.time;
+      for (let i = 0; i < 130; i++) { g.sim.step(1 / 60); g.updateRadio(1 / 60); }
+      assert(!p.radioPending, mode + ': a stalled result voice is released');
+      assert.equal(g.sim.phase, 'success'); assert.equal(g.sim.time, completedAt);
     }
     p.dispose();
   }

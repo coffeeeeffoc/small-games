@@ -3,6 +3,8 @@ import {
   Camera,
   Color,
   Material,
+  EffectAsset,
+  Vec4,
   Mesh,
   MeshRenderer,
   Node,
@@ -85,7 +87,7 @@ function sceneryHeight(x: number, z: number, map: BattlefieldId = 'valley') {
       (16 +
         10 * Math.sin(x * 0.019 + z * 0.006) * Math.cos(z * 0.014 - x * 0.01) +
         5 * Math.sin(z * 0.037 + x * 0.021)) +
-    distant * (38 + 22 * Math.sin(x * 0.01 + z * 0.007) + 18 * Math.sin(z * 0.012 - x * 0.004))
+    distant * (58 + 72 * Math.pow(Math.abs(Math.sin(x * 0.008 + z * 0.005)), 2) + 44 * Math.abs(Math.sin(z * 0.011 - x * 0.003)))
   );
 }
 
@@ -227,7 +229,7 @@ function treeBranch(
 }
 
 function addTree(foliage: Geometry | null, wood: Geometry | null, t: Tree, distant = false) {
-  const evergreen = noise(t.seed + 401) < 0.43;
+  const evergreen = distant || noise(t.seed + 401) < 0.82;
   const yaw = noise(t.seed + 71) * Math.PI * 2;
   const leanX = (noise(t.seed + 91) - 0.5) * 0.13,
     leanZ = (noise(t.seed + 93) - 0.5) * 0.13;
@@ -248,6 +250,23 @@ function addTree(foliage: Geometry | null, wood: Geometry | null, t: Tree, dista
       0.55,
     );
     if (!distant) treeBranch(wood, fork, point(0, 0.91, 0), t.h * 0.017, t.h * 0.003, 0.52);
+  }
+  if (evergreen) {
+    // Tiered, irregular conifer boughs retain a slender alpine silhouette at gameplay scale.
+    // Distant trees use 21 foliage + 9 trunk vertices; near trees stay below 70.
+    if (foliage) for (let layer = 0; layer < (distant ? 3 : 5); layer++) {
+      const layers = distant ? 3 : 5, level = .22 + layer / layers * .62;
+      const radius = (.26 - layer / layers * .19) * (1 + noise(t.seed + layer * 29) * .15);
+      const sides = distant ? 6 : 10, start = foliage.positions.length / 3;
+      treeVertex(foliage, point(0, level + (distant ? .38 : .29), 0), { x: -.15, y: 1, z: .15 }, .9);
+      for (let i = 0; i < sides; i++) {
+        const angle = yaw + i / sides * Math.PI * 2, branch = radius * (i % 2 ? .87 : 1.12);
+        treeVertex(foliage, point(Math.cos(angle) * branch, level + noise(t.seed + i * 17 + layer) * .045, Math.sin(angle) * branch),
+          { x: Math.cos(angle), y: .42, z: Math.sin(angle) }, .66 + layer * .04);
+      }
+      for (let i = 0; i < sides; i++) foliage.indices.push(start, start + 1 + (i + 1) % sides, start + 1 + i);
+    }
+    return;
   }
   const count = distant ? 3 : evergreen ? 4 : 3 + Math.floor(noise(t.seed + 407) * 2);
   const sprays = distant ? 0 : (count === 4 ? 7 : 9) - Math.floor(noise(t.seed + 409) * 2);
@@ -453,7 +472,7 @@ export class World {
   views = new Map<number, { node: Node; material: Material; wreck: boolean }>();
   impactClouds: BattleEvent[] = [];
   private lastImpact = 0;
-  terrain: { material: Material; day: string; heat: string }[] = [];
+  terrain: { material: Material; day: string; heat: string; surface?: number; renderer?: MeshRenderer }[] = [];
   meshes = new Map<Kind, Mesh>();
   private wreckMeshes = new Map<Kind, Mesh>();
   modelImport = 'loading';
@@ -472,6 +491,9 @@ export class World {
   private elevations: number[][];
   private cloudLayer?: Node;
   private waterGlints?: Node;
+  private surfaceEffectReady = false;
+  visualMaterialStatus: 'loading' | 'ready' | 'error' = 'loading';
+  visualMaterialError = '';
   private surfaceHeight = (x: number, z: number) => Math.abs(x) <= MAP.halfWidth && Math.abs(z) <= MAP.halfDepth
     ? this.height(x, z) : heightfieldHeight(terrainXs, terrainZs, this.elevations, x, z);
   private roadDistance = (x: number, z: number) => Math.min(...mapRoute(this.map).slice(1)
@@ -557,18 +579,18 @@ export class World {
           const slope = terrainSlope((x, z) => sceneryHeight(x, z, map), x, z),
             normal = new Vec3(-slope.x, 1, -slope.z).normalize();
           const light =
-            0.42 + Math.max(0, -normal.x * 0.58 + normal.y * 0.42 + normal.z * 0.66) * 0.8;
+            0.43 + Math.max(0, -normal.x * 0.58 + normal.y * 0.42 + normal.z * 0.66) * 0.91;
           const variation =
             0.88 + 0.12 * Math.sin(x * 0.07 + Math.sin(z * 0.035) * 3) * Math.cos(z * 0.065) + noise(x * 7 + z * 13) * 0.08;
-          const soil = clamp((Math.sin(x * .095 + Math.sin(z * .072) * 2) * Math.cos(z * .11) - .1) * 1.5, 0, .8);
+          const soil = clamp((Math.sin(x * .035 + Math.sin(z * .022) * 2) * Math.cos(z * .04) - .15) * .7, 0, .42);
           const scree = clamp((Math.hypot(slope.x, slope.z) - .2) * 1.4, 0, .75);
           const haze = clamp((Math.hypot(x, z) - 100) / 1500, 0, 0.78);
           g.positions.push(x, terrainHeights[ix][iz] - 0.045, z);
           g.normals.push(normal.x, normal.y, normal.z);
-          const palette = this.light === 'day' ? [[map === 'valley' ? 104 : 143, 178], [133, 193], [map === 'valley' ? 94 : 110, 201]] : this.light === 'dusk' ? [[94, 152], [102, 139], [83, 150]] : [[34, 60], [45, 70], [50, 92]];
+          const palette = this.light === 'day' ? [[map === 'valley' ? 89 : 130, 161], [map === 'valley' ? 119 : 127, 184], [map === 'valley' ? 99 : 119, 204]] : this.light === 'dusk' ? [[104, 157], [107, 144], [96, 164]] : [[47, 70], [64, 88], [72, 112]];
           for (const [channel, [near, far]] of palette.entries()) {
             const earth = near * (1 + [0.24, -0.12, -0.28][channel] * soil);
-            const mineral = earth * (1 + [0.09, -0.04, 0.14][channel] * scree);
+            const mineral = earth * (1 - scree) + [142, 150, 153][channel] * scree;
             g.colors.push((mineral * light * variation * (1 - haze) + far * haze) / 255);
           }
           g.colors.push(1);
@@ -582,16 +604,16 @@ export class World {
     if (map === 'valley') this.terrainBatch('terrain.water', '#476879', '#101c24', (g) => {
       // A continuous ribbon avoids seams between individual river tiles.
       for (let z = -650; z <= 650; z++) {
-        for (const dx of [-2.9, 0, 2.9]) {
+        for (const dx of [-2.9, -2.1, 0, 2.1, 2.9]) {
           const x = riverX(z) + dx;
           g.positions.push(x, terrainHeight(x, z) + .025, z);
           g.normals.push(0, 1, 0);
-          const light = dx === 0 ? 1.05 : .68;
-          g.colors.push(light, light, light, 1);
+          const light = dx === 0 ? .82 : Math.abs(dx) > 2.5 ? .61 : 1.1;
+          g.colors.push(light * .85, light, light * 1.08, 1);
         }
-        if (z < 650) for (let j = 0; j < 2; j++) {
-          const i = (z + 650) * 3 + j;
-          g.indices.push(i, i + 3, i + 1, i + 1, i + 3, i + 4);
+        if (z < 650) for (let j = 0; j < 4; j++) {
+          const i = (z + 650) * 5 + j;
+          g.indices.push(i, i + 5, i + 1, i + 1, i + 5, i + 6);
         }
       }
     });
@@ -599,6 +621,17 @@ export class World {
       for (let i = 0; i < 520; i++) {
         const z = -500 + i * 1.92, x = riverX(z) + (noise(i + 2800) - .5) * 4.4;
         addBox(g, x, .065, z, .2 + noise(i + 3000) * .8, .008, .025 + noise(i) * .025, .2 + noise(i + 88) * .5);
+      }
+    });
+    if (map === 'valley') this.terrainBatch('terrain.riverbank', this.light === 'night' ? '#486072' : '#9caa9d', '#25353f', g => {
+      for (let i = 0; i < 580; i++) {
+        const z = -420 + i * 1.45;
+        for (const side of [-1, 1]) {
+          const x = riverX(z) + side * (3.1 + noise(i + 309) * 1.5);
+          if (roadDistance(x, z) < 2.6) continue;
+          const size = .2 + noise(i * 5 + side) * .65;
+          addShape(g, rock, x, -.03, z, size * 1.5, size * .6, size, .75 + noise(i) * .3, i);
+        }
       }
     });
     this.terrainBatch('terrain.roads', '#18272e', '#182127', (g) => {
@@ -726,7 +759,7 @@ export class World {
         camp.some((p) => Math.hypot(x - p.x, z - p.z) < 6)
       )
         continue;
-      trees.push({ x, z, y: surfaceHeight(x, z), h: 1.5 + noise(i * 3 + 2) * 2.2, seed: i });
+      trees.push({ x, z, y: surfaceHeight(x, z), h: 2.2 + noise(i * 3 + 2) * 2.8, seed: i });
     }
     const clearGround = (x: number, z: number) => roadDistance(x, z) > 4 &&
       !(map === 'valley' && Math.abs(x - riverX(z)) < 7) &&
@@ -834,6 +867,21 @@ export class World {
         addRoof(g, x, h, z, w + 0.8, 1.5, d + 0.8, 0.9 + noise(z) * 0.1);
       addRoof(g, station.x, 3, station.z, 8.5, 0.8, 5.5, 0.85);
     });
+    this.terrainBatch('terrain.canopyShadows', '#071b27', '#101b22', g => {
+      for (const t of trees) {
+        const cx = t.x + t.h * .36, cz = t.z - t.h * .38, start = g.positions.length / 3;
+        for (let ring = 0; ring < 3; ring++) for (let i = 0; i < 12; i++) {
+          const a = i / 12 * Math.PI * 2, r = ring / 2;
+          const x = cx + Math.cos(a) * t.h * .46 * r, z = cz + Math.sin(a) * t.h * .7 * r;
+          g.positions.push(x, surfaceHeight(x, z) + .045, z); g.normals.push(0, 1, 0);
+          g.colors.push(1, 1, 1, ring === 0 ? .28 : ring === 1 ? .15 : 0);
+          if (ring < 2) {
+            const p = start + ring * 12 + i, next = start + ring * 12 + (i + 1) % 12;
+            g.indices.push(p, next, p + 12, next, next + 12, p + 12);
+          }
+        }
+      }
+    });
     this.terrainBatch('terrain.forest', '#3d5142', '#0b1215', (g) => {
       for (const t of trees) addTree(g, null, t);
     });
@@ -860,7 +908,7 @@ export class World {
               x,
               z,
               y: surfaceHeight(x, z),
-              h: 1.4 + noise(grove * 53 + i) * 1.6,
+              h: 2.4 + noise(grove * 53 + i) * 3.8,
               seed: grove * 101 + i + 2000,
             },
             true,
@@ -1001,6 +1049,29 @@ export class World {
       }
       this.wreckMeshes.set(kind, this.mesh(wreck));
     }
+    resources.load('terrain-surface', EffectAsset, (error, effect) => {
+      if (this.disposed || !isValid(this.root, true)) return;
+      if (error) { this.visualMaterialStatus = 'error'; this.visualMaterialError = String(error); return; }
+      const replacements: { terrain: World['terrain'][number]; material: Material }[] = [];
+      try {
+        for (const terrain of this.terrain) if (terrain.surface !== undefined) {
+          const material = new Material(); replacements.push({ terrain, material });
+          material.initialize({ effectAsset: effect });
+          material.setProperty('mainColor', color(this.thermal ? terrain.heat : terrain.day));
+          material.setProperty('surfaceParams', new Vec4(terrain.surface, 0, this.thermal ? 1 : 0, this.light === 'night' ? .35 : this.light === 'dusk' ? .7 : 1));
+          if (!material.passes.length || !material.passes.every(pass => pass.tryCompile()))
+            throw new Error('terrain-surface shader compilation failed for surface ' + terrain.surface);
+        }
+        for (const { terrain, material } of replacements) {
+          terrain.renderer!.setMaterial(material, 0);
+          terrain.material.destroy(); terrain.material = material;
+        }
+        this.surfaceEffectReady = true; this.visualMaterialStatus = 'ready';
+      } catch (failure) {
+        for (const { material } of replacements) material.destroy();
+        this.visualMaterialStatus = 'error'; this.visualMaterialError = String(failure);
+      }
+    });
     resources.load('models/beacon/beacon', Prefab, (error, prefab) => {
       if (this.disposed || !isValid(this.root, true)) return;
       if (error) {
@@ -1040,20 +1111,21 @@ export class World {
     return m;
   }
   terrainBatch(id: string, day: string, heat: string, build: (g: Geometry) => void) {
-    if (this.light === 'day') day = ({ 'terrain.water': '#80bbcb', 'terrain.roads': '#59616a', 'terrain.ridges': '#7e8979', 'terrain.fields': '#839756', 'terrain.structures': '#afb3a8', 'terrain.roofs': '#946c52', 'terrain.forest': '#6f995b', 'terrain.distantForest': '#7c9c78', 'terrain.details': '#7b856b', 'terrain.windows': '#728b98' } as Record<string, string>)[id] || day;
+    if (this.light === 'day') day = ({ 'terrain.water': '#6daebd', 'terrain.roads': '#586474', 'terrain.ridges': '#7e8979', 'terrain.fields': '#839756', 'terrain.structures': '#afb3a8', 'terrain.roofs': '#946c52', 'terrain.forest': '#5f8e78', 'terrain.distantForest': '#789989', 'terrain.details': '#7b856b', 'terrain.windows': '#728b98' } as Record<string, string>)[id] || day;
     if (this.light === 'night') day = ({ 'terrain.clouds': '#5c6c84', 'terrain.water': '#203a55', 'terrain.structures': '#29313c', 'terrain.roofs': '#302b39' } as Record<string, string>)[id] || day;
     if (this.light === 'dusk') day = ({ 'terrain.roads': '#41454c', 'terrain.structures': '#8b8078', 'terrain.forest': '#657454', 'terrain.fields': '#716e48' } as Record<string, string>)[id] || day;
     const g = geometry();
-    g.grounded = !['terrain.ground', 'terrain.foothills', 'terrain.sky', 'terrain.clouds', 'terrain.moon'].includes(id);
+    g.grounded = !['terrain.ground', 'terrain.foothills', 'terrain.sky', 'terrain.clouds', 'terrain.moon', 'terrain.canopyShadows'].includes(id);
     g.height = this.surfaceHeight;
     build(g);
     const n = new Node('asset:' + id);
     this.root.addChild(n);
     const r = n.addComponent(MeshRenderer);
     r.mesh = this.mesh(g);
-    const m = this.material(this.thermal ? heat : day, id === 'terrain.clouds');
+    const m = this.material(this.thermal ? heat : day, id === 'terrain.clouds' || id === 'terrain.canopyShadows');
     r.setMaterial(m, 0);
-    this.terrain.push({ material: m, day, heat });
+    const surface = ({ 'terrain.ground': 0, 'terrain.water': 1, 'terrain.roads': 2, 'terrain.ridges': 3, 'terrain.riverbank': 3, 'terrain.forest': 4, 'terrain.distantForest': 4 } as Record<string, number>)[id];
+    this.terrain.push({ material: m, day, heat, surface, renderer: r });
     this.assets.add(id);
     return n;
   }
@@ -1225,6 +1297,8 @@ export class World {
     if (isValid(this.cameraNode, true)) this.cameraNode.destroy();
   }
   update(s: Simulation, reduced = false) {
+    if (this.surfaceEffectReady) for (const terrain of this.terrain) if (terrain.surface !== undefined)
+      terrain.material.setProperty('surfaceParams', new Vec4(terrain.surface, reduced ? 0 : s.time, this.thermal ? 1 : 0, this.light === 'night' ? .35 : this.light === 'dusk' ? .7 : 1));
     this.cloudLayer?.setPosition(Math.sin(s.time * .008) * 14, 0, Math.cos(s.time * .006) * 8);
     if (this.waterGlints && !this.thermal) {
       const glint = (this.light === 'night' ? 75 : 190) + Math.sin(s.time * 1.4) * 22;
