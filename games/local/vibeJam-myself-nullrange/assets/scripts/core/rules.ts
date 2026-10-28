@@ -1,7 +1,7 @@
 import { MISSIONS, validateMission } from './content.ts';
 import type { Mission } from './content.ts';
-import { terrainHeight, obstacleHeight, FLIGHT_CEILING } from './terrain.ts';
-import { airframeFloor } from './flight-geometry.ts';
+import { FLIGHT_CEILING } from './terrain.ts';
+import { airframeFloor, surfaceHeight } from './flight-geometry.ts';
 export { terrainHeight } from './terrain.ts';
 export const DT = 1 / 60;
 export type Point = { x: number; y: number; z: number };
@@ -269,7 +269,7 @@ export function step(s: State, input: Partial<Controls> = {}) {
     e.x += Math.sin(e.yaw) * speed * DT;
     e.z -= Math.cos(e.yaw) * speed * DT;
     e.y += clamp(p.y - e.y + Math.sin(s.tick * DT * 0.8 + e.phase) * 16, -22, 22) * DT;
-    e.y = Math.max(terrainHeight(e.x, e.z) + 25, obstacleHeight(e.x, e.z) + 15, e.y);
+    e.y = Math.max(surfaceHeight(e.x, e.z) + 25, e.y);
     e.cooldown -= DT;
     if (e.cooldown <= 0 && dist < 600 && dist > 35) {
       const lead = Math.min(1, dist / 230) * 0.55;
@@ -314,8 +314,7 @@ export function step(s: State, input: Partial<Controls> = {}) {
       damagePlayer(s, 14, '敌方炮火击穿机体');
       shot.life = 0;
     }
-    if (shot.y < Math.max(terrainHeight(shot.x, shot.z), obstacleHeight(shot.x, shot.z)))
-      shot.life = 0;
+    if (shot.y < surfaceHeight(shot.x, shot.z)) shot.life = 0;
   }
   s.shots = s.shots.filter((b) => b.life > 0);
   s.enemies = s.enemies.filter((e) => e.hp > 0);

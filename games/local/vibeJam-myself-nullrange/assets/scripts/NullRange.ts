@@ -35,9 +35,8 @@ export class NullRange extends Component {
   controls!: FlightInput;
   progress!: Progress;
   storage?: StoragePort;
-  audio!: AudioSource;
   engine!: AudioSource;
-  clips = new Map<string, AudioClip>();
+  sounds = new Map<string, AudioSource>();
   accumulator = 0;
   uiClock = 0;
   practice = false;
@@ -50,10 +49,9 @@ export class NullRange extends Component {
     this.progress = readProgress(this.storage);
     this.ui = new UI(this.node);
     this.world = new World(this.node, this.surface!);
-    this.audio = this.node.addComponent(AudioSource);
     this.engine = this.node.addComponent(AudioSource);
     this.engine.loop = true;
-    this.engine.volume = 0.2;
+    this.engine.volume = 0.16;
     for (const name of [
       'shoot',
       'hit',
@@ -68,8 +66,13 @@ export class NullRange extends Component {
     ])
       resources.load('audio/' + name, AudioClip, (err, clip) => {
         if (err || !this.isValid) return;
-        this.clips.set(name, clip);
         if (name === 'wind') this.engine.clip = clip;
+        else {
+          const source = this.node.addComponent(AudioSource);
+          source.clip = clip;
+          source.volume = name === 'shoot' ? 0.19 : name === 'hit' ? 0.24 : 0.34;
+          this.sounds.set(name, source);
+        }
       });
     this.controls = new FlightInput(
       this.ui,
@@ -81,6 +84,8 @@ export class NullRange extends Component {
     if (typeof window !== 'undefined') {
       window.addEventListener('blur', this.hide);
       window.addEventListener('pagehide', this.hide);
+      // A 90-degree rotation may leave the logical Cocos canvas size unchanged.
+      window.addEventListener('resize', this.resize);
       document.addEventListener('visibilitychange', this.visibility);
     }
     this.cleanupDev = web.SmallGamesDev?.registerSnapshot(() => this.snapshot());
@@ -98,7 +103,14 @@ export class NullRange extends Component {
         width: this.ui.width,
         height: this.ui.height,
         scale: this.ui.scale,
+        safe: this.ui.safe,
         controls: this.ui.controls,
+        audio: {
+          muted: this.progress.muted,
+          engine: this.engine.playing,
+          effects: Array.from(this.sounds.values()).filter((s) => s.playing).length,
+          loaded: this.sounds.size,
+        },
         input: {
           pointers: this.controls.pointers.size,
           keys: this.controls.keys.size,
@@ -126,7 +138,7 @@ export class NullRange extends Component {
     this.controls?.clear();
     this.accumulator = 0;
     if (this.screen === 'playing') this.change('paused');
-    this.audio?.stop();
+    this.stopSounds();
     this.engine?.stop();
   };
   draw() {
@@ -137,6 +149,7 @@ export class NullRange extends Component {
     this.accumulator = 0;
     this.screen = screen;
     this.engine.stop();
+    if (screen !== 'result') this.stopSounds();
     web.NullRangeHost?.display(
       ['playing', 'paused', 'result'].includes(screen) ||
         (screen === 'settings' && this.returnScreen === 'paused'),
@@ -144,9 +157,14 @@ export class NullRange extends Component {
     this.draw();
   }
   action(id: string) {
+    if (id === 'prepare' || id === 'prepare-detail') {
+      this.returnScreen = 'missions';
+      this.change('prepare');
+      return;
+    }
     if (id === 'start' || id === 'restart') {
       if (!this.world.ready) return;
-      this.state = createRun();
+      this.state = createRun(this.state.mission);
       this.practice = !!web.SmallGamesDev?.isEnabled();
       this.change('playing');
       return;
@@ -182,7 +200,7 @@ export class NullRange extends Component {
     if (id === 'sound') {
       changed = 'muted';
       this.progress.muted = !this.progress.muted;
-      this.audio.stop();
+      this.stopSounds();
       this.engine.stop();
     } else if (id === 'reduced') {
       changed = 'reduced';
@@ -196,8 +214,14 @@ export class NullRange extends Component {
     this.draw();
   }
   sound(name: string) {
-    const clip = this.clips.get(name);
-    if (clip && !this.progress.muted) this.audio.playOneShot(clip, name === 'shoot' ? 0.12 : 0.45);
+    const source = this.sounds.get(name);
+    if (source && !this.progress.muted) {
+      source.stop();
+      source.play();
+    }
+  }
+  stopSounds() {
+    for (const source of this.sounds.values()) source.stop();
   }
   update(dt: number) {
     if (!this.world) return;
@@ -229,8 +253,10 @@ export class NullRange extends Component {
     }
     this.world.update(
       this.state,
-      ['home', 'missions', 'online'].includes(this.screen),
+      ['home', 'missions', 'prepare', 'online', 'result'].includes(this.screen) ||
+        (['settings', 'help'].includes(this.screen) && this.returnScreen !== 'paused'),
       this.progress.reduced,
+      this.screen,
     );
     this.uiClock += dt;
     if (this.uiClock > 0.08) {
@@ -244,12 +270,13 @@ export class NullRange extends Component {
     if (typeof window !== 'undefined') {
       window.removeEventListener('blur', this.hide);
       window.removeEventListener('pagehide', this.hide);
+      window.removeEventListener('resize', this.resize);
       document.removeEventListener('visibilitychange', this.visibility);
     }
     this.cleanupDev?.();
     delete web.__nullrange;
     this.controls?.dispose();
-    this.audio?.stop();
+    this.stopSounds();
     this.engine?.stop();
     this.ui?.dispose();
     this.world?.dispose();

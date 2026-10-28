@@ -1,0 +1,42 @@
+[
+  {
+    "name": "ridge-1",
+    "triangles": 18432,
+    "bytes": 412880,
+    "bounds": {
+      "min": [
+        -260.0,
+        0.0,
+        -190.0
+      ],
+      "max": [
+        260.0,
+        278.5525817871094,
+        190.0
+      ]
+    },
+    "sha256": "728ac02f48187909b4e766a0c5c8757ebb2e3bc1caff67fe135ffde201881555",
+    "generator": "build_ridges.py",
+    "sourceHash": "5b799a4c301cc877797104c22fe0dcfcb11e30f96cd88268c674170e9fb3124e"
+  },
+  {
+    "name": "ridge-2",
+    "triangles": 18432,
+    "bytes": 412884,
+    "bounds": {
+      "min": [
+        -260.0,
+        0.0,
+        -190.0
+      ],
+      "max": [
+        260.0,
+        286.1664123535156,
+        190.0
+      ]
+    },
+    "sha256": "c7f95a08a7026af2b011129ac2b8bd9028c3bed20a85b57b2793ab97460c0664",
+    "generator": "build_ridges.py",
+    "sourceHash": "5b799a4c301cc877797104c22fe0dcfcb11e30f96cd88268c674170e9fb3124e"
+  }
+]

@@ -1,25 +1,27 @@
-# B2 原创三维资产
+# 三维资产与来源
 
-这是本地 Blender 资产接入阶段，不是目标图视觉验收通过。没有下载或使用 Hyper3D 模型。环境最初来源为主会话 `nullrange-art` 暂存区；Falcon 来源为其中的 `hero-refinement`，在本工作树补齐 UV、外向法线及可重生成输出。
+当前19个原生GLB、58,832三角面、6,304,748字节。全部模型由本地Blender脚本生成；Hyper3D生成物尚未下载接入。视觉仍未通过固定效果图验收，见[本批对照](../docs/design/b3-scene/README.md)。
 
-按顺序运行（游戏目录）：
+重建顺序（游戏目录，使用Blender 5.2.1）：
 
 ```powershell
 & D:/setup/Blender/blender.exe --background --python art/build_environment.py
 & D:/setup/Blender/blender.exe --background --python art/build_falcon.py
+& D:/setup/Blender/blender.exe --background --python art/build_forest.py
+& D:/setup/Blender/blender.exe --background --python art/build_ridges.py
+& D:/setup/Blender/blender.exe --background --python art/build_moon.py
 & D:/setup/Blender/blender.exe --background --python art/bake_surfaces.py
 node --test tests/assets-terrain.test.mjs tests/flight-geometry.test.mjs
 ```
 
-环境脚本输出16个GLB、环境 `.blend` 与基础清单；Falcon脚本追加第17个GLB，保存 `falcon.blend`、独立清单，并更新总清单。材质脚本输出三张1024² albedo JPG和共享512² normal PNG，另保留可编辑 `nullrange-surfaces.blend`。实际运行文件仅在 `assets/resources/`，这里没有重复GLB/贴图、旧PNG、日志、预览或 `.blend1`。
+- `manifest.json`绑定模型边界、索引面数、字节、SHA与各自generator/sourceHash；基础脚本输出16个模型，Falcon覆盖/追加后由森林/山脊/月亮脚本更新对应项。`.blend`均为可编辑源，运行文件只保存在assets/resources。
+- `falcon-manifest.json`：Falcon 4024面，七种共享PBR材质，双喷口x±1.18、y−0.16、z8.8；机体采样与实际跨度绑定。
+- `forest-manifest.json`：原始透明枝簇与完整树冠图均为image_gen生成，源文件和SHA随仓库保留。近景单片20棵5360面；230m外改为相同布局的120面三交叉面片；1000m外裁切。MASK双面、共享纹理，不使用透明混合。
+- `ridges-manifest.json`：两个侵蚀山体，各18,432面；3000m环形远景，与游戏地面分离。提高山体几何同时改树林LOD，浏览器总单帧面数由旧版约11–12万降到约8.6–9.9万，不代表真机帧率。
+- `surfaces-manifest.json`：Blender四张烘焙纹理及生成器摘要；`granite-manifest.json`绑定原始生成岩壁纹理。三平面映射避免岩壁垂直拉伸；地形shader为当前项目编写的单pass光照/高度/坡度混合，使用Creator内建shader chunks。
+- `lunar-manifest.json`：经纬UV球体与NASA LROC色彩图；来源、署名及使用说明见[LUNAR-SOURCE.md](LUNAR-SOURCE.md)，不把外部月面数据标为原创。
+- `panorama-manifest.json`：生成远景；镜像两次闭合天空圆柱，起始偏移避免正前方镜像接缝。水面采样同一远景作环境反射，不宣称屏幕空间或真实近景反射。
 
-- [manifest.json](manifest.json)：模型边界/三角面/字节/SHA；顶层 sourceHash 对应环境脚本，Falcon记录的 generator/sourceHash 对应独立脚本。[falcon-manifest.json](falcon-manifest.json)保留该主机来源。
-- [surfaces-manifest.json](surfaces-manifest.json)：四张烘焙材质与脚本哈希。
-- [panorama-manifest.json](panorama-manifest.json)：主会话提供的生成全景，PNG原始字节、尺寸与来源。只作为不可到达的远背景。
-- 所有模型米制、Y-up、机头-Z；Creator实际资源映射 `models/<name>/<name>` → Prefab。所有子节点递归设置DEFAULT 3D layer，保留标准PBR并共享材质/网格。林块每块10棵，4个材质；中距离改用单树LOD，700m外裁切，按确定格子回收实例。
-- 当前Falcon 4024三角面，7种PBR材质；双喷口中心x±1.18、y−0.16、z约8.7，表现火焰从该位置后方延伸。模型比例与碰撞有限采样在 `core/flight-geometry.ts` 绑定。
-- `alpine-terrain.effect` 改自 Creator 3.8.8 `builtin-standard.effect`，保留原版权声明与PBR/雾/光照代码，只改为按坡度/海拔混合绿地、层理岩石和雪线。`sky-no-fog.effect` 是简化天空shader，明确不应用全局雾；镜像采样以偶数次数闭合，纹理边缘夹取避免左右原图不连续。
+可玩地形仍使用20m格子、49个320m回收网格，渲染与碰撞采用同一三角插值；连续河道水位18m同时参与机体、相机、敌机和弹道表面判断。森林/岩石使用保守包络，非逐三角机体碰撞。全部预算、真实资源有效性与河岸/接缝在测试中检查。
 
-实时地形采用20m格子的同一三角形高度插值，49块320m地块只在越界时回收；机体和追尾相机均检查实际地形/林岩体积。背景山脊始终位于以观察者为中心的1850m环上，处于可玩地形之外，不承担近景障碍。地形、树、岩的碰撞包络保守；它不是逐三角形机体碰撞。
-
-继续存在的视觉差距：真实场景仍以程序化模块为主，山谷断崖密度、植被丰富度、云雾体积感、飞机高频细节及整体光影未达到目标图。Hyper3D下载/整合等待用户指示；B3继续UI与视觉收敛，不能把本目录的建模成功当最终美术通过。
+`exhaust.effect`提供淡出双喷口尾焰；`sky-no-fog.effect`避免天幕被地形雾覆盖；岩壁、月亮和水面均是实际Creator渲染资源。自然林海密度、地形构图、飞机材质和空气层次仍有差距，继续在本轮修正。

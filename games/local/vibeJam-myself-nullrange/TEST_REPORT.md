@@ -131,3 +131,69 @@ B1交付：实现提交 5d0d0924，正常合并远端 eaed23d3 后候选 35587c1
 B1推送后的 [CI](https://github.com/coffeeeeffoc/small-games/actions/runs/40741917586) 和 [Pages](https://github.com/coffeeeeffoc/small-games/actions/runs/40741917669) 均在首个完整历史fetch耗尽5分钟预算，尚未进入游戏验证；CI的validation-tools双平台已通过。两处planner仅增加历史blob按需下载并将预算调整为15分钟，保留完整历史和完整当前检出、锁定子模块及原门禁。
 
 独立网络clone实测历史索引2.61MiB、非浅仓库，完整当前检出及历史blob读取成功；即时 `35587c10..41692788`、累计成功CI基线 `8c4c821a..41692788` 的真实selector均通过。3项范围证明正反例及29项CI基线/阶段/门禁契约通过，临时检出提交pre-commit通过；相同4文件整合为 `728d7494`。这些结果不表示修复后的远端CI/Pages已经通过。
+
+B2交付：最终候选 `01ce24b5d80ad048e000cacff5bc457fa7608dd7` 已非强制推送dev并由ls-remote确认，准确base `35587c10b510fb22123fc9a0697bf6b8d0b00e21`。整合后实际增量selector、workspace边界和当前32544a28…制品校验通过；没有重跑无关游戏或将这些检查等同完整候选/远端流水线成功。下一批B3继续重做手机UI并收敛视觉。
+
+## B3 中间交接（2026-10-29）：视觉未通过
+
+**已交还唯一canonical写入权给主会话，停止继续改代码/重跑。没有提交、推送或派生角色。** 工作仅在 `C:/Users/15211/.codex/worktrees/nullrange-rebuild/small-games` 的游戏目录与总计划内；保留主会话先前未提交的B2推送记录。按用户最新要求结束本轮，复杂地形/材质、B3视觉验收与发布由主会话接手。
+
+本轮中间候选 sourceHash：`76ecd618c5a1292f2b0648c67121fcff25126282115ececb7b839fd40883cde5`。真实Creator 3.8.8构建于2026-10-29 04:22完成；同hash浏览器报告时间 `2026-10-28T20:24:10.197Z`。代表性截图及摘要见 [evidence.json](docs/design/b3/evidence.json)，逐页状态及差项见 [B3说明](docs/design/b3/README.md)，[并排对照](docs/design/b3/comparison.html)使用未修改的原概念图。只归档14张真实代表图，其他中间图留在忽略的 `reports/browser/`。
+
+### 已完成行为与文件交接
+
+- `assets/scripts/UI.ts`：全部使用Cocos Graphics/Label，重做首页、真实任务卡、Falcon准备、HUD、窄暂停卡、设置/帮助、真实胜败结算和对战未开放恢复页。首页按钮避开主机；实际雷达、两竖条暂停、圆形双拇指控件、向量图标、冷却/不可用/热量反馈。保留稳定控件ID及Shell调用；只展示当前真实的一关/一机体。星级依据完成与机体余量，不捏造奖励。
+- `assets/scripts/core/presentation.ts` 及meta：纯安全区坐标转换/边界、活敌机航向相对雷达投影、结算星级；`tests/presentation.test.mjs` 对旋转、不对称边距、雷达及确定音效留小测试。
+- `startup/host.js`：隐藏CSS env测量探针，合并Creator `sys.getSafeAreaRect(false)`，不是DOM游戏覆盖层。没有浏览器全屏。`NullRange.ts` 接入prepare、独立展示镜头状态、只读safe/audio快照；补上物理window resize清理，解决横竖互换时逻辑画布大小不变而残留触点的问题。暂停→设置→返回仍暂停，恢复不补算时钟。
+- `scripts/sound-bank.mjs`、`prepare.mjs`：单一生成器替换旧单音，10类原创PCM共427774字节；`NullRange.ts` 用可停止的独立AudioSource处理静音/后台/退出清理，发射/命中/其他/引擎音量分别为0.19/0.24/0.34/0.16。生成自检和浏览器清理通过，**未做实际听感验收**。
+- `scripts/typecheck.mjs`：验证prebuilt或找到实际编辑器声明后复制真实声明至游戏根 `cc.d.ts`。`tests/artifact.test.mjs` 读取root或显式prebuilt声明，不再动态import带spawn的toolchain。`tests/prebuilt.mjs` 增加删除根声明→缓存typecheck恢复→下一test步骤无编辑器/无prebuilt变量的检查，原源码/声明/manifest篡改负测保留。
+- `scripts/build.mjs`、`startup/icon.png`、`publishing/icon/nullrange-icon.png`：接入主会话正式无字图标。独立读取1254×1254、PNG RGB无alpha、2371280字节，SHA256 `e6ce6d4ad1c7f420179bd8260cea0d8d2c841127165a8e5c5387960812b049fa`；原文件未改。
+- 已保留的视觉中间改动：`World.ts`、`alpine-terrain.effect`、新增 `exhaust/lake/ridge.effect` 及meta；`art/build_forest.py`、`build_ridges.py`、对应blend/清单、枝簇源图、总manifest；5个pine/forest与2个ridge GLB/meta。保留原GLB纹理flags、MASK双面叶片、渐变尾焰、展示镜头与布光、装饰水面/远景shader。**这些是未验收中间实现**，不是视觉达标。B2 `core/terrain.ts`、`flight-geometry.ts`、核心胜负和时钟没有改动。
+- `tests/assets-terrain.test.mjs` 验证新资产generator/贴图/alphaTest及林块包络仍在既有碰撞体内；`tests/browser.mjs` 验证所有页面与安全区/生命周期。README、art说明、上架状态/文案及总计划已更新。未编辑Shell或其他共享源码。
+
+### 本轮实际验证
+
+以下在游戏目录串行执行；均为本候选结果，不是全仓或远端发布结论。
+
+| 命令                                                                                            | 结果与日志                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `D:/setup/Blender/blender.exe --background --python art/build_forest.py`、`art/build_ridges.py` | 实际生成模型/编辑源及清单；最终17GLB合计29104三角面、4139680字节                                                                                           |
+| `pnpm typecheck`                                                                                | 真实Creator声明检查通过，`reports/b3-typecheck.log`                                                                                                        |
+| `pnpm build`                                                                                    | 真实Creator 3.8.8 Web Mobile通过，`reports/b3-build-command.log`；首次新资源导入漂移被正常拒绝后重建，未削弱指纹门禁                                       |
+| `pnpm test`                                                                                     | 23/23通过，0跳过，`reports/b3-test.log`；包括规则、存档、机翼/相机、资产、表现和制品                                                                       |
+| `node tests/prebuilt.mjs`                                                                       | 实际构建/类型制品复用通过；根声明缺失可恢复，下一test步骤无安装编辑器且无prebuilt环境变量通过；入口篡改、伪造声明、额外文件拒绝，`reports/b3-prebuilt.log` |
+| `node --test tests/artifact.test.mjs`                                                           | fresh typecheck后通过；另在无效COCOS_CREATOR且未设置prebuilt变量时通过，`reports/b3-artifact-fresh.log`、`reports/b3-artifact-cache.log`                   |
+| `pnpm test:browser`                                                                             | 四尺寸及全页面真实输入通过，`reports/b3-browser-command.log`、`reports/browser/report.json`                                                                |
+| `node reports/b3-shell-consumer.mjs`                                                            | 直接调用未改的Shell `assertNullrangeGameplay`，独立页/iframe各自横竖屏导弹、暂停、返回通过，`reports/b3-shell-consumer.log/json`                           |
+| `node reports/b3-archive.mjs`                                                                   | verifyPrebuilt再次通过，绑定同hash报告/消费者/14张PNG与日志摘要；只生成中间证据                                                                            |
+
+浏览器覆盖667×375 / 844×390 / 932×430 / 390×844；生产dev=0没有调试快照，dev=1快照保持脱离状态的只读副本。各页面触控热区至少44 CSS px且成对不覆盖；CSS不对称测试注入仅改变物理边距（上7/右13/下19/左31px），检查旋转映射与边界。真实CDP多点触控、cancel、拖出、冷热旋转、blur/pagehide/focus保持输入清理/暂停，音频清理断言通过；设置返回不自动开战。原有精确touchcancel引擎诊断2条单独保留，页面/HTTP/其他console错误为0。
+
+胜败均由真实键盘/触屏pilot驱动，无state/HP修改、跳关或假时钟：327 ticks、900分、3击落、2回收、机体100自然胜利；337 ticks撞地失败、随后可重试。约5秒通关仍是B4节奏差项，不是2–5分钟目标达成。
+
+实际加载17GLB与5张显式纹理，叶片内嵌纹理/alphaTest宏真实开启；49地形网格、68总网格、29材质。首页样本98 draw calls / 105757三角面；844×390战斗111 / 127349，667×375战斗111 / 114933。这里只是实际单帧计数，不是峰值或真机FPS达标证明。
+
+### 未过项、共享整合与停止边界
+
+**视觉未通过**：连续圆锥山体/光滑坡面缺岩壁和层理；水面切成不连续三角浅池，缺连贯湖谷深度；树冠偏暗且林密度不足；雪线/云雾、飞机高频细节与布光仍明显偏离目标。斑马纹和实心尾焰改善不能掩盖这些问题。UI轮廓更接近参考，字体、间距、图标及最终场景画面占比仍需主会话复核。按最新指示停止扩展World/terrain，未把本轮标成B3视觉完成。
+
+B2远端CI `40752182151` / Pages `40752182157` 后续门禁实际失败，12项Creator成功不代表流水线成功。游戏内child_process闭包/缓存声明问题本轮已修；共享旧artifact-test→toolchain精确边由主会话删除。主会话通知外部历史fixture补丁 `81a724ff` 126/126通过，由主会话合入；实现者未修改共享fixture、未将该外部结果冒充本轮实测。
+
+未验证真实手机/Safari/原生宿主安全区、设备性能或听感；未做完整Shell构建、全库、准确提交候选/远端CI与Pages、真实后端或平台上传。未使用Hyper3D、NASA候选月面、B4新机体；八类正式素材仍不齐。最后仅保存交接文档，遵照停止指令不再运行格式/测试或更改代码。临时浏览器与服务器由测试finally清理；中间制品和日志保留供主会话接手。
+
+## B3主会话环境与复核修正（2026-10-29）
+
+本节覆盖上述中间交接后的变化。sourceHash `51f25c568b4409feb0b24934d9ce6b3f06d61e99a8d49a9e6757fbdcb0dbab7c`，逐页图与哈希见 [B3场景证据](docs/design/b3-scene/README.md)。
+
+- 新连续河道共享18m水位与机体/相机/敌机/弹道碰撞；河岸连续性、三角插值和碰撞自检通过。侵蚀山体、三平面岩纹、树林近远LOD、NASA月面均为实际资源引用。
+- Carver只读复核的两个P2已修：Web物理边距只旋转一次，不再与Creator未旋转边距合并；制品测试无根声明时回读真实安装声明，保持纯数据依赖，不重引入child_process。
+- `node scripts/typecheck.mjs`、真实Creator构建通过；首次GLB/纹理导入引起meta变化时指纹门禁拒绝，重建后通过。
+- `node --test --test-concurrency=1 tests/*.test.mjs`：25/25，0跳过，`reports/b3-scene-tests.log`。
+- `node tests/browser.mjs`：四尺寸全页面、安全区两个读取端同时非零、触屏组合/取消/失焦/旋转/前后台/同源iframe通过，`reports/b3-scene-browser.log`。0页面/HTTP/非豁免console错误；正常输入451 ticks、900分自然胜利，另有自然撞地失败；仍远短于2–5分钟目标。
+- `node reports/b3-shell-consumer.mjs`：未改的Shell实际断言，独立/iframe横竖屏导弹/暂停/返回通过；`reports/b3-scene-shell.log`。
+- `node tests/prebuilt.mjs`：完整真实制品复用、类型/下一步骤缓存及所有篡改拒绝通过；`reports/b3-scene-prebuilt.log`。另将根cc.d.ts暂存后直接artifact.test成功、随后恢复；纯测试依赖闭包通过。
+- 当前workspace边界与环检查通过；删除旧test→toolchain许可后该项旧正例正确失败，改为拒绝契约后针对性通过，其余22项此前通过。两个历史夹具补丁35823035在外部同版本仓库126/126通过，不重复广泛测试。
+
+19GLB总58,832三角面/6,304,748字节；远景山体单个18,432面，树林LOD单片120面，实际首页98,521面/86 calls，战斗86,377–92,217面/102–104 calls。预算调整由实际LOD后计数支持，不宣称真机FPS。
+
+画面构图/自然密林/机体材质/云雾纵深仍未精确达标，保留未通过；B4/B5继续，B6最终视觉及八类素材不可跳过。未验证真机、Safari、原生宿主、听感、生产后端/平台登录或全仓候选。B2远端失败结论保留，本批远端CI以推送后的实际运行结果为准。

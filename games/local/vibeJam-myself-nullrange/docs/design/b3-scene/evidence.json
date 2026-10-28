@@ -1,0 +1,287 @@
+{
+  "stage": "B3 interaction and environment iteration; visual acceptance remains open",
+  "sourceHash": "51f25c568b4409feb0b24934d9ce6b3f06d61e99a8d49a9e6757fbdcb0dbab7c",
+  "creator": "3.8.8",
+  "capturedAt": "2026-10-28T21:00:53.502Z",
+  "images": [
+    {
+      "file": "production-home-844x390.png",
+      "width": 844,
+      "height": 390,
+      "sha256": "ccf4ad24c32e79c5c2554495de04b57ab258f351a0fd0cebb9c825a848fe5c2c"
+    },
+    {
+      "file": "mission-844x390.png",
+      "width": 844,
+      "height": 390,
+      "sha256": "483652da6977f654a0a0c72b07958c2196479770a2d9681e76ca7a591bfdf8db"
+    },
+    {
+      "file": "prepare-844x390.png",
+      "width": 844,
+      "height": 390,
+      "sha256": "9478ce56b82299d0be5f16d8cfef57d804521e260301fa4f133988ddeb34ec5d"
+    },
+    {
+      "file": "flight-844x390.png",
+      "width": 844,
+      "height": 390,
+      "sha256": "87b547cc7394c4ac04d0ac3dd01fc649fcab5446422e65594b9022c726323e38"
+    },
+    {
+      "file": "pause-844x390.png",
+      "width": 844,
+      "height": 390,
+      "sha256": "d58db087a54d1844b1f8b1bc5790b6c4bf2ceae71b7ae5d28613b5b7966f90ef"
+    },
+    {
+      "file": "result-844x390.png",
+      "width": 844,
+      "height": 390,
+      "sha256": "fc9d6327e0fecffb09a42b4f11a774f3af3592fd63167216e9544e48e5daa4a8"
+    },
+    {
+      "file": "settings-844x390.png",
+      "width": 844,
+      "height": 390,
+      "sha256": "02c49f709fb7d6270fe109274a9a5af3fbea1644347473bff5c1bf14d1fe1cdc"
+    },
+    {
+      "file": "safe-flight-390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "e41ae40c8b348dbaac0cc0db974aa07ffe70f4140f258758954d45dc6e2f89ac"
+    }
+  ],
+  "checks": [
+    "default production Cocos entry, dev explicitly off",
+    "19 native GLB Prefabs + 5 textures loaded, collidable terrain and actual GPU counters",
+    {
+      "viewport": "667x375",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 19,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 192,
+        "activeScenery": 190,
+        "modelInstancesCreated": 259,
+        "meshes": 67,
+        "materials": 26,
+        "renderers": 312,
+        "activeRenderers": 262,
+        "instancedPasses": 613,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 102,
+        "triangles": 86377,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": -12
+      }
+    },
+    "667x375: Cocos tap navigation, rotated fallback, >=44px targets",
+    {
+      "viewport": "844x390",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 19,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 192,
+        "activeScenery": 190,
+        "modelInstancesCreated": 259,
+        "meshes": 67,
+        "materials": 26,
+        "renderers": 312,
+        "activeRenderers": 262,
+        "instancedPasses": 613,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 104,
+        "triangles": 92217,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": -12
+      }
+    },
+    "844x390: Cocos tap navigation, rotated fallback, >=44px targets",
+    {
+      "viewport": "932x430",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 19,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 192,
+        "activeScenery": 190,
+        "modelInstancesCreated": 259,
+        "meshes": 67,
+        "materials": 26,
+        "renderers": 312,
+        "activeRenderers": 262,
+        "instancedPasses": 613,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 104,
+        "triangles": 92217,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": -12
+      }
+    },
+    "932x430: Cocos tap navigation, rotated fallback, >=44px targets",
+    {
+      "viewport": "390x844",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 19,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 192,
+        "activeScenery": 190,
+        "modelInstancesCreated": 259,
+        "meshes": 67,
+        "materials": 26,
+        "renderers": 312,
+        "activeRenderers": 262,
+        "instancedPasses": 613,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 104,
+        "triangles": 92217,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": -12
+      }
+    },
+    "390x844: Cocos tap navigation, rotated fallback, >=44px targets",
+    "simultaneous stick + fire and touch cancellation",
+    "blur clears input and pauses without catch-up",
+    "normal browser flight victory, 447 ticks, 900 score",
+    "normal terrain failure and restart",
+    "settings persistence and pause return path",
+    "development interface remains a detached read-only snapshot",
+    "portrait cold boot and touch mapping",
+    "four viewports: measured asymmetric CSS insets, transformed bounds, every page has separate >=44px touch regions",
+    "held multitouch clears on rotation; pagehide/focus keeps pause and silences audio; drag-out cancels activation",
+    "same-origin iframe emits exact Shell display-state contract"
+  ],
+  "errors": [],
+  "engineDiagnostics": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ],
+  "homeWorld": {
+    "ready": true,
+    "modelsLoaded": 19,
+    "texturesLoaded": 5,
+    "errors": [],
+    "terrainTiles": 49,
+    "terrainMeshes": 49,
+    "sceneryPool": 192,
+    "activeScenery": 192,
+    "modelInstancesCreated": 259,
+    "meshes": 67,
+    "materials": 26,
+    "renderers": 312,
+    "activeRenderers": 261,
+    "instancedPasses": 613,
+    "foliage": [
+      {
+        "name": "B3 masked pine needles",
+        "albedo": true,
+        "alphaTest": true,
+        "textured": true
+      },
+      {
+        "name": "B3 masked pine silhouette",
+        "albedo": true,
+        "alphaTest": true,
+        "textured": true
+      }
+    ],
+    "drawCalls": 86,
+    "triangles": 98521,
+    "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+    "terrainHeight": -12
+  },
+  "shellConsumer": {
+    "sourceHash": "51f25c568b4409feb0b24934d9ce6b3f06d61e99a8d49a9e6757fbdcb0dbab7c",
+    "checks": [
+      "actual unchanged Shell assertNullrangeGameplay: standalone mobile landscape + portrait",
+      "actual unchanged Shell assertNullrangeGameplay: iframe mobile landscape + portrait"
+    ],
+    "errors": []
+  },
+  "gameTests": {
+    "pass": 25,
+    "fail": 0
+  },
+  "victory": {
+    "status": "won",
+    "ticks": 447,
+    "score": 900
+  },
+  "failure": {
+    "status": "lost",
+    "reason": "撞击地形 · 保持高度"
+  },
+  "limitations": [
+    "No physical device, native host or listening acceptance",
+    "Visual gaps remain against fixed target: terrain composition, dense natural forests, aircraft materials and atmospheric depth",
+    "B4 content, B5 real PVP and B6 formal publishing materials remain open"
+  ]
+}

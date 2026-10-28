@@ -1,0 +1,150 @@
+{
+  "authoring": "Original 3D branches using supplied generated transparent needle texture; MASK, double-sided",
+  "sourceTexture": "pine-branch-source.png",
+  "textureSha256": "e4a42beec4b510b0406b13481f1e2949555f79d850c7ff1c968b58608dcccd0b",
+  "silhouetteTexture": "pine-silhouette-source.png",
+  "silhouetteSource": "image_gen: exec-8cefc5df-cc65-4fba-9d17-9a9e0c9020fb.png",
+  "silhouetteSha256": "5c3d884cdb62a1c3b72b25bff02c24b73f638d38f4a188c117c317735debd89f",
+  "assets": [
+    {
+      "name": "pine-1",
+      "triangles": 268,
+      "bytes": 472580,
+      "bounds": {
+        "min": [
+          -6.108353614807129,
+          0.0,
+          -5.633431434631348
+        ],
+        "max": [
+          4.6066155433654785,
+          18.0,
+          5.434424877166748
+        ]
+      },
+      "sha256": "cd026cffa2c173559240122f6b27322a19b9bbf93d758495e85c7c00d5e832c0",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "pine-2",
+      "triangles": 268,
+      "bytes": 472452,
+      "bounds": {
+        "min": [
+          -5.509338855743408,
+          0.0,
+          -5.0807785987854
+        ],
+        "max": [
+          4.403590202331543,
+          14.0,
+          4.681244373321533
+        ]
+      },
+      "sha256": "4ab4009b1048b6692a362a6db7d9d4ff579d17a5d01a106f02821022eb6c5c47",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "pine-3",
+      "triangles": 268,
+      "bytes": 472584,
+      "bounds": {
+        "min": [
+          -6.030874729156494,
+          0.0,
+          -5.438743591308594
+        ],
+        "max": [
+          4.9570722579956055,
+          22.0,
+          5.290828704833984
+        ]
+      },
+      "sha256": "a71e158483d9f0bfec24ca10b78ca81e0394537ffa4047f6c4ecc44099c048cd",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "forest-1",
+      "triangles": 5360,
+      "bytes": 926644,
+      "bounds": {
+        "min": [
+          -24.877866744995117,
+          -3.0,
+          -26.45604133605957
+        ],
+        "max": [
+          21.06656265258789,
+          16.946659088134766,
+          24.87299156188965
+        ]
+      },
+      "sha256": "4d5dd7a3a0f1e16a97a9ed60b4afa6224de25ea0e88538ae821a51b5b0ee131e",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "forest-lod-1",
+      "triangles": 120,
+      "bytes": 784644,
+      "bounds": {
+        "min": [
+          -24.419933319091797,
+          -3.0,
+          -25.97351837158203
+        ],
+        "max": [
+          21.09872817993164,
+          16.9466609954834,
+          23.914817810058594
+        ]
+      },
+      "sha256": "d6bc392d88ba6867a391ee8c9d69a77998ac66798317fc5e502f8665ef21cb20",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "forest-2",
+      "triangles": 5360,
+      "bytes": 925556,
+      "bounds": {
+        "min": [
+          -24.59058952331543,
+          -3.0,
+          -26.118085861206055
+        ],
+        "max": [
+          22.676279067993164,
+          17.952760696411133,
+          24.67383575439453
+        ]
+      },
+      "sha256": "c64f03558487d3167801cf9a9f38300a3bdad72daaaa002f433436747278939b",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "forest-lod-2",
+      "triangles": 120,
+      "bytes": 784648,
+      "bounds": {
+        "min": [
+          -24.201684951782227,
+          -3.0,
+          -25.45193099975586
+        ],
+        "max": [
+          21.95270538330078,
+          17.952762603759766,
+          23.752038955688477
+        ]
+      },
+      "sha256": "b5f7d2ddbd864a43dda0398b155566d6c08f6828b071d5d72c5223e857d8c224",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    }
+  ]
+}

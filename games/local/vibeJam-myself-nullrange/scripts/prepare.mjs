@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile, readdir, access } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { writeSoundBank } from './sound-bank.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 export const sceneUuid = '0dcf0c53-f0f9-48cd-a4d6-841508e72db5';
 export const componentUuid = '70a75132-38e7-4b37-8b65-dff0a4870b7e';
@@ -56,47 +57,7 @@ export async function prepare() {
     path.join(root, 'assets/scenes/main.scene'),
     JSON.stringify(scene, null, 2) + '\n',
   );
-  for (const [name, frequency] of Object.entries({
-    shoot: 620,
-    hit: 900,
-    kill: 115,
-    damage: 75,
-    pickup: 530,
-    missile: 150,
-    scan: 440,
-    lost: 130,
-    won: 660,
-    wind: 0,
-  })) {
-    const rate = 16000,
-      count = name === 'wind' ? rate * 2 : Math.round(rate * 0.24),
-      bytes = Buffer.alloc(44 + count * 2);
-    bytes.write('RIFF', 0);
-    bytes.writeUInt32LE(bytes.length - 8, 4);
-    bytes.write('WAVEfmt ', 8);
-    bytes.writeUInt32LE(16, 16);
-    bytes.writeUInt16LE(1, 20);
-    bytes.writeUInt16LE(1, 22);
-    bytes.writeUInt32LE(rate, 24);
-    bytes.writeUInt32LE(rate * 2, 28);
-    bytes.writeUInt16LE(2, 32);
-    bytes.writeUInt16LE(16, 34);
-    bytes.write('data', 36);
-    bytes.writeUInt32LE(count * 2, 40);
-    let noise = 0,
-      seed = 17;
-    for (let i = 0; i < count; i++) {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-      noise = noise * 0.96 + (seed / 4294967296 - 0.5) * 0.04;
-      const t = i / rate,
-        envelope = Math.sin((Math.PI * i) / count) ** 2;
-      const value = frequency
-        ? Math.sin(2 * Math.PI * frequency * t) * Math.exp(-t * 15) * envelope
-        : noise * envelope;
-      bytes.writeInt16LE(Math.round(value * 14000), 44 + i * 2);
-    }
-    await writeFile(path.join(root, 'assets/resources/audio', name + '.wav'), bytes);
-  }
+  await writeSoundBank(path.join(root, 'assets/resources/audio'));
   const entries = await readdir(path.join(root, 'assets'), {
     recursive: true,
     withFileTypes: true,

@@ -85,15 +85,15 @@ if (target === 'web-mobile' && process.env.NULLRANGE_PREBUILT_DIR) {
     .replace('minimal-ui=true', 'viewport-fit=cover')
     .replace(
       '</head>',
-      '<link rel="icon" href="./icon.svg"><script src="./dev-mode.js"></script><script defer src="./host.js"></script><style>html,body{margin:0;background:#102538;overflow:hidden;overscroll-behavior:none}canvas{touch-action:none;outline:none}#nullrange-loading{position:fixed;inset:0;z-index:30;display:grid;place-content:center;gap:16px;background:#102538;color:#eef3e5;text-align:center;font:18px system-ui}#nullrange-loading button{min-height:44px;background:#f6bb69;border:0;color:#102538;font:inherit}[hidden]{display:none!important}</style></head>',
+      '<link rel="icon" href="./icon.png"><script src="./dev-mode.js"></script><script defer src="./host.js"></script><style>html,body{margin:0;background:#102538;overflow:hidden;overscroll-behavior:none}canvas{touch-action:none;outline:none}#nullrange-loading{position:fixed;inset:0;z-index:30;display:grid;place-content:center;gap:16px;background:#102538;color:#eef3e5;text-align:center;font:18px system-ui}#nullrange-loading button{min-height:44px;background:#f6bb69;border:0;color:#102538;font:inherit}[hidden]{display:none!important}</style></head>',
     )
     .replace(
       /<body([^>]*)>/,
-      '<body$1><div id="nullrange-loading" role="status"><img src="./icon.svg" width="80" height="80" alt=""><strong>零域 · NULL RANGE</strong><span>正在准备飞行…</span><button hidden type="button">重新加载</button></div>',
+      '<body$1><div id="nullrange-loading" role="status"><img src="./icon.png" width="80" height="80" alt=""><strong>零域 · NULL RANGE</strong><span>正在准备飞行…</span><button hidden type="button">重新加载</button></div>',
     );
   await writeFile(path.join(out, 'index.html'), html);
   await cp(path.join(root, 'scripts/dev-mode.js'), path.join(out, 'dev-mode.js'));
-  for (const file of ['host.js', 'icon.svg'])
+  for (const file of ['host.js', 'icon.png'])
     await cp(path.join(root, 'startup', file), path.join(out, file));
   const declarations = await readFile(
     path.join(editorRoot, 'resources/resources/3d/engine/bin/.declarations/cc.d.ts'),

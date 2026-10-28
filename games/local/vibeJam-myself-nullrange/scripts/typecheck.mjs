@@ -1,4 +1,4 @@
-import { mkdir, writeFile, access } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, access } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -14,6 +14,8 @@ const declarations = prebuilt
   ? path.resolve(prebuilt, 'cc.d.ts')
   : path.join(editorRoot, 'resources/resources/3d/engine/bin/.declarations/cc.d.ts');
 await access(declarations);
+// CI test steps reuse this real declaration even when their prebuilt environment is not inherited.
+await writeFile(path.join(root, 'cc.d.ts'), await readFile(declarations));
 await mkdir(path.join(root, 'reports'), { recursive: true });
 await writeFile(
   path.join(root, 'reports/engine.d.ts'),

@@ -1,0 +1,26 @@
+{
+  "model": {
+    "name": "moon",
+    "triangles": 960,
+    "bytes": 24816,
+    "bounds": {
+      "min": [
+        -6,
+        -6,
+        -6
+      ],
+      "max": [
+        6,
+        6,
+        6
+      ]
+    },
+    "sha256": "0227bf932a57752c3277a6b7c67c37d174f7eccb65e8f0e033f4358b1315d3cb",
+    "generator": "build_moon.py",
+    "sourceHash": "ac84fa0b239e505f607d96ee60be217907fbc067e8ea00addbf5fadce89cff0e"
+  },
+  "texture": "lunar-lroc.jpg",
+  "textureSha256": "f7130a1822681fa7512d7dcfd40db8c10b9ba4f06777910348698260ed7a2170",
+  "credit": "NASA Scientific Visualization Studio / Ernie Wright (USRA), LRO/LROC",
+  "source": "https://svs.gsfc.nasa.gov/4720/"
+}

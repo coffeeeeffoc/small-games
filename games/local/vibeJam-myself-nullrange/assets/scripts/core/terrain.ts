@@ -2,19 +2,27 @@
 export const TERRAIN_STEP = 20;
 export const TILE_SIZE = 320;
 export const FLIGHT_CEILING = 360;
+export const WATER_LEVEL = 18;
 export const valleyCenter = (z: number) => 115 * Math.sin(z * 0.0018);
+const ramp = (a: number, b: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
 export function terrainVertex(x: number, z: number) {
-  const bank = Math.min(1, Math.max(0, (Math.abs(x - valleyCenter(z)) - 90) / 360));
-  const ridge = bank * bank * (3 - 2 * bank);
+  const distance = Math.abs(x - valleyCenter(z));
+  const shore = 65 + 14 * Math.sin(z * 0.006);
+  const bank = ramp(shore - 28, shore + 40, distance);
+  const shelf = ramp(shore + 45, 240, distance);
+  const cliff = ramp(220 + 25 * Math.sin(z * 0.011), 295, distance);
+  const foothill = ramp(330, 600, distance);
+  // A continuous submerged channel, forest shelves and steep exposed rock faces.
   return (
-    12 +
-    6 * Math.sin(x * 0.008) * Math.cos(z * 0.006) +
-    4 * Math.sin(z * 0.016) +
-    ridge *
-      (148 +
-        44 * Math.sin(z * 0.004 + x * 0.003) +
-        36 * Math.cos(x * 0.022 - z * 0.012) +
-        18 * Math.sin(x * 0.041 + z * 0.026))
+    -12 +
+    bank * 48 +
+    shelf * (35 + 12 * Math.sin(z * 0.007)) +
+    cliff * (105 + 24 * Math.sin(z * 0.009 + x * 0.003)) +
+    foothill * (55 + 24 * Math.sin(x * 0.009 - z * 0.004)) +
+    bank * (5 * Math.sin(x * 0.037 + z * 0.025) + 3 * Math.sin(x * 0.081 - z * 0.052))
   );
 }
 export function terrainHeight(x: number, z: number) {
@@ -77,7 +85,7 @@ export function sceneryAt(cx: number, cz: number): Scenery {
   const seed = (Math.imul(cx, 73856093) ^ Math.imul(cz, 19349663)) >>> 0;
   const x = cx * 120 + 30 + (seed % 55),
     z = cz * 120 + 30 + ((seed >>> 8) % 55);
-  const forest = Math.abs(x - valleyCenter(z)) > 65 && terrainHeight(x, z) < 150;
+  const forest = Math.abs(x - valleyCenter(z)) > 100 && terrainHeight(x, z) < 150;
   const scale = forest ? 1.65 : 3;
   return {
     model: forest ? `forest-${(seed % 2) + 1}` : `rock-${(seed % 3) + 1}`,

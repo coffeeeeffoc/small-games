@@ -648,7 +648,7 @@ test('identity fixtures reuse exact implementations without opening runtime or a
   );
 });
 
-test('Nullrange Creator tools allow exact build and test edges without exposing runtime imports', async (t) => {
+test('Nullrange Creator reuse allows build tools but rejects test, adjacent and runtime imports', async (t) => {
   const root = await createWorkspace([
     {
       path: 'games/local/vibeJam-myself-nullrange',
@@ -665,9 +665,9 @@ test('Nullrange Creator tools allow exact build and test edges without exposing 
   ]);
   t.after(() => rm(root, { recursive: true, force: true }));
   const violations = await validateWorkspace(root);
-  assert.equal(violations.length, 2);
+  assert.equal(violations.length, 3);
   assert(violations.every((entry) => entry.code === 'cross-package-relative'));
-  assert(violations.every((entry) => /other|main/.test(entry.message)));
+  assert(violations.every((entry) => /artifact|other|main/.test(entry.message)));
 });
 
 test('homebound Creator reuse is limited to the declared build and typecheck tools', async (t) => {

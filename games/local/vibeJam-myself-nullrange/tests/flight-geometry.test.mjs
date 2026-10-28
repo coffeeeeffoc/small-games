@@ -9,6 +9,18 @@ import {
 } from '../assets/scripts/core/flight-geometry.ts';
 import { createRun, step } from '../assets/scripts/core/rules.ts';
 import { readFile } from 'node:fs/promises';
+import { WATER_LEVEL } from '../assets/scripts/core/terrain.ts';
+
+test('water is a physical surface for the airframe and camera, not a decorative layer', () => {
+  assert.equal(surfaceHeight(0, 0), WATER_LEVEL);
+  const s = createRun();
+  s.player.y = WATER_LEVEL - 2;
+  step(s);
+  assert.ok(s.events.includes('damage'));
+  assert.ok(s.player.y >= WATER_LEVEL + 7);
+  for (const p of airframeSamples(s.player)) assert.ok(p.y > WATER_LEVEL);
+  assert.ok(cameraView(s.player, false, 0).position.y >= WATER_LEVEL + 6);
+});
 test('Falcon probes cover the current authored span, nose and underside', async () => {
   const m = JSON.parse(
     await readFile(new URL('../art/falcon-manifest.json', import.meta.url), 'utf8'),

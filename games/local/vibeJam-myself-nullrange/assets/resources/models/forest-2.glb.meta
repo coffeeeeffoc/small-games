@@ -21,31 +21,15 @@
       ],
       "subMetas": {}
     },
-    "99550": {
-      "importer": "gltf-material",
-      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@99550",
-      "displayName": "",
-      "id": "99550",
-      "name": "Pine needles middle.material",
-      "userData": {
-        "gltfIndex": 3
-      },
-      "ver": "1.0.14",
-      "imported": true,
-      "files": [
-        ".json"
-      ],
-      "subMetas": {}
-    },
-    "d8c3f": {
+    "95690": {
       "importer": "gltf-mesh",
-      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@d8c3f",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@95690",
       "displayName": "",
-      "id": "d8c3f",
-      "name": "Cone.036.mesh",
+      "id": "95690",
+      "name": "Cone.023.mesh",
       "userData": {
         "gltfIndex": 0,
-        "triangleCount": 4040
+        "triangleCount": 5360
       },
       "ver": "1.1.1",
       "imported": true,
@@ -55,12 +39,55 @@
       ],
       "subMetas": {}
     },
-    "61d5e": {
-      "importer": "gltf-material",
-      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@61d5e",
+    "3fbed": {
+      "importer": "gltf-embeded-image",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@3fbed",
       "displayName": "",
-      "id": "61d5e",
-      "name": "Weathered cedar bark.material",
+      "id": "3fbed",
+      "name": "pine-branch-source.image",
+      "userData": {
+        "gltfIndex": 0,
+        "fixAlphaTransparencyArtifacts": true,
+        "hasAlpha": true,
+        "type": "texture"
+      },
+      "ver": "1.0.3",
+      "imported": true,
+      "files": [
+        ".json",
+        ".png"
+      ],
+      "subMetas": {}
+    },
+    "e39f7": {
+      "importer": "texture",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@e39f7",
+      "displayName": "",
+      "id": "e39f7",
+      "name": "UnnamedTexture.texture",
+      "userData": {
+        "wrapModeS": "repeat",
+        "wrapModeT": "repeat",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "linear",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@3fbed"
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "d1651": {
+      "importer": "gltf-material",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@d1651",
+      "displayName": "",
+      "id": "d1651",
+      "name": "B3 cedar bark.material",
       "userData": {
         "gltfIndex": 0
       },
@@ -71,30 +98,14 @@
       ],
       "subMetas": {}
     },
-    "a1abc": {
+    "b7cbd": {
       "importer": "gltf-material",
-      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@a1abc",
+      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@b7cbd",
       "displayName": "",
-      "id": "a1abc",
-      "name": "Pine needles shadow.material",
+      "id": "b7cbd",
+      "name": "B3 masked pine needles.material",
       "userData": {
         "gltfIndex": 1
-      },
-      "ver": "1.0.14",
-      "imported": true,
-      "files": [
-        ".json"
-      ],
-      "subMetas": {}
-    },
-    "32c5c": {
-      "importer": "gltf-material",
-      "uuid": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@32c5c",
-      "displayName": "",
-      "id": "32c5c",
-      "name": "Pine needles tips.material",
-      "userData": {
-        "gltfIndex": 2
       },
       "ver": "1.0.14",
       "imported": true,
@@ -105,7 +116,12 @@
     }
   },
   "userData": {
-    "imageMetas": [],
+    "imageMetas": [
+      {
+        "name": "pine-branch-source",
+        "uri": "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@3fbed"
+      }
+    ],
     "lods": {
       "enable": false,
       "hasBuiltinLOD": false,
@@ -126,15 +142,15 @@
     },
     "assetFinder": {
       "meshes": [
-        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@d8c3f"
+        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@95690"
       ],
       "skeletons": [],
-      "textures": [],
+      "textures": [
+        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@e39f7"
+      ],
       "materials": [
-        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@61d5e",
-        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@a1abc",
-        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@32c5c",
-        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@99550"
+        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@d1651",
+        "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@b7cbd"
       ],
       "scenes": [
         "10c9c26d-c5e9-4ef7-a4b9-c631b047a347@56124"

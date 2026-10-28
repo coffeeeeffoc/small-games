@@ -1,0 +1,143 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "73a114ae-744c-416c-a310-58d830d2b505",
+  "files": [],
+  "subMetas": {
+    "3b023": {
+      "importer": "gltf-mesh",
+      "uuid": "73a114ae-744c-416c-a310-58d830d2b505@3b023",
+      "displayName": "",
+      "id": "3b023",
+      "name": "Distant spruce canopy.001.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 120
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "31c85": {
+      "importer": "gltf-embeded-image",
+      "uuid": "73a114ae-744c-416c-a310-58d830d2b505@31c85",
+      "displayName": "",
+      "id": "31c85",
+      "name": "pine-silhouette-source.image",
+      "userData": {
+        "gltfIndex": 0,
+        "fixAlphaTransparencyArtifacts": true,
+        "hasAlpha": true,
+        "type": "texture"
+      },
+      "ver": "1.0.3",
+      "imported": true,
+      "files": [
+        ".json",
+        ".png"
+      ],
+      "subMetas": {}
+    },
+    "e39f7": {
+      "importer": "texture",
+      "uuid": "73a114ae-744c-416c-a310-58d830d2b505@e39f7",
+      "displayName": "",
+      "id": "e39f7",
+      "name": "UnnamedTexture.texture",
+      "userData": {
+        "wrapModeS": "repeat",
+        "wrapModeT": "repeat",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "linear",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "73a114ae-744c-416c-a310-58d830d2b505@31c85"
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "de5f4": {
+      "importer": "gltf-material",
+      "uuid": "73a114ae-744c-416c-a310-58d830d2b505@de5f4",
+      "displayName": "",
+      "id": "de5f4",
+      "name": "B3 masked pine silhouette.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "da709": {
+      "importer": "gltf-scene",
+      "uuid": "73a114ae-744c-416c-a310-58d830d2b505@da709",
+      "displayName": "",
+      "id": "da709",
+      "name": "forest-lod-2.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [
+      {
+        "name": "pine-silhouette-source",
+        "uri": "73a114ae-744c-416c-a310-58d830d2b505@31c85"
+      }
+    ],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "73a114ae-744c-416c-a310-58d830d2b505@3b023"
+      ],
+      "skeletons": [],
+      "textures": [
+        "73a114ae-744c-416c-a310-58d830d2b505@e39f7"
+      ],
+      "materials": [
+        "73a114ae-744c-416c-a310-58d830d2b505@de5f4"
+      ],
+      "scenes": [
+        "73a114ae-744c-416c-a310-58d830d2b505@da709"
+      ]
+    }
+  }
+}

@@ -5,31 +5,15 @@
   "uuid": "127bce88-c19d-492e-b901-2d3613f3c3c4",
   "files": [],
   "subMetas": {
-    "50201": {
-      "importer": "gltf-material",
-      "uuid": "127bce88-c19d-492e-b901-2d3613f3c3c4@50201",
-      "displayName": "",
-      "id": "50201",
-      "name": "Slate blue stone.material",
-      "userData": {
-        "gltfIndex": 0
-      },
-      "ver": "1.0.14",
-      "imported": true,
-      "files": [
-        ".json"
-      ],
-      "subMetas": {}
-    },
-    "0d9fa": {
+    "d72b4": {
       "importer": "gltf-mesh",
-      "uuid": "127bce88-c19d-492e-b901-2d3613f3c3c4@0d9fa",
+      "uuid": "127bce88-c19d-492e-b901-2d3613f3c3c4@d72b4",
       "displayName": "",
-      "id": "0d9fa",
-      "name": "Mountain ridge.mesh",
+      "id": "d72b4",
+      "name": "Eroded granite massif.mesh",
       "userData": {
         "gltfIndex": 0,
-        "triangleCount": 2592
+        "triangleCount": 18432
       },
       "ver": "1.1.1",
       "imported": true,
@@ -39,62 +23,14 @@
       ],
       "subMetas": {}
     },
-    "adbf5": {
+    "e5c68": {
       "importer": "gltf-material",
-      "uuid": "127bce88-c19d-492e-b901-2d3613f3c3c4@adbf5",
+      "uuid": "127bce88-c19d-492e-b901-2d3613f3c3c4@e5c68",
       "displayName": "",
-      "id": "adbf5",
-      "name": "Fractured slate faces.material",
+      "id": "e5c68",
+      "name": "B3 slate strata.material",
       "userData": {
-        "gltfIndex": 1
-      },
-      "ver": "1.0.14",
-      "imported": true,
-      "files": [
-        ".json"
-      ],
-      "subMetas": {}
-    },
-    "5cb1e": {
-      "importer": "gltf-material",
-      "uuid": "127bce88-c19d-492e-b901-2d3613f3c3c4@5cb1e",
-      "displayName": "",
-      "id": "5cb1e",
-      "name": "Deep slate seams.material",
-      "userData": {
-        "gltfIndex": 2
-      },
-      "ver": "1.0.14",
-      "imported": true,
-      "files": [
-        ".json"
-      ],
-      "subMetas": {}
-    },
-    "4da49": {
-      "importer": "gltf-material",
-      "uuid": "127bce88-c19d-492e-b901-2d3613f3c3c4@4da49",
-      "displayName": "",
-      "id": "4da49",
-      "name": "Alpine snow.material",
-      "userData": {
-        "gltfIndex": 3
-      },
-      "ver": "1.0.14",
-      "imported": true,
-      "files": [
-        ".json"
-      ],
-      "subMetas": {}
-    },
-    "7c702": {
-      "importer": "gltf-material",
-      "uuid": "127bce88-c19d-492e-b901-2d3613f3c3c4@7c702",
-      "displayName": "",
-      "id": "7c702",
-      "name": "Moss ledges.material",
-      "userData": {
-        "gltfIndex": 4
+        "gltfIndex": 0
       },
       "ver": "1.0.14",
       "imported": true,
@@ -142,16 +78,12 @@
     },
     "assetFinder": {
       "meshes": [
-        "127bce88-c19d-492e-b901-2d3613f3c3c4@0d9fa"
+        "127bce88-c19d-492e-b901-2d3613f3c3c4@d72b4"
       ],
       "skeletons": [],
       "textures": [],
       "materials": [
-        "127bce88-c19d-492e-b901-2d3613f3c3c4@50201",
-        "127bce88-c19d-492e-b901-2d3613f3c3c4@adbf5",
-        "127bce88-c19d-492e-b901-2d3613f3c3c4@5cb1e",
-        "127bce88-c19d-492e-b901-2d3613f3c3c4@4da49",
-        "127bce88-c19d-492e-b901-2d3613f3c3c4@7c702"
+        "127bce88-c19d-492e-b901-2d3613f3c3c4@e5c68"
       ],
       "scenes": [
         "127bce88-c19d-492e-b901-2d3613f3c3c4@1d6c6"

@@ -67,6 +67,9 @@ try {
   assert.equal(await page.evaluate(() => !!globalThis.__nullrange), false);
   assert.equal(await page.evaluate(() => SmallGamesDev.isEnabled()), false);
   check('default production Cocos entry, dev explicitly off');
+  await page.screenshot({ path: root + 'reports/browser/production-home-844x390.png' });
+  assert.ok(await page.locator('#nullrange-safe-area').count());
+  assert.match(await page.locator('link[rel="icon"]').getAttribute('href'), /icon\.png$/);
   await page.evaluate(() => {
     localStorage.setItem('nullrange-cn-best', '314');
     localStorage.setItem('nullrange-cn-muted', 'true');
@@ -77,16 +80,19 @@ try {
   });
   const snap = () => page.evaluate(() => __nullrange.snapshot());
   const world = (await snap()).world;
-  assert.equal(world.modelsLoaded, 17);
+  assert.equal(world.modelsLoaded, 19);
   assert.equal(world.texturesLoaded, 5);
   assert.deepEqual(world.errors, []);
   assert.equal(world.terrainMeshes, 49);
   assert.ok(world.instancedPasses > 0);
+  assert.ok(
+    world.foliage.length > 0 && world.foliage.every((m) => m.albedo && m.alphaTest && m.textured),
+  );
   assert.ok(world.meshes <= 70);
   assert.ok(world.drawCalls > 0 && world.drawCalls < 200);
   assert.ok(world.triangles > 10000 && world.triangles < 180000);
   report.world = world;
-  check('17 native GLB Prefabs + 5 textures loaded, collidable terrain and actual GPU counters');
+  check('19 native GLB Prefabs + 5 textures loaded, collidable terrain and actual GPU counters');
   const point = async (x, y) => {
     const s = await snap(),
       v = page.viewportSize();
@@ -103,6 +109,29 @@ try {
     await page.waitForTimeout(150);
   };
   const shot = async (name) => page.screenshot({ path: root + `reports/browser/${name}.png` });
+  const layout = async () => {
+    const s = await snap(),
+      a = s.safe;
+    for (const c of s.controls) {
+      assert.ok(Math.min(c.w, c.h) * s.scale >= 43.9, `${s.screen}/${c.id} >=44px`);
+      assert.ok(
+        c.x >= a.left - 0.1 &&
+          c.y >= a.top - 0.1 &&
+          c.x + c.w <= a.right + 0.1 &&
+          c.y + c.h <= a.bottom + 0.1,
+        `${s.screen}/${c.id} inside safe area ${JSON.stringify(a)}`,
+      );
+      for (const d of s.controls)
+        if (c.id < d.id)
+          assert.ok(
+            c.x + c.w <= d.x + 0.1 ||
+              d.x + d.w <= c.x + 0.1 ||
+              c.y + c.h <= d.y + 0.1 ||
+              d.y + d.h <= c.y + 0.1,
+            `${s.screen} overlapping ${c.id}/${d.id}`,
+          );
+    }
+  };
   for (const [width, height] of [
     [667, 375],
     [844, 390],
@@ -113,19 +142,44 @@ try {
     await page.waitForTimeout(250);
     const s = await snap();
     assert.ok(s.controls.every((c) => Math.min(c.w, c.h) * s.scale >= 43.9));
+    await layout();
     await shot(`home-${width}x${height}`);
     await tap('online');
     assert.equal((await snap()).screen, 'online');
+    await layout();
+    await shot(`online-${width}x${height}`);
+    await tap('back');
+    await tap('help');
+    await layout();
+    await shot(`help-${width}x${height}`);
+    await tap('back');
+    await tap('settings');
+    await layout();
+    await shot(`settings-${width}x${height}`);
     await tap('back');
     await tap('missions');
+    await layout();
+    await shot(`mission-${width}x${height}`);
+    await tap('prepare');
+    assert.equal((await snap()).screen, 'prepare');
+    await layout();
+    await shot(`prepare-${width}x${height}`);
     await tap('start');
     assert.equal((await snap()).screen, 'playing');
     const running = await snap();
+    await layout();
     await shot(`flight-${width}x${height}`);
     report.checks.push({ viewport: `${width}x${height}`, world: running.world });
     assert.ok(running.controls.every((c) => Math.min(c.w, c.h) * running.scale >= 43.9));
     await tap('pause');
     assert.equal((await snap()).screen, 'paused');
+    await layout();
+    await shot(`pause-${width}x${height}`);
+    const tick = (await snap()).state.tick;
+    await tap('settings');
+    await tap('back');
+    assert.equal((await snap()).screen, 'paused');
+    assert.equal((await snap()).state.tick, tick);
     await tap('home');
     check(`${width}x${height}: Cocos tap navigation, rotated fallback, >=44px targets`);
   }
@@ -203,6 +257,19 @@ try {
   assert.equal(won.screen, 'result');
   assert.equal(won.progress.best, 314, 'development run does not write best');
   await shot('victory');
+  for (const [width, height] of [
+    [667, 375],
+    [844, 390],
+    [932, 430],
+    [390, 844],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.waitForTimeout(250);
+    await layout();
+    await shot(`result-${width}x${height}`);
+  }
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForTimeout(250);
   check(`normal browser flight victory, ${won.state.tick} ticks, ${won.state.score} score`);
   await tap('restart');
   assert.equal((await snap()).state.player.hull, 100);
@@ -214,6 +281,7 @@ try {
   assert.match((await snap()).state.reason, /地形/);
   report.failure = (await snap()).state;
   await shot('failure');
+  await layout();
   await tap('restart');
   assert.equal((await snap()).screen, 'playing');
   check('normal terrain failure and restart');
@@ -230,6 +298,16 @@ try {
   await page.waitForFunction(() => globalThis.__nullrange?.snapshot().world.ready);
   assert.deepEqual((await snap()).progress, preferences);
   check('settings persistence and pause return path');
+  assert.deepEqual(await page.evaluate(() => Object.keys(__nullrange)), ['snapshot']);
+  assert.equal(
+    await page.evaluate(() => {
+      const s = __nullrange.snapshot();
+      s.state.player.hull = 0;
+      return __nullrange.snapshot().state.player.hull;
+    }),
+    100,
+  );
+  check('development interface remains a detached read-only snapshot');
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
   await page.waitForFunction(() => globalThis.__nullrange?.snapshot().world.ready);
@@ -238,6 +316,112 @@ try {
   await tap('back');
   await shot('portrait-cold-boot');
   check('portrait cold boot and touch mapping');
+  // Both readers see the same physical safe area, like an actual notched Web device.
+  for (const [width, height] of [
+    [667, 375],
+    [844, 390],
+    [932, 430],
+    [390, 844],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.evaluate(() => {
+      document.querySelector('#nullrange-safe-area').style.padding = '7px 13px 19px 31px';
+      for (const [side, value] of Object.entries({ top: 7, right: 13, bottom: 19, left: 31 }))
+        document.documentElement.style.setProperty('--safe-' + side, value + 'px');
+      window.dispatchEvent(new Event('resize'));
+    });
+    await page.waitForTimeout(350);
+    const s = await snap(),
+      expected =
+        width < height
+          ? { left: 7, top: 13, right: 19, bottom: 31 }
+          : { left: 31, top: 7, right: 13, bottom: 19 };
+    assert.ok(Math.abs(s.safe.left - 18 - expected.left / s.scale) < 0.1);
+    assert.ok(Math.abs(s.safe.top - 12 - expected.top / s.scale) < 0.1);
+    assert.ok(Math.abs(s.width - s.safe.right - 18 - expected.right / s.scale) < 0.1);
+    assert.ok(Math.abs(s.height - s.safe.bottom - 12 - expected.bottom / s.scale) < 0.1);
+    await layout();
+    await shot(`safe-home-${width}x${height}`);
+    for (const id of ['settings', 'help', 'online']) {
+      await tap(id);
+      await layout();
+      await shot(`safe-${id}-${width}x${height}`);
+      await tap('back');
+    }
+    await tap('missions');
+    await layout();
+    await tap('prepare');
+    await layout();
+    await tap('back');
+    assert.equal((await snap()).screen, 'missions');
+    await tap('start');
+    await layout();
+    await shot(`safe-flight-${width}x${height}`);
+    await tap('pause');
+    await layout();
+    await tap('settings');
+    await layout();
+    await tap('back');
+    await tap('home');
+  }
+  check(
+    'four viewports: measured asymmetric CSS insets, transformed bounds, every page has separate >=44px touch regions',
+  );
+  await page.evaluate(() => {
+    for (const side of ['top', 'right', 'bottom', 'left'])
+      document.documentElement.style.removeProperty('--safe-' + side);
+    document.querySelector('#nullrange-safe-area').style.padding =
+      'env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+    window.dispatchEvent(new Event('resize'));
+  });
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForTimeout(300);
+  await tap('missions');
+  await tap('start');
+  const beforeRotate = await snap(),
+    rc = beforeRotate.controls.find((c) => c.id === 'stick'),
+    rf = beforeRotate.controls.find((c) => c.id === 'fire');
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [
+      { ...(await point(rc.x + rc.w / 2 + 20, rc.y + rc.h / 2)), id: 5 },
+      { ...(await point(rf.x + rf.w / 2, rf.y + rf.h / 2)), id: 6 },
+    ],
+  });
+  await page.waitForTimeout(80);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(300);
+  assert.equal((await snap()).input.pointers, 0);
+  assert.deepEqual((await snap()).input.stick, { x: 0, y: 0 });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  const background = await snap();
+  assert.equal(background.screen, 'paused');
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('pageshow'));
+    window.dispatchEvent(new Event('focus'));
+  });
+  await page.waitForTimeout(200);
+  assert.equal((await snap()).state.tick, background.state.tick);
+  assert.equal((await snap()).audio.engine, false);
+  assert.equal((await snap()).audio.effects, 0);
+  await tap('home');
+  // A touch dragged out of a menu control cannot activate it on release.
+  const hc = (await snap()).controls.find((c) => c.id === 'missions');
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ ...(await point(hc.x + hc.w / 2, hc.y + hc.h / 2)), id: 7 }],
+  });
+  await cdp.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ ...(await point(300, 140)), id: 7 }],
+  });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.waitForTimeout(150);
+  assert.equal((await snap()).screen, 'home');
+  check(
+    'held multitouch clears on rotation; pagehide/focus keeps pause and silences audio; drag-out cancels activation',
+  );
   await page.setViewportSize({ width: 844, height: 390 });
   await page.route(base + 'host-fixture', (route) =>
     route.fulfill({

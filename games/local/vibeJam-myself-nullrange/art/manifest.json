@@ -6,60 +6,6 @@
   "sourceHash": "8a309ff0ff624517ed68699b8c382c2ac78785be341116d7088addb28d4b2782",
   "assets": [
     {
-      "name": "pine-1",
-      "triangles": 404,
-      "bytes": 72160,
-      "bounds": {
-        "min": [
-          -4.400968551635742,
-          0.0,
-          -4.2235426902771
-        ],
-        "max": [
-          4.846911907196045,
-          18.878684997558594,
-          4.671699523925781
-        ]
-      },
-      "sha256": "efe26b14848cf06101f73f8fcaf7828ca7236ed18be69700efb783f2a7dfce81"
-    },
-    {
-      "name": "pine-2",
-      "triangles": 404,
-      "bytes": 72236,
-      "bounds": {
-        "min": [
-          -3.503816843032837,
-          0.0,
-          -3.9115593433380127
-        ],
-        "max": [
-          3.7834601402282715,
-          14.724925994873047,
-          3.9687137603759766
-        ]
-      },
-      "sha256": "49fbcd95fbd6e24978971d9f19014c15c7df9c6567160f3821b678bd6d03e9c8"
-    },
-    {
-      "name": "pine-3",
-      "triangles": 404,
-      "bytes": 72116,
-      "bounds": {
-        "min": [
-          -3.721806049346924,
-          0.0,
-          -4.111733436584473
-        ],
-        "max": [
-          4.072553634643555,
-          22.946935653686523,
-          3.7925078868865967
-        ]
-      },
-      "sha256": "ec57ee46eb3506c0e1dc27e774a7ca81caac03ac8a849c88c3248a6b273fc77d"
-    },
-    {
       "name": "rock-1",
       "triangles": 80,
       "bytes": 17880,
@@ -150,60 +96,6 @@
       "sha256": "a6094f9a3242f734a4e3fb15b84ec0982ceaf5216c9fc458892d79807b54fe3f"
     },
     {
-      "name": "ridge-1",
-      "triangles": 2592,
-      "bytes": 338348,
-      "bounds": {
-        "min": [
-          -150.0,
-          0.0,
-          -120.0
-        ],
-        "max": [
-          150.0,
-          140.5668487548828,
-          120.0
-        ]
-      },
-      "sha256": "d1096805fa5c413e75f86aa011d7602bb3860fe74bf6e2a58d912bdfbd85041c"
-    },
-    {
-      "name": "ridge-2",
-      "triangles": 2592,
-      "bytes": 338376,
-      "bounds": {
-        "min": [
-          -150.0,
-          0.0,
-          -120.0
-        ],
-        "max": [
-          150.0,
-          141.7561492919922,
-          120.0
-        ]
-      },
-      "sha256": "f90fd79d7cf8081b04db3ab637741c17501eb016e629672fe2423c2089c3e7ab"
-    },
-    {
-      "name": "moon",
-      "triangles": 1280,
-      "bytes": 73836,
-      "bounds": {
-        "min": [
-          -5.999999523162842,
-          -6.0,
-          -5.999999523162842
-        ],
-        "max": [
-          6.0,
-          6.0,
-          5.999999523162842
-        ]
-      },
-      "sha256": "1826763c9e54c7eb5a52d79a9c63149d5f7ed486d5b08262e90b5a8e67536d2b"
-    },
-    {
       "name": "interceptor",
       "triangles": 1680,
       "bytes": 128388,
@@ -258,42 +150,6 @@
       "sha256": "6dae9af66a11cb705fba2cf02f1e15d3c1365e6b14f86b3b18abb2863e85ee9b"
     },
     {
-      "name": "forest-1",
-      "triangles": 4040,
-      "bytes": 775988,
-      "bounds": {
-        "min": [
-          -20.739032745361328,
-          -2.999999761581421,
-          -17.30148696899414
-        ],
-        "max": [
-          21.032154083251953,
-          19.768863677978516,
-          17.980575561523438
-        ]
-      },
-      "sha256": "d6f088a4aa68f5dc5e06f61f377b575bab5f6cc22278b0726d60f84192f165bf"
-    },
-    {
-      "name": "forest-2",
-      "triangles": 4040,
-      "bytes": 773804,
-      "bounds": {
-        "min": [
-          -22.198408126831055,
-          -3.0,
-          -19.561687469482422
-        ],
-        "max": [
-          22.34246253967285,
-          18.446359634399414,
-          18.239513397216797
-        ]
-      },
-      "sha256": "8577f4ce7696b46731882bf979c1302b0fd99a196fa4280889b2760be3bead4b"
-    },
-    {
       "name": "falcon",
       "tool": "Blender 5.2.1 LTS",
       "authoring": "Original procedural meshes from the Null Range aircraft reference; no downloaded Hyper3D geometry",
@@ -314,6 +170,206 @@
       "sha256": "a7f96ca526d65fc2527d63dee1b182f8165e049fc3404d0d61c558b2a09be702",
       "sourceHash": "92cf19a29e3940364a3a57d0887690ac2e3c2bef12f646b5ca7c040c5797cdc6",
       "generator": "build_falcon.py"
+    },
+    {
+      "name": "ridge-1",
+      "triangles": 18432,
+      "bytes": 412880,
+      "bounds": {
+        "min": [
+          -260.0,
+          0.0,
+          -190.0
+        ],
+        "max": [
+          260.0,
+          278.5525817871094,
+          190.0
+        ]
+      },
+      "sha256": "728ac02f48187909b4e766a0c5c8757ebb2e3bc1caff67fe135ffde201881555",
+      "generator": "build_ridges.py",
+      "sourceHash": "5b799a4c301cc877797104c22fe0dcfcb11e30f96cd88268c674170e9fb3124e"
+    },
+    {
+      "name": "ridge-2",
+      "triangles": 18432,
+      "bytes": 412884,
+      "bounds": {
+        "min": [
+          -260.0,
+          0.0,
+          -190.0
+        ],
+        "max": [
+          260.0,
+          286.1664123535156,
+          190.0
+        ]
+      },
+      "sha256": "c7f95a08a7026af2b011129ac2b8bd9028c3bed20a85b57b2793ab97460c0664",
+      "generator": "build_ridges.py",
+      "sourceHash": "5b799a4c301cc877797104c22fe0dcfcb11e30f96cd88268c674170e9fb3124e"
+    },
+    {
+      "name": "moon",
+      "triangles": 960,
+      "bytes": 24816,
+      "bounds": {
+        "min": [
+          -6,
+          -6,
+          -6
+        ],
+        "max": [
+          6,
+          6,
+          6
+        ]
+      },
+      "sha256": "0227bf932a57752c3277a6b7c67c37d174f7eccb65e8f0e033f4358b1315d3cb",
+      "generator": "build_moon.py",
+      "sourceHash": "ac84fa0b239e505f607d96ee60be217907fbc067e8ea00addbf5fadce89cff0e"
+    },
+    {
+      "name": "pine-1",
+      "triangles": 268,
+      "bytes": 472580,
+      "bounds": {
+        "min": [
+          -6.108353614807129,
+          0.0,
+          -5.633431434631348
+        ],
+        "max": [
+          4.6066155433654785,
+          18.0,
+          5.434424877166748
+        ]
+      },
+      "sha256": "cd026cffa2c173559240122f6b27322a19b9bbf93d758495e85c7c00d5e832c0",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "pine-2",
+      "triangles": 268,
+      "bytes": 472452,
+      "bounds": {
+        "min": [
+          -5.509338855743408,
+          0.0,
+          -5.0807785987854
+        ],
+        "max": [
+          4.403590202331543,
+          14.0,
+          4.681244373321533
+        ]
+      },
+      "sha256": "4ab4009b1048b6692a362a6db7d9d4ff579d17a5d01a106f02821022eb6c5c47",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "pine-3",
+      "triangles": 268,
+      "bytes": 472584,
+      "bounds": {
+        "min": [
+          -6.030874729156494,
+          0.0,
+          -5.438743591308594
+        ],
+        "max": [
+          4.9570722579956055,
+          22.0,
+          5.290828704833984
+        ]
+      },
+      "sha256": "a71e158483d9f0bfec24ca10b78ca81e0394537ffa4047f6c4ecc44099c048cd",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "forest-1",
+      "triangles": 5360,
+      "bytes": 926644,
+      "bounds": {
+        "min": [
+          -24.877866744995117,
+          -3.0,
+          -26.45604133605957
+        ],
+        "max": [
+          21.06656265258789,
+          16.946659088134766,
+          24.87299156188965
+        ]
+      },
+      "sha256": "4d5dd7a3a0f1e16a97a9ed60b4afa6224de25ea0e88538ae821a51b5b0ee131e",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "forest-lod-1",
+      "triangles": 120,
+      "bytes": 784644,
+      "bounds": {
+        "min": [
+          -24.419933319091797,
+          -3.0,
+          -25.97351837158203
+        ],
+        "max": [
+          21.09872817993164,
+          16.9466609954834,
+          23.914817810058594
+        ]
+      },
+      "sha256": "d6bc392d88ba6867a391ee8c9d69a77998ac66798317fc5e502f8665ef21cb20",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "forest-2",
+      "triangles": 5360,
+      "bytes": 925556,
+      "bounds": {
+        "min": [
+          -24.59058952331543,
+          -3.0,
+          -26.118085861206055
+        ],
+        "max": [
+          22.676279067993164,
+          17.952760696411133,
+          24.67383575439453
+        ]
+      },
+      "sha256": "c64f03558487d3167801cf9a9f38300a3bdad72daaaa002f433436747278939b",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
+    },
+    {
+      "name": "forest-lod-2",
+      "triangles": 120,
+      "bytes": 784648,
+      "bounds": {
+        "min": [
+          -24.201684951782227,
+          -3.0,
+          -25.45193099975586
+        ],
+        "max": [
+          21.95270538330078,
+          17.952762603759766,
+          23.752038955688477
+        ]
+      },
+      "sha256": "b5f7d2ddbd864a43dda0398b155566d6c08f6828b071d5d72c5223e857d8c224",
+      "generator": "build_forest.py",
+      "sourceHash": "a135e03e06dcaa7ce3fe7b9fc344943fdc02283d7c066669ea7cffbd2b9079fd"
     }
   ]
 }

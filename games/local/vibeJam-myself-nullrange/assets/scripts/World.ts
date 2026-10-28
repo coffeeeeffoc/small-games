@@ -11,6 +11,7 @@ import {
   Prefab,
   Texture2D,
   Vec3,
+  Vec4,
   director,
   instantiate,
   primitives,
@@ -19,7 +20,7 @@ import {
 } from 'cc';
 import { cameraView } from './core/flight-geometry';
 import type { State, Point } from './core/rules';
-import { TILE_SIZE, terrainGeometry, sceneryAt, terrainHeight } from './core/terrain';
+import { TILE_SIZE, WATER_LEVEL, terrainGeometry, sceneryAt, terrainHeight } from './core/terrain';
 export const MODEL_NAMES = [
   'falcon',
   'interceptor',
@@ -30,6 +31,8 @@ export const MODEL_NAMES = [
   'pine-3',
   'forest-1',
   'forest-2',
+  'forest-lod-1',
+  'forest-lod-2',
   'rock-1',
   'rock-2',
   'rock-3',
@@ -63,6 +66,7 @@ export class World {
   private groveKey = '';
   private terrainMaterial!: Material;
   private engines: Node[] = [];
+  private lake?: Node;
   private loadedTextures = 0;
   private spawned = 0;
   constructor(
@@ -84,35 +88,43 @@ export class World {
     this.camera.fov = 54;
     const globals = parent.scene!.globals;
     globals.skybox.enabled = false;
-    globals.ambient.skyLightingColor = tint('#bfdaed');
-    globals.ambient.groundLightingColor = tint('#66796e');
-    globals.ambient.skyIllum = 19000;
+    globals.ambient.skyLightingColor = tint('#a6bfd2');
+    globals.ambient.groundLightingColor = tint('#354844');
+    globals.ambient.skyIllum = 12500;
     globals.fog.enabled = true;
     globals.fog.type = 0;
-    globals.fog.fogColor = tint('#86a6b9');
-    globals.fog.fogStart = 850;
-    globals.fog.fogEnd = 3600;
+    globals.fog.fogColor = tint('#9bb7c6');
+    globals.fog.fogStart = 460;
+    globals.fog.fogEnd = 2700;
     const sun = this.node('Sun', this.root);
-    sun.setRotationFromEuler(-34, -42, 0);
+    sun.setRotationFromEuler(-28, -58, 0);
     const light = sun.addComponent(DirectionalLight);
-    light.illuminance = 47000;
+    light.illuminance = 57000;
     light.color = tint('#fff0d6');
     void this.load();
   }
   async load() {
     try {
-      const [skyEffect, terrainEffect, ...textures] = await Promise.all([
-        this.resource('sky-no-fog', EffectAsset),
-        this.resource('alpine-terrain', EffectAsset),
-        ...['alpine-panorama', 'ground-albedo', 'slate-albedo', 'moon-albedo', 'detail-normal'].map(
-          (name) => this.resource(`textures/${name}/texture`, Texture2D),
-        ),
-        ...MODEL_NAMES.map(async (name) => {
-          const prefab = await this.resource(`models/${name}/${name}`, Prefab);
-          this.models.set(name, prefab);
-          return null;
-        }),
-      ]);
+      const [skyEffect, terrainEffect, exhaustEffect, lakeEffect, ridgeEffect, ...textures] =
+        await Promise.all([
+          this.resource('sky-no-fog', EffectAsset),
+          this.resource('alpine-terrain', EffectAsset),
+          this.resource('exhaust', EffectAsset),
+          this.resource('lake', EffectAsset),
+          this.resource('ridge', EffectAsset),
+          ...[
+            'alpine-panorama',
+            'ground-albedo',
+            'granite-albedo',
+            'lunar-lroc',
+            'detail-normal',
+          ].map((name) => this.resource(`textures/${name}/texture`, Texture2D)),
+          ...MODEL_NAMES.map(async (name) => {
+            const prefab = await this.resource(`models/${name}/${name}`, Prefab);
+            this.models.set(name, prefab);
+            return null;
+          }),
+        ]);
       if (this.disposed) return;
       this.loadedTextures = 5;
       const [panorama, ground, slate, moon, normal] = textures as Texture2D[];
@@ -123,9 +135,19 @@ export class World {
       });
       this.terrainMaterial.setProperty('mainTexture', ground);
       this.terrainMaterial.setProperty('slateTexture', slate);
-      this.terrainMaterial.setProperty('roughness', 0.92);
-      this.terrainMaterial.setProperty('albedoScale', new Vec3(0.62, 0.7, 0.72));
       this.materials.set('terrain', this.terrainMaterial);
+      const lakeMaterial = new Material();
+      lakeMaterial.initialize({ effectAsset: lakeEffect as EffectAsset });
+      lakeMaterial.setProperty('skyTexture', panorama);
+      this.materials.set('lake', lakeMaterial);
+      const lakeMesh = utils.createMesh(
+        primitives.plane({ width: 2600, length: 2600, widthSegments: 1, lengthSegments: 1 }),
+      );
+      this.meshes.push(lakeMesh);
+      this.lake = this.node('ShallowValleyWater', this.root);
+      const waterRenderer = this.lake.addComponent(MeshRenderer);
+      waterRenderer.mesh = lakeMesh;
+      waterRenderer.setSharedMaterial(lakeMaterial, 0);
       // Imported GLBs keep their standard PBR materials. Only surfaces with authored UVs get shared detail maps.
       for (const name of MODEL_NAMES) {
         const prefab = this.models.get(name)!;
@@ -142,8 +164,7 @@ export class World {
               m.copy(original, {
                 defines: {
                   USE_INSTANCING: true,
-                  USE_ALBEDO_MAP: stone || lunar,
-                  USE_NORMAL_MAP: stone || lunar,
+                  ...(stone || lunar ? { USE_ALBEDO_MAP: true, USE_NORMAL_MAP: true } : {}),
                 },
               });
               if (stone || lunar) {
@@ -151,14 +172,50 @@ export class World {
                 m.setProperty('normalMap', normal);
                 m.setProperty('normalStrength', 0.3);
               }
+              if (/B3 masked pine/.test(key)) m.setProperty('emissive', new Color(35, 48, 28));
+              if (lunar) {
+                m.destroy();
+                m = new Material();
+                m.initialize({ effectAsset: skyEffect as EffectAsset });
+                m.setProperty('mainTexture', moon);
+                m.setProperty('tint', new Vec4(0.85, 0.92, 1, 1));
+              }
+              if (/B3 slate|B3 alpine snow|B3 moss/.test(key)) {
+                m.destroy();
+                m = new Material();
+                m.initialize({
+                  effectAsset: ridgeEffect as EffectAsset,
+                  defines: { USE_INSTANCING: true },
+                });
+                m.setProperty('mainTexture', slate);
+              }
               this.materials.set(key, m);
             }
           }
         }
       }
       this.model('falcon', this.player);
+      const plume = new Material();
+      plume.initialize({
+        effectAsset: exhaustEffect as EffectAsset,
+        defines: { USE_INSTANCING: true },
+      });
+      this.materials.set('exhaust', plume);
+      const plumeMesh = utils.createMesh({
+        positions: [
+          -0.75, 0, 0, 0.75, 0, 0, 1.5, 0, 12, -1.5, 0, 12, 0, -0.75, 0, 0, 0.75, 0, 0, 1.5, 12, 0,
+          -1.5, 12,
+        ],
+        uvs: [0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1],
+        indices: [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7],
+      });
+      this.meshes.push(plumeMesh);
       for (const x of [-1.18, 1.18]) {
-        const n = this.shape(this.player, '#65e5ed', [x, -0.16, 11], [0.85, 0.85, 6]);
+        const n = this.node('IonPlume', this.player),
+          r = n.addComponent(MeshRenderer);
+        r.mesh = plumeMesh;
+        r.setSharedMaterial(plume, 0);
+        n.setPosition(x, -0.16, 8.8);
         this.engines.push(n);
       }
       const sky = new Material();
@@ -172,7 +229,7 @@ export class World {
         const a = (i / 96) * Math.PI * 2;
         for (const y of [-1800, 3600]) {
           positions.push(Math.sin(a) * 6500, y, -Math.cos(a) * 6500);
-          uvs.push((i / 96) * 2, y < 0 ? 1 : 0);
+          uvs.push((i / 96) * 2 + 0.5, y < 0 ? 1 : 0);
         }
         if (i < 96) {
           const j = i * 2;
@@ -185,14 +242,15 @@ export class World {
       r.mesh = mesh;
       r.setSharedMaterial(sky, 0);
       const lunar = this.model('moon', this.background);
-      lunar.setPosition(720, 590, -2050);
-      lunar.setScale(20, 20, 20);
+      lunar.setPosition(700, 950, -3000);
+      lunar.setScale(24, 24, 24);
       // Background ridges follow the viewer beyond the streamed/collidable terrain; they can never enter the flight region.
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 6; i++) {
         const n = this.model(`ridge-${(i % 2) + 1}`, this.background),
-          a = (i / 10) * Math.PI * 2;
-        n.setPosition(Math.sin(a) * 1850, -70, Math.cos(a) * 1850);
-        n.setScale(5, 3.8, 4);
+          a = ((i + 0.5) / 6) * Math.PI * 2;
+        n.setPosition(Math.sin(a) * 3000, -80, Math.cos(a) * 3000);
+        n.setScale(5.2, 3.0 + (i % 3) * 0.5, 4.5);
+        n.setRotationFromEuler(0, (-a * 180) / Math.PI, 0);
       }
       for (let i = 0; i < 8; i++) {
         const cloud = this.model(`cloud-${(i % 2) + 1}`, this.root);
@@ -287,10 +345,11 @@ export class World {
     if (gkey !== this.groveKey) {
       this.groveKey = gkey;
       const desired = new Map<string, ReturnType<typeof sceneryAt>>();
-      for (let z = gz - 6; z <= gz + 6; z++)
-        for (let x = gx - 6; x <= gx + 6; x++) {
+      for (let z = gz - 9; z <= gz + 9; z++)
+        for (let x = gx - 9; x <= gx + 9; x++) {
           const o = sceneryAt(x, z);
-          if (Math.hypot(o.x - p.x, o.z - p.z) < 700) desired.set(`${x}:${z}`, o);
+          if (o.y < WATER_LEVEL + 2) continue;
+          if (Math.hypot(o.x - p.x, o.z - p.z) < 1000) desired.set(`${x}:${z}`, o);
         }
       for (const grove of this.groves)
         if (!desired.has(grove.key)) {
@@ -304,9 +363,8 @@ export class World {
           const node = this.node('SceneryCell', this.root),
             near = this.model(o.model, node);
           const far = o.model.startsWith('forest')
-            ? this.model(`pine-${(Math.abs(Math.round(o.x)) % 3) + 1}`, node)
+            ? this.model(o.model.replace('forest-', 'forest-lod-'), node)
             : near;
-          if (far !== near) far.setScale(1.8, 1, 1.8);
           g = { node, near, far, key: '', model: o.model };
           this.groves.push(g);
         }
@@ -325,29 +383,46 @@ export class World {
     for (const g of this.groves) {
       if (!g.key) continue;
       const d = Math.hypot(g.node.position.x - p.x, g.node.position.z - p.z);
-      g.node.active = d < 700;
+      g.node.active = d < 1000;
       if (g.near !== g.far) {
-        g.near.active = d < 420;
-        g.far.active = d >= 420;
+        g.near.active = d < 230;
+        g.far.active = d >= 230;
       }
     }
   }
-  update(s: State, menu: boolean, reduced: boolean) {
-    const p = s.player,
+  update(s: State, menu: boolean, reduced: boolean, screen = 'home') {
+    // Display poses never mutate the flight state or its collision/camera contract.
+    const p = menu ? { ...s.player, x: 0, y: 145, z: 0, yaw: 0, pitch: 0, roll: 0 } : s.player,
       cam = this.camera.node;
-    this.player.setPosition(p.x, p.y + (menu ? 12 : 0), p.z);
+    this.player.setPosition(p.x, p.y + (menu ? 18 : 0), p.z);
+    this.player.setScale(menu ? 1.55 : 1, menu ? 1.55 : 1, menu ? 1.55 : 1);
     this.player.setRotationFromEuler(
       (p.pitch * 180) / Math.PI + (menu ? 8 : 0),
       (-p.yaw * 180) / Math.PI,
-      (p.roll * 180) / Math.PI + (menu ? -8 : 0),
+      (p.roll * 180) / Math.PI + (menu ? 28 : 0),
     );
     const view = cameraView(p, menu, reduced ? 0 : s.tick);
+    if (menu) {
+      const left = screen === 'result' || screen === 'prepare';
+      view.target.x = p.x + (left ? 33 : -8);
+      view.target.y = p.y + 14;
+      view.target.z = p.z - 10;
+    }
+    this.camera.fov = 54;
     cam.setPosition(view.position.x, view.position.y, view.position.z);
     cam.lookAt(new Vec3(view.target.x, view.target.y, view.target.z));
     if (!this.ready) return;
+    this.player.active = screen !== 'missions';
     this.background.setPosition(p.x, 0, p.z);
     this.terrain(p);
-    for (const n of this.engines) n.setScale(0.85, 0.85, s.boosting ? 10 : 6);
+    this.lake?.setPosition(p.x, WATER_LEVEL, p.z);
+    this.materials.get('lake')?.setProperty('flow', new Vec4(reduced ? 0 : s.tick / 60, 0, 0, 0));
+    for (const n of this.engines)
+      n.setScale(
+        1,
+        1,
+        menu ? 0.45 : s.boosting ? 1.6 : reduced ? 0.85 : 0.85 + Math.sin(s.tick * 1.7) * 0.035,
+      );
     const ids = new Set<number>();
     for (const e of s.enemies) {
       ids.add(e.id);
@@ -390,6 +465,7 @@ export class World {
         n.destroy();
         this.objects.delete(id);
       }
+    for (const n of this.objects.values()) n.active = !menu;
   }
   snapshot() {
     const renderers = this.root.getComponentsInChildren(MeshRenderer),
@@ -413,6 +489,14 @@ export class World {
           sum + r.sharedMaterials.filter((m) => m?.passes[0]?.batchingScheme === 1).length,
         0,
       ),
+      foliage: Array.from(this.materials.entries())
+        .filter(([name]) => /B3 masked pine/.test(name))
+        .map(([name, material]) => ({
+          name,
+          albedo: !!material.passes[0].defines.USE_ALBEDO_MAP,
+          alphaTest: !!material.passes[0].defines.USE_ALPHA_TEST,
+          textured: !!material.getProperty('mainTexture'),
+        })),
       drawCalls: device?.numDrawCalls ?? null,
       triangles: device?.numTris ?? null,
       aircraft: 'Original Blender falcon; Hyper3D not downloaded',

@@ -31,6 +31,7 @@ try {
   await assert.rejects(verifyPrebuilt(fixture), /declarations/);
   await writeFile(path.join(fixture, 'cc.d.ts'), declarations);
   for (const args of [['scripts/build.mjs', 'web-mobile'], ['scripts/typecheck.mjs']]) {
+    if (args[0] === 'scripts/typecheck.mjs') await rm(path.join(root, 'cc.d.ts'));
     const result = spawnSync(process.execPath, args, {
       cwd: root,
       windowsHide: true,
@@ -39,6 +40,20 @@ try {
     });
     assert.equal(result.status, 0, args.join(' '));
   }
+  assert.deepEqual(await readFile(path.join(root, 'cc.d.ts')), declarations);
+  const cachedEnv = { ...process.env, COCOS_CREATOR: path.join(fixture, 'not-installed.exe') };
+  delete cachedEnv.NULLRANGE_PREBUILT_DIR;
+  const cachedTest = spawnSync(process.execPath, ['--test', 'tests/artifact.test.mjs'], {
+    cwd: root,
+    windowsHide: true,
+    stdio: 'inherit',
+    env: cachedEnv,
+  });
+  assert.equal(
+    cachedTest.status,
+    0,
+    'next CI test step can use declarations without an editor or inherited prebuilt env',
+  );
   await verifyPrebuilt(root);
   console.log(
     'PASS actual Creator artifact reuse, type declarations, tampering and extra-file rejection',

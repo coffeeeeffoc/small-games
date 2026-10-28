@@ -1,4 +1,4 @@
-import { terrainHeight, obstacleHeight } from './terrain.ts';
+import { terrainHeight, obstacleHeight, WATER_LEVEL } from './terrain.ts';
 type Point = { x: number; y: number; z: number };
 type Pose = Point & { yaw: number; pitch: number; roll: number };
 // Metres, matching art/falcon-manifest.json: centre, wings, nose, tailplanes and engine underside.
@@ -13,7 +13,7 @@ export const AIRFRAME_SAMPLES = [
   [1.18, -1.1, 9.15],
 ] as const;
 export const surfaceHeight = (x: number, z: number) =>
-  Math.max(terrainHeight(x, z), obstacleHeight(x, z));
+  Math.max(WATER_LEVEL, terrainHeight(x, z), obstacleHeight(x, z));
 export function airframeSamples(p: Pose): Point[] {
   const cp = Math.cos(p.pitch),
     sp = Math.sin(p.pitch),

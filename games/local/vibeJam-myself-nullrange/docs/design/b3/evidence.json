@@ -1,0 +1,382 @@
+{
+  "stage": "B3 intermediate handoff; visual NOT accepted; no commit/push",
+  "capturedAt": "2026-10-28T20:24:10.197Z",
+  "sourceHash": "76ecd618c5a1292f2b0648c67121fcff25126282115ececb7b839fd40883cde5",
+  "creator": "3.8.8",
+  "base": "01ce24b5d80ad048e000cacff5bc457fa7608dd7",
+  "images": [
+    {
+      "file": "production-home-844x390.png",
+      "width": 844,
+      "height": 390,
+      "bytes": 335308,
+      "sha256": "bdbb90afb0aa4a189c15df1d6998e451243be6f5f2d8a04a556ca048f70108aa",
+      "mode": "dev=0",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "mission-844x390.png",
+      "width": 844,
+      "height": 390,
+      "bytes": 245252,
+      "sha256": "3858eaf34dc5157fc358b5b5c6156ddf6f2fdf8492f6fd2bb7ad657f5dd6c8a0",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "prepare-844x390.png",
+      "width": 844,
+      "height": 390,
+      "bytes": 337026,
+      "sha256": "d48d7e154eae05eeab1c119a220fc99779f88873b7cf6fbb757a6ec239cdf600",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "flight-844x390.png",
+      "width": 844,
+      "height": 390,
+      "bytes": 371065,
+      "sha256": "762ca8dc5d61a0ccc42572cf02a1f8eed111277fd234da954348b1a717b3d40b",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "pause-844x390.png",
+      "width": 844,
+      "height": 390,
+      "bytes": 217244,
+      "sha256": "ff85334c68218a58dd4141147a59560bb77d8a2a6b2571012735e2d611178926",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "settings-844x390.png",
+      "width": 844,
+      "height": 390,
+      "bytes": 149163,
+      "sha256": "ce213878ecd6b43fd57511285b10806ed182401f95f30787c675db2969ef8068",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "help-844x390.png",
+      "width": 844,
+      "height": 390,
+      "bytes": 200274,
+      "sha256": "090a83ee190b7b83d3d9f00763fabe863563753554777014e886ddc09a2d5ddc",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "result-844x390.png",
+      "width": 844,
+      "height": 390,
+      "bytes": 343308,
+      "sha256": "a8e6fc42ff92abddb3f7bafca189dcf47065a8096b2eee0b22fba0a908483e8b",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "online-844x390.png",
+      "width": 844,
+      "height": 390,
+      "bytes": 150103,
+      "sha256": "15aafeca3728496450af6d7ff52d7ab771373259fd2c9f9de33ea6a51af155e7",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "home-667x375.png",
+      "width": 667,
+      "height": 375,
+      "bytes": 260700,
+      "sha256": "c6f0a63f7006dede4572570727b565cc5659dcdc280812f3662ff635cb6306d2",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "flight-667x375.png",
+      "width": 667,
+      "height": 375,
+      "bytes": 289353,
+      "sha256": "23df4786b9cc6ce48ce30c663a12f21e79e4770b5e64cd6327132e3a91ab888f",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "safe-flight-390x844.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 381112,
+      "sha256": "8419069dc4894ba0ae353aca6c658e63f0b1a866f51d9edbded0d69fed6961b4",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": "physical CSS padding top7/right13/bottom19/left31 px"
+    },
+    {
+      "file": "settings-390x844.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 150575,
+      "sha256": "95a3eccdc95179455636d0aaa8b1633ab4d36c379c55a88e516d695fea7c31ea",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    },
+    {
+      "file": "result-390x844.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 343475,
+      "sha256": "de5f3fc58d3e8b19a5ae138982fae3dfdd6d3e4dbd8ad139474768208a252979",
+      "mode": "dev=1 readonly snapshot; actual input",
+      "safeAreaFixture": null
+    }
+  ],
+  "checks": [
+    "default production Cocos entry, dev explicitly off",
+    "17 native GLB Prefabs + 5 textures loaded, collidable terrain and actual GPU counters",
+    {
+      "viewport": "667x375",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 17,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 109,
+        "activeScenery": 109,
+        "modelInstancesCreated": 202,
+        "meshes": 68,
+        "materials": 29,
+        "renderers": 255,
+        "activeRenderers": 185,
+        "instancedPasses": 461,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 111,
+        "triangles": 114933,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": 11.131796292699516
+      }
+    },
+    "667x375: Cocos tap navigation, rotated fallback, >=44px targets",
+    {
+      "viewport": "844x390",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 17,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 109,
+        "activeScenery": 109,
+        "modelInstancesCreated": 202,
+        "meshes": 68,
+        "materials": 29,
+        "renderers": 255,
+        "activeRenderers": 185,
+        "instancedPasses": 461,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 111,
+        "triangles": 127349,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": 11.131796292699516
+      }
+    },
+    "844x390: Cocos tap navigation, rotated fallback, >=44px targets",
+    {
+      "viewport": "932x430",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 17,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 109,
+        "activeScenery": 109,
+        "modelInstancesCreated": 202,
+        "meshes": 68,
+        "materials": 29,
+        "renderers": 255,
+        "activeRenderers": 185,
+        "instancedPasses": 461,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 111,
+        "triangles": 127349,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": 11.131796292699516
+      }
+    },
+    "932x430: Cocos tap navigation, rotated fallback, >=44px targets",
+    {
+      "viewport": "390x844",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 17,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 109,
+        "activeScenery": 109,
+        "modelInstancesCreated": 202,
+        "meshes": 68,
+        "materials": 29,
+        "renderers": 255,
+        "activeRenderers": 185,
+        "instancedPasses": 461,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 111,
+        "triangles": 127349,
+        "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+        "terrainHeight": 11.131796292699516
+      }
+    },
+    "390x844: Cocos tap navigation, rotated fallback, >=44px targets",
+    "simultaneous stick + fire and touch cancellation",
+    "blur clears input and pauses without catch-up",
+    "normal browser flight victory, 327 ticks, 900 score",
+    "normal terrain failure and restart",
+    "settings persistence and pause return path",
+    "development interface remains a detached read-only snapshot",
+    "portrait cold boot and touch mapping",
+    "four viewports: measured asymmetric CSS insets, transformed bounds, every page has separate >=44px touch regions",
+    "held multitouch clears on rotation; pagehide/focus keeps pause and silences audio; drag-out cancels activation",
+    "same-origin iframe emits exact Shell display-state contract"
+  ],
+  "errors": [],
+  "engineDiagnostics": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ],
+  "homeWorld": {
+    "ready": true,
+    "modelsLoaded": 17,
+    "texturesLoaded": 5,
+    "errors": [],
+    "terrainTiles": 49,
+    "terrainMeshes": 49,
+    "sceneryPool": 109,
+    "activeScenery": 109,
+    "modelInstancesCreated": 202,
+    "meshes": 68,
+    "materials": 29,
+    "renderers": 255,
+    "activeRenderers": 182,
+    "instancedPasses": 461,
+    "foliage": [
+      {
+        "name": "B3 masked pine needles",
+        "albedo": true,
+        "alphaTest": true,
+        "textured": true
+      }
+    ],
+    "drawCalls": 98,
+    "triangles": 105757,
+    "aircraft": "Original Blender falcon; Hyper3D not downloaded",
+    "terrainHeight": 12
+  },
+  "victory": {
+    "status": "won",
+    "reason": "空域已肃清",
+    "tick": 327,
+    "score": 900,
+    "kills": 3,
+    "recovered": 2,
+    "hull": 100
+  },
+  "failure": {
+    "status": "lost",
+    "reason": "撞击地形 · 保持高度",
+    "tick": 337,
+    "score": 0,
+    "kills": 0,
+    "recovered": 0,
+    "hull": 0
+  },
+  "shellConsumer": {
+    "sourceHash": "76ecd618c5a1292f2b0648c67121fcff25126282115ececb7b839fd40883cde5",
+    "checks": [
+      "actual unchanged Shell assertNullrangeGameplay: standalone mobile landscape + portrait",
+      "actual unchanged Shell assertNullrangeGameplay: iframe mobile landscape + portrait"
+    ],
+    "errors": []
+  },
+  "tests": {
+    "game": {
+      "pass": 23,
+      "fail": 0,
+      "skipped": 0
+    },
+    "prebuilt": "verified build/typecheck reuse; real declaration restored; next test step no editor/no prebuilt env passes; tamper negatives retained"
+  },
+  "logs": [
+    {
+      "path": "reports/b3-typecheck.log",
+      "bytes": 30,
+      "sha256": "72b8c823bd7d5baacbf5fba50c671027b376e686096a3068dc4ecb4936c6596d"
+    },
+    {
+      "path": "reports/b3-build-command.log",
+      "bytes": 66355,
+      "sha256": "daea979402cba9b08256dc6bb70c964f464f0d9151044a7f4e7d2a20708906f7"
+    },
+    {
+      "path": "reports/b3-test.log",
+      "bytes": 2394,
+      "sha256": "217d03265b0e81c242cf30cedae4fd78acf27df81f33536ad8503e78b2227d45"
+    },
+    {
+      "path": "reports/b3-prebuilt.log",
+      "bytes": 354,
+      "sha256": "90f5021573c7cb94d1709e501298d37bd822fe05a1167735c0c444fbeef785ee"
+    },
+    {
+      "path": "reports/b3-browser-command.log",
+      "bytes": 1121,
+      "sha256": "38652f8a281e9b13fa9539c80d5a63337c27913546ccbc48baff540f7cdf7ba1"
+    },
+    {
+      "path": "reports/b3-shell-consumer.log",
+      "bytes": 92,
+      "sha256": "9834061a70cb2984ae6ae4d12a27bce1881f90530956d4be23cbd8932a657900"
+    }
+  ],
+  "limitations": [
+    "Visual unaccepted: cone mountains lack rock faces/strata; disconnected triangular shallow pools; sparse dark forest; aircraft/lighting/cloud depth differs from references",
+    "No physical phone/Safari/native host/FPS or listening acceptance",
+    "No whole-repository or remote CI/Pages success claim; B2 remote gates failed",
+    "No B4 content, Hyper3D, or B5 online backend"
+  ]
+}
