@@ -137,10 +137,11 @@
 					for (const field of profileFields) if (field in profile) next[field] = profile[field];
 					return persist(next);
 				},
-				current() {
+				current(expectedOwner) {
 					if (unsupported || provider !== "h5" && !sdk?.request) return Promise.reject(error("PLATFORM_LOGIN_UNAVAILABLE"));
-					if (pending) return pending;
 					const initial = read(), saved = initial.credential;
+					if (expectedOwner && !sameSession(saved, expectedOwner)) return Promise.reject(error("SESSION_CHANGED"));
+					if (pending) return pending;
 					if (valid(saved, 6e4)) return Promise.resolve(saved);
 					return launch(async () => {
 						try {
@@ -163,7 +164,7 @@
 				},
 				async forOwner(credential) {
 					result.assertCurrent(credential);
-					const current = await result.current();
+					const current = await result.current(credential);
 					result.assertCurrent(credential);
 					return current;
 				},
@@ -226,7 +227,11 @@
 		const root = globalThis;
 		const config = options || root.__COMPETITION_CONFIG__ || {};
 		if (root.__competition) {
-			if (root.__competition.config?.game !== config.game || root.__competition.config?.apiUrl !== config.apiUrl) throw Object.assign(/* @__PURE__ */ new Error("IDENTITY_SCOPE_MISMATCH"), { code: "IDENTITY_SCOPE_MISMATCH" });
+			if (root.__competition.config?.game !== config.game || root.__competition.config?.apiUrl !== config.apiUrl || [
+				"platform",
+				"appId",
+				"identityProvider"
+			].some((key) => root.__competition.config?.[key] !== config[key])) throw Object.assign(/* @__PURE__ */ new Error("IDENTITY_SCOPE_MISMATCH"), { code: "IDENTITY_SCOPE_MISMATCH" });
 			return;
 		}
 		const nativePlatforms = {

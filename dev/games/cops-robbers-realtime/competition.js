@@ -137,10 +137,11 @@
 					for (const field of profileFields) if (field in profile) next[field] = profile[field];
 					return persist(next);
 				},
-				current() {
+				current(expectedOwner) {
 					if (unsupported || provider !== "h5" && !sdk?.request) return Promise.reject(error("PLATFORM_LOGIN_UNAVAILABLE"));
-					if (pending) return pending;
 					const initial = read(), saved = initial.credential;
+					if (expectedOwner && !sameSession(saved, expectedOwner)) return Promise.reject(error("SESSION_CHANGED"));
+					if (pending) return pending;
 					if (valid(saved, 6e4)) return Promise.resolve(saved);
 					return launch(async () => {
 						try {
@@ -163,7 +164,7 @@
 				},
 				async forOwner(credential) {
 					result.assertCurrent(credential);
-					const current = await result.current();
+					const current = await result.current(credential);
 					result.assertCurrent(credential);
 					return current;
 				},
@@ -226,7 +227,11 @@
 		const root = globalThis;
 		const config = options || root.__COMPETITION_CONFIG__ || {};
 		if (root.__competition) {
-			if (root.__competition.config?.game !== config.game || root.__competition.config?.apiUrl !== config.apiUrl) throw Object.assign(/* @__PURE__ */ new Error("IDENTITY_SCOPE_MISMATCH"), { code: "IDENTITY_SCOPE_MISMATCH" });
+			if (root.__competition.config?.game !== config.game || root.__competition.config?.apiUrl !== config.apiUrl || [
+				"platform",
+				"appId",
+				"identityProvider"
+			].some((key) => root.__competition.config?.[key] !== config[key])) throw Object.assign(/* @__PURE__ */ new Error("IDENTITY_SCOPE_MISMATCH"), { code: "IDENTITY_SCOPE_MISMATCH" });
 			return;
 		}
 		const nativePlatforms = {
@@ -3187,10 +3192,11 @@ body.competition-active #mode-online { position:static; }
 	var games = /* @__PURE__ */ new Set([
 		"cops-robbers",
 		"cops-robbers-realtime",
-		"xiangqi-five"
+		"xiangqi-five",
+		"night-overwatch"
 	]);
 	var installed = /* @__PURE__ */ new WeakMap();
-	/** Optional three-game composition. The canonical anonymous identity client stays unchanged. */
+	/** Opted-in games authenticate through the host; ordinary browser guests keep their own cache. */
 	function installTapCompetitionIdentity(root = globalThis, nativeSdk = root.tap) {
 		const original = root.__createCompetitionIdentity;
 		if (typeof original !== "function") throw tapError("PLATFORM_LOGIN_UNAVAILABLE");
@@ -3201,6 +3207,14 @@ body.competition-active #mode-online { position:static; }
 			if (config?.identityProvider !== "taptap") return original(options);
 			if (!games.has(config.game) || !["h5", "taptap"].includes(config.platform) || !/^[A-Za-z0-9_-]{1,100}$/.test(config.appId || "")) throw tapError("IDENTITY_SCOPE_MISMATCH");
 			const appId = config.appId;
+			const previous = config.game === "night-overwatch" ? original({
+				...options,
+				config: {
+					...config,
+					identityProvider: void 0,
+					appId: config.platform === "h5" ? "" : appId
+				}
+			}) : void 0;
 			let generation = 0;
 			const requirePlatform = (value) => {
 				if (value && (value.identityKind !== "platform" || value.game !== config.game)) throw tapError("IDENTITY_SCOPE_MISMATCH");
@@ -3210,14 +3224,52 @@ body.competition-active #mode-online { position:static; }
 				const revision = generation;
 				let result;
 				if (path === "/sessions/guest") {
-					const code = await tapLogin(config.platform === "taptap" ? nativeSdk || options.sdk : root.tap);
+					let code = await tapLogin(config.platform === "taptap" ? nativeSdk || options.sdk : root.tap);
 					if (revision !== generation) throw tapError("SESSION_CHANGED");
-					result = await options.request("/sessions/platform", {
-						platform: "taptap",
-						game: config.game,
-						appId,
-						code
-					}, null);
+					let guest = previous?.saved();
+					if (guest?.identityKind === "guest") try {
+						guest = await previous.forOwner(guest);
+					} catch (error) {
+						if (error.code !== "REFRESH_EXPIRED" || previous.saved()) throw error;
+						guest = null;
+					}
+					else guest = null;
+					if (revision !== generation) throw tapError("SESSION_CHANGED");
+					if (guest) previous.assertCurrent(guest);
+					else if (previous?.saved()) throw tapError("SESSION_CHANGED");
+					try {
+						result = await options.request("/sessions/platform", {
+							platform: "taptap",
+							game: config.game,
+							appId,
+							code
+						}, guest);
+					} catch (error) {
+						if (!guest || error.code !== "SESSION_EXPIRED") throw error;
+						previous.assertCurrent(guest);
+						previous.invalidate(guest, error);
+						try {
+							guest = await previous.forOwner(guest);
+						} catch (failure) {
+							if (failure.code !== "REFRESH_EXPIRED" || previous.saved()) throw failure;
+							guest = null;
+						}
+						code = await tapLogin(config.platform === "taptap" ? nativeSdk || options.sdk : root.tap);
+						if (revision !== generation) throw tapError("SESSION_CHANGED");
+						if (guest) previous.assertCurrent(guest);
+						else if (previous.saved()) throw tapError("SESSION_CHANGED");
+						result = await options.request("/sessions/platform", {
+							platform: "taptap",
+							game: config.game,
+							appId,
+							code
+						}, guest);
+					}
+					if (guest) previous.assertCurrent(guest);
+					else if (previous?.saved()?.identityKind === "guest") throw tapError("SESSION_CHANGED");
+					if (revision !== generation) throw tapError("SESSION_CHANGED");
+					requirePlatform(result);
+					if (guest && (result?.userId || result?.playerId) === (guest.userId || guest.playerId)) previous.invalidate(guest, { code: "SESSION_EXPIRED" });
 				} else result = await options.request(path, body, owner);
 				if (path === "/sessions/guest" || path === "/sessions/refresh") {
 					if (revision !== generation) throw tapError("SESSION_CHANGED");
@@ -3268,7 +3320,7 @@ body.competition-active #mode-online { position:static; }
 		return factory;
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-3mpd5q/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-6aDsHN/entry.mjs
 	if (globalThis.__COMPETITION_CONFIG__?.identityProvider === "taptap") installTapCompetitionIdentity();
 	mountCompetition("cops-robbers-realtime", createRenderer);
 	//#endregion
