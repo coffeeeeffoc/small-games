@@ -1104,9 +1104,9 @@ export class World {
     this.triangleCount += g.indices.length / 3;
     return mesh;
   }
-  material(hex: string, transparent = false) {
+  material(hex: string, transparent = false, vertexColor = true) {
     const m = new Material();
-    m.initialize({ effectName: 'builtin-unlit', technique: transparent ? 1 : 0, defines: { USE_VERTEX_COLOR: true } });
+    m.initialize({ effectName: 'builtin-unlit', technique: transparent ? 1 : 0, defines: { USE_VERTEX_COLOR: vertexColor } });
     m.setProperty('mainColor', color(hex));
     return m;
   }
@@ -1252,6 +1252,14 @@ export class World {
     this.camera.clearColor = color(this.thermal ? '#10191d' : this.light === 'day' ? '#88b8d6' : this.light === 'dusk' ? '#a17c79' : '#26354e');
     for (const t of this.terrain)
       t.material.setProperty('mainColor', color(this.thermal ? t.heat : t.day));
+    // Optical paint and baked vertex shadows must not attenuate thermal heat.
+    // Owned Material assets cannot recompile instance-only shader defines.
+    for (const v of this.views.values()) {
+      const previous = v.material;
+      v.material = this.material('#ffffff', false, !this.thermal);
+      v.node.getComponent(MeshRenderer)!.setSharedMaterial(v.material, 0);
+      previous.destroy();
+    }
   }
   locate(u: Point) {
     if (!Number.isFinite(u.x) || !Number.isFinite(u.z)) return;
@@ -1356,7 +1364,7 @@ export class World {
         this.root.addChild(node);
         const r = node.addComponent(MeshRenderer);
         r.mesh = this.meshes.get(u.kind)!;
-        const material = this.material('#ffffff');
+        const material = this.material('#ffffff', false, !this.thermal);
         r.setMaterial(material, 0);
         v = { node, material, wreck: false };
         this.views.set(u.id, v);

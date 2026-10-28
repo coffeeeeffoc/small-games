@@ -42,10 +42,11 @@ try {
     assert.equal((await snapshot(page)).online.room.players.length,2);
     await capture('joined-waiting-room');
     const left = page.waitForResponse(response => response.url().endsWith('/rooms/' + roomCode + '/leave') && response.ok());
-    await hit('online:backLobby'); await left;
+    await hit('online:backLobby');
+    assert.equal((await (await left).json()).status, 'abandoned', 'Leaving a waiting room closes it under the existing server contract');
     await page.waitForFunction(()=>!__night.snapshot().online.room&&__night.snapshot().online.panel==='menu');
     await hit('online:roomsRefresh');
-    await page.waitForFunction(code => __night.snapshot().online.rooms.some(room => room.code === code && room.playerCount === 1 && room.canJoin), roomCode);
+    await page.waitForFunction(code => !__night.snapshot().online.rooms.some(room => room.code === code), roomCode);
     evidence.checks.push({width,height,roomCode,realHttpList:true,pagination:true,joined:true,left:true});
     await context.close();
   }
