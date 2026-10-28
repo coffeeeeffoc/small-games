@@ -1,122 +1,148 @@
 {
-  "sourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+  "sourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
   "verified": "2026-10-28",
-  "previousDelivery": "manifest-2026-10-28-tactical-ui.json",
-  "environment": "Creator 3.8.8 Web/mobile; Chromium mouse at 1280x720; offline services; not a native-device recording",
+  "previousDelivery": "manifest-2026-10-28-ui-input.json",
+  "environment": "Creator 3.8.8 Web/mobile; Chromium mouse 1280x720; offline services; not native-device recording",
   "files": [
     {
       "path": "copy/introduction.md",
       "bytes": 1246,
       "sha256": "94e5e8923b8d233432a6f614b65d08557b18f1ff77d98f02c8e8e9bf62b05961",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "reusedUnchanged": true
     },
     {
       "path": "copy/tagline.md",
       "bytes": 68,
       "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "reusedUnchanged": true
     },
     {
       "path": "copy/developer-note.md",
       "bytes": 671,
       "sha256": "96192e76ff21ea7f79d91f7d16c8ef3ce1b807eba36575d202f5aa969e6d4128",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "reusedUnchanged": true
     },
     {
       "path": "icon/icon-1024.png",
       "bytes": 1168540,
       "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
+      "reusedUnchanged": true,
       "width": 1024,
       "height": 1024,
-      "reusedUnchanged": true
+      "codec": "png",
+      "pixelFormat": "rgb24"
     },
     {
       "path": "promo/images/title-1920x1080.png",
       "bytes": 2392478,
       "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
+      "reusedUnchanged": true,
       "width": 1920,
       "height": 1080,
-      "reusedUnchanged": true
+      "codec": "png",
+      "pixelFormat": "rgb24"
     },
     {
       "path": "promo/images/title-1440x1440.png",
       "bytes": 2285613,
       "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
+      "reusedUnchanged": true,
       "width": 1440,
       "height": 1440,
-      "reusedUnchanged": true
+      "codec": "png",
+      "pixelFormat": "rgb24"
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-ui-input/01-fire-0.png",
-      "bytes": 676959,
-      "sha256": "c2f0fec63d6994df52e1651eac3a54aa67d1d9d2aa4dc61551783a96da06e77b",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "path": "gameplay/screenshots/interface-2026-10-28/01-fire.png",
+      "bytes": 677340,
+      "sha256": "5a3b6ef6ea105d2d363b760312cb0e1cfb7939a393ea9b44a03de9fe08582b5c",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "width": 1280,
       "height": 720,
       "codec": "png",
       "pixelFormat": "rgb24"
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-ui-input/02-fire-1.png",
-      "bytes": 679521,
-      "sha256": "058752ab337dcb812d3489436a44df0a6e3cc5da59f3b7989613d9597d8a991e",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "path": "gameplay/screenshots/interface-2026-10-28/02-fire.png",
+      "bytes": 681051,
+      "sha256": "2c0ebdccd38266e4ce84bed73bd0f86cfe458dfabaa1663da6736b0c1b918322",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "width": 1280,
       "height": 720,
       "codec": "png",
       "pixelFormat": "rgb24"
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-ui-input/03-duel.png",
-      "bytes": 672704,
-      "sha256": "77497525070d5002db46d054b5b548df8b1b3200bde9bfbf72d9ca41f59c28a5",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "path": "gameplay/screenshots/interface-2026-10-28/03-duel.png",
+      "bytes": 670669,
+      "sha256": "6c1b822cc0a47e0f93d11952d6cd4b432d21446f36bfffa63900b0181aaa734b",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "width": 1280,
       "height": 720,
       "codec": "png",
       "pixelFormat": "rgb24"
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-ui-input/04-nickname.png",
-      "bytes": 684663,
-      "sha256": "164e24aafdd4f5167790141b394c0941d3c1963f9ad865b6e613a61b8d1e756d",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "path": "gameplay/screenshots/interface-2026-10-28/04-home.png",
+      "bytes": 1037865,
+      "sha256": "471af3f54527cd12d6a9b001dbfbd0551d46abdf056c8e63b777ca53b4b7fa41",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "width": 1280,
       "height": 720,
       "codec": "png",
       "pixelFormat": "rgb24"
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-ui-input/05-records.png",
-      "bytes": 685773,
-      "sha256": "780d29f78dd91b12a1fa8664abc3fd229a5a6564a0ce63e995bfe9fd9b99c18e",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "path": "gameplay/screenshots/interface-2026-10-28/05-settings.png",
+      "bytes": 921165,
+      "sha256": "0adf8eedb981f5e272b53ebfeebb1a1a6a6331e26ca78cc9d8127a5a871e29d4",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "width": 1280,
       "height": 720,
       "codec": "png",
       "pixelFormat": "rgb24"
     },
     {
-      "path": "gameplay/screenshots/2026-10-28-ui-input/06-report.png",
-      "bytes": 448373,
-      "sha256": "af552a2ec21df1b9632cea9f2fc3b36f4a8a1106927c66dec7be38b24945dc7b",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "path": "gameplay/screenshots/interface-2026-10-28/06-lobby.png",
+      "bytes": 942206,
+      "sha256": "e41ab3ec2143dd9dd656f965ae24dd0aa7accaaffcf49727a395fb52cf9fc4b0",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "width": 1280,
       "height": 720,
       "codec": "png",
       "pixelFormat": "rgb24"
     },
     {
-      "path": "gameplay/videos/ui-input-2026-10-28-1280x720-silent.mp4",
-      "bytes": 4787167,
-      "sha256": "1f2e66c08ef26a87d7e753695d5bc0c6646717ec5bce5e189df370dfdaf0a2b2",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "path": "gameplay/screenshots/interface-2026-10-28/07-missions.png",
+      "bytes": 382275,
+      "sha256": "d89760dfdf9e49a6b2f205dcce67475eb836a10aa5b5b2348dd51758263f24f1",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
+      "width": 1280,
+      "height": 720,
+      "codec": "png",
+      "pixelFormat": "rgb24"
+    },
+    {
+      "path": "gameplay/screenshots/interface-2026-10-28/08-settlement.png",
+      "bytes": 505641,
+      "sha256": "e6b7737bf1d6902edfce14dd7a0a5109c6c5f7c57325dcd6894ddc1d416fe69f",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
+      "width": 1280,
+      "height": 720,
+      "codec": "png",
+      "pixelFormat": "rgb24"
+    },
+    {
+      "path": "gameplay/videos/interface-2026-10-28-1280x720-silent.mp4",
+      "bytes": 5672362,
+      "sha256": "7f46a37006a9a7572d67ca83e1b8b1666e7cd3e8568806452aa72a8e6e004584",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "width": 1280,
       "height": 720,
       "codec": "h264",
@@ -125,10 +151,10 @@
       "audio": false
     },
     {
-      "path": "promo/videos/ui-input-2026-10-28-1280x720-silent.mp4",
-      "bytes": 2459798,
-      "sha256": "e2231a6f0d910c211383d298e537984cec40e4f1b0695f4bd32c5bc2491d881a",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834",
+      "path": "promo/videos/interface-2026-10-28-1280x720-silent.mp4",
+      "bytes": 2055117,
+      "sha256": "068ea44faaa06a1158b7c855a506e54262f4e545b02661e3aaccfb844ab8308d",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
       "width": 1280,
       "height": 720,
       "codec": "h264",
@@ -137,10 +163,10 @@
       "audio": false
     },
     {
-      "path": "promo/videos/ui-input-2026-10-28-edit.json",
-      "bytes": 613,
-      "sha256": "2e10021d5434a34e6f3da6d63ae6a6a58b10e268ae60dfc4b2a12764b00cae98",
-      "verifiedForSourceHash": "7a7f1c0dd198c6a42c357321bc28de2746e9de201010817bcc80992d0c91d834"
+      "path": "promo/videos/interface-2026-10-28-edit.json",
+      "bytes": 998,
+      "sha256": "18d8ad7c76d9970f2ed0e83e4cb41456a9f732c49d646ec0b877cec8434e1847",
+      "verifiedForSourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d"
     }
   ]
 }

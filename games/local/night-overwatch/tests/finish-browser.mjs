@@ -64,6 +64,7 @@ try {
   await press(page, 'online:backLobby');
   await page.waitForFunction(() => __night.snapshot().online.panel === 'menu' && !__night.snapshot().online.active);
   assert.deepEqual(errors, []);
+  evidence.passed = true;
 } finally {
   await writeFile(new URL('finish-evidence.json', out), JSON.stringify(evidence, null, 2));
   await context.close(); await browser.close();

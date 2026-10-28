@@ -1,0 +1,29 @@
+{
+  "sourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
+  "source": "outputs/night-overwatch-interface/capture-final.webm",
+  "environment": "Creator 3.8.8 Web/mobile, Chromium 1280x720 mouse input, offline services",
+  "gameplay": {
+    "start": 27.282,
+    "duration": 20
+  },
+  "promo": [
+    {
+      "source": "games/local/night-overwatch/publishing/gameplay/screenshots/interface-2026-10-28/04-home.png",
+      "duration": 3
+    },
+    {
+      "source": "outputs/night-overwatch-interface/capture-final.webm",
+      "start": 35.282,
+      "duration": 6
+    },
+    {
+      "source": "games/local/night-overwatch/publishing/gameplay/screenshots/interface-2026-10-28/05-settings.png",
+      "duration": 4
+    },
+    {
+      "source": "games/local/night-overwatch/publishing/gameplay/screenshots/interface-2026-10-28/08-settlement.png",
+      "duration": 3
+    }
+  ],
+  "notes": "No added captions, voiceover or audio track. Full decode and 2-second frame review."
+}

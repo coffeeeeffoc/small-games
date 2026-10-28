@@ -158,3 +158,5 @@ pnpm build
 正式环境只允许HTTPS公共地址。Runtime部署需包含本游戏纯核TS、Node24以及 `003-night-overwatch-control.sql` 兼容迁移；管理控制台发布时将夜航守望设为enabled，并配置实际H5来源。迁移默认disabled，保留已有游戏及历史摘要。客户端配置、服务部署和控制台发布均需完成才可全站联机；既有生产部署及接口验证见 [当前交付状态](publishing/STATUS.md#生产部署)，本轮界面修改不重新部署后端；本地浏览器测试仍隔离外部服务，不能把模拟结果当作生产验证。
 
 验证与当前素材见 [publishing/STATUS.md](publishing/STATUS.md)。本地联机浏览器测试：设置 `NIGHT_URL` 与构建的 `NIGHT_EXPECTED_SOURCE_HASH` 后运行 `node tests/live-online-browser.mjs`；多尺寸离线/机器人检查使用 `node tests/combat-online-browser.mjs`。
+
+本次界面材质、控件层级、手势取消和三尺寸实机对照见 [界面验证](docs/verification-interface.md)。

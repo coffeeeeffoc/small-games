@@ -1,0 +1,60 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d"
+  },
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "nicknameSaved": true,
+      "keyboardResize": true,
+      "roomAndPassword": true,
+      "historySettingsHidden": true,
+      "reportInSoloAndDuel": true
+    }
+  ],
+  "errors": [],
+  "clips": {
+    "home": {
+      "start": 1.864,
+      "duration": 3
+    },
+    "nickname": {
+      "start": 7.566,
+      "duration": 3
+    },
+    "records": {
+      "start": 14.446,
+      "duration": 3
+    },
+    "report": {
+      "start": 22.487,
+      "duration": 4
+    },
+    "gameplay": {
+      "start": 27.282,
+      "duration": 20
+    }
+  },
+  "video": "F:\\playground\\playground-ai\\small-games\\outputs\\night-overwatch-interface\\input\\99847edd73405d62820bf83f332dde60.webm"
+}
