@@ -73,7 +73,13 @@ describe('competition channel identities', () => {
     vi.stubGlobal('fetch', fetch);
     const response = await login(app, platform);
     expect(response.statusCode).toBe(200);
-    expect(session).toHaveBeenCalledWith(platform, 'test-app', 'verified-subject', 'cops-robbers');
+    expect(session).toHaveBeenCalledWith(
+      platform,
+      'test-app',
+      'verified-subject',
+      'cops-robbers',
+      undefined,
+    );
     const [endpoint, options] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
     expect(endpoint.hostname).toBe(hostname);
     expect(endpoint.searchParams.get('js_code')).toBe('one-time-platform-code');
@@ -97,6 +103,7 @@ describe('competition channel identities', () => {
       'test-app',
       'verified-tap-openid',
       'cops-robbers',
+      undefined,
     );
     const [endpoint, options] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
     expect(endpoint.origin + endpoint.pathname).toBe(

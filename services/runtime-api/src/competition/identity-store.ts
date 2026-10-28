@@ -77,7 +77,13 @@ export function createCompetitionIdentities(db: Database, now = Date.now) {
       return issue(tx, playerId, game);
     });
   }
-  async function session(platform: string, appId: string, subject: string, game: string) {
+  async function session(
+    platform: string,
+    appId: string,
+    subject: string,
+    game: string,
+    previous?: PlayerAuth,
+  ) {
     if (
       !['wechat', 'bilibili', 'douyin', 'kuaishou', 'taptap'].includes(platform) ||
       !appId ||
@@ -88,6 +94,29 @@ export function createCompetitionIdentities(db: Database, now = Date.now) {
       await tx.execute(
         sql`select pg_advisory_xact_lock(hashtext(${JSON.stringify(['identity', platform, appId, subject])}))`,
       );
+      if (previous) {
+        if (platform !== 'taptap' || game !== 'night-overwatch' || typeof previous === 'string')
+          throw new CompetitionError('IDENTITY_SCOPE_MISMATCH', 403);
+        const owner = await tx.execute(sql`select platform,app_id from runtime.competition_players
+          where id=${previous.playerId} for update`);
+        await assertResourceAuth(tx, previous, game, now());
+        if (owner[0]?.platform !== 'guest' || owner[0]?.app_id !== game)
+          throw new CompetitionError('IDENTITY_SCOPE_MISMATCH', 403);
+        const existing = await tx.execute(sql`select id from runtime.competition_players
+          where platform=${platform} and app_id=${appId} and subject=${subject}`);
+        if (!existing[0]) {
+          // First verified binding keeps the guest UUID and all existing score/profile references.
+          const adopted = await tx.execute(sql`update runtime.competition_players
+            set platform=${platform},app_id=${appId},subject=${subject}
+            where id=${previous.playerId} and platform='guest' and app_id=${game} returning id`);
+          if (adopted[0]) {
+            await tx.execute(
+              sql`delete from runtime.competition_sessions where player_id=${previous.playerId}`,
+            );
+            return issue(tx, previous.playerId, game);
+          }
+        }
+      }
       const rows =
         await tx.execute(sql`insert into runtime.competition_players(id,platform,app_id,subject,created_at,profile)
         values(${randomUUID()},${platform},${appId},${subject},${now()},'{"source":"default"}'::jsonb)

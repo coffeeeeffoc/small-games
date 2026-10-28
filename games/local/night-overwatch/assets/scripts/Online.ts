@@ -73,13 +73,28 @@ export class Online {
   bot?: DuelState;
   recorder?: Recorder;
   private generation = 0;
+  private rankingRequest = 0;
   private commands: DuelCommand[] = [];
   private pending?: { seq: number; action: { commands: DuelCommand[]; keepAlive: true } };
   private inflight = false;
+  private roomRequests: Promise<unknown> = Promise.resolve();
+  private releasing?: Room;
   private replaced = false;
   private nextPoll = 0;
   private botStarted = 0;
   private bridge?: Bridge;
+  // Serialize room mutations with polls; a cancelled creation must leave before the next join.
+  private requestRoom<T>(request: () => Promise<T>): Promise<T> {
+    const pending = this.roomRequests.catch(() => {}).then(request);
+    this.roomRequests = pending;
+    return pending;
+  }
+  private async releaseRoom(room: Room) {
+    this.releasing = room;
+    try { await this.bridge!.services.roomAction({ code: room.code, operation: 'leave' }); }
+    catch (error) { if (!['INVITATION_NOT_FOUND','ROOM_NOT_FOUND','NOT_A_MEMBER','STALE_LEASE'].includes((error as {code?:string}).code || '')) throw error; }
+    if (this.releasing === room) this.releasing = undefined;
+  }
   readonly changed: (view: DuelView, start: boolean) => void;
   private readonly storage: Pick<Storage, 'getItem' | 'setItem'>;
   constructor(storage: Pick<Storage, 'getItem' | 'setItem'>, changed: (view: DuelView, start: boolean) => void) {
@@ -181,7 +196,7 @@ export class Online {
     finally { if (generation === this.generation) { this.busy = false; this.revision++; } }
   }
   async open(kind: 'friend' | 'match' | 'join' | 'bot' | 'watch' | 'resume', code?: string) {
-    if (this.busy || this.inflight || this.active || this.room) return;
+    if (this.busy || this.active || this.room) return;
     if (kind === 'friend' && this.privateRoom && (this.draftPassword.length < 4 || this.draftPassword.length > 64)) {
       this.message = '私密房密码需要 4–64 个字符'; this.revision++; return;
     }
@@ -198,17 +213,25 @@ export class Online {
         this.message = '联机服务暂不可用，可选择本地人机练习'; return;
       }
       const services = this.bridge.services, input = { code: code || this.draftCode.trim().toUpperCase(), password: this.draftPassword || undefined };
-      const room = kind === 'friend' || kind === 'bot'
+      const room = await this.requestRoom(async () => {
+        if (generation !== this.generation) return;
+        if (this.releasing) await this.releaseRoom(this.releasing);
+        if (generation !== this.generation) return;
+        const room = kind === 'friend' || kind === 'bot'
         ? await services.createRoom({ mode: kind, visibility: this.privateRoom && kind === 'friend' ? 'private' : 'public', ...(this.privateRoom && kind === 'friend' ? { password: this.draftPassword } : {}) })
         : kind === 'match' ? await services.match()
         : kind === 'watch' ? await services.spectateRoom!(input)
         : kind === 'resume' ? await services.connectRoom!({ code: input.code })
         : await services.joinRoom(input);
-      if (generation !== this.generation) { void services.roomAction({ code: room.code, operation: 'leave' }).catch(() => {}); return; }
+        if (generation !== this.generation) { await this.releaseRoom(room); return; }
+        return room;
+      });
+      if (!room || generation !== this.generation) return;
       this.panel = 'room'; this.draftPassword = ''; this.accept(room); this.nextPoll = 0;
       if (kind === 'bot' && room.status === 'waiting') {
-        const started = await services.roomAction({ code: room.code, operation: 'ready' });
-        if (generation === this.generation) this.accept(started);
+        const started = await this.requestRoom(async () => generation === this.generation
+          ? services.roomAction({ code: room.code, operation: 'ready', body: { ready: true } }) : undefined);
+        if (started && generation === this.generation) this.accept(started);
       }
     } catch (error) {
       if (generation === this.generation) {
@@ -229,20 +252,24 @@ export class Online {
     this.acceptView(viewDuel(this.bot));
   }
   async ready() {
-    if (!this.room || this.room.status !== 'waiting' || !this.bridge || this.busy || this.active) return;
-    const generation = this.generation; this.busy = true;
-    try { const room = await this.bridge.services.roomAction({ code: this.room.code, operation: 'ready' });
-      if (generation === this.generation) this.accept(room);
-    } catch { if (generation === this.generation) this.message = '准备失败，请重试'; }
+    if (!this.room || this.room.status !== 'waiting' || !this.bridge || this.busy || this.active || this.spectator) return;
+    const generation = this.generation, code = this.room.code, ready = !this.room.players[this.room.you]?.ready;
+    this.busy = true; this.message = ''; this.revision++;
+    try { const room = await this.requestRoom(async () => generation === this.generation && this.room?.code === code && this.room.status === 'waiting' && !this.active && !this.spectator
+      ? this.bridge!.services.roomAction({ code, operation: 'ready', body: { ready } }) : undefined);
+      if (room && generation === this.generation) this.accept(room);
+    } catch { if (generation === this.generation) this.message = '准备状态更新失败，请重试'; }
     finally { if (generation === this.generation) { this.busy = false; this.revision++; } }
   }
   leave() {
-    const room = this.room; this.generation++; this.busy = false;
-    this.resumeCode = room?.status === 'playing' && !this.view?.finished && !this.spectator ? room.code : '';
+    const room = this.room; this.generation++; this.busy = false; this.inflight = false;
+    this.resumeCode = room?.status === 'playing' && room.mode !== 'bot' && !this.view?.finished && !this.spectator ? room.code : '';
     this.rememberRoom(this.resumeCode ? room : undefined); this.connectionLost = false; this.replaced = false; this.roomKey = ''; this.enteringUntil = 0;
     this.room = this.view = this.bot = undefined; this.panel = ''; this.message = '';
-    this.commands = []; this.pending = undefined; this.revision++;
-    if (room && this.bridge) void this.bridge.services.roomAction({ code: room.code, operation: 'leave' }).catch(() => {});
+    this.commands = []; this.pending = undefined; this.nextPoll = 0; this.botStarted = 0; this.revision++;
+    if (room && this.bridge) void this.requestRoom(() => this.releaseRoom(room)).catch(() => {
+      this.message = '离开房间未确认，再次进入时会重试'; this.revision++;
+    });
   }
   control(input: Record<string, unknown>) {
     if (!this.view || this.view.finished || this.spectator || this.entering || !controls.has(String(input.command))) return;
@@ -272,6 +299,8 @@ export class Online {
     const generation = this.generation, code = this.room.code;
     this.inflight = true; this.nextPoll = now + (this.room.status === 'playing' ? 100 : 1000);
     try {
+      const room = await this.requestRoom(async () => {
+      if (generation !== this.generation || !this.room || !this.bridge) return;
       let room: Room;
       if (this.room.status === 'playing' && !this.spectator) {
         this.pending ||= { seq: this.room.seq + 1, action: { commands: this.commands.splice(0, 64), keepAlive: true } };
@@ -280,8 +309,10 @@ export class Online {
           if (!['MATCH_CLOSED', 'PLAYER_FINISHED', 'PLAYER_DISCONNECTED'].includes((error as { code?: string }).code || '')) throw error;
           room = await this.bridge.services.getRoom({ code });
         }
-      } else room = await this.bridge.services.getRoom({ code });
-      if (generation !== this.generation) return;
+      } else room = await this.bridge!.services.getRoom({ code });
+      return room;
+      });
+      if (!room || generation !== this.generation) return;
       this.pending = undefined; this.connectionLost = false; this.message = ''; this.accept(room);
     } catch (error) {
       if (generation === this.generation) {
@@ -294,7 +325,7 @@ export class Online {
           : '网络异常，正在重连 · 30秒内恢复可继续对战';
         this.nextPoll = now + 1000; this.revision++;
       }
-    } finally { this.inflight = false; }
+    } finally { if (generation === this.generation) this.inflight = false; }
   }
   private accept(room: Room) {
     const start = !this.view && !!room.state;
@@ -316,7 +347,8 @@ export class Online {
         return;
       }
       if (!['waiting', 'playing', 'finished'].includes(room.status) && !room.state.finished) {
-        room.state.finished = true; room.state.winner = null; this.message = '对手已离开，房间已结束';
+        const state = { ...room.state, finished: true, winner: null, simulation: { ...room.state.simulation, phase: 'failure' as const } };
+        this.message = '房间已结束'; this.acceptView(state); return;
       }
       this.acceptView(room.state);
     }
@@ -328,17 +360,18 @@ export class Online {
     this.changed(view, start);
   }
   async loadRanking(level = this.level, board = this.board) {
+    const request = ++this.rankingRequest;
     this.board = board;
     this.level = Math.max(0, Math.min(MISSIONS.length - 1, level)); this.rankPage = 0;
     this.panel = 'ranking'; this.ranking = undefined; this.message = ''; this.revision++;
     const ownLevel = this.level, ownBoard = this.board;
     try {
       if (!this.ranked) this.acceptMetadata(await this.bridge?.refresh?.());
-      if (this.level !== ownLevel || this.board !== ownBoard || this.panel !== 'ranking') return;
+      if (request !== this.rankingRequest || this.level !== ownLevel || this.board !== ownBoard || this.panel !== 'ranking') return;
       if (!this.ranked || !this.bridge) { this.message = '全站排行榜暂不可用；个人最佳仍保存在本机'; this.revision++; return; }
       const ranking = await this.bridge.services.leaderboard({ boardId: ownBoard === 'level' ? 'level-' + MISSIONS[ownLevel].id : ownBoard });
-      if (this.level === ownLevel && this.board === ownBoard && this.panel === 'ranking') { this.ranking = ranking; this.revision++; }
-    } catch { if (this.level === ownLevel) { this.message = '排行榜读取失败，点击刷新重试'; this.revision++; } }
+      if (request === this.rankingRequest && this.level === ownLevel && this.board === ownBoard && this.panel === 'ranking') { this.ranking = ranking; this.revision++; }
+    } catch { if (request === this.rankingRequest && this.panel === 'ranking') { this.message = '排行榜读取失败，点击刷新重试'; this.revision++; } }
   }
   async share(href: string) {
     if (!this.room || this.room.status !== 'waiting' || this.spectator) return;

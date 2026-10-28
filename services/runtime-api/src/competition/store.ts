@@ -596,7 +596,7 @@ export function createCompetitionStore(
     room: Room,
     playerId: string,
     operation: string,
-    input: { seq?: number; action?: unknown; password?: string; leaseId?: string },
+    input: { seq?: number; action?: unknown; password?: string; leaseId?: string; ready?: boolean },
     tx: Tx,
     policy: Awaited<ReturnType<typeof gamePolicy>>,
   ) {
@@ -689,21 +689,36 @@ export function createCompetitionStore(
       delete member.reconnectUntil;
     }
     if (operation === 'leave' && member) {
-      if (room.status === 'waiting') {
-        room.status = 'abandoned';
-        await tx.execute(sql`delete from runtime.competition_rooms where code=${room.code}`);
-        return view(room, playerId, tx);
+      if (room.status === 'waiting' || (room.status === 'playing' && now() < room.startedAt!)) {
+        room.players = room.players.filter((player) => player.id !== playerId);
+        room.status = 'waiting';
+        delete room.startedAt;
+        room.deadline = now() + 15 * 60_000;
+        for (const player of room.players) {
+          player.ready = false;
+          player.state = null;
+          player.seq = 0;
+        }
+        if (room.players.length) {
+          await tx.execute(
+            sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${room.code}`,
+          );
+        } else await tx.execute(sql`delete from runtime.competition_rooms where code=${room.code}`);
+        return { code: room.code, left: true };
       }
-      if (room.status === 'playing' && now() < room.startedAt!) room.status = 'abandoned';
-      else if (room.status === 'playing' && !member.takenOver) {
+      if (room.status === 'playing' && room.mode === 'bot') {
+        room.status = 'abandoned';
+        await settleNightRoom(tx, room, now(), 'abandoned');
+      } else if (room.status === 'playing' && !member.takenOver) {
         member.disconnected = true;
         member.reconnectUntil = now() + 30000;
       }
     } else if (operation === 'ready' && member) {
       if (room.status === 'waiting') {
-        member.ready = true;
+        member.ready = input.ready ?? true;
         await start(room, tx);
       } else if (room.status !== 'playing') throw new CompetitionError('MATCH_CLOSED');
+      else if (input.ready === false) throw new CompetitionError('MATCH_STARTED');
     } else if (operation === 'actions' && member) {
       if (member.takenOver) throw new CompetitionError('PLAYER_DISCONNECTED');
       const actionHash = hash(json(input.action));
@@ -772,6 +787,7 @@ export function createCompetitionStore(
       initiative?: string;
       password?: string;
       leaseId?: string;
+      ready?: boolean;
     } = {},
   ) {
     const playerId = playerIdOf(auth);

@@ -31,6 +31,7 @@ type ApiResponse = Credential & {
   eligible: boolean;
   identityKind: 'guest' | 'platform';
   avatarUrl: string;
+  nickname: string;
   region: { country?: string; province?: string } | null;
   players: unknown[];
   me: { userId: string; playerId: string; score: number; nickname: string } | null;
@@ -148,7 +149,7 @@ async function setup(url: string) {
     // Explicit official-exchange fixture only. This never authenticates against a real SDK/account.
     return new Response(
       JSON.stringify({
-        openid: 'mock-official:' + endpoint.searchParams.get('js_code'),
+        openid: 'mock-official:' + endpoint.searchParams.get('js_code')?.split('~')[0],
         session_key: 'mock-private-session-key',
       }),
     );
@@ -164,7 +165,7 @@ async function setup(url: string) {
             platform,
             appId: configuredAppId,
             secret: 'explicit-test-fixture-secret',
-            games: ['cops-robbers', 'three-choose-two', 'carding-car'],
+            games: ['cops-robbers', 'three-choose-two', 'carding-car', 'night-overwatch'],
           })),
         ),
       ),
@@ -490,4 +491,72 @@ integration(
       );
     }),
   30000,
+);
+integration(
+  'verified Night TapTap binding preserves the guest ID/profile and restores it across fresh sessions',
+  async () => {
+    await fixture(async (f) => {
+      const guest = await f.guest('night-overwatch');
+      await f.request('/me', guest, { nickname: '原来的飞行员' });
+      await f.database
+        .execute(sql`insert into runtime.competition_best(board,player_id,score,secondary,match_id,updated_at)
+        values('night-overwatch:points:night-records-v1',${guest.playerId},360,0,${randomUUID()},${Date.now()})`);
+      const input = {
+        platform: 'taptap',
+        appId: f.appId,
+        game: 'night-overwatch',
+        code: 'stable-tap-account~first-use',
+      };
+      const bound = await f.request('/sessions/platform', guest, input);
+      expect(bound.playerId).toBe(guest.playerId);
+      expect(bound.identityKind).toBe('platform');
+      expect((await f.request('/me', bound)).nickname).toBe('原来的飞行员');
+      await f.request('/me', guest, undefined, 401);
+      const fresh = await f.request('/sessions/platform', undefined, {
+        ...input,
+        code: 'stable-tap-account~second-use',
+      });
+      expect(fresh.playerId).toBe(bound.playerId);
+      const scores = await f.database.execute(
+        sql`select score from runtime.competition_best where board='night-overwatch:points:night-records-v1' and player_id=${fresh.playerId}`,
+      );
+      expect(Number(scores[0]!.score)).toBe(360);
+      const another = await f.guest('night-overwatch');
+      expect((await f.request('/sessions/platform', another, input)).playerId).toBe(bound.playerId);
+      expect((await f.request('/me', another)).identityKind).toBe('guest');
+      const otherGame = await f.guest();
+      await f.request('/sessions/platform', otherGame, { ...input, code: 'different-owner' }, 403);
+      await f.request('/sessions/platform', bound, { ...input, appId: 'unconfigured' }, 503);
+      expect((await f.request('/me', bound)).playerId).toBe(bound.playerId);
+    });
+  },
+);
+
+integration(
+  'concurrent Night bindings share one official player and cannot rebind a platform owner',
+  async () => {
+    await fixture(async (f) => {
+      const a = await f.guest('night-overwatch'),
+        b = await f.guest('night-overwatch');
+      const input = {
+        platform: 'taptap',
+        appId: f.appId,
+        game: 'night-overwatch',
+        code: 'concurrent-account',
+      };
+      const [x, y] = await Promise.all([
+        f.request('/sessions/platform', a, { ...input, code: input.code + '~a' }),
+        f.request('/sessions/platform', b, { ...input, code: input.code + '~b' }),
+      ]);
+      expect(x.playerId).toBe(y.playerId);
+      expect([a.playerId, b.playerId]).toContain(x.playerId);
+      await f.request('/sessions/platform', x, { ...input, code: 'other-account' }, 403);
+      const adopted = x.playerId === a.playerId ? a : b;
+      await f.request('/sessions/refresh', undefined, { refreshToken: adopted.refreshToken }, 401);
+      expect(
+        (await f.request('/sessions/refresh', undefined, { refreshToken: x.refreshToken }))
+          .playerId,
+      ).toBe(x.playerId);
+    });
+  },
 );

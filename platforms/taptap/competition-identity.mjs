@@ -1,7 +1,7 @@
 import { tapLogin, tapError } from './calls.mjs';
-const games = new Set(['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five']);
+const games = new Set(['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five', 'night-overwatch']);
 const installed = new WeakMap();
-/** Optional three-game composition. The canonical anonymous identity client stays unchanged. */
+/** Opted-in games authenticate through the host; ordinary browser guests keep their own cache. */
 export function installTapCompetitionIdentity(root = globalThis, nativeSdk = root.tap) {
   const original = root.__createCompetitionIdentity;
   if (typeof original !== 'function') throw tapError('PLATFORM_LOGIN_UNAVAILABLE');
@@ -17,6 +17,17 @@ export function installTapCompetitionIdentity(root = globalThis, nativeSdk = roo
     )
       throw tapError('IDENTITY_SCOPE_MISMATCH');
     const appId = config.appId;
+    const previous =
+      config.game === 'night-overwatch'
+        ? original({
+            ...options,
+            config: {
+              ...config,
+              identityProvider: undefined,
+              appId: config.platform === 'h5' ? '' : appId,
+            },
+          })
+        : undefined;
     let generation = 0;
     const requirePlatform = (value) => {
       if (value && (value.identityKind !== 'platform' || value.game !== config.game))
@@ -27,15 +38,55 @@ export function installTapCompetitionIdentity(root = globalThis, nativeSdk = roo
       const revision = generation;
       let result;
       if (path === '/sessions/guest') {
-        const code = await tapLogin(
+        let code = await tapLogin(
           config.platform === 'taptap' ? nativeSdk || options.sdk : root.tap,
         );
         if (revision !== generation) throw tapError('SESSION_CHANGED');
-        result = await options.request(
-          '/sessions/platform',
-          { platform: 'taptap', game: config.game, appId, code },
-          null,
-        );
+        let guest = previous?.saved();
+        if (guest?.identityKind === 'guest') {
+          try {
+            guest = await previous.forOwner(guest);
+          } catch (error) {
+            if (error.code !== 'REFRESH_EXPIRED' || previous.saved()) throw error;
+            guest = null;
+          }
+        } else guest = null;
+        if (revision !== generation) throw tapError('SESSION_CHANGED');
+        if (guest) previous.assertCurrent(guest);
+        else if (previous?.saved()) throw tapError('SESSION_CHANGED');
+        try {
+          result = await options.request(
+            '/sessions/platform',
+            { platform: 'taptap', game: config.game, appId, code },
+            guest,
+          );
+        } catch (error) {
+          if (!guest || error.code !== 'SESSION_EXPIRED') throw error;
+          // Recover an expired access token or a lost successful binding response.
+          previous.assertCurrent(guest);
+          previous.invalidate(guest, error);
+          try {
+            guest = await previous.forOwner(guest);
+          } catch (failure) {
+            if (failure.code !== 'REFRESH_EXPIRED' || previous.saved()) throw failure;
+            guest = null;
+          }
+          code = await tapLogin(config.platform === 'taptap' ? nativeSdk || options.sdk : root.tap);
+          if (revision !== generation) throw tapError('SESSION_CHANGED');
+          if (guest) previous.assertCurrent(guest);
+          else if (previous.saved()) throw tapError('SESSION_CHANGED');
+          result = await options.request(
+            '/sessions/platform',
+            { platform: 'taptap', game: config.game, appId, code },
+            guest,
+          );
+        }
+        if (guest) previous.assertCurrent(guest);
+        else if (previous?.saved()?.identityKind === 'guest') throw tapError('SESSION_CHANGED');
+        if (revision !== generation) throw tapError('SESSION_CHANGED');
+        requirePlatform(result);
+        if (guest && (result?.userId || result?.playerId) === (guest.userId || guest.playerId))
+          previous.invalidate(guest, { code: 'SESSION_EXPIRED' });
       } else result = await options.request(path, body, owner);
       if (path === '/sessions/guest' || path === '/sessions/refresh') {
         if (revision !== generation) throw tapError('SESSION_CHANGED');

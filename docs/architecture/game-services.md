@@ -6,7 +6,7 @@
 
 `GET /games/:game` 返回标题、规则版本、`capabilities`、`boards` 与 `identity`。独立的 `versions.ranked` / `versions.multiplayer` 用于双能力游戏的规则版本；房间客户端以房间响应的版本为准。身份包含 `kind`（`anonymous`、`guest`、`platform`）、`authenticated`、`provider`、`playerId`、`name`。仅经过平台官方登录交换的 `platform` 身份标为 `authenticated: true`；游客 token 不代表平台登录。它与 Shell 云存档身份相互独立。
 
-游戏信息、排行榜、房间和挑战接口均要求有效且绑定当前游戏的 Bearer token，缺失或过期返回 401，跨游戏凭证被拒绝。首次联网由共享客户端调用 `POST /sessions/guest`，服务端签发匿名 ID、随机昵称、内置头像和凭证；玩家无需注册或执行登录操作。匿名凭证缓存按 API、平台、AppID 和游戏隔离，各入口独立，不提供跨平台找回。访问凭证 15 分钟、刷新凭证滚动 180 天；具体恢复与失效行为见[更新说明](../operations/backend-recovery-2026-10-17.md)。保留 `/sessions/platform` 的官方交换协议供兼容调用，平台密钥只在服务器配置。
+游戏信息、排行榜、房间和挑战接口均要求有效且绑定当前游戏的 Bearer token，缺失或过期返回 401，跨游戏凭证被拒绝。首次联网由共享客户端调用 `POST /sessions/guest`，服务端签发匿名 ID、随机昵称、内置头像和凭证；玩家无需注册或执行登录操作。匿名凭证缓存按 API、平台、AppID 和游戏隔离，各入口独立，不提供跨平台找回。访问凭证 15 分钟、刷新凭证滚动 180 天；具体恢复与失效行为见[更新说明](../operations/backend-recovery-2026-10-17.md)。TapTap 夜航渠道构建启用 `/sessions/platform` 官方换码：同一 MiniApp ID 和官方 openid 找回唯一服务端玩家，版本号、测试/正式发布状态不参与身份键；平台密钥仅在服务器配置。普通浏览器继续使用独立游客身份。首次绑定可附带本游戏现有有效游客凭据；只有官方身份尚未绑定且凭据仍属于游客时才原位绑定，保留 UUID、昵称和成绩，撤销旧游客会话。已有官方玩家优先，不自动合并其他游客。缓存已丢失且从未绑定的旧游客无法证明归属，不能凭昵称或客户端提交的 ID 认领。
 
 每个榜定义 `id`、标题、说明、`guestAllowed`、`scoreUnit`、`secondaryUnit`。当前两款游戏的 `campaign` 和 `endless` 允许游客。将某个榜的 `guestAllowed` 设为 `false`，服务器就会拒绝游客创建该榜挑战。榜单按游戏、榜类型、规则版本隔离，响应含 `top`、`me`、`rank`、`score`、`secondary` 等信息。
 
@@ -70,18 +70,18 @@ Run 始终绑定创建时的玩家；续期只接受同一玩家和游戏，401 
 - `GET /games/:game/rooms` 返回 `{rooms,serverNow}`，条目含人数、昵称、容量及 `canJoin/canSpectate`。
 - `POST /games/:game/rooms` 接受 `{mode?,visibility?:public|private,password?}`；私房密码4–64字符。`/rooms/join` 接受 `{code,password?}`。匹配仅找真人，找不到保留公开等待房；人机显式创建 `mode:bot` 后 ready。
 - `POST /games/:game/rooms/:code/spectate` 接受 `{password?}`，返回 `you:-1,spectator:true`，后续GET按身份授权并续约30秒；观战不能ready、输入、退出成员或领取结算。观众自己的leave返回 `{code,spectator:true,left:true}` 并立即释放席位；无续约的观众由有界扫尾/房间访问清除，256限制仅计活跃观众。授权过期GET返回 `NOT_A_MEMBER`，重新spectate即可（私房需密码）。
-- 双方ready后 `startsAt=startedAt=serverNow+1200`；前端播放入场，不显示数字倒计时。单人/对战无计时判负；房间保留期限不作为玩法胜负。
+- ready 接受 `{leaseId?,ready?:boolean}`，省略 ready 保持旧客户端的准备行为；显式 false 取消准备，重复目标状态幂等。双方ready后 `startsAt=startedAt=serverNow+1200`；前端播放入场，不显示数字倒计时。单人/对战无计时判负；房间保留期限不作为玩法胜负。
 - 新成员响应提供私有 `leaseId`，GET用查询参数、actions/ready/leave用body续约。`connect`为原成员轮换租约，旧租约返回 `STALE_LEASE`。发射输入的1秒防粘连租约与连接租约独立。
-- 2.5秒无联系显示 `players[].disconnected`，`reconnectUntil`为最后联系后30秒；显式leave进入30秒恢复窗。等待房立即销毁，入场未完成退出不记战绩。超时才 `takenOver:true`，服务器机器人可接管任意席位，原玩家不能恢复操作。
+- 2.5秒无联系显示 `players[].disconnected`，`reconnectUntil`为最后联系后30秒；真人开赛后的显式leave进入30秒恢复窗。等待或入场未完成时退出仅移除本人，剩余玩家保留房号、取消准备并回到等待，无人时删除；不记战绩。已开赛的人机退出立即结束且不发积分，后续随机匹配不会恢复这局人机。超时才 `takenOver:true`，服务器机器人可接管任意席位，原玩家不能恢复操作。
 - Runtime每5秒最多扫描10个逾期房间/启用大厅的游戏，沿用游戏锁防多实例重复，关闭服务等待当轮完成。读房、列表和本人history也结算逾期房；停机时在重启或下一次读取补结算。
 
-真人开局记录保存在 `competition_matches`，独立UUID同时命名空间隔离积分事件，事务内幂等。自然结局真人胜/负/平120/40/60分；一人超时立即记退出者负40、留下者胜120，后续机器人自然结束不重复计分。两人均超时各记一负、0分；初始人机仅40/10/20分，不写真人历史/胜率。`settlement`含本局points、累计totalPoints、wins/games/outcome/reason。`GET /games/:game/history?cursor=`只返回本人，summary包括wins/losses/draws/games/winRate，每页20项，按finishedAt+不可复用id稳定分页，单项含对手、结果、原因、开始/结束/时长/积分。
+真人开局记录保存在 `competition_matches`，独立UUID同时命名空间隔离积分事件，事务内幂等。自然结局真人胜/负/平120/40/60分；一人超时立即记退出者负40、留下者胜120，后续机器人自然结束不重复计分。结算界面逐方优先采用 settlement.outcome，不能用接管后的模拟结果覆盖既定胜负；双方弃局允许同时为负。两人均超时各记一负、0分；初始人机仅40/10/20分，不写真人历史/胜率。`settlement`含本局points、累计totalPoints、wins/games/outcome/reason。`GET /games/:game/history?cursor=`只返回本人，summary包括wins/losses/draws/games/winRate，每页20项，按finishedAt+不可复用id稳定分页，单项含对手、结果、原因、开始/结束/时长/积分。
 
-排行榜IDs为 `clears`、`points`、`win-rate` 与120个 `level-<mission>`。存储版本固定 `night-records-v1`，独立于输入协议 `night-input-replay-v8`/对战 `night-duel-v2`。旧已验证关卡回填去重通关数和个人最快，不补发积分。新成功关卡每次100分，去重通关数只算不同关卡；积分事件插入成功才累计。胜率使用double precision，按真人历史实时重算，失败后允许下降，返回wins/games真实分子分母。
+排行榜IDs为 `clears`、`points`、`win-rate` 与120个 `level-<mission>`。存储版本固定 `night-records-v1`，独立于输入协议 `night-input-replay-v8`/对战 `night-duel-v2`。旧已验证关卡回填最高通过关卡序号和个人最快，不补发积分。`clears` 保留兼容接口名，值改为最高通过关卡序号（1–120），由稳定任务ID中的序号计算，排除热身。新成功关卡每次100分，积分事件插入成功才累计。胜率使用double precision，按真人历史实时重算，失败后允许下降，返回wins/games真实分子分母。
 
-旧关卡回填与 `night-migration:legacy-clears-v1` 完成标记在同一事务、同一ledger锁下提交；并发实例只执行一次，失败回滚后可重试。之后读榜只检查标记，新通关仅重算本人clears。首次迁移前应停止旧版成绩写入，完成标记之后导入的旧历史不会自动再次回填。活动房查询限定当前对战规则版本，未知旧房不被新规则推进或补造战绩，也不会阻塞新建/匹配。
+旧关卡回填与 `night-migration:highest-clear-v2` 完成标记在同一事务、同一ledger锁下提交；并发实例只执行一次，失败回滚后可重试。之后读榜只检查标记，新通关仅重算本人clears。首次迁移前应停止旧版成绩写入，完成标记之后导入的旧历史不会自动再次回填。活动房查询限定当前对战规则版本，未知旧房不被新规则推进或补造战绩，也不会阻塞新建/匹配。
 
-辅助通关完整回放后 `cleared:true`，可累计通关数/积分；`assisted:true,fastestEligible:false` 不写关卡最快榜。`grantBuff/grantAmmoSupply/grantHomingAmmo`均在允许的输入操作中；追踪弹是正安全整数增量，累计不得超出存档的MAX_SAFE_INTEGER。正常已存奖励可跨局领取。当前广告完成资格由客户端Host/SDK维护，Runtime没有平台服务端广告receipt，输入回放证明游戏结果而不能证明广告观看，不能宣称防伪造领取。开发模式和纯本地练习仍由接入端隔离。
+辅助通关完整回放后 `cleared:true`，可更新最高通关/累计积分；`assisted:true,fastestEligible:false` 不写关卡最快榜。`grantBuff/grantAmmoSupply/grantHomingAmmo`均在允许的输入操作中；追踪弹是正安全整数增量，累计不得超出存档的MAX_SAFE_INTEGER。正常已存奖励可跨局领取。当前广告完成资格由客户端Host/SDK维护，Runtime没有平台服务端广告receipt，输入回放证明游戏结果而不能证明广告观看，不能宣称防伪造领取。开发模式和纯本地练习仍由接入端隔离。
 
 共享SDK增加 `listRooms/history/updateProfile/spectateRoom/connectRoom`，自动保存与携带房间租约；`updateProfile({nickname})`复用POST `/me`并更新身份缓存。夜航pollMs为100；每个token默认1200请求/分钟，10Hz动作已含快照，不再并行运行10Hz GET。
 

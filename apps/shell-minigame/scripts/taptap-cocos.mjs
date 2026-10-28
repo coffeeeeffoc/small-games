@@ -295,6 +295,10 @@ const tapTapImportCommonFiles = Object.freeze([
   'taptap-targets.mjs',
   '../../../platforms/publication-config.mjs',
   '../../../platforms/taptap/login.cjs',
+  '../../../platforms/taptap/competition-identity.mjs',
+  '../../../platforms/competition/game-services.js',
+  '../../../platforms/competition/game-bootstrap.js',
+  '../../../platforms/taptap/calls.mjs',
   '../../../platforms/competition/client.js',
 ]);
 const creatorAdsSourceFiles = Object.freeze([

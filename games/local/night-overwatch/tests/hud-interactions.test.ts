@@ -152,6 +152,44 @@ test('HUD: history keeps next page enabled while the server has another cursor',
   assert(next().disabled);assert.equal(hud.hit(next().x+22,next().y+22),undefined);
 });
 
+test('HUD: result uses each player settlement, marks your side and keeps small safe-area rows separate', () => {
+  for (const [seat,a,b,title] of [[0,'win','loss','战斗胜利'],[1,'win','loss','战斗失败'],[0,'loss','loss','战斗失败'],[0,'draw','draw','战斗平局'],[-1,'win','loss','观战结束']] as const) {
+    Object.assign(frame,{width:568,height:320}); inset=20;
+    const hud=new HUD(new SceneNode()), sim=new Simulation(), online=new Online({getItem:()=>null,setItem(){}},()=>{});
+    online.startBot(0); online.view!.finished=true; online.view!.winner=1;
+    online.room={code:'123456',status:'finished',mode:'friend',you:seat,seq:0,state:online.view!,players:[
+      {id:'a',nickname:'甲方飞行员',settlement:{outcome:a,points:120}},
+      {id:'b',nickname:'乙方飞行员',settlement:{outcome:b,points:40}},
+    ],settlement:seat<0?undefined:{outcome:seat===0?a:b,points:seat===0?120:40}};
+    hud.online=online; sim.duelMode=true; sim.phase='failure'; hud.update(sim,world);
+    const labels=hud.modal.getComponentsInChildren(cc.Label), heading=labels.find((l:any)=>l.string===title);
+    assert(heading,title); if(seat>=0)assert.equal(heading.color.hex,title==='战斗胜利'?'#75db9e':title==='战斗失败'?'#ff525b':'#e5b65c');
+    assert(labels.some((l:any)=>l.string.startsWith('A方')&&l.string.endsWith(a==='win'?'胜利':a==='loss'?'失败':'平局')));
+    assert(labels.some((l:any)=>l.string.startsWith('B方')&&l.string.endsWith(b==='win'?'胜利':b==='loss'?'失败':'平局')));
+    assert.equal(labels.filter((l:any)=>l.string.includes(' · 你')).length,seat<0?0:1);
+    assert(!labels.some((l:any)=>l.string.includes('undefined')||l.string==='本地练习'));
+    const sideB=labels.find((l:any)=>l.string.startsWith('B方')), time=labels.find((l:any)=>l.string==='作战用时');
+    assert(sideB.node.position.y-time.node.position.y>=24,'both sides stay above the metric captions');
+    assert(!hud.buttons.some((button:any)=>button.id==='settings'&&button.label.node.activeInHierarchy));
+
+  }
+  inset=0;
+});
+
+test('HUD: ranking labels identify rank and highest clear and clamp pages after resizing',()=>{
+  Object.assign(frame,{width:568,height:320}); inset=20;
+  const hud=new HUD(new SceneNode()), sim=new Simulation();
+  const row={playerId:'11111111-1111-4111-8111-111111111111',nickname:'这是一个包含十六个汉字的玩家昵称',rank:100,score:120,secondary:0};
+  hud.online={identity:row,panel:'ranking',revision:1,board:'clears',level:0,rankPage:5,ranking:{top:[row],me:row}};
+  hud.update(sim,world); assert.equal(hud.online.rankPage,0); assert.equal(hud.online.pageSize,1);
+  const labels=hud.modal.getComponentsInChildren(cc.Label);
+  const rank=labels.find((l:any)=>l.string==='第100名'), mine=labels.find((l:any)=>l.string==='我的排名 第100名 · 最高通关 第120关');
+  assert(rank&&mine); assert(Math.abs(rank.node.position.y-mine.node.position.y)>=26);
+  assert(labels.some((l:any)=>l.string==='最高通关 第120关'));
+  assert(labels.some((l:any)=>l.string.includes('#11111111')));
+   inset=0;
+});
+
 test('HUD: identical names remain distinct, own ranking is highlighted, and closed rooms offer only leave', () => {
   Object.assign(frame, { width: 1280, height: 720 }); inset = 0;
   const hud = new HUD(new SceneNode()), sim = new Simulation();
@@ -160,9 +198,9 @@ test('HUD: identical names remain distinct, own ranking is highlighted, and clos
   hud.online = { identity: own, panel: 'ranking', revision: 1, board: 'level', level: 0, rankPage: 0, ranking: { top: [other, own], me: own } };
   hud.update(sim, world);
   const labels = hud.modal.children.map((node: any) => node.getComponent(cc.Label)).filter(Boolean);
-  const mine = labels.find((label: any) => label.string.startsWith('2. 夜航者'));
-  const theirs = labels.find((label: any) => label.string.startsWith('1. 夜航者'));
-  assert.match(mine.string, /11111111 · 你/); assert.match(theirs.string, /22222222/);
+  const mine = labels.find((label: any) => label.string.includes('夜航者 #11111111'));
+  const theirs = labels.find((label: any) => label.string.includes('夜航者 #22222222'));
+  assert.match(mine.string, /11111111/); assert(labels.some((label:any)=>label.string==='第2名')); assert(labels.some((label:any)=>label.string.startsWith('我的排名 第2名'))); assert.match(theirs.string, /22222222/);
   assert.notEqual(mine.color.hex, theirs.color.hex);
   assert.equal(mine.horizontalAlign, cc.Label.HorizontalAlign.LEFT);
   assert.equal(theirs.horizontalAlign, cc.Label.HorizontalAlign.LEFT);
@@ -1014,4 +1052,42 @@ test('HUD: authored metal title and three day illustrations are loaded and cropp
     }
     assert.deepEqual([...new Set(requested)].sort(), ['ui/button/texture', 'ui/home/texture', 'ui/insignia/texture', 'ui/mission-atlas/texture', 'ui/mission-day-atlas/texture', 'ui/panel/texture', 'ui/title-metal/texture']);
   } finally { cc.resources.load = load; inset = 0; }
+});
+
+test('late interface textures cannot retain an ad panel after battle resumes',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;
+ const load=cc.resources.load,callbacks=new Map();cc.resources.load=(name:any,_type:any,done:any)=>callbacks.set(name,done);
+ try{
+  const hud=new HUD(new SceneNode()),sim=new Simulation();sim.start();sim.pause('advert',true);hud.advert={kind:'zoom',mock:false};hud.update(sim,world);assert(hud.modal);
+  hud.advert=undefined;sim.pause('advert',false);hud.modalKey='rebuild';
+  callbacks.get('ui/panel/texture')(null,{width:1024,height:512});hud.update(sim,world);
+  assert.equal(hud.modalKey,'');assert(!hud.modal);assert(!hud.buttons.some((b:any)=>b.id==='adClose'&&b.label.node.activeInHierarchy));
+ }finally{cc.resources.load=load;}
+});
+
+test('priority touch target never hides nearby ordinary enemy diamonds',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;
+ const hud=new HUD(new SceneNode()),sim=new Simulation();sim.start();
+ const enemy=sim.units.find(u=>!u.friendly)!;Object.assign(enemy,{x:sim.rescue.x+5,z:sim.rescue.z,born:-30,attack:3});
+ const neighbour={...enemy,id:9876,x:enemy.x+12,attack:20};sim.units.push(neighbour);hud.update(sim,world);
+ const point=world.project(neighbour,.8),x=point.x-frame.width/2,y=point.y-frame.height/2,r=neighbour.kind==='heavy'?7:5;
+ assert.equal(hud.hit(point.x,frame.height-point.y)?.id,'priority');
+ const path=[['moveTo',x,y+r],['lineTo',x+r,y],['lineTo',x,y-r],['lineTo',x-r,y],['close'],['stroke']];
+ assert(hud.marks.calls.some((_:any,i:number)=>path.every(([op,...args],j)=>{
+  const c=hud.marks.calls[i+j];return c?.op===op&&c.color==='#ff525b'&&args.every((v,k)=>Math.abs(c.args[k]-Number(v))<.001);
+ })),'the neighbouring red diamond is fully drawn inside the priority target');
+});
+
+test('combined phone safe areas keep lobby reconnect targets separate and ranking text readable',()=>{
+ Object.assign(frame,{width:568,height:320});const safe=cc.sys.getSafeAreaRect;
+ cc.sys.getSafeAreaRect=()=>({x:44,y:20,width:480,height:280});
+ try{
+  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;
+  online.show('menu');online.resumeCode='123456';hud.update(sim,world);assertPanelTargets(hud);
+  const targets=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
+  for(const a of targets)for(const b of targets)if(a!==b)assert(!overlaps(a,b),a.id+'/'+b.id);
+  online.show('ranking');online.ranking={top:[{playerId:'11111111-1111-4111-8111-111111111111',nickname:'这是一个包含十六个汉字的玩家昵称',rank:1,score:120,secondary:0}],me:null};
+  hud.update(sim,world);assertPanelTargets(hud);
+  assert(panelLabels(hud).some((l:any)=>l.string.includes('#11111111')));
+ }finally{cc.sys.getSafeAreaRect=safe;}
 });

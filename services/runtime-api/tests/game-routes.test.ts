@@ -264,6 +264,21 @@ it('writes require identity, refuse client result fields and expose game-scoped 
       game: 'duel',
     },
   );
+  const readyUrl = '/api/competition/v1/games/duel/rooms/ABCDEF123456/ready';
+  expect(
+    (await app.inject({ method: 'POST', url: readyUrl, headers, payload: { ready: false } }))
+      .statusCode,
+  ).toBe(200);
+  expect(roomAction).toHaveBeenLastCalledWith(
+    { playerId: 'member-player', game: 'tower-brake' },
+    'ABCDEF123456',
+    'ready',
+    { game: 'duel', ready: false },
+  );
+  expect(
+    (await app.inject({ method: 'POST', url: readyUrl, headers, payload: { ready: 'false' } }))
+      .statusCode,
+  ).toBe(422);
   expect(
     (await app.inject({ method: 'POST', url: path + '/rooms', headers, payload: {} })).statusCode,
   ).toBe(404);

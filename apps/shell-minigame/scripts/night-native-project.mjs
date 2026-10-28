@@ -9,12 +9,12 @@ const normalize = (text) => text.replaceAll('\r\n', '\n');
 const recipe = [
   {
     file: 'assets/scripts/HUD.ts',
-    originalSha256: '237b0517c5590e04d21fcafe08ce83eaa76015545696b8689b695ed99604001a',
+    originalSha256: '65f130856a939080f55ef0085df8c1a57a3dd3f48887340f688f1de31d386203',
     changes: [],
   },
   {
     file: 'assets/scripts/Platform.ts',
-    originalSha256: 'dbaef88ebb80ea4dccfc4d58a499f95312d331071fe5b22ec171d01cd1c4a099',
+    originalSha256: '08adb1c83305888e2a5dcb09dfba746edef0de4af5dd933732b859b59b5a5daa',
     changes: [],
   },
 ];
@@ -126,6 +126,8 @@ export async function prepareNativeProject(gameRoot, { stageBase } = {}) {
       'platforms/competition/client.js',
       'platforms/competition/game-services.js',
       'platforms/competition/game-bootstrap.js',
+      'platforms/taptap/competition-identity.mjs',
+      'platforms/taptap/calls.mjs',
     ])
       copied[file] = await copyFile(
         path.resolve(gameRoot, '../../..', file),

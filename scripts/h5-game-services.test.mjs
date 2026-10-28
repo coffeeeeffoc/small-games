@@ -70,3 +70,39 @@ test('five-game delivery enables verified slots and a separate no-UI service boo
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('TapTap Night identity survives repack and ordinary browser builds remain guest scoped', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'night-tap-identity-'));
+  const env = {
+    COMPETITION_SERVICE_ENABLED: '1',
+    COMPETITION_PUBLIC_API_URL: 'https://api.example.test/v1',
+  };
+  try {
+    await writeFile(path.join(dir, 'index.html'), '<html><head></head></html>');
+    const cfg = await prepareGameServices('night-overwatch', dir, {
+      env,
+      tapAppId: 'tap-night-test',
+    });
+    assert.equal(cfg.identityProvider, 'taptap');
+    assert.match(
+      await readFile(path.join(dir, 'game-services/game-bootstrap.js'), 'utf8'),
+      /installTapCompetitionIdentity\(\)/,
+    );
+    await reconfigureGameServices(path.join(dir, 'index.html'), env);
+    assert.match(
+      await readFile(path.join(dir, 'game-service-config.js'), 'utf8'),
+      /tap-night-test/,
+    );
+    await prepareGameServices('night-overwatch', dir, { env });
+    assert.doesNotMatch(
+      await readFile(path.join(dir, 'game-service-config.js'), 'utf8'),
+      /identityProvider/,
+    );
+    assert.doesNotMatch(
+      await readFile(path.join(dir, 'game-services/game-bootstrap.js'), 'utf8'),
+      /installTapCompetitionIdentity/,
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

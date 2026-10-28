@@ -741,3 +741,43 @@ test('priority action moves both view and reticle, clears firing and stays inert
   g.action('settings'); const aim = { ...g.sim.aim }; target.x += 4; g.action('priority'); assert.deepEqual(g.sim.aim, aim);
   g.platform.dispose();
 });
+
+test('browser ad return reconciles missing focus events without resuming an actually hidden or unfocused game', async()=>{
+  const globals=globalThis as any, previous={window:globals.window,document:globals.document};
+  const windowMock=Object.assign(new EventTarget(),{matchMedia:()=>({matches:false})});
+  let focused=true;
+  const canvas=Object.assign(new EventTarget(),{tabIndex:0,setAttribute(){},focus(){focused=true;}});
+  const doc=Object.assign(new EventTarget(),{hidden:false,hasFocus:()=>focused,activeElement:{tagName:'CANVAS'},querySelector:()=>canvas});
+  globals.window=windowMock; globals.document=doc; cc.sys.isBrowser=true;
+  try {
+    for(const kind of ['zoom','supply']) for(const trigger of ['completion','visibility','canvas']) {
+      focused=true;doc.hidden=false;const g=mission();g.hud.t=(zh:string)=>zh;
+      let finish:any;g.platform.rewardProvider=()=>new Promise(r=>{finish=r;});
+      try {
+        if(kind==='supply'){g.action('supply');g.action('reward:rate');}
+        const request=g.requestReward(kind,kind==='supply'?'rate':undefined);
+        focused=false;windowMock.dispatchEvent(new Event('blur'));assert(g.sim.pauses.has('focus'));
+        if(trigger==='completion')focused=true;
+        else if(trigger==='visibility'){doc.hidden=true;doc.dispatchEvent(new Event('visibilitychange'));}
+        finish({status:'completed'});await request;
+        if(trigger!=='completion')assert(g.sim.paused,'unfocused page cannot resume on ad completion alone');
+        if(trigger==='visibility'){
+          doc.hidden=false;doc.dispatchEvent(new Event('visibilitychange'));assert(g.sim.paused);
+          focused=true;doc.dispatchEvent(new Event('visibilitychange'));
+        }
+        if(trigger==='canvas')canvas.dispatchEvent(Object.assign(new Event('pointerdown'),{pointerType:'touch'}));
+        assert(!g.sim.paused,kind+'/'+trigger);assert.equal(g.sim.held.size,0);
+        if(kind==='supply'){assert.equal(g.sim.buff.kind,'rate');assert.equal(g.sim.buff.remaining,60);}
+        g.sim.step(.1);assert.equal(g.sim.time,.1);
+      }finally{g.platform.dispose();}
+    }
+  }finally{
+    cc.sys.isBrowser=false;
+    for(const [key,value] of Object.entries(previous))if(value===undefined)delete globals[key];else globals[key]=value;
+  }
+});
+
+test('support entered from the battle report returns to an unobstructed battlefield',async()=>{
+ const g=mission();g.hud.t=(zh:string)=>zh;g.hud.reportOpen=true;g.platform.rewardProvider=async()=>({status:'completed'});
+ try{g.openSupply();assert.equal(g.hud.reportOpen,false);await g.requestReward('supply','ammo');assert(!g.hud.supplyOpen);assert(!g.sim.paused);assert.equal(g.sim.homingAmmo,2);}finally{g.platform.dispose();}
+});

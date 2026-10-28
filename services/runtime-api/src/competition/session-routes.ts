@@ -38,11 +38,15 @@ export function registerIdentityRoutes(
     },
     async (request) => {
       const input = platformLoginSchema.parse(request.body);
+      const previous = request.headers.authorization
+        ? await player(request.headers.authorization)
+        : undefined;
       return store.session(
         input.platform,
         input.appId,
         await verifiedPlatformSubject(platforms, input),
         input.game,
+        previous,
       );
     },
   );

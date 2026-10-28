@@ -7,7 +7,7 @@ type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
 export const nightBoard = (board: string) => `night-overwatch:${board}:night-records-v1`;
 export const nightLedgerLock = (tx: Tx) =>
   tx.execute(sql`select pg_advisory_xact_lock(hashtext('night-overwatch-ledger'))`);
-const clearsMigration = 'night-migration:legacy-clears-v1';
+const clearsMigration = 'night-migration:highest-clear-v2';
 
 async function clearsMigrated(tx: Tx) {
   const rows = await tx.execute(sql`select id from runtime.competition_matches
@@ -35,11 +35,13 @@ export async function backfillNightClears(tx: Tx, at: number) {
 export async function refreshNightClears(tx: Tx, at: number, playerId?: string) {
   const player = playerId ? sql`and player_id=${playerId}` : sql``;
   await tx.execute(sql`insert into runtime.competition_best(board,player_id,score,secondary,match_id,updated_at)
-    select ${nightBoard('clears')},player_id,count(distinct level),0,'night-clears:' || player_id,${at}
+    select ${nightBoard('clears')},player_id,max(substring(level from '[0-9]+$')::int),0,'night-clears:' || player_id,${at}
     from (select player_id,substring(split_part(board,':',2) from 7) as level from runtime.competition_best
       where board like 'night-overwatch:level-%:night-records-v1' and score>0 ${player}
       union select player_id,substring(split_part(board,':',2) from 7) as level from runtime.competition_results
-      where board like 'night-overwatch:clear-%:night-records-v1' and score>0 ${player}) cleared group by player_id
+      where board like 'night-overwatch:clear-%:night-records-v1' and score>0 ${player}) cleared
+    where level in ('corridor-01','ambush-02','patrol-03') or level ~ '^operation-(00[4-9]|0[1-9][0-9]|1[01][0-9]|120)$'
+    group by player_id
     on conflict(board,player_id) do update set score=excluded.score,updated_at=excluded.updated_at
     where runtime.competition_best.score<>excluded.score`);
 }

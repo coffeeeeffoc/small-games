@@ -484,3 +484,167 @@ test('chess two-key write rolls back a partial disk failure', async () => {
   assert.equal(storage.getItem('xiangqi-five-challenges-v1'), 'old-progress');
   assert.equal(storage.getItem('xiangqi-five-local-v1'), 'old-game');
 });
+
+test('Night first verified login carries only its authenticated guest proof, and later runtimes recover the Tap owner', async () => {
+  const storage = memory(),
+    root = {
+      URL,
+      Date,
+      localStorage: storage,
+      tap: {
+        login({ success }) {
+          success({ code: 'verified-night-account' });
+        },
+      },
+    };
+  vm.runInNewContext(client, root);
+  const cfg = { ...config, game: 'night-overwatch', appId: 'tap-night-test' },
+    calls = [];
+  const guest = credential({
+    game: 'night-overwatch',
+    identityKind: 'guest',
+    playerId: 'old-night-id',
+    userId: 'old-night-id',
+  });
+  const request = async (path, body, owner) => {
+    calls.push({ path, body, owner });
+    if (path === '/sessions/guest') return guest;
+    if (path === '/sessions/logout') return {};
+    assert.equal(path, '/sessions/platform');
+    assert.equal(body.appId, cfg.appId);
+    return credential({
+      game: 'night-overwatch',
+      playerId: 'old-night-id',
+      userId: 'old-night-id',
+    });
+  };
+  await root
+    .__createCompetitionIdentity({
+      config: { ...cfg, appId: '', identityProvider: undefined },
+      storage,
+      request,
+    })
+    .current();
+  installTapCompetitionIdentity(root);
+  const auth = root.__createCompetitionIdentity({ config: cfg, storage, request });
+  assert.equal((await auth.current()).playerId, 'old-night-id');
+  assert.equal(calls.find((c) => c.path === '/sessions/platform').owner.token, guest.token);
+  storage.map.clear();
+  calls.length = 0;
+  const next = { URL, Date, localStorage: storage, tap: root.tap };
+  vm.runInNewContext(client, next);
+  installTapCompetitionIdentity(next);
+  const restored = await next
+    .__createCompetitionIdentity({ config: cfg, storage, request })
+    .current();
+  assert.equal(restored.playerId, 'old-night-id');
+  assert(!calls.some((c) => c.path === '/sessions/guest'));
+  assert.equal(calls.find((c) => c.path === '/sessions/platform').owner, null);
+});
+
+test('Night lost binding response retries with a fresh code; changed guest ownership rejects the late result', async () => {
+  for (const mode of ['lost-response', 'changed-owner']) {
+    const storage = memory();
+    let codes = 0,
+      platformCalls = 0,
+      release;
+    const root = {
+      URL,
+      Date,
+      localStorage: storage,
+      tap: {
+        login({ success }) {
+          success({ code: 'code-' + ++codes });
+        },
+      },
+    };
+    vm.runInNewContext(client, root);
+    const cfg = { ...config, game: 'night-overwatch', appId: 'tap-night-test' },
+      guest = credential({ game: 'night-overwatch', identityKind: 'guest' });
+    const platform = credential({ game: 'night-overwatch' });
+    const request = async (path, body, owner) => {
+      if (path === '/sessions/guest') return guest;
+      if (path === '/sessions/refresh')
+        throw Object.assign(Error('revoked'), { code: 'REFRESH_EXPIRED' });
+      if (path === '/sessions/platform') {
+        platformCalls++;
+        if (mode === 'changed-owner')
+          return new Promise((r) => {
+            release = () => r(platform);
+          });
+        if (platformCalls === 1) throw Object.assign(Error('revoked'), { code: 'SESSION_EXPIRED' });
+        assert.equal(body.code, 'code-2');
+        assert.equal(owner, null);
+        return platform;
+      }
+      return {};
+    };
+    const old = root.__createCompetitionIdentity({
+      config: { ...cfg, appId: '', identityProvider: undefined },
+      storage,
+      request,
+    });
+    await old.current();
+    installTapCompetitionIdentity(root);
+    const auth = root.__createCompetitionIdentity({ config: cfg, storage, request }),
+      pending = auth.current();
+    if (mode === 'changed-owner') {
+      await new Promise((r) => setImmediate(r));
+      const changed = {
+        ...old.saved(),
+        sessionId: '22222222-2222-2222-2222-222222222222',
+        userId: 'another-player',
+      };
+      storage.setItem(old.storageKey, JSON.stringify(changed));
+      release();
+      await assert.rejects(pending, { code: 'SESSION_CHANGED' });
+      assert.equal(old.saved().userId, 'another-player');
+      assert.equal(auth.saved(), null);
+    } else {
+      assert.equal((await pending).userId, platform.userId);
+      assert.equal(codes, 2);
+      assert.equal(platformCalls, 2);
+    }
+  }
+});
+
+test('Night refuses official binding when legacy refresh fails without revoking its owner', async () => {
+  const storage = memory(),
+    root = {
+      URL,
+      Date,
+      localStorage: storage,
+      tap: {
+        login({ success }) {
+          success({ code: 'fresh-code' });
+        },
+      },
+    };
+  vm.runInNewContext(client, root);
+  const cfg = { ...config, game: 'night-overwatch', appId: 'tap-night-test' };
+  const guest = credential({ game: 'night-overwatch', identityKind: 'guest' });
+  let creating = true;
+  const paths = [];
+  const request = async (path) => {
+    paths.push(path);
+    if (creating && path === '/sessions/guest') return guest;
+    assert.equal(path, '/sessions/refresh');
+    throw Object.assign(Error('expired'), { code: 'SESSION_EXPIRED' });
+  };
+  const old = root.__createCompetitionIdentity({
+    config: { ...cfg, appId: '', identityProvider: undefined },
+    storage,
+    request,
+  });
+  await old.current();
+  creating = false;
+  paths.length = 0;
+  old.invalidate(old.saved(), { code: 'SESSION_EXPIRED' });
+  installTapCompetitionIdentity(root);
+  await assert.rejects(
+    root.__createCompetitionIdentity({ config: cfg, storage, request }).current(),
+    { code: 'SESSION_EXPIRED' },
+  );
+  assert.deepEqual(paths, ['/sessions/refresh']);
+  assert.equal(old.saved().playerId, guest.playerId);
+});

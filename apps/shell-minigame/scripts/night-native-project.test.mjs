@@ -37,6 +37,8 @@ async function fixture() {
     'platforms/competition/client.js',
     'platforms/competition/game-services.js',
     'platforms/competition/game-bootstrap.js',
+    'platforms/taptap/competition-identity.mjs',
+    'platforms/taptap/calls.mjs',
   ]) {
     await mkdir(path.dirname(path.join(temp, file)), { recursive: true });
     await cp(path.join(repository, file), path.join(temp, file));
