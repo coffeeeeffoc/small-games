@@ -1,0 +1,89 @@
+name: Night Overwatch UI candidate
+
+on:
+  push:
+    branches: [codex/night-overwatch-ui-check-20261028]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: night-overwatch-ui-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  creator:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+      - name: Hash the exact Night Overwatch sources and runtime art
+        id: source
+        shell: pwsh
+        run: |
+          $hash = node --input-type=module -e "import { sourceHash } from './games/local/night-overwatch/scripts/artifact.mjs'; console.log(await sourceHash());"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "hash=$hash" >> $env:GITHUB_OUTPUT
+          "engine-cache=$([System.IO.Path]::GetTempPath())CocosCreator/3.8.8/builder/engine" >> $env:GITHUB_OUTPUT
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:games
+      - name: Restore the verified Creator installation
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/cocos/3.8.8
+          key: cocos-creator-3.8.8-win-121518
+      - name: Restore Night Overwatch import and engine caches
+        uses: actions/cache@v5
+        with:
+          path: |
+            games/local/night-overwatch/library
+            games/local/night-overwatch/temp/asset-db
+            games/local/night-overwatch/temp/programming
+            ${{ steps.source.outputs.engine-cache }}
+          key: night-overwatch-import-3.8.8-v1-${{ runner.os }}-${{ steps.source.outputs.hash }}
+          restore-keys: |
+            night-overwatch-import-3.8.8-v1-${{ runner.os }}-
+      - name: Locate or install the checksum-verified Creator 3.8.8
+        run: pnpm --filter @coffeeeeffoc/carding-car run setup
+      - name: Check Night Overwatch against actual Creator declarations
+        run: pnpm --dir games/local/night-overwatch run typecheck
+      - name: Run the Night Overwatch rule, HUD and lifecycle tests
+        run: pnpm --dir games/local/night-overwatch run test
+      - name: Build Night Overwatch with actual Creator
+        run: pnpm --dir games/local/night-overwatch run build
+        timeout-minutes: 18
+      - name: Include the actual engine declarations
+        shell: pwsh
+        run: Copy-Item -LiteralPath "$env:USERPROFILE/.cache/cocos/3.8.8/resources/resources/3d/engine/bin/.declarations/cc.d.ts" -Destination games/local/night-overwatch/cc.d.ts
+      - name: Verify that the real artifact matches the exact sources
+        run: node --input-type=module -e "import { verifyPrebuilt } from './games/local/night-overwatch/scripts/artifact.mjs'; await verifyPrebuilt('games/local/night-overwatch');"
+      - name: Stamp the actual Windows producer provenance
+        run: node scripts/reuse-cocos-artifacts.mjs stamp night-overwatch games/local/night-overwatch
+      - name: Upload the verified Night Overwatch candidate
+        uses: actions/upload-artifact@v7
+        with:
+          name: night-overwatch-ui-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            games/local/night-overwatch/dist
+            games/local/night-overwatch/cc.d.ts
+            games/local/night-overwatch/cocos-provenance.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload Creator build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: night-overwatch-ui-logs-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            games/local/night-overwatch/reports/build-*.log
+            games/local/night-overwatch/temp/logs
+            games/local/night-overwatch/temp/builder/log
+          if-no-files-found: ignore
+          retention-days: 7
