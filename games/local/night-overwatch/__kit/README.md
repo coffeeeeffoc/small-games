@@ -11,7 +11,7 @@
 
 ## 使用
 
-先读取根 `AGENTS.md`、[通用开发规范](../../../../docs/game-development.md)、[游戏 README](../README.md)和最近设计记录，再引用执行提示。已有工程直接按本轮范围改造，不从旧原型重新起步。
+先读取根 `AGENTS.md`、[通用开发规范](../../../../docs/game-development.md)、[游戏 README](../README.md)和[当前设计入口](../docs/design/README.md)，再引用执行提示。已有工程直接按本轮范围改造，不从旧原型重新起步。
 
 可直接发送：
 

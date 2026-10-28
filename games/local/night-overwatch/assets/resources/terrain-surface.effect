@@ -44,18 +44,21 @@ CCProgram terrain-fs %{
   }
   vec4 frag () {
     vec2 p = v_position.xz;
-    float grain = noise21(p * 3.7);
-    float patches = noise21(p * .42) * .65 + noise21(p * 1.5) * .35;
+    // Fine world-space detail must converge to its mean before it becomes
+    // smaller than distant pixels. This also works on WebGL1 without derivatives.
+    float detailFade = 1.0 - smoothstep(60.0, 350.0, distance(cc_cameraPos.xyz, v_position));
+    float grain = mix(.5, noise21(p * 3.7), detailFade * detailFade);
+    float patches = mix(.5, noise21(p * .42) * .65 + noise21(p * 1.5) * .35, detailFade);
     vec3 base = v_color.rgb * mainColor.rgb;
     float detail = .83 + patches * .23 + grain * .16;
     if (surfaceParams.x < .5) {
       float steep = smoothstep(.09, .38, 1.0 - normalize(v_normal).y);
-      float strata = smoothstep(.42, .58, noise21(vec2(p.x * .42 + p.y * .08, v_position.y * 2.5)));
+      float strata = mix(.5, smoothstep(.3, .7, noise21(vec2(p.x * .42 + p.y * .08, v_position.y * 2.5))), detailFade);
       detail *= mix(1.0, .76 + strata * .4, steep);
       base *= mix(vec3(.94, 1.02, .98), vec3(1.08, 1.02, .94), smoothstep(.53, .72, patches));
     } else if (surfaceParams.x < 1.5) {
       float time = surfaceParams.y;
-      float waves = sin(p.y * 4.5 + noise21(p * .7) * 5.0 - time * .65) * .5 + .5;
+      float waves = mix(.5, sin(p.y * 4.5 + noise21(p * .7) * 5.0 - time * .65) * .5 + .5, detailFade);
       vec3 eye = normalize(cc_cameraPos.xyz - v_position);
       float fresnel = pow(1.0 - max(dot(eye, normalize(v_normal)), 0.0), 3.0);
       float glimmer = pow(waves, 18.0) * (.3 + noise21(p * 2.0) * .7);

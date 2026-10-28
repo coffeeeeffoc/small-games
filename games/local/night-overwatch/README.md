@@ -88,7 +88,7 @@ Web/H5 公开入口支持 `?mission=corridor-01` / `ambush-02` / `patrol-03` / `
 
 普通弹追踪保持当前武器的伤害、初速、范围与友伤，追踪增益到期后在途普通弹按当前位置继续重力飞行。一次性追踪弹只伤害锁定目标，威力调整为 120；满血重甲需要两发。广告次数不限，弹药库存不限制广告；计时增益期间所有广告入口（包括倍率解锁）关闭。
 
-广告取消/失败返回选择页并说明未领取；不使用时3秒后返回战斗。广告成功保存资格并自动启用事先选好的支援；回调早于前台恢复时，原局面恢复后再启用。已存资格可以直接启用，广告服务不可用也不影响领取；稍后选择、返回主页或刷新不会清除资格，领取只消费一次。Web 使用明确标注的模拟广告，只有「完成模拟广告」才完成，取消/Esc 不发奖。宿主继续通过 `SmallGamesRewardAds.offer` / `Platform.rewardProvider` 接入，补给机会 ID 为 `night-overwatch:supply`，奖励声明 `{ supplyChoice: 1 }`；倍率仍为 `night-overwatch:zoom`。`night-overwatch-rewards-v1` 向后兼容增加 `pendingSupply`，旧库存和倍率保留；计时增益只属于当前对局。存储拒绝时资格保留在本会话内，无法承诺跨刷新保存。
+广告取消/失败返回选择页并说明未领取；不使用时立即返回战斗。广告成功保存资格并自动启用事先选好的支援；回调早于前台恢复时，原局面恢复后再启用。已存资格可以直接启用，广告服务不可用也不影响领取；稍后选择、返回主页或刷新不会清除资格，领取只消费一次。Web 使用明确标注的模拟广告，只有「完成模拟广告」才完成，取消/Esc 不发奖。宿主继续通过 `SmallGamesRewardAds.offer` / `Platform.rewardProvider` 接入，补给机会 ID 为 `night-overwatch:supply`，奖励声明 `{ supplyChoice: 1 }`；倍率仍为 `night-overwatch:zoom`。`night-overwatch-rewards-v1` 向后兼容增加 `pendingSupply`，旧库存和倍率保留；计时增益只属于当前对局。存储拒绝时资格保留在本会话内，无法承诺跨刷新保存。
 
 本轮流程与效果图见 [支援与地图设计](docs/design/2026-10-24-support-map.md)。历史方案位于 `docs/design/combat-supply-20261010.md` 与 `combat-supply-concept-20261010.png`；平衡回放用 `node tests/supply-balance.mjs`，补给浏览器验收用 `node tests/combat-supply-browser.mjs`（沿用下方构建 hash 环境变量）。[本次验证记录](docs/design/combat-supply-verification-20261010.md)包含实际截图、测试结果与平台边界。
 
@@ -121,15 +121,15 @@ node tests/flight-browser.mjs
 
 截图保存在 `reports/`，本轮 QA 使用带时间戳的独立目录。真实手机、微信、B站、抖音与快手结果必须分别验证，浏览器触控模拟不代表这些平台通过。
 
-核心规则依据 `__kit/GAME_REQUIREMENTS.md`。本次已进入产品打磨阶段，旧 M0/M1 和占位素材条款不作为完成依据；技术可用与发布质量分别记录。美术按最新认可效果图实现，使用原创场景材质、插画与金属标题；音频保留现有实现，来源见 `docs/ASSETS.md`。
+当前维护依据为本 README、[设计索引](docs/design/README.md) 与对应源码／测试契约。`__kit/CODEX_TASK.md` 是已更新的当前执行提示，早期参数仅供追溯，不恢复旧原型或占位标准。美术按最新认可效果图实现，使用原创场景材质、插画、金属标题与独立界面皮肤；技术可用与视觉质量分别验收，素材来源见 [ASSETS](docs/ASSETS.md)。
 
 ## 本轮界面与上架资料
 
-[设计及概念图](docs/design/2026-10-24-tactical-ui.md) · [八类资料与验证状态](publishing/STATUS.md)。
+[当前视觉与交互规范](docs/design/interface.md) · [设计及概念图索引](docs/design/README.md) · [八类资料与验证状态](publishing/STATUS.md)。
 
 2026-10-25 [首页、手册与即时设置设计](docs/design/2026-10-25-settings-home-guide.md)：首页使用独立夜航封面；点击选择任务后再展示关卡与场景预览；手册分层展示操作、绑定和完整说明，固定导航与返回。设置验收：设置上述构建环境变量后执行 `node tests/settings-browser.mjs`，在弹窗打开期间检查真实投影变化及战斗冻结。当时暂停配置使用v6；本轮四武器、巡逻与计时统一升级为 `night-input-replay-v7`，旧版本输入不能混用。
 
-新版回归入口：设置 NIGHT_URL 与 NIGHT_EXPECTED_SOURCE_HASH 后运行 `node tests/redesign-browser.mjs`。
+界面回归入口：设置 `NIGHT_URL` 与 `NIGHT_EXPECTED_SOURCE_HASH`，运行 `node tests/ui-style-browser.mjs`（布局、皮肤、按下与拖出取消）和 `node tests/ui-input-browser.mjs`（输入框、键盘缩屏、战况与实际操作）。设置 `NIGHT_REPORT_URL` 为新的 `file:///.../` 目录以保留旧证据；结算修改追加 `NIGHT_STYLE_REVIEW=1 node tests/finish-browser.mjs`。实际打开各尺寸截图对照设计，测试通过不等于视觉达标。
 
 任务地图现在按实际地形高度、路线、敌我位置绘制地形预览。[地图与支援流程验证](docs/verification-2026-10-24-flow.md)。清除全部威胁（含后续波次）后，立即停火，车队约3秒抵达，在途普通弹按4倍速度走完原剩余弹道、保留地形碰撞与友伤。只有车队抵达、弹药全部处理完、清敌语音播放结束三项都完成，才进入正式结算；先完成的等待其他项。暂停/后台冻结撤离并保留未播完语音，恢复后续播；静音、音频缺失或播放进度连续2秒停滞时跳过语音等待。[同步撤离验证](docs/verification-2026-10-24-extraction-sync.md)。
 
@@ -155,6 +155,8 @@ $env:COMPETITION_PUBLIC_API_URL='http://127.0.0.1:43012/api/competition/v1'
 pnpm build
 ```
 
-正式环境只允许HTTPS公共地址。Runtime部署需包含本游戏纯核TS、Node24以及 `003-night-overwatch-control.sql` 兼容迁移；管理控制台发布时将夜航守望设为enabled，并配置实际H5来源。迁移默认disabled，保留已有游戏及历史摘要。客户端配置、服务部署和控制台发布均需完成才可全站联机；本轮仅在隔离本地服务验证，没有生产部署。
+正式环境只允许HTTPS公共地址。Runtime部署需包含本游戏纯核TS、Node24以及 `003-night-overwatch-control.sql` 兼容迁移；管理控制台发布时将夜航守望设为enabled，并配置实际H5来源。迁移默认disabled，保留已有游戏及历史摘要。客户端配置、服务部署和控制台发布均需完成才可全站联机；既有生产部署及接口验证见 [当前交付状态](publishing/STATUS.md#生产部署)，本轮界面修改不重新部署后端；本地浏览器测试仍隔离外部服务，不能把模拟结果当作生产验证。
 
 验证与当前素材见 [publishing/STATUS.md](publishing/STATUS.md)。本地联机浏览器测试：设置 `NIGHT_URL` 与构建的 `NIGHT_EXPECTED_SOURCE_HASH` 后运行 `node tests/live-online-browser.mjs`；多尺寸离线/机器人检查使用 `node tests/combat-online-browser.mjs`。
+
+本次界面材质、控件层级、手势取消和三尺寸实机对照见 [界面验证](docs/verification-interface.md)。

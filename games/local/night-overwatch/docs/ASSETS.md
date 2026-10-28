@@ -1,10 +1,12 @@
 # 素材台账
 
-当前运行资产包含项目原创代码/Blender 模型、已有炮艇夜谷插画，以及2026-10-28通过内置 imagegen 为运行界面生成的透明金属标题和两组三任务插画。效果图与运行素材分别保留身份：设计效果图用于对照，运行 PNG 原图直接进入 Cocos resources；不将整张带界面的效果图覆盖为游戏。可编辑源包括 TypeScript / JavaScript、Blender Python、.blend 和 Cocos effect；未使用 Draco、KTX2 或外部解码器。
+当前运行资产包含项目原创代码/Blender 模型、已有炮艇夜谷插画，以及2026-10-28通过内置 imagegen 为运行界面生成的透明金属标题、两组三任务插画与并行合入的面板/按钮/徽章皮肤。效果图与运行素材分别保留身份：设计效果图用于对照，运行 PNG 原图直接进入 Cocos resources；不将整张带界面的效果图覆盖为游戏。可编辑源包括 TypeScript / JavaScript、Blender Python、.blend 和 Cocos effect；未使用 Draco、KTX2 或外部解码器。
 
 | assetId | 来源 | 构成与预算 |
 | --- | --- | --- |
+| ui.panel / ui.button / ui.insignia | 内置 imagegen，2026-10-28 | `assets/resources/ui/` 三张 PNG，面板与按钮按九宫格拉伸，徽章保持透明和比例；生成约束及使用边界见 [当前视觉规范](design/interface.md)，总文件约4.68MB，无新增付费素材或字体依赖 |
 | terrain.ground / ridges | World.ts + resources/terrain-surface.effect | 保留物理高度场，追加世界坐标草土颗粒/坡面岩层材质；战区外山脊、光照与远景雾色重做 |
+
 | terrain.roads / markings | World.ts | 16 节点连续路面、弯道接缝、中心虚线与待命标线 |
 | terrain.water / structures | World.ts | 河道、水面纹理几何、跨河桥梁护栏、村屋和通信塔 |
 | terrain.fields / roofs / details | World.ts | 农田垄沟、坡屋顶、门窗和塔架；静态物体按材质合批 |

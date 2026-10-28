@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { acceptanceBuild, press, snapshot, assertLayout } from './flight-browser.mjs';
+import { acceptanceBuild, snapshot, assertLayout } from './flight-browser.mjs';
+import { press, settleVisuals } from './visual-helpers.mjs';
 
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
 const apiUrl = process.env.NIGHT_LOBBY_URL;
@@ -19,10 +20,11 @@ try {
     await page.route('**/game-service-config.js',route=>route.fulfill({status:200,contentType:'text/javascript',body:
       'globalThis.__COMPETITION_CONFIG__ = Object.freeze('+JSON.stringify({game:'night-overwatch',platform:'h5',competitionEnabled:true,apiUrl})+');'}));
     await page.goto(base+'?dev=0');
-    await page.waitForFunction(()=>globalThis.__night?.snapshot().ui.homeArtworkReady&&__night.snapshot().online.identity.playerId);
+    await page.waitForFunction(()=>globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().ui.interfaceArtworkReady&&__night.snapshot().online.identity.playerId);
+    await page.waitForFunction(() => !document.getElementById('night-startup'));
     await page.waitForTimeout(800);
     const hit=id=>press(page,id,touch,false);
-    const capture=async name=>{await page.waitForTimeout(300);assertLayout(await snapshot(page),width,height);
+    const capture=async name=>{await settleVisuals(page);assertLayout(await snapshot(page),width,height);
       await page.screenshot({path:fileURLToPath(new URL(name+'-'+width+'.png',out))});};
     await hit('online:menu'); await page.waitForFunction(()=>__night.snapshot().online.rooms.length>=4);
     let state=await snapshot(page);

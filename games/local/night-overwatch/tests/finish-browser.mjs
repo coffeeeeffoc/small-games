@@ -19,8 +19,9 @@ async function locate(target) {
   await page.waitForTimeout(150);
 }
 try {
+  await page.route('**/api/competition/**', route => route.abort());
   await page.goto(base + '?dev=0');
-  await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().online.identity.playerId);
+  await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().ui.interfaceArtworkReady);
   await page.waitForTimeout(800);
   await press(page, 'online:menu'); await press(page, 'online:bot');
   await page.waitForFunction(() => __night.snapshot().online.active && !__night.snapshot().modal);
@@ -50,8 +51,8 @@ try {
   }
   await page.waitForFunction(() => __night.snapshot().modal === 'duelResult', null, { timeout: 10000 });
   state = await snapshot(page);
-  assert.equal(state.phase, 'success'); assert.equal(state.online.room.settlement.points, 40);
-  evidence.result = { phase: state.phase, time: state.time, settlement: state.online.room.settlement, radioPlaying: state.radioPlaying, radioDuration: state.radioDuration };
+  assert.equal(state.phase, 'success'); assert.equal(state.online.room, undefined, 'offline practice must not create a public score');
+  evidence.result = { phase: state.phase, time: state.time, localPractice: true, radioPlaying: state.radioPlaying, radioDuration: state.radioDuration };
   assert(state.radioPlaying && state.radioDuration > 0, 'Completion audio is playing with the result panel');
   await page.waitForTimeout(700); assert.equal((await snapshot(page)).time, state.time);
   await page.screenshot({ path: fileURLToPath(new URL('settlement.png', out)) });
@@ -63,6 +64,7 @@ try {
   await press(page, 'online:backLobby');
   await page.waitForFunction(() => __night.snapshot().online.panel === 'menu' && !__night.snapshot().online.active);
   assert.deepEqual(errors, []);
+  evidence.passed = true;
 } finally {
   await writeFile(new URL('finish-evidence.json', out), JSON.stringify(evidence, null, 2));
   await context.close(); await browser.close();
