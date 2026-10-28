@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, copyFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { acceptanceBuild, snapshot, assertLayout, navigateMap, aimAt, waitForImpact, predictUnit } from './flight-browser.mjs';
 import { press, settleVisuals } from './visual-helpers.mjs';
@@ -11,7 +11,25 @@ await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ headless: true,
   executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined,
   args: ['--autoplay-policy=no-user-gesture-required', ...(process.platform === 'win32' ? ['--use-angle=d3d11'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'])] });
-const evidence = { build, errors: [], checks: [], screens: [], fixtures: 'Offline services. Day/dusk/night review uses saved unlocks only; victory uses fresh progress and real input.' };
+const resumePortrait = process.env.NIGHT_VISUAL_RESUME_PORTRAIT === '1';
+let evidence = { build, errors: [], checks: [], screens: [], fixtures: 'Offline services. Day/dusk/night review uses saved unlocks only; victory uses fresh progress and real input.' };
+if (resumePortrait) {
+  const previous = JSON.parse(await readFile(new URL('review-evidence.json', out), 'utf8'));
+  assert.deepEqual(previous.build, build, 'Only resume evidence from the exact same running source');
+  assert.deepEqual(previous.errors, []);
+  assert.equal(previous.failure, 'page.waitForFunction: Timeout 30000ms exceeded.');
+  assert.equal(previous.last?.modal, 'orientation');
+  assert.equal(previous.last?.ui.width, 390); assert.equal(previous.last?.ui.height, 844);
+  assert.equal(previous.last?.visualMaterialStatus, 'ready');
+  assert(previous.solo?.kills === 4 && previous.solo.friendlyLosses === 0 && previous.bot?.phase === 'success');
+  assert.deepEqual(previous.checks.filter(c => typeof c === 'object').map(c => [c.width, c.height]), [[1280,720],[844,390],[568,320]]);
+  await copyFile(new URL('review-evidence.json', out), new URL('review-before-mobile-ua-fix.json', out));
+  await copyFile(new URL('failure.png', out), new URL('desktop-portrait-orientation.png', out));
+  evidence = previous;
+  evidence.resumedFrom = 'review-before-mobile-ua-fix.json';
+  evidence.setupCorrection = 'The prior 390x844 context retained a desktop user agent. Recheck only the unfinished portrait case with an Android Mobile UA; preserve completed same-source victories, video and landscape checks.';
+  delete evidence.failure; delete evidence.last;
+}
 let currentPage;
 const observe = page => {
   currentPage = page;
@@ -39,7 +57,14 @@ const capture = async (page, name) => {
   await page.screenshot({ path: fileURLToPath(new URL(name + '.png', out)) });
   evidence.screens.push({ name, viewport: page.viewportSize(), light: state.light, modal: state.modal, time: state.time });
 };
+const unitVertexColors = page => page.evaluate(async () => {
+  const { director, MeshRenderer } = await System.import('cc');
+  return director.getScene().getComponentsInChildren(MeshRenderer)
+    .filter(renderer => renderer.node.activeInHierarchy && renderer.node.name.startsWith('asset:vehicle.'))
+    .map(renderer => renderer.getMaterial(0).passes[0].defines.USE_VERTEX_COLOR);
+});
 try {
+  if (!resumePortrait) {
   // Fresh ordinary progress: a real single-player victory, with no score/state injection.
   let context = await browser.newContext({ viewport: { width: 1280, height: 720 }, recordVideo: { dir: fileURLToPath(out), size: { width: 1280, height: 720 } } });
   let page = await context.newPage(); const videoStarted = Date.now(); observe(page); await ready(page);
@@ -74,7 +99,7 @@ try {
   const video = page.video(); await context.close(); await video.saveAs(fileURLToPath(new URL('victory-source.webm', out)));
   context = await browser.newContext({ viewport: { width: 844, height: 390 } });
   page = await context.newPage(); observe(page); await ready(page);
-  await press(page, 'online:menu'); await capture(page, 'lobby-offline-1280');
+  await press(page, 'online:menu'); await capture(page, 'lobby-offline-844');
   await press(page, 'online:bot'); await page.waitForFunction(() => __night.snapshot().online.active && !__night.snapshot().modal);
   // Local bot practice has no public server settlement and must not invent one.
   await press(page, 'weapon3');
@@ -106,9 +131,11 @@ try {
   await page.waitForFunction(()=>__night.snapshot().online.panel==='menu'&&!__night.snapshot().online.active);
   evidence.checks.push('Fresh solo victory and offline bot victory through real aiming and fire; both result panels at three widths');
   await context.close();
+  }
 
-  for (const [width,height,touch] of [[1280,720,false],[844,390,true],[568,320,true],[390,844,true]]) {
-    const context=await browser.newContext({viewport:{width,height},hasTouch:touch,isMobile:touch});
+  for (const [width,height,touch] of resumePortrait ? [[390,844,true]] : [[1280,720,false],[844,390,true],[568,320,true],[390,844,true]]) {
+    const context=await browser.newContext({viewport:{width,height},hasTouch:touch,isMobile:touch,
+      ...(height>width ? {userAgent:'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36'} : {})});
     await context.addInitScript(()=>localStorage.setItem('night-overwatch-progress-v1',JSON.stringify({version:1,cleared:['corridor-01','ambush-02','patrol-03','operation-004','operation-005']})));
     const page=await context.newPage(); observe(page); await ready(page);
     const hit=id=>press(page,id,touch,false);
@@ -125,13 +152,27 @@ try {
     }
     await hit('settings'); await hit('zoomControls'); await hit('sensor'); await hit('close'); await hit('close');
     assert.equal((await snapshot(page)).thermal,true); await capture(page,'thermal-'+width+'x'+height);
+    let vertexColors = await unitVertexColors(page);
+    assert(vertexColors.length > 0 && vertexColors.every(value => value === false), 'Thermal targets use heat without optical vertex paint');
+    if (width === 1280) {
+      const units = (await snapshot(page)).units;
+      const target = units.find(unit => !unit.friendly && unit.kind === 'turret') || units.find(unit => !unit.friendly);
+      assert(target); await navigateMap(page, target); await aimAt(page, target);
+      await hit('settings'); await hit('zoomControls');
+      for (let i=0;i<4;i++) await hit('lensIn');
+      await hit('close'); await hit('close'); await capture(page,'thermal-detail-1280');
+    }
     if (height > width) {
       const before = await snapshot(page);
       assert(before.ui.width > before.ui.height && !before.modal && !before.pauses.includes('orientation'));
       await page.waitForTimeout(400);
       assert((await snapshot(page)).time > before.time, 'Portrait fallback continues real gameplay');
     }
-    evidence.checks.push({width,height,touch,lighting:true,portraitFallback:height>width}); await context.close();
+    await hit('settings'); await hit('zoomControls'); await hit('sensor'); await hit('close'); await hit('close');
+    assert.equal((await snapshot(page)).thermal,false); await capture(page,'optical-restored-'+width+'x'+height);
+    vertexColors = await unitVertexColors(page);
+    assert(vertexColors.length > 0 && vertexColors.every(value => value === true), 'Returning to optical restores authored model colors');
+    evidence.checks.push({width,height,touch,lighting:true,thermalMaterialRoundTrip:true,portraitFallback:height>width}); await context.close();
   }
   assert.deepEqual(evidence.errors,[]); await acceptanceBuild(base);
 } catch(error) {

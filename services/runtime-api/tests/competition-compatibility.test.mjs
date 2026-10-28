@@ -200,8 +200,12 @@ function memoryDatabase(clock) {
         );
       }
       if (sql.startsWith('insert into runtime.competition_rooms')) {
+        if (rooms.has(p[0])) {
+          if (sql.includes('on conflict do nothing')) return [];
+          throw Object.assign(new Error('duplicate room code'), { code: '23505' });
+        }
         rooms.set(p[0], JSON.parse(p[1]));
-        return [];
+        return sql.endsWith('returning code') ? [{ code: p[0] }] : [];
       }
       if (sql.startsWith('select data from runtime.competition_rooms'))
         return rooms.has(p[0]) ? [{ data: structuredClone(rooms.get(p[0])) }] : [];
