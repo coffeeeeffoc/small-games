@@ -21,7 +21,7 @@
 
 ## 画面对照与资料
 
-[02-concept.png](02-concept.png) 为概念图，不能作为实机证据。最终实际画面见 [首页](actual/home-330.png)、[选关](actual/levels-330.png)、[战斗](actual/battle-330.png)、[强化](actual/upgrade-1-390.png)、[结算](actual/victory-390.png)。实现沿用现有 Graphics/Label/Sprite，保留概念中的配色、徽章、卡片和层次；未额外制作概念图中所有细密雕花贴图。
+[02-concept.png](02-concept.png) 为概念图，不能作为实机证据。最终实际画面见 [首页](actual/home-330.png)、[选关](actual/levels-330.png)、[战斗](actual/battle-330.png)、[强化](actual/upgrade-1-390.png)、[结算](actual/victory-390.png)。实现沿用现有 Graphics/Label/Sprite，保留概念中的配色、徽章、卡片和层次；未额外制作概念图中所有细密雕花贴图。这是尚未补齐的美术差异，不能以功能与布局检查通过视为完整视觉验收通过，也不构成后续忽略细节的依据。
 
 八类上架基础资料统一归档于 [publishing/STATUS.md](../../../publishing/STATUS.md)，实际录屏与宣传剪辑分别交付。历史设计和旧批次记录保留。
 
