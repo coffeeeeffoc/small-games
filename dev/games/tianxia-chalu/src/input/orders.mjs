@@ -2,10 +2,14 @@
 export const DOUBLE_TAP_MS = 280;
 const city = (state, id) => state?.cities.find((c) => c.id === id);
 const junction = (state, id) => state?.junctions.find((j) => j.cityId === id);
-const owns = (state, id) => city(state, id)?.owner === 0 && junction(state, id)?.owner === 0;
-const destination = (state, id) => {
-  const j = junction(state, id);
-  return j?.exits[j.routeIndex];
+const owns = (state, id) => {
+  const faction = state?.playerFactionId ?? 0;
+  return city(state, id)?.owner === faction && junction(state, id)?.owner === faction;
+};
+export const activeRoutes = (j) => j?.routeIndices ?? (j?.routeIndex >= 0 ? [j.routeIndex] : []);
+const routesTo = (state, from, to) => {
+  const j = junction(state, from);
+  return activeRoutes(j).some((index) => j.exits[index] === to);
 };
 
 export function nearestCity(state, p, scale = 1) {
@@ -35,20 +39,21 @@ export function nearestRoad(state, p, scale = 1) {
 }
 
 export function planOrder(state, intent) {
-  const command = (sourceId, targetId) => {
+  const command = (sourceId, targetId, enabled = true) => {
     if (!owns(state, sourceId)) throw new Error('这座城已不属于我方，请重新选择');
     const j = junction(state, sourceId);
     const index = targetId == null ? -1 : j.exits.indexOf(targetId);
     if (targetId != null && index < 0) throw new Error('只能沿道路向相邻城池派兵');
-    return { sourceId, junctionId: j.id, index };
+    return { sourceId, junctionId: j.id, index, ...(index < 0 ? {} : { enabled }) };
   };
   if (intent.kind === 'hold') return [command(intent.sourceId, null)];
+  if (intent.kind === 'cancel-route') return [command(intent.sourceId, intent.targetId, false)];
   if (intent.kind === 'route') {
     const next = command(intent.sourceId, intent.targetId);
-    // A direct order establishes one direction on this edge; other supply lines survive.
+    // Remove only the opposite friendly edge; preserve every other target at both cities.
     return [
-      ...(owns(state, intent.targetId) && destination(state, intent.targetId) === intent.sourceId
-        ? [{ ...command(intent.targetId, null), stopTargetId: intent.sourceId }]
+      ...(owns(state, intent.targetId) && routesTo(state, intent.targetId, intent.sourceId)
+        ? [{ ...command(intent.targetId, intent.sourceId, false), stopTargetId: intent.sourceId }]
         : []),
       next,
     ];
@@ -58,10 +63,13 @@ export function planOrder(state, intent) {
     throw new Error('这两座城之间没有道路');
   const sources = [a, b].filter((id) => owns(state, id));
   if (!sources.length) throw new Error('这条道路没有己方城池');
-  const active = sources.filter((id) => destination(state, id) === (id === a ? b : a));
+  const active = sources.filter((id) => routesTo(state, id, id === a ? b : a));
   const next = active.length > 1 ? null : sources[sources.indexOf(active[0]) + 1];
   return [
-    ...active.map((id) => ({ ...command(id, null), stopTargetId: id === a ? b : a })),
+    ...active.map((id) => ({
+      ...command(id, id === a ? b : a, false),
+      stopTargetId: id === a ? b : a,
+    })),
     ...(next ? [command(next, next === a ? b : a)] : []),
   ];
 }
@@ -262,11 +270,16 @@ export function createOrderQueue({
               if (
                 command.stopTargetId &&
                 (!owns(state, command.sourceId) ||
-                  destination(state, command.sourceId) !== command.stopTargetId)
+                  !routesTo(state, command.sourceId, command.stopTargetId))
               )
                 break;
               if (!owns(state, command.sourceId)) throw new Error('城池已经易主，军令已取消');
-              if (j.routeIndex === command.index) break;
+              if (
+                command.index < 0
+                  ? activeRoutes(j).length === 0
+                  : activeRoutes(j).includes(command.index) === command.enabled
+              )
+                break;
               let result;
               try {
                 result = await send(command);

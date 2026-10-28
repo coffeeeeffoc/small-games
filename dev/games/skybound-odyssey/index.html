@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#143e49" />
+    <meta
+      name="description"
+      content="跨越雪山、古树、瀑布与浪尖。滑行、展翼、冲浪，在每次不同的航线里再闯远一点。"
+    />
+    <title>无界滑行 · Skybound Odyssey</title>
+    <link rel="icon" href="./src/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./dev-mode.js"></script>
+    <script type="module" src="./src/main.mjs"></script>
+  </head>
+  <body>
+    <main id="game" data-screen="home" data-game-display-host>
+      <canvas id="scene" aria-label="无界滑行，雪山与云海之间的立体航道"></canvas>
+      <section id="home-screen" class="screen home" aria-label="游戏主页">
+        <div class="home-copy">
+          <p class="eyebrow">BEYOND THE HORIZON</p>
+          <h1>无界<span>滑行</span></h1>
+          <p class="subtitle">SKYBOUND ODYSSEY</p>
+          <p id="home-route" class="route-label">01 / 雪线启程</p>
+          <button id="start-game" class="primary">开始旅程 <span>↗</span></button>
+          <div class="home-actions">
+            <button id="choose-route" class="secondary">选择航线</button
+            ><button id="endless-game" class="secondary">无尽远征</button>
+          </div>
+          <div class="utilities">
+            <button id="settings-button">设置</button><button id="help-button">玩法指南</button
+            ><span id="best-label">最远 0 m</span>
+          </div>
+        </div>
+        <div class="home-stamp">
+          <span>一块板，一整个世界。</span><i></i><small>滑行 / 展翼 / 冲浪</small>
+        </div>
+      </section>
+      <section id="routes-screen" class="screen panel-screen" hidden aria-label="选择航线">
+        <header>
+          <div>
+            <p class="eyebrow">CHOOSE YOUR CROSSING</p>
+            <h2>选择航线</h2>
+          </div>
+          <button class="back" data-home>返回主页</button>
+        </header>
+        <div id="route-list" class="route-list"></div>
+      </section>
+      <section id="play-screen" class="screen play" hidden aria-label="正在游玩">
+        <header class="hud">
+          <div class="location">
+            <span id="scene-name">雪山之脊</span><small id="vehicle-name">滑板</small>
+          </div>
+          <div class="readout"><strong id="distance">0</strong><span>m</span></div>
+          <div class="stars">✦ <span id="star-count">0</span></div>
+          <button id="pause-button" class="icon-button" aria-label="暂停">
+            <i class="pause-icon" aria-hidden="true"></i>
+          </button>
+        </header>
+        <div class="progress-track"><div id="progress-fill"></div></div>
+        <div id="transition-label" class="transition-label" role="status"></div>
+        <div id="feedback" class="feedback" aria-live="polite"></div>
+        <div class="bottom-controls">
+          <div class="steering" id="steering-pad" aria-label="左右拖动转向">
+            <button id="steer-left" aria-label="向左转向">‹</button><span class="steer-dot"></span
+            ><button id="steer-right" aria-label="向右转向">›</button>
+          </div>
+          <div class="speed"><strong id="speed-value">23</strong><span>速度</span></div>
+          <button id="brake" aria-label="按住减速">减速<small>按住</small></button>
+        </div>
+        <p id="tutorial" class="tutorial">左右转向避开橙色障碍</p>
+      </section>
+      <section id="pause-screen" class="screen shade" hidden aria-label="暂停">
+        <div class="result-card">
+          <p class="eyebrow">TAKE A BREATH</p>
+          <h2>旅程暂停</h2>
+          <p id="pause-caption">下一步，稳稳通过。</p>
+          <button id="resume-game" class="primary">继续滑行</button
+          ><button id="pause-retry" class="secondary">重试这条路线</button
+          ><button class="text-button" data-home>返回主页</button>
+        </div>
+      </section>
+      <section id="result-screen" class="screen shade" hidden aria-label="本局结果">
+        <div class="result-card">
+          <p id="result-eyebrow" class="eyebrow">ONE MORE TRY</p>
+          <h2 id="result-title">旅程结束</h2>
+          <p id="result-tip"></p>
+          <div class="result-stats">
+            <div><strong id="result-distance">0</strong><small>米 / 本次距离</small></div>
+            <div><strong id="result-score">0</strong><small>旅程得分</small></div>
+          </div>
+          <p id="unlock-note"></p>
+          <button id="retry-game" class="primary">再试这条 <span>↗</span></button
+          ><button id="next-route" class="primary" hidden>下一条航线</button
+          ><button id="new-run" class="secondary">换条路线</button
+          ><button class="text-button" data-home>返回主页</button>
+        </div>
+      </section>
+      <section id="settings-screen" class="screen panel-screen" hidden aria-label="游戏设置">
+        <header>
+          <div>
+            <p class="eyebrow">MAKE IT YOURS</p>
+            <h2>游戏设置</h2>
+          </div>
+          <button class="back" data-home>返回主页</button>
+        </header>
+        <div class="settings-grid">
+          <div class="setting-card">
+            <h3>倾斜转向</h3>
+            <p>自然握持手机，以此刻姿势为中心。触屏方向键始终可用。</p>
+            <button id="motion-toggle" class="secondary">开启倾斜控制</button
+            ><button id="calibrate" class="text-button">重新校准</button>
+            <p id="motion-status" role="status">当前使用触屏控制</p>
+          </div>
+          <div class="setting-card">
+            <h3>声音与动态</h3>
+            <button id="sound-toggle" class="secondary">音效：开</button
+            ><button id="motion-effects" class="secondary">动态效果：标准</button>
+            <p>键盘：← → / A D 转向，空格减速，Esc 暂停。</p>
+          </div>
+        </div>
+      </section>
+      <section id="help-screen" class="screen panel-screen" hidden aria-label="玩法指南">
+        <header>
+          <div>
+            <p class="eyebrow">LEARN THE LINE</p>
+            <h2>每一次，都更远一点</h2>
+          </div>
+          <button class="back" data-home>返回主页</button>
+        </header>
+        <div class="help-grid">
+          <article>
+            <b>01 / 看前路</b>
+            <h3>橙色障碍要绕开</h3>
+            <p>左侧左右按住或拖动转向。离开航道会坠落，轻微擦边还有纠正机会。</p>
+          </article>
+          <article>
+            <b>02 / 留一点速度</b>
+            <h3>对准门，再减速</h3>
+            <p>金色门要从中间通过，速度不超过18。右下按住减速，松开恢复。</p>
+          </article>
+          <article>
+            <b>03 / 再试一次</b>
+            <h3>同一条路可以练习</h3>
+            <p>失败后“再试这条”保留路线；“换条路线”重新生成。星屑加分，通关不必全收集。</p>
+          </article>
+        </div>
+        <p class="help-footer">
+          载具随环境自动切换：滑板灵敏，滑翔机受风，冲浪板带漂移。无尽远征没有终点。
+        </p>
+      </section>
+      <div id="notice" class="notice" role="status" hidden></div>
+    </main>
+  </body>
+</html>

@@ -13,7 +13,9 @@ export function createGameServices({ gameId, ruleVersion }) {
   const base = (config.apiUrl || '/api/competition/v1').replace(/\/$/, '');
   const path = '/games/' + encodeURIComponent(gameId);
   const owners = new Map(),
-    roomOwners = new Map();
+    roomOwners = new Map(),
+    roomLeases = new Map(),
+    connectionEpochs = new Map();
   let matchOwner;
   let storage;
   try {
@@ -84,14 +86,26 @@ export function createGameServices({ gameId, ruleVersion }) {
     while (roomOwners.size > 8) roomOwners.delete(roomOwners.keys().next().value);
   }
   async function roomRequest(code, operation, body) {
+    const leaseId = roomLeases.get(code);
+    const epoch = (connectionEpochs.get(code) || 0) + (operation === 'connect' ? 1 : 0);
+    if (operation === 'connect') connectionEpochs.set(code, epoch);
+    if (body !== undefined && leaseId && !['connect', 'spectate'].includes(operation))
+      body = { ...body, leaseId };
+    const suffix = operation
+      ? '/' + operation
+      : leaseId
+        ? '?leaseId=' + encodeURIComponent(leaseId)
+        : '';
     const credential = roomOwners.has(code)
       ? await auth.forOwner(roomOwners.get(code))
       : await auth.current();
     const data = await request(
-      `${path}/rooms/${encodeURIComponent(code)}${operation ? '/' + operation : ''}`,
+      `${path}/rooms/${encodeURIComponent(code)}${suffix}`,
       body,
       credential,
     );
+    if (data.leaseId && (connectionEpochs.get(code) || 0) === epoch)
+      roomLeases.set(code, data.leaseId);
     if (operation === 'leave') {
       roomOwners.delete(code);
       matchOwner = undefined;
@@ -106,6 +120,7 @@ export function createGameServices({ gameId, ruleVersion }) {
         : await auth.current();
     const room = await request(path + '/rooms' + operation, body, credential);
     rememberRoom(room.code, credential);
+    if (room.leaseId) roomLeases.set(room.code, room.leaseId);
     return room;
   }
   return {
@@ -114,20 +129,36 @@ export function createGameServices({ gameId, ruleVersion }) {
     logout() {
       owners.clear();
       roomOwners.clear();
+      roomLeases.clear();
+      connectionEpochs.clear();
       matchOwner = undefined;
       return auth.logout();
     },
     metadata: () => request(path),
     profile: (patch) => request('/me', patch),
+    async updateProfile(patch) {
+      const credential = await auth.current();
+      const profile = await request('/me', patch, credential);
+      auth.acceptProfile(profile, credential);
+      return profile;
+    },
+    listRooms: () => request(path + '/rooms'),
+    history: ({ cursor } = {}) =>
+      request(path + '/history' + (cursor ? '?cursor=' + encodeURIComponent(cursor) : '')),
     createRoom: (input = {}) => openRoom('', input),
     async match() {
       const credential = matchOwner ? await auth.forOwner(matchOwner) : await auth.current();
       matchOwner = { ...credential };
       const room = await request(path + '/match', {}, credential);
       rememberRoom(room.code, credential);
+      if (room.leaseId) roomLeases.set(room.code, room.leaseId);
       return room;
     },
-    joinRoom: ({ code }) => openRoom('/join', { code }),
+    joinRoom: ({ code, password }) =>
+      openRoom('/join', { code, ...(password ? { password } : {}) }),
+    spectateRoom: ({ code, password }) =>
+      roomRequest(code, 'spectate', password ? { password } : {}),
+    connectRoom: ({ code }) => roomRequest(code, 'connect', {}),
     getRoom: ({ code }) => roomRequest(code, '', undefined),
     roomAction({ code, operation, body = {} }) {
       if (!['ready', 'leave', 'rematch', 'actions', 'role', 'initiative'].includes(operation))

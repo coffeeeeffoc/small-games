@@ -41,14 +41,14 @@ export class RemoteMatch {
     if (this.closed) throw new RemoteError('此对局已退出', { code: 'match-closed' });
   }
 
-  async request(path, body, method = body === undefined ? 'GET' : 'POST') {
+  async request(path, body, method = body === undefined ? 'GET' : 'POST', token = this.token) {
     let response;
     try {
       response = await this.fetch(this.origin + path, {
         method,
         headers: {
           ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-          ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: AbortSignal.timeout(6000),
@@ -76,12 +76,17 @@ export class RemoteMatch {
 
   async start(levelId, difficulty, setup = {}) {
     this.assertOpen();
-    const data = await this.request('/api/matches', {
-      levelId,
-      difficulty,
-      ...(setup.seed === undefined ? {} : { seed: setup.seed }),
-      ...(setup.loadout === undefined ? {} : { loadout: setup.loadout }),
-    });
+    const data = await this.request(
+      '/api/matches',
+      {
+        levelId,
+        difficulty,
+        ...(setup.seed === undefined ? {} : { seed: setup.seed }),
+        ...(setup.loadout === undefined ? {} : { loadout: setup.loadout }),
+      },
+      'POST',
+      setup.playerToken,
+    );
     this.id = data.matchId;
     this.token = data.token;
     // Creation may finish after the player cancels. Reclaim the late match.
@@ -89,6 +94,13 @@ export class RemoteMatch {
       await this.abandon();
       this.assertOpen();
     }
+    return this.accept(data.snapshot);
+  }
+
+  join(data) {
+    this.assertOpen();
+    this.id = data.matchId;
+    this.token = data.token;
     return this.accept(data.snapshot);
   }
 
@@ -116,7 +128,7 @@ export class RemoteMatch {
     return this.accept((await this.request(`/api/matches/${this.id}`)).snapshot);
   }
 
-  async route(junctionId, routeIndex) {
+  async route(junctionId, routeIndex, enabled) {
     this.assertOpen();
     if (this.routePromise) return this.routePromise;
     // Preserve the original instruction when its acknowledgement was lost.
@@ -124,6 +136,7 @@ export class RemoteMatch {
       junctionId,
       sequence: this.sequence + 1,
       ...(routeIndex === undefined ? {} : { routeIndex }),
+      ...(enabled === undefined ? {} : { enabled }),
     };
     const command = this.pending;
     this.routePromise = (async () => {
@@ -164,5 +177,39 @@ export class RemoteMatch {
     this.closed = true;
     this.pending = null;
     return this.abandon();
+  }
+}
+
+/** A persistent player credential is scoped to one service origin, never a match seat. */
+export class RemotePlayer extends RemoteMatch {
+  constructor(origin, identity, options) {
+    super(origin, options);
+    if (identity?.playerId && identity?.token) {
+      this.playerId = identity.playerId;
+      this.token = identity.token;
+    }
+  }
+  async connect() {
+    if (this.token) {
+      const data = await this.request('/api/players/me');
+      this.profile = data.profile;
+    } else {
+      const data = await this.request('/api/players', {});
+      this.playerId = data.playerId;
+      this.token = data.token;
+      this.profile = data.profile;
+    }
+    return { playerId: this.playerId, token: this.token, profile: this.profile };
+  }
+  async refresh() {
+    this.profile = (await this.request('/api/players/me')).profile;
+    return this.profile;
+  }
+  queue(action = 'poll') {
+    return this.request(
+      '/api/matchmaking',
+      action === 'join' ? {} : undefined,
+      action === 'join' ? 'POST' : action === 'cancel' ? 'DELETE' : 'GET',
+    );
   }
 }
