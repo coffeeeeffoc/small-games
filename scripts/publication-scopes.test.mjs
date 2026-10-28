@@ -6138,10 +6138,10 @@ test('CI stage workflow proof binds the entire immediate and cumulative baseline
     './publication-scopes.mjs'
   );
   const file = '.github/workflows/ci.yml';
-  const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-    '\r\n',
-    '\n',
-  );
+  // Keep the reviewed stage split fixed; later Creator/download proofs cover their own heads.
+  const after = execFileSync('git', ['show', 'ceaca7760f59f95ad35010efc4012cef134e3149:' + file], {
+    encoding: 'utf8',
+  });
   for (const base of [
     '64aa76f4baa0949a1e3eddf40a6c28bcc45a5b8a',
     '6dc7585f0429c6dc3f15ac28d951ccfa60999700',

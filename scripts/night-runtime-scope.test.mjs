@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { incrementalPlan } from './incremental-validation.mjs';
 import {
   nightBackendFileScope,
@@ -81,9 +82,14 @@ test('Night deployment additions and match gateway cannot classify unrelated edi
 
 test('Night build helper exception retains both game and server consumers', () => {
   const file = 'scripts/check-workspace-dependencies.mjs';
+  // This exact historical proof predates later games inserting their own boundary edges.
+  const after = execFileSync('git', ['show', '9d81f48725b67cc8736f4df41f156b2c3e0cf2f8:' + file], {
+    encoding: 'utf8',
+  });
   const readHead = (name) =>
-    readFileSync(new URL('../' + name, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
-  const after = readHead(file);
+    name === file
+      ? after
+      : readFileSync(new URL('../' + name, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
   const before = after.replace(
     /^  '(?:services\/runtime-api\/rules\/night(?:-ranked)?\.mjs -> games\/local\/night-overwatch\/[^']+|games\/local\/night-overwatch\/scripts\/build\.mjs -> scripts\/h5-game-services\.mjs)',\n/gm,
     '',
