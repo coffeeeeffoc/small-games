@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { acceptanceBuild, press, snapshot, assertLayout } from './flight-browser.mjs';
+import { acceptanceBuild, snapshot, assertLayout } from './flight-browser.mjs';
+import { press, settleVisuals } from './visual-helpers.mjs';
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
 const out = new URL('../reports/2026-10-28-visual-rebuild/style/', import.meta.url);
 await mkdir(out, { recursive: true });
@@ -18,10 +19,13 @@ try {
     await page.route('**/api/competition/**', route => route.abort());
     await page.goto(base + '?dev=0');
     await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().buttons.some(b => b.id === 'online:profile'));
+    await page.waitForFunction(() => !document.getElementById('night-startup'));
+    await page.waitForFunction(() => __night.snapshot().visualMaterialStatus !== 'loading');
+    assert.equal((await snapshot(page)).visualMaterialStatus, 'ready', (await snapshot(page)).visualMaterialError);
     await page.waitForTimeout(800);
     const click = id => press(page, id, touch);
     const capture = async name => {
-      await page.waitForTimeout(250); assertLayout(await snapshot(page), width, height);
+      await settleVisuals(page); assertLayout(await snapshot(page), width, height);
       await page.screenshot({ path: fileURLToPath(new URL(name + '-' + width + '.png', out)) });
       evidence.screens.push(name + '-' + width);
     };

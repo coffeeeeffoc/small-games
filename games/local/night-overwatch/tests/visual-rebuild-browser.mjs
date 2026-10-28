@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { acceptanceBuild, press, snapshot, assertLayout, navigateMap, aimAt, waitForImpact, predictUnit } from './flight-browser.mjs';
+import { acceptanceBuild, snapshot, assertLayout, navigateMap, aimAt, waitForImpact, predictUnit } from './flight-browser.mjs';
+import { press, settleVisuals } from './visual-helpers.mjs';
 
 const base = process.env.NIGHT_URL, build = await acceptanceBuild(base);
 const out = new URL('../reports/2026-10-28-visual-rebuild/', import.meta.url);
@@ -24,12 +25,13 @@ const ready = async page => {
   await page.route('**/api/competition/**', route => route.abort());
   await page.goto(base + '?dev=0');
   await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().buttons.some(b => b.id === 'online:profile'));
+  await page.waitForFunction(() => !document.getElementById('night-startup'));
   await page.waitForFunction(() => __night.snapshot().visualMaterialStatus !== 'loading');
   assert.equal((await snapshot(page)).visualMaterialStatus, 'ready', (await snapshot(page)).visualMaterialError);
   await page.waitForTimeout(1000);
 };
 const capture = async (page, name) => {
-  await page.waitForTimeout(250);
+  await settleVisuals(page);
   await page.waitForFunction(() => __night.snapshot().visualMaterialStatus !== 'loading');
   const state = await snapshot(page);
   assert.equal(state.visualMaterialStatus, 'ready', state.visualMaterialError);
@@ -40,8 +42,8 @@ const capture = async (page, name) => {
 try {
   // Fresh ordinary progress: a real single-player victory, with no score/state injection.
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, recordVideo: { dir: fileURLToPath(out), size: { width: 1280, height: 720 } } });
-  const page = await context.newPage(); observe(page); await ready(page);
-  const videoStarted = Date.now(); evidence.clips = {};
+  const page = await context.newPage(), videoStarted = Date.now(); observe(page); await ready(page);
+  evidence.clips = {};
   const mark = name => { evidence.clips[name] = (Date.now() - videoStarted) / 1000; };
   mark('home'); await capture(page, 'home-1280');
   await press(page, 'missions'); await capture(page, 'missions-1280');
@@ -121,6 +123,12 @@ try {
     }
     await hit('settings'); await hit('zoomControls'); await hit('sensor'); await hit('close'); await hit('close');
     assert.equal((await snapshot(page)).thermal,true); await capture(page,'thermal-'+width+'x'+height);
+    if (height > width) {
+      const before = await snapshot(page);
+      assert(before.ui.width > before.ui.height && !before.modal && !before.pauses.includes('orientation'));
+      await page.waitForTimeout(400);
+      assert((await snapshot(page)).time > before.time, 'Portrait fallback continues real gameplay');
+    }
     evidence.checks.push({width,height,touch,lighting:true,portraitFallback:height>width}); await context.close();
   }
   assert.deepEqual(evidence.errors,[]); await acceptanceBuild(base);

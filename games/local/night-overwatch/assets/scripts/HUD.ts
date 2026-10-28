@@ -375,9 +375,13 @@ export class HUD {
       g.lineTo(r - c, b); g.lineTo(l + c, b); g.lineTo(l, b + c); g.lineTo(l, t - c); g.close();
     };
     g.fillColor = col('#01070cb0'); path(0, -3); g.fill();
-    this.gradient(g, x, y, w, h, gold ? '#73572eea' : fill === '#382730' ? '#492c37' : active ? '#244b65ed' : '#20384aed', gold ? '#211d17f5' : fill === '#382730' ? '#21111d' : '#07121ff2', cut, h > 90 ? 16 : 8);
+    this.gradient(g, x, y, w, h, gold ? '#b88c3cf2' : fill === '#382730' ? '#492c37' : active ? '#244b65ed' : '#20384aed', gold ? '#443018fa' : fill === '#382730' ? '#21111d' : '#07121ff2', cut, h > 90 ? 16 : 8);
+    if (gold) {
+      g.lineWidth = 5; g.strokeColor = col('#f3c36624'); path(); g.stroke();
+      g.lineWidth = 3; g.strokeColor = col('#ffe2a04d'); path(); g.stroke();
+    }
     g.lineWidth = gold ? 1.5 : 1; g.strokeColor = col(stroke); path(); g.stroke();
-    g.strokeColor = col(gold ? '#f9d58b59' : '#a5cbe229'); path(2); g.stroke();
+    g.strokeColor = col(gold ? '#ffe8ada0' : '#a5cbe229'); path(2); g.stroke();
     this.rect(g, x + cut + 3, y + 3, w - cut * 2 - 6, 1, gold ? '#ffe2a0a0' : '#d3e9f34d');
     this.rect(g, x + cut + 3, y + h - 3, w - cut * 2 - 6, 1, '#010812a0');
     if (gold) {
@@ -423,9 +427,21 @@ export class HUD {
     } else if (kind === 'ranking') {
       for (const [i, h] of [r, r * 1.7, r * 1.3].entries()) { g.rect(cx - r + i * r * .7, cy - r, r * .45, h); g.fill(); }
     } else if (kind === 'book') {
-      for (const side of [-1, 1]) { g.moveTo(cx, cy - r * .8); g.lineTo(cx + side * r, cy - r * .5); g.lineTo(cx + side * r, cy + r); g.lineTo(cx, cy + r * .7); g.close(); g.stroke(); }
+      for (const side of [-1, 1]) {
+        g.moveTo(cx + side * 1.5, cy - r * .8); g.lineTo(cx + side * r, cy - r * .5);
+        g.lineTo(cx + side * r, cy + r); g.lineTo(cx + side * 1.5, cy + r * .7); g.close(); g.fill();
+        g.strokeColor = col('#173147'); g.lineWidth = 1;
+        for (const row of [0, .4]) { g.moveTo(cx + side * 3, cy + r * row); g.lineTo(cx + side * (r - 2), cy + r * (row + .15)); g.stroke(); }
+      }
     } else if (kind === 'battle') {
-      for (const side of [-1, 1]) { g.moveTo(cx - side * r, cy - r); g.lineTo(cx + side * r, cy + r); g.moveTo(cx - side * r * .8, cy - r * .2); g.lineTo(cx - side * r * .2, cy - r * .8); } g.stroke();
+      for (const side of [-1, 1]) {
+        g.moveTo(cx - side * r * .5, cy - r * .7); g.lineTo(cx + side * r * .8, cy + r * .65);
+        g.lineTo(cx + side * r, cy + r); g.lineTo(cx + side * r * .6, cy + r * .8);
+        g.lineTo(cx - side * r * .7, cy - r * .5); g.close(); g.fill();
+        g.lineWidth = 2.6; g.strokeColor = col(color);
+        g.moveTo(cx - side * r * .9, cy - r * .25); g.lineTo(cx - side * r * .25, cy - r * .9);
+        g.moveTo(cx - side * r * .6, cy - r * .6); g.lineTo(cx - side * r, cy - r); g.stroke();
+      }
     } else if (kind === 'clock') {
       g.circle(cx, cy, r); g.stroke(); g.moveTo(cx, cy + r * .65); g.lineTo(cx, cy); g.lineTo(cx + r * .45, cy - r * .2); g.stroke();
     } else {
@@ -618,20 +634,30 @@ export class HUD {
       const x = left + i * (cw + gap), selected = mission.id === s.mission.id, number = page * 3 + i + 1;
       const unlocked = this.developer || missionUnlocked(this.missionProgress, mission.id), smallCard = ch < 180;
       this.plate(g, x, y, cw, ch, '#101e2c', selected ? C.mint : C.line, 3);
-      const artTop = y + 4, artH = Math.max(32, ch - (smallCard ? 54 : 76));
+      const artTop = y + 4, artH = ch - 8;
       const artIndex = mission.light === 'night' ? 2 : mission.map === 'highland' || mission.light === 'dusk' ? 1 : 0;
       const artwork = mission.light === 'day' ? this.dayArtwork[number <= 3 ? number - 1 : mission.map === 'highland' ? 1 : number % 3 === 0 ? 2 : 0] : this.missionArtwork[artIndex];
       if (artwork) this.coverImage(n, 'MissionIllustration-' + mission.id, artwork, x + 4, artTop, cw - 8, artH);
       else this.routeGraphic(g, x + 4, artTop, cw - 8, artH, 0, mission.map, mission.light, mission.events);
       const overlay = this.artOverlay(n, 'MissionSurface-' + mission.id);
       this.gradient(overlay, x + 4, artTop, cw - 8, Math.min(40, artH), '#04131bca', '#04131b00');
-      this.gradient(overlay, x + 4, artTop + Math.max(0, artH - 35), cw - 8, Math.min(35, artH), '#04131b00', '#04131bf0');
-      this.gradient(overlay, x + 4, y + ch - (smallCard ? 54 : 76), cw - 8, smallCard ? 50 : 72, '#142a3df5', '#07131ff8');
-      overlay.strokeColor = col(selected ? '#9ddcf4' : '#58788d'); overlay.lineWidth = selected ? 2 : 1;
+      this.gradient(overlay, x + 4, artTop + artH * .25, cw - 8, artH * .75, '#04131b00', '#04131bf2', 0, 24);
+      this.gradient(overlay, x + 4, y + ch - (smallCard ? 66 : 90), cw - 8, smallCard ? 62 : 86, '#07131f00', '#07131fc9', 0, 18);
+      if (selected) {
+        overlay.strokeColor = col('#6ad4ff55'); overlay.lineWidth = 5;
+        overlay.rect(x - w / 2 + 2, h / 2 - y - ch + 2, cw - 4, ch - 4); overlay.stroke();
+      }
+      overlay.strokeColor = col(selected ? '#b9edff' : '#58788d'); overlay.lineWidth = selected ? 2 : 1;
       overlay.rect(x - w / 2 + 2, h / 2 - y - ch + 2, cw - 4, ch - 4); overlay.stroke();
       this.rect(overlay, x + 14, y + ch - 3, cw - 28, 2, selected ? C.mint : '#45678055');
+      if (selected) {
+        const bx = x + cw - 16 - w / 2, by = h / 2 - y - 17;
+        overlay.fillColor = col(C.mint); overlay.circle(bx, by, 8); overlay.fill();
+        overlay.strokeColor = col('#092032'); overlay.lineWidth = 2;
+        overlay.moveTo(bx - 4, by); overlay.lineTo(bx - 1, by - 3); overlay.lineTo(bx + 4, by + 3); overlay.stroke();
+      }
       this.label(n, String(number).padStart(3, '0'), x + 29, y + 18, 15, 42, 25, C.action).isBold = true;
-      this.label(n, selected ? this.t('当前', 'SELECTED') : unlocked ? light(number) : this.t('锁定', 'LOCKED'), x + cw - 48, y + 18, 10, 80, 22, selected ? C.mint : C.white);
+      this.label(n, selected ? this.t('当前', 'SELECTED') : unlocked ? light(number) : this.t('锁定', 'LOCKED'), x + cw - (selected ? 62 : 48), y + 18, 10, selected ? 66 : 80, 22, selected ? C.mint : C.white);
       const label = this.button('mission:' + mission.id, text(mission.name, this.lang), x, y, cw, ch, n);
       label.node.setPosition(x + cw / 2 - w / 2, h / 2 - y - ch + (smallCard ? 48 : 61));
       label.node.getComponent(UITransform)!.setContentSize(cw - 20, smallCard ? 24 : 26);
@@ -657,9 +683,9 @@ export class HUD {
     this.rect(g, 0, 0, this.w, this.h, dim);
     // Separate load-bearing frame, recessed display and machined corner hardware.
     this.plate(g, x - 4, y + 3, w + 8, h + 2, '#162838', '#020b12', 18);
-    this.gradient(g, x, y, w, h, '#526675', '#101d29', 15, 22);
-    this.gradient(g, x + 5, y + 5, w - 10, h - 10, '#162c40', '#060f1b', 11, 22);
-    this.rect(g, x + 9, y + 9, w - 18, 36, '#37536a55');
+    this.gradient(g, x, y, w, h, '#35454b', '#101a21', 15, 22);
+    this.gradient(g, x + 5, y + 5, w - 10, h - 10, '#17282f', '#070f16', 11, 22);
+    this.gradient(g, x + 9, y + 9, w - 18, 36, '#55656725', '#17282f00', 7, 10);
     this.rect(g, x + 14, y + 47, w - 28, 1, '#b7b09488');
     this.rect(g, x + 14, y + h - 66, w - 28, 1, '#45677c66');
     // Quiet instrument grid and a wing planform live behind the readable controls.
@@ -673,8 +699,8 @@ export class HUD {
     g.lineTo(cx - 7, cy - 12); g.lineTo(cx - w * .30, cy - h * .10); g.lineTo(cx - w * .30, cy - h * .06); g.lineTo(cx - 8, cy + 5); g.close(); g.stroke();
     for (const side of [-1, 1]) for (const end of [-1, 1]) {
       const xx = side < 0 ? x + 4 : x + w - 35, yy = end < 0 ? y + 4 : y + h - 24;
-      this.gradient(g, xx, yy, 31, 20, '#6e818b', '#263c4d', 5, 6);
-      this.rect(g, xx + 5, yy + 3, 21, 1, '#c5d5d383');
+      this.gradient(g, xx, yy, 31, 20, '#4b5a60', '#1b2c34', 5, 6);
+      this.rect(g, xx + 5, yy + 3, 21, 1, '#c5d5d363');
       g.fillColor = col('#07131b'); g.circle(xx + 8 - this.w / 2, this.h / 2 - yy - 10, 2.5); g.fill();
       g.strokeColor = col('#d8ba6c80'); g.lineWidth = 1; g.circle(xx + 8 - this.w / 2, this.h / 2 - yy - 10, 2.5); g.stroke();
     }
@@ -1505,7 +1531,9 @@ export class HUD {
           const x = gx + Math.cos(angle) * radius, y = gy + Math.sin(angle) * radius;
           if (i) gear.lineTo(x, y); else gear.moveTo(x, y);
         }
-        gear.close(); gear.stroke(); gear.circle(gx, gy, 4.5); gear.stroke();
+        gear.close(); gear.fillColor = gear.strokeColor; gear.fill();
+        gear.fillColor = col(!key && !world.thermal && s.mission.light === 'day' ? '#b9d7dd' : '#122433');
+        gear.circle(gx, gy, 5.5); gear.fill();
       }
     }
     const connection = this.labels.get('connectionNotice')!;

@@ -779,8 +779,8 @@ test('HUD: independent title cover precedes mission previews and compact setting
       const captions = panelLabels(hud).map((l: any) => l.string);
       assert(captions.includes(lang === 'zh' ? '战斗设置' : 'BATTLE SETTINGS'));
       const graphics = hud.modal.getComponent(Graphics).calls;
-      const panel = graphics.find((c: any) => c.op === 'rect' && c.fill === '#37536a55');
-      assert(panel && panel.args[2] <= 622 && panel.args[3] === 36, 'armored header belongs to the compact settings drawer');
+      const panel = graphics.find((c: any) => c.op === 'rect' && c.fill === '#b7b09488');
+      assert(panel && panel.args[2] <= 622 && panel.args[3] === 1, 'armored header separator stays within the compact settings drawer');
       assert(graphics.filter((c: any) => c.op === 'circle' && c.args[2] === 2.5).length >= 4, 'drawer has machined corner hardware');
       const resume = hud.buttons.find((b: any) => b.id === 'resume');
       assert.equal(resume.label.color.hex, '#ffe3a4'); assert(resume.label.isBold);
