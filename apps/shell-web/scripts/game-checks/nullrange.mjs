@@ -55,6 +55,9 @@ export async function assertNullrangeGameplay(frame, mobile = false) {
   await tap('back');
   await tap('missions');
   await screen('missions');
+  // The distant elite provides a real lock window even on a slow CI runner.
+  await tap('mission-page');
+  await tap('mission:last-light');
   await tap('start');
   await screen('playing');
   const running = await snapshot(frame);

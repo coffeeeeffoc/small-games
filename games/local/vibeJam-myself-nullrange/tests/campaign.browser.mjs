@@ -98,10 +98,10 @@ try {
     else await tap('next');
     assert.equal((await snap()).state.mission.id, id);
     await shot('mission-' + id);
-    if (i === 2 || i === 4) {
+    if (i === 4) {
       await tap('prepare');
-      await tap('craft:' + (i === 2 ? 'kestrel' : 'warden'));
-      await shot('hangar-' + (i === 2 ? 'kestrel' : 'warden'));
+      await tap('craft:warden');
+      await shot('hangar-warden');
     }
     await tap('start');
     const initial = await snap(),
@@ -124,6 +124,7 @@ try {
       const s = await snap(),
         state = s.state;
       if (state.status !== 'running') break;
+      assert.equal(s.screen, 'playing', 'campaign must not silently wait through a pause');
       if (Date.now() - start > state.mission.timeLimit * 3500)
         throw Error('Browser did not finish in wall budget ' + id);
       maxDraws = Math.max(maxDraws, s.world.drawCalls);

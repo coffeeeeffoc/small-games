@@ -35,6 +35,15 @@ const memory = () => {
   return { map, getItem: (k) => map.get(k) ?? null, setItem: (k, v) => map.set(k, v) };
 };
 const results = [];
+
+test('all unlocked craft can intercept the fleeing convoy through normal controls', () => {
+  for (const c of CRAFTS) {
+    const s = createRun(MISSIONS[1], c);
+    while (s.status === 'running') step(s, pilot(s));
+    assert.equal(s.status, 'won', `${c.id}: ${s.reason} at ${s.tick / 60}s`);
+    assert.ok(s.tick / 60 <= 300);
+  }
+});
 test('six normal-input missions, real first-to-six unlock chain, replay and idempotent results', async () => {
   const storage = memory(),
     p = readProgress(storage);

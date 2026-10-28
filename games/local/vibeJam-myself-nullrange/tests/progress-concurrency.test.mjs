@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readProgress, saveProgress } from '../assets/scripts/core/progress.ts';
+import { readProgress, saveProgress, recordVictory } from '../assets/scripts/core/progress.ts';
+import { createRun } from '../assets/scripts/core/rules.ts';
+import { MISSIONS } from '../assets/scripts/core/content.ts';
 const key = 'nullrange-progress-v1';
 function memory(initial) {
   const data = new Map(initial ? [[key, JSON.stringify(initial)]] : []);
@@ -99,4 +101,48 @@ test('fresh writes preserve legacy preferences and reject malformed explicit pat
   assert.equal(readProgress(storage).best, 314);
   assert.equal(saveProgress(storage, stale, 'best'), false);
   assert.equal(data.get(key), 'broken');
+});
+
+test('temporary write failure preserves the unlock chain through a later win and preference write', () => {
+  for (const recoverBeforeSecondWin of [false, true]) {
+    const { storage } = memory();
+    let failing = true;
+    const flaky = {
+      getItem: storage.getItem,
+      setItem(k, v) {
+        if (failing) throw Error('temporarily unavailable');
+        storage.setItem(k, v);
+      },
+    };
+    const p = readProgress(flaky);
+    const win = (mission) => {
+      const s = createRun(mission);
+      Object.assign(s, { status: 'won', tick: 100, score: 500 });
+      assert.ok(recordVictory(flaky, p, s, false));
+    };
+    win(MISSIONS[0]);
+    assert.equal(storage.getItem(key), null);
+    failing = !recoverBeforeSecondWin;
+    win(MISSIONS[1]);
+    failing = false;
+    const otherTab = readProgress(storage);
+    otherTab.reduced = true;
+    assert.ok(saveProgress(storage, otherTab, 'reduced'));
+    p.muted = true;
+    assert.ok(saveProgress(flaky, p, 'muted'));
+    assert.deepEqual(
+      Object.keys(p.completed),
+      MISSIONS.slice(0, 2).map((m) => m.id),
+    );
+    assert.deepEqual(readProgress(storage), p);
+    assert.equal(p.muted, true);
+    assert.equal(p.reduced, true);
+    assert.equal(p.best, 500);
+    const once = storage.getItem(key);
+    assert.ok(saveProgress(flaky, p, 'muted'));
+    assert.equal(storage.getItem(key), once);
+    p.completed[MISSIONS[5].id] = { best: 9999, medal: 3, time: 100 };
+    assert.ok(saveProgress(flaky, p, 'muted'));
+    assert.equal(p.completed[MISSIONS[5].id], undefined);
+  }
 });

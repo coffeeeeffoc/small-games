@@ -39,6 +39,13 @@ export const rating = (s: State) =>
   s.status === 'won'
     ? 1 + Number(s.player.hull / s.craft.hull >= 0.5) + Number(s.player.hull / s.craft.hull >= 0.8)
     : 0;
+const validRecord = (r: Completion | undefined, limit: number): r is Completion =>
+  !!r &&
+  [1, 2, 3].includes(r.medal) &&
+  Number.isSafeInteger(r.time) &&
+  r.time > 0 &&
+  r.time <= limit * 60 &&
+  score(r.best) === r.best;
 function load(storage?: StoragePort, p = defaults()) {
   p.best = score(Number(storage?.getItem('nullrange-cn-best')));
   p.muted = storage?.getItem('nullrange-cn-muted') === 'true';
@@ -51,14 +58,7 @@ function load(storage?: StoragePort, p = defaults()) {
     if (data.version === 2) {
       for (const m of MISSIONS) {
         const r = Object.hasOwn(data.completed || {}, m.id) ? data.completed[m.id] : null;
-        if (
-          r &&
-          [1, 2, 3].includes(r.medal) &&
-          Number.isSafeInteger(r.time) &&
-          r.time > 0 &&
-          r.time <= m.timeLimit * 60 &&
-          score(r.best) === r.best
-        )
+        if (validRecord(r, m.timeLimit))
           p.completed[m.id] = { best: r.best, medal: r.medal, time: r.time };
       }
       if (craftUnlocked(p, data.selectedCraft)) p.selectedCraft = data.selectedCraft;
@@ -92,6 +92,14 @@ export function saveProgress(
   try {
     const { progress: latest, data } = load(storage);
     if (data !== null && data.version !== 1 && data.version !== 2) return false;
+    // Flush valid in-memory wins in unlock order after a transient storage failure.
+    for (const m of MISSIONS) {
+      const r = p.completed?.[m.id];
+      if (missionUnlocked(latest, m.id) && validRecord(r, m.timeLimit)) {
+        latest.completed[m.id] = mergeRecord(latest.completed[m.id], r);
+        latest.best = Math.max(latest.best, r.best);
+      }
+    }
     if (field === 'best') latest.best = Math.max(latest.best, score(p.best));
     else if ((field === 'muted' || field === 'reduced') && typeof p[field] === 'boolean')
       latest[field] = p[field];
@@ -107,17 +115,7 @@ export function saveProgress(
     ) {
       const r = p.completed[missionId],
         m = MISSIONS.find((m) => m.id === missionId)!;
-      if (
-        !r ||
-        ![1, 2, 3].includes(r.medal) ||
-        !Number.isSafeInteger(r.time) ||
-        r.time <= 0 ||
-        r.time > m.timeLimit * 60 ||
-        score(r.best) !== r.best
-      )
-        return false;
-      latest.completed[missionId] = mergeRecord(latest.completed[missionId], r);
-      latest.best = Math.max(latest.best, r.best);
+      if (!validRecord(r, m.timeLimit)) return false;
     } else return false;
     storage.setItem(key, JSON.stringify(latest));
     Object.assign(p, latest);
