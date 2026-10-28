@@ -30,10 +30,17 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     const script = path.join(game, 'assets/example.js');
     const modelScript = path.join(game, 'scripts/model-aircraft.py');
     const radioScript = path.join(game, 'scripts/generate-radio.ps1');
+    const surfaceEffect = path.join(game, 'assets/terrain-surface.effect');
+    await writeFile(surfaceEffect, 'CCEffect %{\n  techniques: []\n}%\n');
     await writeFile(modelScript, 'print("aircraft")\n');
     await writeFile(radioScript, 'Write-Output "radio"\n');
     await writeFile(script, 'const active = true;\n');
     const hash = await sourceHash(game);
+    await writeFile(surfaceEffect, 'CCEffect %{\r\n  techniques: []\r\n}%\r\n');
+    assert.equal(await sourceHash(game), hash, 'Creator effect text must hash identically on Windows and Unix');
+    await writeFile(surfaceEffect, 'CCEffect %{\n  techniques: [changed]\n}%\n');
+    assert.notEqual(await sourceHash(game), hash, 'Shader changes must invalidate the artifact');
+    await writeFile(surfaceEffect, 'CCEffect %{\n  techniques: []\n}%\n');
     const bundleSettings = path.join(game, 'settings/v2/packages/builder.json');
     await writeFile(bundleSettings, '{"bundleConfig":{}}\n');
     assert.notEqual(await sourceHash(game), hash, 'Native resource-bundle settings invalidate artifacts');

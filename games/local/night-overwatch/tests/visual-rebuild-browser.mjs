@@ -62,8 +62,9 @@ try {
   }
   await page.waitForFunction(() => __night.snapshot().phase === 'success', null, { timeout: 20000 });
   const won = await snapshot(page); mark('soloResult');
-  assert(won.fired > 0 && won.threatsRemaining === 0 && won.friendlyLosses === 0);
-  evidence.solo = { time: won.time, fired: won.fired, kills: won.kills, friendlyLosses: won.friendlyLosses, completionTime: won.completionTime };
+  const friendlyLosses = won.units.filter(unit => unit.friendly && unit.hp <= 0).length;
+  assert(won.fired > 0 && won.threatsRemaining === 0 && friendlyLosses === 0);
+  evidence.solo = { time: won.time, fired: won.fired, kills: won.kills, friendlyLosses, completionTime: won.completionTime };
   for (const [width, height] of [[1280, 720], [844, 390], [568, 320]]) {
     await page.setViewportSize({ width, height }); await capture(page, 'solo-result-' + width);
   }

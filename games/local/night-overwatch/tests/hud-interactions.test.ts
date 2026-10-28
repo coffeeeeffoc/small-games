@@ -249,7 +249,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
       const sim = new Simulation('training-60'); hud.modalKey = 'rebuild'; hud.update(sim, world);
       hud.trainingBest = { time: 20, fired: 5, hitShots: 5 };
       for (const phase of ['briefing', 'success', 'failure'] as const) {
-        sim.phase = phase; sim.failure = phase === 'failure' ? 'timeout' : '';
+        sim.phase = phase; sim.failure = phase === 'failure' ? 'vehicle' : '';
         hud.update(sim, world);
         const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
         assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionsPrevious', 'missionsNext', 'mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['resultClose', 'home', 'retry']);
@@ -723,6 +723,23 @@ test('HUD: every operation page keeps three reachable cards and pagination withi
 });
 
 const panelLabels = (hud: any) => hud.modal.children.map((node: any) => node.getComponent(cc.Label)).filter(Boolean);
+const closedDrawingBounds = (calls: Graphics['calls']) => {
+  const shapes: { op: string; color: string; fill: string; x: number; y: number; w: number; h: number }[] = [];
+  let points: number[][] = [], closed = false;
+  for (const call of calls) {
+    if (call.op === 'moveTo') { points = [call.args]; closed = false; }
+    else if (call.op === 'lineTo') points.push(call.args);
+    else if (call.op === 'close') closed = true;
+    else if (call.op === 'rect' || call.op === 'roundRect' || call.op === 'circle') { points = []; closed = false; }
+    else if ((call.op === 'fill' || call.op === 'stroke') && closed && points.length) {
+      const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
+      const x = Math.min(...xs), y = Math.min(...ys);
+      shapes.push({ op: call.op, color: call.color, fill: call.fill, x, y,
+        w: Math.max(...xs) - x, h: Math.max(...ys) - y });
+    }
+  }
+  return shapes;
+};
 const labelBounds = (hud: any, label: any) => {
   const size = label.node.getComponent(Transform).contentSize, p = label.node.position;
   return { x: p.x + hud.w / 2 - size.width / 2, y: hud.h / 2 - p.y - size.height / 2, w: size.width, h: size.height };
@@ -767,7 +784,10 @@ test('HUD: independent title cover precedes mission previews and compact setting
       assert(graphics.filter((c: any) => c.op === 'circle' && c.args[2] === 2.5).length >= 4, 'drawer has machined corner hardware');
       const resume = hud.buttons.find((b: any) => b.id === 'resume');
       assert.equal(resume.label.color.hex, '#ffe3a4'); assert(resume.label.isBold);
-      assert(graphics.some((c: any) => c.op === 'moveTo' && c.color === '#e5b65c' && c.args[0] >= resume.x - width / 2 && c.args[0] <= resume.x + resume.w - width / 2), 'resume has a brass primary-action outline');
+      const shapes = closedDrawingBounds(graphics);
+      assert(shapes.some(c => c.op === 'stroke' && c.color === '#e5b65c'
+        && c.x === resume.x - width / 2 && c.y === height / 2 - resume.y - resume.h
+        && c.w === resume.w && c.h === resume.h), 'resume keeps its brass outline and full touch target');
       for (const pending of [false, true]) {
         hud.supplyOpen = true; hud.pendingSupply = pending; hud.update(sim, world);
         assertPanelTargets(hud);
