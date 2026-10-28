@@ -2941,6 +2941,49 @@ test('developer-mode exact legacy-to-immersive migration selects new guarded ent
     assert.equal(developerModeFileScopes({ ...context, readHead: () => changed }).has(file), false);
 });
 
+test('planning partial clone retains full history and accepts only the two reviewed workflow edits', () => {
+  for (const [name, job] of [
+    ['ci', 'plan'],
+    ['pages', 'changes'],
+  ]) {
+    const file = `.github/workflows/${name}.yml`;
+    const before = execFileSync('git', ['show', `35587c10:${file}`], { encoding: 'utf8' });
+    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+      '\r\n',
+      '\n',
+    );
+    const anchor = `  ${job}:\n    runs-on: ubuntu-latest\n    timeout-minutes: 5\n`;
+    const checkout =
+      '          fetch-depth: 0\n      - name: Read locked game workspaces for planning\n';
+    assert.equal(before.split(anchor).length, 2);
+    assert.equal(before.split(checkout).length, 2);
+    assert.equal(
+      after,
+      before
+        .replace(anchor, anchor.replace('minutes: 5', 'minutes: 15'))
+        .replace(
+          checkout,
+          checkout.replace(
+            '          fetch-depth: 0\n',
+            '          fetch-depth: 0\n          filter: blob:none\n',
+          ),
+        ),
+    );
+    assert.deepEqual(classify(file, before, after).get(file), []);
+    for (const invalid of [
+      after + '\n',
+      after.replace('fetch-depth: 0', 'fetch-depth: 1'),
+      after.replace('filter: blob:none', 'filter: tree:0'),
+      after.replace('timeout-minutes: 15', 'timeout-minutes: 16'),
+      after.replace('--init --', '--init --remote --'),
+      after.replace('contents: read', 'contents: write'),
+    ])
+      assert.equal(classify(file, before, invalid).has(file), false);
+    assert.equal(classify(file, before + '\n', after).has(file), false);
+    assert.equal(classify(file, after, before).has(file), false);
+  }
+});
+
 test('planning checkout scope accepts only both exact reviewed producer byte changes', async () => {
   const { execFileSync } = await import('node:child_process');
   const { fileURLToPath } = await import('node:url');
