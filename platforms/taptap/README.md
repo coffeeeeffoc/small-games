@@ -8,9 +8,11 @@
 
 环境变量中填写小游戏开放能力页面提供的 MiniApp ID。不要使用开发者中心的数字游戏 ID、Android 包名或原生 TapSDK Client ID。生成工程使用 `game.json.appId` 和 `project.config.json.appid`，对应[官方 Unity 工程模板 game.json](https://github.com/taptap/minigame-sdk-unity/blob/main/Runtime/minigame-default/game.json)及[project.config.json](https://github.com/taptap/minigame-sdk-unity/blob/main/Runtime/minigame-default/project.config.json)。公开文档未规定 MiniApp ID 的固定长度，代码仅检查安全的不透明标识符。未配置 AppID 的预览工程保留空值，没有伪造测试身份；发布构建必须提供真实 ID。
 
-九款工程在官方打包前统一安装 `tap-login.js`。配置 `MINIGAME_<GAME>_TAPTAP_APP_ID` 和 `MINIGAME_COMPETITION_API_URL` 后，启动时通过 `tap.login` 获取一次性 code，经 `tap.request` 请求本服务 `/sessions/platform`；已有有效服务端凭据时复用存储。未配置的预览不请求登录、不生成身份。客户端只保存服务端的 `playerId/token/expiresAt`，失败保持明确状态，不降级为游客。
+九款工程在官方打包前统一安装 `tap-login.js`。夜航守望的配置启用官方身份适配器：每次新运行通过 `tap.login` 获取新 code，经 `/sessions/platform` 换回同一服务端玩家；其他未启用该适配器的原生入口继续沿用共享游客会话。夜航渠道 H5 打包默认绑定已确认的应用 987511 / MiniApp ID `tapmcjgwi2thafs87k`；可用 `TAPTAP_NIGHT_OVERWATCH_APP_ID` 显式指定实际目标。普通 Web/mobile 构建仍是浏览器游客。首次官方绑定保留本机可验证游客的 UUID 和历史引用；同一 TapTap 应用账号跨版本找回同一 ID，换账号不会复用旧账号缓存，不同 AppID 不合并。
 
-服务端 Secret Store 的 `COMPETITION_PLATFORM_CONFIG` 使用 `{platform: "taptap", appId: "MiniApp ID", secret: "小游戏密钥"}`，每款单独登记。国内官方换码接口为 `GET https://cloud-miniapp.tapapis.cn/auth/v1/jscode2session`，参数 `appid/secret/js_code/grant_type=authorization_code`；不使用原生 Client ID 或 OAuth ServerSecret。code 有效五分钟且只能使用一次；官方 `session_key` 只在服务端处理。参见[官方 code2Session](https://developer.taptap.cn/minigameapidoc/dev/server/login/code2Session/)。服务端未配置、官方请求失败或缺少 openid 时拒绝登录，客户端不会拿到密钥。
+服务端 Secret Store 的 `COMPETITION_PLATFORM_CONFIG` 使用 `{platform: "taptap", appId: "MiniApp ID", secret: "小游戏密钥", games: ["night-overwatch"]}`，每款单独登记。国内官方换码接口为 `GET https://cloud-miniapp.tapapis.cn/auth/v1/jscode2session`，参数 `appid/secret/js_code/grant_type=authorization_code`；不使用原生 Client ID 或 OAuth ServerSecret。code 有效五分钟且只能使用一次；官方 `session_key` 只在服务端处理。参见[官方 code2Session](https://developer.taptap.cn/minigameapidoc/dev/server/login/code2Session/)。服务端未配置、官方请求失败或缺少 openid 时拒绝登录，客户端不会拿到密钥。
+
+夜航当前部署状态见[交付记录](../../games/local/night-overwatch/docs/verification-2026-10-29-online-sync.md)。尚未提供服务端Secret时，不能发布启用官方身份的新TapTap联网包；已发布的游客包及普通Web入口不自动切换身份。
 
 ## 平台能力
 

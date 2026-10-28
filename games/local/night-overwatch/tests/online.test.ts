@@ -34,7 +34,7 @@ test('late connection and ready failure cannot rejoin or alter a cancelled room'
   await online.open('friend');
   let reject!: (reason: Error) => void;
   f.bridge.services.roomAction = () => new Promise((_r, r) => { reject = r; });
-  const ready = online.ready(), failReady = reject;
+  const ready = online.ready(); await new Promise(resolve => setImmediate(resolve)); const failReady = reject;
   online.leave(); failReady(Error('late')); await ready;
   assert.equal(online.message, ''); assert.equal(online.panel, '');
 });
@@ -90,7 +90,7 @@ test('cancelled room creation cannot reopen the room after its response arrives'
   const f = fixture(); let resolve!: (r: ReturnType<typeof room>) => void;
   f.bridge.services.createRoom = () => new Promise(r => { resolve = r; });
   const online = new Online(storage(), () => {}); await online.connect(f.bridge);
-  const pending = online.open('friend'); online.leave(); resolve(room()); await pending;
+  const pending = online.open('friend'); await new Promise(r => setImmediate(r)); online.leave(); resolve(room()); await pending;
   assert.equal(online.room, undefined); assert.equal(online.panel, ''); assert.equal(f.received.at(-1).operation, 'leave');
 });
 
@@ -101,7 +101,7 @@ test('an opponent leaving or server finishing resolves the terminal snapshot ins
     f.bridge.services.roomAction = async () => { throw Object.assign(Error(code), { code }); };
     f.bridge.services.getRoom = async () => ({ ...f.current, status: 'abandoned' });
     await online.pump(301); assert.equal(online.room!.status, 'abandoned'); assert(online.view!.finished);
-    assert.match(online.message, /已离开/);
+    assert.match(online.message, /房间已结束/); assert.equal(online.view!.simulation.phase, 'failure'); assert.equal(f.current.state.finished, false);
   }
 });
 
@@ -165,4 +165,65 @@ test('newer connection ownership stops retries and entry animation rejects firin
   assert(bot.entering); bot.control({ command: 'setFire', args: ['mouse', true] });
   assert.deepEqual(bot.bot!.pilots[0].held, []); bot.enteringUntil = 0;
   bot.control({ command: 'setFire', args: ['mouse', true] }); assert.equal(bot.bot!.pilots[0].held.length, 1);
+});
+
+test('ready and cancel-ready wait for the preceding poll and send explicit idempotent states', async () => {
+  const f=fixture(), online=new Online(storage(),()=>{}); f.current.players=[{id:'a',ready:false}] as any;
+  await online.connect(f.bridge); await online.open('match');
+  let resolve!: (value:any)=>void;
+  f.bridge.services.getRoom=()=>new Promise(r=>{resolve=r;});
+  f.bridge.services.roomAction=async input=>{f.received.push(input); (f.current.players[0] as any).ready=input.body.ready; return f.current;};
+  const polling=online.pump(0); await new Promise(r=>setImmediate(r));
+  const ready=online.ready(); await online.ready(); assert.equal(f.received.length,0);
+  resolve(structuredClone(f.current)); await polling; await ready;
+  assert.equal(f.received.length,1); assert.equal(online.room!.players[0].ready,true);
+  await online.ready(); assert.equal(online.room!.players[0].ready,false);
+  assert.deepEqual(f.received.map(r=>r.body),[{ready:true},{ready:false}]);
+  assert.equal(online.room!.code,f.current.code); assert.equal(online.message,'');
+});
+
+test('leaving a network bot completes on the server before immediate human matchmaking', async () => {
+  const f=fixture(), online=new Online(storage(),()=>{}), calls:string[]=[];
+  f.current.status='playing'; f.current.mode='bot'; f.current.state=viewDuel(createDuel(41,true));
+  await online.connect(f.bridge); await online.open('bot');
+  let release!:()=>void;
+  f.bridge.services.roomAction=async ()=>{calls.push('leave'); await new Promise<void>(r=>{release=r;}); return f.current;};
+  f.bridge.services.match=async ()=>{calls.push('match'); return {...room(),code:'654321'};};
+  online.leave(); const matching=online.open('match'); await new Promise(r=>setImmediate(r));
+  assert.deepEqual(calls,['leave']); assert.equal(online.resumeCode,'');
+  release(); await matching;
+  assert.deepEqual(calls,['leave','match']); assert.equal(online.room!.mode,'match');
+  assert.equal(online.room!.code,'654321'); assert.equal(online.bot,undefined); assert.equal(online.view,undefined);
+});
+
+test('expired room cleanup cannot block future matches, while failed cleanup is retried before entry', async () => {
+  for (const code of ['INVITATION_NOT_FOUND','ROOM_NOT_FOUND','NOT_A_MEMBER','STALE_LEASE']) {
+    const f=fixture(), online=new Online(storage(),()=>{}); await online.connect(f.bridge); await online.open('match');
+    f.bridge.services.roomAction=async()=>{throw Object.assign(Error(code),{code});};
+    online.leave(); await online.open('match'); assert(online.room,code); assert.equal(f.count(),2);
+  }
+  const f=fixture(), online=new Online(storage(),()=>{}); await online.connect(f.bridge); await online.open('match');
+  let calls=0, release!:()=>void;
+  f.bridge.services.roomAction=async()=>{if(++calls===1)throw Error('offline'); await new Promise<void>(r=>{release=r;}); return f.current;};
+  online.leave(); await new Promise(r=>setImmediate(r));
+  const pending=online.open('match'); await new Promise(r=>setImmediate(r)); online.leave(); release(); await pending;
+  assert.equal(f.count(),1,'cancelled entry must not send a match after cleanup resolves'); assert(!online.room);
+});
+
+test('queued readiness is discarded when the preceding poll ends the room',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{}); await online.connect(f.bridge); await online.open('match');
+  let resolve!:(r:any)=>void; f.bridge.services.getRoom=()=>new Promise(r=>{resolve=r;});
+  const poll=online.pump(0); await new Promise(r=>setImmediate(r)); const ready=online.ready();
+  resolve({...f.current,status:'abandoned'}); await poll; await ready;
+  assert.deepEqual(f.received,[]); assert.equal(online.room!.status,'abandoned');
+});
+
+test('changing ranking tabs ignores an older response',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{}), pending:((r:any)=>void)[]=[];
+  await online.connect(f.bridge); online.show('ranking');
+  f.bridge.services.leaderboard=()=>new Promise(r=>pending.push(r));
+  const first=online.loadRanking(); online.board='points'; const second=online.loadRanking();
+  pending[1]({top:[{rank:1,score:900}],me:null}); await second;
+  pending[0]({top:[{rank:1,score:6}],me:null}); await first;
+  assert.equal(online.ranking!.top[0].score,900);
 });

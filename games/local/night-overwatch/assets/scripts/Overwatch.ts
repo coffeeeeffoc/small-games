@@ -75,6 +75,10 @@ export class Overwatch extends Component {
       const previous = this.sim, pauses = new Set(previous.pauses);
       this.sim = Simulation.restore(state.simulation);
       this.sim.pauses = pauses;
+      if (state.finished) {
+        for (const reason of ['settings', 'help', 'manual', 'countdown'] as const) this.sim.pauses.delete(reason);
+        this.hud.exitConfirm = this.hud.reportOpen = this.hud.toolsOpen = this.hud.zoomOpen = false;
+      }
       if (!start) this.sim.aim = { ...previous.aim };
       this.online!.bind(this.sim, () => this.sim.paused || !!this.hud.modal);
       if (start) {
@@ -163,6 +167,7 @@ export class Overwatch extends Component {
     this.pause('background', true);
   }
   show() {
+    this.platform?.restoreFocus();
     this.pause('background', false);
   }
   retry() {
@@ -291,6 +296,7 @@ export class Overwatch extends Component {
     if (this.disposed) return;
     this.syncRewards();
     this.hud.advert = undefined;
+    this.platform.restoreFocus();
     this.pause('advert', false);
     this.pause('manual', true);
     if (kind === 'supply') {
@@ -307,7 +313,7 @@ export class Overwatch extends Component {
   openSupply() {
     if (!this.platform.rewardsAvailable && !this.platform.rewards.pendingSupply) return;
     if (this.sim.phase !== 'playing' || this.rewardRequest || this.sim.resumeCountdown > 0) return;
-    this.hud.toolsOpen = this.hud.zoomOpen = false;
+    this.hud.reportOpen = this.hud.toolsOpen = this.hud.zoomOpen = false;
     this.pause('supply', true);
     this.pause('settings', false);
     this.hud.supplyOpen = true;

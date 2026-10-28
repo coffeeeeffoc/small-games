@@ -229,25 +229,30 @@ export function registerGameRoutes(
                 })
                 .strict()
                 .parse(request.body)
-            : operation === 'role'
+            : operation === 'ready'
               ? z
-                  .object({ role: z.string().max(40) })
+                  .object({ leaseId: z.uuid().optional(), ready: z.boolean().optional() })
                   .strict()
-                  .parse(request.body)
-              : operation === 'initiative'
+                  .parse(request.body ?? {})
+              : operation === 'role'
                 ? z
-                    .object({ initiative: z.string().max(40) })
+                    .object({ role: z.string().max(40) })
                     .strict()
                     .parse(request.body)
-                : operation === 'spectate'
+                : operation === 'initiative'
                   ? z
-                      .object({ password: z.string().max(64).optional() })
+                      .object({ initiative: z.string().max(40) })
                       .strict()
-                      .parse(request.body ?? {})
-                  : z
-                      .object({ leaseId: z.uuid().optional() })
-                      .strict()
-                      .parse(request.body ?? {});
+                      .parse(request.body)
+                  : operation === 'spectate'
+                    ? z
+                        .object({ password: z.string().max(64).optional() })
+                        .strict()
+                        .parse(request.body ?? {})
+                    : z
+                        .object({ leaseId: z.uuid().optional() })
+                        .strict()
+                        .parse(request.body ?? {});
         if (
           'action' in input &&
           input.action &&

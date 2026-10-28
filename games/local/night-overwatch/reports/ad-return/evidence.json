@@ -1,0 +1,179 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "b2e8ca670728664c4190c16c353dc7b771c808938fef594832e6ee7062b26d44"
+  },
+  "checks": [
+    {
+      "kind": "zoom",
+      "trigger": "completion",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "zoom",
+      "trigger": "visibility",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "zoom",
+      "trigger": "canvas",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "rate",
+      "trigger": "completion",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "rate",
+      "trigger": "visibility",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "rate",
+      "trigger": "canvas",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "tracking",
+      "trigger": "completion",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "tracking",
+      "trigger": "visibility",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "tracking",
+      "trigger": "canvas",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "ammo",
+      "trigger": "completion",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "ammo",
+      "trigger": "visibility",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    },
+    {
+      "kind": "ammo",
+      "trigger": "canvas",
+      "before": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "after": {
+        "diamonds": 3,
+        "rectangles": 0
+      },
+      "pauses": [],
+      "offers": 1
+    }
+  ],
+  "errors": [],
+  "fixture": "Ad completion and focus/visibility boundaries; actual UI input and per-frame red-diamond draw calls. No real ad inventory or device validation."
+}

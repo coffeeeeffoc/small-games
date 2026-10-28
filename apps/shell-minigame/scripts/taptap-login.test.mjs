@@ -214,3 +214,90 @@ test('the installed Homebound bridge consumes this target ad slot and runs with 
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('packaged Night native entry uses official Tap login and shares the recovered identity', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'night-native-login-'));
+  const config = {
+    platform: 'taptap',
+    game: 'night-overwatch',
+    appId: 'tap-night-test',
+    apiUrl: 'https://api.example.test/v1',
+    preview: false,
+  };
+  try {
+    await writeFile(path.join(directory, 'game.js'), 'globalThis.engineReady=true;\n');
+    await installTapTapLogin(directory, config);
+    const saved = new Map(),
+      requests = [];
+    const context = {
+      URL,
+      Date,
+      setTimeout,
+      clearTimeout,
+      console,
+      module: { exports: {} },
+      tap: {
+        getStorageSync: (key) => saved.get(key),
+        setStorageSync: (key, value) => saved.set(key, value),
+        login({ success }) {
+          success({ code: 'night-code' });
+        },
+        request(options) {
+          requests.push(options);
+          if (options.url.endsWith('/games/night-overwatch')) {
+            assert.equal(options.header.authorization, 'Bearer ' + 'a'.repeat(64));
+            options.success({
+              statusCode: 200,
+              data: { identity: { playerId: 'same-night-player' } },
+            });
+            return;
+          }
+          options.success({
+            statusCode: 200,
+            data: {
+              playerId: 'same-night-player',
+              userId: 'same-night-player',
+              identityKind: 'platform',
+              game: 'night-overwatch',
+              sessionId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+              token: 'a'.repeat(64),
+              refreshToken: 'b'.repeat(64),
+              expiresAt: Date.now() + 900000,
+              refreshExpiresAt: Date.now() + 86400000,
+            },
+          });
+        },
+      },
+    };
+    createContext(context);
+    context.require = createTapTapRequire(directory, context);
+    runInNewContext(await readFile(path.join(directory, 'game.js'), 'utf8'), context);
+    const cfg = publicTapTapLoginConfig(config);
+    const state = context.__tapTapLogin;
+    assert.equal((await state.ready).playerId, 'same-night-player');
+    assert.equal(context.window, undefined);
+    assert.equal(context.document, undefined);
+    assert.equal(context.engineReady, true);
+    await context.SmallGamesServices.ready;
+    assert.equal(context.SmallGamesServices.status, 'ready');
+    assert.equal(
+      (await context.SmallGamesServices.services.identity()).playerId,
+      'same-night-player',
+    );
+    assert(requests[0].url.endsWith('/sessions/platform'));
+    assert.equal(requests[0].data.code, 'night-code');
+    const auth = context.__createCompetitionIdentity({
+      config: cfg,
+      sdk: context.tap,
+      storage: context.tap,
+      request() {
+        assert.fail('identity should be shared');
+      },
+    });
+    assert.equal((await auth.current()).playerId, 'same-night-player');
+    assert.equal(requests.filter((r) => r.url.endsWith('/sessions/platform')).length, 1);
+    assert(!requests.some((r) => r.url.endsWith('/sessions/guest')));
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

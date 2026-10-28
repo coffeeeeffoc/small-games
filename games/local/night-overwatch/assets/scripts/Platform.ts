@@ -37,8 +37,10 @@ export class Platform {
   private readonly rewardPractice = this.developer;
   private readonly rewardStorageKey = this.rewardPractice ? 'night-overwatch-rewards-dev-v1' : 'night-overwatch-rewards-v1';
   private clear: () => void;
+  private pause: (reason: PauseReason, on: boolean) => void;
   constructor(parent: Node, pause: (reason: PauseReason, on: boolean) => void, clear: () => void) {
     this.clear = clear;
+    this.pause = pause;
     try {
       this.rewards = readRewards(sys.localStorage.getItem(this.rewardStorageKey));
       this.times = readMissionTimes(sys.localStorage.getItem('night-overwatch-times-v1'));
@@ -105,10 +107,11 @@ export class Platform {
         clear();
         pause('focus', true);
       });
-      listen(window, 'focus', () => pause('focus', false));
+      listen(window, 'focus', () => this.restoreFocus());
       listen(document, 'visibilitychange', () => {
         clear();
         pause('background', document.hidden);
+        this.restoreFocus();
       });
       const canvas = document.querySelector('canvas');
       if (canvas) {
@@ -117,6 +120,7 @@ export class Platform {
         listen(canvas, 'pointerdown', (e) => {
           this.useTouchInput((e as PointerEvent).pointerType !== 'mouse');
           canvas.focus({ preventScroll: true });
+          this.restoreFocus();
           this.activate();
         });
         listen(canvas, 'pointermove', (e) => {
@@ -134,6 +138,10 @@ export class Platform {
     if (touch === this.touchInput) return;
     this.clear();
     this.touchInput = touch;
+  }
+  restoreFocus() {
+    // Some ad WebViews restore focus without delivering a matching window.focus event.
+    if (sys.isBrowser && typeof document !== 'undefined' && this.focused) this.pause('focus', false);
   }
   get focused() {
     return (

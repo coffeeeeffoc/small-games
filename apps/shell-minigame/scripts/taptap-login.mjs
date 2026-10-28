@@ -7,12 +7,45 @@ import { serviceGames } from '../../../scripts/competition-service-config.mjs';
 
 const helper = new URL(import.meta.resolve('@coffeeeeffoc/platform-taptap/login'));
 const identityClient = new URL('../../../platforms/competition/client.js', import.meta.url);
-const helperSource = async () =>
-  Buffer.from(
+const bundleSource = async (entry, name) => {
+  const { build } = await import('vite');
+  const result = await build({
+    configFile: false,
+    publicDir: false,
+    logLevel: 'silent',
+    build: {
+      write: false,
+      minify: false,
+      lib: {
+        entry: fileURLToPath(new URL(entry, import.meta.url)),
+        formats: ['iife'],
+        name,
+      },
+    },
+  });
+  const chunks = (Array.isArray(result) ? result : [result])
+    .flatMap((item) => item.output)
+    .filter((item) => item.type === 'chunk');
+  if (chunks.length !== 1 || chunks[0].imports.length || chunks[0].dynamicImports.length)
+    throw Error('Tap identity must be self-contained');
+  return chunks[0].code.replaceAll('\r\n', '\n');
+};
+const helperSource = async (config) => {
+  const services =
+    config.game === 'night-overwatch'
+      ? (await bundleSource('../../../platforms/competition/game-bootstrap.js', 'TapServices')) +
+        '\nif (!globalThis.SmallGamesServices) globalThis.SmallGamesServices = TapServices.connectGameServices();\n'
+      : '';
+  return Buffer.from(
     (await readFile(identityClient, 'utf8')).replaceAll('\r\n', '\n') +
+      '\n' +
+      (await bundleSource('../../../platforms/taptap/competition-identity.mjs', 'TapIdentity')) +
+      '\nTapIdentity.installTapCompetitionIdentity();\n' +
+      services +
       '\n' +
       (await readFile(helper, 'utf8')).replaceAll('\r\n', '\n'),
   );
+};
 const marker = '// TapTap login bootstrap: install before the official packing step.\n';
 
 export function publicTapTapLoginConfig(config) {
@@ -53,6 +86,9 @@ export function publicTapTapLoginConfig(config) {
     game: config.game,
     appId: config.appId || '',
     apiUrl: config.apiUrl ? tapTapApiBase(config.apiUrl) : '',
+    ...(config.game === 'night-overwatch' && config.apiUrl && config.appId
+      ? { identityProvider: 'taptap', competitionEnabled: true }
+      : {}),
   };
 }
 
@@ -120,7 +156,7 @@ export async function installTapTapLogin(directory, config) {
     if (thirdLine < 0) throw new Error('Incomplete previous TapTap login bootstrap.');
     source = source.slice(thirdLine + 1);
   }
-  await writeFile(path.join(directory, 'tap-login.js'), await helperSource());
+  await writeFile(path.join(directory, 'tap-login.js'), await helperSource(config));
   if (publicTapTapAdConfig(config))
     await writeFile(path.join(directory, 'tap-rewarded-ads.js'), await creatorAdsSource());
   await writeFile(entry, tapTapLoginPrefix(config) + source);
@@ -130,7 +166,7 @@ export async function installTapTapLogin(directory, config) {
 export async function verifyTapTapLogin(directory, config) {
   const [entry, expected, actual] = await Promise.all([
     readFile(path.join(directory, 'game.js'), 'utf8'),
-    helperSource(),
+    helperSource(config),
     readFile(path.join(directory, 'tap-login.js')),
   ]);
   if (!entry.startsWith(tapTapLoginPrefix(config)) || !actual.equals(expected))

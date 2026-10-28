@@ -1,5 +1,5 @@
 /* global module */
-/** Native TapTap bootstrap uses the shared anonymous identity lifecycle. */
+/** Native TapTap bootstrap uses the shared identity lifecycle and configured host authentication. */
 const bootstraps = new WeakMap();
 const knownErrors = new Set([
   'PLATFORM_NOT_CONFIGURED',
@@ -105,7 +105,12 @@ function startTapTapLogin(tap, config = {}) {
       throw error;
     });
   }
-  const key = JSON.stringify([config.appId || '', base, config.game]);
+  const key = JSON.stringify([
+    config.appId || '',
+    base,
+    config.game,
+    config.identityProvider || '',
+  ]);
   let sessions = bootstraps.get(tap);
   if (!sessions) bootstraps.set(tap, (sessions = new Map()));
   const current = sessions.get(key) || state;

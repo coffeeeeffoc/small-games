@@ -108,6 +108,20 @@ test('legacy unscoped or malformed credentials cannot authenticate a new session
     assert.equal(f.calls[0].owner, null);
   }
 });
+
+test('owner-bound refresh cannot create a guest when another tab clears storage between reads', async () => {
+  const f = fixture(),
+    owner = await f.auth.current();
+  f.calls.length = 0;
+  const get = f.options.storage.getItem;
+  let reads = 0;
+  f.options.storage.getItem = (key) => {
+    if (++reads === 2) f.storage.clear();
+    return get(key);
+  };
+  await assert.rejects(f.auth.forOwner(owner), { code: 'SESSION_CHANGED' });
+  assert.deepEqual(f.calls, []);
+});
 test('blocked storage retains the anonymous credential in memory', async () => {
   const f = fixture({ blocked: true });
   await f.auth.current();

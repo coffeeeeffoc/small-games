@@ -192,7 +192,7 @@ export class HUD {
         if (asset === 'mission-day-atlas') this.dayArtwork.push(frame);
         else if (count === 3) this.missionArtwork.push(frame); else this.titleArtwork = frame;
       }
-      if (!this.editing) this.modalKey = '';
+      if (!this.editing) this.modalKey = 'rebuild';
     });
     for (const name of ['panel', 'button', 'insignia']) resources.load(`ui/${name}/texture`, Texture2D, (error, texture) => {
       if (error || !isValid(this.root)) return;
@@ -201,7 +201,7 @@ export class HUD {
         const edge = Math.round(Math.min(texture.width, texture.height) * .065);
         frame.insetLeft = frame.insetRight = frame.insetTop = frame.insetBottom = edge;
       }
-      this.uiFrames.set(name, frame); this.artworkFrames.push(frame); if (!this.editing) this.modalKey = '';
+      this.uiFrames.set(name, frame); this.artworkFrames.push(frame); if (!this.editing) this.modalKey = 'rebuild';
     });
     this.g = this.node('Backdrop', this.root).addComponent(Graphics);
     this.marks = this.node('Telemetry', this.root).addComponent(Graphics);
@@ -561,9 +561,9 @@ export class HUD {
           (!this.modal || b.label.node.parent === this.modal || this.isGlobalAction(b.id)),
       );
   }
-  blocksBattlefield(x: number, y: number) {
-    const map = this.minimapLayout;
-    return !!this.hit(x, y) || y < 58 + this.safe.top ||
+  blocksBattlefield(x: number, y: number, ignorePriority = false) {
+    const map = this.minimapLayout, hit = this.hit(x, y);
+    return !!hit && !(ignorePriority && hit.id === 'priority') || y < 58 + this.safe.top ||
       (!this.desktop && y > this.h - this.footer - this.safe.bottom) ||
       (x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h);
   }
@@ -716,16 +716,13 @@ export class HUD {
     this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#071a2d55');
     this.label(n, this.t('任务地图', 'MISSION MAP'), left + 78, this.safe.top + 80, 22, 156, 42).isBold = true;
     const page = Math.max(0, Math.min(Math.ceil(MISSIONS.length / 3) - 1, this.missionPage));
-    const pagerWidth = this.compact ? 54 : 78, pagerY = this.safe.top + 58;
+    const pagerWidth = this.compact ? 88 : 100, pagerY = this.safe.top + 58;
     const nextX = right - pagerWidth, previousX = nextX - pagerWidth - 100;
     for (const [id, x, active, caption] of [
       ['missionsPrevious', previousX, page > 0, this.t('上一页', 'PREV')],
       ['missionsNext', nextX, page < Math.ceil(MISSIONS.length / 3) - 1, this.t('下一页', 'NEXT')],
     ] as const) {
-      this.plate(g, x, pagerY, pagerWidth, 44, '#1c2a2e', active ? C.line : '#21374a', 3);
-      const label = this.button(id, caption, x, pagerY, pagerWidth, 44, n);
-      this.buttons[this.buttons.length - 1].disabled = !active;
-      label.color = col(active ? C.white : C.dim); label.fontSize = 12;
+      this.menuButton(n,g,id,caption,x,pagerY,pagerWidth,'secondary',id==='missionsPrevious'?'back':'next',44,!active).fontSize=12;
     }
     this.label(n, `${page * 3 + 1}–${Math.min(MISSIONS.length, page * 3 + 3)} / ${MISSIONS.length}`,
       previousX + pagerWidth + 50, pagerY + 22, 12, 100, 32, C.dim);
@@ -999,7 +996,7 @@ export class HUD {
     const online = this.online!;
     const pw = Math.min(result ? 560 : 760, this.w - this.safe.left - this.safe.right - 32),
       ph = Math.min(result ? 360 : 440, this.h - this.safe.top - this.safe.bottom - 28), px = (this.w - pw) / 2, py = (this.h - ph) / 2;
-    this.panelFrame(g,px,py,pw,ph,result?C.amber:C.mint,result?'#050f1d66':'#050f1d55',!result);
+    this.panelFrame(g,px,py,pw,ph,result?C.amber:C.mint,result?'#050f1d66':'#050f1d55',!result&&!(online.panel==='ranking'&&ph<280));
     const label = (str: string, y: number, size = 14, color = C.white) => this.label(n, str, px + pw / 2, py + y, size, pw - 40, 26, color);
     const button = (id: string, caption: string, x: number, y: number, width: number, primary = false, quiet = false, glyph = '', disabled = false) => {
       disabled ||= online.busy&&['saveName','createConfirm','joinConfirm','match','friend','ready'].includes(id);
@@ -1010,8 +1007,12 @@ export class HUD {
       return this.buttons[this.buttons.length-1];
     };
     const bottom = ph - 54, half = (pw - 44) / 2,
-      count = online.panel === 'menu' ? Math.max(1,Math.min(4,Math.floor((bottom-141)/52))) : ph < 340 ? 2 : 3;
+      count = online.panel === 'menu' ? Math.max(1,Math.min(4,Math.floor((bottom-141)/52)))
+        : online.panel === 'ranking' ? Math.max(1,Math.min(3,Math.floor((bottom-210)/27)+1)) : ph < 340 ? 2 : 3;
     online.pageSize = count;
+    if (online.panel === 'ranking') online.rankPage = Math.min(online.rankPage, Math.max(0, Math.ceil((online.ranking?.top.length || 0) / count) - 1));
+    if (online.panel === 'menu') online.roomPage = Math.min(online.roomPage, Math.max(0, Math.ceil(online.rooms.length / count) - 1));
+    if (online.panel === 'history') online.historyPage = Math.min(online.historyPage, Math.max(0, Math.ceil((online.history?.matches.length || 0) / count) - 1));
     const titles = { menu: ['对战大厅', 'BATTLE LOBBY'], ranking: ['排行榜', 'LEADERBOARDS'], room: ['作战准备室', 'READY ROOM'],
       profile: ['玩家昵称', 'PLAYER NAME'], create: ['创建房间', 'CREATE ROOM'], join: ['加入房间', 'JOIN ROOM'], history: ['对战记录', 'BATTLE RECORDS'], '': ['', ''] };
     if(!result){
@@ -1021,12 +1022,21 @@ export class HUD {
     }
     if (online.panel !== 'ranking') button('dismiss','',pw-58,4,44,false,true,'close');
     if (result) {
-      const short=ph<320,mid=short?158:199;
-      this.artwork('insignia',px+pw/2-(short?50:65),py+12,short?100:130,short?37:48);
-      label(this.t(online.view?.winner===null?'对战平局':s.phase==='success'?'任务完成':'对战结束',online.view?.winner===null?'DRAW':s.phase==='success'?'MISSION COMPLETE':'BATTLE ENDED'),short?70:88,short?28:34,C.action).isBold=true;
-      label(this.t(s.phase === 'success' ? '敌方威胁已全部清除。任务完成。' : '本次行动结束，整备后再战。',
-        s.phase === 'success' ? 'ALL HOSTILE THREATS ELIMINATED.' : 'REGROUP AND RETURN TO THE FIGHT.'),short?98:120,12,C.dim);
-      label(playerLabel(online.opponent),short?118:143,11,C.dim);
+      const short=ph<320,cramped=ph<280,mid=Math.min(short?165:205,bottom-66);
+      const ownSeat = online.spectator ? -1 : online.room?.you ?? 0;
+      const outcome = (seat: number) => online.room?.players[seat]?.settlement?.outcome
+        || (seat === ownSeat ? online.room?.settlement?.outcome : undefined)
+        || (online.view?.winner === null ? 'draw' : online.view?.winner === seat ? 'win' : online.view?.winner !== undefined ? 'loss' : '');
+      const outcomeText = (value: string) => value === 'win' ? this.t('胜利','WIN') : value === 'loss' ? this.t('失败','LOSS') : value === 'draw' ? this.t('平局','DRAW') : this.t('结算中','PENDING');
+      const outcomeColor = (value: string) => value === 'win' ? '#75db9e' : value === 'loss' ? C.red : C.amber;
+      const ownOutcome = outcome(ownSeat);
+      if(!cramped)this.artwork('insignia',px+pw/2-(short?50:65),py+12,short?100:130,short?37:48);
+      label(online.spectator ? this.t('观战结束','MATCH ENDED') : this.t('战斗','BATTLE ') + outcomeText(ownOutcome),cramped?44:short?70:88,short?28:34,online.spectator?C.amber:outcomeColor(ownOutcome)).isBold=true;
+      for (let seat = 0; seat < 2; seat++) {
+        const player = online.room?.players[seat] || (seat === 0 ? online.identity : online.opponent), result = outcome(seat);
+        label((seat === 0 ? this.t('A方','SIDE A') : this.t('B方','SIDE B')) + (seat === ownSeat ? this.t(' · 你',' · YOU') : '')
+          + ' · ' + playerLabel(player) + ' · ' + outcomeText(result), (cramped?70:short?99:120)+seat*(cramped?22:23),11,outcomeColor(result));
+      }
       const settlement = online.room?.settlement;
       const cw=(pw-56)/2;
       for (let i = 0; i < 2; i++) this.inset(g, px + 20 + i * (pw / 2 - 10), py + mid - 28, pw / 2 - 30, 86, i ? '#ac8e4d99' : '#5b859d99');
@@ -1036,10 +1046,9 @@ export class HUD {
         this.label(n,i?this.t('本局积分','POINTS EARNED'):this.t('作战用时','OPERATION TIME'),cx+14,py+mid-14,11,cw-40,22,C.dim);
         this.label(n,i?settlement?'+'+settlement.points:'—':formatTime(s.time*1000),cx+14,py+mid+13,
           short?24:30,cw-40,40,i?C.action:C.white).isBold=true;
-        if (i) this.label(n, settlement ? this.t('总积分 ', 'TOTAL ') + settlement.totalPoints : online.spectator ? this.t('观战结束', 'SPECTATING ENDED')
-          : this.t('本地练习', 'LOCAL PRACTICE'),cx+14,py+mid+43,11,cw-20,22,C.dim);
+        if (i) this.label(n, settlement?.totalPoints !== undefined ? this.t('总积分 ', 'TOTAL ') + settlement.totalPoints : online.spectator ? this.t('观战不计分', 'SPECTATING · NO POINTS')
+          : online.room ? this.t('积分暂不可用', 'POINTS UNAVAILABLE') : this.t('本地练习', 'LOCAL PRACTICE'),cx+14,py+mid+43,11,cw-20,22,C.dim);
       }
-      if(online.message)label(online.message,bottom-17,10,C.dim);
       this.rect(g,px+32,py+bottom-7,pw-64,1,'#8ba0ab44');
       const bw=Math.min(210,pw-64);
       button('backLobby',this.t('返回大厅','BACK TO LOBBY'),(pw-bw)/2,bottom,bw,true,false,'back');return;
@@ -1063,24 +1072,30 @@ export class HUD {
         online.busy ? this.t('请稍候', 'PLEASE WAIT') : this.t('确定', 'CONFIRM'),pw-198,bottom,180,online.panel !== 'profile'); return;
     }
     if (online.panel === 'ranking') {
-      const tabW = (pw - 60) / 4;
+      const tabW = (pw - 60) / 4, compact = ph < 280;
       for (const [i, [id, name]] of [['clears', this.t('通关榜', 'CLEARS')], ['level', this.t('关卡榜', 'LEVEL')], ['points', this.t('积分榜', 'POINTS')], ['win-rate', this.t('胜率榜', 'WIN RATE')]].entries())
-        button('board:' + id, name, 18 + i * (tabW + 8), 61, tabW, online.board === id);
+        button('board:' + id, name, 18 + i * (tabW + 8), compact ? 42 : 61, tabW, online.board === id);
       const mission = MISSIONS[online.level], level = online.board === 'level';
-      if (level) { button('previous', '‹', 18, 111, 44); button('next', '›', pw - 62, 111, 44); }
-      const descriptions = { clears: ['不同关卡的通关数', 'DISTINCT LEVELS CLEARED'], level: [String(online.level + 1) + ' · ' + text(mission.name, this.lang), String(online.level + 1) + ' · ' + text(mission.name, this.lang)], points: ['每次有效通关与对战累计积分', 'TOTAL VERIFIED CLEAR AND BATTLE POINTS'], 'win-rate': ['真人胜场 / 真人对战场次', 'HUMAN WINS / HUMAN MATCHES'] };
-      label(text(descriptions[online.board], this.lang), 127, 11, C.dim);
+      if (level) { button('previous', this.t('上一关','PREV'), 18, compact ? 86 : 108, 94,false,false,'back',online.level===0); button('next', this.t('下一关','NEXT'), pw - 112, compact ? 86 : 108, 94,false,false,'next',online.level===MISSIONS.length-1); }
+      const descriptions = { clears: ['最高通关', 'HIGHEST LEVEL CLEARED'], level: [this.t('第 ','LEVEL ') + String(online.level + 1) + this.t('关 · ',' · ') + text(mission.name, this.lang), this.t('第 ','LEVEL ') + String(online.level + 1) + ' · ' + text(mission.name, this.lang)], points: ['累计积分', 'TOTAL POINTS'], 'win-rate': ['真人对战胜率', 'HUMAN MATCH WIN RATE'] };
+      const description=label(text(descriptions[online.board], this.lang), compact ? 108 : 127, 11, C.dim);
+      if(level)description.node.getComponent(UITransform)!.setContentSize(pw-244,26);
       const value = (row: NonNullable<Online['ranking']>['top'][number]) => level ? formatTime(row.secondary) : online.board === 'win-rate'
-        ? Math.round((row.games ? (row.wins || 0) / row.games : row.score) * 1000) / 10 + '% (' + (row.wins || 0) + '/' + (row.games || 0) + ')' : String(row.score);
+        ? Math.round((row.games ? (row.wins || 0) / row.games : row.score) * 1000) / 10 + '%' : online.board === 'clears' ? this.t('第','') + row.score + this.t('关','') : row.score + this.t('分','');
+      const metric = (row: NonNullable<Online['ranking']>['top'][number]) => (level ? this.t('最快 ','BEST ') : online.board==='clears' ? this.t('最高通关 ','LEVEL ') : online.board==='points' ? this.t('积分 ','POINTS ') : this.t('胜率 ','WIN RATE ')) + value(row);
       const rows = online.ranking?.top.slice(online.rankPage * count, (online.rankPage + 1) * count) || [];
       rows.forEach((row, i) => {
-        const own = playerId(row) === playerId(online.identity), y = 160 + i * 27;
+        const own = playerId(row) === playerId(online.identity), y = (compact ? 143 : 160) + i * 27;
         if (own) this.plate(g, px + 18, py + y - 12, pw - 36, 26, '#29423c', C.mint, 4);
-        label(String(row.rank) + '. ' + playerLabel(row) + (own ? this.t(' · 你', ' · YOU') : '') + '   ' + value(row), y, 12, own ? C.mint : C.white).horizontalAlign = Label.HorizontalAlign.LEFT;
+        const nameW=pw-260, maxName=Math.max(2,Math.floor((nameW-95)/12)), name=Array.from(row.nickname||row.name||'飞行员');
+        const caption=playerLabel({...row,nickname:name.length>maxName?name.slice(0,maxName).join('')+'…':name.join('')});
+        for (const [captionText,x,width] of [[this.t('第','RANK ')+row.rank+this.t('名',''),18,64],[caption,90,nameW],[metric(row),pw-160,142]] as const) {
+          this.label(n,captionText,px+x+width/2,py+y,12,width,26,own?C.mint:C.white).horizontalAlign=Label.HorizontalAlign.LEFT;
+        }
       });
-      if (!rows.length) label(online.message || (online.ranking ? this.t('暂无成绩，等你创造纪录', 'SET THE FIRST RECORD') : this.t('正在读取…', 'LOADING…')), 174, 12, C.dim);
+      if (!rows.length) label(online.message || (online.ranking ? this.t('暂无成绩，等你创造纪录', 'SET THE FIRST RECORD') : this.t('正在读取…', 'LOADING…')), compact ? 143 : 174, 12, C.dim);
       const me = online.ranking?.me;
-      label(me ? this.t('你的成绩 ', 'YOU ') + value(me) + this.t(' · 第 ', ' · RANK ') + me.rank : this.t('你 · 尚无上榜成绩', 'YOU · NOT YET RANKED'), bottom - 24, 11, C.mint);
+      label(me ? this.t('我的排名 第','MY RANK ') + me.rank + this.t('名 · ',' · ') + metric(me) : this.t('你 · 尚无上榜成绩', 'YOU · NOT YET RANKED'), bottom - 24, 11, C.mint);
       button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
       button('refresh',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
       button('pagePrev','',pw-150,bottom,44,false,false,'back',online.rankPage===0);
@@ -1098,7 +1113,7 @@ export class HUD {
         const y = 86 + i * 58, outcome = match.outcome === 'win' ? this.t('胜利', 'WIN') : match.outcome === 'loss' ? this.t('失败', 'LOSS') : this.t('平局', 'DRAW');
         this.plate(g, px + 18, py + y, pw - 36, 52, '#1c2a2e', C.line, 5);
         this.label(n, outcome + ' · ' + (match.opponent.nickname || match.opponent.name || '飞行员') + '  +' + match.points,
-          px + pw / 2, py + y + 15, 13, pw - 60, 26, match.outcome === 'win' ? C.mint : C.amber);
+          px + pw / 2, py + y + 15, 13, pw - 60, 26, match.outcome === 'win' ? '#75db9e' : match.outcome === 'loss' ? C.red : C.amber);
         const date = new Date(match.finishedAt).toLocaleString(this.lang === 'zh' ? 'zh-CN' : 'en-GB', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
         this.label(n, date + ' · ' + formatTime(match.durationMs) + (match.reason === 'disconnect' ? this.t(' · 掉线结算', ' · DISCONNECT') : match.reason === 'abandoned' ? this.t(' · 双方离开', ' · ABANDONED') : ''),
           px + pw / 2, py + y + 36, 10, pw - 60, 22, C.dim);
@@ -1125,20 +1140,20 @@ export class HUD {
         const detail=this.label(n,'#'+room.code+'  ·  '+room.playerCount+'/2  ·  '+(room.status === 'waiting' ? room.canJoin ? this.t('等待加入','WAITING') : this.t('等待开战','READY ROOM') : this.t('对战中','IN BATTLE')),px+70+textW/2,py+y+35,10,textW,20,C.dim);detail.horizontalAlign=Label.HorizontalAlign.LEFT;
         button((room.canJoin?'joinCode:':'watchCode:')+room.code,room.canJoin?this.t('加入','JOIN'):this.t('观战','WATCH'),pw-102,y+2,82);
       });
-      if(!rows.length){const yy=ph<340?108:144;this.controlIcon(g,'lobby',px+pw/2,py+yy,34,C.line);label(this.t('空域待命，等你出发','THE SKIES ARE QUIET'),yy+32,16,C.white);if(ph>=340)label(this.t('创建房间邀请好友，或先进行人机练习','CREATE A ROOM FOR FRIENDS OR PRACTICE WITH A BOT'),yy+58,11,C.dim);}
+      if(!rows.length){const yy=ph<280?78:ph<340?108:144;if(ph>=280)this.controlIcon(g,'lobby',px+pw/2,py+yy,34,C.line);label(this.t('空域待命，等你出发','THE SKIES ARE QUIET'),yy+32,16,C.white);if(ph>=340)label(this.t('创建房间邀请好友，或先进行人机练习','CREATE A ROOM FOR FRIENDS OR PRACTICE WITH A BOT'),yy+58,11,C.dim);}
       const cw = (pw - 60) / 4;
       for (const [i,[id,name]] of [['friend',this.t('创建房间','CREATE')],['join',this.t('加入房间','JOIN ROOM')],['match',this.t('随机匹配','RANDOM')],['bot',this.t('人机对战','BOT')]].entries())button(id,name,18+i*(cw+8),bottom-52,cw,i===0,i>1,pw>=660?['plus','join','match','bot'][i]:'');
       this.rect(g,px+20,py+bottom-4,pw-40,1,'#8ba0ab33');
       button('back',this.t('返回','BACK'),18,bottom,82,false,true,'back');
       button('history',this.t('对战记录','RECORDS'),106,bottom,108,false,true,'history');
-      button(online.resumeCode?'resumeRoom':'roomsRefresh',online.resumeCode?this.t('重回对局','RECONNECT'):this.t('刷新','REFRESH'),224,bottom,online.resumeCode?110:80,false,true,online.resumeCode?'':'refresh');
+      button(online.resumeCode?'resumeRoom':'roomsRefresh',online.resumeCode?this.t('重连','REJOIN'):pw<500?'':this.t('刷新','REFRESH'),224,bottom,Math.min(online.resumeCode?110:80,pw-382),false,true,online.resumeCode?'':'refresh');
       button('roomPrev','',pw-150,bottom,44,false,false,'back',online.roomPage===0);
       button('roomNext','',pw-62,bottom,44,false,false,'next',online.rooms.length<=(online.roomPage+1)*count);
       this.label(n,`${online.roomPage+1}/${Math.max(1,Math.ceil(online.rooms.length/count))}`,px+pw-84,py+bottom+22,11,44,24,C.dim);
       return;
     }
     const room = online.room;
-    label(online.busy ? this.t('正在连接…', 'CONNECTING…') : room ? this.t('房间号 ', 'ROOM ') + room.code + (room.visibility === 'private' ? this.t(' · 私密', ' · PRIVATE') : '') : '', 78, 20, C.amber);
+    label(room ? this.t('房间号 ', 'ROOM ') + room.code + (room.visibility === 'private' ? this.t(' · 私密', ' · PRIVATE') : '') : online.busy ? this.t('正在连接…', 'CONNECTING…') : '', 78, 20, C.amber);
     for (let i = 0; i < 2; i++) {
       const player = room?.players[i], own = player && playerId(player) === playerId(online.identity), y = 117 + i * 34;
       if (own) this.plate(g, px + 18, py + y - 14, pw - 36, 30, '#29423c', C.mint, 5);
@@ -1147,10 +1162,10 @@ export class HUD {
     }
     label(online.message || this.t('把房间号告诉好友，双方准备后开始', 'TELL YOUR FRIEND THE ROOM NUMBER · BOTH READY TO START'), bottom - 25, 11, C.dim);
     const cw = Math.min(180,(pw - 52) / 3);
-    button('backLobby', this.t('离开房间', 'LEAVE'), 18, bottom, cw,false,true,'back');
+    button('backLobby', this.t('离开房间', 'LEAVE'), 18, bottom, cw,false,false,'back');
     if (room?.status === 'waiting' && !online.spectator) {
       button('share', this.t('分享链接', 'SHARE'), 26 + cw, bottom, cw);
-      button('ready', room.players[room.you]?.ready ? this.t('已准备', 'READY') : this.t('准备', 'READY UP'), pw-18-cw, bottom, cw, true);
+      button('ready', room.players[room.you]?.ready ? this.t('取消准备', 'CANCEL READY') : this.t('准备', 'READY UP'), pw-18-cw, bottom, cw);
     }
   }
   renderModal(key: string, s: Simulation, world: World) {
@@ -1925,7 +1940,7 @@ export class HUD {
       if (!q.visible) continue;
       // The minimap covers off-screen contacts without crowding the battlefield edges.
       if (q.x < -this.w / 2 + 16 + this.safe.left || q.x > this.w / 2 - 16 - this.safe.right || q.y > top || q.y < bottom - 30) continue;
-      if (this.blocksBattlefield(q.x + this.w / 2, this.h / 2 - q.y)) continue;
+      if (this.blocksBattlefield(q.x + this.w / 2, this.h / 2 - q.y, true)) continue;
       const contact = { unit: u, point: q };
       contacts.push(contact);
       if (!pointer) continue;

@@ -181,6 +181,10 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(paired.players).toHaveLength(2);
     expect(paired.status).toBe('waiting');
     await request(roomPath(waiting.code) + '/leave', a, {});
+    const remaining = await request(roomPath(waiting.code), b);
+    expect(remaining).toMatchObject({ code: waiting.code, status: 'waiting', you: 0 });
+    expect(remaining.players.map((p: { id: string }) => p.id)).toEqual([b.playerId]);
+    await request(roomPath(waiting.code) + '/leave', b, {});
     await request(roomPath(waiting.code), b, undefined, 404);
     const bot = await request(path + '/rooms', c, { mode: 'bot' });
     const started = await request(roomPath(bot.code) + '/ready', c, {});
@@ -196,6 +200,43 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(end.settlement.points).toBe(10);
     expect((await request(path + '/history', c)).summary.games).toBe(0);
     expect((await request(path + '/leaderboards/points', c)).me.score).toBe(10);
+  });
+
+  it('cancels readiness, preserves the remaining room member and never resumes a departed bot in matchmaking', async () => {
+    const [a, b, c] = await Promise.all([player(), player(), player()]);
+    const room = await request(path + '/rooms', a, {});
+    await request(path + '/rooms/join', b, { code: room.code });
+    for (const ready of [true, true, false, false]) {
+      const current = await request(roomPath(room.code) + '/ready', a, { ready });
+      expect(current).toMatchObject({ code: room.code, status: 'waiting' });
+      expect(current.players[0].ready).toBe(ready);
+    }
+    expect((await request(roomPath(room.code) + '/ready', b, { ready: true })).status).toBe(
+      'waiting',
+    );
+    await request('/me', a, { nickname: '改名后仍是我' });
+    expect((await request(roomPath(room.code), b)).players[0]).toMatchObject({
+      id: a.playerId,
+      nickname: '改名后仍是我',
+    });
+    await request(roomPath(room.code) + '/leave', a, {});
+    const remaining = await request(roomPath(room.code), b);
+    expect(remaining.players).toHaveLength(1);
+    expect(remaining.players[0]).toMatchObject({ id: b.playerId, ready: false });
+    const joined = await request(path + '/rooms/join', c, { code: room.code });
+    expect(joined.you).toBe(1);
+    await request(roomPath(room.code) + '/leave', c, {});
+    expect((await request(roomPath(room.code), b)).players).toHaveLength(1);
+    await request(roomPath(room.code) + '/leave', b, {});
+    const bot = await request(path + '/rooms', a, { mode: 'bot' });
+    await request(roomPath(bot.code) + '/ready', a, {});
+    time += 1300;
+    await request(roomPath(bot.code) + '/leave', a, {});
+    const matched = await request(path + '/match', a, {});
+    expect(matched.code).not.toBe(bot.code);
+    expect(matched.mode).not.toBe('bot');
+    expect(matched.state).toBeNull();
+    await request(roomPath(matched.code) + '/leave', a, {});
   });
 
   it('isolates private rooms, atomically claims the last seat, and gives spectators no control', async () => {
@@ -460,6 +501,10 @@ integration('Night real HTTP and PostgreSQL', () => {
     time -= 1201;
     await request(roomPath(room.code) + '/leave', a, {});
     expect((await request(path + '/history', a)).summary.games).toBe(0);
+    const waiting = await request(roomPath(room.code), b);
+    expect(waiting).toMatchObject({ status: 'waiting', you: 0, state: null });
+    expect(waiting.players).toHaveLength(1);
+    await request(roomPath(room.code) + '/leave', b, {});
     const next = await pair(a, b);
     await request(roomPath(next.code) + '/leave', a, {});
     await request(roomPath(next.code) + '/leave', b, {});
@@ -561,13 +606,13 @@ integration('Night real HTTP and PostgreSQL', () => {
   it('migrates legacy clears once atomically and refreshes only the new clear owner', async () => {
     // The fixture injects pre-migration history after other tests have read boards.
     await database.db.execute(
-      sql`update runtime.competition_matches set data='{}'::jsonb where id='night-migration:legacy-clears-v1'`,
+      sql`update runtime.competition_matches set data='{}'::jsonb where id='night-migration:highest-clear-v2'`,
     );
     const [a, b] = await Promise.all([player(), player()]);
     for (const [level, version, ms] of [
       ['corridor-01', 'v6', 5000],
       ['corridor-01', 'v7', 4000],
-      ['ambush-02', 'v7', 7000],
+      ['operation-006', 'v7', 7000],
     ] as const) {
       await database.db.execute(
         sql`insert into runtime.competition_results values(${randomUUID()},${`night-overwatch:level-${level}:night-input-replay-${version}`},${a.playerId},1,${ms},${time})`,
@@ -584,16 +629,16 @@ integration('Night real HTTP and PostgreSQL', () => {
     ).rejects.toThrow('rollback migration');
     expect(
       await database.db.execute(
-        sql`select id from runtime.competition_matches where id='night-migration:legacy-clears-v1' and data->>'status'='complete'`,
+        sql`select id from runtime.competition_matches where id='night-migration:highest-clear-v2' and data->>'status'='complete'`,
       ),
     ).toHaveLength(0);
     await Promise.all([a, b].map((p) => store.prepareNightBoards(p.playerId)));
     const marker = await database.db.execute(
-      sql`select data,created_at from runtime.competition_matches where id='night-migration:legacy-clears-v1'`,
+      sql`select data,created_at from runtime.competition_matches where id='night-migration:highest-clear-v2'`,
     );
     expect(marker).toHaveLength(1);
     expect(marker[0]!.data).toEqual({ status: 'complete' });
-    expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(2);
+    expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(6);
     expect((await request(path + '/leaderboards/level-corridor-01', a)).me.secondary).toBe(4000);
     expect((await request(path + '/leaderboards/points', a)).me).toBeNull();
     expect((await request(path + '/history', a)).summary.games).toBe(0);
@@ -608,7 +653,7 @@ integration('Night real HTTP and PostgreSQL', () => {
     await store.prepareNightBoards(b.playerId);
     expect(
       await database.db.execute(
-        sql`select data,created_at from runtime.competition_matches where id='night-migration:legacy-clears-v1'`,
+        sql`select data,created_at from runtime.competition_matches where id='night-migration:highest-clear-v2'`,
       ),
     ).toEqual(marker);
     await database.db.transaction(async (tx) => {
@@ -618,7 +663,7 @@ integration('Night real HTTP and PostgreSQL', () => {
       );
       await refreshNightClears(tx, time, a.playerId);
     });
-    expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(3);
+    expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(6);
     const achieved = await database.db.execute(
       sql`select updated_at from runtime.competition_best where board=${nightBoard('clears')} and player_id=${a.playerId}`,
     );

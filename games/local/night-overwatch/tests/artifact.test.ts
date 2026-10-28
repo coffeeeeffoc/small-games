@@ -20,7 +20,8 @@ test('restores matching web artifacts without Creator and rejects stale or incom
       await cp(new URL('../../carding-car/scripts/' + name, import.meta.url),
         path.join(temp, 'games/local/carding-car/scripts', name));
     for (const file of ['scripts/h5-game-services.mjs', 'scripts/competition-service-config.mjs',
-      'platforms/competition/client.js', 'platforms/competition/game-services.js', 'platforms/competition/game-bootstrap.js']) {
+      'platforms/competition/client.js', 'platforms/competition/game-services.js', 'platforms/competition/game-bootstrap.js',
+      'platforms/taptap/competition-identity.mjs', 'platforms/taptap/calls.mjs']) {
       await mkdir(path.dirname(path.join(temp, file)), { recursive: true });
       await cp(new URL('../../../../' + file, import.meta.url), path.join(temp, file));
     }

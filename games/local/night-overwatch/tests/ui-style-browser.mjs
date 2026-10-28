@@ -90,7 +90,7 @@ try {
       assert.deepEqual(ranks, ranks.map((_, i) => i + 1));
       const alignments = await page.evaluate(async () => {
         const { director, Label } = await System.import('cc');
-        return director.getScene().getComponentsInChildren(Label).filter(label => label.node.activeInHierarchy && /^\d+\. /.test(label.string))
+        return director.getScene().getComponentsInChildren(Label).filter(label => label.node.activeInHierarchy && /^第\d+名$/.test(label.string))
           .map(label => label.horizontalAlign === Label.HorizontalAlign.LEFT);
       });
       assert(alignments.length > 0 && alignments.every(Boolean), 'ranked rows are left aligned');

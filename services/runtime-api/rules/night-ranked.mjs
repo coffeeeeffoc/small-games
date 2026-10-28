@@ -18,7 +18,7 @@ export default {
       guestAllowed: true,
       scoreUnit: ['关', '分', '比率'][i],
       secondaryUnit: 'milliseconds',
-      description: ['不同关卡去重', '经服务端结算的累计积分', '真人开局胜场/场次'][i],
+      description: ['最高通过关卡序号', '经服务端结算的累计积分', '真人开局胜场/场次'][i],
     })),
     ...MISSIONS.map((mission) => ({
       id: `level-${mission.id}`,

@@ -13,10 +13,13 @@ export const h5BasicServiceGames = [
 export async function prepareGameServices(
   game,
   directory,
-  { env = process.env, local = false } = {},
+  { env = process.env, local = false, tapAppId = '' } = {},
 ) {
   if (!h5BasicServiceGames.includes(game)) throw Error('Unsupported basic service game');
   const config = { game, platform: 'h5', ...competitionService({ env, local }) };
+  if (tapAppId && (game !== 'night-overwatch' || !/^tap[A-Za-z0-9_-]{4,96}$/.test(tapAppId)))
+    throw Error('Invalid TapTap identity application');
+  if (tapAppId) Object.assign(config, { appId: tapAppId, identityProvider: 'taptap' });
   await writeFile(
     path.join(directory, 'game-service-config.js'),
     `globalThis.__COMPETITION_CONFIG__ = Object.freeze(${JSON.stringify(config)});\n`,
@@ -28,6 +31,19 @@ export async function prepareGameServices(
       new URL(`../platforms/competition/${name}`, import.meta.url),
       path.join(servicesDir, name),
     );
+  if (tapAppId) {
+    for (const name of ['competition-identity.mjs', 'calls.mjs'])
+      await copyFile(
+        new URL(`../platforms/taptap/${name}`, import.meta.url),
+        path.join(servicesDir, name),
+      );
+    const bootstrap = path.join(servicesDir, 'game-bootstrap.js');
+    await writeFile(
+      bootstrap,
+      `import './client.js';\nimport {installTapCompetitionIdentity} from './competition-identity.mjs';\ninstallTapCompetitionIdentity();\n` +
+        (await readFile(bootstrap, 'utf8')),
+    );
+  }
   const index = path.join(directory, 'index.html');
   let html = await readFile(index, 'utf8');
   html = html.replace(
@@ -55,8 +71,12 @@ export async function reconfigureGameServices(filename, env, local = false) {
     /^globalThis\.__COMPETITION_CONFIG__ = Object\.freeze\((\{[^]*\})\);\s*$/,
   );
   if (!match) throw Error('Invalid basic service configuration');
-  const { game, platform } = JSON.parse(match[1]);
+  const { game, platform, appId, identityProvider } = JSON.parse(match[1]);
   if (platform !== 'h5') throw Error('Unsupported basic service platform');
-  await prepareGameServices(game, path.dirname(filename), { env, local });
+  await prepareGameServices(game, path.dirname(filename), {
+    env,
+    local,
+    tapAppId: identityProvider === 'taptap' ? appId : '',
+  });
   return true;
 }
