@@ -20,7 +20,7 @@ try {
     await page.route('**/game-service-config.js',route=>route.fulfill({status:200,contentType:'text/javascript',body:
       'globalThis.__COMPETITION_CONFIG__ = Object.freeze('+JSON.stringify({game:'night-overwatch',platform:'h5',competitionEnabled:true,apiUrl})+');'}));
     await page.goto(base+'?dev=0');
-    await page.waitForFunction(()=>globalThis.__night?.snapshot().ui.homeArtworkReady&&__night.snapshot().online.identity.playerId);
+    await page.waitForFunction(()=>globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().ui.interfaceArtworkReady&&__night.snapshot().online.identity.playerId);
     await page.waitForFunction(() => !document.getElementById('night-startup'));
     await page.waitForTimeout(800);
     const hit=id=>press(page,id,touch,false);

@@ -1,0 +1,28 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d"
+  },
+  "errors": [],
+  "fire": [
+    {
+      "id": 29,
+      "age": 0.7348465340417789,
+      "life": 25
+    },
+    {
+      "id": 33,
+      "age": 0.7348465340417789,
+      "life": 2.8
+    }
+  ],
+  "result": {
+    "phase": "success",
+    "time": 149.98333333334483,
+    "localPractice": true,
+    "radioPlaying": true,
+    "radioDuration": 4.285714
+  },
+  "passed": true
+}

@@ -24,7 +24,7 @@ const observe = page => {
 const ready = async page => {
   await page.route('**/api/competition/**', route => route.abort());
   await page.goto(base + '?dev=0');
-  await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().buttons.some(b => b.id === 'online:profile'));
+  await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().ui.interfaceArtworkReady && __night.snapshot().buttons.some(b => b.id === 'online:profile'));
   await page.waitForFunction(() => !document.getElementById('night-startup'));
   await page.waitForFunction(() => __night.snapshot().visualMaterialStatus !== 'loading');
   assert.equal((await snapshot(page)).visualMaterialStatus, 'ready', (await snapshot(page)).visualMaterialError);

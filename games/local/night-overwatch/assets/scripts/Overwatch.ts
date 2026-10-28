@@ -699,7 +699,7 @@ export class Overwatch extends Component {
     this.hud.touch = false;
     const p = this.mousePosition(e);
     this.hud.mousePointer = p;
-    if (this.mouseButton === 'fire' && this.hud.hit(p.x, p.y)?.id !== 'fire') {
+    if (this.mouseButton && this.hud.hit(p.x, p.y)?.id !== this.mouseButton) {
       this.sim.setFire('mouse', false);
       this.mouseButton = '';
     }
@@ -816,6 +816,10 @@ export class Overwatch extends Component {
   }
   touchMove(e: EventTouch) {
     if (e.simulate || (sys.isBrowser && !this.platform.touchInput)) return;
+    for (const t of e.getTouches()) {
+      const role = this.touches.get(t.getID()), p = t.getUILocation();
+      if (role?.role === 'button' && this.hud.hit(p.x,this.hud.h-p.y)?.id !== role.button) role.role='cancelled';
+    }
     const fingers = Array.from(this.touches.values()).filter((t) => t.role === 'pinch');
     if (fingers.length === 2) {
       const before = Math.hypot(fingers[0].x - fingers[1].x, fingers[0].y - fingers[1].y);
@@ -1044,6 +1048,7 @@ export class Overwatch extends Component {
       this.platform.saveRewards();
     }
     this.updateRadio(Math.min(dt, .1));
+    this.hud.pressedButton=this.mouseButton || Array.from(this.touches.values()).find(t=>t.role==='button'||t.role==='fire')?.button || '';
     this.hud.update(presented, this.world);
     if (this.pauseControl) {
       this.pauseControl.hidden = !this.hud.buttons.find(button => button.id === 'settings')?.label.node.activeInHierarchy;
@@ -1151,6 +1156,8 @@ export class Overwatch extends Component {
       aimedUnit: this.sim.aimedUnit?.id,
       ui: {
         homeArtworkReady: !!this.hud.homeArtwork.spriteFrame,
+        interfaceArtworkReady: this.hud.interfaceArtworkReady,
+        pressedButton: this.hud.pressedButton,
         worldVisible: this.world.root.active,
         width: this.hud.w,
         height: this.hud.h,
@@ -1177,7 +1184,7 @@ export class Overwatch extends Component {
             b.label.node.activeInHierarchy &&
             (!this.hud.modal || b.label.node.parent === this.hud.modal || this.hud.isGlobalAction(b.id)),
         )
-        .map(({ id, x, y, w, h, label }) => ({ id, x, y, w, h, text: label.string, bold: label.isBold, color: label.color.toHEX() })),
+        .map(({ id, x, y, w, h, label, visual, disabled }) => ({ id, x, y, w, h, visual, disabled:!!disabled, text: label.string, bold: label.isBold, color: label.color.toHEX() })),
       zoom: this.world.zoom,
       follow: this.world.follow,
       safe: this.hud.safe,

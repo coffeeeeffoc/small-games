@@ -1,0 +1,57 @@
+{
+  "creator": "3.8.8",
+  "target": "web-mobile",
+  "sourceHash": "6c7dadbd1f7e1f6978b97827aa090a47ab17b2bed7e11b5982b1aef539993c3d",
+  "bytes": 13486752,
+  "commit": "ee0dfc6dc39c234659e38b04511192d5d9c8df93",
+  "functional": {
+    "hudTests": 24,
+    "nativeAdapterTests": 7,
+    "styleScreens": 40,
+    "inputSizes": [
+      [
+        568,
+        320
+      ],
+      [
+        844,
+        390
+      ],
+      [
+        1280,
+        720
+      ]
+    ],
+    "finish": {
+      "phase": "success",
+      "time": 149.98333333334483,
+      "localPractice": true,
+      "radioPlaying": true,
+      "radioDuration": 4.285714
+    }
+  },
+  "captureRoot": "outputs/night-overwatch-interface/",
+  "retainedScreens": [
+    "battle-settings-568.png",
+    "exit-568.png",
+    "flight-controls-568.png",
+    "help-568.png",
+    "history-568.png",
+    "home-568.png",
+    "lobby-568.png",
+    "missions-568.png",
+    "nickname-568.png",
+    "pressed-1280.png",
+    "private-room-568.png",
+    "ranking-568.png",
+    "settings-568.png",
+    "settlement-568.png",
+    "settlement-844.png"
+  ],
+  "limits": [
+    "No physical mobile-device acceptance",
+    "No native-host or real-ad acceptance",
+    "No live service or public-score mutation",
+    "Full repository candidate suite not run"
+  ]
+}
