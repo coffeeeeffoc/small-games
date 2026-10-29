@@ -22,6 +22,7 @@ try {
     page.on('pageerror', error => evidence.errors.push(error.message));
     // This UI regression must not edit a real account or create a public match.
     await page.route('**/api/competition/**', route => route.abort());
+    await page.route('**/small-games/v1/**', route => route.abort());
     await page.goto(base + '?dev=0');
     await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().ui.interfaceArtworkReady && __night.snapshot().buttons.some(b => b.id === 'online:profile'));
     await page.waitForFunction(() => !document.getElementById('night-startup'));
@@ -96,7 +97,7 @@ try {
     assert(!(await snapshot(page)).buttons.some(b => b.id === 'settings'));
     assert.equal(await page.getByRole('button', { name: '设置', exact: true }).count(), 0);
     await capture('records'); await clip('records');
-    await click('online:dismiss');
+    await click('online:back');
     await click('online:menu'); await click('online:join');
     await edit('draftCode', '1234'); await edit('draftPassword', 'friends');
     await click('online:dismiss');

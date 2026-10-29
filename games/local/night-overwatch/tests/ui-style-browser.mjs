@@ -21,7 +21,10 @@ try {
     page.on('console', message => { if (message.type() === 'error' && /TypeError|ReferenceError|Error \d+/.test(message.text())) evidence.errors.push(message.text()); });
     if (apiUrl) await page.route('**/game-service-config.js', route => route.fulfill({ status: 200, contentType: 'text/javascript', body:
       'globalThis.__COMPETITION_CONFIG__ = Object.freeze(' + JSON.stringify({ game: 'night-overwatch', platform: 'h5', competitionEnabled: true, apiUrl }) + ');' }));
-    else await page.route('**/api/competition/**', route => route.abort());
+    else {
+      await page.route('**/api/competition/**', route => route.abort());
+      await page.route('**/small-games/v1/**', route => route.abort());
+    }
     await page.goto(base + '?dev=0');
     await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().ui.interfaceArtworkReady && __night.snapshot().buttons.some(b => b.id === 'online:profile'));
     await page.waitForFunction(() => !document.getElementById('night-startup'));
@@ -39,6 +42,7 @@ try {
         });
       });
       const state=await snapshot(page);
+      if(name==='lobby')assert.equal(skins.filter(s=>s.name==='Skin:button').length,4,'all lobby actions have the same button skin');
       if (name !== 'home' && name !== 'pressed' && name !== 'battle') {
         assert(!state.buttons.some(b => b.id === 'settings'), name + ': no settings control over a panel');
         assert(await page.getByRole('button', { name: '设置', exact: true }).isHidden());
@@ -80,6 +84,7 @@ try {
     await click('settings'); await capture('settings'); await click('close');
     await click('help'); await capture('help'); await click('close');
     await click('online:menu'); await capture('lobby');
+    assert(!(await snapshot(page)).buttons.some(b => b.id === 'online:dismiss'));
     if (!apiUrl) assert((await snapshot(page)).buttons.find(b => b.id === 'online:roomNext').disabled);
     await click('online:friend'); await click('online:private'); await capture('private-room'); await click('online:dismiss');
     await click('online:profile'); await capture('nickname'); await click('online:dismiss');
@@ -98,7 +103,10 @@ try {
     await capture('ranking');
     assert(!(await snapshot(page)).buttons.some(b => b.id === 'online:dismiss'));
     await click('online:back');
-    await click('online:history'); await capture('history'); await click('online:dismiss');
+    await click('online:history'); await capture('history');
+    assert(!(await snapshot(page)).buttons.some(b => b.id === 'online:dismiss'));
+    await click('online:back');
+    assert.equal((await snapshot(page)).online.panel, '');
     await click('missions'); await capture('missions'); await click('start');
     await page.waitForFunction(() => __night.snapshot().phase === 'playing');
     await capture('battle');

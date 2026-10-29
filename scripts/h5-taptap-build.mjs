@@ -458,10 +458,6 @@ export async function buildH5Packages(
               ? await prepareGameServices(game, dist, {
                   env: buildEnv,
                   local: Boolean(values.local),
-                  tapAppId:
-                    game === 'night-overwatch' && service && !values.local
-                      ? env.TAPTAP_NIGHT_OVERWATCH_APP_ID || 'tapmcjgwi2thafs87k'
-                      : '',
                 })
               : { apiUrl: '' },
           files = await inventory(dist);

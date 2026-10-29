@@ -1020,7 +1020,7 @@ export class HUD {
       heading.horizontalAlign=Label.HorizontalAlign.LEFT;heading.isBold=true;
       this.controlIcon(g,online.panel==='menu'?'lobby':online.panel==='ranking'?'ranking':online.panel==='history'?'history':'profile',px+31,py+25,22,C.amber);
     }
-    if (online.panel !== 'ranking') button('dismiss','',pw-58,4,44,false,true,'close');
+    if (result || !['ranking', 'menu', 'history'].includes(online.panel)) button('dismiss','',pw-58,4,44,false,true,'close');
     if (result) {
       const short=ph<320,cramped=ph<280,mid=Math.min(short?165:205,bottom-66);
       const ownSeat = online.spectator ? -1 : online.room?.you ?? 0;
@@ -1119,7 +1119,7 @@ export class HUD {
           px + pw / 2, py + y + 36, 10, pw - 60, 22, C.dim);
       });
       if (!rows.length) label(online.message || (online.busy ? this.t('正在读取…', 'LOADING…') : this.t('暂无真人对战记录', 'NO HUMAN MATCHES YET')), 144, 13, C.dim);
-      button('menu',this.t('大厅','LOBBY'),18,bottom,90,false,true,'back');
+      button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
       button('history',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
       button('historyPrev','',pw-150,bottom,44,false,false,'back',online.historyPage===0);
       button('historyNext','',pw-62,bottom,44,false,false,'next',!online.history||(online.history.matches.length<=(online.historyPage+1)*count&&!online.history.nextCursor));
@@ -1142,7 +1142,7 @@ export class HUD {
       });
       if(!rows.length){const yy=ph<280?78:ph<340?108:144;if(ph>=280)this.controlIcon(g,'lobby',px+pw/2,py+yy,34,C.line);label(this.t('空域待命，等你出发','THE SKIES ARE QUIET'),yy+32,16,C.white);if(ph>=340)label(this.t('创建房间邀请好友，或先进行人机练习','CREATE A ROOM FOR FRIENDS OR PRACTICE WITH A BOT'),yy+58,11,C.dim);}
       const cw = (pw - 60) / 4;
-      for (const [i,[id,name]] of [['friend',this.t('创建房间','CREATE')],['join',this.t('加入房间','JOIN ROOM')],['match',this.t('随机匹配','RANDOM')],['bot',this.t('人机对战','BOT')]].entries())button(id,name,18+i*(cw+8),bottom-52,cw,i===0,i>1,pw>=660?['plus','join','match','bot'][i]:'');
+      for (const [i,[id,name]] of [['friend',this.t('创建房间','CREATE')],['join',this.t('加入房间','JOIN ROOM')],['match',this.t('随机匹配','RANDOM')],['bot',this.t('人机对战','BOT')]].entries())button(id,name,18+i*(cw+8),bottom-52,cw,true,false,pw>=660?['plus','join','match','bot'][i]:'');
       this.rect(g,px+20,py+bottom-4,pw-40,1,'#8ba0ab33');
       button('back',this.t('返回','BACK'),18,bottom,82,false,true,'back');
       button('history',this.t('对战记录','RECORDS'),106,bottom,108,false,true,'history');

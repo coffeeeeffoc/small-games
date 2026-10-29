@@ -1,10 +1,58 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { compilerEnvironment, buildH5Packages } from './h5-taptap-build.mjs';
 import { acceptanceSelection } from './h5-taptap-matrix.mjs';
+
+test('Night H5 online packages keep guest identity until platform login is explicitly configured', async () => {
+  const workspace = await mkdtemp(path.join(tmpdir(), 'night-h5-guest-'));
+  const apiUrl = 'https://api.example.test/v1';
+  try {
+    await mkdir(path.join(workspace, 'games/local/night-overwatch'), { recursive: true });
+    const result = await buildH5Packages(
+      {
+        games: ['night-overwatch'],
+        modes: [[true, true]],
+        output: 'outputs/guest',
+        batch: 'guest',
+      },
+      {
+        workspace,
+        allowDirty: true,
+        buildOnly: true,
+        env: {
+          COMPETITION_PUBLIC_API_URL: apiUrl,
+          TAPTAP_NIGHT_OVERWATCH_AD_UNIT_ID: 'fixture-slot',
+        },
+        compile: async ({ buildOutput }) => {
+          await writeFile(
+            path.join(buildOutput, 'index.html'),
+            '<html><head></head><body></body></html>',
+          );
+        },
+      },
+    );
+    const variant = result.variants[0],
+      dist = path.join(result.output, variant.name, 'dist');
+    const config = await readFile(path.join(dist, 'game-service-config.js'), 'utf8');
+    assert.equal(variant.serviceEnabled, true);
+    assert.equal(variant.effectiveAdsEnabled, true);
+    assert.equal(variant.apiUrl, apiUrl);
+    assert.match(config, /"competitionEnabled":true/);
+    assert(config.includes(apiUrl));
+    assert.doesNotMatch(config, /identityProvider|appId/);
+    assert.doesNotMatch(
+      await readFile(path.join(dist, 'game-services/game-bootstrap.js'), 'utf8'),
+      /installTapCompetitionIdentity/,
+    );
+    assert(!variant.files.some((file) => /competition-identity|calls\.mjs/.test(file.path)));
+  } finally {
+    assert.equal(path.dirname(workspace), tmpdir());
+    await rm(workspace, { recursive: true, force: true });
+  }
+});
 test('compiler environment fixes child memory/thread limits and never inherits arbitrary Node flags', () => {
   const env = compilerEnvironment({
     PATH: 'public',

@@ -133,6 +133,13 @@ test('HUD: skins are mounted, visual bounds stay inside touch targets, and unava
     assert(hud.globalGraphics.calls.some((c:any)=>c.fill==='#e5d5b433'),'press paints immediate feedback');
     hud.online.show('menu');hud.update(sim,world);
     assert.equal(hud.pressedButton,'','page change clears feedback');
+    assert(!hud.buttons.some((b:any)=>b.id==='online:dismiss'));
+    for (const id of ['friend','join','match','bot']) {
+      const b=hud.buttons.find((b:any)=>b.id==='online:'+id);
+      assert(b.label.isBold && b.label.color.hex==='#fff0d0',id+': uses the create-room style');
+      assert(b.h>=44);
+    }
+    assert.equal(hud.modal.getComponentsInChildren(cc.Sprite).filter((s:any)=>s.node.name==='Skin:button').length,4);
     const next=hud.buttons.find((b:any)=>b.id==='online:roomNext');
     assert(next.disabled);assert.equal(hud.hit(next.x+22,next.y+22),undefined);
     assert(next.w<60,'pagination has its own compact shape');
@@ -146,6 +153,9 @@ test('HUD: history keeps next page enabled while the server has another cursor',
   const hud=new HUD(new SceneNode()),sim=new Simulation();
   hud.online=new Online({getItem:()=>null,setItem(){}},()=>{});
   hud.online.history={matches:[],nextCursor:'older-records'};hud.online.show('history');hud.update(sim,world);
+  assert(!hud.buttons.some((b:any)=>b.id==='online:dismiss'));
+  const back=hud.buttons.find((b:any)=>b.id==='online:back');
+  assert(back && back.label.string==='返回' && back.h>=44);
   const next=()=>hud.buttons.find((b:any)=>b.id==='online:historyNext');
   assert(!next().disabled);assert.equal(hud.hit(next().x+22,next().y+22)?.id,'online:historyNext');
   hud.online.history.nextCursor=null;hud.online.revision++;hud.update(sim,world);
