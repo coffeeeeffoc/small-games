@@ -1,0 +1,29 @@
+{
+  "checkedAt": "2026-10-29T18:26:35.609Z",
+  "sourceSHA": "2fe7cc78af7c5cbcd366b132c19a5ee18943e11a",
+  "note": "Invalid login code; no player session, binding or production score written. Confirms configured login path, not successful real-user authorization.",
+  "checks": [
+    {
+      "path": "/health",
+      "status": 200,
+      "body": {
+        "service": "runtime",
+        "status": "ok"
+      }
+    },
+    {
+      "path": "/small-games/v1/sessions/platform",
+      "status": 401,
+      "body": {
+        "error": "PLATFORM_LOGIN_FAILED"
+      }
+    },
+    {
+      "path": "/api/competition/v1/sessions/platform",
+      "status": 401,
+      "body": {
+        "error": "PLATFORM_LOGIN_FAILED"
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "workflow": "ci",
+    "base": "8c4c821addb627e4196ccdc0b9437475e4b60f47",
+    "head": "2fe7cc78af7c5cbcd366b132c19a5ee18943e11a",
+    "risk": "incremental",
+    "full": false,
+    "gameCount": 30,
+    "note": "Selector passed; not execution of the full candidate suite"
+  },
+  {
+    "workflow": "pages",
+    "base": "c26c9c0b845a338a2f5e5f9643b8caee2401326b",
+    "head": "2fe7cc78af7c5cbcd366b132c19a5ee18943e11a",
+    "risk": "incremental",
+    "full": false,
+    "gameCount": 29,
+    "note": "Selector passed; not execution of the full candidate suite"
+  }
+]

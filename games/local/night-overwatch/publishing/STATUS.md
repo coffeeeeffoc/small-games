@@ -21,6 +21,6 @@ Creator 3.8.8 Web-mobile 源码指纹：`fb8666660f64fc19fce5087707923064bc8d4b0
 
 沿用素材来源及许可见[素材清单](../docs/ASSET_MANIFEST.json)。上轮资料保留于[历史状态](STATUS-2026-10-29-online-sync.md)和[历史清单](manifest-2026-10-29-online-sync.json)。未上传平台或提交审核；本次 H5 登录包已接入 TapTap 账号及游客绑定，普通 Web 仍使用游客。官方应用凭证校验和实际 H5 包的四个 fixture 场景通过，真实玩家宿主登录仍待验收。未进行实体手机、原生包、真实TapTap宿主或真实广告验证，未运行全仓候选校验；CI/Pages状态单独核对。
 
-Runtime 已部署代码提交 `8e822a36`，代理已部署 `c31ca40c`；公网健康200，两个前缀的续传入口均返回预期认证JSON。部署未替换数据库或改schema；备份可读性通过，未做隔离数据库恢复演练。回执见[本轮验证](../docs/verification-2026-10-30-rankings-sync.md)。
+上一轮 Runtime 部署代码提交为 `8e822a36`，代理为 `c31ca40c`；公网健康200，两个前缀的续传入口均返回预期认证JSON。部署未替换数据库或改schema；备份可读性通过，未做隔离数据库恢复演练。回执见[本轮验证](../docs/verification-2026-10-30-rankings-sync.md)。
 
-本次 TapTap 登录、账号冲突隔离与旧游客待同步记录恢复见[登录验证](../docs/verification-2026-10-30-taptap-login.md)。服务端部署结果在该记录补充；既有正式媒体复核沿用，登录 QA 图片未纳入上架资料。
+本次 TapTap 登录、账号冲突隔离与旧游客待同步记录恢复见[登录验证](../docs/verification-2026-10-30-taptap-login.md)。Runtime 已部署 `2fe7cc78`，平台配置读回比对及公网后验通过；既有正式媒体复核沿用，登录 QA 图片未纳入上架资料。
