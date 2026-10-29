@@ -3291,6 +3291,9 @@ body.competition-active #mode-online { position:static; }
 			if (auth.saved()) auth.logout().catch(() => {});
 			const wrapped = {
 				...auth,
+				get legacyGuestAuthority() {
+					return config.platform === "h5" ? previous?.authority : void 0;
+				},
 				saved: () => requirePlatform(auth.saved()),
 				async current() {
 					requirePlatform(auth.saved());
@@ -3320,7 +3323,7 @@ body.competition-active #mode-online { position:static; }
 		return factory;
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-cdmLSS/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-JJBniH/entry.mjs
 	if (globalThis.__COMPETITION_CONFIG__?.identityProvider === "taptap") installTapCompetitionIdentity();
 	mountCompetition("cops-robbers-realtime", createRenderer);
 	//#endregion

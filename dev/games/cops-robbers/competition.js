@@ -17190,6 +17190,9 @@ body.competition-active #mode-online { position:static; }
 			if (auth.saved()) auth.logout().catch(() => {});
 			const wrapped = {
 				...auth,
+				get legacyGuestAuthority() {
+					return config.platform === "h5" ? previous?.authority : void 0;
+				},
 				saved: () => requirePlatform(auth.saved()),
 				async current() {
 					requirePlatform(auth.saved());
@@ -17219,7 +17222,7 @@ body.competition-active #mode-online { position:static; }
 		return factory;
 	}
 	//#endregion
-	//#region ../../../../../../../tmp/competition-entry-bUj0tV/entry.mjs
+	//#region ../../../../../../../tmp/competition-entry-EXgtxn/entry.mjs
 	if (globalThis.__COMPETITION_CONFIG__?.identityProvider === "taptap") installTapCompetitionIdentity();
 	mountCompetition("cops-robbers", createRenderer);
 	//#endregion

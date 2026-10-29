@@ -127,6 +127,7 @@ export function createGameServices({ gameId, ruleVersion }) {
     config,
     ruleVersion,
     authority: auth.authority,
+    legacyGuestAuthority: auth.legacyGuestAuthority,
     savedOwner() {
       const saved = auth.saved();
       return saved ? { playerId: saved.playerId || saved.userId } : null;
@@ -228,7 +229,14 @@ function createDurableRecorder(services, { storage }, onStatus) {
       services.config.appId,
       services.config.game,
     ]);
-  const prefix = 'night-pending-run-v1:' + encodeURIComponent(scope) + ':';
+  const scopes = new Set([scope]);
+  if (
+    services.config.platform === 'h5' &&
+    services.config.identityProvider === 'taptap' &&
+    services.legacyGuestAuthority
+  )
+    scopes.add(services.legacyGuestAuthority);
+  const prefix = (value) => 'night-pending-run-v1:' + encodeURIComponent(value) + ':';
   const working = new Map(),
     retries = new Map();
   let active,
@@ -240,7 +248,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     status = value;
     onStatus(value);
   };
-  const key = (run) => prefix + run.requestId;
+  const key = (run) => prefix(run.scope) + run.requestId;
   function save(run) {
     try {
       if (run.abandoned) {
@@ -267,7 +275,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     if (
       run?.schema !== 1 ||
       name !== key(run) ||
-      run.scope !== scope ||
+      !scopes.has(run.scope) ||
       typeof run.playerId !== 'string' ||
       typeof run.version !== 'string' ||
       !Array.isArray(run.batches) ||
@@ -307,16 +315,18 @@ function createDurableRecorder(services, { storage }, onStatus) {
       'RUN_EXPIRED',
       'SESSION_EXPIRED',
     ].includes(error?.code);
-    const previous = retries.get(run.requestId);
+    const previous = retries.get(key(run));
     const delay = transient ? Math.min(60000, (previous?.delay || 1000) * 2) : 60000;
-    retries.set(run.requestId, { delay, at: Date.now() + delay });
+    retries.set(key(run), { delay, at: Date.now() + delay });
     if (!active || active === run) report(transient ? 'pending-sync' : 'needs-attention');
   }
   function synchronize(run) {
-    if (working.has(run.requestId)) return working.get(run.requestId);
-    if ((retries.get(run.requestId)?.at || 0) > Date.now()) return Promise.resolve(null);
+    if (working.has(key(run))) return working.get(key(run));
+    if ((retries.get(key(run))?.at || 0) > Date.now()) return Promise.resolve(null);
     const operation = (async () => {
       try {
+        if (run.scope !== scope && (await services.session()).playerId !== run.playerId)
+          throw failure('IDENTITY_CHANGED');
         if (!save(run)) return null;
         if (run.synced) return null;
         if (!run.id) {
@@ -388,22 +398,23 @@ function createDurableRecorder(services, { storage }, onStatus) {
             );
           return result;
         }
-        retries.delete(run.requestId);
+        retries.delete(key(run));
         if (active === run) report('recording');
         return null;
       } catch (error) {
+        let cause = error;
         if (error?.code === 'RUN_EXPIRED' && run.id) {
           try {
             await services.resumeRun({ runId: run.id });
           } catch (resumeError) {
-            error = resumeError;
+            cause = resumeError;
           }
         }
-        failed(run, error);
+        failed(run, cause);
         return null;
       }
-    })().finally(() => working.delete(run.requestId));
-    working.set(run.requestId, operation);
+    })().finally(() => working.delete(key(run)));
+    working.set(key(run), operation);
     return operation;
   }
   function invalidate(reason = 'local') {
@@ -510,7 +521,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
       run.finishing = true;
       if (!seal(run)) return null;
       report('pending-sync');
-      if (working.has(run.requestId)) await working.get(run.requestId);
+      if (working.has(key(run))) await working.get(key(run));
       return run.synced ? null : synchronize(run);
     },
     persist() {
@@ -523,7 +534,12 @@ function createDurableRecorder(services, { storage }, onStatus) {
         try {
           const names = Array.from({ length: storage.length }, (_, i) => storage.key(i));
           for (const name of names) {
-            if (!name?.startsWith(prefix) || name.endsWith(':synced')) continue;
+            if (
+              !name ||
+              ![...scopes].some((value) => name.startsWith(prefix(value))) ||
+              name.endsWith(':synced')
+            )
+              continue;
             let run;
             try {
               run = read(name);
@@ -532,9 +548,13 @@ function createDurableRecorder(services, { storage }, onStatus) {
               continue;
             }
             if (!run || run.abandoned) continue;
-            if (run.requestId === active?.requestId) run = active;
+            if (active && key(run) === key(active)) run = active;
             if (!run.finishing && run !== active) {
-              if (Number.isFinite(run.savedAt) && Date.now() - run.savedAt > 86400000)
+              if (
+                run.scope === scope &&
+                Number.isFinite(run.savedAt) &&
+                Date.now() - run.savedAt > 86400000
+              )
                 storage.removeItem(name);
               continue;
             }
