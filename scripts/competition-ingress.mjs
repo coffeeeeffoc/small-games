@@ -57,6 +57,7 @@ export function validateIngress(value) {
 const internalCompetitionPaths = [
   '/api/competition/v1/sessions/(?:guest|platform|refresh|upgrade|logout)',
   '/api/competition/v1/me',
+  '/api/competition/v1/games/night-overwatch/runs/[a-f0-9-]{36}/resume',
   '/api/competition/v1/boards/[A-Za-z0-9][A-Za-z0-9-]{0,79}',
   '/api/competition/v1/rooms(?:/(?:join|[A-F0-9]{12}(?:/(?:ready|leave|rematch|actions|role|initiative))?))?',
   '/api/competition/v1/runs/cops-robbers-realtime(?:/start)?',
