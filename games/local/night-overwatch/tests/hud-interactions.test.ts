@@ -186,18 +186,42 @@ test('HUD: result uses each player settlement, marks your side and keeps small s
   inset=0;
 });
 
-test('HUD: ranking labels identify rank and highest clear and clamp pages after resizing',()=>{
-  Object.assign(frame,{width:568,height:320}); inset=20;
-  const hud=new HUD(new SceneNode()), sim=new Simulation();
-  const row={playerId:'11111111-1111-4111-8111-111111111111',nickname:'这是一个包含十六个汉字的玩家昵称',rank:100,score:120,secondary:0};
-  hud.online={identity:row,panel:'ranking',revision:1,board:'clears',level:0,rankPage:5,ranking:{top:[row],me:row}};
-  hud.update(sim,world); assert.equal(hud.online.rankPage,0); assert.equal(hud.online.pageSize,1);
-  const labels=hud.modal.getComponentsInChildren(cc.Label);
-  const rank=labels.find((l:any)=>l.string==='第100名'), mine=labels.find((l:any)=>l.string==='我的排名 第100名 · 最高通关 第120关');
-  assert(rank&&mine); assert(Math.abs(rank.node.position.y-mine.node.position.y)>=26);
-  assert(labels.some((l:any)=>l.string==='最高通关 第120关'));
-  assert(labels.some((l:any)=>l.string.includes('#11111111')));
-   inset=0;
+test('HUD: grouped rankings keep all 100 rows scrollable, medal the top three and reset on board changes',()=>{
+  for (const [width,height] of [[568,320],[844,390],[1280,720]]) {
+    Object.assign(frame,{width,height}); inset=20;
+    const hud=new HUD(new SceneNode()), sim=new Simulation(), online=new Online({getItem:()=>null,setItem(){}},()=>{});
+    const rows=Array.from({length:100},(_,i)=>({playerId:String(i).padStart(8,'0'),nickname:'这是一个包含十六个汉字的玩家昵称',rank:i+1,score:120-i,secondary:1200}));
+    hud.online=online;online.identity=rows[99];online.ranking={top:rows,me:rows[99]};online.show('ranking');
+    for (const board of ['clears','level','points','win-rate'] as const) {
+      online.board=board;online.revision++;hud.update(sim,world);
+      const solo=board==='clears'||board==='level';
+      assert.deepEqual(hud.buttons.filter((b:any)=>b.id.startsWith('online:board:')).map((b:any)=>b.id),solo?['online:board:clears','online:board:level']:['online:board:points','online:board:win-rate']);
+      const labels=hud.scrollNode.getComponentsInChildren(cc.Label);
+      assert.equal(labels.filter((l:any)=>/^第\d+名$/.test(l.string)).length,100);
+      assert.equal(hud.scrollNode.children.filter((n:any)=>n.name.startsWith('RankMedal:')).length,3);
+      assert.equal(hud.scroll,0);assert(hud.scrollArea.h>=50);
+      assert(hud.scrollArea.y+hud.scrollArea.h<hud.buttons.find((b:any)=>b.id==='online:back').y-20);
+      hud.scrollBy(Infinity);assert.equal(hud.scrollNode.position.y,hud.scrollMax);
+      const last=labels.find((l:any)=>l.string==='第100名');
+      assert.equal(last.node.position.y+hud.scroll,-hud.scrollArea.h/2+18,'last row remains fully visible at the end');
+      assert(!hud.buttons.some((b:any)=>b.id==='online:pageNext'));
+      assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.startsWith('我的排名 第100名')));
+    }
+  }
+  inset=0;
+});
+
+test('HUD: campaign status shows the actual first and last level, excluding warmup and duel', () => {
+  Object.assign(frame,{width:568,height:320});inset=0;
+  const hud=new HUD(new SceneNode());
+  for (const index of [0,119]) {
+    const sim=new Simulation(MISSIONS[index].id);sim.start();hud.update(sim,world);
+    assert.match(hud.labels.get('status').string,new RegExp(`^第 ${index+1} 关\\n`));
+    hud.lang='en';hud.update(sim,world);assert.match(hud.labels.get('status').string,new RegExp(`^LEVEL ${index+1}\\n`));hud.lang='zh';
+    sim.duelMode=true;hud.update(sim,world);assert(!hud.labels.get('status').string.includes('关'));
+  }
+  const warmup=new Simulation('training-60');warmup.start();hud.update(warmup,world);
+  assert(!hud.labels.get('status').string.includes('关'));
 });
 
 test('HUD: identical names remain distinct, own ranking is highlighted, and closed rooms offer only leave', () => {
@@ -205,9 +229,9 @@ test('HUD: identical names remain distinct, own ranking is highlighted, and clos
   const hud = new HUD(new SceneNode()), sim = new Simulation();
   const own = { playerId: '11111111-1111-4111-8111-111111111111', nickname: '夜航者', rank: 2, secondary: 1200 };
   const other = { ...own, playerId: '22222222-2222-4222-8222-222222222222', rank: 1, secondary: 1000 };
-  hud.online = { identity: own, panel: 'ranking', revision: 1, board: 'level', level: 0, rankPage: 0, ranking: { top: [other, own], me: own } };
+  hud.online = { identity: own, panel: 'ranking', revision: 1, board: 'level', level: 0, ranking: { top: [other, own], me: own } };
   hud.update(sim, world);
-  const labels = hud.modal.children.map((node: any) => node.getComponent(cc.Label)).filter(Boolean);
+  const labels = hud.modal.getComponentsInChildren(cc.Label);
   const mine = labels.find((label: any) => label.string.includes('夜航者 #11111111'));
   const theirs = labels.find((label: any) => label.string.includes('夜航者 #22222222'));
   assert.match(mine.string, /11111111/); assert(labels.some((label:any)=>label.string==='第2名')); assert(labels.some((label:any)=>label.string.startsWith('我的排名 第2名'))); assert.match(theirs.string, /22222222/);
@@ -1098,6 +1122,6 @@ test('combined phone safe areas keep lobby reconnect targets separate and rankin
   for(const a of targets)for(const b of targets)if(a!==b)assert(!overlaps(a,b),a.id+'/'+b.id);
   online.show('ranking');online.ranking={top:[{playerId:'11111111-1111-4111-8111-111111111111',nickname:'这是一个包含十六个汉字的玩家昵称',rank:1,score:120,secondary:0}],me:null};
   hud.update(sim,world);assertPanelTargets(hud);
-  assert(panelLabels(hud).some((l:any)=>l.string.includes('#11111111')));
+  assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('#11111111')));
  }finally{cc.sys.getSafeAreaRect=safe;}
 });

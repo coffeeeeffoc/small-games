@@ -48,6 +48,7 @@ try {
     await capture(actor, 'private-form-' + width); await click(actor, 'online:back');
     await click(actor, 'online:ranking'); await waitPanel(actor, 'ranking');
     for (const board of ['clears', 'level', 'points', 'win-rate']) {
+      await click(actor, 'online:category:' + (['clears', 'level'].includes(board) ? 'solo' : 'duel'));
       await click(actor, 'online:board:' + board); await capture(actor, 'board-' + board + '-' + width);
     }
     await click(actor, 'online:back'); await click(actor, 'online:history'); await waitPanel(actor, 'history');

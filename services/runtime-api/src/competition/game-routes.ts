@@ -91,11 +91,12 @@ export function registerGameRoutes(
     { bodyLimit: 2048, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
     async (request) => {
       const { game } = gameParams(request.params);
-      const { board, levelId, version } = z
+      const { board, levelId, version, requestId } = z
         .object({
           board: gameId,
           levelId: z.string().max(100).optional(),
           version: z.string().max(100).optional(),
+          requestId: z.uuid().optional(),
         })
         .strict()
         .parse(request.body);
@@ -105,12 +106,18 @@ export function registerGameRoutes(
         board,
         levelId,
         version,
+        requestId,
       );
     },
   );
   routes.get('/games/:game/runs/:id', async (request) => {
     const { game, id } = runParams(request.params);
     return ranked.get(await player(request.headers.authorization), game, id);
+  });
+  routes.post('/games/:game/runs/:id/resume', { bodyLimit: 1024 }, async (request) => {
+    const { game, id } = runParams(request.params);
+    z.object({}).strict().parse(request.body);
+    return ranked.resume(await player(request.headers.authorization), game, id);
   });
   routes.post('/games/:game/runs/:id/actions', { bodyLimit: 160000 }, async (request) => {
     const { game, id } = runParams(request.params);

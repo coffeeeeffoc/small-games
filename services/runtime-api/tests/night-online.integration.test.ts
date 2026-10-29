@@ -768,6 +768,73 @@ integration('Night real HTTP and PostgreSQL', () => {
     ).toHaveLength(1);
   });
 
+  it('preserves PostgreSQL run state on concurrent start retries and resumes expired input without resetting it', async () => {
+    const a = await player(),
+      b = await player(),
+      wrongGame = await player('cops-robbers');
+    const version = (await request(path, a)).version;
+    const input = {
+      board: 'level-corridor-01',
+      levelId: 'corridor-01',
+      version,
+      requestId: randomUUID(),
+    };
+    const [run, concurrent] = await Promise.all([
+      request(path + '/runs', a, input),
+      request(path + '/runs', a, input),
+    ]);
+    expect(concurrent).toEqual(run);
+    const actions = { seq: 1, frames: [{ ticks: 120, input: {} }] };
+    await request(`${path}/runs/${run.id}/actions`, a, actions);
+    const read = async () =>
+      (
+        await database.db.execute(
+          sql`select data from runtime.competition_matches where id=${`ranked-run:${run.id}`}`,
+        )
+      )[0]!.data;
+    const original = await read();
+    expect(await request(path + '/runs', a, input)).toMatchObject({
+      id: run.id,
+      seq: 1,
+      seed: run.seed,
+    });
+    expect(await read()).toEqual(original);
+    expect(
+      await request(
+        path + '/runs',
+        a,
+        { ...input, board: 'level-ambush-02', levelId: 'ambush-02' },
+        409,
+      ),
+    ).toEqual({ error: 'REQUEST_ID_CONFLICT' });
+    const independent = await request(path + '/runs', b, input);
+    expect(independent.id).not.toBe(run.id);
+    await request(`${path}/runs/${run.id}/resume`, b, {}, 403);
+    await request(`${path}/runs/${run.id}/resume`, wrongGame, {}, 403);
+    await database.db.execute(
+      sql`update runtime.competition_matches set data=jsonb_set(data,'{expiresAt}','0'::jsonb) where id=${`ranked-run:${run.id}`}`,
+    );
+    const expired = await read();
+    const next = {
+      seq: 2,
+      frames: [{ ticks: 0, input: { command: 'setAim', args: [{ x: 0, z: 0 }] } }],
+    };
+    expect(await request(`${path}/runs/${run.id}/actions`, a, next, 409)).toEqual({
+      error: 'RUN_EXPIRED',
+    });
+    expect((await request(`${path}/runs/${run.id}`, a)).expiresAt).toBe(0);
+    expect(await read()).toEqual(expired);
+    const resumed = await request(`${path}/runs/${run.id}/resume`, a, {});
+    expect(resumed.expiresAt).toBeGreaterThan(time);
+    expect(await read()).toEqual({ ...(expired as object), expiresAt: resumed.expiresAt });
+    await request(`${path}/runs/${run.id}/actions`, a, next);
+    const result = await request(`${path}/runs/${run.id}/finish`, a, { seq: 2 });
+    const finished = await read();
+    expect((await request(`${path}/runs/${run.id}/resume`, a, {})).settlement).toEqual(result);
+    expect((await request(`${path}/runs/${run.id}/resume`, a, {})).settlement).toEqual(result);
+    expect(await read()).toEqual(finished);
+  });
+
   it('replays actual controls, ranks per level, retains faster times and rejects another player', async () => {
     const core = new URL(
       '../../../games/local/night-overwatch/assets/scripts/core/',

@@ -1,6 +1,8 @@
 # 夜航守望 · 交付状态
 
-更新：2026-10-29。Game ID：`night-overwatch`。最新修改统一大厅四按钮、移除大厅及记录页右上角关闭图标，并修复 H5 打包自动启用未配置完成的 TapTap 身份造成的联机回归。当前 H5 包沿用游客身份；源码指纹 `16f41c2b2b59e6891161b9a77d17cb24bbfc2ab86bb3f51046ecdedf3b18a5b9`。玩法闭环沿用，Creator 构建、61 项定向测试和三尺寸 ZIP 界面验证通过，详见[当前验证及历史部署记录](../docs/verification-2026-10-29-online-sync.md)。当前阶段为代码与本地修复包交付，未上传提审；下一步为 TapTap H5 宿主及手机验证。
+更新：2026-10-30。Game ID：`night-overwatch`。本轮完成排行榜单人/对战分类、一次加载前100名及滚动、前三名奖牌、战斗关卡号、昵称回填、退出房间短期过滤与单人进度持久补传。金币、经验等级、个人资料和商店仅写入[后续计划](../docs/design/2026-10-29-personal-assets-plan.md)。
+
+Creator 3.8.8 Web-mobile 源码指纹：`2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200`。三尺寸浏览器、定向规则/输入、真实HTTP/PostgreSQL17续传通过；详细边界、身份调查及部署记录见[本轮验证](../docs/verification-2026-10-30-rankings-sync.md)。
 
 ## 八类资料
 
@@ -9,14 +11,12 @@
 | 游戏简介 | 已提供 | [introduction.md](copy/introduction.md)，复核沿用 |
 | 推荐语 | 已提供 | [tagline.md](copy/tagline.md)，复核沿用 |
 | 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，复核沿用 |
-| 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png)，完整背景原创插画，复核沿用 |
-| 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png)，标题插画，复核沿用 |
-| 宣传视频 | 已提供 | [16秒 H.264 MP4](promo/videos/modal-fixes-2026-10-28-1280x720-silent.mp4)：沿用上轮实际首页、设置、昵称截图停留与6秒战斗录像，1280×720，无音轨；本轮完整解码通过，未重新录制 |
-| 游戏截图 | 已提供 | [上轮菜单](gameplay/screenshots/2026-10-29-online-sync/04-home.png)、[沿用战斗](gameplay/screenshots/2026-10-28-modal-fixes/01-fire.png)：共8张，不含本次变更的大厅／记录页；均1280×720，单张小于4MB，哈希及尺寸复核通过 |
-| 实机录屏 | 已提供 | [15秒 H.264 MP4](gameplay/videos/modal-fixes-2026-10-28-1280x720-silent.mp4)：沿用上轮连续鼠标瞄准射击，1280×720，无音轨；本轮完整解码通过，非实体手机采集、未重新录制 |
+| 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png)，复核沿用 |
+| 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png)，复核沿用 |
+| 宣传视频 | 已提供 | [16秒 H.264 MP4](promo/videos/rankings-sync-2026-10-30-1280x720-silent.mp4)，本轮首页停留4秒与12秒实际战斗，1280×720，无音轨 |
+| 游戏截图 | 已提供 | [首页](gameplay/screenshots/2026-10-30-rankings/01-home.png)、[开火](gameplay/screenshots/2026-10-30-rankings/02-fire.png)、[交火](gameplay/screenshots/2026-10-30-rankings/03-engage.png)、[命中](gameplay/screenshots/2026-10-30-rankings/04-hit.png)，本轮4张1280×720，每张小于4MB |
+| 实机录屏 | 已提供 | [约16秒 H.264 MP4](gameplay/videos/rankings-sync-2026-10-30-1280x720-silent.mp4)，连续鼠标瞄准射击，1280×720，无音轨；实际15.966667秒，非实体手机采集 |
 
-文件尺寸、时长与SHA256见[manifest.json](manifest.json)，素材来源与许可见[素材清单](../docs/ASSET_MANIFEST.json)。两条视频完整解码及抽帧复核通过，剪辑时间点与源录像摘要见[剪辑记录](promo/videos/modal-fixes-2026-10-28-edit.json)。原始WebM及其余截图保留于本机 `.scratch/night-modal-captures/`，交付MP4已版本化。
+尺寸、时长与 SHA256 见[manifest.json](manifest.json)，剪辑起点及原录像摘要见[剪辑记录](promo/videos/rankings-sync-2026-10-30-edit.json)。两条视频完整解码通过，实录首尾抽帧核对；4张截图均来自当前实际运行。排行100条合成数据仅用于[QA截图](../docs/rankings-sync-2026-10-30/solo-clears-568.png)，未纳入正式上架截图或视频，未向生产榜写测试成绩。
 
-排行榜截图来自隔离本地HTTP服务与PostgreSQL，非生产成绩。联机结算截图单独作为QA证据，不混作自然通关录像。应用987511及MiniApp ID `tapmcjgwi2thafs87k`已核实，但服务端Secret尚缺，真实TapTap身份绑定未启用；普通Web继续游客身份。未进行实体手机、原生Creator/官方打包或真实广告验证，未运行全仓候选校验；独立CI/Pages不由本地通过推断。
-
-上一轮交付保存在[历史状态](STATUS-2026-10-28-modal-fixes.md)和[历史清单](manifest-2026-10-28-modal-fixes.json)。
+沿用素材来源及许可见[素材清单](../docs/ASSET_MANIFEST.json)。上轮资料保留于[历史状态](STATUS-2026-10-29-online-sync.md)和[历史清单](manifest-2026-10-29-online-sync.json)。未上传平台或提交审核；当前H5仍为游客身份，真实TapTap账号绑定需完成服务端配置。未进行实体手机、原生包、真实TapTap宿主或真实广告验证，未运行全仓候选校验；CI/Pages状态单独核对。

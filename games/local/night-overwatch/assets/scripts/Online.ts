@@ -15,7 +15,8 @@ export type Room = { serverNow?: number; startsAt?: number; spectator?: boolean;
 type RankingRow = Player & { rank: number; score: number; secondary: number; wins?: number; games?: number };
 type Ranking = { top: RankingRow[]; me: RankingRow | null };
 type Recorder = { start(options: { mode: string; levelId: string; practice: boolean }): Promise<unknown>;
-  record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<unknown>; invalidate(reason?: string): void };
+  record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<{ accepted?: boolean; fastestEligible?: boolean } | null | undefined>; invalidate(reason?: string): void;
+  persist?(): void; recover?(): Promise<void>; pending?: number };
 type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean } };
 type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Metadata | undefined>;
   services: { createRoom(input: { mode: string; visibility?: string; password?: string }): Promise<Room>; match(): Promise<Room>; joinRoom(input: { code: string; password?: string }): Promise<Room>;
@@ -24,7 +25,7 @@ type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Me
     spectateRoom?(input: { code: string; password?: string }): Promise<Room>;
     getRoom(input: { code: string }): Promise<Room>; roomAction(input: { code: string; operation: string; body?: object }): Promise<Room>;
     leaderboard(input: { boardId: string }): Promise<Ranking> };
-  createRecorder(version: string, options: { onStatus: (status: string) => void }): Recorder };
+  createRecorder(version: string, options: { onStatus: (status: string) => void; startTimeoutMs?: number; durable?: { storage: Pick<Storage, 'getItem' | 'setItem'> } }): Recorder };
 const randomBytes = () => {
   const bytes = new Uint8Array(16);
   if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
@@ -58,6 +59,8 @@ export class Online {
   enteringUntil = 0;
   connectionLost = false;
   private listAt = 0;
+  private syncAt = 0;
+  private hiddenRooms = new Map<string, number>();
   private roomKey = '';
   revision = 0;
   busy = false;
@@ -66,7 +69,6 @@ export class Online {
   message = '';
   rankStatus = 'local';
   level = 0;
-  rankPage = 0;
   ranking?: Ranking;
   room?: Room;
   view?: DuelView;
@@ -74,6 +76,7 @@ export class Online {
   recorder?: Recorder;
   private generation = 0;
   private rankingRequest = 0;
+  private restoreRoomOnConnect = true;
   private commands: DuelCommand[] = [];
   private pending?: { seq: number; action: { commands: DuelCommand[]; keepAlive: true } };
   private inflight = false;
@@ -90,10 +93,17 @@ export class Online {
     return pending;
   }
   private async releaseRoom(room: Room) {
+    this.hideRoom(room.code);
     this.releasing = room;
     try { await this.bridge!.services.roomAction({ code: room.code, operation: 'leave' }); }
     catch (error) { if (!['INVITATION_NOT_FOUND','ROOM_NOT_FOUND','NOT_A_MEMBER','STALE_LEASE'].includes((error as {code?:string}).code || '')) throw error; }
     if (this.releasing === room) this.releasing = undefined;
+  }
+  private hideRoom(code: string) {
+    for (const [id, until] of this.hiddenRooms) if (until <= Date.now()) this.hiddenRooms.delete(id);
+    this.hiddenRooms.set(code, Date.now() + 2000);
+    this.rooms = this.rooms.filter(room => room.code !== code);
+    this.revision++;
   }
   readonly changed: (view: DuelView, start: boolean) => void;
   private readonly storage: Pick<Storage, 'getItem' | 'setItem'>;
@@ -114,22 +124,39 @@ export class Online {
     this.draftName = saved.name || '';
   }
   async connect(bridge: Bridge | undefined, search = '') {
+    if (!bridge || this.bridge === bridge) return;
     const generation = this.generation;
     this.bridge = bridge;
     if (bridge) {
-      this.recorder = bridge.createRecorder(RANKED_RULE_VERSION, { onStatus: status => { this.rankStatus = status; this.revision++; } });
+      this.recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage }, startTimeoutMs: 8000, onStatus: status => { this.rankStatus = status; this.revision++; } });
       const metadata = await bridge.ready;
       this.acceptMetadata(metadata);
+      void this.recorder.recover?.();
     }
     this.revision++;
     const code = search ? invitation(search) : undefined;
-    if (generation !== this.generation) return;
+    if (generation !== this.generation || !this.restoreRoomOnConnect) return;
     try {
       const saved = JSON.parse(this.storage.getItem('night-overwatch-room-v1') || 'null');
       if (saved && saved.playerId === playerId(this.identity) && validCode(saved.code) && Date.now() - saved.at < 30000) this.resumeCode = saved.code;
     } catch { /* Invalid local room memory cannot join a different identity. */ }
     if (code) { this.draftCode = code; this.panel = 'join'; await this.open('join', code); }
     else if (this.resumeCode) await this.open('resume', this.resumeCode);
+  }
+  async startRanking(options: Parameters<Recorder['start']>[0]) {
+    const generation = this.generation;
+    if (!this.ranked) {
+      try {
+        this.acceptMetadata(await this.bridge?.ready);
+        if (!this.ranked) this.acceptMetadata(await this.bridge?.refresh?.());
+      } catch { /* A failed identity lookup must not start a run under an unconfirmed pilot. */ }
+    }
+    if (generation !== this.generation) return;
+    if (!this.ranked && !this.recorder?.recover) {
+      this.rankStatus = options.practice ? 'practice' : 'unavailable'; this.revision++;
+      return;
+    }
+    return this.recorder?.start(options);
   }
   private acceptMetadata(metadata: Metadata | undefined) {
     if (!metadata) return;
@@ -148,7 +175,10 @@ export class Online {
     const player = this.room?.players.find((p, i) => p.disconnected && (this.spectator || i !== this.room?.you));
     return player ? (player.nickname || player.name || '对方') + ' 已下线' : '';
   }
-  show(panel: Online['panel']) { this.panel = panel; this.message = ''; this.revision++; }
+  show(panel: Online['panel']) {
+    if (panel === 'profile') this.draftName = this.identity.nickname || this.identity.name || '';
+    this.panel = panel; this.message = ''; this.revision++;
+  }
   private rememberRoom(room?: Room) {
     try { this.storage.setItem('night-overwatch-room-v1', room && !room.spectator && room.you >= 0 && room.status === 'playing'
       ? JSON.stringify({ code: room.code, playerId: playerId(this.identity), at: Date.now() }) : 'null'); } catch { /* Session remains playable without storage. */ }
@@ -160,7 +190,9 @@ export class Online {
       if (!this.available) this.acceptMetadata(await this.bridge?.refresh?.());
       if (!this.available || !this.bridge?.services.listRooms) { this.message = '联机暂不可用，可选择本地人机练习'; return; }
       const { rooms } = await this.bridge.services.listRooms();
-      if (generation === this.generation) { this.rooms = rooms; this.message = ''; }
+      if (generation === this.generation) {
+        this.rooms = rooms.filter(room => (this.hiddenRooms.get(room.code) || 0) <= Date.now()); this.message = '';
+      }
     } catch { if (generation === this.generation) this.message = '网络异常，正在重新读取房间'; }
     finally { if (generation === this.generation) { this.busy = false; this.listAt = performance.now() + 3000; this.revision++; } }
   }
@@ -262,7 +294,9 @@ export class Online {
     finally { if (generation === this.generation) { this.busy = false; this.revision++; } }
   }
   leave() {
+    this.restoreRoomOnConnect = false;
     const room = this.room; this.generation++; this.busy = false; this.inflight = false;
+    if (room) this.hideRoom(room.code);
     this.resumeCode = room?.status === 'playing' && room.mode !== 'bot' && !this.view?.finished && !this.spectator ? room.code : '';
     this.rememberRoom(this.resumeCode ? room : undefined); this.connectionLost = false; this.replaced = false; this.roomKey = ''; this.enteringUntil = 0;
     this.room = this.view = this.bot = undefined; this.panel = ''; this.message = '';
@@ -286,6 +320,7 @@ export class Online {
     });
   }
   async pump(now: number) {
+    if (now >= this.syncAt) { this.syncAt = now + 10000; void this.recorder?.recover?.(); }
     if (this.replaced) return;
     if (this.bot) {
       if (now < this.nextPoll) return;
@@ -362,7 +397,7 @@ export class Online {
   async loadRanking(level = this.level, board = this.board) {
     const request = ++this.rankingRequest;
     this.board = board;
-    this.level = Math.max(0, Math.min(MISSIONS.length - 1, level)); this.rankPage = 0;
+    this.level = Math.max(0, Math.min(MISSIONS.length - 1, level));
     this.panel = 'ranking'; this.ranking = undefined; this.message = ''; this.revision++;
     const ownLevel = this.level, ownBoard = this.board;
     try {

@@ -13,7 +13,8 @@ export function memoryRuns() {
   const locks = new Map<string, Promise<unknown>>();
   const repository: RunRepository = {
     async create(run) {
-      runs.set(run.id, structuredClone(run));
+      if (!runs.has(run.id)) runs.set(run.id, structuredClone(run));
+      return structuredClone(runs.get(run.id)!);
     },
     async mutate(id, change) {
       const previous = locks.get(id) ?? Promise.resolve();

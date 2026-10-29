@@ -25,13 +25,25 @@ export function createRankedStore(
 ) {
   const repository: RunRepository = {
     async create(run, auth) {
-      await db.transaction(async (tx) => {
+      return db.transaction(async (tx) => {
         const policy = await gamePolicy(control, tx, run.game);
-        assertGameControl(policy, policy?.killEpoch, true);
         await assertResourceAuth(tx, auth ?? run.playerId, run.game, now());
+        const existing = await tx.execute(
+          sql`select data from runtime.competition_matches where id=${`ranked-run:${run.id}`} for update`,
+        );
+        if (existing[0]) {
+          const stored = existing[0].data as RankedRun;
+          assertGameControl(policy, stored.killEpoch ?? 0);
+          return stored;
+        }
+        assertGameControl(policy, policy?.killEpoch, true);
         run.killEpoch = policy?.killEpoch ?? 0;
         await tx.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
-          values(${`ranked-run:${run.id}`},${run.boardKey},${JSON.stringify(run)}::jsonb,${run.createdAt})`);
+          values(${`ranked-run:${run.id}`},${run.boardKey},${JSON.stringify(run)}::jsonb,${run.createdAt}) on conflict(id) do nothing`);
+        const rows = await tx.execute(
+          sql`select data from runtime.competition_matches where id=${`ranked-run:${run.id}`} for update`,
+        );
+        return rows[0]!.data as RankedRun;
       });
     },
     async mutate(id, change, auth) {

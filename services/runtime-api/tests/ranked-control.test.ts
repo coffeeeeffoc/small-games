@@ -26,7 +26,7 @@ it('ranked checkpoint/receipt/finish gates precede simulation and preserve immut
   const apply = vi.fn((state) => state),
     result = vi.fn(() => ({ complete: true, eligible: true, score: 1, secondary: 0 }));
   const rule: RankedRule = {
-    id: 'cage-rescue',
+    id: 'night-overwatch',
     title: 'fixture',
     version: 'v1',
     boards: [
@@ -50,9 +50,11 @@ it('ranked checkpoint/receipt/finish gates precede simulation and preserve immut
     () => 1000,
     gate.control,
   );
-  const run = await store.create('owner', rule.id, 'endless', undefined, 'v1');
+  const requestId = 'aaaaaaaa-0000-4000-8000-000000000001';
+  const run = await store.create('owner', rule.id, 'endless', undefined, 'v1', requestId);
   const input = { seq: 1, frames: [{ ticks: 1, input: {} }] };
   gate.set('draining');
+  expect(await store.create('owner', rule.id, 'endless', undefined, 'v1', requestId)).toEqual(run);
   await store.actions('owner', rule.id, run.id, input);
   expect(apply).toHaveBeenCalledTimes(1);
   await expect(store.create('owner', rule.id, 'endless', undefined, 'v1')).rejects.toMatchObject({

@@ -71,9 +71,16 @@ export function createRankedRuns(
       board: string,
       levelId?: string,
       version?: string,
+      requestId?: string,
     ) {
       assertGameScope(auth, game);
       const playerId = playerIdOf(auth);
+      if (
+        requestId !== undefined &&
+        (game !== 'night-overwatch' ||
+          !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(requestId))
+      )
+        throw new CompetitionError('INVALID_INPUT', 422);
       const { rule, definition, key } = boardFor(game, board);
       if (!version || version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
       if (!definition.guestAllowed && !(await identity(playerId)).authenticated)
@@ -85,9 +92,20 @@ export function createRankedRuns(
       } catch {
         throw new CompetitionError('INVALID_LEVEL', 422);
       }
+      let id: string = randomUUID();
+      if (requestId) {
+        const bytes = createHash('sha256')
+          .update(JSON.stringify([playerId, game, requestId.toLowerCase()]))
+          .digest()
+          .subarray(0, 16);
+        bytes[6] = (bytes[6]! & 15) | 64;
+        bytes[8] = (bytes[8]! & 63) | 128;
+        const hex = bytes.toString('hex');
+        id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+      }
       const run: RankedRun = {
         kind: 'ranked-run-v1',
-        id: randomUUID(),
+        id,
         playerId,
         game,
         board,
@@ -102,8 +120,18 @@ export function createRankedRuns(
         expiresAt: now() + lifetime,
         status: 'active',
       };
-      await repository.create(run, auth);
-      return view(run);
+      const stored = await repository.create(run, auth);
+      if (
+        stored.kind !== run.kind ||
+        stored.id !== run.id ||
+        stored.playerId !== playerId ||
+        stored.game !== game ||
+        stored.board !== board ||
+        stored.levelId !== levelId ||
+        stored.version !== version
+      )
+        throw new CompetitionError('REQUEST_ID_CONFLICT');
+      return view(stored);
     },
     get(auth: PlayerAuth, game: string, id: string) {
       const playerId = playerIdOf(auth);
@@ -113,6 +141,26 @@ export function createRankedRuns(
         async ({ run, assertControl }) => {
           assertOwner(run, playerId, game);
           if (!run.settlement) assertControl?.();
+          return { ...view(run), settlement: run.settlement ?? null };
+        },
+        auth,
+      );
+    },
+    async resume(auth: PlayerAuth, game: string, id: string) {
+      assertGameScope(auth, game);
+      if (game !== 'night-overwatch') throw new CompetitionError('INVALID_INPUT', 422);
+      const playerId = playerIdOf(auth);
+      return repository.mutate(
+        id,
+        async ({ run, assertControl }) => {
+          assertOwner(run, playerId, game);
+          assertControl?.();
+          if (ruleFor(game).version !== run.version)
+            throw new CompetitionError('RULE_VERSION_CHANGED');
+          if (!run.settlement) {
+            if (run.status !== 'active') throw new CompetitionError('RUN_FINISHED');
+            run.expiresAt = now() + lifetime;
+          }
           return { ...view(run), settlement: run.settlement ?? null };
         },
         auth,

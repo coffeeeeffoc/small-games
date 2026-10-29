@@ -53,13 +53,24 @@ const touch = (id: number, x = 950, y = 100, simulate = false) => ({ simulate,
   getTouches: () => [{ getID: () => id, getUILocation: () => ({ x, y }), getLocation: () => ({ x, y }) }] });
 function mission() {
   const g = new Overwatch();
-  g.hud = { supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire' } : undefined,
+  g.hud = { t: (value: string) => value, supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire' } : undefined,
     minimapPoint: () => undefined, blocksBattlefield: () => false };
   g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, updateCamera() {}, reset() {} };
   g.platform = new Platform(new Node(), g.pause, g.clear);
   g.sim.start(); g.sim.choose(0);
   return g;
 }
+
+test('rankings scroll with wheel and touch only inside the list, and cancellation releases the gesture', () => {
+  const g=mission();let offset=0;
+  Object.assign(g.hud,{modal:{},scrollNode:{},scrollArea:{x:50,y:100,w:400,h:200},scrollBy:(n:number)=>{offset+=n;}});
+  g.wheel({getScrollY:()=>-120});assert.equal(offset,24);
+  g.touchStart(touch(1,100,450));assert.equal(g.touches.get(1).role,'scroll');
+  g.touchMove(touch(1,100,480));assert.equal(offset,54);
+  g.touchCancel(touch(1));g.touchMove(touch(1,100,490));assert.equal(offset,54);
+  g.touchStart(touch(2,100,550));assert(!g.touches.has(2));assert.equal(g.sim.fired,0);
+  g.platform.dispose();
+});
 
 test('keyboard fire is blocked by battle reports and settings', () => {
   const g = mission();
@@ -71,13 +82,27 @@ test('keyboard fire is blocked by battle reports and settings', () => {
 
 test('a new campaign can start while the previous recorder handshake is pending', async () => {
   const g = mission(), requests: (() => void)[] = []; g.hud.t = (text: string) => text;
-  g.online = { leave() {}, recorder: { start: () => new Promise<void>(resolve => requests.push(resolve)), record() {}, invalidate() {} } };
+  g.online = { leave() {}, startRanking: () => new Promise<void>(resolve => requests.push(resolve)), recorder: { record() {}, invalidate() {} } };
   g.sim.phase = 'briefing'; const first = g.sim; g.beginCampaign();
-  g.retry(); const second = g.sim; assert.notEqual(first, second); assert.equal(requests.length, 2);
+  await new Promise(resolve=>setImmediate(resolve));
+  g.retry(); await new Promise(resolve=>setImmediate(resolve)); const second = g.sim; assert.notEqual(first, second); assert.equal(requests.length, 2);
   requests[0](); await new Promise(resolve => setImmediate(resolve)); assert.equal(second.phase, 'briefing');
   g.beginCampaign(); assert.equal(requests.length, 2, 'old finally cannot unlock the new request');
   requests[1](); await new Promise(resolve => setImmediate(resolve)); assert.equal(second.phase, 'playing');
   g.platform.dispose();
+});
+
+test('campaign start waits for the delayed services bootstrap instead of silently dropping the run', async () => {
+  const g=mission(),globals=globalThis as any;g.hud.t=(value:string)=>value;g.sim.phase='briefing';let started=0;
+  const originalConfig=globals.__COMPETITION_CONFIG__, originalBridge=globals.SmallGamesServices;
+  globals.__COMPETITION_CONFIG__={competitionEnabled:true};delete globals.SmallGamesServices;
+  g.online={rankStatus:'local',leave(){},async connect(bridge:any){assert.equal(bridge,globals.SmallGamesServices);this.recorder={record(){}};},async startRanking(){started++;this.rankStatus='recording';}};
+  try {
+    g.servicesReady=g.connectServices();g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(g.sim.phase,'briefing');assert.equal(started,0);
+    globals.SmallGamesServices={ready:Promise.resolve()};await g.servicesReady;await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(started,1);assert.equal(g.sim.phase,'playing');assert(!g.hud.toast.includes('仅保存'));
+  } finally {globals.__COMPETITION_CONFIG__=originalConfig;globals.SmallGamesServices=originalBridge;g.platform.dispose();}
 });
 
 test('offset aim survives slow microdrags, release-only displacement, taps and cancelled gestures', () => {

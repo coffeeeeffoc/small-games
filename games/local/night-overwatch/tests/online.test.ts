@@ -15,6 +15,16 @@ function fixture() {
     createRecorder: () => ({ start: async () => null, record() {}, finish: async () => null, invalidate() {} }) };
   return { current, bridge, received, count: () => calls, fail: () => { fail = true; } };
 }
+test('rankings retain the complete top 100 and the current player outside that list', async () => {
+  const f=fixture(), online=new Online(storage(),()=>{}), requests:string[]=[];
+  const rows=Array.from({length:100},(_,i)=>({id:String(i),rank:i+1,score:100-i,secondary:1200}));
+  const me={id:'a',rank:105,score:1,secondary:2000};
+  f.bridge.services.leaderboard=async (input:any)=>{requests.push(input.boardId);return {top:rows,me};};
+  await online.connect(f.bridge);
+  for(const board of ['clears','level','points','win-rate'] as const){await online.loadRanking(0,board);assert.equal(online.ranking!.top.length,100);assert.equal(online.ranking!.me!.rank,105);}
+  assert.deepEqual(requests,['clears','level-corridor-01','points','win-rate']);
+});
+
 test('persistent local pilots have UUIDs, distinct display suffixes and sanitized room links', () => {
   const store = storage(), a = new Online(store, () => {}), b = new Online(store, () => {}), c = new Online(storage(), () => {});
   assert.equal(playerId(a.identity), playerId(b.identity)); assert.notEqual(playerId(a.identity), playerId(c.identity));
@@ -59,6 +69,36 @@ test('nickname edits keep the same user and adopt the saved server profile', asy
     online.draftName = invalid; await online.saveName(); assert.match(online.message, /2–16/);
   }
   assert.equal(calls.length, 1); assert.equal(online.identity.nickname, '服务端昵称');
+  online.show('profile');assert.equal(online.draftName,'服务端昵称');
+  online.draftName='没有确认的草稿';online.show('');online.show('profile');
+  assert.equal(online.draftName,'服务端昵称','reopening discards the unsaved draft');
+});
+
+test('ranking recovery refreshes the server identity before recording and leaves failure explicitly local', async () => {
+  const f=fixture(), online=new Online(storage(),()=>{});let starts=0;
+  const metadata=await f.bridge.ready;
+  f.bridge.ready=Promise.resolve(undefined as any);
+  Object.assign(f.bridge,{refresh:async()=>metadata,createRecorder:(_v:string,{onStatus}:any)=>({start:async()=>{starts++;onStatus('recording');},record(){},finish:async()=>null,invalidate(){}})});
+  await online.connect(undefined);assert.equal(online.recorder,undefined);
+  await online.connect(f.bridge);assert.notEqual(playerId(online.identity),'a');
+  await online.startRanking({mode:'level-corridor-01',levelId:'corridor-01',practice:false});
+  assert.equal(playerId(online.identity),'a');assert.equal(starts,1);assert.equal(online.rankStatus,'recording');
+  await online.connect(f.bridge);assert.equal(starts,1,'connecting the same bridge does not replace the recorder');
+  online.ranked=false;Object.assign(f.bridge,{refresh:async()=>undefined});
+  await online.startRanking({mode:'level-corridor-01',levelId:'corridor-01',practice:false});
+  assert.equal(starts,1);assert.equal(online.rankStatus,'unavailable');
+});
+
+test('a departed room is hidden immediately and for two seconds despite stale list responses', async t => {
+  let now=10000;t.mock.method(Date,'now',()=>now);
+  const f=fixture(),online=new Online(storage(),()=>{});
+  const rooms=[{...f.current,playerCount:1,canJoin:true,canSpectate:false},{...f.current,code:'654321',playerCount:1,canJoin:true,canSpectate:false}];
+  Object.assign(f.bridge.services,{listRooms:async()=>({rooms})});await online.connect(f.bridge);
+  await online.loadRooms();await online.open('match');online.leave();
+  assert.deepEqual(online.rooms.map(r=>r.code),['654321']);
+  await new Promise(resolve=>setImmediate(resolve));
+  now+=1999;await online.loadRooms();assert.deepEqual(online.rooms.map(r=>r.code),['654321']);
+  now++;await online.loadRooms();assert.equal(online.rooms.length,2);
 });
 
 test('paused and modal controls cannot fire, while release always reaches the duel', () => {

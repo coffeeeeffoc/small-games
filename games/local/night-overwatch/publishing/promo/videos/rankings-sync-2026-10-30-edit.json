@@ -1,0 +1,15 @@
+{
+  "source": "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-29-rankings\\596200f91b63bc3cc7cdbbde790a7a26.webm",
+  "sourceHash": "2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200",
+  "capture": "Chromium 1280x720, real input, no production scores",
+  "gameplay": {
+    "start": 13.02,
+    "duration": 16
+  },
+  "promo": {
+    "homeSeconds": 4,
+    "gameplaySeconds": 12
+  },
+  "audio": "none",
+  "sourceSha256": "266b3665798947d5c50e855a3d042d1ad2a695b8e827813dd4c85b9490e8af58"
+}

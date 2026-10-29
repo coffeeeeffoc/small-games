@@ -60,6 +60,7 @@ describe('Douyin mini-game verified login', () => {
       'tt-test-app',
       'official-openid',
       'cops-robbers',
+      undefined,
     );
     const [endpoint, options] = fetch.mock.calls[0] as unknown as [URL, RequestInit];
     expect(endpoint.origin + endpoint.pathname).toBe(

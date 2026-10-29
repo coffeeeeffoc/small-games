@@ -373,7 +373,7 @@ export class HUD {
     this.live('health', left + 80, top + 18, 13, 160, 25);
     this.live('progress', left + 80, top + 40, 11, 160, 20, C.dim);
     const small = this.mouseDesktop, settingsX = right - 44 - (this.touch ? 88 : 0) - (this.screenControl ? 52 : 0);
-    this.live('status', settingsX - 40, top + 26, 11, 70, 40, C.white);
+    this.live('status', settingsX - 40, top + 28, 11, 70, 54, C.white);
     this.button('settings', '', settingsX, top + 6, 44, 44, this.globalControls);
     if (this.screenControl) this.button('screen', '', settingsX + 52, top + 6, 44, 44, this.globalControls);
     this.live('connectionNotice', left + 150, top + 68, 12, Math.min(300, right - left - 140), 28, C.red).node.parent = this.globalControls;
@@ -995,12 +995,12 @@ export class HUD {
   renderOnline(n: Node, g: Graphics, s: Simulation, result: boolean) {
     const online = this.online!;
     const pw = Math.min(result ? 560 : 760, this.w - this.safe.left - this.safe.right - 32),
-      ph = Math.min(result ? 360 : 440, this.h - this.safe.top - this.safe.bottom - 28), px = (this.w - pw) / 2, py = (this.h - ph) / 2;
+      ph = Math.min(result ? 360 : online.panel === 'ranking' ? 620 : 440, this.h - this.safe.top - this.safe.bottom - 28), px = (this.w - pw) / 2, py = (this.h - ph) / 2;
     this.panelFrame(g,px,py,pw,ph,result?C.amber:C.mint,result?'#050f1d66':'#050f1d55',!result&&!(online.panel==='ranking'&&ph<280));
     const label = (str: string, y: number, size = 14, color = C.white) => this.label(n, str, px + pw / 2, py + y, size, pw - 40, 26, color);
     const button = (id: string, caption: string, x: number, y: number, width: number, primary = false, quiet = false, glyph = '', disabled = false) => {
       disabled ||= online.busy&&['saveName','createConfirm','joinConfirm','match','friend','ready'].includes(id);
-      const selected=primary&&(id==='public'||id==='private'||id.startsWith('board:'));
+      const selected=primary&&(id==='public'||id==='private'||id.startsWith('board:')||id.startsWith('category:'));
       const text=this.menuButton(n,g,'online:'+id,caption,px+x,py+y,width,primary&&!selected?'primary':quiet?'quiet':'secondary',glyph,44,disabled);
       if(selected){text.color=col(C.mint);text.isBold=true;this.rect(g,px+x+12,py+y+39,width-24,2,C.mint);}
       text.fontSize=pw<600?11:13;
@@ -1008,15 +1008,15 @@ export class HUD {
     };
     const bottom = ph - 54, half = (pw - 44) / 2,
       count = online.panel === 'menu' ? Math.max(1,Math.min(4,Math.floor((bottom-141)/52)))
-        : online.panel === 'ranking' ? Math.max(1,Math.min(3,Math.floor((bottom-210)/27)+1)) : ph < 340 ? 2 : 3;
+        : ph < 340 ? 2 : 3;
     online.pageSize = count;
-    if (online.panel === 'ranking') online.rankPage = Math.min(online.rankPage, Math.max(0, Math.ceil((online.ranking?.top.length || 0) / count) - 1));
     if (online.panel === 'menu') online.roomPage = Math.min(online.roomPage, Math.max(0, Math.ceil(online.rooms.length / count) - 1));
     if (online.panel === 'history') online.historyPage = Math.min(online.historyPage, Math.max(0, Math.ceil((online.history?.matches.length || 0) / count) - 1));
-    const titles = { menu: ['对战大厅', 'BATTLE LOBBY'], ranking: ['排行榜', 'LEADERBOARDS'], room: ['作战准备室', 'READY ROOM'],
+    const titles = { menu: ['对战大厅', 'BATTLE LOBBY'], ranking: ['排行榜', 'RANKINGS'], room: ['作战准备室', 'READY ROOM'],
       profile: ['玩家昵称', 'PLAYER NAME'], create: ['创建房间', 'CREATE ROOM'], join: ['加入房间', 'JOIN ROOM'], history: ['对战记录', 'BATTLE RECORDS'], '': ['', ''] };
     if(!result){
-      const heading=this.label(n,text(titles[online.panel],this.lang),px+54+(pw-130)/2,py+26,21,pw-130,32);
+      const headingW = online.panel === 'ranking' ? pw - 294 : pw - 130;
+      const heading=this.label(n,text(titles[online.panel],this.lang),px+54+headingW/2,py+26,21,headingW,32);
       heading.horizontalAlign=Label.HorizontalAlign.LEFT;heading.isBold=true;
       this.controlIcon(g,online.panel==='menu'?'lobby':online.panel==='ranking'?'ranking':online.panel==='history'?'history':'profile',px+31,py+25,22,C.amber);
     }
@@ -1072,35 +1072,57 @@ export class HUD {
         online.busy ? this.t('请稍候', 'PLEASE WAIT') : this.t('确定', 'CONFIRM'),pw-198,bottom,180,online.panel !== 'profile'); return;
     }
     if (online.panel === 'ranking') {
-      const tabW = (pw - 60) / 4, compact = ph < 280;
-      for (const [i, [id, name]] of [['clears', this.t('通关榜', 'CLEARS')], ['level', this.t('关卡榜', 'LEVEL')], ['points', this.t('积分榜', 'POINTS')], ['win-rate', this.t('胜率榜', 'WIN RATE')]].entries())
-        button('board:' + id, name, 18 + i * (tabW + 8), compact ? 42 : 61, tabW, online.board === id);
-      const mission = MISSIONS[online.level], level = online.board === 'level';
-      if (level) { button('previous', this.t('上一关','PREV'), 18, compact ? 86 : 108, 94,false,false,'back',online.level===0); button('next', this.t('下一关','NEXT'), pw - 112, compact ? 86 : 108, 94,false,false,'next',online.level===MISSIONS.length-1); }
-      const descriptions = { clears: ['最高通关', 'HIGHEST LEVEL CLEARED'], level: [this.t('第 ','LEVEL ') + String(online.level + 1) + this.t('关 · ',' · ') + text(mission.name, this.lang), this.t('第 ','LEVEL ') + String(online.level + 1) + ' · ' + text(mission.name, this.lang)], points: ['累计积分', 'TOTAL POINTS'], 'win-rate': ['真人对战胜率', 'HUMAN MATCH WIN RATE'] };
-      const description=label(text(descriptions[online.board], this.lang), compact ? 108 : 127, 11, C.dim);
-      if(level)description.node.getComponent(UITransform)!.setContentSize(pw-244,26);
+      const solo = online.board === 'clears' || online.board === 'level', level = online.board === 'level';
+      button('category:solo', this.t('单人模式', 'SOLO'), pw - 234, 4, 104, solo);
+      button('category:duel', this.t('对战模式', 'VERSUS'), pw - 122, 4, 104, !solo);
+      const tabW = Math.min(140, (pw - 64) / 4);
+      const boards = solo ? [['clears', this.t('通关榜', 'CLEARS')], ['level', this.t('关卡榜', 'LEVEL')]]
+        : [['points', this.t('积分榜', 'POINTS')], ['win-rate', this.t('胜率榜', 'WIN RATE')]];
+      boards.forEach(([id, name], i) => button('board:' + id, name, 18 + i * (tabW + 8), 52, tabW, online.board === id));
+      const detailX = 34 + 2 * tabW, detailW = pw - detailX - 18;
+      if (level) {
+        button('previous', '', detailX, 52, 44, false, true, 'back', online.level === 0);
+        button('next', '', pw - 62, 52, 44, false, true, 'next', online.level === MISSIONS.length - 1);
+      }
+      const descriptions = { clears: this.t('最高通关', 'HIGHEST CLEAR'), level: this.t(`第 ${online.level + 1} 关`, `LEVEL ${online.level + 1}`), points: this.t('累计积分', 'TOTAL POINTS'), 'win-rate': this.t('真人对战胜率', 'HUMAN WIN RATE') };
+      this.label(n, descriptions[online.board], px + detailX + detailW / 2, py + 74, 11, detailW - (level ? 88 : 0), 26, C.dim);
       const value = (row: NonNullable<Online['ranking']>['top'][number]) => level ? formatTime(row.secondary) : online.board === 'win-rate'
         ? Math.round((row.games ? (row.wins || 0) / row.games : row.score) * 1000) / 10 + '%' : online.board === 'clears' ? this.t('第','') + row.score + this.t('关','') : row.score + this.t('分','');
       const metric = (row: NonNullable<Online['ranking']>['top'][number]) => (level ? this.t('最快 ','BEST ') : online.board==='clears' ? this.t('最高通关 ','LEVEL ') : online.board==='points' ? this.t('积分 ','POINTS ') : this.t('胜率 ','WIN RATE ')) + value(row);
-      const rows = online.ranking?.top.slice(online.rankPage * count, (online.rankPage + 1) * count) || [];
+      const rows = online.ranking?.top || [], rowH = 36, vw = pw - 36, vh = bottom - 144;
+      const mask = this.node('RankingViewport', n);
+      mask.setPosition(px + pw / 2 - this.w / 2, this.h / 2 - (py + 104 + vh / 2));
+      mask.getComponent(UITransform)!.setContentSize(vw, vh);
+      mask.addComponent(Mask).type = Mask.Type.GRAPHICS_RECT;
+      this.scrollArea = { x: px + 18, y: py + 104, w: vw, h: vh };
+      const content = this.node('RankingRows', mask); this.scrollNode = content;
+      const ink = content.addComponent(Graphics), originX = this.w / 2 - vw / 2, originY = this.h / 2 - vh / 2;
       rows.forEach((row, i) => {
-        const own = playerId(row) === playerId(online.identity), y = (compact ? 143 : 160) + i * 27;
-        if (own) this.plate(g, px + 18, py + y - 12, pw - 36, 26, '#29423c', C.mint, 4);
-        const nameW=pw-260, maxName=Math.max(2,Math.floor((nameW-95)/12)), name=Array.from(row.nickname||row.name||'飞行员');
+        const own = playerId(row) === playerId(online.identity), y = originY + rowH * (i + .5);
+        if (own) this.plate(ink, originX, y - 16, vw, 32, '#29423c', C.mint, 4);
+        else this.rect(ink, originX, y + 17, vw, 1, '#8ba0ab22');
+        if (row.rank >= 1 && row.rank <= 3) {
+          const medal = this.node('RankMedal:' + row.rank, content), medalInk = medal.addComponent(Graphics);
+          medal.setPosition(-vw / 2 + 12, vh / 2 - rowH * (i + .5));
+          medalInk.strokeColor = col('#6b8499'); medalInk.lineWidth = 5;
+          for (const x of [-4, 4]) { medalInk.moveTo(x, -3); medalInk.lineTo(x * 1.5, -13); medalInk.stroke(); }
+          medalInk.fillColor = col(['#e5b65c', '#c4d5e2', '#ca926c'][row.rank - 1]);
+          medalInk.circle(0, 1, 9); medalInk.fill();
+          medalInk.strokeColor = col('#fff0cf'); medalInk.lineWidth = 1; medalInk.circle(0, 1, 6); medalInk.stroke();
+        }
+        const nameW=vw-244, maxName=Math.max(2,Math.floor((nameW-95)/12)), name=Array.from(row.nickname||row.name||'飞行员');
         const caption=playerLabel({...row,nickname:name.length>maxName?name.slice(0,maxName).join('')+'…':name.join('')});
-        for (const [captionText,x,width] of [[this.t('第','RANK ')+row.rank+this.t('名',''),18,64],[caption,90,nameW],[metric(row),pw-160,142]] as const) {
-          this.label(n,captionText,px+x+width/2,py+y,12,width,26,own?C.mint:C.white).horizontalAlign=Label.HorizontalAlign.LEFT;
+        for (const [captionText,x,width] of [[this.t('第','RANK ')+row.rank+this.t('名',''),26,60],[caption,92,nameW],[metric(row),vw-146,142]] as const) {
+          this.label(content,captionText,originX+x+width/2,y,12,width,30,own?C.mint:C.white).horizontalAlign=Label.HorizontalAlign.LEFT;
         }
       });
-      if (!rows.length) label(online.message || (online.ranking ? this.t('暂无成绩，等你创造纪录', 'SET THE FIRST RECORD') : this.t('正在读取…', 'LOADING…')), compact ? 143 : 174, 12, C.dim);
+      this.scrollMax = Math.max(0, rows.length * rowH - vh);
+      if (!rows.length) label(online.message || (online.ranking ? this.t('暂无成绩，等你创造纪录', 'SET THE FIRST RECORD') : this.t('正在读取…', 'LOADING…')), 104 + vh / 2, 12, C.dim);
       const me = online.ranking?.me;
       label(me ? this.t('我的排名 第','MY RANK ') + me.rank + this.t('名 · ',' · ') + metric(me) : this.t('你 · 尚无上榜成绩', 'YOU · NOT YET RANKED'), bottom - 24, 11, C.mint);
       button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
       button('refresh',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
-      button('pagePrev','',pw-150,bottom,44,false,false,'back',online.rankPage===0);
-      button('pageNext','',pw-62,bottom,44,false,false,'next',!online.ranking||online.ranking.top.length<=(online.rankPage+1)*count);
-      this.label(n,String(online.rankPage+1),px+pw-84,py+bottom+22,12,40,24,C.dim);
+      this.label(n, this.t(`已加载 ${rows.length} 名 · 上下滑动`, `${rows.length} LOADED · SCROLL`), px + 216 + (pw - 234) / 2, py + bottom + 22, 11, pw - 234, 26, C.dim);
       return;
     }
     if (online.panel === 'history') {
@@ -1490,7 +1512,7 @@ export class HUD {
         low ? 36 : 60,
         success ? C.mint : C.red,
       ).isBold = true;
-      const rankState: Record<string, [string, string]> = { finished: ['已入榜', 'RANKED'], syncing: ['上传中', 'SYNCING'], recording: ['计时中', 'RECORDING'], practice: ['练习', 'PRACTICE'], 'update-required': ['需更新', 'UPDATE'] };
+      const rankState: Record<string, [string, string]> = { finished: ['已同步', 'SYNCED'], assisted: ['辅助通关', 'ASSISTED'], unavailable: ['未同步', 'NOT SYNCED'], syncing: ['上传中', 'SYNCING'], recording: ['计时中', 'RECORDING'], practice: ['练习', 'PRACTICE'], 'update-required': ['需更新', 'UPDATE'], 'pending-sync': ['待同步', 'PENDING SYNC'], 'needs-attention': ['待核对', 'CHECK REQUIRED'], 'storage-unavailable': ['缓存失败', 'CACHE FAILED'] };
       const rank = rankState[this.online?.rankStatus || 'local'] || ['仅本地', 'LOCAL'];
       const statY = py + (low ? 110 : small ? 123 : 212),
         statW = (pw - 48) / 3,
@@ -1514,7 +1536,7 @@ export class HUD {
           : this.t(`空中 ${s.kills} · 地面 ${s.friendlyKills}`, `AIR ${s.kills} · GROUND ${s.friendlyKills}`),
         px + pw / 2, statY + 51, 11, training ? pw - 48 : statW - 8, 20, C.dim);
       const comparison = !training && success ? this.timeComparison : undefined;
-      const advice = comparison ? this.t(
+      const advice = !training && success && this.online?.rankStatus === 'assisted' ? this.t('辅助通关已同步，不计入关卡最快榜', 'ASSISTED CLEAR SYNCED · EXCLUDED FROM FASTEST TIMES') : comparison ? this.t(
         `${comparison.newRecord ? comparison.previousMs === undefined ? '首次完成 · 个人最佳' : '新纪录 · 个人最佳' : '个人最佳'} ${formatTime(comparison.bestMs)}${comparison.previousMs === undefined ? '' : ` · ${comparison.currentMs < comparison.previousMs ? '快' : comparison.currentMs > comparison.previousMs ? '慢' : '持平'}${comparison.currentMs === comparison.previousMs ? '' : ' ' + (Math.abs(comparison.currentMs - comparison.previousMs) / 1000).toFixed(2) + '秒'}`}`,
         `${comparison.newRecord ? 'NEW PERSONAL BEST' : 'PERSONAL BEST'} ${formatTime(comparison.bestMs)}${comparison.previousMs === undefined ? '' : ` · ${(comparison.currentMs - comparison.previousMs) / 1000}s VS PREVIOUS`}`)
         : training ? text(trainingNextGoal(s), this.lang) : success
@@ -1714,7 +1736,8 @@ export class HUD {
       ? this.t(`热身清靶 ${s.kills} / 3 · 友伤 ${Math.round(s.friendlyDamage)}`, `WARMUP ${s.kills}/3 · FRIENDLY ${Math.round(s.friendlyDamage)}`)
       : this.t(`撤离 ${Math.floor(s.ratio * 100)}% · 威胁 ${s.threatsRemaining}`, `ROUTE ${Math.floor(s.ratio * 100)}% · THREATS ${s.threatsRemaining}`));
     const clock = Math.floor(s.time);
-    this.set('status', `${world.thermal ? this.t('热像', 'IR') : this.t(s.mission.light === 'day' ? '白天' : s.mission.light === 'dusk' ? '黄昏' : '夜间', s.mission.light.toUpperCase())}\n${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
+    const level = s.duelMode || s.mission.mode === 'training' ? 0 : MISSIONS.findIndex(m => m.id === s.mission.id) + 1;
+    this.set('status', `${level ? this.t(`第 ${level} 关`, `LEVEL ${level}`) + '\n' : ''}${world.thermal ? this.t('热像', 'IR') : this.t(s.mission.light === 'day' ? '白天' : s.mission.light === 'dusk' ? '黄昏' : '夜间', s.mission.light.toUpperCase())}\n${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
     this.set('weaponState', this.t(
       `${this.mouseDesktop ? '' : flightText + ' 弹着\n'}${gun.overheated ? '过热 · 冷却至40' : gun.cooldown > 0 && s.selected > 0 ? '装填 ' + gun.cooldown.toFixed(1) + 's' : '热量 ' + Math.round(gun.heat) + '%'}`,
       `${this.mouseDesktop ? '' : flightText + ' IMPACT\n'}${gun.overheated ? 'OVERHEATED' : gun.cooldown > 0 && s.selected > 0 ? 'RELOAD ' + gun.cooldown.toFixed(1) + 's' : 'HEAT ' + Math.round(gun.heat) + '%'}`));

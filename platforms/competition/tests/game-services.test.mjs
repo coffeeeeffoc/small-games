@@ -9,6 +9,242 @@ const defer = () => {
   return { promise, resolve };
 };
 const turn = () => new Promise((resolve) => setImmediate(resolve));
+function durableFixture() {
+  const values = new Map(),
+    runs = new Map(),
+    requests = [],
+    calls = [];
+  const storage = {
+    get length() {
+      return values.size;
+    },
+    key: (i) => [...values.keys()][i],
+    getItem: (k) => values.get(k) ?? null,
+    setItem: (k, v) => values.set(k, v),
+    removeItem: (k) => values.delete(k),
+  };
+  let owner = 'pilot-a',
+    offline = false,
+    loseAppend = false,
+    loseFinish = false,
+    ahead = false;
+  const unavailable = () => {
+    throw Object.assign(Error(), { code: 'SERVICE_UNAVAILABLE' });
+  };
+  const services = {
+    config: { game: 'night-overwatch', apiUrl: '/api', platform: 'h5' },
+    ruleVersion: 'v8',
+    session: async () => ({ playerId: owner }),
+    async startRun(input) {
+      requests.push(input.requestId);
+      if (offline) unavailable();
+      let run = runs.get(input.requestId);
+      if (!run) {
+        run = {
+          id: input.requestId,
+          board: input.mode,
+          levelId: input.levelId,
+          version: 'v8',
+          playerId: input.playerId,
+          seq: 0,
+          status: 'active',
+          expiresAt: Date.now() + 86400000,
+          batches: [],
+        };
+        runs.set(input.requestId, run);
+      }
+      return { ...run };
+    },
+    async getRun({ runId, playerId }) {
+      calls.push('get');
+      if (offline) unavailable();
+      if (owner !== playerId) throw Object.assign(Error(), { code: 'IDENTITY_CHANGED' });
+      return structuredClone(runs.get(runId));
+    },
+    async resumeRun({ runId }) {
+      calls.push('resume');
+      const run = runs.get(runId);
+      run.expiresAt = Date.now() + 86400000;
+      return { ...run };
+    },
+    async appendFrames({ runId, seq, frames }) {
+      calls.push('append');
+      if (offline) unavailable();
+      if (ahead) throw Object.assign(Error(), { code: 'RUN_AHEAD_OF_TIME' });
+      const run = runs.get(runId),
+        existing = run.batches[seq - 1];
+      if (existing) assert.deepEqual(frames, existing);
+      else {
+        assert.equal(seq, run.seq + 1);
+        run.batches.push(structuredClone(frames));
+        run.seq = seq;
+      }
+      if (loseAppend) {
+        loseAppend = false;
+        unavailable();
+      }
+    },
+    async finishRun({ runId, seq }) {
+      calls.push('finish');
+      if (offline) unavailable();
+      const run = runs.get(runId);
+      assert.equal(seq, run.seq);
+      run.status = 'finished';
+      run.settlement ||= { accepted: true, fastestEligible: true };
+      if (loseFinish) {
+        loseFinish = false;
+        unavailable();
+      }
+      return run.settlement;
+    },
+  };
+  return {
+    storage,
+    values,
+    runs,
+    requests,
+    calls,
+    services,
+    recorder: () => createRunRecorder(services, { durable: { storage } }),
+    offline: (v) => (offline = v),
+    loseAppend: () => (loseAppend = true),
+    loseFinish: () => (loseFinish = true),
+    ahead: (v) => (ahead = v),
+    owner: (v) => (owner = v),
+  };
+}
+test('Night durable completion survives lost append response and reload, querying before replay', async () => {
+  const f = durableFixture(),
+    first = f.recorder();
+  await first.start({ mode: 'campaign', levelId: 'first' });
+  first.record({}, 120);
+  f.loseAppend();
+  await first.finish();
+  assert.equal(first.status, 'pending-sync');
+  assert.equal([...f.runs.values()][0].seq, 1);
+  f.calls.length = 0;
+  const restored = f.recorder();
+  await restored.recover();
+  assert.deepEqual(f.calls, ['get', 'append', 'finish']);
+  assert.equal(restored.status, 'finished');
+  assert.equal(restored.pending, 0);
+  assert.ok([...f.values.keys()].some((k) => k.endsWith(':synced')));
+});
+test('Night lost finish response, expired session and duplicate recovery preserve one settlement', async () => {
+  const f = durableFixture(),
+    first = f.recorder();
+  await first.start({ mode: 'campaign', levelId: 'first' });
+  first.record({}, 120);
+  f.loseFinish();
+  await first.finish();
+  f.calls.length = 0;
+  await Promise.all([f.recorder().recover(), f.recorder().recover()]);
+  assert.ok(!f.calls.includes('finish'));
+  assert.equal(f.runs.size, 1);
+  const second = f.recorder();
+  await second.start({ mode: 'campaign', levelId: 'second' });
+  second.record({}, 120);
+  f.offline(true);
+  await second.finish();
+  f.offline(false);
+  [...f.runs.values()][1].expiresAt = 0;
+  f.calls.length = 0;
+  await f.recorder().recover();
+  assert.deepEqual(f.calls, ['get', 'resume', 'append', 'finish']);
+});
+test('Night unavailable start is persisted before transport and retries the same request without bypassing time', async () => {
+  const f = durableFixture();
+  f.offline(true);
+  const first = f.recorder();
+  await first.start({ mode: 'campaign', levelId: 'first' });
+  first.record({}, 120);
+  await first.finish();
+  assert.equal(first.status, 'pending-sync');
+  assert.equal(f.values.size, 1);
+  f.offline(false);
+  f.ahead(true);
+  await f.recorder().recover();
+  assert.equal(new Set(f.requests).size, 1);
+  assert.equal([...f.runs.values()][0].seq, 0);
+  f.ahead(false);
+  await f.recorder().recover();
+  assert.equal([...f.runs.values()][0].settlement.accepted, true);
+});
+test('Night pending data stays with its owner and survives quota failure or malformed cache', async () => {
+  const f = durableFixture(),
+    first = f.recorder();
+  await first.start({ mode: 'campaign', levelId: 'first' });
+  first.record({}, 120);
+  f.offline(true);
+  await first.finish();
+  f.offline(false);
+  f.owner('pilot-b');
+  const restored = f.recorder();
+  await restored.recover();
+  assert.equal(restored.status, 'needs-attention');
+  assert.equal(f.values.size, 1);
+  assert.equal([...f.runs.values()][0].seq, 0);
+  f.owner('pilot-a');
+  f.storage.setItem = () => {
+    throw Error('quota');
+  };
+  const broken = f.recorder();
+  await broken.recover();
+  assert.equal(broken.status, 'storage-unavailable');
+  assert.equal([...f.runs.values()][0].seq, 0);
+});
+test('Night unfinished mission is never submitted as a completion on reload', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  await recorder.start({ mode: 'campaign', levelId: 'first' });
+  recorder.record({}, 120);
+  recorder.persist();
+  await f.recorder().recover();
+  assert.ok(!f.calls.includes('finish'));
+});
+test('Night rejects the Cocos no-op storage fallback instead of claiming progress is cached', async () => {
+  const f = durableFixture();
+  const storage = { length: 0, key() {}, getItem() {}, setItem() {}, removeItem() {} };
+  const recorder = createRunRecorder(f.services, { durable: { storage } });
+  assert.equal(await recorder.start({ mode: 'campaign', levelId: 'first' }), null);
+  assert.equal(recorder.status, 'storage-unavailable');
+  assert.equal(f.requests.length, 0);
+});
+test('Night retries do not retain abandoned journals or drop completed pending missions', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  for (let i = 0; i < 12; i++) {
+    await recorder.start({ mode: 'campaign', levelId: 'first' });
+    recorder.record({}, 120);
+  }
+  assert.equal(f.values.size, 1);
+  f.offline(true);
+  await recorder.finish();
+  await recorder.start({ mode: 'campaign', levelId: 'second' });
+  recorder.invalidate();
+  assert.equal(f.values.size, 1);
+  assert.equal(JSON.parse([...f.values.values()][0]).finishing, true);
+});
+test('Night expired cached identity remains recoverable when refresh is temporarily offline', async (t) => {
+  const f = authFixture(t, {
+    initial: JSON.stringify(credential('a', Date.now() - 1000, 'night-overwatch')),
+  });
+  f.respond = async () => {
+    throw Error('offline');
+  };
+  const services = createGameServices({ gameId: 'night-overwatch', ruleVersion: 'v8' });
+  const storage = durableFixture().storage;
+  const recorder = createRunRecorder(services, { durable: { storage } });
+  await recorder.start({ mode: 'campaign', levelId: 'first' });
+  recorder.record({}, 120);
+  await recorder.finish();
+  assert.equal(recorder.status, 'pending-sync');
+  const saved = JSON.parse(storage.getItem(storage.key(0)));
+  assert.equal(saved.playerId, 'a');
+  assert.equal(saved.finishing, true);
+  assert.equal('token' in saved, false);
+  assert.equal('refreshToken' in saved, false);
+});
 test('profile reads and updates reuse the same game-scoped owner', async (t) => {
   const f = authFixture(t, { initial: null });
   const api = createGameServices({ gameId: 'tower-brake' });

@@ -230,6 +230,42 @@ it('writes require identity, refuse client result fields and expose game-scoped 
   ).toBe(404);
 });
 
+it('Night HTTP run requests are idempotent and resume accepts only an empty authenticated body', async () => {
+  const { app } = await setup(false, false, 'night-overwatch');
+  const headers = { authorization: 'Bearer ' + token },
+    path = '/api/competition/v1/games/night-overwatch';
+  const version = (await app.inject({ url: path, headers })).json().version;
+  const payload = {
+    board: 'level-corridor-01',
+    levelId: 'corridor-01',
+    version,
+    requestId: 'aaaaaaaa-0000-4000-8000-000000000001',
+  };
+  const [first, repeat] = await Promise.all(
+    [0, 1].map(() => app.inject({ method: 'POST', url: path + '/runs', headers, payload })),
+  );
+  expect(first.statusCode).toBe(200);
+  expect(repeat.json()).toEqual(first.json());
+  const resume = path + '/runs/' + first.json().id + '/resume';
+  expect((await app.inject({ method: 'POST', url: resume, payload: {} })).statusCode).toBe(401);
+  const restored = await app.inject({ method: 'POST', url: resume, headers, payload: {} });
+  expect(restored.statusCode).toBe(200);
+  expect(restored.json()).toMatchObject({ id: first.json().id, seq: 0, settlement: null });
+  expect(
+    (await app.inject({ method: 'POST', url: resume, headers, payload: { seq: 100 } })).statusCode,
+  ).toBe(422);
+  expect(
+    (
+      await app.inject({
+        method: 'POST',
+        url: path + '/runs',
+        headers,
+        payload: { ...payload, requestId: 'bad' },
+      })
+    ).statusCode,
+  ).toBe(422);
+});
+
 it('ranked HTTP creation rejects legacy, mismatched and missing versions with an update error', async () => {
   const headers = { authorization: 'Bearer ' + token };
   for (const [game, version] of [

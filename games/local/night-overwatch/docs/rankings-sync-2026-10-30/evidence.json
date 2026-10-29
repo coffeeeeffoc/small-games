@@ -1,0 +1,83 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200"
+  },
+  "environment": "Creator Web-mobile / Chromium; synthetic leaderboard bridge, real UI input; no production scores",
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "full100": true,
+      "groupedBoards": true,
+      "medals": true,
+      "scrollTo100": true,
+      "fixedFooter": true,
+      "emptyAndFailure": true,
+      "nicknameReopened": true,
+      "campaignLevel": 1,
+      "requests": [
+        "clears",
+        "level-corridor-01",
+        "points",
+        "win-rate",
+        "clears",
+        "clears",
+        "clears",
+        "clears"
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "full100": true,
+      "groupedBoards": true,
+      "medals": true,
+      "scrollTo100": true,
+      "fixedFooter": true,
+      "emptyAndFailure": true,
+      "nicknameReopened": true,
+      "campaignLevel": 1,
+      "requests": [
+        "clears",
+        "level-corridor-01",
+        "points",
+        "win-rate",
+        "clears",
+        "clears",
+        "clears",
+        "clears"
+      ]
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "full100": true,
+      "groupedBoards": true,
+      "medals": true,
+      "scrollTo100": true,
+      "fixedFooter": true,
+      "emptyAndFailure": true,
+      "nicknameReopened": true,
+      "campaignLevel": 1,
+      "requests": [
+        "clears",
+        "level-corridor-01",
+        "points",
+        "win-rate",
+        "clears",
+        "clears",
+        "clears",
+        "clears"
+      ]
+    }
+  ],
+  "errors": [],
+  "gameplay": {
+    "start": 13.02,
+    "duration": 15,
+    "environment": "1280x720 Chromium; real mouse aiming/firing, synthetic recorder disabled from public ranking"
+  },
+  "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-29-rankings\\596200f91b63bc3cc7cdbbde790a7a26.webm"
+}

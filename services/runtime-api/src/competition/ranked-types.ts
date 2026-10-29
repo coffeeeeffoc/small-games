@@ -76,7 +76,7 @@ export type RunTransaction = {
   record(result: Settlement): Promise<void>;
 };
 export type RunRepository = {
-  create(run: RankedRun, auth?: PlayerAuth): Promise<void>;
+  create(run: RankedRun, auth?: PlayerAuth): Promise<RankedRun>;
   mutate<T>(id: string, change: (tx: RunTransaction) => Promise<T>, auth?: PlayerAuth): Promise<T>;
 };
 import type { PlayerAuth } from './auth.js';
