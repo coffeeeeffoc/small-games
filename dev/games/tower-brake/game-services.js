@@ -125,6 +125,12 @@ export function createGameServices({ gameId, ruleVersion }) {
   }
   return {
     config,
+    ruleVersion,
+    authority: auth.authority,
+    savedOwner() {
+      const saved = auth.saved();
+      return saved ? { playerId: saved.playerId || saved.userId } : null;
+    },
     session: () => auth.current(),
     logout() {
       owners.clear();
@@ -168,19 +174,36 @@ export function createGameServices({ gameId, ruleVersion }) {
     identity: async () => (await request(path)).identity,
     listBoards: async () => (await request(path)).boards,
     leaderboard: ({ boardId }) => request(path + '/leaderboards/' + encodeURIComponent(boardId)),
-    async startRun({ mode, levelId }) {
+    async startRun({ mode, levelId, requestId, playerId }) {
       if (typeof ruleVersion !== 'string' || !ruleVersion) throw failure('RULE_VERSION_CHANGED');
       const credential = await auth.current();
+      if (playerId && credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
       const run = await request(
         path + '/runs',
-        { board: mode, version: ruleVersion, ...(levelId ? { levelId } : {}) },
+        {
+          board: mode,
+          version: ruleVersion,
+          ...(levelId ? { levelId } : {}),
+          ...(requestId ? { requestId } : {}),
+        },
         credential,
       );
       if (run?.version !== ruleVersion) throw failure('RULE_VERSION_CHANGED');
       owners.set(run.id, { ...credential });
       while (owners.size > 4) owners.delete(owners.keys().next().value);
+      return { ...run, playerId: credential.playerId };
+    },
+    async getRun({ runId, playerId }) {
+      const credential = await auth.current();
+      if (credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
+      const run = await request(`${path}/runs/${encodeURIComponent(runId)}`, undefined, credential);
+      if (run.game !== gameId || (!run.settlement && run.version !== ruleVersion))
+        throw failure('RULE_VERSION_CHANGED');
+      owners.set(runId, { ...credential });
       return run;
     },
+    resumeRun: async ({ runId }) =>
+      request(`${path}/runs/${encodeURIComponent(runId)}/resume`, {}, await owner(runId)),
     appendFrames: async ({ runId, seq, frames }) =>
       request(
         `${path}/runs/${encodeURIComponent(runId)}/actions`,
@@ -195,8 +218,350 @@ export function createGameServices({ gameId, ruleVersion }) {
   };
 }
 
+// Each attempt has its own key; finished journals are immutable except for acknowledgements.
+function createDurableRecorder(services, { storage }, onStatus) {
+  const scope =
+    services.authority ||
+    JSON.stringify([
+      services.config.apiUrl,
+      services.config.platform,
+      services.config.appId,
+      services.config.game,
+    ]);
+  const prefix = 'night-pending-run-v1:' + encodeURIComponent(scope) + ':';
+  const working = new Map(),
+    retries = new Map();
+  let active,
+    status = 'local',
+    generation = 0,
+    recovering,
+    pending = 0;
+  const report = (value) => {
+    status = value;
+    onStatus(value);
+  };
+  const key = (run) => prefix + run.requestId;
+  function save(run) {
+    try {
+      if (run.abandoned) {
+        storage.removeItem(key(run));
+        return true;
+      }
+      if (storage.getItem(key(run) + ':synced')) {
+        run.synced = true;
+        return true;
+      }
+      const serialized = JSON.stringify(run);
+      storage.setItem(key(run), serialized);
+      if (storage.getItem(key(run)) !== serialized) throw failure('STORAGE_UNAVAILABLE');
+      return true;
+    } catch {
+      report('storage-unavailable');
+      return false;
+    }
+  }
+  function read(name) {
+    if (storage.getItem(name + ':synced')) return null;
+    const run = JSON.parse(storage.getItem(name));
+    if (run?.synced) return null;
+    if (
+      run?.schema !== 1 ||
+      name !== key(run) ||
+      run.scope !== scope ||
+      typeof run.playerId !== 'string' ||
+      typeof run.version !== 'string' ||
+      !Array.isArray(run.batches) ||
+      !Array.isArray(run.tail) ||
+      !Number.isInteger(run.acked) ||
+      run.acked < 0 ||
+      run.acked > run.batches.length ||
+      run.batches.some(
+        (batch) =>
+          !Array.isArray(batch) ||
+          !batch.length ||
+          batch.length > 500 ||
+          batch.some(
+            (frame) =>
+              !Number.isInteger(frame.ticks) ||
+              frame.ticks < 0 ||
+              frame.ticks > 600 ||
+              !frame.input,
+          ),
+      )
+    )
+      throw failure('INVALID_JOURNAL');
+    return run;
+  }
+  function seal(run) {
+    if (run.tail.length) {
+      run.batches.push(run.tail);
+      run.tail = [];
+    }
+    return save(run);
+  }
+  function failed(run, error) {
+    const transient = [
+      'SERVICE_UNAVAILABLE',
+      'RATE_LIMITED',
+      'RUN_AHEAD_OF_TIME',
+      'RUN_EXPIRED',
+      'SESSION_EXPIRED',
+    ].includes(error?.code);
+    const previous = retries.get(run.requestId);
+    const delay = transient ? Math.min(60000, (previous?.delay || 1000) * 2) : 60000;
+    retries.set(run.requestId, { delay, at: Date.now() + delay });
+    if (!active || active === run) report(transient ? 'pending-sync' : 'needs-attention');
+  }
+  function synchronize(run) {
+    if (working.has(run.requestId)) return working.get(run.requestId);
+    if ((retries.get(run.requestId)?.at || 0) > Date.now()) return Promise.resolve(null);
+    const operation = (async () => {
+      try {
+        if (!save(run)) return null;
+        if (run.synced) return null;
+        if (!run.id) {
+          if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
+          const created = await services.startRun({
+            mode: run.mode,
+            levelId: run.levelId,
+            requestId: run.requestId,
+            playerId: run.playerId,
+          });
+          run.id = created.id;
+          if (!save(run)) return null;
+        }
+        let remote = await services.getRun({ runId: run.id, playerId: run.playerId });
+        if (
+          remote.id !== run.id ||
+          remote.board !== run.mode ||
+          remote.levelId !== run.levelId ||
+          remote.version !== run.version
+        )
+          throw failure('INVALID_JOURNAL');
+        if (!remote.settlement && run.version !== services.ruleVersion)
+          throw failure('RULE_VERSION_CHANGED');
+        if (remote.seq < run.acked || remote.seq > run.batches.length)
+          throw failure('SEQUENCE_CONFLICT');
+        if (remote.settlement && (!run.finishing || remote.seq !== run.batches.length))
+          throw failure('SEQUENCE_CONFLICT');
+        if (remote.status === 'active' && remote.expiresAt <= Date.now())
+          remote = await services.resumeRun({ runId: run.id });
+        // Replay the original unconfirmed batch even when the server sequence is ahead.
+        while (run.acked < run.batches.length) {
+          const seq = run.acked + 1;
+          await services.appendFrames({ runId: run.id, seq, frames: run.batches[seq - 1] });
+          run.acked = seq;
+          if (!save(run)) return null;
+        }
+        if (run.finishing) {
+          const result =
+            remote.settlement || (await services.finishRun({ runId: run.id, seq: run.acked }));
+          if (!result || typeof result.accepted !== 'boolean') throw failure('INVALID_SETTLEMENT');
+          const done = {
+            schema: 1,
+            synced: true,
+            requestId: run.requestId,
+            playerId: run.playerId,
+            id: run.id,
+            at: Date.now(),
+            result,
+          };
+          try {
+            const serialized = JSON.stringify(done);
+            storage.setItem(key(run) + ':synced', serialized);
+            if (storage.getItem(key(run) + ':synced') !== serialized)
+              throw failure('STORAGE_UNAVAILABLE');
+            storage.removeItem?.(key(run));
+          } catch {
+            report('storage-unavailable');
+            return null;
+          }
+          run.synced = true;
+          services.discardRun?.(run.id);
+          if (!active || active === run)
+            report(
+              result.accepted
+                ? result.fastestEligible === false
+                  ? 'assisted'
+                  : 'finished'
+                : 'local',
+            );
+          return result;
+        }
+        retries.delete(run.requestId);
+        if (active === run) report('recording');
+        return null;
+      } catch (error) {
+        if (error?.code === 'RUN_EXPIRED' && run.id) {
+          try {
+            await services.resumeRun({ runId: run.id });
+          } catch (resumeError) {
+            error = resumeError;
+          }
+        }
+        failed(run, error);
+        return null;
+      }
+    })().finally(() => working.delete(run.requestId));
+    working.set(run.requestId, operation);
+    return operation;
+  }
+  function invalidate(reason = 'local') {
+    generation++;
+    if (active && !active.synced) {
+      seal(active);
+      // An interrupted, unfinished mission is not a completion claim.
+      if (!active.finishing) {
+        active.abandoned = true;
+        save(active);
+      }
+    }
+    active = undefined;
+    report(reason === 'practice' ? 'practice' : 'local');
+  }
+  const recorder = {
+    get status() {
+      return status;
+    },
+    get pending() {
+      return pending;
+    },
+    async start({ mode, levelId, practice = false }) {
+      invalidate(practice ? 'practice' : 'local');
+      if (practice) return null;
+      const ownGeneration = generation;
+      report('connecting');
+      try {
+        let credential, deferred;
+        try {
+          credential = await services.session();
+        } catch (error) {
+          if (!['SERVICE_UNAVAILABLE', 'RATE_LIMITED'].includes(error?.code)) throw error;
+          credential = services.savedOwner?.();
+          if (!credential) throw error;
+          deferred = error;
+        }
+        if (generation !== ownGeneration) return null;
+        const bytes = new Uint8Array(16);
+        if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+        else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+        bytes[6] = (bytes[6] & 15) | 64;
+        bytes[8] = (bytes[8] & 63) | 128;
+        const hex = Array.from(bytes, (n) => n.toString(16).padStart(2, '0')).join('');
+        const run = {
+          schema: 1,
+          scope,
+          version: services.ruleVersion,
+          playerId: credential.playerId,
+          requestId: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`,
+          mode,
+          levelId,
+          batches: [],
+          tail: [],
+          acked: 0,
+          finishing: false,
+          savedAt: Date.now(),
+        };
+        if (
+          typeof storage.key !== 'function' ||
+          typeof storage.removeItem !== 'function' ||
+          !Number.isInteger(storage.length) ||
+          !save(run)
+        ) {
+          report('storage-unavailable');
+          return null;
+        }
+        active = run;
+        if (deferred) failed(run, deferred);
+        else await synchronize(run);
+        return generation === ownGeneration ? run : null;
+      } catch {
+        if (generation === ownGeneration) report('unavailable');
+        return null;
+      }
+    },
+    record(input, ticks = 1) {
+      const run = active;
+      if (!run || run.finishing || run.abandoned || run.synced) return;
+      if (!Number.isInteger(ticks) || ticks < 0 || ticks > 600) {
+        report('needs-attention');
+        return;
+      }
+      const encoded = JSON.stringify(input),
+        previous = run.tail.at(-1);
+      if (
+        ticks > 0 &&
+        previous &&
+        previous.ticks + ticks <= 600 &&
+        JSON.stringify(previous.input) === encoded
+      )
+        previous.ticks += ticks;
+      else run.tail.push({ ticks, input: JSON.parse(encoded) });
+      if (run.tail.length >= 500 || run.tail.reduce((sum, frame) => sum + frame.ticks, 0) >= 600) {
+        if (seal(run)) void synchronize(run);
+      } else if (Date.now() - run.savedAt >= 1000) {
+        run.savedAt = Date.now();
+        save(run);
+      }
+    },
+    async finish() {
+      const run = active;
+      if (!run || run.synced) return null;
+      run.finishing = true;
+      if (!seal(run)) return null;
+      report('pending-sync');
+      if (working.has(run.requestId)) await working.get(run.requestId);
+      return run.synced ? null : synchronize(run);
+    },
+    persist() {
+      if (active && !active.synced) save(active);
+    },
+    recover() {
+      if (recovering) return recovering;
+      recovering = (async () => {
+        pending = 0;
+        try {
+          const names = Array.from({ length: storage.length }, (_, i) => storage.key(i));
+          for (const name of names) {
+            if (!name?.startsWith(prefix) || name.endsWith(':synced')) continue;
+            let run;
+            try {
+              run = read(name);
+            } catch {
+              report('needs-attention');
+              continue;
+            }
+            if (!run || run.abandoned) continue;
+            if (run.requestId === active?.requestId) run = active;
+            if (!run.finishing && run !== active) {
+              if (Number.isFinite(run.savedAt) && Date.now() - run.savedAt > 86400000)
+                storage.removeItem(name);
+              continue;
+            }
+            pending++;
+            await synchronize(run);
+            if (run.synced) pending--;
+          }
+        } catch {
+          report('storage-unavailable');
+        }
+      })().finally(() => {
+        recovering = undefined;
+      });
+      return recovering;
+    },
+    invalidate,
+  };
+  return recorder;
+}
+
 /** Bounded live journal: acknowledged input is discarded; each retry keeps its original sequence. */
-export function createRunRecorder(services, { onStatus = () => {}, startTimeoutMs = 1500 } = {}) {
+export function createRunRecorder(
+  services,
+  { onStatus = () => {}, startTimeoutMs = 1500, durable } = {},
+) {
+  if (durable && services.config?.game === 'night-overwatch')
+    return createDurableRecorder(services, durable, onStatus);
   let generation = 0,
     active = null,
     status = 'local';
