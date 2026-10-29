@@ -18,6 +18,7 @@ globalThis.__rankingFixture = { mode: 'full', requests: [] };
 globalThis.SmallGamesServices = {
   ready: Promise.resolve(metadata), refresh: async () => metadata,
   services: {
+    updateProfile: async ({ nickname }) => { identity.nickname = nickname; return { ...identity }; },
     leaderboard: async ({ boardId }) => {
       const fixture = globalThis.__rankingFixture; fixture.requests.push(boardId);
       if (fixture.mode === 'error') throw Error('fixture network failure');
@@ -129,7 +130,12 @@ try {
     await page.locator('input:visible').fill('没有确认的昵称'); await page.keyboard.press('Enter');
     assert.equal((await nickname()).value, '没有确认的昵称');
     await click('online:dismiss'); await click('online:profile');
-    assert.equal((await nickname()).value, '当前飞行员'); await capture('nickname-reopened'); await click('online:dismiss');
+    assert.equal((await nickname()).value, '当前飞行员'); await capture('nickname-reopened');
+    const savedField = await nickname();
+    if (touch) await page.touchscreen.tap(savedField.x, savedField.y); else await page.mouse.click(savedField.x, savedField.y);
+    await page.locator('input:visible').fill('保存后的昵称'); await page.keyboard.press('Enter');
+    await click('online:saveName'); await page.waitForFunction(() => __night.snapshot().online.panel === '');
+    await click('online:profile'); assert.equal((await nickname()).value, '保存后的昵称'); await click('online:dismiss');
     await click('missions'); await click('start');
     await page.waitForFunction(() => __night.snapshot().phase === 'playing');
     assert((await labels(page)).some(text => text.startsWith('第 1 关\n'))); await capture('level-1');
@@ -149,7 +155,7 @@ try {
       assert((await snapshot(page)).fired > firedBefore); evidence.video = await page.video().path();
     }
     evidence.checks.push({ width, height, full100: true, groupedBoards: true, medals: true, scrollTo100: true,
-      fixedFooter: true, emptyAndFailure: true, nicknameReopened: true, campaignLevel: 1,
+      fixedFooter: true, emptyAndFailure: true, nicknameReopened: true, nicknameSuccessCloses: true, campaignLevel: 1,
       requests: await page.evaluate(() => __rankingFixture.requests) });
     await context.close();
   }

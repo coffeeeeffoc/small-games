@@ -210,6 +210,7 @@ export class Online {
         this.storage.setItem('night-overwatch-pilot-v1', JSON.stringify(this.identity));
       }
       this.message = this.available ? '昵称已保存' : '昵称已保存在本机'; this.draftName = this.identity.nickname || this.identity.name || nickname;
+      if (this.panel === 'profile') this.panel = '';
     } catch { this.message = '昵称保存失败，请重试'; }
     finally { this.busy = false; this.revision++; }
   }

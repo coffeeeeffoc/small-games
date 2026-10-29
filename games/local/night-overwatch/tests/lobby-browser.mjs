@@ -42,7 +42,7 @@ try {
     await capture(actor, 'home-' + width);
     await click(actor, 'online:profile'); await waitPanel(actor, 'profile'); await field(actor, 83, '触屏飞行员' + width);
     await click(actor, 'online:saveName'); await actor.page.waitForFunction(() => __night.snapshot().online.identity.name?.startsWith('触屏飞行员'));
-    await capture(actor, 'profile-' + width); await click(actor, 'online:back');
+    await waitPanel(actor, ''); await capture(actor, 'profile-saved-' + width);
     await click(actor, 'online:menu'); await waitPanel(actor, 'menu'); await capture(actor, 'lobby-' + width);
     await click(actor, 'online:friend'); await click(actor, 'online:private'); await field(actor, 127, 'friends-28');
     await capture(actor, 'private-form-' + width); await click(actor, 'online:back');

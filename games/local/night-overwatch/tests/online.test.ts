@@ -73,6 +73,19 @@ test('nickname edits keep the same user and adopt the saved server profile', asy
   online.draftName='没有确认的草稿';online.show('');online.show('profile');
   assert.equal(online.draftName,'服务端昵称','reopening discards the unsaved draft');
 });
+test('nickname confirmation closes only after success and retains the draft on failure', async () => {
+  const f = fixture(), online = new Online(storage(), () => {});
+  let resolve!: (value: any) => void;
+  Object.assign(f.bridge.services, { updateProfile: () => new Promise(done => { resolve = done; }) });
+  await online.connect(f.bridge); online.show('profile'); online.draftName = '新的昵称';
+  const saving = online.saveName(); assert.equal(online.panel, 'profile'); assert(online.busy);
+  resolve({ id: 'a', nickname: '新的昵称' }); await saving;
+  assert.equal(online.panel, ''); assert(!online.busy);
+  online.show('profile'); assert.equal(online.draftName, '新的昵称'); online.draftName = '保留草稿';
+  Object.assign(f.bridge.services, { updateProfile: async () => { throw Error('offline'); } });
+  await online.saveName(); assert.equal(online.panel, 'profile'); assert.equal(online.draftName, '保留草稿');
+  assert.match(online.message, /保存失败/);
+});
 
 test('ranking recovery refreshes the server identity before recording and leaves failure explicitly local', async () => {
   const f=fixture(), online=new Online(storage(),()=>{});let starts=0;

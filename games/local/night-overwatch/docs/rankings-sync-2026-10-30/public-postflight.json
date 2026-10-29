@@ -1,0 +1,30 @@
+{
+  "at": "2026-10-29T16:43:33.035Z",
+  "runtimeSource": "8e822a36ca8ce55e2726024b68bd4b178ba48f96",
+  "proxySource": "c31ca40ce5896fd293fbfe1d66ed9bacf24e8568",
+  "proxyRelease": "20261029164046-c31ca40ce589-931216",
+  "health": {
+    "status": 200,
+    "body": {
+      "service": "runtime",
+      "status": "ok"
+    }
+  },
+  "resume": [
+    {
+      "prefix": "/small-games/v1",
+      "status": 401,
+      "body": {
+        "error": "SESSION_EXPIRED"
+      }
+    },
+    {
+      "prefix": "/api/competition/v1",
+      "status": 401,
+      "body": {
+        "error": "SESSION_EXPIRED"
+      }
+    }
+  ],
+  "noAuthenticatedMutation": true
+}

@@ -85,7 +85,7 @@ try {
     await page.locator('input:visible').waitFor();
     await click('online:saveName');
     await page.waitForFunction(() => __night.snapshot().online.identity.name === '夜航飞行员07');
-    await click('online:dismiss');
+    await page.waitForFunction(() => __night.snapshot().online.panel === '');
     await page.reload();
     await page.waitForFunction(() => globalThis.__night?.snapshot().ui.homeArtworkReady && __night.snapshot().ui.interfaceArtworkReady && __night.snapshot().online.identity.name === '夜航飞行员07');
     await page.waitForFunction(() => !document.getElementById('night-startup'));

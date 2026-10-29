@@ -2,7 +2,7 @@
   "build": {
     "creator": "3.8.8",
     "target": "web-mobile",
-    "sourceHash": "2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200"
+    "sourceHash": "32ba11856a67a424ffcc5d27ae654219632336cad25797967754567bf9a14e10"
   },
   "environment": "Creator Web-mobile / Chromium; synthetic leaderboard bridge, real UI input; no production scores",
   "checks": [
@@ -16,6 +16,7 @@
       "fixedFooter": true,
       "emptyAndFailure": true,
       "nicknameReopened": true,
+      "nicknameSuccessCloses": true,
       "campaignLevel": 1,
       "requests": [
         "clears",
@@ -38,6 +39,7 @@
       "fixedFooter": true,
       "emptyAndFailure": true,
       "nicknameReopened": true,
+      "nicknameSuccessCloses": true,
       "campaignLevel": 1,
       "requests": [
         "clears",
@@ -60,6 +62,7 @@
       "fixedFooter": true,
       "emptyAndFailure": true,
       "nicknameReopened": true,
+      "nicknameSuccessCloses": true,
       "campaignLevel": 1,
       "requests": [
         "clears",
@@ -75,9 +78,10 @@
   ],
   "errors": [],
   "gameplay": {
-    "start": 13.02,
+    "start": 13.738,
     "duration": 15,
     "environment": "1280x720 Chromium; real mouse aiming/firing, synthetic recorder disabled from public ranking"
   },
-  "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-29-rankings\\596200f91b63bc3cc7cdbbde790a7a26.webm"
+  "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\2026-10-29-rankings\\0f94b9b1ff188f16ebdabe659c075614.webm",
+  "preservedRawDirectory": ".scratch/night-ranking-20261029/browser-capture-nickname/"
 }

@@ -1,8 +1,8 @@
 # 夜航守望 · 交付状态
 
-更新：2026-10-30。Game ID：`night-overwatch`。本轮完成排行榜单人/对战分类、一次加载前100名及滚动、前三名奖牌、战斗关卡号、昵称回填、退出房间短期过滤与单人进度持久补传。金币、经验等级、个人资料和商店仅写入[后续计划](../docs/design/2026-10-29-personal-assets-plan.md)。
+更新：2026-10-30。Game ID：`night-overwatch`。本轮完成排行榜单人/对战分类、一次加载前100名及滚动、前三名奖牌、战斗关卡号、昵称回填及保存成功自动关闭、退出房间短期过滤与单人进度持久补传。金币、经验等级、个人资料和商店仅写入[后续计划](../docs/design/2026-10-29-personal-assets-plan.md)。
 
-Creator 3.8.8 Web-mobile 源码指纹：`2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200`。三尺寸浏览器、定向规则/输入、真实HTTP/PostgreSQL17续传通过；详细边界、身份调查及部署记录见[本轮验证](../docs/verification-2026-10-30-rankings-sync.md)。
+Creator 3.8.8 Web-mobile 源码指纹：`32ba11856a67a424ffcc5d27ae654219632336cad25797967754567bf9a14e10`。最后增加昵称确认成功关闭、失败保留，现有首页与战斗媒体视觉未变，保留原采集指纹并复核沿用。三尺寸浏览器、定向规则/输入、真实HTTP/PostgreSQL17续传通过；详细边界、身份调查及部署记录见[本轮验证](../docs/verification-2026-10-30-rankings-sync.md)。
 
 ## 八类资料
 
@@ -20,3 +20,5 @@ Creator 3.8.8 Web-mobile 源码指纹：`2ad66cda26b38cdef81152f4fd872c561658338
 尺寸、时长与 SHA256 见[manifest.json](manifest.json)，剪辑起点及原录像摘要见[剪辑记录](promo/videos/rankings-sync-2026-10-30-edit.json)。两条视频完整解码通过，实录首尾抽帧核对；4张截图均来自当前实际运行。排行100条合成数据仅用于[QA截图](../docs/rankings-sync-2026-10-30/solo-clears-568.png)，未纳入正式上架截图或视频，未向生产榜写测试成绩。
 
 沿用素材来源及许可见[素材清单](../docs/ASSET_MANIFEST.json)。上轮资料保留于[历史状态](STATUS-2026-10-29-online-sync.md)和[历史清单](manifest-2026-10-29-online-sync.json)。未上传平台或提交审核；当前H5仍为游客身份，真实TapTap账号绑定需完成服务端配置。未进行实体手机、原生包、真实TapTap宿主或真实广告验证，未运行全仓候选校验；CI/Pages状态单独核对。
+
+Runtime 已部署代码提交 `8e822a36`，代理已部署 `c31ca40c`；公网健康200，两个前缀的续传入口均返回预期认证JSON。部署未替换数据库或改schema；备份可读性通过，未做隔离数据库恢复演练。回执见[本轮验证](../docs/verification-2026-10-30-rankings-sync.md)。
