@@ -108,6 +108,10 @@ export function installTapCompetitionIdentity(root = globalThis, nativeSdk = roo
     if (auth.saved()) void auth.logout().catch(() => {});
     const wrapped = {
       ...auth,
+      // Only the old Night H5 guest cache shares this API/game, never another Tap app's cache.
+      get legacyGuestAuthority() {
+        return config.platform === 'h5' ? previous?.authority : undefined;
+      },
       saved: () => requirePlatform(auth.saved()),
       async current() {
         requirePlatform(auth.saved());

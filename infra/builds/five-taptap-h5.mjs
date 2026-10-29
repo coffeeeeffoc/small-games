@@ -13,6 +13,7 @@ export default {
     {
       platform: 'taptap',
       type: 'h5',
+      tapIdentityAppIds: { 'night-overwatch': 'tapmcjgwi2thafs87k' },
       adUnits: {
         'carding-car': '1054323',
         'vibeJam-myself-history-guess': '1054324',

@@ -247,6 +247,7 @@ async function setup(url: string) {
     await database.close();
   }
   return {
+    base,
     database: database.db,
     store,
     ranked,
@@ -522,8 +523,20 @@ integration(
       );
       expect(Number(scores[0]!.score)).toBe(360);
       const another = await f.guest('night-overwatch');
+      await f.database
+        .execute(sql`insert into runtime.competition_best(board,player_id,score,secondary,match_id,updated_at)
+        values('night-overwatch:points:night-records-v1',${another.playerId},920,0,${randomUUID()},${Date.now()})`);
       expect((await f.request('/sessions/platform', another, input)).playerId).toBe(bound.playerId);
       expect((await f.request('/me', another)).identityKind).toBe('guest');
+      const preserved = await f.database
+        .execute(sql`select player_id,score from runtime.competition_best
+        where board='night-overwatch:points:night-records-v1' and player_id in (${bound.playerId},${another.playerId})`);
+      expect(
+        Object.fromEntries(preserved.map((row) => [String(row.player_id), Number(row.score)])),
+      ).toEqual({
+        [bound.playerId]: 360,
+        [another.playerId]: 920,
+      });
       const otherGame = await f.guest();
       await f.request('/sessions/platform', otherGame, { ...input, code: 'different-owner' }, 403);
       await f.request('/sessions/platform', bound, { ...input, appId: 'unconfigured' }, 503);
@@ -560,3 +573,34 @@ integration(
     });
   },
 );
+
+integration('one Night guest cannot bind to two different Tap accounts concurrently', async () => {
+  await fixture(async (f) => {
+    const guest = await f.guest('night-overwatch');
+    const responses = await Promise.all(
+      ['tap-owner-one', 'tap-owner-two'].map((code) =>
+        realFetch(f.base + '/sessions/platform', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${guest.token}` },
+          body: JSON.stringify({
+            platform: 'taptap',
+            appId: f.appId,
+            game: 'night-overwatch',
+            code,
+          }),
+        }),
+      ),
+    );
+    expect(responses.filter((response) => response.status === 200)).toHaveLength(1);
+    expect(responses.filter((response) => [401, 403].includes(response.status))).toHaveLength(1);
+    const winner = (await responses
+      .find((response) => response.status === 200)!
+      .json()) as ApiResponse;
+    expect(winner.playerId).toBe(guest.playerId);
+    const rows = await f.database.execute(sql`select id,subject from runtime.competition_players
+      where platform='taptap' and app_id=${f.appId} and subject in ('mock-official:tap-owner-one','mock-official:tap-owner-two')`);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.id).toBe(guest.playerId);
+    expect((await f.request('/me', winner)).identityKind).toBe('platform');
+  });
+});

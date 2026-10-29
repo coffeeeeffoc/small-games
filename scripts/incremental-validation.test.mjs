@@ -1383,7 +1383,7 @@ test('admin checks stay separate from game browsers and backend changes include 
   assert.equal(select('services/runtime-api/src/main.ts').admin_console_checks, false);
 });
 
-test('Tap services retain three H5 consumers and contracts without retired native targets', async () => {
+test('Tap services retain their H5 consumers including Night identity without retired native targets', async () => {
   const { readFileSync } = await import('node:fs');
   const { workspacePackages } = await import('./validation-plan.mjs');
   const { nineNativeFileScopes } = await import('./nine-native-scope.mjs');
@@ -1410,7 +1410,17 @@ test('Tap services retain three H5 consumers and contracts without retired nativ
       ...nineNativeFileScopes(context),
     ]);
     const selected = incrementalPlan({ ...context, fileScopes });
-    assert.deepEqual(selected.browser_ids, expected, file);
+    const night = [
+      'platforms/taptap/competition-identity.mjs',
+      'platforms/taptap/calls.mjs',
+    ].includes(file);
+    assert.deepEqual(
+      selected.browser_ids,
+      [...expected, ...(night ? ['night-overwatch'] : [])].sort(),
+      file,
+    );
+    assert(fileScopes.get(file).includes('apps/shell-web'), file);
+    assert(fileScopes.get(file).includes('platforms/taptap'), file);
     assert.equal(Object.hasOwn(selected, 'cocos_minigame_ids'), false, file);
     assert.equal(selected.tap_services_checks, true);
     assert(selected.service_rule_sources.includes('platforms/taptap'));

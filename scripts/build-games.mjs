@@ -10,6 +10,7 @@ import {
   root,
   compilerEnvironment,
   ordinaryDirectory,
+  validateTapIdentityAppIds,
 } from './h5-taptap-build.mjs';
 import { h5AdGames, h5PackageGames, additionalH5Games } from './h5-ad-config.mjs';
 import { competitionService } from './competition-service-config.mjs';
@@ -117,6 +118,7 @@ export function parseGameBuildConfig(config) {
             'appIds',
             'adUnits',
             'tapServices',
+            'tapIdentityAppIds',
           ].includes(key),
         ),
       'BUILD_TARGET',
@@ -146,6 +148,7 @@ export function parseGameBuildConfig(config) {
     return {
       ...target,
       tapServices,
+      tapIdentityAppIds: validateTapIdentityAppIds(target.tapIdentityAppIds),
       release: false,
       adUnits: identifiers(target.adUnits, h5PackageGames, 'AD_UNITS'),
       modes: variants(target.ads ?? config.ads, target.backend ?? config.backend),
@@ -184,6 +187,12 @@ export function gameBuildPlan(config) {
           ...job,
           delivery: 'upload-zip',
           effectiveAdsEnabled: ads && Boolean(target.adUnits[game]),
+          ...(backend && target.tapIdentityAppIds?.[game]
+            ? {
+                identityProvider: 'taptap',
+                identityAppId: target.tapIdentityAppIds[game],
+              }
+            : {}),
         };
       }),
     ),
@@ -282,6 +291,7 @@ export async function main(
             local: Boolean(config.localBackend),
             output: targetOutput,
             batch,
+            tapIdentityAppIds: target.tapIdentityAppIds,
           },
           { workspace, env: buildEnv, allowDirty: true, perGame: true, buildOnly: true },
         );

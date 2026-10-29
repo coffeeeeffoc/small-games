@@ -950,8 +950,8 @@ const competitionReviewTools = {
 export const competitionReviewScopePaths = Object.freeze(Object.keys(competitionReviewTools));
 export const submoduleDialogScopePath = 'scripts/test-submodule-dialogs.mjs';
 export const submoduleDialogIds = Object.freeze(['xiangqi-five']);
-// Shared only by the three explicitly configured H5 entrances. Native
-// discovery separately follows real imports; these mappings preserve H5 checks.
+// Three H5 entrances use these services; Night additionally uses the identity adapter and calls.
+// Native discovery separately follows real imports; these mappings preserve H5 checks.
 export const tapServiceSharedScopePaths = Object.freeze([
   'platforms/taptap/browser-entry.mjs',
   'platforms/taptap/calls.mjs',
@@ -1138,7 +1138,21 @@ export function sixH5PresetOnly(source, five = false) {
     );
     assert.equal(cfg.targets.length, 1);
     const target = cfg.targets[0];
-    assert.deepEqual(Object.keys(target).sort(), ['adUnits', 'platform', 'type']);
+    const identity = Object.hasOwn(target, 'tapIdentityAppIds');
+    assert.deepEqual(Object.keys(target).sort(), [
+      'adUnits',
+      'platform',
+      ...(identity ? ['tapIdentityAppIds'] : []),
+      'type',
+    ]);
+    if (identity) {
+      assert(five);
+      assert.deepEqual(Object.keys(target.tapIdentityAppIds), ['night-overwatch']);
+      assert(
+        typeof target.tapIdentityAppIds['night-overwatch'] === 'string' &&
+          /^tap[A-Za-z0-9_-]{4,96}$/.test(target.tapIdentityAppIds['night-overwatch']),
+      );
+    }
     assert.equal(target.platform, 'taptap');
     assert.equal(target.type, 'h5');
     assert.deepEqual(Object.keys(target.adUnits).sort(), [...ids].sort());
@@ -4852,6 +4866,25 @@ export function reviewedSharedFileScopes({
             games.filter((game) => game.id === id && game.source === consumers[index]).length,
             1,
           );
+        }
+        if (
+          ['platforms/taptap/competition-identity.mjs', 'platforms/taptap/calls.mjs'].includes(file)
+        ) {
+          const source = 'games/local/night-overwatch';
+          assert.equal(games.filter((game) => game.id === 'night-overwatch').length, 1);
+          assert.equal(games.filter((game) => game.source === source).length, 1);
+          assert.equal(
+            games.filter((game) => game.id === 'night-overwatch' && game.source === source).length,
+            1,
+          );
+          assert.equal(packages.find((pkg) => pkg.dir === source)?.creator?.version, '3.8.8');
+          assert(
+            importsModule(
+              readHead(source + '/scripts/build.mjs'),
+              '../../../../scripts/h5-game-services.mjs',
+            ),
+          );
+          consumers.push(source);
         }
         consumers.push('apps/shell-web', 'platforms/taptap');
         for (const dir of consumers)

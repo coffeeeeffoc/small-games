@@ -35,6 +35,20 @@ export const root = fileURLToPath(new URL('../', import.meta.url));
 // allowance; the native mini-game verifier keeps its separate 20 MiB budget.
 export const h5ExpandedBudgetBytes = 256 * 1024 * 1024;
 const retained = 'h5-packages';
+export function validateTapIdentityAppIds(value = {}) {
+  assert(
+    value && typeof value === 'object' && !Array.isArray(value),
+    'Invalid TapTap identity apps',
+  );
+  for (const [game, appId] of Object.entries(value))
+    assert(
+      game === 'night-overwatch' &&
+        typeof appId === 'string' &&
+        /^tap[A-Za-z0-9_-]{4,96}$/.test(appId),
+      'Invalid TapTap identity application',
+    );
+  return { ...value };
+}
 export function compilerEnvironment(env = process.env) {
   const allowed =
     /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|LANG|LC_[A-Z_]+|CI|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|HOMEBOUND_STATION_PREBUILT_DIR|MERGE_FRONT_PREBUILT_DIR|TETRACUBE_PREBUILT_DIR|PLACE_AND_CLEAR_PREBUILT_DIR|BULLET_GARDEN_PREBUILT_DIR|TOWER_BRAKE_PREBUILT_DIR|TIANXIA_PREBUILT_DIR|H5_ADS_ENABLED|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|TAPTAP_(?:PORCELAIN_PUZZLE|ASHFALL_FRONT|COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE|CARDING_CAR|VIBEJAM_MYSELF_HISTORY_GUESS|WULONG_CITY|NIGHT_OVERWATCH|TRAVEL_BUND|LETTERS_WORDS2|HOMEBOUND_STATION|MERGE_FRONT|TETRACUBE|PLACE_AND_CLEAR|THREE_CHOOSE_TWO|BULLET_GARDEN|TOWER_BRAKE|TIANXIA_CHALU|BALL_ROGUELITE|FLICK_ARENA|CHASE_THIEF|MOSS_GARDEN|CAGE_RESCUE|EMBER_BOUNCE|FOLD_THE_WORLD|OUT_OF_FRAME|SURPRISE_KEPT|TWO_SIDED_BOX)_(?:AD_UNIT_ID|INTERSTITIAL_AD_UNIT_ID|SERVICES))$/i;
@@ -285,6 +299,7 @@ export async function buildH5Packages(
   } = {},
 ) {
   // Reject incompatible acceptance requests before even creating an output directory.
+  const tapIdentityAppIds = validateTapIdentityAppIds(values.tapIdentityAppIds);
   const selection = acceptanceSelection(values);
   if (selection) {
     const expectedApi = values.local ? localCompetitionApi : productionCompetitionApi;
@@ -458,6 +473,7 @@ export async function buildH5Packages(
               ? await prepareGameServices(game, dist, {
                   env: buildEnv,
                   local: Boolean(values.local),
+                  tapAppId: service ? tapIdentityAppIds[game] || '' : '',
                 })
               : { apiUrl: '' },
           files = await inventory(dist);
@@ -492,6 +508,12 @@ export async function buildH5Packages(
           rewardedAdUnitConfigured: Boolean(adConfig.rewardedAdUnitId),
           interstitialAdUnitConfigured: Boolean(adConfig.interstitialAdUnitId),
           serviceEnabled: service,
+          ...(serviceConfig.identityProvider
+            ? {
+                identityProvider: serviceConfig.identityProvider,
+                identityAppId: serviceConfig.appId,
+              }
+            : {}),
           apiUrl: serviceConfig.apiUrl,
           localValidation: Boolean(values.local),
           sourceSHA,

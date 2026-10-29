@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { readFile } from 'node:fs/promises';
 import { createGameServices, createRunRecorder } from '../game-services.js';
+import { installTapCompetitionIdentity } from '../../taptap/competition-identity.mjs';
 const defer = () => {
   let resolve;
   const promise = new Promise((done) => {
@@ -129,6 +132,128 @@ test('Night durable completion survives lost append response and reload, queryin
   assert.equal(restored.status, 'finished');
   assert.equal(restored.pending, 0);
   assert.ok([...f.values.keys()].some((k) => k.endsWith(':synced')));
+});
+
+test('Night Tap binding recovers only its matching guest journal in place, with no account or API crossover', async () => {
+  const client = await readFile(new URL('../client.js', import.meta.url), 'utf8');
+  for (const mode of [
+    'same-owner',
+    'other-owner',
+    'other-api',
+    'other-app',
+    'no-sdk',
+    'failed-login',
+  ]) {
+    const f = durableFixture(),
+      loginCalls = [];
+    f.owner('a');
+    const cfg = { game: 'night-overwatch', platform: 'h5', apiUrl: 'https://api.example.test/v1' };
+    const root = { URL, Date, tap: { login: ({ success }) => success({ code: 'official-code' }) } };
+    vm.runInNewContext(client, root);
+    const request = async (path, body, owner) => {
+      loginCalls.push({ path, body, owner });
+      if (path === '/sessions/logout') return {};
+      if (path === '/sessions/guest') return credential('a', undefined, cfg.game);
+      assert.equal(path, '/sessions/platform');
+      if (mode === 'failed-login') throw Object.assign(Error(), { code: 'SERVICE_UNAVAILABLE' });
+      const id = ['other-owner', 'other-app'].includes(mode) ? 'b' : 'a';
+      return {
+        ...credential(id, undefined, cfg.game),
+        identityKind: 'platform',
+        sessionId: 'cccccccc-0000-4000-8000-000000000001',
+        token: 'c'.repeat(64),
+      };
+    };
+    const old = root.__createCompetitionIdentity({ config: cfg, storage: f.storage, request });
+    Object.assign(f.services, {
+      config: cfg,
+      authority: old.authority,
+      session: () => old.current(),
+    });
+    const original = f.recorder();
+    await original.start({ mode: 'campaign', levelId: 'first' });
+    original.record({ fire: true }, 120);
+    f.offline(true);
+    await original.finish();
+    const journalKey = [...f.values.keys()].find((key) => key.startsWith('night-pending-run-v1:'));
+    const raw = f.values.get(journalKey),
+      before = JSON.parse(raw);
+    f.offline(false);
+    f.calls.length = loginCalls.length = 0;
+    if (mode === 'no-sdk') root.tap = undefined;
+    installTapCompetitionIdentity(root);
+    const config = {
+      ...cfg,
+      identityProvider: 'taptap',
+      appId: mode === 'other-app' ? 'tap-other' : 'tap-night-test',
+      ...(mode === 'other-api' ? { apiUrl: 'https://other.example.test/v1' } : {}),
+    };
+    const auth = root.__createCompetitionIdentity({ config, storage: f.storage, request });
+    const services = {
+      ...f.services,
+      config,
+      authority: auth.authority,
+      legacyGuestAuthority: auth.legacyGuestAuthority,
+      session: () => auth.current(),
+    };
+    const restored = createRunRecorder(services, { durable: { storage: f.storage } });
+    await restored.recover();
+    assert(!loginCalls.some((call) => call.path === '/sessions/guest'), mode);
+    if (mode === 'same-owner') {
+      assert.equal(
+        loginCalls.find((call) => call.path === '/sessions/platform').owner.playerId,
+        'a',
+      );
+      assert.equal(restored.status, 'finished');
+      assert.deepEqual(f.calls, ['get', 'append', 'finish']);
+      assert.equal(f.values.has(journalKey), false);
+      const done = JSON.parse(f.values.get(journalKey + ':synced'));
+      assert.equal(done.requestId, before.requestId);
+      assert.equal(done.id, before.id);
+      assert.deepEqual(f.runs.get(before.id).batches, before.batches);
+      original.persist(); // A late guest tab cannot resurrect data after the new session acknowledged it.
+      assert.equal(f.values.has(journalKey), false);
+      f.calls.length = 0;
+      await restored.recover();
+      assert.deepEqual(f.calls, []);
+      assert(
+        ![...f.values.keys()].some((key) =>
+          key.startsWith('night-pending-run-v1:' + encodeURIComponent(auth.authority)),
+        ),
+      );
+    } else {
+      assert.deepEqual(f.calls, [], mode);
+      assert.equal(f.values.get(journalKey), raw, mode);
+      assert.equal(f.values.has(journalKey + ':synced'), false, mode);
+    }
+  }
+});
+
+test('a Tap app cannot recover another app journal even for the same player, and pending guest tails are not submitted', async () => {
+  for (const unfinished of [false, true]) {
+    const f = durableFixture();
+    const guest = 'https://api.example.test/v1|h5||night-overwatch';
+    f.services.authority = unfinished
+      ? guest
+      : 'https://api.example.test/v1|h5|tap-platform-v1:tap-first|night-overwatch';
+    const original = f.recorder();
+    await original.start({ mode: 'campaign', levelId: 'first' });
+    original.record({}, 120);
+    f.offline(true);
+    if (unfinished) original.persist();
+    else await original.finish();
+    const saved = [...f.values];
+    f.offline(false);
+    f.calls.length = 0;
+    Object.assign(f.services, {
+      config: { ...f.services.config, identityProvider: 'taptap' },
+      authority: 'https://api.example.test/v1|h5|tap-platform-v1:tap-second|night-overwatch',
+      legacyGuestAuthority: guest,
+    });
+    await f.recorder().recover();
+    assert.deepEqual(f.calls, []);
+    assert.deepEqual([...f.values], saved);
+  }
 });
 test('Night lost finish response, expired session and duplicate recovery preserve one settlement', async () => {
   const f = durableFixture(),

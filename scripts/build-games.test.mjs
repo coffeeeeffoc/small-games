@@ -317,6 +317,56 @@ test('H5 targets isolate public IDs and retain the batch index', async () => {
     await rm(folder, { recursive: true, force: true });
   }
 });
+
+test('Night login is an explicit public H5 target option, isolated from other games and ambient IDs', async () => {
+  const tapIdentityAppIds = { 'night-overwatch': 'tapmcjgwi2thafs87k' };
+  const raw = {
+    ...h5Configuration,
+    games: ['night-overwatch', 'carding-car'],
+    apiUrl: 'https://api.example.test/v1',
+    backend: [false, true],
+    targets: [{ platform: 'taptap', type: 'h5', tapIdentityAppIds }],
+  };
+  const jobs = gameBuildPlan(parseGameBuildConfig(raw));
+  assert.deepEqual(
+    jobs
+      .filter((job) => job.identityProvider)
+      .map((job) => [job.game, job.backend, job.identityAppId]),
+    [['night-overwatch', true, tapIdentityAppIds['night-overwatch']]],
+  );
+  for (const value of [
+    null,
+    [],
+    { 'carding-car': 'tap-other' },
+    { 'night-overwatch': '' },
+    { 'night-overwatch': '987511' },
+    { 'night-overwatch': { secret: 'must-not-accept' } },
+  ])
+    assert.throws(() =>
+      parseGameBuildConfig({ ...raw, targets: [{ ...raw.targets[0], tapIdentityAppIds: value }] }),
+    );
+  const folder = await mkdtemp(path.join(tmpdir(), 'night-login-dispatch-'));
+  try {
+    for (const enabled of [true, false])
+      await main(['--config', 'test.json'], {
+        workspace: folder,
+        read: async () =>
+          JSON.stringify({
+            ...raw,
+            targets: [{ ...raw.targets[0], ...(enabled ? {} : { tapIdentityAppIds: undefined }) }],
+          }),
+        env: { TAPTAP_NIGHT_OVERWATCH_APP_ID: 'ambient-app', TAPTAP_APP_ID: 'ambient-app' },
+        build: async (values, options) => {
+          assert.deepEqual(values.tapIdentityAppIds, enabled ? tapIdentityAppIds : {});
+          assert.equal(options.env.TAPTAP_NIGHT_OVERWATCH_APP_ID, undefined);
+          assert.equal(options.env.TAPTAP_APP_ID, undefined);
+          return { variants: [] };
+        },
+      });
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});
 test('configuration requires explicit targets and variants, without accepting credential-bearing URLs', () => {
   assert.deepEqual(parseGameBuildConfig(configuration).modes, [
     [false, false],

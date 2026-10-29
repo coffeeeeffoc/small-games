@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import vm from 'node:vm';
 import { compilerEnvironment, buildH5Packages } from './h5-taptap-build.mjs';
 import { acceptanceSelection } from './h5-taptap-matrix.mjs';
 
@@ -65,6 +66,90 @@ test('compiler environment fixes child memory/thread limits and never inherits a
     NODE_OPTIONS: '--max-old-space-size=512',
     UV_THREADPOOL_SIZE: '1',
   });
+});
+
+test('Night Tap login packages install the real bridge only for the configured online game', async () => {
+  const workspace = await mkdtemp(path.join(tmpdir(), 'night-h5-login-'));
+  const tapIdentityAppIds = { 'night-overwatch': 'tapmcjgwi2thafs87k' };
+  try {
+    for (const game of ['night-overwatch', 'carding-car'])
+      await mkdir(path.join(workspace, 'games/local', game), { recursive: true });
+    const result = await buildH5Packages(
+      {
+        games: ['night-overwatch', 'carding-car'],
+        modes: [
+          [false, true],
+          [false, false],
+        ],
+        output: 'outputs/login',
+        batch: 'login',
+        tapIdentityAppIds,
+      },
+      {
+        workspace,
+        allowDirty: true,
+        buildOnly: true,
+        env: { COMPETITION_PUBLIC_API_URL: 'https://api.example.test/v1' },
+        compile: async ({ buildOutput }) =>
+          writeFile(
+            path.join(buildOutput, 'index.html'),
+            '<html><head></head><body></body></html>',
+          ),
+      },
+    );
+    for (const variant of result.variants) {
+      const dist = path.join(result.output, variant.name, 'dist');
+      const config = await readFile(path.join(dist, 'game-service-config.js'), 'utf8');
+      const bootstrap = await readFile(path.join(dist, 'game-services/game-bootstrap.js'), 'utf8');
+      const enabled = variant.game === 'night-overwatch' && variant.serviceEnabled;
+      assert.equal(config.includes('"identityProvider":"taptap"'), enabled);
+      assert.equal(bootstrap.includes('installTapCompetitionIdentity();'), enabled);
+      assert.equal(
+        variant.identityAppId,
+        enabled ? tapIdentityAppIds['night-overwatch'] : undefined,
+      );
+      assert.equal(
+        variant.files.some((file) => file.path === 'game-services/competition-identity.mjs'),
+        enabled,
+      );
+      if (enabled) {
+        assert.equal(
+          await readFile(path.join(dist, 'game-services/competition-identity.mjs'), 'utf8'),
+          await readFile(
+            new URL('../platforms/taptap/competition-identity.mjs', import.meta.url),
+            'utf8',
+          ),
+        );
+        assert(
+          bootstrap.indexOf('installTapCompetitionIdentity();') <
+            bootstrap.indexOf('connectGameServices();'),
+        );
+      }
+      if (!variant.serviceEnabled) {
+        const root = {
+          window: {},
+          createGameServices() {
+            throw Error('Offline package attempted login');
+          },
+        };
+        vm.runInNewContext(
+          config +
+            bootstrap.replace(/^import .*;\s*$/gm, '').replace('export function', 'function'),
+          root,
+        );
+        assert.equal(root.SmallGamesServices, undefined);
+      }
+    }
+    await assert.rejects(
+      buildH5Packages(
+        { tapIdentityAppIds: { 'night-overwatch': 'bad' } },
+        { workspace: 'does-not-exist' },
+      ),
+      /Invalid TapTap identity/,
+    );
+  } finally {
+    await rm(workspace, { recursive: true, force: true });
+  }
 });
 test('profile conflicts fail before inspecting a workspace or creating package outputs', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'h5-profile-contract-'));

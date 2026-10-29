@@ -60,7 +60,11 @@ export default {
 
 `ads` 与 `backend` 为布尔数组，按所有组合生成包；目标内可覆盖全局值。原三款广告开启时必须填写所选游戏的 H5 广告位；新增六款的空广告位会关闭奖励入口。后端关闭会清空产物的 API 地址，开启时要求公开 HTTPS；`localBackend: true` 只允许本机 H5 的 loopback HTTP。缺失配置会在首款编译前报错。
 
-夜航守望的 H5 `backend: true` 沿用游客身份，不自动启用 TapTap 官方登录。2026-10-29 修正了构建器仅凭联网开关就注入 `identityProvider: "taptap"` 的回归：服务端身份配置尚未完成时，这会让原本可用的联机变为不可用。显式身份适配仍保留，须完成服务端 Secret 配置和真实换码验收再启用；不得在平台登录失败后静默换成游客。此修复不改变原生 TapTap 的独立身份入口。
+夜航守望的 H5 `backend: true` 默认沿用游客身份；通过目标中的 `tapIdentityAppIds: { 'night-overwatch': 'tapmcjgwi2thafs87k' }` 显式启用 TapTap 登录。当前只接受夜航的公开 MiniApp ID；根配置与五款预设已启用，离线变体不安装登录桥接。普通 Web 构建仍用游客身份，不能仅凭联网开关启用平台登录，也不得在平台登录失败后静默换成游客。
+
+登录包先安装共享 Tap 身份适配器，再建立服务；使用 `tap.login` 的临时 code 由 Runtime 换取 openid。首次绑定可验证的旧游客时保留 playerId、昵称和服务端成绩；Tap 账号已有另一玩家时登录该玩家，原游客记录不合并。旧游客已完成的待同步日志保留原 key，只能由同一 playerId 的已验证平台会话补传。构建清单记录 `identityProvider` 和 `identityAppId`。
+
+MiniApp Secret 只配置到 Runtime 的 `COMPETITION_PLATFORM_CONFIG`，通过既有 `deploy:backend --services=runtime --platform-config-file=<私密JSON文件>` 合并；字段为 `platform/appId/secret/games`。本地 `.env.taptap.info.yaml` 是私密配置来源，不会自动注入构建或服务器；不要把 Server Secret 当成小游戏登录密钥。凭证接口校验、真实用户 code 换码和宿主验收分别留证。此配置不改变原生 TapTap 的独立身份入口。
 
 版本 1 配置继续读取，沿用旧 H5 输出布局。升级版本 2 时将 `adUnits` 放到目标中。
 

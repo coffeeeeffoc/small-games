@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
+import { setImmediate } from 'node:timers';
 import { installTapCompetitionIdentity } from '../competition-identity.mjs';
 import { createTapGameServices } from '../game-services.mjs';
 import { tapCall } from '../calls.mjs';
@@ -527,6 +528,7 @@ test('Night first verified login carries only its authenticated guest proof, and
     .current();
   installTapCompetitionIdentity(root);
   const auth = root.__createCompetitionIdentity({ config: cfg, storage, request });
+  assert.equal(auth.legacyGuestAuthority, `${config.apiUrl}|h5||night-overwatch`);
   assert.equal((await auth.current()).playerId, 'old-night-id');
   assert.equal(calls.find((c) => c.path === '/sessions/platform').owner.token, guest.token);
   storage.map.clear();

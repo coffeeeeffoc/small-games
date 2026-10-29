@@ -1128,6 +1128,34 @@ test('Cocos branding implementation and its test trigger the actual branding con
   }
 });
 
+test('five H5 preset accepts only a literal Night Tap login application alongside its existing targets', () => {
+  const preset = readFileSync(
+    new URL('../infra/builds/five-taptap-h5.mjs', import.meta.url),
+    'utf8',
+  );
+  const entry = "tapIdentityAppIds: { 'night-overwatch': 'tapmcjgwi2thafs87k' },";
+  assert(preset.includes(entry));
+  assert(sixH5PresetOnly(preset, true));
+  assert(sixH5PresetOnly(preset.replace(entry, ''), true));
+  for (const changed of [
+    preset.replace(entry, "tapIdentityAppIds: { 'carding-car': 'tapmcjgwi2thafs87k' },"),
+    preset.replace(entry, "tapIdentityAppIds: { 'night-overwatch': '987511' },"),
+    preset.replace(
+      entry,
+      "tapIdentityAppIds: { 'night-overwatch': 'tapmcjgwi2thafs87k', secret: 'unexpected' },",
+    ),
+    preset.replace(entry, entry + ' unknown: true,'),
+    preset.replace(entry, 'tapIdentityAppIds: makeIdentity(),'),
+    preset + '\nprocess.exit(0);',
+  ])
+    assert.equal(sixH5PresetOnly(changed, true), false);
+  const offline = readFileSync(
+    new URL('../infra/builds/six-taptap-h5.mjs', import.meta.url),
+    'utf8',
+  );
+  assert.equal(sixH5PresetOnly(offline.replace("type: 'h5',", "type: 'h5', " + entry)), false);
+});
+
 test('new H5 acceptance helpers have finite unit-only scope and unknown siblings remain blocked', () => {
   for (const file of h5AcceptanceScopePaths.filter(
     (file) => !competitionServiceScopePaths.includes(file),

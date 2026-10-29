@@ -32,6 +32,7 @@ export default {
       type: 'h5',
       ads: [true],
       backend: [true],
+      tapIdentityAppIds: { 'night-overwatch': 'tapmcjgwi2thafs87k' },
       adUnits: {
         // 'cops-robbers': '1054324',
         // 'cops-robbers-realtime': '1054324',
