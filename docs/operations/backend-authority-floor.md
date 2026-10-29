@@ -22,6 +22,16 @@
 
 Runtime 更新仍保留既有 Kart namespace 伴随重建规则；Kart-only 更新会验证受保护 Runtime 的能力和前提，但不把 Runtime 加入 selected。镜像 override 只能添加上述两个固定公开变量，继续使用当前已验证的 Compose context 和不透明 private env 文件引用。回退不恢复旧数据库、角色、控制发布或 killEpoch。
 
+### 私密平台登录配置
+
+`deploy:backend --services=runtime --platform-config-file=<本机私密 JSON 文件绝对路径>` 可同时补入一个平台应用的登录配置。文件是单个对象，字段为 `platform`、`appId`、`secret`、`games`，与 Runtime 的 `COMPETITION_PLATFORM_CONFIG` 条目一致；夜航使用 `platform=taptap`、`appId=tapmcjgwi2thafs87k`、`games=["night-overwatch"]`。必须先确认小游戏服务端 Secret 被 TapTap 官方接口接受。配置文件不提交 Git；此参数不能与 prepare、check、rollback 或不含 Runtime 的服务选择组合。
+
+文件内容只随最终 SSH stdin 传入，不能放进参数、构建环境、镜像、上传包、manifest 或回执。服务器在现有发布锁中读取 Runtime 的该单个配置项，按 `(platform, appId)` 合并密钥及游戏范围，保留其他应用与已授权游戏。新配置写入 `backend-private/<release>/platform-login.json`，目录 0700、文件 0600；仅覆盖 Runtime 的 `COMPETITION_PLATFORM_CONFIG`，对 `$` 做 Compose 转义。上线后比较实际容器内配置，失败则恢复原配置和镜像。
+
+事务日志只记录私密配置文件的 SHA-256。手动回滚校验当前配置路径、摘要和限定结构，只移除本次平台配置文件；保留当前 Compose 的其他配置层，不执行历史 Compose 内容。回滚失败时恢复回滚前的配置。后续普通镜像更新继承当前平台配置；历史镜像 override 的环境变量白名单不放宽。数据库备份、活动对局检查、健康、边界与能力下限照常执行。
+
+同一 MiniApp ID 下，玩家身份按官方换码得到的 `openid` 在数据库中关联。版本号不参与玩家主键。首次携带有效游客凭证绑定可保留原 UUID、昵称和成绩；之后重新取得真实 `tap.login` code 即可恢复原 ID。首次绑定前丢失游客凭证、使用不同应用或不同数据库，均不能据此声称原游客身份可恢复。测试桩和隔离 PostgreSQL 验证不能替代真实 TapTap 账号的首次绑定、升级冷启动与清缓存恢复验收。
+
 ## 探针资源与失败诊断
 
 每次探针用 UUID label 和精确名称执行 `docker create`，捕获完整实际 container ID。容器使用 network none、只读根文件系统、256 MiB 内存及 swap 上限、32 PID、0.5 CPU、node 用户、drop ALL、no-new-privileges，并禁用 healthcheck；不传环境、挂载或端口。镜像声明的 volume 在 create 前拒绝。

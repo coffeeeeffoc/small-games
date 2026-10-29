@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { randomBytes, createHash } from 'node:crypto';
-import { mkdir, cp, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, cp, lstat, realpath, readFile, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
@@ -38,6 +38,7 @@ export function backendInput(args) {
       prepare: { type: 'boolean' },
       check: { type: 'boolean' },
       rollback: { type: 'string' },
+      'platform-config-file': { type: 'string' },
       help: { type: 'boolean' },
     },
   });
@@ -51,6 +52,15 @@ export function backendInput(args) {
   );
   assert([values.prepare, values.check, values.rollback].filter(Boolean).length <= 1, 'ARGUMENTS');
   if (values.rollback) assert(/^[a-z0-9-]{1,100}$/.test(values.rollback), 'ARGUMENTS');
+  if (values['platform-config-file'] !== undefined)
+    assert(
+      values['platform-config-file'].trim() &&
+        services.includes('runtime') &&
+        !values.prepare &&
+        !values.check &&
+        !values.rollback,
+      'ARGUMENTS',
+    );
   return {
     mode: values.prepare
       ? 'prepare'
@@ -61,7 +71,49 @@ export function backendInput(args) {
           : 'execute',
     services,
     release: values.rollback,
+    ...(values['platform-config-file']
+      ? { platformConfigFile: values['platform-config-file'] }
+      : {}),
   };
+}
+export function platformConfiguration(text) {
+  try {
+    const value = JSON.parse(text);
+    assert(value && !Array.isArray(value) && typeof value === 'object');
+    assert.deepEqual(Object.keys(value).sort(), ['appId', 'games', 'platform', 'secret']);
+    assert(['wechat', 'bilibili', 'douyin', 'kuaishou', 'taptap'].includes(value.platform));
+    assert(typeof value.appId === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(value.appId));
+    assert(typeof value.secret === 'string' && /^[\x21-\x7e]{16,512}$/.test(value.secret));
+    assert(Array.isArray(value.games) && value.games.length > 0 && value.games.length <= 32);
+    assert(new Set(value.games).size === value.games.length);
+    assert(
+      value.games.every(
+        (game) => typeof game === 'string' && /^[a-zA-Z][a-zA-Z0-9-]{0,99}$/.test(game),
+      ),
+    );
+    return value;
+  } catch {
+    throw Error('PLATFORM_CONFIG');
+  }
+}
+export async function readPlatformConfiguration(file, workspace = root) {
+  try {
+    const info = await lstat(file);
+    assert(info.isFile() && info.nlink === 1 && info.size <= 8192);
+    const location = await realpath(file),
+      base = await realpath(workspace);
+    const relative = path.relative(base, location);
+    const external =
+      path.isAbsolute(relative) || relative === '..' || relative.startsWith('..' + path.sep);
+    // Only root-local ignored env files are allowed inside the checkout; build trees are copied recursively.
+    assert(
+      external ||
+        (path.dirname(location) === base && /^\.env\..+\.local$/.test(path.basename(location))),
+    );
+    return platformConfiguration(await readFile(file, 'utf8'));
+  } catch {
+    throw Error('PLATFORM_CONFIG');
+  }
 }
 export function backendDockerfile(services) {
   assert(services.length && services.every((name) => allowed.includes(name)), 'BACKEND_SELECTION');
@@ -245,7 +297,7 @@ export async function main(args = process.argv.slice(2)) {
   const input = backendInput(args);
   if (input.mode === 'help') {
     console.log(
-      'pnpm deploy:backend --services=runtime[,kart,tianxia] [--prepare|--check|--rollback=release]\n只更新已存在的选定后端，不创建数据库、不执行迁移、不部署官网或游戏；Runtime的Kart namespace依赖会明确重建。',
+      'pnpm deploy:backend --services=runtime[,kart,tianxia] [--prepare|--check|--rollback=release] [--platform-config-file=private.json]\n只更新已存在的选定后端；平台密钥文件仅用于 Runtime 正式更新，经 SSH stdin 传入，不进入部署包。',
     );
     return;
   }
@@ -295,6 +347,9 @@ export async function main(args = process.argv.slice(2)) {
   }
   const head = git(['rev-parse', 'HEAD']);
   sourceGuard(head);
+  const platformConfig = input.platformConfigFile
+    ? await readPlatformConfiguration(path.resolve(input.platformConfigFile))
+    : undefined;
   console.log(
     `BACKEND_SCOPE ${input.services.join(',')} quality_checks=not-run database_migrations=none`,
   );
@@ -356,6 +411,7 @@ export async function main(args = process.argv.slice(2)) {
       sourceSHA: head,
       services: input.services,
       caddyDirectory: config.caddyDirectory,
+      ...(platformConfig ? { platformConfig } : {}),
     }),
   });
   const receipt = backendReceipt(text, input.services);

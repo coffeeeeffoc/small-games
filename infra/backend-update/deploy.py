@@ -1,4 +1,4 @@
-"""Image-only updates of explicitly selected, already provisioned services."""
+"""Updates of selected existing services, with optional private platform credentials."""
 import contextlib
 import hashlib
 import http.client
@@ -330,6 +330,91 @@ def historical_rollback_labels(release, images):
     return labels
 
 
+def platform_entry(value, games_required=True):
+    require(isinstance(value, dict) and set(value) <= {'platform', 'appId', 'secret', 'games'}
+            and set(value) >= {'platform', 'appId', 'secret'}, 'PLATFORM_CONFIG')
+    require(value['platform'] in ('wechat', 'bilibili', 'douyin', 'kuaishou', 'taptap')
+            and isinstance(value['appId'], str) and re.fullmatch(r'[A-Za-z0-9_-]{1,100}', value['appId'])
+            and isinstance(value['secret'], str) and re.fullmatch(r'[\x21-\x7e]{16,512}', value['secret']), 'PLATFORM_CONFIG')
+    games = value.get('games')
+    require((not games_required and 'games' not in value) or (isinstance(games, list) and 0 < len(games) <= 32
+            and all(isinstance(game, str) and re.fullmatch(r'[a-zA-Z][a-zA-Z0-9-]{0,99}', game) for game in games)
+            and len(set(games)) == len(games)), 'PLATFORM_CONFIG')
+    return value
+
+
+def read_platform_config(item):
+    data = command('docker', 'exec', item['id'], 'node', '-e',
+                   "process.stdout.write(process.env.COMPETITION_PLATFORM_CONFIG || '[]')", timeout=10)
+    require(len(data) <= 65536, 'PLATFORM_CONFIG')
+    try:
+        value = json.loads(data)
+    except (ValueError, TypeError):
+        raise Stopped('PLATFORM_CONFIG') from None
+    require(isinstance(value, list), 'PLATFORM_CONFIG')
+    keys = []
+    for entry in value:
+        platform_entry(entry, False)
+        keys.append((entry['platform'], entry['appId']))
+    require(len(keys) == len(set(keys)), 'PLATFORM_CONFIG')
+    return value
+
+
+def merge_platform_config(current, incoming):
+    platform_entry(incoming)
+    result, found = [], False
+    for entry in current:
+        if (entry['platform'], entry['appId']) == (incoming['platform'], incoming['appId']):
+            result.append({**incoming, 'games': list(dict.fromkeys([*entry.get('games', []), *incoming['games']]))})
+            found = True
+        else:
+            result.append(entry)
+    if not found:
+        result.append(incoming)
+    for entry in result:
+        platform_entry(entry, False)
+    require(len(json.dumps(result).encode()) <= 65536, 'PLATFORM_CONFIG')
+    return result
+
+
+def validate_platform_config(item, config):
+    # Use the deployed Runtime's actual enum/schema before stopping any service.
+    script = ("import {platformConfigSchema} from '/app/services/runtime-api/dist/competition/platform-login.js';"
+              "let body='';for await(const chunk of process.stdin)body+=chunk;"
+              "try{if(!platformConfigSchema.safeParse(JSON.parse(body)).success)process.exit(1)}catch{process.exit(1)}")
+    command('docker', 'exec', '-i', item['id'], 'node', '--input-type=module', '-e', script,
+            input=json.dumps(config).encode(), timeout=10)
+
+
+def platform_override(file, config):
+    # Compose interpolation must not interpret dollar signs in a platform credential.
+    value = json.dumps(config).replace('$', '$$')
+    body = json.dumps({'services': {'runtime': {'environment': {'COMPETITION_PLATFORM_CONFIG': value}}}}).encode()
+    write_private(file, body)
+    return hashlib.sha256(body).hexdigest()
+
+
+def platform_rollback_contexts(release, journal, contexts):
+    file = PRIVATE / release.name / 'platform-login.json'
+    digest = journal.get('platformConfigSHA256')
+    if digest is None:
+        require(all(str(file) not in context.get('files', []) for context in contexts.values()), 'ROLLBACK_GUARD')
+        return contexts
+    require(isinstance(digest, str) and re.fullmatch(r'[a-f0-9]{64}', digest), 'ROLLBACK_GUARD')
+    value = private_json(file)
+    require(hashlib.sha256(file.read_bytes()).hexdigest() == digest
+            and isinstance(value, dict) and set(value) == {'services'}
+            and isinstance(value['services'], dict) and set(value['services']) == {'runtime'}
+            and isinstance(value['services']['runtime'], dict) and set(value['services']['runtime']) == {'environment'}, 'ROLLBACK_GUARD')
+    env = value['services']['runtime']['environment']
+    require(isinstance(env, dict) and set(env) == {'COMPETITION_PLATFORM_CONFIG'}
+            and isinstance(env['COMPETITION_PLATFORM_CONFIG'], str), 'ROLLBACK_GUARD')
+    require(all(context['files'].count(str(file)) == 1 for context in contexts.values()), 'ROLLBACK_GUARD')
+    # Remove only this verified configuration revision from the live context, never replay history.
+    return {name: {**context, 'files': [item for item in context['files'] if item != str(file)]}
+            for name, context in contexts.items()}
+
+
 def recreate(contexts, override_file, names):
     for name in ['runtime', 'kart', 'tianxia']:
         if name in names:
@@ -414,6 +499,11 @@ def execute(release, manifest, config, selected, companions, contexts, protectio
     # Ordinary deployment requires a compatible recovery image before any mutation.
     require_authority(old_images, 'AUTHORITY_FALLBACK_REQUIRED')
     guard_authority_state(selected)
+    previous_platform = merged_platform = None
+    if 'platformConfig' in config:
+        previous_platform = read_platform_config(selected['runtime'])
+        merged_platform = merge_platform_config(previous_platform, config['platformConfig'])
+        validate_platform_config(selected['runtime'], merged_platform)
     revision = PRIVATE / release.name
     private_directory(PRIVATE)
     private_directory(revision)
@@ -425,12 +515,19 @@ def execute(release, manifest, config, selected, companions, contexts, protectio
     new_id = text('docker', 'image', 'inspect', image, '--format', '{{.Id}}')
     images = {name: new_id if name in manifest['services'] else item['image'] for name, item in selected.items()}
     capabilities = require_authority(images)
+    active_contexts = contexts
+    platform_digest = None
+    if merged_platform is not None:
+        platform_file = revision / 'platform-login.json'
+        platform_digest = platform_override(platform_file, merged_platform)
+        active_contexts = {name: {**context, 'files': [*context['files'], str(platform_file)]}
+                           for name, context in contexts.items()}
     update_file, rollback_file = revision / 'update.json', revision / 'rollback.json'
     override(update_file, images, {name: release.name for name in selected})
     override(rollback_file, old_images, {name: item['update'] for name, item in selected.items()})
-    for context in contexts.values():
-        compose(context, update_file, 'config', '--quiet')
-        compose(context, rollback_file, 'config', '--quiet')
+    for name in contexts:
+        compose(active_contexts[name], update_file, 'config', '--quiet')
+        compose(contexts[name], rollback_file, 'config', '--quiet')
     guard_games(selected)
     pg = inventory('small-games', 'postgres')['id'] if 'runtime' in selected else None
     old_schema = schema_hash(pg) if pg else None
@@ -439,6 +536,8 @@ def execute(release, manifest, config, selected, companions, contexts, protectio
     journal = {'selected': list(selected), 'contexts': contexts, 'oldImages': old_images,
                'images': images, 'schemaHash': old_schema, 'backupSHA256': backup_hash,
                'sourceSHA': manifest['sourceSHA'], 'release': release.name, 'companions': companions}
+    if platform_digest:
+        journal['platformConfigSHA256'] = platform_digest
     write_private(revision / 'journal.json', json.dumps(journal).encode())
     # The backup may take time; refuse an update if a game started meanwhile.
     guard_games(selected)
@@ -450,15 +549,19 @@ def execute(release, manifest, config, selected, companions, contexts, protectio
         if 'runtime' in selected and 'kart' in selected:
             command('docker', 'rm', selected['kart']['id'])
         stage('service_start')
-        recreate(contexts, update_file, selected)
+        recreate(active_contexts, update_file, selected)
         stage('https_probe')
         active = health(selected, images)
+        if merged_platform is not None:
+            require(read_platform_config(active['runtime']) == merged_platform, 'PLATFORM_CONFIG')
         assert_boundaries(selected, active)
         require(not pg or schema_hash(pg) == old_schema, 'SCHEMA_CHANGED')
         assert_protected(protection)
     except Exception:
         try:
             restored = restore(journal, rollback_file)
+            if previous_platform is not None:
+                require(read_platform_config(restored['runtime']) == previous_platform, 'PLATFORM_CONFIG')
             assert_boundaries(selected, restored)
             require(not pg or schema_hash(pg) == old_schema, 'SCHEMA_CHANGED')
             assert_protected(protection)
@@ -472,9 +575,10 @@ def execute(release, manifest, config, selected, companions, contexts, protectio
 
 def rollback_update(release, manifest, selected, contexts, protection):
     journal = private_json(PRIVATE / release.name / 'journal.json')
-    require(isinstance(journal, dict) and set(journal) == {
+    journal_keys = {
         'selected', 'contexts', 'oldImages', 'images', 'schemaHash', 'backupSHA256',
-        'sourceSHA', 'release', 'companions'}, 'ROLLBACK_GUARD')
+        'sourceSHA', 'release', 'companions'}
+    require(isinstance(journal, dict) and set(journal) in (journal_keys, journal_keys | {'platformConfigSHA256'}), 'ROLLBACK_GUARD')
     companions = ['kart'] if 'runtime' in manifest['services'] and 'kart' not in manifest['services'] and 'kart' in selected else []
     require(journal['release'] == release.name and journal['sourceSHA'] == manifest['sourceSHA']
             and isinstance(journal['selected'], list) and len(journal['selected']) == len(selected)
@@ -494,10 +598,11 @@ def rollback_update(release, manifest, selected, contexts, protection):
     for image in journal['oldImages'].values():
         require(text('docker', 'image', 'inspect', image, '--format', '{{.Id}}') == image, 'ROLLBACK_IMAGE')
     # Historical files supply labels/images only, never executable Compose context.
-    journal = {**journal, 'contexts': contexts}
+    rollback_contexts = platform_rollback_contexts(release, journal, contexts)
+    journal = {**journal, 'contexts': rollback_contexts}
     rollback_file = PRIVATE / release.name / ('reviewed-rollback-' + os.urandom(6).hex() + '.json')
     override(rollback_file, journal['oldImages'], historical_rollback_labels(release, journal['oldImages']))
-    for context in contexts.values():
+    for context in rollback_contexts.values():
         compose(context, rollback_file, 'config', '--quiet')
     fallback = PRIVATE / release.name / ('failback-' + os.urandom(6).hex() + '.json')
     override(fallback, current_images, {name: item['update'] for name, item in selected.items()})
@@ -533,6 +638,9 @@ def main(args=None, payload=None):
     expected = {'services', 'caddyDirectory', 'release'}
     if args[0] == '--execute':
         expected.add('sourceSHA')
+        if 'platformConfig' in payload:
+            expected.add('platformConfig')
+            platform_entry(payload['platformConfig'])
     require(set(payload) == expected if args[0] != '--check' else
             'services' in payload and set(payload) <= {'services', 'caddyDirectory'}, 'CONFIG')
     if args[0] != '--check':
@@ -541,6 +649,7 @@ def main(args=None, payload=None):
     services = payload.get('services')
     require(isinstance(services, list) and services and len(set(services)) == len(services)
             and all(name in ALLOWED for name in services), 'BACKEND_SELECTION')
+    require('platformConfig' not in payload or 'runtime' in services, 'BACKEND_SELECTION')
     selected, companions, contexts = selected_inventory(services)
     if args[0] == '--check':
         print(json.dumps({'ok': True, 'readOnly': True, 'services': services,

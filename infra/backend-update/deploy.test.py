@@ -1,4 +1,5 @@
 import importlib.util
+import contextlib
 import json
 from pathlib import Path
 import subprocess
@@ -19,6 +20,131 @@ def item(name, image='a', revision='candidate'):
 
 
 class BackendContracts(unittest.TestCase):
+    def test_platform_config_merge_preserves_other_apps_and_existing_games(self):
+        incoming = {'platform': 'taptap', 'appId': 'night-app', 'secret': 'NEW_PRIVATE_${CANARY}', 'games': ['night-overwatch']}
+        other = {'platform': 'wechat', 'appId': 'other-app', 'secret': 'OLD_OTHER_PRIVATE', 'games': ['vibeJam-myself-history-guess']}
+        current = [other, {**incoming, 'secret': 'OLD_NIGHT_PRIVATE', 'games': ['carding-car']}]
+        result = backend.merge_platform_config(current, incoming)
+        self.assertEqual(result[0], other)
+        self.assertEqual(result[1]['games'], ['carding-car', 'night-overwatch'])
+        self.assertEqual(current[1]['secret'], 'OLD_NIGHT_PRIVATE')
+        self.assertEqual(backend.merge_platform_config([other], incoming), [other, incoming])
+        with tempfile.TemporaryDirectory() as directory:
+            file = Path(directory) / 'platform.json'
+            backend.platform_override(file, result)
+            value = backend.private_json(file)
+            self.assertEqual(file.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(set(value['services']), {'runtime'})
+            env = value['services']['runtime']['environment']
+            self.assertEqual(set(env), {'COMPETITION_PLATFORM_CONFIG'})
+            self.assertIn('$${CANARY}', env['COMPETITION_PLATFORM_CONFIG'])
+            self.assertEqual(json.loads(env['COMPETITION_PLATFORM_CONFIG'].replace('$$', '$')), result)
+
+    def test_platform_payload_rejects_extensions_and_wrong_target_before_inventory(self):
+        config = {'platform': 'taptap', 'appId': 'app', 'secret': 'PRIVATE_CANARY_123', 'games': ['night-overwatch']}
+        payload = {'services': ['runtime'], 'release': 'candidate', 'sourceSHA': 'a' * 40,
+                   'caddyDirectory': '/unused', 'platformConfig': config}
+        for value in [None, [], {**config, 'command': 'unsafe'}, {**config, 'secret': 'short'},
+                      {**config, 'games': []}, {**config, 'games': ['night-overwatch'] * 2},
+                      {**config, 'platform': 'unknown'}, {**config, 'secret': 'PRIVATE_CANARY\nBAD'}]:
+            with patch.object(backend, 'selected_inventory') as inventory:
+                with self.assertRaisesRegex(backend.Stopped, '^PLATFORM_CONFIG$'):
+                    backend.main(['--execute'], {**payload, 'platformConfig': value})
+                inventory.assert_not_called()
+        with patch.object(backend, 'selected_inventory') as inventory:
+            with self.assertRaisesRegex(backend.Stopped, '^BACKEND_SELECTION$'):
+                backend.main(['--execute'], {**payload, 'services': ['kart']})
+            inventory.assert_not_called()
+
+    def test_platform_schema_validation_uses_real_runtime_module_and_stdin_before_mutation(self):
+        config = [{'platform': 'taptap', 'appId': 'app', 'secret': 'PRIVATE_CANARY_123', 'games': ['night-overwacth']}]
+        with patch.object(backend, 'command', side_effect=backend.Stopped('COMMAND_FAILED')) as command:
+            with self.assertRaisesRegex(backend.Stopped, '^COMMAND_FAILED$'):
+                backend.validate_platform_config(item('runtime'), config)
+            self.assertEqual(command.call_args.kwargs['input'], json.dumps(config).encode())
+            args = command.call_args.args
+            self.assertEqual(args[:5], ('docker', 'exec', '-i', 'runtime-id', 'node'))
+            self.assertIn('platformConfigSchema.safeParse', args[-1])
+            self.assertNotIn('PRIVATE_CANARY', ' '.join(args))
+        with patch.object(backend, 'guard_authority_state'), patch.object(backend, 'require_authority'), patch.object(backend, 'read_platform_config', return_value=[]), patch.object(backend, 'validate_platform_config', side_effect=backend.Stopped('COMMAND_FAILED')), patch.object(backend, 'private_directory') as private, patch.object(backend, 'command') as command:
+            with self.assertRaisesRegex(backend.Stopped, '^COMMAND_FAILED$'):
+                backend.execute(Path('/public/candidate'), {}, {'platformConfig': config[0]}, {'runtime': item('runtime')}, [], {}, None)
+            private.assert_not_called()
+            command.assert_not_called()
+
+    def test_platform_rollback_removes_only_verified_current_revision_and_rejects_tampering(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(backend, 'PRIVATE', Path(directory)):
+            release = Path('/public/candidate')
+            revision = Path(directory) / release.name
+            revision.mkdir()
+            file = revision / 'platform-login.json'
+            digest = backend.platform_override(file, [])
+            contexts = {name: {'files': ['/original.yaml', '/older-platform.json', str(file), '/image.json'],
+                               'envfile': '/private/env', 'working': '/original'} for name in ['runtime', 'kart']}
+            journal = {'platformConfigSHA256': digest}
+            result = backend.platform_rollback_contexts(release, journal, contexts)
+            self.assertEqual(result['runtime']['files'], ['/original.yaml', '/older-platform.json', '/image.json'])
+            self.assertIn(str(file), contexts['runtime']['files'])
+            self.assertEqual(result['kart']['envfile'], '/private/env')
+            for altered, ctx in [({}, contexts), ({'platformConfigSHA256': '0' * 64}, contexts),
+                                 (journal, {'runtime': {**contexts['runtime'], 'files': ['/original.yaml']}})]:
+                with self.assertRaisesRegex(backend.Stopped, '^ROLLBACK_GUARD$'):
+                    backend.platform_rollback_contexts(release, altered, ctx)
+            bad = {'services': {'runtime': {'environment': {'COMPETITION_PLATFORM_CONFIG': '[]'}, 'command': 'unsafe'}}}
+            raw = json.dumps(bad).encode()
+            file.write_bytes(raw)
+            with self.assertRaisesRegex(backend.Stopped, '^ROLLBACK_GUARD$'):
+                backend.platform_rollback_contexts(release, {'platformConfigSHA256': backend.hashlib.sha256(raw).hexdigest()}, contexts)
+
+    def test_platform_update_restores_original_config_on_failure_and_never_stops_active_games(self):
+        incoming = {'platform': 'taptap', 'appId': 'night-app', 'secret': 'PRIVATE_CANARY_123', 'games': ['night-overwatch']}
+        previous = [{'platform': 'wechat', 'appId': 'other', 'secret': 'OTHER_PRIVATE_123'}]
+        for fail_at in ['before_backup', 'after_backup', 'start', 'verify', None]:
+            with self.subTest(fail_at=fail_at), tempfile.TemporaryDirectory() as directory, contextlib.ExitStack() as stack:
+                selected = {'runtime': item('runtime', 'a'), 'kart': item('kart', 'b')}
+                contexts = {name: {'files': ['/original.yaml'], 'envfile': '/private/env', 'working': '/original'} for name in selected}
+                active = {**selected, 'runtime': item('runtime', 'd')}
+                manifest = {'sourceSHA': 'c' * 40, 'release': 'candidate', 'services': ['runtime']}
+                mocks = {}
+                patches = {
+                    'PRIVATE': Path(directory) / 'private', 'guard_authority_state': None,
+                    'guard_control_schema': None, 'command': None, 'compose': None,
+                    'schema_hash': 'schema', 'backup': 'e' * 64, 'assert_protected': None,
+                }
+                for name, value in patches.items():
+                    mocks[name] = stack.enter_context(patch.object(backend, name, value) if name == 'PRIVATE'
+                                                     else patch.object(backend, name, return_value=value))
+                stack.enter_context(patch.object(backend, 'require_authority', side_effect=lambda images, *args:
+                    {name: {'image': image, 'control': 1, 'authenticatedGameScope': 1,
+                            **({'identityRecheck': 1} if name == 'kart' else {})} for name, image in images.items()}))
+                stack.enter_context(patch.object(backend, 'text', side_effect=lambda *args:
+                    args[3] if args[3].startswith('sha256:') else active['runtime']['image']))
+                stack.enter_context(patch.object(backend, 'inventory', side_effect=lambda project, name, **kwargs:
+                    {'id': 'pg'} if name == 'postgres' else selected[name]))
+                guards = [backend.Stopped('ACTIVE_GAME')] if fail_at == 'before_backup' else [None, backend.Stopped('ACTIVE_GAME') if fail_at == 'after_backup' else None]
+                stack.enter_context(patch.object(backend, 'guard_games', side_effect=guards))
+                recreate = stack.enter_context(patch.object(backend, 'recreate', side_effect=[backend.Stopped('COMMAND_FAILED'), None] if fail_at == 'start' else None))
+                stack.enter_context(patch.object(backend, 'health', side_effect=[selected] if fail_at == 'start' else [active, selected]))
+                reads = [previous, previous] if fail_at == 'start' else [previous, [] if fail_at == 'verify' else [*previous, incoming], previous]
+                stack.enter_context(patch.object(backend, 'read_platform_config', side_effect=reads))
+                if fail_at:
+                    with self.assertRaises(backend.Stopped):
+                        backend.execute(Path('/public/candidate'), manifest, {'platformConfig': incoming}, selected, ['kart'], contexts, None)
+                else:
+                    result = backend.execute(Path('/public/candidate'), manifest, {'platformConfig': incoming}, selected, ['kart'], contexts, None)
+                    self.assertTrue(result['healthVerified'])
+                    self.assertNotIn('PRIVATE_CANARY', json.dumps(result))
+                if fail_at in ('before_backup', 'after_backup'):
+                    recreate.assert_not_called()
+                    self.assertFalse(any(call.args[:2] == ('docker', 'stop') for call in mocks['command'].call_args_list))
+                else:
+                    self.assertTrue(recreate.call_args_list[0].args[0]['runtime']['files'][-1].endswith('/platform-login.json'))
+                    if fail_at:
+                        self.assertEqual(recreate.call_args_list[1].args[0], contexts)
+                    saved = backend.private_json(Path(directory) / 'private/candidate/journal.json')
+                    self.assertIn('platformConfigSHA256', saved)
+                    self.assertNotIn('PRIVATE_CANARY', json.dumps(saved))
+
     def test_context_is_ordered_and_missing_interpolation_file_fails_before_updates(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

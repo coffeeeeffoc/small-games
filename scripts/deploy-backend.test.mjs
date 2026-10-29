@@ -11,6 +11,8 @@ import {
   backendDockerfile,
   backendReceipt,
   backendRunnerInput,
+  platformConfiguration,
+  readPlatformConfiguration,
   writeBackendBundle,
 } from './deploy-backend.mjs';
 import { remoteDiagnostic, deploymentCommand } from './deployment-progress.mjs';
@@ -73,6 +75,70 @@ test('backend selection is explicit and excludes admin, empty entries and unrela
     assert.throws(() => backendInput(args));
   assert.equal(backendInput(['--help']).mode, 'help');
 });
+test('private platform credentials are a bounded file input for Runtime execution only', async (t) => {
+  const config = {
+    platform: 'taptap',
+    appId: 'app-fixture',
+    secret: 'PRIVATE_CANARY_${DOLLAR}',
+    games: ['night-overwatch'],
+  };
+  const text = JSON.stringify(config);
+  assert.deepEqual(platformConfiguration(text), config);
+  const input = backendInput(['--services=runtime', '--platform-config-file=private.json']);
+  assert.equal(input.platformConfigFile, 'private.json');
+  for (const file of ['', '  '])
+    assert.throws(() => backendInput(['--services=runtime', '--platform-config-file=' + file]));
+  assert.deepEqual(
+    platformConfiguration(JSON.stringify({ ...config, games: ['vibeJam-myself-history-guess'] }))
+      .games,
+    ['vibeJam-myself-history-guess'],
+  );
+  for (const args of [
+    ['--services=kart'],
+    ['--services=runtime', '--prepare'],
+    ['--services=runtime', '--check'],
+    ['--services=runtime', '--rollback=old'],
+  ])
+    assert.throws(() => backendInput([...args, '--platform-config-file=private.json']));
+  for (const value of [
+    null,
+    [],
+    { ...config, extra: 'PRIVATE_CANARY' },
+    { ...config, games: [] },
+    { ...config, games: ['night-overwatch', 'night-overwatch'] },
+    { ...config, secret: 'short' },
+    { ...config, platform: 'unknown' },
+    { ...config, secret: 'PRIVATE_CANARY\nUNSAFE' },
+  ]) {
+    assert.throws(() => platformConfiguration(JSON.stringify(value)), /^Error: PLATFORM_CONFIG$/);
+  }
+  assert.throws(() => platformConfiguration('PRIVATE_CANARY'), /^Error: PLATFORM_CONFIG$/);
+  const folder = await mkdtemp(path.join(tmpdir(), 'platform-config-'));
+  t.after(() => rm(folder, { recursive: true, force: true }));
+  const file = path.join(folder, 'private.json');
+  await writeFile(file, text, { mode: 0o600 });
+  assert.deepEqual(await readPlatformConfiguration(file), config);
+  const workspace = path.join(folder, 'workspace');
+  const dist = path.join(workspace, 'services/runtime-api/dist');
+  await mkdir(dist, { recursive: true });
+  const unsafe = path.join(dist, 'private.json');
+  await writeFile(unsafe, text);
+  await assert.rejects(readPlatformConfiguration(unsafe, workspace), /^Error: PLATFORM_CONFIG$/);
+  const rootPrivate = path.join(workspace, '.env.platform.local');
+  await writeFile(rootPrivate, text, { mode: 0o600 });
+  assert.deepEqual(await readPlatformConfiguration(rootPrivate, workspace), config);
+  await writeFile(file, 'x'.repeat(8193));
+  await assert.rejects(readPlatformConfiguration(file), /^Error: PLATFORM_CONFIG$/);
+  await assert.rejects(readPlatformConfiguration(folder), /^Error: PLATFORM_CONFIG$/);
+  const source = await readFile(new URL('./deploy-backend.mjs', import.meta.url), 'utf8');
+  const bundle = source.slice(
+    source.indexOf('export async function writeBackendBundle'),
+    source.indexOf('const git ='),
+  );
+  assert(!bundle.includes('platformConfig'));
+  assert(source.includes('...(platformConfig ? { platformConfig } : {})'));
+});
+
 test('selected backend image is readable by node and has a runnable default without installing other services', () => {
   const runtime = backendDockerfile(['runtime']);
   assert(runtime.includes('COPY --chown=node:node'));
