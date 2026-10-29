@@ -1559,6 +1559,16 @@ export function matchGatewayFileScope(before, after) {
     after === before.replace(anchor, String.raw`(?:\/match|\/leaderboards\/`)
   );
 }
+export function nightResumeGatewayFileScope(before, after) {
+  if (typeof before !== 'string' || typeof after !== 'string') return false;
+  const digest = (source) =>
+    createHash('sha256').update(source.replaceAll('\r\n', '\n')).digest('hex');
+  // Only the reviewed Night resume route differs; proxy transport and other paths stay bound.
+  return (
+    digest(before) === '6173996a7d134555386f652d18e552ae9e70998f6868e52be5b1c9736317ca3a' &&
+    digest(after) === 'aa9d6cca578c5edf7f4a81865fd7c97aa20157fcf88e0e9ce860cbbe1648ddfd'
+  );
+}
 function assertNightRuntimeConsumer(games, packages, readHead) {
   const source = 'games/local/night-overwatch';
   assert.equal(
@@ -5275,6 +5285,15 @@ export function reviewedSharedFileScopes({
               : []),
           ]),
         ]);
+        continue;
+      }
+      if (
+        file === 'scripts/competition-gateway.mjs' &&
+        nightResumeGatewayFileScope(readBase(file), readHead(file))
+      ) {
+        assertNightRuntimeConsumer(games, packages, readHead);
+        assert.equal(packages.filter((pkg) => pkg.dir === 'apps/shell-web').length, 1);
+        scopes.set(file, ['games/local/night-overwatch', 'services/runtime-api', 'apps/shell-web']);
         continue;
       }
       if (

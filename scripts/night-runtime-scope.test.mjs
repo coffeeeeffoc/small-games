@@ -7,9 +7,88 @@ import {
   nightBackendFileScope,
   nightRuntimeInputs,
   matchGatewayFileScope,
+  nightResumeGatewayFileScope,
   reviewedSharedFileScopes,
   nightServiceTurboOnly,
 } from './publication-scopes.mjs';
+
+test('Night resume gateway binds exact bytes and retains its client, server and shell checks', () => {
+  const file = 'scripts/competition-gateway.mjs',
+    source = 'games/local/night-overwatch';
+  const read = (name) => readFileSync(new URL('../' + name, import.meta.url), 'utf8');
+  const history = (ref) => execFileSync('git', ['show', ref + ':' + file], { encoding: 'utf8' });
+  const after = history('c31ca40ce5896fd293fbfe1d66ed9bacf24e8568');
+  const games = [{ id: 'night-overwatch', source }];
+  const packages = [source, 'services/runtime-api', 'apps/shell-web'].map((dir) => ({
+    dir,
+    ...JSON.parse(read(dir + '/package.json')),
+  }));
+  for (const ref of [
+    '8c4c821addb627e4196ccdc0b9437475e4b60f47',
+    'c31ca40ce5896fd293fbfe1d66ed9bacf24e8568^',
+  ]) {
+    const before = history(ref);
+    assert(nightResumeGatewayFileScope(before, after));
+    const options = {
+      changedPaths: [file],
+      games,
+      packages,
+      readBase: () => before,
+      readHead: (name) => (name === file ? after : read(name)),
+    };
+    const scopes = reviewedSharedFileScopes(options);
+    assert.deepEqual(scopes.get(file), [source, 'services/runtime-api', 'apps/shell-web']);
+    const plan = incrementalPlan({ ...options, fileScopes: scopes, readSource: read });
+    assert(plan.game_services_checks);
+    assert(plan.competition_service_checks);
+    assert(plan.game_sources.includes(source));
+    assert(plan.service_rule_sources.includes('services/runtime-api'));
+    for (const changed of [
+      after + '\n',
+      after.replace('night-overwatch', 'tower-brake'),
+      after.replace('resume$', 'resume.*$'),
+    ])
+      assert(
+        !reviewedSharedFileScopes({
+          ...options,
+          readHead: (name) => (name === file ? changed : read(name)),
+        }).has(file),
+      );
+    assert(!nightResumeGatewayFileScope(before + '\n', after));
+    for (const gameList of [[], [...games, ...games]])
+      assert(!reviewedSharedFileScopes({ ...options, games: gameList }).has(file));
+    for (const dir of [source, 'services/runtime-api', 'apps/shell-web']) {
+      assert(
+        !reviewedSharedFileScopes({
+          ...options,
+          packages: packages.filter((pkg) => pkg.dir !== dir),
+        }).has(file),
+      );
+      assert(
+        !reviewedSharedFileScopes({
+          ...options,
+          packages: [...packages, packages.find((pkg) => pkg.dir === dir)],
+        }).has(file),
+      );
+    }
+    assert(
+      !reviewedSharedFileScopes({
+        ...options,
+        readHead: (name) => (name.includes('/rules/night') ? '' : options.readHead(name)),
+      }).has(file),
+    );
+    assert.throws(
+      () =>
+        incrementalPlan({
+          ...options,
+          changedPaths: ['scripts/competition-gateway-extra.mjs'],
+          fileScopes: scopes,
+          readSource: read,
+        }),
+      /scope undefined/,
+    );
+  }
+});
 
 test('Night scope test changes execute validation tooling rather than becoming unclassified', () => {
   const plan = incrementalPlan({
