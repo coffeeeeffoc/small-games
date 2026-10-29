@@ -1,6 +1,6 @@
 import type { State } from './rules.ts';
 import { rating } from './progress.ts';
-import { totalEnemies, RADAR_RANGE } from './content.ts';
+import { totalEnemies, RADAR_RANGE, PULSE_RANGE, MISSILE_RANGE } from './content.ts';
 
 export type Insets = { left: number; top: number; right: number; bottom: number };
 export const ZERO_INSETS: Insets = { left: 0, top: 0, right: 0, bottom: 0 };
@@ -63,9 +63,30 @@ export function objectiveText(s: State) {
   }
   if (o.kind === 'intercept') {
     const e = s.enemies.find((e) => e.priority);
-    return `截击 ${s.wave + 1}/${s.mission.waves.length} · 逃逸 ${e ? Math.round((e.travel / o.escapeDistance) * 100) : 0}%`;
+    return e
+      ? `信标 ${s.wave}/${s.mission.waves.length} · 逃逸 ${Math.round((e.travel / o.escapeDistance) * 100)}%`
+      : `信标 ${s.wave + 1}/${s.mission.waves.length} · 剩余护航 ${s.enemies.length}`;
   }
   return `击落 ${s.kills}/${totalEnemies(s.mission)} · 波次 ${s.wave + 1}/${s.mission.waves.length}`;
+}
+export const distanceText = (metres: number) =>
+  metres >= 1000 ? `${(metres / 1000).toFixed(1)}km` : `${Math.round(metres)}m`;
+export function engagementHint(s: State, point: { x: number; y: number; z: number }) {
+  if (s.noticeTime > 0) return s.notice;
+  const dx = point.x - s.player.x,
+    dz = point.z - s.player.z;
+  const heading = Math.atan2(dx, -dz) - s.player.yaw;
+  if (Math.cos(heading) < 0) return '目标在后方 · 转向追击';
+  const range = Math.hypot(dx, point.y - s.player.y, dz);
+  return range > MISSILE_RANGE
+    ? '超出射程 · 长按加速接近'
+    : range > PULSE_RANGE
+      ? s.missiles > 0
+        ? s.missileCooldown > 0
+          ? '导弹冷却 · 保持目标在前方'
+          : '导弹射程内 · 对准目标发射'
+        : '导弹耗尽 · 接近至1.8km使用机炮'
+      : '机炮射程内 · 对准目标开火';
 }
 export function navigationTarget(s: State) {
   const nearest = (a: { x: number; y: number; z: number }[]) =>
@@ -81,7 +102,7 @@ export function navigationTarget(s: State) {
   if (s.mission.objective.kind === 'recover' && s.pickups.length)
     return { point: nearest(s.pickups)!, label: '回收残骸' };
   const priority = s.enemies.find((e) => e.priority);
-  if (priority) return { point: priority, label: '逃逸信标' };
+  if (priority) return { point: priority, label: '主目标·信标机' };
   if (s.transport) return { point: s.transport, label: '友方运输机' };
   const e = nearest(s.enemies);
   return e ? { point: e, label: '敌方目标' } : null;

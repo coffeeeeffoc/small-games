@@ -32,6 +32,8 @@ import {
   missionRating,
   objectiveText,
   navigationTarget,
+  engagementHint,
+  distanceText,
 } from './core/presentation';
 import type { Insets } from './core/presentation';
 export type Screen =
@@ -680,8 +682,19 @@ export class UI {
       if (!marker?.visible || enemy === target) continue;
       const ex = marker.x * this.width,
         ey = marker.y * this.height;
-      this.line(ex - 5, ey - 8, ex, ey - 4, C.red);
-      this.line(ex, ey - 4, ex + 5, ey - 8, C.red);
+      if (enemy.priority)
+        this.polygon(
+          [
+            [ex, ey - 9],
+            [ex + 9, ey],
+            [ex, ey + 9],
+            [ex - 9, ey],
+          ],
+          '',
+          C.amber,
+          2,
+        );
+      else this.rect(ex - 5, ey - 5, 10, 10, '', C.red);
     }
     const marker = target && this.project?.(target);
     if (target && marker?.visible) {
@@ -699,7 +712,7 @@ export class UI {
       this.rect(labelX, labelY - 10, 140, 20, '#102538dc');
       this.text(
         'lock',
-        `锁定 ${Math.round(distance(target, s.player))}m ${target.y - s.player.y > 80 ? '↑' : target.y - s.player.y < -80 ? '↓' : ''}`,
+        `${target.priority ? '主目标' : '敌机'} ${distanceText(distance(target, s.player))} ${target.y - s.player.y > 80 ? '↑' : target.y - s.player.y < -80 ? '↓' : ''}`,
         labelX,
         labelY,
         12,
@@ -738,7 +751,11 @@ export class UI {
     );
     this.actionCircle(
       'missile',
-      s.missileCooldown > 0 ? `${Math.ceil(s.missileCooldown)}s` : `导弹 ${s.missiles}`,
+      s.missileCooldown > 0
+        ? `${Math.ceil(s.missileCooldown)}s`
+        : !target && s.missiles > 0
+          ? '待锁定'
+          : `导弹 ${s.missiles}`,
       fx - 83,
       fy + 4,
       28,
@@ -788,6 +805,7 @@ export class UI {
     );
     const nav = navigationTarget(s);
     if (nav && !(nav.point === target && marker?.visible)) {
+      const navColor = s.enemies.some((e) => e === nav.point && e.priority) ? C.amber : C.cyan;
       const delta =
         Math.atan2(nav.point.x - s.player.x, -(nav.point.z - s.player.z)) - s.player.yaw;
       const heading = Math.atan2(Math.sin(delta), Math.cos(delta));
@@ -800,17 +818,17 @@ export class UI {
           [nx - 5, cy + 66],
         ],
         '',
-        C.cyan,
+        navColor,
         1.5,
       );
       this.rect(nx - 85, cy + 74, 170, 20, '#102538dc');
       this.text(
         'navigation',
-        `${heading < -0.3 ? '‹ ' : heading > 0.3 ? '› ' : ''}${nav.label} ${Math.round(distance(nav.point, s.player))}m ${nav.point.y - s.player.y > 80 ? '↑' : nav.point.y - s.player.y < -80 ? '↓' : ''}`,
+        `${heading < -0.3 ? '‹ ' : heading > 0.3 ? '› ' : ''}${nav.label} ${distanceText(distance(nav.point, s.player))} ${nav.point.y - s.player.y > 80 ? '↑' : nav.point.y - s.player.y < -80 ? '↓' : ''}`,
         nx - 85,
         cy + 84,
         11,
-        C.cyan,
+        navColor,
         170,
         center,
       );
@@ -877,7 +895,13 @@ export class UI {
           this.line(cx + a * 5, cy + b * 5, cx + a * 9, cy + b * 9, C.amber, 2);
     }
     const message =
-      s.noticeTime > 0 ? s.notice : s.tick * DT < 5 ? '左侧驾驶 · 右侧开火 · 松手回平' : '';
+      s.mission.objective.kind === 'intercept' && nav && s.enemies.some((e) => e.priority)
+        ? engagementHint(s, nav.point)
+        : s.noticeTime > 0
+          ? s.notice
+          : s.tick * DT < 5
+            ? '左侧驾驶 · 右侧开火 · 松手回平'
+            : '';
     if (message) {
       this.plate(cx - 156, a.bottom - 55, 312, 25, '#102538dc', '', 4);
       this.text('notice', message, cx - 153, a.bottom - 43, 12, C.white, 306, center);

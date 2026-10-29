@@ -6,8 +6,13 @@ import {
   ZERO_INSETS,
   radarContacts,
   missionRating,
+  objectiveText,
+  engagementHint,
+  navigationTarget,
+  distanceText,
 } from '../assets/scripts/core/presentation.ts';
 import { createRun } from '../assets/scripts/core/rules.ts';
+import { MISSIONS } from '../assets/scripts/core/content.ts';
 import { synthesize, durations } from '../scripts/sound-bank.mjs';
 test('asymmetric physical safe areas rotate once into Cocos logical space', () => {
   const physical = { left: 31, top: 7, right: 13, bottom: 19 };
@@ -59,6 +64,33 @@ test('radar follows real relative enemy coordinates, heading and live targets', 
   assert.ok(Math.abs(r[0].x + 0.5) < 1e-12);
   assert.ok(Math.abs(r[1].y + 1) < 1e-12);
 });
+test('interception distinguishes beacon progress, enemy range and required action', () => {
+  const s = createRun(MISSIONS[1]);
+  s.noticeTime = 0;
+  assert.match(objectiveText(s), /^信标 0\/3/);
+  assert.equal(navigationTarget(s).label, '主目标·信标机');
+  const point = { ...s.player, z: s.player.z - 13201 };
+  assert.equal(distanceText(13201), '13.2km');
+  assert.match(engagementHint(s, point), /超出射程.*长按加速/);
+  point.z = s.player.z - 2500;
+  assert.match(engagementHint(s, point), /导弹射程内/);
+  s.missileCooldown = 2;
+  assert.match(engagementHint(s, point), /导弹冷却/);
+  s.missileCooldown = 0;
+  s.missiles = 0;
+  assert.match(engagementHint(s, point), /导弹耗尽.*机炮/);
+  s.notice = '地形迫近 · 立即拉升';
+  s.noticeTime = 1;
+  assert.equal(engagementHint(s, point), s.notice);
+  s.noticeTime = 0;
+  point.z = s.player.z - 1200;
+  assert.match(engagementHint(s, point), /机炮射程内/);
+  point.z = s.player.z + 1200;
+  assert.match(engagementHint(s, point), /目标在后方/);
+  s.enemies = s.enemies.filter((e) => !e.priority);
+  assert.match(objectiveText(s), /^信标 1\/3 · 剩余护航 2$/);
+});
+
 test('debrief stars derive only from actual completion and remaining hull', () => {
   const s = createRun();
   assert.equal(missionRating(s), 0);

@@ -45,6 +45,9 @@ try {
   const page = await context.newPage();
   const recordingStart = Date.now();
   page.on('pageerror', (e) => report.errors.push(String(e)));
+  page.on('console', (message) => {
+    if (message.type() === 'error') report.errors.push(message.text());
+  });
   page.on('response', (r) => {
     if (r.status() >= 400) report.errors.push(r.status() + ' ' + r.url());
   });
@@ -143,12 +146,14 @@ try {
         continue;
       }
       seenTick = state.tick;
-      const input = pilot(state),
+      const escorts = state.enemies.filter((e) => !e.priority);
+      const input = pilot(i === 1 && escorts.length ? { ...state, enemies: escorts } : state),
         next = new Map(),
         point = (name, id, dx = 0, dy = 0) => {
           const c = s.controls.find((c) => c.id === name);
           return { id, x: (c.x + c.w / 2 + dx) * s.scale, y: (c.y + c.h / 2 + dy) * s.scale };
         };
+      if (i === 1) input.boost = false;
       const enabled = (name) => s.controls.some((c) => c.id === name && !c.disabled);
       next.set(1, point('stick', 1, input.x * 45, -input.y * 45));
       if (input.fire && enabled('fire')) next.set(2, point('fire', 2));
@@ -188,6 +193,7 @@ try {
     await shot('result-' + id);
     report.runs.push({
       mission: id,
+      strategy: i === 1 ? 'escorts first; no boost; normal touch inputs' : 'normal touch inputs',
       craft: result.state.craft.id,
       status: result.state.status,
       reason: result.state.reason,

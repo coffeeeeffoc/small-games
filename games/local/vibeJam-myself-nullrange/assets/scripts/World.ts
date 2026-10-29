@@ -368,7 +368,7 @@ export class World {
       for (let z = gz - 9; z <= gz + 9; z++)
         for (let x = gx - 9; x <= gx + 9; x++) {
           const o = sceneryAt(x, z);
-          if (o.y < WATER_LEVEL + 2) continue;
+          if (!o.visible) continue;
           if (Math.hypot(o.x - p.x, o.z - p.z) < 1000) desired.set(`${x}:${z}`, o);
         }
       for (const grove of this.groves)

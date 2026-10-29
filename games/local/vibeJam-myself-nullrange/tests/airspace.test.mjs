@@ -51,13 +51,44 @@ test('distant ring extends fixed world terrain and leaves the detailed collision
   assert.ok(mesh.indices.length / 3 < 16000);
   assert.equal(mesh.positions[0], (cx - 7) * TILE_SIZE);
   assert.equal(mesh.positions[90 * 3], (cx + 8) * TILE_SIZE);
-  for (let i = 0; i < 91 * 91; i += 127) {
+  const used = new Set(mesh.indices);
+  const boundary = new Set();
+  for (const i of used) {
     const [x, y, z] = mesh.positions.slice(i * 3, i * 3 + 3);
     assert.equal(y, terrainVertex(x, z));
+    boundary.add(`${x}:${z}`);
   }
+  for (let n = 0; n <= 7 * TILE_SIZE; n += 64) {
+    assert.ok(boundary.has(`${(cx - 3) * TILE_SIZE + n}:${(cz - 3) * TILE_SIZE}`));
+    assert.ok(boundary.has(`${(cx - 3) * TILE_SIZE + n}:${(cz + 4) * TILE_SIZE}`));
+    assert.ok(boundary.has(`${(cx - 3) * TILE_SIZE}:${(cz - 3) * TILE_SIZE + n}`));
+    assert.ok(boundary.has(`${(cx + 4) * TILE_SIZE}:${(cz - 3) * TILE_SIZE + n}`));
+  }
+  const seamEdges = new Map();
   for (let i = 0; i < mesh.indices.length; i += 3) {
     const triangle = mesh.indices.slice(i, i + 3);
-    if (triangle.some((v) => v >= 91 * 91)) continue;
+    const [a, b, c] = triangle.map((v) => [mesh.positions[v * 3], mesh.positions[v * 3 + 2]]);
+    assert.ok((b[1] - a[1]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[1] - a[1]) > 0);
+    for (const [p, q] of [
+      [a, b],
+      [b, c],
+      [c, a],
+    ]) {
+      const onSeam =
+        p[0] === q[0]
+          ? [cx - 3, cx + 4].some((n) => p[0] === n * TILE_SIZE) &&
+            Math.min(p[1], q[1]) >= (cz - 3) * TILE_SIZE &&
+            Math.max(p[1], q[1]) <= (cz + 4) * TILE_SIZE
+          : p[1] === q[1] &&
+            [cz - 3, cz + 4].some((n) => p[1] === n * TILE_SIZE) &&
+            Math.min(p[0], q[0]) >= (cx - 3) * TILE_SIZE &&
+            Math.max(p[0], q[0]) <= (cx + 4) * TILE_SIZE;
+      if (onSeam) {
+        assert.equal(Math.hypot(p[0] - q[0], p[1] - q[1]), 64);
+        const key = [p.join(':'), q.join(':')].sort().join('/');
+        seamEdges.set(key, (seamEdges.get(key) || 0) + 1);
+      }
+    }
     const x = triangle.reduce((n, v) => n + mesh.positions[v * 3], 0) / 3;
     const z = triangle.reduce((n, v) => n + mesh.positions[v * 3 + 2], 0) / 3;
     assert.ok(
@@ -69,6 +100,8 @@ test('distant ring extends fixed world terrain and leaves the detailed collision
       ),
     );
   }
+  assert.equal(seamEdges.size, (4 * 7 * TILE_SIZE) / 64);
+  assert.ok([...seamEdges.values()].every((n) => n === 1));
 });
 
 test('projectile lead reaches a crossing or receding aircraft at the same flight time', () => {

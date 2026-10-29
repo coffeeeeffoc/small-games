@@ -462,7 +462,7 @@ function advanceEnemy(s: State, e: Enemy) {
     e.pitch += clamp(pitch - e.pitch, -0.45 * DT, 0.45 * DT);
   }
   const speed = e.priority
-    ? 225
+    ? 155
     : heavy
       ? dist > 1100
         ? 240

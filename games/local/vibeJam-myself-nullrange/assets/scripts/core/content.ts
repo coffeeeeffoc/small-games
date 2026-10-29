@@ -170,12 +170,11 @@ export const MISSIONS: readonly Mission[] = [
     title: '山脊截击',
     seed: 20261102,
     timeLimit: 330,
-    briefing:
-      '连续截住三批逃逸信标机。优先追击标记目标，脉冲与导弹结合；加速缩短距离，逃出边界即失败。',
+    briefing: '黄菱形为信标主目标，红框为护航敌机。长按加速接近，3.2公里内对准发导弹。',
     objective: { kind: 'intercept', escapeDistance: 35000 },
     waves: [0, 1, 2].map((i) =>
       wave(['前哨信标', '山脊接力', '最后拦截'][i], [
-        { ...enemy('skirmisher', 0, 2000, 420, 180), priority: true },
+        { ...enemy('skirmisher', 0, 880, 420, 180), priority: true },
         enemy('interceptor', (i % 2 ? 1 : -1) * 150, 420, 100),
         enemy('heavy', 200, 600, 140),
       ]),

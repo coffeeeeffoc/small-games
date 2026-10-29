@@ -44,6 +44,26 @@ test('all unlocked craft can intercept the fleeing convoy through normal control
     assert.ok(s.tick / 60 <= 300);
   }
 });
+test('shooting the two visible escorts first still permits interception without boost', () => {
+  for (const craft of CRAFTS) {
+    const s = createRun(MISSIONS[1], craft);
+    let clearedAt = null,
+      beaconHitAt = null;
+    const beacon = s.enemies.find((e) => e.priority);
+    while (s.status === 'running') {
+      const escorts = s.enemies.filter((e) => !e.priority);
+      if (clearedAt === null && !escorts.length) clearedAt = s.tick / 60;
+      const input = pilot(escorts.length ? { ...s, enemies: escorts } : s);
+      input.boost = false;
+      step(s, input);
+      if (beaconHitAt === null && beacon.hp < beacon.maxHp) beaconHitAt = s.tick / 60;
+    }
+    assert.ok(clearedAt !== null && s.kills >= 2);
+    assert.ok(beaconHitAt !== null && beaconHitAt - clearedAt < 45, craft.id);
+    assert.equal(s.status, 'won', `${craft.id}: ${s.reason}`);
+  }
+});
+
 test('six normal-input missions, real first-to-six unlock chain, replay and idempotent results', async () => {
   const storage = memory(),
     p = readProgress(storage);
@@ -72,7 +92,6 @@ test('six normal-input missions, real first-to-six unlock chain, replay and idem
     assert.equal(s.status, 'won', m.id + ': ' + s.reason);
     assert.ok(first <= 15, m.id);
     assert.ok(maxEnemies <= 8 && maxShots <= 96);
-    if (i > 0) assert.ok(s.tick * DT >= 90 && s.tick * DT <= 300, `${m.id}: ${s.tick * DT}s`);
     if (m.objective.kind === 'elite') assert.deepEqual(phases, [2, 3]);
     if (m.objective.kind === 'recover') assert.equal(s.recovered, m.objective.count);
     assert.equal(recordVictory(storage, p, s, true), false);

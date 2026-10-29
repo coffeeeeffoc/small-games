@@ -22,7 +22,7 @@ export function pilot(s) {
     yaw = Math.atan2(e.x - p.x, -(e.z - p.z)),
     delta = Math.atan2(Math.sin(yaw - p.yaw), Math.cos(yaw - p.yaw)) + (e.hp && n < 300 ? 0.18 : 0);
   let pitch = Math.atan2(e.y - p.y, Math.hypot(e.x - p.x, e.z - p.z));
-  for (const ahead of [50, 100, 150, 250, 500, 800, 1200]) {
+  for (const ahead of [50, 100, 150, 250, 500, 800, 1200, 1800, 2400]) {
     const floor = surfaceHeight(p.x + Math.sin(p.yaw) * ahead, p.z - Math.cos(p.yaw) * ahead) + 320;
     pitch = Math.max(pitch, Math.atan2(floor - p.y, ahead));
   }
