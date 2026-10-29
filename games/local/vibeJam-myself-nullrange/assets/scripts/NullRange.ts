@@ -19,7 +19,7 @@ import {
   craftUnlocked,
 } from './core/progress';
 import type { Progress, StoragePort } from './core/progress';
-import { RULE_VERSION, MISSIONS, craftById } from './core/content';
+import { RULE_VERSION, MISSIONS, MISSILE_RANGE, craftById } from './core/content';
 import { FlightInput } from './FlightInput';
 import { UI } from './UI';
 import type { Screen } from './UI';
@@ -48,6 +48,7 @@ export class NullRange extends Component {
   practice = false;
   cleanupDev?: () => void;
   worldShown = false;
+  crashTime = 0;
   onLoad() {
     try {
       this.storage = sys.localStorage;
@@ -61,6 +62,7 @@ export class NullRange extends Component {
     );
     this.ui = new UI(this.node);
     this.world = new World(this.node, this.surface!);
+    this.ui.project = (point) => this.world.project(point);
     this.engine = this.node.addComponent(AudioSource);
     this.engine.loop = true;
     this.engine.volume = 0.16;
@@ -89,7 +91,7 @@ export class NullRange extends Component {
     this.controls = new FlightInput(
       this.ui,
       (id) => this.action(id),
-      () => this.screen === 'playing',
+      () => this.screen === 'playing' && this.state.status === 'running',
     );
     game.on(Game.EVENT_HIDE, this.hide, this);
     view.on('canvas-resize', this.resize, this);
@@ -111,6 +113,7 @@ export class NullRange extends Component {
       JSON.stringify({
         version: RULE_VERSION,
         screen: this.screen,
+        crashTime: this.crashTime,
         practice: this.practice,
         width: this.ui.width,
         height: this.ui.height,
@@ -130,7 +133,8 @@ export class NullRange extends Component {
           stick: this.ui.stick,
         },
         state: this.state,
-        lock: targetInCone(this.state, 25, 900)?.id,
+        lock: targetInCone(this.state, 25, MISSILE_RANGE)?.id,
+        targetMarker: this.ui.targetMarker,
         progress: this.progress,
         engine: 'Cocos Creator 3.8.8',
         world: this.world.snapshot(),
@@ -296,6 +300,7 @@ export class NullRange extends Component {
           wave: 'scan',
           'escort-hit': 'damage',
           danger: 'damage',
+          crash: 'kill',
         } as Record<string, string>
       )[name] || name,
     );
@@ -313,7 +318,11 @@ export class NullRange extends Component {
       this.worldShown = true;
       web.NullRangeHost?.ready();
     }
-    if (this.screen === 'playing') {
+    if (this.screen === 'playing' && this.state.status !== 'running') {
+      this.crashTime += Math.max(0, Math.min(dt, 0.1));
+      if (this.crashTime >= 1.4) this.change('result');
+    } else if (this.screen === 'playing') {
+      this.crashTime = 0;
       this.accumulator += Math.min(0.1, Math.max(0, dt));
       while (this.accumulator >= DT && this.screen === 'playing') {
         step(this.state, this.controls.read(this.progress.sensitivity));
@@ -323,6 +332,12 @@ export class NullRange extends Component {
           const terminal = this.state,
             practice = this.practice;
           this.persist(() => recordVictory(this.storage, this.progress, terminal, practice));
+          if (this.state.impacts.some((e) => e.kind === 'crash')) {
+            this.controls.clear();
+            this.engine.stop();
+            this.accumulator = 0;
+            break;
+          }
           this.change('result');
         }
       }
@@ -330,7 +345,8 @@ export class NullRange extends Component {
         !this.progress.muted &&
         this.engine.clip &&
         !this.engine.playing &&
-        this.screen === 'playing'
+        this.screen === 'playing' &&
+        this.state.status === 'running'
       )
         this.engine.play();
     }
@@ -340,9 +356,10 @@ export class NullRange extends Component {
         (['settings', 'help'].includes(this.screen) && this.returnScreen !== 'paused'),
       this.progress.reduced,
       this.screen,
+      this.crashTime,
     );
     this.uiClock += dt;
-    if (this.uiClock > 0.08) {
+    if (this.uiClock > (this.screen === 'playing' ? 1 / 30 : 0.08)) {
       this.uiClock = 0;
       this.draw();
     }

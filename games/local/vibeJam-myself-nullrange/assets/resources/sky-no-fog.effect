@@ -30,6 +30,9 @@ CCProgram sky-fs %{
   vec4 frag () {
     vec4 color = texture(mainTexture, vec2(1.0 - abs(mod(uv.x, 2.0) - 1.0), uv.y)) * tint;
     color.rgb = SRGBToLinear(color.rgb);
+    #if USE_ATMOSPHERE
+      color.rgb = mix(color.rgb, vec3(0.32, 0.48, 0.57), smoothstep(0.36, 0.47, uv.y));
+    #endif
     return CCFragOutput(color);
   }
 }%

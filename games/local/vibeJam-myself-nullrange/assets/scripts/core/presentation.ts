@@ -1,6 +1,6 @@
 import type { State } from './rules.ts';
 import { rating } from './progress.ts';
-import { totalEnemies } from './content.ts';
+import { totalEnemies, RADAR_RANGE } from './content.ts';
 
 export type Insets = { left: number; top: number; right: number; bottom: number };
 export const ZERO_INSETS: Insets = { left: 0, top: 0, right: 0, bottom: 0 };
@@ -29,7 +29,7 @@ export function safeBounds(width: number, height: number, web: Insets, native: I
   return { left, top, right, bottom, width: right - left, height: bottom - top };
 }
 // Heading-up radar: screen-up is the aircraft's actual forward vector, not world north.
-export function radarContacts(s: State, range = 900) {
+export function radarContacts(s: State, range = RADAR_RANGE) {
   const c = Math.cos(s.player.yaw),
     sn = Math.sin(s.player.yaw);
   return s.enemies

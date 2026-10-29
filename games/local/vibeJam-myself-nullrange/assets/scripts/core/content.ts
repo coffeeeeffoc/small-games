@@ -1,4 +1,8 @@
-export const RULE_VERSION = 'nullrange-b4-v1';
+import { CRUISE_ALTITUDE } from './terrain.ts';
+export const PULSE_RANGE = 1800;
+export const MISSILE_RANGE = 3200;
+export const RADAR_RANGE = 6000;
+export const RULE_VERSION = 'nullrange-airspace-v2';
 export const GAME_ID = 'vibeJam-myself-nullrange';
 export type CraftId = 'falcon' | 'kestrel' | 'warden';
 export type Craft = {
@@ -23,10 +27,10 @@ export const CRAFTS: readonly Craft[] = [
     name: '战隼',
     role: '均衡巡航 / 稳定火力',
     unlock: null,
-    speed: 92,
-    boost: 165,
-    turn: 1.42,
-    pitch: 0.95,
+    speed: 240,
+    boost: 380,
+    turn: 0.72,
+    pitch: 0.7,
     hull: 100,
     shield: 70,
     heat: 0.105,
@@ -51,10 +55,10 @@ export const CRAFTS: readonly Craft[] = [
     name: '红隼',
     role: '轻型截击 / 高机动低防护',
     unlock: 'ridge-intercept',
-    speed: 108,
-    boost: 192,
-    turn: 1.9,
-    pitch: 1.2,
+    speed: 280,
+    boost: 440,
+    turn: 0.95,
+    pitch: 0.85,
     hull: 75,
     shield: 48,
     heat: 0.12,
@@ -79,10 +83,10 @@ export const CRAFTS: readonly Craft[] = [
     name: '守望',
     role: '重装压制 / 持续火力低转向',
     unlock: 'valley-escort',
-    speed: 80,
-    boost: 144,
-    turn: 1.12,
-    pitch: 0.78,
+    speed: 215,
+    boost: 350,
+    turn: 0.58,
+    pitch: 0.6,
     hull: 145,
     shield: 100,
     heat: 0.074,
@@ -134,7 +138,11 @@ export type Mission = {
 };
 const enemy = (kind: EnemyKind, x: number, forward: number, hp = 90, shield = 0): EnemySpec => ({
   kind,
-  offset: [x, 115, forward],
+  offset: [
+    x * 3,
+    CRUISE_ALTITUDE + (kind === 'heavy' ? 120 : kind === 'skirmisher' ? -100 : 0),
+    forward * 2.5,
+  ],
   hp,
   shield,
 });
@@ -164,10 +172,10 @@ export const MISSIONS: readonly Mission[] = [
     timeLimit: 330,
     briefing:
       '连续截住三批逃逸信标机。优先追击标记目标，脉冲与导弹结合；加速缩短距离，逃出边界即失败。',
-    objective: { kind: 'intercept', escapeDistance: 10500 },
+    objective: { kind: 'intercept', escapeDistance: 35000 },
     waves: [0, 1, 2].map((i) =>
       wave(['前哨信标', '山脊接力', '最后拦截'][i], [
-        { ...enemy('skirmisher', 0, 1850, 420, 180), priority: true },
+        { ...enemy('skirmisher', 0, 2000, 420, 180), priority: true },
         enemy('interceptor', (i % 2 ? 1 : -1) * 150, 420, 100),
         enemy('heavy', 200, 600, 140),
       ]),
@@ -203,13 +211,13 @@ export const MISSIONS: readonly Mission[] = [
     objective: {
       kind: 'escort',
       hull: 280,
-      speed: 42,
+      speed: 105,
       route: [
-        [0, 130, -300],
-        [100, 145, -1800],
-        [-180, 150, -3400],
-        [120, 140, -5200],
-        [0, 135, -6800],
+        [0, 1500, -750],
+        [250, 1650, -4500],
+        [-450, 1800, -8500],
+        [300, 1650, -13000],
+        [0, 1600, -17000],
       ],
     },
     waves: [0, 1, 2, 3, 4].map((i) =>
@@ -292,7 +300,7 @@ export function validateMission(m: Mission) {
           !e.offset.every(finite) ||
           e.offset[1] < 40 ||
           e.offset[2] < 200 ||
-          e.offset[2] > 2000,
+          e.offset[2] > 6000,
       )
     )
       throw Error('Invalid wave');

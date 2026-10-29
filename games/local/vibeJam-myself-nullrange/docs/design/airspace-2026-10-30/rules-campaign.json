@@ -1,0 +1,115 @@
+{
+  "sourceHash": "bff083d9a2caf617bdc593340b8b3f86da1ebbf24a3ce883be6ed611e7b013de",
+  "tests": 41,
+  "passed": 41,
+  "runs": [
+    {
+      "mission": "dawn-patrol",
+      "craft": "falcon",
+      "seconds": 25.3,
+      "firstContact": 0.6333333333333333,
+      "hull": 100,
+      "kills": 6,
+      "recovered": 5,
+      "phases": [],
+      "maxEnemies": 2,
+      "maxShots": 19,
+      "actions": {
+        "fire": 747,
+        "boost": 5,
+        "missile": 10,
+        "scan": 4
+      }
+    },
+    {
+      "mission": "ridge-intercept",
+      "craft": "falcon",
+      "seconds": 185.65,
+      "firstContact": 1.0833333333333333,
+      "hull": 100,
+      "kills": 9,
+      "recovered": 5,
+      "phases": [],
+      "maxEnemies": 3,
+      "maxShots": 22,
+      "actions": {
+        "fire": 5133,
+        "boost": 6677,
+        "missile": 1111,
+        "scan": 5
+      }
+    },
+    {
+      "mission": "echo-recovery",
+      "craft": "kestrel",
+      "seconds": 155.63333333333333,
+      "firstContact": 1.7666666666666666,
+      "hull": 75,
+      "kills": 12,
+      "recovered": 12,
+      "phases": [],
+      "maxEnemies": 3,
+      "maxShots": 20,
+      "actions": {
+        "fire": 3958,
+        "boost": 160,
+        "missile": 5,
+        "scan": 11
+      }
+    },
+    {
+      "mission": "valley-escort",
+      "craft": "kestrel",
+      "seconds": 156.25,
+      "firstContact": 2.6333333333333333,
+      "hull": 75,
+      "kills": 10,
+      "recovered": 10,
+      "phases": [],
+      "maxEnemies": 2,
+      "maxShots": 20,
+      "actions": {
+        "fire": 1965,
+        "boost": 704,
+        "missile": 5,
+        "scan": 8
+      }
+    },
+    {
+      "mission": "crosswind",
+      "craft": "warden",
+      "seconds": 173.58333333333334,
+      "firstContact": 2.0666666666666664,
+      "hull": 145,
+      "kills": 15,
+      "recovered": 14,
+      "phases": [],
+      "maxEnemies": 3,
+      "maxShots": 25,
+      "actions": {
+        "fire": 6407,
+        "boost": 203,
+        "missile": 8,
+        "scan": 10
+      }
+    },
+    {
+      "mission": "last-light",
+      "craft": "warden",
+      "seconds": 111.06666666666666,
+      "firstContact": 1.75,
+      "hull": 145,
+      "kills": 7,
+      "recovered": 6,
+      "phases": [2, 3],
+      "maxEnemies": 3,
+      "maxShots": 23,
+      "actions": {
+        "fire": 4123,
+        "boost": 95,
+        "missile": 8,
+        "scan": 6
+      }
+    }
+  ]
+}

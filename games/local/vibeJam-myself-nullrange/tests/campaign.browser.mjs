@@ -11,6 +11,7 @@ const report = {
   runs: [],
   errors: [],
 };
+const capture = process.env.NULLRANGE_CAPTURE === '1';
 await mkdir(root + 'reports/campaign', { recursive: true });
 const server = spawn(process.execPath, ['scripts/serve.mjs', '--port', String(port)], {
   cwd: root,
@@ -30,13 +31,19 @@ try {
       : {}),
   });
   const context = await browser.newContext({
-    viewport: { width: 844, height: 390 },
+    viewport: capture ? { width: 1280, height: 720 } : { width: 844, height: 390 },
+    ...(capture
+      ? {
+          recordVideo: { dir: root + 'reports/campaign/video', size: { width: 1280, height: 720 } },
+        }
+      : {}),
     userAgent: devices['Pixel 7'].userAgent,
     isMobile: true,
     hasTouch: true,
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
+  const recordingStart = Date.now();
   page.on('pageerror', (e) => report.errors.push(String(e)));
   page.on('response', (r) => {
     if (r.status() >= 400) report.errors.push(r.status() + ' ' + r.url());
@@ -98,10 +105,10 @@ try {
     else await tap('next');
     assert.equal((await snap()).state.mission.id, id);
     await shot('mission-' + id);
-    if (i === 4) {
+    if (i === 2 || i === 4) {
       await tap('prepare');
-      await tap('craft:warden');
-      await shot('hangar-warden');
+      await tap(i === 2 ? 'craft:kestrel' : 'craft:warden');
+      await shot(i === 2 ? 'hangar-kestrel' : 'hangar-warden');
     }
     await tap('start');
     const initial = await snap(),
@@ -112,6 +119,7 @@ try {
     };
     await touch(new Map([[1, { id: 1, ...stickOrigin }]]));
     const start = Date.now();
+    const videoStart = (start - recordingStart) / 1000;
     let seenTick = -1,
       first = null,
       maxDraws = 0,
@@ -185,6 +193,7 @@ try {
       reason: result.state.reason,
       seconds: result.state.tick / 60,
       wallSeconds: (Date.now() - start) / 1000,
+      videoStart,
       firstContact: first,
       kills: result.state.kills,
       recovered: result.state.recovered,
@@ -208,6 +217,7 @@ try {
   assert.deepEqual((await snap()).progress, saved);
   assert.deepEqual(report.errors, []);
   await context.close();
+  if (capture) report.video = await page.video().path();
 } finally {
   await writeFile(root + 'reports/campaign/report.json', JSON.stringify(report, null, 2));
   await browser?.close();

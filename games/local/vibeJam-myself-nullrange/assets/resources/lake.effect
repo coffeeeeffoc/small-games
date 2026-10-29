@@ -34,12 +34,12 @@ CCProgram lake-fs %{
       0.003*cos(position.z*0.23-position.x*0.08-flow.x*0.6)));
     vec3 reflection = reflect(-eye,normal);
     float u = atan(reflection.x,-reflection.z)/6.2831853*2.0+0.5;
-    vec3 sky = SRGBToLinear(texture(skyTexture,vec2(1.0-abs(mod(u,2.0)-1.0),clamp(0.67-reflection.y*0.65,0.02,0.98))).rgb);
+    vec3 sky = SRGBToLinear(texture(skyTexture,vec2(1.0-abs(mod(u,2.0)-1.0),clamp(0.48-reflection.y*0.45,0.02,0.49))).rgb);
     float fresnel = pow(1.0-max(0.0,dot(eye,normal)),3.0);
-    float shore = smoothstep(25.0,70.0,abs(position.x-115.0*sin(position.z*0.0018)));
+    float shore = smoothstep(160.0,340.0,abs(position.x-520.0*sin(position.z*0.00031)-180.0*sin(position.z*0.00071)));
     vec3 water = mix(vec3(0.008,0.060,0.075),vec3(0.025,0.15,0.16),shore);
     water = mix(water,sky,0.07+fresnel*0.3);
-    float haze = smoothstep(460.0, 2700.0, distance(cc_cameraPos.xyz, position));
-    return CCFragOutput(vec4(mix(water, vec3(0.33, 0.47, 0.56), haze), 1.0));
+    float haze = smoothstep(4000.0, 10000.0, distance(cc_cameraPos.xz, position.xz));
+    return CCFragOutput(vec4(mix(water, vec3(0.32, 0.48, 0.57), haze), 1.0));
   }
 }%

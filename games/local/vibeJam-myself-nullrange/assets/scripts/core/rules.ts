@@ -1,7 +1,7 @@
-import { CRAFTS, MISSIONS, validateMission } from './content.ts';
+import { CRAFTS, MISSIONS, PULSE_RANGE, MISSILE_RANGE, validateMission } from './content.ts';
 import type { Craft, EnemyKind, Mission } from './content.ts';
-import { FLIGHT_CEILING } from './terrain.ts';
-import { airframeFloor, surfaceHeight } from './flight-geometry.ts';
+import { FLIGHT_CEILING, CRUISE_ALTITUDE } from './terrain.ts';
+import { airframeFloor, airframeContact, surfaceHeight } from './flight-geometry.ts';
 export { terrainHeight } from './terrain.ts';
 export const DT = 1 / 60;
 export type Point = { x: number; y: number; z: number };
@@ -29,6 +29,27 @@ export const direction = (yaw: number, pitch = 0): Point => ({
   z: -Math.cos(yaw) * Math.cos(pitch),
 });
 export const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+export function interceptPoint(from: Point, target: Point, velocity: Point, speed: number): Point {
+  const x = target.x - from.x,
+    y = target.y - from.y,
+    z = target.z - from.z;
+  const a = velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2 - speed ** 2;
+  const b = 2 * (x * velocity.x + y * velocity.y + z * velocity.z);
+  const c = x * x + y * y + z * z;
+  const discriminant = b * b - 4 * a * c;
+  const roots =
+    Math.abs(a) < 1e-6
+      ? [-c / b]
+      : discriminant < 0
+        ? []
+        : [(-b - Math.sqrt(discriminant)) / (2 * a), (-b + Math.sqrt(discriminant)) / (2 * a)];
+  const t = Math.min(4, ...roots.filter((n) => Number.isFinite(n) && n >= 0));
+  return {
+    x: target.x + velocity.x * t,
+    y: target.y + velocity.y * t,
+    z: target.z + velocity.z * t,
+  };
+}
 export type Aircraft = Point & {
   yaw: number;
   pitch: number;
@@ -59,6 +80,8 @@ export type Enemy = Point & {
   telegraph: number;
   priority: boolean;
   travel: number;
+  speed: number;
+  disengageUntil: number;
 };
 export type Shot = Point & {
   id: number;
@@ -70,7 +93,7 @@ export type Shot = Point & {
   source?: number;
 };
 export type Impact = Point & {
-  kind: 'hit' | 'shield' | 'kill' | 'pickup' | 'damage';
+  kind: 'hit' | 'shield' | 'kill' | 'pickup' | 'damage' | 'crash';
   id: number;
   tick: number;
 };
@@ -128,7 +151,7 @@ export function createRun(mission: Mission = MISSIONS[0], craft: Craft = CRAFTS[
     seed: mission.seed >>> 0,
     player: {
       x: 0,
-      y: 115,
+      y: CRUISE_ALTITUDE,
       z: 0,
       yaw: 0,
       pitch: 0,
@@ -202,7 +225,7 @@ export function lineClear(a: Point, b: Point) {
   }
   return true;
 }
-export function targetInCone(s: State, degrees = 12, range = 760) {
+export function targetInCone(s: State, degrees = 12, range = PULSE_RANGE) {
   const p = s.player,
     d = direction(p.yaw, p.pitch),
     cone = Math.cos((degrees * Math.PI) / 180);
@@ -255,7 +278,7 @@ function spawnWave(s: State) {
       z = anchor.z + Math.sin(yaw) * side - Math.cos(yaw) * forward;
     s.enemies.push({
       x,
-      y: Math.min(FLIGHT_CEILING - 30, Math.max(alt, s.player.y, surfaceHeight(x, z) + 45)),
+      y: Math.min(FLIGHT_CEILING - 30, Math.max(alt, s.player.y, surfaceHeight(x, z) + 260)),
       z,
       id: s.nextId++,
       kind: spec.kind,
@@ -264,12 +287,14 @@ function spawnWave(s: State) {
       shield: spec.shield || 0,
       yaw: spec.priority ? yaw : angleDelta(yaw + Math.PI, 0),
       pitch: 0,
-      cooldown: 2.8 + random(s),
+      cooldown: 0.65 + random(s) * 0.6,
       phase: random(s) * 6.28,
       stage: 1,
       telegraph: 0,
       priority: !!spec.priority,
       travel: 0,
+      speed: 225,
+      disengageUntil: 0,
     });
   }
   tell(s, `${s.wave + 1}/${s.mission.waves.length} · ${w.label}`);
@@ -364,7 +389,7 @@ function spawnShot(
     target,
     source,
     missile: !!target,
-    life: target ? 5 : 4,
+    life: target ? 8 : 4,
     velocity: {
       x: ((to.x - from.x) / n) * speed,
       y: ((to.y - from.y) / n) * speed,
@@ -376,8 +401,8 @@ export function enemyCanFire(e: Enemy, target: Point, aim: Point = target) {
   const d = direction(e.yaw, e.pitch),
     n = distance(e, aim) || 1;
   return (
-    distance(e, target) < 700 &&
-    distance(e, target) > 35 &&
+    distance(e, target) < 1700 &&
+    distance(e, target) > 120 &&
     ((aim.x - e.x) * d.x + (aim.y - e.y) * d.y + (aim.z - e.z) * d.z) / n >=
       Math.cos((18 * Math.PI) / 180) &&
     lineClear(e, target)
@@ -405,28 +430,52 @@ function advanceEnemy(s: State, e: Enemy) {
     heavy = e.kind === 'heavy' || e.kind === 'elite';
   let yaw = Math.atan2(target.x - e.x, -(target.z - e.z));
   if (!e.priority) {
-    if (e.kind === 'skirmisher' && dist < 420)
+    if (dist < 550 && s.tick >= e.disengageUntil + 240) e.disengageUntil = s.tick + 300;
+    if (e.kind === 'skirmisher' && dist < 1100)
       yaw += Math.sin(s.tick * DT * 0.35 + e.phase) > 0 ? 0.85 : -0.85;
-    else if (dist < 160) yaw += 1.7;
-    const rate = heavy ? 0.55 : e.kind === 'skirmisher' ? 1.03 : 1.2;
+    else if (dist < 500) yaw += 1.7;
+    let avoidX = 0,
+      avoidZ = 0;
+    for (const other of s.enemies) {
+      if (other === e || other.hp <= 0) continue;
+      const gap = Math.hypot(e.x - other.x, e.z - other.z);
+      if (gap > 0 && gap < 500) {
+        const weight = (1 - gap / 500) * 2;
+        avoidX += ((e.x - other.x) / gap) * weight;
+        avoidZ += ((e.z - other.z) / gap) * weight;
+      }
+    }
+    yaw = Math.atan2(Math.sin(yaw) + avoidX, Math.cos(yaw) - avoidZ);
+    if (s.tick < e.disengageUntil) yaw = e.yaw;
+    const rate = heavy ? 0.3 : e.kind === 'skirmisher' ? 0.57 : 0.66;
     e.yaw = angleDelta(e.yaw + clamp(angleDelta(yaw, e.yaw), -rate * DT, rate * DT), 0);
-    const pitch = Math.atan2(target.y - e.y, Math.hypot(target.x - e.x, target.z - e.z));
+    const look = direction(e.yaw),
+      safeY = Math.max(
+        CRUISE_ALTITUDE * 0.7,
+        target.y + Math.sin(e.phase) * 180,
+        surfaceHeight(e.x + look.x * 700, e.z + look.z * 700) + 240,
+      );
+    const pitch = Math.atan2(
+      safeY - e.y,
+      Math.max(650, Math.hypot(target.x - e.x, target.z - e.z)),
+    );
     e.pitch += clamp(pitch - e.pitch, -0.45 * DT, 0.45 * DT);
   }
   const speed = e.priority
-    ? 92
+    ? 225
     : heavy
-      ? dist > 400
-        ? 90
-        : 55
+      ? dist > 1100
+        ? 240
+        : 185
       : e.kind === 'skirmisher'
-        ? dist > 500
-          ? 118
-          : 76
-        : dist > 300
-          ? 132
-          : 72;
+        ? dist > 1400
+          ? 290
+          : 230
+        : dist > 900
+          ? 310
+          : 225;
   const d = direction(e.yaw, e.priority ? 0 : e.pitch);
+  e.speed = speed;
   for (const k of ['x', 'y', 'z'] as const) e[k] += d[k] * speed * DT;
   e.travel += speed * DT;
   e.y = clamp(Math.max(e.y, surfaceHeight(e.x, e.z) + 30), 40, FLIGHT_CEILING - 15);
@@ -434,12 +483,19 @@ function advanceEnemy(s: State, e: Enemy) {
   e.telegraph = heavy && e.cooldown > 0 && e.cooldown < 1.2 ? 1 - e.cooldown / 1.2 : 0;
   if (e.priority) return;
   if (e.cooldown <= 0) {
-    const lead = target === p ? Math.min(1, dist / 230) * 0.4 : 0,
-      aim = {
-        x: target.x + Math.sin(p.yaw) * p.speed * lead,
-        y: target.y,
-        z: target.z - Math.cos(p.yaw) * p.speed * lead,
-      };
+    const heading = direction(target.yaw, target === p ? p.pitch : 0);
+    const targetSpeed =
+      target === p
+        ? p.speed
+        : s.mission.objective.kind === 'escort'
+          ? s.mission.objective.speed
+          : 0;
+    const aim = interceptPoint(
+      e,
+      target,
+      { x: heading.x * targetSpeed, y: heading.y * targetSpeed, z: heading.z * targetSpeed },
+      heavy ? 560 : 510,
+    );
     if (enemyCanFire(e, target, aim)) {
       const count = e.kind === 'elite' ? e.stage * 2 + 1 : heavy ? 3 : 1;
       for (let i = 0; i < count; i++) {
@@ -451,7 +507,7 @@ function advanceEnemy(s: State, e: Enemy) {
           y: aim.y + (random(s) - 0.5) * 9,
           z: e.z + dx * Math.sin(angle) + dz * Math.cos(angle),
         };
-        if (enemyCanFire(e, target, to)) spawnShot(s, 'enemy', e, to, heavy ? 205 : 180, 0, e.id);
+        if (enemyCanFire(e, target, to)) spawnShot(s, 'enemy', e, to, heavy ? 560 : 510, 0, e.id);
       }
       e.cooldown = heavy ? 4.8 - e.stage * 0.5 : 2.8 + random(s);
       e.telegraph = 0;
@@ -475,15 +531,28 @@ export function step(s: State, input: Partial<Controls> = {}) {
   for (const key of ['scanCooldown', 'scanTime', 'invulnerable', 'noticeTime'] as const)
     s[key] = Math.max(0, s[key] - DT);
   s.damageAgo += DT;
+  const previousPose = { ...p };
   s.boosting = advanceFlight(p, s.craft, input, s.boosting);
   const floor = airframeFloor(p, s.craft.samples);
-  if (p.y < floor) {
-    p.y = floor;
-    p.pitch = 0.3;
-    p.y = Math.max(p.y, airframeFloor(p, s.craft.samples));
-    damagePlayer(s, 35, '撞击地形 · 保持高度');
-  } else if (p.y - floor < 18 && s.tick % 90 === 0) {
-    tell(s, '近地风险 · 拉升避开翼尖碰撞');
+  const contact = airframeContact(previousPose, p, s.craft.samples);
+  if (contact) {
+    Object.assign(p, contact);
+    p.speed = 0;
+    p.hull = 0;
+    p.shield = 0;
+    s.boosting = false;
+    impact(s, 'crash', p);
+    s.events.push('crash');
+    finish(s, false, '撞击地形 · 机体损毁');
+    return;
+  }
+  const ahead = direction(p.yaw, p.pitch);
+  const closingTerrain = surfaceHeight(p.x + ahead.x * p.speed * 2, p.z + ahead.z * p.speed * 2);
+  if (
+    (p.y - floor < 140 || p.y + ahead.y * p.speed * 2 < closingTerrain + 80) &&
+    s.tick % 90 === 0
+  ) {
+    tell(s, '地形迫近 · 立即拉升');
     s.events.push('danger');
   }
   if (p.y > FLIGHT_CEILING) {
@@ -496,19 +565,32 @@ export function step(s: State, input: Partial<Controls> = {}) {
   const d = direction(p.yaw, p.pitch),
     muzzle = { x: p.x + d.x * 15, y: p.y + d.y * 15, z: p.z + d.z * 15 };
   if (advanceWeapons(s, s.craft, input.fire === true)) {
-    const target = targetInCone(s) || {
-      x: p.x + d.x * 600,
-      y: p.y + d.y * 600,
-      z: p.z + d.z * 600,
-    };
-    spawnShot(s, 'player', muzzle, target, 440);
+    const tracked = targetInCone(s);
+    const velocity = tracked ? direction(tracked.yaw, tracked.pitch) : d;
+    const target = tracked
+      ? interceptPoint(
+          muzzle,
+          tracked,
+          {
+            x: velocity.x * tracked.speed,
+            y: velocity.y * tracked.speed,
+            z: velocity.z * tracked.speed,
+          },
+          1100,
+        )
+      : {
+          x: p.x + d.x * 600,
+          y: p.y + d.y * 600,
+          z: p.z + d.z * 600,
+        };
+    spawnShot(s, 'player', muzzle, target, 1100);
     s.events.push('shoot');
     if (s.overheated) tell(s, '武器过热 · 松开开火冷却');
   }
   if (input.missile === true) {
-    const target = targetInCone(s, 25, 900);
+    const target = targetInCone(s, 25, MISSILE_RANGE);
     if (consumeMissile(s, !!target)) {
-      spawnShot(s, 'player', muzzle, target!, 245, target!.id);
+      spawnShot(s, 'player', muzzle, target!, 740, target!.id);
       s.events.push('missile');
     } else if (!target) tell(s, '未锁定 · 将目标带入前方锁定框');
     else if (!s.missiles) tell(s, '导弹耗尽 · 使用脉冲炮');
@@ -532,7 +614,7 @@ export function step(s: State, input: Partial<Controls> = {}) {
       if (target) {
         const n = distance(shot, target) || 1;
         for (const k of ['x', 'y', 'z'] as const)
-          shot.velocity[k] += (((target[k] - shot[k]) / n) * 260 - shot.velocity[k]) * DT * 5;
+          shot.velocity[k] += (((target[k] - shot[k]) / n) * 800 - shot.velocity[k]) * DT * 5;
       }
     }
     for (const k of ['x', 'y', 'z'] as const) shot[k] += shot.velocity[k] * DT;
@@ -567,8 +649,8 @@ export function step(s: State, input: Partial<Controls> = {}) {
   for (const item of s.pickups) {
     item.life -= DT;
     const n = distance(item, p);
-    if (n < (s.scanTime > 0 ? 420 : 70)) {
-      const move = Math.min(1, DT * ((s.scanTime > 0 ? 320 : 180) / Math.max(1, n) + 2.6));
+    if (n < (s.scanTime > 0 ? 900 : 140)) {
+      const move = Math.min(1, DT * ((s.scanTime > 0 ? 700 : 360) / Math.max(1, n) + 2.6));
       for (const k of ['x', 'y', 'z'] as const) item[k] += (p[k] - item[k]) * move;
     }
     if (distance(item, p) < 20) {

@@ -12,26 +12,26 @@ export function pilot(s) {
   if (
     item &&
     ((!e && recovery) ||
-      (recovery && dist(item) < 440) ||
-      (p.shield < s.craft.shield * 0.4 && dist(item) < 350))
+      (recovery && dist(item) < 900) ||
+      (p.shield < s.craft.shield * 0.4 && dist(item) < 750))
   )
     e = item;
   if (!e && s.transport) e = { ...s.transport, z: s.transport.z - 200, y: s.transport.y + 25 };
-  if (!e) return { x: 0.35, y: (180 - p.y) * 0.01 - p.pitch * 3, scan: true };
+  if (!e) return { x: 0.35, y: (1600 - p.y) * 0.01 - p.pitch * 3, scan: true };
   const n = dist(e),
     yaw = Math.atan2(e.x - p.x, -(e.z - p.z)),
-    delta = Math.atan2(Math.sin(yaw - p.yaw), Math.cos(yaw - p.yaw)) + (e.hp && n < 100 ? 0.18 : 0);
-  const safeY = Math.max(
-    e.y,
-    surfaceHeight(p.x + Math.sin(p.yaw) * 160, p.z - Math.cos(p.yaw) * 160) + 40,
-  );
-  const pitch = Math.atan2(safeY - p.y, Math.hypot(e.x - p.x, e.z - p.z));
+    delta = Math.atan2(Math.sin(yaw - p.yaw), Math.cos(yaw - p.yaw)) + (e.hp && n < 300 ? 0.18 : 0);
+  let pitch = Math.atan2(e.y - p.y, Math.hypot(e.x - p.x, e.z - p.z));
+  for (const ahead of [50, 100, 150, 250, 500, 800, 1200]) {
+    const floor = surfaceHeight(p.x + Math.sin(p.yaw) * ahead, p.z - Math.cos(p.yaw) * ahead) + 320;
+    pitch = Math.max(pitch, Math.atan2(floor - p.y, ahead));
+  }
   return {
-    x: Math.max(-1, Math.min(1, delta * 3)),
+    x: Math.max(-1, Math.min(1, delta * 3)) * (pitch > 0.35 && pitch - p.pitch > 0.1 ? 0.15 : 1),
     y: Math.max(-1, Math.min(1, (pitch - p.pitch) * 4)),
     fire: !s.overheated && !!e.hp,
-    boost: n > 620 && Math.abs(delta) < 0.25,
+    boost: n > 1600 && Math.abs(delta) < 0.25,
     missile: !!e.hp && Math.abs(delta) < 0.22 && s.missileCooldown === 0 && s.missiles > 0,
-    scan: !!item && dist(item) < 480 && s.scanCooldown === 0,
+    scan: !!item && dist(item) < 1000 && s.scanCooldown === 0,
   };
 }

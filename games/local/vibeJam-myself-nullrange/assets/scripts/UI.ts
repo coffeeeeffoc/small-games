@@ -1,3 +1,5 @@
+import { MISSILE_RANGE } from './core/content';
+import { WATER_LEVEL } from './core/terrain';
 import {
   Camera,
   Sprite,
@@ -18,7 +20,7 @@ import {
   view,
 } from 'cc';
 import { DT, distance, targetInCone, terrainHeight } from './core/rules';
-import type { State } from './core/rules';
+import type { State, Point } from './core/rules';
 import type { Progress } from './core/progress';
 import { missionUnlocked, craftUnlocked } from './core/progress';
 import { MISSIONS, CRAFTS, totalEnemies } from './core/content';
@@ -80,6 +82,8 @@ export class UI {
   seen = new Set<string>();
   pressed = new Set<string>();
   stick = { x: 0, y: 0 };
+  project?: (p: Point) => { x: number; y: number; visible: boolean };
+  targetMarker: { id: number; x: number; y: number; labelY: number } | null = null;
   constructor(parent: Node) {
     this.root = new Node('FlightUI');
     this.root.layer = Layers.Enum.UI_2D;
@@ -629,7 +633,7 @@ export class UI {
     this.text('objective', objectiveText(s), x + 27, y + 60, 12, C.white, 245);
     this.text(
       'speed',
-      `${Math.round(s.player.speed * 3.6)} km/h  ·  ${Math.round(s.player.y - terrainHeight(s.player.x, s.player.z))} m`,
+      `${Math.round(s.player.speed * 3.6)} km/h  ·  海拔 ${Math.round(s.player.y)}m`,
       x + w / 2 - 105,
       y + 11,
       12,
@@ -663,24 +667,41 @@ export class UI {
     this.hot('pause', '暂停', a.right - 46, y, 46, 46);
     this.plate(a.right - 44, y + 1, 42, 40, '#102538a8', C.edge, 5);
     this.icon('pause', a.right - 23, y + 21, 22);
-    const target = targetInCone(s, 25, 900),
+    const target = targetInCone(s, 25, MISSILE_RANGE),
       cx = x + w / 2,
       cy = this.height * 0.46;
     for (const sign of [-1, 1]) {
       this.line(cx + sign * 7, cy, cx + sign * 15, cy, C.white);
       this.line(cx, cy + sign * 7, cx, cy + sign * 15, C.white);
     }
-    if (target) {
+    this.targetMarker = null;
+    for (const enemy of s.enemies) {
+      const marker = this.project?.(enemy);
+      if (!marker?.visible || enemy === target) continue;
+      const ex = marker.x * this.width,
+        ey = marker.y * this.height;
+      this.line(ex - 5, ey - 8, ex, ey - 4, C.red);
+      this.line(ex, ey - 4, ex + 5, ey - 8, C.red);
+    }
+    const marker = target && this.project?.(target);
+    if (target && marker?.visible) {
+      const mx = marker.x * this.width,
+        my = marker.y * this.height;
+      const labelX = Math.max(a.left + 4, Math.min(a.right - 144, mx - 70));
+      const labelY =
+        my - 28 >= a.top + 125 ? Math.min(a.bottom - 75, my - 28) : Math.max(a.top + 125, my + 28);
+      this.targetMarker = { id: target.id, x: mx, y: my, labelY };
       for (const sx of [-1, 1])
         for (const sy of [-1, 1]) {
-          this.line(cx + sx * 23, cy + sy * 15, cx + sx * 23, cy + sy * 23, C.amber);
-          this.line(cx + sx * 15, cy + sy * 23, cx + sx * 23, cy + sy * 23, C.amber);
+          this.line(mx + sx * 14, my + sy * 8, mx + sx * 14, my + sy * 14, C.amber);
+          this.line(mx + sx * 8, my + sy * 14, mx + sx * 14, my + sy * 14, C.amber);
         }
+      this.rect(labelX, labelY - 10, 140, 20, '#102538dc');
       this.text(
         'lock',
-        `锁定 ${Math.round(distance(target, s.player))} m`,
-        cx - 70,
-        cy - 35,
+        `锁定 ${Math.round(distance(target, s.player))}m ${target.y - s.player.y > 80 ? '↑' : target.y - s.player.y < -80 ? '↓' : ''}`,
+        labelX,
+        labelY,
         12,
         C.amber,
         140,
@@ -742,6 +763,7 @@ export class UI {
       s.scanCooldown > 0,
       s.scanCooldown / 10,
     );
+    this.rect(fx - 42, fy - 131, 84, 20, '#102538c9');
     this.text(
       'energy',
       `能量 ${Math.ceil(s.player.energy)}`,
@@ -765,7 +787,7 @@ export class UI {
       center,
     );
     const nav = navigationTarget(s);
-    if (nav) {
+    if (nav && !(nav.point === target && marker?.visible)) {
       const delta =
         Math.atan2(nav.point.x - s.player.x, -(nav.point.z - s.player.z)) - s.player.yaw;
       const heading = Math.atan2(Math.sin(delta), Math.cos(delta));
@@ -781,9 +803,10 @@ export class UI {
         C.cyan,
         1.5,
       );
+      this.rect(nx - 85, cy + 74, 170, 20, '#102538dc');
       this.text(
         'navigation',
-        `${heading < -0.3 ? '‹ ' : heading > 0.3 ? '› ' : ''}${nav.label} ${Math.round(distance(nav.point, s.player))}m`,
+        `${heading < -0.3 ? '‹ ' : heading > 0.3 ? '› ' : ''}${nav.label} ${Math.round(distance(nav.point, s.player))}m ${nav.point.y - s.player.y > 80 ? '↑' : nav.point.y - s.player.y < -80 ? '↓' : ''}`,
         nx - 85,
         cy + 84,
         11,
@@ -793,10 +816,31 @@ export class UI {
       );
     }
     const threat = s.enemies.find((e) => e.telegraph > 0.1);
-    if (threat)
+    if (threat) {
+      const heading = Math.atan2(threat.x - s.player.x, -(threat.z - s.player.z)) - s.player.yaw;
+      const relative = Math.atan2(Math.sin(heading), Math.cos(heading));
+      const bearing =
+        Math.abs(relative) > Math.PI * 0.65
+          ? '后方'
+          : relative < -0.3
+            ? '左侧'
+            : relative > 0.3
+              ? '右侧'
+              : '前方';
+      const marker = this.project?.(threat);
+      if (marker?.visible)
+        this.circle(
+          marker.x * this.width,
+          marker.y * this.height,
+          17 + threat.telegraph * 5,
+          '',
+          C.red,
+          1.5,
+        );
+      this.rect(cx - 100, y + 66, 200, 20, '#102538dc');
       this.text(
         'threat',
-        `${threat.kind === 'elite' ? '精英' : '重机'}蓄能 · 侧向规避`,
+        `${bearing}${threat.kind === 'elite' ? '精英' : '重机'}蓄能 · 规避`,
         cx - 100,
         y + 76,
         12,
@@ -805,6 +849,18 @@ export class UI {
         center,
         true,
       );
+    }
+    this.rect(cx - 72, y + 19, 144, 20, '#102538c9');
+    this.text(
+      'clearance',
+      `离地 ${Math.max(0, Math.round(s.player.y - Math.max(WATER_LEVEL, terrainHeight(s.player.x, s.player.z))))}m`,
+      cx - 70,
+      y + 29,
+      11,
+      C.white,
+      140,
+      center,
+    );
     this.text(
       'timer',
       `${Math.ceil(s.mission.timeLimit - s.tick * DT)}s`,
@@ -823,8 +879,8 @@ export class UI {
     const message =
       s.noticeTime > 0 ? s.notice : s.tick * DT < 5 ? '左侧驾驶 · 右侧开火 · 松手回平' : '';
     if (message) {
-      this.plate(cx - 156, y + 87, 312, 25, '#102538ad', '', 4);
-      this.text('notice', message, cx - 153, y + 100, 12, C.white, 306, center);
+      this.plate(cx - 156, a.bottom - 55, 312, 25, '#102538dc', '', 4);
+      this.text('notice', message, cx - 153, a.bottom - 43, 12, C.white, 306, center);
     }
     if (practice) this.text('practice', '试玩', x + 218, y + 60, 11, C.muted, 40);
   }
@@ -1235,7 +1291,7 @@ export class UI {
       this.diagram(x + 22, top + 58, cw - 44, 100);
       this.text(
         'help-thumb',
-        '左拇指驾驶，松手自动回平。\n右拇指长按开火或加速。',
+        '左侧驾驶，松手回平。触地即坠毁。\n右侧长按开火或加速。',
         x + 18,
         top + 215,
         15,
@@ -1246,8 +1302,8 @@ export class UI {
         2,
       );
       for (const [i, icon, title, body] of [
-        [0, 'missile', '锁定与导弹', '敌机进入前方 25° / 900 m 才可锁定。'],
-        [1, 'fire', '热量与护盾', '机炮过热会冷却，脱离攻击恢复护盾。'],
+        [0, 'missile', '锁定与导弹', `前方 25° / ${MISSILE_RANGE / 1000} km 内锁定。`],
+        [1, 'fire', '热量与护盾', '机炮过热会冷却；护盾不能抵挡撞山。'],
         [2, 'scan', '扫描回收', '吸引残骸，补充护盾、能量并获得分数。'],
       ] as const) {
         const yy = top + 19 + i * 71;

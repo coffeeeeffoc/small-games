@@ -1,3 +1,5 @@
+> 当前版本已更新为空域v2；本文件保留历史批次。2026-10-30的准确构建、41项检查、多智能体实测和触屏战役结果见[连续山地空战验证](docs/design/airspace-2026-10-30.md)。
+
 # B1 Cocos工程与规则验证
 
 日期：2026-10-29；Windows，Node 24.21.0 / pnpm 12.6.0，真实 Cocos Creator 3.8.8，Playwright 1.55.1 Chromium。工作树为 C:/Users/15211/.codex/worktrees/nullrange-rebuild/small-games，分支 codex/nullrange-rebuild；本批未提交、未推送。

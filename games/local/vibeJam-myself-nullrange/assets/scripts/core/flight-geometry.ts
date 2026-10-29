@@ -34,10 +34,51 @@ export function airframeSamples(
   });
 }
 export function airframeFloor(p: Pose, samples: readonly (readonly number[])[] = AIRFRAME_SAMPLES) {
-  let floor = surfaceHeight(p.x, p.z) + 7;
+  let floor = surfaceHeight(p.x, p.z) + 1.1;
   for (const point of airframeSamples(p, samples))
-    floor = Math.max(floor, surfaceHeight(point.x, point.z) + 2.5 - (point.y - p.y));
+    floor = Math.max(floor, surfaceHeight(point.x, point.z) + 0.35 - (point.y - p.y));
   return floor;
+}
+export function airframeContact(
+  before: Pose,
+  after: Pose,
+  samples: readonly (readonly number[])[] = AIRFRAME_SAMPLES,
+) {
+  const travel = Math.hypot(after.x - before.x, after.y - before.y, after.z - before.z);
+  const yaw = Math.atan2(Math.sin(after.yaw - before.yaw), Math.cos(after.yaw - before.yaw));
+  const steps = Math.max(
+    1,
+    Math.ceil(
+      (travel +
+        15 *
+          (Math.abs(yaw) +
+            Math.abs(after.roll - before.roll) +
+            Math.abs(after.pitch - before.pitch))) /
+        4,
+    ),
+  );
+  const at = (t: number): Pose => ({
+    x: before.x + (after.x - before.x) * t,
+    y: before.y + (after.y - before.y) * t,
+    z: before.z + (after.z - before.z) * t,
+    yaw: before.yaw + yaw * t,
+    pitch: before.pitch + (after.pitch - before.pitch) * t,
+    roll: before.roll + (after.roll - before.roll) * t,
+  });
+  for (let i = 0; i <= steps; i++) {
+    const pose = at(i / steps);
+    if (pose.y > airframeFloor(pose, samples)) continue;
+    let lo = Math.max(0, (i - 1) / steps),
+      hi = i / steps;
+    for (let j = 0; j < 8; j++) {
+      const mid = (lo + hi) / 2,
+        p = at(mid);
+      if (p.y <= airframeFloor(p, samples)) hi = mid;
+      else lo = mid;
+    }
+    return at(lo);
+  }
+  return null;
 }
 export function cameraView(p: Pose, menu: boolean, tick: number) {
   const d = {
@@ -48,9 +89,9 @@ export function cameraView(p: Pose, menu: boolean, tick: number) {
   const desired = menu
     ? { x: p.x - 28, y: p.y + 18, z: p.z + 34 }
     : {
-        x: p.x - d.x * 34,
-        y: p.y + 13 - d.y * 25 + Math.sin(tick * 0.13) * 0.1,
-        z: p.z - d.z * 34,
+        x: p.x - d.x * 56,
+        y: p.y + 18 - d.y * 44 + Math.sin(tick * 0.13) * 0.1,
+        z: p.z - d.z * 56,
       };
   const target = menu
     ? { x: p.x - 8, y: p.y + 14, z: p.z - 10 }

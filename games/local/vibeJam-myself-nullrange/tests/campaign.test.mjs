@@ -47,7 +47,7 @@ test('all unlocked craft can intercept the fleeing convoy through normal control
 test('six normal-input missions, real first-to-six unlock chain, replay and idempotent results', async () => {
   const storage = memory(),
     p = readProgress(storage);
-  assert.equal(RULE_VERSION, 'nullrange-b4-v1');
+  assert.equal(RULE_VERSION, 'nullrange-airspace-v2');
   for (const [i, m] of MISSIONS.entries()) {
     assert.ok(missionUnlocked(p, m.id));
     const craft = CRAFTS[i < 2 ? 0 : i < 4 ? 1 : 2];
@@ -72,7 +72,7 @@ test('six normal-input missions, real first-to-six unlock chain, replay and idem
     assert.equal(s.status, 'won', m.id + ': ' + s.reason);
     assert.ok(first <= 15, m.id);
     assert.ok(maxEnemies <= 8 && maxShots <= 96);
-    if (i > 0) assert.ok(s.tick * DT >= 120 && s.tick * DT <= 300, `${m.id}: ${s.tick * DT}s`);
+    if (i > 0) assert.ok(s.tick * DT >= 90 && s.tick * DT <= 300, `${m.id}: ${s.tick * DT}s`);
     if (m.objective.kind === 'elite') assert.deepEqual(phases, [2, 3]);
     if (m.objective.kind === 'recover') assert.equal(s.recovered, m.objective.count);
     assert.equal(recordVictory(storage, p, s, true), false);

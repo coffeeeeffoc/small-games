@@ -1,0 +1,436 @@
+{
+  "sourceHash": "bff083d9a2caf617bdc593340b8b3f86da1ebbf24a3ce883be6ed611e7b013de",
+  "runs": [
+    {
+      "mission": "dawn-patrol",
+      "craft": "falcon",
+      "status": "won",
+      "reason": "空域已肃清",
+      "seconds": 25.833333333333332,
+      "wallSeconds": 26.121,
+      "videoStart": 1.581,
+      "firstContact": 0.75,
+      "kills": 6,
+      "recovered": 5,
+      "hull": 100,
+      "progress": {
+        "version": 2,
+        "best": 1350,
+        "muted": false,
+        "reduced": false,
+        "sensitivity": 1,
+        "selectedCraft": "falcon",
+        "completed": {
+          "dawn-patrol": {
+            "best": 1350,
+            "medal": 3,
+            "time": 1550
+          }
+        }
+      },
+      "maxDraws": 109,
+      "maxTriangles": 91710,
+      "world": {
+        "ready": true,
+        "modelsLoaded": 21,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 234,
+        "activeScenery": 154,
+        "modelInstancesCreated": 406,
+        "meshes": 66,
+        "materials": 30,
+        "renderers": 518,
+        "activeRenderers": 210,
+        "instancedPasses": 734,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 75,
+        "triangles": 80804,
+        "aircraft": "falcon",
+        "craftInstances": 1,
+        "nozzles": [
+          {
+            "x": -1.18,
+            "y": -0.16,
+            "z": 8.8
+          },
+          {
+            "x": 1.18,
+            "y": -0.16,
+            "z": 8.8
+          }
+        ],
+        "pooledObjects": 11,
+        "fxBudget": 32,
+        "activeFx": 0,
+        "playerVisible": true,
+        "terrainSpan": 10752,
+        "terrainKeys": [
+          "3:3",
+          "2:3",
+          "1:3",
+          "0:3",
+          "-1:3",
+          "-2:3",
+          "-3:3",
+          "3:2",
+          "2:2",
+          "1:2",
+          "0:2",
+          "-1:2",
+          "-2:2",
+          "-3:2",
+          "3:1",
+          "2:1",
+          "1:1",
+          "0:1",
+          "-1:1",
+          "-2:1",
+          "-3:1",
+          "3:0",
+          "2:0",
+          "1:0",
+          "0:0",
+          "-1:0",
+          "-2:0",
+          "-3:0",
+          "3:-1",
+          "2:-1",
+          "1:-1",
+          "0:-1",
+          "-1:-1",
+          "-2:-1",
+          "-3:-1",
+          "3:-2",
+          "2:-2",
+          "1:-2",
+          "0:-2",
+          "-1:-2",
+          "-2:-2",
+          "-3:-2",
+          "3:-3",
+          "2:-3",
+          "1:-3",
+          "0:-3",
+          "-1:-3",
+          "-2:-3",
+          "-3:-3"
+        ],
+        "camera": {
+          "x": -28,
+          "y": 1618,
+          "z": 34
+        },
+        "terrainHeight": -24
+      }
+    },
+    {
+      "mission": "ridge-intercept",
+      "craft": "falcon",
+      "status": "won",
+      "reason": "全部逃逸信标已拦截",
+      "seconds": 118.48333333333333,
+      "wallSeconds": 118.947,
+      "videoStart": 28.298,
+      "firstContact": 1.8166666666666667,
+      "kills": 9,
+      "recovered": 5,
+      "hull": 100,
+      "progress": {
+        "version": 2,
+        "best": 1650,
+        "muted": false,
+        "reduced": false,
+        "sensitivity": 1,
+        "selectedCraft": "falcon",
+        "completed": {
+          "dawn-patrol": {
+            "best": 1350,
+            "medal": 3,
+            "time": 1550
+          },
+          "ridge-intercept": {
+            "best": 1650,
+            "medal": 3,
+            "time": 7109
+          }
+        }
+      },
+      "maxDraws": 115,
+      "maxTriangles": 93581,
+      "world": {
+        "ready": true,
+        "modelsLoaded": 21,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 346,
+        "activeScenery": 154,
+        "modelInstancesCreated": 579,
+        "meshes": 66,
+        "materials": 30,
+        "renderers": 692,
+        "activeRenderers": 210,
+        "instancedPasses": 1082,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 75,
+        "triangles": 80804,
+        "aircraft": "falcon",
+        "craftInstances": 1,
+        "nozzles": [
+          {
+            "x": -1.18,
+            "y": -0.16,
+            "z": 8.8
+          },
+          {
+            "x": 1.18,
+            "y": -0.16,
+            "z": 8.8
+          }
+        ],
+        "pooledObjects": 20,
+        "fxBudget": 32,
+        "activeFx": 0,
+        "playerVisible": true,
+        "terrainSpan": 10752,
+        "terrainKeys": [
+          "3:3",
+          "2:3",
+          "1:3",
+          "0:3",
+          "-1:3",
+          "-2:3",
+          "-3:3",
+          "3:2",
+          "2:2",
+          "1:2",
+          "0:2",
+          "-1:2",
+          "-2:2",
+          "-3:2",
+          "3:1",
+          "2:1",
+          "1:1",
+          "0:1",
+          "-1:1",
+          "-2:1",
+          "-3:1",
+          "3:0",
+          "2:0",
+          "1:0",
+          "0:0",
+          "-1:0",
+          "-2:0",
+          "-3:0",
+          "3:-1",
+          "2:-1",
+          "1:-1",
+          "0:-1",
+          "-1:-1",
+          "-2:-1",
+          "-3:-1",
+          "3:-2",
+          "2:-2",
+          "1:-2",
+          "0:-2",
+          "-1:-2",
+          "-2:-2",
+          "-3:-2",
+          "3:-3",
+          "2:-3",
+          "1:-3",
+          "0:-3",
+          "-1:-3",
+          "-2:-3",
+          "-3:-3"
+        ],
+        "camera": {
+          "x": -28,
+          "y": 1618,
+          "z": 34
+        },
+        "terrainHeight": -24
+      }
+    },
+    {
+      "mission": "echo-recovery",
+      "craft": "kestrel",
+      "status": "won",
+      "reason": "黑匣回声全部回收",
+      "seconds": 199.5,
+      "wallSeconds": 199.87,
+      "videoStart": 148.529,
+      "firstContact": 1.9333333333333333,
+      "kills": 12,
+      "recovered": 12,
+      "hull": 75,
+      "progress": {
+        "version": 2,
+        "best": 2300,
+        "muted": false,
+        "reduced": false,
+        "sensitivity": 1,
+        "selectedCraft": "kestrel",
+        "completed": {
+          "dawn-patrol": {
+            "best": 1350,
+            "medal": 3,
+            "time": 1550
+          },
+          "ridge-intercept": {
+            "best": 1650,
+            "medal": 3,
+            "time": 7109
+          },
+          "echo-recovery": {
+            "best": 2300,
+            "medal": 3,
+            "time": 11970
+          }
+        }
+      },
+      "maxDraws": 110,
+      "maxTriangles": 91405,
+      "world": {
+        "ready": true,
+        "modelsLoaded": 21,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 403,
+        "activeScenery": 154,
+        "modelInstancesCreated": 637,
+        "meshes": 67,
+        "materials": 30,
+        "renderers": 752,
+        "activeRenderers": 210,
+        "instancedPasses": 1260,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 75,
+        "triangles": 80052,
+        "aircraft": "kestrel",
+        "craftInstances": 2,
+        "nozzles": [
+          {
+            "x": -0.72,
+            "y": -0.1,
+            "z": 7.1
+          },
+          {
+            "x": 0.72,
+            "y": -0.1,
+            "z": 7.1
+          }
+        ],
+        "pooledObjects": 26,
+        "fxBudget": 32,
+        "activeFx": 0,
+        "playerVisible": true,
+        "terrainSpan": 10752,
+        "terrainKeys": [
+          "3:3",
+          "3:-2",
+          "2:3",
+          "1:3",
+          "0:3",
+          "-1:3",
+          "-2:3",
+          "3:-3",
+          "-3:3",
+          "3:2",
+          "2:2",
+          "1:2",
+          "0:2",
+          "-1:2",
+          "-2:2",
+          "-3:2",
+          "3:1",
+          "2:1",
+          "1:1",
+          "0:1",
+          "-3:-2",
+          "-1:1",
+          "2:-2",
+          "-2:1",
+          "-3:1",
+          "3:0",
+          "-3:-3",
+          "2:0",
+          "1:0",
+          "2:-3",
+          "0:0",
+          "-1:0",
+          "-2:0",
+          "-3:0",
+          "3:-1",
+          "2:-1",
+          "1:-1",
+          "1:-2",
+          "0:-2",
+          "-1:-2",
+          "-2:-2",
+          "0:-1",
+          "-1:-1",
+          "-2:-1",
+          "1:-3",
+          "0:-3",
+          "-1:-3",
+          "-2:-3",
+          "-3:-1"
+        ],
+        "camera": {
+          "x": -28,
+          "y": 1618,
+          "z": 34
+        },
+        "terrainHeight": -24
+      }
+    }
+  ],
+  "errors": [],
+  "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\vibeJam-myself-nullrange\\reports\\campaign\\video\\f09d267690b8cc7b41ecb99a69bf934c.webm"
+}

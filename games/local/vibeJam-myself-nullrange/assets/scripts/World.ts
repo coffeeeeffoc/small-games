@@ -20,7 +20,14 @@ import {
 } from 'cc';
 import { cameraView } from './core/flight-geometry';
 import type { State, Point } from './core/rules';
-import { TILE_SIZE, WATER_LEVEL, terrainGeometry, sceneryAt, terrainHeight } from './core/terrain';
+import {
+  TILE_SIZE,
+  WATER_LEVEL,
+  terrainGeometry,
+  horizonGeometry,
+  sceneryAt,
+  terrainHeight,
+} from './core/terrain';
 export const MODEL_NAMES = [
   'falcon',
   'kestrel',
@@ -61,7 +68,6 @@ export class World {
   tiles: Tile[] = [];
   groves: Grove[] = [];
   background: Node;
-  clouds: Node[] = [];
   disposed = false;
   private sphere: Mesh;
   private craftNodes = new Map<string, Node>();
@@ -75,6 +81,7 @@ export class World {
   private terrainMaterial!: Material;
   private engines: Node[] = [];
   private lake?: Node;
+  private horizon?: { renderer: MeshRenderer; mesh?: Mesh };
   private loadedTextures = 0;
   private spawned = 0;
   constructor(
@@ -92,7 +99,7 @@ export class World {
     this.camera.clearFlags = Camera.ClearFlag.SOLID_COLOR;
     this.camera.clearColor = tint('#91b7cb');
     this.camera.near = 0.8;
-    this.camera.far = 9000;
+    this.camera.far = 24000;
     this.camera.fov = 54;
     const globals = parent.scene!.globals;
     globals.skybox.enabled = false;
@@ -102,8 +109,8 @@ export class World {
     globals.fog.enabled = true;
     globals.fog.type = 0;
     globals.fog.fogColor = tint('#9bb7c6');
-    globals.fog.fogStart = 460;
-    globals.fog.fogEnd = 2700;
+    globals.fog.fogStart = 4500;
+    globals.fog.fogEnd = 10000;
     const sun = this.node('Sun', this.root);
     sun.setRotationFromEuler(-28, -58, 0);
     const light = sun.addComponent(DirectionalLight);
@@ -149,7 +156,7 @@ export class World {
       lakeMaterial.setProperty('skyTexture', panorama);
       this.materials.set('lake', lakeMaterial);
       const lakeMesh = utils.createMesh(
-        primitives.plane({ width: 2600, length: 2600, widthSegments: 1, lengthSegments: 1 }),
+        primitives.plane({ width: 24000, length: 24000, widthSegments: 1, lengthSegments: 1 }),
       );
       this.meshes.push(lakeMesh);
       this.lake = this.node('ShallowValleyWater', this.root);
@@ -227,46 +234,41 @@ export class World {
         this.engines.push(n);
       }
       const sky = new Material();
-      sky.initialize({ effectAsset: skyEffect as EffectAsset });
+      sky.initialize({ effectAsset: skyEffect as EffectAsset, defines: { USE_ATMOSPHERE: true } });
       sky.setProperty('mainTexture', panorama);
       this.materials.set('sky', sky);
       const positions: number[] = [],
         uvs: number[] = [],
         indices: number[] = [];
-      for (let i = 0; i <= 96; i++) {
-        const a = (i / 96) * Math.PI * 2;
-        for (const y of [-1800, 3600]) {
-          positions.push(Math.sin(a) * 6500, y, -Math.cos(a) * 6500);
-          uvs.push((i / 96) * 2 + 0.5, y < 0 ? 1 : 0);
+      for (let j = 0; j <= 24; j++)
+        for (let i = 0; i <= 96; i++) {
+          const a = (i / 96) * Math.PI * 2,
+            polar = (j / 24) * Math.PI;
+          positions.push(
+            Math.sin(a) * Math.sin(polar) * 18000,
+            Math.cos(polar) * 18000,
+            -Math.cos(a) * Math.sin(polar) * 18000,
+          );
+          // Only the sky half of the source image; every mountain is real terrain.
+          uvs.push((i / 96) * 2 + 0.5, (j / 24) * 0.96);
+          if (i < 96 && j < 24) {
+            const k = j * 97 + i;
+            indices.push(k, k + 97, k + 1, k + 1, k + 97, k + 98);
+          }
         }
-        if (i < 96) {
-          const j = i * 2;
-          indices.push(j, j + 1, j + 2, j + 1, j + 3, j + 2);
-        }
-      }
       const mesh = utils.createMesh({ positions, uvs, indices });
       this.meshes.push(mesh);
       const r = this.node('Panorama', this.background).addComponent(MeshRenderer);
       r.mesh = mesh;
       r.setSharedMaterial(sky, 0);
       const lunar = this.model('moon', this.background);
-      lunar.setPosition(700, 950, -3000);
-      lunar.setScale(24, 24, 24);
-      // Background ridges follow the viewer beyond the streamed/collidable terrain; they can never enter the flight region.
-      for (let i = 0; i < 6; i++) {
-        const n = this.model(`ridge-${(i % 2) + 1}`, this.background),
-          a = ((i + 0.5) / 6) * Math.PI * 2;
-        n.setPosition(Math.sin(a) * 3000, -80, Math.cos(a) * 3000);
-        n.setScale(5.2, 3.0 + (i % 3) * 0.5, 4.5);
-        n.setRotationFromEuler(0, (-a * 180) / Math.PI, 0);
-      }
-      for (let i = 0; i < 8; i++) {
-        const cloud = this.model(`cloud-${(i % 2) + 1}`, this.root);
-        cloud.setScale(5 + (i % 3), 4, 5);
-        this.clouds.push(cloud);
-      }
+      lunar.setPosition(5000, 8000, -13000);
+      lunar.setScale(34, 34, 34);
       for (let i = 0; i < 49; i++)
         this.tiles.push({ node: this.node('Terrain', this.root), key: '' });
+      const horizonRenderer = this.node('DistantTerrain', this.root).addComponent(MeshRenderer);
+      horizonRenderer.setSharedMaterial(this.terrainMaterial, 0);
+      this.horizon = { renderer: horizonRenderer };
       for (let i = 0; i < 32; i++) {
         const n = this.shape(this.root, i < 16 ? '#f6bb69' : '#5ed5ce', [0, 0, 0], [1, 1, 1]);
         n.active = false;
@@ -335,6 +337,11 @@ export class World {
       key = `${cx}:${cz}`;
     if (key !== this.groundKey) {
       this.groundKey = key;
+      if (this.horizon) {
+        this.horizon.mesh?.destroy();
+        this.horizon.mesh = utils.createMesh(horizonGeometry(cx, cz));
+        this.horizon.renderer.mesh = this.horizon.mesh;
+      }
       const desired = new Set<string>();
       for (let z = cz - 3; z <= cz + 3; z++)
         for (let x = cx - 3; x <= cx + 3; x++) desired.add(`${x}:${z}`);
@@ -387,11 +394,6 @@ export class World {
         g.node.setScale(o.scale, o.scale, o.scale);
         g.node.setRotationFromEuler(0, o.rotation, 0);
       }
-      for (let i = 0; i < this.clouds.length; i++) {
-        const x = p.x + (((((i % 4) * 490 - p.x + 10000) % 1960) + 1960) % 1960) - 980,
-          z = p.z + ((((Math.floor(i / 4) * 980 - p.z + 10000) % 1960) + 1960) % 1960) - 980;
-        this.clouds[i].setPosition(x, 160 + (i % 3) * 35, z);
-      }
     }
     for (const g of this.groves) {
       if (!g.key) continue;
@@ -403,9 +405,9 @@ export class World {
       }
     }
   }
-  update(s: State, menu: boolean, reduced: boolean, screen = 'home') {
+  update(s: State, menu: boolean, reduced: boolean, screen = 'home', crashTime = 0) {
     // Display poses never mutate the flight state or its collision/camera contract.
-    const p = menu ? { ...s.player, x: 0, y: 145, z: 0, yaw: 0, pitch: 0, roll: 0 } : s.player,
+    const p = menu ? { ...s.player, x: 0, y: 1600, z: 0, yaw: 0, pitch: 0, roll: 0 } : s.player,
       cam = this.camera.node;
     this.player.setPosition(p.x, p.y + (menu ? 18 : 0), p.z);
     this.player.setScale(menu ? 1.55 : 1, menu ? 1.55 : 1, menu ? 1.55 : 1);
@@ -414,7 +416,15 @@ export class World {
       (-p.yaw * 180) / Math.PI,
       (p.roll * 180) / Math.PI + (menu ? 28 : 0),
     );
+    const crashed = s.impacts.some((e) => e.kind === 'crash');
+    const visualTick = s.tick + (crashed ? crashTime * 60 : 0);
     const view = cameraView(p, menu, reduced ? 0 : s.tick);
+    if (crashed && !menu) {
+      view.position.y += 12;
+      view.target.x = p.x;
+      view.target.y = p.y;
+      view.target.z = p.z;
+    }
     if (menu) {
       const left = screen === 'result' || screen === 'prepare';
       view.target.x = p.x + (left ? 33 : -8);
@@ -422,14 +432,19 @@ export class World {
       view.target.z = p.z - 10;
     }
     const latest = s.impacts
-      .filter((e) => e.kind === 'kill' || e.kind === 'damage' || e.kind === 'shield')
+      .filter(
+        (e) =>
+          e.kind === 'kill' || e.kind === 'damage' || e.kind === 'shield' || e.kind === 'crash',
+      )
       .at(-1);
     const recoil =
-      !reduced && !menu && latest ? Math.max(0, 1 - (s.tick - latest.tick) / 24) * 0.55 : 0;
+      !reduced && !menu && latest
+        ? Math.max(0, 1 - (visualTick - latest.tick) / 24) * (latest.kind === 'crash' ? 2.2 : 0.55)
+        : 0;
     this.camera.fov += ((reduced || menu ? 54 : s.boosting ? 59 : 54) - this.camera.fov) * 0.12;
     cam.setPosition(
-      view.position.x + Math.sin(s.tick * 0.7) * recoil,
-      view.position.y + Math.sin(s.tick * 0.9) * recoil,
+      view.position.x + Math.sin(visualTick * 0.7) * recoil,
+      view.position.y + Math.sin(visualTick * 0.9) * recoil,
       view.position.z,
     );
     cam.lookAt(new Vec3(view.target.x, view.target.y, view.target.z));
@@ -444,8 +459,8 @@ export class World {
       s.craft.nozzles.forEach((p, i) => this.engines[i].setPosition(p[0], p[1], p[2]));
       this.currentCraft = s.craft.id;
     }
-    this.player.active = screen !== 'missions';
-    this.background.setPosition(p.x, 0, p.z);
+    this.player.active = screen !== 'missions' && (menu || !crashed);
+    this.background.setPosition(p.x, p.y, p.z);
     this.terrain(p);
     this.lake?.setPosition(p.x, WATER_LEVEL, p.z);
     this.materials.get('lake')?.setProperty('flow', new Vec4(reduced ? 0 : s.tick / 60, 0, 0, 0));
@@ -532,17 +547,17 @@ export class World {
       cool = 16;
     if (!menu)
       for (const e of s.impacts) {
-        if (reduced && e.kind !== 'kill' && e.kind !== 'pickup') continue;
-        const age = (s.tick - e.tick) / 60,
-          life = e.kind === 'kill' ? 0.75 : 0.28;
+        if (reduced && e.kind !== 'kill' && e.kind !== 'pickup' && e.kind !== 'crash') continue;
+        const age = (visualTick - e.tick) / 60,
+          life = e.kind === 'crash' ? 1.4 : e.kind === 'kill' ? 0.75 : 0.28;
         if (age > life) continue;
         const blue = e.kind === 'shield' || e.kind === 'pickup',
-          count = reduced ? 1 : e.kind === 'kill' ? 5 : 1;
+          count = reduced ? 1 : e.kind === 'crash' ? 14 : e.kind === 'kill' ? 5 : 1;
         for (let j = 0; j < count; j++) {
           const index = blue ? cool++ : warm++;
           if (index >= (blue ? 32 : 16)) break;
           const n = this.fx[index],
-            spread = reduced ? 0 : age * (e.kind === 'kill' ? 34 : 8),
+            spread = reduced ? 0 : age * (e.kind === 'crash' ? 80 : e.kind === 'kill' ? 34 : 8),
             angle = j * 2.4 + e.id;
           n.active = true;
           n.setPosition(
@@ -551,10 +566,15 @@ export class World {
             e.z + Math.sin(angle) * spread,
           );
           const size =
-            (e.kind === 'kill' ? 9 : e.kind === 'shield' ? 7 : 3) *
+            (e.kind === 'crash' ? 24 : e.kind === 'kill' ? 9 : e.kind === 'shield' ? 7 : 3) *
             (1 - age / life) *
             (reduced ? 0.45 : 1);
-          n.setScale(size, size, size);
+          if (e.kind === 'crash') {
+            const ember = j < 2;
+            const fragment = (ember ? 10 : 2.2) * Math.max(0, 1 - age / life);
+            n.setScale(fragment, fragment * (ember ? 0.7 : 0.35), fragment * (ember ? 1 : 2.5));
+            n.setRotationFromEuler(j * 47 + age * 200, j * 31 + age * 120, j * 73);
+          } else n.setScale(size, size, size);
         }
       }
   }
@@ -595,19 +615,33 @@ export class World {
       nozzles: this.engines.map((n) => ({ x: n.position.x, y: n.position.y, z: n.position.z })),
       pooledObjects: Array.from(this.objectPools.values()).reduce((n, p) => n + p.length, 0),
       fxBudget: this.fx.length,
+      activeFx: this.fx.filter((n) => n.active).length,
+      playerVisible: this.player.active,
+      terrainSpan: TILE_SIZE * 7,
+      terrainKeys: this.tiles.map((t) => t.key),
+      camera: {
+        x: this.camera.node.position.x,
+        y: this.camera.node.position.y,
+        z: this.camera.node.position.z,
+      },
       terrainHeight: terrainHeight(this.player.position.x, this.player.position.z),
     };
   }
   project(p: Point) {
     const result = new Vec3();
-    this.camera.worldToScreen(result, new Vec3(p.x, p.y, p.z));
-    return result;
+    this.camera.worldToScreen(new Vec3(p.x, p.y, p.z), result);
+    const cam = this.camera.node,
+      delta = new Vec3(p.x - cam.position.x, p.y - cam.position.y, p.z - cam.position.z);
+    const x = result.x / this.camera.camera.width,
+      y = 1 - result.y / this.camera.camera.height;
+    return { x, y, visible: Vec3.dot(delta, cam.forward) > 0 && x > 0 && x < 1 && y > 0 && y < 1 };
   }
   dispose() {
     this.disposed = true;
     this.root.destroy();
     this.camera.node.destroy();
     this.tiles.forEach((t) => t.mesh?.destroy());
+    this.horizon?.mesh?.destroy();
     this.meshes.forEach((m) => m.destroy());
     this.materials.forEach((m) => m.destroy());
   }

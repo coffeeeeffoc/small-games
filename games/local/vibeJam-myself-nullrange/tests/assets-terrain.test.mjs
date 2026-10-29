@@ -170,24 +170,28 @@ test('terrain collision exactly matches rendered triangles across negative coord
   for (let z = -5000; z < 5000; z += 73)
     for (let x = -2000; x < 2000; x += 61) assert.ok(terrainVertex(x, z) < FLIGHT_CEILING - 50);
 });
-test('scenery placements are deterministic, collisions lift real flights above their volumes', () => {
-  const o = sceneryAt(-1, -2);
-  assert.deepEqual(o, sceneryAt(-1, -2));
+test('scenery placements are deterministic, collisions destroy aircraft without lifting them', () => {
+  const submerged = sceneryAt(-1, -2);
+  assert.ok(submerged.y < WATER_LEVEL + 2);
+  assert.equal(obstacleHeight(submerged.x, submerged.z), -Infinity);
+  const o = sceneryAt(6, -2);
+  assert.deepEqual(o, sceneryAt(6, -2));
   assert.equal(obstacleHeight(o.x, o.z), o.y + o.height);
   const s = createRun();
   s.player.x = o.x;
   s.player.z = o.z + 2;
   s.player.y = o.y + 1;
   step(s);
-  assert.ok(s.player.y >= o.y + o.height + 7);
+  assert.equal(s.status, 'lost');
+  assert.equal(s.player.y, o.y + 1);
   assert.ok(s.player.shield < 70);
 });
 test('the valley river remains continuous and both forest banks stay above its waterline', () => {
   for (let z = -10000; z <= 10000; z += 13) {
     const x = valleyCenter(z);
     assert.ok(terrainHeight(x, z) < WATER_LEVEL - 10);
-    assert.ok(terrainHeight(x - 125, z) > WATER_LEVEL + 10);
-    assert.ok(terrainHeight(x + 125, z) > WATER_LEVEL + 10);
+    assert.ok(terrainHeight(x - 450, z) > WATER_LEVEL + 10);
+    assert.ok(terrainHeight(x + 450, z) > WATER_LEVEL + 10);
   }
 });
 test('mission illustration atlas is the supplied original, with exact six-cell crop boundaries', async () => {

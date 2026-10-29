@@ -50,12 +50,12 @@ test('radar follows real relative enemy coordinates, heading and live targets', 
     { id: 2, x: 1800, y: 95, z: 0, hp: 1 },
     { id: 3, x: 0, y: 95, z: 0, hp: 0 },
   ];
-  assert.deepEqual(radarContacts(s), [
+  assert.deepEqual(radarContacts(s, 900), [
     { id: 1, x: 0, y: -0.5, distance: 450, outside: false },
     { id: 2, x: 1, y: -0, distance: 1800, outside: true },
   ]);
   s.player.yaw = Math.PI / 2;
-  const r = radarContacts(s);
+  const r = radarContacts(s, 900);
   assert.ok(Math.abs(r[0].x + 0.5) < 1e-12);
   assert.ok(Math.abs(r[1].y + 1) < 1e-12);
 });

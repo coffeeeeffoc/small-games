@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import {
   AIRFRAME_SAMPLES,
   airframeFloor,
+  airframeContact,
   airframeSamples,
   cameraView,
   surfaceHeight,
@@ -16,9 +17,10 @@ test('water is a physical surface for the airframe and camera, not a decorative 
   const s = createRun();
   s.player.y = WATER_LEVEL - 2;
   step(s);
-  assert.ok(s.events.includes('damage'));
-  assert.ok(s.player.y >= WATER_LEVEL + 7);
-  for (const p of airframeSamples(s.player)) assert.ok(p.y > WATER_LEVEL);
+  assert.ok(s.events.includes('crash'));
+  assert.equal(s.status, 'lost');
+  assert.equal(s.player.y, WATER_LEVEL - 2);
+  assert.equal(s.player.pitch, 0);
   assert.ok(cameraView(s.player, false, 0).position.y >= WATER_LEVEL + 6);
 });
 test('Falcon probes cover the current authored span, nose and underside', async () => {
@@ -29,15 +31,35 @@ test('Falcon probes cover the current authored span, nose and underside', async 
   assert.ok(Math.min(...AIRFRAME_SAMPLES.map((p) => p[2])) <= m.bounds.min[2]);
   assert.ok(Math.abs(Math.min(...AIRFRAME_SAMPLES.map((p) => p[1])) - m.bounds.min[1]) < 0.001);
 });
-test('review regression: a clear centre cannot hide a wing penetrating the bank', () => {
+test('first airframe contact ends the run without lift, pitch correction or shield protection', () => {
   const s = createRun();
-  Object.assign(s.player, { x: 350, y: 171.883612, z: -308.466667 });
-  step(s);
-  assert.ok(s.events.includes('damage'));
-  assert.equal(s.player.shield, 35);
-  for (const p of airframeSamples(s.player)) assert.ok(p.y >= surfaceHeight(p.x, p.z) + 2.5 - 1e-7);
-  assert.ok(s.player.y >= airframeFloor(s.player) - 1e-7);
+  Object.assign(s.player, { x: 800, z: -308, pitch: -0.4, roll: 0.6 });
+  s.player.y = airframeFloor(s.player, s.craft.samples) - 0.1;
+  s.invulnerable = 10;
+  const before = { ...s.player };
+  step(s, { y: -1 });
+  assert.equal(s.status, 'lost');
+  assert.equal(s.player.hull, 0);
+  assert.equal(s.player.y, before.y);
+  assert.equal(s.player.pitch, before.pitch);
+  assert.equal(s.player.speed, 0);
+  assert.equal(s.impacts.filter((i) => i.kind === 'crash').length, 1);
+  const terminal = JSON.stringify(s.player);
+  step(s, { y: 1, fire: true });
+  assert.equal(JSON.stringify(s.player), terminal);
 });
+
+test('continuous airframe sweep catches a surface between clear endpoints', () => {
+  const a = { x: 1200, y: 1190, z: -4000, yaw: Math.PI / 2, pitch: 0, roll: 0 };
+  const b = { ...a, x: 2000 };
+  assert.ok(a.y > airframeFloor(a) && b.y > airframeFloor(b));
+  assert.ok(airframeFloor({ ...a, x: 1600 }) > a.y, 'the fixed ridge intersects the route');
+  const contact = airframeContact(a, b);
+  assert.ok(contact && contact.x > a.x && contact.x < b.x);
+  assert.equal(contact.y, a.y);
+  assert.ok(Math.abs(contact.y - airframeFloor(contact)) < 0.1);
+});
+
 test('banked airframe probes match independent Cocos YZX quaternion transform', () => {
   const p = { x: 20, y: 100, z: -30, yaw: 1.7, pitch: 0.4, roll: -0.65 };
   const sx = Math.sin(p.pitch / 2),
@@ -77,6 +99,6 @@ test('review regression: chase camera has terrain/obstacle clearance, including 
     assert.ok(c.y >= surfaceHeight(c.x, c.z) + 6);
     assert.ok(Object.values(c).every(Number.isFinite));
     for (const sample of airframeSamples(s.player))
-      assert.ok(sample.y >= surfaceHeight(sample.x, sample.z) + 2.5 - 1e-6);
+      if (s.status === 'running') assert.ok(sample.y >= surfaceHeight(sample.x, sample.z));
   }
 });

@@ -75,9 +75,16 @@ try {
     localStorage.setItem('nullrange-cn-muted', 'true');
   });
   await page.goto(base + '?dev=1');
-  await page.waitForFunction(() => globalThis.__nullrange?.snapshot().world.ready, null, {
-    timeout: 60000,
-  });
+  await page.waitForFunction(
+    () => {
+      const world = globalThis.__nullrange?.snapshot().world;
+      return world?.ready && world.terrainMeshes === 49 && world.drawCalls > 0;
+    },
+    null,
+    {
+      timeout: 60000,
+    },
+  );
   const snap = () => page.evaluate(() => __nullrange.snapshot());
   const world = (await snap()).world;
   assert.equal(world.modelsLoaded, 21);
@@ -168,6 +175,20 @@ try {
     await tap('start');
     assert.equal((await snap()).screen, 'playing');
     const running = await snap();
+    assert.ok(running.targetMarker, 'visible initial target has a projected lock bracket');
+    assert.equal(running.targetMarker.id, running.lock);
+    assert.ok(
+      Math.abs(running.targetMarker.labelY - running.targetMarker.y) >= 28 - 1e-6,
+      'distance label leaves the target bracket unobscured',
+    );
+    assert.ok(Number.isFinite(running.targetMarker.x) && Number.isFinite(running.targetMarker.y));
+    assert.ok(
+      Math.hypot(
+        running.targetMarker.x - running.width / 2,
+        running.targetMarker.y - running.height * 0.46,
+      ) > 10,
+      'lock bracket is not pinned to the central gunsight',
+    );
     await layout();
     await shot(`flight-${width}x${height}`);
     report.checks.push({ viewport: `${width}x${height}`, world: running.world });
@@ -235,7 +256,14 @@ try {
   // Browser pilot drives actual Cocos keyboard events; snapshots are read-only.
   let held = new Set();
   for (let i = 0; i < 2400; i++) {
-    const state = (await snap()).state;
+    const sample = await snap(),
+      state = sample.state;
+    if (sample.targetMarker)
+      assert.ok(
+        Math.abs(sample.targetMarker.labelY - sample.targetMarker.y) >= 28 - 1e-6,
+        'moving lock label keeps a 4px gap beyond the bracket: ' +
+          JSON.stringify(sample.targetMarker),
+      );
     if (state.status !== 'running') break;
     const desired = pilot(state),
       next = new Set();
@@ -281,7 +309,23 @@ try {
   });
   await page.keyboard.up('KeyS');
   assert.match((await snap()).state.reason, /地形/);
-  report.failure = (await snap()).state;
+  const impact = await snap();
+  report.failure = impact.state;
+  assert.equal(impact.screen, 'playing');
+  assert.ok(impact.state.impacts.some((e) => e.kind === 'crash'));
+  await page.waitForTimeout(100);
+  assert.equal((await snap()).world.playerVisible, false);
+  assert.ok((await snap()).world.activeFx > 0);
+  assert.equal((await snap()).audio.engine, false);
+  await shot('crash-impact');
+  await tap('pause');
+  const crashPaused = await snap();
+  await page.waitForTimeout(250);
+  assert.equal((await snap()).crashTime, crashPaused.crashTime);
+  assert.equal((await snap()).state.tick, impact.state.tick);
+  await tap('resume');
+  await page.waitForFunction(() => __nullrange.snapshot().screen === 'result');
+  assert.deepEqual((await snap()).state.player, impact.state.player);
   await shot('failure');
   await layout();
   await tap('restart');

@@ -1,0 +1,114 @@
+{
+  "date": "2026-10-30",
+  "sourceHash": "bff083d9a2caf617bdc593340b8b3f86da1ebbf24a3ce883be6ed611e7b013de",
+  "environment": "Windows desktop Chromium; 1280x720 touch emulation; normal unlocked campaign; no state injection",
+  "videoAudio": "Silent browser capture; no voiceover or added subtitles; not native phone recording",
+  "promoImage": "imagegen original illustration exec-a4fb805d-24c0-4ee5-8fa0-c1749f224f5d.png; Lanczos export from 1672x941 to 1920x1080 JPEG; icon and actual gameplay used as visual references",
+  "gameplayVideo": {
+    "mission": "dawn-patrol",
+    "startSeconds": 2.081,
+    "lengthSeconds": 22
+  },
+  "promoVideo": {
+    "segments": "3s illustrated title; 8s real ridge-intercept; 8s real echo-recovery; 3s illustrated title",
+    "fadeSeconds": 0.25,
+    "captureOffsets": [36.298, 156.529],
+    "differentFromGameplayVideo": true
+  },
+  "files": [
+    {
+      "path": "gameplay/screenshots/01-patrol-1280x720.png",
+      "bytes": 736512,
+      "sha256": "e7c3daa3d1c92958d484278aa1b72febe1eebf3af4e358392e50aeae6c784417",
+      "width": 1280,
+      "height": 720,
+      "pngColorType": 2
+    },
+    {
+      "path": "gameplay/screenshots/02-intercept-1280x720.png",
+      "bytes": 828349,
+      "sha256": "fbc5702badb1d1a8777259968b78e7a9f7303b82fb0a90ed0b65f4c9cbf1c069",
+      "width": 1280,
+      "height": 720,
+      "pngColorType": 2
+    },
+    {
+      "path": "gameplay/screenshots/03-recovery-1280x720.png",
+      "bytes": 903515,
+      "sha256": "074db313a3e25fc42e87799a215a6308baa0ec261229cc3ca44708331d4668fe",
+      "width": 1280,
+      "height": 720,
+      "pngColorType": 2
+    },
+    {
+      "path": "gameplay/videos/01-patrol-desktop-touch-1280x720.mp4",
+      "bytes": 7993459,
+      "sha256": "1a3d142e06ddd18814d1f178ce35ea776fc1cf5ecf43a1c02f9828175bf64739",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1280,
+            "height": 720,
+            "r_frame_rate": "30/1"
+          }
+        ],
+        "format": {
+          "duration": "21.966667"
+        }
+      }
+    },
+    {
+      "path": "icon/nullrange-icon.png",
+      "bytes": 2371280,
+      "sha256": "e6ce6d4ad1c7f420179bd8260cea0d8d2c841127165a8e5c5387960812b049fa",
+      "width": 1254,
+      "height": 1254,
+      "pngColorType": 2
+    },
+    {
+      "path": "promo/images/nullrange-airspace-1920x1080.jpg",
+      "bytes": 573296,
+      "sha256": "b5000fabd4037a1aa6bc3c22ce394f857251ef7566cf9cc0fac670fc00415e6b",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "mjpeg",
+            "width": 1920,
+            "height": 1080,
+            "r_frame_rate": "25/1"
+          }
+        ],
+        "format": {
+          "duration": "0.040000"
+        }
+      }
+    },
+    {
+      "path": "promo/videos/nullrange-airspace-trailer-1280x720.mp4",
+      "bytes": 5495132,
+      "sha256": "b0f0729fe068775122d6592b1017f8abb430c2d4adeaa7520edc35278eb495f8",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1280,
+            "height": 720,
+            "r_frame_rate": "30/1"
+          }
+        ],
+        "format": {
+          "duration": "21.933333"
+        }
+      }
+    }
+  ],
+  "currentRuntimeSourceHash": "d298896c97d6b0786af633f1cee0bfe9b0afba56dfb7d3f56ffbe6fb0e86dc87",
+  "subsequentUiFix": "Only lock-label above/below placement and heavy-threat dark backing; same gameplay/content/terrain."
+}
