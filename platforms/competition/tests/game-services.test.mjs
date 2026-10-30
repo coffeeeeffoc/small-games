@@ -134,6 +134,210 @@ test('Night durable completion survives lost append response and reload, queryin
   assert.ok([...f.values.keys()].some((k) => k.endsWith(':synced')));
 });
 
+test('Night acknowledged journals are reclaimed after failed deletion without another request', async () => {
+  for (const [silent, sameInstance] of [
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
+  ]) {
+    const f = durableFixture(),
+      first = f.recorder();
+    await first.start({ mode: 'campaign', levelId: 'first' });
+    first.record({}, 120);
+    const name = [...f.values.keys()][0],
+      remove = f.storage.removeItem;
+    f.storage.removeItem = () => {
+      if (!silent) throw Error('storage busy');
+    };
+    await first.finish();
+    assert.equal(first.status, 'storage-unavailable');
+    assert.ok(f.values.has(name));
+    const marker = f.values.get(name + ':synced');
+    assert.equal(JSON.parse(marker).result.accepted, true);
+    f.calls.length = 0;
+    const failedRecovery = f.recorder();
+    await failedRecovery.recover();
+    assert.equal(failedRecovery.status, 'storage-unavailable');
+    assert.equal(failedRecovery.pending, 0);
+    f.storage.removeItem = remove;
+    const restored = sameInstance ? first : f.recorder();
+    await restored.recover();
+    assert.equal(restored.status, 'finished');
+    assert.equal(restored.pending, 0);
+    assert.equal(f.values.has(name), false);
+    assert.equal(f.values.get(name + ':synced'), marker);
+    first.persist();
+    assert.equal(f.values.has(name), false);
+    assert.equal(first.status, 'finished');
+    await first.finish();
+    assert.equal(first.status, 'finished');
+    assert.deepEqual(f.calls, []);
+  }
+});
+
+test('Night cleaning an older confirmed journal preserves the active mission status', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  await recorder.start({ mode: 'campaign', levelId: 'first' });
+  recorder.record({}, 120);
+  recorder.persist();
+  const name = [...f.values.keys()][0],
+    stale = f.values.get(name);
+  await recorder.finish();
+  await recorder.start({ mode: 'campaign', levelId: 'second' });
+  f.values.set(name, stale);
+  await recorder.recover();
+  assert.equal(recorder.status, 'recording');
+  assert.equal(f.values.has(name), false);
+  assert.equal(f.calls.filter((call) => call === 'finish').length, 1);
+});
+
+test('Night acknowledgement during a request stops subsequent uploads and preserves completion', async () => {
+  for (const boundary of ['getRun', 'appendFrames']) {
+    const f = durableFixture(),
+      recorder = f.recorder(),
+      hit = defer(),
+      release = defer();
+    await recorder.start({ mode: 'campaign', levelId: 'first' });
+    recorder.record({}, 120);
+    const original = f.services[boundary];
+    let discarded = false;
+    f.services.discardRun = () => {
+      discarded = true;
+    };
+    f.services[boundary] = async (input) => {
+      assert.equal(discarded, false, 'no request after acknowledgement');
+      const result = await original(input);
+      hit.resolve();
+      await release.promise;
+      return result;
+    };
+    f.services.finishRun = async () => assert.fail('confirmed run must not finish again');
+    const pending = recorder.finish();
+    await hit.promise;
+    const name = [...f.values.keys()][0],
+      run = JSON.parse(f.values.get(name));
+    f.storage.setItem(
+      name + ':synced',
+      JSON.stringify({
+        schema: 1,
+        synced: true,
+        requestId: run.requestId,
+        playerId: run.playerId,
+        id: run.id,
+        result: { accepted: true, fastestEligible: true },
+      }),
+    );
+    release.resolve();
+    assert.equal(await pending, null);
+    assert.equal(discarded, true);
+    assert.equal(recorder.status, 'finished');
+    assert.equal(f.values.has(name), false);
+    assert.equal(
+      f.calls.filter((call) => call === 'append').length,
+      boundary === 'appendFrames' ? 1 : 0,
+    );
+    await recorder.recover();
+    assert.equal(recorder.status, 'finished');
+  }
+});
+
+test('Night acknowledgement write and readback faults preserve the unconfirmed journal', async () => {
+  for (const boundary of ['write', 'silent-write', 'read', 'mismatch']) {
+    const f = durableFixture(),
+      first = f.recorder();
+    await first.start({ mode: 'campaign', levelId: 'first' });
+    first.record({}, 120);
+    const name = [...f.values.keys()][0],
+      set = f.storage.setItem,
+      get = f.storage.getItem;
+    let written = false;
+    f.storage.setItem = (k, v) => {
+      if (k.endsWith(':synced')) {
+        if (boundary === 'write') throw Error('quota');
+        if (boundary === 'silent-write') return;
+        written = true;
+      }
+      set(k, v);
+    };
+    f.storage.getItem = (k) => {
+      if (written && k.endsWith(':synced')) {
+        if (boundary === 'read') throw Error('read unavailable');
+        if (boundary === 'mismatch') return null;
+      }
+      return get(k);
+    };
+    await first.finish();
+    assert.equal(first.status, 'storage-unavailable', boundary);
+    const journal = JSON.parse(f.values.get(name));
+    assert.equal(journal.finishing, true);
+    assert.equal(journal.batches[0][0].ticks, 120);
+    f.storage.setItem = set;
+    f.storage.getItem = get;
+    f.calls.length = 0;
+    await f.recorder().recover();
+    assert.equal(f.values.has(name), false, boundary);
+    assert.equal(f.calls.includes('finish'), false, boundary);
+    assert.equal(f.runs.size, 1);
+    assert.equal([...f.runs.values()][0].seq, 1);
+  }
+});
+
+test('Night a stale tab writing across acknowledgement cannot resurrect a journal', async () => {
+  const f = durableFixture(),
+    first = f.recorder();
+  await first.start({ mode: 'campaign', levelId: 'first' });
+  first.record({}, 120);
+  f.offline(true);
+  await first.finish();
+  const name = [...f.values.keys()][0],
+    stale = f.values.get(name);
+  f.offline(false);
+  await f.recorder().recover();
+  const marker = f.values.get(name + ':synced');
+  // Interleave another tab's durable acknowledgement after this tab's pre-write check.
+  f.values.delete(name + ':synced');
+  f.values.set(name, stale);
+  const set = f.storage.setItem;
+  f.storage.setItem = (k, v) => {
+    if (k === name) f.values.set(name + ':synced', marker);
+    set(k, v);
+  };
+  f.calls.length = 0;
+  first.persist();
+  assert.equal(f.values.has(name), false);
+  assert.equal(f.values.get(name + ':synced'), marker);
+  await f.recorder().recover();
+  assert.deepEqual(f.calls, []);
+});
+
+test('Night unreadable or invalid acknowledgements never delete pending input', async () => {
+  for (const malformed of [false, true]) {
+    const f = durableFixture(),
+      first = f.recorder();
+    await first.start({ mode: 'campaign', levelId: 'first' });
+    first.record({}, 120);
+    f.offline(true);
+    await first.finish();
+    const name = [...f.values.keys()][0],
+      journal = f.values.get(name),
+      get = f.storage.getItem;
+    if (malformed) f.values.set(name + ':synced', JSON.stringify({ synced: true }));
+    else
+      f.storage.getItem = (k) => {
+        if (k.endsWith(':synced')) throw Error('read unavailable');
+        return get(k);
+      };
+    f.calls.length = 0;
+    const restored = f.recorder();
+    await restored.recover();
+    assert.equal(restored.status, malformed ? 'needs-attention' : 'storage-unavailable');
+    assert.equal(f.values.get(name), journal);
+    assert.deepEqual(f.calls, []);
+  }
+});
+
 test('Night Tap binding recovers only its matching guest journal in place, with no account or API crossover', async () => {
   const client = await readFile(new URL('../client.js', import.meta.url), 'utf8');
   for (const mode of [

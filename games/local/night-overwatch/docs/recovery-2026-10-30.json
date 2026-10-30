@@ -1,0 +1,47 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "6d993978243ecad02f0440aa7f22e878e758c07063ac03edb02b5086ad26a7f4"
+  },
+  "environment": "Real packaged Creator H5 in Chromium; explicit Tap SDK/HTTP fixtures, no production player requests",
+  "checks": [
+    {
+      "mode": "bind",
+      "platformLogins": 2,
+      "finishes": 1,
+      "passed": true
+    },
+    {
+      "mode": "cleanup-throw",
+      "platformLogins": 2,
+      "finishes": 1,
+      "passed": true
+    },
+    {
+      "mode": "cleanup-noop",
+      "platformLogins": 2,
+      "finishes": 1,
+      "passed": true
+    },
+    {
+      "mode": "fresh-device",
+      "platformLogins": 1,
+      "finishes": 0,
+      "passed": true
+    },
+    {
+      "mode": "other-account",
+      "platformLogins": 1,
+      "finishes": 0,
+      "passed": true
+    },
+    {
+      "mode": "missing-sdk",
+      "platformLogins": 0,
+      "finishes": 0,
+      "passed": true
+    }
+  ],
+  "errors": []
+}

@@ -56,7 +56,7 @@ function deferred() {
   });
   return { promise, resolve };
 }
-function barrier(point: 'before' | 'after', match: (text: string) => boolean) {
+function barrier(point: 'before' | 'after', match: (text: string) => boolean, fault?: Error) {
   const reached = deferred(),
     released = deferred();
   return {
@@ -69,11 +69,12 @@ function barrier(point: 'before' | 'after', match: (text: string) => boolean) {
     async pause() {
       reached.resolve();
       await released.promise;
+      if (fault) throw fault;
     },
   };
 }
 type Barrier = ReturnType<typeof barrier>;
-/** Only scheduling is intercepted: every SQL query and lock still executes in PostgreSQL. */
+/** Every SQL query and lock executes in PostgreSQL; barriers can fail before commit. */
 function controlledDatabase(database: Database, barriers: Barrier[]): Database {
   const wrap = <T extends object>(target: T): T =>
     new Proxy(target, {
@@ -543,6 +544,98 @@ integration(
       expect((await f.request('/me', bound)).playerId).toBe(bound.playerId);
     });
   },
+);
+
+integration.each([
+  ['guest adoption', 'update runtime.competition_players'],
+  ['old session revocation', 'delete from runtime.competition_sessions'],
+  ['game access grant', 'insert into runtime.player_game_access'],
+  ['new access session', 'insert into runtime.competition_sessions'],
+  ['new refresh token', 'insert into runtime.competition_refresh_tokens'],
+])(
+  'Night binding rolls back after %s and can be retried',
+  async (_boundary, statement) => {
+    await fixture(async (f) => {
+      const guest = await f.guest('night-overwatch');
+      await f.request('/me', guest, { nickname: '回滚飞行员', avatarId: 'panda' });
+      await f.database
+        .execute(sql`insert into runtime.competition_best(board,player_id,score,secondary,match_id,updated_at)
+      values('night-overwatch:points:night-records-v1',${guest.playerId},360,0,${randomUUID()},${Date.now()})`);
+      const savedState = async () => {
+        const result: Record<string, unknown> = {
+          player: [
+            ...(await f.database.execute(
+              sql`select * from runtime.competition_players where id=${guest.playerId}`,
+            )),
+          ],
+        };
+        for (const table of [
+          'competition_best',
+          'player_game_access',
+          'competition_sessions',
+          'competition_refresh_tokens',
+        ])
+          result[table] = [
+            ...(await f.database.execute(
+              sql`select * from ${sql.identifier('runtime')}.${sql.identifier(table)} where player_id=${guest.playerId}`,
+            )),
+          ];
+        return result;
+      };
+      const before = await savedState();
+      const gate = barrier(
+        'after',
+        (text) => text.startsWith(statement),
+        Error('injected binding failure'),
+      );
+      f.gates.push(gate);
+      const input = {
+        platform: 'taptap',
+        appId: f.appId,
+        game: 'night-overwatch',
+        code: 'rollback-account',
+      };
+      const pending = f.request('/sessions/platform', guest, input, 503);
+      await bounded(gate.hit);
+      gate.release();
+      expect((await pending).error).toBe('SERVICE_UNAVAILABLE');
+      expect(gate.taken).toBe(true);
+      expect(await savedState()).toEqual(before);
+      expect(
+        await f.database.execute(sql`select id from runtime.competition_players
+      where platform='taptap' and app_id=${f.appId} and subject='mock-official:rollback-account'`),
+      ).toHaveLength(0);
+      expect(await f.request('/me', guest)).toMatchObject({
+        playerId: guest.playerId,
+        identityKind: 'guest',
+        nickname: '回滚飞行员',
+      });
+      const refreshed = await f.request('/sessions/refresh', undefined, {
+        refreshToken: guest.refreshToken,
+      });
+      const bound = await f.request('/sessions/platform', refreshed, input);
+      expect(bound).toMatchObject({ playerId: guest.playerId, identityKind: 'platform' });
+      expect(await f.request('/me', bound)).toMatchObject({ nickname: '回滚飞行员' });
+      await f.request('/me', guest, undefined, 401);
+      await f.request('/me', refreshed, undefined, 401);
+      await f.request(
+        '/sessions/refresh',
+        undefined,
+        { refreshToken: refreshed.refreshToken },
+        401,
+      );
+      const after = await savedState();
+      expect(after.competition_best).toEqual(before.competition_best);
+      expect(after.player_game_access).toEqual(before.player_game_access);
+      expect(after.competition_sessions).toHaveLength(1);
+      expect(after.competition_refresh_tokens).toHaveLength(1);
+      expect(
+        (await f.request('/sessions/refresh', undefined, { refreshToken: bound.refreshToken }))
+          .playerId,
+      ).toBe(guest.playerId);
+    });
+  },
+  30000,
 );
 
 integration(

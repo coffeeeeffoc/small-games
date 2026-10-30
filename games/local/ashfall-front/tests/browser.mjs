@@ -28,14 +28,85 @@ const report = {
   checks: [],
   errors: [],
   screenshots: [],
+  transitions: [],
   limitations: [
     'Desktop Chromium with emulated touch, not a physical phone or TapTap inventory.',
     'Only explicit development fixtures change battle state; timing samples are separate pure-input rule tests.',
   ],
 };
+const observe = async (page, stage) => {
+  const sample = await page.evaluate(() => ({
+    timeOrigin: performance.timeOrigin,
+    pageTime: performance.now(),
+    state: window.Ashfall?.snapshot(),
+  }));
+  const { state, ...clock } = sample;
+  report.transitions.push({
+    stage,
+    ...clock,
+    screen: state?.screen,
+    phase: state?.run?.phase,
+    time: state?.run?.time,
+    rank: state?.run?.rank,
+    hp: state?.run?.player?.hp,
+    levelIndex: state?.run?.levelIndex,
+    choices: state?.run?.choices,
+    controls: state?.controls,
+  });
+  return state;
+};
 const capture = async (page, name) => {
+  await observe(page, name + ':before-screenshot');
   await page.screenshot({ path: fileURLToPath(new URL(name + '.png', output)) });
+  await observe(page, name + ':after-screenshot');
   report.screenshots.push(name + '.png');
+};
+const pausePlaying = async (page, input, name) => {
+  try {
+    let state = await observe(page, name + ':before-pause');
+    const seen = new Set();
+    while (state?.screen === 'upgrade') {
+      const choice = JSON.stringify([state.run.levelIndex, state.run.rank, state.run.choices]);
+      assert.ok(!seen.has(choice), 'upgrade UI must make progress before pausing');
+      seen.add(choice);
+      assert.ok(seen.size <= 16, 'unexpected sequence of upgrades before pausing');
+      const free = state.controls.find(
+        (c) =>
+          !c.disabled &&
+          (c.id === 'continue' || (c.id.startsWith('upgrade-') && c.id !== 'upgrade-overdrive')),
+      );
+      assert.ok(free, 'upgrade must offer an enabled free choice');
+      await input.tap(free.id);
+      await expect
+        .poll(
+          async () => {
+            const next = await snapshot(page);
+            return (
+              next.screen !== 'upgrade' ||
+              JSON.stringify([next.run.levelIndex, next.run.rank, next.run.choices]) !== choice
+            );
+          },
+          { message: 'real upgrade choice advances the UI' },
+        )
+        .toBe(true);
+      state = await observe(page, name + ':after-upgrade');
+    }
+    assert.equal(state?.screen, 'playing', 'pause requires a live playing screen');
+    assert.ok(
+      state.controls.some((c) => c.id === 'pause' && !c.disabled),
+      'pause is enabled',
+    );
+    await input.tap('pause');
+    await expect.poll(async () => (await snapshot(page)).screen).toBe('paused');
+    await observe(page, name + ':paused');
+  } catch (error) {
+    try {
+      await capture(page, name + '-failure');
+    } catch (diagnosticError) {
+      report.errors.push('Failure evidence: ' + String(diagnosticError));
+    }
+    throw error;
+  }
 };
 try {
   await expect
@@ -202,13 +273,7 @@ try {
     } finally {
       await cdp.detach();
     }
-    if ((await snapshot(page)).screen === 'upgrade') {
-      const free = (await snapshot(page)).controls.find(
-        (c) => c.id.startsWith('upgrade-') && c.id !== 'upgrade-overdrive',
-      );
-      await input.tap(free.id);
-    }
-    await input.tap('pause');
+    await pausePlaying(page, input, `multitouch-${width}x${height}`);
     await input.tap('restart');
     await input.tap('confirm');
     for (let i = 0; i < 3; i++) {
@@ -236,17 +301,9 @@ try {
     const shots = (await snapshot(page)).run.shots;
     await page.waitForTimeout(220);
     assert.equal((await snapshot(page)).run.shots, shots, 'cancel releases fire');
-    // Released projectiles can finish a kill and open the real XP choice.
-    // Complete that choice through UI before exercising the pause control.
-    await page.waitForTimeout(400);
-    while ((await snapshot(page)).screen === 'upgrade') {
-      const free = (await snapshot(page)).controls.find(
-        (c) => c.id.startsWith('upgrade-') && c.id !== 'upgrade-overdrive',
-      );
-      await input.tap(free.id);
-    }
+    // Projectiles keep advancing while the screenshot is awaited.
     await capture(page, `combat-${width}x${height}`);
-    await input.tap('pause');
+    await pausePlaying(page, input, `combat-${width}x${height}`);
     await bounds();
     await capture(page, `pause-${width}x${height}`);
     assert.ok(
@@ -378,6 +435,60 @@ try {
     );
   }
   {
+    const context = await browser.newContext({
+      viewport: { width: 844, height: 390 },
+      hasTouch: true,
+      isMobile: true,
+    });
+    const page = await context.newPage();
+    await page.goto(url + '/?dev=1');
+    await expect.poll(async () => (await snapshot(page))?.ready, { timeout: 60000 }).toBe(true);
+    await page.evaluate(() => {
+      window.SmallGamesDev.setPanelHidden(true);
+      window.Ashfall.dev('level', 0);
+    });
+    const input = await ashfallInput(page, true);
+    // Explicit fixture: hold screenshot completion until the real upgrade screen is visible.
+    const original = page.screenshot.bind(page);
+    page.screenshot = async (...args) => {
+      const image = await original(...args);
+      await page.evaluate(() => window.Ashfall.dev('upgrade'));
+      return image;
+    };
+    try {
+      await capture(page, 'async-upgrade-fixture');
+    } finally {
+      page.screenshot = original;
+    }
+    const before = report.transitions.find(
+      (sample) => sample.stage === 'async-upgrade-fixture:before-screenshot',
+    );
+    const after = report.transitions.find(
+      (sample) => sample.stage === 'async-upgrade-fixture:after-screenshot',
+    );
+    assert.equal(before.screen, 'playing');
+    assert.equal(after.screen, 'upgrade');
+    assert.equal(after.timeOrigin, before.timeOrigin);
+    assert.ok(after.pageTime > before.pageTime);
+    assert.equal((await snapshot(page)).screen, 'upgrade');
+    await pausePlaying(page, input, 'async-upgrade-fixture');
+    await page.evaluate(() => window.Ashfall.dev('lose'));
+    await assert.rejects(
+      pausePlaying(page, input, 'async-result-fixture'),
+      /pause requires a live playing screen/,
+    );
+    assert.equal(
+      (await snapshot(page)).screen,
+      'result',
+      'unexpected result is never restarted or hidden',
+    );
+    await input.dispose();
+    await context.close();
+    report.checks.push(
+      'Explicit asynchronous screenshot fixture: upgrade uses real free UI then pauses; result fails with evidence',
+    );
+  }
+  {
     const desktop = await browser.newContext({ viewport: { width: 1280, height: 720 } });
     const page = await desktop.newPage();
     page.on('pageerror', (e) => report.errors.push(e.message));
@@ -461,13 +572,7 @@ try {
     await input.press(['fire']);
     await page.waitForTimeout(3600);
     await input.release();
-    if ((await snapshot(page)).screen === 'upgrade') {
-      const free = (await snapshot(page)).controls.find(
-        (c) => c.id.startsWith('upgrade-') && c.id !== 'upgrade-overdrive',
-      );
-      await input.tap(free.id);
-    }
-    await input.tap('pause');
+    await pausePlaying(page, input, 'forward-encounter-844x390');
     await input.tap('restart');
     await input.tap('confirm');
     assert.equal((await snapshot(page)).run.levelIndex, 0);
@@ -478,13 +583,7 @@ try {
     await page.waitForTimeout(2500);
     await capture(page, 'combat-live-844x390');
     await input.release();
-    if ((await snapshot(page)).screen === 'upgrade') {
-      const free = (await snapshot(page)).controls.find(
-        (c) => c.id.startsWith('upgrade-') && c.id !== 'upgrade-overdrive',
-      );
-      await input.tap(free.id);
-    }
-    await input.tap('pause');
+    await pausePlaying(page, input, 'combat-live-844x390');
     await input.dispose();
     const video = page.video();
     report.live = { encounter, final: await snapshot(page) };
@@ -638,6 +737,7 @@ try {
 } catch (error) {
   report.errors.push(String(error));
   console.error(error);
+  console.error(JSON.stringify({ transitions: report.transitions.slice(-8) }));
   throw error;
 } finally {
   try {
@@ -647,4 +747,11 @@ try {
     server?.kill();
   }
 }
-console.log(JSON.stringify(report));
+console.log(
+  JSON.stringify({
+    checks: report.checks,
+    errors: report.errors,
+    screenshots: report.screenshots.length,
+    transitions: report.transitions.length,
+  }),
+);

@@ -26,7 +26,7 @@ const browser = await chromium.launch({ headless: true, executablePath: process.
   args: process.platform === 'win32' ? ['--use-angle=d3d11'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 let activePage;
 try {
-  for (const mode of ['bind', 'fresh-device', 'other-account', 'missing-sdk']) {
+  for (const mode of ['bind', 'cleanup-throw', 'cleanup-noop', 'fresh-device', 'other-account', 'missing-sdk']) {
     const current = mode === 'other-account' ? other : owner;
     const context = await browser.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true });
     const requests = [], failures = [];
@@ -39,6 +39,17 @@ try {
           localStorage.setItem('competition-session-v3:' + encodeURIComponent(scope), JSON.stringify({ ...guest, apiAuthority: scope }));
           localStorage.setItem(journalKey, JSON.stringify(journal));
         }
+      }
+      if (mode.startsWith('cleanup-') && !localStorage.getItem('cleanup-fault-used')) {
+        localStorage.setItem('cleanup-fault-used', '1');
+        const remove = Storage.prototype.removeItem;
+        Storage.prototype.removeItem = function (key) {
+          if (this === localStorage && key === journalKey) {
+            if (mode === 'cleanup-throw') throw Error('fixture storage busy until reload');
+            return;
+          }
+          return remove.call(this, key);
+        };
       }
       if (mode !== 'missing-sdk') globalThis.tap = { login: ({ success }) => success({ code: 'fixture-fresh-host-code' }) };
     }, { mode, guest: credential(owner, 'guest'), scope, journalKey, journal });
@@ -81,12 +92,18 @@ try {
       await page.waitForFunction(id => __night.snapshot().online.identity.playerId === id, current);
       assert.equal(requests.filter(item => item.path === '/sessions/platform').length, 1);
       assert.equal(requests.find(item => item.path === '/sessions/platform').authorized, mode !== 'fresh-device');
-      if (mode === 'bind') {
+      if (mode === 'bind' || mode.startsWith('cleanup-')) {
         await page.waitForFunction(key => !!localStorage.getItem(key + ':synced'), journalKey);
-        assert.equal(await page.evaluate(key => localStorage.getItem(key), journalKey), null);
-        await page.screenshot({ path: fileURLToPath(new URL('bound-844.png', output)) });
+        const remaining = await page.evaluate(key => localStorage.getItem(key), journalKey);
+        if (mode === 'bind') assert.equal(remaining, null);
+        else assert.equal(JSON.parse(remaining).finishing, true, 'confirmed journal remains until deletion works');
+        await page.screenshot({ path: fileURLToPath(new URL(mode + '-844.png', output)) });
+        const runRequests = requests.filter(item => item.path.includes('/runs/')).length;
         await page.reload();
         await page.waitForFunction(id => globalThis.__night?.snapshot().online.identity.playerId === id && SmallGamesServices.status === 'ready', current);
+        await page.waitForFunction(key => localStorage.getItem(key) === null, journalKey);
+        assert.equal(await page.evaluate(key => !!localStorage.getItem(key + ':synced'), journalKey), true);
+        assert.equal(requests.filter(item => item.path.includes('/runs/')).length, runRequests);
         assert.equal(requests.filter(item => item.path.endsWith('/finish')).length, 1);
       } else if (mode === 'other-account') {
         assert.equal(requests.filter(item => item.path.includes('/runs/')).length, 0);
