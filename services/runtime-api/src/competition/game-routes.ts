@@ -4,6 +4,7 @@ import { CompetitionError } from './types.js';
 import type { createCompetitionStore } from './store.js';
 import type { createRankedStore } from './ranked-store.js';
 import { assertGameScope, type PlayerAuth } from './auth.js';
+import { nightLoadoutSchema, nightWalletCommand } from './night-wallet.js';
 import { basicServiceGames } from './service-games.js';
 
 const gameId = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/);
@@ -66,6 +67,18 @@ export function registerGameRoutes(
       identity: await store.identityDetails(auth),
     };
   });
+  routes.get('/games/night-overwatch/wallet', async (request) =>
+    store.nightWallet(await player(request.headers.authorization)),
+  );
+  routes.post(
+    '/games/night-overwatch/wallet',
+    { bodyLimit: 1024, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
+    async (request) =>
+      store.nightWallet(
+        await player(request.headers.authorization),
+        nightWalletCommand.parse(request.body),
+      ),
+  );
   routes.get('/games/:game/leaderboards/:board', async (request) => {
     const { game, board } = z.object({ game: gameId, board: gameId }).parse(request.params);
     const playerId = await player(request.headers.authorization);
@@ -91,12 +104,13 @@ export function registerGameRoutes(
     { bodyLimit: 2048, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
     async (request) => {
       const { game } = gameParams(request.params);
-      const { board, levelId, version, requestId } = z
+      const { board, levelId, version, requestId, loadout } = z
         .object({
           board: gameId,
           levelId: z.string().max(100).optional(),
           version: z.string().max(100).optional(),
           requestId: z.uuid().optional(),
+          loadout: nightLoadoutSchema.optional(),
         })
         .strict()
         .parse(request.body);
@@ -107,6 +121,7 @@ export function registerGameRoutes(
         levelId,
         version,
         requestId,
+        ...(loadout ? ([loadout] as const) : []),
       );
     },
   );
@@ -238,7 +253,11 @@ export function registerGameRoutes(
                 .parse(request.body)
             : operation === 'ready'
               ? z
-                  .object({ leaseId: z.uuid().optional(), ready: z.boolean().optional() })
+                  .object({
+                    leaseId: z.uuid().optional(),
+                    ready: z.boolean().optional(),
+                    loadout: nightLoadoutSchema.optional(),
+                  })
                   .strict()
                   .parse(request.body ?? {})
               : operation === 'role'
@@ -260,6 +279,8 @@ export function registerGameRoutes(
                         .object({ leaseId: z.uuid().optional() })
                         .strict()
                         .parse(request.body ?? {});
+        if ('loadout' in input && input.loadout && game !== 'night-overwatch')
+          throw new CompetitionError('INVALID_INPUT', 422);
         if (
           'action' in input &&
           input.action &&

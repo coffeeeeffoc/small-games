@@ -1,4 +1,5 @@
 import { createHash, randomInt, randomUUID } from 'node:crypto';
+import type { NightLoadout } from './night-wallet.js';
 import { CompetitionError } from './types.js';
 import { assertGameScope, playerIdOf, type PlayerAuth } from './auth.js';
 import type {
@@ -50,7 +51,11 @@ export function createRankedRuns(
     const rule = ruleFor(game);
     const definition = rule.boards.find((item) => item.id === board);
     if (!definition) throw new CompetitionError('BOARD_UNAVAILABLE', 404);
-    return { rule, definition, key: `${game}:${board}:${rule.boardVersion ?? rule.version}` };
+    return {
+      rule,
+      definition,
+      key: `${game}:${board}:${rule.boardVersionFor?.(board) ?? rule.boardVersion ?? rule.version}`,
+    };
   };
   function assertOwner(run: RankedRun, playerId: string, game: string) {
     if (run.playerId !== playerId) throw new CompetitionError('NOT_A_MEMBER', 403);
@@ -72,7 +77,9 @@ export function createRankedRuns(
       levelId?: string,
       version?: string,
       requestId?: string,
+      loadout?: NightLoadout,
     ) {
+      if (loadout && game !== 'night-overwatch') throw new CompetitionError('INVALID_INPUT', 422);
       assertGameScope(auth, game);
       const playerId = playerIdOf(auth);
       if (
@@ -88,7 +95,7 @@ export function createRankedRuns(
       const seed = randomInt(0x7fffffff);
       let state: unknown;
       try {
-        state = rule.create(board, seed, levelId);
+        state = rule.create(board, seed, levelId, loadout);
       } catch {
         throw new CompetitionError('INVALID_LEVEL', 422);
       }
@@ -116,6 +123,7 @@ export function createRankedRuns(
         seq: 0,
         ticks: 0,
         state,
+        ...(loadout?.length ? { loadout } : {}),
         createdAt: now(),
         expiresAt: now() + lifetime,
         status: 'active',
@@ -128,7 +136,8 @@ export function createRankedRuns(
         stored.game !== game ||
         stored.board !== board ||
         stored.levelId !== levelId ||
-        stored.version !== version
+        stored.version !== version ||
+        JSON.stringify(stored.loadout ?? []) !== JSON.stringify(loadout ?? [])
       )
         throw new CompetitionError('REQUEST_ID_CONFLICT');
       return view(stored);
@@ -195,11 +204,14 @@ export function createRankedRuns(
             throw new CompetitionError('INVALID_INPUT', 422);
           if (((run.ticks + ticks) * 1000) / 120 > now() - run.createdAt + 2000)
             throw new CompetitionError('RUN_AHEAD_OF_TIME', 422);
+          const rule = ruleFor(game);
+          const usedBefore = rule.coolantUsed?.(run.state);
           try {
-            run.state = ruleFor(game).apply(run.state, input.frames);
+            run.state = rule.apply(run.state, input.frames);
           } catch {
             throw new CompetitionError('ILLEGAL_ACTION', 422);
           }
+          if (usedBefore === false && rule.coolantUsed?.(run.state)) await tx.useCoolant?.();
           run.seq = input.seq;
           run.ticks += ticks;
           run.expiresAt = now() + lifetime;

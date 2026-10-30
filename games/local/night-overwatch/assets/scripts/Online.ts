@@ -1,4 +1,6 @@
 import { Simulation } from './core/Simulation.ts';
+import { STARTER_LOADOUT, type Loadout } from './core/Armory.ts';
+import type { WalletPort } from './Quartermaster.ts';
 import { createDuel, commandDuel, advanceDuel, viewDuel, type DuelCommand, type DuelState } from './core/Duel.ts';
 import { RANKED_RULE_VERSION, observeNightInputs } from './core/Replay.ts';
 import { MISSIONS } from './core/MissionCatalog.ts';
@@ -14,12 +16,12 @@ export type BattleHistory = { summary: { wins: number; losses: number; draws: nu
 export type Room = { serverNow?: number; startsAt?: number; spectator?: boolean; visibility?: string; settlement?: Settlement; code: string; status: string; mode: string; you: number; seq: number; players: Player[]; state: DuelView | null };
 type RankingRow = Player & { rank: number; score: number; secondary: number; wins?: number; games?: number };
 type Ranking = { top: RankingRow[]; me: RankingRow | null };
-type Recorder = { start(options: { mode: string; levelId: string; practice: boolean }): Promise<unknown>;
-  record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<{ accepted?: boolean; fastestEligible?: boolean } | null | undefined>; invalidate(reason?: string): void;
+type Recorder = { start(options: { mode: string; levelId: string; practice: boolean; loadout?:Loadout }): Promise<unknown>;
+  record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<{ accepted?: boolean; fastestEligible?: boolean; coins?:number } | null | undefined>; invalidate(reason?: string): void;
   persist?(): void; recover?(): Promise<void>; pending?: number };
 type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean } };
 type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Metadata | undefined>;
-  services: { createRoom(input: { mode: string; visibility?: string; password?: string }): Promise<Room>; match(): Promise<Room>; joinRoom(input: { code: string; password?: string }): Promise<Room>;
+  services: Partial<WalletPort> & { createRoom(input: { mode: string; visibility?: string; password?: string }): Promise<Room>; match(): Promise<Room>; joinRoom(input: { code: string; password?: string }): Promise<Room>;
     listRooms?(): Promise<{ rooms: RoomSummary[] }>; history?(input: { cursor?: string }): Promise<BattleHistory>;
     updateProfile?(input: { nickname: string }): Promise<Player>; connectRoom?(input: { code: string }): Promise<Room>;
     spectateRoom?(input: { code: string; password?: string }): Promise<Room>;
@@ -44,6 +46,10 @@ export function roomLink(href: string, code: string) {
 /** Transport stays in the shared services bridge; this owns only Night's screen and input state. */
 export class Online {
   identity: Player;
+  accountId = '';
+  inviteCode = '';
+  duelKit:Loadout = STARTER_LOADOUT;
+  get walletPort():WalletPort|undefined {const p=this.bridge?.services;return this.accountId&&p?.nightWallet&&p.nightWalletAction?p as WalletPort:undefined;}
   panel: '' | 'menu' | 'room' | 'ranking' | 'profile' | 'create' | 'join' | 'history' = '';
   rooms: RoomSummary[] = [];
   roomPage = 0;
@@ -140,8 +146,11 @@ export class Online {
       const saved = JSON.parse(this.storage.getItem('night-overwatch-room-v1') || 'null');
       if (saved && saved.playerId === playerId(this.identity) && validCode(saved.code) && Date.now() - saved.at < 30000) this.resumeCode = saved.code;
     } catch { /* Invalid local room memory cannot join a different identity. */ }
-    if (code) { this.draftCode = code; this.panel = 'join'; await this.open('join', code); }
-    else if (this.resumeCode) await this.open('resume', this.resumeCode);
+    if (this.resumeCode && (!code || code===this.resumeCode)) await this.open('resume', this.resumeCode);
+    else if (code) this.inviteCode=this.draftCode=code;
+  }
+  async refreshAccount() {
+    try{this.acceptMetadata(await this.bridge?.refresh?.());}catch{/* Keep the account unavailable until confirmed. */}
   }
   async startRanking(options: Parameters<Recorder['start']>[0]) {
     const generation = this.generation;
@@ -161,6 +170,7 @@ export class Online {
   private acceptMetadata(metadata: Metadata | undefined) {
     if (!metadata) return;
     this.identity = metadata.identity;
+    this.accountId = playerId(this.identity);
     this.draftName = this.identity.nickname || this.identity.name || '';
     this.available = metadata.capabilities.multiplayer;
     this.ranked = metadata.capabilities.leaderboards;
@@ -263,7 +273,7 @@ export class Online {
       this.panel = 'room'; this.draftPassword = ''; this.accept(room); this.nextPoll = 0;
       if (kind === 'bot' && room.status === 'waiting') {
         const started = await this.requestRoom(async () => generation === this.generation
-          ? services.roomAction({ code: room.code, operation: 'ready', body: { ready: true } }) : undefined);
+          ? services.roomAction({ code: room.code, operation: 'ready', body: { ready: true, loadout:this.duelKit } }) : undefined);
         if (started && generation === this.generation) this.accept(started);
       }
     } catch (error) {
@@ -279,7 +289,7 @@ export class Online {
   }
   startBot(now: number) {
     if (this.busy || this.active || this.room) return;
-    this.generation++; this.bot = createDuel(new DataView(randomBytes().buffer).getUint32(0) & 0x7fffffff, true);
+    this.generation++; this.bot = createDuel(new DataView(randomBytes().buffer).getUint32(0) & 0x7fffffff, true, [this.duelKit, STARTER_LOADOUT]);
     this.botStarted = now + 1200; this.nextPoll = 0; this.panel = ''; this.message = '本地练习 · 不计公开积分';
     this.enteringUntil = this.botStarted;
     this.acceptView(viewDuel(this.bot));
@@ -289,7 +299,7 @@ export class Online {
     const generation = this.generation, code = this.room.code, ready = !this.room.players[this.room.you]?.ready;
     this.busy = true; this.message = ''; this.revision++;
     try { const room = await this.requestRoom(async () => generation === this.generation && this.room?.code === code && this.room.status === 'waiting' && !this.active && !this.spectator
-      ? this.bridge!.services.roomAction({ code, operation: 'ready', body: { ready } }) : undefined);
+      ? this.bridge!.services.roomAction({ code, operation: 'ready', body: ready ? { ready, loadout:this.duelKit } : { ready } }) : undefined);
       if (room && generation === this.generation) this.accept(room);
     } catch { if (generation === this.generation) this.message = '准备状态更新失败，请重试'; }
     finally { if (generation === this.generation) { this.busy = false; this.revision++; } }

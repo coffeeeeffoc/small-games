@@ -252,6 +252,7 @@ export async function prepareBackend(destination, workspace = root) {
   for (const name of [
     'services/runtime-api/dist',
     'services/runtime-api/rules',
+    'games/local/night-overwatch/assets/scripts/core/Armory.ts',
     'games/local/night-overwatch/assets/scripts/core/Duel.ts',
     'games/local/night-overwatch/assets/scripts/core/Replay.ts',
     'games/local/night-overwatch/assets/scripts/core/Simulation.ts',

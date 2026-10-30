@@ -15,8 +15,10 @@ import {
   nightBoard,
   nightHistory,
   nightSummary,
+  prepareNightDuelPoints,
   settleNightRoom,
 } from './night-ledger.js';
+import { checkNightLoadout, nightWallet, type NightLoadout } from './night-wallet.js';
 import { createCompetitionIdentities } from './identity-store.js';
 import { publicProfile, publicResult, publicRoomResults } from './profile.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
@@ -407,7 +409,12 @@ export function createCompetitionStore(
         player.disconnected = false;
         delete player.reconnectUntil;
       }
-      player.state = rule.initial(room.seed, room.mode, room.firstRole);
+      player.state = rule.initial(
+        room.seed,
+        room.mode,
+        room.firstRole,
+        room.game === 'night-overwatch' ? room.players.map((p) => p.loadout ?? []) : undefined,
+      );
       player.before = rule.unrated ? null : (await ranking(boardOf(rule), player.id, tx)).me;
     }
   }
@@ -596,7 +603,14 @@ export function createCompetitionStore(
     room: Room,
     playerId: string,
     operation: string,
-    input: { seq?: number; action?: unknown; password?: string; leaseId?: string; ready?: boolean },
+    input: {
+      seq?: number;
+      action?: unknown;
+      password?: string;
+      leaseId?: string;
+      ready?: boolean;
+      loadout?: NightLoadout;
+    },
     tx: Tx,
     policy: Awaited<ReturnType<typeof gamePolicy>>,
   ) {
@@ -715,6 +729,11 @@ export function createCompetitionStore(
       }
     } else if (operation === 'ready' && member) {
       if (room.status === 'waiting') {
+        if (room.game === 'night-overwatch' && input.ready !== false) {
+          if (input.loadout?.length)
+            await checkNightLoadout(tx, playerId, input.loadout, true, now());
+          member.loadout = input.loadout ?? [];
+        }
         member.ready = input.ready ?? true;
         await start(room, tx);
       } else if (room.status !== 'playing') throw new CompetitionError('MATCH_CLOSED');
@@ -788,6 +807,7 @@ export function createCompetitionStore(
       password?: string;
       leaseId?: string;
       ready?: boolean;
+      loadout?: NightLoadout;
     } = {},
   ) {
     const playerId = playerIdOf(auth);
@@ -1072,10 +1092,31 @@ export function createCompetitionStore(
         return nightHistory(tx, playerIdOf(auth), cursor);
       });
     },
+    async nightWallet(auth: PlayerAuth, command?: Parameters<typeof nightWallet>[3]) {
+      return db.transaction(async (tx) => {
+        const policy = await gamePolicy(control, tx, 'night-overwatch');
+        assertGameControl(policy, policy?.killEpoch, !!command);
+        const ad = command?.kind === 'ad-start' || command?.kind === 'ad-claim';
+        if (ad) await lockMatch(tx, 'night-overwatch');
+        await assertResourceAuth(tx, auth, 'night-overwatch', now());
+        if (ad) {
+          const room = await activeRoom(tx, 'night-overwatch', playerIdOf(auth));
+          if (room?.status === 'playing') throw new CompetitionError('AD_DURING_DUEL');
+        }
+        return nightWallet(
+          tx,
+          playerIdOf(auth),
+          now(),
+          command,
+          ruleFor('night-overwatch').nightMods,
+        );
+      });
+    },
     async prepareNightBoards(auth: PlayerAuth) {
       await db.transaction(async (tx) => {
         await assertResourceAuth(tx, auth, 'night-overwatch', now());
         await backfillNightClears(tx, now());
+        await prepareNightDuelPoints(tx, now());
       });
     },
     async startStreetRun(auth: PlayerAuth, config: Record<string, unknown>) {

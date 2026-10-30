@@ -66,7 +66,7 @@ test('incendiary is a finite single-press weapon with a five-second reload and p
   near(fire.expires - fire.born, 25); assert.equal(fire.radius, 8);
   advance(sim, 6); assert.equal(sim.fired, 1, 'holding never repeats incendiary');
   sim.setFire('touch', false); sim.setFire('touch', true); assert.equal(sim.fired, 2);
-  assert.equal(sim.guns[3].ammo, 10);
+  assert.equal(sim.guns[3].ammo, 11);
   sim.clearInput();
   advance(sim, 40); assert.equal(sim.fireZones.length, 0);
 });
@@ -122,7 +122,7 @@ test('engulfed vehicles escape at normal speed and blocked patrols never catch u
 test('fire respects protected areas, low friendly damage, explicit training immunity and every pause', () => {
   const sim = isolated(), protectedArea = PROTECTED[0]; sim.choose(3);
   sim.setAim({ x: protectedArea.x + protectedArea.radius + 8, z: protectedArea.z });
-  assert.equal(sim.reason(), 'protected'); assert(!sim.fire()); assert.equal(sim.guns[3].ammo, 12);
+  assert.equal(sim.reason(), 'protected'); assert(!sim.fire()); assert.equal(sim.guns[3].ammo, 13);
   const unit = sim.addUnit('turret', { x: -80, z: -70 }, true); unit.attack = 10000;
   const fire = zone(sim, unit.x, unit.z); advance(sim, 1); near(unit.maxHp - unit.hp, FIRE_ZONE.damagePerSecond);
   near(sim.friendlyDamage, .2);
@@ -155,8 +155,8 @@ test('restock preserves current weapon, trigger and buff while adding only finit
   const migrated = Simulation.restore(legacy); assert.deepEqual(migrated.fireZones, []); assert.equal(migrated.guns[3].ammo, 12);
 });
 
-test('incendiary, restock, paused fire and patrol state round-trip through durable v7 replay', () => {
-  assert.equal(RANKED_RULE_VERSION, 'night-input-replay-v8');
+test('incendiary, restock, paused fire and patrol state round-trip through durable replay', () => {
+  assert.equal(RANKED_RULE_VERSION, 'night-input-replay-v9');
   const sim = new Simulation('operation-007'); sim.start(); const frames: ReplayFrame[] = [];
   observeNightInputs(sim, (input, ticks) => frames.push({ input, ticks }));
   sim.choose(3); sim.setAim({ x: -80, z: -70 }); sim.setFire('touch', true);

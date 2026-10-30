@@ -231,7 +231,7 @@ test('ready and cancel-ready wait for the preceding poll and send explicit idemp
   resolve(structuredClone(f.current)); await polling; await ready;
   assert.equal(f.received.length,1); assert.equal(online.room!.players[0].ready,true);
   await online.ready(); assert.equal(online.room!.players[0].ready,false);
-  assert.deepEqual(f.received.map(r=>r.body),[{ready:true},{ready:false}]);
+  assert.deepEqual(f.received.map(r=>r.body),[{ready:true,loadout:online.duelKit},{ready:false}]);
   assert.equal(online.room!.code,f.current.code); assert.equal(online.message,'');
 });
 

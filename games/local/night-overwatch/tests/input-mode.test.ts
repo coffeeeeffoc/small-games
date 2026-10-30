@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { Quartermaster } from '../assets/scripts/Quartermaster.ts';
 import { registerHooks, stripTypeScriptTypes } from 'node:module';
 
 class Node {
@@ -57,6 +58,9 @@ function mission() {
     minimapPoint: () => undefined, blocksBattlefield: () => false };
   g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, updateCamera() {}, reset() {} };
   g.platform = new Platform(new Node(), g.pause, g.clear);
+  const memory=new Map<string,string>();
+  g.armory=new Quartermaster({getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)},v=>{g.hud.armory=v;},()=>g.platform.offerGold());
+  g.armory.bind('pilot',false,undefined,true);
   g.sim.start(); g.sim.choose(0);
   return g;
 }
@@ -85,7 +89,7 @@ test('a new campaign can start while the previous recorder handshake is pending'
   g.online = { leave() {}, startRanking: () => new Promise<void>(resolve => requests.push(resolve)), recorder: { record() {}, invalidate() {} } };
   g.sim.phase = 'briefing'; const first = g.sim; g.beginCampaign();
   await new Promise(resolve=>setImmediate(resolve));
-  g.retry(); await new Promise(resolve=>setImmediate(resolve)); const second = g.sim; assert.notEqual(first, second); assert.equal(requests.length, 2);
+  g.retry(); g.beginCampaign(); await new Promise(resolve=>setImmediate(resolve)); const second = g.sim; assert.notEqual(first, second); assert.equal(requests.length, 2);
   requests[0](); await new Promise(resolve => setImmediate(resolve)); assert.equal(second.phase, 'briefing');
   g.beginCampaign(); assert.equal(requests.length, 2, 'old finally cannot unlock the new request');
   requests[1](); await new Promise(resolve => setImmediate(resolve)); assert.equal(second.phase, 'playing');
@@ -176,7 +180,7 @@ test('silent, unavailable and rejected audio cannot strand extraction; retry dro
     g.sim.step(1 / 60); g.updateRadio(1 / 60);
     if (mode === 'mute-during') { p.muted = true; p.stop(); }
     if (mode === 'retry') {
-      g.retry(); g.updateRadio(1 / 60); assert(!g.sim.extractionRadioPending);
+      g.sim.phase='failure';g.retry();g.action('armory:next');g.action('start');g.updateRadio(1 / 60); assert(!g.sim.extractionRadioPending);
       assert.equal(p.radio.clip, p.clips.get('radio-day-zh'));
     } else {
       for (let i = 0; i < 240; i++) { g.sim.step(1 / 60); g.updateRadio(1 / 60); }
@@ -237,185 +241,13 @@ test('browser mouse-generated touches with simulate=false never replace or cance
   } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
 });
 
-test('supply completion earns one choice, ammo grants two once, and inventory never blocks ads', async () => {
-  const g = mission();
-  g.hud.t = (zh: string) => zh;
-  let complete: any;
-  g.platform.rewardProvider = () => new Promise(resolve => { complete = resolve; });
-  cc.sys.isBrowser = true;
-  try {
-    g.sim.setFire('touch:1', true);
-    g.action('supply');
-    assert(g.sim.paused); assert(g.hud.supplyOpen);
-    const request = g.requestReward('supply');
-    assert.equal(g.hud.advert.mock, false);
-    assert(g.sim.pauses.has('advert')); assert.equal(g.sim.held.size, 0);
-    await g.requestReward('supply');
-    complete({ status: 'completed' }); await request;
-    g.finishReward(true);
-    assert.equal(g.sim.homingAmmo, 0); assert(g.platform.rewards.pendingSupply);
-    assert(!g.sim.pauses.has('advert'));
-    g.action('supplyLater'); assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused); assert.equal(g.hud.toast, '');
-    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
-    assert(!g.sim.paused); assert(g.platform.rewards.pendingSupply);
-    await g.requestReward('zoom');
-    assert(g.hud.supplyOpen, 'pending choice takes precedence over another ad');
-    assert.equal(g.world.zoomLimit, 10);
-    g.action('reward:ammo'); g.action('supplyWatch'); g.action('reward:ammo'); g.action('supplyWatch');
-    assert.equal(g.sim.homingAmmo, 2); assert.equal(g.platform.rewards.ammo, 2);
-    assert.equal(g.platform.rewards.pendingSupply, false); assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused);
-    assert.equal(g.sim.held.size, 0);
-    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
-    assert(!g.sim.paused);
-    g.platform.rewardProvider = async () => ({ status: 'completed' });
-    await g.requestReward('zoom');
-    assert.equal(g.world.zoomLimit, 20); assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused);
-    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
-    g.retry(); assert.equal(g.sim.homingAmmo, 2);
-    for (const status of ['dismissed', 'unavailable', 'failed']) {
-      g.platform.rewardProvider = async () => ({ status });
-      await g.requestReward('supply'); assert.equal(g.sim.homingAmmo, 2);
-      assert(!g.hud.advert); assert(!g.sim.pauses.has('advert'));
-      assert(g.sim.pauses.has('manual')); assert(!g.platform.rewards.pendingSupply);
-    }
-    g.platform.rewardProvider = async () => { throw Error('SDK unavailable'); };
-    await g.requestReward('supply'); assert.equal(g.sim.homingAmmo, 2);
-    g.platform.rewardProvider = async (opportunity: any) => {
-      assert.equal(opportunity.id, 'night-overwatch:supply');
-      assert.deepEqual(opportunity.reward, { supplyChoice: 1 });
-      return { status: 'completed' };
-    };
-    await g.requestReward('supply'); assert(g.platform.rewards.pendingSupply);
-    g.action('reward:ammo'); g.action('supplyWatch'); assert.equal(g.sim.homingAmmo, 4);
-    g.platform.rewardProvider = undefined; cc.sys.isBrowser = false;
-    assert.equal(await g.platform.offerReward('supply'), 'unavailable');
-  } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
-});
-
-test('completed restock grants the three ammunition amounts once; incomplete ads never grant', async () => {
-  try {
-    for (const status of ['dismissed', 'unavailable', 'failed', 'completed']) {
-      const g = mission(); g.hud.t = (zh: string) => zh; cc.sys.isBrowser = true;
-      try {
-        const before = g.sim.guns.slice(1).map((gun: any) => gun.ammo);
-        g.platform.rewardProvider = async () => ({ status });
-        g.action('supply'); g.action('reward:restock'); await g.requestReward('supply', 'restock');
-        g.finishReward(true); g.claimSupply('restock');
-        assert.deepEqual(g.sim.guns.slice(1).map((gun: any) => gun.ammo),
-          before.map((n: number, i: number) => n + (status === 'completed' ? [60, 24, 6][i] : 0)));
-        assert(!g.platform.rewards.pendingSupply);
-      } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
-    }
-  } finally { cc.sys.isBrowser = false; }
-});
-
-test('timed buffs block supply and zoom providers; cancellation never grants and expiry reopens ads', async () => {
-  for (const reward of ['tracking', 'rate']) {
-    const g = mission(); g.hud.t = (zh: string) => zh;
-    let offers = 0;
-    g.platform.rewardProvider = async () => { offers++; return { status: 'completed' }; };
-    await g.requestReward('supply'); g.action('reward:' + reward); g.action('supplyWatch');
-    assert.equal(g.sim.buff.kind, reward); assert.equal(g.sim.buff.remaining, 60);
-    assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused);
-    g.sim.step(.1);
-    assert(g.sim.buff.remaining < 60, 'reward starts on the next combat step without a countdown');
-    await g.requestReward('supply'); await g.requestReward('zoom'); assert.equal(offers, 1);
-    g.action('homing'); g.action('supplyWatch'); assert.equal(offers, 1);
-    g.action('supplyLater');
-    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
-    g.sim.buff.remaining = .05; g.sim.step(.1); assert(!g.sim.buff);
-    await g.requestReward('zoom'); assert.equal(offers, 2);
-    g.platform.dispose();
-  }
-  const g = mission(); g.hud.t = (zh: string) => zh; cc.sys.isBrowser = true;
-  let complete: any;
-  g.platform.rewardProvider = () => new Promise(resolve => { complete = resolve; });
-  g.platform.cancelReward = () => complete({ status: 'dismissed' });
-  try {
-    const request = g.requestReward('supply'); g.action('adCancel'); g.action('adClose'); await request;
-    assert(!g.platform.rewards.pendingSupply); assert(g.sim.pauses.has('manual'));
-    g.action('resume'); assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused);
-    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
-    const next = g.requestReward('supply'); g.action('close'); await next;
-    assert(!g.platform.rewards.pendingSupply, 'Escape cancels without granting a reward');
-  } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
-});
-
-test('completed entitlement survives close, home, reload and background; repeated completion and claims are ignored', async () => {
-  const original = cc.sys.localStorage, saved = new Map<string, string>();
-  cc.sys.localStorage = { getItem: (key: string) => saved.get(key) ?? null,
-    setItem: (key: string, value: string) => saved.set(key, value) } as any;
-  const g = mission(); g.hud.t = (zh: string) => zh;
-  try {
-    let complete: any, calls = 0;
-    g.platform.rewardProvider = () => { calls++; return new Promise(resolve => { complete = resolve; }); };
-    const request = g.requestReward('supply');
-    await g.requestReward('zoom'); assert.equal(calls, 1);
-    g.hide(); complete({ status: 'completed' }); complete({ status: 'completed' }); await request;
-    assert(g.platform.rewards.pendingSupply); assert(g.sim.paused);
-    g.show(); assert(g.sim.paused); g.action('supplyLater'); g.action('pause'); g.action('home'); g.action('exitConfirm');
-    assert(g.platform.rewards.pendingSupply);
-    const restored = mission(); restored.hud.t = (zh: string) => zh;
-    assert(restored.platform.rewards.pendingSupply);
-    restored.action('supply'); restored.action('reward:ammo'); restored.action('supplyWatch'); restored.action('reward:rate'); restored.action('supplyWatch');
-    assert.equal(restored.platform.rewards.ammo, 2); assert(!restored.sim.buff);
-    restored.hide(); assert(restored.sim.paused); restored.show(); assert(!restored.sim.paused);
-    assert.equal(restored.sim.resumeCountdown, 0);
-    assert(!restored.sim.paused);
-    const consumed = new Platform(new Node(), () => {}, () => {});
-    assert.equal(consumed.rewards.pendingSupply, false); assert.equal(consumed.rewards.ammo, 2);
-    restored.platform.dispose(); consumed.dispose();
-  } finally { cc.sys.localStorage = original; g.platform.dispose(); }
-});
-
-test('storage failure preserves in-session choice and completion after disposal still records the entitlement', async () => {
-  const original = cc.sys.localStorage;
-  cc.sys.localStorage = { getItem: () => { throw Error('denied'); }, setItem: () => { throw Error('denied'); } } as any;
-  const g = mission(); g.hud.t = (zh: string) => zh;
-  try {
-    g.platform.rewardProvider = async () => ({ status: 'completed' });
-    await g.requestReward('supply'); g.action('supplyLater');
-    for (let i = 0; i < 181; i++) g.sim.stepCountdown(1 / 60);
-    g.action('supply');
-    g.action('reward:ammo'); g.action('supplyWatch'); assert.equal(g.platform.rewards.ammo, 2);
-    g.retry();
-    let complete: any;
-    g.platform.rewardProvider = () => new Promise(resolve => { complete = resolve; });
-    const request = g.requestReward('supply'); g.disposed = true;
-    complete({ status: 'completed' }); await request;
-    assert(g.platform.rewards.pendingSupply);
-  } finally { cc.sys.localStorage = original; g.platform.dispose(); }
-});
-
-test('practice rewards stay in their startup namespace when developer mode changes', async () => {
-  const globals = globalThis as any, saved = new Map<string, string>();
-  const previous = { window: globals.window, document: globals.document, dev: globals.SmallGamesDev,
-    storage: cc.sys.localStorage, browser: cc.sys.isBrowser };
-  let developer = true;
-  globals.window = Object.assign(new EventTarget(), { matchMedia: () => ({ matches: false }) });
-  globals.document = Object.assign(new EventTarget(), { querySelector: () => null });
-  globals.SmallGamesDev = { isEnabled: () => developer };
-  cc.sys.isBrowser = true;
-  cc.sys.localStorage = { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } as any;
-  let practice: any, normal: any;
-  try {
-    practice = new Platform(new Node(), () => {}, () => {});
-    assert.equal(await practice.offerReward('supply'), 'mock');
-    developer = false;
-    practice.grantReward('supply');
-    assert(saved.has('night-overwatch-rewards-dev-v1'));
-    assert(!saved.has('night-overwatch-rewards-v1'));
-    normal = new Platform(new Node(), () => {}, () => {});
-    assert.equal(normal.rewards.pendingSupply, false);
-    developer = true;
-    assert.equal(await normal.offerReward('supply'), 'unavailable', 'runtime dev switch cannot grant practice rewards into a normal session');
-  } finally {
-    practice?.dispose(); normal?.dispose();
-    for (const [key, value] of [['window', previous.window], ['document', previous.document], ['SmallGamesDev', previous.dev]]) {
-      if (value === undefined) delete globals[key as string]; else globals[key as string] = value;
-    }
-    cc.sys.localStorage = previous.storage; cc.sys.isBrowser = previous.browser;
-  }
+test('wartime offers never play an ad; an existing entitlement remains claimable exactly once', async () => {
+  const g=mission();let ads=0;g.platform.rewardProvider=async()=>{ads++;return {status:'completed'};};
+  for(const id of ['supply','supplyWatch','homingReward','zoomUpgrade'])g.action(id);
+  assert.equal(ads,0);assert(!g.hud.supplyOpen);assert.equal(g.sim.homingAmmo,0);
+  g.platform.rewards.pendingSupply=true;g.action('supply');g.action('reward:ammo');g.action('supplyWatch');
+  assert.equal(g.sim.homingAmmo,2);assert(!g.platform.rewards.pendingSupply);assert(!g.sim.paused);
+  g.action('supplyWatch');assert.equal(g.sim.homingAmmo,2);assert.equal(ads,0);g.platform.dispose();
 });
 
 test('a real touch activates initially desktop-classified native devices and trigger release stays safe', () => {
@@ -457,13 +289,13 @@ test('changing missions requires a briefing or result; retry preserves the chose
   g.sim.guns[2].ammo = 0;
   g.action('missionNext');
   assert.equal(g.sim.mission.id, 'ambush-02');
-  assert.equal(g.sim.phase, 'playing', 'the result next-operation action starts the next task but retains lifecycle pauses');
+  assert.equal(g.sim.phase,'briefing');assert.equal(g.armory.view.page,'loadout');g.action('armory:next');
   assert(g.sim.pauses.has('background'));
   assert.equal(g.sim.guns[2].ammo, 45);
   g.action('start');
   g.sim.pause('background', false);
   g.sim.setFire('touch:99', true);
-  g.retry();
+  g.sim.phase='failure';g.retry();g.action('armory:next');g.action('start');
   assert.equal(g.sim.mission.id, 'ambush-02');
   assert.equal(g.sim.phase, 'playing');
   assert.equal(g.sim.spawned.size, 6);
@@ -481,9 +313,9 @@ test('actual warmup entry, retry and return keep saved escort preferences and sy
     assert.equal(g.sim.mission.id, 'training-60'); assert.equal(g.sim.phase, 'briefing');
     assert.equal(g.selectedMission, 'ambush-02'); assert.deepEqual(writes, []);
     g.sim.pause('background', true);
-    g.action('start'); g.action('missionReturn');
+    g.action('armory:solo');g.action('armory:next');g.action('start'); g.action('missionReturn');
     assert.equal(g.sim.mission.id, 'training-60', 'a live range cannot be abandoned by a hidden menu action');
-    g.sim.guns[2].ammo = 1; g.retry();
+    g.sim.guns[2].ammo = 1;g.sim.phase='failure';g.retry();g.action('armory:next');g.action('start');
     assert.equal(g.sim.time, 0); assert.equal(g.sim.spawned.size, 3);
     assert.equal(g.sim.guns[2].ammo, 45); assert(g.sim.pauses.has('background'));
     g.sim.phase = 'failure'; g.action('missionReturn');
@@ -494,7 +326,7 @@ test('actual warmup entry, retry and return keep saved escort preferences and sy
     }
     g.prepareMission('?mission=patrol-03');
     assert.equal(g.sim.mission.id, 'patrol-03'); assert.deepEqual(writes, []);
-    g.action('training'); assert.equal(g.sim.mission.id, 'training-60');
+    g.action('armory:solo');g.action('armory:next');g.action('training'); assert.equal(g.sim.mission.id, 'training-60');
     g.action('missionReturn'); assert.equal(g.sim.mission.id, 'patrol-03');
     assert.equal(saved.get('night-overwatch-mission-v1'), 'ambush-02');
     g.platform.saveMission('training-60'); assert.deepEqual(writes, []);
@@ -507,7 +339,7 @@ test('training result saves only a clean successful range score in its separate 
   cc.sys.localStorage = { getItem: (key: string) => saved.get(key) ?? null,
     setItem: (key: string, value: string) => { writes.push(key); saved.set(key, value); } } as any;
   try {
-    g.prepareMission('?mission=training-60'); g.action('start');
+    g.prepareMission('?mission=training-60');g.action('armory:solo');g.action('armory:next');g.action('start');
     for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
     Object.assign(g.sim, { phase: 'success', time: 20, fired: 5, hitShots: 5, kills: 3 });
     g.saveTrainingResult();
@@ -533,11 +365,11 @@ test('actual task choices update public entry URLs without carrying private fiel
     history: { configurable: true, value: { replaceState(_state: unknown, _title: string, url: string) { browserLocation.href = url; } } },
   });
   try {
-    g.action('training');
+    g.action('armory:solo');g.action('armory:next');g.action('training');
     assert.equal(browserLocation.href, 'https://example.test/night/?mission=training-60');
     g.action('missionReturn');
     assert.equal(browserLocation.href, 'https://example.test/night/?mission=corridor-01');
-    g.action('missionNext');
+    g.sim.phase='success';g.action('missionNext');
     assert.equal(browserLocation.href, 'https://example.test/night/?mission=ambush-02');
     assert.equal(g.sim.phase, 'briefing');
   } finally {
@@ -559,7 +391,7 @@ test('returning home aborts a live mission, clears input and starts the next map
   g.action('home'); g.action('exitConfirm');
   assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.time, 0);
   assert.equal(g.sim.pauses.size, 0); assert.equal(g.keys.size, 0); assert.equal(g.sim.shots.length, 0);
-  g.action('mission:ambush-02');
+  g.action('armory:solo');g.action('armory:next');g.action('mission:ambush-02');
   assert.equal(g.sim.mission.map, 'highland'); assert.equal(g.world.map, 'highland');
   assert.equal(g.sim.phase, 'briefing');
   g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 6);
@@ -573,14 +405,15 @@ test('operation lock applies to ordinary menu/URL, developer practice stays isol
   try {
     g.prepareMission('?mission=operation-120');
     assert.equal(g.sim.mission.id, 'corridor-01');
-    g.action('mission:operation-004'); assert.equal(g.sim.mission.id, 'corridor-01');
+    g.action('armory:solo');g.action('armory:next');g.action('mission:operation-004'); assert.equal(g.sim.mission.id, 'corridor-01');
     g.action('mission:patrol-03');
     for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
     g.sim.start(); for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
+    for(let i=0;i<g.sim.mission.events.length;i++)g.sim.spawned.add(i);
     g.sim.phase = 'success'; g.saveMissionResult();
     assert.deepEqual(g.platform.missions.cleared, ['patrol-03']);
     g.action('missionNext'); assert.equal(g.sim.mission.id, 'operation-004');
-    assert.equal(g.sim.phase, 'playing');
+    assert.equal(g.sim.phase, 'briefing');assert.equal(g.armory.view.page,'loadout');
     g.sim.phase = 'briefing';
     cc.sys.isBrowser = true;
     (globalThis as any).SmallGamesDev = { isEnabled: () => true };
@@ -607,7 +440,7 @@ test('explicit dev=0 is retained when mission shortcuts are synchronized', () =>
     history: { configurable: true, value: { replaceState(_state: unknown, _title: string, url: string) { browserLocation.href = url; } } },
   });
   try {
-    g.action('mission:ambush-02');
+    g.action('armory:solo');g.action('armory:next');g.action('mission:ambush-02');
     assert.equal(browserLocation.href, 'https://example.test/night/?mission=ambush-02&dev=0');
   } finally {
     cc.sys.isBrowser = false; g.platform.dispose();
@@ -617,106 +450,15 @@ test('explicit dev=0 is retained when mission shortcuts are synchronized', () =>
 });
 
 
-test('support flow activates the chosen support immediately without countdown or held fire', async () => {
-  for (const reward of ['tracking', 'ammo', 'rate', 'restock']) {
-    const g = mission(); g.hud.t = (zh: string) => zh;
-    let finish: any, offers = 0;
-    g.platform.rewardProvider = () => { offers++; return new Promise(resolve => { finish = resolve; }); };
-    try {
-      g.sim.setFire('touch:1', true);
-      const fired = g.sim.fired;
-      const ammo = g.sim.guns.map((gun: any) => gun.ammo);
-      g.action('supply'); g.action('reward:' + reward);
-      assert.equal(offers, 0); assert.equal(g.hud.supplySelection, reward); assert(!g.sim.buff); assert.equal(g.sim.homingAmmo, 0);
-      g.action('supplyWatch'); g.action('supplyWatch'); g.action('reward:tracking');
-      assert.equal(offers, 1); assert(g.sim.pauses.has('advert'));
-      finish({ status: 'completed' }); await new Promise(resolve => setImmediate(resolve));
-      g.finishReward(true);
-      assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused); assert(!g.hud.supplyOpen); assert(!g.platform.rewards.pendingSupply);
-      assert.equal(g.sim.held.size, 0); assert.equal(g.sim.fired, fired);
-      if (reward === 'ammo') { assert.equal(g.sim.homingAmmo, 2); assert(g.sim.homingSelected); }
-      else if (reward === 'restock') assert.deepEqual(g.sim.guns.map((gun: any) => gun.ammo),
-        ammo.map((value: number, index: number) => value + ([0, 60, 24, 6][index] || 0)));
-      else { assert.equal(g.sim.buff.kind, reward); assert.equal(g.sim.buff.remaining, 60); }
-      assert(g.hud.toast.includes(reward === 'ammo' ? '+2' : reward === 'rate' ? '30%' : reward === 'restock' ? '弹药已补充' : '自动追踪'));
-      g.sim.step(.1); assert.equal(g.sim.time, .1, 'combat resumes on the very next step');
-    } finally { g.platform.dispose(); }
-  }
+test('cover, base, saved solo configuration and mission picker precede starting and retrying',()=>{
+  const g=mission();g.sim.phase='briefing';g.action('start');assert.equal(g.sim.phase,'briefing');
+  g.action('armory:base');assert.equal(g.armory.view.page,'base');
+  g.action('armory:solo');g.action('armory:toggle');assert.equal(g.armory.view.kits.solo.length,2);
+  g.action('armory:next');assert(g.hud.missionsOpen);g.action('start');
+  assert.equal(g.sim.phase,'playing');assert.deepEqual(g.sim.loadout,g.armory.view.kits.solo);
+  g.sim.phase='failure';g.action('retry');assert.equal(g.sim.phase,'briefing');assert.equal(g.armory.view.page,'loadout');
+  g.action('start');assert.equal(g.sim.phase,'briefing');g.platform.dispose();
 });
-
-test('failed support ads return to the choice with no award; skip resumes battle without another ad', async () => {
-  for (const status of ['dismissed', 'unavailable', 'failed']) {
-    const g = mission(); g.hud.t = (zh: string) => zh; let offers = 0;
-    g.platform.rewardProvider = async () => { offers++; return { status }; };
-    try {
-      g.action('supply'); g.action('reward:ammo'); g.action('supplyWatch');
-      await new Promise(resolve => setImmediate(resolve));
-      assert(g.hud.supplyOpen); assert(g.hud.supplyMessage.includes('未获得奖励'));
-      assert.equal(g.hud.supplySelection, 'ammo'); assert.equal(g.sim.homingAmmo, 0); assert(!g.platform.rewards.pendingSupply);
-      g.action('supplyLater'); assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused); assert.equal(g.hud.toast, ''); assert.equal(offers, 1);
-    } finally { g.platform.dispose(); }
-  }
-});
-
-test('zoom completion and foreground restoration resume immediately in either callback order', async () => {
-  for (const order of ['completion-first', 'foreground-first']) {
-    const g = mission(); g.hud.t = (zh: string) => zh; let finish: any;
-    g.platform.rewardProvider = () => new Promise(resolve => { finish = resolve; });
-    try {
-      g.sim.setFire('touch:1', true);
-      const fired = g.sim.fired, request = g.requestReward('zoom');
-      g.hide(); g.pause('focus', true); g.pause('orientation', true);
-      const foreground = () => { g.show(); g.pause('focus', false); g.pause('orientation', false); };
-      if (order === 'foreground-first') {
-        foreground(); g.sim.step(.1); assert.equal(g.sim.time, 0, 'ad still freezes combat');
-      }
-      finish({ status: 'completed' }); await request;
-      assert.equal(g.world.zoomLimit, 20); assert.equal(g.sim.resumeCountdown, 0);
-      if (order === 'completion-first') {
-        assert.deepEqual([...g.sim.pauses].sort(), ['background', 'focus', 'orientation']);
-        g.sim.step(.1); assert.equal(g.sim.time, 0, 'system pauses still freeze combat');
-        foreground();
-      }
-      assert(!g.sim.paused); assert.equal(g.sim.resumeRequired, false); assert.equal(g.sim.held.size, 0);
-      g.sim.step(.1); assert.equal(g.sim.time, .1); assert.equal(g.sim.fired, fired);
-    } finally { g.platform.dispose(); }
-  }
-});
-
-test('a chosen timed support completed in background activates once on foreground without a second ad', async () => {
-  const g = mission(); g.hud.t = (zh: string) => zh; let finish: any, offers = 0;
-  g.platform.rewardProvider = () => { offers++; return new Promise(resolve => { finish = resolve; }); };
-  try {
-    g.action('supply'); g.action('reward:rate'); g.action('supplyWatch'); g.hide();
-    finish({ status: 'completed' }); await new Promise(resolve => setImmediate(resolve));
-    assert(g.platform.rewards.pendingSupply); assert(!g.sim.buff); assert.equal(g.sim.resumeCountdown, 0);
-    g.show();
-    assert.equal(g.sim.buff.kind, 'rate'); assert.equal(g.sim.buff.remaining, 60); assert.equal(offers, 1);
-    assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused);
-  } finally { g.platform.dispose(); }
-});
-
-
-test('deferred support waits for every system pause and never consumes credit after skipping or changing battle', async () => {
-  for (const action of ['restore', 'skip', 'retry']) {
-    const g = mission(); g.hud.t = (zh: string) => zh; let finish: any;
-    g.platform.rewardProvider = () => new Promise(resolve => { finish = resolve; });
-    try {
-      g.action('supply'); g.action('reward:rate'); g.action('supplyWatch');
-      g.hide(); g.pause('focus', true); g.pause('orientation', true);
-      finish({ status: 'completed' }); await new Promise(resolve => setImmediate(resolve));
-      if (action === 'skip') g.closeSupply();
-      if (action === 'retry') g.retry();
-      g.show(); g.pause('focus', false); assert(!g.sim.buff); assert(g.platform.rewards.pendingSupply);
-      g.pause('orientation', false);
-      assert.equal(g.sim.buff?.kind, action === 'restore' ? 'rate' : undefined);
-      assert.equal(g.platform.rewards.pendingSupply, action !== 'restore');
-      assert.equal(g.sim.resumeCountdown, 0); assert(!g.sim.paused);
-      g.pause('focus', false); assert.equal(g.sim.buff?.remaining, action === 'restore' ? 60 : undefined);
-    } finally { g.platform.dispose(); }
-  }
-});
-
 
 test('settings controls stay paused, subpages return to settings, and system pauses remain authoritative', () => {
   const g = mission(); g.hud.t = (zh: string) => zh;
@@ -767,42 +509,11 @@ test('priority action moves both view and reticle, clears firing and stays inert
   g.platform.dispose();
 });
 
-test('browser ad return reconciles missing focus events without resuming an actually hidden or unfocused game', async()=>{
-  const globals=globalThis as any, previous={window:globals.window,document:globals.document};
-  const windowMock=Object.assign(new EventTarget(),{matchMedia:()=>({matches:false})});
-  let focused=true;
-  const canvas=Object.assign(new EventTarget(),{tabIndex:0,setAttribute(){},focus(){focused=true;}});
-  const doc=Object.assign(new EventTarget(),{hidden:false,hasFocus:()=>focused,activeElement:{tagName:'CANVAS'},querySelector:()=>canvas});
-  globals.window=windowMock; globals.document=doc; cc.sys.isBrowser=true;
-  try {
-    for(const kind of ['zoom','supply']) for(const trigger of ['completion','visibility','canvas']) {
-      focused=true;doc.hidden=false;const g=mission();g.hud.t=(zh:string)=>zh;
-      let finish:any;g.platform.rewardProvider=()=>new Promise(r=>{finish=r;});
-      try {
-        if(kind==='supply'){g.action('supply');g.action('reward:rate');}
-        const request=g.requestReward(kind,kind==='supply'?'rate':undefined);
-        focused=false;windowMock.dispatchEvent(new Event('blur'));assert(g.sim.pauses.has('focus'));
-        if(trigger==='completion')focused=true;
-        else if(trigger==='visibility'){doc.hidden=true;doc.dispatchEvent(new Event('visibilitychange'));}
-        finish({status:'completed'});await request;
-        if(trigger!=='completion')assert(g.sim.paused,'unfocused page cannot resume on ad completion alone');
-        if(trigger==='visibility'){
-          doc.hidden=false;doc.dispatchEvent(new Event('visibilitychange'));assert(g.sim.paused);
-          focused=true;doc.dispatchEvent(new Event('visibilitychange'));
-        }
-        if(trigger==='canvas')canvas.dispatchEvent(Object.assign(new Event('pointerdown'),{pointerType:'touch'}));
-        assert(!g.sim.paused,kind+'/'+trigger);assert.equal(g.sim.held.size,0);
-        if(kind==='supply'){assert.equal(g.sim.buff.kind,'rate');assert.equal(g.sim.buff.remaining,60);}
-        g.sim.step(.1);assert.equal(g.sim.time,.1);
-      }finally{g.platform.dispose();}
-    }
-  }finally{
-    cc.sys.isBrowser=false;
-    for(const [key,value] of Object.entries(previous))if(value===undefined)delete globals[key];else globals[key]=value;
+test('gold opportunity accepts actual completion only',async()=>{
+  const g=mission();assert(!g.platform.goldAdsAvailable);assert(!(await g.platform.offerGold()));
+  for(const status of ['dismissed','unavailable','failed','mock','completed']){
+    g.platform.rewardProvider=async(o:any)=>{assert.equal(o.id,'night-overwatch:daily-gold');return {status};};
+    assert.equal(await g.platform.offerGold(),status==='completed');
   }
-});
-
-test('support entered from the battle report returns to an unobstructed battlefield',async()=>{
- const g=mission();g.hud.t=(zh:string)=>zh;g.hud.reportOpen=true;g.platform.rewardProvider=async()=>({status:'completed'});
- try{g.openSupply();assert.equal(g.hud.reportOpen,false);await g.requestReward('supply','ammo');assert(!g.hud.supplyOpen);assert(!g.sim.paused);assert.equal(g.sim.homingAmmo,2);}finally{g.platform.dispose();}
+  g.platform.dispose();
 });

@@ -1,0 +1,136 @@
+{
+  "sourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+  "verified": "2026-10-30",
+  "previousDelivery": "manifest-2026-10-29-online-sync.json",
+  "environment": "Creator 3.8.8 Web-mobile / Windows Chromium. TapTap login and legacy guest recovery checked in the actual H5 package with explicit SDK/HTTP fixtures. Existing formal media reused unchanged; original capture hashes retained. No physical-device, real TapTap host or real-ad validation. Login QA screenshot is not formal publishing media.",
+  "files": [
+    {
+      "path": "copy/introduction.md",
+      "bytes": 1246,
+      "sha256": "94e5e8923b8d233432a6f614b65d08557b18f1ff77d98f02c8e8e9bf62b05961",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "reusedUnchanged": true,
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 68,
+      "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "reusedUnchanged": true,
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+    },
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 671,
+      "sha256": "96192e76ff21ea7f79d91f7d16c8ef3ce1b807eba36575d202f5aa969e6d4128",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "reusedUnchanged": true,
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+    },
+    {
+      "path": "icon/icon-1024.png",
+      "bytes": 1168540,
+      "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "width": 1024,
+      "height": 1024,
+      "reusedUnchanged": true,
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+    },
+    {
+      "path": "promo/images/title-1920x1080.png",
+      "bytes": 2392478,
+      "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "width": 1920,
+      "height": 1080,
+      "reusedUnchanged": true,
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+    },
+    {
+      "path": "promo/images/title-1440x1440.png",
+      "bytes": 2285613,
+      "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "width": 1440,
+      "height": 1440,
+      "reusedUnchanged": true,
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-30-rankings/01-home.png",
+      "bytes": 1036339,
+      "sha256": "7677eb0b8046af43e5fff4475bc6fe7ead7cf102429e18d325e9aa735368b1cc",
+      "capturedSourceHash": "2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "reusedUnchanged": true,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-30-rankings/02-fire.png",
+      "bytes": 937178,
+      "sha256": "8c8f9613f23588abc7d1fa2c450d3d28b8d81c9de46816f837c26122bc040574",
+      "capturedSourceHash": "2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "reusedUnchanged": true,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-30-rankings/03-engage.png",
+      "bytes": 947895,
+      "sha256": "aa18aaa9b4f61af95dd8a0c8014e5059aef2b382f27bda541bf55de72cc191fa",
+      "capturedSourceHash": "2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "reusedUnchanged": true,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-30-rankings/04-hit.png",
+      "bytes": 966090,
+      "sha256": "0c50919b2e1c60b3da4581d4d11b32d8a4b4a5aae498f4024be344ed0965cc65",
+      "capturedSourceHash": "2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "reusedUnchanged": true,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/videos/rankings-sync-2026-10-30-1280x720-silent.mp4",
+      "bytes": 4332232,
+      "sha256": "b7803073fbf6ad0efe03651bf6e08dd9c40505a4e05cddcdf649cf9d534a97b9",
+      "capturedSourceHash": "2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "reusedUnchanged": true,
+      "width": 1280,
+      "height": 720,
+      "codec": "h264",
+      "duration": 15.966667,
+      "audio": false
+    },
+    {
+      "path": "promo/videos/rankings-sync-2026-10-30-1280x720-silent.mp4",
+      "bytes": 3049749,
+      "sha256": "13326bf7608f6b0500942f5b472ab3df175b1959d67f59c1ba37d59ef14e9674",
+      "capturedSourceHash": "2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "reusedUnchanged": true,
+      "width": 1280,
+      "height": 720,
+      "codec": "h264",
+      "duration": 16,
+      "audio": false
+    },
+    {
+      "path": "promo/videos/rankings-sync-2026-10-30-edit.json",
+      "bytes": 694,
+      "sha256": "bbeb2fa402de9e4b42785a6faee7d17b05f8f385904bb31f78a4022488bbf9f5",
+      "capturedSourceHash": "2ad66cda26b38cdef81152f4fd872c561658338a981c5061e8e579bddbab1200",
+      "verifiedForSourceHash": "fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8",
+      "reusedUnchanged": true
+    }
+  ]
+}

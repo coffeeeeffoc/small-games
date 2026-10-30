@@ -6,6 +6,13 @@ import path from 'node:path';
 import { competitionService, serviceGames } from './competition-service-config.mjs';
 import { h5ServiceConfig, serviceHtml, prepareH5Service } from './competition-h5-service.mjs';
 export function isPublicCompetitionPath(pathname) {
+  if (pathname === '/api/competition/v1/games/night-overwatch/wallet') return true;
+  if (
+    /^\/api\/competition\/v1\/games\/night-overwatch\/(?:history|rooms\/[0-9]{6}(?:\/(?:ready|leave|rematch|actions|spectate|connect))?)$/.test(
+      pathname,
+    )
+  )
+    return true;
   if (pathname === '/api/competition/v1/runs/cops-robbers-realtime') return true;
   if (
     /^\/api\/competition\/v1\/games\/night-overwatch\/runs\/[a-f0-9-]{36}\/resume$/.test(pathname)

@@ -320,6 +320,7 @@ test('runtime bundle includes multiplayer carrom physics and level data without 
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
       'games/local/tower-brake/levels.mjs',
+      'games/local/night-overwatch/assets/scripts/core/Armory.ts',
       'games/local/night-overwatch/assets/scripts/core/Duel.ts',
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
       'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
@@ -372,6 +373,7 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
       'games/local/tower-brake/levels.mjs',
+      'games/local/night-overwatch/assets/scripts/core/Armory.ts',
       'games/local/night-overwatch/assets/scripts/core/Duel.ts',
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
       'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
@@ -400,6 +402,7 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
       'games/local/tower-brake/levels.mjs',
+      'games/local/night-overwatch/assets/scripts/core/Armory.ts',
       'games/local/night-overwatch/assets/scripts/core/Duel.ts',
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
       'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
@@ -426,8 +429,9 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       ['cage-rescue', 'tower-brake', 'night-overwatch'],
     );
     const night = rankedRules.find((item) => item.id === 'night-overwatch');
-    assert.equal(night.boards.length, 120);
-    assert(night.create(night.boards[0].id, 7, night.boards[0].id.slice(6)).simulation);
+    const levels = night.boards.filter((board) => board.id.startsWith('level-'));
+    assert.equal(levels.length, 120);
+    assert(night.create(levels[0].id, 7, levels[0].id.slice(6)).simulation);
     const duel = (
       await import(pathToFileURL(path.join(output, 'services/runtime-api/rules/night.mjs')).href)
     ).default;

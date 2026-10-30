@@ -59,18 +59,19 @@ test('heavy fires once per press, respects reload and finite ammunition', () => 
   s.addUnit('turret', { x: MAP.halfWidth, z: MAP.halfDepth }); // Keep the weapon fixture in combat, outside every friendly's range.
   s.convoy = 'holding';
   s.choose(2);
+  const stock = s.guns[2].ammo;
   s.setFire('mouse', true);
   s.setFire('mouse', true);
   tick(s, 4);
   assert.equal(s.fired, 1);
-  assert.equal(s.guns[2].ammo, WEAPONS[2].ammo - 1);
+  assert.equal(s.guns[2].ammo, stock - 1);
   s.setFire('mouse', false);
   s.setFire('mouse', true);
   assert.equal(s.fired, 2);
   s.setFire('mouse', false);
   s.setFire('mouse', true);
   assert.equal(s.fired, 2);
-  for (let i = 0; i < WEAPONS[2].ammo - 2; i++) {
+  for (let i = 0; i < stock - 2; i++) {
     tick(s, 3.1);
     s.setFire('mouse', false);
     s.setFire('mouse', true);
@@ -139,7 +140,7 @@ test('protection rejects overlapping blast and its tangent without consuming amm
   s.setAim({ x: z.x + z.radius + WEAPONS[2].radius, z: z.z });
   assert.equal(s.reason(), 'protected');
   assert.equal(s.fire(), false);
-  assert.equal(s.guns[2].ammo, WEAPONS[2].ammo);
+  assert.equal(s.guns[2].ammo, 48);
   s.setAim({ x: z.x + z.radius + WEAPONS[2].radius + 0.01, z: z.z });
   assert.equal(s.reason(), 'ready');
 });
@@ -249,7 +250,7 @@ test('critical destruction fails before arrival; old duration does not fail; fre
   assert.equal(fresh.pauses.size, 0);
   assert.equal(fresh.failedGroup, undefined);
 });
-test('prediction and finite ammunition can clear all 24 threats while all four friendly groups survive', (t) => {
+test('prediction and finite ammunition can clear every wave while all four friendly groups survive', (t) => {
   const s = start();
   const used = new Set<number>();
   const pending = new Map<number, { unit: number; damage: number }>();
@@ -287,8 +288,8 @@ test('prediction and finite ammunition can clear all 24 threats while all four f
     remaining: s.units.filter((u) => !u.friendly && u.hp > 0).map((u) => ({ kind: u.kind, hp: u.hp })) }));
   assert.equal(s.phase, 'success');
   assert.equal(s.convoy, 'arrived');
-  assert.equal(s.spawned.size, MISSION.events.length);
-  assert.equal(s.kills + s.friendlyKills, MISSION.events.length);
+  assert.equal(s.spawned.size, s.mission.events.length);
+  assert.equal(s.kills + s.friendlyKills, s.mission.events.length);
   assert.equal(s.friendlyDamage, 0);
   assert.equal(s.friendlyLosses, 0);
   assert.equal(s.threatsRemaining, 0);

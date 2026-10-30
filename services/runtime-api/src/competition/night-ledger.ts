@@ -4,7 +4,9 @@ import { CompetitionError, type Room } from './types.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
-export const nightBoard = (board: string) => `night-overwatch:${board}:night-records-v1`;
+const legacyPoints = 'night-overwatch:points:night-records-v1';
+export const nightBoard = (board: string) =>
+  `night-overwatch:${board}:${board === 'points' ? 'night-duel-points-v2' : 'night-records-v1'}`;
 export const nightLedgerLock = (tx: Tx) =>
   tx.execute(sql`select pg_advisory_xact_lock(hashtext('night-overwatch-ledger'))`);
 const clearsMigration = 'night-migration:highest-clear-v2';
@@ -62,6 +64,22 @@ export async function nightSummary(tx: Tx | Database, playerId: string) {
   };
 }
 
+// Preserve old mixed totals. Only original duel receipts are eligible for the new board.
+export async function prepareNightDuelPoints(tx: Tx, at: number) {
+  const marker = 'night-migration:duel-only-points-v2';
+  const exists = async () =>
+    (await tx.execute(sql`select 1 from runtime.competition_matches where id=${marker}`)).length;
+  if (await exists()) return;
+  await nightLedgerLock(tx);
+  if (await exists()) return;
+  await tx.execute(sql`insert into runtime.competition_best(board,player_id,score,secondary,match_id,updated_at)
+    select ${nightBoard('points')}, player_id,sum(score),0,max(match_id),max(created_at)
+    from runtime.competition_results where board=${legacyPoints} and match_id like 'night-points:duel:%'
+    group by player_id on conflict(board,player_id) do nothing`);
+  await tx.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
+    values(${marker},${nightBoard('migration')},'{}'::jsonb,${at})`);
+}
+
 export async function nightPoints(
   tx: Tx,
   eventId: string,
@@ -69,6 +87,7 @@ export async function nightPoints(
   points: number,
   at: number,
 ) {
+  await prepareNightDuelPoints(tx, at);
   await nightLedgerLock(tx);
   const inserted =
     await tx.execute(sql`insert into runtime.competition_results(match_id,board,player_id,score,secondary,created_at)
@@ -76,7 +95,8 @@ export async function nightPoints(
   if (inserted.length)
     await tx.execute(sql`insert into runtime.competition_best(board,player_id,score,secondary,match_id,updated_at)
     select ${nightBoard('points')},${playerId},coalesce(sum(score),0),0,${eventId},${at}
-    from runtime.competition_results where board=${nightBoard('points')} and player_id=${playerId}
+    from runtime.competition_results where player_id=${playerId} and (board=${nightBoard('points')} or
+      (board=${legacyPoints} and match_id like 'night-points:duel:%'))
     on conflict(board,player_id) do update set score=excluded.score,match_id=excluded.match_id,updated_at=excluded.updated_at`);
   const rows = await tx.execute(
     sql`select score from runtime.competition_best where board=${nightBoard('points')} and player_id=${playerId}`,

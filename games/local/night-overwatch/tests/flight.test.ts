@@ -162,13 +162,14 @@ test('paused settings apply flight pose immediately while every battle clock and
 
 test('arrival cannot succeed while a threat is still alive', () => {
   const s = new Simulation('operation-007');
-  assert.equal(s.threatsRemaining, 24, 'unspawned contacts also count');
+  assert.equal(s.threatsRemaining, s.mission.events.length, 'unspawned contacts also count');
   s.start();
   s.progress = s.routeLength;
   for (const unit of s.units) if (unit.routeOffset !== undefined) Object.assign(unit, s.routePoint(s.routeLength));
   s.step(0.01);
   assert.equal(s.phase, 'playing');
-  assert(s.threatsRemaining >= 24);
+  assert.equal(s.threatsRemaining, s.mission.events.length);
+  s.mission.events.forEach((_, i) => s.spawned.add(i));
   const enemy = s.units.find((u) => !u.friendly)!;
   s.units.forEach((u) => { if (!u.friendly && u !== enemy) u.hp = 0; });
   s.step(0.01);
@@ -400,6 +401,7 @@ test('every outpost must retain a survivor; the last lethal hit determines group
       s.progress = ROUTE_LENGTH;
       s.convoy = 'arrived';
       s.units.filter(u => !u.friendly).forEach(u => { u.hp = 0; });
+      s.mission.events.forEach((_, i) => s.spawned.add(i));
       assert.equal(s.threatsRemaining, 0);
       s.step(1 / 60); // Last friendly dies in the exact step that would otherwise declare success.
     }

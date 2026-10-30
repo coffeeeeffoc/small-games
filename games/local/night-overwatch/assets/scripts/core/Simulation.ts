@@ -1,5 +1,5 @@
 import {
-  WEAPONS,
+  WEAPONS, ALL_WEAPONS, EMP_INDEX,
   MAP,
   FRIENDLY_POSTS,
   terrainHeight,
@@ -26,6 +26,14 @@ import {
 } from './Data.ts';
 import { Flight, ballisticLaunch, muzzlePosition, shotPosition, terrainContact } from './Flight.ts';
 import { missionDefinition, type MissionId, type MissionDefinition } from './MissionCatalog.ts';
+import { modTier, validLoadout, type Loadout } from './Armory.ts';
+
+export function initialGuns(loadout: Loadout = [], extraContacts = 0) {
+  return ALL_WEAPONS.slice(0, modTier(loadout, 'emp') ? 5 : 4).map((w, i) => ({
+    heat: 0, ammo: Number(w.ammo) + (i > 0 && i < 4 ? Math.floor(extraContacts / [0, 2, 6, 16][i]) : 0),
+    cooldown: 0, overheated: false,
+  }));
+}
 export type PauseReason = 'help' | 'settings' | 'mission' | 'manual' | 'orientation' | 'background' | 'focus' | 'advert' | 'supply' | 'countdown';
 export type BuffKind = 'tracking' | 'rate';
 export type ConvoyState = 'moving' | 'holdRequested' | 'holding' | 'arrived';
@@ -42,6 +50,7 @@ export type Unit = Point3 & {
   deadAt: number;
   origin: Point & { patrolId?: number };
   patrolElapsed?: number;
+  immobileUntil?: number;
   group?: number;
   routeOffset?: number;
 };
@@ -55,6 +64,10 @@ export type Shot = Point & {
   velocity: Point3;
   targetY: number;
   timeScale?: number;
+  damageScale?: number;
+  speed?: number;
+  radius?: number;
+  fireDuration?: number;
   guidance?: { kind: 'tracking' | 'consumable'; target: number; position: Point3; trail: (Point3 & { time: number })[] };
 };
 export type FireZone = Point3 & { id: number; radius: number; born: number; expires: number; side?: number };
@@ -103,7 +116,9 @@ export class Simulation {
   homingSelected = false;
   homingTargetId?: number;
   aim: Point = { x: MISSION.events[0].x, z: MISSION.events[0].z };
-  guns = WEAPONS.map((w) => ({ heat: 0, ammo: Number(w.ammo), cooldown: 0, overheated: false }));
+  guns: ReturnType<typeof initialGuns>;
+  loadout: Loadout;
+  coolantUsed = false;
   units: Unit[] = [];
   shots: Shot[] = [];
   fireZones: FireZone[] = [];
@@ -146,13 +161,14 @@ export class Simulation {
   readonly aircraft = this.flight.aircraft;
   private serial = 0;
   pilotState() {
-    return { flight: this.flight.checkpoint(), guns: this.guns.map(gun => ({ ...gun })),
+    return { flight: this.flight.checkpoint(), loadout: this.loadout, guns: this.guns.map(gun => ({ ...gun })),
       aim: { ...this.aim }, selected: this.selected, held: Array.from(this.held) };
   }
   usePilot(pilot: ReturnType<Simulation['pilotState']>, side: number) {
     this.useSide(side);
     this.flight.restore(pilot.flight);
-    this.guns = pilot.guns.map((gun, i) => ({ ...gun, ammo: Number.isFinite(WEAPONS[i].ammo) ? gun.ammo : Infinity }));
+    this.loadout = pilot.loadout ?? [];
+    this.guns = pilot.guns.map((gun, i) => ({ ...gun, ammo: Number.isFinite(ALL_WEAPONS[i].ammo) ? gun.ammo : Infinity }));
     this.aim = { ...pilot.aim }; this.selected = pilot.selected; this.held = new Set(pilot.held);
   }
   stepPilot(dt: number) {
@@ -161,7 +177,7 @@ export class Simulation {
       gun.cooldown = Math.max(0, gun.cooldown - dt); gun.heat = Math.max(0, gun.heat - 18 * dt);
       if (gun.overheated && gun.heat <= 40) gun.overheated = false;
     }
-    if (this.held.size && WEAPONS[this.selected].automatic) this.fire();
+    if (this.held.size && ALL_WEAPONS[this.selected].automatic) this.fire();
   }
   checkpoint() {
     const { flight, height: _height, mission, aircraft: _aircraft,
@@ -175,10 +191,9 @@ export class Simulation {
     const sim = new Simulation(missionId);
     Object.assign(sim, state);
     sim.fireZones = state.fireZones ?? [];
-    sim.guns = WEAPONS.map((weapon, index) => sim.guns[index] ??
-      { heat: 0, ammo: Number(weapon.ammo), cooldown: 0, overheated: false });
+    sim.guns = initialGuns(sim.loadout).map((gun, index) => sim.guns[index] ?? gun);
     // JSON stores unlimited ammunition as null; its value comes from the weapon rules.
-    sim.guns.forEach((gun, index) => { if (!Number.isFinite(WEAPONS[index].ammo)) gun.ammo = Infinity; });
+    sim.guns.forEach((gun, index) => { if (!Number.isFinite(ALL_WEAPONS[index].ammo)) gun.ammo = Infinity; });
     sim.flight.restore(flight);
     sim.pauses = new Set(pauses);
     sim.spawned = new Set(spawned);
@@ -186,9 +201,12 @@ export class Simulation {
     sim.held = new Set(held);
     return sim;
   }
-  constructor(missionId: MissionId = 'corridor-01') {
+  constructor(missionId: MissionId = 'corridor-01', loadout: Loadout = []) {
+    if (!validLoadout(loadout)) throw Error('Invalid mission loadout');
+    this.loadout = loadout.map(({ id, tier }) => ({ id, tier }));
     validateData();
     this.mission = missionDefinition(missionId);
+    this.guns = initialGuns(this.loadout, Math.max(0, this.mission.events.length - 4));
     this.selected = this.mission.initialWeapon;
     this.aim = { x: this.mission.events[0].x, z: this.mission.events[0].z };
     Object.assign(this.addUnit('rescue', this.routePoint(0), true), { group: 0, routeOffset: 0 });
@@ -235,10 +253,23 @@ export class Simulation {
   adjustRadius(delta: number) {
     if (this.canConfigure) this.flight.adjustRadius(delta, this.paused);
   }
+  radius(weapon = this.selected) {
+    return ALL_WEAPONS[weapon].radius * (weapon === 3 ? [1, Math.sqrt(1.25), 1.2][modTier(this.loadout, 'spread')] : 1);
+  }
+  private speed(weapon: number) {
+    return ALL_WEAPONS[weapon].speed * (weapon < EMP_INDEX ? [1, 1.12, 1.22][modTier(this.loadout, 'velocity')] : 1);
+  }
+  useCoolant() {
+    if (this.phase !== 'playing' || this.paused || this.duelMode || this.extractionRemaining !== undefined ||
+        this.coolantUsed || !modTier(this.loadout, 'coolant') || !this.guns.some(g => g.heat > 0)) return false;
+    for (const g of this.guns) { g.heat = 0; g.overheated = false; }
+    this.coolantUsed = true;
+    return true;
+  }
   flightTime(weapon = this.selected, p: Point | null = this.aim) {
-    if (!p || !Number.isInteger(weapon) || !WEAPONS[weapon] || ![p.x, p.z].every(Number.isFinite) ||
+    if (!p || !Number.isInteger(weapon) || !this.guns[weapon] || ![p.x, p.z].every(Number.isFinite) ||
         Math.abs(p.x) > MAP.halfWidth || Math.abs(p.z) > MAP.halfDepth) return Infinity;
-    return ballisticLaunch(muzzlePosition(this.aircraft, weapon), p, WEAPONS[weapon].speed, this.height)?.duration ?? Infinity;
+    return ballisticLaunch(muzzlePosition(this.aircraft, weapon), p, this.speed(weapon), this.height)?.duration ?? Infinity;
   }
   shotPosition(shot: Shot, time = this.time) {
     if (shot.guidance) {
@@ -335,7 +366,7 @@ export class Simulation {
     this.held.clear();
   }
   choose(index: number) {
-    if (!Number.isInteger(index) || index < 0 || index >= WEAPONS.length) return;
+    if (!Number.isInteger(index) || index < 0 || index >= this.guns.length) return;
     this.clearInput();
     if (index !== this.selected) this.completed.add('weapon');
     this.selected = index;
@@ -395,26 +426,25 @@ export class Simulation {
     if (this.paused) return 'paused';
     if (this.extractionRemaining !== undefined) return 'extracting';
     if (this.homingSelected) return this.homingAmmo <= 0 ? 'empty' : this.homingTarget ? 'ready' : 'target';
-    const w = WEAPONS[this.selected],
-      g = this.guns[this.selected];
+    const g = this.guns[this.selected];
     if (![this.aim.x, this.aim.z].every(Number.isFinite) ||
         Math.abs(this.aim.x) > MAP.halfWidth || Math.abs(this.aim.z) > MAP.halfDepth)
       return 'outside';
     // The entire blast disk must stay outside a protected area, including its boundary.
-    if (!this.duelMode && PROTECTED.some((p) => distance(p, this.aim) <= p.radius + w.radius)) return 'protected';
+    if (!this.duelMode && PROTECTED.some((p) => distance(p, this.aim) <= p.radius + this.radius())) return 'protected';
     if (g.overheated) return 'overheated';
     if (g.ammo <= 0) return 'empty';
     if (g.cooldown > 1e-6) return 'cooldown';
     return 'ready';
   }
   get friendlyRisk() {
-    if (this.homingSelected) return false;
+    if (this.homingSelected || this.selected === EMP_INDEX) return false;
     const point = this.trackingTarget ?? this.aim;
     return this.units.some(
       (u) =>
         u.friendly &&
         u.hp > 0 &&
-        distance(u, point) <= WEAPONS[this.selected].radius + UNITS[u.kind].radius,
+        distance(u, point) <= this.radius() + UNITS[u.kind].radius,
     );
   }
   get aimedUnit() {
@@ -427,8 +457,8 @@ export class Simulation {
       !PROTECTED.some(p => distance(p, target) <= p.radius + Math.max(radius, UNITS[target.kind].radius));
   }
   private get trackingTarget() {
-    if (this.buff?.kind !== 'tracking') return;
-    const radius = WEAPONS[this.selected].radius, aimed = this.aimedUnit;
+    if (this.buff?.kind !== 'tracking' || this.selected === EMP_INDEX) return;
+    const radius = this.radius(), aimed = this.aimedUnit;
     if (aimed && this.canTrack(aimed, radius)) return aimed;
     return this.units.filter(u => this.canTrack(u, radius) && distance(u, this.aim) <= COMBAT_BUFF.trackingRadius)
       .sort((a, b) => distance(a, this.aim) - distance(b, this.aim))[0];
@@ -436,20 +466,23 @@ export class Simulation {
   fire() {
     if (this.homingSelected) return this.fireHoming();
     if (this.reason() !== 'ready') return false;
-    const w = WEAPONS[this.selected],
+    const w = ALL_WEAPONS[this.selected],
       g = this.guns[this.selected];
     const origin = Object.freeze(muzzlePosition(this.aircraft, this.selected));
-    const launch = ballisticLaunch(origin, this.aim, w.speed, this.height);
+    const launch = ballisticLaunch(origin, this.aim, this.speed(this.selected), this.height);
     if (!launch) return false;
     g.ammo--;
     g.heat = Math.min(100, g.heat + w.heat);
     g.overheated = g.heat >= 100;
-    g.cooldown = w.interval / (this.buff?.kind === 'rate' ? COMBAT_BUFF.rateMultiplier : 1);
+    g.cooldown = w.interval / (this.selected !== EMP_INDEX && this.buff?.kind === 'rate' ? COMBAT_BUFF.rateMultiplier : 1);
     const target = this.trackingTarget;
     const shot: Shot = {
       id: ++this.serial,
       ...(this.duelMode ? { side: this.pilotSide } : {}),
       weapon: this.selected,
+      damageScale: this.selected < 3 ? [1, 1.08, 1.16][modTier(this.loadout, 'power')] : 1,
+      speed: this.speed(this.selected), radius: this.radius(),
+      ...(this.selected === 3 ? { fireDuration: FIRE_ZONE.duration + modTier(this.loadout, 'duration') * 3 } : {}),
       x: this.aim.x,
       z: this.aim.z,
       born: this.time,
@@ -497,21 +530,26 @@ export class Simulation {
     return event;
   }
   private spawn() {
-    this.mission.events.forEach((e, i) => {
-      if (!this.spawned.has(i) && (this.time >= e.time || this.ratio >= e.progress)) {
-        this.spawned.add(i);
-        this.addUnit(e.kind, landPoint(e, this.mission.map));
-        this.lastWave = i;
-        this.waveAt = this.time;
-        this.emit('wave', e);
-      }
-    });
+    const events = this.mission.events;
+    if (this.spawned.size >= events.length) return;
+    const living = this.units.filter(unit => !unit.friendly && unit.hp > 0).length;
+    const due = Math.max(living === 0 ? events[this.spawned.size].time : 0,
+      this.lastWave >= 0 ? events[this.lastWave].time : 0, this.time);
+    for (let i = this.spawned.size, free = 10 - living; free > 0 && i < events.length; i++, free--) {
+      const event = events[i];
+      if (due < event.time && this.ratio < event.progress) break;
+      this.spawned.add(i);
+      this.addUnit(event.kind, landPoint(event, this.mission.map));
+      this.lastWave = i;
+      this.waveAt = this.time;
+      this.emit('wave', event);
+    }
   }
   private impact(s: Shot, point: Point3, time: number, previous: Point3[], dt: number) {
     if (s.weapon === 3 && !isWater(point, this.mission.map) &&
         Math.abs(point.x) <= MAP.halfWidth && Math.abs(point.z) <= MAP.halfDepth &&
-        (this.duelMode || !PROTECTED.some(zone => distance(zone, point) <= zone.radius + WEAPONS[3].radius))) {
-      this.fireZones.push({ ...point, id: s.id, radius: WEAPONS[3].radius, born: time, expires: time + FIRE_ZONE.duration, side: s.side });
+        (this.duelMode || !PROTECTED.some(zone => distance(zone, point) <= zone.radius + (s.radius ?? WEAPONS[3].radius)))) {
+      this.fireZones.push({ ...point, id: s.id, radius: s.radius ?? WEAPONS[3].radius, born: time, expires: time + (s.fireDuration ?? FIRE_ZONE.duration), side: s.side });
     }
     let hit = false,
       friendly = false,
@@ -526,8 +564,16 @@ export class Simulation {
       const y = this.height(x, z);
       if (u.hp <= 0) continue;
       if (u.friendly && this.training) continue;
+      const range = Math.hypot(x - point.x, y - point.y, z - point.z);
+      if (s.weapon === EMP_INDEX) {
+        if (!u.friendly && (u.kind === 'light' || u.kind === 'heavy') && range <= ALL_WEAPONS[EMP_INDEX].radius + UNITS[u.kind].radius) {
+          u.immobileUntil = time + 2.5;
+          u.hit = .2; hit = true;
+        }
+        continue;
+      }
       const damage = s.guidance?.kind === 'consumable' ? u.id === s.guidance.target && !u.friendly ? HOMING.damage : 0
-        : impactDamage(s.weapon, u.kind, Math.hypot(x - point.x, y - point.y, z - point.z));
+        : impactDamage(s.weapon, u.kind, range, s.radius) * (s.damageScale ?? 1);
       if (damage <= 0) continue;
       const actual = Math.min(u.hp, damage);
       u.hp = Math.max(0, u.hp - damage);
@@ -728,6 +774,7 @@ export class Simulation {
       u.hit = Math.max(0, u.hit - dt);
       if (u.hp <= 0) continue;
       u.attack -= dt;
+      if (this.time < (u.immobileUntil ?? 0)) continue;
       if (u.friendly && !this.duelMode) {
         if (u.routeOffset !== undefined) {
           const point = this.routePoint(Math.min(this.routeLength, this.progress + u.routeOffset));
@@ -761,7 +808,7 @@ export class Simulation {
       if (shot.guidance) {
         const ordinary = shot.guidance.kind === 'tracking';
         const target = this.units.find(u => u.id === shot.guidance!.target);
-        if (!target || !this.canTrack(target, ordinary ? WEAPONS[shot.weapon].radius : 0) ||
+        if (!target || !this.canTrack(target, ordinary ? (shot.radius ?? WEAPONS[shot.weapon].radius) : 0) ||
             ordinary && this.buff?.kind !== 'tracking') {
           if (!ordinary) return [{ shot, point: shot.guidance.position, time: this.time, cancelled: true }];
           this.releaseTracking(shot, this.time - dt);
@@ -770,7 +817,7 @@ export class Simulation {
         }
         const position = shot.guidance.position;
         const delta = { x: target.x - position.x, y: target.y - position.y, z: target.z - position.z };
-        const speed = ordinary ? WEAPONS[shot.weapon].speed : HOMING.speed;
+        const speed = ordinary ? (shot.speed ?? WEAPONS[shot.weapon].speed) : HOMING.speed;
         const range = Math.hypot(delta.x, delta.y, delta.z), travel = speed * dt;
         if (range > 0) shot.velocity = { x: delta.x / range * speed, y: delta.y / range * speed, z: delta.z / range * speed };
         if (ordinary) {
@@ -873,7 +920,7 @@ export class Simulation {
       const target = this.homingTarget;
       if (target) this.aim = { x: target.x, z: target.z };
     }
-    if (this.held.size && !this.homingSelected && WEAPONS[this.selected].automatic) this.fire();
+    if (this.held.size && !this.homingSelected && ALL_WEAPONS[this.selected].automatic) this.fire();
   }
   private recordFriendlyLoss(unit: Unit, cause: 'friendly' | 'enemy') {
     if (this.failedGroup !== undefined) return;

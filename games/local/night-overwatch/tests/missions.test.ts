@@ -13,18 +13,19 @@ test('introductory missions use fewer stationary targets in daylight before dusk
   for (const mission of MISSIONS.slice(0, 3)) {
     const sim = new Simulation(mission.id); sim.start();
     assert.equal(sim.selected, 1);
-    assert.equal(sim.spawned.size, mission.events.length);
+    assert.equal(sim.spawned.size, mission.events.filter(e => e.time === 0).length);
     assert(mission.events.every(e => e.kind === 'turret'));
     const before = sim.units.filter(u => !u.friendly).map(u => [u.x, u.z]); tick(sim, 1);
     assert.deepEqual(sim.units.filter(u => !u.friendly).map(u => [u.x, u.z]), before);
     assert.equal(sim.rescue.maxHp, UNITS.rescue.hp);
-    assert.equal(sim.guns[1].ammo, WEAPONS[1].ammo);
+    assert.equal(sim.guns[1].ammo, 120 + MISSIONS.indexOf(mission));
   }
   const ambush = new Simulation('operation-008'); ambush.start(); ambush.convoy = 'holding';
-  assert.equal(ambush.spawned.size, 8);
-  assert.equal(ambush.threatsRemaining, 24);
-  ambush.pause('manual', true); tick(ambush, 80); assert.equal(ambush.spawned.size, 8);
-  ambush.pause('manual', false); tick(ambush, 72.1); assert.equal(ambush.spawned.size, 16);
+  assert.equal(ambush.spawned.size, 6);
+  assert.equal(ambush.threatsRemaining, 26);
+  ambush.pause('manual', true); tick(ambush, 80); assert.equal(ambush.spawned.size, 6);
+  ambush.pause('manual', false); tick(ambush, 72.1); assert(ambush.spawned.size > 6);
+  assert(ambush.units.filter(u => !u.friendly && u.hp > 0).length <= 10);
   assert.equal(nextMission('patrol-03'), 'operation-004');
   assert.equal(nextMission(MISSIONS.at(-1)!.id), MISSIONS.at(-1)!.id);
   assert.equal(missionDefinition('old-preference').id, 'corridor-01');

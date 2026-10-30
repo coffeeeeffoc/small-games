@@ -1495,7 +1495,7 @@ export const gameServiceScopePaths = Object.freeze([
   'scripts/competition-gateway.test.mjs',
 ]);
 export const nightRuntimeInputs = Object.freeze(
-  ['Duel', 'Replay', 'Simulation', 'MissionCatalog', 'Data', 'Flight'].map(
+  ['Armory', 'Duel', 'Replay', 'Simulation', 'MissionCatalog', 'Data', 'Flight'].map(
     (name) => `games/local/night-overwatch/assets/scripts/core/${name}.ts`,
   ),
 );
@@ -5318,6 +5318,10 @@ export function reviewedSharedFileScopes({
               : []),
           ]),
         ]);
+        continue;
+      }
+      if (file === 'scripts/night-overwatch-selftest.mjs') {
+        scopes.set(file, ['games/local/night-overwatch', 'services/runtime-api']);
         continue;
       }
       if (

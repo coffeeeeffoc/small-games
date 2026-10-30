@@ -4,6 +4,7 @@ import {
   commandDuel,
   viewDuel,
   DUEL_VERSION,
+  MODS,
   takeoverDuel,
 } from '../../../games/local/night-overwatch/assets/scripts/core/Duel.ts';
 
@@ -13,6 +14,7 @@ export default {
   title: '夜航守望',
   version: DUEL_VERSION,
   duel: true,
+  nightMods: MODS,
   unrated: true,
   lobby: true,
   noTimeLimit: true,
@@ -25,7 +27,12 @@ export default {
     { id: 'bot', title: '服务器陪练' },
   ],
   roomSize: (mode) => (mode === 'bot' ? 1 : 2),
-  initial: (seed, mode) => createDuel(seed, mode === 'bot'),
+  initial: (seed, mode, _role, loadouts) =>
+    createDuel(
+      seed,
+      mode === 'bot',
+      loadouts && [loadouts[0] ?? [], loadouts[1] ?? (mode === 'bot' ? (loadouts[0] ?? []) : [])],
+    ),
   advance: (state, elapsedMs) => advanceDuel(copy(state), elapsedMs),
   view: (state, seat) => viewDuel(copy(state), seat),
   action(state, action, elapsedMs, seat) {

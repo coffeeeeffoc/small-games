@@ -1,5 +1,5 @@
 import { Color, Graphics, view } from 'cc';
-import { FLIGHT, WEAPONS } from './core/Data';
+import { FLIGHT, ALL_WEAPONS as WEAPONS } from './core/Data';
 import type { Point } from './core/Data';
 import type { Simulation } from './core/Simulation';
 import type { World } from './World';
@@ -92,15 +92,15 @@ export function drawEffects(
     g.stroke();
     primitives++;
   };
-  const ring = (p: Point, radius: number, heat: number, alpha: number, dashed = false) => {
+  const ring = (p: Point, radius: number, heat: number, alpha: number, dashed = false, electromagnetic = false) => {
     if (alpha <= 0.005) return;
     const q = project(p),
       x = project({ x: p.x + radius, z: p.z });
     const z = project({ x: p.x, z: p.z + radius });
     const extent = Math.max(Math.hypot(x.x - q.x, x.y - q.y), Math.hypot(z.x - q.x, z.y - q.y));
     if (Math.abs(q.x) > width / 2 + extent || Math.abs(q.y) > height / 2 + extent || extent > 2000) return;
-    g.strokeColor = color(heat, alpha);
-    g.lineWidth = 1;
+    g.strokeColor = electromagnetic && !world.thermal ? new Color(106,222,255,Math.round(alpha*255)) : color(heat, alpha);
+    g.lineWidth = electromagnetic ? 2 : 1;
     // Project both ground axes, including temporary zoom; 24 segments also bound stroke geometry.
     for (let i = 0; i < (dashed ? 24 : 25); i++) {
       const a = (i * TAU) / 24;
@@ -226,6 +226,10 @@ export function drawEffects(
     const before = primitives;
     const scale = scaleAt(e);
     const radius = WEAPONS[weapon].radius;
+    if (weapon === 4) {
+      if (age < 1) {ring(e,radius*(.25+.75*age),.9,1-age,false,true);ring(e,radius*(.6+.4*age),.8,(1-age)*.8,true,true);}
+      continue;
+    }
     const burnLife = weapon === 0 ? .35 : e.outcome === 'destroyed' ? 8 : weapon === 2 ? 5 : 2.8;
     const t = age / life,
       fade = 1 - t,
@@ -314,7 +318,7 @@ export function drawEffects(
       weapon = shot.weapon, spec = WEAPONS[weapon], missile = shot.guidance?.kind === 'consumable';
     const position = (progress: number): ScreenPoint =>
       airborne(s.shotPosition(shot, shot.born + progress * flight));
-    if (!missile) ring(shot, WEAPONS[weapon].radius * (1 + (1 - t) * 0.65), 0.75, 0.22 + t * 0.25, true);
+    if (!missile) ring(shot, (shot.radius ?? spec.radius) * (1 + (1 - t) * 0.65), 0.75, 0.22 + t * 0.25, true, weapon===4);
     // A single tapered ribbon per round, seven samples along the actual origin-to-impact parabola.
     const tail: ScreenPoint[] = [];
     const start = Math.max(0, t - (missile ? .45 : spec.tracerTime) / flight);

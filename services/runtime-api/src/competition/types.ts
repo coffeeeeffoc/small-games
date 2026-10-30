@@ -1,3 +1,5 @@
+import type { NightLoadout, NightCatalog } from './night-wallet.js';
+
 export type Result = {
   finished: boolean;
   eligible: boolean;
@@ -12,6 +14,7 @@ export type Rule = {
   durationMs: number;
   description?: string;
   duel?: boolean;
+  nightMods?: NightCatalog;
   lobby?: boolean;
   noTimeLimit?: boolean;
   takeover?(state: unknown, seat: number): unknown;
@@ -22,7 +25,7 @@ export type Rule = {
   modes?: readonly { id: string; title: string }[];
   pollMs?: number;
   advance?(state: unknown, elapsedMs: number): unknown;
-  initial(seed: number, mode?: string, firstRole?: string): unknown;
+  initial(seed: number, mode?: string, firstRole?: string, loadouts?: NightLoadout[]): unknown;
   view(state: unknown, seat?: number): unknown;
   action(state: unknown, action: unknown, elapsedMs: number, seat?: number): unknown;
   result(state: unknown, seat?: number): Result;
@@ -31,6 +34,7 @@ export type Rule = {
 };
 export type Member = {
   id: string;
+  loadout?: NightLoadout;
   role?: string;
   ready: boolean;
   seq: number;

@@ -204,6 +204,8 @@ test('public paths cover registered game, identity, TCT and carrom endpoints and
     'games/xiangqi-five/rooms/ABCDEF012345/ready',
     'games/night-overwatch/rooms',
     'games/night-overwatch/history',
+    'games/night-overwatch/wallet',
+    'games/night-overwatch/rooms/123456/ready',
     'games/night-overwatch/runs/12345678-1234-1234-1234-123456789abc/resume',
     'games/night-overwatch/rooms/123456/spectate',
     'games/night-overwatch/rooms/123456/connect',

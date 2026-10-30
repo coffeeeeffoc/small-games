@@ -12,6 +12,28 @@ const defer = () => {
   return { promise, resolve };
 };
 const turn = () => new Promise((resolve) => setImmediate(resolve));
+
+test('a finish requested during upload returns the single settlement with its coin reward', async () => {
+  const f = durableFixture(),
+    rec = f.recorder(),
+    began = defer(),
+    release = defer();
+  const append = f.services.appendFrames,
+    finish = f.services.finishRun;
+  f.services.appendFrames = async (request) => {
+    began.resolve();
+    await release.promise;
+    return append(request);
+  };
+  f.services.finishRun = async (request) => ({ ...(await finish(request)), coins: 300 });
+  await rec.start({ mode: 'campaign', levelId: 'first' });
+  rec.record({}, 600);
+  await began.promise;
+  const pending = rec.finish();
+  release.resolve();
+  assert.equal((await pending).coins, 300);
+  assert.equal(f.calls.filter((call) => call === 'finish').length, 1);
+});
 function durableFixture() {
   const values = new Map(),
     runs = new Map(),
@@ -46,6 +68,7 @@ function durableFixture() {
         run = {
           id: input.requestId,
           board: input.mode,
+          loadout: input.loadout,
           levelId: input.levelId,
           version: 'v8',
           playerId: input.playerId,
@@ -116,6 +139,20 @@ function durableFixture() {
     owner: (v) => (owner = v),
   };
 }
+test('Night run retries keep the original gear even when the selection changes offline', async () => {
+  const f = durableFixture();
+  f.offline(true);
+  const recorder = f.recorder(),
+    loadout = [{ id: 'power', tier: 1 }];
+  await recorder.start({ mode: 'campaign', levelId: 'first', loadout });
+  loadout[0].tier = 2;
+  recorder.record({}, 120);
+  await recorder.finish();
+  f.offline(false);
+  await f.recorder().recover();
+  assert.deepEqual([...f.runs.values()][0].loadout, [{ id: 'power', tier: 1 }]);
+});
+
 test('Night durable completion survives lost append response and reload, querying before replay', async () => {
   const f = durableFixture(),
     first = f.recorder();

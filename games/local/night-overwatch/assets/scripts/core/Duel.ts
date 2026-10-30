@@ -1,8 +1,10 @@
-import { Simulation } from './Simulation.ts';
-import { WEAPONS, patrolPoint, type Point } from './Data.ts';
+import { initialGuns, Simulation } from './Simulation.ts';
+import { duelLoadout, type Loadout } from './Armory.ts';
+export { MODS, STARTER_LOADOUT, validLoadout, duelLoadout, modTier } from './Armory.ts';
+import { patrolPoint, type Point } from './Data.ts';
 import { MISSIONS } from './MissionCatalog.ts';
 
-export const DUEL_VERSION = 'night-duel-v2';
+export const DUEL_VERSION = 'night-duel-v3';
 // Retained for older presentation callers; authority has no match time limit.
 export const DUEL_SECONDS = 0;
 type Pilot = ReturnType<Simulation['pilotState']> & { leaseUntil: number };
@@ -12,7 +14,7 @@ export type DuelState = { simulation: ReturnType<Simulation['checkpoint']>; pilo
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 const check = (value: unknown) => { if (!value) throw Error('Invalid duel input'); };
 
-export function createDuel(seed: number, bot = false): DuelState {
+export function createDuel(seed: number, bot = false, loadouts: readonly [Loadout, Loadout] = [[], []]): DuelState {
   check(Number.isSafeInteger(seed) && seed >= 0 && seed <= 0x7fffffff);
   const map = seed % 2 ? 'highland' : 'valley';
   const sim = new Simulation(MISSIONS.find(mission => mission.map === map)!.id);
@@ -26,10 +28,15 @@ export function createDuel(seed: number, bot = false): DuelState {
     const unit = sim.addUnit(i < 4 ? 'light' : i < 6 ? 'turret' : 'heavy', { x: formation[i].x * sign, z: formation[i].z * sign }, side === 0);
     unit.group = side;
   }
-  const first = copy({ ...sim.pilotState(), leaseUntil: 0 }), second = copy(first);
+  check(Array.isArray(loadouts) && loadouts.length === 2);
+  const [first, second] = loadouts.map(value => {
+    const loadout = duelLoadout(value);
+    return copy({ ...sim.pilotState(), loadout, guns: initialGuns(loadout), leaseUntil: 0 });
+  });
   second.flight.aircraft.x *= -1; second.flight.aircraft.z *= -1;
   second.flight.aircraft.yaw += Math.PI; second.flight.aircraft.heading = (second.flight.aircraft.heading + 180) % 360;
   first.aim = { ...formation[0] }; second.aim = { x: -formation[0].x, z: -formation[0].z };
+  sim.usePilot(first, 0);
   return { simulation: sim.checkpoint(), pilots: [first, second], ticks: 0, seed, bot, winner: null, finished: false, bots: [false, bot], botAt: [6, 6] };
 }
 function applyControl(sim: Simulation, input: DuelCommand) {
@@ -41,7 +48,7 @@ function applyControl(sim: Simulation, input: DuelCommand) {
       check(a.length === 1 && p && Object.keys(p).length === 2 && Number.isFinite(p.x) && Number.isFinite(p.z) && Math.abs(p.x) <= 10000 && Math.abs(p.z) <= 10000);
       sim.setAim(p); break;
     }
-    case 'choose': check(a.length === 1 && Number.isInteger(a[0]) && Number(a[0]) >= 0 && Number(a[0]) < WEAPONS.length); sim.choose(Number(a[0])); break;
+    case 'choose': check(a.length === 1 && Number.isInteger(a[0]) && Number(a[0]) >= 0 && Number(a[0]) < sim.guns.length); sim.choose(Number(a[0])); break;
     case 'setFire':
       check(a.length === 2 && typeof a[0] === 'string' && a[0].length > 0 && a[0].length <= 80 && typeof a[1] === 'boolean');
       check(!a[1] || sim.held.has(a[0] as string) || sim.held.size < 10);

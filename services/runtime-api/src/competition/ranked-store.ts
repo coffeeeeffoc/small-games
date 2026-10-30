@@ -2,7 +2,6 @@ import {
   backfillNightClears,
   nightBoard,
   nightLedgerLock,
-  nightPoints,
   nightSummary,
   refreshNightClears,
 } from './night-ledger.js';
@@ -12,6 +11,7 @@ import { CompetitionError } from './types.js';
 import { createRankedRuns } from './ranked-runs.js';
 import type { RankedRule, RankedRun, Receipt, RunRepository } from './ranked-types.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
+import { awardNightClear, checkNightLoadout, useNightCoolant } from './night-wallet.js';
 import { assertResourceAuth } from './auth.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
@@ -37,6 +37,8 @@ export function createRankedStore(
           return stored;
         }
         assertGameControl(policy, policy?.killEpoch, true);
+        if (run.loadout?.length)
+          await checkNightLoadout(tx, run.playerId, run.loadout, false, now());
         run.killEpoch = policy?.killEpoch ?? 0;
         await tx.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
           values(${`ranked-run:${run.id}`},${run.boardKey},${JSON.stringify(run)}::jsonb,${run.createdAt}) on conflict(id) do nothing`);
@@ -65,6 +67,7 @@ export function createRankedStore(
         if (auth) await assertResourceAuth(tx, auth, run.game, now());
         if (
           !new Set([
+            `${run.game}:${run.board}:${rules.get(run.game)?.boardVersionFor?.(run.board) ?? rules.get(run.game)?.boardVersion ?? run.version}`,
             `${run.game}:${run.board}:${rules.get(run.game)?.boardVersion ?? run.version}`,
             `${run.game}:${run.board}:${run.version}`,
           ]).has(run.boardKey) ||
@@ -85,6 +88,10 @@ export function createRankedStore(
             await tx.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
               values(${`ranked-action:${id}:${seq}`},${run.boardKey},${JSON.stringify(receipt)}::jsonb,${now()})`);
           },
+          async useCoolant() {
+            if (run.game !== 'night-overwatch') throw new CompetitionError('WRONG_GAME');
+            await useNightCoolant(tx, run.playerId, run.id, now());
+          },
           async record(settlement) {
             if (run.game === 'night-overwatch') {
               await backfillNightClears(tx, now());
@@ -104,8 +111,13 @@ export function createRankedStore(
               where excluded.score>runtime.competition_best.score or
               (excluded.score=runtime.competition_best.score and excluded.secondary<runtime.competition_best.secondary)`);
             if (run.game === 'night-overwatch') {
-              settlement.points = 100;
-              settlement.totalPoints = await nightPoints(tx, `run:${id}`, run.playerId, 100, now());
+              settlement.coins = await awardNightClear(
+                tx,
+                run.playerId,
+                run.id,
+                run.levelId!,
+                now(),
+              );
               await refreshNightClears(tx, now(), run.playerId);
               const rows = await tx.execute(
                 sql`select score from runtime.competition_best where player_id=${run.playerId} and board=${nightBoard('clears')}`,

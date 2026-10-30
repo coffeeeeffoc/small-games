@@ -21,8 +21,10 @@ export type RankedRule = {
   title: string;
   version: string;
   boardVersion?: string;
+  boardVersionFor?(board: string): string;
+  coolantUsed?(state: unknown): boolean;
   boards: readonly BoardDefinition[];
-  create(board: string, seed: number, levelId?: string): unknown;
+  create(board: string, seed: number, levelId?: string, loadout?: NightLoadout): unknown;
   apply(state: unknown, frames: Frame[]): unknown;
   result(state: unknown): RankedResult;
 };
@@ -30,6 +32,7 @@ export type Settlement = RankedResult & {
   accepted: boolean;
   reason: string | null;
   runId: string;
+  coins?: number;
   points?: number;
   totalPoints?: number;
   clears?: number;
@@ -38,6 +41,7 @@ export type Settlement = RankedResult & {
 };
 export type RankedRun = {
   killEpoch?: number;
+  loadout?: NightLoadout;
   kind: 'ranked-run-v1';
   id: string;
   game: string;
@@ -74,9 +78,11 @@ export type RunTransaction = {
   receipt(seq: number): Promise<Receipt | undefined>;
   saveReceipt(seq: number, receipt: Receipt): Promise<void>;
   record(result: Settlement): Promise<void>;
+  useCoolant?(): Promise<void>;
 };
 export type RunRepository = {
   create(run: RankedRun, auth?: PlayerAuth): Promise<RankedRun>;
   mutate<T>(id: string, change: (tx: RunTransaction) => Promise<T>, auth?: PlayerAuth): Promise<T>;
 };
+import type { NightLoadout } from './night-wallet.js';
 import type { PlayerAuth } from './auth.js';

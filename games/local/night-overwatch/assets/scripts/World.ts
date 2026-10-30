@@ -1359,6 +1359,10 @@ export class World {
     }
     for (const u of s.units) {
       let v = this.views.get(u.id);
+      if(!u.friendly && u.hp<=0 && s.time-u.deadAt>35){
+        if(v){v.node.destroy();v.material.destroy();this.views.delete(u.id);}
+        continue;
+      }
       if (!v) {
         const node = new Node('asset:' + UNITS[u.kind].assetId);
         this.root.addChild(node);

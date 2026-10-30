@@ -123,13 +123,13 @@ test('HUD: skins are mounted, visual bounds stay inside touch targets, and unava
   Object.assign(frame,{width:844,height:390});inset=0;artworkAvailable=true;
   try {
     const hud=new HUD(new SceneNode()),sim=new Simulation();
-    hud.online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.update(sim,world);
+    hud.armory.page='base';hud.online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.update(sim,world);
     assert(hud.interfaceArtworkReady);
     assert(hud.modal.getComponentsInChildren(cc.Sprite).some((s:any)=>s.type===cc.Sprite.Type.SLICED));
-    const primary=hud.buttons.find((b:any)=>b.id==='missions');
+    const primary=hud.buttons.find((b:any)=>b.id==='armory:solo');
     assert(primary.h>=44&&primary.visual.h<primary.h);
-    assert.equal(hud.hit(primary.x+primary.w/2,primary.y+1)?.id,'missions','invisible padding remains tappable');
-    hud.pressedButton='missions';hud.update(sim,world);
+    assert.equal(hud.hit(primary.x+primary.w/2,primary.y+1)?.id,'armory:solo','invisible padding remains tappable');
+    hud.pressedButton='armory:solo';hud.update(sim,world);
     assert(hud.globalGraphics.calls.some((c:any)=>c.fill==='#e5d5b433'),'press paints immediate feedback');
     hud.online.show('menu');hud.update(sim,world);
     assert.equal(hud.pressedButton,'','page change clears feedback');
@@ -278,7 +278,7 @@ test('HUD: lobby forms, records, boards and share control fit landscape phones a
     Object.assign(frame, { width, height }); inset = 0;
     const hud = new HUD(new SceneNode()), sim = new Simulation();
     const online = new Online({ getItem: () => null, setItem() {} }, () => {});
-    hud.online = online; hud.touch = width < 1000; hud.screenControl = true; hud.resize();
+    hud.armory.page = 'base'; hud.online = online; hud.touch = width < 1000; hud.screenControl = true; hud.resize();
     online.rooms = Array.from({ length: 5 }, (_, i) => ({ code: String(123456 + i), status: 'waiting', mode: 'friend',
       players: [{ id: 'a', name: '飞行员' }], playerCount: 1, canJoin: true, canSpectate: true }));
     online.history = { summary: { games: 3, wins: 1, losses: 1, draws: 1, winRate: 1 / 3 },
@@ -383,7 +383,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
     for (const lang of ['zh', 'en']) {
       const hud = new HUD(new SceneNode()); hud.lang = lang; hud.resize();
       const escort = new Simulation(); hud.update(escort, world);
-      assert(hud.buttons.some((button: any) => button.id === 'missions'), 'home has a clear mission selector');
+      assert(hud.buttons.some((button: any) => button.id === 'armory:base'), 'cover enters the base');
       assert(!hud.buttons.some((button: any) => button.id === 'training'), 'home keeps only primary choices');
       hud.missionsOpen = true; hud.update(escort, world);
       const trainingEntry = hud.buttons.find((button: any) => button.id === 'training');
@@ -434,7 +434,7 @@ test('HUD: global actions hide behind panels, with safe modal layout, focus mark
         hud.update(sim, world);
         assert.equal(hud.root.children.at(-1), hud.globalControls, 'global graphics render above the modal');
         for (const b of globals) {
-          if (!['briefing', 'playing'].includes(reason)) {
+          if (reason !== 'playing') {
             assert(!b.label.node.activeInHierarchy, reason + ': global action stays hidden');
             continue;
           }
@@ -824,7 +824,7 @@ test('HUD: browser and native hosts have no fullscreen control or state in any s
         assert.equal(hud.buttons.some((button: any) => /fullscreen/i.test(button.id)), false, reason);
         assert.equal('fullscreen' in hud, false, 'removed state must not return');
         assert.equal(hud.isGlobalAction('fullscreen'), false);
-        assert.equal(hud.buttons.filter((button: any) => button.id === 'settings' && button.label.node.activeInHierarchy).length, ['home', 'playing'].includes(reason) ? 1 : 0);
+        assert.equal(hud.buttons.filter((button: any) => button.id === 'settings' && button.label.node.activeInHierarchy).length, reason === 'playing' ? 1 : 0);
       }
     }
   } finally {
@@ -896,7 +896,9 @@ test('HUD: independent title cover precedes mission previews and compact setting
       const hud = new HUD(new SceneNode()), sim = new Simulation();
       hud.lang = lang; hud.rewardsAvailable = true; hud.resize(); hud.update(sim, world);
       assertPanelTargets(hud);
-      for (const id of ['help', 'missions']) assert(hud.buttons.some((b: any) => b.id === id && b.label.node.parent === hud.modal));
+      assert.deepEqual(hud.buttons.filter((b:any) => b.label.node.parent===hud.modal).map((b:any)=>b.id), ['armory:base']);
+      hud.armory.page='base'; hud.update(sim,world); assertPanelTargets(hud);
+      for (const id of ['help','armory:solo','armory:duel','armory:shop','armory:daily']) assert(hud.buttons.some((b:any)=>b.id===id&&b.label.node.parent===hud.modal));
       assert(!hud.buttons.some((b: any) => b.id === 'start'));
       assert(hud.homeBackground.active, 'cover stays opaque even when artwork fails');
       assert(!panelLabels(hud).some((l: any) => l.string.includes(data.text(sim.mission.name, lang))));
@@ -1084,8 +1086,23 @@ test('HUD: authored metal title and three day illustrations are loaded and cropp
         assert(size.width >= 44 && size.height > 30, 'illustration remains visible on small phones');
       }
     }
-    assert.deepEqual([...new Set(requested)].sort(), ['ui/button/texture', 'ui/home/texture', 'ui/insignia/texture', 'ui/mission-atlas/texture', 'ui/mission-day-atlas/texture', 'ui/panel/texture', 'ui/title-metal/texture']);
+    assert.deepEqual([...new Set(requested)].sort(), ['base-desk','button','daily-desk','home','insignia','loadout-desk','mission-atlas','mission-day-atlas','panel','shop-desk','title-metal'].map(n=>'ui/'+n+'/texture'));
   } finally { cc.resources.load = load; inset = 0; }
+});
+
+test('armory pages keep catalog and battle choices distinct on a small landscape phone',()=>{
+  Object.assign(frame,{width:568,height:320});inset=12;
+  try {
+    const hud=new HUD(new SceneNode()),sim=new Simulation();
+    hud.armory={...hud.armory,page:'shop',available:true,coins:299};hud.update(sim,world);
+    const control=(id:string)=>hud.buttons.find((b:any)=>b.id===id&&b.label.node.parent===hud.modal);
+    assert(control('armory:buy').disabled);assertPanelTargets(hud);
+    hud.armory={...hud.armory,coins:300};hud.update(sim,world);assert(!control('armory:buy').disabled);
+    hud.armory={...hud.armory,page:'loadout',mode:'duel',selected:'coolant',coolant:1};hud.update(sim,world);
+    assert(control('armory:toggle').disabled);assert(control('armory:next'));assertPanelTargets(hud);
+    hud.armory={...hud.armory,page:'daily',adsAvailable:false,checkedIn:false};hud.update(sim,world);
+    assert(control('armory:watch').disabled);assert(!control('armory:checkin').disabled);assertPanelTargets(hud);
+  } finally { inset=0; }
 });
 
 test('late interface textures cannot retain an ad panel after battle resumes',()=>{

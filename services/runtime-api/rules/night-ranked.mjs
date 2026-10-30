@@ -11,6 +11,13 @@ export default {
   title: '夜航守望',
   version: RANKED_RULE_VERSION,
   boardVersion: 'night-records-v1',
+  boardVersionFor: (board) =>
+    board.startsWith('level-')
+      ? RANKED_RULE_VERSION
+      : board === 'points'
+        ? 'night-duel-points-v2'
+        : 'night-records-v1',
+  coolantUsed: (state) => state.simulation.coolantUsed === true,
   boards: [
     ...['clears', 'points', 'win-rate'].map((id, i) => ({
       id,
@@ -29,10 +36,10 @@ export default {
       description: '本关经服务端验证的最快通关用时；辅助、试玩和失败不计入。',
     })),
   ],
-  create(board, _seed, levelId) {
+  create(board, _seed, levelId, loadout) {
     if (board !== `level-${levelId}` || !MISSIONS.some((mission) => mission.id === levelId))
       throw Error('Invalid level');
-    return createNightReplay('campaign', levelId);
+    return createNightReplay('campaign', levelId, loadout);
   },
   apply: (state, frames) => applyNightReplay(structuredClone(state), frames),
   result(state) {

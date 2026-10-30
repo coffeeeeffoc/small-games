@@ -1100,6 +1100,118 @@
         "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
         "evidence": "verification-2026-10-28-visual-rebuild.md"
       }
+    },
+    {
+      "assetId": "ui.base-desk",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/base-desk.jpg",
+      "runtimeAsset": "assets/resources/ui/base-desk.jpg",
+      "license": {
+        "source": "Built-in imagegen; original illustrations for armory and operations base",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-31",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1360,
+        "height": 680,
+        "hasAlpha": false,
+        "bytes": 274227,
+        "sha256": "ef5578c50410bbc73dc1746710bb8dabed215afcb4d42ee7ea7866a4023a0919",
+        "runtimeUsage": "Cocos menu backdrop; text and controls rendered at runtime"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "Chromium narrow/medium/wide browser capture",
+        "mobileDevice": "not-tested",
+        "sourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+        "evidence": "design/armory.md"
+      }
+    },
+    {
+      "assetId": "ui.daily-desk",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/daily-desk.jpg",
+      "runtimeAsset": "assets/resources/ui/daily-desk.jpg",
+      "license": {
+        "source": "Built-in imagegen; original illustrations for armory and operations base",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-31",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1360,
+        "height": 680,
+        "hasAlpha": false,
+        "bytes": 235119,
+        "sha256": "8ade2c6150d70911e3feec339a61fcd137f4b2bb577123dab4873013c4fbdd12",
+        "runtimeUsage": "Cocos menu backdrop; text and controls rendered at runtime"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "Chromium narrow/medium/wide browser capture",
+        "mobileDevice": "not-tested",
+        "sourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+        "evidence": "design/armory.md"
+      }
+    },
+    {
+      "assetId": "ui.loadout-desk",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/loadout-desk.jpg",
+      "runtimeAsset": "assets/resources/ui/loadout-desk.jpg",
+      "license": {
+        "source": "Built-in imagegen; original illustrations for armory and operations base",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-31",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1360,
+        "height": 680,
+        "hasAlpha": false,
+        "bytes": 281695,
+        "sha256": "5cc3cfebf05861809d5e86fcf579bcbc03e2e759fc6fa6fcddb81ff7150b81ce",
+        "runtimeUsage": "Cocos menu backdrop; text and controls rendered at runtime"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "Chromium narrow/medium/wide browser capture",
+        "mobileDevice": "not-tested",
+        "sourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+        "evidence": "design/armory.md"
+      }
+    },
+    {
+      "assetId": "ui.shop-desk",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/shop-desk.jpg",
+      "runtimeAsset": "assets/resources/ui/shop-desk.jpg",
+      "license": {
+        "source": "Built-in imagegen; original illustrations for armory and operations base",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-31",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1360,
+        "height": 680,
+        "hasAlpha": false,
+        "bytes": 263564,
+        "sha256": "0f83669f2cb37c466237f515bd8ed7637341623523e9a5a5cb683f580c3012e1",
+        "runtimeUsage": "Cocos menu backdrop; text and controls rendered at runtime"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "Chromium narrow/medium/wide browser capture",
+        "mobileDevice": "not-tested",
+        "sourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+        "evidence": "design/armory.md"
+      }
     }
   ]
 }

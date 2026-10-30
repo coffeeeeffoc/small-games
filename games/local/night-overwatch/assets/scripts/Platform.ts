@@ -3,7 +3,7 @@ import type { PauseReason } from './core/Simulation';
 import { missionDefinition, type MissionId } from './core/MissionCatalog';
 import { newMissionProgress, readMissionProgress, type MissionProgress } from './core/MissionProgress';
 import { readTrainingRecord as parseTrainingRecord, type TrainingRecord } from './core/TrainingRecords';
-import { readRewards, nextZoomLimit, type RewardKind, type RewardSave, type RewardProvider, type SupplyReward } from './core/Rewards';
+import { readRewards, type RewardSave, type RewardProvider, type SupplyReward } from './core/Rewards';
 import { readMissionTimes, type MissionTimes } from './core/BattleRecords';
 export const RADIO = {
   complete: ['敌方威胁已全部清除。任务完成。', 'All hostile threats eliminated. Mission complete.'],
@@ -43,7 +43,7 @@ export class Platform {
     this.pause = pause;
     try {
       this.rewards = readRewards(sys.localStorage.getItem(this.rewardStorageKey));
-      this.times = readMissionTimes(sys.localStorage.getItem('night-overwatch-times-v1'));
+      this.times = readMissionTimes(sys.localStorage.getItem('night-overwatch-times-v2'));
       this.muted = sys.localStorage.getItem('night-overwatch-muted') === 'true';
       const preference = sys.localStorage.getItem('night-overwatch-reduced-effects');
       this.reducedEffects =
@@ -227,35 +227,15 @@ export class Platform {
       return true;
     }
   }
-  get rewardsAvailable() {
-    const bridge = (globalThis as typeof globalThis & {
-      SmallGamesRewardAds?: { available?: boolean; offer?: RewardProvider };
-      SmallGamesPublishingConfig?: { adsEnabled?: boolean };
-    });
-    if (bridge.SmallGamesPublishingConfig?.adsEnabled === false) return false;
-    return Boolean(this.rewardProvider || (bridge.SmallGamesRewardAds?.available !== false && bridge.SmallGamesRewardAds?.offer) ||
-      (!bridge.SmallGamesPublishingConfig && this.rewardPractice && this.developer));
+  get goldAdsAvailable() {
+    const host=globalThis as typeof globalThis & {SmallGamesPublishingConfig?:{adsEnabled?:boolean};SmallGamesRewardAds?:{available?:boolean;offer?:RewardProvider}};
+    return host.SmallGamesPublishingConfig?.adsEnabled!==false && !!(this.rewardProvider || (host.SmallGamesRewardAds?.available!==false&&host.SmallGamesRewardAds?.offer));
   }
-  async offerReward(kind: RewardKind) {
-    if (!this.rewardsAvailable) return 'unavailable' as const;
-    const next = nextZoomLimit(this.rewards.zoomLimit);
-    if (kind === 'zoom' && !next) return 'unavailable' as const;
-    const bridge = (globalThis as typeof globalThis & {
-      SmallGamesRewardAds?: { offer: RewardProvider };
-    }).SmallGamesRewardAds;
-    const provider = this.rewardProvider ?? bridge?.offer.bind(bridge);
-    if (!provider) return this.rewardPractice && this.developer ? 'mock' as const : 'unavailable' as const;
-    try {
-      const outcome = await provider({ id: 'night-overwatch:' + kind,
-        reward: kind === 'supply' ? { supplyChoice: 1 } : { zoomLimit: next! } });
-      return ['completed', 'dismissed', 'unavailable', 'failed'].includes(outcome?.status)
-        ? outcome.status : 'failed' as const;
-    } catch { return 'failed' as const; }
-  }
-  grantReward(kind: RewardKind) {
-    if (kind === 'supply') this.rewards.pendingSupply = true;
-    else this.rewards.zoomLimit = nextZoomLimit(this.rewards.zoomLimit) ?? this.rewards.zoomLimit;
-    this.saveRewards();
+  async offerGold():Promise<boolean> {
+    if(!this.goldAdsAvailable)return false;
+    const host=(globalThis as typeof globalThis & {SmallGamesRewardAds?:{offer:RewardProvider}}).SmallGamesRewardAds;
+    const provider=this.rewardProvider || host?.offer.bind(host);
+    try{return (await provider?.({id:'night-overwatch:daily-gold',reward:{goldDraw:1}}))?.status==='completed';}catch{return false;}
   }
   claimSupply(reward: SupplyReward) {
     if (!this.rewards.pendingSupply || !['tracking', 'ammo', 'rate', 'restock'].includes(reward)) return false;
@@ -294,7 +274,7 @@ export class Platform {
     catch { /* All remaining operations can still unlock in the current session. */ }
   }
   saveTimes() {
-    try { sys.localStorage.setItem('night-overwatch-times-v1', JSON.stringify(this.times)); }
+    try { sys.localStorage.setItem('night-overwatch-times-v2', JSON.stringify(this.times)); }
     catch { /* Keep this session's personal best when optional storage is denied. */ }
   }
   readMission(): MissionId {

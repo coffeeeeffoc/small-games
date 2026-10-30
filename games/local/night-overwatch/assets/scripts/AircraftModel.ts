@@ -11,7 +11,7 @@ import {
   resources,
   utils,
 } from 'cc';
-import { AIRFRAME, WEAPONS } from './core/Data';
+import { AIRFRAME, ALL_WEAPONS as WEAPONS } from './core/Data';
 import { aircraftRotation, cabinPoint } from './core/Flight';
 
 type Geometry = { positions: number[]; normals: number[]; colors: number[]; indices: number[] };

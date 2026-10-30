@@ -81,7 +81,7 @@ test('late air support with inaccurate aim and deliberate misses can still finis
   assert.equal(s.friendlyDamage, 0);
   assert.equal(s.friendlyLosses, 0);
   assert(s.kills >= MISSION.events.length / 2, 'aircraft remains the primary source of eliminations');
-  assert.equal(s.kills + s.friendlyKills, MISSION.events.length);
+  assert.equal(s.kills + s.friendlyKills, s.mission.events.length);
 });
 
 test('defender armor, return-fire ownership and pause obey the same simulation clock', () => {

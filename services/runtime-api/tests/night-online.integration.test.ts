@@ -639,7 +639,14 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(marker).toHaveLength(1);
     expect(marker[0]!.data).toEqual({ status: 'complete' });
     expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(6);
-    expect((await request(path + '/leaderboards/level-corridor-01', a)).me.secondary).toBe(4000);
+    expect((await request(path + '/leaderboards/level-corridor-01', a)).me).toBeNull();
+    expect(
+      (
+        await database.db.execute(
+          sql`select secondary from runtime.competition_best where board=${nightBoard('level-corridor-01')} and player_id=${a.playerId}`,
+        )
+      )[0]?.secondary,
+    ).toBe(4000);
     expect((await request(path + '/leaderboards/points', a)).me).toBeNull();
     expect((await request(path + '/history', a)).summary.games).toBe(0);
     const before = await database.db.execute(
@@ -835,6 +842,106 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(await read()).toEqual(finished);
   });
 
+  it('rebuilds duel points only from actual duel settlement entries and retains the old aggregate', async () => {
+    const a = await player(),
+      old = 'night-overwatch:points:night-records-v1',
+      marker = 'night-migration:duel-only-points-v2';
+    await database.db.execute(
+      sql`update runtime.competition_matches set id=${marker + ':test:' + randomUUID()} where id=${marker}`,
+    );
+    await database.db.execute(sql`insert into runtime.competition_results values
+      (${'night-points:duel:' + randomUUID()},${old},${a.playerId},120,0,${time}),
+      (${'night-points:run:' + randomUUID()},${old},${a.playerId},100,0,${time})`);
+    await database.db.execute(
+      sql`insert into runtime.competition_best values(${old},${a.playerId},220,0,${randomUUID()},${time})`,
+    );
+    expect((await request(path + '/leaderboards/points', a)).me.score).toBe(120);
+    expect((await request(path + '/wallet', a)).coins).toBe(0);
+    expect(
+      (
+        await database.db.execute(
+          sql`select score from runtime.competition_best where board=${old} and player_id=${a.playerId}`,
+        )
+      )[0]?.score,
+    ).toBe(220);
+  });
+
+  it('serializes private wallet charges, replays original receipts, and binds ads to one owner/day', async () => {
+    const [a, b] = await Promise.all([player(), player()]);
+    const wallet = path + '/wallet';
+    expect((await request(wallet, a)).coins).toBe(0);
+    const sign = { kind: 'checkin', requestId: randomUUID() };
+    const signed = await Promise.all([request(wallet, a, sign), request(wallet, a, sign)]);
+    expect(signed.map((r) => r.coins)).toEqual([60, 60]);
+    await request(wallet, a, { kind: 'checkin', requestId: randomUUID() }, 422);
+    await request(wallet, a, { kind: 'buy', item: 'coolant', requestId: sign.requestId }, 409);
+    const ad = await request(wallet, a, { kind: 'ad-start', requestId: randomUUID() });
+    const claim = { kind: 'ad-claim', requestId: randomUUID(), challenge: ad.challenge };
+    await request(wallet, b, claim, 422);
+    const won = await request(wallet, a, claim);
+    expect([40, 80, 160]).toContain(won.reward);
+    expect((await request(wallet, a, claim)).coins).toBe(won.coins);
+    await request(wallet, a, { ...claim, requestId: randomUUID() }, 422);
+    const buy = { kind: 'buy', item: 'coolant', requestId: randomUUID() };
+    await Promise.all([request(wallet, a, buy), request(wallet, a, buy)]);
+    expect(await request(wallet, a)).toMatchObject({
+      coins: 60 + won.reward - 80,
+      inventory: { coolant: 1 },
+    });
+    expect((await request(wallet, b)).coins).toBe(0);
+    const meta = await request(path, a),
+      version = meta.versions.ranked;
+    const opts = {
+      board: 'level-corridor-01',
+      levelId: 'corridor-01',
+      version,
+      requestId: randomUUID(),
+    };
+    const kit = [{ id: 'coolant', tier: 1 }];
+    await request(path + '/runs', b, { ...opts, loadout: kit }, 422);
+    const run = await request(path + '/runs', a, { ...opts, loadout: kit });
+    expect((await request(wallet, a)).inventory.coolant).toBe(1);
+    await request(path + '/runs', a, { ...opts, loadout: [] }, 409);
+    await request(
+      path + '/runs',
+      a,
+      { ...opts, requestId: randomUUID(), loadout: [{ id: 'power', tier: 2 }] },
+      422,
+    );
+    const action = (command: string, args: unknown[] = []) => ({
+      input: { command, args },
+      ticks: 0,
+    });
+    const noHeat = await request(
+      `${path}/runs/${run.id}/actions`,
+      a,
+      { seq: 1, frames: [action('coolant')] },
+      [200, 422],
+    );
+    expect((await request(wallet, a)).inventory.coolant).toBe(1);
+    const firing = {
+      seq: noHeat.seq === 1 ? 2 : 1,
+      frames: [
+        action('choose', [0]),
+        action('setAim', [{ x: 0, z: 0 }]),
+        action('fire'),
+        action('coolant'),
+      ],
+    };
+    await request(`${path}/runs/${run.id}/actions`, a, firing);
+    await request(`${path}/runs/${run.id}/actions`, a, firing);
+    expect((await request(wallet, a)).inventory.coolant).toBe(0);
+    const room = await request(path + '/rooms', a, { mode: 'bot' });
+    await request(roomPath(room.code) + '/ready', a, { ready: true, loadout: kit }, 422);
+    await request(roomPath(room.code) + '/ready', a, {
+      ready: true,
+      loadout: [{ id: 'power', tier: 1 }],
+    });
+    await request(wallet, a, { kind: 'ad-start', requestId: randomUUID() }, 409);
+    expect((await request(path + '/runs', a, { ...opts, loadout: kit })).id).toBe(run.id);
+    expect((await request(path + '/leaderboards/points', a)).me).toBeNull();
+  });
+
   it('replays actual controls, ranks per level, retains faster times and rejects another player', async () => {
     const core = new URL(
       '../../../games/local/night-overwatch/assets/scripts/core/',
@@ -846,6 +953,7 @@ integration('Night real HTTP and PostgreSQL', () => {
     );
     const a = await player(),
       b = await player();
+    let clears = 0;
     const runOnce = async (delay: number, assisted = false) => {
       const run = await request(path + '/runs', a, {
         board: 'level-corridor-01',
@@ -889,7 +997,8 @@ integration('Night real HTTP and PostgreSQL', () => {
       }
       const result = await request(`${path}/runs/${run.id}/finish`, a, { seq });
       expect(result.accepted).toBe(true);
-      expect(result.points).toBe(100);
+      expect(result.points).toBeUndefined();
+      expect(result.coins).toBe(clears++ === 0 ? 300 : 80);
       expect(result.clears).toBe(1);
       expect(result.assisted).toBe(assisted);
       expect(result.fastestEligible).toBe(!assisted);
@@ -914,7 +1023,8 @@ integration('Night real HTTP and PostgreSQL', () => {
     ).toHaveLength(1);
     expect((await request(path + '/leaderboards/level-ambush-02', a)).me).toBe(null);
     expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(1);
-    expect((await request(path + '/leaderboards/points', a)).me.score).toBe(400);
+    expect((await request(path + '/leaderboards/points', a)).me).toBeNull();
+    expect((await request(path + '/wallet', a)).coins).toBe(540);
     expect((await request(path + '/history', a)).summary.games).toBe(0);
   });
 });

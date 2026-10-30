@@ -14,27 +14,37 @@ const profiles: MissionDefinition[] = (['corridor-01', 'ambush-02', 'patrol-03']
   name: [['晨光护送', 'FIRST LIGHT'], ['高地警戒', 'HIGHLAND WATCH'], ['谷地支援', 'VALLEY SUPPORT']][index],
   description: [`白天 · ${introductoryContacts[index].length} 个固定炮位 · 榴弹炮上手`,
     `DAY · ${introductoryContacts[index].length} stationary emplacements · Start with HE`],
-  events: introductoryContacts[index].map(i => ({ ...MISSION.events[i], kind: 'turret', time: 0, progress: 0,
+  events: introductoryContacts[index].map((i, slot) => ({ ...MISSION.events[i], kind: 'turret',
+    time: index === 2 && slot >= 4 ? 60 : 0, progress: index === 2 && slot >= 4 ? .35 : 0,
     direction: ['指挥部：优先清除友军附近的固定炮位。', 'COMMAND: clear emplacements near our convoy first.'] })),
 }));
 // Stable deterministic content; all 120 entries use the existing escort simulator.
 // Existing IDs and unlock progress survive the introductory rebalance.
 const chapters = ['谷地晨哨', '高地警戒', '河岸巡航', '山路截击', '车队守护', '据点支援', '夜色伏击', '机动围剿', '长夜突围', '终夜守望'];
+const featured: Record<number, string[]> = { 4: ['山路试探', 'ROAD PROBE'], 5: ['岔路封锁', 'FORK BLOCKADE'], 6: ['桥头截击', 'BRIDGE INTERCEPT'],
+  12: ['双岸换防', 'BANK RELIEF'], 24: ['山口接力', 'PASS RELAY'], 60: ['两线夜航', 'TWO FRONTS'], 120: ['最后航段', 'FINAL APPROACH'] };
 for (let number = 4; number <= 120; number++) {
   const chapter = Math.floor((number - 1) / 12), task = (number - 1) % 12;
-  const map: BattlefieldId = (chapter + task) % 2 ? 'highland' : 'valley';
-  const style = task % 3, waveCount = style === 1 ? 3 : style === 2 ? 2 : 1;
+  const map: BattlefieldId = number !== 6 && (chapter + task) % 2 ? 'highland' : 'valley';
+  const total = number === 4 ? 12 : number === 5 ? 16 : number + 18;
+  const style = task % 3, waveCount = number <= 6 ? (number === 4 ? 2 : 3)
+    : number <= 12 ? Math.ceil(total / 8) : number <= 24 ? Math.ceil(total / 7.5) : Math.max(6, Math.ceil(total / 10));
   const duration = 420 - chapter * 3;
-  const contacts = MISSION.events.slice(0, number === 4 ? 12 : number === 5 ? 16 : 24);
-  const events = contacts.map((event, i): MissionEvent => {
-    const wave = Math.floor(i * waveCount / contacts.length);
+  const events = Array.from({ length: total }, (_, i): MissionEvent => {
+    const base = Math.floor(total / waveCount), shortWaves = waveCount - total % waveCount;
+    const wave = i < shortWaves * base ? Math.floor(i / base) : shortWaves + Math.floor((i - shortWaves * base) / (base + 1));
+    const event = MISSION.events[i % MISSION.events.length];
     const jitterX = ((number * 37 + i * 29) % 127 - 63) / 32;
     const jitterZ = ((number * 41 + i * 23) % 113 - 56) / 32;
     // Late chapters introduce a few additional armored contacts, without inflating waves.
     const kind: Kind = style === 2 && event.kind === 'turret' ? 'light'
       : chapter >= 5 && i === 4 + chapter ? 'heavy' : event.kind;
-    return { ...event, kind, x: event.x + jitterX, z: event.z + jitterZ,
-      time: wave * (style === 1 ? 72 : 100), progress: wave * (style === 1 ? .3 : .52),
+    const bridgeKind: Kind = wave === 0 ? (i < 6 ? 'turret' : 'light') : wave === 1 ? (i < 14 ? 'light' : 'turret') : (i < 20 ? 'light' : 'heavy');
+    const slot = i % 8;
+    return { ...event, kind: number === 6 ? bridgeKind : kind,
+      x: (number === 6 ? (wave === 0 ? -28 : wave === 1 ? 18 : 36) + (slot % 4) * 5 : event.x) + jitterX,
+      z: (number === 6 ? (wave === 0 ? -13 : wave === 1 ? -49 : 12) + Math.floor(slot / 4) * 9 : event.z) + jitterZ,
+      time: wave * 200 / waveCount, progress: wave / waveCount,
       direction: [`第 ${wave + 1} / ${waveCount} 批威胁出现 · 巡视四组友军`,
         `CONTACT WAVE ${wave + 1}/${waveCount} · Check all four friendly groups`] };
   });
@@ -42,7 +52,7 @@ for (let number = 4; number <= 120; number++) {
     light: number <= 5 ? 'dusk' : number % 2 ? 'day' : 'night', initialWeapon: number <= 5 ? 1 : 0,
     speed: routeLength(map) / 240, duration, warmup: 10 - chapter * .2,
     attackInterval: 5.8 - chapter * .1,
-    name: [`${chapters[chapter]} ${task + 1}`, `NIGHT ${chapter + 1} · ${task + 1}`],
+    name: featured[number] ?? [`${chapters[chapter]} ${task + 1}`, `NIGHT ${chapter + 1} · ${task + 1}`],
     description: [`${waveCount} 批威胁 · ${map === 'valley' ? '河谷' : '高地'}${style === 2 ? '机动目标' : '火力部署'} · 保护四组友军`,
       `${waveCount} waves · ${map.toUpperCase()} ${style === 2 ? 'ROVERS' : 'DEPLOYMENT'} · Protect four groups`], events });
 }
@@ -64,7 +74,7 @@ if (new Set([...profiles, TRAINING].map(mission => mission.id)).size !== profile
 for (const profile of [...profiles, TRAINING]) {
   if (profile.duration <= (profile.speed ? routeLength(profile.map) / profile.speed : 0) || profile.attackInterval <= 0 || profile.warmup < 0) throw new Error('Invalid mission timing.');
   if (!['day', 'dusk', 'night'].includes(profile.light) || ![0, 1, 2].includes(profile.initialWeapon) ||
-    profile.events.length < 3 || profile.events.length > 24 || profile.events.some((event) =>
+    profile.events.length < 3 || profile.events.length > 138 || profile.events.some((event) =>
     !UNITS[event.kind] || ![event.time, event.progress, event.x, event.z].every(Number.isFinite) ||
     event.time < 0 || event.time >= profile.duration || event.progress < 0 || event.progress > 1 ||
     Math.abs(event.x) > MAP.halfWidth || Math.abs(event.z) > MAP.halfDepth)) throw new Error('Invalid mission profile.');

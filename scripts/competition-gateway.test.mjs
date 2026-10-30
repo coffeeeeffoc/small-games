@@ -18,6 +18,8 @@ test('game gateway exposes registered public route shapes without exposing inter
     'games/tower-brake',
     'games/cage-rescue/leaderboards/endless',
     'games/cage-rescue/runs',
+    'games/night-overwatch/wallet',
+    'games/night-overwatch/rooms/123456/ready',
     'games/night-overwatch/runs/12345678-1234-1234-1234-123456789abc/resume',
     'games/tower-brake/runs/12345678-1234-1234-1234-123456789abc/actions',
     'games/tower-brake/runs/12345678-1234-1234-1234-123456789abc/finish',
