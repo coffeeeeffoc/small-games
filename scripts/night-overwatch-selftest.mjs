@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import gameDefaults from '../infra/builds/five-taptap-h5.mjs';
 import { pnpmInvocation } from './validate-push.mjs';
+import { verifyPrebuilt } from '../games/local/night-overwatch/scripts/artifact.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const work = path.join(root, '.scratch/night-overwatch-selftest');
@@ -79,7 +80,14 @@ if (operation === 'plan') {
   if (operation === 'pack') {
     const config = path.join(work, 'h5.json');
     await writeFile(config, JSON.stringify(h5, null, 2));
-    invoke(process.execPath, ['scripts/build-games.mjs', '--config', path.relative(root, config)]);
+    const gameRoot = path.join(root, 'games/local/night-overwatch');
+    const current = await verifyPrebuilt(gameRoot).then(
+      () => true,
+      () => false,
+    );
+    invoke(process.execPath, ['scripts/build-games.mjs', '--config', path.relative(root, config)], {
+      env: current ? { ...process.env, NIGHT_OVERWATCH_PREBUILT_DIR: gameRoot } : process.env,
+    });
   } else {
     const endpoint =
       process.env.DOCKER_HOST ||
