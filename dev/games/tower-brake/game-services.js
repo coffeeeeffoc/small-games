@@ -433,6 +433,25 @@ function createDurableRecorder(services, { storage }, onStatus) {
         if (active === run) report('recording');
         return null;
       } catch (error) {
+        const stopRecovery = () => {
+          try {
+            if (run.synced) return true;
+            if (!cleanAcknowledged(key(run))) return false;
+            run.synced = true;
+            return true;
+          } catch (storageError) {
+            if (!active || active === run)
+              report(
+                storageError instanceof SyntaxError || storageError?.code === 'INVALID_JOURNAL'
+                  ? 'needs-attention'
+                  : 'storage-unavailable',
+              );
+            return true;
+          }
+        };
+        // A different tab can settle while this request is pending, including
+        // when the request rejects. Never resume or downgrade a confirmed run.
+        if (stopRecovery()) return null;
         let cause = error;
         if (error?.code === 'RUN_EXPIRED' && run.id) {
           try {
@@ -440,6 +459,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
           } catch (resumeError) {
             cause = resumeError;
           }
+          if (stopRecovery()) return null;
         }
         failed(run, cause);
         return null;
