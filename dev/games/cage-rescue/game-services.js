@@ -249,18 +249,54 @@ function createDurableRecorder(services, { storage }, onStatus) {
     onStatus(value);
   };
   const key = (run) => prefix(run.scope) + run.requestId;
+  function cleanAcknowledged(name) {
+    const serialized = storage.getItem(name + ':synced');
+    if (!serialized) return false;
+    const done = JSON.parse(serialized);
+    if (
+      done?.schema !== 1 ||
+      done.synced !== true ||
+      typeof done.requestId !== 'string' ||
+      !name.endsWith(':' + done.requestId) ||
+      typeof done.playerId !== 'string' ||
+      typeof done.id !== 'string' ||
+      typeof done.result?.accepted !== 'boolean'
+    )
+      throw failure('INVALID_JOURNAL');
+    // Keep the small acknowledgement: stale tabs must never upload this journal again.
+    storage.removeItem(name);
+    if (storage.getItem(name) != null) throw failure('STORAGE_UNAVAILABLE');
+    retries.delete(name);
+    services.discardRun?.(done.id);
+    if (!active || key(active) === name) {
+      if (active) active.synced = true;
+      report(
+        done.result.accepted
+          ? done.result.fastestEligible === false
+            ? 'assisted'
+            : 'finished'
+          : 'local',
+      );
+    }
+    return true;
+  }
   function save(run) {
     try {
       if (run.abandoned) {
         storage.removeItem(key(run));
         return true;
       }
-      if (storage.getItem(key(run) + ':synced')) {
+      if (cleanAcknowledged(key(run))) {
         run.synced = true;
         return true;
       }
       const serialized = JSON.stringify(run);
       storage.setItem(key(run), serialized);
+      // Another tab may acknowledge between our pre-write check and the write.
+      if (cleanAcknowledged(key(run))) {
+        run.synced = true;
+        return true;
+      }
       if (storage.getItem(key(run)) !== serialized) throw failure('STORAGE_UNAVAILABLE');
       return true;
     } catch {
@@ -269,7 +305,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     }
   }
   function read(name) {
-    if (storage.getItem(name + ':synced')) return null;
+    if (cleanAcknowledged(name)) return null;
     const run = JSON.parse(storage.getItem(name));
     if (run?.synced) return null;
     if (
@@ -308,6 +344,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     return save(run);
   }
   function failed(run, error) {
+    if (run.synced) return;
     const transient = [
       'SERVICE_UNAVAILABLE',
       'RATE_LIMITED',
@@ -338,9 +375,10 @@ function createDurableRecorder(services, { storage }, onStatus) {
             playerId: run.playerId,
           });
           run.id = created.id;
-          if (!save(run)) return null;
+          if (!save(run) || run.synced) return null;
         }
         let remote = await services.getRun({ runId: run.id, playerId: run.playerId });
+        if (!save(run) || run.synced) return null;
         if (
           remote.id !== run.id ||
           remote.board !== run.mode ||
@@ -354,14 +392,16 @@ function createDurableRecorder(services, { storage }, onStatus) {
           throw failure('SEQUENCE_CONFLICT');
         if (remote.settlement && (!run.finishing || remote.seq !== run.batches.length))
           throw failure('SEQUENCE_CONFLICT');
-        if (remote.status === 'active' && remote.expiresAt <= Date.now())
+        if (remote.status === 'active' && remote.expiresAt <= Date.now()) {
           remote = await services.resumeRun({ runId: run.id });
+          if (!save(run) || run.synced) return null;
+        }
         // Replay the original unconfirmed batch even when the server sequence is ahead.
         while (run.acked < run.batches.length) {
           const seq = run.acked + 1;
           await services.appendFrames({ runId: run.id, seq, frames: run.batches[seq - 1] });
           run.acked = seq;
-          if (!save(run)) return null;
+          if (!save(run) || run.synced) return null;
         }
         if (run.finishing) {
           const result =
@@ -381,21 +421,12 @@ function createDurableRecorder(services, { storage }, onStatus) {
             storage.setItem(key(run) + ':synced', serialized);
             if (storage.getItem(key(run) + ':synced') !== serialized)
               throw failure('STORAGE_UNAVAILABLE');
-            storage.removeItem?.(key(run));
+            cleanAcknowledged(key(run));
           } catch {
             report('storage-unavailable');
             return null;
           }
           run.synced = true;
-          services.discardRun?.(run.id);
-          if (!active || active === run)
-            report(
-              result.accepted
-                ? result.fastestEligible === false
-                  ? 'assisted'
-                  : 'finished'
-                : 'local',
-            );
           return result;
         }
         retries.delete(key(run));
@@ -519,7 +550,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
       const run = active;
       if (!run || run.synced) return null;
       run.finishing = true;
-      if (!seal(run)) return null;
+      if (!seal(run) || run.synced) return null;
       report('pending-sync');
       if (working.has(key(run))) await working.get(key(run));
       return run.synced ? null : synchronize(run);
@@ -543,8 +574,12 @@ function createDurableRecorder(services, { storage }, onStatus) {
             let run;
             try {
               run = read(name);
-            } catch {
-              report('needs-attention');
+            } catch (error) {
+              report(
+                error instanceof SyntaxError || error?.code === 'INVALID_JOURNAL'
+                  ? 'needs-attention'
+                  : 'storage-unavailable',
+              );
               continue;
             }
             if (!run || run.abandoned) continue;
