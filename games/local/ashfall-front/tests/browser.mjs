@@ -49,6 +49,8 @@ const observe = async (page, stage) => {
     time: state?.run?.time,
     rank: state?.run?.rank,
     hp: state?.run?.player?.hp,
+    player: state?.run?.player,
+    shots: state?.run?.shots,
     levelIndex: state?.run?.levelIndex,
     choices: state?.run?.choices,
     controls: state?.controls,
@@ -287,17 +289,48 @@ try {
         'one quick tap produces exactly one shot',
       );
     }
-    const before = await snapshot(page);
-    await input.press(['right', 'fire', 'jump']);
-    await page.waitForTimeout(350);
-    const during = await snapshot(page);
-    assert.ok(
-      during.run.player.x > before.run.player.x &&
-        during.run.shots > before.run.shots &&
-        during.run.player.y < 570,
-      'native simultaneous movement, fire and jump',
-    );
-    await input.release(true);
+    const combo = await context.newCDPSession(page);
+    try {
+      const points = await Promise.all(['right', 'fire', 'jump'].map(input.point));
+      const before = await observe(page, `native-combo-${width}x${height}:before-input`);
+      assert.equal(before.screen, 'playing', 'native combo requires a live playing screen');
+      // Observe the original conjunction in one frame, before awaiting the input
+      // acknowledgement. A late protocol response may outlast the entire jump.
+      const [hit] = await Promise.all([
+        page.waitForFunction(
+          (previous) => {
+            const state = globalThis.Ashfall.snapshot();
+            const matched =
+              state.run.player.x > previous.run.player.x &&
+              state.run.shots > previous.run.shots &&
+              state.run.player.y < 570;
+            return state.screen !== 'playing' || matched
+              ? { timeOrigin: performance.timeOrigin, pageTime: performance.now(), state, matched }
+              : false;
+          },
+          before,
+          { timeout: 5000 },
+        ),
+        combo.send('Input.dispatchTouchEvent', {
+          type: 'touchStart',
+          touchPoints: points.map((point, index) => ({ ...point, id: index + 1 })),
+        }),
+      ]);
+      const observed = await hit.jsonValue();
+      await hit.dispose();
+      report.transitions.push({ stage: `native-combo-${width}x${height}:observed`, ...observed });
+      await observe(page, `native-combo-${width}x${height}:after-input-ack`);
+      assert.ok(
+        observed.state.screen === 'playing' && observed.matched,
+        `native simultaneous movement, fire and jump: ${JSON.stringify(observed)}`,
+      );
+    } catch (error) {
+      await capture(page, `native-combo-${width}x${height}-failure`);
+      throw error;
+    } finally {
+      await combo.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+      await combo.detach();
+    }
     const shots = (await snapshot(page)).run.shots;
     await page.waitForTimeout(220);
     assert.equal((await snapshot(page)).run.shots, shots, 'cancel releases fire');

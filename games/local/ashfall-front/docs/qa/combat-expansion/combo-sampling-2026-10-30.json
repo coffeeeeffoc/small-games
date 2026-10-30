@@ -1,0 +1,188 @@
+[
+  {
+    "rate": 1,
+    "delayed": false,
+    "evidence": {
+      "before": {
+        "timeOrigin": 1793337207045.7,
+        "pageTime": 11261.79999999702,
+        "screen": "playing",
+        "phase": "playing",
+        "time": 9.650000000000093,
+        "rank": 1,
+        "hp": 36,
+        "x": 420,
+        "y": 570,
+        "vx": 0,
+        "vy": 0,
+        "onGround": true,
+        "shots": 3
+      },
+      "first": {
+        "timeOrigin": 1793337207045.7,
+        "pageTime": 12513,
+        "screen": "playing",
+        "phase": "playing",
+        "time": 10.950000000000019,
+        "rank": 1,
+        "hp": 26,
+        "x": 433.7999991774559,
+        "y": 533.7708333333334,
+        "vx": 275.9999835491181,
+        "vy": -684.9999999999998,
+        "onGround": false,
+        "shots": 4
+      },
+      "last": {
+        "timeOrigin": 1793337207045.7,
+        "pageTime": 13109.29999999702,
+        "screen": "playing",
+        "phase": "playing",
+        "time": 11.549999999999985,
+        "rank": 1,
+        "hp": 26,
+        "x": 599.3999893069267,
+        "y": 469.5208333333335,
+        "vx": 275.9999835491181,
+        "vy": 455.00000000000017,
+        "onGround": false,
+        "shots": 7
+      },
+      "count": 39,
+      "stop": true
+    },
+    "ackNodeTime": 13349.0744,
+    "latePass": true,
+    "late": {
+      "pageTime": 13155.10000000894,
+      "screen": "playing",
+      "x": 599.3999893069267,
+      "y": 469.5208333333335,
+      "shots": 7
+    }
+  },
+  {
+    "rate": 30,
+    "delayed": false,
+    "evidence": {
+      "before": {
+        "timeOrigin": 1793337220687.8,
+        "pageTime": 12294.10000000894,
+        "screen": "playing",
+        "phase": "playing",
+        "time": 9.916666666666744,
+        "rank": 1,
+        "hp": 36,
+        "x": 420,
+        "y": 570,
+        "vx": 0,
+        "vy": 0,
+        "onGround": true,
+        "shots": 3
+      },
+      "first": {
+        "timeOrigin": 1793337220687.8,
+        "pageTime": 14271.90000000596,
+        "screen": "playing",
+        "phase": "playing",
+        "time": 11.733333333333308,
+        "rank": 1,
+        "hp": 16,
+        "x": 447.5999983549118,
+        "y": 502.2916666666667,
+        "vx": 275.9999835491181,
+        "vy": -589.9999999999995,
+        "onGround": false,
+        "shots": 4
+      },
+      "last": {
+        "timeOrigin": 1793337220687.8,
+        "pageTime": 15465.5,
+        "screen": "playing",
+        "phase": "playing",
+        "time": 12.433333333333268,
+        "rank": 1,
+        "hp": 16,
+        "x": 640.7999868392944,
+        "y": 560.3333333333335,
+        "vx": 275.9999835491181,
+        "vy": 740.0000000000007,
+        "onGround": false,
+        "shots": 8
+      },
+      "count": 34,
+      "stop": true
+    },
+    "ackNodeTime": 28757.7005,
+    "latePass": true,
+    "late": {
+      "pageTime": 15527.40000000596,
+      "screen": "playing",
+      "x": 640.7999868392944,
+      "y": 560.3333333333335,
+      "shots": 8
+    }
+  },
+  {
+    "rate": 1,
+    "delayed": true,
+    "evidence": {
+      "before": {
+        "timeOrigin": 1793337236834.6,
+        "pageTime": 13354.20000000298,
+        "screen": "playing",
+        "phase": "playing",
+        "time": 7.750000000000175,
+        "rank": 1,
+        "hp": 66,
+        "x": 420,
+        "y": 570,
+        "vx": 0,
+        "vy": 0,
+        "onGround": true,
+        "shots": 3
+      },
+      "first": {
+        "timeOrigin": 1793337236834.6,
+        "pageTime": 14250.70000000298,
+        "screen": "playing",
+        "phase": "playing",
+        "time": 8.683333333333481,
+        "rank": 1,
+        "hp": 46,
+        "x": 433.7999991774559,
+        "y": 533.7708333333334,
+        "vx": 275.9999835491181,
+        "vy": -684.9999999999998,
+        "onGround": false,
+        "shots": 4
+      },
+      "last": {
+        "timeOrigin": 1793337236834.6,
+        "pageTime": 15670.60000000894,
+        "screen": "playing",
+        "phase": "playing",
+        "time": 10.100000000000067,
+        "rank": 1,
+        "hp": 36,
+        "x": 824.7999758720398,
+        "y": 570,
+        "vx": 275.9999835491181,
+        "vy": 0,
+        "onGround": true,
+        "shots": 10
+      },
+      "count": 49,
+      "stop": true
+    },
+    "ackNodeTime": 45667.137,
+    "latePass": false,
+    "late": {
+      "pageTime": 15716.800000011921,
+      "screen": "playing",
+      "x": 824.7999758720398,
+      "y": 570,
+      "shots": 10
+    }
+  }
+]

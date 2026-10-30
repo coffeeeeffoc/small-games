@@ -14,13 +14,15 @@ Creator 3.8.8 真实构建和源码指纹校验通过，指纹 `2cff69208ed04588
 
 确认标记经过结构检查后才清理大 journal，并读回确认删除生效；小确认标记保留以防旧标签页复活。恢复和保存均清理已确认日志，保存后再次检查覆盖另一标签页恰在写入前完成确认的情况。确认标记损坏、读写失败时保留未确认内容；删除抛错和静默失败可在恢复后完成清理。
 
-共享 recorder/identity/client 63 项测试以及 gateway、H5 注入、bootstrap 5 项测试通过。新增边界覆盖标记写入抛错/静默失败、读取抛错/读回为空、删除抛错/静默失败、冷启动和旧标签页晚写；同实例恢复会更新结算状态，清理旧日志不会覆盖另一局活跃状态。网络请求等待期间收到其他标签页确认后，会停止后续上传且不降低已完成状态。首次三个新增清理用例在修复前失败，修复后通过。
+共享 recorder/identity/client 最终 65 项测试以及 gateway、H5 注入、bootstrap 5 项测试通过。新增边界覆盖标记写入抛错/静默失败、读取抛错/读回为空、删除抛错/静默失败、冷启动和旧标签页晚写；同实例恢复会更新结算状态，清理旧日志不会覆盖另一局活跃状态。网络请求等待期间收到其他标签页确认后，会停止后续上传且不降低已完成状态。首次三个新增清理用例在修复前失败，修复后通过。
 
-Night 的 Creator 3.8.8 真实构建、类型检查和 26 项 online/mission-progress 规则通过，最终源码指纹 `6d993978243ecad02f0440aa7f22e878e758c07063ac03edb02b5086ad26a7f4`。共享代码追加修正后重新构建并复测，未沿用失配产物。实际引擎 H5 在 Chromium 中六场景通过：绑定、删除抛错、删除静默失败、换设备、另一账号、缺少 SDK。两种删除故障刷新后 journal 均回收，确认标记保留，运行请求数量不增加，finish 仅一次。SDK 和 HTTP 为显式 fixture，未发生产玩家请求。[结构化结果](../../games/local/night-overwatch/docs/recovery-2026-10-30.json)。最终截图保存在本机 `outputs/night-overwatch/recovery-20261030-final/`。
+拒绝路径另复现了 `getRun/RUN_EXPIRED` 在收到确认后仍多发一次 resume。异常入口及补救 resume 返回/拒绝后现均只读取、校验并清理确认，不额外重写 journal；无确认保留原错误策略。10 组网络拒绝用例覆盖 get、append、resume、finish 和 catch 内补救 resume，各含 RUN_EXPIRED/SERVICE_UNAVAILABLE；3 组确认读/删/格式故障保留 journal 并报告准确状态。上述回归均通过。
+
+Night 的 Creator 3.8.8 真实构建、类型检查和 26 项 online/mission-progress 规则通过，最终源码指纹 `cbe1e08ed3987848825d096eb41a8a38ae424d2df7e5f5c18963d5196127259a`。共享代码追加修正后重新构建并复测，未沿用失配产物。实际引擎 H5 在 Chromium 中六场景通过：绑定、删除抛错、删除静默失败、换设备、另一账号、缺少 SDK。两种删除故障刷新后 journal 均回收，确认标记保留，运行请求数量不增加，finish 仅一次。SDK 和 HTTP 为显式 fixture，未发生产玩家请求。[结构化结果](../../games/local/night-overwatch/docs/recovery-2026-10-30.json)。最终截图保存在本机 `outputs/night-overwatch/recovery-20261030-rejection/`。
 
 ## Night 使用的身份绑定事务
 
-复用既有真实 PostgreSQL 测试屏障，在游客资料更新、旧会话撤销、游戏访问授权、新 access session、新 refresh token 五次实际写入之后分别抛出异常。验证完整玩家资料、成绩、访问授权、旧会话与刷新凭证逐项回滚，旧凭证仍可用、无半绑定身份；移除故障后可正常绑定同一玩家，撤销旧凭证并仅保留一组新凭证。生产事务实现已有正确边界，本次只增加测试。
+复用既有真实 PostgreSQL 测试屏障，在游客资料更新、旧会话撤销、游戏访问授权、新 access session、新 refresh token 五个事务语句之后分别抛出异常。验证完整玩家资料、成绩、访问授权、旧会话与刷新凭证逐项回滚，旧凭证仍可用、无半绑定身份；移除故障后可正常绑定同一玩家，撤销旧凭证并仅保留一组新凭证。测试游客已有 Night 访问授权，该授权语句执行 ON CONFLICT DO NOTHING；此项证明经过该语句后整体回滚且既有授权保持，不是新增授权行的回滚验证。生产事务实现已有正确边界，本次只增加测试。
 
 使用本机 PostgreSQL 17.6 的隔离 `competition_test` 库和既有 `runtime_app` 角色。Night 定向集 8 项全部通过，包含五个新故障点以及保留身份/成绩、账号冲突、并发用例；另外 8 项因范围过滤未执行。完整身份集曾运行 15 项通过、1 项失败：既有 Kart 用例直接删除 `player_game_access`，当前测试角色无 DELETE 权限。本次未扩大权限。Runtime 构建、类型检查和修改测试文件 ESLint 通过。
 
@@ -29,3 +31,13 @@ Night 的 Creator 3.8.8 真实构建、类型检查和 26 项 online/mission-pro
 按准确候选与共享消费者规划增量范围，未把未知路径降级成全量或空范围。未运行全仓本地候选校验；提交后的 CI/Pages 应按最终 SHA 单独核对，范围规划成功不等于流水线或 Deploy 成功。本次不部署 Runtime，不合并 main，不上传 TapTap 包。没有真实 Tap 宿主新鲜 code、实体手机、真实广告或生产玩家验收。
 
 两款游戏的八类上架资料沿用已有档案；此次没有视觉或玩法改动，保留原截图、视频及来源指纹。既有 Ashfall 宣传图规格、真实宿主和实体手机待验边界仍见各自 publishing/STATUS.md。
+
+## 首次提交的远端结果与后续修正
+
+`0c3c590282e108f585dc76b6b26f0fc460028dd1` 的 [Pages](https://github.com/coffeeeeffoc/small-games/actions/runs/41003552794) 实际 Deploy 成功，日志回读线上 dev 元数据为该 SHA；[CI](https://github.com/coffeeeeffoc/small-games/actions/runs/41003553054) core 失败，quality 随之失败，不能称为整体验收完成。
+
+失败为 1280×720 的 `native simultaneous movement, fire and jump`，前面的暂停已成功，之后重开并执行三次单击。这不是原 pause 失败；原日志没有组合断言的 before/during 坐标，无法认定该次 CI 究竟是哪一项不成立。
+
+[独立真实引擎诊断](../../games/local/ashfall-front/docs/qa/combat-expansion/combo-sampling-2026-10-30.json)记录了普通运行、30 倍 CPU 压力和明确回执延迟夹具，三种情形都曾同帧满足原来的 x 增大、shots 增大、y＜570。校准后的诊断在协议返回、原 350ms 等待和 body 快照之间不插入额外浏览器查询：普通/30 倍压力的旧采样本轮通过，明确回执延迟夹具的旧采样已落地至 y=570 而失败。早期额外诊断查询会扰动时序，未作为自然压力复现结论。此证据说明采样风险，不替代缺失的原 CI 末态。
+
+后续只改为预先取得相同控件坐标、派发相同原生三指输入时在页面 RAF 观察原同帧合取条件，保留 5 秒失败上限、原阈值和真实 touchCancel 检查；离开 playing 即留证失败。记录输入前、首次命中和协议回执后的同页时钟及 player/shots。修正后六尺寸 18 项浏览器检查再次通过，页面异常为 0。最终提交的 CI/Pages 结果须单独核对，不能沿用首次提交的成功部分。

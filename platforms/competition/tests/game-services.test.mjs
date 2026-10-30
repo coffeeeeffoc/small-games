@@ -243,6 +243,110 @@ test('Night acknowledgement during a request stops subsequent uploads and preser
   }
 });
 
+test('Night acknowledgement wins over a rejected request without resuming or lowering completion', async () => {
+  for (const boundary of ['getRun', 'appendFrames', 'resumeRun', 'finishRun', 'recovery-resume']) {
+    for (const code of ['RUN_EXPIRED', 'SERVICE_UNAVAILABLE']) {
+      const f = durableFixture(),
+        recorder = f.recorder(),
+        hit = defer(),
+        release = defer();
+      await recorder.start({ mode: 'campaign', levelId: 'first' });
+      recorder.record({}, 120);
+      if (boundary === 'resumeRun') [...f.runs.values()][0].expiresAt = 0;
+      const method = boundary === 'recovery-resume' ? 'resumeRun' : boundary;
+      if (boundary === 'recovery-resume')
+        f.services.getRun = async () => {
+          throw Object.assign(Error('expired before confirmation'), { code: 'RUN_EXPIRED' });
+        };
+      const original = f.services[method];
+      f.services[method] = async (input) => {
+        await original(input);
+        hit.resolve();
+        await release.promise;
+        throw Object.assign(Error('late rejected request'), { code });
+      };
+      const pending = recorder.finish();
+      await hit.promise;
+      const name = [...f.values.keys()][0],
+        run = JSON.parse(f.values.get(name));
+      const result = { accepted: true, fastestEligible: true };
+      Object.assign(f.runs.get(run.id), { status: 'finished', settlement: result });
+      f.storage.setItem(
+        name + ':synced',
+        JSON.stringify({
+          schema: 1,
+          synced: true,
+          requestId: run.requestId,
+          playerId: run.playerId,
+          id: run.id,
+          result,
+        }),
+      );
+      const callsBeforeRejection = [...f.calls];
+      release.resolve();
+      assert.equal(await pending, null);
+      assert.deepEqual(
+        f.calls,
+        callsBeforeRejection,
+        `${boundary}/${code}: no request after confirmation`,
+      );
+      assert.equal(recorder.status, 'finished', `${boundary}/${code}`);
+      assert.equal(f.values.has(name), false);
+      assert.ok(f.values.has(name + ':synced'));
+      await recorder.recover();
+      assert.equal(recorder.pending, 0);
+      assert.equal(recorder.status, 'finished');
+    }
+  }
+});
+
+test('Night rejected-request recovery preserves unreadable acknowledgements and journals', async () => {
+  for (const fault of ['read', 'delete', 'malformed']) {
+    const f = durableFixture(),
+      recorder = f.recorder();
+    await recorder.start({ mode: 'campaign', levelId: 'first' });
+    recorder.record({}, 120);
+    const name = [...f.values.keys()][0],
+      get = f.storage.getItem;
+    f.services.getRun = async () => {
+      const run = JSON.parse(f.values.get(name));
+      f.values.set(
+        name + ':synced',
+        JSON.stringify(
+          fault === 'malformed'
+            ? { synced: true }
+            : {
+                schema: 1,
+                synced: true,
+                requestId: run.requestId,
+                playerId: run.playerId,
+                id: run.id,
+                result: { accepted: true },
+              },
+        ),
+      );
+      if (fault === 'read')
+        f.storage.getItem = (key) => {
+          if (key === name + ':synced') throw Error('storage read unavailable');
+          return get(key);
+        };
+      if (fault === 'delete')
+        f.storage.removeItem = () => {
+          throw Error('storage delete unavailable');
+        };
+      throw Object.assign(Error('late rejection'), { code: 'RUN_EXPIRED' });
+    };
+    await recorder.finish();
+    assert.equal(
+      recorder.status,
+      fault === 'malformed' ? 'needs-attention' : 'storage-unavailable',
+    );
+    assert.equal(JSON.parse(f.values.get(name)).batches[0][0].ticks, 120);
+    assert.equal(f.calls.includes('resume'), false);
+    assert.equal(f.calls.includes('finish'), false);
+  }
+});
+
 test('Night acknowledgement write and readback faults preserve the unconfirmed journal', async () => {
   for (const boundary of ['write', 'silent-write', 'read', 'mismatch']) {
     const f = durableFixture(),
