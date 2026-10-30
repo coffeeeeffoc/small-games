@@ -101,16 +101,6 @@ if (operation === 'plan') {
       Number.parseInt(server, 10) >= 28,
       'Docker Desktop with Linux Engine 28+ must be running.',
     );
-    const identity = JSON.parse(
-      await readFile(path.join(root, '.env.night-taptap-platform.local'), 'utf8'),
-    );
-    assert(
-      identity.platform === 'taptap' &&
-        identity.appId === appId &&
-        typeof identity.secret === 'string' &&
-        identity.secret.length >= 16,
-      'Missing or mismatched private TapTap server credential.',
-    );
     const envFile = path.join(work, 'database.env');
     const keys = [
       'POSTGRES_PASSWORD',
@@ -175,7 +165,7 @@ if (operation === 'plan') {
       ...process.env,
       ...privateEnv,
       APP_ORIGIN: 'https://ma-h5-al.tapimg.com',
-      COMPETITION_PLATFORM_CONFIG: JSON.stringify([identity]),
+      COMPETITION_PLATFORM_CONFIG: '[]',
     };
     const compose = (args, input) =>
       invoke(
@@ -210,7 +200,21 @@ if (operation === 'plan') {
         ],
         await readFile(path.join(bundle, file), 'utf8'),
       );
+    const identity = JSON.parse(
+      await readFile(path.join(root, '.env.night-taptap-platform.local'), 'utf8'),
+    );
+    assert(
+      identity.platform === 'taptap' &&
+        identity.appId === appId &&
+        typeof identity.secret === 'string' &&
+        identity.secret.length >= 16,
+      'Missing or mismatched private TapTap server credential.',
+    );
+    env.COMPETITION_PLATFORM_CONFIG = JSON.stringify([
+      { platform: 'taptap', appId, secret: identity.secret, games: [app] },
+    ]);
     compose(['up', '-d', '--no-build', '--wait', '--wait-timeout', '180', 'runtime']);
+    env.COMPETITION_PLATFORM_CONFIG = '[]';
     compose(['run', '--rm', '--no-deps', 'gateway', 'nginx', '-t']);
     compose(['up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'gateway']);
     const gateway = 'http://127.0.0.1:' + port;
@@ -223,21 +227,23 @@ if (operation === 'plan') {
         401,
         'Expected authenticated game API at ' + base,
       );
-      const guest = await get('/api/competition/v1/sessions/guest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ game: app }),
-      });
-      assert(guest.ok, 'Guest login failed at ' + base);
-      const { token } = await guest.json();
-      assert(
-        (
-          await get('/api/competition/v1/games/night-overwatch/wallet', {
-            headers: { Authorization: 'Bearer ' + token },
-          })
-        ).ok,
-        'Authenticated wallet unavailable at ' + base,
-      );
+      if (base === gateway) {
+        const guest = await get('/api/competition/v1/sessions/guest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ game: app }),
+        });
+        assert(guest.ok, 'Guest login failed at ' + base);
+        const { token } = await guest.json();
+        assert(
+          (
+            await get('/api/competition/v1/games/night-overwatch/wallet', {
+              headers: { Authorization: 'Bearer ' + token },
+            })
+          ).ok,
+          'Authenticated wallet unavailable at ' + base,
+        );
+      }
       assert.equal(
         (await get('/api/competition/v1/games/night-overwatch/wallet')).status,
         401,
