@@ -107,7 +107,7 @@ export function renderArmory(u: HUD, n: Node, g: Graphics, profile: string) {
   const chosen=names(u,sel)+' · '+effect(u,sel,duel?1:tier(sel));
   const infoY=row+btnH+3,infoH=footer-26-infoY;
   if(infoH>14)label(chosen,left,infoY,w,infoH,compact?12:16,'#f2d7a5');
-  note(a.message||(duel?t('双人：同款统一标准档 · 对战只发排行积分','Duel: standard tier only · ranking points only'):t('单人使用已购档位 · 点已装备项可选择卸下','Solo uses owned tiers · select a fitted item to remove it')),footer-24);
+  note(a.message||(duel?t('双人：同款统一标准档 · 对战只发排行积分','Duel: standard tier only · ranking points only'):k.length?t('带装备可领金币 · 空槽出击才计单关最快榜','Earn gold with gear · empty all slots for the time board'):t('空槽出击 · 可领金币并挑战单关最快榜','No gear · earn gold and compete for fastest time')),footer-24);
   button('armory:toggle',act,left+w*.24,footer,w*.24,btnH,false,a.busy||(!equipped&&!can));
   button('armory:next',duel?t('下一步：进入大厅','Next: duel lobby'):t('下一步：选择关卡','Next: missions'),left+w*.52,footer,w*.48,btnH,true,a.busy);
 }
