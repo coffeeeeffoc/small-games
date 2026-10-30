@@ -36,6 +36,20 @@ const memory = () => {
 };
 const results = [];
 
+test('recovery pilot completes with sampled circular touch controls', () => {
+  for (const cadence of [4, 8]) {
+    const s = createRun(MISSIONS[2], CRAFTS[1]);
+    while (s.status === 'running') {
+      const input = pilot(s);
+      assert.ok(Math.hypot(input.x, input.y) <= 1 + 1e-9);
+      for (let i = 0; i < cadence && s.status === 'running'; i++)
+        step(s, { ...input, scan: i === 0 && input.scan, missile: i === 0 && input.missile });
+    }
+    assert.equal(s.status, 'won', `${cadence}-frame touch sampling: ${s.reason}`);
+    assert.equal(s.recovered, 12);
+  }
+});
+
 test('all unlocked craft can intercept the fleeing convoy through normal controls', () => {
   for (const c of CRAFTS) {
     const s = createRun(MISSIONS[1], c);

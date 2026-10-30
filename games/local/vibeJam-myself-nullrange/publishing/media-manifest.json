@@ -1,49 +1,52 @@
 {
   "date": "2026-10-30",
-  "sourceHash": "a03126ffc49490567ccaea9a0d99b232274793f3570179eacd84b497acfb7403",
+  "sourceHash": "7d6d74ba0e2a8b4552d3ea0fb2d64ac04bc193e332fbef2f07aff1301792b3b1",
   "environment": "Windows desktop Chromium; 1280x720 touch emulation; normal unlocked campaign; interception escorts first without boost; no state injection",
   "videoAudio": "Silent browser capture; no voiceover or added subtitles; not native phone recording",
   "promoImage": "imagegen original illustration exec-a4fb805d-24c0-4ee5-8fa0-c1749f224f5d.png; Lanczos export from 1672x941 to 1920x1080 JPEG; icon and actual gameplay used as visual references",
   "gameplayVideo": {
     "mission": "dawn-patrol",
-    "startSeconds": 1.943,
+    "startSeconds": 1.891,
     "lengthSeconds": 22
   },
   "promoVideo": {
     "segments": "3s illustrated title; 8s real ridge-intercept; 8s real echo-recovery; 3s illustrated title",
     "fadeSeconds": 0.25,
-    "captureOffsets": [47.146, 201.299],
+    "captureOffsets": [
+      35.644999999999996,
+      181.225
+    ],
     "differentFromGameplayVideo": true
   },
   "files": [
     {
       "path": "gameplay/screenshots/01-patrol-1280x720.png",
-      "bytes": 596537,
-      "sha256": "3f18edb51046f2620682fd6763eb58597bbb70439ab111eb212d406089d0cfd0",
+      "bytes": 618532,
+      "sha256": "38b388fabda95a88badbcbd18ff85451ea1d2e174644b12ea29c106c5253fe80",
       "width": 1280,
       "height": 720,
       "pngColorType": 2
     },
     {
       "path": "gameplay/screenshots/02-intercept-1280x720.png",
-      "bytes": 620736,
-      "sha256": "0d8b92c162e8dd1552bd7c9b4af1c2fd7acf799fc67b69e8940542f88e69f5d5",
+      "bytes": 628885,
+      "sha256": "38b4084b1fc96480ed2b3a8193d8c70c3764a34d6dea4b94feb203c4b63cc7a6",
       "width": 1280,
       "height": 720,
       "pngColorType": 2
     },
     {
       "path": "gameplay/screenshots/03-recovery-1280x720.png",
-      "bytes": 708242,
-      "sha256": "410b206da35d69d93cd151b15612d585bf687b6d6c86eb658fcfc707ad6c6e0a",
+      "bytes": 654129,
+      "sha256": "4c3ea34ba8bd698bb3d1e9e22d5d405a92c5173de43027901c2c144ac3a50564",
       "width": 1280,
       "height": 720,
       "pngColorType": 2
     },
     {
       "path": "gameplay/videos/01-patrol-desktop-touch-1280x720.mp4",
-      "bytes": 6672214,
-      "sha256": "ad34ebeb9cd535a3bbe983ae02502e2060a7f22af1ca695da9f3ca6d39607179",
+      "bytes": 6399044,
+      "sha256": "a6bac33eb6273343ccd2fa05fed546ab167f1906b76d0ead3d5fa7ecccc67244",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -90,8 +93,8 @@
     },
     {
       "path": "promo/videos/nullrange-airspace-trailer-1280x720.mp4",
-      "bytes": 5858149,
-      "sha256": "3fc6710dba87faba248684b6d246a7614f6789d050d44e9ec1c32f67090d3aa1",
+      "bytes": 4960084,
+      "sha256": "e256031ff23c84b57239c44808335aeb6a8d717eae678f1be9881942e1c5c8ab",
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -109,5 +112,5 @@
       }
     }
   ],
-  "currentRuntimeSourceHash": "a03126ffc49490567ccaea9a0d99b232274793f3570179eacd84b497acfb7403"
+  "currentRuntimeSourceHash": "7d6d74ba0e2a8b4552d3ea0fb2d64ac04bc193e332fbef2f07aff1301792b3b1"
 }

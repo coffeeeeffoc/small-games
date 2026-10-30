@@ -50,10 +50,10 @@ test('first airframe contact ends the run without lift, pitch correction or shie
 });
 
 test('continuous airframe sweep catches a surface between clear endpoints', () => {
-  const a = { x: 3200, y: 1410, z: -4000, yaw: Math.PI / 2, pitch: 0, roll: 0 };
-  const b = { ...a, x: 4000 };
+  const a = { x: 4800, y: 1850, z: -2000, yaw: Math.PI / 2, pitch: 0, roll: 0 };
+  const b = { ...a, x: 5600 };
   assert.ok(a.y > airframeFloor(a) && b.y > airframeFloor(b));
-  assert.ok(airframeFloor({ ...a, x: 3600 }) > a.y, 'the fixed ridge intersects the route');
+  assert.ok(airframeFloor({ ...a, x: 5200 }) > a.y, 'the fixed ridge intersects the route');
   const contact = airframeContact(a, b);
   assert.ok(contact && contact.x > a.x && contact.x < b.x);
   assert.equal(contact.y, a.y);

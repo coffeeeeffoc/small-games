@@ -174,8 +174,8 @@ test('scenery placements are deterministic, collisions destroy aircraft without 
   const submerged = sceneryAt(-1, -2);
   assert.ok(submerged.y < WATER_LEVEL + 2);
   assert.equal(obstacleHeight(submerged.x, submerged.z), -Infinity);
-  const o = sceneryAt(8, -2);
-  assert.deepEqual(o, sceneryAt(8, -2));
+  const o = sceneryAt(7, -2);
+  assert.deepEqual(o, sceneryAt(7, -2));
   assert.ok(o.visible);
   const hidden = sceneryAt(6, -2);
   assert.equal(hidden.visible, false);

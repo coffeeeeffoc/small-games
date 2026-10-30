@@ -1,0 +1,61 @@
+$ node --test --test-concurrency=1 tests/*.test.mjs
+✔ fighter altitude, engagement range and formation separation use the expanded airspace (1.9517ms)
+✔ every aircraft follows a deliberate dive until its first fatal contact (49.6909ms)
+✔ distant ring extends fixed world terrain and leaves the detailed collision region unobscured (34.3719ms)
+✔ projectile lead reaches a crossing or receding aircraft at the same flight time (0.2555ms)
+✔ prebuilt rejects foreign sources, forged declarations and incomplete runtime (270.1338ms)
+✔ authored GLB payloads, normals, indices, bounds, triangle budgets and source provenance (74.6346ms)
+✔ four shared baked textures match generator and content hashes (7.615ms)
+✔ terrain collision exactly matches rendered triangles across negative coordinates and tile seams (10.7081ms)
+✔ scenery placements are deterministic, collisions destroy aircraft without lifting them (2.1499ms)
+✔ the valley river remains continuous and both forest banks stay above its waterline (2.1184ms)
+✔ mission illustration atlas is the supplied original, with exact six-cell crop boundaries (4.5354ms)
+✔ recovery pilot completes with sampled circular touch controls (1618.3011ms)
+✔ all unlocked craft can intercept the fleeing convoy through normal controls (1083.2554ms)
+✔ shooting the two visible escorts first still permits interception without boost (3858.1787ms)
+[{"mission":"dawn-patrol","craft":"falcon","seconds":25.183333333333334,"firstContact":0.6333333333333333,"hull":100,"kills":6,"recovered":5,"phases":[],"maxEnemies":2,"maxShots":20,"actions":{"fire":741,"boost":60,"missile":6,"scan":4}},{"mission":"ridge-intercept","craft":"falcon","seconds":62.75,"firstContact":2.3,"hull":100,"kills":9,"recovered":8,"phases":[],"maxEnemies":3,"maxShots":20,"actions":{"fire":1763,"boost":793,"missile":6,"scan":7}},{"mission":"echo-recovery","craft":"kestrel","seconds":165.75,"firstContact":1.7666666666666666,"hull":75,"kills":12,"recovered":12,"phases":[],"maxEnemies":3,"maxShots":19,"actions":{"fire":4243,"boost":223,"missile":5,"scan":12}},{"mission":"valley-escort","craft":"kestrel","seconds":156.25,"firstContact":2.6333333333333333,"hull":75,"kills":9,"recovered":9,"phases":[],"maxEnemies":2,"maxShots":21,"actions":{"fire":2294,"boost":262,"missile":5,"scan":7}},{"mission":"crosswind","craft":"warden","seconds":167.15,"firstContact":2.0666666666666664,"hull":145,"kills":15,"recovered":14,"phases":[],"maxEnemies":3,"maxShots":25,"actions":{"fire":6175,"boost":247,"missile":8,"scan":9}},{"mission":"last-light","craft":"warden","seconds":124.63333333333333,"firstContact":1.75,"hull":145,"kills":7,"recovered":6,"phases":[2,3],"maxEnemies":3,"maxShots":36,"actions":{"fire":4629,"boost":122,"missile":8,"scan":6}}]
+✔ six normal-input missions, real first-to-six unlock chain, replay and idempotent results (6887.3361ms)
+✔ objective boundaries: no kill-only recovery, escape, escort loss/arrival and hard time limits (235.2466ms)
+✔ forward fire, heavy telegraph and newly spawned swept collisions never target dead or missing poses (0.9795ms)
+✔ three craft share flight/weapon primitives but produce different sustained fire, turn and speed; actual model bounds/nozzles (4.0278ms)
+✔ v1 migration never invents wins; stale completions merge, settings isolate, invalid/future storage stays untouched (0.8159ms)
+✔ catalog references and configurations have finite budgets and stable distinct identities (0.7821ms)
+✔ actual AI projectile velocities obey forward cones for all behaviors, including elite volleys (2.7785ms)
+✔ phase-born escorts participate in the same projectile tick without a missing previous pose (1.706ms)
+✔ water is a physical surface for the airframe and camera, not a decorative layer (3.3972ms)
+✔ Falcon probes cover the current authored span, nose and underside (3.1838ms)
+✔ first airframe contact ends the run without lift, pitch correction or shield protection (0.6525ms)
+✔ continuous airframe sweep catches a surface between clear endpoints (1.0978ms)
+✔ banked airframe probes match independent Cocos YZX quaternion transform (0.6137ms)
+✔ review regression: chase camera has terrain/obstacle clearance, including a banked flight route (101.1616ms)
+✔ asymmetric physical safe areas rotate once into Cocos logical space (1.114ms)
+✔ radar follows real relative enemy coordinates, heading and live targets (1.3841ms)
+✔ interception distinguishes beacon progress, enemy range and required action (0.7849ms)
+✔ debrief stars derive only from actual completion and remaining hull (0.2055ms)
+✔ original sound bank is deterministic, finite and normalized without clipping (307.5855ms)
+✔ two stale tabs patch only explicit preferences and score preserves latest preferences (1.4421ms)
+✔ read failure then recovery never turns default preferences into an implicit settings write (0.2304ms)
+✔ fresh writes preserve legacy preferences and reject malformed explicit patches (0.1566ms)
+✔ temporary write failure preserves the unlock chain through a later win and preference write (1.9974ms)
+✔ legacy storage migrates only validated best/muted; blocked storage remains playable (0.876ms)
+Normal flight victory: 25.2s, score 1350
+✔ normal flight / pulse / missiles wins deterministically without changing game state (252.8197ms)
+✔ normal terrain failure and clean restart (18.5574ms)
+✔ acquisition is forward, bounded, ignores dead targets; rejected missile consumes nothing (0.2977ms)
+✔ relative sweep catches crossing targets and fast shots; a shot cannot kill twice (0.2536ms)
+✔ heat locks and recovers, shield absorbs once, boost drains then refills, pickups consumed once (35.033ms)
+✔ missile cooldown and action input validate without mutating content (0.5969ms)
+{
+  steepest: 2.3420875917661945,
+  tallestNeedle: 22.869095029757318,
+  highest: 2592.552735722904
+}
+✔ mountain ridges have volume instead of grid-sized needles and vertical sheets (91.5959ms)
+ℹ tests 45
+ℹ suites 0
+ℹ pass 45
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16219.0443

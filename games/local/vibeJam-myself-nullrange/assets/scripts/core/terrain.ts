@@ -31,17 +31,17 @@ export function terrainVertex(x: number, z: number) {
   const distance = Math.abs(x - valleyCenter(z));
   const bank = ramp(150, 370, distance);
   const foothill = ramp(350, 1700 + noise(x / 2400, z / 2400) * 1500, distance);
-  // Warped, elongated ridgelines share saddles and foothills instead of isolated radial cones.
+  // Broad massifs carry smaller spurs; folding the whole height field creates knife walls.
   const wx = x + (noise(x / 4300 + 7, z / 4300 - 3) - 0.5) * 1500;
   const wz = z + (noise(x / 5100 - 11, z / 5100 + 17) - 0.5) * 1300;
   const u = wx * 0.88 + wz * 0.47,
     v = wz * 0.88 - wx * 0.47;
-  const ridge = 1 - Math.abs(noise(u / 3100, v / 1700) * 2 - 1);
-  const spurs = 1 - Math.abs(noise(u / 1050 + 29, v / 720 - 13) * 2 - 1);
+  const massif = noise(u / 4300 + 3, v / 3400 - 9);
+  const spurs = 1 - (noise(u / 1700 + 29, v / 1300 - 13) * 2 - 1) ** 2;
   const mountain =
     140 +
-    1900 * ridge ** 3 * (0.38 + 0.62 * noise(u / 6200, v / 4100)) +
-    350 * spurs ** 3 +
+    1900 * massif ** 1.25 +
+    420 * spurs ** 2 +
     (noise(x / 360, z / 360) - 0.5) * 160 +
     (noise(x / 145 + 17, z / 145 - 5) - 0.5) * 36;
   return (

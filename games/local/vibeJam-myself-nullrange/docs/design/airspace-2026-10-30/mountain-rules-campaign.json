@@ -1,0 +1,113 @@
+[
+  {
+    "mission": "dawn-patrol",
+    "craft": "falcon",
+    "seconds": 25.183333333333334,
+    "firstContact": 0.6333333333333333,
+    "hull": 100,
+    "kills": 6,
+    "recovered": 5,
+    "phases": [],
+    "maxEnemies": 2,
+    "maxShots": 20,
+    "actions": {
+      "fire": 741,
+      "boost": 60,
+      "missile": 6,
+      "scan": 4
+    }
+  },
+  {
+    "mission": "ridge-intercept",
+    "craft": "falcon",
+    "seconds": 62.75,
+    "firstContact": 2.3,
+    "hull": 100,
+    "kills": 9,
+    "recovered": 8,
+    "phases": [],
+    "maxEnemies": 3,
+    "maxShots": 20,
+    "actions": {
+      "fire": 1763,
+      "boost": 793,
+      "missile": 6,
+      "scan": 7
+    }
+  },
+  {
+    "mission": "echo-recovery",
+    "craft": "kestrel",
+    "seconds": 165.75,
+    "firstContact": 1.7666666666666666,
+    "hull": 75,
+    "kills": 12,
+    "recovered": 12,
+    "phases": [],
+    "maxEnemies": 3,
+    "maxShots": 19,
+    "actions": {
+      "fire": 4243,
+      "boost": 223,
+      "missile": 5,
+      "scan": 12
+    }
+  },
+  {
+    "mission": "valley-escort",
+    "craft": "kestrel",
+    "seconds": 156.25,
+    "firstContact": 2.6333333333333333,
+    "hull": 75,
+    "kills": 9,
+    "recovered": 9,
+    "phases": [],
+    "maxEnemies": 2,
+    "maxShots": 21,
+    "actions": {
+      "fire": 2294,
+      "boost": 262,
+      "missile": 5,
+      "scan": 7
+    }
+  },
+  {
+    "mission": "crosswind",
+    "craft": "warden",
+    "seconds": 167.15,
+    "firstContact": 2.0666666666666664,
+    "hull": 145,
+    "kills": 15,
+    "recovered": 14,
+    "phases": [],
+    "maxEnemies": 3,
+    "maxShots": 25,
+    "actions": {
+      "fire": 6175,
+      "boost": 247,
+      "missile": 8,
+      "scan": 9
+    }
+  },
+  {
+    "mission": "last-light",
+    "craft": "warden",
+    "seconds": 124.63333333333333,
+    "firstContact": 1.75,
+    "hull": 145,
+    "kills": 7,
+    "recovered": 6,
+    "phases": [
+      2,
+      3
+    ],
+    "maxEnemies": 3,
+    "maxShots": 36,
+    "actions": {
+      "fire": 4629,
+      "boost": 122,
+      "missile": 8,
+      "scan": 6
+    }
+  }
+]

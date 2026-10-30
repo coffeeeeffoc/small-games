@@ -1,0 +1,1252 @@
+{
+  "date": "2026-10-30T01:54:16.408Z",
+  "sourceHash": "7d6d74ba0e2a8b4552d3ea0fb2d64ac04bc193e332fbef2f07aff1301792b3b1",
+  "checks": [
+    "default production Cocos entry, dev explicitly off",
+    "21 native GLB Prefabs + 5 textures loaded, collidable terrain and actual GPU counters",
+    {
+      "viewport": "667x375",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 21,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 83,
+        "activeScenery": 81,
+        "modelInstancesCreated": 87,
+        "meshes": 62,
+        "materials": 28,
+        "renderers": 173,
+        "activeRenderers": 139,
+        "instancedPasses": 223,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 83,
+        "triangles": 83892,
+        "aircraft": "falcon",
+        "craftInstances": 1,
+        "nozzles": [
+          {
+            "x": -1.18,
+            "y": -0.16,
+            "z": 8.8
+          },
+          {
+            "x": 1.18,
+            "y": -0.16,
+            "z": 8.8
+          }
+        ],
+        "pooledObjects": 0,
+        "fxBudget": 32,
+        "activeFx": 0,
+        "playerVisible": true,
+        "terrainSpan": 10752,
+        "terrainKeys": [
+          "3:-4",
+          "2:-4",
+          "1:-4",
+          "0:-4",
+          "-1:-4",
+          "-2:-4",
+          "-3:-4",
+          "3:2",
+          "2:2",
+          "1:2",
+          "0:2",
+          "-1:2",
+          "-2:2",
+          "-3:2",
+          "3:1",
+          "2:1",
+          "1:1",
+          "0:1",
+          "-1:1",
+          "-2:1",
+          "-3:1",
+          "3:0",
+          "2:0",
+          "1:0",
+          "0:0",
+          "-1:0",
+          "-2:0",
+          "-3:0",
+          "3:-1",
+          "2:-1",
+          "1:-1",
+          "0:-1",
+          "-1:-1",
+          "-2:-1",
+          "-3:-1",
+          "3:-2",
+          "2:-2",
+          "1:-2",
+          "0:-2",
+          "-1:-2",
+          "-2:-2",
+          "-3:-2",
+          "3:-3",
+          "2:-3",
+          "1:-3",
+          "0:-3",
+          "-1:-3",
+          "-2:-3",
+          "-3:-3"
+        ],
+        "camera": {
+          "x": 0,
+          "y": 1618.0963558185417,
+          "z": 16
+        },
+        "terrainHeight": -24
+      }
+    },
+    "667x375: Cocos tap navigation, rotated fallback, >=44px targets",
+    {
+      "viewport": "844x390",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 21,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 83,
+        "activeScenery": 81,
+        "modelInstancesCreated": 87,
+        "meshes": 62,
+        "materials": 28,
+        "renderers": 173,
+        "activeRenderers": 139,
+        "instancedPasses": 223,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 83,
+        "triangles": 83892,
+        "aircraft": "falcon",
+        "craftInstances": 1,
+        "nozzles": [
+          {
+            "x": -1.18,
+            "y": -0.16,
+            "z": 8.8
+          },
+          {
+            "x": 1.18,
+            "y": -0.16,
+            "z": 8.8
+          }
+        ],
+        "pooledObjects": 0,
+        "fxBudget": 32,
+        "activeFx": 0,
+        "playerVisible": true,
+        "terrainSpan": 10752,
+        "terrainKeys": [
+          "3:-4",
+          "2:-4",
+          "1:-4",
+          "0:-4",
+          "-1:-4",
+          "-2:-4",
+          "-3:-4",
+          "3:2",
+          "2:2",
+          "1:2",
+          "0:2",
+          "-1:2",
+          "-2:2",
+          "-3:2",
+          "3:1",
+          "2:1",
+          "1:1",
+          "0:1",
+          "-1:1",
+          "-2:1",
+          "-3:1",
+          "3:0",
+          "2:0",
+          "1:0",
+          "0:0",
+          "-1:0",
+          "-2:0",
+          "-3:0",
+          "3:-1",
+          "2:-1",
+          "1:-1",
+          "0:-1",
+          "-1:-1",
+          "-2:-1",
+          "-3:-1",
+          "3:-2",
+          "2:-2",
+          "1:-2",
+          "0:-2",
+          "-1:-2",
+          "-2:-2",
+          "-3:-2",
+          "3:-3",
+          "2:-3",
+          "1:-3",
+          "0:-3",
+          "-1:-3",
+          "-2:-3",
+          "-3:-3"
+        ],
+        "camera": {
+          "x": 0,
+          "y": 1618.0963558185417,
+          "z": 16
+        },
+        "terrainHeight": -24
+      }
+    },
+    "844x390: Cocos tap navigation, rotated fallback, >=44px targets",
+    {
+      "viewport": "932x430",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 21,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 83,
+        "activeScenery": 81,
+        "modelInstancesCreated": 87,
+        "meshes": 62,
+        "materials": 28,
+        "renderers": 173,
+        "activeRenderers": 139,
+        "instancedPasses": 223,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 83,
+        "triangles": 83892,
+        "aircraft": "falcon",
+        "craftInstances": 1,
+        "nozzles": [
+          {
+            "x": -1.18,
+            "y": -0.16,
+            "z": 8.8
+          },
+          {
+            "x": 1.18,
+            "y": -0.16,
+            "z": 8.8
+          }
+        ],
+        "pooledObjects": 0,
+        "fxBudget": 32,
+        "activeFx": 0,
+        "playerVisible": true,
+        "terrainSpan": 10752,
+        "terrainKeys": [
+          "3:-4",
+          "2:-4",
+          "1:-4",
+          "0:-4",
+          "-1:-4",
+          "-2:-4",
+          "-3:-4",
+          "3:2",
+          "2:2",
+          "1:2",
+          "0:2",
+          "-1:2",
+          "-2:2",
+          "-3:2",
+          "3:1",
+          "2:1",
+          "1:1",
+          "0:1",
+          "-1:1",
+          "-2:1",
+          "-3:1",
+          "3:0",
+          "2:0",
+          "1:0",
+          "0:0",
+          "-1:0",
+          "-2:0",
+          "-3:0",
+          "3:-1",
+          "2:-1",
+          "1:-1",
+          "0:-1",
+          "-1:-1",
+          "-2:-1",
+          "-3:-1",
+          "3:-2",
+          "2:-2",
+          "1:-2",
+          "0:-2",
+          "-1:-2",
+          "-2:-2",
+          "-3:-2",
+          "3:-3",
+          "2:-3",
+          "1:-3",
+          "0:-3",
+          "-1:-3",
+          "-2:-3",
+          "-3:-3"
+        ],
+        "camera": {
+          "x": 0,
+          "y": 1618.0963558185417,
+          "z": 16
+        },
+        "terrainHeight": -24
+      }
+    },
+    "932x430: Cocos tap navigation, rotated fallback, >=44px targets",
+    {
+      "viewport": "390x844",
+      "world": {
+        "ready": true,
+        "modelsLoaded": 21,
+        "texturesLoaded": 5,
+        "errors": [],
+        "terrainTiles": 49,
+        "terrainMeshes": 49,
+        "sceneryPool": 83,
+        "activeScenery": 81,
+        "modelInstancesCreated": 87,
+        "meshes": 62,
+        "materials": 28,
+        "renderers": 173,
+        "activeRenderers": 139,
+        "instancedPasses": 223,
+        "foliage": [
+          {
+            "name": "B3 masked pine needles",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          },
+          {
+            "name": "B3 masked pine silhouette",
+            "albedo": true,
+            "alphaTest": true,
+            "textured": true
+          }
+        ],
+        "drawCalls": 83,
+        "triangles": 83892,
+        "aircraft": "falcon",
+        "craftInstances": 1,
+        "nozzles": [
+          {
+            "x": -1.18,
+            "y": -0.16,
+            "z": 8.8
+          },
+          {
+            "x": 1.18,
+            "y": -0.16,
+            "z": 8.8
+          }
+        ],
+        "pooledObjects": 0,
+        "fxBudget": 32,
+        "activeFx": 0,
+        "playerVisible": true,
+        "terrainSpan": 10752,
+        "terrainKeys": [
+          "3:-4",
+          "2:-4",
+          "1:-4",
+          "0:-4",
+          "-1:-4",
+          "-2:-4",
+          "-3:-4",
+          "3:2",
+          "2:2",
+          "1:2",
+          "0:2",
+          "-1:2",
+          "-2:2",
+          "-3:2",
+          "3:1",
+          "2:1",
+          "1:1",
+          "0:1",
+          "-1:1",
+          "-2:1",
+          "-3:1",
+          "3:0",
+          "2:0",
+          "1:0",
+          "0:0",
+          "-1:0",
+          "-2:0",
+          "-3:0",
+          "3:-1",
+          "2:-1",
+          "1:-1",
+          "0:-1",
+          "-1:-1",
+          "-2:-1",
+          "-3:-1",
+          "3:-2",
+          "2:-2",
+          "1:-2",
+          "0:-2",
+          "-1:-2",
+          "-2:-2",
+          "-3:-2",
+          "3:-3",
+          "2:-3",
+          "1:-3",
+          "0:-3",
+          "-1:-3",
+          "-2:-3",
+          "-3:-3"
+        ],
+        "camera": {
+          "x": 0,
+          "y": 1618.0862404227244,
+          "z": 24
+        },
+        "terrainHeight": -24
+      }
+    },
+    "390x844: Cocos tap navigation, rotated fallback, >=44px targets",
+    "simultaneous stick + fire and touch cancellation",
+    "blur clears input and pauses without catch-up",
+    "normal browser flight victory, 1463 ticks, 1350 score",
+    "normal terrain failure and restart",
+    "settings persistence and pause return path",
+    "development interface remains a detached read-only snapshot",
+    "portrait cold boot and touch mapping",
+    "four viewports: measured asymmetric CSS insets, transformed bounds, every page has separate >=44px touch regions",
+    "held multitouch clears on rotation; pagehide/focus keeps pause and silences audio; drag-out cancels activation",
+    "same-origin iframe emits exact Shell display-state contract"
+  ],
+  "errors": [],
+  "engineDiagnostics": [
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted.",
+    "Ignored attempt to cancel a touchcancel event with cancelable=false, for example because scrolling is in progress and cannot be interrupted."
+  ],
+  "world": {
+    "ready": true,
+    "modelsLoaded": 21,
+    "texturesLoaded": 5,
+    "errors": [],
+    "terrainTiles": 49,
+    "terrainMeshes": 49,
+    "sceneryPool": 83,
+    "activeScenery": 83,
+    "modelInstancesCreated": 87,
+    "meshes": 62,
+    "materials": 28,
+    "renderers": 173,
+    "activeRenderers": 139,
+    "instancedPasses": 223,
+    "foliage": [
+      {
+        "name": "B3 masked pine needles",
+        "albedo": true,
+        "alphaTest": true,
+        "textured": true
+      },
+      {
+        "name": "B3 masked pine silhouette",
+        "albedo": true,
+        "alphaTest": true,
+        "textured": true
+      }
+    ],
+    "drawCalls": 69,
+    "triangles": 79153,
+    "aircraft": "falcon",
+    "craftInstances": 1,
+    "nozzles": [
+      {
+        "x": -1.18,
+        "y": -0.16,
+        "z": 8.8
+      },
+      {
+        "x": 1.18,
+        "y": -0.16,
+        "z": 8.8
+      }
+    ],
+    "pooledObjects": 0,
+    "fxBudget": 32,
+    "activeFx": 0,
+    "playerVisible": true,
+    "terrainSpan": 10752,
+    "terrainKeys": [
+      "3:3",
+      "2:3",
+      "1:3",
+      "0:3",
+      "-1:3",
+      "-2:3",
+      "-3:3",
+      "3:2",
+      "2:2",
+      "1:2",
+      "0:2",
+      "-1:2",
+      "-2:2",
+      "-3:2",
+      "3:1",
+      "2:1",
+      "1:1",
+      "0:1",
+      "-1:1",
+      "-2:1",
+      "-3:1",
+      "3:0",
+      "2:0",
+      "1:0",
+      "0:0",
+      "-1:0",
+      "-2:0",
+      "-3:0",
+      "3:-1",
+      "2:-1",
+      "1:-1",
+      "0:-1",
+      "-1:-1",
+      "-2:-1",
+      "-3:-1",
+      "3:-2",
+      "2:-2",
+      "1:-2",
+      "0:-2",
+      "-1:-2",
+      "-2:-2",
+      "-3:-2",
+      "3:-3",
+      "2:-3",
+      "1:-3",
+      "0:-3",
+      "-1:-3",
+      "-2:-3",
+      "-3:-3"
+    ],
+    "camera": {
+      "x": -28,
+      "y": 1618,
+      "z": 34
+    },
+    "terrainHeight": -24
+  },
+  "victory": {
+    "mission": {
+      "id": "dawn-patrol",
+      "title": "晨雾巡航",
+      "seed": 20261029,
+      "timeLimit": 180,
+      "briefing": "三段巡航：转向追击、松火散热、锁定重机。清除后立即进入下一段；扫描残骸恢复护盾。",
+      "objective": {
+        "kind": "clear"
+      },
+      "waves": [
+        {
+          "label": "初次接触",
+          "enemies": [
+            {
+              "kind": "interceptor",
+              "offset": [
+                0,
+                1600,
+                750
+              ],
+              "hp": 72,
+              "shield": 0
+            },
+            {
+              "kind": "interceptor",
+              "offset": [
+                300,
+                1600,
+                1250
+              ],
+              "hp": 90,
+              "shield": 0
+            }
+          ],
+          "gate": {
+            "kind": "clear"
+          }
+        },
+        {
+          "label": "侧翼来袭",
+          "enemies": [
+            {
+              "kind": "skirmisher",
+              "offset": [
+                -660,
+                1500,
+                1625
+              ],
+              "hp": 110,
+              "shield": 0
+            },
+            {
+              "kind": "interceptor",
+              "offset": [
+                540,
+                1600,
+                2125
+              ],
+              "hp": 90,
+              "shield": 0
+            }
+          ],
+          "gate": {
+            "kind": "clear"
+          }
+        },
+        {
+          "label": "重机压制",
+          "enemies": [
+            {
+              "kind": "heavy",
+              "offset": [
+                0,
+                1720,
+                1875
+              ],
+              "hp": 200,
+              "shield": 60
+            },
+            {
+              "kind": "interceptor",
+              "offset": [
+                -660,
+                1600,
+                1625
+              ],
+              "hp": 90,
+              "shield": 0
+            }
+          ],
+          "gate": {
+            "kind": "clear"
+          }
+        }
+      ]
+    },
+    "craft": {
+      "id": "falcon",
+      "name": "战隼",
+      "role": "均衡巡航 / 稳定火力",
+      "unlock": null,
+      "speed": 240,
+      "boost": 380,
+      "turn": 0.72,
+      "pitch": 0.7,
+      "hull": 100,
+      "shield": 70,
+      "heat": 0.105,
+      "missiles": 6,
+      "nozzles": [
+        [
+          -1.18,
+          -0.16,
+          8.8
+        ],
+        [
+          1.18,
+          -0.16,
+          8.8
+        ]
+      ],
+      "samples": [
+        [
+          0,
+          -1.1,
+          0
+        ],
+        [
+          -10.625,
+          0.05,
+          4.9
+        ],
+        [
+          10.625,
+          0.05,
+          4.9
+        ],
+        [
+          0,
+          0,
+          -14.15
+        ],
+        [
+          -5.3,
+          -0.06,
+          7.8
+        ],
+        [
+          5.3,
+          -0.06,
+          7.8
+        ],
+        [
+          -1.18,
+          -1.1,
+          9.15
+        ],
+        [
+          1.18,
+          -1.1,
+          9.15
+        ]
+      ]
+    },
+    "status": "won",
+    "reason": "空域已肃清",
+    "tick": 1463,
+    "seed": 4117893700,
+    "player": {
+      "x": -96.17730203852902,
+      "y": 2097.249511298332,
+      "z": 52.22189197986308,
+      "yaw": 1.548000000000001,
+      "pitch": 0.1315042334856082,
+      "roll": -0.3240511211551827,
+      "speed": 240,
+      "hull": 100,
+      "shield": 70,
+      "energy": 100
+    },
+    "enemies": [],
+    "shots": [
+      {
+        "x": 2893.5956179754,
+        "y": 2169.621374956687,
+        "z": 585.0761361870018,
+        "id": 237,
+        "owner": "player",
+        "target": 0,
+        "source": 0,
+        "missile": false,
+        "life": 0.6000000000000094,
+        "velocity": {
+          "x": 1096.348748306067,
+          "y": 39.43594930596537,
+          "z": 80.40042282262961
+        }
+      },
+      {
+        "x": 2788.6951989760373,
+        "y": 2147.6266639695855,
+        "z": 229.02190489904663,
+        "id": 238,
+        "owner": "player",
+        "target": 0,
+        "source": 0,
+        "missile": false,
+        "life": 0.7333333333333432,
+        "velocity": {
+          "x": 1099.1883867644233,
+          "y": 34.011713076672535,
+          "z": -25.061799133645593
+        }
+      },
+      {
+        "x": 2649.586645855248,
+        "y": 2171.2589381549856,
+        "z": -101.17888758908414,
+        "id": 239,
+        "owner": "player",
+        "target": 0,
+        "source": 0,
+        "missile": false,
+        "life": 0.8666666666666769,
+        "velocity": {
+          "x": 1091.425619921921,
+          "y": 42.65733021741351,
+          "z": -130.2707501965541
+        }
+      },
+      {
+        "x": 2467.5517520147396,
+        "y": 2384.5034566514714,
+        "z": -399.4537711209077,
+        "id": 240,
+        "owner": "player",
+        "target": 0,
+        "source": 0,
+        "missile": false,
+        "life": 1.0000000000000107,
+        "velocity": {
+          "x": 1068.8943977155593,
+          "y": 114.3952532908471,
+          "z": -233.19196503485023
+        }
+      },
+      {
+        "x": 2291.2068619422303,
+        "y": 2167.6574705784074,
+        "z": -673.3373190015728,
+        "id": 241,
+        "owner": "player",
+        "target": 0,
+        "source": 0,
+        "missile": false,
+        "life": 1.1333333333333435,
+        "velocity": {
+          "x": 1046.478293958052,
+          "y": 43.54921519614836,
+          "z": -336.1348630095434
+        }
+      },
+      {
+        "x": 2071.765861781481,
+        "y": 2302.4089531103737,
+        "z": -907.7540556455949,
+        "id": 242,
+        "owner": "player",
+        "target": 0,
+        "source": 0,
+        "missile": false,
+        "life": 1.2666666666666764,
+        "velocity": {
+          "x": 1006.5246419182129,
+          "y": 94.15779256107044,
+          "z": -433.63862294707985
+        }
+      },
+      {
+        "x": 306.516904307433,
+        "y": 2149.452244657805,
+        "z": 70.83811662596779,
+        "id": 257,
+        "owner": "player",
+        "target": 0,
+        "source": 0,
+        "missile": false,
+        "life": 3.5500000000000016,
+        "velocity": {
+          "x": 1090.620224075615,
+          "y": 140.63385109281376,
+          "z": 27.742508251052318
+        }
+      },
+      {
+        "x": 192.01759762831077,
+        "y": 2135.3229153146654,
+        "z": 77.926368861409,
+        "id": 258,
+        "owner": "player",
+        "target": 0,
+        "source": 0,
+        "missile": false,
+        "life": 3.6833333333333345,
+        "velocity": {
+          "x": 1087.9597880789447,
+          "y": 145.9307225171811,
+          "z": 71.04733456528243
+        }
+      },
+      {
+        "x": 77.76707893962323,
+        "y": 2121.0718534576667,
+        "z": 74.85285886010108,
+        "id": 260,
+        "owner": "player",
+        "target": 0,
+        "source": 0,
+        "missile": false,
+        "life": 3.8166666666666673,
+        "velocity": {
+          "x": 1083.7345505575554,
+          "y": 148.16741445336336,
+          "z": 116.47249126733017
+        }
+      },
+      {
+        "x": -35.420296809033786,
+        "y": 2105.823481837784,
+        "z": 60.04541603853671,
+        "id": 262,
+        "owner": "player",
+        "target": 0,
+        "source": 0,
+        "missile": false,
+        "life": 3.95,
+        "velocity": {
+          "x": 1076.7783467250265,
+          "y": 151.84259199777128,
+          "z": 165.8077781031913
+        }
+      }
+    ],
+    "pickups": [
+      {
+        "x": 416.3219153323718,
+        "y": 2162.9368867150356,
+        "z": 58.08671132464805,
+        "id": 265,
+        "life": 79.98333333333333
+      }
+    ],
+    "events": [
+      "hit",
+      "kill",
+      "won"
+    ],
+    "impacts": [
+      {
+        "x": 399.7057409814728,
+        "y": 2157.2959208662555,
+        "z": 18.656562013548015,
+        "kind": "hit",
+        "id": 259,
+        "tick": 1449
+      },
+      {
+        "x": 408.3528370427379,
+        "y": 2160.096115999184,
+        "z": 38.23157007774679,
+        "kind": "hit",
+        "id": 261,
+        "tick": 1456
+      },
+      {
+        "x": 416.3219153323718,
+        "y": 2162.9368867150356,
+        "z": 58.08671132464805,
+        "kind": "hit",
+        "id": 263,
+        "tick": 1463
+      },
+      {
+        "x": 416.3219153323718,
+        "y": 2162.9368867150356,
+        "z": 58.08671132464805,
+        "kind": "kill",
+        "id": 264,
+        "tick": 1463
+      }
+    ],
+    "nextId": 266,
+    "wave": 2,
+    "kills": 6,
+    "recovered": 5,
+    "score": 1350,
+    "heat": 0.8311666666666662,
+    "overheated": false,
+    "shotCooldown": 0.09666666666666668,
+    "missiles": 1,
+    "missileCooldown": 0.41666666666667224,
+    "scanCooldown": 0,
+    "scanTime": 0,
+    "invulnerable": 0,
+    "damageAgo": 34.38333333333259,
+    "notice": "武器过热 · 松开开火冷却",
+    "noticeTime": 0.3166666666666705,
+    "boosting": false,
+    "eliteStage": 1,
+    "eliteKilled": false,
+    "transport": null
+  },
+  "failure": {
+    "mission": {
+      "id": "dawn-patrol",
+      "title": "晨雾巡航",
+      "seed": 20261029,
+      "timeLimit": 180,
+      "briefing": "三段巡航：转向追击、松火散热、锁定重机。清除后立即进入下一段；扫描残骸恢复护盾。",
+      "objective": {
+        "kind": "clear"
+      },
+      "waves": [
+        {
+          "label": "初次接触",
+          "enemies": [
+            {
+              "kind": "interceptor",
+              "offset": [
+                0,
+                1600,
+                750
+              ],
+              "hp": 72,
+              "shield": 0
+            },
+            {
+              "kind": "interceptor",
+              "offset": [
+                300,
+                1600,
+                1250
+              ],
+              "hp": 90,
+              "shield": 0
+            }
+          ],
+          "gate": {
+            "kind": "clear"
+          }
+        },
+        {
+          "label": "侧翼来袭",
+          "enemies": [
+            {
+              "kind": "skirmisher",
+              "offset": [
+                -660,
+                1500,
+                1625
+              ],
+              "hp": 110,
+              "shield": 0
+            },
+            {
+              "kind": "interceptor",
+              "offset": [
+                540,
+                1600,
+                2125
+              ],
+              "hp": 90,
+              "shield": 0
+            }
+          ],
+          "gate": {
+            "kind": "clear"
+          }
+        },
+        {
+          "label": "重机压制",
+          "enemies": [
+            {
+              "kind": "heavy",
+              "offset": [
+                0,
+                1720,
+                1875
+              ],
+              "hp": 200,
+              "shield": 60
+            },
+            {
+              "kind": "interceptor",
+              "offset": [
+                -660,
+                1600,
+                1625
+              ],
+              "hp": 90,
+              "shield": 0
+            }
+          ],
+          "gate": {
+            "kind": "clear"
+          }
+        }
+      ]
+    },
+    "craft": {
+      "id": "falcon",
+      "name": "战隼",
+      "role": "均衡巡航 / 稳定火力",
+      "unlock": null,
+      "speed": 240,
+      "boost": 380,
+      "turn": 0.72,
+      "pitch": 0.7,
+      "hull": 100,
+      "shield": 70,
+      "heat": 0.105,
+      "missiles": 6,
+      "nozzles": [
+        [
+          -1.18,
+          -0.16,
+          8.8
+        ],
+        [
+          1.18,
+          -0.16,
+          8.8
+        ]
+      ],
+      "samples": [
+        [
+          0,
+          -1.1,
+          0
+        ],
+        [
+          -10.625,
+          0.05,
+          4.9
+        ],
+        [
+          10.625,
+          0.05,
+          4.9
+        ],
+        [
+          0,
+          0,
+          -14.15
+        ],
+        [
+          -5.3,
+          -0.06,
+          7.8
+        ],
+        [
+          5.3,
+          -0.06,
+          7.8
+        ],
+        [
+          -1.18,
+          -1.1,
+          9.15
+        ],
+        [
+          1.18,
+          -1.1,
+          9.15
+        ]
+      ]
+    },
+    "status": "lost",
+    "reason": "撞击地形 · 机体损毁",
+    "tick": 606,
+    "seed": 1421818793,
+    "player": {
+      "x": 0,
+      "y": 141.48246057132658,
+      "z": -1899.1299825004053,
+      "yaw": 0,
+      "pitch": -0.7,
+      "roll": 0,
+      "speed": 0,
+      "hull": 0,
+      "shield": 0,
+      "energy": 100
+    },
+    "enemies": [
+      {
+        "x": 386.3143331910459,
+        "y": 1164.7036097129865,
+        "z": -1038.576541828224,
+        "id": 100,
+        "kind": "interceptor",
+        "hp": 72,
+        "maxHp": 72,
+        "shield": 0,
+        "yaw": -0.4221787033416054,
+        "pitch": -0.047379922973454655,
+        "cooldown": -9.165113513668414,
+        "phase": 5.620271275071428,
+        "stage": 1,
+        "telegraph": 0,
+        "priority": false,
+        "travel": 2775.9166666666597,
+        "speed": 310,
+        "disengageUntil": 0
+      },
+      {
+        "x": -1399.8344652375513,
+        "y": 1230.9397651071004,
+        "z": 722.0095665161845,
+        "id": 101,
+        "kind": "interceptor",
+        "hp": 90,
+        "maxHp": 90,
+        "shield": 0,
+        "yaw": -1.6902733103307257,
+        "pitch": -0.03742504943890371,
+        "cooldown": -8.844163415798317,
+        "phase": 2.0789499441254886,
+        "stage": 1,
+        "telegraph": 0,
+        "priority": false,
+        "travel": 2751.833333333325,
+        "speed": 310,
+        "disengageUntil": 540
+      }
+    ],
+    "shots": [],
+    "pickups": [],
+    "events": [
+      "crash",
+      "lost"
+    ],
+    "impacts": [
+      {
+        "x": 0,
+        "y": 141.48246057132658,
+        "z": -1899.1299825004053,
+        "kind": "crash",
+        "id": 102,
+        "tick": 606
+      }
+    ],
+    "nextId": 103,
+    "wave": 0,
+    "kills": 0,
+    "recovered": 0,
+    "score": 0,
+    "heat": 0,
+    "overheated": false,
+    "shotCooldown": 0,
+    "missiles": 6,
+    "missileCooldown": 0,
+    "scanCooldown": 0,
+    "scanTime": 0,
+    "invulnerable": 0,
+    "damageAgo": 20.100000000000065,
+    "notice": "地形迫近 · 立即拉升",
+    "noticeTime": 1.400000000000004,
+    "boosting": false,
+    "eliteStage": 1,
+    "eliteKilled": false,
+    "transport": null
+  }
+}
