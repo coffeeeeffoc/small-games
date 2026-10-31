@@ -1548,6 +1548,13 @@ export function nightBackendFileScope(file, before, after) {
   after = after.replaceAll('\r\n', '\n');
   let anchor, addition;
   if (file === 'scripts/deploy-tencent.mjs') {
+    const digest = (text) => createHash('sha256').update(text).digest('hex');
+    // Saved CI/Pages base already copies the other Night cores; only Armory was added.
+    if (
+      digest(before) === '96ff4938768af03e86865766c36b93f308d0c2348aef7fdb34b90eaa5d1c455b' &&
+      digest(after) === '3b1fe63a108fa03172c6ddf6f2e9884510a4e3c7d9a182ccdd2b19d9fc6df88e'
+    )
+      return true;
     anchor = "    'services/runtime-api/rules',\n";
     addition = nightRuntimeInputs.map((value) => `    '${value}',\n`).join('');
   } else if (file === 'scripts/check-workspace-dependencies.mjs') {
@@ -1573,15 +1580,23 @@ export function matchGatewayFileScope(before, after) {
     after === before.replace(anchor, String.raw`(?:\/match|\/leaderboards\/`)
   );
 }
-export function nightResumeGatewayFileScope(before, after) {
+export function nightGatewayFileScope(before, after) {
   if (typeof before !== 'string' || typeof after !== 'string') return false;
   const digest = (source) =>
     createHash('sha256').update(source.replaceAll('\r\n', '\n')).digest('hex');
-  // Only the reviewed Night resume route differs; proxy transport and other paths stay bound.
-  return (
-    digest(before) === '6173996a7d134555386f652d18e552ae9e70998f6868e52be5b1c9736317ca3a' &&
-    digest(after) === 'aa9d6cca578c5edf7f4a81865fd7c97aa20157fcf88e0e9ce860cbbe1648ddfd'
-  );
+  // Reviewed resume and later wallet/room routes; transport and other paths stay bound.
+  const base = digest(before),
+    head = digest(after);
+  return [
+    [
+      '6173996a7d134555386f652d18e552ae9e70998f6868e52be5b1c9736317ca3a',
+      'aa9d6cca578c5edf7f4a81865fd7c97aa20157fcf88e0e9ce860cbbe1648ddfd',
+    ],
+    [
+      'aa9d6cca578c5edf7f4a81865fd7c97aa20157fcf88e0e9ce860cbbe1648ddfd',
+      '5058a2adf4cb1fc6b3637f932175e33da718d508d3ca3d6b617b09a87b92a66f',
+    ],
+  ].some(([expectedBase, expectedHead]) => base === expectedBase && head === expectedHead);
 }
 function assertNightRuntimeConsumer(games, packages, readHead) {
   const source = 'games/local/night-overwatch';
@@ -5326,7 +5341,7 @@ export function reviewedSharedFileScopes({
       }
       if (
         file === 'scripts/competition-gateway.mjs' &&
-        nightResumeGatewayFileScope(readBase(file), readHead(file))
+        nightGatewayFileScope(readBase(file), readHead(file))
       ) {
         assertNightRuntimeConsumer(games, packages, readHead);
         assert.equal(packages.filter((pkg) => pkg.dir === 'apps/shell-web').length, 1);

@@ -7,7 +7,7 @@ import {
   nightBackendFileScope,
   nightRuntimeInputs,
   matchGatewayFileScope,
-  nightResumeGatewayFileScope,
+  nightGatewayFileScope,
   reviewedSharedFileScopes,
   nightServiceTurboOnly,
 } from './publication-scopes.mjs';
@@ -28,7 +28,7 @@ test('Night resume gateway binds exact bytes and retains its client, server and 
     'c31ca40ce5896fd293fbfe1d66ed9bacf24e8568^',
   ]) {
     const before = history(ref);
-    assert(nightResumeGatewayFileScope(before, after));
+    assert(nightGatewayFileScope(before, after));
     const options = {
       changedPaths: [file],
       games,
@@ -54,7 +54,7 @@ test('Night resume gateway binds exact bytes and retains its client, server and 
           readHead: (name) => (name === file ? changed : read(name)),
         }).has(file),
       );
-    assert(!nightResumeGatewayFileScope(before + '\n', after));
+    assert(!nightGatewayFileScope(before + '\n', after));
     for (const gameList of [[], [...games, ...games]])
       assert(!reviewedSharedFileScopes({ ...options, games: gameList }).has(file));
     for (const dir of [source, 'services/runtime-api', 'apps/shell-web']) {
@@ -98,6 +98,60 @@ test('Night scope test changes execute validation tooling rather than becoming u
     readSource: () => '',
   });
   assert.equal(plan.validation_tools, true);
+});
+
+test('Night armory and room integration from the saved CI/Pages base retains actual consumers', () => {
+  const source = 'games/local/night-overwatch';
+  const read = (name) => readFileSync(new URL('../' + name, import.meta.url), 'utf8');
+  const history = (ref, file) =>
+    execFileSync('git', ['show', ref + ':' + file], { encoding: 'utf8' });
+  const games = [{ id: 'night-overwatch', source }];
+  const packages = [source, 'services/runtime-api', 'apps/shell-web'].map((dir) => ({
+    dir,
+    ...JSON.parse(read(dir + '/package.json')),
+  }));
+  for (const file of ['scripts/competition-gateway.mjs', 'scripts/deploy-tencent.mjs']) {
+    const before = history('425d2851ba4659cc868bd887469ed39746c4adc4', file);
+    const after = history('4b2e5ae55fb10deea40fa9b34f6fdbef4ef4d8af', file);
+    const gateway = file.includes('gateway');
+    const options = {
+      changedPaths: [file],
+      games,
+      packages,
+      readBase: () => before,
+      readHead: (name) => (name === file ? after : read(name)),
+    };
+    const scopes = reviewedSharedFileScopes(options);
+    assert.deepEqual(
+      scopes.get(file),
+      gateway ? [source, 'services/runtime-api', 'apps/shell-web'] : ['services/runtime-api'],
+    );
+    const plan = incrementalPlan({ ...options, fileScopes: scopes, readSource: read });
+    assert(plan.competition_service_checks);
+    assert(plan.service_rule_sources.includes('services/runtime-api'));
+    if (gateway) {
+      assert(plan.game_services_checks);
+      assert(plan.game_sources.includes(source));
+    } else assert(plan.ranked_deployment_checks);
+    for (const override of [
+      { readBase: () => before + '\n' },
+      { readHead: (name) => (name === file ? after + '\n' : read(name)) },
+      { readHead: (name) => (name.endsWith('/Armory.ts') ? '' : options.readHead(name)) },
+      { games: [] },
+      { packages: packages.filter((pkg) => pkg.dir !== 'services/runtime-api') },
+    ])
+      assert(!reviewedSharedFileScopes({ ...options, ...override }).has(file));
+    assert.throws(
+      () =>
+        incrementalPlan({
+          ...options,
+          changedPaths: [file.replace('.mjs', '-extra.mjs')],
+          fileScopes: scopes,
+          readSource: read,
+        }),
+      /scope undefined/,
+    );
+  }
 });
 
 test('Night service cache inputs retain the game consumer and reject unrelated Turbo changes', () => {
