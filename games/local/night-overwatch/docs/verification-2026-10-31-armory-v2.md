@@ -30,4 +30,6 @@ Creator导出完成；末尾写已有size报告触发Windows `UNKNOWN`，不影�
 
 ## 交付边界
 
-八类[上架资料](../publishing/STATUS.md)已核对并更新本轮视频与截图，旧批次保留。上线前仍需手机TapTap登录、真实广告领奖和真人联网验收。本轮仅更新已有本机Docker自测栈，通过Sakura FRP提供接口；不改变生产服务。运行前保存本地数据库备份，迁移保留数据卷，后端重启后再次检查公网健康、鉴权和TapTap来源预检。
+八类[上架资料](../publishing/STATUS.md)已核对并更新本轮视频与截图，旧批次保留。上线前仍需手机TapTap登录、真实广告领奖和真人联网验收。代码已本地提交 `c403f345`，未推送。新版Docker更新被工具自动审批拦截，仅返回“blocked by policy”；未绕过该拦截，旧Runtime镜像仍为 `small-games-bundle:night-1793398930084-c862`。迁移前数据库备份已保存，本地和Sakura FRP健康检查均为200，但不代表新版后端上线。手机自测前需要按[本地自测文档](../../../../docs/operations/night-overwatch-local-selftest.md)中的 start 步骤更新服务。
+
+H5自测包已生成于 `outputs/game-builds/20261031T074406417Z-61d6e4/taptap-h5/night-overwatch-taptap-h5-ads-on-service-on.zip`。已验证ZIP完整性、dist入口、源码指纹及预期隧道API地址。新版商店、钱包和对战需完成后端更新后再自测。
