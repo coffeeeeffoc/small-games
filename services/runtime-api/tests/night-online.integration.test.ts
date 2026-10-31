@@ -4,7 +4,6 @@ import { openDatabase } from '@coffeeeeffoc/service-kit';
 import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest';
 import { sql } from 'drizzle-orm';
 const roomCodes = vi.hoisted(() => [] as number[]);
-const lotteryRolls = vi.hoisted(() => [] as number[]);
 vi.mock('node:crypto', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:crypto')>();
   return {
@@ -12,11 +11,9 @@ vi.mock('node:crypto', async (importOriginal) => {
     randomInt: (min: number, max?: number) =>
       min === 100000 && roomCodes.length
         ? roomCodes.shift()!
-        : min === 18 && max === undefined && lotteryRolls.length
-          ? lotteryRolls.shift()!
-          : max === undefined
-            ? actual.randomInt(min)
-            : actual.randomInt(min, max),
+        : max === undefined
+          ? actual.randomInt(min)
+          : actual.randomInt(min, max),
   };
 });
 import { createCompetitionStore } from '../src/competition/store.js';
@@ -32,17 +29,10 @@ import {
 import { randomUUID } from 'node:crypto';
 import type { Room, Rule } from '../src/competition/types.js';
 import type { RankedRule } from '../src/competition/ranked-types.js';
-import { awardNightClear } from '../src/competition/night-wallet.js';
-import type { NightLoadout } from '../src/competition/night-wallet.js';
 
 const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 type Player = { playerId: string; token: string };
-const starter: NightLoadout = [
-  { id: 'hePower', tier: 1 },
-  { id: 'heVelocity', tier: 1 },
-  { id: 'heavyPower', tier: 1 },
-];
 integration('Night real HTTP and PostgreSQL', () => {
   let database: ReturnType<typeof openDatabase>,
     app: ReturnType<typeof Fastify>,
@@ -57,14 +47,6 @@ integration('Night real HTTP and PostgreSQL', () => {
     body?: unknown,
     status: number | number[] = 200,
   ) {
-    if (
-      path.endsWith('/ready') &&
-      body &&
-      typeof body === 'object' &&
-      !Object.hasOwn(body, 'loadout') &&
-      (body as { ready?: boolean }).ready !== false
-    )
-      body = { ...body, loadout: starter };
     const code = path.match(/rooms\/([A-F0-9]{6,12})/)?.[1];
     const key = `${player?.playerId}:${code}`,
       leaseId = leases.get(key);
@@ -93,12 +75,6 @@ integration('Night real HTTP and PostgreSQL', () => {
     ++guests <= 12 ? request('/sessions/guest', undefined, { game }) : store.guestSession({ game });
   const path = '/games/night-overwatch';
   const roomPath = (code: string) => `${path}/rooms/${code}`;
-  async function seedWallet(owner: Player, patch: Record<string, unknown>) {
-    await request(path + '/wallet', owner);
-    await database.db.execute(
-      sql`update runtime.competition_matches set data=data || ${JSON.stringify(patch)}::jsonb where id=${'night-wallet:' + owner.playerId}`,
-    );
-  }
   beforeAll(async () => {
     if (!databaseUrl || new URL(databaseUrl).pathname !== '/competition_test')
       throw Error('Use isolated competition_test');
@@ -663,14 +639,7 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(marker).toHaveLength(1);
     expect(marker[0]!.data).toEqual({ status: 'complete' });
     expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(6);
-    expect((await request(path + '/leaderboards/level-corridor-01', a)).me).toBeNull();
-    expect(
-      (
-        await database.db.execute(
-          sql`select secondary from runtime.competition_best where board=${nightBoard('level-corridor-01')} and player_id=${a.playerId}`,
-        )
-      )[0]?.secondary,
-    ).toBe(4000);
+    expect((await request(path + '/leaderboards/level-corridor-01', a)).me.secondary).toBe(4000);
     expect((await request(path + '/leaderboards/points', a)).me).toBeNull();
     expect((await request(path + '/history', a)).summary.games).toBe(0);
     const before = await database.db.execute(
@@ -804,22 +773,17 @@ integration('Night real HTTP and PostgreSQL', () => {
       b = await player(),
       wrongGame = await player('cops-robbers');
     const version = (await request(path, a)).version;
-    for (const owner of [a, b]) await seedWallet(owner, { trials: { 'spread:3': 1 } });
     const input = {
       board: 'level-corridor-01',
       levelId: 'corridor-01',
       version,
       requestId: randomUUID(),
-      loadout: [...starter, { id: 'spread', tier: 3, trial: true }],
     };
     const [run, concurrent] = await Promise.all([
       request(path + '/runs', a, input),
       request(path + '/runs', a, input),
     ]);
     expect(concurrent).toEqual(run);
-    expect((await request(path + '/wallet', a)).trials['spread:3']).toBe(0);
-    await request(path + '/runs', a, { ...input, requestId: randomUUID() }, 422);
-    await request(path + '/runs', a, { ...input, requestId: randomUUID(), loadout: [] }, 422);
     const actions = { seq: 1, frames: [{ ticks: 120, input: {} }] };
     await request(`${path}/runs/${run.id}/actions`, a, actions);
     const read = async () =>
@@ -835,7 +799,6 @@ integration('Night real HTTP and PostgreSQL', () => {
       seed: run.seed,
     });
     expect(await read()).toEqual(original);
-    expect((await request(path + '/wallet', a)).trials['spread:3']).toBe(0);
     expect(
       await request(
         path + '/runs',
@@ -846,7 +809,6 @@ integration('Night real HTTP and PostgreSQL', () => {
     ).toEqual({ error: 'REQUEST_ID_CONFLICT' });
     const independent = await request(path + '/runs', b, input);
     expect(independent.id).not.toBe(run.id);
-    expect((await request(path + '/wallet', b)).trials['spread:3']).toBe(0);
     await request(`${path}/runs/${run.id}/resume`, b, {}, 403);
     await request(`${path}/runs/${run.id}/resume`, wrongGame, {}, 403);
     await database.db.execute(
@@ -871,356 +833,6 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect((await request(`${path}/runs/${run.id}/resume`, a, {})).settlement).toEqual(result);
     expect((await request(`${path}/runs/${run.id}/resume`, a, {})).settlement).toEqual(result);
     expect(await read()).toEqual(finished);
-    expect((await request(path + '/wallet', a)).trials['spread:3']).toBe(0);
-  });
-
-  it('rebuilds duel points only from actual duel settlement entries and retains the old aggregate', async () => {
-    const a = await player(),
-      old = 'night-overwatch:points:night-records-v1',
-      marker = 'night-migration:duel-only-points-v2';
-    await database.db.execute(
-      sql`update runtime.competition_matches set id=${marker + ':test:' + randomUUID()} where id=${marker}`,
-    );
-    await database.db.execute(sql`insert into runtime.competition_results values
-      (${'night-points:duel:' + randomUUID()},${old},${a.playerId},120,0,${time}),
-      (${'night-points:run:' + randomUUID()},${old},${a.playerId},100,0,${time})`);
-    await database.db.execute(
-      sql`insert into runtime.competition_best values(${old},${a.playerId},220,0,${randomUUID()},${time})`,
-    );
-    expect((await request(path + '/leaderboards/points', a)).me.score).toBe(120);
-    expect((await request(path + '/wallet', a)).coins).toBe(0);
-    expect(
-      (
-        await database.db.execute(
-          sql`select score from runtime.competition_best where board=${old} and player_id=${a.playerId}`,
-        )
-      )[0]?.score,
-    ).toBe(220);
-  });
-
-  it('serializes sign-in and purchases, and awards repeatable owner-bound lottery items once', async () => {
-    const [a, b] = await Promise.all([player(), player()]);
-    const wallet = path + '/wallet';
-    expect((await request(wallet, a)).coins).toBe(0);
-    const sign = { kind: 'checkin', requestId: randomUUID() };
-    const signed = await Promise.all([request(wallet, a, sign), request(wallet, a, sign)]);
-    expect(signed.map((r) => r.coins)).toEqual([60, 60]);
-    expect(signed[0].signedDays).toEqual([signed[0].day]);
-    await request(wallet, a, { kind: 'checkin', requestId: randomUUID() }, 422);
-    await request(wallet, a, { kind: 'buy', item: 'hePower', requestId: sign.requestId }, 409);
-    const start = { kind: 'lottery-start', requestId: randomUUID() };
-    const [ad, sameAd] = await Promise.all([request(wallet, a, start), request(wallet, a, start)]);
-    expect(sameAd.challenge).toBe(ad.challenge);
-    const claim = { kind: 'lottery-claim', requestId: randomUUID(), challenge: ad.challenge };
-    await request(wallet, b, claim, 422);
-    lotteryRolls.push(17);
-    const [won, samePrize] = await Promise.all([
-      request(wallet, a, claim),
-      request(wallet, a, claim),
-    ]);
-    expect(samePrize.prize).toEqual(won.prize);
-    expect(won.prize).toEqual({ id: 'emp', tier: 3 });
-    expect(lotteryRolls).toHaveLength(0);
-    const prizeKeys = [
-      'hePower',
-      'heVelocity',
-      'heavyPower',
-      'heavyVelocity',
-      'spread',
-      'emp',
-    ].flatMap((id) => [1, 2, 3].map((tier) => `${id}:${tier}`));
-    expect(prizeKeys).toHaveLength(18);
-    expect(prizeKeys).toContain(`${won.prize.id}:${won.prize.tier}`);
-    expect(won.trials[`${won.prize.id}:${won.prize.tier}`]).toBe(1);
-    const total = (value: { trials: Record<string, number> }) =>
-      Object.values(value.trials).reduce((sum, count) => sum + count, 0);
-    expect(total(await request(wallet, a))).toBe(1);
-    expect(won.coins).toBe(60);
-    expect(won.owned).toEqual({ hePower: 1, heVelocity: 1, heavyPower: 1 });
-    await request(wallet, a, { ...claim, requestId: randomUUID() }, 422);
-    const next = await request(wallet, a, { kind: 'lottery-start', requestId: randomUUID() });
-    await request(wallet, a, {
-      kind: 'lottery-claim',
-      requestId: randomUUID(),
-      challenge: next.challenge,
-    });
-    expect(total(await request(wallet, a))).toBe(2);
-    expect((await request(wallet, a)).coins).toBe(60);
-    await request(wallet, a, { kind: 'ad-start', requestId: randomUUID() }, 422);
-    await request(
-      wallet,
-      a,
-      { kind: 'ad-claim', requestId: randomUUID(), challenge: ad.challenge },
-      422,
-    );
-    await seedWallet(a, { coins: 1200 });
-    const buy = { kind: 'buy', item: 'hePower', tier: 2, requestId: randomUUID() };
-    await Promise.all([request(wallet, a, buy), request(wallet, a, buy)]);
-    expect(await request(wallet, a)).toMatchObject({
-      coins: 600,
-      owned: { hePower: 2 },
-    });
-    await request(wallet, a, { ...buy, tier: 3, requestId: randomUUID() }, 422);
-    expect((await request(wallet, b)).coins).toBe(0);
-    await seedWallet(b, { coins: 31900 });
-    for (const [tier, coins] of [
-      [1, 24000],
-      [2, 14000],
-      [3, 0],
-    ]) {
-      const bought = await request(wallet, b, {
-        kind: 'buy',
-        item: 'emp',
-        tier,
-        requestId: randomUUID(),
-      });
-      expect(bought).toMatchObject({ coins, owned: { emp: tier } });
-    }
-  });
-
-  it('backfills historical first-clear differences once without resetting earnings or purchases', async () => {
-    const a = await player(),
-      wallet = path + '/wallet';
-    await seedWallet(a, {
-      coins: 240,
-      owned: { hePower: 2, heVelocity: 1, heavyPower: 1 },
-      trials: { 'emp:2': 1 },
-    });
-    // Recreate a pre-migration account with both retained best rows and replay history.
-    await database.db.execute(
-      sql`delete from runtime.competition_matches where id=${'night-wallet-event:' + a.playerId + ':migration:first-clear-coins-v2'}`,
-    );
-    for (const level of ['corridor-01', 'operation-020', 'operation-020', 'unknown'])
-      await database.db.execute(
-        sql`insert into runtime.competition_results values(${randomUUID()},${'night-overwatch:level-' + level + ':night-input-replay-v7'},${a.playerId},1,5000,${time})`,
-      );
-    await database.db.execute(
-      sql`insert into runtime.competition_best values('night-overwatch:clear-patrol-03:night-records-v1',${a.playerId},1,5000,${randomUUID()},${time})`,
-    );
-    await database.db.execute(
-      sql`insert into runtime.competition_matches(id,board,data,created_at) values(${'night-wallet-event:' + a.playerId + ':clear:old'},'night-overwatch:private-wallet-v1',${JSON.stringify({ level: 'corridor-01', first: true, coins: 300 })}::jsonb,${time})`,
-    );
-    const snapshots = await Promise.all([request(wallet, a), request(wallet, a)]);
-    for (const w of snapshots)
-      expect(w).toMatchObject({ coins: 1050, owned: { hePower: 2 }, trials: { 'emp:2': 1 } });
-    expect((await request(wallet, a)).coins).toBe(1050);
-    const rule = (await import(new URL('../rules/night-ranked.mjs', import.meta.url).href))
-      .default as RankedRule;
-    const reward = await database.db.transaction((tx) =>
-      awardNightClear(tx, a.playerId, randomUUID(), 'patrol-03', time, rule.clearCoins!),
-    );
-    expect(reward).toBe(88);
-    expect((await request(wallet, a)).coins).toBe(1138);
-  });
-
-  it('charges legacy coolant only on effective use and forbids it in duels', async () => {
-    const [a, b] = await Promise.all([player(), player()]);
-    const wallet = path + '/wallet';
-    await seedWallet(a, { inventory: { coolant: 1 } });
-    await request(wallet, a, { kind: 'buy', item: 'coolant', requestId: randomUUID() }, 422);
-    const meta = await request(path, a),
-      version = meta.versions.ranked;
-    const opts = {
-      board: 'level-corridor-01',
-      levelId: 'corridor-01',
-      version,
-      requestId: randomUUID(),
-    };
-    const kit = [...starter, { id: 'coolant', tier: 1 }];
-    await request(path + '/runs', b, { ...opts, loadout: kit }, 422);
-    const run = await request(path + '/runs', a, { ...opts, loadout: kit });
-    expect((await request(wallet, a)).inventory.coolant).toBe(1);
-    await request(path + '/runs', a, { ...opts, loadout: [] }, 409);
-    await request(
-      path + '/runs',
-      a,
-      {
-        ...opts,
-        requestId: randomUUID(),
-        loadout: starter.map((slot) => (slot.id === 'hePower' ? { ...slot, tier: 2 } : slot)),
-      },
-      422,
-    );
-    const action = (command: string, args: unknown[] = []) => ({
-      input: { command, args },
-      ticks: 0,
-    });
-    const noHeat = await request(
-      `${path}/runs/${run.id}/actions`,
-      a,
-      { seq: 1, frames: [action('coolant')] },
-      [200, 422],
-    );
-    expect((await request(wallet, a)).inventory.coolant).toBe(1);
-    const firing = {
-      seq: noHeat.seq === 1 ? 2 : 1,
-      frames: [
-        action('choose', [0]),
-        action('setAim', [{ x: 0, z: 0 }]),
-        action('fire'),
-        action('coolant'),
-      ],
-    };
-    await request(`${path}/runs/${run.id}/actions`, a, firing);
-    await request(`${path}/runs/${run.id}/actions`, a, firing);
-    expect((await request(wallet, a)).inventory.coolant).toBe(0);
-    const room = await request(path + '/rooms', a, { mode: 'bot' });
-    await request(roomPath(room.code) + '/ready', a, { ready: true, loadout: kit }, 422);
-    await request(roomPath(room.code) + '/ready', a, {
-      ready: true,
-      loadout: starter,
-    });
-    await request(wallet, a, { kind: 'lottery-start', requestId: randomUUID() }, 409);
-    expect((await request(path + '/runs', a, { ...opts, loadout: kit })).id).toBe(run.id);
-    expect((await request(path + '/leaderboards/points', a)).me).toBeNull();
-  });
-
-  it('reserves duel trials only at start, refunds countdown departure, and keeps played trials spent', async () => {
-    const [a, b] = await Promise.all([player(), player()]);
-    const wallet = path + '/wallet';
-    await seedWallet(a, { trials: { 'spread:3': 1 } });
-    await seedWallet(b, { trials: { 'emp:3': 1 } });
-    const kitA = [...starter, { id: 'spread', tier: 3, trial: true }];
-    const kitB = [...starter, { id: 'emp', tier: 3, trial: true }];
-    const stock = async () => [
-      (await request(wallet, a)).trials['spread:3'],
-      (await request(wallet, b)).trials['emp:3'],
-    ];
-    const room = await request(path + '/rooms', a, { mode: 'friend' });
-    const ready = (who: Player, loadout: unknown) =>
-      request(roomPath(room.code) + '/ready', who, { loadout });
-    await request(path + '/rooms/join', b, { code: room.code });
-    expect((await ready(a, kitA)).status).toBe('waiting');
-    expect(await stock()).toEqual([1, 1]);
-    await request(roomPath(room.code) + '/ready', a, { ready: false });
-    expect(await stock()).toEqual([1, 1]);
-    await ready(a, kitA);
-    expect((await ready(b, kitB)).status).toBe('playing');
-    expect(await stock()).toEqual([0, 0]);
-    const first = await storedRoom(room.code);
-    expect(first.trialRoundId).toBeTruthy();
-    const state = first.players[0]!.state as {
-      pilots: { loadout: NightLoadout; guns: unknown[] }[];
-    };
-    expect(state.pilots[0]!.loadout).toContainEqual({ id: 'spread', tier: 3, trial: true });
-    expect(state.pilots[1]!.loadout).toContainEqual({ id: 'emp', tier: 3, trial: true });
-    expect(state.pilots[0]!.guns).toHaveLength(4);
-    expect(state.pilots[1]!.guns).toHaveLength(5);
-    await request(roomPath(room.code) + '/connect', a, {});
-    expect(await stock()).toEqual([0, 0]);
-    const action = { seq: 1, action: { commands: [], keepAlive: true } };
-    expect(await request(roomPath(room.code) + '/actions', a, action, 409)).toEqual({
-      error: 'MATCH_STARTING',
-    });
-    await request(roomPath(room.code) + '/leave', a, {});
-    const waiting = await request(roomPath(room.code), b);
-    expect(waiting.status).toBe('waiting');
-    expect(waiting.players).toHaveLength(1);
-    expect(waiting.players[0]).toMatchObject({ id: b.playerId, ready: false });
-    expect((await storedRoom(room.code)).trialRoundId).toBeUndefined();
-    expect(await stock()).toEqual([1, 1]);
-    await request(path + '/rooms/join', a, { code: room.code });
-    await ready(b, kitB);
-    expect((await ready(a, kitA)).status).toBe('playing');
-    expect((await storedRoom(room.code)).trialRoundId).not.toBe(first.trialRoundId);
-    expect(await stock()).toEqual([0, 0]);
-    time += 1201;
-    await request(roomPath(room.code) + '/actions', a, action);
-    await request(roomPath(room.code) + '/leave', a, {});
-    expect(await stock()).toEqual([0, 0]);
-    for (const owner of [a, b]) {
-      const spent = await database.db.execute(
-        sql`select id from runtime.competition_matches where id like ${'night-wallet-event:' + owner.playerId + ':trials:room:%'}`,
-      );
-      const refunded = await database.db.execute(
-        sql`select id from runtime.competition_matches where id like ${'night-wallet-event:' + owner.playerId + ':refund:room:%'}`,
-      );
-      expect(spent).toHaveLength(2);
-      expect(refunded).toHaveLength(1);
-    }
-  });
-
-  it('rolls back both duel admission and the first wallet when the second wallet cannot pay', async () => {
-    const [low, high] = (await Promise.all([player(), player()])).sort((a, b) =>
-      a.playerId.localeCompare(b.playerId),
-    ) as [Player, Player];
-    for (const owner of [low, high]) await seedWallet(owner, { trials: { 'spread:3': 1 } });
-    const loadout = [...starter, { id: 'spread', tier: 3, trial: true }];
-    const room = await request(path + '/rooms', low, { mode: 'friend' });
-    await request(path + '/rooms/join', high, { code: room.code });
-    await request(roomPath(room.code) + '/ready', high, { loadout });
-    await seedWallet(high, { trials: { 'spread:3': 0 } });
-    await request(roomPath(room.code) + '/ready', low, { loadout }, 422);
-    expect((await request(path + '/wallet', low)).trials['spread:3']).toBe(1);
-    const remaining = await storedRoom(room.code);
-    expect(remaining.status).toBe('waiting');
-    expect(remaining.trialRoundId).toBeUndefined();
-    expect(remaining.players.find((p) => p.id === low.playerId)?.ready).toBe(false);
-    expect(
-      await database.db.execute(
-        sql`select id from runtime.competition_matches where id like ${'night-wallet-event:' + low.playerId + ':trials:room:%'}`,
-      ),
-    ).toHaveLength(0);
-  });
-
-  it('migrates legacy upgrades and known sign-in days once without changing earned coins', async () => {
-    const a = await player(),
-      wallet = path + '/wallet';
-    await request(wallet, a);
-    const old = {
-      coins: 1777,
-      owned: { power: 2, velocity: 1, spread: 2, duration: 2 },
-      inventory: { coolant: 2 },
-      revision: 7,
-      signed: '2026-10-29',
-      challenge: { id: randomUUID(), until: time + 60000 },
-    };
-    await database.db.execute(
-      sql`update runtime.competition_matches set data=${JSON.stringify(old)}::jsonb where id=${'night-wallet:' + a.playerId}`,
-    );
-    for (const at of ['2026-10-27T18:00:00Z', '2026-10-28T05:00:00Z']) {
-      await database.db
-        .execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
-        values(${'night-wallet-event:' + a.playerId + ':request:' + randomUUID()},
-        'night-overwatch:private-wallet-v1',${JSON.stringify({ signature: 'checkin', extra: { reward: 60 } })}::jsonb,${Date.parse(at)})`);
-    }
-    const migrated = await request(wallet, a);
-    expect(migrated).toMatchObject({
-      coins: 1777,
-      inventory: { coolant: 2 },
-      trials: {},
-      revision: 8,
-      owned: { hePower: 2, heavyPower: 2, heVelocity: 1, heavyVelocity: 1, spread: 2, duration: 2 },
-      signedDays: ['2026-10-28', '2026-10-29'],
-    });
-    expect(migrated.owned.power).toBeUndefined();
-    expect(migrated.owned.velocity).toBeUndefined();
-    expect(await request(wallet, a)).toEqual(migrated);
-    const raw = (
-      await database.db.execute(
-        sql`select data from runtime.competition_matches where id=${'night-wallet:' + a.playerId}`,
-      )
-    )[0]!.data as Record<string, unknown>;
-    expect(raw.version).toBe(2);
-    expect(raw.challenge).toBeUndefined();
-  });
-
-  it('settles higher mission rewards from the same catalog used by the game', async () => {
-    const a = await player();
-    const reward = (await import(new URL('../rules/night-ranked.mjs', import.meta.url).href))
-      .default.clearCoins;
-    for (const [level, coins] of [
-      ['operation-060', 890],
-      ['operation-060', 316],
-      ['operation-120', 1490],
-    ] as const) {
-      expect(
-        await database.db.transaction((tx) =>
-          awardNightClear(tx, a.playerId, randomUUID(), level, time, reward),
-        ),
-      ).toBe(coins);
-    }
-    expect((await request(path + '/wallet', a)).coins).toBe(2696);
   });
 
   it('replays actual controls, ranks per level, retains faster times and rejects another player', async () => {
@@ -1234,16 +846,14 @@ integration('Night real HTTP and PostgreSQL', () => {
     );
     const a = await player(),
       b = await player();
-    let clears = 0;
     const runOnce = async (delay: number, assisted = false) => {
       const run = await request(path + '/runs', a, {
         board: 'level-corridor-01',
         levelId: 'corridor-01',
         version: RANKED_RULE_VERSION,
-        loadout: starter,
       });
       await request(`${path}/runs/${run.id}`, b, undefined, 403);
-      const sim = new Simulation('corridor-01', starter);
+      const sim = new Simulation();
       sim.start();
       const frames: { input: Record<string, unknown>; ticks: number }[] = [];
       observeNightInputs(sim, (input: Record<string, unknown>, ticks: number) => {
@@ -1279,8 +889,7 @@ integration('Night real HTTP and PostgreSQL', () => {
       }
       const result = await request(`${path}/runs/${run.id}/finish`, a, { seq });
       expect(result.accepted).toBe(true);
-      expect(result.points).toBeUndefined();
-      expect(result.coins).toBe(clears++ === 0 ? 300 : 80);
+      expect(result.points).toBe(100);
       expect(result.clears).toBe(1);
       expect(result.assisted).toBe(assisted);
       expect(result.fastestEligible).toBe(!assisted);
@@ -1305,8 +914,7 @@ integration('Night real HTTP and PostgreSQL', () => {
     ).toHaveLength(1);
     expect((await request(path + '/leaderboards/level-ambush-02', a)).me).toBe(null);
     expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(1);
-    expect((await request(path + '/leaderboards/points', a)).me).toBeNull();
-    expect((await request(path + '/wallet', a)).coins).toBe(540);
+    expect((await request(path + '/leaderboards/points', a)).me.score).toBe(400);
     expect((await request(path + '/history', a)).summary.games).toBe(0);
   });
 });

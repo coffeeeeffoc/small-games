@@ -1554,7 +1554,7 @@ export const gameServiceScopePaths = Object.freeze([
   'scripts/competition-gateway.test.mjs',
 ]);
 export const nightRuntimeInputs = Object.freeze(
-  ['Armory', 'Duel', 'Replay', 'Simulation', 'MissionCatalog', 'Data', 'Flight'].map(
+  ['Duel', 'Replay', 'Simulation', 'MissionCatalog', 'Data', 'Flight'].map(
     (name) => `games/local/night-overwatch/assets/scripts/core/${name}.ts`,
   ),
 );
@@ -1607,13 +1607,6 @@ export function nightBackendFileScope(file, before, after) {
   after = after.replaceAll('\r\n', '\n');
   let anchor, addition;
   if (file === 'scripts/deploy-tencent.mjs') {
-    const digest = (text) => createHash('sha256').update(text).digest('hex');
-    // Saved CI/Pages base already copies the other Night cores; only Armory was added.
-    if (
-      digest(before) === '96ff4938768af03e86865766c36b93f308d0c2348aef7fdb34b90eaa5d1c455b' &&
-      digest(after) === '3b1fe63a108fa03172c6ddf6f2e9884510a4e3c7d9a182ccdd2b19d9fc6df88e'
-    )
-      return true;
     anchor = "    'services/runtime-api/rules',\n";
     addition = nightRuntimeInputs.map((value) => `    '${value}',\n`).join('');
   } else if (file === 'scripts/check-workspace-dependencies.mjs') {
@@ -1639,23 +1632,15 @@ export function matchGatewayFileScope(before, after) {
     after === before.replace(anchor, String.raw`(?:\/match|\/leaderboards\/`)
   );
 }
-export function nightGatewayFileScope(before, after) {
+export function nightResumeGatewayFileScope(before, after) {
   if (typeof before !== 'string' || typeof after !== 'string') return false;
   const digest = (source) =>
     createHash('sha256').update(source.replaceAll('\r\n', '\n')).digest('hex');
-  // Reviewed resume and later wallet/room routes; transport and other paths stay bound.
-  const base = digest(before),
-    head = digest(after);
-  return [
-    [
-      '6173996a7d134555386f652d18e552ae9e70998f6868e52be5b1c9736317ca3a',
-      'aa9d6cca578c5edf7f4a81865fd7c97aa20157fcf88e0e9ce860cbbe1648ddfd',
-    ],
-    [
-      'aa9d6cca578c5edf7f4a81865fd7c97aa20157fcf88e0e9ce860cbbe1648ddfd',
-      '5058a2adf4cb1fc6b3637f932175e33da718d508d3ca3d6b617b09a87b92a66f',
-    ],
-  ].some(([expectedBase, expectedHead]) => base === expectedBase && head === expectedHead);
+  // Only the reviewed Night resume route differs; proxy transport and other paths stay bound.
+  return (
+    digest(before) === '6173996a7d134555386f652d18e552ae9e70998f6868e52be5b1c9736317ca3a' &&
+    digest(after) === 'aa9d6cca578c5edf7f4a81865fd7c97aa20157fcf88e0e9ce860cbbe1648ddfd'
+  );
 }
 function assertNightRuntimeConsumer(games, packages, readHead) {
   const source = 'games/local/night-overwatch';
@@ -5395,13 +5380,9 @@ export function reviewedSharedFileScopes({
         ]);
         continue;
       }
-      if (file === 'scripts/night-overwatch-selftest.mjs') {
-        scopes.set(file, ['games/local/night-overwatch', 'services/runtime-api']);
-        continue;
-      }
       if (
         file === 'scripts/competition-gateway.mjs' &&
-        nightGatewayFileScope(readBase(file), readHead(file))
+        nightResumeGatewayFileScope(readBase(file), readHead(file))
       ) {
         assertNightRuntimeConsumer(games, packages, readHead);
         assert.equal(packages.filter((pkg) => pkg.dir === 'apps/shell-web').length, 1);
@@ -5660,38 +5641,6 @@ export function reviewedSharedFileScopes({
         }
         assert(threeChooseTwoBackendFileScope(file, before, readHead(file)));
         scopes.set(file, ['games/local/three-choose-two', 'services/runtime-api']);
-      } else if (
-        file === standaloneChecksFile &&
-        [
-          [
-            '95cf0e066977513328a0d9fbcc250d31ffb1939e1e85734ac06a8646832d307c',
-            'ec7c00b895cf233344e40b9e6bfe71537d507408e42b32ac83600500f6c5ec97',
-          ],
-          [
-            'ec7c00b895cf233344e40b9e6bfe71537d507408e42b32ac83600500f6c5ec97',
-            '8ab41c01c9912cea916cb52ac7d86b21d030be2f3cde1654b32e2f608b71c7f5',
-          ],
-          [
-            '95cf0e066977513328a0d9fbcc250d31ffb1939e1e85734ac06a8646832d307c',
-            '8ab41c01c9912cea916cb52ac7d86b21d030be2f3cde1654b32e2f608b71c7f5',
-          ],
-        ].some(
-          ([before, after]) =>
-            createHash('sha256').update(readBase(file).replaceAll('\r\n', '\n')).digest('hex') ===
-              before &&
-            createHash('sha256').update(readHead(file).replaceAll('\r\n', '\n')).digest('hex') ===
-              after,
-        )
-      ) {
-        const source = 'games/local/night-overwatch';
-        assert.equal(
-          games.filter((game) => game.id === 'night-overwatch' || game.source === source).length,
-          1,
-        );
-        assert(games.some((game) => game.id === 'night-overwatch' && game.source === source));
-        for (const dir of [source, 'apps/shell-web'])
-          assert.equal(packages.filter((pkg) => pkg.dir === dir).length, 1);
-        scopes.set(file, [source, 'apps/shell-web']);
       } else if (
         file === standaloneChecksFile &&
         exactHomeboundReadyGuard(readBase(file), readHead(file))

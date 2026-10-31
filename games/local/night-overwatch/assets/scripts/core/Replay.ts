@@ -1,13 +1,13 @@
 import { Simulation, type PauseReason } from './Simulation.ts';
-import { validLoadout, type Loadout } from './Armory.ts';
+import { WEAPONS } from './Data.ts';
 import { MISSIONS, TRAINING } from './MissionCatalog.ts';
 
-export const RANKED_RULE_VERSION = 'night-input-replay-v10';
+export const RANKED_RULE_VERSION = 'night-input-replay-v8';
 export type ReplayFrame = { input: Record<string, unknown>; ticks: number };
 export type NightReplay = { simulation: ReturnType<Simulation['checkpoint']>; assisted: boolean };
 const commands = ['setOrbitDirection', 'adjustAltitude', 'adjustRadius', 'pause',
   'beginResumeCountdown', 'stepCountdown', 'clearInput', 'choose', 'selectHoming',
-  'lockHoming', 'useCoolant', 'setAim', 'setFire', 'command', 'fire', 'grantBuff', 'grantAmmoSupply', 'grantHomingAmmo', 'setExtractionRadioPending'] as const;
+  'lockHoming', 'setAim', 'setFire', 'command', 'fire', 'grantBuff', 'grantAmmoSupply', 'grantHomingAmmo', 'setExtractionRadioPending'] as const;
 const pauseReasons: PauseReason[] = ['help', 'settings', 'mission', 'manual', 'orientation',
   'background', 'focus', 'advert', 'supply', 'countdown'];
 function requireInput(ok: unknown): asserts ok {
@@ -15,13 +15,13 @@ function requireInput(ok: unknown): asserts ok {
 }
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
-export function createNightReplay(board: string, levelId?: string, loadout: Loadout = []): NightReplay {
+export function createNightReplay(board: string, levelId?: string): NightReplay {
   const mission = board === 'training' && levelId === undefined ? TRAINING
     : board === 'campaign' ? MISSIONS.find(item => item.id === levelId) : undefined;
-  requireInput(mission && validLoadout(loadout) && (mission.mode !== 'training' || !loadout.length));
-  const sim = new Simulation(mission.id, loadout);
+  requireInput(mission);
+  const sim = new Simulation(mission.id);
   sim.start();
-  return { simulation: sim.checkpoint(), assisted: loadout.some(item=>item.trial===true) };
+  return { simulation: sim.checkpoint(), assisted: false };
 }
 
 function command(sim: Simulation, input: Record<string, unknown>, state: NightReplay) {
@@ -44,7 +44,7 @@ function command(sim: Simulation, input: Record<string, unknown>, state: NightRe
       one(); requireInput(finite(args[0]) && args[0] > 0 && args[0] <= .1); sim.stepCountdown(args[0]); break;
     case 'clearInput': none(); sim.clearInput(); break;
     case 'choose':
-      one(); requireInput(Number.isInteger(args[0]) && args[0] >= 0 && args[0] < sim.guns.length);
+      one(); requireInput(Number.isInteger(args[0]) && args[0] >= 0 && args[0] < WEAPONS.length);
       sim.choose(args[0]); break;
     case 'selectHoming': none(); sim.selectHoming(); break;
     case 'lockHoming':
@@ -65,7 +65,6 @@ function command(sim: Simulation, input: Record<string, unknown>, state: NightRe
     case 'command': none(); sim.command(); break;
     case 'setExtractionRadioPending':
       one(); requireInput(typeof args[0] === 'boolean'); sim.setExtractionRadioPending(args[0]); break;
-    case 'coolant': none(); if(sim.useCoolant())state.assisted=true; break;
     case 'fire': none(); sim.fire(); break;
     case 'grantHomingAmmo':
       one(); requireInput(Number.isSafeInteger(args[0]) && args[0] > 0);
@@ -120,7 +119,7 @@ export function observeNightInputs(sim: Simulation, record: (input: Record<strin
       if (depth === 0) {
         const point = args[0] as { x: number; z: number };
         const values = name === 'setAim' ? [{ x: point.x, z: point.z }] : args;
-        record({ command: name === 'useCoolant' ? 'coolant' : name, args: JSON.parse(JSON.stringify(values)) }, 0);
+        record({ command: name, args: JSON.parse(JSON.stringify(values)) }, 0);
       }
       depth++;
       try { return Reflect.apply(original, sim, args); } finally { depth--; }

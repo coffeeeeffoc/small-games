@@ -23,7 +23,6 @@ const sources = {
     'games/local/tetracube/assets/scripts/core/campaign.js',
     'games/local/tetracube/assets/scripts/core/engine.js',
     'games/local/tetracube/assets/scripts/core/config.js',
-    'games/local/night-overwatch/assets/scripts/core/Armory.ts',
     'games/local/night-overwatch/assets/scripts/core/Duel.ts',
     'games/local/night-overwatch/assets/scripts/core/Replay.ts',
     'games/local/night-overwatch/assets/scripts/core/Simulation.ts',

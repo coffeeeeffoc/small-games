@@ -136,11 +136,6 @@ export const WEAPONS = [
     automatic: false,
   },
 ] as const;
-export const EMP_INDEX = 4;
-export const ALL_WEAPONS = [...WEAPONS, {
-  ...WEAPONS[0], id: 'emp', name: ['电磁脉冲', 'EMP'], interval: 18, speed: 56,
-  radius: 8, damage: 0, heat: 0, ammo: 2, automatic: false,
-}] as const;
 export const UNITS = {
   light: {
     hp: 32,
@@ -189,10 +184,10 @@ export const UNITS = {
   },
 } as const;
 // Distance to the hull, rather than its centre, keeps direct hits at full damage.
-export function impactDamage(weapon: number, kind: Kind, centreDistance: number, radius = Number(WEAPONS[weapon]?.radius)): number {
+export function impactDamage(weapon: number, kind: Kind, centreDistance: number): number {
   const w = WEAPONS[weapon];
   if (!w || !Number.isFinite(centreDistance) || centreDistance < 0) return 0;
-  const falloff = Math.max(0, 1 - Math.max(0, centreDistance - UNITS[kind].radius) / radius);
+  const falloff = Math.max(0, 1 - Math.max(0, centreDistance - UNITS[kind].radius) / w.radius);
   return w.damage * falloff * (kind === 'heavy' ? w.armor : 1);
 }
 export const ROUTE: Point[] = [

@@ -12,28 +12,6 @@ const defer = () => {
   return { promise, resolve };
 };
 const turn = () => new Promise((resolve) => setImmediate(resolve));
-
-test('a finish requested during upload returns the single settlement with its coin reward', async () => {
-  const f = durableFixture(),
-    rec = f.recorder(),
-    began = defer(),
-    release = defer();
-  const append = f.services.appendFrames,
-    finish = f.services.finishRun;
-  f.services.appendFrames = async (request) => {
-    began.resolve();
-    await release.promise;
-    return append(request);
-  };
-  f.services.finishRun = async (request) => ({ ...(await finish(request)), coins: 300 });
-  await rec.start({ mode: 'campaign', levelId: 'first' });
-  rec.record({}, 600);
-  await began.promise;
-  const pending = rec.finish();
-  release.resolve();
-  assert.equal((await pending).coins, 300);
-  assert.equal(f.calls.filter((call) => call === 'finish').length, 1);
-});
 function durableFixture() {
   const values = new Map(),
     runs = new Map(),
@@ -68,7 +46,6 @@ function durableFixture() {
         run = {
           id: input.requestId,
           board: input.mode,
-          loadout: input.loadout,
           levelId: input.levelId,
           version: 'v8',
           playerId: input.playerId,
@@ -139,20 +116,6 @@ function durableFixture() {
     owner: (v) => (owner = v),
   };
 }
-test('Night run retries keep the original gear even when the selection changes offline', async () => {
-  const f = durableFixture();
-  f.offline(true);
-  const recorder = f.recorder(),
-    loadout = [{ id: 'power', tier: 1 }];
-  await recorder.start({ mode: 'campaign', levelId: 'first', loadout });
-  loadout[0].tier = 2;
-  recorder.record({}, 120);
-  await recorder.finish();
-  f.offline(false);
-  await f.recorder().recover();
-  assert.deepEqual([...f.runs.values()][0].loadout, [{ id: 'power', tier: 1 }]);
-});
-
 test('Night durable completion survives lost append response and reload, querying before replay', async () => {
   const f = durableFixture(),
     first = f.recorder();
@@ -1130,166 +1093,4 @@ test('updateProfile returns /me and updates the scoped identity cache', async (t
   };
   assert.equal((await api.updateProfile({ nickname: '夜航玩家' })).nickname, '夜航玩家');
   assert.equal((await api.session()).nickname, '夜航玩家');
-});
-test('Night trial preparation reuses one run after lost create response and after reload', async () => {
-  for (const reload of [false, true]) {
-    const f = durableFixture(),
-      first = f.recorder(),
-      create = f.services.startRun;
-    let lose = true;
-    f.services.startRun = async (input) => {
-      const run = await create(input);
-      if (lose) {
-        lose = false;
-        throw Object.assign(Error(), { code: 'SERVICE_UNAVAILABLE' });
-      }
-      return run;
-    };
-    const input = {
-      mode: 'campaign',
-      levelId: 'first',
-      loadout: [{ id: 'emp', tier: 1, trial: true }],
-    };
-    assert.equal(await first.start(input), null);
-    assert.equal(f.runs.size, 1);
-    first.record({ fire: true }, 120);
-    first.invalidate();
-    assert.equal([...f.values.values()].filter((raw) => JSON.parse(raw).schema === 1).length, 1);
-    const next = reload ? f.recorder() : first,
-      confirmed = await next.start(reload ? { ...input, loadout: [] } : input);
-    assert(confirmed.id);
-    assert.deepEqual(confirmed.loadout, input.loadout);
-    assert.equal(f.runs.size, 1);
-    assert.equal(new Set(f.requests).size, 1);
-    next.record({}, 120);
-    next.invalidate();
-    await next.start(input);
-    assert.equal(f.runs.size, 2, 'a played match is not reused as a new battle');
-  }
-});
-
-test('Night pending trial cannot migrate to a different owner or configuration', async () => {
-  const f = durableFixture(),
-    first = f.recorder(),
-    input = {
-      mode: 'campaign',
-      levelId: 'first',
-      loadout: [{ id: 'emp', tier: 1, trial: true }],
-    };
-  const create = f.services.startRun;
-  f.services.startRun = async (input) => {
-    await create(input);
-    throw Object.assign(Error(), { code: 'SERVICE_UNAVAILABLE' });
-  };
-  assert.equal(await first.start(input), null);
-  f.services.startRun = create;
-  f.owner('pilot-b');
-  await f.recorder().start(input);
-  assert.equal(f.runs.size, 2);
-  f.owner('pilot-a');
-  await f.recorder().start({ ...input, levelId: 'second' });
-  assert.equal(f.runs.size, 3);
-});
-
-test('Night unbegun trials survive recovery after 24 hours and resume the original expired run', async () => {
-  const f = durableFixture(),
-    first = f.recorder();
-  const input = {
-    mode: 'campaign',
-    levelId: 'first',
-    loadout: [{ id: 'emp', tier: 3, trial: true }],
-  };
-  const paid = await first.start(input);
-  first.invalidate();
-  const name = [...f.values.keys()][0],
-    journal = JSON.parse(f.values.get(name));
-  journal.savedAt = Date.now() - 2 * 86400000;
-  f.values.set(name, JSON.stringify(journal));
-  f.runs.get(paid.id).expiresAt = 0;
-  const restored = f.recorder();
-  await restored.recover();
-  assert(f.values.has(name), 'recovery must not discard a paid, unplayed trial');
-  const resumed = await restored.start({ ...input, loadout: [] });
-  assert.equal(resumed.id, paid.id);
-  assert.deepEqual(resumed.loadout, input.loadout);
-  assert.equal(f.runs.size, 1);
-  assert.equal(f.calls.filter((call) => call === 'resume').length, 1);
-  assert.equal(restored.begin(), true);
-});
-
-test('Night trial begin refuses failed storage writes and can retry without creating another run', async () => {
-  for (const silent of [false, true]) {
-    const f = durableFixture(),
-      rec = f.recorder();
-    const input = {
-      mode: 'campaign',
-      levelId: 'first',
-      loadout: [{ id: 'emp', tier: 3, trial: true }],
-    };
-    const paid = await rec.start(input),
-      write = f.storage.setItem;
-    f.storage.setItem = () => {
-      if (!silent) throw Error('quota');
-    };
-    assert.equal(rec.begin(), false);
-    assert.equal(rec.status, 'storage-unavailable');
-    assert.equal(paid.begun, false);
-    rec.record({ fire: true }, 120);
-    assert.deepEqual(paid.tail, []);
-    const name = [...f.values.keys()][0];
-    assert.notEqual(JSON.parse(f.values.get(name)).begun, true);
-    f.storage.setItem = write;
-    assert.equal((await rec.start(input)).id, paid.id);
-    assert.equal(f.runs.size, 1);
-    assert.equal(rec.begin(), true);
-    assert.equal(JSON.parse(f.values.get(name)).begun, true);
-    rec.invalidate();
-    await f.recorder().start(input);
-    assert.equal(f.runs.size, 2, 'a durably begun trial cannot be reused after leaving');
-  }
-});
-
-test('Night damaged old journals do not prevent preparing a new trial', async () => {
-  const f = durableFixture();
-  await f.recorder().start({ mode: 'campaign', levelId: 'old' });
-  const name = [...f.values.keys()][0];
-  f.values.set(name, '{broken');
-  const rec = f.recorder();
-  const prepared = await rec.start({
-    mode: 'campaign',
-    levelId: 'first',
-    loadout: [{ id: 'emp', tier: 3, trial: true }],
-  });
-  assert(prepared.id);
-  assert.equal(rec.status, 'recording');
-  assert.equal(f.runs.size, 2);
-  assert.equal(f.values.get(name), '{broken');
-});
-
-test('Night trial lookup snapshots storage keys before removing an acknowledged older journal', async () => {
-  const f = durableFixture();
-  const old = await f.recorder().start({ mode: 'campaign', levelId: 'old' });
-  const oldName = [...f.values.keys()][0];
-  const input = {
-    mode: 'campaign',
-    levelId: 'first',
-    loadout: [{ id: 'emp', tier: 3, trial: true }],
-  };
-  const paid = await f.recorder().start(input);
-  f.values.set(
-    oldName + ':synced',
-    JSON.stringify({
-      schema: 1,
-      synced: true,
-      requestId: old.requestId,
-      id: old.id,
-      playerId: old.playerId,
-      result: { accepted: true },
-    }),
-  );
-  const restored = await f.recorder().start({ ...input, loadout: [] });
-  assert.equal(restored.id, paid.id);
-  assert.deepEqual(restored.loadout, input.loadout);
-  assert.equal(f.runs.size, 2);
-  assert.equal(f.values.has(oldName), false);
 });

@@ -1093,7 +1093,6 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         timeout: 60000,
       })
       .toBe('loaded');
-    await expect(frame.locator('#night-startup')).toHaveCount(0, { timeout: 60000 });
     const press = async (id) => {
       const buttons = await gameDocument.evaluate(() => globalThis.__night.snapshot().buttons);
       if (!buttons.some((b) => b.id === id) && buttons.some((b) => b.id === 'flightControls'))
@@ -1101,7 +1100,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       await expect
         .poll(() =>
           gameDocument.evaluate(
-            (id) => globalThis.__night.snapshot().buttons.some((b) => b.id === id && !b.disabled),
+            (id) => globalThis.__night.snapshot().buttons.some((b) => b.id === id),
             id,
           ),
         )
@@ -1134,18 +1133,15 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
           ),
       );
     };
-    await expect
-      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().armory.page))
-      .toBe('base');
-    await press('armory:solo');
+    await press('missions');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
       .toBe('missions');
     await press('homeMenu');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
-      .toBe('armory:base');
-    await press('armory:solo');
+      .toBe('home');
+    await press('missions');
     await press('training');
     await press('start');
     await expect

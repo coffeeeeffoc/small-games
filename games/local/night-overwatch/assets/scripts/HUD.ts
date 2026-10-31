@@ -1,5 +1,4 @@
 import { playerId, playerLabel, type Online } from './Online';
-import { initialArmoryView, renderArmory, type ArmoryViewState } from './ArmoryView';
 import {
   Camera,
   Canvas,
@@ -43,7 +42,7 @@ import {
 import type { Simulation } from './core/Simulation';
 import type { World } from './World';
 import { missionUnlocked, newMissionProgress, type MissionProgress } from './core/MissionProgress';
-import { missionCoins, MISSIONS, TRAINING, type MissionLight } from './core/MissionCatalog';
+import { MISSIONS, TRAINING, type MissionLight } from './core/MissionCatalog';
 import { mapRoute, routeLength, riverX, type BattlefieldId } from './core/Data';
 import { trainingNextGoal, type TrainingRecord } from './core/TrainingRecords';
 import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
@@ -84,7 +83,7 @@ export class HUD {
   pressedButton = '';
   private uiFrames = new Map<string, SpriteFrame>();
   private surfaces?: Node;
-  get interfaceArtworkReady() { return this.uiFrames.size === 7 && !!this.titleArtwork && this.missionArtwork.length === 3 && this.dayArtwork.length === 3; }
+  get interfaceArtworkReady() { return this.uiFrames.size === 3 && !!this.titleArtwork && this.missionArtwork.length === 3 && this.dayArtwork.length === 3; }
   effects: EffectsFrame = { impacts: [], projectiles: [] };
   buttons: ButtonRect[] = [];
   labels = new Map<string, Label>();
@@ -95,17 +94,9 @@ export class HUD {
   screenControl = false;
   screenActive = false;
   missionsOpen = false;
-  private armoryState: ArmoryViewState = initialArmoryView();
-  get armory() { return this.armoryState; }
-  set armory(state: ArmoryViewState) {
-    if (this.armoryState === state) return;
-    this.armoryState = state;
-    if (!this.editing) this.modalKey = 'rebuild';
-  }
   online?: Online;
   reportOpen = false;
   timeComparison?: TimeComparison;
-  rewardCoins?: number;
   missionPage = 0;
   missionProgress: MissionProgress = newMissionProgress();
   developer = false;
@@ -203,10 +194,10 @@ export class HUD {
       }
       if (!this.editing) this.modalKey = 'rebuild';
     });
-    for (const name of ['panel', 'button', 'insignia', 'base-desk', 'shop-desk', 'daily-desk', 'loadout-desk']) resources.load(`ui/${name}/texture`, Texture2D, (error, texture) => {
+    for (const name of ['panel', 'button', 'insignia']) resources.load(`ui/${name}/texture`, Texture2D, (error, texture) => {
       if (error || !isValid(this.root)) return;
       const frame = new SpriteFrame(); frame.texture = texture;
-      if (name === 'panel' || name === 'button') {
+      if (name !== 'insignia') {
         const edge = Math.round(Math.min(texture.width, texture.height) * .065);
         frame.insetLeft = frame.insetRight = frame.insetTop = frame.insetBottom = edge;
       }
@@ -363,7 +354,7 @@ export class HUD {
   buttonFeedback() {
     const b = this.pressedButton ? this.buttons.find(b => b.id === this.pressedButton)
       : this.mousePointer ? this.hit(this.mousePointer.x,this.mousePointer.y) : undefined;
-    if (!b || (this.modalKey === 'home' && b.id === 'armory:base') || b.disabled || !b.label.node.activeInHierarchy || (this.modal && b.label.node.parent !== this.modal && !this.isGlobalAction(b.id))) return;
+    if (!b || b.disabled || !b.label.node.activeInHierarchy || (this.modal && b.label.node.parent !== this.modal && !this.isGlobalAction(b.id))) return;
     const v = b.visual || { x:b.x+3,y:b.y+4,w:b.w-6,h:b.h-8 };
     this.rect(this.globalGraphics,v.x,v.y,v.w,v.h,this.pressedButton?'#e5d5b433':'#e0efff14',this.pressedButton?C.amber:'#bdcfd6aa',3);
   }
@@ -415,8 +406,6 @@ export class HUD {
     this.labels.set('priorityMarker', priority);
     const map = this.minimapLayout;
     this.button('battleReport', this.t('战况', 'REPORT'), map.x + map.w - 88, map.y + map.h + 6, 88, 44).fontSize = 12;
-    this.button('weapon4', '', left, by - 58, 88, 44);
-    this.button('coolant', '', left + 94, by - 58, 92, 44);
     this.live('mapLegend', map.x + map.w / 2, map.y + 11, 10, map.w - 4, 20, C.dim);
   }
   rect(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke?: string, radius = 0) {
@@ -677,19 +666,54 @@ export class HUD {
     const number = Math.max(0, MISSIONS.findIndex(mission => mission.id === s.mission.id)) + 1;
     this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#07121c28');
     if (!this.missionsOpen) {
-      const titleW = Math.min(560, (right-left) * .60), titleH = titleW / 3;
-      const titleY = this.safe.top + (h-this.safe.top-this.safe.bottom)*.40-titleH/2;
-      if (this.titleArtwork && this.lang === 'zh') this.image(n,'MetalWordmark',this.titleArtwork,left,titleY,titleW,titleH);
-      else this.label(n,this.t('夜航守望','NIGHT OVERWATCH'),left+titleW/2,titleY+titleH/2,
-        this.compact?30:48,titleW,titleH,C.white).isBold=true;
-      if(this.lang==='zh') this.label(n,'N I G H T   O V E R W A T C H',left+titleW/2,titleY+titleH+14,11,titleW,22,C.action);
-      this.label(n,this.t('轻触屏幕进入','TOUCH TO ENTER'),w/2,h-this.safe.bottom-28,14,w-48,40,C.white);
-      this.button('armory:base','',this.safe.left,this.safe.top,w-this.safe.left-this.safe.right,h-this.safe.top-this.safe.bottom,n);
+      const compact = h < 420, wide = right - left >= 680,
+        menuY = h - this.safe.bottom - (wide ? 76 : 114),
+        titleW = Math.min(wide ? 500 : 390, (right - left) * .62),
+        titleH = titleW / 3,
+        titleY = Math.min(this.safe.top + (compact ? 70 : 112), menuY - titleH - 46);
+      // The title is an authored transparent metal wordmark, not a font approximation.
+      if (this.titleArtwork && this.lang === 'zh') this.image(n, 'MetalWordmark', this.titleArtwork, left - 8, titleY, titleW, titleH);
+      else {
+        const title = this.label(n, this.t('夜航守望', 'OVERWATCH'), left + titleW / 2, titleY + titleH / 2, compact ? 42 : 62, titleW, Math.min(titleH - 20, 76), C.white);
+        title.horizontalAlign = Label.HorizontalAlign.LEFT; title.isBold = true;
+      }
+      const strap = this.label(n, 'N I G H T   O V E R W A T C H', left + titleW / 2, titleY + titleH + 2, compact ? 10 : 12, titleW, 24, C.action);
+      strap.horizontalAlign = Label.HorizontalAlign.LEFT;
+      const subtitle = this.label(n, this.t('长夜之上，守住归途。', 'ABOVE THE NIGHT. BRING THEM HOME.'), left + titleW / 2, titleY + titleH + 28, 12, titleW, 24, '#b8cbd8');
+      subtitle.horizontalAlign = Label.HorizontalAlign.LEFT;
+      const menuW = wide ? (right - left - 36) / 4 : Math.min(248, (right - left - 12) / 2);
+      const entries = [
+        ['missions', this.t('单人模式', 'SINGLE PLAYER'), 'mountain'],
+        ['online:menu', this.t('对战大厅', 'BATTLE LOBBY'), 'battle'],
+        ['online:ranking', this.t('排行榜', 'LEADERBOARDS'), 'ranking'],
+        ['help', this.t('飞行手册', 'FIELD GUIDE'), 'book'],
+      ];
+      for (const [i, [id, caption, symbol]] of entries.entries()) {
+        const x = left + (wide ? i : i % 2) * (menuW + 12), y = menuY + (wide ? 0 : Math.floor(i / 2) * 54), primary = i === 0;
+        this.plate(g, x, y, menuW, 48, primary ? C.amber : '#111d21dc', primary ? C.amber : '#8ba9ba', 5);
+        if (!primary) {
+          this.rect(g, x + 6, y + 5, menuW - 12, 38, '#59778b33');
+          this.rect(g, x + 6, y + 12, 2, 24, C.mint);
+        }
+        this.icon(g, symbol, x + 23, y + 24, 18, primary ? C.action : C.mint);
+        const button = this.button(id, caption + '  ›', x, y, menuW, 48, n);
+        button.node.setPosition(x + menuW / 2 + 11 - w / 2, h / 2 - y - 24);
+        button.node.getComponent(UITransform)!.setContentSize(menuW - 42, 44);
+        this.buttons[this.buttons.length - 1].visual = { x: x + 2, y: y + 2, w: menuW - 4, h: 44 };
+        button.fontSize = menuW < 170 ? 13 : 15; button.color = col(primary ? C.action : C.white); button.isBold = true;
+      }
+      if (this.online) {
+        const settingsLeft = this.buttons.find(button => button.id === 'settings')!.x;
+        const profileW = Math.min(264, settingsLeft - left - 118);
+        this.plate(g, left, this.safe.top + 8, profileW, 44, '#111d21ed', C.line, 6);
+        this.button('online:profile', playerLabel(this.online.identity) + '  ✎', left, this.safe.top + 8,
+          profileW, 44, n).fontSize = 12;
+        this.plate(g, left + profileW + 10, this.safe.top + 8, 92, 44, '#111d21ed', C.line, 6);
+        this.button('online:history', this.t('对战记录', 'RECORDS'), left + profileW + 10, this.safe.top + 8, 92, 44, n).fontSize = 11;
+      }
       return;
     }
     this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#071a2d55');
-    this.label(n, this.developer?this.t('试玩模式 · 不结算金币','PRACTICE · NO GOLD'):s.mission.mode==='training'?this.t('热身不结算金币','WARMUP · NO GOLD'):this.t('当前关卡首通奖励：'+missionCoins(s.mission.id)+' 金币','FIRST CLEAR REWARD: '+missionCoins(s.mission.id)+' GOLD'),
-      w/2,this.safe.top+26,14,right-left,32,'#f1d39a');
     this.label(n, this.t('任务地图', 'MISSION MAP'), left + 78, this.safe.top + 80, 22, 156, 42).isBold = true;
     const page = Math.max(0, Math.min(Math.ceil(MISSIONS.length / 3) - 1, this.missionPage));
     const pagerWidth = this.compact ? 88 : 100, pagerY = this.safe.top + 58;
@@ -988,8 +1012,8 @@ export class HUD {
     online.pageSize = count;
     if (online.panel === 'menu') online.roomPage = Math.min(online.roomPage, Math.max(0, Math.ceil(online.rooms.length / count) - 1));
     if (online.panel === 'history') online.historyPage = Math.min(online.historyPage, Math.max(0, Math.ceil((online.history?.matches.length || 0) / count) - 1));
-    const titles = { menu: ['对战大厅', 'BATTLE LOBBY'], ranking: ['战绩 · 排行榜', 'RANKINGS'], room: ['作战准备室', 'READY ROOM'],
-      profile: ['玩家昵称', 'PLAYER NAME'], create: ['创建房间', 'CREATE ROOM'], join: ['加入房间', 'JOIN ROOM'], history: ['战绩 · 对战记录', 'BATTLE RECORDS'], '': ['', ''] };
+    const titles = { menu: ['对战大厅', 'BATTLE LOBBY'], ranking: ['排行榜', 'RANKINGS'], room: ['作战准备室', 'READY ROOM'],
+      profile: ['玩家昵称', 'PLAYER NAME'], create: ['创建房间', 'CREATE ROOM'], join: ['加入房间', 'JOIN ROOM'], history: ['对战记录', 'BATTLE RECORDS'], '': ['', ''] };
     if(!result){
       const headingW = online.panel === 'ranking' ? pw - 294 : pw - 130;
       const heading=this.label(n,text(titles[online.panel],this.lang),px+54+headingW/2,py+26,21,headingW,32);
@@ -1098,8 +1122,7 @@ export class HUD {
       label(me ? this.t('我的排名 第','MY RANK ') + me.rank + this.t('名 · ',' · ') + metric(me) : this.t('你 · 尚无上榜成绩', 'YOU · NOT YET RANKED'), bottom - 24, 11, C.mint);
       button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
       button('refresh',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
-      button('history',this.t('对战记录','RECORDS'),214,bottom,104,false,true,'history');
-      this.label(n, this.t(`已加载 ${rows.length} 名 · 上下滑动`, `${rows.length} LOADED · SCROLL`), px + 326 + (pw - 344) / 2, py + bottom + 22, 10, pw - 344, 26, C.dim);
+      this.label(n, this.t(`已加载 ${rows.length} 名 · 上下滑动`, `${rows.length} LOADED · SCROLL`), px + 216 + (pw - 234) / 2, py + bottom + 22, 11, pw - 234, 26, C.dim);
       return;
     }
     if (online.panel === 'history') {
@@ -1120,7 +1143,6 @@ export class HUD {
       if (!rows.length) label(online.message || (online.busy ? this.t('正在读取…', 'LOADING…') : this.t('暂无真人对战记录', 'NO HUMAN MATCHES YET')), 144, 13, C.dim);
       button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
       button('history',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
-      button('ranking',this.t('排行榜','RANKINGS'),214,bottom,104,false,true,'ranking');
       button('historyPrev','',pw-150,bottom,44,false,false,'back',online.historyPage===0);
       button('historyNext','',pw-62,bottom,44,false,false,'next',!online.history||(online.history.matches.length<=(online.historyPage+1)*count&&!online.history.nextCursor));
       this.label(n,String(online.historyPage+1),px+pw-84,py+bottom+22,12,40,24,C.dim);
@@ -1215,15 +1237,6 @@ export class HUD {
       return;
     }
     if (key.startsWith('online:') || key === 'duelResult') { this.renderOnline(n, g, s, key === 'duelResult'); return; }
-    if (key.startsWith('armory:')) {
-      const scene = this.uiFrames.get((this.armory.page==='lottery'?'shop':this.armory.page==='trials'?'loadout':this.armory.page) + '-desk');
-      if (scene) {
-        const size = scene.originalSize, scale = Math.max(this.w/size.width,this.h/size.height);
-        this.image(n.getChildByName('Backdrop')!,'ArmoryDesk',scene,(this.w-size.width*scale)/2,(this.h-size.height*scale)/2,size.width*scale,size.height*scale);
-      }
-      renderArmory(this,n,g,this.online ? playerLabel(this.online.identity) : this.t('飞行员','PILOT'));
-      return;
-    }
     if (key === 'home' || key === 'missions') { this.renderHome(n, g, s); return; }
     if (key.startsWith('report:')) {
       const pw = Math.min(640, this.w - this.safe.left - this.safe.right - 32), ph = Math.min(310, this.h - this.safe.top - this.safe.bottom - 24);
@@ -1559,7 +1572,7 @@ export class HUD {
                 );
       this.label(
         n,
-        (success && !training && this.rewardCoins!==undefined ? this.t('金币 +','GOLD +')+this.rewardCoins+' · ' : '')+advice,
+        advice,
         px + pw / 2,
         py + ph - (low ? 74 : small ? 86 : 126),
         small ? 13 : 16,
@@ -1623,7 +1636,7 @@ export class HUD {
         this.homeArtwork.node.getComponent(UITransform)!.setContentSize(size.width * scale, size.height * scale);
       }
     }
-    let key = s.phase === 'briefing' ? this.missionsOpen ? 'missions' : this.armory.page === 'cover' ? 'home' : 'armory:' + this.armory.page : s.phase === 'playing' ? '' : s.phase;
+    let key = s.phase === 'briefing' ? this.missionsOpen ? 'missions' : 'home' : s.phase === 'playing' ? '' : s.phase;
     if (this.online?.panel) key = `online:${this.online.panel}:${this.online.revision}:${this.lang}`;
     else if (s.duelMode && this.online?.view?.finished) key = 'duelResult';
     else if (this.online?.entering) key = 'entering';
@@ -1646,10 +1659,6 @@ export class HUD {
     for (const l of this.labels.values()) l.node.active = !key;
     for (const l of this.unitLabels.values()) l.node.active = false;
     for (const b of this.buttons) {
-      if (b.id === 'weapon4' && !s.guns[4] || b.id === 'coolant' && (s.duelMode || this.online?.spectator || s.coolantUsed || !s.loadout.some(mod => mod.id === 'coolant'))) { b.label.node.active=false; continue; }
-      if (b.id === 'coolant') {
-        b.label.string = this.t('应急冷却','COOLANT'); b.disabled=!s.guns.some(gun=>gun.heat>0);
-      }
       if (this.online?.spectator && (b.id === 'fire' || b.id.startsWith('weapon') || b.id === 'homing')) { b.label.node.active = false; continue; }
       if (s.duelMode && ['homing', 'convoy', 'supply', 'mission'].includes(b.id)) { b.label.node.active = false; continue; }
       if (b.id === 'homing' && !tracking && !s.homingAmmo && !this.rewardsAvailable && !this.pendingSupply) {
@@ -1664,7 +1673,7 @@ export class HUD {
       if (b.label.node.parent === this.root)
         b.label.node.active = !key && b.id !== 'priority' && (b.id !== 'fire' || this.touch || s.homingSelected);
       if (this.isGlobalAction(b.id)) {
-        b.label.node.active = !key || key === 'armory:base';
+        b.label.node.active = !key || key === 'home';
         if (!b.label.node.active) continue;
         const gx = b.x + b.w / 2 - w / 2, gy = h / 2 - b.y - b.h / 2, gear = this.globalGraphics;
         gear.strokeColor = col(!key && !world.thermal && s.mission.light === 'day' ? '#123844' : C.white); gear.lineWidth = 2;
@@ -1712,7 +1721,7 @@ export class HUD {
       if (['playing', 'success', 'failure'].includes(s.phase)) this.effects = drawEffects(this.marks, s, world, this.w, this.h, this.reducedEffects);
       return;
     }
-    const gun = s.guns[s.selected], reason = s.reason(),
+    const gun = s.guns[s.selected], weapon = WEAPONS[s.selected], reason = s.reason(),
       danger = s.friendlyRisk || s.time - s.friendHitAt < 2;
     const plane = s.aircraft;
     const flightTime = s.flightTime(), flightText = Number.isFinite(flightTime) ? flightTime.toFixed(1) + 's' : '—';
@@ -1783,7 +1792,7 @@ export class HUD {
       const selected = (!s.homingSelected && b.id === 'weapon' + s.selected) || ((s.homingSelected || tracking) && b.id === 'homing') || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
       if (b.id.startsWith('weapon')) {
         const i = Number(b.id.slice(-1)), a = s.guns[i];
-        b.label.string = this.t(['速射', '榴弹', '重炮', '燃烧', '电磁'][i], ['RAPID', 'HE', 'HEAVY', 'FIRE', 'EMP'][i]) + '\n' + (a.ammo === Infinity ? '∞' : a.ammo);
+        b.label.string = this.t(['速射', '榴弹', '重炮', '燃烧'][i], ['RAPID', 'HE', 'HEAVY', 'FIRE'][i]) + '\n' + (a.ammo === Infinity ? '∞' : a.ammo);
       }
       if (b.id === 'fire') b.label.string = reason === 'extracting' ? this.t('停火', 'CEASE FIRE') : s.homingSelected
         ? s.homingAmmo <= 0 ? this.t('无弹药', 'EMPTY') : s.homingTarget ? this.t('发射', 'LAUNCH') : this.t('待锁定', 'LOCK')
@@ -1791,7 +1800,7 @@ export class HUD {
         : reason === 'empty' ? this.t('无弹药', 'EMPTY') : this.t('开火', 'FIRE');
       const fire = b.id === 'fire';
       this.plate(g, b.x, b.y, b.w, b.h, fire ? danger ? '#482832' : C.mint : selected ? '#29463ee0' : '#101a1ee6', fire && danger ? C.red : selected || fire ? C.mint : '#708a8066', fire ? 12 : 7);
-      b.label.color = col(b.disabled ? C.dim : fire && !danger ? C.action : selected ? C.mint : C.white);
+      b.label.color = col(fire && !danger ? C.action : selected ? C.mint : C.white);
       if (b.id === 'homing' && tracking && s.buff!.remaining <= 5) b.label.color = col(C.amber);
       b.label.isBold = selected || fire;
       if ((b.id.startsWith('weapon') || b.id === 'homing') && b.w >= 64) {
@@ -2090,7 +2099,7 @@ export class HUD {
     }
     g.strokeColor = col(s.reason() === 'protected' || s.friendlyRisk ? C.red : C.mint);
     g.lineWidth = 1.5;
-    groundRing(s.aim, s.radius());
+    groundRing(s.aim, WEAPONS[s.selected].radius);
     for (const outline of [true, false]) {
       g.strokeColor = col(outline ? '#061116' : s.reason() === 'protected' || s.friendlyRisk ? C.red : C.white);
       g.lineWidth = outline ? 6 : 3;
