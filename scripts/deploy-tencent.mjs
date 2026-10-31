@@ -258,6 +258,7 @@ export async function prepareBackend(destination, workspace = root) {
     'games/local/tetracube/assets/scripts/core/config.js',
     'games/local/night-overwatch/assets/scripts/core/Duel.ts',
     'games/local/night-overwatch/assets/scripts/core/Replay.ts',
+    'games/local/night-overwatch/assets/scripts/core/Progression.ts',
     'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
     'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
     'games/local/night-overwatch/assets/scripts/core/Data.ts',

@@ -69,6 +69,7 @@ it('packages an executable carrom rule with its engine and content, without ship
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
       'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
       'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+      'games/local/night-overwatch/assets/scripts/core/Progression.ts',
       'games/local/night-overwatch/assets/scripts/core/Data.ts',
       'games/local/night-overwatch/assets/scripts/core/Flight.ts',
 

@@ -252,6 +252,13 @@ export class Platform {
         ? outcome.status : 'failed' as const;
     } catch { return 'failed' as const; }
   }
+  async offerSupplyVideo(){
+    const bridge=(globalThis as typeof globalThis&{SmallGamesRewardAds?:{offer:RewardProvider}}).SmallGamesRewardAds;
+    const provider=this.rewardProvider??bridge?.offer.bind(bridge);
+    if(!provider)return 'unavailable';
+    try{return (await provider({id:'night-overwatch:supply-package',reward:{supplyPackageSegment:1}})).status;}
+    catch{return 'failed';}
+  }
   grantReward(kind: RewardKind) {
     if (kind === 'supply') this.rewards.pendingSupply = true;
     else this.rewards.zoomLimit = nextZoomLimit(this.rewards.zoomLimit) ?? this.rewards.zoomLimit;

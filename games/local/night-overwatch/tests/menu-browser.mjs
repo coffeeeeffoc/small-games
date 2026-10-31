@@ -22,7 +22,7 @@ try {
   assert(!(await snapshot(page)).ui.worldVisible);
   // Keyboard and touch both enter selection before deployment.
   await page.keyboard.press('Enter'); await page.waitForTimeout(1200);
-  assert.equal((await snapshot(page)).modal, 'missions'); assert.equal((await snapshot(page)).phase, 'briefing');
+  assert.equal((await snapshot(page)).modal, 'progression:modes'); await click('mode:enter'); assert.equal((await snapshot(page)).modal,'missions'); assert.equal((await snapshot(page)).phase, 'briefing');
   await click('mission:ambush-02');
   let s = await snapshot(page); assert.equal(s.mission.map, 'highland'); assert(s.ui.worldVisible);
   await page.screenshot({ path: `${dir}/selected-highland-844.png` });

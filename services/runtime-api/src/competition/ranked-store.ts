@@ -12,7 +12,13 @@ import { CompetitionError } from './types.js';
 import { createRankedRuns } from './ranked-runs.js';
 import type { RankedRule, RankedRun, Receipt, RunRepository } from './ranked-types.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
-import { assertResourceAuth } from './auth.js';
+import { assertResourceAuth, playerIdOf } from './auth.js';
+import {
+  reserveNightLoadout,
+  consumeNightLoadout,
+  rewardNightBattle,
+  refundNightLoadout,
+} from './night-assets.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
 /** Namespaced match rows hold checkpoints and small durable idempotency receipts. */
@@ -28,6 +34,9 @@ export function createRankedStore(
       return db.transaction(async (tx) => {
         const policy = await gamePolicy(control, tx, run.game);
         await assertResourceAuth(tx, auth ?? run.playerId, run.game, now());
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtextextended(${`ranked-run:${run.id}`},0))`,
+        );
         const existing = await tx.execute(
           sql`select data from runtime.competition_matches where id=${`ranked-run:${run.id}`} for update`,
         );
@@ -38,6 +47,18 @@ export function createRankedStore(
         }
         assertGameControl(policy, policy?.killEpoch, true);
         run.killEpoch = policy?.killEpoch ?? 0;
+        const rule = rules.get(run.game)!;
+        if (run.game === 'night-overwatch' && rule.progression && rule.configure) {
+          run.loadout = await reserveNightLoadout(
+            tx,
+            run.playerId,
+            now(),
+            `run:${run.id}`,
+            'solo',
+            rule.progression,
+          );
+          run.state = rule.configure(run.state, run.loadout);
+        }
         await tx.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
           values(${`ranked-run:${run.id}`},${run.boardKey},${JSON.stringify(run)}::jsonb,${run.createdAt}) on conflict(id) do nothing`);
         const rows = await tx.execute(
@@ -47,7 +68,7 @@ export function createRankedStore(
       });
     },
     async mutate(id, change, auth) {
-      return db.transaction(async (tx) => {
+      const outcome = await db.transaction(async (tx) => {
         let policy: Awaited<ReturnType<typeof gamePolicy>>;
         if (control) {
           const preview = await tx.execute(
@@ -63,8 +84,36 @@ export function createRankedStore(
         if (!run || run.kind !== 'ranked-run-v1') throw new CompetitionError('RUN_NOT_FOUND', 404);
         if (policy && policy.gameId !== run.game) throw new CompetitionError('WRONG_GAME');
         if (auth) await assertResourceAuth(tx, auth, run.game, now());
+        const current = rules.get(run.game);
+        const invalid =
+          run.version !== current?.version
+            ? 'RULE_VERSION_CHANGED'
+            : policy?.state === 'disabled'
+              ? 'GAME_DISABLED'
+              : policy && policy.killEpoch !== (run.killEpoch ?? 0)
+                ? 'GAME_CANCELLED'
+                : undefined;
+        if (
+          run.game === 'night-overwatch' &&
+          run.loadout &&
+          current?.progression &&
+          run.status === 'active' &&
+          !run.settlement &&
+          invalid
+        ) {
+          if (!auth || run.playerId !== playerIdOf(auth))
+            throw new CompetitionError('NOT_A_MEMBER', 403);
+          await refundNightLoadout(tx, run.playerId, now(), `run:${run.id}`, current.progression);
+          run.status = 'finished';
+          await tx.execute(
+            sql`update runtime.competition_matches set data=${JSON.stringify(run)}::jsonb where id=${`ranked-run:${id}`}`,
+          );
+          // Returning the error commits the refund; throwing here would roll it back.
+          return { error: new CompetitionError(invalid) };
+        }
         if (
           !new Set([
+            rules.get(run.game)?.boardKey?.(run.board),
             `${run.game}:${run.board}:${rules.get(run.game)?.boardVersion ?? run.version}`,
             `${run.game}:${run.board}:${run.version}`,
           ]).has(run.boardKey) ||
@@ -74,6 +123,42 @@ export function createRankedStore(
         const original = JSON.stringify(run);
         const result = await change({
           run,
+          async consumeLoadout() {
+            const progression = rules.get(run.game)?.progression;
+            if (run.loadout && !run.loadoutStarted && progression) {
+              await consumeNightLoadout(tx, run.playerId, now(), `run:${run.id}`, progression);
+              run.loadoutStarted = true;
+            }
+          },
+          async releaseLoadout() {
+            const progression = rules.get(run.game)?.progression;
+            if (run.loadout && !run.loadoutStarted && progression)
+              await consumeNightLoadout(
+                tx,
+                run.playerId,
+                now(),
+                `run:${run.id}`,
+                progression,
+                true,
+              );
+          },
+          async reward(settlement) {
+            const progression = rules.get(run.game)?.progression;
+            if (run.game === 'night-overwatch' && progression)
+              Object.assign(
+                settlement,
+                await rewardNightBattle(tx, run.playerId, now(), `run:${run.id}`, progression, {
+                  mode: 'solo',
+                  outcome: settlement.cleared ? 'win' : 'loss',
+                  durationMs: settlement.secondary,
+                  valid:
+                    settlement.complete &&
+                    settlement.participated === true &&
+                    run.loadoutStarted === true,
+                  levelId: run.levelId,
+                }),
+              );
+          },
           assertControl: () => assertGameControl(policy, run.killEpoch ?? 0),
           async receipt(seq) {
             const receipts = await tx.execute(
@@ -121,8 +206,10 @@ export function createRankedStore(
           await tx.execute(
             sql`update runtime.competition_matches set data=${JSON.stringify(run)}::jsonb where id=${`ranked-run:${id}`}`,
           );
-        return result;
+        return { result };
       });
+      if ('error' in outcome) throw outcome.error;
+      return outcome.result;
     },
   };
   return createRankedRuns(repository, rules, identity, now);

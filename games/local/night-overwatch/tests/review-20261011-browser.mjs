@@ -1,3 +1,4 @@
+import { settleVisuals } from './visual-helpers.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -23,11 +24,16 @@ try {
         : { x: r.left + x * r.width / s.ui.width, y: r.top + y * r.height / s.ui.height };
     }, { x, y });
     const press = async id => {
+      if (id === 'missions' && (await snapshot(page)).modal === 'home') {
+        await press('qm:modes'); await press('mode:solo'); await press('mode:enter');
+        return;
+      }
       if (id === 'start' && (await snapshot(page)).modal === 'home') await press('missions');
       const s = await snapshot(page), b = s.buttons.find(button => button.id === id);
       assert(b, `visible ${id}`);
       const p = await point(b.x + b.w / 2, b.y + b.h / 2);
       await page.touchscreen.tap(p.x, p.y); await page.waitForTimeout(100);
+      await settleVisuals(page);
     };
     const layout = async () => { const s = await snapshot(page); assertLayout(s, s.ui.width, s.ui.height); };
     await page.goto(base);

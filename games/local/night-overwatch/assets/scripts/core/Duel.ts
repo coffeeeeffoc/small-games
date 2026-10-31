@@ -1,8 +1,9 @@
 import { Simulation } from './Simulation.ts';
 import { WEAPONS, patrolPoint, type Point } from './Data.ts';
 import { MISSIONS } from './MissionCatalog.ts';
+import type { BattleLoadout } from './Progression.ts';
 
-export const DUEL_VERSION = 'night-duel-v2';
+export const DUEL_VERSION = 'night-duel-v3';
 // Retained for older presentation callers; authority has no match time limit.
 export const DUEL_SECONDS = 0;
 type Pilot = ReturnType<Simulation['pilotState']> & { leaseUntil: number };
@@ -41,18 +42,28 @@ function applyControl(sim: Simulation, input: DuelCommand) {
       check(a.length === 1 && p && Object.keys(p).length === 2 && Number.isFinite(p.x) && Number.isFinite(p.z) && Math.abs(p.x) <= 10000 && Math.abs(p.z) <= 10000);
       sim.setAim(p); break;
     }
-    case 'choose': check(a.length === 1 && Number.isInteger(a[0]) && Number(a[0]) >= 0 && Number(a[0]) < WEAPONS.length); sim.choose(Number(a[0])); break;
+    case 'choose': check(a.length === 1 && Number.isInteger(a[0]) && Number(a[0]) >= 0 && Number(a[0]) < WEAPONS.length && sim.hasWeapon(Number(a[0]))); sim.choose(Number(a[0])); break;
     case 'setFire':
       check(a.length === 2 && typeof a[0] === 'string' && a[0].length > 0 && a[0].length <= 80 && typeof a[1] === 'boolean');
       check(!a[1] || sim.held.has(a[0] as string) || sim.held.size < 10);
       sim.setFire(a[0] as string, a[1] as boolean); break;
     case 'fire': check(a.length === 0); sim.fire(); break;
+    case 'useSkill': check(a.length === 0); sim.useSkill(); break;
     case 'clearInput': check(a.length === 0); sim.clearInput(); break;
     case 'adjustAltitude': case 'adjustRadius':
       check(a.length === 1 && (a[0] === -20 || a[0] === 20)); sim[input.command](a[0] as number); break;
     case 'setOrbitDirection': check(a.length === 1 && (a[0] === -1 || a[0] === 1)); sim.setOrbitDirection(a[0] as -1 | 1); break;
     default: throw Error('Unsupported duel command');
   }
+}
+export function configureDuel(state:DuelState,snapshots:BattleLoadout[]) {
+  check(state.ticks===0&&snapshots.length>=1&&snapshots.length<=2);
+  const sim=Simulation.restore(state.simulation);
+  for(const [seat,snapshot] of snapshots.entries()){
+    sim.usePilot(state.pilots[seat],seat);sim.applyLoadout(snapshot);
+    state.pilots[seat]=copy({...sim.pilotState(),leaseUntil:state.pilots[seat].leaseUntil});
+  }
+  sim.usePilot(state.pilots[0],0);state.simulation=sim.checkpoint();return state;
 }
 export function commandDuel(state: DuelState, seat: number, commands: DuelCommand[]) {
   check((seat === 0 || seat === 1) && !state.bots[seat] && !state.finished && Array.isArray(commands) && commands.length <= 64);
@@ -75,6 +86,7 @@ function botControl(state: DuelState, sim: Simulation, side: number) {
   const targets = sim.units.filter(unit => unit.group !== side && unit.hp > 0);
   const enemy = targets[Math.floor(sim.time / 20) % targets.length];
   if (!enemy) return;
+  if(sim.skillKind&&sim.skillCooldown<=0)sim.useSkill();
   sim.choose(enemy.kind !== 'turret' && sim.guns[2].ammo > 0 ? 2 : 1);
   // A single rough lead deliberately underestimates flight; never solve the exact intercept.
   const flight = sim.flightTime(sim.selected, enemy);

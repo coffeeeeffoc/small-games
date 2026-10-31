@@ -25,6 +25,7 @@ import {
   competitionIdentityScopePaths,
   competitionIdentityMirrorPaths,
   gameServiceScopePaths,
+  nightLocalScopePaths,
   publishingConsumers,
   publishingScopePaths,
   publishingHostConsumers,
@@ -56,7 +57,7 @@ export const cacheToolPaths = Object.freeze([
 ]);
 
 const validationTool =
-  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|game-rename-scope|fullscreen-removal-scope|test-no-fullscreen|local-game-retirement-(?:scope|reviews)|game-retirement-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/ci-(?:baseline|stages)(?:\.test)?\.mjs|scripts\/(?:reuse-cocos-artifacts|night-runtime-scope)\.test\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|scripts\/check-staged-format(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
+  /^(?:scripts\/(?:validate-(?:push(?:-hook)?|tree)|validation-plan|incremental-validation|validate-candidate|hook-diagnostics|run-selected-(?:shell|browser)|ci-validation|browser-preparation|rule-tasks|cocos-validation|workspace-bootstrap|pages-test-scope|pages-registration-scope|game-rename-scope|fullscreen-removal-scope|test-no-fullscreen|local-game-retirement-(?:scope|reviews)|game-retirement-scope|pages-regression-shards|publication-scopes|vite-patch-scope|run-selected-competition)(?:\.[^/]+)?\.mjs|scripts\/ci-(?:baseline|stages)(?:\.test)?\.mjs|scripts\/(?:reuse-cocos-artifacts|night-(?:runtime|growth)-scope)\.test\.mjs|scripts\/nine-(?:native|lock)-scope(?:\.test)?\.mjs|scripts\/check-staged-format(?:\.test)?\.mjs|\.githooks\/[^/]+)$/;
 export const tapServiceCheckPaths = Object.freeze([
   ...tapServiceSharedScopePaths,
   tapServiceConfigScopePath,
@@ -440,6 +441,9 @@ export function incrementalPlan({
     ),
     game_services_checks: paths.some(
       (file) => gameServiceScopePaths.includes(file) && fileScopes.has(file),
+    ),
+    night_local_checks: paths.some(
+      (file) => nightLocalScopePaths.includes(file) && fileScopes.has(file),
     ),
     identity_checks: paths.some((file) =>
       [

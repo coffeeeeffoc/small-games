@@ -1,0 +1,115 @@
+import { CATALOG, PACKAGES, POOLS, emptyLoadout, type AssetCommand, type AssetSnapshot, type Effect, type Loadout, type Product } from './core/Progression.ts';
+import type { Online } from './Online';
+export type AssetIntent = AssetCommand extends infer T ? T extends AssetCommand ? Omit<T,'requestId'> : never : never;
+export type ProgressionPage = ''|'modes'|'loadout'|'shop'|'supply'|'growth'|'tasks'|'inbox'|'warehouse'|'receipts'|'checkin'|'probability';
+export const effectEnglish:Record<Effect,string>={power:'Power upgrade',rate:'Rapid feed',burst:'Double burst',twin:'Twin trajectory',radius:'Blast radius',cooling:'Cooling system',drone:'Drone swarm',laser:'Laser weapon',tracking:'Tracking',emp:'Electromagnetic pulse'};
+const errors:Record<string,[string,string]>={
+  INSUFFICIENT_COINS:['金币不足，完成行动或任务可获得金币','Not enough coins. Complete operations or tasks.'],
+  INSUFFICIENT_INVENTORY:['库存不足或已被对局预留','Not enough available stock. Some items may be reserved.'],
+  ALREADY_OWNED:['已永久拥有此资格','Already permanently owned.'],ALREADY_CLAIMED:['已经领取，请刷新查看','Already claimed. Refresh to see the result.'],
+  DAILY_VIDEO_LIMIT:['今日视频额度已用完，明日可继续原订单','Daily video limit reached. Continue this order tomorrow.'],
+  INVALID_AD_ATTEMPT:['观看确认已过期，请重新观看本段','Video confirmation expired. Please watch this segment again.'],
+  NOT_CLAIMABLE:['条件尚未完成或奖励已领取','Not complete or already claimed.'],
+  INVALID_LOADOUT:['方案最多2个改装、1个武器、1个技能，同效果不能重复','Use at most 2 mods, 1 weapon and 1 skill, with no duplicate effects.'],
+};
+/** Stores only pending intentions; balances always come from the authenticated service. */
+export class Quartermaster {
+  page:ProgressionPage=''; mode:'solo'|'duel'='solo'; actionMode:'solo'|'duel'|'training'='solo';
+  term:Product['term']='match'; selected='burst-match'; item=''; amount=1; quantity=5; pool:'general'|'gold'='general';
+  section=''; index=0; detail=false; confirmation?:AssetIntent; selectedMail=''; selectedSkill:Effect='tracking';
+  busy=false; viewing=false; revision=0; message:[string,string]=['','']; pending?:AssetCommand;
+  private owner=''; private disposed=false; private online:Online; private storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>;
+  constructor(online:Online,storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>){this.online=online;this.storage=storage;}
+  get assets(){return this.online.assets;}
+  get catalog(){return this.assets?.catalog||CATALOG;}
+  get packages(){return this.assets?.packages||PACKAGES;}
+  get pools(){return this.assets?.pools||POOLS;}
+  sellPrice(id:string){const pack=/^pack:(general|gold):[0-3]$/.exec(id);return pack?this.pools[pack[1] as 'general'|'gold'].packSell:this.catalog.find(p=>p.id===id)?.sell??(id.startsWith('legacy')?20:0);}
+  get loadout(){return this.assets?.loadouts[this.mode]||emptyLoadout();}
+  get unread(){return this.assets?.mail.some(m=>!m.read||!m.claimed)||false;}
+  get claimable(){return this.assets?.tasks.some(t=>!t.claimed&&t.progress>=t.target)||false;}
+  get pendingOrder(){return this.assets?.videoOrders.find(o=>!o.delivered&&o.quantity===this.quantity);}
+  get inventory(){return Object.entries(this.assets?.inventory||{}).filter(([,n])=>n>0);}
+  private key(){return 'night-overwatch-asset-intent:'+this.owner;}
+  syncIdentity(){
+    const id=this.online.authenticatedId;
+    if(id===this.owner)return;
+    this.owner=id;this.pending=undefined;this.message=['',''];this.confirmation=undefined;this.selectedMail='';this.revision++;
+    if(!id)return;
+    try{const value=JSON.parse(this.storage.getItem(this.key())||'null');if(value?.requestId&&value?.kind)this.pending=value;}catch{/* Corrupt local intent cannot alter server assets. */}
+  }
+  show(page:ProgressionPage){this.page=page;this.section='';this.index=0;this.detail=false;this.confirmation=undefined;this.message=['',''];this.revision++;if(page&&page!=='modes')void this.refresh().then(()=>{if(this.page==='inbox'&&this.section!=='news'){const mail=this.assets?.mail.find(m=>m.id===this.selectedMail)||this.assets?.mail[0];if(mail){this.selectedMail=mail.id;this.revision++;if(!mail.read)void this.execute({kind:'read-mail',mailId:mail.id});}}});}
+  async refresh(){
+    if(this.busy)return;
+    this.busy=true;this.revision++;
+    try{await this.online.refreshAssets();this.syncIdentity();this.message=['',''];}
+    catch{this.message=['军需服务暂不可用，可继续普通行动','Quartermaster unavailable. Normal operations remain playable.'];}
+    finally{this.busy=false;this.revision++;}
+  }
+  async execute(intent?:AssetIntent):Promise<AssetSnapshot|undefined>{
+    this.syncIdentity();if(this.busy||this.disposed)return;
+    if(!this.owner||!this.assets){this.message=['请先连接军需服务','Connect to the quartermaster first.'];this.revision++;return;}
+    if(this.pending&&intent){this.message=['上一操作等待确认，请先重试，避免重复扣款','Confirm the pending operation before making another purchase.'];this.revision++;return;}
+    if(intent){
+      const bytes=new Uint8Array(16);
+      if(globalThis.crypto?.getRandomValues)globalThis.crypto.getRandomValues(bytes);
+      else for(let i=0;i<16;i++)bytes[i]=Math.floor(Math.random()*256);
+      bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;
+      const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+      this.pending={...intent,requestId:`${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`} as AssetCommand;
+      try{this.storage.setItem(this.key(),JSON.stringify(this.pending));}
+      catch{this.pending=undefined;this.message=['无法保存交易编号，请允许本地存储后重试','Cannot save the transaction ID. Enable local storage and retry.'];this.revision++;return;}
+    }
+    if(!this.pending)return;
+    const command=this.pending,owner=this.owner;this.busy=true;this.revision++;
+    try{
+      const snapshot=await this.online.assetCommand(command);
+      if(this.owner!==owner||this.disposed)return;
+      this.pending=undefined;try{this.storage.removeItem(this.key());}catch{/* Replaying this accepted ID is safe. */}
+      this.message=command.kind==='loadout'?['已保存 · 以后每场自动应用','Saved · applied automatically next match']:
+        command.kind==='read-mail'?['','']:['操作成功，资产已同步','Completed. Assets synchronized.'];
+      if(command.kind==='open'){
+        const drops=snapshot.lastReceipt?.drops as Array<{item?:string;coins?:number}>|undefined;
+        const coins=(drops||[]).reduce((n,d)=>n+(d.coins||0),0),items=(drops||[]).filter(d=>d.item);
+        this.message=[`已开 ${command.quantity} 个：金币 +${coins}，军需 ${items.length} 件（见仓库）`,`Opened ${command.quantity}: +${coins} coins, ${items.length} gear items in warehouse`];
+      }
+      return snapshot;
+    }catch(error){
+      const code=(error as {code?:string}).code||'';
+      if(code==='IDENTITY_CHANGED'){try{await this.online.refreshAssets();this.syncIdentity();}catch{/* Keep the original account's intent until identity can be confirmed. */}return;}
+      const confirmed=!!errors[code]||['INVALID_INPUT','TASK_NOT_FOUND','MAIL_NOT_FOUND','ACHIEVEMENT_NOT_FOUND','INVALID_PACKAGE','INVALID_POOL','ASSET_LIMIT','ASSET_VERSION','ITEM_UNAVAILABLE','ITEM_NOT_PACK','ITEM_NOT_SELLABLE','TASK_NOT_REPLACEABLE','TOO_MANY_ORDERS','ORDER_NOT_FOUND','REQUEST_ID_CONFLICT'].includes(code);
+      if(this.owner===owner){
+        if(confirmed){this.pending=undefined;try{this.storage.removeItem(this.key());}catch{/* The next successful refresh can retry this rejected ID safely. */}}
+        this.message=errors[code]||(confirmed?['操作未完成，请刷新后重试','Operation rejected. Refresh and try again.']:['网络中断，原交易编号已保留，请重试确认','Connection interrupted. Retry the saved transaction.']);
+      }
+    }finally{this.busy=false;this.revision++;}
+  }
+  equip(id:string){
+    const p=this.catalog.find(p=>p.id===id);if(!p)return;
+    const loadout:Loadout=structuredClone(this.loadout);
+    if(p.category==='mod'){
+      const same=loadout.mods.findIndex(k=>this.catalog.find(p=>p.id===k)?.effect===p.effect);
+      if(same>=0)loadout.mods.splice(same,1);else if(loadout.mods.length<2)loadout.mods.push(id);else{this.message=errors.INVALID_LOADOUT;this.revision++;return;}
+    }else loadout[p.category]=loadout[p.category]===id?null:id;
+    if(p.term==='match'&&!this.assets?.permanent.includes(p.effect)){
+      this.confirmation={kind:'loadout',mode:this.mode,loadout};this.message=['以后每场正式开战自动消耗1件，不自动购买','Consumes 1 item per started match. Never auto-purchases.'];this.revision++;
+    }else void this.execute({kind:'loadout',mode:this.mode,loadout});
+  }
+  async watch(offer:()=>Promise<string>){
+    if(this.viewing||this.busy||this.pending)return;
+    this.viewing=true;const owner=this.online.authenticatedId;this.revision++;
+    try{
+      let order=this.pendingOrder;
+      if(!order){await this.execute({kind:'ad-order',quantity:this.quantity});order=this.pendingOrder;}
+      if(!order||owner!==this.online.authenticatedId)return;
+      const started=await this.execute({kind:'ad-start',orderId:order.id});
+      const attemptId=started?.lastReceipt?.attemptId;
+      if(typeof attemptId!=='string')return;
+      const result=await offer();
+      if(this.disposed||owner!==this.online.authenticatedId)return;
+      if(result==='completed')await this.execute({kind:'ad-complete',orderId:order.id,attemptId});
+      else this.message=result==='dismissed'?['未完整观看，本段未计入；已确认进度保留','Video not completed. Confirmed progress is kept.']:['视频暂不可用，已确认进度保留，可稍后继续','Video unavailable. Confirmed progress is kept. Try later.'];
+    }finally{this.viewing=false;this.revision++;}
+  }
+  dispose(){this.disposed=true;}
+}

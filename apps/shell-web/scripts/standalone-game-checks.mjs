@@ -1133,7 +1133,9 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
           ),
       );
     };
-    await press('missions');
+    await press('qm:modes');
+    await press('mode:solo');
+    await press('mode:enter');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
       .toBe('missions');
@@ -1141,9 +1143,9 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
       .toBe('home');
-    await press('missions');
-    await press('training');
-    await press('start');
+    await press('qm:modes');
+    await press('mode:training');
+    await press('mode:enter');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().time))
       .toBeGreaterThan(0);

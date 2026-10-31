@@ -794,6 +794,14 @@ export function runIncrementalToolChecks({
       env,
       'logged',
     );
+  if (plan.night_local_checks)
+    execute(
+      process.execPath,
+      ['--test', 'scripts/night-overwatch-selftest.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
   if (plan.ranked_deployment_checks)
     execute(process.execPath, ['--test', 'scripts/deploy-tencent.test.mjs'], root, env, 'logged');
   // These reviewed entry points exercise sharing/ad lifecycle in the real UI.
@@ -1088,6 +1096,7 @@ export async function validateTree({
         'scripts/nine-lock-scope.test.mjs',
         'scripts/publication-scopes.test.mjs',
         'scripts/night-runtime-scope.test.mjs',
+        'scripts/night-growth-scope.test.mjs',
         'scripts/ci-baseline.test.mjs',
         'scripts/ci-stages.test.mjs',
         'scripts/game-rename-scope.test.mjs',

@@ -75,7 +75,7 @@ try {
       report.checks.push(current);
       try {
         await page.goto(base);
-        await page.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready' && __night.snapshot().buttons.some((b) => b.id === 'missions'));
+        await page.waitForFunction(() => globalThis.__night?.snapshot().audio === 'ready' && __night.snapshot().buttons.some((b) => b.id === 'qm:modes'));
         await page.waitForFunction(() => {
           const startup = document.querySelector('#night-startup');
           return !startup || startup.hidden || getComputedStyle(startup).display === 'none' || getComputedStyle(startup).visibility === 'hidden';

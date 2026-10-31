@@ -1100,6 +1100,479 @@
         "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
         "evidence": "verification-2026-10-28-visual-rebuild.md"
       }
+    },
+    {
+      "assetId": "ui.progression.01-home",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/01-home.png",
+      "runtimeAsset": "assets/resources/ui/progression/01-home.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2235322,
+        "sha256": "94dfbda9b5bc42566cd2012670dd275a0e6598dd737a28f5f78b3a33b262e9d8",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.02-loadout",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/02-loadout.png",
+      "runtimeAsset": "assets/resources/ui/progression/02-loadout.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2124850,
+        "sha256": "5b4b8a236a70590a1dcb92ec973bfe2f0c9111f6ff47a8d35bb3c13ec6e113c8",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.03-mode-selection",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/03-mode-selection.png",
+      "runtimeAsset": "assets/resources/ui/progression/03-mode-selection.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2343718,
+        "sha256": "ef247afb46c0dc37ea8e5edbb5579793a0ddae11eec224458818a41c0a818830",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.04-shop",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/04-shop.png",
+      "runtimeAsset": "assets/resources/ui/progression/04-shop.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2251169,
+        "sha256": "616c6559bccf1bc2f6b763c7af50bff7780d21909184b619ce9dae9f20e0c259",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.05-supply",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/05-supply.png",
+      "runtimeAsset": "assets/resources/ui/progression/05-supply.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2246020,
+        "sha256": "5e05fa63a5f6dbbc20ffa2512f836590db4ecbad2f5bd1c5fafc9f83be8d5e24",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.06-growth-skills",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/06-growth-skills.png",
+      "runtimeAsset": "assets/resources/ui/progression/06-growth-skills.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2418701,
+        "sha256": "c3c659e20a13f653b0579b088f5f20f5ac2bc74fc2959a832946d51e3dfc5093",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.07-tasks",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/07-tasks.png",
+      "runtimeAsset": "assets/resources/ui/progression/07-tasks.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2082910,
+        "sha256": "2a3e158fb17123de96b8815a98a911032c31e5a90bb090e2e3ffbe3b9425ad0b",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.08-inbox",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/08-inbox.png",
+      "runtimeAsset": "assets/resources/ui/progression/08-inbox.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2254565,
+        "sha256": "5d4acb76bc8f77b644eb1bf058470cdf24c6328c9c21556cf96c67083d8f04df",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.09-settlement",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/09-settlement.png",
+      "runtimeAsset": "assets/resources/ui/progression/09-settlement.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2196455,
+        "sha256": "dedb8a4b3dd54061c3a37b128b55254af0a1977474e787f9a2cdcb01072ccf33",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.base",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-704f6a7b-f806-46da-b49c-03657c563a78.png",
+      "runtimeAsset": "assets/resources/ui/progression/base.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2462146,
+        "sha256": "d3cb432b9c16aa2b2cb15db1b702f54b91307092eea8af2d4833b829b8cee9a1",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.hangar",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-7842121f-c827-47e0-abe4-92bd89ef8f85.png",
+      "runtimeAsset": "assets/resources/ui/progression/hangar.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2400035,
+        "sha256": "49cc71fd195edf37034ab96e15a1df84ad7c33b7149328dd22cd48a14a27e5c5",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.home",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-6e949d8c-3074-49a6-8606-97b20a3b547f.png",
+      "runtimeAsset": "assets/resources/ui/progression/home.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2318607,
+        "sha256": "c3253f61c8429b0d2b258d154065fd40807c08f8c9ae7f06d2ef3719ddaca81f",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.skins",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-eac58686-8630-4106-b42d-931edd3ceb4a.png",
+      "runtimeAsset": "assets/resources/ui/progression/skins.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1254,
+        "height": 1254,
+        "hasAlpha": true,
+        "bytes": 1943105,
+        "sha256": "7f50095f2a02b364236658c58197b55e5a9abc1bf5ff50c398c37cf91761548b",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.title",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-e66366e9-89ad-4250-96ab-88098fa1396c.png",
+      "runtimeAsset": "assets/resources/ui/progression/title.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 2172,
+        "height": 724,
+        "hasAlpha": true,
+        "bytes": 1630462,
+        "sha256": "9cc5ed4f4f30594cb2bbd3af049c799f85dd1cbac18e282df1767811eef7b644",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.font",
+      "status": "licensed-font-subset",
+      "sourceFile": "C:/Windows/Fonts/NotoSerifSC-VF.ttf",
+      "runtimeAsset": "assets/resources/ui/progression/night-ui-serif.ttf",
+      "license": {
+        "source": "assets/resources/ui/progression/OFL.txt",
+        "authorOrService": "Adobe / Noto Serif SC",
+        "license": "SIL Open Font License 1.1",
+        "thirdParty": true,
+        "attributionRequired": true,
+        "modification": "Static weight 700, text subset; renamed NightUISerif"
+      },
+      "metadata": {
+        "bytes": 288232,
+        "sha256": "f43e8f0aa88672c2dd30f7db852a558b6e7c91c158a4f83491d4145c02941f56",
+        "runtimeLoader": "Cocos TTFFont"
+      },
+      "validation": {
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md"
+      }
+    },
+    {
+      "assetId": "ui.progression.resultBadge",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-3004d4cd-01a5-4bd7-b5b2-048188d3b2aa.png",
+      "runtimeAsset": "assets/resources/ui/progression/resultBadge.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 2167,
+        "height": 726,
+        "hasAlpha": true,
+        "bytes": 1636850,
+        "sha256": "a3ad11a0dd6a34826fbbb323a1f8366d87b49c9dffaceddc2defee819390db78",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
     }
   ]
 }

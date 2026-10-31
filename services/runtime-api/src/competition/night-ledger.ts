@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { openDatabase } from '@coffeeeeffoc/service-kit';
 import { CompetitionError, type Room } from './types.js';
+import { rewardNightBattle, type ProgressionRules } from './night-assets.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
@@ -89,6 +90,7 @@ export async function settleNightRoom(
   room: Room,
   at: number,
   reason: 'elimination' | 'disconnect' | 'abandoned',
+  progression?: ProgressionRules,
 ) {
   if (room.settledAt !== undefined || !room.startedAt || at < room.startedAt) return;
   await nightLedgerLock(tx);
@@ -140,6 +142,24 @@ export async function settleNightRoom(
       outcome,
       reason,
     };
+    if (progression)
+      Object.assign(
+        member.settlement,
+        await rewardNightBattle(
+          tx,
+          member.id,
+          at,
+          room.loadoutBattle ?? `duel:${matchId}`,
+          progression,
+          {
+            mode: human ? 'duel' : 'bot',
+            outcome,
+            durationMs: at - room.startedAt,
+            valid:
+              reason === 'elimination' && member.result?.participated === true && !member.takenOver,
+          },
+        ),
+      );
   }
   room.settledAt = at;
 }

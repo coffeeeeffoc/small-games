@@ -131,7 +131,7 @@ test('ordinary tracking warns for friends near the acquired target, then restore
 });
 
 test('each ordinary weapon tracks moving targets at its own speed, damage, ammo and heat', () => {
-  for (const dt of [1 / 60, .1]) for (let weapon = 0; weapon < WEAPONS.length; weapon++) {
+  for (const dt of [1 / 60, .1]) for (let weapon = 0; weapon < 4; weapon++) {
     const s = isolated(), target = s.addUnit('light', { x: -80, z: -40 }), w = WEAPONS[weapon];
     target.hp = target.maxHp = 1000;
     s.choose(weapon); s.setAim(target); s.grantBuff('tracking');
@@ -154,7 +154,7 @@ test('each ordinary weapon tracks moving targets at its own speed, damage, ammo 
 });
 
 test('ordinary guidance preserves blast falloff, heavy armor and friendly fire', () => {
-  for (let weapon = 0; weapon < WEAPONS.length; weapon++) {
+  for (let weapon = 0; weapon < 4; weapon++) {
     const s = isolated(), w = WEAPONS[weapon], target = s.addUnit('turret', { x: -110, z: -70 });
     target.hp = target.maxHp = 1000;
     const friend = s.addUnit('escort', { x: target.x + w.radius / 2, z: target.z }, true);
@@ -227,7 +227,7 @@ test('ordinary lock loss becomes ballistic without silently acquiring another ta
 });
 
 test('rate boost divides actual firing interval by 1.3 without changing heat or ammo cost', () => {
-  for (let weapon = 0; weapon < WEAPONS.length; weapon++) {
+  for (let weapon = 0; weapon < 4; weapon++) {
     const s = isolated(), w = WEAPONS[weapon]; s.choose(weapon); s.setAim({ x: -80, z: -40 });
     s.grantBuff('rate'); assert(s.fire());
     const interval = w.interval / 1.3;

@@ -2,12 +2,12 @@ import { Simulation, type PauseReason } from './Simulation.ts';
 import { WEAPONS } from './Data.ts';
 import { MISSIONS, TRAINING } from './MissionCatalog.ts';
 
-export const RANKED_RULE_VERSION = 'night-input-replay-v8';
+export const RANKED_RULE_VERSION = 'night-input-replay-v9';
 export type ReplayFrame = { input: Record<string, unknown>; ticks: number };
 export type NightReplay = { simulation: ReturnType<Simulation['checkpoint']>; assisted: boolean };
 const commands = ['setOrbitDirection', 'adjustAltitude', 'adjustRadius', 'pause',
   'beginResumeCountdown', 'stepCountdown', 'clearInput', 'choose', 'selectHoming',
-  'lockHoming', 'setAim', 'setFire', 'command', 'fire', 'grantBuff', 'grantAmmoSupply', 'grantHomingAmmo', 'setExtractionRadioPending'] as const;
+  'lockHoming', 'setAim', 'setFire', 'command', 'fire', 'useSkill', 'grantBuff', 'grantAmmoSupply', 'grantHomingAmmo', 'setExtractionRadioPending'] as const;
 const pauseReasons: PauseReason[] = ['help', 'settings', 'mission', 'manual', 'orientation',
   'background', 'focus', 'advert', 'supply', 'countdown'];
 function requireInput(ok: unknown): asserts ok {
@@ -44,7 +44,7 @@ function command(sim: Simulation, input: Record<string, unknown>, state: NightRe
       one(); requireInput(finite(args[0]) && args[0] > 0 && args[0] <= .1); sim.stepCountdown(args[0]); break;
     case 'clearInput': none(); sim.clearInput(); break;
     case 'choose':
-      one(); requireInput(Number.isInteger(args[0]) && args[0] >= 0 && args[0] < WEAPONS.length);
+      one(); requireInput(Number.isInteger(args[0]) && args[0] >= 0 && args[0] < WEAPONS.length && sim.hasWeapon(args[0]));
       sim.choose(args[0]); break;
     case 'selectHoming': none(); sim.selectHoming(); break;
     case 'lockHoming':
@@ -66,6 +66,7 @@ function command(sim: Simulation, input: Record<string, unknown>, state: NightRe
     case 'setExtractionRadioPending':
       one(); requireInput(typeof args[0] === 'boolean'); sim.setExtractionRadioPending(args[0]); break;
     case 'fire': none(); sim.fire(); break;
+    case 'useSkill': none(); sim.useSkill(); break;
     case 'grantHomingAmmo':
       one(); requireInput(Number.isSafeInteger(args[0]) && args[0] > 0);
       sim.grantHomingAmmo(args[0]); state.assisted = true; break;
@@ -105,7 +106,7 @@ export function nightReplayResult(state: NightReplay) {
   const cleared = complete && sim.phase === 'success' && !sim.threatsRemaining &&
     !sim.training && (!training || !sim.friendlyDamage && !sim.friendlyLosses);
   const eligible = cleared && !state.assisted;
-  return { complete, eligible, cleared, fastestEligible: eligible, assisted: state.assisted,
+  return { complete, eligible, cleared, fastestEligible: eligible, assisted: state.assisted, participated:sim.fired>=3&&sim.hitShots>0,
     score: eligible ? training ? 1 : MISSIONS.findIndex(item => item.id === sim.mission.id) + 1 : 0,
     secondary: Math.round((sim.completionTime ?? sim.time) * 1000) };
 }

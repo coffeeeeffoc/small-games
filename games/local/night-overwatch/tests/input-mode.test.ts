@@ -302,7 +302,7 @@ test('completed restock grants the three ammunition amounts once; incomplete ads
         g.action('supply'); g.action('reward:restock'); await g.requestReward('supply', 'restock');
         g.finishReward(true); g.claimSupply('restock');
         assert.deepEqual(g.sim.guns.slice(1).map((gun: any) => gun.ammo),
-          before.map((n: number, i: number) => n + (status === 'completed' ? [60, 24, 6][i] : 0)));
+          before.map((n: number, i: number) => n + (status === 'completed' ? [60, 24, 6, 0, 0][i] : 0)));
         assert(!g.platform.rewards.pendingSupply);
       } finally { cc.sys.isBrowser = false; g.platform.dispose(); }
     }

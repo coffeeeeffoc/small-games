@@ -173,8 +173,36 @@ export function createGameServices({ gameId, ruleVersion }) {
       return roomRequest(code, operation, body);
     },
     identity: async () => (await request(path)).identity,
+    async nightAssets(expectedPlayerId) {
+      if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');
+      const credential = await auth.current();
+      if (expectedPlayerId && credential.playerId !== expectedPlayerId)
+        throw failure('IDENTITY_CHANGED');
+      const result = await request(path + '/assets', undefined, credential);
+      if (result.playerId !== credential.playerId) throw failure('IDENTITY_CHANGED');
+      return result;
+    },
+    async nightAssetCommand(command, expectedPlayerId) {
+      if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');
+      const credential = await auth.current();
+      if (expectedPlayerId && credential.playerId !== expectedPlayerId)
+        throw failure('IDENTITY_CHANGED');
+      const result = await request(path + '/assets', command, credential);
+      if (
+        (await auth.current()).playerId !== credential.playerId ||
+        result.playerId !== credential.playerId
+      )
+        throw failure('IDENTITY_CHANGED');
+      return result;
+    },
     listBoards: async () => (await request(path)).boards,
-    leaderboard: ({ boardId }) => request(path + '/leaderboards/' + encodeURIComponent(boardId)),
+    leaderboard: ({ boardId, ruleVersion }) =>
+      request(
+        path +
+          '/leaderboards/' +
+          encodeURIComponent(boardId) +
+          (ruleVersion ? '?ruleVersion=' + encodeURIComponent(ruleVersion) : ''),
+      ),
     async startRun({ mode, levelId, requestId, playerId }) {
       if (typeof ruleVersion !== 'string' || !ruleVersion) throw failure('RULE_VERSION_CHANGED');
       const credential = await auth.current();
@@ -213,6 +241,11 @@ export function createGameServices({ gameId, ruleVersion }) {
       ),
     finishRun: async ({ runId, seq }) =>
       request(`${path}/runs/${encodeURIComponent(runId)}/finish`, { seq }, await owner(runId)),
+    async cancelRun({ runId, playerId }) {
+      const credential = playerId ? await auth.current() : await owner(runId);
+      if (playerId && credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
+      return request(`${path}/runs/${encodeURIComponent(runId)}/cancel`, {}, credential);
+    },
     discardRun(id) {
       owners.delete(id);
     },
@@ -282,7 +315,9 @@ function createDurableRecorder(services, { storage }, onStatus) {
   }
   function save(run) {
     try {
-      if (run.abandoned) {
+      const stored = storage.getItem(key(run));
+      if (stored && JSON.parse(stored).cancelPending) run.cancelPending = true;
+      if (run.abandoned && !run.cancelPending) {
         storage.removeItem(key(run));
         return true;
       }
@@ -357,6 +392,48 @@ function createDurableRecorder(services, { storage }, onStatus) {
     retries.set(key(run), { delay, at: Date.now() + delay });
     if (!active || active === run) report(transient ? 'pending-sync' : 'needs-attention');
   }
+  function acknowledge(run, result) {
+    const done = {
+      schema: 1,
+      synced: true,
+      requestId: run.requestId,
+      playerId: run.playerId,
+      id: run.id,
+      at: Date.now(),
+      result,
+    };
+    const serialized = JSON.stringify(done);
+    storage.setItem(key(run) + ':synced', serialized);
+    if (storage.getItem(key(run) + ':synced') !== serialized) throw failure('STORAGE_UNAVAILABLE');
+    cleanAcknowledged(key(run));
+    run.synced = true;
+  }
+  async function cancelPending(run) {
+    if (!save(run) || run.synced) return true;
+    if (!run.cancelPending) return false;
+    if (!run.id) {
+      if (!run.startAttempted) {
+        storage.removeItem(key(run));
+        run.synced = true;
+        return true;
+      }
+      if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
+      const created = await services.startRun({
+        mode: run.mode,
+        levelId: run.levelId,
+        requestId: run.requestId,
+        playerId: run.playerId,
+      });
+      run.id = created.id;
+      if (!save(run) || run.synced) return true;
+    }
+    const result = await services.cancelRun({ runId: run.id, playerId: run.playerId });
+    acknowledge(
+      run,
+      typeof result?.accepted === 'boolean' ? result : { accepted: false, reason: 'CANCELLED' },
+    );
+    return true;
+  }
   function synchronize(run) {
     if (working.has(key(run))) return working.get(key(run));
     if ((retries.get(key(run))?.at || 0) > Date.now()) return Promise.resolve(null);
@@ -366,8 +443,11 @@ function createDurableRecorder(services, { storage }, onStatus) {
           throw failure('IDENTITY_CHANGED');
         if (!save(run)) return null;
         if (run.synced) return null;
+        if (await cancelPending(run)) return null;
         if (!run.id) {
           if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
+          run.startAttempted = true;
+          if (!save(run) || run.synced) return null;
           const created = await services.startRun({
             mode: run.mode,
             levelId: run.levelId,
@@ -375,9 +455,18 @@ function createDurableRecorder(services, { storage }, onStatus) {
             playerId: run.playerId,
           });
           run.id = created.id;
+          if (created.loadout) run.loadout = created.loadout;
           if (!save(run) || run.synced) return null;
+          if (await cancelPending(run)) return null;
         }
         let remote = await services.getRun({ runId: run.id, playerId: run.playerId });
+        if (await cancelPending(run)) return null;
+        if (
+          run.loadout &&
+          remote.loadout &&
+          JSON.stringify(run.loadout) !== JSON.stringify(remote.loadout)
+        )
+          throw failure('INVALID_JOURNAL');
         if (!save(run) || run.synced) return null;
         if (
           remote.id !== run.id ||
@@ -395,11 +484,13 @@ function createDurableRecorder(services, { storage }, onStatus) {
         if (remote.status === 'active' && remote.expiresAt <= Date.now()) {
           remote = await services.resumeRun({ runId: run.id });
           if (!save(run) || run.synced) return null;
+          if (await cancelPending(run)) return null;
         }
         // Replay the original unconfirmed batch even when the server sequence is ahead.
         while (run.acked < run.batches.length) {
           const seq = run.acked + 1;
           await services.appendFrames({ runId: run.id, seq, frames: run.batches[seq - 1] });
+          if (await cancelPending(run)) return null;
           run.acked = seq;
           if (!save(run) || run.synced) return null;
         }
@@ -475,7 +566,9 @@ function createDurableRecorder(services, { storage }, onStatus) {
       // An interrupted, unfinished mission is not a completion claim.
       if (!active.finishing) {
         active.abandoned = true;
+        active.cancelPending = !!(active.startAttempted || active.id);
         save(active);
+        if (active.cancelPending) void synchronize(active);
       }
     }
     active = undefined;
@@ -544,7 +637,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     },
     record(input, ticks = 1) {
       const run = active;
-      if (!run || run.finishing || run.abandoned || run.synced) return;
+      if (!run || run.finishing || run.abandoned || run.cancelPending || run.synced) return;
       if (!Number.isInteger(ticks) || ticks < 0 || ticks > 600) {
         report('needs-attention');
         return;
@@ -568,7 +661,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     },
     async finish() {
       const run = active;
-      if (!run || run.synced) return null;
+      if (!run || run.synced || run.abandoned || run.cancelPending) return null;
       run.finishing = true;
       if (!seal(run) || run.synced) return null;
       report('pending-sync');
@@ -602,9 +695,9 @@ function createDurableRecorder(services, { storage }, onStatus) {
               );
               continue;
             }
-            if (!run || run.abandoned) continue;
+            if (!run || (run.abandoned && !run.cancelPending)) continue;
             if (active && key(run) === key(active)) run = active;
-            if (!run.finishing && run !== active) {
+            if (!run.finishing && !run.cancelPending && run !== active) {
               if (
                 run.scope === scope &&
                 Number.isFinite(run.savedAt) &&

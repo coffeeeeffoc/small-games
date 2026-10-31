@@ -239,8 +239,35 @@ export function assertKillAccounting(s) {
   return deadEnemies;
 }
 
+// Wait for actual rendered frames and completed panel transitions. Fixed wall-clock
+// delays can capture outgoing panels or click the previous layout on software GPUs.
+export async function settleVisuals(page) {
+  await page.evaluate(async () => {
+    const { director, Director } = await System.import('cc');
+    for (let frame = 0; frame < 2; frame++)
+      await new Promise(resolve => director.once(Director.EVENT_AFTER_DRAW, resolve));
+  });
+  await page.waitForFunction(async () => {
+    const { director, UIOpacity, isValid } = await System.import('cc');
+    const panels = director.getScene().getComponentsInChildren(UIOpacity)
+      .filter(component => isValid(component.node) && component.node.activeInHierarchy && component.node.name === 'Panel');
+    return panels.length <= 1 && panels.every(component => component.opacity === 255);
+  }, null, { timeout: 15000 });
+}
+
+
 export async function press(page, id, touch = false, expand = true) {
   let s = await snapshot(page);
+  if(s.modal==='home'&&!s.buttons.some(b=>b.id===id)){
+    if(['missions','online:menu','online:history'].includes(id)){
+      await press(page,'qm:modes',touch,false);
+      await press(page,id==='missions'?'mode:solo':'mode:duel',touch,false);
+      await press(page,'mode:enter',touch,false);
+      if(id==='online:history')await press(page,id,touch,false);
+      return;
+    }
+    if(id==='help'){await press(page,'settings',touch,false);s=await snapshot(page);}
+  }
   if (id === 'zoomIn') id = 'lensIn';
   if (id === 'zoomOut') id = 'lensOut';
   if (id === 'pause') id = 'settings';
@@ -281,6 +308,7 @@ export async function press(page, id, touch = false, expand = true) {
   if (touch) await page.touchscreen.tap(q.x, q.y);
   else await page.mouse.click(q.x, q.y);
   await page.waitForTimeout(100);
+  await settleVisuals(page);
 }
 
 export async function navigateMap(page, target, touch = false) {
@@ -633,7 +661,7 @@ export async function missionReplay(
           'Every fourth player round is an independently verified terrain miss',
         );
         assert(s.kills > 0, 'Player intervention contributes real kills after the idle delay');
-        for (const [index, gun] of s.guns.entries())
+        for (const [index, gun] of s.guns.slice(0,4).entries())
           if (Number.isFinite(WEAPONS[index].ammo))
             assert(
               gun.ammo > 0,
@@ -840,13 +868,13 @@ async function run() {
       await page.waitForFunction(
         () =>
           globalThis.__night?.snapshot().audio === 'ready' &&
-          __night.snapshot().buttons.some((b) => b.id === 'missions'),
+          __night.snapshot().buttons.some((b) => b.id === 'qm:modes'),
       );
       await press(page, 'start', touch);
       let s = await snapshot(page);
       assert.equal(s.modelImport, 'loaded');
       assertKillAccounting(s);
-      for (const [index, gun] of s.guns.entries())
+      for (const [index, gun] of s.guns.slice(0,4).entries())
         assert.equal(
           gun.ammo,
           Number.isFinite(WEAPONS[index].ammo) ? WEAPONS[index].ammo : 'infinite',
@@ -1269,7 +1297,7 @@ async function run() {
       for (const replay of replays) {
         await page.reload();
         await page.waitForFunction(() =>
-          globalThis.__night?.snapshot().buttons.some((b) => b.id === 'missions'),
+          globalThis.__night?.snapshot().buttons.some((b) => b.id === 'qm:modes'),
         );
         await press(page, 'start', touch);
         result[replay] = await missionReplay(page, {
@@ -1308,7 +1336,7 @@ async function run() {
       if (!touch && process.argv.includes('--omission')) {
         await page.reload();
         await page.waitForFunction(() =>
-          globalThis.__night?.snapshot().buttons.some((b) => b.id === 'missions'),
+          globalThis.__night?.snapshot().buttons.some((b) => b.id === 'qm:modes'),
         );
         await press(page, 'start');
         result.omission = await missionReplay(page, { omitLast: true });

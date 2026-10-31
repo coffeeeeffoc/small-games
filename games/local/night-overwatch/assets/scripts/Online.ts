@@ -2,20 +2,21 @@ import { Simulation } from './core/Simulation.ts';
 import { createDuel, commandDuel, advanceDuel, viewDuel, type DuelCommand, type DuelState } from './core/Duel.ts';
 import { RANKED_RULE_VERSION, observeNightInputs } from './core/Replay.ts';
 import { MISSIONS } from './core/MissionCatalog.ts';
+import type { AssetCommand, AssetSnapshot, BattleLoadout } from './core/Progression.ts';
 
 export type Player = { id?: string; userId?: string; playerId?: string; name?: string; nickname?: string; ready?: boolean; disconnected?: boolean; reconnectUntil?: number; takenOver?: boolean; settlement?: Settlement };
 export const playerId = (player: Player) => player.playerId || player.userId || player.id || '';
 export const playerLabel = (player: Player) => `${player.nickname || player.name || '飞行员'} #${playerId(player).replace(/-/g, '').slice(-8).toUpperCase()}`;
 type DuelView = ReturnType<typeof viewDuel>;
-export type Settlement = { points: number; totalPoints?: number; wins?: number; games?: number; outcome?: string };
+export type Settlement = { points: number; totalPoints?: number; wins?: number; games?: number; outcome?: string; coins?:number; xp?:number; totalXp?:number; status?:string };
 export type RoomSummary = { code: string; status: string; mode: string; players: Player[]; playerCount: number; canJoin: boolean; canSpectate: boolean };
 export type BattleHistory = { summary: { wins: number; losses: number; draws: number; games: number; winRate: number };
   matches: { id: string; code: string; opponent: Player; outcome: string; reason: string; startedAt: number; finishedAt: number; durationMs: number; points: number }[]; nextCursor?: string };
 export type Room = { serverNow?: number; startsAt?: number; spectator?: boolean; visibility?: string; settlement?: Settlement; code: string; status: string; mode: string; you: number; seq: number; players: Player[]; state: DuelView | null };
 type RankingRow = Player & { rank: number; score: number; secondary: number; wins?: number; games?: number };
 type Ranking = { top: RankingRow[]; me: RankingRow | null };
-type Recorder = { start(options: { mode: string; levelId: string; practice: boolean }): Promise<unknown>;
-  record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<{ accepted?: boolean; fastestEligible?: boolean } | null | undefined>; invalidate(reason?: string): void;
+type Recorder = { start(options: { mode: string; levelId: string; practice: boolean }): Promise<{loadout?:BattleLoadout}|null|undefined>;
+  record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<Settlement & { accepted?: boolean; fastestEligible?: boolean } | null | undefined>; invalidate(reason?: string): void;
   persist?(): void; recover?(): Promise<void>; pending?: number };
 type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean } };
 type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Metadata | undefined>;
@@ -24,7 +25,8 @@ type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Me
     updateProfile?(input: { nickname: string }): Promise<Player>; connectRoom?(input: { code: string }): Promise<Room>;
     spectateRoom?(input: { code: string; password?: string }): Promise<Room>;
     getRoom(input: { code: string }): Promise<Room>; roomAction(input: { code: string; operation: string; body?: object }): Promise<Room>;
-    leaderboard(input: { boardId: string }): Promise<Ranking> };
+    nightAssets?(expectedPlayerId?:string):Promise<AssetSnapshot>;nightAssetCommand?(input:AssetCommand,expectedPlayerId?:string):Promise<AssetSnapshot>;
+    leaderboard(input: { boardId: string;ruleVersion?:string }): Promise<Ranking> };
   createRecorder(version: string, options: { onStatus: (status: string) => void; startTimeoutMs?: number; durable?: { storage: Pick<Storage, 'getItem' | 'setItem'> } }): Recorder };
 const randomBytes = () => {
   const bytes = new Uint8Array(16);
@@ -32,7 +34,7 @@ const randomBytes = () => {
   else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
   return bytes; // Local display identity only; authenticated IDs are assigned by the service.
 };
-const controls = new Set(['setAim', 'choose', 'setFire', 'clearInput', 'fire', 'adjustAltitude', 'adjustRadius', 'setOrbitDirection']);
+const controls = new Set(['setAim', 'choose', 'setFire', 'clearInput', 'fire', 'adjustAltitude', 'adjustRadius', 'setOrbitDirection','useSkill']);
 const validCode = (code: string) => /^(?:[0-9]{6}|[A-F0-9]{12})$/.test(code);
 export function invitation(search: string) { const codes = new URLSearchParams(search).getAll('room'); return codes.length === 1 && validCode(codes[0]) ? codes[0] : undefined; }
 export function roomLink(href: string, code: string) {
@@ -68,6 +70,10 @@ export class Online {
   ranked = false;
   message = '';
   rankStatus = 'local';
+  assets?:AssetSnapshot;
+  battleReward?:Settlement;
+  rankingVersion='night-growth-v1';
+  authenticatedId='';
   level = 0;
   ranking?: Ranking;
   room?: Room;
@@ -160,11 +166,26 @@ export class Online {
   }
   private acceptMetadata(metadata: Metadata | undefined) {
     if (!metadata) return;
+    const owner=playerId(metadata.identity);
+    if(owner!==this.authenticatedId){this.assets=undefined;this.battleReward=undefined;this.authenticatedId=owner;}
     this.identity = metadata.identity;
     this.draftName = this.identity.nickname || this.identity.name || '';
     this.available = metadata.capabilities.multiplayer;
     this.ranked = metadata.capabilities.leaderboards;
     this.revision++;
+  }
+  async refreshAssets(){
+    if(!this.bridge?.services.nightAssets)throw Error('Assets unavailable');
+    this.acceptMetadata(await (this.bridge.refresh?.()??this.bridge.ready));
+    const owner=this.authenticatedId,result=await this.bridge.services.nightAssets(owner);
+    if(owner!==this.authenticatedId||result.playerId!==owner)throw Object.assign(Error('Identity changed'),{code:'IDENTITY_CHANGED'});
+    this.assets=result;this.revision++;return result;
+  }
+  async assetCommand(command:AssetCommand){
+    if(!this.bridge?.services.nightAssetCommand)throw Error('Assets unavailable');
+    const owner=this.authenticatedId,result=await this.bridge.services.nightAssetCommand(command,owner);
+    if(owner!==this.authenticatedId||result.playerId!==owner)throw Object.assign(Error('Identity changed'),{code:'IDENTITY_CHANGED'});
+    this.assets=result;this.revision++;return result;
   }
   get active() { return !!this.view; }
   get spectator() { return !!this.room?.spectator || this.room?.you === -1; }
@@ -400,13 +421,13 @@ export class Online {
     this.board = board;
     this.level = Math.max(0, Math.min(MISSIONS.length - 1, level));
     this.panel = 'ranking'; this.ranking = undefined; this.message = ''; this.revision++;
-    const ownLevel = this.level, ownBoard = this.board;
+    const ownLevel = this.level, ownBoard = this.board, ownVersion=this.rankingVersion;
     try {
       if (!this.ranked) this.acceptMetadata(await this.bridge?.refresh?.());
       if (request !== this.rankingRequest || this.level !== ownLevel || this.board !== ownBoard || this.panel !== 'ranking') return;
       if (!this.ranked || !this.bridge) { this.message = '全站排行榜暂不可用；个人最佳仍保存在本机'; this.revision++; return; }
-      const ranking = await this.bridge.services.leaderboard({ boardId: ownBoard === 'level' ? 'level-' + MISSIONS[ownLevel].id : ownBoard });
-      if (request === this.rankingRequest && this.level === ownLevel && this.board === ownBoard && this.panel === 'ranking') { this.ranking = ranking; this.revision++; }
+      const ranking = await this.bridge.services.leaderboard({ boardId: ownBoard === 'level' ? 'level-' + MISSIONS[ownLevel].id : ownBoard, ...(ownBoard==='level'?{ruleVersion:ownVersion}:{}) });
+      if (request === this.rankingRequest && this.level === ownLevel && this.board === ownBoard && this.rankingVersion===ownVersion && this.panel === 'ranking') { this.ranking = ranking; this.revision++; }
     } catch { if (request === this.rankingRequest && this.panel === 'ranking') { this.message = '排行榜读取失败，点击刷新重试'; this.revision++; } }
   }
   async share(href: string) {

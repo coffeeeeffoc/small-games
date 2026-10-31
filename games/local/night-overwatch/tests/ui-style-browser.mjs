@@ -64,17 +64,17 @@ try {
       evidence.screens.push(name + '-' + width);
     };
     await capture('home');
-    const primary=(await snapshot(page)).buttons.find(b=>b.id==='missions');
+    const primary=(await snapshot(page)).buttons.find(b=>b.id==='qm:modes');
     assert(primary.visual.h<primary.h&&primary.h>=44,'skin and touch bounds are separate');
     const center={x:primary.x+primary.w/2,y:primary.y+primary.h/2};
     if(!touch){
       await page.mouse.move(center.x,center.y);await page.mouse.down();await settleVisuals(page);
-      assert.equal((await snapshot(page)).ui.pressedButton,'missions');await capture('pressed');
+      assert.equal((await snapshot(page)).ui.pressedButton,'qm:modes');await capture('pressed');
       await page.mouse.move(center.x,primary.y-15);await page.mouse.move(center.x,center.y);await page.mouse.up();
     }else{
       const cdp=await context.newCDPSession(page);
       await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{id:1,...center}]});await settleVisuals(page);
-      assert.equal((await snapshot(page)).ui.pressedButton,'missions');
+      assert.equal((await snapshot(page)).ui.pressedButton,'qm:modes');
       await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,x:center.x,y:primary.y-15}]});
       await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{id:1,...center}]});
       await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();

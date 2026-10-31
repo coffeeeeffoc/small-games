@@ -1,3 +1,4 @@
+import { settleVisuals } from './visual-helpers.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -97,6 +98,10 @@ try {
       const canvas = frame.locator('#GameCanvas');
       // The exported flight-browser press helper uses top-page coordinates; iframe input needs this mapping.
       const press = async id => {
+        if (id === 'missions' && (await snapshot(frame)).modal === 'home') {
+          await press('qm:modes'); await press('mode:solo'); await press('mode:enter');
+          return;
+        }
         if (id === 'start' && (await snapshot(frame)).modal === 'home') await press('missions');
         await expect.poll(async () => (await snapshot(frame)).buttons.some(b => b.id === id)).toBe(true);
         const b = (await snapshot(frame)).buttons.find(b => b.id === id);
@@ -108,7 +113,7 @@ try {
             : { x: x * bounds.width / s.ui.width, y: y * bounds.height / s.ui.height };
         }, b);
         await (scenario.touch ? canvas.tap({ position }) : canvas.click({ position }));
-        await frame.evaluate(() => new Promise(resolve => globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(resolve))));
+        await settleVisuals(frame);
       };
       const frozen = async label => {
         const before = await snapshot(frame);

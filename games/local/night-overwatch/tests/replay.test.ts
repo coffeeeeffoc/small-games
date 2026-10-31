@@ -49,7 +49,7 @@ test('real warmup inputs reproduce the complete result across durable checkpoint
     applyNightReplay(state, frames.slice(offset, offset + 97));
   }
   assert.deepEqual(state.simulation, sim.checkpoint());
-  assert.deepEqual(nightReplayResult(state), { complete: true, eligible: true, cleared: true, fastestEligible: true, assisted: false, score: 1,
+  assert.deepEqual(nightReplayResult(state), { complete: true, eligible: true, cleared: true, fastestEligible: true, assisted: false, participated: true, score: 1,
     secondary: Math.round(sim.time * 1000) });
   assert.throws(() => applyNightReplay(state, [{ input: {}, ticks: 2 }]));
   state.assisted = true;

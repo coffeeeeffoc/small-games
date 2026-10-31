@@ -1,3 +1,4 @@
+import { settleVisuals } from './visual-helpers.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -36,10 +37,15 @@ try {
     }, { x, y });
     const tap = async (x, y) => { const p = await screenPoint(x, y); await page.touchscreen.tap(p.x, p.y); await page.waitForTimeout(90); };
     const press = async id => {
+      if (id === 'missions' && (await snapshot(page)).modal === 'home') {
+        await press('qm:modes'); await press('mode:solo'); await press('mode:enter');
+        return;
+      }
       if (id === 'start' && (await snapshot(page)).modal === 'home') await press('missions');
       const s = await snapshot(page), b = s.buttons.find(b => b.id === id);
       assert(b, `visible ${id}: ${s.buttons.map(b => b.id)}`);
       await tap(b.x + b.w / 2, b.y + b.h / 2);
+      await settleVisuals(page);
     };
     const layout = async () => { const s = await snapshot(page); assertLayout(s, s.ui.width, s.ui.height); };
     // Keep the explicit SDK fixture when testing an ads-off delivery package.

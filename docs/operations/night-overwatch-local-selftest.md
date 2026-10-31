@@ -1,0 +1,61 @@
+# 夜航本地后端与 Sakura FRP 联调
+
+此流程仅启动本机 Docker Desktop 中的 Night Runtime、PostgreSQL 和回环网关。Sakura FRP 沿用已有隧道，将公网 HTTPS 转发到 `127.0.0.1:43003`。不操作生产、不上传渠道，也不自动打 TapTap ZIP。
+
+## 启动与打包配置
+
+先确认 Docker 使用本机 Linux Engine 28+，既有 Sakura 隧道在线。公网地址必须是无路径、无账号信息的 HTTPS origin。
+
+```powershell
+node scripts/night-overwatch-selftest.mjs plan https://你的隧道域名:端口 43003
+node scripts/night-overwatch-selftest.mjs start https://你的隧道域名:端口 43003
+```
+
+`plan` 无写入、不访问 Docker 或账号。`start` 保留既有 `night-overwatch-taptap-test` 项目与 PostgreSQL 卷，生成仅 Runtime 的制品；先构建镜像，再停旧 Runtime、备份恢复验证、迁移旧钱包，最后启动新 Runtime 和网关。它检查本地/公网健康、匿名资产拒绝、登录后资产访问、TapTap H5 CORS 及其他游戏/内部路径拒绝。公网入口只允许 Night 和共用登录路由，数据库及 Runtime 不发布宿主端口。
+
+本地 API 为 `http://127.0.0.1:43003/api/competition/v1`。前端开关必须设置 `COMPETITION_SERVICE_ENABLED=1`，地址设置 `COMPETITION_PUBLIC_API_URL`；`COMPETITION_LOCAL_BACKEND=1` 只允许回环 HTTP，不会自动启用后端。最终 Creator 构建可按下列环境执行，手机浏览器应换为 FRP HTTPS 地址：
+
+```powershell
+$env:COMPETITION_SERVICE_ENABLED='1'
+$env:COMPETITION_PUBLIC_API_URL='http://127.0.0.1:43003/api/competition/v1'
+$env:COMPETITION_LOCAL_BACKEND='1'
+pnpm --filter @coffeeeeffoc/night-overwatch build
+```
+
+现有 `dist` 需要临时联调时，可以调用 `scripts/h5-game-services.mjs` 的 `prepareGameServices('night-overwatch', directory, {env, local:true})` 更新公开配置与共享桥接文件；正式制品仍由构建入口生成。该本地栈的 CORS 明确允许 Tap H5 CDN、`http://127.0.0.1:4318` 和 `http://localhost:4318`，拒绝其他来源。切换本地/FRP API 地址时，两端访问同一库和同一身份，重复交易编号不会再次发奖。
+
+私密文件 `.scratch/night-overwatch-selftest/database.env` 与 `.env.night-taptap-platform.local` 复用原值，不可提交或输出。成功后 `.scratch/night-overwatch-selftest/h5.json` 保存用户后续自行打包需要的公开 API、TapTap H5 登录与广告配置；`current.json` 保存本地镜像、制品、备份目录和迁移摘要。`pack` 是显式可选操作，本次未执行。原生小游戏与 H5 的配置、宿主能力不可互相当作验收证据。
+
+## 备份与恢复保护
+
+每次升级既有库均使用二进制 `pg_dump -Fc`，保存到忽略目录下的 `backup-<时间戳>/database.dump`。禁止 PowerShell 文本重定向处理此文件。恢复使用随机名称、`--network none`、不映射端口的独立 PostgreSQL 17.6 容器；恢复完整归档后对全部用户表比较行数和按行 JSON 排序的摘要。只有完全一致，才用本次新 Runtime 镜像在恢复副本上预演迁移，并检查重复执行、余额、累计签到及原始钱包流水不变。结束仅删除本次恢复容器及其匿名卷。
+
+原库迁移保留旧 `private-wallet-v1` JSON 和事件。金币原样迁移；旧资格映射到新效果；原版本目录价格累计为一次补偿邮件附件，读取不等于领取。v1 免费基础项不计购买价，已付升级、v1/v2 档位、临时券按各自历史目录计算；旧 coolant 同时获得可用 cooling-match。老积分及最快历史榜保留，新成长最快榜隔离。预演不会替用户领取补偿。
+
+备份或预演失败时，脚本在原库未修改的阶段恢复旧 Runtime。原库迁移后发生失败时，不自动启动旧钱包写入器：先保留现场和新备份，修复新 Runtime 或人工决定整体数据库恢复，避免新旧经济同时写入造成双花。禁止 `docker compose down -v`，也不要删除原 PostgreSQL 卷。
+
+## 广告限制与异常计数
+
+当前兑换依据客户端激励视频完成回调，明确标记 `limited-client-callback`。本次未取得可验签的广告服务端接口，因此订单随机数、等待时间和 `isEnded` 均不构成可信观看证明。参考 [RewardedVideoAd.onClose](https://developer.taptap.cn/minigameapidoc/dev/api/ad/RewardedVideoAd.onClose/) 和 [服务端 API](https://developer.taptap.cn/minigameapidoc/dev/server/server-api/)。服务端绑定本人、订单、段号、一次性 attempt，保留跨日进度、每日 12 段额度和 30 分钟 attempt 有效期；不存在保证有效观看的 10 秒硬门槛。
+
+拒绝的错单、过期、超额与过密订单，以及成功但短于 10 秒的回调，记录为每天每人每种原因的私有计数。短回调只作监测信号，不据此判定作弊或拒绝真实回调。计数不含令牌、昵称、IP 或原始请求。可在本地 PostgreSQL 只读运行：
+
+```sql
+SELECT data->>'day' AS day, data->>'kind' AS kind,
+       data->>'reason' AS reason, sum((data->>'count')::bigint) AS events
+FROM runtime.competition_matches
+WHERE board = 'night-overwatch:private-ad-audit-v1'
+GROUP BY 1, 2, 3 ORDER BY 1 DESC, 2, 3;
+```
+
+开包结果作为不可变回执保存；本人资产接口及仓库“开包记录”显示最近 20 笔。服务端版本/kill/停用导致的无效局，在本人下一次资产读取时有界扫描并返还单场扣耗，重复读取不重复退款；正常退出不返还已开局耗材。当前正在被玩法事务锁定的记录留待下一次读取处理。
+
+## 验证边界
+
+独立 `competition_test` PostgreSQL 用于资产并发、身份隔离、幂等、旧钱包、订单、两连接锁序和无效局退款测试，不使用联调库做破坏性测试。本地恢复演练另有逐表摘要与迁移预演记录。实际证据在交付时更新；本流程不等于真机、TapTap 宿主、真实广告库存或平台上传审核通过。
+
+2026-11-01 实际本地验收：`night-1793476775945-e4ee` 已运行；镜像 SHA-256 为 `4870ec1e67a010171e1da3a4f3bfa186bc2e754fdc49cdff51d5d53aa43809aa`。旧 `night-1793440910897-6335` 镜像和原 PostgreSQL 卷保留。备份位于 `.scratch/night-overwatch-selftest/backup-1793476839734/`，其中 `verification.json` 记录恢复后 **32 张用户表**逐表行数/摘要一致。5 个旧钱包保留 80 原金币；3300 目录价值补差进入未领取附件，累计签到合计 2 日；原私有钱包流水不变，迁移重复执行不重发。临时恢复容器及其匿名卷已移除。
+
+运行制品的 428 个文件摘要已验证，manifest 记录回环端口/CORS/Nginx 的本地覆盖前后摘要；源码基点 `358b1fe0248203068aac0c4df0cf76b282349816`，`sourceDirty=true`，对应本次未提交实现快照。两个真实 API 端均返回 Replay v9、Duel v3、Assets v3；通过新建 QA 游客在 FRP 签到、回环重试同一 requestId，确认只发 100 金币、40 XP、1 个通用普通包。没有操作已有用户的补偿附件。健康、匿名拒绝、允许/拒绝来源、其他游戏/内部路由拒绝已通过。详细脱敏结果在 `.scratch/night-overwatch-selftest/acceptance.json`；H5 配置和当前制品位置在同目录 `h5.json`、`current.json`。
+
+真实 HTTP 开局验收还覆盖服务端配装快照、未开局取消释放预留、合法零 tick 操作不扣耗、重复推进请求只消耗一次、正式开局后主动退出不返还。无人机一组齐射只计一次命中发数，持续伤害仍分别计入命中次数；单人 checkpoint、双人归属和训练纪录合法性测试通过。

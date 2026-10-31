@@ -76,7 +76,7 @@ test('port weapon stations, metre-authored mesh and banked model/camera transfor
   const q = aircraftRotation(pose);
   near(Math.hypot(q.x, q.y, q.z, q.w), 1);
   assert(WEAPONS[0].muzzle.z > 0 && WEAPONS[2].muzzle.z < 0);
-  for (let weapon = 0; weapon < WEAPONS.length; weapon++) {
+  for (let weapon = 0; weapon < 4; weapon++) {
     const mount = WEAPONS[weapon].muzzle;
     assert(mount.x < 0 && Math.abs(mount.x) < AIRFRAME.wingspan / 2);
     assert(Math.abs(mount.z) < AIRFRAME.length / 2 && Math.abs(mount.y) < AIRFRAME.height / 2);

@@ -10,6 +10,8 @@ import * as data from '../assets/scripts/core/Data.ts';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { MISSIONS } from '../assets/scripts/core/MissionCatalog.ts';
 import { Online } from '../assets/scripts/Online.ts';
+import { Quartermaster, type ProgressionPage } from '../assets/scripts/Quartermaster.ts';
+import { assetFixture } from './progression-fixture.ts';
 
 // Exercise the real HUD layout/drawing logic without building or launching Creator.
 // These doubles record UI geometry; actual rendering still needs runtime QA.
@@ -81,10 +83,11 @@ const cc = {
   Camera: class { static ProjectionType = { ORTHO: 0 }; static ClearFlag = { DEPTH_ONLY: 0 }; },
   Canvas: class {}, Mask: class { static Type = { GRAPHICS_RECT: 0 }; },
   Sprite: class { static SizeMode = { CUSTOM: 0 }; static Type = { SIMPLE: 0, SLICED: 1 }; }, SpriteFrame: class { texture: any; rect: any; get originalSize() { return this.texture; } destroy() {} }, Texture2D: class {},
+  TTFFont: class {},
   Rect: class { x: number; y: number; width: number; height: number; constructor(x: number, y: number, width: number, height: number) { Object.assign(this, { x, y, width, height }); } },
   resources: { load(name: string, _type: any, done: any) { if(artworkAvailable&&!name.includes('home'))done(null,{width:1024,height:512});else done(new Error('unavailable art')); } },
   isValid: () => true,
-  Label: class { static Overflow = { CLAMP: 0 }; static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0 }; },
+  Label: class { static Overflow = { CLAMP: 0, SHRINK: 1 }; static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0 }; },
   Layers: { Enum: { UI_2D: 1 } }, ResolutionPolicy: { EXACT_FIT: 0 },
   sys: { isMobile: false, isBrowser: false, getSafeAreaRect: () => ({ x: inset, y: inset, width: frame.width - inset * 2, height: frame.height - inset * 2 }) },
   view: { getFrameSize: () => frame, setDesignResolutionSize() {}, getScaleX: () => 1, getScaleY: () => 1 },
@@ -95,9 +98,9 @@ const hudURL = pathToFileURL(await realpath(path.join(path.dirname(path.dirname(
 (globalThis as any).__nightHudTestCC = cc;
 const hooks = registerHooks({
   resolve(id, context, next) {
-    if (context.parentURL === hudURL.href) {
+    if (context.parentURL?.startsWith(new URL('./',hudURL).href)) {
       if (id === 'cc' || id === './Effects') return { url: 'hud-test:' + id, shortCircuit: true };
-      if (id.startsWith('./')) return next(new URL(id + '.ts', hudURL).href, context);
+      if (id.startsWith('./')) return next(new URL(/\.ts$/.test(id)?id:id+'.ts',context.parentURL).href, context);
     }
     return next(id, context);
   },
@@ -1084,7 +1087,7 @@ test('HUD: authored metal title and three day illustrations are loaded and cropp
         assert(size.width >= 44 && size.height > 30, 'illustration remains visible on small phones');
       }
     }
-    assert.deepEqual([...new Set(requested)].sort(), ['ui/button/texture', 'ui/home/texture', 'ui/insignia/texture', 'ui/mission-atlas/texture', 'ui/mission-day-atlas/texture', 'ui/panel/texture', 'ui/title-metal/texture']);
+    assert.deepEqual([...new Set(requested)].sort(), ['ui/button/texture', 'ui/insignia/texture', 'ui/mission-atlas/texture', 'ui/mission-day-atlas/texture', 'ui/panel/texture', 'ui/progression/01-home/texture', 'ui/progression/home/texture', 'ui/progression/night-ui-serif', 'ui/progression/skins/texture', 'ui/progression/title/texture', 'ui/title-metal/texture']);
   } finally { cc.resources.load = load; inset = 0; }
 });
 
@@ -1124,4 +1127,74 @@ test('combined phone safe areas keep lobby reconnect targets separate and rankin
   hud.update(sim,world);assertPanelTargets(hud);
   assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('#11111111')));
  }finally{cc.sys.getSafeAreaRect=safe;}
+});
+
+
+test('progression pages keep every live action reachable on short and wide screens',()=>{
+  const pages:ProgressionPage[]=['','modes','loadout','shop','supply','growth','tasks','inbox','warehouse','receipts','checkin','probability'];
+  for(const [width,height]of [[568,320],[844,390],[1280,720],[1672,941]])for(const safe of [0,12])for(const lang of ['zh','en']){
+    Object.assign(frame,{width,height});inset=safe;
+    const hud=new HUD(new SceneNode()),sim=new Simulation();hud.lang=lang;hud.touch=true;
+    const online=new Online({getItem:()=>null,setItem(){}},()=>{});online.authenticatedId='qa-pilot';online.assets=assetFixture();hud.online=online;
+    const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
+    for(const page of pages)for(const detail of page==='shop'?[false,true]:[false]){
+      q.page=page;q.detail=detail;q.index=0;q.message=['',''];q.revision++;hud.update(sim,world);
+      const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
+      const ids=new Set();
+      for(const b of buttons){
+        const info=`${width}x${height}/${safe}/${lang}/${page}/${detail}/${b.id}`;
+        assert(!ids.has(b.id),info+' unique');ids.add(b.id);
+        assert(b.w>=44&&b.h>=44,info+' 44px');
+        assert(b.x>=safe-.01&&b.y>=safe-.01&&b.x+b.w<=width-safe+.01&&b.y+b.h<=height-safe+.01,info+' in safe area');
+        assert(!buttons.some((other:any)=>other!==b&&overlaps(b,other)),info+' no overlap');
+        assert.equal(hud.hit(b.x+b.w/2,b.y+b.h/2)?.id,b.disabled?undefined:b.id,info+' reachable');
+      }
+    }
+  }
+  inset=0;
+});
+
+test('warehouse identifies terms and pool tiers; inbox cannot claim a selection from another page',()=>{
+  Object.assign(frame,{width:568,height:320});inset=0;
+  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+  online.authenticatedId='qa-pilot';online.assets=assetFixture();hud.online=online;
+  const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
+  q.page='warehouse';q.item='power-24h';hud.update(sim,world);
+  assert(hud.buttons.find((b:any)=>b.id==='qm:activate')?.disabled);
+  assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('24小时')));
+  q.item='pack:general:3';q.revision++;hud.update(sim,world);
+  assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('通用 · 史诗')));
+  q.page='inbox';q.index=1;q.selectedMail='mail-0';q.revision++;hud.update(sim,world);
+  assert(!hud.buttons.some((b:any)=>b.id==='qm:claimMail'));
+  q.selectedMail='mail-2';q.revision++;hud.update(sim,world);
+  assert(hud.buttons.some((b:any)=>b.id==='qm:claimMail'));
+});
+
+test('disabled active and cooling skills block battlefield input while special weapons remain separate',()=>{
+  for(const touch of [false,true])for(const time of [1,5]){
+    Object.assign(frame,{width:568,height:320});inset=12;
+    const hud=new HUD(new SceneNode()),sim=new Simulation('training-60');hud.touch=touch;
+    sim.applyLoadout({version:'night-growth-v1',level:10,effects:['emp','drone'],skipped:[]});sim.start();sim.useSkill();sim.time=time;hud.update(sim,world);
+    const skill=hud.buttons.find((b:any)=>b.id==='skillUse'),weapon=hud.buttons.find((b:any)=>b.id==='gun4');
+    assert(skill?.disabled);assert(!weapon||!overlaps(skill,weapon));
+    assert.equal(hud.hit(skill.x+20,skill.y+20),undefined);
+    assert(hud.blocksBattlefield(skill.x+20,skill.y+20),'a disabled control must consume touch/mouse input');
+  }
+  inset=0;
+});
+
+test('growth settlement keeps rewards, next mission and base actions separate; local bots never inherit solo points',()=>{
+  for(const [width,height]of [[568,320],[844,390],[1280,720],[1672,941]]){
+    Object.assign(frame,{width,height});inset=12;
+    const hud=new HUD(new SceneNode()),sim=new Simulation('corridor-01'),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+    online.authenticatedId='qa-pilot';online.assets=assetFixture();online.rankStatus='finished';online.battleReward={status:'credited',points:100,coins:180,xp:120};hud.online=online;
+    hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});sim.phase='success';hud.update(sim,world);
+    const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
+    for(const b of buttons)assert(!buttons.some((other:any)=>other!==b&&overlaps(b,other)),`${width} settlement ${b.id} overlap`);
+    sim.duelMode=true;online.bot={} as any;hud.modalKey='rebuild';hud.update(sim,world);
+    const captions=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);
+    assert(!captions.includes('+100'),'local bot cannot inherit previous ranked points');
+    assert(captions.some((s:string)=>s.includes('训练不消耗库存')));
+  }
+  inset=0;
 });

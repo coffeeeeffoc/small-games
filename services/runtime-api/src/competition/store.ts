@@ -14,10 +14,20 @@ import {
   backfillNightClears,
   nightBoard,
   nightHistory,
+  nightLedgerLock,
   nightSummary,
   settleNightRoom,
 } from './night-ledger.js';
 import { createCompetitionIdentities } from './identity-store.js';
+import {
+  nightAssets,
+  reserveNightLoadout,
+  consumeNightLoadout,
+  refundNightLoadout,
+  reconcileNightLoadouts,
+  recordNightAdAudit,
+  type AssetCommand,
+} from './night-assets.js';
 import { publicProfile, publicResult, publicRoomResults } from './profile.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
 import {
@@ -289,7 +299,16 @@ export function createCompetitionStore(
           disconnected: !!disconnected,
           reconnectUntil,
           takenOver: !!takenOver,
-          settlement,
+          settlement: settlement
+            ? {
+                points: settlement.points,
+                totalPoints: settlement.totalPoints,
+                wins: settlement.wins,
+                games: settlement.games,
+                outcome: settlement.outcome,
+                reason: settlement.reason,
+              }
+            : undefined,
           result: publicResult(result),
         }),
       ),
@@ -326,7 +345,7 @@ export function createCompetitionStore(
     if (!timedOut && !room.players.every((p) => p.result?.finished)) return;
     room.status = 'finished';
     if (room.game === 'night-overwatch') {
-      await settleNightRoom(tx, room, now(), 'elimination');
+      await settleNightRoom(tx, room, now(), 'elimination', rule.progression);
       return;
     }
     if (rule.unrated) {
@@ -401,6 +420,23 @@ export function createCompetitionStore(
     room.deadline = rule.noTimeLimit ? Number.MAX_SAFE_INTEGER : room.startedAt + rule.durationMs;
     room.firstRole =
       room.initiative === 'random' ? rule.roles?.[randomInt(rule.roles.length)] : room.initiative;
+    if (room.game === 'night-overwatch' && rule.progression) {
+      room.loadoutBattle = `duel:${room.id ?? room.code}:${room.startedAt}`;
+      const snapshots = new Map<string, Awaited<ReturnType<typeof reserveNightLoadout>>>();
+      for (const player of [...room.players].sort((a, b) => a.id.localeCompare(b.id)))
+        snapshots.set(
+          player.id,
+          await reserveNightLoadout(
+            tx,
+            player.id,
+            now(),
+            room.loadoutBattle,
+            'duel',
+            rule.progression,
+          ),
+        );
+      room.loadouts = room.players.map((p) => snapshots.get(p.id)!);
+    }
     for (const player of room.players) {
       if (rule.lobby) {
         player.seenAt = room.startedAt;
@@ -408,6 +444,8 @@ export function createCompetitionStore(
         delete player.reconnectUntil;
       }
       player.state = rule.initial(room.seed, room.mode, room.firstRole);
+      if (room.loadouts && rule.configure)
+        player.state = rule.configure(player.state, room.loadouts);
       player.before = rule.unrated ? null : (await ranking(boardOf(rule), player.id, tx)).me;
     }
   }
@@ -447,7 +485,11 @@ export function createCompetitionStore(
     pruneSpectators(room);
     if (room.status !== 'playing') return;
     const rule = ruleFor(room.game);
+    if (room.game === 'night-overwatch') await nightLedgerLock(tx);
     const elapsed = Math.max(0, now() - room.startedAt!);
+    if (now() >= room.startedAt! && room.loadoutBattle && rule.progression)
+      for (const player of [...room.players].sort((a, b) => a.id.localeCompare(b.id)))
+        await consumeNightLoadout(tx, player.id, now(), room.loadoutBattle, rule.progression);
     const expired = room.players.filter(
       (member) => !member.takenOver && now() >= (member.reconnectUntil ?? member.seenAt! + 30000),
     );
@@ -480,7 +522,13 @@ export function createCompetitionStore(
           member.takenOver = true;
           member.disconnected = true;
         }
-      await settleNightRoom(tx, room, now(), abandoned ? 'abandoned' : 'disconnect');
+      await settleNightRoom(
+        tx,
+        room,
+        now(),
+        abandoned ? 'abandoned' : 'disconnect',
+        rule.progression,
+      );
       if (abandoned) {
         room.status = 'abandoned';
         return;
@@ -690,6 +738,19 @@ export function createCompetitionStore(
     }
     if (operation === 'leave' && member) {
       if (room.status === 'waiting' || (room.status === 'playing' && now() < room.startedAt!)) {
+        if (room.loadoutBattle && rule.progression) {
+          for (const player of [...room.players].sort((a, b) => a.id.localeCompare(b.id)))
+            await consumeNightLoadout(
+              tx,
+              player.id,
+              now(),
+              room.loadoutBattle,
+              rule.progression,
+              true,
+            );
+          delete room.loadoutBattle;
+          delete room.loadouts;
+        }
         room.players = room.players.filter((player) => player.id !== playerId);
         room.status = 'waiting';
         delete room.startedAt;
@@ -708,7 +769,7 @@ export function createCompetitionStore(
       }
       if (room.status === 'playing' && room.mode === 'bot') {
         room.status = 'abandoned';
-        await settleNightRoom(tx, room, now(), 'abandoned');
+        await settleNightRoom(tx, room, now(), 'abandoned', rule.progression);
       } else if (room.status === 'playing' && !member.takenOver) {
         member.disconnected = true;
         member.reconnectUntil = now() + 30000;
@@ -791,7 +852,7 @@ export function createCompetitionStore(
     } = {},
   ) {
     const playerId = playerIdOf(auth);
-    return db.transaction(async (tx) => {
+    const outcome = await db.transaction(async (tx) => {
       const preview = await tx.execute(
         sql`select data from runtime.competition_rooms where code=${code}`,
       );
@@ -816,6 +877,32 @@ export function createCompetitionStore(
       if (policy && policy.gameId !== room.game) throw new CompetitionError('WRONG_GAME');
       if (input.game && room.game !== input.game) throw new CompetitionError('WRONG_GAME', 409);
       const rule = ruleFor(room.game);
+      const invalid =
+        room.version !== rule.version
+          ? 'RULE_VERSION_CHANGED'
+          : policy?.state === 'disabled'
+            ? 'GAME_DISABLED'
+            : policy && policy.killEpoch !== (room.killEpoch ?? 0)
+              ? 'GAME_CANCELLED'
+              : undefined;
+      if (
+        room.game === 'night-overwatch' &&
+        room.loadoutBattle &&
+        rule.progression &&
+        room.status === 'playing' &&
+        !room.settledAt &&
+        invalid
+      ) {
+        if (!room.players.some((p) => p.id === playerId))
+          throw new CompetitionError('NOT_A_MEMBER', 403);
+        for (const member of [...room.players].sort((a, b) => a.id.localeCompare(b.id)))
+          await refundNightLoadout(tx, member.id, now(), room.loadoutBattle, rule.progression);
+        room.status = 'abandoned';
+        await tx.execute(
+          sql`update runtime.competition_rooms set data=${json(room)}::jsonb where code=${room.code}`,
+        );
+        return new CompetitionError(invalid);
+      }
       if (room.version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
       if (rule.lobby) return lobbyAction(room, playerId, operation, input, tx, policy);
       if (operation === 'leave') {
@@ -961,10 +1048,42 @@ export function createCompetitionStore(
       );
       return view(room, playerId, tx);
     });
+    if (outcome instanceof CompetitionError) throw outcome;
+    return outcome;
   }
   return {
     ...createCompetitionIdentities(db, now),
     gameDefinitions: () => [...rules.values()],
+    async nightAssets(auth: PlayerAuth, command?: AssetCommand) {
+      let authorized = false;
+      try {
+        return await db.transaction(async (tx) => {
+          const policy = await gamePolicy(control, tx, 'night-overwatch');
+          await assertResourceAuth(tx, auth, 'night-overwatch', now());
+          authorized = true;
+          const rule = ruleFor('night-overwatch'),
+            progression = rule.progression;
+          if (!progression) throw new CompetitionError('GAME_UNAVAILABLE', 404);
+          if (command) assertGameControl(policy, policy?.killEpoch, true);
+          else if (rule.rankedVersion)
+            await reconcileNightLoadouts(
+              tx,
+              playerIdOf(auth),
+              now(),
+              progression,
+              { solo: rule.rankedVersion, duel: rule.version },
+              policy,
+            );
+          return nightAssets(tx, playerIdOf(auth), now(), progression, command);
+        });
+      } catch (error) {
+        if (authorized && command && error instanceof CompetitionError)
+          await db.transaction((tx) =>
+            recordNightAdAudit(tx, playerIdOf(auth), now(), command.kind, error.code),
+          );
+        throw error;
+      }
+    },
     ranking,
     ruleFor,
     roomAction,

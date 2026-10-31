@@ -51,8 +51,8 @@ test('light patrols are seeded circles with a 90/10 size mix, smooth bounded spe
 });
 
 test('incendiary is a finite single-press weapon with a five-second reload and persistent terrain fire', () => {
-  assert.deepEqual(WEAPONS.map(w => w.ammo), [Infinity, 120, 45, 12]);
-  assert.deepEqual(WEAPONS.map(w => w.interval), [.12, .65, 2.4, 5]);
+  assert.deepEqual(WEAPONS.map(w => w.ammo), [Infinity, 120, 45, 12, 3, 6]);
+  assert.deepEqual(WEAPONS.map(w => w.interval), [.12, .65, 2.4, 5, 20, 8]);
   assert.deepEqual(WEAPONS[1].name, ['榴弹炮', 'HE Cannon']);
   assert.deepEqual(WEAPONS[2].name, ['重型榴弹炮', 'Heavy Howitzer']);
   assert.deepEqual(action('weapon3').keys, [53]); assert.deepEqual(action('homing').keys, [52]);
@@ -148,15 +148,15 @@ test('vehicles escape a three-way overlap without entering a new fire zone', () 
 test('restock preserves current weapon, trigger and buff while adding only finite ammunition', () => {
   const sim = isolated(); sim.choose(3); sim.grantBuff('rate'); sim.guns[1].ammo = 0; sim.guns[2].ammo = 1; sim.guns[3].ammo = 2;
   sim.held.add('touch'); sim.grantAmmoSupply();
-  assert.deepEqual(sim.guns.map(gun => gun.ammo), [Infinity, 60, 25, 8]);
+  assert.deepEqual(sim.guns.map(gun => gun.ammo), [Infinity, 60, 25, 8, 0, 0]);
   assert.equal(sim.selected, 3); assert.equal(sim.buff?.kind, 'rate'); assert(sim.held.has('touch'));
   const restored = Simulation.restore(sim.checkpoint()); assert.deepEqual(restored.checkpoint(), sim.checkpoint());
-  const legacy = sim.checkpoint(); Reflect.deleteProperty(legacy, 'fireZones'); legacy.guns.pop();
+  const legacy = sim.checkpoint(); Reflect.deleteProperty(legacy, 'fireZones'); legacy.guns.length=3;
   const migrated = Simulation.restore(legacy); assert.deepEqual(migrated.fireZones, []); assert.equal(migrated.guns[3].ammo, 12);
 });
 
 test('incendiary, restock, paused fire and patrol state round-trip through durable v7 replay', () => {
-  assert.equal(RANKED_RULE_VERSION, 'night-input-replay-v8');
+  assert.equal(RANKED_RULE_VERSION, 'night-input-replay-v9');
   const sim = new Simulation('operation-007'); sim.start(); const frames: ReplayFrame[] = [];
   observeNightInputs(sim, (input, ticks) => frames.push({ input, ticks }));
   sim.choose(3); sim.setAim({ x: -80, z: -70 }); sim.setFire('touch', true);

@@ -7,6 +7,7 @@ import path from 'node:path';
 import { competitionService, serviceEnvironment } from './competition-service-config.mjs';
 import { reconfigureH5Service } from './competition-h5-service.mjs';
 import { reconfigureGameServices } from './h5-game-services.mjs';
+import { selectedBackendBuildCommands } from './backend-build.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const serviceNames = {
@@ -25,6 +26,7 @@ const sources = {
     'games/local/tetracube/assets/scripts/core/config.js',
     'games/local/night-overwatch/assets/scripts/core/Duel.ts',
     'games/local/night-overwatch/assets/scripts/core/Replay.ts',
+    'games/local/night-overwatch/assets/scripts/core/Progression.ts',
     'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
     'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
     'games/local/night-overwatch/assets/scripts/core/Data.ts',
@@ -417,24 +419,7 @@ async function checksums(directory, prefix = '') {
 }
 
 export function backendBuildCommands(services) {
-  const compiled = services.filter((name) => ['runtime', 'management'].includes(name));
-  return [
-    ...(compiled.length
-      ? [
-          [
-            'exec',
-            'turbo',
-            'run',
-            'build',
-            ...compiled.map((service) => `--filter=${serviceNames[service]}...`),
-            '--concurrency=1',
-          ],
-        ]
-      : []),
-    ...services
-      .filter((name) => ['kart', 'tianxia'].includes(name))
-      .map((service) => ['--filter', serviceNames[service], 'build']),
-  ];
+  return selectedBackendBuildCommands(services, root);
 }
 
 async function runPnpm(args, env) {
@@ -485,7 +470,8 @@ async function main() {
   await mkdir(path.dirname(config.output), { recursive: true });
   await mkdir(config.output);
   if (config.frontend) await runPnpm(['build:pages'], env);
-  for (const command of backendBuildCommands(config.services)) await runPnpm(command, env);
+  for (const command of config.services.length ? await backendBuildCommands(config.services) : [])
+    await runPnpm(command, env);
   if (config.services.length)
     await prepareSelectedBackend(path.join(config.output, 'backend'), config.services);
   const pages = config.frontend

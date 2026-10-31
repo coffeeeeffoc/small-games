@@ -5,13 +5,19 @@ import {
   viewDuel,
   DUEL_VERSION,
   takeoverDuel,
+  configureDuel,
 } from '../../../games/local/night-overwatch/assets/scripts/core/Duel.ts';
+import { PROGRESSION } from '../../../games/local/night-overwatch/assets/scripts/core/Progression.ts';
+import { RANKED_RULE_VERSION } from '../../../games/local/night-overwatch/assets/scripts/core/Replay.ts';
 
 const copy = (state) => structuredClone(state);
 export default {
   id: 'night-overwatch',
   title: '夜航守望',
   version: DUEL_VERSION,
+  rankedVersion: RANKED_RULE_VERSION,
+  progression: PROGRESSION,
+  configure: (state, snapshots) => configureDuel(copy(state), snapshots),
   duel: true,
   unrated: true,
   lobby: true,
@@ -42,7 +48,9 @@ export default {
     return commandDuel(advanceDuel(copy(state), elapsedMs), seat, action.commands);
   },
   result(state, seat) {
+    const sim = viewDuel(state, seat).simulation;
     return {
+      participated: sim.fired >= 3 && sim.hitShots > 0,
       finished: state.finished,
       eligible: state.finished,
       outcome: state.winner === null ? 'draw' : state.winner === seat ? 'win' : 'loss',

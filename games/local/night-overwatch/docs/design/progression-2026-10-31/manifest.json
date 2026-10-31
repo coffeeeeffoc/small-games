@@ -2,8 +2,6 @@
   "date": "2026-11-01",
   "source": "built-in image_gen.imagegen",
   "classification": "concept-art, not gameplay screenshots",
-  "runtimeChanges": false,
-  "userApprovedVisuals": false,
   "images": [
     {
       "file": "01-home.png",
@@ -67,6 +65,27 @@
       "height": 941,
       "bytes": 2196455,
       "sha256": "dedb8a4b3dd54061c3a37b128b55254af0a1977474e787f9a2cdcb01072ccf33"
+    },
+    {
+      "file": "10-secondary-states.png",
+      "bytes": 2438233,
+      "sha256": "4f7ac720792e7ed84234c02fb082576253418836314f5227da97973e1cbd1ca1",
+      "width": 1672,
+      "height": 941,
+      "hasAlpha": false,
+      "classification": "supplemental concept only; numeric examples are not authoritative rules"
     }
-  ]
+  ],
+  "historicalDesignState": {
+    "runtimeChanges": false,
+    "userApprovedVisuals": false,
+    "referenceCommit": "358b1fe0248203068aac0c4df0cf76b282349816"
+  },
+  "implementation": {
+    "requestedByUser": true,
+    "referenceCommit": "358b1fe0248203068aac0c4df0cf76b282349816",
+    "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+    "evidence": "../../verification-2026-11-01-progression.md",
+    "conceptImagesAreRuntimeCaptures": false
+  }
 }

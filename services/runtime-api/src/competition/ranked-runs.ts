@@ -12,6 +12,7 @@ import type {
 
 const lifetime = 24 * 60 * 60 * 1000;
 const view = (run: RankedRun): RunView => ({
+  ...(run.loadout ? { loadout: run.loadout } : {}),
   id: run.id,
   game: run.game,
   board: run.board,
@@ -50,7 +51,11 @@ export function createRankedRuns(
     const rule = ruleFor(game);
     const definition = rule.boards.find((item) => item.id === board);
     if (!definition) throw new CompetitionError('BOARD_UNAVAILABLE', 404);
-    return { rule, definition, key: `${game}:${board}:${rule.boardVersion ?? rule.version}` };
+    return {
+      rule,
+      definition,
+      key: rule.boardKey?.(board) ?? `${game}:${board}:${rule.boardVersion ?? rule.version}`,
+    };
   };
   function assertOwner(run: RankedRun, playerId: string, game: string) {
     if (run.playerId !== playerId) throw new CompetitionError('NOT_A_MEMBER', 403);
@@ -201,6 +206,7 @@ export function createRankedRuns(
             throw new CompetitionError('ILLEGAL_ACTION', 422);
           }
           run.seq = input.seq;
+          if (ticks > 0) await tx.consumeLoadout?.();
           run.ticks += ticks;
           run.expiresAt = now() + lifetime;
           const response = view(run);
@@ -238,9 +244,25 @@ export function createRankedRuns(
             reason: accepted ? null : 'INCOMPLETE_OR_PRACTICE',
           };
           if (accepted) await tx.record(settlement);
+          await tx.reward?.(settlement);
+          if (!run.loadoutStarted) await tx.releaseLoadout?.();
           run.status = 'finished';
           run.settlement = settlement;
           return settlement;
+        },
+        auth,
+      );
+    },
+    cancel(auth: PlayerAuth, game: string, id: string) {
+      assertGameScope(auth, game);
+      return repository.mutate(
+        id,
+        async (tx) => {
+          assertOwner(tx.run, playerIdOf(auth), game);
+          if (tx.run.settlement) return tx.run.settlement;
+          await tx.releaseLoadout?.();
+          tx.run.status = 'finished';
+          return view(tx.run);
         },
         auth,
       );

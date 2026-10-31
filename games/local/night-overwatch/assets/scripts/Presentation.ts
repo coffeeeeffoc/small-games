@@ -32,6 +32,8 @@ export class DuelPresentation {
     rendered.aim = { ...authority.aim };
     rendered.selected = authority.selected;
     rendered.guns = authority.guns;
+    rendered.skill={...authority.skill};
+    rendered.loadout=authority.loadout;rendered.drones=authority.drones;rendered.buff=authority.buff;
     for (const key of ['x', 'y', 'z', 'pitch', 'bank', 'radius', 'altitude'] as const)
       rendered.aircraft[key] = blend(aircraft[key], authority.aircraft[key], amount);
     rendered.aircraft.yaw = angle(aircraft.yaw, authority.aircraft.yaw, amount);

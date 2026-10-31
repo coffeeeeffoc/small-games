@@ -1,4 +1,5 @@
 export type Result = {
+  participated?: boolean;
   finished: boolean;
   eligible: boolean;
   score: number;
@@ -6,6 +7,9 @@ export type Result = {
   outcome?: 'win' | 'loss' | 'draw';
 };
 export type Rule = {
+  rankedVersion?: string;
+  progression?: import('./night-assets.js').ProgressionRules;
+  configure?(state: unknown, snapshots: import('./night-assets.js').BattleLoadout[]): unknown;
   id: string;
   title: string;
   version: string;
@@ -43,6 +47,12 @@ export type Member = {
   reconnectUntil?: number;
   takenOver?: boolean;
   settlement?: {
+    coins?: number;
+    xp?: number;
+    totalCoins?: number;
+    totalXp?: number;
+    level?: number;
+    status?: string;
     points: number;
     totalPoints: number;
     wins: number;
@@ -52,6 +62,8 @@ export type Member = {
   };
 };
 export type Room = {
+  loadoutBattle?: string;
+  loadouts?: import('./night-assets.js').BattleLoadout[];
   id?: string;
   killEpoch?: number;
   code: string;

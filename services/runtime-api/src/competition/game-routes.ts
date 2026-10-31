@@ -1,5 +1,7 @@
+/* eslint-disable max-lines -- Game routes share the same identity, input and version boundary. */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { nightAssetCommandSchema } from './night-assets.js';
 import { CompetitionError } from './types.js';
 import type { createCompetitionStore } from './store.js';
 import type { createRankedStore } from './ranked-store.js';
@@ -21,6 +23,18 @@ export function registerGameRoutes(
   ranked: ReturnType<typeof createRankedStore>,
   player: (authorization: string | undefined) => Promise<PlayerAuth>,
 ) {
+  routes.get('/games/night-overwatch/assets', async (request) =>
+    store.nightAssets(await player(request.headers.authorization)),
+  );
+  routes.post(
+    '/games/night-overwatch/assets',
+    { bodyLimit: 4096, config: { rateLimit: { max: 120, timeWindow: '1 minute' } } },
+    async (request) =>
+      store.nightAssets(
+        await player(request.headers.authorization),
+        nightAssetCommandSchema.parse(request.body),
+      ),
+  );
   function definition(game: string) {
     const solo = ranked.rules.get(game);
     const multiplayer = store.gameDefinitions().find((rule) => rule.id === game);
@@ -49,6 +63,7 @@ export function registerGameRoutes(
       version: solo?.version ?? multiplayer?.version ?? 'identity-v1',
       versions: { ranked: solo?.version ?? null, multiplayer: multiplayer?.version ?? null },
       capabilities: {
+        ...(multiplayer?.progression ? { progression: true } : {}),
         identity: true,
         leaderboards: boards.length > 0,
         multiplayer: !!multiplayer,
@@ -74,12 +89,23 @@ export function registerGameRoutes(
     if (ranked.rules.get(game)?.boards.some((item) => item.id === board)) {
       if (game === 'night-overwatch') await store.prepareNightBoards(playerId);
       const { key, rule, definition: boardDefinition } = ranked.boardFor(game, board);
+      const query = z
+        .object({ ruleVersion: z.enum(['night-records-v1', 'night-growth-v1']).optional() })
+        .strict()
+        .parse(request.query);
+      const boardKey =
+        game === 'night-overwatch' && board.startsWith('level-') && query.ruleVersion
+          ? `night-overwatch:${board}:${query.ruleVersion}`
+          : key;
       return {
         game,
         boardType: board,
         version: rule.version,
+        ...(game === 'night-overwatch' && board.startsWith('level-')
+          ? { ruleVersion: boardKey.split(':').at(-1), historyVersions: ['night-records-v1'] }
+          : {}),
         ...boardDefinition,
-        ...(await store.ranking(key, playerId)),
+        ...(await store.ranking(boardKey, playerId)),
       };
     }
     if (!definition(game).boards.some((item) => item.id === board))
@@ -118,6 +144,12 @@ export function registerGameRoutes(
     const { game, id } = runParams(request.params);
     z.object({}).strict().parse(request.body);
     return ranked.resume(await player(request.headers.authorization), game, id);
+  });
+  routes.post('/games/:game/runs/:id/cancel', { bodyLimit: 1024 }, async (request) => {
+    const { game, id } = runParams(request.params);
+    z.object({}).strict().parse(request.body);
+    if (game !== 'night-overwatch') throw new CompetitionError('INVALID_INPUT', 422);
+    return ranked.cancel(await player(request.headers.authorization), game, id);
   });
   routes.post('/games/:game/runs/:id/actions', { bodyLimit: 160000 }, async (request) => {
     const { game, id } = runParams(request.params);

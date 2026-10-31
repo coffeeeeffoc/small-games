@@ -1554,10 +1554,100 @@ export const gameServiceScopePaths = Object.freeze([
   'scripts/competition-gateway.test.mjs',
 ]);
 export const nightRuntimeInputs = Object.freeze(
-  ['Duel', 'Replay', 'Simulation', 'MissionCatalog', 'Data', 'Flight'].map(
+  ['Duel', 'Replay', 'Simulation', 'MissionCatalog', 'Data', 'Flight', 'Progression'].map(
     (name) => `games/local/night-overwatch/assets/scripts/core/${name}.ts`,
   ),
 );
+export const nightLocalScopePaths = Object.freeze([
+  'scripts/night-overwatch-selftest.mjs',
+  'scripts/night-overwatch-selftest.test.mjs',
+  'scripts/night-overwatch-backup.mjs',
+]);
+const nightProgressionImports = [
+  'services/runtime-api/rules/night.mjs -> games/local/night-overwatch/assets/scripts/core/Replay.ts',
+  'services/runtime-api/rules/night.mjs -> games/local/night-overwatch/assets/scripts/core/Progression.ts',
+  'services/runtime-api/rules/night-ranked.mjs -> games/local/night-overwatch/assets/scripts/core/Progression.ts',
+  'services/runtime-api/rules/night-ranked.mjs -> games/local/night-overwatch/assets/scripts/core/Simulation.ts',
+];
+export function nightProgressionFileScope(file, before, after) {
+  if (typeof before !== 'string' || typeof after !== 'string') return false;
+  before = before.replaceAll('\r\n', '\n');
+  after = after.replaceAll('\r\n', '\n');
+  if (
+    [
+      'scripts/deploy-tencent.mjs',
+      'scripts/deployment-bundle.mjs',
+      'scripts/deployment-bundle.test.mjs',
+    ].includes(file)
+  ) {
+    const addition =
+      (file.endsWith('.test.mjs') ? '      ' : '    ') +
+      "'games/local/night-overwatch/assets/scripts/core/Progression.ts',\n";
+    const expected = file.endsWith('.test.mjs') ? 3 : 1;
+    const anchor =
+      (file.endsWith('.test.mjs') ? '      ' : '    ') +
+      "'games/local/night-overwatch/assets/scripts/core/" +
+      (file.endsWith('.test.mjs') ? 'MissionCatalog' : 'Replay') +
+      ".ts',\n";
+    const oldArmory = "    'games/local/night-overwatch/assets/scripts/core/Armory.ts',\n";
+    if (
+      file === 'scripts/deploy-tencent.mjs' &&
+      before.split(oldArmory).length === 2 &&
+      before.split(anchor).length === 2 &&
+      !before.includes(addition) &&
+      after === before.replace(oldArmory, '').replace(anchor, anchor + addition)
+    )
+      return true;
+    return (
+      !before.includes('core/Progression.ts') &&
+      before.split(anchor).length === expected + 1 &&
+      after === before.replaceAll(anchor, anchor + addition)
+    );
+  }
+  if (file === 'scripts/check-workspace-dependencies.mjs') {
+    const anchor = 'const REPOSITORY_IMPORTS = new Set([\n',
+      addition = nightProgressionImports.map((value) => `  '${value}',\n`).join('');
+    return (
+      before.split(anchor).length === 2 &&
+      nightProgressionImports.every((edge) => !before.includes(edge)) &&
+      after === before.replace(anchor, anchor + addition)
+    );
+  }
+  if (file === 'scripts/competition-gateway.mjs') {
+    const anchor = 'export function isPublicCompetitionPath(pathname) {\n';
+    const addition = String.raw`  if (
+    /^\/api\/competition\/v1\/games\/night-overwatch\/(?:assets|runs\/[a-f0-9-]{36}\/cancel)$/.test(
+      pathname,
+    )
+  )
+    return true;
+`;
+    const history = String.raw`  if (
+    /^\/api\/competition\/v1\/games\/night-overwatch\/(?:history|rooms\/[0-9]{6}(?:\/(?:ready|leave|rematch|actions|spectate|connect))?)$/.test(
+      pathname,
+    )
+  )
+    return true;
+`;
+    const wallet =
+      "  if (pathname === '/api/competition/v1/games/night-overwatch/wallet') return true;\n";
+    if (
+      before.split(wallet).length === 2 &&
+      before.split(history).length === 2 &&
+      before.split(anchor).length === 2 &&
+      !before.includes(addition) &&
+      after === before.replace(wallet, '').replace(anchor, anchor + addition)
+    )
+      return true;
+    return (
+      before.split(anchor).length === 2 &&
+      !before.includes(addition) &&
+      !before.includes(history) &&
+      after === before.replace(anchor, anchor + addition + history)
+    );
+  }
+  return false;
+}
 export function nightServiceTurboOnly(before, after) {
   try {
     const base = JSON.parse(before),
@@ -1609,6 +1699,16 @@ export function nightBackendFileScope(file, before, after) {
   if (file === 'scripts/deploy-tencent.mjs') {
     anchor = "    'services/runtime-api/rules',\n";
     addition = nightRuntimeInputs.map((value) => `    '${value}',\n`).join('');
+    const legacyAddition = nightRuntimeInputs
+      .filter((value) => !value.endsWith('/Progression.ts'))
+      .map((value) => `    '${value}',\n`)
+      .join('');
+    if (
+      before.split(anchor).length === 2 &&
+      !before.includes(legacyAddition) &&
+      after === before.replace(anchor, anchor + legacyAddition)
+    )
+      return true;
   } else if (file === 'scripts/check-workspace-dependencies.mjs') {
     anchor = 'const REPOSITORY_IMPORTS = new Set([\n';
     addition = [
@@ -5156,6 +5256,33 @@ export function reviewedSharedFileScopes({
           ]);
           continue;
         }
+      }
+      if (
+        nightLocalScopePaths.includes(file) ||
+        ([
+          'scripts/deploy-tencent.mjs',
+          'scripts/deployment-bundle.mjs',
+          'scripts/deployment-bundle.test.mjs',
+          'scripts/check-workspace-dependencies.mjs',
+          'scripts/competition-gateway.mjs',
+        ].includes(file) &&
+          typeof readBase === 'function' &&
+          typeof readHead === 'function' &&
+          nightProgressionFileScope(file, readBase(file), readHead(file)))
+      ) {
+        assertNightRuntimeConsumer(games, packages, readHead);
+        for (const edge of nightProgressionImports) {
+          const [from, to] = edge.split(' -> ');
+          assert(importsModule(readHead(from), '../../../' + to));
+        }
+        const gateway = file === 'scripts/competition-gateway.mjs';
+        if (gateway) assert.equal(packages.filter((pkg) => pkg.dir === 'apps/shell-web').length, 1);
+        scopes.set(file, [
+          'games/local/night-overwatch',
+          'services/runtime-api',
+          ...(gateway ? ['apps/shell-web'] : []),
+        ]);
+        continue;
       }
       if (
         file === 'scripts/competition-gateway.mjs' &&

@@ -59,7 +59,7 @@ test('basic service bundles replace stale API configuration and honor disabled r
   }
 });
 
-test('service selection is explicit, excludes unknown services and prevents unbacked kart settlement', () => {
+test('service selection is explicit, excludes unknown services and prevents unbacked kart settlement', async () => {
   assert.deepEqual(bundleConfig({}).services, ['runtime', 'kart', 'tianxia']);
   assert.equal(bundleConfig({}).adMode, 'mock');
   assert.equal(bundleConfig({ DEPLOY_H5_AD_MODE: 'off' }).adMode, 'off');
@@ -77,14 +77,32 @@ test('service selection is explicit, excludes unknown services and prevents unba
   ])
     assert.throws(() => bundleConfig(input));
   assert.equal(bundleConfig({ DEPLOY_SERVICES: '' }).frontend, true);
-  assert.deepEqual(backendBuildCommands(['kart', 'tianxia']), [
-    ['--filter', '@coffeeeeffoc/kart-server', 'build'],
-    ['--filter', '@coffeeeeffoc/tianxia-server', 'build'],
-  ]);
+  assert.deepEqual(
+    (await backendBuildCommands(['kart', 'tianxia'])).filter((command) =>
+      ['@coffeeeeffoc/kart-server', '@coffeeeeffoc/tianxia-server'].includes(command[1]),
+    ),
+    [
+      ['--filter', '@coffeeeeffoc/kart-server', 'build'],
+      ['--filter', '@coffeeeeffoc/tianxia-server', 'build'],
+    ],
+  );
   assert.ok(
-    !backendBuildCommands(['runtime', 'kart'])
+    !(await backendBuildCommands(['runtime', 'kart']))
       .flat()
       .includes('--filter=@coffeeeeffoc/kart-server...'),
+  );
+});
+
+test('Runtime bundle builds only emitted runtime dependencies, never Creator or management', async () => {
+  const commands = await backendBuildCommands(['runtime']);
+  assert(commands.some((command) => command[1] === '@coffeeeeffoc/runtime-api'));
+  assert(
+    !commands.some(
+      (command) =>
+        command.includes('@coffeeeeffoc/place-and-clear') ||
+        command.includes('@coffeeeeffoc/management-api') ||
+        command.includes('turbo'),
+    ),
   );
 });
 
@@ -328,6 +346,7 @@ test('runtime bundle includes multiplayer carrom physics and level data without 
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
       'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
       'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+      'games/local/night-overwatch/assets/scripts/core/Progression.ts',
       'games/local/night-overwatch/assets/scripts/core/Data.ts',
       'games/local/night-overwatch/assets/scripts/core/Flight.ts',
       'games/local/carrom-club/src/core.mjs',
@@ -384,6 +403,7 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
       'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
       'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+      'games/local/night-overwatch/assets/scripts/core/Progression.ts',
       'games/local/night-overwatch/assets/scripts/core/Data.ts',
       'games/local/night-overwatch/assets/scripts/core/Flight.ts',
       'games/local/carrom-club/src/core.mjs',
@@ -417,6 +437,7 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
       'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
       'games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts',
+      'games/local/night-overwatch/assets/scripts/core/Progression.ts',
       'games/local/night-overwatch/assets/scripts/core/Data.ts',
       'games/local/night-overwatch/assets/scripts/core/Flight.ts',
     ]) {

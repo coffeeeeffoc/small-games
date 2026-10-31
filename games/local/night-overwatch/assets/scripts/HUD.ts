@@ -47,6 +47,9 @@ import { mapRoute, routeLength, riverX, type BattlefieldId } from './core/Data';
 import { trainingNextGoal, type TrainingRecord } from './core/TrainingRecords';
 import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
 import { battleCounts, formatTime, type TimeComparison } from './core/BattleRecords';
+import { ProgressionArt } from './ProgressionArt';
+import { ProgressionView } from './ProgressionView';
+import type { Quartermaster } from './Quartermaster';
 
 const C = {
   ink: '#081725f5',
@@ -61,6 +64,9 @@ const C = {
 const col = (hex: string) => new Color().fromHEX(hex);
 export type ButtonRect = { id: string; x: number; y: number; w: number; h: number; label: Label; visual?: { x: number; y: number; w: number; h: number }; disabled?: boolean };
 export class HUD {
+  quartermaster?:Quartermaster;
+  progressionArt:ProgressionArt;
+  private progressionRevision='';
   root: Node;
   camera: Camera;
   g: Graphics;
@@ -83,7 +89,7 @@ export class HUD {
   pressedButton = '';
   private uiFrames = new Map<string, SpriteFrame>();
   private surfaces?: Node;
-  get interfaceArtworkReady() { return this.uiFrames.size === 3 && !!this.titleArtwork && this.missionArtwork.length === 3 && this.dayArtwork.length === 3; }
+  get interfaceArtworkReady() { return this.quartermaster ? this.progressionArt.homeReady : this.uiFrames.size === 3 && !!this.titleArtwork && this.missionArtwork.length === 3 && this.dayArtwork.length === 3; }
   effects: EffectsFrame = { impacts: [], projectiles: [] };
   buttons: ButtonRect[] = [];
   labels = new Map<string, Label>();
@@ -157,6 +163,8 @@ export class HUD {
     this.root = new Node('OverwatchHUD');
     parent.addChild(this.root);
     this.root.layer = Layers.Enum.UI_2D;
+    this.progressionArt=new ProgressionArt(this);
+    this.root.once(Node.EventType.NODE_DESTROYED,()=>this.progressionArt.destroy());
     this.root.once(Node.EventType.NODE_DESTROYED, () => { for (const frame of this.artworkFrames) frame.destroy(); });
     this.root.addComponent(UITransform);
     const canvas = this.root.addComponent(Canvas),
@@ -174,7 +182,7 @@ export class HUD {
     this.homeBackground.addComponent(Graphics);
     this.homeArtwork = this.node('HomeArtwork', this.homeBackground).addComponent(Sprite);
     this.homeArtwork.sizeMode = Sprite.SizeMode.CUSTOM;
-    resources.load('ui/home/texture', Texture2D, (error, texture) => {
+    resources.load('ui/progression/home/texture', Texture2D, (error, texture) => {
       if (!error && isValid(this.root)) {
         const frame = new SpriteFrame(); frame.texture = texture;
         this.homeArtwork.spriteFrame = frame; this.artworkFrames.push(frame);
@@ -385,11 +393,13 @@ export class HUD {
     const cardW = small ? 76 : this.compact ? Math.min(68, (right - left - 118) / 5 - 8) : 90;
     const fireW = this.compact ? 64 : 76;
     const cardsLeft = this.desktop ? right - fireW - 18 - 5 * (cardW + 8) : left;
-    for (let i = 0; i < WEAPONS.length; i++) {
+    for (let i = 0; i < 4; i++) {
       const label = this.button('weapon' + i, '', cardsLeft + i * (cardW + 8), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
       if (small) { label.fontSize = 12; label.lineHeight = 17; }
     }
     this.button('homing', '', cardsLeft + 4 * (cardW + 8), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
+    for (const i of [4,5]) this.button('weapon'+i,'',left+116,by-82,108,44);
+    this.button('skillUse','',left,by-82,108,44);
     this.button('fire', '', right - fireW, h - this.safe.bottom - fireW - 10, fireW, fireW);
     const stateX = this.desktop ? cardsLeft - 144 : left + 5 * (cardW + 8) + 4;
     const stateW = this.desktop ? 132 : right - fireW - stateX - 12;
@@ -439,7 +449,8 @@ export class HUD {
     crop.addComponent(Mask).type = Mask.Type.GRAPHICS_RECT;
     const picture = this.node(name + '-Art', crop), sprite = picture.addComponent(Sprite);
     sprite.sizeMode = Sprite.SizeMode.CUSTOM; sprite.spriteFrame = frame;
-    const size = Math.max(w, h); picture.getComponent(UITransform)!.setContentSize(size, size);
+    const rect=frame.rect,fw=rect?.width||frame.originalSize.width,fh=rect?.height||frame.originalSize.height;
+    const scale=Math.max(w/fw,h/fh);picture.getComponent(UITransform)!.setContentSize(fw*scale,fh*scale);
     return crop;
   }
   artOverlay(parent: Node, name: string) { return this.node(name, parent).addComponent(Graphics); }
@@ -562,8 +573,11 @@ export class HUD {
       );
   }
   blocksBattlefield(x: number, y: number, ignorePriority = false) {
-    const map = this.minimapLayout, hit = this.hit(x, y);
-    return !!hit && !(ignorePriority && hit.id === 'priority') || y < 58 + this.safe.top ||
+    const map = this.minimapLayout, control = this.buttons.some(b =>
+      !(ignorePriority && b.id === 'priority') && b.label.node.activeInHierarchy &&
+      (!this.modal || b.label.node.parent === this.modal || this.isGlobalAction(b.id)) &&
+      x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+    return control || y < 58 + this.safe.top ||
       (!this.desktop && y > this.h - this.footer - this.safe.bottom) ||
       (x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h);
   }
@@ -1122,7 +1136,8 @@ export class HUD {
       label(me ? this.t('我的排名 第','MY RANK ') + me.rank + this.t('名 · ',' · ') + metric(me) : this.t('你 · 尚无上榜成绩', 'YOU · NOT YET RANKED'), bottom - 24, 11, C.mint);
       button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
       button('refresh',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
-      this.label(n, this.t(`已加载 ${rows.length} 名 · 上下滑动`, `${rows.length} LOADED · SCROLL`), px + 216 + (pw - 234) / 2, py + bottom + 22, 11, pw - 234, 26, C.dim);
+      if(level)button('ruleVersion',online.rankingVersion==='night-growth-v1'?this.t('成长版 ▾','GROWTH ▾'):this.t('历史版 ▾','LEGACY ▾'),pw-160,bottom,142);
+      else this.label(n, this.t(`已加载 ${rows.length} 名 · 上下滑动`, `${rows.length} LOADED · SCROLL`), px + 216 + (pw - 234) / 2, py + bottom + 22, 11, pw - 234, 26, C.dim);
       return;
     }
     if (online.panel === 'history') {
@@ -1229,6 +1244,9 @@ export class HUD {
     this.node('Backdrop', n).addComponent(Graphics);
     this.surfaces = this.node('Surfaces', n);
     const g = this.node('Ink', n).addComponent(Graphics);
+    if(this.quartermaster&&(key==='home'||key.startsWith('progression:')||key==='success'||key==='failure'||key==='duelResult')){
+      new ProgressionView(this,this.quartermaster,this.progressionArt,n,g,this.surfaces).render(s,['success','failure','duelResult'].includes(key));return;
+    }
     if (key === 'entering') {
       const pw = Math.min(480, this.w - 48), px = (this.w - pw) / 2, py = this.h / 2 - 75;
       this.panelFrame(g, px, py, pw, 150, C.amber, '#050f1d38');
@@ -1622,11 +1640,19 @@ export class HUD {
       : this.t('战斗补给', 'COMBAT SUPPLY');
   }
   update(s: Simulation, world: World) {
+    if(this.quartermaster){
+      this.quartermaster.syncIdentity();
+      const revision=`${this.quartermaster.revision}:${this.online?.revision}:${this.lang}`;
+      if(revision!==this.progressionRevision&&!this.editing){this.progressionRevision=revision;this.modalKey='rebuild';}
+      const page=this.quartermaster.page;
+      const frame=this.progressionArt.get(page==='loadout'||page==='warehouse'||page==='checkin'||page==='tasks'?'hangar':page?'base':'home');
+      if(frame)this.homeArtwork.spriteFrame=frame;
+    }
     this.lockedTargets = [];
     this.effects = { impacts: [], projectiles: [] };
     const w = this.w, h = this.h, g = this.g, top = this.safe.top,
       left = 12 + this.safe.left, right = w - this.safe.right - 12, by = h - this.footer - this.safe.bottom;
-    this.homeBackground.active = s.phase === 'briefing';
+    this.homeBackground.active = s.phase === 'briefing'||!!this.quartermaster?.page;
     if (this.homeBackground.active) {
       const background = this.homeBackground.getComponent(Graphics)!;
       background.clear(); this.rect(background, 0, 0, w, h, '#071522');
@@ -1637,8 +1663,9 @@ export class HUD {
       }
     }
     let key = s.phase === 'briefing' ? this.missionsOpen ? 'missions' : 'home' : s.phase === 'playing' ? '' : s.phase;
+    if(this.quartermaster?.page)key='progression:'+this.quartermaster.page;
     if (this.online?.panel) key = `online:${this.online.panel}:${this.online.revision}:${this.lang}`;
-    else if (s.duelMode && this.online?.view?.finished) key = 'duelResult';
+    else if (s.duelMode && this.online?.view?.finished&&!this.quartermaster?.page) key = 'duelResult';
     else if (this.online?.entering) key = 'entering';
     if (this.advert) key = `advert:${this.advert.kind}:${this.advert.mock}:${this.lang}`;
     else if (this.exitConfirm) key = 'exit';
@@ -1659,7 +1686,8 @@ export class HUD {
     for (const l of this.labels.values()) l.node.active = !key;
     for (const l of this.unitLabels.values()) l.node.active = false;
     for (const b of this.buttons) {
-      if (this.online?.spectator && (b.id === 'fire' || b.id.startsWith('weapon') || b.id === 'homing')) { b.label.node.active = false; continue; }
+      if (this.online?.spectator && (b.id === 'fire' || b.id.startsWith('weapon') || b.id === 'homing' || b.id === 'skillUse')) { b.label.node.active = false; continue; }
+      if (b.id.startsWith('weapon') && !s.hasWeapon(Number(b.id.slice(6))) || b.id==='skillUse' && !s.skillKind) { b.label.node.active=false; continue; }
       if (s.duelMode && ['homing', 'convoy', 'supply', 'mission'].includes(b.id)) { b.label.node.active = false; continue; }
       if (b.id === 'homing' && !tracking && !s.homingAmmo && !this.rewardsAvailable && !this.pendingSupply) {
         b.label.node.active = false;
@@ -1792,7 +1820,12 @@ export class HUD {
       const selected = (!s.homingSelected && b.id === 'weapon' + s.selected) || ((s.homingSelected || tracking) && b.id === 'homing') || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
       if (b.id.startsWith('weapon')) {
         const i = Number(b.id.slice(-1)), a = s.guns[i];
-        b.label.string = this.t(['速射', '榴弹', '重炮', '燃烧'][i], ['RAPID', 'HE', 'HEAVY', 'FIRE'][i]) + '\n' + (a.ammo === Infinity ? '∞' : a.ammo);
+        const compactNames=[['速射','AUTO'],['榴弹','HE'],['重炮','HVY'],['燃烧','FIRE']];
+        b.label.string = (b.w<100&&i<4?this.t(...compactNames[i] as [string,string]):text(WEAPONS[i].name,this.lang)) + '\n' + (a.ammo === Infinity ? '∞' : a.ammo);
+      }
+      if(b.id==='skillUse') {
+        b.label.string=(s.skillKind==='tracking'?this.t('个人追踪','TRACKING'):this.t('电磁定身','EMP'))+'\n'+(s.skillRemaining>0?this.t('生效 ','ACTIVE ')+Math.ceil(s.skillRemaining)+'s':s.skillCooldown>0?this.t('冷却 ','COOLDOWN ')+Math.ceil(s.skillCooldown)+'s':this.t('就绪','READY'));
+        b.disabled=s.skillCooldown>0||s.paused||s.extractionRemaining!==undefined;
       }
       if (b.id === 'fire') b.label.string = reason === 'extracting' ? this.t('停火', 'CEASE FIRE') : s.homingSelected
         ? s.homingAmmo <= 0 ? this.t('无弹药', 'EMPTY') : s.homingTarget ? this.t('发射', 'LAUNCH') : this.t('待锁定', 'LOCK')
@@ -1801,6 +1834,7 @@ export class HUD {
       const fire = b.id === 'fire';
       this.plate(g, b.x, b.y, b.w, b.h, fire ? danger ? '#482832' : C.mint : selected ? '#29463ee0' : '#101a1ee6', fire && danger ? C.red : selected || fire ? C.mint : '#708a8066', fire ? 12 : 7);
       b.label.color = col(fire && !danger ? C.action : selected ? C.mint : C.white);
+      if(b.id==='skillUse')b.label.color=col(s.skillRemaining>0?C.mint:s.skillCooldown>0?C.dim:C.white);
       if (b.id === 'homing' && tracking && s.buff!.remaining <= 5) b.label.color = col(C.amber);
       b.label.isBold = selected || fire;
       if ((b.id.startsWith('weapon') || b.id === 'homing') && b.w >= 64) {
@@ -1817,6 +1851,7 @@ export class HUD {
         b.label.node.setPosition(b.x + 30 + (b.w - 30) / 2 - w / 2, h / 2 - b.y - b.h / 2);
         b.label.node.getComponent(UITransform)!.setContentSize(b.w - 32, b.h - 4);
         b.label.fontSize = 12;
+        b.label.lineHeight = 15;
       }
       if (b.id.startsWith('weapon')) {
         const a = s.guns[Number(b.id.slice(-1))];
@@ -2099,7 +2134,7 @@ export class HUD {
     }
     g.strokeColor = col(s.reason() === 'protected' || s.friendlyRisk ? C.red : C.mint);
     g.lineWidth = 1.5;
-    groundRing(s.aim, WEAPONS[s.selected].radius);
+    groundRing(s.aim, s.effectiveRadius);
     for (const outline of [true, false]) {
       g.strokeColor = col(outline ? '#061116' : s.reason() === 'protected' || s.friendlyRisk ? C.red : C.white);
       g.lineWidth = outline ? 6 : 3;

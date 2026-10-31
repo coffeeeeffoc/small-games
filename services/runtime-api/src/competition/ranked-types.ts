@@ -8,6 +8,7 @@ export type BoardDefinition = {
 };
 export type Frame = { ticks: number; input: Record<string, unknown> };
 export type RankedResult = {
+  participated?: boolean;
   cleared?: boolean;
   fastestEligible?: boolean;
   assisted?: boolean;
@@ -17,6 +18,9 @@ export type RankedResult = {
   secondary: number;
 };
 export type RankedRule = {
+  progression?: import('./night-assets.js').ProgressionRules;
+  configure?(state: unknown, snapshot: import('./night-assets.js').BattleLoadout): unknown;
+  boardKey?(board: string): string;
   id: string;
   title: string;
   version: string;
@@ -27,6 +31,12 @@ export type RankedRule = {
   result(state: unknown): RankedResult;
 };
 export type Settlement = RankedResult & {
+  coins?: number;
+  xp?: number;
+  totalCoins?: number;
+  totalXp?: number;
+  level?: number;
+  status?: string;
   accepted: boolean;
   reason: string | null;
   runId: string;
@@ -37,6 +47,8 @@ export type Settlement = RankedResult & {
   games?: number;
 };
 export type RankedRun = {
+  loadout?: import('./night-assets.js').BattleLoadout;
+  loadoutStarted?: boolean;
   killEpoch?: number;
   kind: 'ranked-run-v1';
   id: string;
@@ -56,6 +68,7 @@ export type RankedRun = {
   settlement?: Settlement;
 };
 export type RunView = {
+  loadout?: import('./night-assets.js').BattleLoadout;
   id: string;
   game: string;
   board: string;
@@ -69,6 +82,9 @@ export type RunView = {
 };
 export type Receipt = { hash: string; response: RunView };
 export type RunTransaction = {
+  consumeLoadout?(): Promise<void>;
+  releaseLoadout?(): Promise<void>;
+  reward?(result: Settlement): Promise<void>;
   assertControl?(): void;
   run: RankedRun;
   receipt(seq: number): Promise<Receipt | undefined>;

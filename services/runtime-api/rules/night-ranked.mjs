@@ -5,12 +5,22 @@ import {
   nightReplayResult,
 } from '../../../games/local/night-overwatch/assets/scripts/core/Replay.ts';
 import { MISSIONS } from '../../../games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts';
+import { PROGRESSION } from '../../../games/local/night-overwatch/assets/scripts/core/Progression.ts';
+import { Simulation } from '../../../games/local/night-overwatch/assets/scripts/core/Simulation.ts';
 
 export default {
   id: 'night-overwatch',
   title: '夜航守望',
   version: RANKED_RULE_VERSION,
   boardVersion: 'night-records-v1',
+  progression: PROGRESSION,
+  boardKey: (board) =>
+    `night-overwatch:${board}:${board.startsWith('level-') ? PROGRESSION.version : 'night-records-v1'}`,
+  configure(state, loadout) {
+    const sim = Simulation.restore(state.simulation);
+    sim.applyLoadout(loadout);
+    return { ...state, simulation: sim.checkpoint() };
+  },
   boards: [
     ...['clears', 'points', 'win-rate'].map((id, i) => ({
       id,

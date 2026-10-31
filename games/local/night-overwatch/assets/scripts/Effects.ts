@@ -202,6 +202,29 @@ export function drawEffects(
     }
   }
 
+  // Special weapons remain presentation-only; authoritative hits come from the simulation.
+  for(const event of s.events.slice(-64)) {
+    const age=s.time-event.time;
+    if(event.type!=='shot'||event.weapon!==5||!event.target||age<0||age>.22)continue;
+    const origin=airborne({...event,y:event.y??0}),target=airborne(event.target),fade=1-age/.22;
+    if(!reduced)line(origin,target,.7,.2*fade,7,true);
+    line(origin,target,1,fade,reduced?1.5:2.5,true);blob(target,5,5,1,fade);
+  }
+  for(const drone of s.drones.slice(0,6)) {
+    const p=airborne(drone),size=Math.max(4,Math.min(12,scaleAt(drone)*.45));
+    for(const sign of [-1,1])line({x:p.x-size,y:p.y+sign*size*.45},{x:p.x+size,y:p.y-sign*size*.45},.8,.9,2,true);
+    for(const dx of [-1,1])for(const dy of [-1,1]) {
+      g.strokeColor=new Color(143,222,230,210);g.lineWidth=1;g.ellipse(p.x+dx*size,p.y+dy*size*.45,size*.45,size*.15);g.stroke();
+    }
+    blob(p,2,2,1,.9);
+    const target=s.units.find(u=>u.id===drone.target);
+    if(target&&s.time>drone.nextAttack-.12&&s.time<=drone.nextAttack)line(p,project(target,target.y+.2),1,.65,1,true);
+  }
+  for(const unit of s.units)if((unit.rootedUntil??0)>s.time) {
+    const p=project(unit,unit.y+.5),r=Math.max(5,Math.min(30,scaleAt(unit)*.8));
+    g.strokeColor=new Color(112,213,255,210);g.lineWidth=1.5;g.ellipse(p.x,p.y,r,r*.45);g.stroke();
+    if(!reduced){g.moveTo(p.x-r*.3,p.y+r);g.lineTo(p.x+r*.2,p.y+r*.4);g.lineTo(p.x-r*.15,p.y);g.lineTo(p.x+r*.3,p.y-r*.6);g.stroke();}
+  }
   // Every terrain impact explodes, including misses. Kill events use wreck smoke, not a second explosion.
   let attacks = 0;
   for (const e of [...world.impactClouds, ...s.events.filter((event) => event.type === 'attack')]) {

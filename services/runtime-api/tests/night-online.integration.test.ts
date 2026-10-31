@@ -639,7 +639,11 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(marker).toHaveLength(1);
     expect(marker[0]!.data).toEqual({ status: 'complete' });
     expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(6);
-    expect((await request(path + '/leaderboards/level-corridor-01', a)).me.secondary).toBe(4000);
+    expect((await request(path + '/leaderboards/level-corridor-01', a)).me).toBeNull();
+    expect(
+      (await request(path + '/leaderboards/level-corridor-01?ruleVersion=night-records-v1', a)).me
+        .secondary,
+    ).toBe(4000);
     expect((await request(path + '/leaderboards/points', a)).me).toBeNull();
     expect((await request(path + '/history', a)).summary.games).toBe(0);
     const before = await database.db.execute(
@@ -733,6 +737,25 @@ integration('Night real HTTP and PostgreSQL', () => {
           sql`,`,
         )})`);
     }
+  });
+
+  it('keeps full economy receipts private from opponents and spectators', async () => {
+    const [a, b, watcher] = await Promise.all([player(), player(), player()]);
+    const room = await pair(a, b);
+    await request(roomPath(room.code) + '/spectate', watcher, {});
+    await eliminate(room.code, 1);
+    const own = await request(roomPath(room.code), a),
+      other = await request(roomPath(room.code), b),
+      spectator = await request(roomPath(room.code), watcher);
+    expect(own.settlement).toHaveProperty('totalCoins');
+    expect(other.settlement).toHaveProperty('totalXp');
+    expect(spectator.settlement).toBeNull();
+    for (const response of [own, other, spectator])
+      for (const member of response.players) {
+        expect(member.settlement).not.toHaveProperty('totalCoins');
+        expect(member.settlement).not.toHaveProperty('totalXp');
+        expect(member.settlement).not.toHaveProperty('inventory');
+      }
   });
 
   it('renaming a user updates existing rankings, history and rooms without a second identity', async () => {

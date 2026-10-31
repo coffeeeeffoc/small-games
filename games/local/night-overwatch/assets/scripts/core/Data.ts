@@ -135,6 +135,16 @@ export const WEAPONS = [
     armor: 0.2,
     automatic: false,
   },
+  {
+    id: 'drone', muzzle: AIRFRAME.muzzles[1], name: ['无人机机群', 'Drone swarm'], interval: 20,
+    speed: 35, calibre: 0.004, length: 0.021, tracerTime: 0.055, damage: 8, radius: .6,
+    ammo: 3, heat: 0, armor: .75, automatic: false,
+  },
+  {
+    id: 'laser', muzzle: AIRFRAME.muzzles[2], name: ['激光', 'Laser'], interval: 8,
+    speed: 10000, calibre: 0.004, length: 0.021, tracerTime: 0.055, damage: 85, radius: .6,
+    ammo: 6, heat: 0, armor: .85, automatic: false,
+  },
 ] as const;
 export const UNITS = {
   light: {

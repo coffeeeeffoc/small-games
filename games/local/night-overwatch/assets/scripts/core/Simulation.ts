@@ -24,8 +24,9 @@ import {
   type Point3,
   type Kind,
 } from './Data.ts';
-import { Flight, ballisticLaunch, muzzlePosition, shotPosition, terrainContact } from './Flight.ts';
+import { Flight, ballisticLaunch, muzzlePosition, aircraftPoint, shotPosition, terrainContact } from './Flight.ts';
 import { missionDefinition, type MissionId, type MissionDefinition } from './MissionCatalog.ts';
+import { GROWTH_VERSION, SKILLS, validBattleLoadout, attackPreview, type BattleLoadout } from './Progression.ts';
 export type PauseReason = 'help' | 'settings' | 'mission' | 'manual' | 'orientation' | 'background' | 'focus' | 'advert' | 'supply' | 'countdown';
 export type BuffKind = 'tracking' | 'rate';
 export type ConvoyState = 'moving' | 'holdRequested' | 'holding' | 'arrived';
@@ -44,8 +45,14 @@ export type Unit = Point3 & {
   patrolElapsed?: number;
   group?: number;
   routeOffset?: number;
+  rootedUntil?: number;
+  immuneUntil?: number;
+  slowedUntil?: number;
 };
 export type Shot = Point & {
+  damageMultiplier?: number;
+  radiusScale?: number;
+  trackingUntil?: number;
   side?: number;
   id: number;
   weapon: number;
@@ -58,6 +65,7 @@ export type Shot = Point & {
   guidance?: { kind: 'tracking' | 'consumable'; target: number; position: Point3; trail: (Point3 & { time: number })[] };
 };
 export type FireZone = Point3 & { id: number; radius: number; born: number; expires: number; side?: number };
+export type Drone = Point3 & { id: number; volley: number; hitCounted: boolean; side: number; expires: number; budget: number; nextAttack: number; target?: number };
 export type BattleEvent = Point & {
   side?: number;
   id: number;
@@ -90,6 +98,9 @@ export class Simulation {
   phase: 'briefing' | 'playing' | 'success' | 'failure' = 'briefing';
   pauses = new Set<PauseReason>();
   buff?: { kind: BuffKind; remaining: number };
+  loadout: BattleLoadout = { version: GROWTH_VERSION, level: 1, effects: [], skipped: [] };
+  skill = { activeUntil: 0, readyAt: 0 };
+  drones: Drone[] = [];
   resumeCountdown = 0;
   resumeRequired = false;
   time = 0;
@@ -106,6 +117,7 @@ export class Simulation {
   guns = WEAPONS.map((w) => ({ heat: 0, ammo: Number(w.ammo), cooldown: 0, overheated: false }));
   units: Unit[] = [];
   shots: Shot[] = [];
+  private pendingShotEvents: number[] = [];
   fireZones: FireZone[] = [];
   events: BattleEvent[] = [];
   spawned = new Set<number>();
@@ -147,13 +159,16 @@ export class Simulation {
   private serial = 0;
   pilotState() {
     return { flight: this.flight.checkpoint(), guns: this.guns.map(gun => ({ ...gun })),
-      aim: { ...this.aim }, selected: this.selected, held: Array.from(this.held) };
+      aim: { ...this.aim }, selected: this.selected, held: Array.from(this.held),
+      loadout: {...this.loadout,effects:[...this.loadout.effects],skipped:[...this.loadout.skipped]}, skill: {...this.skill}, buff: this.buff ? {...this.buff} : undefined };
   }
   usePilot(pilot: ReturnType<Simulation['pilotState']>, side: number) {
     this.useSide(side);
     this.flight.restore(pilot.flight);
     this.guns = pilot.guns.map((gun, i) => ({ ...gun, ammo: Number.isFinite(WEAPONS[i].ammo) ? gun.ammo : Infinity }));
     this.aim = { ...pilot.aim }; this.selected = pilot.selected; this.held = new Set(pilot.held);
+    this.loadout = JSON.parse(JSON.stringify(pilot.loadout ?? {version:GROWTH_VERSION,level:1,effects:[],skipped:[]}));
+    this.skill = {...(pilot.skill ?? {activeUntil:0,readyAt:0})}; this.buff = pilot.buff ? {...pilot.buff} : undefined;
   }
   stepPilot(dt: number) {
     this.flight.step(dt);
@@ -162,7 +177,31 @@ export class Simulation {
       if (gun.overheated && gun.heat <= 40) gun.overheated = false;
     }
     if (this.held.size && WEAPONS[this.selected].automatic) this.fire();
+    if (this.buff) { this.buff.remaining=Math.max(0,this.buff.remaining-dt); if(this.buff.remaining<=1e-8)this.buff=undefined; }
   }
+  applyLoadout(loadout: BattleLoadout) {
+    if (this.time !== 0 || this.fired || !validBattleLoadout(loadout)) throw Error('Invalid battle loadout');
+    this.loadout = {...loadout,effects:[...loadout.effects],skipped:[...loadout.skipped]};
+    for (const index of [4,5]) this.guns[index].ammo = loadout.effects.includes(index===4?'drone':'laser') ? WEAPONS[index].ammo : 0;
+  }
+  get skillKind() { return this.loadout.effects.includes('tracking') ? 'tracking' : this.loadout.effects.includes('emp') ? 'emp' : null; }
+  get skillRemaining() { return Math.max(0,this.skill.activeUntil-this.time); }
+  get skillCooldown() { return Math.max(0,this.skill.readyAt-this.time); }
+  get trackingActive() { return this.buff?.kind==='tracking' || this.skillKind==='tracking' && this.skillRemaining>0; }
+  useSkill() {
+    const kind=this.skillKind;
+    if(!kind || this.phase!=='playing'||this.paused||this.time<this.skill.readyAt||this.extractionRemaining!==undefined) return false;
+    if(kind==='tracking' && this.trackingActive) return false;
+    const spec=SKILLS[kind];this.skill.activeUntil=this.time+spec.duration;this.skill.readyAt=this.skill.activeUntil+spec.cooldown;
+    if(kind==='emp') for(const unit of this.units) if(this.canTrack(unit,0)&&this.time>=(unit.immuneUntil??0)) {
+      unit.rootedUntil=this.skill.activeUntil;unit.immuneUntil=this.skill.activeUntil+SKILLS.emp.immunity;
+    }
+    return true;
+  }
+  private radiusScale(weapon=this.selected) { return weapon>=1&&weapon<=3&&this.loadout.effects.includes('radius')?1.15:1; }
+  get effectiveRadius() { return WEAPONS[this.selected].radius*this.radiusScale(); }
+  get attackCount() { return this.selected<4?attackPreview(this.loadout.effects).shots:1; }
+  private get powerMultiplier() { return 1+(this.loadout.level>=3?.05:0)+(this.loadout.effects.includes('power')?.15:0); }
   checkpoint() {
     const { flight, height: _height, mission, aircraft: _aircraft,
       pauses, spawned, completed, held, ...state } = this;
@@ -190,6 +229,7 @@ export class Simulation {
     validateData();
     this.mission = missionDefinition(missionId);
     this.selected = this.mission.initialWeapon;
+    this.guns[4].ammo=0;this.guns[5].ammo=0;
     this.aim = { x: this.mission.events[0].x, z: this.mission.events[0].z };
     Object.assign(this.addUnit('rescue', this.routePoint(0), true), { group: 0, routeOffset: 0 });
     Object.assign(this.addUnit('escort', this.routePoint(5), true), { group: 0, routeOffset: 5 });
@@ -298,7 +338,7 @@ export class Simulation {
     }
   }
   grantBuff(kind: BuffKind): boolean {
-    if (this.buff || kind !== 'tracking' && kind !== 'rate') return false;
+    if (this.buff || kind==='tracking' && this.trackingActive || kind !== 'tracking' && kind !== 'rate') return false;
     this.buff = { kind, remaining: COMBAT_BUFF.duration };
     return true;
   }
@@ -336,12 +376,14 @@ export class Simulation {
   }
   choose(index: number) {
     if (!Number.isInteger(index) || index < 0 || index >= WEAPONS.length) return;
+    if(!this.hasWeapon(index))return;
     this.clearInput();
     if (index !== this.selected) this.completed.add('weapon');
     this.selected = index;
     this.homingSelected = false;
     this.homingTargetId = undefined;
   }
+  hasWeapon(index:number) { return index>=0&&index<4 || index===4&&this.loadout.effects.includes('drone') || index===5&&this.loadout.effects.includes('laser'); }
   selectHoming() {
     this.clearInput();
     this.homingSelected = true;
@@ -401,9 +443,11 @@ export class Simulation {
         Math.abs(this.aim.x) > MAP.halfWidth || Math.abs(this.aim.z) > MAP.halfDepth)
       return 'outside';
     // The entire blast disk must stay outside a protected area, including its boundary.
-    if (!this.duelMode && PROTECTED.some((p) => distance(p, this.aim) <= p.radius + w.radius)) return 'protected';
+    if (!this.duelMode && PROTECTED.some((p) => distance(p, this.aim) <= p.radius + this.effectiveRadius)) return 'protected';
+    if (this.selected>=4 && !this.loadout.effects.includes(this.selected===4?'drone':'laser')) return 'empty';
+    if (this.selected===5 && (!this.aimedUnit || !this.canTrack(this.aimedUnit,w.radius) || !this.lineOfSight(this.aimedUnit))) return 'target';
     if (g.overheated) return 'overheated';
-    if (g.ammo <= 0) return 'empty';
+    if (g.ammo < this.attackCount) return 'empty';
     if (g.cooldown > 1e-6) return 'cooldown';
     return 'ready';
   }
@@ -414,7 +458,7 @@ export class Simulation {
       (u) =>
         u.friendly &&
         u.hp > 0 &&
-        distance(u, point) <= WEAPONS[this.selected].radius + UNITS[u.kind].radius,
+        distance(u, point) <= this.effectiveRadius + UNITS[u.kind].radius,
     );
   }
   get aimedUnit() {
@@ -424,11 +468,11 @@ export class Simulation {
   }
   private canTrack(target: Unit, radius: number) {
     return target.hp > 0 && !target.friendly &&
-      !PROTECTED.some(p => distance(p, target) <= p.radius + Math.max(radius, UNITS[target.kind].radius));
+      (this.duelMode || !PROTECTED.some(p => distance(p, target) <= p.radius + Math.max(radius, UNITS[target.kind].radius)));
   }
   private get trackingTarget() {
-    if (this.buff?.kind !== 'tracking') return;
-    const radius = WEAPONS[this.selected].radius, aimed = this.aimedUnit;
+    if (!this.trackingActive || this.selected>=4) return;
+    const radius = this.effectiveRadius, aimed = this.aimedUnit;
     if (aimed && this.canTrack(aimed, radius)) return aimed;
     return this.units.filter(u => this.canTrack(u, radius) && distance(u, this.aim) <= COMBAT_BUFF.trackingRadius)
       .sort((a, b) => distance(a, this.aim) - distance(b, this.aim))[0];
@@ -436,35 +480,85 @@ export class Simulation {
   fire() {
     if (this.homingSelected) return this.fireHoming();
     if (this.reason() !== 'ready') return false;
+    if(this.selected>=4)return this.fireSpecial();
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
-    const origin = Object.freeze(muzzlePosition(this.aircraft, this.selected));
-    const launch = ballisticLaunch(origin, this.aim, w.speed, this.height);
-    if (!launch) return false;
-    g.ammo--;
-    g.heat = Math.min(100, g.heat + w.heat);
+    const count=this.attackCount;
+    const launches=Array.from({length:count},(_,n)=>{
+      const mount=w.muzzle;
+      const origin=Object.freeze(this.loadout.effects.includes('twin')
+        ? aircraftPoint(this.aircraft,{...mount,x:mount.x+(n%2===0?-.6:.6)})
+        : muzzlePosition(this.aircraft,this.selected));
+      return {origin,launch:ballisticLaunch(origin,this.aim,w.speed,this.height)};
+    });
+    if(launches.some(item=>!item.launch))return false;
+    g.ammo-=count;
+    g.heat = Math.min(100, g.heat + w.heat*count*(this.loadout.effects.includes('cooling')?.85:1));
     g.overheated = g.heat >= 100;
-    g.cooldown = w.interval / (this.buff?.kind === 'rate' ? COMBAT_BUFF.rateMultiplier : 1);
+    g.cooldown = w.interval*(this.loadout.effects.includes('rate')?.88:1)*(this.loadout.level>=15?.95:1) / (this.buff?.kind === 'rate' ? COMBAT_BUFF.rateMultiplier : 1) + (this.loadout.effects.includes('burst')?.1:0);
     const target = this.trackingTarget;
+    for(let n=0;n<count;n++) {
+    const {origin,launch}=launches[n];
+    const delay=this.loadout.effects.includes('burst')?Math.floor(n/(this.loadout.effects.includes('twin')?2:1))*.1:0;
     const shot: Shot = {
       id: ++this.serial,
       ...(this.duelMode ? { side: this.pilotSide } : {}),
       weapon: this.selected,
       x: this.aim.x,
       z: this.aim.z,
-      born: this.time,
+      born: this.time+delay,
       origin,
-      velocity: launch.velocity,
-      targetY: launch.targetY,
-      due: this.time + launch.duration,
+      velocity: launch!.velocity,
+      targetY: launch!.targetY,
+      due: this.time + delay + launch!.duration,
+      damageMultiplier:this.powerMultiplier,radiusScale:this.radiusScale(),
+      trackingUntil:Math.max(this.buff?.kind==='tracking'?this.time+this.buff.remaining:0,this.skillKind==='tracking'?this.skill.activeUntil:0),
     };
-    if (target) shot.guidance = { kind: 'tracking', target: target.id, position: { ...origin }, trail: [{ ...origin, time: this.time }] };
+    if (target) shot.guidance = { kind: 'tracking', target: target.id, position: { ...origin }, trail: [{ ...origin, time: shot.born }] };
     else { Object.freeze(shot.velocity); Object.freeze(shot); }
     this.shots.push(shot);
-    this.emit('shot', shot, shot.weapon);
+    if(!delay)this.emit('shot', shot, shot.weapon);else this.pendingShotEvents.push(shot.id);
     this.fired++;
+    }
     this.completed.add('fire');
     return true;
+  }
+  private lineOfSight(target: Point3,origin=muzzlePosition(this.aircraft,this.selected),maximum=650) {
+    const range=Math.hypot(target.x-origin.x,target.y-origin.y,target.z-origin.z);
+    if(range>maximum)return false;
+    const samples=Math.max(2,Math.ceil(range/.5));
+    for(let i=1;i<samples;i++){const t=i/samples,x=origin.x+(target.x-origin.x)*t,z=origin.z+(target.z-origin.z)*t,y=origin.y+(target.y-origin.y)*t;
+      if(y<=this.height(x,z)+.05)return false;}
+    return true;
+  }
+  private fireSpecial() {
+    const weapon=this.selected,g=this.guns[weapon],origin=muzzlePosition(this.aircraft,weapon);
+    if(weapon===4) {
+      if(this.drones.filter(d=>d.side===this.pilotSide).length>=3)return false;
+      const volley=++this.serial;
+      for(let i=0;i<3;i++)this.drones.push({...origin,id:++this.serial,volley,hitCounted:false,side:this.pilotSide,expires:this.time+12,budget:24,nextAttack:this.time+.5+i*.12});
+      this.emit('shot',origin,weapon);
+    } else {
+      const target=this.aimedUnit!;const event=this.emit('shot',origin,weapon);event.target={x:target.x,y:target.y,z:target.z};
+      this.directHit(target,85*(target.kind==='heavy'?.85:1),weapon);
+    }
+    g.ammo--;g.cooldown=WEAPONS[weapon].interval;this.fired++;this.completed.add('fire');return true;
+  }
+  private directHit(target: Unit, damage: number, weapon: number, countShot=true) {
+    const actual=Math.min(target.hp,damage);target.hp-=actual;target.hit=.3;this.hits++;if(countShot)this.hitShots++;
+    const event=this.emit('impact',target,weapon,target.id);event.damage=actual;event.outcome=target.hp>0?'hit':'destroyed';
+    if(target.hp<=0){target.deadAt=this.time;this.kills++;this.emit('kill',target,weapon,target.id);}
+  }
+  private stepDrones(dt: number) {
+    for(const drone of this.drones) {
+      if(drone.expires<=this.time||drone.budget<=0)continue;
+      const side=this.pilotSide;if(this.duelMode)this.useSide(drone.side);
+      const target=this.units.filter(u=>this.canTrack(u,0)).sort((a,b)=>distance(a,drone)-distance(b,drone))[0];
+      if(target){drone.target=target.id;const length=Math.max(.1,distance(target,drone)),travel=Math.min(1,35*dt/length);drone.x+=(target.x-drone.x)*travel;drone.z+=(target.z-drone.z)*travel;drone.y=Math.max(target.y+16,this.height(drone.x,drone.z)+8,drone.y-60*dt);
+        if(length<30&&this.time>=drone.nextAttack&&this.lineOfSight(target,drone,40)){const damage=Math.min(6,drone.budget);drone.budget-=damage;drone.nextAttack=this.time+.5;target.slowedUntil=this.time+2;const countShot=!drone.hitCounted;for(const member of this.drones)if(member.volley===drone.volley)member.hitCounted=true;this.directHit(target,damage,4,countShot);}}
+      if(this.duelMode)this.useSide(side);
+    }
+    this.drones=this.drones.filter(d=>d.expires>this.time&&d.budget>0);
   }
   fireHoming() {
     const target = this.homingTarget;
@@ -510,8 +604,8 @@ export class Simulation {
   private impact(s: Shot, point: Point3, time: number, previous: Point3[], dt: number) {
     if (s.weapon === 3 && !isWater(point, this.mission.map) &&
         Math.abs(point.x) <= MAP.halfWidth && Math.abs(point.z) <= MAP.halfDepth &&
-        (this.duelMode || !PROTECTED.some(zone => distance(zone, point) <= zone.radius + WEAPONS[3].radius))) {
-      this.fireZones.push({ ...point, id: s.id, radius: WEAPONS[3].radius, born: time, expires: time + FIRE_ZONE.duration, side: s.side });
+        (this.duelMode || !PROTECTED.some(zone => distance(zone, point) <= zone.radius + WEAPONS[3].radius*(s.radiusScale??1)))) {
+      this.fireZones.push({ ...point, id: s.id, radius: WEAPONS[3].radius*(s.radiusScale??1), born: time, expires: time + FIRE_ZONE.duration, side: s.side });
     }
     let hit = false,
       friendly = false,
@@ -527,7 +621,7 @@ export class Simulation {
       if (u.hp <= 0) continue;
       if (u.friendly && this.training) continue;
       const damage = s.guidance?.kind === 'consumable' ? u.id === s.guidance.target && !u.friendly ? HOMING.damage : 0
-        : impactDamage(s.weapon, u.kind, Math.hypot(x - point.x, y - point.y, z - point.z));
+        : impactDamage(s.weapon, u.kind, UNITS[u.kind].radius + Math.max(0,Math.hypot(x - point.x, y - point.y, z - point.z)-UNITS[u.kind].radius)/(s.radiusScale??1))*(s.damageMultiplier??1);
       if (damage <= 0) continue;
       const actual = Math.min(u.hp, damage);
       u.hp = Math.max(0, u.hp - damage);
@@ -691,7 +785,7 @@ export class Simulation {
   step(dt: number) {
     if (this.phase !== 'playing' || this.paused) return;
     if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) throw Error('Use fixed steps <= 0.1 seconds');
-    if (this.buff && this.buff.remaining > 1e-8 && this.buff.remaining < dt - 1e-8) {
+    if (!this.duelMode && this.buff && this.buff.remaining > 1e-8 && this.buff.remaining < dt - 1e-8) {
       const remaining = this.buff.remaining;
       this.step(remaining);
       this.step(dt - remaining);
@@ -728,6 +822,8 @@ export class Simulation {
       u.hit = Math.max(0, u.hit - dt);
       if (u.hp <= 0) continue;
       u.attack -= dt;
+      if(this.time<(u.rootedUntil??0))continue;
+      const moveDt=dt*(this.time<(u.slowedUntil??0)?.55:1);
       if (u.friendly && !this.duelMode) {
         if (u.routeOffset !== undefined) {
           const point = this.routePoint(Math.min(this.routeLength, this.progress + u.routeOffset));
@@ -742,44 +838,49 @@ export class Simulation {
       const spec = UNITS[u.kind];
       if (u.kind === 'light') {
         const elapsed = u.patrolElapsed ?? this.time - dt - u.born;
-        const point = patrolPoint(u.origin, elapsed + dt, this.mission.map, u.id);
-        if (this.moveUnit(u, point, spec.speed * dt)) u.patrolElapsed = elapsed + dt;
+        const point = patrolPoint(u.origin, elapsed + moveDt, this.mission.map, u.id);
+        if (this.moveUnit(u, point, spec.speed * moveDt)) u.patrolElapsed = elapsed + moveDt;
         else u.patrolElapsed = elapsed;
       }
       const target = this.nearestOpponent(u);
       if (u.kind === 'heavy' && this.fireZones.some(zone => distance(u, zone) < zone.radius + spec.radius)) {
-        this.moveUnit(u, u, spec.speed * dt);
+        this.moveUnit(u, u, spec.speed * moveDt);
       } else if (u.kind === 'heavy' && target && distance(u, target) > 12) {
         const angle = Math.atan2(target.x - u.x, target.z - u.z);
-        const move = Math.min(spec.speed * dt, distance(u, target) - 12);
+        const move = Math.min(spec.speed * moveDt, distance(u, target) - 12);
         this.moveUnit(u, { ...landPoint({ x: u.x + Math.sin(angle) * move, z: u.z + Math.cos(angle) * move },
           this.mission.map, u.x - riverX(u.z)), heading: angle }, move);
       }
       u.y = this.height(u.x, u.z);
     }
     const contacts = this.shots.flatMap((shot) => {
+      if(this.time<shot.born)return [];
+      const from=Math.max(this.time-dt,shot.born),aliveDt=this.time-from;
+      if(this.pendingShotEvents.includes(shot.id)){this.pendingShotEvents=this.pendingShotEvents.filter(id=>id!==shot.id);const event=this.emit('shot',shot,shot.weapon);event.time=shot.born;if(shot.side!==undefined)event.side=shot.side;}
       if (shot.guidance) {
         const ordinary = shot.guidance.kind === 'tracking';
         const target = this.units.find(u => u.id === shot.guidance!.target);
-        if (!target || !this.canTrack(target, ordinary ? WEAPONS[shot.weapon].radius : 0) ||
-            ordinary && this.buff?.kind !== 'tracking') {
+        const radius=ordinary?WEAPONS[shot.weapon].radius*(shot.radiusScale??1):0;
+        const legal=target&&target.hp>0&&(this.duelMode?target.group!==shot.side:!target.friendly)&&
+          (this.duelMode||!PROTECTED.some(p=>distance(p,target)<=p.radius+Math.max(radius,UNITS[target.kind].radius)));
+        if (!legal || ordinary && this.time>(shot.trackingUntil??(this.buff?.kind==='tracking'?Infinity:0))+1e-8) {
           if (!ordinary) return [{ shot, point: shot.guidance.position, time: this.time, cancelled: true }];
-          this.releaseTracking(shot, this.time - dt);
-          const contact = terrainContact(shot, this.time - dt, this.time, this.height);
+          this.releaseTracking(shot, from);
+          const contact = terrainContact(shot, from, this.time, this.height);
           return contact ? [{ shot, ...contact, cancelled: false }] : [];
         }
         const position = shot.guidance.position;
         const delta = { x: target.x - position.x, y: target.y - position.y, z: target.z - position.z };
         const speed = ordinary ? WEAPONS[shot.weapon].speed : HOMING.speed;
-        const range = Math.hypot(delta.x, delta.y, delta.z), travel = speed * dt;
+        const range = Math.hypot(delta.x, delta.y, delta.z), travel = speed * aliveDt;
         if (range > 0) shot.velocity = { x: delta.x / range * speed, y: delta.y / range * speed, z: delta.z / range * speed };
         if (ordinary) {
-          const contact = this.trackingContact(position, shot.velocity, this.time - dt, Math.min(dt, range / speed));
+          const contact = this.trackingContact(position, shot.velocity, from, Math.min(aliveDt, range / speed));
           if (contact) return [{ shot, ...contact, cancelled: false }];
         }
-        if (range <= travel) return [{ shot, point: { x: target.x, y: target.y, z: target.z }, time: this.time, cancelled: false }];
-        position.x += shot.velocity.x * dt; position.z += shot.velocity.z * dt;
-        position.y += shot.velocity.y * dt;
+        if (range <= travel) return [{ shot, point: { x: target.x, y: target.y, z: target.z }, time: from+range/speed, cancelled: false }];
+        position.x += shot.velocity.x * aliveDt; position.z += shot.velocity.z * aliveDt;
+        position.y += shot.velocity.y * aliveDt;
         if (!ordinary) position.y = Math.max(position.y, this.height(position.x, position.z) + Math.min(2, range * .1));
         shot.x = target.x; shot.z = target.z; shot.targetY = target.y;
         shot.due = this.time + (range - travel) / speed;
@@ -802,13 +903,14 @@ export class Simulation {
       if (this.duelMode) this.useSide(side);
     }
     this.shots = this.shots.filter((shot) => !contacts.some((c) => c.shot === shot));
+    this.stepDrones(dt);
     this.burn(dt);
     this.fireZones = this.fireZones.filter(zone => zone.expires > this.time + 1e-8);
-    if (this.buff) {
+    if (!this.duelMode && this.buff) {
       this.buff.remaining = Math.max(0, this.buff.remaining - dt);
       if (this.buff.remaining <= 1e-8) {
         this.buff = undefined;
-        for (const shot of this.shots) if (shot.guidance?.kind === 'tracking') this.releaseTracking(shot, this.time);
+        if(!this.trackingActive)for (const shot of this.shots) if (shot.guidance?.kind === 'tracking'&&shot.born<=this.time) this.releaseTracking(shot, this.time);
       }
     }
     for (const u of this.units) {

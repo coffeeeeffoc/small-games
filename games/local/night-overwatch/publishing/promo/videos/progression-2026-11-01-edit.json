@@ -1,0 +1,26 @@
+{
+  "source": "reports/2026-11-01-live/source.webm",
+  "sourceSha256": "61858fb13509df56652689a195a7c9749b5c41aed935712f7fedbf8d036c5cda",
+  "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+  "fixture": false,
+  "audio": "not captured",
+  "gameplay": {
+    "start": 18.172,
+    "duration": 22
+  },
+  "promo": [
+    {
+      "start": 1.469,
+      "duration": 3
+    },
+    {
+      "start": 13.947,
+      "duration": 3
+    },
+    {
+      "start": 18.172,
+      "duration": 14
+    }
+  ],
+  "decode": "both complete files decoded successfully"
+}

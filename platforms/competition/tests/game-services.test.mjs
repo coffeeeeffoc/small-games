@@ -70,6 +70,14 @@ function durableFixture() {
       run.expiresAt = Date.now() + 86400000;
       return { ...run };
     },
+    async cancelRun({ runId, playerId }) {
+      calls.push('cancel');
+      if (offline) unavailable();
+      if (owner !== playerId) throw Object.assign(Error(), { code: 'IDENTITY_CHANGED' });
+      const run = runs.get(runId);
+      run.status = 'finished';
+      return run.settlement || { ...run };
+    },
     async appendFrames({ runId, seq, frames }) {
       calls.push('append');
       if (offline) unavailable();
@@ -593,7 +601,7 @@ test('Night unavailable start is persisted before transport and retries the same
   first.record({}, 120);
   await first.finish();
   assert.equal(first.status, 'pending-sync');
-  assert.equal(f.values.size, 1);
+  assert.equal([...f.values.keys()].filter((k) => !k.endsWith(':synced')).length, 1);
   f.offline(false);
   f.ahead(true);
   await f.recorder().recover();
@@ -650,13 +658,91 @@ test('Night retries do not retain abandoned journals or drop completed pending m
     await recorder.start({ mode: 'campaign', levelId: 'first' });
     recorder.record({}, 120);
   }
-  assert.equal(f.values.size, 1);
+  assert.equal([...f.values.keys()].filter((k) => !k.endsWith(':synced')).length, 1);
   f.offline(true);
   await recorder.finish();
   await recorder.start({ mode: 'campaign', levelId: 'second' });
   recorder.invalidate();
-  assert.equal(f.values.size, 1);
-  assert.equal(JSON.parse([...f.values.values()][0]).finishing, true);
+  const pending = [...f.values.entries()]
+    .filter(([k]) => !k.endsWith(':synced'))
+    .map(([, v]) => JSON.parse(v));
+  assert(pending.some((run) => run.finishing));
+  assert(pending.filter((run) => !run.finishing).every((run) => run.cancelPending));
+});
+test('Night lost start response retains its request until reload confirms cancellation', async () => {
+  const f = durableFixture(),
+    original = f.services.startRun;
+  let lost = true;
+  f.services.startRun = async (input) => {
+    const run = await original(input);
+    if (lost) {
+      lost = false;
+      throw Object.assign(Error(), { code: 'SERVICE_UNAVAILABLE' });
+    }
+    return run;
+  };
+  const recorder = f.recorder();
+  await recorder.start({ mode: 'campaign', levelId: 'first' });
+  const request = f.requests[0];
+  recorder.invalidate();
+  const journal = JSON.parse([...f.values.values()][0]);
+  assert(journal.startAttempted && journal.cancelPending);
+  assert.equal(journal.requestId, request);
+  await f.recorder().recover();
+  assert.equal(f.runs.size, 1);
+  assert.equal(f.runs.get(request).status, 'finished');
+  assert(f.requests.every((id) => id === request));
+  assert(!f.calls.includes('append'));
+  assert(!f.calls.includes('finish'));
+  assert([...f.values.keys()].every((k) => k.endsWith(':synced')));
+});
+test('Night invalidation during start cancels the late run before replay, including a stale tab', async () => {
+  const f = durableFixture(),
+    gate = defer(),
+    original = f.services.startRun;
+  f.services.startRun = async (input) => {
+    const run = await original(input);
+    await gate.promise;
+    return run;
+  };
+  const recorder = f.recorder(),
+    starting = recorder.start({ mode: 'campaign', levelId: 'first' });
+  await turn();
+  recorder.invalidate();
+  gate.resolve();
+  assert.equal(await starting, null);
+  await turn();
+  assert.equal(f.calls.filter((c) => c === 'cancel').length, 1);
+  assert(!f.calls.includes('append'));
+  assert(!f.calls.includes('get'));
+  await f.recorder().recover();
+  assert.equal(f.calls.filter((c) => c === 'cancel').length, 1);
+});
+test('Night cancellation failures remain owner-bound and completed journals settle alongside them', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  await recorder.start({ mode: 'campaign', levelId: 'complete' });
+  recorder.record({}, 120);
+  f.offline(true);
+  await recorder.finish();
+  f.offline(false);
+  await recorder.start({ mode: 'campaign', levelId: 'cancel' });
+  f.offline(true);
+  recorder.invalidate();
+  await turn();
+  const pending = [...f.values.values()].map((raw) => JSON.parse(raw));
+  assert(pending.some((r) => r.finishing));
+  assert(pending.some((r) => r.cancelPending));
+  f.offline(false);
+  f.owner('pilot-b');
+  await f.recorder().recover();
+  assert([...f.values.values()].some((v) => JSON.parse(v).cancelPending));
+  f.owner('pilot-a');
+  await f.recorder().recover();
+  assert([...f.values.keys()].every((k) => k.endsWith(':synced')));
+  const results = [...f.values.values()].map((v) => JSON.parse(v).result);
+  assert(results.some((r) => r.accepted));
+  assert(results.some((r) => r.reason === 'CANCELLED'));
 });
 test('Night expired cached identity remains recoverable when refresh is temporarily offline', async (t) => {
   const f = authFixture(t, {
@@ -687,6 +773,20 @@ test('profile reads and updates reuse the same game-scoped owner', async (t) => 
   assert.equal(f.calls.at(-2).url, '/api/competition/v1/me');
   assert.equal(f.calls.at(-1).token, f.calls.at(-2).token);
   assert.deepEqual(f.calls.at(-1).body, { nickname: '旅人' });
+});
+test('Night cached account A cannot read or mutate assets using a newly selected account B', async (t) => {
+  const f = authFixture(t, {
+    initial: JSON.stringify(credential('a', Date.now() + 900000, 'night-overwatch')),
+  });
+  const api = createGameServices({ gameId: 'night-overwatch' });
+  await api.session();
+  f.setStorage(JSON.stringify(credential('b', Date.now() + 900000, 'night-overwatch')));
+  const before = f.calls.length;
+  await assert.rejects(api.nightAssetCommand({ kind: 'checkin', requestId: 'intent-a' }, 'a'), {
+    code: 'IDENTITY_CHANGED',
+  });
+  await assert.rejects(api.nightAssets('a'), { code: 'IDENTITY_CHANGED' });
+  assert.equal(f.calls.length, before);
 });
 function recorderFixture(options = {}) {
   const calls = [],

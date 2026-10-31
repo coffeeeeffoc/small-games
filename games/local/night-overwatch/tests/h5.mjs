@@ -1,3 +1,4 @@
+import { settleVisuals } from './visual-helpers.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -23,6 +24,10 @@ function disjoint(buttons, width, height) {
 }
 async function press(f,id,touch=true) {
   let s=await snap(f);
+  if(id==='missions' && s.modal==='home') {
+    await press(f,'qm:modes',touch); await press(f,'mode:solo',touch); await press(f,'mode:enter',touch);
+    return;
+  }
   if(id==='start' && s.modal==='home') {await press(f,'missions',touch);s=await snap(f);}
   if(!s.buttons.some(b=>b.id===id) && s.modal.startsWith('settings:')) {await press(f,'close',touch);s=await snap(f);}
   if(!s.buttons.some(b=>b.id===id)&&s.buttons.some(b=>b.id==='flightControls')) {await press(f,['effects','sensor','lensIn','lensOut'].includes(id)?'zoomControls':'flightControls',touch);s=await snap(f);}
@@ -30,6 +35,7 @@ async function press(f,id,touch=true) {
   const position={x:b.x+b.w/2,y:b.y+b.h/2};
   if(touch) await f.locator('canvas').tap({position}); else await f.locator('canvas').click({position});
   await new Promise(r=>setTimeout(r,100));
+  await settleVisuals(f);
 }
 function observe(p) {
   p.on('pageerror',e=>report.errors.push(e.message));

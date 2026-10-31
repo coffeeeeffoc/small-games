@@ -288,7 +288,7 @@ async function run() {
           () =>
             globalThis.__night?.snapshot().audio === 'ready' &&
             __night.snapshot().modelImport === 'loaded' &&
-            __night.snapshot().buttons.some((b) => b.id === 'missions'),
+            __night.snapshot().buttons.some((b) => b.id === 'qm:modes'),
         );
         await press(page, 'start', touch);
         const s = await snapshot(page);

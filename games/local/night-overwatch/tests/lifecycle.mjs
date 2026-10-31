@@ -3,6 +3,7 @@ import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { sourceHash } from '../scripts/artifact.mjs';
 import { friendlyFailure, evidenceDirectory, acceptanceBuild } from './flight-browser.mjs';
+import { press as pressInput, settleVisuals } from './visual-helpers.mjs';
 const base = process.env.NIGHT_URL || 'http://localhost:4318';
 const build = await acceptanceBuild(base);
 const dir = evidenceDirectory('lifecycle');
@@ -17,13 +18,7 @@ const page = await context.newPage(),
   errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 const snap = () => page.evaluate(() => __night.snapshot());
-const press = async (id) => {
-  if (id === 'start' && (await snap()).modal === 'home') await press('missions');
-  const b = (await snap()).buttons.find((b) => b.id === id);
-  assert(b, id);
-  await page.mouse.click(b.x + b.w / 2, b.y + b.h / 2);
-  await page.waitForTimeout(80);
-};
+const press = (id) => pressInput(page, id);
 const aim = async (point) => {
   const p = await page.evaluate((v) => __night.screenPoint(v), point);
   await page.mouse.move(p.x, p.y);
@@ -31,8 +26,9 @@ const aim = async (point) => {
 try {
   await page.goto(base);
   await page.waitForFunction(() =>
-    globalThis.__night?.snapshot().buttons.some((b) => b.id === 'missions'),
+    globalThis.__night?.snapshot().buttons.some((b) => b.id === 'qm:modes') && !document.getElementById('night-startup'),
   );
+  await settleVisuals(page);
   await press('start');
   const initial = await snap();
   await aim({ x: -35, z: -20 });
