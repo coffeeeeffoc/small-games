@@ -59,7 +59,7 @@ function mission() {
   g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, updateCamera() {}, reset() {} };
   g.platform = new Platform(new Node(), g.pause, g.clear);
   const memory=new Map<string,string>();
-  g.armory=new Quartermaster({getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)},v=>{g.hud.armory=v;},()=>g.platform.offerGold());
+  g.armory=new Quartermaster({getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)},v=>{g.hud.armory=v;},()=>g.platform.offerLottery());
   g.armory.bind('pilot',false,undefined,true);
   g.sim.start(); g.sim.choose(0);
   return g;
@@ -180,7 +180,7 @@ test('silent, unavailable and rejected audio cannot strand extraction; retry dro
     g.sim.step(1 / 60); g.updateRadio(1 / 60);
     if (mode === 'mute-during') { p.muted = true; p.stop(); }
     if (mode === 'retry') {
-      g.sim.phase='failure';g.retry();g.action('armory:next');g.action('start');g.updateRadio(1 / 60); assert(!g.sim.extractionRadioPending);
+      g.sim.phase='failure';g.retry();g.action('armory:solo');g.action('start');g.updateRadio(1 / 60); assert(!g.sim.extractionRadioPending);
       assert.equal(p.radio.clip, p.clips.get('radio-day-zh'));
     } else {
       for (let i = 0; i < 240; i++) { g.sim.step(1 / 60); g.updateRadio(1 / 60); }
@@ -289,13 +289,13 @@ test('changing missions requires a briefing or result; retry preserves the chose
   g.sim.guns[2].ammo = 0;
   g.action('missionNext');
   assert.equal(g.sim.mission.id, 'ambush-02');
-  assert.equal(g.sim.phase,'briefing');assert.equal(g.armory.view.page,'loadout');g.action('armory:next');
+  assert.equal(g.sim.phase,'briefing');assert.equal(g.armory.view.page,'base');g.action('armory:solo');
   assert(g.sim.pauses.has('background'));
   assert.equal(g.sim.guns[2].ammo, 45);
   g.action('start');
   g.sim.pause('background', false);
   g.sim.setFire('touch:99', true);
-  g.sim.phase='failure';g.retry();g.action('armory:next');g.action('start');
+  g.sim.phase='failure';g.retry();g.action('armory:solo');g.action('start');
   assert.equal(g.sim.mission.id, 'ambush-02');
   assert.equal(g.sim.phase, 'playing');
   assert.equal(g.sim.spawned.size, 6);
@@ -313,9 +313,9 @@ test('actual warmup entry, retry and return keep saved escort preferences and sy
     assert.equal(g.sim.mission.id, 'training-60'); assert.equal(g.sim.phase, 'briefing');
     assert.equal(g.selectedMission, 'ambush-02'); assert.deepEqual(writes, []);
     g.sim.pause('background', true);
-    g.action('armory:solo');g.action('armory:next');g.action('start'); g.action('missionReturn');
+    g.action('armory:solo');g.action('start'); g.action('missionReturn');
     assert.equal(g.sim.mission.id, 'training-60', 'a live range cannot be abandoned by a hidden menu action');
-    g.sim.guns[2].ammo = 1;g.sim.phase='failure';g.retry();g.action('armory:next');g.action('start');
+    g.sim.guns[2].ammo = 1;g.sim.phase='failure';g.retry();g.action('armory:solo');g.action('start');
     assert.equal(g.sim.time, 0); assert.equal(g.sim.spawned.size, 3);
     assert.equal(g.sim.guns[2].ammo, 45); assert(g.sim.pauses.has('background'));
     g.sim.phase = 'failure'; g.action('missionReturn');
@@ -326,7 +326,7 @@ test('actual warmup entry, retry and return keep saved escort preferences and sy
     }
     g.prepareMission('?mission=patrol-03');
     assert.equal(g.sim.mission.id, 'patrol-03'); assert.deepEqual(writes, []);
-    g.action('armory:solo');g.action('armory:next');g.action('training'); assert.equal(g.sim.mission.id, 'training-60');
+    g.action('armory:solo');g.action('training'); assert.equal(g.sim.mission.id, 'training-60');
     g.action('missionReturn'); assert.equal(g.sim.mission.id, 'patrol-03');
     assert.equal(saved.get('night-overwatch-mission-v1'), 'ambush-02');
     g.platform.saveMission('training-60'); assert.deepEqual(writes, []);
@@ -339,7 +339,7 @@ test('training result saves only a clean successful range score in its separate 
   cc.sys.localStorage = { getItem: (key: string) => saved.get(key) ?? null,
     setItem: (key: string, value: string) => { writes.push(key); saved.set(key, value); } } as any;
   try {
-    g.prepareMission('?mission=training-60');g.action('armory:solo');g.action('armory:next');g.action('start');
+    g.prepareMission('?mission=training-60');g.action('armory:solo');g.action('start');
     for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
     Object.assign(g.sim, { phase: 'success', time: 20, fired: 5, hitShots: 5, kills: 3 });
     g.saveTrainingResult();
@@ -365,7 +365,7 @@ test('actual task choices update public entry URLs without carrying private fiel
     history: { configurable: true, value: { replaceState(_state: unknown, _title: string, url: string) { browserLocation.href = url; } } },
   });
   try {
-    g.action('armory:solo');g.action('armory:next');g.action('training');
+    g.action('armory:solo');g.action('training');
     assert.equal(browserLocation.href, 'https://example.test/night/?mission=training-60');
     g.action('missionReturn');
     assert.equal(browserLocation.href, 'https://example.test/night/?mission=corridor-01');
@@ -391,7 +391,7 @@ test('returning home aborts a live mission, clears input and starts the next map
   g.action('home'); g.action('exitConfirm');
   assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.time, 0);
   assert.equal(g.sim.pauses.size, 0); assert.equal(g.keys.size, 0); assert.equal(g.sim.shots.length, 0);
-  g.action('armory:solo');g.action('armory:next');g.action('mission:ambush-02');
+  g.action('armory:solo');g.action('mission:ambush-02');
   assert.equal(g.sim.mission.map, 'highland'); assert.equal(g.world.map, 'highland');
   assert.equal(g.sim.phase, 'briefing');
   g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 6);
@@ -405,7 +405,7 @@ test('operation lock applies to ordinary menu/URL, developer practice stays isol
   try {
     g.prepareMission('?mission=operation-120');
     assert.equal(g.sim.mission.id, 'corridor-01');
-    g.action('armory:solo');g.action('armory:next');g.action('mission:operation-004'); assert.equal(g.sim.mission.id, 'corridor-01');
+    g.action('armory:solo');g.action('mission:operation-004'); assert.equal(g.sim.mission.id, 'corridor-01');
     g.action('mission:patrol-03');
     for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
     g.sim.start(); for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
@@ -413,7 +413,7 @@ test('operation lock applies to ordinary menu/URL, developer practice stays isol
     g.sim.phase = 'success'; g.saveMissionResult();
     assert.deepEqual(g.platform.missions.cleared, ['patrol-03']);
     g.action('missionNext'); assert.equal(g.sim.mission.id, 'operation-004');
-    assert.equal(g.sim.phase, 'briefing');assert.equal(g.armory.view.page,'loadout');
+    assert.equal(g.sim.phase, 'briefing');assert.equal(g.armory.view.page,'base');
     g.sim.phase = 'briefing';
     cc.sys.isBrowser = true;
     (globalThis as any).SmallGamesDev = { isEnabled: () => true };
@@ -440,7 +440,7 @@ test('explicit dev=0 is retained when mission shortcuts are synchronized', () =>
     history: { configurable: true, value: { replaceState(_state: unknown, _title: string, url: string) { browserLocation.href = url; } } },
   });
   try {
-    g.action('armory:solo');g.action('armory:next');g.action('mission:ambush-02');
+    g.action('armory:solo');g.action('mission:ambush-02');
     assert.equal(browserLocation.href, 'https://example.test/night/?mission=ambush-02&dev=0');
   } finally {
     cc.sys.isBrowser = false; g.platform.dispose();
@@ -450,14 +450,13 @@ test('explicit dev=0 is retained when mission shortcuts are synchronized', () =>
 });
 
 
-test('cover, base, saved solo configuration and mission picker precede starting and retrying',()=>{
+test('base configuration leads directly to modes and retry returns to configuration',()=>{
   const g=mission();g.sim.phase='briefing';g.action('start');assert.equal(g.sim.phase,'briefing');
-  g.action('armory:base');assert.equal(g.armory.view.page,'base');
-  g.action('armory:solo');g.action('armory:toggle');assert.equal(g.armory.view.kits.solo.length,2);
-  g.action('armory:next');assert(g.hud.missionsOpen);g.action('start');
-  assert.equal(g.sim.phase,'playing');assert.deepEqual(g.sim.loadout,g.armory.view.kits.solo);
-  g.sim.phase='failure';g.action('retry');assert.equal(g.sim.phase,'briefing');assert.equal(g.armory.view.page,'loadout');
-  g.action('start');assert.equal(g.sim.phase,'briefing');g.platform.dispose();
+  assert.equal(g.armory.view.page,'base');assert.equal(g.armory.view.kits.solo.length,3);
+  g.action('armory:solo');assert(g.hud.missionsOpen);g.action('start');
+  assert.equal(g.sim.phase,'playing');assert.deepEqual(g.sim.loadout,g.armory.view.kits.solo);assert.equal(g.sim.guns.length,4);
+  g.sim.phase='failure';g.action('retry');assert.equal(g.sim.phase,'briefing');assert.equal(g.armory.view.page,'base');
+  assert(!g.hud.missionsOpen);g.action('start');assert.equal(g.sim.phase,'briefing');g.platform.dispose();
 });
 
 test('settings controls stay paused, subpages return to settings, and system pauses remain authoritative', () => {
@@ -509,11 +508,26 @@ test('priority action moves both view and reticle, clears firing and stays inert
   g.platform.dispose();
 });
 
-test('gold opportunity accepts actual completion only',async()=>{
-  const g=mission();assert(!g.platform.goldAdsAvailable);assert(!(await g.platform.offerGold()));
+test('lottery opportunity accepts actual completion only',async()=>{
+  const g=mission();assert(!g.platform.lotteryAdsAvailable);assert(!(await g.platform.offerLottery()));
   for(const status of ['dismissed','unavailable','failed','mock','completed']){
-    g.platform.rewardProvider=async(o:any)=>{assert.equal(o.id,'night-overwatch:daily-gold');return {status};};
-    assert.equal(await g.platform.offerGold(),status==='completed');
+    g.platform.rewardProvider=async(o:any)=>{assert.equal(o.id,'night-overwatch:armory-lottery');return {status};};
+    assert.equal(await g.platform.offerLottery(),status==='completed');
   }
   g.platform.dispose();
+});
+
+test('trial start requires a durable begin receipt and retains existing homing ammo',async()=>{
+ const g=mission(),q=g.armory;g.sim.phase='briefing';let begun=false;
+ const wallet={playerId:'pilot',revision:1,coins:0,inventory:{coolant:0},owned:{hePower:1,heVelocity:1,heavyPower:1},trials:{'hePower:3':1},signedDays:[],day:'2026-10-31',signedToday:false};
+ q.bind('pilot',true,{nightWallet:async()=>wallet,nightWalletAction:async()=>wallet},false);await q.refresh();q.selectTrial('hePower',3);
+ g.platform.rewards.ammo=2;g.selectMission('corridor-01');const kit=g.sim.loadout;
+ g.online={leave(){},rankStatus:'recording',startRanking:async()=>({id:'prepared',loadout:kit}),recorder:{begin:()=>begun,record(){},invalidate(){}}};
+ g.beginCampaign();await new Promise(r=>setImmediate(r));assert.equal(g.sim.phase,'briefing');assert.equal(g.sim.homingAmmo,2);
+ begun=true;g.beginCampaign();await new Promise(r=>setImmediate(r));assert.equal(g.sim.phase,'playing');assert.equal(g.sim.homingAmmo,2);assert.equal(g.platform.rewards.ammo,2);
+ g.platform.dispose();
+});
+test('escape from mission selection returns to base configuration',()=>{
+ const g=mission();g.sim.phase='briefing';g.action('armory:solo');assert(g.hud.missionsOpen);g.keyDown({keyCode:27});
+ assert(!g.hud.missionsOpen);assert.equal(g.armory.view.page,'base');g.platform.dispose();
 });

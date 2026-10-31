@@ -1,0 +1,111 @@
+{
+  "sourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+  "verified": "2026-10-31",
+  "previousDelivery": "manifest-2026-10-30-rankings.json",
+  "environment": "Cocos Creator 3.8.8 Web-mobile; Windows Edge/Chromium, touch emulation and real mouse events. Promo: 2s cover + 2s base + 2s loadout + 10s combat. Gameplay: 16s continuous canvas recording. No physical phone or live TapTap ad.",
+  "files": [
+    {
+      "path": "copy/introduction.md",
+      "bytes": 1354,
+      "sha256": "4e7fcfcafe744779362dca4a113d060720ebfbb15bee5c5a11f7a00b67536f38",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "reusedUnchanged": false
+    },
+    {
+      "path": "copy/tagline.md",
+      "bytes": 68,
+      "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "reusedUnchanged": true,
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+    },
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 805,
+      "sha256": "af987c703f8969cce03d37c6764dbd03b71e22b67024bb211209a46208903c6f",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "reusedUnchanged": false
+    },
+    {
+      "path": "icon/icon-1024.png",
+      "bytes": 1168540,
+      "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "width": 1024,
+      "height": 1024,
+      "reusedUnchanged": true,
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+    },
+    {
+      "path": "promo/images/title-1920x1080.png",
+      "bytes": 2392478,
+      "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "width": 1920,
+      "height": 1080,
+      "reusedUnchanged": true,
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+    },
+    {
+      "path": "promo/images/title-1440x1440.png",
+      "bytes": 2285613,
+      "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "width": 1440,
+      "height": 1440,
+      "reusedUnchanged": true,
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-31-armory/combat-01-aim.jpg",
+      "bytes": 140183,
+      "sha256": "53d88db1d7d76fb7c00d1f6d39aabbb4a4e1cca578a645e085382acf50c49145",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "capturedSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-31-armory/combat-02-he-shot.jpg",
+      "bytes": 138707,
+      "sha256": "273b2d1dc811847072e2ae4750e1cded1a3d409a3a1350861509c44d79f7082b",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "capturedSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-10-31-armory/combat-03-engage.jpg",
+      "bytes": 141343,
+      "sha256": "2d0c83d245f9d63b2b09f7f811146c956b0037a85bff6187c741058f9ae7f1ad",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "capturedSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/videos/armory-2026-10-31.mp4",
+      "bytes": 3883654,
+      "sha256": "b6dcf7cfedacd0b9d4002088e0aa359b0d22fbc06660704451f4a5d73fce3632",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "capturedSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "width": 1280,
+      "height": 720,
+      "codec": "h264",
+      "duration": 16,
+      "audio": false
+    },
+    {
+      "path": "promo/videos/armory-2026-10-31.mp4",
+      "bytes": 2988295,
+      "sha256": "1c968eb146834a78c162a26aad844ebd042e730100bf3a538f5298cdeb012344",
+      "verifiedForSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "capturedSourceHash": "8df2133b507ee7cf2d55790d95bea516b64e97da3c02be5bd390d6bc4964c052",
+      "width": 1280,
+      "height": 720,
+      "codec": "h264",
+      "duration": 16,
+      "audio": false
+    }
+  ]
+}

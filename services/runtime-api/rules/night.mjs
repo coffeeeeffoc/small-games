@@ -8,6 +8,8 @@ import {
   takeoverDuel,
 } from '../../../games/local/night-overwatch/assets/scripts/core/Duel.ts';
 
+import { missionCoins } from '../../../games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts';
+
 const copy = (state) => structuredClone(state);
 export default {
   id: 'night-overwatch',
@@ -15,6 +17,7 @@ export default {
   version: DUEL_VERSION,
   duel: true,
   nightMods: MODS,
+  clearCoins: missionCoins,
   unrated: true,
   lobby: true,
   noTimeLimit: true,

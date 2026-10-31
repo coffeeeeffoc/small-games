@@ -15,6 +15,7 @@ export type Rule = {
   description?: string;
   duel?: boolean;
   nightMods?: NightCatalog;
+  clearCoins?(levelId: string, first: boolean): number;
   lobby?: boolean;
   noTimeLimit?: boolean;
   takeover?(state: unknown, seat: number): unknown;
@@ -69,6 +70,7 @@ export type Room = {
   players: Member[];
   createdAt: number;
   startedAt?: number;
+  trialRoundId?: string;
   deadline: number;
   results?: unknown;
   rematch?: string;

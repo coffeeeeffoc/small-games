@@ -1,113 +1,146 @@
 import type { Graphics, Node } from 'cc';
 import type { HUD } from './HUD';
-import { MODS, STARTER_LOADOUT, type ModId, type Loadout } from './core/Armory.ts';
+import { MODS, STARTER_LOADOUT, SHOP_IDS, LOTTERY, empDuration, trialKey, priceFor, type ModId, type Loadout, type Owned, type Tier, type TrialStock } from './core/Armory.ts';
 
 export interface ArmoryViewState {
-  page: 'cover' | 'base' | 'shop' | 'daily' | 'loadout'; mode: 'solo' | 'duel'; selected: ModId;
-  owned: Partial<Record<ModId, 0 | 1 | 2>>; kits: { solo: Loadout; duel: Loadout };
+  page: 'cover' | 'base' | 'shop' | 'daily' | 'loadout' | 'lottery' | 'trials'; mode: 'solo' | 'duel'; selected: ModId;
+  owned: Owned; kits: { solo: Loadout; duel: Loadout };
   coins: number; coolant: number; checkedIn: boolean; adClaimed: boolean; busy: boolean; message: string;
   available?: boolean; adsAvailable?: boolean; adChoice?: 'coins';
+  trials:TrialStock; trialChoices:Owned; extraWeapons:ModId[]; signedDays:string[]; day:string; selectedTier:Tier; prize?:{id:ModId;tier:Tier};
 }
 export function initialArmoryView(): ArmoryViewState {
-  return { page: 'cover', mode: 'solo', selected: 'spread', owned: { power: 1, velocity: 1, duration: 1 },
+  return { page: 'base', mode: 'solo', selected: 'hePower', owned: { hePower: 1, heVelocity: 1, heavyPower: 1 },
     kits: { solo: STARTER_LOADOUT, duel: STARTER_LOADOUT }, coins: 0, coolant: 0, checkedIn: false,
-    adClaimed: false, busy: false, message: '', available: false, adsAvailable: false };
+    adClaimed: false, busy: false, message: '', available: false, adsAvailable: false,
+    trials:{},trialChoices:{},extraWeapons:[],signedDays:[],day:new Date(Date.now()+8*3600000).toISOString().slice(0,10),selectedTier:1 };
 }
-const ids = Object.keys(MODS) as ModId[];
-const english = { power: 'Power', velocity: 'Velocity', duration: 'Slow burn', spread: 'Dispersal', emp: 'EMP', coolant: 'Coolant' };
-const glyph = { power: '▲', velocity: '»', duration: '◷', spread: '◎', emp: 'ϟ', coolant: '❄' };
-const names = (u: HUD, id: ModId) => u.t(MODS[id].name[0], english[id]);
-function effect(u: HUD, id: ModId, tier = 1) {
-  const high = tier === 2;
-  switch (id) {
-    case 'power': return u.t('威力 ', 'Damage ') + (high ? '+16%' : '+8%');
-    case 'velocity': return u.t('弹速 ', 'Velocity ') + (high ? '+22%' : '+12%');
-    case 'duration': return u.t('燃烧 ', 'Burn ') + (high ? '31' : '28') + u.t(' 秒', 's');
-    case 'spread': return u.t('面积 ', 'Area ') + (high ? '+44%' : '+25%');
-    case 'emp': return u.t('2 发 · 停驶 2.5 秒', '2 shots · halt 2.5s');
-    case 'coolant': return u.t('主动清热 1 次', 'Vent heat once');
-  }
+
+const names = (u: HUD, id: ModId) => u.t(MODS[id].name[0], MODS[id].name[1]);
+const ranks = ['','I','II','III'];
+function effect(u:HUD,id:ModId,tier:number) {
+  if(id==='emp')return u.t('停驶 ','Halt ')+empDuration(tier as Tier)+u.t('秒','s');
+  if(id==='spread')return u.t('面积 ','Area ')+[0,25,44,69][tier]+'%';
+  if(id==='duration')return u.t('燃烧 ','Burn ')+(tier===2?31:28)+u.t('秒','s');
+  if(id==='coolant')return u.t('清热一次','Vent once');
+  return (id.toLowerCase().includes('velocity')?u.t('弹速 +','Speed +')+[0,12,22,32][tier]:u.t('威力 +','Damage +')+[0,8,16,24][tier])+'%';
 }
-export function renderArmory(u: HUD, n: Node, g: Graphics, profile: string) {
-  const a = u.armory, page = a.page, left = u.safe.left + 12, right = u.w - u.safe.right - 12,
-    top = u.safe.top + 4, bottom = u.h - u.safe.bottom - 4, w = right - left, h = bottom - top,
-    compact = w < 680 || h < 390, gap = compact ? 5 : 10, btnH = compact ? 44 : 50, footer = bottom - btnH;
-  const t = (zh: string, en: string) => u.t(zh,en);
-  const label = (str: string, x: number, y: number, width: number, height: number, size = 14, color = '#f4e8d1', bold = false) => {
-    const l = u.label(n,str,x+width/2,y+height/2,size,width,height,color); l.isBold = bold; return l;
+export function renderArmory(u:HUD,n:Node,g:Graphics,profile:string) {
+  const a=u.armory,page=a.page,left=u.safe.left+12,right=u.w-u.safe.right-12,
+    top=u.safe.top+4,bottom=u.h-u.safe.bottom-4,w=right-left,h=bottom-top,
+    compact=w<680||h<390,gap=compact?5:10,bh=44,foot=bottom-bh;
+  const t=(zh:string,en:string)=>u.t(zh,en);
+  const label=(str:string,x:number,y:number,width:number,height:number,size=14,color='#efe4cf',bold=false)=>{
+    const l=u.label(n,str,x+width/2,y+height/2,size,width,height,color);l.isBold=bold;return l;
   };
-  const box = (x: number,y: number,width: number,height: number,fill = '#0c1925df',edge = '#987c54') =>
+  const box=(x:number,y:number,width:number,height:number,fill='#0b1b29df',edge='#647581')=>
     u.rect(g,x,y,width,height,fill,edge,3);
-  const button = (id: string,str: string,x: number,y: number,width: number,height = btnH,primary = false,disabled = false) => {
+  const button=(id:string,str:string,x:number,y:number,width:number,height=bh,primary=false,disabled=false)=>{
+    if(disabled&&!primary)box(x+2,y+4,width-4,height-8,'#0b1b29f2','#536675');
     const l=u.menuButton(n,g,id,str,x,y,width,primary?'primary':'secondary','',height,disabled);
-    l.fontSize=compact?12:15; l.lineHeight=l.fontSize*1.15; return l;
+    l.fontSize=compact?11:15;l.lineHeight=l.fontSize*1.25;return l;
   };
-  const coin = t('金币 ', 'Gold ') + Math.max(0,a.coins).toLocaleString('en-US');
-  const has = (id: ModId) => id==='coolant'?a.coolant>0:!!a.owned[id];
-  const tier = (id: ModId) => a.owned[id] || 1;
-  const header = (str:string) => {
-    box(left,top,w,46,'#0b1b26de');label(str,left+6,top,Math.min(w*.32,250),46,compact?19:26,'#f1d39a',true);
-    label(coin,right-(page==='base'? Math.min(w*.38,270):155),top,page==='base'?Math.min(w*.22,145):148,46,compact?13:17);
+  const note=(text:string,y=foot-24)=>label(text,left,y,w,22,compact?10:13,'#f3d28e');
+  const coin=t('金币 ','Gold ')+Math.max(0,a.coins).toLocaleString('en-US');
+  const header=(str:string)=>{
+    box(left,top,w,46,'#091a25e8','#63798b');
+    label(str,left+6,top,w*.53,46,compact?19:26,'#f1d39a',true);
+    const coinX=page==='base'?(u.touch?right-82:right-146):right-146;
+    label(coin,coinX,top,page==='base'&&u.touch?80:140,46,compact?12:17);
   };
-  const note = (str:string, y:number) => {
-    if (!str) return;box(left,y,w,23,'#101f2eea','#52677a');label(str,left+4,y,w-8,23,compact?11:13,'#ffe1a2');
-  };
-  if (page === 'base') {
-    header(t('作战基地','OPERATIONS BASE'));
-    const profileX=left+w*.38,profileW=Math.min(145,w*.2);
-    button('online:profile',profile,profileX,top,profileW,44);
-    const twoRows=w<700, rows=twoRows?2:1, utilTop=bottom-rows*btnH-(rows-1)*gap;
-    const entryX=left+w*.23, entryW=(right-entryX-gap)/2,entryY=Math.max(top+56,utilTop-btnH-gap-8);
-    button('armory:solo',t('单人模式','SOLO MISSION'),entryX,entryY,entryW,btnH,true);
-    button('armory:duel',t('双人对战','DUEL'),entryX+entryW+gap,entryY,entryW,btnH,true);
-    const tools=[['armory:shop',t('军需商店','Armory')],['armory:daily',t('每日签到','Check-in')],['armory:ads',t('广告补给','Ad supply')],
-      ['online:ranking',t('排行榜','Rankings')],['online:history',t('对战记录','Records')],['help',t('飞行手册','Guide')]];
-    const cols=tools.length/rows,cell=(w-(cols-1)*gap)/cols;
-    tools.forEach(([id,str],i)=>button(id,str,left+i%cols*(cell+gap),utilTop+Math.floor(i/cols)*(btnH+gap),cell));
+  if(page==='base'||page==='loadout'||page==='cover') {
+    header(t('夜航守望 · 作战基地','NIGHT OVERWATCH'));
+    const side=Math.max(100,Math.min(210,w*.23)),main=w-side-gap,sx=right-side,y=top+53;
+    const cardW=(main-3*gap)/4,cardH=Math.min(82,Math.max(48,h*.22));
+    const kit=a.kits.solo, tier=(id:ModId)=>kit.find(x=>x.id===id)?.tier||0;
+    const stats=(ids:ModId[])=>ids.filter(id=>tier(id)).map(id=>effect(u,id,tier(id))).join(' · ')||t('标准配置','Standard');
+    [t('速射炮','RAPID'),t('榴弹炮','HE CANNON'),t('重炮','HEAVY'),t('燃烧弹','INCENDIARY')].forEach((name,i)=>{
+      const x=left+i*(cardW+gap);box(x,y,cardW,cardH,'#102b3be9','#647b8c');
+      label(name,x+2,y+3,cardW-4,23,compact?13:18,'#cce5ec',true);
+      label([t('常驻武器','Always carried'),stats(['hePower','heVelocity']),stats(['heavyPower','heavyVelocity']),stats(['spread','duration'])][i],
+        x+3,y+26,cardW-6,cardH-28,compact?10:12);
+    });
+    const sy=y+cardH+25,sh=Math.min(76,Math.max(44,h*.18)),slotW=(main-2*gap)/3;
+    label(t('额外挂载 · 三个新武器槽','EXTRA RACK · THREE NEW WEAPON SLOTS'),left,y+cardH+3,main,22,compact?11:14,'#e4bf78');
+    for(let i=0;i<3;i++){
+      const id=a.extraWeapons[i],x=left+i*(slotW+gap);
+      if(id)button('armory:slot:'+i,names(u,id)+'\n'+t('已装载 · 点击卸下','Fitted · remove'),x,sy,slotW,sh,true,a.busy);
+      else if(i===a.extraWeapons.length&&!a.extraWeapons.includes('emp'))
+        button('armory:weapon:emp',t('＋ 电磁打击','＋ EMP strike')+'\n'+(a.owned.emp||a.trialChoices.emp?t('点击装载','Fit weapon'):t('商店解锁 / 抽奖试用','Unlock / trial')),x,sy,slotW,sh,false,a.busy||!a.owned.emp&&!a.trialChoices.emp);
+      else{box(x,sy,slotW,sh,'#0b1b29ce','#6e695d');label(t('额外槽 ','EXTRA ')+(i+1)+'\n'+t('空置','Empty'),x,sy,slotW,sh,compact?11:15,'#a7bac3');}
+    }
+    const iy=Math.min(foot-49,sy+sh+8),iw=Math.min(150,main*.43);
+    button('armory:trials',t('一次性库存','Trial inventory'),left,iy,iw);
+    label(t('强化自动生效，不占槽','Upgrades apply without using slots')+'\n'+t('本次试用 ','Trials selected ')+kit.filter(x=>x.trial).length,
+      left+iw+gap,iy,main-iw-gap,44,compact?10:13,'#e1c691');
+    const sideGap=Math.max(4,Math.min(18,(foot-y-4*44)/3));
+    [['armory:shop',t('军需商店','Armory')],['armory:daily',a.checkedIn?t('签到 · 已领取','Checked in'):t('每日签到','Check-in')],
+      ['online:ranking',t('战绩 · 排行与记录','Rankings & records')],['online:profile',profile]].forEach(([id,str],i)=>
+      button(id,str,sx,y+i*(bh+sideGap),side,bh,id==='armory:shop'));
+    const mw=(main-gap)/2;
+    button('armory:solo',t('单人模式','SOLO'),left,foot,mw,bh,true,a.busy);
+    button('armory:duel',t('双人对战','DUEL'),left+mw+gap,foot,mw,bh,true,a.busy);
+    button('help',t('飞行手册','Guide'),sx,foot,side);
     return;
   }
-  header(page==='shop'?t('军需商店','QUARTERMASTER'):page==='daily'?t('每日军需','DAILY SUPPLY'):t('出击配置','FLIGHT LOADOUT'));
-  button('armory:base',t('返回基地','Base'),left,footer,Math.min(120,w*.2));
-  if (page==='daily') {
-    const cardY=top+52, cardH=footer-gap-24-cardY, cw=(w-gap)/2, rx=left+cw+gap;
-    box(left,cardY,cw,cardH,'#132534da');box(rx,cardY,cw,cardH,'#152537e0');
-    label(t('每日签到','DAILY CHECK-IN'),left,cardY+3,cw,32,compact?17:22,'#edcf94',true);
-    label(t('60 金币','60 GOLD'),left,cardY+cardH*.30,cw,36,compact?21:30,'#f6d79c',true);
-    button('armory:checkin',a.checkedIn?t('今日已领取','Claimed today'):t('免费领取','Claim free'),left+8,cardY+cardH-btnH-6,cw-16,btnH,true,a.busy||a.checkedIn||a.available===false);
-    label(t('广告补给 · 每日一次','AD SUPPLY · DAILY'),rx,cardY+3,cw,32,compact?16:21,'#edcf94',true);
-    label(t('40 / 80 / 160 金币','40 / 80 / 160 GOLD')+'\n60% / 30% / 10%',rx,cardY+cardH*.26,cw,50,compact?13:17);
-    button('armory:watch',a.adClaimed?t('今日已领','Claimed today'):a.adsAvailable===false?t('广告不可用','Unavailable'):t('看广告抽金币','Watch for gold'),rx+8,cardY+cardH-btnH-6,cw-16,btnH,true,a.busy||a.adClaimed||a.available===false||a.adsAvailable===false);
-    note(a.message||(a.available===false?t('联网后可领取','Connect to claim'):t('签到免费。广告抽奖只发金币，不计入排行。','Check-in is free. Ad draws award gold only.')),footer-24); return;
+  header(page==='shop'?t('军需商店','QUARTERMASTER'):page==='daily'?t('每日签到','CHECK-IN CALENDAR'):page==='lottery'?t('抽奖活动','REWARD DRAW'):t('一次性库存','TRIAL INVENTORY'));
+  button('armory:base',t('返回基地','Base'),left,foot,Math.min(124,w*.23));
+  if(page==='daily') {
+    const valid=/^\d{4}-\d\d-\d\d$/.test(a.day)?a.day:new Date(Date.now()+8*3600000).toISOString().slice(0,10);
+    const year=Number(valid.slice(0,4)),month=Number(valid.slice(5,7)),first=(new Date(Date.UTC(year,month-1,1)).getUTCDay()+6)%7,
+      days=new Date(Date.UTC(year,month,0)).getUTCDate(),rows=Math.ceil((first+days)/7);
+    const side=Math.min(230,w*.3),cw=w-side-gap,x=left+cw+gap,cy=top+81,ch=foot-8-cy,cellW=cw/7,cellH=(ch-19)/rows;
+    box(left,top+50,cw,50,'#0b1b29ef','#41596a');
+    label(year+t(' 年 ',' / ')+month+t(' 月',''),left,top+50,cw,28,compact?16:22,'#eac78a',true);
+    ['一','二','三','四','五','六','日'].forEach((day,i)=>label(u.lang==='zh'?day:['M','T','W','T','F','S','S'][i],left+i*cellW+2,cy,cellW-4,18,11,'#9fb5c1'));
+    for(let d=1;d<=days;d++){
+      const at=first+d-1,dx=left+at%7*cellW,dy=cy+19+Math.floor(at/7)*cellH,key=valid.slice(0,8)+String(d).padStart(2,'0'),signed=a.signedDays.includes(key),today=key===valid;
+      box(dx+2,dy+1,cellW-4,cellH-2,signed?'#244c42ed':today?'#514124ef':'#102333d9',today?'#eac888':'#355063');
+      label(String(d)+(signed?' ✓':''),dx+2,dy+1,cellW-4,cellH-2,compact?11:16,signed?'#a8ead0':today?'#ffe1a1':'#d8e1e6',today);
+    }
+    box(x,top+56,side,foot-8-(top+56),'#122735e8');
+    label(t('每日可领','DAILY REWARD')+'\n60 '+t('金币','GOLD'),x+4,top+66,side-8,70,compact?18:25,'#f4d497',true);
+    label(a.checkedIn?t('今天已签到','Claimed today'):t('点击签到领取金币','Tap to collect today'),x+5,top+141,side-10,42,compact?11:14);
+    button('armory:checkin',a.checkedIn?t('已签到','Claimed'):t('签到 · 领取60金币','Check in · 60 gold'),x+5,foot-58,side-10,bh,true,a.busy||a.checkedIn||a.available===false);
+    box(left+Math.min(124,w*.23)+gap,foot,w-Math.min(124,w*.23)-gap,44,'#0b1b29ef','#41596a');
+    label(a.message||t('北京时间每日更新','Resets daily · UTC+8'),left+Math.min(124,w*.23)+gap,foot,w-Math.min(124,w*.23)-gap,44,compact?11:13,'#ebc989');return;
   }
-  const sel=a.selected, mod=MODS[sel], k=a.kits[a.mode], duel=a.mode==='duel', equipped=k.some(i=>i.id===sel);
-  if(page==='shop') {
-    const x=left+w*.52, rw=right-x, y=top+54, paneH=footer-27-y;
-    const listW=w*.5, cell=(listW-gap)/2, cellH=Math.max(44,Math.min((paneH-2*gap)/3,64));
-    ids.forEach((id,i)=>{
-      const status=id==='coolant'?t('库存 ','Stock ')+a.coolant:has(id)?tier(id)===2?'II':'I':t('未解锁','Locked');
-      button('armory:select:'+id,names(u,id)+'\n'+status,left+i%2*(cell+gap),y+Math.floor(i/2)*(cellH+gap),cell,cellH,sel===id);
+  if(page==='lottery') {
+    const y=top+57,cardW=(w-2*gap)/3,cardH=Math.max(44,(foot-57-y-gap)/2);
+    SHOP_IDS.forEach((id,i)=>{
+      const x=left+i%3*(cardW+gap),yy=y+Math.floor(i/3)*(cardH+gap);
+      box(x,yy,cardW,cardH,'#132c3bdd',id===a.prize?.id?'#edc778':'#607989');
+      label(names(u,id),x+3,yy+3,cardW-6,22,compact?13:19,'#f1d69b',true);
+      label(t('I / II / III · 每档约','I / II / III · ~')+(100/LOTTERY.length).toFixed(2)+'%',x+3,yy+27,cardW-6,cardH-30,compact?10:13);
     });
-    box(x,y,rw,paneH,'#0b1927e0');label(glyph[sel]+'　'+names(u,sel),x+4,y+1,rw-8,32,compact?17:24,'#e3c48f',true);
-    label(t('标准：','Standard: ')+effect(u,sel,1)+(mod.tune?'\n'+t('单人精调：','Solo tune: ')+effect(u,sel,2):''),x+4,y+35,rw-8,paneH-39,compact?13:17);
-    const price=sel==='coolant'||!has(sel)?mod.price:tier(sel)===1?mod.tune:0;
-    const caption=price===0?t('已永久拥有','Permanently owned'):(!has(sel)||sel==='coolant'?t('兑换','Unlock'):t('单人精调','Solo tune'))+' · '+price+t(' 金币',' gold');
-    button('armory:buy',caption,x,footer,rw,btnH,true,a.busy||!price||a.coins<price||a.available===false);
-    note(a.message||(a.available===false?t('离线 · 商店暂不可用','Offline · shop unavailable'):price>a.coins?t('还差 ','Need ')+(price-a.coins)+t(' 金币',' more gold'):t('购买不会自动替换本局装备','Buying never replaces an equipped module')),footer-24);return;
+    note(a.message||t('每看完一次广告抽一次，无每日上限；商品入库存，仅一场有效。','One completed ad, one trial. Unlimited daily draws. Use in one battle.'),foot-51);
+    button('armory:shop',t('返回商店','Shop'),left+Math.min(124,w*.23)+gap,foot,Math.min(110,w*.2));
+    button('armory:watch',a.busy?t('正在处理…','Please wait…'):a.adsAvailable===false?t('广告暂不可用','Ad unavailable'):t('看广告 · 抽取一次','Watch ad · draw once'),left+w*.51,foot,w*.49,bh,true,a.busy||a.available===false||a.adsAvailable===false);
+    label(a.prize?names(u,a.prize.id)+' '+ranks[a.prize.tier]+t(' 已存入库存',' saved to inventory'):t('中奖商品不会自动启用','Select prizes from inventory before battle'),left,foot-28,w,22,compact?11:14,'#e9d1a4');
+    return;
   }
-  const y=top+52,slotW=(w-gap*2)/3,slotH=Math.min(96,Math.max(46,(h-178)*.46));
-  for(let i=0;i<3;i++) {
-    const item=k[i],x=left+i*(slotW+gap);
-    if(item){const actual=duel?1:tier(item.id);button('armory:slot:'+i,'0'+(i+1)+'  '+names(u,item.id)+'\n'+effect(u,item.id,actual),x,y,slotW,slotH,sel===item.id);}
-    else { box(x,y,slotW,slotH,'#112638ba','#758497');label('0'+(i+1)+'　＋ '+t('空槽','OPEN'),x,y,slotW,slotH,compact?14:18); }
+  const columns=6,col=(w-gap*(columns-1))/columns,headY=top+49,gridY=headY+27,
+    rowH=Math.max(44,Math.min(86,(foot-28-gridY-2*gap)/3));
+  SHOP_IDS.forEach((id,i)=>{
+    const x=left+i*(col+gap),title=names(u,id);
+    box(x,headY,col,27,'#152c3ce8','#67818e');label(title,x,headY,col,27,compact?11:16,'#efd3a2',true);
+    MODS[id].prices.forEach((_price,j)=>{
+      const tier=(j+1) as Tier,yy=gridY+j*(rowH+gap),own=a.owned[id]||0,stock=a.trials[trialKey(id,tier)]||0,
+        chosen=a.trialChoices[id]===tier,shop=page==='shop',selected=shop&&a.selected===id&&a.selectedTier===tier;
+      const state=shop?own>=tier?t('已拥有','Owned'):priceFor(id,tier)+t(' 金币',' gold'):chosen?t('本次启用','Selected'):t('库存 ×','Stock ×')+stock;
+      button(shop?'armory:offer:'+id+':'+tier:'armory:trial:'+id+':'+tier,
+        (ranks[tier]+' · '+effect(u,id,tier))+'\n'+state,x,yy,col,rowH,shop?selected:chosen,
+        a.busy||(!shop&&(!stock||tier<=own)));
+    });
+  });
+  if(page==='shop'){
+    const own=a.owned[a.selected]||0,price=priceFor(a.selected,a.selectedTier),next=a.selectedTier===own+1,can=price>0&&next&&a.coins>=price&&a.available!==false;
+    note(a.message||t('逐档兑换，强化自动生效。新武器解锁后可装入额外槽。','Upgrade in order. Enhancements apply automatically; fit new weapons separately.'));
+    button('armory:lottery',t('抽奖活动','Reward draw'),left+Math.min(124,w*.23)+gap,foot,Math.min(110,w*.2));
+    button('armory:buy',own>=a.selectedTier?t('已拥有此档','Already owned'):!next?t('请先兑换上一档','Unlock the previous tier first'):t('兑换 · ','Buy · ')+price+t(' 金币',' gold'),
+      left+w*.52,foot,w*.48,bh,true,a.busy||!can);
+  } else {
+    note(a.message||t('点选试用品；实际开战扣除。新武器试用还需装入额外槽。','Select trials. Consume on battle start. Trial weapons also need an extra slot.'));
+    button('armory:shop',t('前往商店','Shop'),right-Math.min(150,w*.3),foot,Math.min(150,w*.3));
   }
-  const row=y+slotH+gap, col=(w-5*gap)/6;
-  ids.forEach((id,i)=>button('armory:select:'+id,names(u,id),left+i*(col+gap),row,col,btnH,sel===id));
-  const locked=duel&&sel==='coolant', full=!equipped&&k.length>=3, can=has(sel)&&!locked&&!full;
-  const act=equipped?t('卸下','Remove'):locked?t('仅单人','Solo only'):!has(sel)?t('未拥有','Not owned'):full?t('已满三槽','Slots full'):t('装入','Equip');
-  const chosen=names(u,sel)+' · '+effect(u,sel,duel?1:tier(sel));
-  const infoY=row+btnH+3,infoH=footer-26-infoY;
-  if(infoH>14)label(chosen,left,infoY,w,infoH,compact?12:16,'#f2d7a5');
-  note(a.message||(duel?t('双人：同款统一标准档 · 对战只发排行积分','Duel: standard tier only · ranking points only'):k.length?t('带装备可领金币 · 空槽出击才计单关最快榜','Earn gold with gear · empty all slots for the time board'):t('空槽出击 · 可领金币并挑战单关最快榜','No gear · earn gold and compete for fastest time')),footer-24);
-  button('armory:toggle',act,left+w*.24,footer,w*.24,btnH,false,a.busy||(!equipped&&!can));
-  button('armory:next',duel?t('下一步：进入大厅','Next: duel lobby'):t('下一步：选择关卡','Next: missions'),left+w*.52,footer,w*.48,btnH,true,a.busy);
 }

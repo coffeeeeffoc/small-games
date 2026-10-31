@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { validLoadout, modTier, type Loadout } from '../assets/scripts/core/Armory.ts';
+import { validLoadout, modTier, priceFor, type Loadout } from '../assets/scripts/core/Armory.ts';
+import { MISSIONS, missionCoins } from '../assets/scripts/core/MissionCatalog.ts';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { createDuel, commandDuel, advanceDuel, viewDuel } from '../assets/scripts/core/Duel.ts';
 import { PROTECTED } from '../assets/scripts/core/Data.ts';
@@ -14,9 +15,9 @@ function range(loadout: Loadout) {
   return sim;
 }
 function land(sim: Simulation) { while (sim.shots.length) sim.step(1 / 60); }
-test('three distinct owned-slot shapes, no specialist tiers or duplicate inventory', () => {
+test('three distinct owned-slot shapes, bounded tiers or duplicate inventory', () => {
   assert(validLoadout([]));
-  for (const bad of [null, [{id:'emp',tier:2}], [{id:'power',tier:1},{id:'power',tier:2}],
+  for (const bad of [null, [{id:'emp',tier:4}], [{id:'power',tier:1},{id:'power',tier:2}],
     [{id:'toString',tier:1}], [{id:'spread',tier:1,charges:100}], ['invalid'], Array(4).fill({id:'duration',tier:1})])
     assert(!validLoadout(bad));
   assert.throws(() => createDuel(7, false, [[{id:'coolant',tier:1}],[]]));
@@ -45,7 +46,7 @@ test('EMP spends one of two charges, stops driving but not firing, then movement
   while(sim.time<tank.immobileUntil!+.15) sim.step(.1);
   assert(tank.x>x);
 });
-test('coolant use is exactly once and replays; buying a tier never upgrades it in a duel', () => {
+test('coolant use is exactly once and replays; duel pilots retain their purchased tiers', () => {
   const loadout: Loadout=[{id:'coolant',tier:1}];
   const sim=new Simulation('corridor-01',loadout); sim.start();
   const frames: ReplayFrame[]=[]; observeNightInputs(sim,(input,ticks)=>frames.push({input,ticks}));
@@ -55,7 +56,7 @@ test('coolant use is exactly once and replays; buying a tier never upgrades it i
   assert(!sim.useCoolant()); const replay=applyNightReplay(createNightReplay('campaign','corridor-01',loadout),frames);
   assert(replay.simulation.coolantUsed && replay.assisted); assert.deepEqual(replay.simulation,sim.checkpoint());
   const duel=createDuel(7,false,[[{id:'power',tier:2}], [{id:'emp',tier:1}]]);
-  assert.equal(modTier(duel.pilots[0].loadout,'power'),1);
+  assert.equal(modTier(duel.pilots[0].loadout,'power'),2);
   assert.throws(()=>commandDuel(duel,0,[{command:'choose',args:[4]}]));
   commandDuel(duel,1,[{command:'choose',args:[4]},{command:'setAim',args:[{x:65,z:30}]},{command:'fire',args:[]}]);
   assert.equal(viewDuel(duel,1).simulation.guns[4].ammo,1); assert.equal(viewDuel(duel,0).simulation.guns.length,4);
@@ -64,5 +65,35 @@ test('coolant use is exactly once and replays; buying a tier never upgrades it i
   commandDuel(reversed,1,[{command:'choose',args:[1]},{command:'setAim',args:[{x:target.x,z:target.z}]},{command:'fire',args:[]}]);
   advanceDuel(reversed,(reversed.simulation.shots[0].due+.1)*1000);
   const victim=reversed.simulation.units.find(u=>u.id===target.id)!;
-  assert(Math.abs(victim.maxHp-victim.hp-64.8)<.001, 'in-flight damage keeps seat 1 standard tier while simulation is at seat 0');
+  assert(Math.abs(victim.maxHp-victim.hp-69.6)<.001, 'in-flight damage keeps seat 1 purchased tier while simulation is at seat 0');
+});
+test('separate passive upgrades do not occupy weapon slots or change unrelated guns', () => {
+  const kit:Loadout=[{id:'hePower',tier:3},{id:'heVelocity',tier:3},{id:'heavyPower',tier:2},{id:'heavyVelocity',tier:2},{id:'spread',tier:3}];
+  assert(validLoadout(kit));const base=range([]),sim=range(kit);
+  assert.equal(sim.guns.length,4);assert.equal(sim.speed(0),base.speed(0));assert.equal(sim.speed(3),base.speed(3));
+  assert.equal(sim.speed(1),base.speed(1)*1.32);assert.equal(sim.speed(2),base.speed(2)*1.22);assert.equal(sim.radius(3),10.4);
+  sim.choose(0);sim.setAim({x:-80,z:-65});assert(sim.fire());assert.equal(sim.shots[0].damageScale,1);
+  sim.choose(1);assert(sim.fire());assert.equal(sim.shots[1].damageScale,1.24);
+  assert.equal(createNightReplay('campaign','corridor-01',kit).assisted,false);
+  const rental:Loadout=[...kit.filter(x=>x.id!=='hePower'),{id:'hePower',tier:3,trial:true}];
+  assert(createNightReplay('campaign','corridor-01',rental).assisted);
+  const withEMP=range([...kit,{id:'emp',tier:1}]);assert.equal(withEMP.guns.length,5);
+  const duel=createDuel(7,false,[rental,kit]);assert.deepEqual(duel.pilots[0].loadout,rental);assert.deepEqual(duel.pilots[1].loadout,kit);
+});
+
+test('EMP tiers persist in flight for either duel seat',()=>{
+  for(const [tier,seconds] of [[1,2.5],[2,3.5],[3,4.5]] as const){
+    const sim=range([{id:'emp',tier}]);sim.choose(4);const tank=sim.addUnit('heavy',{x:-80,z:-65});sim.setAim(tank);assert(sim.fire());
+    const due=sim.shots[0].due;assert.equal(sim.shots[0].stunDuration,seconds);land(sim);assert(Math.abs(tank.immobileUntil!-due-seconds)<.05);
+  }
+  const duel=createDuel(43,false,[[{id:'emp',tier:1}],[{id:'emp',tier:3}]]);
+  commandDuel(duel,1,[{command:'choose',args:[4]},{command:'setAim',args:[{x:65,z:30}]},{command:'fire',args:[]}]);
+  assert.equal(duel.simulation.shots[0].stunDuration,4.5);
+});
+
+
+test('EMP first tier is affordable from twenty first clears with no level gate',()=>{
+ const twenty=MISSIONS.slice(0,20).reduce((sum,m)=>sum+missionCoins(m.id),0);
+ assert.equal(twenty,7900);assert.equal(priceFor('emp',1),twenty);
+ assert.equal(priceFor('emp',2),10000);assert.equal(priceFor('emp',3),14000);
 });

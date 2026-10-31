@@ -18,7 +18,7 @@ type RankingRow = Player & { rank: number; score: number; secondary: number; win
 type Ranking = { top: RankingRow[]; me: RankingRow | null };
 type Recorder = { start(options: { mode: string; levelId: string; practice: boolean; loadout?:Loadout }): Promise<unknown>;
   record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<{ accepted?: boolean; fastestEligible?: boolean; coins?:number } | null | undefined>; invalidate(reason?: string): void;
-  persist?(): void; recover?(): Promise<void>; pending?: number };
+  begin?():boolean; persist?(): void; recover?(): Promise<void>; pending?: number };
 type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean } };
 type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Metadata | undefined>;
   services: Partial<WalletPort> & { createRoom(input: { mode: string; visibility?: string; password?: string }): Promise<Room>; match(): Promise<Room>; joinRoom(input: { code: string; password?: string }): Promise<Room>;
@@ -91,6 +91,9 @@ export class Online {
   private replaced = false;
   private nextPoll = 0;
   private botStarted = 0;
+  private botBegun = false;
+  private botKit:Loadout = [];
+  confirmLocalBot?:(kit:Loadout)=>boolean;
   private bridge?: Bridge;
   // Serialize room mutations with polls; a cancelled creation must leave before the next join.
   private requestRoom<T>(request: () => Promise<T>): Promise<T> {
@@ -289,6 +292,7 @@ export class Online {
   }
   startBot(now: number) {
     if (this.busy || this.active || this.room) return;
+    this.botBegun=false;this.botKit=this.duelKit;
     this.generation++; this.bot = createDuel(new DataView(randomBytes().buffer).getUint32(0) & 0x7fffffff, true, [this.duelKit, STARTER_LOADOUT]);
     this.botStarted = now + 1200; this.nextPoll = 0; this.panel = ''; this.message = '本地练习 · 不计公开积分';
     this.enteringUntil = this.botStarted;
@@ -336,7 +340,12 @@ export class Online {
     if (this.bot) {
       if (now < this.nextPoll) return;
       this.nextPoll = now + 50;
-      if (!this.bot.finished && now >= this.botStarted) { advanceDuel(this.bot, now - this.botStarted); this.acceptView(viewDuel(this.bot)); }
+      if (!this.bot.finished && now >= this.botStarted) {
+        if(!this.botBegun){
+          if(this.confirmLocalBot?.(this.botKit)===false){this.leave();this.show('menu');this.message='试用品出击未确认，请联网后重试或卸下试用品';return;}
+          this.botBegun=true;
+        }
+        advanceDuel(this.bot, now - this.botStarted); this.acceptView(viewDuel(this.bot)); }
       return;
     }
     if (this.entering) return;

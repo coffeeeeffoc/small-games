@@ -227,15 +227,15 @@ export class Platform {
       return true;
     }
   }
-  get goldAdsAvailable() {
+  get lotteryAdsAvailable() {
     const host=globalThis as typeof globalThis & {SmallGamesPublishingConfig?:{adsEnabled?:boolean};SmallGamesRewardAds?:{available?:boolean;offer?:RewardProvider}};
     return host.SmallGamesPublishingConfig?.adsEnabled!==false && !!(this.rewardProvider || (host.SmallGamesRewardAds?.available!==false&&host.SmallGamesRewardAds?.offer));
   }
-  async offerGold():Promise<boolean> {
-    if(!this.goldAdsAvailable)return false;
+  async offerLottery():Promise<boolean> {
+    if(!this.lotteryAdsAvailable)return false;
     const host=(globalThis as typeof globalThis & {SmallGamesRewardAds?:{offer:RewardProvider}}).SmallGamesRewardAds;
     const provider=this.rewardProvider || host?.offer.bind(host);
-    try{return (await provider?.({id:'night-overwatch:daily-gold',reward:{goldDraw:1}}))?.status==='completed';}catch{return false;}
+    try{return (await provider?.({id:'night-overwatch:armory-lottery',reward:{singleBattleItem:1}}))?.status==='completed';}catch{return false;}
   }
   claimSupply(reward: SupplyReward) {
     if (!this.rewards.pendingSupply || !['tracking', 'ammo', 'rate', 'restock'].includes(reward)) return false;

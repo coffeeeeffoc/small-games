@@ -18,7 +18,13 @@ import {
   prepareNightDuelPoints,
   settleNightRoom,
 } from './night-ledger.js';
-import { checkNightLoadout, nightWallet, type NightLoadout } from './night-wallet.js';
+import {
+  checkNightLoadout,
+  useNightTrials,
+  refundNightTrials,
+  nightWallet,
+  type NightLoadout,
+} from './night-wallet.js';
 import { createCompetitionIdentities } from './identity-store.js';
 import { publicProfile, publicResult, publicRoomResults } from './profile.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
@@ -398,6 +404,18 @@ export function createCompetitionStore(
       !room.players.every((p) => p.ready)
     )
       return;
+    if (room.game === 'night-overwatch') {
+      room.trialRoundId = randomUUID();
+      for (const player of [...room.players].sort((a, b) => a.id.localeCompare(b.id)))
+        await useNightTrials(
+          tx,
+          player.id,
+          player.loadout ?? [],
+          true,
+          now(),
+          'room:' + room.trialRoundId,
+        );
+    }
     room.status = 'playing';
     room.startedAt = now() + (rule.lobby ? 1200 : 0);
     room.deadline = rule.noTimeLimit ? Number.MAX_SAFE_INTEGER : room.startedAt + rule.durationMs;
@@ -645,6 +663,11 @@ export function createCompetitionStore(
       policy &&
       (policy.state === 'disabled' || policy.killEpoch !== (room.killEpoch ?? 0))
     ) {
+      if (room.trialRoundId && room.status === 'playing' && now() < room.startedAt!) {
+        for (const player of [...room.players].sort((a, b) => a.id.localeCompare(b.id)))
+          await refundNightTrials(tx, player.id, now(), 'room:' + room.trialRoundId);
+        delete room.trialRoundId;
+      }
       room.status = 'abandoned';
       await tx.execute(
         sql`update runtime.competition_rooms set data=${json(room)}::jsonb where code=${room.code}`,
@@ -704,6 +727,11 @@ export function createCompetitionStore(
     }
     if (operation === 'leave' && member) {
       if (room.status === 'waiting' || (room.status === 'playing' && now() < room.startedAt!)) {
+        if (room.trialRoundId && room.status === 'playing') {
+          for (const player of [...room.players].sort((a, b) => a.id.localeCompare(b.id)))
+            await refundNightTrials(tx, player.id, now(), 'room:' + room.trialRoundId);
+          delete room.trialRoundId;
+        }
         room.players = room.players.filter((player) => player.id !== playerId);
         room.status = 'waiting';
         delete room.startedAt;
@@ -730,8 +758,7 @@ export function createCompetitionStore(
     } else if (operation === 'ready' && member) {
       if (room.status === 'waiting') {
         if (room.game === 'night-overwatch' && input.ready !== false) {
-          if (input.loadout?.length)
-            await checkNightLoadout(tx, playerId, input.loadout, true, now());
+          await checkNightLoadout(tx, playerId, input.loadout ?? [], true, now());
           member.loadout = input.loadout ?? [];
         }
         member.ready = input.ready ?? true;
@@ -1096,7 +1123,7 @@ export function createCompetitionStore(
       return db.transaction(async (tx) => {
         const policy = await gamePolicy(control, tx, 'night-overwatch');
         assertGameControl(policy, policy?.killEpoch, !!command);
-        const ad = command?.kind === 'ad-start' || command?.kind === 'ad-claim';
+        const ad = command?.kind === 'lottery-start' || command?.kind === 'lottery-claim';
         if (ad) await lockMatch(tx, 'night-overwatch');
         await assertResourceAuth(tx, auth, 'night-overwatch', now());
         if (ad) {
@@ -1109,6 +1136,7 @@ export function createCompetitionStore(
           now(),
           command,
           ruleFor('night-overwatch').nightMods,
+          ruleFor('night-overwatch').clearCoins,
         );
       });
     },

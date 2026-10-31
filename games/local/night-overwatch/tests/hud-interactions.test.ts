@@ -383,9 +383,10 @@ test('HUD: escort and range entries are discoverable, and range results show a s
     for (const lang of ['zh', 'en']) {
       const hud = new HUD(new SceneNode()); hud.lang = lang; hud.resize();
       const escort = new Simulation(); hud.update(escort, world);
-      assert(hud.buttons.some((button: any) => button.id === 'armory:base'), 'cover enters the base');
+      assert(hud.buttons.some((button: any) => button.id === 'armory:solo'), 'base is immediately available');
       assert(!hud.buttons.some((button: any) => button.id === 'training'), 'home keeps only primary choices');
       hud.missionsOpen = true; hud.update(escort, world);
+      assert(panelLabels(hud).some((l:any)=>l.string.includes('300')));
       const trainingEntry = hud.buttons.find((button: any) => button.id === 'training');
       assert(trainingEntry); assert.equal(hud.hit(trainingEntry.x + trainingEntry.w / 2, trainingEntry.y + trainingEntry.h / 2)?.id, 'training');
       const sim = new Simulation('training-60'); hud.modalKey = 'rebuild'; hud.update(sim, world);
@@ -434,7 +435,7 @@ test('HUD: global actions hide behind panels, with safe modal layout, focus mark
         hud.update(sim, world);
         assert.equal(hud.root.children.at(-1), hud.globalControls, 'global graphics render above the modal');
         for (const b of globals) {
-          if (reason !== 'playing') {
+          if (reason !== 'playing' && reason!=='briefing') {
             assert(!b.label.node.activeInHierarchy, reason + ': global action stays hidden');
             continue;
           }
@@ -824,7 +825,7 @@ test('HUD: browser and native hosts have no fullscreen control or state in any s
         assert.equal(hud.buttons.some((button: any) => /fullscreen/i.test(button.id)), false, reason);
         assert.equal('fullscreen' in hud, false, 'removed state must not return');
         assert.equal(hud.isGlobalAction('fullscreen'), false);
-        assert.equal(hud.buttons.filter((button: any) => button.id === 'settings' && button.label.node.activeInHierarchy).length, reason === 'playing' ? 1 : 0);
+        assert.equal(hud.buttons.filter((button: any) => button.id === 'settings' && button.label.node.activeInHierarchy).length, ['playing','home'].includes(reason) ? 1 : 0);
       }
     }
   } finally {
@@ -889,15 +890,15 @@ const assertPanelTargets = (hud: any) => {
   }
 };
 
-test('HUD: independent title cover precedes mission previews and compact settings', () => {
+test('HUD: base opens directly before mission previews and compact settings', () => {
   for (const [width, height] of [[568, 320], [844, 320], [844, 390], [1366, 768]])
     for (const safe of [0, 12]) for (const lang of ['zh', 'en']) {
       Object.assign(frame, { width, height }); inset = safe;
       const hud = new HUD(new SceneNode()), sim = new Simulation();
       hud.lang = lang; hud.rewardsAvailable = true; hud.resize(); hud.update(sim, world);
       assertPanelTargets(hud);
-      assert.deepEqual(hud.buttons.filter((b:any) => b.label.node.parent===hud.modal).map((b:any)=>b.id), ['armory:base']);
-      hud.armory.page='base'; hud.update(sim,world); assertPanelTargets(hud);
+      assert.equal(hud.armory.page,'base');
+      assert(!hud.buttons.some((b:any)=>b.id==='armory:base'));
       for (const id of ['help','armory:solo','armory:duel','armory:shop','armory:daily']) assert(hud.buttons.some((b:any)=>b.id===id&&b.label.node.parent===hud.modal));
       assert(!hud.buttons.some((b: any) => b.id === 'start'));
       assert(hud.homeBackground.active, 'cover stays opaque even when artwork fails');
@@ -1073,7 +1074,7 @@ test('HUD: authored metal title and three day illustrations are loaded and cropp
     for (const [width, height] of [[568, 320], [844, 390], [1366, 768]]) {
       Object.assign(frame, { width, height }); inset = 12;
       const hud = new HUD(new SceneNode()), sim = new Simulation();
-      hud.resize(); hud.update(sim, world);
+      hud.armory.page='cover';hud.resize(); hud.update(sim, world);
       assert(hud.modal.children.some((node: any) => node.name === 'MetalWordmark' && node.getComponent(cc.Sprite)?.spriteFrame), 'home uses the authored transparent metal title');
       hud.missionsOpen = true; hud.update(sim, world); assertPanelTargets(hud);
       const cards = hud.modal.children.filter((node: any) => node.name.startsWith('MissionIllustration-'));
@@ -1090,18 +1091,29 @@ test('HUD: authored metal title and three day illustrations are loaded and cropp
   } finally { cc.resources.load = load; inset = 0; }
 });
 
-test('armory pages keep catalog and battle choices distinct on a small landscape phone',()=>{
-  Object.assign(frame,{width:568,height:320});inset=12;
+test('armory columns, extra weapons, calendar and lottery fit all supported landscape sizes',()=>{
   try {
-    const hud=new HUD(new SceneNode()),sim=new Simulation();
-    hud.armory={...hud.armory,page:'shop',available:true,coins:299};hud.update(sim,world);
-    const control=(id:string)=>hud.buttons.find((b:any)=>b.id===id&&b.label.node.parent===hud.modal);
-    assert(control('armory:buy').disabled);assertPanelTargets(hud);
-    hud.armory={...hud.armory,coins:300};hud.update(sim,world);assert(!control('armory:buy').disabled);
-    hud.armory={...hud.armory,page:'loadout',mode:'duel',selected:'coolant',coolant:1};hud.update(sim,world);
-    assert(control('armory:toggle').disabled);assert(control('armory:next'));assertPanelTargets(hud);
-    hud.armory={...hud.armory,page:'daily',adsAvailable:false,checkedIn:false};hud.update(sim,world);
-    assert(control('armory:watch').disabled);assert(!control('armory:checkin').disabled);assertPanelTargets(hud);
+    for(const [width,height] of [[568,320],[844,390],[1280,720]])for(const lang of ['zh','en']){
+      Object.assign(frame,{width,height});inset=12;
+      const hud=new HUD(new SceneNode()),sim=new Simulation();hud.lang=lang;hud.resize();
+      const control=(id:string)=>hud.buttons.find((b:any)=>b.id===id&&b.label.node.parent===hud.modal);
+      hud.armory={...hud.armory,page:'shop',available:true,coins:299,selected:'spread',selectedTier:1};hud.update(sim,world);
+      assert(control('armory:buy').disabled);assertPanelTargets(hud);
+      const columns=['hePower','heVelocity','heavyPower','heavyVelocity','spread','emp'];
+      const first=columns.map(id=>control('armory:offer:'+id+':1'));
+      assert(first.every((b:any,i:number)=>b&&b.y===first[0].y&&(i===0||b.x>first[i-1].x)));
+      assert(control('armory:offer:spread:3').y>control('armory:offer:spread:2').y);
+      hud.armory={...hud.armory,coins:300};hud.update(sim,world);assert(!control('armory:buy').disabled);
+      hud.armory={...hud.armory,page:'base'};hud.update(sim,world);assertPanelTargets(hud);
+      assert(control('armory:weapon:emp').disabled);assert(control('armory:solo'));assert(control('armory:duel'));
+      assert(control('armory:daily').x>width*.65);assert(!control('online:history'));
+      hud.armory={...hud.armory,page:'daily',adsAvailable:false,checkedIn:false,day:'2028-02-29',signedDays:['2028-02-28']};hud.update(sim,world);
+      assert(!control('armory:watch'));assert(!control('armory:checkin').disabled);assertPanelTargets(hud);
+      const text=panelLabels(hud).map((l:any)=>l.string);assert(text.includes('28 ✓'));assert(text.includes('29'));assert(!text.includes('30'));
+      hud.armory={...hud.armory,page:'lottery'};hud.update(sim,world);assert(control('armory:watch').disabled);assertPanelTargets(hud);
+      hud.armory={...hud.armory,page:'trials',trials:{'spread:3':1},trialChoices:{spread:3}};hud.update(sim,world);assertPanelTargets(hud);
+      assert(!control('armory:trial:spread:3').disabled);assert(control('armory:trial:spread:2').disabled);
+    }
   } finally { inset=0; }
 });
 

@@ -6403,3 +6403,21 @@ test('Nullrange lock migration replaces only its actual Three/Vite importer with
     ),
   );
 });
+
+test('Night base configuration navigation binds the exact shared test increment', () => {
+  const file = 'apps/shell-web/scripts/standalone-game-checks.mjs',
+    source = 'games/local/night-overwatch';
+  const before = execFileSync('git', ['show', 'c533f127:' + file], { encoding: 'utf8' }),
+    after = readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const context = {
+    changedPaths: [file],
+    games: [{ id: 'night-overwatch', source }],
+    packages: [{ dir: source }, { dir: 'apps/shell-web' }],
+    readBase: () => before,
+    readHead: () => after,
+  };
+  assert.deepEqual([...reviewedSharedFileScopes(context)], [[file, [source, 'apps/shell-web']]]);
+  for (const invalid of [after + '\nextra();', after.replace("await press('armory:solo');", '')])
+    assert.equal(reviewedSharedFileScopes({ ...context, readHead: () => invalid }).size, 0);
+  assert.equal(reviewedSharedFileScopes({ ...context, games: [] }).size, 0);
+});

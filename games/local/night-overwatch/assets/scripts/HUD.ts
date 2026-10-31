@@ -43,7 +43,7 @@ import {
 import type { Simulation } from './core/Simulation';
 import type { World } from './World';
 import { missionUnlocked, newMissionProgress, type MissionProgress } from './core/MissionProgress';
-import { MISSIONS, TRAINING, type MissionLight } from './core/MissionCatalog';
+import { missionCoins, MISSIONS, TRAINING, type MissionLight } from './core/MissionCatalog';
 import { mapRoute, routeLength, riverX, type BattlefieldId } from './core/Data';
 import { trainingNextGoal, type TrainingRecord } from './core/TrainingRecords';
 import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
@@ -688,6 +688,8 @@ export class HUD {
       return;
     }
     this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#071a2d55');
+    this.label(n, this.developer?this.t('试玩模式 · 不结算金币','PRACTICE · NO GOLD'):s.mission.mode==='training'?this.t('热身不结算金币','WARMUP · NO GOLD'):this.t('当前关卡首通奖励：'+missionCoins(s.mission.id)+' 金币','FIRST CLEAR REWARD: '+missionCoins(s.mission.id)+' GOLD'),
+      w/2,this.safe.top+26,14,right-left,32,'#f1d39a');
     this.label(n, this.t('任务地图', 'MISSION MAP'), left + 78, this.safe.top + 80, 22, 156, 42).isBold = true;
     const page = Math.max(0, Math.min(Math.ceil(MISSIONS.length / 3) - 1, this.missionPage));
     const pagerWidth = this.compact ? 88 : 100, pagerY = this.safe.top + 58;
@@ -986,8 +988,8 @@ export class HUD {
     online.pageSize = count;
     if (online.panel === 'menu') online.roomPage = Math.min(online.roomPage, Math.max(0, Math.ceil(online.rooms.length / count) - 1));
     if (online.panel === 'history') online.historyPage = Math.min(online.historyPage, Math.max(0, Math.ceil((online.history?.matches.length || 0) / count) - 1));
-    const titles = { menu: ['对战大厅', 'BATTLE LOBBY'], ranking: ['排行榜', 'RANKINGS'], room: ['作战准备室', 'READY ROOM'],
-      profile: ['玩家昵称', 'PLAYER NAME'], create: ['创建房间', 'CREATE ROOM'], join: ['加入房间', 'JOIN ROOM'], history: ['对战记录', 'BATTLE RECORDS'], '': ['', ''] };
+    const titles = { menu: ['对战大厅', 'BATTLE LOBBY'], ranking: ['战绩 · 排行榜', 'RANKINGS'], room: ['作战准备室', 'READY ROOM'],
+      profile: ['玩家昵称', 'PLAYER NAME'], create: ['创建房间', 'CREATE ROOM'], join: ['加入房间', 'JOIN ROOM'], history: ['战绩 · 对战记录', 'BATTLE RECORDS'], '': ['', ''] };
     if(!result){
       const headingW = online.panel === 'ranking' ? pw - 294 : pw - 130;
       const heading=this.label(n,text(titles[online.panel],this.lang),px+54+headingW/2,py+26,21,headingW,32);
@@ -1096,7 +1098,8 @@ export class HUD {
       label(me ? this.t('我的排名 第','MY RANK ') + me.rank + this.t('名 · ',' · ') + metric(me) : this.t('你 · 尚无上榜成绩', 'YOU · NOT YET RANKED'), bottom - 24, 11, C.mint);
       button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
       button('refresh',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
-      this.label(n, this.t(`已加载 ${rows.length} 名 · 上下滑动`, `${rows.length} LOADED · SCROLL`), px + 216 + (pw - 234) / 2, py + bottom + 22, 11, pw - 234, 26, C.dim);
+      button('history',this.t('对战记录','RECORDS'),214,bottom,104,false,true,'history');
+      this.label(n, this.t(`已加载 ${rows.length} 名 · 上下滑动`, `${rows.length} LOADED · SCROLL`), px + 326 + (pw - 344) / 2, py + bottom + 22, 10, pw - 344, 26, C.dim);
       return;
     }
     if (online.panel === 'history') {
@@ -1117,6 +1120,7 @@ export class HUD {
       if (!rows.length) label(online.message || (online.busy ? this.t('正在读取…', 'LOADING…') : this.t('暂无真人对战记录', 'NO HUMAN MATCHES YET')), 144, 13, C.dim);
       button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
       button('history',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
+      button('ranking',this.t('排行榜','RANKINGS'),214,bottom,104,false,true,'ranking');
       button('historyPrev','',pw-150,bottom,44,false,false,'back',online.historyPage===0);
       button('historyNext','',pw-62,bottom,44,false,false,'next',!online.history||(online.history.matches.length<=(online.historyPage+1)*count&&!online.history.nextCursor));
       this.label(n,String(online.historyPage+1),px+pw-84,py+bottom+22,12,40,24,C.dim);
@@ -1212,7 +1216,7 @@ export class HUD {
     }
     if (key.startsWith('online:') || key === 'duelResult') { this.renderOnline(n, g, s, key === 'duelResult'); return; }
     if (key.startsWith('armory:')) {
-      const scene = this.uiFrames.get(this.armory.page + '-desk');
+      const scene = this.uiFrames.get((this.armory.page==='lottery'?'shop':this.armory.page==='trials'?'loadout':this.armory.page) + '-desk');
       if (scene) {
         const size = scene.originalSize, scale = Math.max(this.w/size.width,this.h/size.height);
         this.image(n.getChildByName('Backdrop')!,'ArmoryDesk',scene,(this.w-size.width*scale)/2,(this.h-size.height*scale)/2,size.width*scale,size.height*scale);

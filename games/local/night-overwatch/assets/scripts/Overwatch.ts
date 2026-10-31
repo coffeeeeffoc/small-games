@@ -20,7 +20,7 @@ import { HUD } from './HUD';
 import { Platform, RADIO } from './Platform';
 import { Online, playerId } from './Online';
 import { Quartermaster } from './Quartermaster';
-import { MODS, type ModId } from './core/Armory.ts';
+import { MODS, SHOP_IDS, validLoadout, type ModId, type Tier } from './core/Armory.ts';
 import { DuelPresentation } from './Presentation';
 import { shareScreenControl } from './ShareScreen';
 import { observeNightInputs } from './core/Replay';
@@ -87,6 +87,7 @@ export class Overwatch extends Component {
       if (!start) this.sim.aim = { ...previous.aim };
       this.online!.bind(this.sim, () => this.sim.paused || !!this.hud.modal);
       if (start) {
+        void this.armory?.refresh();
         this.presentation = new DuelPresentation(); this.completionSpoken = false;
         this.clear(); this.lastEvent = 0; this.accumulator = 0;
         this.hud.reportOpen = false; this.hud.timeComparison = undefined;
@@ -97,7 +98,11 @@ export class Overwatch extends Component {
       this.hud.modalKey = state.finished ? 'rebuild' : this.hud.modalKey;
     });
     this.hud.online = this.online;
-    this.armory=new Quartermaster(sys.localStorage,v=>{this.hud.armory=v;},()=>this.platform.offerGold(),()=>{void this.online?.refreshAccount().then(()=>this.syncArmory());});
+    this.armory=new Quartermaster(sys.localStorage,v=>{this.hud.armory=v;},()=>this.platform.offerLottery(),()=>{void this.online?.refreshAccount().then(()=>this.syncArmory());});
+    this.online.confirmLocalBot = kit => {
+      if(kit.some(x=>x.trial)&&this.armory!.owner.startsWith('account:'))return false;
+      return this.armory!.beginLocalBattle(this.armory!.owner,'bot:'+Date.now()+':'+Math.random(),'duel',kit);
+    };
     this.syncArmory();
     this.servicesReady = this.connectServices();
     this.syncWorld();
@@ -179,7 +184,7 @@ export class Overwatch extends Component {
     void this.online?.recorder?.recover?.();
     void this.armory?.refresh();
   }
-  retry() {this.selectMission(this.sim.mission.id);this.armoryAction('solo');}
+  retry() {this.selectMission(this.sim.mission.id);this.armoryAction('base');}
   selectMission(id: MissionId, persist = false) {
     if (this.sim.phase === 'playing') return;
     this.online?.recorder?.invalidate();
@@ -193,7 +198,7 @@ export class Overwatch extends Component {
     const pauses = new Set(this.sim.pauses);
     this.clear();
     const kit=this.armory?.view.kits.solo;
-    this.sim = new Simulation(id,id==='training-60'?kit?.filter(x=>x.id!=='coolant'):kit);
+    this.sim = new Simulation(id,id==='training-60'?kit?.filter(x=>x.id!=='coolant'&&!x.trial):kit);
     this.hud.rewardCoins=undefined;
     if (this.sim.mission.mode === 'escort') {
       this.selectedMission = this.sim.mission.id;
@@ -224,10 +229,10 @@ export class Overwatch extends Component {
     if (!this.online || !this.armory) return;
     const host=globalThis as any;
     const cloud=host.__COMPETITION_CONFIG__?.competitionEnabled ?? (host.SmallGamesPublishingConfig?.backendEnabled ?? !!host.SmallGamesServices);
-    if(this.armory.bind(cloud?(this.online.accountId||''):playerId(this.online.identity||{}),cloud,this.online.walletPort,this.platform.goldAdsAvailable)){
+    if(this.armory.bind(cloud?(this.online.accountId||''):playerId(this.online.identity||{}),cloud,this.online.walletPort,this.platform.lotteryAdsAvailable)){
       this.confirmed=undefined;
       this.hud.rewardCoins=undefined;
-      if(this.hud.missionsOpen){this.hud.missionsOpen=false;this.armory.set({page:'loadout',mode:'solo'});}
+      if(this.hud.missionsOpen){this.hud.missionsOpen=false;this.armory.set({page:'base',mode:'solo'});}
     }
   }
   private armoryAction(id:string) {
@@ -236,17 +241,26 @@ export class Overwatch extends Component {
     const v=a.view;
     if(a.owner.startsWith('account:')&&!v.available&&!this.online?.walletPort)
       void this.online?.refreshAccount().then(()=>this.syncArmory());
-    if(this.starting===this.sim && ['base','solo','duel','shop','daily','ads'].includes(id))this.selectMission(this.sim.mission.id);
-    if(id==='base'){this.confirmed=undefined;this.hud.missionsOpen=false;a.set({page:'base',message:''});void a.refresh();return;}
-    if(id==='solo'||id==='duel'){this.confirmed=undefined;this.hud.missionsOpen=false;a.set({page:'loadout',mode:id,selected:'power',message:''});void a.refresh();return;}
-    if(id==='shop'||id==='daily'||id==='ads'){a.set({page:id==='shop'?'shop':'daily',message:''});void a.refresh();return;}
-    if(id.startsWith('select:')&&Object.hasOwn(MODS,id.slice(7))){a.set({selected:id.slice(7) as ModId,message:''});return;}
-    if(id.startsWith('slot:')){const slot=v.kits[v.mode][Number(id.slice(5))];if(slot)a.set({selected:slot.id,message:''});return;}
-    if(id==='toggle'&&v.page==='loadout'){a.toggle();return;}
-    if(id==='buy'&&v.page==='shop'||(id==='checkin'||id==='watch')&&v.page==='daily'){void a.transact(id as 'buy'|'watch'|'checkin');return;}
-    if(id!=='next'||v.page!=='loadout'||v.busy)return;
-    this.confirmed=v.mode;
-    if(v.mode==='duel'&&this.online){
+    if(this.starting===this.sim && ['base','solo','duel','shop','daily','lottery','trials'].includes(id))this.selectMission(this.sim.mission.id);
+    if(['base','shop','daily','lottery','trials'].includes(id)) {
+      this.confirmed=undefined;this.hud.missionsOpen=false;
+      a.set({page:id as 'base'|'shop'|'daily'|'lottery'|'trials',message:''});void a.refresh();return;
+    }
+    const [action,item,rank]=id.split(':');
+    if(action==='offer'&&SHOP_IDS.some(id=>id===item)&&MODS[item as ModId].prices[Number(rank)-1]){
+      a.set({selected:item as ModId,selectedTier:Number(rank) as Tier,message:''});return;
+    }
+    if(action==='trial'&&v.page==='trials'&&SHOP_IDS.some(id=>id===item)){
+      a.selectTrial(item as ModId,Number(rank) as Tier);return;
+    }
+    if(action==='weapon'&&v.page==='base'&&Object.hasOwn(MODS,item)){a.toggleWeapon(item as ModId);return;}
+    if(action==='slot'&&v.page==='base'){const weapon=v.extraWeapons[Number(item)];if(weapon)a.toggleWeapon(weapon);return;}
+    if(id==='buy'&&v.page==='shop'&&v.selectedTier===(v.owned[v.selected]||0)+1||id==='checkin'&&v.page==='daily'||id==='watch'&&v.page==='lottery'){
+      void a.transact(id as 'buy'|'checkin'|'watch');return;
+    }
+    if(!['solo','duel'].includes(id)||v.page!=='base'||v.busy)return;
+    this.confirmed=id as 'solo'|'duel';a.set({mode:this.confirmed,message:''});
+    if(id==='duel'&&this.online){
       this.online.duelKit=v.kits.duel;
       if(this.online.inviteCode){const code=this.online.inviteCode;this.online.inviteCode='';this.online.show('join');void this.online.open('join',code);}
       else{this.online.show('menu');void this.online.loadRooms();}
@@ -256,6 +270,7 @@ export class Overwatch extends Component {
       this.hud.missionsOpen=true;
     }
   }
+
   async connectServices() {
     const globals = globalThis as any, deadline = Date.now() + 8000;
     while (!globals.SmallGamesServices && globals.__COMPETITION_CONFIG__?.competitionEnabled && !this.disposed && Date.now() < deadline)
@@ -271,10 +286,20 @@ export class Overwatch extends Component {
   beginCampaign() {
     if (this.starting === this.sim) return;
     this.online?.leave();
-    const sim = this.sim, online = this.online;
-    this.runOwner=this.armory?.owner||'';
-    const begin = () => { if (this.sim !== sim || this.disposed) return; sim.start(); this.completionSpoken = false;
-      const recorder = online?.recorder;
+    const prepared = this.sim, online = this.online;
+    let owner=this.armory?.owner||'';
+    let sim=prepared;
+    this.runOwner=owner;
+    const rejected = () => {
+      this.hud.toast=this.hud.t('试用品出击尚未确认，请检查网络与本机存储后重试','TRIAL START NOT CONFIRMED · CHECK NETWORK AND STORAGE');
+      this.hud.toastUntil=Date.now()+6000;
+    };
+    const begin = () => {
+      if (this.sim !== prepared || this.disposed || this.armory?.owner!==owner) return;
+      const trials=sim.loadout.some(x=>x.trial),recorder=online?.recorder;
+      if(trials&&owner.startsWith('account:')&&(!recorder?.begin||!recorder.begin())){rejected();return;}
+      if(this.armory&&!this.armory.beginLocalBattle(owner,'solo:'+Date.now()+':'+Math.random(),'solo',sim.loadout)){rejected();return;}
+      this.sim=sim;sim.start();this.completionSpoken=false;
       if (online?.rankStatus === 'recording') this.hud.toastUntil = 0;
       if (sim.mission.mode === 'escort' && online?.rankStatus === 'pending-sync') {
         this.hud.toast = this.hud.t('进度暂存本机，联网后自动同步', 'PROGRESS SAVED · SYNC WHEN ONLINE'); this.hud.toastUntil = Date.now() + 5000;
@@ -284,18 +309,32 @@ export class Overwatch extends Component {
       if (recorder) observeNightInputs(sim, (input, ticks) => recorder.record(input, ticks));
       if (recorder && sim.homingAmmo > 0) recorder.record({ command: 'grantHomingAmmo', args: [sim.homingAmmo] }, 0);
       if (recorder) for (const reason of sim.pauses) recorder.record({ command: 'pause', args: [reason, true] }, 0);
+      if(trials)void this.armory?.refresh();
     };
     if (!online || sim.mission.mode !== 'escort') { begin(); return; }
-    this.starting = sim;
+    this.starting = prepared;
     this.hud.toast = this.hud.t('正在准备计时…', 'PREPARING TIMER…'); this.hud.toastUntil = Date.now() + 16000;
     const start = async () => {
       await this.servicesReady;
-      if (this.sim !== sim || this.disposed) return;
-      await online.startRanking({ mode: 'level-' + sim.mission.id, levelId: sim.mission.id,
-        practice: this.operationPractice || this.platform.developer, loadout:sim.loadout });
+      if (this.sim !== prepared || this.disposed) return;
+      if(this.armory?.owner!==owner){
+        if(sim.loadout.some(x=>x.trial)){rejected();return;}
+        owner=this.armory?.owner||'';this.runOwner=owner;
+        sim=new Simulation(prepared.mission.id,this.armory?.view.kits.solo);sim.pauses=new Set(prepared.pauses);
+      }
+      const receipt=await online.startRanking({ mode: 'level-' + sim.mission.id, levelId: sim.mission.id,
+        practice: this.operationPractice || this.platform.developer, loadout:sim.loadout }) as {id?:string;loadout?:unknown}|null|undefined;
+      if(this.sim!==prepared||this.disposed)return;
+      if(receipt?.id&&validLoadout(receipt.loadout)&&receipt.loadout.some(x=>x.trial)){
+        sim=new Simulation(prepared.mission.id,receipt.loadout);sim.pauses=new Set(prepared.pauses);sim.homingAmmo=prepared.homingAmmo;
+      }
+      if(sim.loadout.some(x=>x.trial)&&owner.startsWith('account:')&&(!receipt?.id||online.rankStatus!=='recording')){rejected();return;}
+      begin();
     };
-    void start().then(begin, begin).finally(() => { if (this.starting === sim) this.starting = undefined; });
+    void start().catch(()=>{if(prepared.loadout.some(x=>x.trial))rejected();else begin();})
+      .finally(() => { if (this.starting === prepared) this.starting = undefined; });
   }
+
   syncRewards() {
     if (this.sim.duelMode) { this.hud.rewardsAvailable = false; this.hud.pendingSupply = false; this.sim.homingAmmo = 0; return; }
     this.hud.rewardsAvailable = false;
@@ -516,7 +555,7 @@ export class Overwatch extends Component {
       this.online?.leave();
       this.clear();
       this.hud.missionsOpen = false;
-      this.armoryAction(id==='missions' || this.confirmed==='solo'?'solo':'base');
+      this.armoryAction(id==='missions'?'solo':'base');
       this.hud.modalKey = 'rebuild';
       return;
     }
@@ -536,14 +575,14 @@ export class Overwatch extends Component {
     if (id === 'training' || id === 'missionReturn') {
       if(id==='training' && (!this.hud.missionsOpen || this.confirmed!=='solo'))return;
       this.selectMission(id === 'training' ? 'training-60' : this.selectedMission);
-      if(id==='missionReturn' && this.sim.phase==='briefing')this.armoryAction('solo');
+      if(id==='missionReturn' && this.sim.phase==='briefing')this.armoryAction('base');
       return;
     }
     if (id === 'missionNext') {
       if (this.sim.phase !== 'success')return;
       const id = nextMission(this.sim.mission.mode === 'training' ? this.selectedMission : this.sim.mission.id);
       this.selectMission(id, true);
-      this.armoryAction('solo');
+      this.armoryAction('base');
       return;
     }
     if (id === 'tools' || id === 'flightControls') {
@@ -626,7 +665,6 @@ export class Overwatch extends Component {
     }
     if (id === 'start') {
       if(this.starting===this.sim||this.sim.phase!=='briefing'||!this.hud.missionsOpen||this.confirmed!=='solo')return;
-      this.selectMission(this.sim.mission.id);
       this.world.reset();
       this.beginCampaign();
       return;
@@ -920,7 +958,7 @@ export class Overwatch extends Component {
       this.action(this.sim.phase!=='briefing'?'retry':this.hud.missionsOpen?'start':page==='cover'?'armory:base':page==='base'?'armory:solo':page==='loadout'?'armory:next':'armory:base');
       return;
     }
-    if(this.sim.phase==='briefing' && e.keyCode===27){this.action(this.hud.missionsOpen?'missions':'armory:base');return;}
+    if(this.sim.phase==='briefing' && e.keyCode===27){this.action(this.hud.missionsOpen?'homeMenu':'armory:base');return;}
     if(this.sim.phase==='briefing' && !this.hud.missionsOpen)return;
     if(e.keyCode===53&&this.sim.phase==='playing'&&!this.hud.modal&&!this.sim.paused){this.action('weapon4');return;}
     const a = ACTIONS.find((a) => (a.keys as readonly number[]).includes(e.keyCode));

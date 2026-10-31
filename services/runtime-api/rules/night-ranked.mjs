@@ -4,10 +4,14 @@ import {
   applyNightReplay,
   nightReplayResult,
 } from '../../../games/local/night-overwatch/assets/scripts/core/Replay.ts';
-import { MISSIONS } from '../../../games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts';
+import {
+  MISSIONS,
+  missionCoins,
+} from '../../../games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts';
 
 export default {
   id: 'night-overwatch',
+  clearCoins: missionCoins,
   title: '夜航守望',
   version: RANKED_RULE_VERSION,
   boardVersion: 'night-records-v1',

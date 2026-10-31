@@ -2,7 +2,7 @@ import { Simulation, type PauseReason } from './Simulation.ts';
 import { validLoadout, type Loadout } from './Armory.ts';
 import { MISSIONS, TRAINING } from './MissionCatalog.ts';
 
-export const RANKED_RULE_VERSION = 'night-input-replay-v9';
+export const RANKED_RULE_VERSION = 'night-input-replay-v10';
 export type ReplayFrame = { input: Record<string, unknown>; ticks: number };
 export type NightReplay = { simulation: ReturnType<Simulation['checkpoint']>; assisted: boolean };
 const commands = ['setOrbitDirection', 'adjustAltitude', 'adjustRadius', 'pause',
@@ -21,7 +21,7 @@ export function createNightReplay(board: string, levelId?: string, loadout: Load
   requireInput(mission && validLoadout(loadout) && (mission.mode !== 'training' || !loadout.length));
   const sim = new Simulation(mission.id, loadout);
   sim.start();
-  return { simulation: sim.checkpoint(), assisted: loadout.length > 0 };
+  return { simulation: sim.checkpoint(), assisted: loadout.some(item=>item.trial===true) };
 }
 
 function command(sim: Simulation, input: Record<string, unknown>, state: NightReplay) {
@@ -65,7 +65,7 @@ function command(sim: Simulation, input: Record<string, unknown>, state: NightRe
     case 'command': none(); sim.command(); break;
     case 'setExtractionRadioPending':
       one(); requireInput(typeof args[0] === 'boolean'); sim.setExtractionRadioPending(args[0]); break;
-    case 'coolant': none(); sim.useCoolant(); break;
+    case 'coolant': none(); if(sim.useCoolant())state.assisted=true; break;
     case 'fire': none(); sim.fire(); break;
     case 'grantHomingAmmo':
       one(); requireInput(Number.isSafeInteger(args[0]) && args[0] > 0);

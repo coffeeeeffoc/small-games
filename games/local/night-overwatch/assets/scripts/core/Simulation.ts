@@ -26,7 +26,7 @@ import {
 } from './Data.ts';
 import { Flight, ballisticLaunch, muzzlePosition, shotPosition, terrainContact } from './Flight.ts';
 import { missionDefinition, type MissionId, type MissionDefinition } from './MissionCatalog.ts';
-import { modTier, validLoadout, type Loadout } from './Armory.ts';
+import { empDuration, modTier, validLoadout, type Loadout } from './Armory.ts';
 
 export function initialGuns(loadout: Loadout = [], extraContacts = 0) {
   return ALL_WEAPONS.slice(0, modTier(loadout, 'emp') ? 5 : 4).map((w, i) => ({
@@ -65,6 +65,7 @@ export type Shot = Point & {
   targetY: number;
   timeScale?: number;
   damageScale?: number;
+  stunDuration?: number;
   speed?: number;
   radius?: number;
   fireDuration?: number;
@@ -203,7 +204,7 @@ export class Simulation {
   }
   constructor(missionId: MissionId = 'corridor-01', loadout: Loadout = []) {
     if (!validLoadout(loadout)) throw Error('Invalid mission loadout');
-    this.loadout = loadout.map(({ id, tier }) => ({ id, tier }));
+    this.loadout = loadout.map(item => ({ ...item }));
     validateData();
     this.mission = missionDefinition(missionId);
     this.guns = initialGuns(this.loadout, Math.max(0, this.mission.events.length - 4));
@@ -254,10 +255,11 @@ export class Simulation {
     if (this.canConfigure) this.flight.adjustRadius(delta, this.paused);
   }
   radius(weapon = this.selected) {
-    return ALL_WEAPONS[weapon].radius * (weapon === 3 ? [1, Math.sqrt(1.25), 1.2][modTier(this.loadout, 'spread')] : 1);
+    return ALL_WEAPONS[weapon].radius * (weapon === 3 ? [1, Math.sqrt(1.25), 1.2, 1.3][modTier(this.loadout, 'spread')] : 1);
   }
   private speed(weapon: number) {
-    return ALL_WEAPONS[weapon].speed * (weapon < EMP_INDEX ? [1, 1.12, 1.22][modTier(this.loadout, 'velocity')] : 1);
+    const tier = weapon === 1 ? Math.max(modTier(this.loadout,'heVelocity'),modTier(this.loadout,'velocity')) : weapon === 2 ? Math.max(modTier(this.loadout,'heavyVelocity'),modTier(this.loadout,'velocity')) : weapon < EMP_INDEX ? modTier(this.loadout,'velocity') : 0;
+    return ALL_WEAPONS[weapon].speed * [1,1.12,1.22,1.32][tier];
   }
   useCoolant() {
     if (this.phase !== 'playing' || this.paused || this.duelMode || this.extractionRemaining !== undefined ||
@@ -480,7 +482,8 @@ export class Simulation {
       id: ++this.serial,
       ...(this.duelMode ? { side: this.pilotSide } : {}),
       weapon: this.selected,
-      damageScale: this.selected < 3 ? [1, 1.08, 1.16][modTier(this.loadout, 'power')] : 1,
+      damageScale: this.selected < 3 ? [1,1.08,1.16,1.24][Math.max(modTier(this.loadout,'power'), this.selected===1?modTier(this.loadout,'hePower'):this.selected===2?modTier(this.loadout,'heavyPower'):0)] : 1,
+      ...(this.selected===EMP_INDEX?{stunDuration:empDuration(modTier(this.loadout,'emp')||1)}:{}),
       speed: this.speed(this.selected), radius: this.radius(),
       ...(this.selected === 3 ? { fireDuration: FIRE_ZONE.duration + modTier(this.loadout, 'duration') * 3 } : {}),
       x: this.aim.x,
@@ -567,7 +570,7 @@ export class Simulation {
       const range = Math.hypot(x - point.x, y - point.y, z - point.z);
       if (s.weapon === EMP_INDEX) {
         if (!u.friendly && (u.kind === 'light' || u.kind === 'heavy') && range <= ALL_WEAPONS[EMP_INDEX].radius + UNITS[u.kind].radius) {
-          u.immobileUntil = time + 2.5;
+          u.immobileUntil = time + (s.stunDuration ?? 2.5);
           u.hit = .2; hit = true;
         }
         continue;

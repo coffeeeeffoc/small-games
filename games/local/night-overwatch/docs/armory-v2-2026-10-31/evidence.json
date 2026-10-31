@@ -1,0 +1,243 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "9ace559e5917244fe551f650d01228192488698dee896f8409d1f3479f48aeec"
+  },
+  "environment": "Creator Web-mobile, local Chromium (touch emulated on narrow screens), backend and all external requests blocked",
+  "screens": [
+    {
+      "name": "01-base",
+      "width": 568,
+      "height": 320,
+      "modal": "armory:base"
+    },
+    {
+      "name": "02-shop",
+      "width": 568,
+      "height": 320,
+      "modal": "armory:shop"
+    },
+    {
+      "name": "03-lottery",
+      "width": 568,
+      "height": 320,
+      "modal": "armory:lottery"
+    },
+    {
+      "name": "04-calendar",
+      "width": 568,
+      "height": 320,
+      "modal": "armory:daily"
+    },
+    {
+      "name": "05-inventory",
+      "width": 568,
+      "height": 320,
+      "modal": "armory:trials"
+    },
+    {
+      "name": "06-rankings",
+      "width": 568,
+      "height": 320,
+      "modal": "online:ranking:2:zh"
+    },
+    {
+      "name": "07-records",
+      "width": 568,
+      "height": 320,
+      "modal": "online:history:4:zh"
+    },
+    {
+      "name": "08-lobby",
+      "width": 568,
+      "height": 320,
+      "modal": "online:menu:7:zh"
+    },
+    {
+      "name": "09-missions",
+      "width": 568,
+      "height": 320,
+      "modal": "missions"
+    },
+    {
+      "name": "09-combat",
+      "width": 568,
+      "height": 320,
+      "modal": ""
+    },
+    {
+      "name": "01-base",
+      "width": 844,
+      "height": 390,
+      "modal": "armory:base"
+    },
+    {
+      "name": "02-shop",
+      "width": 844,
+      "height": 390,
+      "modal": "armory:shop"
+    },
+    {
+      "name": "03-lottery",
+      "width": 844,
+      "height": 390,
+      "modal": "armory:lottery"
+    },
+    {
+      "name": "04-calendar",
+      "width": 844,
+      "height": 390,
+      "modal": "armory:daily"
+    },
+    {
+      "name": "05-inventory",
+      "width": 844,
+      "height": 390,
+      "modal": "armory:trials"
+    },
+    {
+      "name": "06-rankings",
+      "width": 844,
+      "height": 390,
+      "modal": "online:ranking:2:zh"
+    },
+    {
+      "name": "07-records",
+      "width": 844,
+      "height": 390,
+      "modal": "online:history:4:zh"
+    },
+    {
+      "name": "08-lobby",
+      "width": 844,
+      "height": 390,
+      "modal": "online:menu:7:zh"
+    },
+    {
+      "name": "09-missions",
+      "width": 844,
+      "height": 390,
+      "modal": "missions"
+    },
+    {
+      "name": "09-combat",
+      "width": 844,
+      "height": 390,
+      "modal": ""
+    },
+    {
+      "name": "01-base",
+      "width": 1280,
+      "height": 720,
+      "modal": "armory:base"
+    },
+    {
+      "name": "02-shop",
+      "width": 1280,
+      "height": 720,
+      "modal": "armory:shop"
+    },
+    {
+      "name": "03-lottery",
+      "width": 1280,
+      "height": 720,
+      "modal": "armory:lottery"
+    },
+    {
+      "name": "04-calendar",
+      "width": 1280,
+      "height": 720,
+      "modal": "armory:daily"
+    },
+    {
+      "name": "05-inventory",
+      "width": 1280,
+      "height": 720,
+      "modal": "armory:trials"
+    },
+    {
+      "name": "06-rankings",
+      "width": 1280,
+      "height": 720,
+      "modal": "online:ranking:2:zh"
+    },
+    {
+      "name": "07-records",
+      "width": 1280,
+      "height": 720,
+      "modal": "online:history:4:zh"
+    },
+    {
+      "name": "08-lobby",
+      "width": 1280,
+      "height": 720,
+      "modal": "online:menu:7:zh"
+    },
+    {
+      "name": "09-missions",
+      "width": 1280,
+      "height": 720,
+      "modal": "missions"
+    }
+  ],
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "shop": true,
+      "daily": true,
+      "baseExtraSlots": true,
+      "lottery": true,
+      "calendar": true,
+      "records": true,
+      "mission": true,
+      "realFire": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "shop": true,
+      "daily": true,
+      "baseExtraSlots": true,
+      "lottery": true,
+      "calendar": true,
+      "records": true,
+      "mission": true,
+      "realFire": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "touch": false,
+      "shop": true,
+      "daily": true,
+      "baseExtraSlots": true,
+      "lottery": true,
+      "calendar": true,
+      "records": true,
+      "mission": true,
+      "realFire": true
+    }
+  ],
+  "errors": [],
+  "video": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1280,
+        "height": 720
+      }
+    ],
+    "format": {
+      "duration": "16.000000"
+    },
+    "sourceSha256": "41685f0dbe9d58d88b87e5bb7fe78dd10552465ec2dba2b247e01b46f8c494d1",
+    "sha256": "3a055ce9a13b3b1b94e6bb51611cca8574b94beb96afacb928b4e2b1213d1e92",
+    "environment": "desktop Chromium; actual mouse inputs; no device host or instrumentation-generated assets"
+  }
+}

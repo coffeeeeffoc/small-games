@@ -11,7 +11,7 @@ import { CompetitionError } from './types.js';
 import { createRankedRuns } from './ranked-runs.js';
 import type { RankedRule, RankedRun, Receipt, RunRepository } from './ranked-types.js';
 import { assertGameControl, gamePolicy, type CompetitionControl } from './control.js';
-import { awardNightClear, checkNightLoadout, useNightCoolant } from './night-wallet.js';
+import { awardNightClear, useNightTrials, useNightCoolant } from './night-wallet.js';
 import { assertResourceAuth } from './auth.js';
 
 type Database = ReturnType<typeof openDatabase>['db'];
@@ -28,6 +28,9 @@ export function createRankedStore(
       return db.transaction(async (tx) => {
         const policy = await gamePolicy(control, tx, run.game);
         await assertResourceAuth(tx, auth ?? run.playerId, run.game, now());
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtextextended(${'ranked-create:' + run.id},0))`,
+        );
         const existing = await tx.execute(
           sql`select data from runtime.competition_matches where id=${`ranked-run:${run.id}`} for update`,
         );
@@ -37,8 +40,8 @@ export function createRankedStore(
           return stored;
         }
         assertGameControl(policy, policy?.killEpoch, true);
-        if (run.loadout?.length)
-          await checkNightLoadout(tx, run.playerId, run.loadout, false, now());
+        if (run.game === 'night-overwatch')
+          await useNightTrials(tx, run.playerId, run.loadout ?? [], false, now(), 'run:' + run.id);
         run.killEpoch = policy?.killEpoch ?? 0;
         await tx.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)
           values(${`ranked-run:${run.id}`},${run.boardKey},${JSON.stringify(run)}::jsonb,${run.createdAt}) on conflict(id) do nothing`);
@@ -117,6 +120,7 @@ export function createRankedStore(
                 run.id,
                 run.levelId!,
                 now(),
+                rules.get(run.game)!.clearCoins!,
               );
               await refreshNightClears(tx, now(), run.playerId);
               const rows = await tx.execute(

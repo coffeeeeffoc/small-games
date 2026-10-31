@@ -241,6 +241,14 @@ export function assertKillAccounting(s) {
 
 export async function press(page, id, touch = false, expand = true) {
   let s = await snapshot(page);
+  if (s.modal === 'armory:base') {
+    if (id === 'missions' || id === 'online:menu') id = id === 'missions' ? 'armory:solo' : 'armory:duel';
+    else if (['training','start'].includes(id) || id.startsWith('mission:')) {
+      await press(page,'armory:solo',touch,false); s=await snapshot(page);
+    } else if (id === 'online:history') {
+      await press(page,'online:ranking',touch,false);s=await snapshot(page);
+    }
+  }
   if (id === 'zoomIn') id = 'lensIn';
   if (id === 'zoomOut') id = 'lensOut';
   if (id === 'pause') id = 'settings';

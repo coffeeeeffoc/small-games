@@ -22,6 +22,7 @@ export type RankedRule = {
   version: string;
   boardVersion?: string;
   boardVersionFor?(board: string): string;
+  clearCoins?(levelId: string, first: boolean): number;
   coolantUsed?(state: unknown): boolean;
   boards: readonly BoardDefinition[];
   create(board: string, seed: number, levelId?: string, loadout?: NightLoadout): unknown;

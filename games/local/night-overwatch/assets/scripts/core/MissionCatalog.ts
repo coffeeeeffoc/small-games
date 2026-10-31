@@ -94,3 +94,8 @@ export function readMissionSearch(search: string): MissionId | undefined {
   return values.length === 1 && [...MISSIONS, TRAINING].some((mission) => mission.id === values[0])
     ? values[0] as MissionId : undefined;
 }
+
+export function missionCoins(id:unknown,first=true):number {
+  const index=MISSIONS.findIndex(m=>m.id===id);
+  return index<0?0:(first?300+10*index:80+4*index);
+}

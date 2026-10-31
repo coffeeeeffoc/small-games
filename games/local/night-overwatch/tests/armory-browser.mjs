@@ -35,21 +35,22 @@ try{
     await page.screenshot({path:path.join(qa,name+'-'+width+'.png')});evidence.screens.push({name,width,height,modal:s.modal});return s};
   const click=async(id)=>{const b=(await snapshot(page)).buttons.find(b=>b.id===id);assert(b&&!b.disabled,'Missing/disabled '+id);await press(page,id,touch,false)};
   const ids=s=>s.buttons.map(b=>b.id),waitPage=name=>page.waitForFunction(name=>__night.snapshot().armory?.page===name,name);
-  let s=await shot('01-cover');assert.deepEqual(ids(s),['armory:base']);
-  await click('armory:base');await waitPage('base');s=await shot('02-base');assert(ids(s).includes('armory:shop')&&ids(s).includes('armory:duel'));
-  await click('armory:shop');await waitPage('shop');await click('armory:select:spread');s=await shot('03-shop');
+  let s=await shot('01-base');assert.equal(s.armory.page,'base');assert(ids(s).includes('armory:shop')&&ids(s).includes('armory:duel'));
+  assert(!ids(s).includes('online:history'));assert.equal(s.armory.extraWeapons.length,0);
+  await click('armory:shop');await waitPage('shop');await click('armory:offer:spread:1');s=await shot('02-shop');
   assert(s.buttons.find(b=>b.id==='armory:buy').disabled,'Fresh wallet cannot afford dispersal');
-  await click('armory:base');await click('armory:daily');await waitPage('daily');s=await shot('04-daily');
-  if(s.armory.available){const old=s.armory.coins;assert(!s.armory.checkedIn);await click('armory:checkin');await page.waitForFunction(old=>__night.snapshot().armory.coins===old+60&&__night.snapshot().armory.checkedIn,old);assert((await snapshot(page)).buttons.find(b=>b.id==='armory:checkin').disabled)}
+  for(const id of ['hePower','heVelocity','heavyPower','heavyVelocity','spread','emp'])for(const tier of [1,2,3])assert(ids(s).includes('armory:offer:'+id+':'+tier));
+  await click('armory:lottery');await waitPage('lottery');s=await shot('03-lottery');assert(s.buttons.find(b=>b.id==='armory:watch').disabled);
+  await click('armory:base');await click('armory:daily');await waitPage('daily');s=await shot('04-calendar');
+  if(s.armory.available){const old=s.armory.coins;await click('armory:checkin');await page.waitForFunction(old=>__night.snapshot().armory.coins===old+60&&__night.snapshot().armory.checkedIn,old);assert((await snapshot(page)).buttons.find(b=>b.id==='armory:checkin').disabled)}
   else assert(s.buttons.find(b=>b.id==='armory:checkin').disabled);
-  assert(!(await snapshot(page)).armory.adsAvailable,'No live ad inventory in offline capture');
-  await click('armory:base');await click('armory:duel');await waitPage('loadout');s=await shot('05-duel-kit');assert.equal(s.armory.mode,'duel');
-  await click('armory:slot:0');await click('armory:toggle');s=await snapshot(page);assert.equal(s.armory.kits.duel.length,2);assert.equal(s.armory.kits.solo.length,3);
-  await click('armory:next');await page.waitForFunction(()=>__night.snapshot().online.panel==='menu');await shot('06-lobby');
+  assert(!ids(s).includes('armory:watch'));
+  await click('armory:base');await click('armory:trials');await waitPage('trials');await shot('05-inventory');
+  await click('armory:base');await click('online:ranking');await page.waitForFunction(()=>__night.snapshot().online.panel==='ranking');await shot('06-rankings');
+  await click('online:history');await page.waitForFunction(()=>__night.snapshot().online.panel==='history');await shot('07-records');await click('online:back');
+  await click('armory:duel');await page.waitForFunction(()=>__night.snapshot().online.panel==='menu');await shot('08-lobby');
   await click('online:back');await page.waitForFunction(()=>!__night.snapshot().online.panel);
-  if((await snapshot(page)).armory.page!=='base') await click('armory:base');
-  await click('armory:solo');await waitPage('loadout');s=await shot('07-solo-kit');assert.equal(s.armory.kits.solo.length,3);
-  await click('armory:next');await page.waitForFunction(()=>__night.snapshot().modal==='missions');await shot('08-missions');
+  await click('armory:solo');await page.waitForFunction(()=>__night.snapshot().modal==='missions');await shot('09-missions');
   await click('start');await page.waitForFunction(()=>__night.snapshot().phase==='playing'&&!__night.snapshot().modal);
   s=await snapshot(page);assert.equal(s.loadout.length,3);assert.equal(s.guns[1].ammo,120);
   const locate=async(target)=>{await navigateMap(page,target,touch);await aimAt(page,target,touch)};
@@ -81,7 +82,7 @@ try{
    ff(process.env.FFMPEG||'ffmpeg',['-v','error','-i',mp4,'-f','null','-']);
    evidence.video={...meta,sourceSha256:createHash('sha256').update(bytes).digest('hex'),sha256:createHash('sha256').update(await readFile(mp4)).digest('hex'),environment:'desktop Chromium; actual mouse inputs; no device host or instrumentation-generated assets'};
   }
-  evidence.checks.push({width,height,touch,shop:true,daily:true,duelKitIsolated:true,mission:true,realFire:true});await c.close();page=undefined;
+  evidence.checks.push({width,height,touch,shop:true,daily:true,baseExtraSlots:true,lottery:true,calendar:true,records:true,mission:true,realFire:true});await c.close();page=undefined;
  }
  assert.deepEqual(evidence.errors,[]);
 }catch(e){evidence.failure=String(e);if(page&&!page.isClosed())await page.screenshot({path:path.join(qa,'failure.png')}).catch(()=>{});throw e;}

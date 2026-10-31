@@ -476,12 +476,19 @@ function createDurableRecorder(services, { storage }, onStatus) {
     working.set(key(run), operation);
     return operation;
   }
+  const unbegunTrial = (run) =>
+    run &&
+    run.loadout?.some((item) => item.trial === true) &&
+    !run.begun &&
+    !run.finishing &&
+    !run.batches.length &&
+    !run.tail.length;
   function invalidate(reason = 'local') {
     generation++;
     if (active && !active.synced) {
       seal(active);
       // An interrupted, unfinished mission is not a completion claim.
-      if (!active.finishing) {
+      if (!active.finishing && !unbegunTrial(active)) {
         active.abandoned = true;
         save(active);
       }
@@ -497,6 +504,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
       return pending;
     },
     async start({ mode, levelId, practice = false, loadout }) {
+      const previous = active;
       invalidate(practice ? 'practice' : 'local');
       if (practice) return null;
       const ownGeneration = generation;
@@ -512,6 +520,37 @@ function createDurableRecorder(services, { storage }, onStatus) {
           deferred = error;
         }
         if (generation !== ownGeneration) return null;
+        const matching = (run) =>
+          unbegunTrial(run) &&
+          run.scope === scope &&
+          run.playerId === credential.playerId &&
+          run.version === services.ruleVersion &&
+          run.mode === mode &&
+          run.levelId === levelId;
+        let prepared = matching(previous) ? previous : undefined;
+        if (!prepared) {
+          const names = Array.from({ length: storage.length }, (_, i) => storage.key(i));
+          for (const name of names) {
+            if (!name?.startsWith(prefix(scope)) || name.endsWith(':synced')) continue;
+            let candidate;
+            try {
+              candidate = read(name);
+            } catch {
+              continue;
+            }
+            if (matching(candidate) && (!prepared || candidate.savedAt > prepared.savedAt))
+              prepared = candidate;
+          }
+        }
+        if (prepared) {
+          active = prepared;
+          retries.delete(key(prepared));
+          if (deferred) failed(prepared, deferred);
+          else await synchronize(prepared);
+          return generation === ownGeneration && prepared.id && status === 'recording'
+            ? prepared
+            : null;
+        }
         const bytes = new Uint8Array(16);
         if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
         else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
@@ -545,15 +584,31 @@ function createDurableRecorder(services, { storage }, onStatus) {
         active = run;
         if (deferred) failed(run, deferred);
         else await synchronize(run);
-        return generation === ownGeneration ? run : null;
+        return generation === ownGeneration &&
+          (!unbegunTrial(run) || (run.id && status === 'recording'))
+          ? run
+          : null;
       } catch {
         if (generation === ownGeneration) report('unavailable');
         return null;
       }
     },
-    record(input, ticks = 1) {
+    begin() {
       const run = active;
-      if (!run || run.finishing || run.abandoned || run.synced) return;
+      if (!run || run.finishing || run.abandoned || run.synced) return false;
+      if (unbegunTrial(run)) {
+        if (!run.id || status !== 'recording') return false;
+        run.begun = true;
+        if (!save(run)) {
+          run.begun = false;
+          return false;
+        }
+      }
+      return true;
+    },
+    record(input, ticks = 1) {
+      if (!recorder.begin()) return;
+      const run = active;
       if (!Number.isInteger(ticks) || ticks < 0 || ticks > 600) {
         report('needs-attention');
         return;
@@ -616,6 +671,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
             if (!run.finishing && run !== active) {
               if (
                 run.scope === scope &&
+                !unbegunTrial(run) &&
                 Number.isFinite(run.savedAt) &&
                 Date.now() - run.savedAt > 86400000
               )

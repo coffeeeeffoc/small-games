@@ -1134,28 +1134,18 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
           ),
       );
     };
-    await press('armory:base');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().armory.page))
       .toBe('base');
     await press('armory:solo');
-    await expect
-      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().armory.page))
-      .toBe('loadout');
-    await press('armory:next');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
       .toBe('missions');
     await press('homeMenu');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
-      .toBe('armory:loadout');
-    await expect
-      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().armory.page))
-      .toBe('loadout');
-    await press('armory:base');
+      .toBe('armory:base');
     await press('armory:solo');
-    await press('armory:next');
     await press('training');
     await press('start');
     await expect
