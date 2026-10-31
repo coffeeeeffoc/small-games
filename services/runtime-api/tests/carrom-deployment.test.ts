@@ -60,6 +60,7 @@ it('packages an executable carrom rule with its engine and content, without ship
       'services/runtime-api/rules/carrom.mjs',
       'services/runtime-api/rules/ranked-games.mjs',
       'services/runtime-api/rules/night-ranked.mjs',
+      'games/local/night-overwatch/assets/scripts/core/Armory.ts',
       'games/local/night-overwatch/assets/scripts/core/Duel.ts',
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
       'games/local/night-overwatch/assets/scripts/core/Simulation.ts',
