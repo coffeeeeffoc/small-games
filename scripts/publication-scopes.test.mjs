@@ -1,5 +1,52 @@
 import { test } from 'node:test';
 
+test('Tetracube service wiring binds six reviewed files and the real Runtime import path', async () => {
+  const { tetracubeServiceReviews: reviews, tetracubeCreatorFileScopes: scope } = await import(
+    './publication-scopes.mjs'
+  );
+  const base = 'c533f1271c5d76b6a0c0635112d3e5a9f97607e1';
+  const head = 'e9d05fcb558d57122db0dc31685a8aa3db6ef136';
+  const source = 'games/local/tetracube';
+  const cache = new Map();
+  const read = (ref, file) => {
+    const key = ref + ':' + file;
+    if (!cache.has(key)) cache.set(key, execFileSync('git', ['show', key], { encoding: 'utf8' }));
+    return cache.get(key);
+  };
+  const options = {
+    changedPaths: Object.keys(reviews),
+    readBase: (f) => read(base, f),
+    readHead: (f) => read(head, f),
+    games: [{ id: 'tetracube', source, output: 'dist' }],
+    packages: [
+      { dir: source, ...JSON.parse(read(head, source + '/package.json')) },
+      { dir: 'services/runtime-api' },
+    ],
+  };
+  for (const [file, review] of Object.entries(reviews)) {
+    assert.deepEqual(scope(options).get(file), review.sources, file);
+    for (const side of ['readBase', 'readHead'])
+      assert.equal(
+        scope({
+          ...options,
+          changedPaths: [file],
+          [side]: (f) => options[side](f) + (f === file ? '\n' : ''),
+        }).has(file),
+        false,
+      );
+  }
+  assert.equal(scope({ ...options, games: [...options.games, ...options.games] }).size, 0);
+  assert.equal(scope({ ...options, packages: options.packages.slice(0, 1) }).size, 0);
+  assert.equal(
+    scope({
+      ...options,
+      readHead: (f) =>
+        f === 'services/runtime-api/rules/tetracube-ranked.mjs' ? '' : options.readHead(f),
+    }).size,
+    0,
+  );
+});
+
 test('Castle Creator migration binds reviewed bytes and unique runtime identities', async () => {
   const { castleCreatorReviews: reviews, castleCreatorFileScopes: scope } = await import(
     './publication-scopes.mjs'
