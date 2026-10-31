@@ -3,15 +3,15 @@
   "name": "空间俄罗斯方块",
   "date": "2026-10-31",
   "creator": "3.8.8",
-  "sourceHash": "0e0a4a7b1b409a3ce5b859045d1a17820947a9906a53d2071021c9f95bfb60c7",
+  "sourceHash": "f41b255b80ef9c342a0e29d18241f4d5c7aab9507714dd52c17624be5d2181a6",
   "environment": "Windows Chromium 156.0.8078.79, real-clock mouse/CDP touch capture; browser simulation, not a physical or native device",
   "specification": "docs/game-publishing.md: user supplied TapTap upload requirements, 2026-10-26/27",
   "imageProcessing": "Built-in imagegen; Lanczos export to exact pixels. Landscape original 1672x941, square and icon originals 1254x1254. No imagegen art is labeled gameplay footage.",
   "files": [
     {
       "file": "icon/taptap/icon-1024.png",
-      "bytes": 1560927,
-      "sha256": "e177b67915c780c044ae76a3282665cf4d56a76493cb24e67cb57b2607e3b531",
+      "bytes": 874449,
+      "sha256": "17b83636d3d98ae5e33bdacaf499249f86fbacbadd8782564bdd09dff7ef5a62",
       "format": "PNG",
       "width": 1024,
       "height": 1024,
@@ -20,8 +20,8 @@
     },
     {
       "file": "promo/images/taptap/cover-landscape-1920x1080.png",
-      "bytes": 2454352,
-      "sha256": "8db5705a35fc2d49837cdc9c2d21b73aa3c3f8cffc1fb57c8059e13840859ac1",
+      "bytes": 2029454,
+      "sha256": "6fa861dbad26a42f85c65cb95ceb9d1e61161fbe106f31fdf1c2b6934cad685f",
       "format": "PNG",
       "width": 1920,
       "height": 1080,
@@ -30,8 +30,8 @@
     },
     {
       "file": "promo/images/taptap/cover-square-1440x1440.png",
-      "bytes": 2776699,
-      "sha256": "bb13f19aea5726c88ea187e2ea87761de6843bf298ac8fc57a8f851d31241db3",
+      "bytes": 2291586,
+      "sha256": "44eb33c9bb730acb814097dfbf082197b00c6881bc0b0d99d58ecffd20b177c1",
       "format": "PNG",
       "width": 1440,
       "height": 1440,
@@ -40,8 +40,8 @@
     },
     {
       "file": "gameplay/screenshots/taptap/01-play-720x1280.png",
-      "bytes": 646611,
-      "sha256": "4f45b8e4509dcb96846199c05128d7994e452496fae7d076542f1529d63b0b27",
+      "bytes": 161756,
+      "sha256": "8923a0b27c87f27fe65ec1655e95394d2a25848f13bbf0124f195e656011c916",
       "format": "PNG",
       "width": 720,
       "height": 1280,
@@ -50,8 +50,8 @@
     },
     {
       "file": "gameplay/screenshots/taptap/02-observe-720x1280.png",
-      "bytes": 637376,
-      "sha256": "7900987ca18be33b7c9a29c1723664522043dccd33f5e3a0a341314d2bff48f2",
+      "bytes": 169571,
+      "sha256": "0b07f919c12fa3076da824f8c2a297a6ea81c2340738039e5506f536ffee4848",
       "format": "PNG",
       "width": 720,
       "height": 1280,
@@ -59,9 +59,9 @@
       "decoded": true
     },
     {
-      "file": "gameplay/screenshots/taptap/03-flipped-720x1280.png",
-      "bytes": 652869,
-      "sha256": "540ba1d29b45ba34f61d188d277ded2806d18513187c519acf3ab0e5fc4be56c",
+      "file": "gameplay/screenshots/taptap/03-layer-720x1280.png",
+      "bytes": 97059,
+      "sha256": "598ae6ac7b77ff39a333af54e9ceac46b05f8bdf1e59670601049788f63a1fd0",
       "format": "PNG",
       "width": 720,
       "height": 1280,
@@ -70,37 +70,37 @@
     },
     {
       "file": "gameplay/videos/taptap/gameplay-720x1280.mp4",
-      "bytes": 1374301,
-      "sha256": "0fcdc284e69654615c8aa2a74a4d017d96b8a96943006de4f505902e37d8e425",
+      "bytes": 1598997,
+      "sha256": "5f063c35012f65005aef0dd5499326f9038061fb8b6d169b465ed19a83138038",
       "format": "MP4",
       "codec": "h264",
       "width": 720,
       "height": 1280,
-      "durationSeconds": 15.28,
+      "durationSeconds": 19.96,
       "audio": false,
       "decoded": true
     },
     {
       "file": "promo/videos/taptap/trailer-1280x720.mp4",
-      "bytes": 1912617,
-      "sha256": "0a8fa444991785af7ff5a7b229e196fe661772361e96e4ccf90dd5ce91486e7d",
+      "bytes": 1160922,
+      "sha256": "b3a00aca9c56294d8cc75d6f6a14cd13f7fb611db7c1a59dc92142341905d9f9",
       "format": "MP4",
       "codec": "h264",
       "width": 1280,
       "height": 720,
-      "durationSeconds": 19.0,
+      "durationSeconds": 22.2,
       "audio": false,
       "decoded": true
     },
     {
       "file": "copy/developer-note.md",
-      "bytes": 493,
-      "sha256": "315691724d2947ff79ea37354ffd588c2c69c0695540fdd7e3a2b5bda6d5a94c"
+      "bytes": 720,
+      "sha256": "e3429ec078afbfbb92a3d98d892114135e24fb1896d70add00bd82ea44104ba3"
     },
     {
       "file": "copy/introduction.md",
-      "bytes": 392,
-      "sha256": "ec332dc77d2c4f4ea9e32931d07bfcf7f9a25a6b6abd2cba8d78c6b219a01863"
+      "bytes": 476,
+      "sha256": "f6125c3100724332aeaec54842cc5b69b949be2b74120e1f5743069e3ab7d37f"
     },
     {
       "file": "copy/tagline.md",

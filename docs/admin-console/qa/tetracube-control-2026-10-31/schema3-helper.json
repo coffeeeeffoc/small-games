@@ -1,0 +1,10 @@
+{
+  "status": "passed",
+  "initialSchema": 3,
+  "finalSchema": 4,
+  "helperChainExecutedTwice": true,
+  "existingPoliciesPreserved": true,
+  "newPolicy": "disabled:0:0",
+  "ownedResourcesRemaining": 0,
+  "productionExecuted": false
+}

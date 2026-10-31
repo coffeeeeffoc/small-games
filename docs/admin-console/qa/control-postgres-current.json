@@ -1,5 +1,5 @@
 {
-  "runId": "game-control-9b44b1a4-e694-4358-8965-3cb7dd68472d",
+  "runId": "game-control-5211d115-00bd-46db-9518-8ac1d8f155b0",
   "isolated": true,
   "loopbackOnly": true,
   "productionAccess": false,
@@ -14,10 +14,10 @@
     "fail-closed-public-read",
     "fail-closed-foreign-key-namespace",
     "one-time-bootstrap-db-disable-and-concurrent-last-administrator",
-    "control-enabled-management-health-rejects-schema2-and-accepts-schema3",
-    "v2-to-v3-idempotent-preserves-published-history-digest-and-ACL",
+    "control-enabled-management-health-rejects-schema2-and-schema3-and-accepts-schema4",
+    "v2-to-v3-to-v4-idempotent-preserves-published-history-digest-policies-and-ACL",
     "CAS-append-only-rollback-epoch-and-shared-advisory-order",
-    "historical-v2-rollback-creates-new-v3-revision-without-rewriting-history",
+    "historical-v2-rollback-creates-new-v4-revision-without-rewriting-history",
     "runtime-control-restores-caller-timeouts-with-shared-lock-held-through-business-sql",
     "runtime-control-shared-lock-still-fails-closed-within-existing-budget",
     "runtime-control-observation-lock-bounded-rollback-retry",
@@ -31,17 +31,18 @@
   ],
   "migrationSha256": "d16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451",
   "nightMigrationSha256": "4d34f4dd305387dc3e1c0554ed752f15e1277c03db6074d8914653862f929797",
+  "tetracubeMigrationSha256": "b114f40c7a0e7255dc2d0c97b166a5c23545297111065479eb002feaa8760f66",
   "postgresVersion": "17.6",
   "runtimeControl": {
-    "observationLockMs": 1560,
+    "observationLockMs": 1544,
     "commitInFlight": "unknown-no-rollback-guarantee",
     "sourceSha256": {
       "controlDatabase": "6d9e8ba315cfec14447b64a47f9833f038a77bbedd2f72676ef128ce8e4f21c5",
-      "runtimeControl": "5a3791b9438daa27f03769532a13ce62ef7746ac55caf38d39b6e8b15ffdd2ef"
+      "runtimeControl": "77404483b729b7610e896e2d64aadba59fcf488598a34383317250a16cbc4be3"
     },
     "executedModuleSha256": {
       "controlDatabase": "5e61c1ca49480997287331c189d87a19a612d1df71fc01718e679d6ffc522a57",
-      "runtimeControl": "bf089689452f962bf4d8b73a497d6c731338a7c992080cd0052772bc7c16ed3f"
+      "runtimeControl": "edf3810c859b3277f47dfad1676b6a303a0f7049ff213e72300ffe4a7f6f4c05"
     }
   },
   "identityLocks": {

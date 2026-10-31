@@ -264,7 +264,7 @@ export function backendReceipt(text, selection) {
     'REMOTE_RECEIPT',
   );
   const floors = {
-    runtime: { control: 1, authenticatedGameScope: 1 },
+    runtime: { control: 1, authenticatedGameScope: 1, controlCatalog: 4 },
     kart: { control: 1, identityRecheck: 1, authenticatedGameScope: 1 },
   };
   assert(
@@ -289,7 +289,11 @@ export function backendReceipt(text, selection) {
     );
     assert.equal(proof.image, value.activeImages[name], 'REMOTE_RECEIPT');
     for (const [key, minimum] of Object.entries(floors[name]))
-      assert(Number.isSafeInteger(proof[key]) && proof[key] >= minimum, 'REMOTE_RECEIPT');
+      assert(
+        Number.isSafeInteger(proof[key]) &&
+          (key === 'controlCatalog' ? proof[key] === minimum : proof[key] >= minimum),
+        'REMOTE_RECEIPT',
+      );
   }
   return value;
 }

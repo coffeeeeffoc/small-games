@@ -31,7 +31,7 @@ export type MotionEvent = {
   direction: number;
 };
 export class Game {
-  constructor(options?: { seed?: number });
+  constructor(options?: { seed?: number; config?: unknown });
   dims: Vec;
   orientation: Vec[];
   gravity: { axis: number; sign: number };

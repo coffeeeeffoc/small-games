@@ -2,7 +2,7 @@
 
 配置中心使用现有 `small_games`、Management、Runtime 与 Kart。新发布入口和维护/恢复限制见 [中文部署说明](../../docs/admin-console/deployment.md)。没有新 DB、Studio、服务、端口、网络或 CORS 扩展。
 
-当前发布候选为 schema3：通过统一 `--adopt-control` 事务从 schema2 升级，保留 002 原始文件并追加 003 夜航策略；普通更新要求可信 schema3 proof。下文 schema2/002 验收是历史记录，不能作为当前候选或生产升级通过的证明。
+当前发布候选为 schema4：通过统一 `--adopt-control` 事务从 schema3 升级，保留 002、003 原始文件并追加 004 空间俄罗斯方块策略；新游戏默认停用，普通更新要求可信 schema4 proof 及实际 catalog4 镜像。下文 schema2/002 验收是历史记录，不能作为当前候选或生产升级通过的证明。
 
 `control-deploy.py` 是当前审阅 coordinator；历史 release 只作严格数据读取。公开 v2 包精确绑定 002、独立 domain helper、三段 fingerprint、共享实际镜像能力协议及 nonce-v1 HTML。缺真实 helper 失败关闭，不能放置可执行 noop。
 

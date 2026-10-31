@@ -242,6 +242,39 @@ export const tetracubeCreatorReviews = Object.freeze({
     sources: ['games/local/tetracube', 'apps/shell-web'],
   },
 });
+// Exact service wiring reviewed from c533f127; extra executable bytes retain normal scope checks.
+export const tetracubeServiceReviews = Object.freeze({
+  'scripts/h5-game-services.mjs': {
+    before: '1a76a28017dfe46c167b9c4bd7d2f90e224f60802e780903ebb31eef64ac917f',
+    after: '75cd4b31dd145293b919450c08b532ca1d7f9e938d4469612da4e844077f9486',
+    sources: ['games/local/tetracube'],
+  },
+  'scripts/deploy-tencent.mjs': {
+    before: '3b1fe63a108fa03172c6ddf6f2e9884510a4e3c7d9a182ccdd2b19d9fc6df88e',
+    after: '5d9060358752f4cdd154035d4e3568f854396fb7def4520b6081edfabf45e826',
+    sources: ['services/runtime-api'],
+  },
+  'scripts/deployment-bundle.mjs': {
+    before: '7deb135e234ad708f843bac37f3693efefc9d4d2cbd288e0c460c29039dac2db',
+    after: 'ea470e5aeb8729ece830d1dc6e117cff7e76b3ba94d930a7d16b07cc29aafe8e',
+    sources: ['services/runtime-api'],
+  },
+  'scripts/deployment-bundle.test.mjs': {
+    before: '254975fabd10d5fbb0c2e2f0420085f4730a13934921d5f798319e334661c545',
+    after: 'f0f384d2fe81a0afdc0cf39a54e0bff2b5aedc47ff84157dc53b97aaa4e84571',
+    sources: ['services/runtime-api'],
+  },
+  'scripts/check-workspace-dependencies.mjs': {
+    before: 'b8cbda6c8ddc405fde0def1adb5b94df55f6eb6533ea0cb9cc3a6202a3670703',
+    after: '811c92e432aa07b086ac6d3192810117929c5962e4ce0d05471734f52790e00a',
+    sources: ['games/local/tetracube', 'services/runtime-api'],
+  },
+  'turbo.json': {
+    before: '6731d27d4c8e58300c97b77a4793bd3dc82d7b47748a9d1c78c499f52bca0994',
+    after: 'a68983f34e805908837768a737a2822202cd191620e38cd346145587047da1f8',
+    sources: ['games/local/tetracube'],
+  },
+});
 export function tetracubeCreatorFileScopes({ changedPaths, readBase, readHead, games, packages }) {
   const scopes = new Map(),
     source = 'games/local/tetracube';
@@ -260,10 +293,36 @@ export function tetracubeCreatorFileScopes({ changedPaths, readBase, readHead, g
     assert.equal(targets[0].scripts?.build, 'node scripts/build.mjs web-mobile');
     const digest = (s) => createHash('sha256').update(s.replaceAll('\r\n', '\n')).digest('hex');
     for (const file of changedPaths) {
-      const review = tetracubeCreatorReviews[file];
+      const candidates = [tetracubeCreatorReviews[file], tetracubeServiceReviews[file]].filter(
+        Boolean,
+      );
+      if (!candidates.length) continue;
+      const before = digest(readBase(file)),
+        after = digest(readHead(file));
+      const review = candidates.find((item) => before === item.before && after === item.after);
       if (!review) continue;
-      if (digest(readBase(file)) !== review.before || digest(readHead(file)) !== review.after)
-        continue;
+      if (review === tetracubeServiceReviews[file]) {
+        assert.equal(entries[0].output, 'dist');
+        assert(packages.some((pkg) => pkg.dir === 'services/runtime-api'));
+        assert(
+          importsModule(
+            readHead('services/runtime-api/rules/ranked-games.mjs'),
+            './tetracube-ranked.mjs',
+          ),
+        );
+        assert(
+          importsModule(
+            readHead('services/runtime-api/rules/tetracube-ranked.mjs'),
+            '../../../games/local/tetracube/assets/scripts/core/session.js',
+          ),
+        );
+        assert(
+          importsModule(
+            readHead(source + '/scripts/build.mjs'),
+            '../../../../scripts/h5-game-services.mjs',
+          ),
+        );
+      }
       if (
         file === 'pnpm-lock.yaml' &&
         !tetracubeLockOnly(
@@ -2897,6 +2956,7 @@ export const adminControlDeploymentScopePaths = [
   'infra/admin-console/control-fingerprint.sql',
   'infra/admin-console/migrations/002-control-center.sql',
   'infra/admin-console/migrations/003-night-overwatch-control.sql',
+  'infra/admin-console/migrations/004-tetracube-control.sql',
 ];
 export const adminDeploymentScopePaths = [
   ...adminControlDeploymentScopePaths,

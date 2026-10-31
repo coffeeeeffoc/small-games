@@ -54,6 +54,13 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       assert.equal(fixture.state.snapshot.games['night-overwatch'], 'disabled');
       await page.getByRole('link', { name: '游戏状态', exact: true }).click();
       await page.getByRole('heading', { name: '游戏状态', exact: true }).waitFor();
+      assert.equal(fixture.state.snapshot.games.tetracube, 'disabled');
+      await activate(page.getByRole('combobox', { name: 'tetracube 状态', exact: true }));
+      await page
+        .locator('.ant-select-dropdown:visible .ant-select-item-option')
+        .filter({ hasText: /^开放$/ })
+        .click();
+      await page.locator('.ant-select-dropdown:visible').waitFor({ state: 'hidden' });
       await activate(page.getByRole('combobox', { name: 'night-overwatch 状态', exact: true }));
       await page
         .locator('.ant-select-dropdown:visible .ant-select-item-option')
@@ -100,13 +107,16 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       await page.getByRole('button', { name: '保存草稿', exact: true }).click();
       await page.getByText('草稿已保存，尚未发布', { exact: true }).waitFor();
       assert.equal(fixture.writes.at(-1).body.snapshot.games['cops-robbers'], 'draining');
-      assert.equal(Object.keys(fixture.writes.at(-1).body.snapshot.games).length, 12);
+      assert.equal(Object.keys(fixture.writes.at(-1).body.snapshot.games).length, 13);
       assert.equal(fixture.writes.at(-1).body.snapshot.games['night-overwatch'], 'enabled');
+      assert.equal(fixture.writes.at(-1).body.snapshot.games.tetracube, 'enabled');
+      assert.equal(fixture.state.snapshot.games.tetracube, 'disabled');
       assert.equal(fixture.state.snapshot.games['night-overwatch'], 'disabled');
       await page.getByRole('button', { name: '发布此草稿', exact: true }).click();
       await page.getByRole('button', { name: '确认发布', exact: true }).click();
       await page.getByText('当前版本 4', { exact: true }).waitFor();
       assert.equal(fixture.state.snapshot.games['night-overwatch'], 'enabled');
+      assert.equal(fixture.state.snapshot.games.tetracube, 'enabled');
       assert(
         await page.getByText('tianxia-chalu · 独立服务，尚未纳管', { exact: true }).isVisible(),
       );

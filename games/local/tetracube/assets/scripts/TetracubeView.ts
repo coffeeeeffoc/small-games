@@ -15,14 +15,21 @@ import {
   resources,
   view,
 } from 'cc';
-import { Projection, cubeFaces, rotateVector, type Point, type Turn } from './core/projection.js';
+import {
+  Projection,
+  cubeFaces,
+  cubeGeometry,
+  rotateVector,
+  type Point,
+  type Turn,
+} from './core/projection.js';
 import type { Cell, Vec } from './core/engine.js';
 
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Control = Rect & { id: string; label: string; disabled: boolean };
 export const C = {
-  ink: '#0b122b',
-  panel: '#162543',
+  ink: '#061525',
+  panel: '#0d253d',
   muted: '#9bacd0',
   text: '#edf5ff',
   mint: '#83eed9',
@@ -128,6 +135,10 @@ export class TetracubeView {
   frame?: SpriteFrame;
   texture?: Texture2D;
   imageAsset?: ImageAsset;
+  homeFrame?: SpriteFrame;
+  homeTexture?: Texture2D;
+  homeAsset?: ImageAsset;
+  worldClip: Rect | null = null;
   constructor(parent: Node) {
     this.root = this.node('TetracubeCanvas', parent);
     const canvas = this.root.addComponent(Canvas);
@@ -169,17 +180,17 @@ export class TetracubeView {
   }
   load() {
     this.error = '';
-    resources.load('space', ImageAsset, (err, asset) => {
+    resources.load('home-blocks', ImageAsset, (err, asset) => {
       if (this.disposed) return;
       if (err) {
         this.error = '星舱背景加载失败';
         return;
       }
-      this.imageAsset = asset;
+      this.homeAsset = asset;
       this.texture = new Texture2D();
       this.texture.image = asset;
-      this.frame = new SpriteFrame();
-      this.frame.texture = this.texture;
+      this.homeFrame = new SpriteFrame();
+      this.homeFrame.texture = this.texture;
       this.ready = true;
     });
   }
@@ -202,21 +213,63 @@ export class TetracubeView {
     n.active = true;
     return n;
   }
-  background() {
-    if (this.frame && this.imageAsset) {
-      const n = this.cached('space', 0);
-      n.setPosition(0, 0);
-      const scale = Math.max(this.w / this.imageAsset.width, this.h / this.imageAsset.height);
-      n.getComponent(UITransform)!.setContentSize(
-        this.imageAsset.width * scale,
-        this.imageAsset.height * scale,
-      );
-      const s = n.getComponent(Sprite) || n.addComponent(Sprite);
-      s.spriteFrame = this.frame;
-      s.sizeMode = Sprite.SizeMode.CUSTOM;
-      s.color = color('#7c8fa8');
+  background(home = false) {
+    this.panel(0, 0, this.w, this.h, C.ink, '', 0, 0);
+    if (home) {
+      for (let i = 0; i < 42; i++) {
+        const x = (((i * 173 + 31) % 997) / 997) * this.w;
+        const y = (((i * 97 + 23) % 709) / 709) * this.h;
+        this.panel(
+          x,
+          y,
+          i % 5 === 0 ? 2 : 1,
+          i % 5 === 0 ? 2 : 1,
+          i % 4 ? '#5989a655' : '#bde2ef99',
+          '',
+          0,
+          0,
+        );
+      }
     }
-    this.panel(0, 0, this.w, this.h, '#080d2670', '', 0, 1);
+  }
+  hero(rect: Rect) {
+    if (!this.homeFrame || !this.homeAsset) return;
+    const n = this.cached('home-blocks', 0);
+    n.setPosition(rect.x + rect.w / 2 - this.w / 2, this.h / 2 - rect.y - rect.h / 2);
+    const scale = Math.min(rect.w / this.homeAsset.width, rect.h / this.homeAsset.height) * 1.4;
+    n.getComponent(UITransform)!.setContentSize(
+      this.homeAsset.width * scale,
+      this.homeAsset.height * scale,
+    );
+    const sprite = n.getComponent(Sprite) || n.addComponent(Sprite);
+    sprite.spriteFrame = this.homeFrame;
+    sprite.sizeMode = Sprite.SizeMode.CUSTOM;
+  }
+  clipPolygon(points: { x: number; y: number }[]) {
+    const r = this.worldClip;
+    if (!r) return points;
+    let out = points;
+    for (const [axis, edge, sign] of [
+      ['x', r.x, 1],
+      ['x', r.x + r.w, -1],
+      ['y', r.y, 1],
+      ['y', r.y + r.h, -1],
+    ] as const) {
+      const before = out;
+      out = [];
+      for (let i = 0; i < before.length; i++) {
+        const a = before[i],
+          b = before[(i + 1) % before.length];
+        const insideA = (a[axis] - edge) * sign >= 0,
+          insideB = (b[axis] - edge) * sign >= 0;
+        if (insideA) out.push(a);
+        if (insideA !== insideB) {
+          const t = (edge - a[axis]) / (b[axis] - a[axis]);
+          out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+        }
+      }
+    }
+    return out;
   }
   polygon(
     points: { x: number; y: number }[],
@@ -225,6 +278,8 @@ export class TetracubeView {
     width = 1,
     layer = 1,
   ) {
+    if (layer === 1) points = this.clipPolygon(points);
+    if (points.length < 3) return;
     const g = this.graphics[layer];
     g.moveTo(points[0].x - this.w / 2, this.h / 2 - points[0].y);
     for (const p of points.slice(1)) g.lineTo(p.x - this.w / 2, this.h / 2 - p.y);
@@ -264,6 +319,30 @@ export class TetracubeView {
     width = 1,
     layer = 1,
   ) {
+    if (layer === 1 && this.worldClip) {
+      const r = this.worldClip;
+      let low = 0,
+        high = 1;
+      const dx = b.x - a.x,
+        dy = b.y - a.y;
+      for (const [p, q] of [
+        [-dx, a.x - r.x],
+        [dx, r.x + r.w - a.x],
+        [-dy, a.y - r.y],
+        [dy, r.y + r.h - a.y],
+      ]) {
+        if (Math.abs(p) < 1e-10) {
+          if (q < 0) return;
+          continue;
+        }
+        const t = q / p;
+        if (p < 0) low = Math.max(low, t);
+        else high = Math.min(high, t);
+        if (low > high) return;
+      }
+      b = { x: a.x + dx * high, y: a.y + dy * high };
+      a = { x: a.x + dx * low, y: a.y + dy * low };
+    }
     const g = this.graphics[layer];
     g.strokeColor = color(stroke);
     g.lineWidth = width;
@@ -282,6 +361,15 @@ export class TetracubeView {
     layer = 4,
     h = size * 1.4,
   ) {
+    if (
+      layer === 2 &&
+      this.worldClip &&
+      (x - w / 2 < this.worldClip.x ||
+        x + w / 2 > this.worldClip.x + this.worldClip.w ||
+        y - h / 2 < this.worldClip.y ||
+        y + h / 2 > this.worldClip.y + this.worldClip.h)
+    )
+      return;
     const n = this.cached('text:' + id, layer);
     n.setPosition(x - this.w / 2, this.h / 2 - y);
     n.getComponent(UITransform)!.setContentSize(w, h);
@@ -443,13 +531,24 @@ export class TetracubeView {
       x: x + (v[0] - v[1]) * scale * 0.8,
       y: y + (v[0] + v[1]) * scale * 0.4 - v[2] * scale,
     });
+    const occupied = new Set(cells.map((cell) => cell.join(',')));
     for (const cell of [...cells].sort((a, b) => a[0] + a[1] + a[2] - (b[0] + b[1] + b[2]))) {
-      for (const f of cubeFaces.filter((f) => f.normal.reduce((a, b) => a + b, 0) > 0.001))
+      const neighbors = faces.map((face) => {
+        const next = [...cell];
+        next[face.axis] += face.sign;
+        return occupied.has(next.join(','));
+      });
+      const mask = neighbors.reduce((value, present, i) => value | (present ? 1 << i : 0), 0);
+      for (const f of cubeGeometry(mask).filter(
+        (f) =>
+          f.normal.reduce((a, b) => a + b, 0) > 0.001 &&
+          !f.normal.every((n, a) => Math.abs(n) < 0.001 || neighbors[a * 2 + (n > 0 ? 1 : 0)]),
+      ))
         this.polygon(
           f.vertices.map((v) => p(v.map((n, a) => n + cell[a] - center[a]))),
           shade(fill, lighting(f.normal)),
-          '',
-          0.8,
+          f.center ? '#12334b35' : '',
+          0.65,
           3,
         );
     }
@@ -463,7 +562,10 @@ export class TetracubeView {
     ghost: Vec[],
     flip: { axis: number; angle: number } | null = null,
     activeTurn: Turn | null = null,
+    selectedLayer = -1,
+    slice = false,
   ) {
+    this.worldClip = rect;
     const p = this.projection;
     p.dims = dims;
     p.width = rect.w;
@@ -475,17 +577,32 @@ export class TetracubeView {
       return { ...q, x: q.x + rect.x, y: q.y + rect.y };
     };
     const [w, d, h] = dims;
-    const line = (a: Vec, b: Vec, c = '#557ca84d', width = 1) =>
+    const line = (a: Vec, b: Vec, c = '#557ca87a', width = 1) =>
       this.line(project(a), project(b), c, width);
-    // Far walls and world-down floor keep every height readable.
+    const direction = p._direction();
+    const farX = direction[0] >= 0 ? 0 : w,
+      farY = direction[1] >= 0 ? 0 : d;
     for (let z = 0; z <= h; z++) {
-      line([0, 0, z], [w, 0, z]);
-      line([0, 0, z], [0, d, z]);
+      const tint = z === selectedLayer + 1 ? '#edc474d0' : z % 3 === 0 ? '#7daac5bb' : '#668ba49c';
+      line([0, farY, z], [w, farY, z], tint);
+      line([farX, 0, z], [farX, d, z], tint);
     }
+    if (selectedLayer >= 0)
+      this.polygon(
+        [
+          [0, 0, selectedLayer + 1],
+          [w, 0, selectedLayer + 1],
+          [w, d, selectedLayer + 1],
+          [0, d, selectedLayer + 1],
+        ].map(project),
+        '#e7b55d14',
+        '#e7b55d8a',
+        1,
+      );
     for (let x = 0; x <= w; x++) line([x, 0, 0], [x, d, 0], '#78dac04d');
     for (let y = 0; y <= d; y++) line([0, y, 0], [w, y, 0], '#78dac04d');
-    for (let x = 0; x <= w; x++) line([x, 0, 0], [x, 0, h]);
-    for (let y = 0; y <= d; y++) line([0, y, 0], [0, y, h]);
+    for (let x = 0; x <= w; x++) line([x, farY, 0], [x, farY, h]);
+    for (let y = 0; y <= d; y++) line([farX, y, 0], [farX, y, h]);
     for (const z of [0, h])
       for (const [a, b] of [
         [
@@ -507,15 +624,33 @@ export class TetracubeView {
       ])
         line(a, b, z ? '#74cbd2b8' : '#8df2d9', 1.5);
     for (const x of [0, w]) for (const y of [0, d]) line([x, y, 0], [x, y, h], '#76cad07c', 1.2);
-    for (let z = 1; z <= h; z += h > 10 ? 3 : 2) {
-      const q = project([0, d, z]);
-      this.text('ruler:' + z, String(z), q.x - 11, q.y, 10, 22, C.muted, 2);
+    const rulerCorner = [
+      [0, 0],
+      [0, d],
+      [w, 0],
+      [w, d],
+    ].sort((a, b) => project([a[0], a[1], h / 2]).x - project([b[0], b[1], h / 2]).x)[0];
+    for (let z = 1; z <= h; z++) {
+      const q = project([rulerCorner[0], rulerCorner[1], z]);
+      this.text(
+        'ruler:' + z,
+        String(z),
+        Math.max(rect.x + 12, q.x - 13),
+        q.y,
+        z === selectedLayer + 1 ? 12 : 10,
+        22,
+        z === selectedLayer + 1 ? C.amber : C.muted,
+        2,
+      );
     }
+    if (slice && selectedLayer >= 0) board = board.filter((c) => c.z <= selectedLayer);
     type Face = {
       points: Point[];
       depth: number;
       fill: Color;
       ghost: boolean;
+      center: boolean;
+      seams: Point[][];
       top: boolean;
       cell: Cell;
       active: boolean;
@@ -527,41 +662,50 @@ export class TetracubeView {
     const dir = p._direction();
     const add = (cells: Cell[], isActive = false, isGhost = false) => {
       const turn = isActive ? activeTurn : null;
-      const surfaces = (
-        isGhost
+      const own = isActive
+        ? new Set(cells.map((c) => `${Math.round(c.x)},${Math.round(c.y)},${Math.round(c.z)}`))
+        : occupied;
+      const makeSurfaces = (mask: number) =>
+        (isGhost
           ? faces.map((face) => ({
               ...face,
               center: true,
               vertices: face.v.map((v) => v.map((n) => n - 0.5)),
               normal: [0, 1, 2].map((a) => (a === face.axis ? face.sign : 0)),
             }))
-          : cubeFaces
-      )
-        .map((face) => {
-          const normal = p._rotate(rotateVector(face.normal, turn));
-          return {
-            ...face,
-            normal,
-            light: lighting(normal),
-            vertices: face.vertices.map((v) => rotateVector(v, turn)),
-            occluders: face.normal.flatMap((n, a) =>
-              Math.abs(n) > 0.001 ? [a * 2 + (n > 0 ? 1 : 0)] : [],
-            ),
-          };
-        })
-        .filter((face) => face.normal.reduce((sum, n, a) => sum + n * dir[a], 0) > 0.001);
+          : cubeGeometry(mask)
+        )
+          .map((face) => {
+            const normal = p._rotate(rotateVector(face.normal, turn));
+            return {
+              ...face,
+              normal,
+              light: lighting(normal),
+              vertices: face.vertices.map((v) => rotateVector(v, turn)),
+              occluders: face.normal.flatMap((n, a) =>
+                Math.abs(n) > 0.001 ? [a * 2 + (n > 0 ? 1 : 0)] : [],
+              ),
+            };
+          })
+          .filter((face) => face.normal.reduce((sum, n, a) => sum + n * dir[a], 0) > 0.001);
+      const cache = new Map<number, ReturnType<typeof makeSurfaces>>();
+      const surfacesFor = (mask: number) => {
+        if (!cache.has(mask)) cache.set(mask, makeSurfaces(mask));
+        return cache.get(mask)!;
+      };
       for (const cell of cells) {
         const neighbors =
-          !isActive && !isGhost
+          !isGhost && !turn
             ? faces.map((face) => {
                 const neighbor = [cell.x, cell.y, cell.z];
                 neighbor[face.axis] += face.sign;
-                return occupied.has(neighbor.join(','));
+                return own.has(neighbor.join(','));
               })
             : null;
         if (neighbors?.every(Boolean)) continue;
         const baseColor = color(cell.color);
-        for (const f of surfaces) {
+        const mask = neighbors?.reduce((value, n, i) => value | (n ? 1 << i : 0), 0) || 0;
+        for (const f of surfacesFor(mask)) {
           // An edge stays visible unless neighbors hide every direction of its normal.
           if (neighbors && f.occluders.every((index) => neighbors[index])) continue;
           const s = cell.scale ?? 1;
@@ -577,6 +721,24 @@ export class TetracubeView {
               isGhost ? 12 : 255,
             ),
             ghost: isGhost,
+            center: f.center,
+            seams:
+              f.center && neighbors && !isGhost
+                ? neighbors.flatMap((connected, index) => {
+                    const axis = Math.floor(index / 2);
+                    if (!connected || axis === f.axis) return [];
+                    const remaining = 3 - axis - f.axis;
+                    return [
+                      [-0.45, 0.45].map((value) => {
+                        const point = [cell.x + 0.5, cell.y + 0.5, cell.z + 0.5];
+                        point[f.axis] += f.sign * 0.5;
+                        point[axis] += (index % 2 ? 1 : -1) * 0.5;
+                        point[remaining] += value;
+                        return project(point);
+                      }),
+                    ];
+                  })
+                : [],
             top: f.center && f.axis === 2 && f.sign === 1,
             cell,
             active: isActive,
@@ -595,9 +757,9 @@ export class TetracubeView {
       true,
     );
     polygons.sort((a, b) => a.depth - b.depth);
-    const visibleTop = new Map<string, Face>();
     for (const f of polygons) {
-      this.polygon(f.points, f.fill, '', 0);
+      this.polygon(f.points, f.fill, f.center && !f.ghost ? '#12334b40' : '', 0.65);
+      for (const seam of f.seams) this.line(seam[0], seam[1], '#18354b65', 0.9);
       if (f.ghost) {
         for (let i = 0; i < 4; i++) {
           const a = f.points[i],
@@ -614,22 +776,6 @@ export class TetracubeView {
             );
         }
       }
-      if (f.top && !f.ghost && !f.active && f.cell.scale === undefined)
-        visibleTop.set(f.cell.x + ',' + f.cell.y, f);
-    }
-    for (const [id, f] of visibleTop) {
-      const q = project([f.cell.x + 0.5, f.cell.y + 0.5, f.cell.z + 1.02]);
-      if (p.scale > 10)
-        this.text(
-          'layer:' + id,
-          String(Math.round(f.cell.z) + 1),
-          q.x,
-          q.y,
-          Math.min(11, p.scale * 0.42),
-          22,
-          '#f5faff',
-          2,
-        );
     }
     if (ghost.length) {
       const z = Math.min(...ghost.map((c) => c[2])) + 1;
@@ -637,20 +783,22 @@ export class TetracubeView {
         'landing',
         '落点 ' + z + ' 层',
         rect.x + rect.w / 2,
-        rect.y + rect.h - 5,
+        rect.y + rect.h - 12,
         12,
         180,
         C.mint,
         2,
       );
     }
+    this.worldClip = null;
   }
   dispose() {
     this.disposed = true;
+    this.homeFrame?.destroy();
     this.root.destroy();
     this.camera.node.destroy();
     this.frame?.destroy();
     this.texture?.destroy();
-    resources.release('space', ImageAsset);
+    resources.release('home-blocks', ImageAsset);
   }
 }

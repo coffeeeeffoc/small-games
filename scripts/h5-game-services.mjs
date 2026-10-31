@@ -8,6 +8,7 @@ export const h5BasicServiceGames = [
   'wulong-city',
   'night-overwatch',
   'letters-words2',
+  'tetracube',
 ];
 
 export async function prepareGameServices(

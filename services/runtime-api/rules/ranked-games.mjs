@@ -2,6 +2,7 @@ import * as rescue from '../../../games/local/cage-rescue/src/core.mjs';
 import * as tower from '../../../games/local/tower-brake/engine.mjs';
 import { LEVELS as towerLevels } from '../../../games/local/tower-brake/levels.mjs';
 import night from './night-ranked.mjs';
+import tetracube from './tetracube-ranked.mjs';
 
 const boards = (unit) => [
   {
@@ -119,4 +120,5 @@ export const rankedRules = [
     result: (state) => result(state, 'tower'),
   },
   night,
+  tetracube,
 ];

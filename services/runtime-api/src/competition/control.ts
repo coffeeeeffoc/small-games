@@ -90,7 +90,8 @@ export function createCompetitionControl(
             (p) =>
               p.revision !== 0 ||
               p.killEpoch !== 0 ||
-              p.state !== (p.gameId === 'night-overwatch' ? 'disabled' : 'enabled'),
+              p.state !==
+                (['night-overwatch', 'tetracube'].includes(p.gameId) ? 'disabled' : 'enabled'),
           )
         )
           throw unavailable();

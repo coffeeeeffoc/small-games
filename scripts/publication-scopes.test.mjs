@@ -4451,6 +4451,8 @@ test('admin infrastructure has exact consumers and unknown neighboring paths fai
   for (const file of [
     'infra/admin-console/migrations/002-unreviewed.sql',
     'infra/admin-console/migrations/003-control-center.sql',
+    'infra/admin-console/migrations/004-unreviewed.sql',
+    'infra/admin-console/migrations/005-tetracube-control.sql',
     'infra/admin-console/compose.yaml',
     'infra/admin-console/.env.other',
     'infra/admin-console/.gitattributes.other',

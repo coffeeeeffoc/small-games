@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { editor, runCreator } from '../../carding-car/scripts/toolchain.mjs';
 import { prepareH5Ads } from '../../../../scripts/h5-ad-config.mjs';
+import { prepareGameServices } from '../../../../scripts/h5-game-services.mjs';
 import { guardArtifactRestore } from '../../bullet-garden/scripts/artifact-paths.mjs';
 import { sourceHash, verifyPrebuilt, runtimeManifest } from './artifact.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -19,6 +20,19 @@ if (target === 'web-mobile' && process.env.TETRACUBE_PREBUILT_DIR) {
     await rm(path.join(root, 'dist'), { recursive: true, force: true });
     await cp(source, path.join(root, 'dist'), { recursive: true });
   }
+  // The verified cache may be an offline Creator build. Pages and channel
+  // releases must receive this invocation's public service configuration.
+  const out = path.join(root, 'dist');
+  await prepareGameServices('tetracube', out);
+  await writeFile(
+    path.join(out, 'build-info.json'),
+    JSON.stringify({
+      creator: '3.8.8',
+      target,
+      sourceHash: await sourceHash(),
+      files: await runtimeManifest(out),
+    }),
+  );
   console.log('Restored verified Tetracube Creator artifact.');
 } else {
   if (!existsSync(editor))
@@ -93,6 +107,7 @@ if (target === 'web-mobile' && process.env.TETRACUBE_PREBUILT_DIR) {
   for (const file of ['platform-ads.js', 'interstitial.js'])
     await cp(new URL('../../../../platforms/h5/' + file, import.meta.url), path.join(out, file));
   await prepareH5Ads('tetracube', out);
+  await prepareGameServices('tetracube', out);
   await writeFile(
     path.join(out, 'build-info.json'),
     JSON.stringify({

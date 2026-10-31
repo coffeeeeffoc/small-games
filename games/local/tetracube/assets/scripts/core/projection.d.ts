@@ -12,6 +12,7 @@ export const cubeFaces: {
   normal: number[];
   center: boolean;
 }[];
+export function cubeGeometry(mask?: number): typeof cubeFaces;
 export class Projection {
   camera: { yaw: number; pitch: number };
   dims: number[];
@@ -22,6 +23,13 @@ export class Projection {
   distance: number;
   centerX: number;
   centerY: number;
+  zoom: number;
+  pan: { x: number; y: number };
+  right: number[];
+  down: number[];
+  resetZoom(): void;
+  magnify(factor: number, from?: { x: number; y: number }, to?: { x: number; y: number }): void;
+  shiftView(dx: number, dy: number): void;
   setView(view: string): void;
   velocity: { x: number; y: number };
   orbit(dx: number, dy: number, seconds?: number): void;

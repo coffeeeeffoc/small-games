@@ -60,6 +60,11 @@ it('packages an executable carrom rule with its engine and content, without ship
       'services/runtime-api/rules/carrom.mjs',
       'services/runtime-api/rules/ranked-games.mjs',
       'services/runtime-api/rules/night-ranked.mjs',
+      'services/runtime-api/rules/tetracube-ranked.mjs',
+      'games/local/tetracube/assets/scripts/core/session.js',
+      'games/local/tetracube/assets/scripts/core/campaign.js',
+      'games/local/tetracube/assets/scripts/core/engine.js',
+      'games/local/tetracube/assets/scripts/core/config.js',
       'games/local/night-overwatch/assets/scripts/core/Armory.ts',
       'games/local/night-overwatch/assets/scripts/core/Duel.ts',
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
@@ -92,8 +97,11 @@ it('packages an executable carrom rule with its engine and content, without ship
       'cage-rescue',
       'tower-brake',
       'night-overwatch',
+      'tetracube',
     ]);
-    for (const item of rankedRules.filter((rule: { id: string }) => rule.id !== 'night-overwatch'))
+    for (const item of rankedRules.filter((rule: { id: string }) =>
+      ['cage-rescue', 'tower-brake'].includes(rule.id),
+    ))
       expect(item.create('endless', 123).game.mode).toBe('endless');
 
     const carromDirectory = path.join(destination, 'games/local/carrom-club');

@@ -1,4 +1,4 @@
-"""Protected v2/v3 database boundary. Import is inert; no service lifecycle or secrets."""
+"""Protected v2/v3/v4 database boundary. Import is inert; no service lifecycle or secrets."""
 import contextlib
 import hashlib
 import json
@@ -14,7 +14,8 @@ import uuid
 BASE = Path('/opt/small-games/admin-console/releases')
 PRIVATE = Path('/opt/small-games/admin-private')
 BASELINE_SHA256 = 'd16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451'
-MIGRATION_SHA256 = '4d34f4dd305387dc3e1c0554ed752f15e1277c03db6074d8914653862f929797'
+NIGHT_MIGRATION_SHA256 = '4d34f4dd305387dc3e1c0554ed752f15e1277c03db6074d8914653862f929797'
+MIGRATION_SHA256 = 'b114f40c7a0e7255dc2d0c97b166a5c23545297111065479eb002feaa8760f66'
 PG_VERSION = '170006'
 FIXTURE_LABEL = 'io.small-games.control-fixture'
 MARKER = 'SG_CONTROL_JSON '
@@ -188,32 +189,33 @@ def contract_expression(parts):
 
 def contract_value(value, parts):
     require(isinstance(value, dict) and set(value) == {'supported','versions','metadataSha256','readOnly'}
-            and value['supported'] is True and value['versions'] == [3] and digest(value['metadataSha256']), 'CONTROL_CONTRACT_MISMATCH')
-    return {'version': 1, 'schema': 'game_control', 'schemaVersion': 3,
+            and value['supported'] is True and value['versions'] == [4] and digest(value['metadataSha256']), 'CONTROL_CONTRACT_MISMATCH')
+    return {'version': 1, 'schema': 'game_control', 'schemaVersion': 4,
             'projectionSha256': parts['projection'], 'metadataSha256': value['metadataSha256']}
 
 
 def valid_contract(value):
     return (isinstance(value, dict) and set(value) == {'version','schema','schemaVersion','projectionSha256','metadataSha256'}
             and type(value['version']) is int and value['version'] == 1 and value['schema'] == 'game_control'
-            and type(value['schemaVersion']) is int and value['schemaVersion'] == 3
+            and type(value['schemaVersion']) is int and value['schemaVersion'] == 4
             and digest(value['projectionSha256']) and digest(value['metadataSha256']))
 
 
 def migration_file(release, checksum):
     require(checksum == MIGRATION_SHA256, 'CONTROL_MIGRATION_ARTIFACT')
     bodies = []
-    for name, expected in [('002-control-center.sql', BASELINE_SHA256), ('003-night-overwatch-control.sql', checksum)]:
+    for name, expected in [('002-control-center.sql', BASELINE_SHA256), ('003-night-overwatch-control.sql', NIGHT_MIGRATION_SHA256), ('004-tetracube-control.sql', checksum)]:
         file = release / 'migrations' / name
         require(file.resolve(strict=True) == file and hashlib.sha256(file.read_bytes()).hexdigest() == expected, 'CONTROL_MIGRATION_ARTIFACT')
         bodies.append(migration_body(file.read_text(encoding='utf-8')))
-    # Reuse the immutable v2 verifier before changing its constraints. Never run it against v3.
+    # Each immutable verifier runs only against the schema versions it understands.
     return """DO $baseline$ DECLARE current_version integer; BEGIN
 IF to_regnamespace('game_control') IS NOT NULL THEN SELECT version INTO STRICT current_version FROM game_control.schema_version; END IF;
 IF current_version IS NULL OR current_version=2 THEN EXECUTE $baseline_v2$""" + bodies[0] + """$baseline_v2$;
-ELSIF current_version<>3 THEN RAISE EXCEPTION 'CONTROL_UNSUPPORTED_VERSION'; END IF;
+ELSIF current_version NOT IN (3,4) THEN RAISE EXCEPTION 'CONTROL_UNSUPPORTED_VERSION'; END IF;
+IF current_version IS NULL OR current_version IN (2,3) THEN EXECUTE $upgrade_v3$""" + bodies[1] + """$upgrade_v3$; END IF;
 END $baseline$;
-""" + bodies[1]
+""" + bodies[2]
 
 
 def verify_control_database(*, pg_id, migration_sha256, expected_contract):
@@ -263,7 +265,7 @@ DO $post$ DECLARE actual_full jsonb; actual_contract jsonb; BEGIN
 IF pg_temp.sg_control_state(true) IS DISTINCT FROM """ + sql_json(before) + """ THEN RAISE EXCEPTION 'CONTROL_OLD_CHANGED'; END IF;
 actual_full := pg_temp.sg_control_state(false);
 """ + full_guard + '\n' + contract_expression(parts).replace('SELECT jsonb_build_object', 'SELECT jsonb_build_object', 1) + ' INTO actual_contract;\n' + """
-IF actual_contract->'supported' IS DISTINCT FROM 'true'::jsonb OR actual_contract->'versions' IS DISTINCT FROM '[3]'::jsonb THEN RAISE EXCEPTION 'CONTROL_CONTRACT_INVALID'; END IF;
+IF actual_contract->'supported' IS DISTINCT FROM 'true'::jsonb OR actual_contract->'versions' IS DISTINCT FROM '[4]'::jsonb THEN RAISE EXCEPTION 'CONTROL_CONTRACT_INVALID'; END IF;
 """ + contract_guard + """
 IF EXISTS(SELECT FROM pg_stat_activity WHERE pid<>pg_backend_pid() AND backend_type='client backend') THEN RAISE EXCEPTION 'CONTROL_UNKNOWN_CLIENT'; END IF;
 INSERT INTO pg_temp.sg_cf_result VALUES(jsonb_build_object('full',actual_full,'contract',actual_contract));
@@ -442,7 +444,7 @@ def preflight_control_database(*, release, source_sha, migration_sha256, invento
         manifest = json_value((release / 'manifest.json').read_bytes())
         require(manifest.get('sourceSHA') == source_sha and manifest.get('release') == release.name
                 and manifest.get('migrationArtifactSha256') == migration_sha256, 'CONTROL_MANIFEST')
-        for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql','migrations/003-night-overwatch-control.sql'):
+        for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql','migrations/003-night-overwatch-control.sql','migrations/004-tetracube-control.sql'):
             file = release / name
             require(file.resolve(strict=True) == file and manifest['files'].get(name) == hashlib.sha256(file.read_bytes()).hexdigest(), 'CONTROL_RELEASE_HASH')
         migration = migration_file(release, migration_sha256)

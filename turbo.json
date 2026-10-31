@@ -221,12 +221,20 @@
         "COCOS_CREATOR",
         "TETRACUBE_PREBUILT_DIR",
         "H5_ADS_ENABLED",
-        "TAPTAP_TETRACUBE_AD_UNIT_ID"
+        "TAPTAP_TETRACUBE_AD_UNIT_ID",
+        "COMPETITION_SERVICE_ENABLED",
+        "COMPETITION_PUBLIC_API_URL",
+        "COMPETITION_LOCAL_BACKEND"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/games/local/tetracube/.prebuilt/**",
-        "$TURBO_ROOT$/scripts/h5-ad-config.mjs"
+        "$TURBO_ROOT$/scripts/h5-ad-config.mjs",
+        "$TURBO_ROOT$/scripts/h5-game-services.mjs",
+        "$TURBO_ROOT$/scripts/competition-service-config.mjs",
+        "$TURBO_ROOT$/platforms/competition/client.js",
+        "$TURBO_ROOT$/platforms/competition/game-services.js",
+        "$TURBO_ROOT$/platforms/competition/game-bootstrap.js"
       ]
     },
     "@coffeeeeffoc/place-and-clear#build": {

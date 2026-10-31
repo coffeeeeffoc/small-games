@@ -320,6 +320,10 @@ test('runtime bundle includes multiplayer carrom physics and level data without 
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
       'games/local/tower-brake/levels.mjs',
+      'games/local/tetracube/assets/scripts/core/session.js',
+      'games/local/tetracube/assets/scripts/core/campaign.js',
+      'games/local/tetracube/assets/scripts/core/engine.js',
+      'games/local/tetracube/assets/scripts/core/config.js',
       'games/local/night-overwatch/assets/scripts/core/Armory.ts',
       'games/local/night-overwatch/assets/scripts/core/Duel.ts',
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
@@ -373,6 +377,10 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
       'games/local/tower-brake/levels.mjs',
+      'games/local/tetracube/assets/scripts/core/session.js',
+      'games/local/tetracube/assets/scripts/core/campaign.js',
+      'games/local/tetracube/assets/scripts/core/engine.js',
+      'games/local/tetracube/assets/scripts/core/config.js',
       'games/local/night-overwatch/assets/scripts/core/Armory.ts',
       'games/local/night-overwatch/assets/scripts/core/Duel.ts',
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
@@ -398,10 +406,15 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       'services/runtime-api/rules/ranked-games.mjs',
       'services/runtime-api/rules/night.mjs',
       'services/runtime-api/rules/night-ranked.mjs',
+      'services/runtime-api/rules/tetracube-ranked.mjs',
       'games/local/cage-rescue/src/core.mjs',
       'games/local/cage-rescue/src/levels.mjs',
       'games/local/tower-brake/engine.mjs',
       'games/local/tower-brake/levels.mjs',
+      'games/local/tetracube/assets/scripts/core/session.js',
+      'games/local/tetracube/assets/scripts/core/campaign.js',
+      'games/local/tetracube/assets/scripts/core/engine.js',
+      'games/local/tetracube/assets/scripts/core/config.js',
       'games/local/night-overwatch/assets/scripts/core/Armory.ts',
       'games/local/night-overwatch/assets/scripts/core/Duel.ts',
       'games/local/night-overwatch/assets/scripts/core/Replay.ts',
@@ -426,7 +439,7 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
     );
     assert.deepEqual(
       rankedRules.map((item) => item.id),
-      ['cage-rescue', 'tower-brake', 'night-overwatch'],
+      ['cage-rescue', 'tower-brake', 'night-overwatch', 'tetracube'],
     );
     const night = rankedRules.find((item) => item.id === 'night-overwatch');
     const levels = night.boards.filter((board) => board.id.startsWith('level-'));
@@ -440,7 +453,9 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       stat(path.join(output, 'games/local/night-overwatch/assets/scripts/Overwatch.ts')),
       { code: 'ENOENT' },
     );
-    for (const item of rankedRules.filter((rule) => rule.id !== 'night-overwatch'))
+    for (const item of rankedRules.filter((rule) =>
+      ['cage-rescue', 'tower-brake'].includes(rule.id),
+    ))
       assert.equal(item.create('endless', 7).game.mode, 'endless');
   } finally {
     await rm(temporary, { recursive: true, force: true });

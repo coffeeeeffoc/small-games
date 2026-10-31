@@ -6,19 +6,21 @@
 
 共享标准库模块为 `infra/deployment/image-authority.py`，导入本身不执行命令。`image_capability(service, image)` 和 `require_images(images, failure)` 只返回实际不可变镜像 ID 和白名单整数版本；缺字段、布尔值、低版本、额外输出和错误函数形状均拒绝。
 
-| 服务       | 固定模块与导出                                                                          | 最低版本                             | 必须导出的函数                                                                    |
-| ---------- | --------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------- |
-| Runtime    | `/app/services/runtime-api/dist/competition/auth.js` · `COMPETITION_AUTHORITY_PROTOCOL` | `control=1`, `ephemeralGuestScope=1` | `authenticate`, `assertGameScope`, `assertResourceAuth`, `assertStoredPlayerGame` |
-| Kart       | `/app/services/kart-server/src/competition.ts` · `KART_AUTHORITY_PROTOCOL`              | `control=1`, `identityRecheck=1`     | `createCompetition`                                                               |
-| Management | `/app/services/management-api/dist/admin/rbac-protocol.js` · `ADMIN_RBAC_PROTOCOL`      | `control=1`, `dbMemberRecheck=1`     | `readAdminControlFlag`, `readAdminRbacPrincipal`                                  |
+| 服务       | 固定模块与导出                                                                          | 最低版本                                                     | 必须导出的函数                                                                    |
+| ---------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Runtime    | `/app/services/runtime-api/dist/competition/auth.js` · `COMPETITION_AUTHORITY_PROTOCOL` | `control=1`, `authenticatedGameScope=1`                      | `authenticate`, `assertGameScope`, `assertResourceAuth`, `assertStoredPlayerGame` |
+| Kart       | `/app/services/kart-server/src/competition.ts` · `KART_AUTHORITY_PROTOCOL`              | `control=1`, `identityRecheck=1`, `authenticatedGameScope=1` | `createCompetition`                                                               |
+| Management | `/app/services/management-api/dist/admin/rbac-protocol.js` · `ADMIN_RBAC_PROTOCOL`      | `control=1`, `dbMemberRecheck=1`                             | `readAdminControlFlag`, `readAdminRbacPrincipal`                                  |
+
+Runtime 与 Management 另从各自服务模块位置解析实际 `@coffeeeeffoc/service-kit`，验证唯一且精确的 13 款目录（含 tetracube）及快照／策略 schema 后计算 `controlCatalog: 4`；该值必须恰为整数 4，不接受自报或更高版本。Kart 不加载目录模块，Kart-only 路径仍验证受保护 Runtime。
 
 探针在现有镜像的 Node 中导入真实模块，不运行服务入口。Management 的实际协议模块和业务绑定由单独变更交付；本发布器不部署管理服务。Tianxia 的既有选择行为不扩展，也不引入 Runtime 控制依赖。
 
 ## 普通更新的前提
 
-停止服务前必须验证现役恢复镜像和候选镜像。Runtime/Kart 现役容器还必须已使用 `COMPETITION_CONTROL_ENABLED=true`，以及稳定的逻辑实例 ID `small-games-runtime`、`small-games-kart`；只比较这两个公开键，不输出环境。数据库 `game_control.schema_version` 必须恰为 `[2]`，通过既有 PostgreSQL 容器执行只读查询，缺失或不可读时拒绝。
+停止服务前必须验证现役恢复镜像和候选镜像。Runtime/Kart 现役容器还必须已使用 `COMPETITION_CONTROL_ENABLED=true`，以及稳定的逻辑实例 ID `small-games-runtime`、`small-games-kart`；只比较这两个公开键，不输出环境。数据库 `game_control.schema_version` 必须恰为 `[4]`，通过既有 PostgreSQL 容器执行只读查询，缺失或不可读时拒绝。
 
-因此，当前 guardless 生产镜像会被 `AUTHORITY_FALLBACK_REQUIRED` 阻断；没有“忽略检查”“降低下限”或自动禁用回退开关。首次采用需要以后独立审阅的维护/兼容恢复方案，不能用普通更新强开 control 或顺便执行迁移。后续协调器须在另行授权后构建并验证三服务兼容镜像，再执行控制迁移；迁移提交后的故障保持入口关闭并向前修复，不恢复 guardless 服务。本变更没有实现该协调器，也没有激活生产 CORS/RBAC。
+不满足协议或目录的镜像会被 `AUTHORITY_FALLBACK_REQUIRED` 阻断。schema3→4 使用管理控制协调器的独立维护事务，不能用普通后端更新强开 control 或执行迁移；迁移提交后只允许兼容 catalog4 的镜像。仅协调器在已证明未提交、数据库仍为 schema3、原容器未被替换且无新激活时允许原 catalog3 镜像恢复，详见[控制部署](../admin-console/deployment.md)。
 
 Runtime 更新仍保留既有 Kart namespace 伴随重建规则；Kart-only 更新会验证受保护 Runtime 的能力和前提，但不把 Runtime 加入 selected。镜像 override 只能添加上述两个固定公开变量，继续使用当前已验证的 Compose context 和不透明 private env 文件引用。回退不恢复旧数据库、角色、控制发布或 killEpoch。
 

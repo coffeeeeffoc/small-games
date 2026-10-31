@@ -2,6 +2,7 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 import uuid
 from unittest.mock import MagicMock, patch
@@ -65,6 +66,49 @@ class DockerFixture:
 
 
 class AuthorityContracts(unittest.TestCase):
+    def test_actual_node_probe_resolves_service_package_and_checks_catalog_and_schemas(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            service = root / 'service.mjs'
+            package = root / 'node_modules/@coffeeeeffoc/service-kit'
+            package.mkdir(parents=True)
+            (package / 'package.json').write_text(json.dumps({'type': 'module', 'exports': './index.js'}))
+            def run(service_name, ids, reject_snapshot=False, reject_policy=False, catalog=4):
+                _, export, floor, functions = authority.SPECS[service_name]
+                service.write_text('export const ' + export + '=' + json.dumps(dict(floor, controlCatalog=4)) + ';' + ''.join('export function ' + name + '(){}' for name in functions))
+                (package / 'index.js').write_text(
+                    'export const CONTROL_GAME_IDS=' + json.dumps(ids) + ';'
+                    'export const controlSnapshotSchema={parse(v){if(' + str(reject_snapshot).lower() + '||Object.keys(v.games).length!==CONTROL_GAME_IDS.length)throw Error();return v;}};'
+                    'export const gameControlPolicySchema={parse(v){if(' + str(reject_policy).lower() + '||!CONTROL_GAME_IDS.includes(v.gameId))throw Error();return v;}};')
+                if service_name == 'kart': (package / 'index.js').unlink()
+                def execute(_image, script):
+                    result = subprocess.run(['node', '--input-type=module', '-e', script], capture_output=True)
+                    if result.returncode: raise authority.AuthorityError('AUTHORITY_IMAGE_REQUIRED')
+                    return result.stdout
+                specs = dict(authority.SPECS)
+                specs[service_name] = (service.as_uri(), export, floor, functions)
+                with patch.object(authority, 'SPECS', specs), patch.object(authority, 'owned_probe_output', side_effect=execute):
+                    return authority.image_capability(service_name, IMAGE, control_catalog=catalog)
+            ids = list(authority.CONTROL_GAMES)
+            for service_name in ('runtime', 'management'):
+                self.assertEqual(run(service_name, ids)['controlCatalog'], 4)
+                self.assertEqual(run(service_name, ids[:-1], catalog=3)['controlCatalog'], 3)
+                for bad in (ids[:-1], ids + ['unknown'], ids[:-1] + [ids[0]], ids[:-1] + ['unknown']):
+                    with self.subTest(service=service_name, ids=bad), self.assertRaises(authority.AuthorityError):
+                        run(service_name, bad)
+                for reject_snapshot, reject_policy in ((True, False), (False, True)):
+                    with self.assertRaises(authority.AuthorityError):
+                        run(service_name, ids, reject_snapshot, reject_policy)
+            self.assertNotIn('controlCatalog', run('kart', [], True, True))
+
+    def test_catalog_output_is_exact_and_never_a_version_floor(self):
+        for value in (None, 3, 5, True, '4'):
+            output = {'control': 1, 'authenticatedGameScope': 1}
+            if value is not None: output['controlCatalog'] = value
+            with patch.object(authority, 'owned_probe_output', return_value=json.dumps(output).encode()):
+                with self.assertRaises(authority.AuthorityError):
+                    authority.image_capability('runtime', IMAGE)
+
     def run_probe(self, fixture):
         with patch.object(authority.uuid, 'uuid4', return_value=TOKEN), patch.object(authority, 'docker', side_effect=fixture):
             return authority.owned_probe_output(IMAGE, 'reviewed-script')
@@ -171,8 +215,9 @@ class AuthorityContracts(unittest.TestCase):
 
     def test_fixed_modules_integer_versions_and_function_shapes(self):
         for service, (module, export, floor, functions) in authority.SPECS.items():
-            with patch.object(authority, 'owned_probe_output', return_value=json.dumps(floor).encode()) as probe:
-                self.assertEqual(authority.image_capability(service, IMAGE), {'image': IMAGE, **floor})
+            versions = dict(floor, **({'controlCatalog': 4} if service != 'kart' else {}))
+            with patch.object(authority, 'owned_probe_output', return_value=json.dumps(versions).encode()) as probe:
+                self.assertEqual(authority.image_capability(service, IMAGE), {'image': IMAGE, **versions})
             script = probe.call_args.args[1]
             self.assertIn(module, script)
             self.assertIn(export, script)

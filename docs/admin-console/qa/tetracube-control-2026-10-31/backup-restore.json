@@ -1,0 +1,82 @@
+{
+  "contractMutationsRejected": [
+    "column",
+    "default",
+    "owner",
+    "table_acl",
+    "column_acl",
+    "function_acl",
+    "index",
+    "view",
+    "function_body",
+    "trigger_enabled",
+    "policy",
+    "unknown_type",
+    "missing_version",
+    "wrong_version"
+  ],
+  "controlContract": {
+    "metadataSha256": "9b00a4c02ad6c0ebb5be0014403cada30c648975860a536da434ac72eb7b9acc",
+    "projectionSha256": "06fed71e3914a5421040c4b8919a32901e83c2f0e5c45d09950326a0abb4c86f",
+    "schema": "game_control",
+    "schemaVersion": 4,
+    "version": 1
+  },
+  "fixtureUUID": "4441c658e8d440e59314966b2767b454",
+  "implementationSHA256": {
+    "control-database.py": "509464779ac88c003fcd650c46eeadb5f40bf7bc1fba99daa4ce995564eabecb",
+    "control-database.test.py": "0326c5c2cb6d421ef4c54ed78d731e4b7252b378c4fd6de0d5ee35ab4372cb35",
+    "control-fingerprint.sql": "d892706f25c27537e31379dc57da0a1d3b8df987bad3900d522096ffc071af23"
+  },
+  "lifecycleInventory": "injected; no real Nginx or application services",
+  "limits": { "cpus": 1, "memoryBytes": 268435456, "network": "none", "publishedPorts": [] },
+  "migrationArtifactSha256": "b114f40c7a0e7255dc2d0c97b166a5c23545297111065479eb002feaa8760f66",
+  "ownedResources": [
+    {
+      "id": "678a37ef7ac2ba2e65f76ce5096c5451754649353512312d674be15598d43a45",
+      "uuid": "4441c658e8d440e59314966b2767b454"
+    },
+    {
+      "id": "d4c49b1c1ccb0a99d63148b734f26a7e83d98e6dd2b1144f6fa18a997b474fe7",
+      "uuid": "3d06ee72370a44348b5bd7e98de8e50d"
+    }
+  ],
+  "ownedResourcesRemaining": 0,
+  "passed": [
+    "full_restore_old_data_structure_owner_roles_acl",
+    "role_oid_order_changed_with_equal_fingerprint",
+    "missing_expected_and_projection_change_rejected",
+    "detected_admin_rows",
+    "detected_admin_structure",
+    "detected_old_acl",
+    "detected_old_role",
+    "detected_old_trigger",
+    "detected_old_policy",
+    "detected_sequence_ownership_none",
+    "detected_sequence_ownership_rebind",
+    "detected_sequence_value",
+    "profile_rejects_database_role_setting",
+    "profile_rejects_unknown_global_guc",
+    "profile_rejects_default_acl",
+    "business_members_publications_observations_do_not_change_contract",
+    "exact_schema2_to_3_to_4_upgrade_twice_idempotent",
+    "actual_positive_and_42501_negative_permissions",
+    "protected_precommit_pair",
+    "source_same_transaction_full_and_contract_guards",
+    "verify_actual_read_only",
+    "014_real_uuid_schema_restore_and_idempotence",
+    "014_commit_response_loss_retry",
+    "014_complete_write_failure_retry",
+    "014_preserves_players_invalidates_legacy_credentials",
+    "014_runtime_role_locks",
+    "014_business_rows_allowed_acl_drift_rejected",
+    "014_postcondition_failure_rolls_back"
+  ],
+  "postgresImage": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+  "postgresVersion": "17.6",
+  "productionExecuted": false,
+  "realGithubLoginVerified": false,
+  "realPostgresRestoreAndSQL": true,
+  "status": "passed",
+  "version": 1
+}

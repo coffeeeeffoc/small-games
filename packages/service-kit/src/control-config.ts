@@ -15,6 +15,7 @@ export const CONTROL_GAME_IDS = [
   'three-choose-two',
   'carding-car',
   'night-overwatch',
+  'tetracube',
 ] as const;
 export type ControlGameId = (typeof CONTROL_GAME_IDS)[number];
 export const controlStateSchema = z.enum(['enabled', 'draining', 'disabled']);
@@ -49,17 +50,24 @@ export const controlSnapshotSchema = z
   })
   .strict();
 export type ControlSnapshot = z.infer<typeof controlSnapshotSchema>;
-// Only the exact pre-night shape is historical; arbitrary missing keys remain invalid.
+// Historical catalogs are exact; Tetracube cannot precede Night Overwatch.
 export const storedControlSnapshotSchema = z.union([
   controlSnapshotSchema,
   controlSnapshotSchema.extend({
-    games: z.object(gameShape).omit({ 'night-overwatch': true }).strict(),
+    games: z.object(gameShape).omit({ tetracube: true }).strict(),
+  }),
+  controlSnapshotSchema.extend({
+    games: z.object(gameShape).omit({ 'night-overwatch': true, tetracube: true }).strict(),
   }),
 ]);
 export type StoredControlSnapshot = z.infer<typeof storedControlSnapshotSchema>;
 export function normalizeControlSnapshot(value: unknown): ControlSnapshot {
   const parsed = storedControlSnapshotSchema.parse(value);
-  const games = { 'night-overwatch': 'disabled' as const, ...parsed.games };
+  const games = {
+    'night-overwatch': 'disabled' as const,
+    tetracube: 'disabled' as const,
+    ...parsed.games,
+  };
   return {
     apiOrigins: [...parsed.apiOrigins].sort(),
     games: Object.fromEntries(

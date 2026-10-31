@@ -23,6 +23,7 @@ export const games = [
   'three-choose-two',
   'carding-car',
   'night-overwatch',
+  'tetracube',
 ];
 const uuid = (value) => `00000000-0000-4000-8000-${String(value).padStart(12, '0')}`;
 const clone = (value) => structuredClone(value);
@@ -31,7 +32,10 @@ export async function installControlFixture(page, granted = permissions) {
   const snapshot = {
     apiOrigins: ['https://game.example'],
     games: Object.fromEntries(
-      games.map((id) => [id, id === 'night-overwatch' ? 'disabled' : 'enabled']),
+      games.map((id) => [
+        id,
+        ['night-overwatch', 'tetracube'].includes(id) ? 'disabled' : 'enabled',
+      ]),
     ),
   };
   const revision = (number, publishedVersion, data = snapshot) => ({

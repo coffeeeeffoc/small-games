@@ -21,8 +21,48 @@ import { adPolicy, createRewardController, REVIVE_LIMIT } from './core/rewards.j
 import { createSaveStore } from './core/storage.js';
 import { C, TetracubeView, type Rect } from './TetracubeView';
 import { piecePose, type Turn } from './core/projection.js';
+import { LEVELS, CHAPTERS } from './core/campaign.js';
+import {
+  createRun,
+  applyInput,
+  advanceTicks,
+  checkRun,
+  runResult,
+  RANKED_RULE_VERSION,
+} from './core/session.js';
+import { createProgressStore } from './core/progress.js';
 const { ccclass } = _decorator;
-type Screen = 'home' | 'playing' | 'paused' | 'result' | 'help' | 'reward';
+type Screen =
+  | 'home'
+  | 'levels'
+  | 'playing'
+  | 'paused'
+  | 'result'
+  | 'help'
+  | 'reward'
+  | 'tools'
+  | 'layer'
+  | 'settings'
+  | 'ranking'
+  | 'connecting';
+type Recorder = {
+  start(value: {
+    mode: string;
+    levelId?: string;
+    practice?: boolean;
+  }): Promise<{ seed: number } | null>;
+  record(input: Record<string, unknown>, ticks?: number): void;
+  finish(): Promise<{ accepted?: boolean } | null>;
+  invalidate(reason?: string): void;
+};
+type RankingRow = {
+  rank: number;
+  name?: string;
+  nickname?: string;
+  score: number;
+  secondary: number;
+  playerId?: string;
+};
 type RewardKind = 'invert' | 'revive';
 type RewardResult = { status: 'completed' | 'dismissed' | 'unavailable' | 'failed' };
 type RewardPort = {
@@ -39,6 +79,15 @@ const platform = globalThis as typeof globalThis & {
   SmallGamesDev?: Dev;
   SmallGamesRewardAds?: RewardPort;
   TetracubeHost?: { ads?: RewardPort };
+  SmallGamesServices?: {
+    createRecorder(version: string, options: { onStatus(status: string): void }): Recorder;
+    refresh(): Promise<unknown>;
+    status?: string;
+    metadata?: { capabilities?: { leaderboards?: boolean } };
+    services: {
+      leaderboard(input: { boardId: string }): Promise<{ top: RankingRow[]; me?: RankingRow }>;
+    };
+  };
   __tetracube?: { snapshot(): unknown };
 };
 type Press = {
@@ -66,7 +115,25 @@ type Motion = { event: MotionEvent; elapsed: number; duration: number };
 @ccclass('Tetracube')
 export class Tetracube extends Component {
   ui!: TetracubeView;
-  state = new Game();
+  run = createRun('endless', 1);
+  state = this.run.game;
+  progress!: ReturnType<typeof createProgressStore>;
+  chapter = 0;
+  reverse = false;
+  selectedLayer = -1;
+  layerSlice = false;
+  recorder: Recorder | null = null;
+  runToken = 0;
+  rankToken = 0;
+  rankBoard = 'campaign';
+  rankState = 'idle';
+  rankRows: RankingRow[] = [];
+  rankMe: RankingRow | undefined;
+  recordStatus = 'local';
+  settled = false;
+  touchPoints = new Map<number, { x: number; y: number }>();
+  gesture: { x: number; y: number; distance: number } | null = null;
+  multiBlocked = false;
   screen: Screen = 'home';
   returnScreen: Screen = 'home';
   rewardOrigin: Screen = 'playing';
@@ -75,6 +142,7 @@ export class Tetracube extends Component {
   rewards!: ReturnType<typeof createRewardController>;
   runStarted = false;
   practice = false;
+  pauseAfterConnect = false;
   tutorialStep = 0;
   best = 0;
   soundEnabled = true;
@@ -112,8 +180,13 @@ export class Tetracube extends Component {
       getItem: (key: string) => sys.localStorage.getItem(key),
       setItem: (key: string, value: string) => sys.localStorage.setItem(key, value),
     });
+    this.progress = createProgressStore({
+      getItem: (key: string) => sys.localStorage.getItem(key),
+      setItem: (key: string, value: string) => sys.localStorage.setItem(key, value),
+    });
     const saved = this.store.read();
     if (saved) {
+      this.run = saved.run;
       this.state = saved.game;
       this.runStarted = true;
       this.tutorialStep = saved.tutorialStep;
@@ -152,6 +225,7 @@ export class Tetracube extends Component {
     input.on(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.on(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
     input.on(Input.EventType.MOUSE_UP, this.mouseUp, this);
+    input.on(Input.EventType.MOUSE_WHEEL, this.mouseWheel, this);
     input.on(Input.EventType.KEY_DOWN, this.keyDown, this);
     input.on(Input.EventType.KEY_UP, this.keyUp, this);
     game.on(CocosGame.EVENT_HIDE, this.suspend, this);
@@ -223,6 +297,9 @@ export class Tetracube extends Component {
     this.press = null;
     this.ui.pressed = '';
     this.touches.clear();
+    this.touchPoints.clear();
+    this.gesture = null;
+    this.multiBlocked = false;
     this.shift = false;
     this.ui.projection.stopOrbit();
   };
@@ -238,6 +315,7 @@ export class Tetracube extends Component {
   blur = () => {
     this.clearInput();
     this.fall = 0;
+    if (this.screen === 'connecting') this.pauseAfterConnect = true;
     if (this.screen === 'playing') this.goto('paused');
     this.audio?.stop();
     this.persist();
@@ -277,7 +355,11 @@ export class Tetracube extends Component {
           {
             type: 'small-games:display-state',
             gameId: 'tetracube',
-            screen: this.screen === 'home' ? 'home' : 'playing',
+            screen:
+              ['home', 'levels', 'ranking', 'settings'].includes(this.screen) ||
+              (this.screen === 'help' && this.returnScreen === 'home')
+                ? 'home'
+                : 'playing',
           },
           window.location.origin,
         );
@@ -286,7 +368,7 @@ export class Tetracube extends Component {
   }
   persist() {
     if (this.practice || !this.runStarted) return;
-    this.store.write(this.state, this.rewards.used, this.tutorialStep);
+    this.store.write(this.state, this.rewards.used, this.tutorialStep, this.run);
   }
   notify(text: string) {
     this.toast = text;
@@ -296,21 +378,85 @@ export class Tetracube extends Component {
     if (this.soundEnabled && !this.hidden && this.clips[name])
       this.audio.playOneShot(this.clips[name], 0.35);
   }
-  begin(practice = false) {
+  get level() {
+    return LEVELS.find((item) => item.id === this.run.levelId);
+  }
+  async begin(practice = false, mode = 'endless', levelId?: string) {
+    if (mode === 'campaign') {
+      const level = LEVELS.find((item) => item.id === levelId);
+      if (!level || (!practice && !this.progress.unlocked(level.index))) return;
+    }
+    const token = ++this.runToken;
     this.cancelReward();
-    this.state = new Game();
-    this.state.drainEvents();
+    this.recorder?.invalidate();
+    this.recorder = null;
+    this.pauseAfterConnect = false;
+    this.recordStatus = practice ? 'practice' : 'local';
+    let seed = Math.floor(Math.random() * 0x100000000);
+    const bridge = platform.SmallGamesServices;
+    if (!practice && bridge) {
+      const recorder = bridge.createRecorder(RANKED_RULE_VERSION, {
+        onStatus: (status) => {
+          if (token === this.runToken) this.recordStatus = status;
+        },
+      });
+      this.recorder = recorder;
+      this.goto('connecting');
+      const online = await recorder.start({ mode, levelId });
+      if (token !== this.runToken || this.disposed || this.screen !== 'connecting') {
+        recorder.invalidate();
+        return;
+      }
+      if (online) seed = online.seed;
+    }
+    this.practice = practice;
+    this.run = createRun(mode, seed, levelId);
+    this.state = this.run.game;
     this.setupRewards();
     this.runStarted = true;
-    this.practice = practice;
+    this.settled = false;
     this.animations = [];
     this.motions = [];
     this.mode = 'move';
     this.tutorialStep = 0;
+    this.selectedLayer = -1;
+    this.toast = '';
+    this.layerSlice = false;
+    this.reverse = false;
     this.ui.projection.setView('iso');
     this.viewName = 'iso';
-    this.goto('playing');
+    this.goto(this.hidden || this.pauseAfterConnect ? 'paused' : 'playing');
     this.persist();
+  }
+  async loadRanking() {
+    const token = ++this.rankToken,
+      board = this.rankBoard;
+    this.rankState = 'loading';
+    this.rankRows = [];
+    this.rankMe = undefined;
+    const bridge = platform.SmallGamesServices;
+    if (!bridge) {
+      this.rankState = 'offline';
+      return;
+    }
+    try {
+      await bridge.refresh();
+      if (bridge.status === 'offline') {
+        if (token === this.rankToken) this.rankState = 'offline';
+        return;
+      }
+      if (!bridge.metadata?.capabilities?.leaderboards) {
+        if (token === this.rankToken) this.rankState = 'unavailable';
+        return;
+      }
+      const result = await bridge.services.leaderboard({ boardId: board });
+      if (this.disposed || token !== this.rankToken || this.screen !== 'ranking') return;
+      this.rankRows = result.top;
+      this.rankMe = result.me;
+      this.rankState = 'ready';
+    } catch {
+      if (token === this.rankToken) this.rankState = 'error';
+    }
   }
   get animating() {
     return this.animations.length > 0;
@@ -319,18 +465,18 @@ export class Tetracube extends Component {
     if (this.screen !== 'playing' || this.hidden || this.animating || this.rewards.pending) return;
     const dims = [...this.state.dims],
       before = this.state.board.map((c) => ({ ...c }));
-    const ok =
+    if (this.run.status !== 'playing') return;
+    const payload: Record<string, unknown> =
       action === 'move'
-        ? this.state.move(Number(arg), direction)
+        ? { action, axis: Number(arg), direction }
         : action === 'rotate'
-          ? this.state.rotate(String(arg), direction)
-          : action === 'drop'
-            ? this.state.hardDrop()
-            : action === 'hold'
-              ? this.state.hold()
-              : action === 'flip'
-                ? this.state.flipContainer(String(arg))
-                : this.state.tick();
+          ? { action, plane: String(arg), direction }
+          : action === 'flip'
+            ? { action, turn: String(arg) }
+            : { action };
+    const ok = applyInput(this.run, payload);
+    if (ok) this.recorder?.record(payload, 0);
+    if (ok && this.run.assisted) this.recorder?.invalidate('assisted');
     if (!ok) {
       if (action === 'rotate') this.notify('这个方向被挡住，试试反转或移开');
       return;
@@ -381,12 +527,27 @@ export class Tetracube extends Component {
   }
   settle() {
     if (this.animating) return;
-    if (this.state.status !== 'playing' && this.screen === 'playing') {
-      if (!this.practice && this.store.writable && this.state.score > this.best) {
-        this.best = this.state.score;
-        try {
-          sys.localStorage.setItem('tetracube.best.v1', JSON.stringify(this.best));
-        } catch {}
+    checkRun(this.run);
+    if (this.run.status !== 'playing' && this.screen === 'playing') {
+      const result = runResult(this.run);
+      if (!this.practice && !this.settled) {
+        this.settled = true;
+        if (this.level && this.run.status === 'won')
+          this.progress.complete(this.level.id, {
+            stars: result.stars,
+            secondary: result.elapsedMs,
+          });
+        if (this.store.writable && this.state.score > this.best && this.run.mode === 'endless') {
+          this.best = this.state.score;
+          try {
+            sys.localStorage.setItem('tetracube.best.v1', JSON.stringify(this.best));
+          } catch {}
+        }
+        const token = this.runToken;
+        void this.recorder?.finish().then((receipt) => {
+          if (token !== this.runToken || this.disposed) return;
+          if (receipt?.accepted) this.notify('成绩已通过验证，已更新排行榜');
+        });
       }
       this.goto('result');
       this.persist();
@@ -394,8 +555,13 @@ export class Tetracube extends Component {
   }
   askReward(kind: RewardKind) {
     if (this.animating || this.rewards.pending) return;
+    if (kind === 'invert' && this.level && this.state.flipCount >= this.level.maxFlips) {
+      this.notify('本关的整舱重排次数已用完');
+      return;
+    }
     if (kind === 'invert' && !adPolicy(this.provider()).invertNeedsAd) {
       this.command('flip', 'invert');
+      this.notify('已使用空间重排：本局仅保存本地成绩');
       return;
     }
     if (
@@ -425,6 +591,11 @@ export class Tetracube extends Component {
     )
       return;
     if (result.applied) {
+      this.run.assisted = true;
+      this.run.status = 'playing';
+      this.recorder?.invalidate('assisted');
+      this.settled = false;
+      checkRun(this.run);
       this.consume();
       this.persist();
       this.goto('paused');
@@ -445,9 +616,96 @@ export class Tetracube extends Component {
   activate(id: string) {
     if (this.hidden) return;
     this.sound();
-    if (id === 'start' || id === 'restart') return this.begin();
+    if (id === 'start') return this.begin();
+    if (id === 'restart') return this.begin(this.practice, this.run.mode, this.run.levelId);
+    if (id === 'levels') {
+      this.goto('levels');
+      return;
+    }
+    if (id === 'next-level' && this.level) {
+      const next = LEVELS[this.level.index + 1];
+      if (next) return this.begin(false, 'campaign', next.id);
+      this.goto('levels');
+      return;
+    }
+    if (id.startsWith('level-')) return this.begin(false, 'campaign', id.slice(6));
+    if (id === 'chapter-prev' || id === 'chapter-next') {
+      this.chapter = Math.max(
+        0,
+        Math.min(CHAPTERS.length - 1, this.chapter + (id === 'chapter-next' ? 1 : -1)),
+      );
+      return;
+    }
+    if (id === 'ranking') {
+      this.goto('ranking');
+      void this.loadRanking();
+      return;
+    }
+    if (id === 'rank-campaign' || id === 'rank-endless') {
+      this.rankBoard = id.slice(5);
+      void this.loadRanking();
+      return;
+    }
+    if (id === 'rank-refresh') {
+      void this.loadRanking();
+      return;
+    }
+    if (id === 'settings') {
+      this.returnScreen = this.screen;
+      this.goto('settings');
+      return;
+    }
+    if (id === 'tools') {
+      this.goto('tools');
+      return;
+    }
+    if (id === 'layer-open') {
+      this.goto('layer');
+      return;
+    }
+    if (id === 'tool-back') {
+      this.goto('playing');
+      return;
+    }
+    if (id === 'reverse') {
+      this.reverse = !this.reverse;
+      return;
+    }
+    if (id === 'zoom-in' || id === 'zoom-out') {
+      this.ui.projection.magnify(id === 'zoom-in' ? 1.2 : 1 / 1.2);
+      return;
+    }
+    if (id === 'fit') {
+      this.ui.projection.resetZoom();
+      return;
+    }
+    if (id === 'layer-down' || id === 'layer-up') {
+      const current =
+        this.selectedLayer < 0
+          ? Math.min(...this.state.ghost().map((c) => c[2]), this.state.dims[2] - 1)
+          : this.selectedLayer;
+      this.selectedLayer = Math.max(
+        0,
+        Math.min(this.state.dims[2] - 1, current + (id === 'layer-up' ? 1 : -1)),
+      );
+      return;
+    }
+    if (id === 'layer-slice') {
+      this.layerSlice = !this.layerSlice;
+      return;
+    }
+    if (id === 'layer-auto') {
+      this.selectedLayer = -1;
+      this.layerSlice = false;
+      return;
+    }
+    if (id === 'finish-run') {
+      this.goto('playing');
+      this.command('end');
+      return;
+    }
     if (id === 'continue') {
-      this.goto(this.state.status === 'playing' ? 'playing' : 'result');
+      this.goto(this.run.status === 'playing' ? 'playing' : 'result');
       return;
     }
     if (id === 'pause') {
@@ -456,10 +714,15 @@ export class Tetracube extends Component {
       return;
     }
     if (id === 'resume') {
-      this.goto('playing');
+      this.goto(this.run.status === 'playing' ? 'playing' : 'result');
       return;
     }
     if (id === 'home') {
+      if (this.screen === 'connecting') {
+        this.runToken++;
+        this.recorder?.invalidate();
+      }
+      this.rankToken++;
       this.cancelReward();
       this.persist();
       this.goto('home');
@@ -499,6 +762,7 @@ export class Tetracube extends Component {
       return;
     }
     if (id === 'invert') {
+      if (this.screen === 'tools') this.goto('playing');
       this.askReward('invert');
       return;
     }
@@ -515,9 +779,10 @@ export class Tetracube extends Component {
       this.ui.projection.setView(this.viewName);
       return;
     }
-    if (id === 'move' || id === 'observe') {
+    if (id === 'move' || id === 'observe' || id === 'pan') {
       this.mode = id;
       this.ui.projection.stopOrbit();
+      if (this.screen === 'tools') this.goto('playing');
       return;
     }
     if (id.startsWith('rotate-')) {
@@ -526,6 +791,7 @@ export class Tetracube extends Component {
       return;
     }
     if (id === 'left' || id === 'right') {
+      if (this.screen === 'tools') this.goto('playing');
       this.command('flip', id);
       return;
     }
@@ -577,6 +843,10 @@ export class Tetracube extends Component {
       this.viewName = 'free';
       return;
     }
+    if (this.mode === 'pan') {
+      this.ui.projection.shiftView(dx, dy);
+      return;
+    }
     if (this.animating) return;
     const delta = this.ui.projection.planeDelta(dx, dy, p.anchor);
     p.dx += delta.x;
@@ -601,39 +871,92 @@ export class Tetracube extends Component {
     if (p.control || this.time - p.movedAt > 0.08) this.ui.projection.stopOrbit();
     if (p.control && !p.moved && this.ui.at(x, y)?.id === p.control) this.activate(p.control);
   }
+  gestureState() {
+    const points = Array.from(this.touchPoints.values());
+    if (points.length !== 2) return null;
+    return {
+      x: (points[0].x + points[1].x) / 2,
+      y: (points[0].y + points[1].y) / 2,
+      distance: Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y),
+    };
+  }
   touchStart(e: EventTouch) {
     const id = e.getID();
     if (id === null) return;
     this.lastTouch = this.time;
+    const p = this.point(e);
+    const wasBlocked = this.multiBlocked;
     this.touches.add(id);
+    this.touchPoints.set(id, p);
     if (this.touches.size > 1) {
       this.press = null;
       this.ui.pressed = '';
       this.ui.projection.stopOrbit();
+      this.multiBlocked = true;
+      const r = this.layout().scene;
+      this.gesture =
+        !wasBlocked &&
+        this.touches.size === 2 &&
+        this.screen === 'playing' &&
+        Array.from(this.touchPoints.values()).every(
+          (v) => v.x >= r.x && v.x <= r.x + r.w && v.y >= r.y && v.y <= r.y + r.h,
+        )
+          ? this.gestureState()
+          : null;
       return;
     }
-    const p = this.point(e);
-    this.pressStart(id, p.x, p.y);
+    if (!this.multiBlocked) this.pressStart(id, p.x, p.y);
   }
   touchMove(e: EventTouch) {
     const id = e.getID();
-    if (id === null || this.touches.size !== 1) return;
+    if (id === null || !this.touches.has(id)) return;
     const p = this.point(e);
-    this.pressMove(id, p.x, p.y);
+    this.touchPoints.set(id, p);
+    if (this.gesture && this.touches.size === 2 && this.screen === 'playing') {
+      const next = this.gestureState()!,
+        r = this.layout().scene;
+      if (this.gesture.distance > 4 && next.distance > 4)
+        this.ui.projection.magnify(
+          next.distance / this.gesture.distance,
+          { x: this.gesture.x - r.x, y: this.gesture.y - r.y },
+          { x: next.x - r.x, y: next.y - r.y },
+        );
+      this.gesture = next;
+      return;
+    }
+    if (this.touches.size === 1 && !this.multiBlocked) this.pressMove(id, p.x, p.y);
   }
   touchEnd(e: EventTouch) {
     const id = e.getID();
     if (id === null) return;
     const p = this.point(e);
-    this.pressEnd(id, p.x, p.y);
+    if (!this.multiBlocked) this.pressEnd(id, p.x, p.y);
     this.touches.delete(id);
+    this.touchPoints.delete(id);
+    this.gesture = null;
+    if (!this.touches.size) this.multiBlocked = false;
   }
   touchCancel(e: EventTouch) {
     const id = e.getID();
-    if (id !== null) this.touches.delete(id);
+    if (id !== null) {
+      this.touches.delete(id);
+      this.touchPoints.delete(id);
+    }
     this.press = null;
+    this.gesture = null;
+    this.multiBlocked = this.touches.size > 0;
     this.ui.pressed = '';
     this.ui.projection.stopOrbit();
+  }
+  mouseWheel(e: EventMouse) {
+    if (this.screen !== 'playing' || this.hidden) return;
+    const q = this.point(e),
+      r = this.layout().scene;
+    if (q.x < r.x || q.x > r.x + r.w || q.y < r.y || q.y > r.y + r.h) return;
+    this.ui.projection.magnify(Math.exp(Math.max(-0.25, Math.min(0.25, e.getScrollY() * 0.001))), {
+      x: q.x - r.x,
+      y: q.y - r.y,
+    });
   }
   mouseDown(e: EventMouse) {
     if (this.time - this.lastTouch < 0.6 || e.getButton() !== 0) return;
@@ -700,7 +1023,8 @@ export class Tetracube extends Component {
         this.state.active?.pos,
       );
       const axis = Math.abs(delta.x) > Math.abs(delta.y) ? 0 : 1;
-      this.command('move', axis, Math.sign(axis === 0 ? delta.x : delta.y));
+      const direction = Math.sign(axis === 0 ? delta.x : delta.y);
+      if (direction) this.command('move', axis, direction);
     }
   }
   keyUp(e: EventKeyboard) {
@@ -715,17 +1039,12 @@ export class Tetracube extends Component {
       y = s.top + m,
       w = u.w - s.left - s.right - m * 2,
       h = u.h - s.top - s.bottom - m * 2;
-    const cw = land ? Math.min(352, Math.max(300, w * 0.39)) : Math.min(540, w),
+    const cw = land ? Math.min(310, w * 0.39) : Math.min(540, w),
       cx = land ? x + w - cw : x + (w - cw) / 2;
-    const controls: Rect = {
-      x: cx,
-      y: land ? y + (h - 252) / 2 : y + h - 234,
-      w: cw,
-      h: land ? 252 : 234,
-    };
+    const controls: Rect = { x: cx, y: land ? y + 94 : y + h - 155, w: cw, h: 155 };
     const scene: Rect = land
-      ? { x, y: y + 72, w: w - cw - 12, h: h - 88 }
-      : { x, y: y + 90, w, h: controls.y - y - 105 };
+      ? { x, y: y + 68, w: w - cw - 12, h: h - 72 }
+      : { x, y: y + 116, w, h: Math.max(120, controls.y - y - 170) };
     return { land, x, y, w, h, scene, controls };
   }
   render() {
@@ -733,7 +1052,9 @@ export class Tetracube extends Component {
     const u = this.ui,
       l = this.layout();
     u.begin();
-    u.background();
+    u.background(
+      this.screen === 'home' || (this.screen === 'help' && this.returnScreen === 'home'),
+    );
     if (!u.ready) {
       u.text('loading', u.error || '正在连接空间俄罗斯方块…', u.w / 2, u.h / 2, 20, u.w - 30);
       if (u.error) u.button('retry-assets', '重新加载', u.w / 2 - 80, u.h / 2 + 35, 160);
@@ -748,11 +1069,29 @@ export class Tetracube extends Component {
       }
     }
     if (this.screen === 'home') this.home(l);
-    else {
+    else if (this.screen === 'levels') this.levels(l);
+    else if (this.screen === 'ranking') this.ranking(l);
+    else if (this.screen === 'settings') this.settings(l);
+    else if (this.screen === 'help' && this.returnScreen === 'home') {
+      this.home(l);
+      this.overlay();
+    } else if (this.screen === 'connecting') {
+      u.text('connect-title', '准备挑战', u.w / 2, u.h / 2 - 25, 28, l.w);
+      u.text(
+        'connect-copy',
+        '正在连接排行榜，稍后即可开始',
+        u.w / 2,
+        u.h / 2 + 15,
+        14,
+        l.w,
+        C.muted,
+      );
+      u.button('home', '返回首页', u.w / 2 - 100, u.h / 2 + 65, 200);
+    } else {
       this.playfield(l);
       if (this.screen !== 'playing') this.overlay();
     }
-    if (this.toast && this.time < this.toastUntil) {
+    if (this.toast && this.time < this.toastUntil && this.screen === 'playing') {
       const w = Math.min(u.w - 20, 460);
       u.panel((u.w - w) / 2, this.safe.top + 65, w, 44, '#0e1e38ee', '#789dbb', 10, 5);
       u.text('toast', this.toast, u.w / 2, this.safe.top + 87, 13, w - 12, C.text, 6, 38);
@@ -771,110 +1110,432 @@ export class Tetracube extends Component {
     u.end();
     this.accessible();
   }
+  pageTitle(title: string, l: ReturnType<Tetracube['layout']>, back = 'home') {
+    const u = this.ui;
+    u.button(back, '‹', l.x, l.y, 44, 44);
+    u.text('page-title', title, l.x + l.w / 2, l.y + 22, 25, l.w - 110);
+    u.line({ x: l.x, y: l.y + 56 }, { x: l.x + l.w, y: l.y + 56 }, '#24415a', 1, 3);
+  }
   home(l: ReturnType<Tetracube['layout']>) {
     const u = this.ui,
-      w = Math.min(360, l.w - 16),
-      x = (u.w - w) / 2;
-    if (l.land) {
-      const mw = Math.min(340, l.w * 0.42),
-        mx = l.x + l.w - mw;
-      const demo: Cell[] = [
-        { id: 1, x: 3, y: 3, z: 0, color: C.mint },
-        { id: 2, x: 4, y: 3, z: 0, color: C.violet },
-        { id: 3, x: 4, y: 4, z: 0, color: C.amber },
-      ];
-      u.world(
-        { x: l.x, y: l.y, w: l.w - mw - 20, h: l.h },
-        [8, 8, 18],
-        demo,
+      menuW = l.land ? Math.min(350, l.w * 0.46) : Math.min(370, l.w),
+      x = l.land ? l.x + l.w - menuW : l.x + (l.w - menuW) / 2;
+    const center = x + menuW / 2;
+    const titleX = l.land ? l.x + (l.w - menuW) / 2 : u.w / 2;
+    u.text(
+      'title',
+      '空间俄罗斯方块',
+      titleX,
+      l.y + (l.land ? 40 : 45),
+      Math.min(33, l.w / 10),
+      l.land ? l.w - menuW : l.w,
+      C.text,
+    );
+    u.text(
+      'subtitle',
+      '立体堆叠 · 旋转消层',
+      titleX,
+      l.y + (l.land ? 74 : 80),
+      13,
+      l.land ? l.w - menuW : l.w,
+      C.mint,
+    );
+    const footer = l.y + l.h - 48;
+    const cardsY = l.land ? l.y + 24 : footer - (this.runStarted ? 258 : 206);
+    const hero = l.land
+      ? { x: l.x, y: l.y + 94, w: l.w - menuW - 14, h: l.h - 108 }
+      : { x: l.x, y: l.y + 100, w: l.w, h: Math.max(90, cardsY - l.y - 108) };
+    u.hero(hero);
+    let row = cardsY;
+    if (this.runStarted) {
+      u.button(
+        'continue',
+        this.run.status === 'playing' ? '继续上次对局' : '查看上次成绩',
+        x,
+        row,
+        menuW,
+        44,
+        'mint',
+      );
+      row += 52;
+    }
+    const card = (
+      id: string,
+      title: string,
+      caption: string,
+      metric: string,
+      tone: string,
+      yy: number,
+    ) => {
+      u.button(id, '', x, yy, menuW, 88, tone);
+      u.mini(
+        id,
+        id === 'levels'
+          ? [
+              [0, 0, 0],
+              [1, 0, 0],
+              [1, 0, 1],
+              [1, 1, 0],
+            ]
+          : [
+              [0, 0, 0],
+              [1, 0, 0],
+              [2, 0, 0],
+              [2, 0, 1],
+            ],
+        id === 'levels' ? C.amber : '#75cde8',
+        x + 38,
+        yy + 43,
+        13,
+      );
+      u.text(
+        id + '-title',
+        title,
+        x + menuW * 0.57,
+        yy + 23,
+        21,
+        menuW - 80,
+        id === 'levels' ? C.ink : C.text,
+      );
+      u.text(
+        id + '-caption',
+        caption,
+        x + menuW * 0.57,
+        yy + 47,
+        11,
+        menuW - 70,
+        id === 'levels' ? '#56391c' : C.muted,
+      );
+      u.text(
+        id + '-metric',
+        metric,
+        x + menuW * 0.57,
+        yy + 68,
+        12,
+        menuW - 70,
+        id === 'levels' ? '#56391c' : C.mint,
+      );
+      u.controls[u.controls.length - 1].label = title;
+    };
+    card(
+      'levels',
+      '关卡挑战',
+      '观察空间，完成消层挑战',
+      Object.keys(this.progress.levels).length + ' / ' + LEVELS.length + ' 关',
+      'amber',
+      row,
+    );
+    card('start', '经典积分', '自由堆叠，挑战更高得分', '最高得分  ' + this.best, 'blue', row + 98);
+    const bw = (menuW - 16) / 3;
+    for (const [i, [id, label]] of [
+      ['ranking', '排行榜'],
+      ['help', '玩法'],
+      ['settings', '设置'],
+    ].entries())
+      u.button(id, label, x + i * (bw + 8), l.land ? Math.min(footer, row + 202) : footer, bw, 44);
+  }
+  levels(l: ReturnType<Tetracube['layout']>) {
+    const u = this.ui;
+    this.pageTitle('关卡挑战', l);
+    u.text('chapter', CHAPTERS[this.chapter], u.w / 2, l.y + 80, 20, l.w, C.mint);
+    const cols = l.land ? 3 : 2,
+      rows = l.land ? 2 : 3,
+      gap = 10,
+      cw = (l.w - gap * (cols - 1)) / cols;
+    const top = l.y + (l.land ? 102 : 110),
+      footer = l.y + l.h - 44,
+      ch = (footer - top - 20 - gap * (rows - 1)) / rows;
+    for (const level of LEVELS.slice(this.chapter * 6, this.chapter * 6 + 6)) {
+      const i = level.index % 6,
+        x = l.x + (i % cols) * (cw + gap),
+        y = top + Math.floor(i / cols) * (ch + gap),
+        entry = this.progress.levels[level.id];
+      const unlocked = this.progress.unlocked(level.index);
+      u.button('level-' + level.id, '', x, y, cw, ch, unlocked ? 'blue' : 'blue', !unlocked);
+      u.text(
+        'level-number-' + i,
+        String(level.index + 1).padStart(2, '0'),
+        x + 24,
+        y + 20,
+        20,
+        40,
+        unlocked ? C.text : C.muted,
+      );
+      u.text(
+        'level-stars-' + i,
+        entry
+          ? '★'.repeat(entry.stars) + '☆'.repeat(3 - entry.stars)
+          : unlocked
+            ? '新挑战'
+            : '未解锁',
+        x + cw - 47,
+        y + 20,
+        12,
+        84,
+        entry ? C.amber : C.muted,
+      );
+      u.mini(
+        'level-mini-' + i,
+        level.target,
+        unlocked ? ['#62cbe4', '#e8bd7e', '#aa97e2'][this.chapter] : '#46566d',
+        x + cw / 2,
+        y + ch * 0.49,
+        Math.min(18, ch * 0.15),
+      );
+      u.text(
+        'level-name-' + i,
+        level.name,
+        x + cw / 2,
+        y + ch - 35,
+        Math.min(15, cw / 9),
+        cw - 12,
+        unlocked ? C.text : C.muted,
+      );
+      u.text(
+        'level-goal-' + i,
+        level.targetLines +
+          ' 层 · ' +
+          level.dims[0] +
+          '×' +
+          level.dims[1] +
+          ' · ' +
+          level.pieceLimit +
+          ' 块',
+        x + cw / 2,
+        y + ch - 17,
+        11,
+        cw - 10,
+        C.muted,
+      );
+      u.controls[u.controls.length - 1].label = '第' + (level.index + 1) + '关 ' + level.name;
+    }
+    u.button('chapter-prev', '‹ 上一章', l.x, footer, 110, 44, 'blue', this.chapter === 0);
+    u.text(
+      'chapter-index',
+      '第 ' + (this.chapter + 1) + ' / ' + CHAPTERS.length + ' 章',
+      u.w / 2,
+      footer + 22,
+      13,
+      105,
+      C.muted,
+    );
+    u.button(
+      'chapter-next',
+      '下一章 ›',
+      l.x + l.w - 110,
+      footer,
+      110,
+      44,
+      'blue',
+      this.chapter === CHAPTERS.length - 1,
+    );
+  }
+  ranking(l: ReturnType<Tetracube['layout']>) {
+    const u = this.ui;
+    this.pageTitle('排行榜', l);
+    const w = Math.min(600, l.w),
+      x = l.x + (l.w - w) / 2,
+      bw = (w - 8) / 2;
+    u.button(
+      'rank-campaign',
+      '关卡榜',
+      x,
+      l.y + 70,
+      bw,
+      44,
+      this.rankBoard === 'campaign' ? 'amber' : 'blue',
+    );
+    u.button(
+      'rank-endless',
+      '积分榜',
+      x + bw + 8,
+      l.y + 70,
+      bw,
+      44,
+      this.rankBoard === 'endless' ? 'amber' : 'blue',
+    );
+    u.text(
+      'rank-rule',
+      this.rankBoard === 'campaign'
+        ? '最高验证通关优先，同关步数更少优先'
+        : '单局积分优先，同分步数更少优先',
+      u.w / 2,
+      l.y + 137,
+      13,
+      w,
+      C.muted,
+    );
+    const top = l.y + 158,
+      footer = l.y + l.h - 48;
+    const compact = footer - top < 220;
+    if (this.rankState === 'ready' && this.rankRows.length) {
+      const count = Math.max(1, Math.min(8, Math.floor((footer - top - 64) / 46)));
+      this.rankRows.slice(0, count).forEach((row, i) => {
+        const yy = top + i * 46;
+        u.panel(x, yy, w, 40, i % 2 ? '#0b2135' : '#102a40', '', 6);
+        u.text(
+          'rank-no-' + i,
+          String(row.rank),
+          x + 24,
+          yy + 20,
+          18,
+          40,
+          i < 3 ? C.amber : C.muted,
+        );
+        u.text(
+          'rank-name-' + i,
+          (row.name || row.nickname || '玩家').slice(0, 12),
+          x + w * 0.38,
+          yy + 20,
+          14,
+          w * 0.43,
+        );
+        u.text(
+          'rank-score-' + i,
+          row.score +
+            (this.rankBoard === 'campaign' ? ' 关' : ' 分') +
+            ' · ' +
+            row.secondary +
+            ' 步',
+          x + w * 0.8,
+          yy + 20,
+          12,
+          w * 0.37,
+          C.mint,
+        );
+      });
+    } else {
+      const title =
+        this.rankState === 'loading'
+          ? '正在读取排行榜…'
+          : this.rankState === 'ready'
+            ? '还没有上榜成绩'
+            : this.rankState === 'offline'
+              ? '当前为离线模式'
+              : this.rankState === 'unavailable'
+                ? '排行榜暂未启用'
+                : '暂时无法连接排行榜';
+      u.mini(
+        'rank-empty',
         [
-          [3, 3, 10],
-          [4, 3, 10],
-          [4, 4, 10],
-          [4, 4, 11],
+          [0, 0, 0],
+          [1, 0, 0],
+          [0, 1, 0],
+          [0, 0, 1],
         ],
         C.amber,
-        [],
+        u.w / 2,
+        top + (compact ? 30 : 60),
+        compact ? 18 : 24,
       );
-      u.text('title', '空间俄罗斯方块', mx + mw / 2, l.y + 30, Math.min(32, mw / 8.6), mw);
-      u.text('best', '经典无尽 · 最佳 ' + this.best, mx + mw / 2, l.y + 68, 14, mw, C.amber);
-      let row = l.y + 96;
-      if (this.runStarted) {
-        u.button('continue', '继续上次对局', mx, row, mw, 44, 'mint');
-        row += 52;
-      }
-      u.button('start', '开始游戏', mx, row, mw, 48, 'amber');
-      row += 56;
-      u.button('help', '玩法说明', mx, row, (mw - 8) / 2);
-      u.button(
-        'sound',
-        this.soundEnabled ? '音效：开' : '音效：关',
-        mx + (mw + 8) / 2,
-        row,
-        (mw - 8) / 2,
+      u.text('rank-empty-title', title, u.w / 2, top + (compact ? 77 : 126), compact ? 17 : 19, w);
+      u.text(
+        'rank-empty-copy',
+        this.rankState === 'ready'
+          ? '完成一次公平挑战，留下你的成绩'
+          : '本地挑战和存档仍可正常使用',
+        u.w / 2,
+        top + (compact ? 103 : 162),
+        13,
+        w,
+        C.muted,
       );
-      return;
     }
-    u.text('title', '空间俄罗斯方块', u.w / 2, l.y + 40, Math.min(38, l.w / 8.8), l.w, C.text);
-    u.text('subtitle', '立体堆叠 · 旋转消层', u.w / 2, l.y + 76, 14, l.w, C.mint);
-    const demo: Cell[] = [];
-    for (let z = 0; z < 3; z++)
-      for (let x = 2; x < 6; x++)
-        for (let y = 2; y < 6; y++)
-          if ((x * 2 + y + z) % 4 !== 0)
-            demo.push({
-              id: demo.length,
-              x,
-              y,
-              z,
-              color: ['#76d6ed', '#a58aee', '#f2c16f', '#86ddbe'][(x + y + z) % 4],
-            });
-    const bottom = l.y + l.h - (this.runStarted ? 224 : 170);
-    u.world(
-      { x: l.x, y: l.y + 98, w: l.w, h: Math.max(100, bottom - l.y - 115) },
-      [8, 8, 18],
-      demo,
-      [
-        [3, 3, 12],
-        [4, 3, 12],
-        [4, 4, 12],
-        [4, 4, 13],
-      ],
+    u.text(
+      'my-rank',
+      this.rankMe
+        ? '我的名次 ' +
+            this.rankMe.rank +
+            ' · ' +
+            this.rankMe.score +
+            (this.rankBoard === 'campaign' ? ' 关' : ' 分')
+        : '我的成绩：尚未入榜',
+      u.w / 2,
+      footer - 30,
+      13,
+      w,
       C.amber,
-      [],
     );
-    u.text('best', '最佳成绩  ' + this.best, u.w / 2, bottom - 5, 17, w, C.amber);
-    let y = bottom + 20;
-    if (this.runStarted) {
-      u.button('continue', '继续上次对局', x, y, w, 48, 'mint');
-      y += 56;
-    }
-    u.button('start', '开始游戏', x, y, w, 52, 'amber');
-    y += 62;
-    u.button('help', '玩法说明', x, y, (w - 8) / 2, 44);
+    u.button('rank-refresh', '刷新排行榜', x, footer, w, 44, 'blue', this.rankState === 'loading');
+  }
+  settings(l: ReturnType<Tetracube['layout']>) {
+    const u = this.ui;
+    this.pageTitle('设置', l, 'back');
+    const w = Math.min(360, l.w),
+      x = (u.w - w) / 2,
+      y = l.y + 100;
+    u.button('sound', this.soundEnabled ? '音效：开' : '音效：关', x, y, w, 52, 'blue');
     u.button(
-      'sound',
-      this.soundEnabled ? '音效：开' : '音效：关',
-      x + (w + 8) / 2,
-      y,
-      (w - 8) / 2,
-      44,
+      'motion',
+      this.reducedMotion ? '动态效果：简化' : '动态效果：完整',
+      x,
+      y + 66,
+      w,
+      52,
+      'blue',
     );
-    u.text('mode', '经典无尽 · 8 × 8 × 18', u.w / 2, y + 64, 12, w, C.muted);
+    u.text(
+      'settings-copy',
+      '音效与动态设置保存在当前设备。\n缩放与观察不会改变方块的位置。',
+      u.w / 2,
+      y + 164,
+      14,
+      w,
+      C.muted,
+      4,
+      54,
+    );
   }
   playfield(l: ReturnType<Tetracube['layout']>) {
     const u = this.ui,
       { x, y, scene, controls: r } = l,
       fieldW = l.land ? scene.w : l.w;
-    u.text('scorelabel', '得分', x + 42, y + 9, 12, 80, C.muted);
-    u.text('score', String(this.state.score).padStart(6, '0'), x + 56, y + 34, 25, 112);
-    u.text('lineslabel', '消除层数', x + 155, y + 9, 12, 85, C.muted);
-    u.text('lines', String(this.state.lines).padStart(2, '0'), x + 155, y + 34, 23, 80, C.mint);
+    u.text(
+      'run-title',
+      this.level
+        ? '第 ' + String(this.level.index + 1).padStart(2, '0') + ' 关 · ' + this.level.name
+        : '经典积分',
+      x + fieldW / 2 - 15,
+      y + 15,
+      17,
+      fieldW - 62,
+    );
     u.pause(x + fieldW - 44, y);
-    u.text('dimensions', this.state.dims.join(' × '), x + 53, y + 68, 12, 106, C.mint);
-    u.text('next', '下一块', x + fieldW - 94, y + 64, 11, 48, C.muted);
-    const next = this.state.next[0];
-    if (next) u.mini('next', next.cells, next.color, x + fieldW - 30, y + 67, 8);
+    u.text('score', '得分 ' + this.state.score, x + 70, y + 48, 17, 140, C.amber);
+    u.text(
+      'lines',
+      this.level
+        ? this.state.lines +
+            '/' +
+            this.level.targetLines +
+            '层 · 余' +
+            Math.max(0, this.level.pieceLimit - this.state.placed) +
+            '块'
+        : '已消除 ' + this.state.lines + ' 层',
+      x + fieldW - 80,
+      y + 48,
+      15,
+      145,
+      C.mint,
+    );
+    const previewX = l.land ? r.x : x,
+      previewY = l.land ? y : y + 70,
+      previewW = l.land ? r.w : fieldW;
+    const pw = (previewW - 16) / 3;
+    this.state.next.slice(0, 3).forEach((next, i) => {
+      const px = previewX + i * (pw + 8);
+      u.panel(px, previewY, pw, 40, '#0d273d', '#284b65', 7);
+      u.text(
+        'next-label-' + i,
+        i === 0 ? '下一块' : String(i + 1),
+        px + 19,
+        previewY + 20,
+        10,
+        36,
+        C.muted,
+      );
+      u.mini('next-' + i, next.cells, next.color, px + pw * 0.65, previewY + 20, 9);
+    });
     let dims = this.state.dims,
       board = this.state.board,
       active = this.state.cells(),
@@ -927,108 +1588,140 @@ export class Tetracube extends Component {
       ghost,
       flip,
       activeTurn,
+      this.selectedLayer < 0
+        ? Math.max(0, Math.min(...ghost.map((c) => c[2]), dims[2] - 1))
+        : Math.min(this.selectedLayer, dims[2] - 1),
+      this.layerSlice,
     );
     const disabled = this.animating || this.screen !== 'playing';
-    if (this.mode === 'observe' && this.screen === 'playing') {
-      const labels = ['立体', '俯视', '正面', '侧面'];
-      for (const [i, name] of ['iso', 'top', 'front', 'side'].entries())
-        u.button(
-          'view-' + name,
-          labels[i],
-          scene.x + 8 + i * 52,
-          scene.y + 5,
-          48,
-          44,
-          this.viewName === name ? 'mint' : 'blue',
+    const layer =
+      this.selectedLayer < 0
+        ? Math.max(0, Math.min(...this.state.ghost().map((c) => c[2]), this.state.dims[2] - 1))
+        : Math.min(this.selectedLayer, this.state.dims[2] - 1);
+    const ly = l.land ? Math.min(l.y + l.h - 50, r.y + r.h + 12) : r.y - 49;
+    u.panel(r.x, ly, r.w, 44, '#0c263c', '#284b65', 7);
+    u.button('layer-down', '−', r.x, ly, 44, 44, 'blue', this.screen !== 'playing');
+    u.button('layer-up', '＋', r.x + r.w - 44, ly, 44, 44, 'blue', this.screen !== 'playing');
+    u.button('layer-open', '', r.x + 50, ly, r.w - 100, 44, 'blue', this.screen !== 'playing');
+    const occupied = this.state.board.filter((c) => c.z === layer),
+      area = this.state.dims[0] * this.state.dims[1];
+    u.text(
+      'layer-info',
+      '第 ' + (layer + 1) + ' 层 · ' + occupied.length + '/' + area + ' ›',
+      r.x + r.w * 0.48,
+      ly + 13,
+      12,
+      r.w - 140,
+      C.amber,
+    );
+    const mw = Math.min(50, (r.w - 110) * 0.27),
+      cell = Math.min(5, mw / this.state.dims[0]),
+      gx = r.x + r.w / 2 - (this.state.dims[0] * cell) / 2,
+      gy = ly + 23;
+    const cells = new Map(occupied.map((c) => [c.x + ',' + c.y, c.color]));
+    for (let yy = 0; yy < this.state.dims[1]; yy++)
+      for (let xx = 0; xx < this.state.dims[0]; xx++)
+        u.panel(
+          gx + xx * cell,
+          gy + yy * cell * 0.45,
+          cell - 0.5,
+          cell * 0.45 - 0.3,
+          cells.get(xx + ',' + yy) || '#1b3c52',
+          '',
+          0,
         );
-    }
-    u.panel(r.x - 4, r.y - 8, r.w + 8, r.h + 14, '#0b142be8', '#32486b', 14);
     const gap = 6,
-      small = (r.w - 12) * 0.22;
+      bw = (r.w - gap * 3) / 4;
+    for (const [i, plane] of ['XY', 'XZ', 'YZ'].entries())
+      u.button(
+        'rotate-' + plane + (this.reverse ? '-minus' : '-plus'),
+        ['↻ 平转', '↻ 前后', '↻ 左右'][i],
+        r.x + i * (bw + gap),
+        r.y,
+        bw,
+        48,
+        'blue',
+        disabled,
+      );
     u.button(
-      'move',
-      '移动',
-      r.x,
+      'reverse',
+      this.reverse ? '反向 ✓' : '反向',
+      r.x + 3 * (bw + gap),
       r.y,
-      small,
-      44,
-      this.mode === 'move' ? 'mint' : 'blue',
-      this.screen !== 'playing',
-    );
-    u.button(
-      'observe',
-      '观察',
-      r.x + small + gap,
-      r.y,
-      small,
-      44,
-      this.mode === 'observe' ? 'mint' : 'blue',
-      this.screen !== 'playing',
-    );
-    u.button(
-      'drop',
-      '↓  直接落下',
-      r.x + 2 * (small + gap),
-      r.y,
-      r.w - 2 * (small + gap),
-      44,
-      'amber',
+      bw,
+      48,
+      this.reverse ? 'mint' : 'blue',
       disabled,
     );
-    u.text('rot-label', '旋转方块 · 每次90°', r.x + r.w / 2, r.y + 59, 12, r.w, C.mint);
-    const bw = (r.w - 5 * gap) / 6;
-    for (const [i, plane] of (['XY', 'XZ', 'YZ'] as const).entries())
-      for (const [j, direction] of [1, -1].entries())
-        u.rotationButton(plane, direction, r.x + (i * 2 + j) * (bw + gap), r.y + 73, bw, disabled);
-    u.text('ship-label', '转动容器 · 整舱重排', r.x + r.w / 2, r.y + 152, 12, r.w, C.violet);
-    const hold = 54,
-      fw = (r.w - hold - 3 * gap) / 3;
-    u.button('left', '左90°', r.x, r.y + 166, fw, 44, 'violet', disabled);
-    u.button('right', '右90°', r.x + fw + gap, r.y + 166, fw, 44, 'violet', disabled);
-    u.button(
-      'invert',
-      adPolicy(this.provider()).invertNeedsAd ? '180° · 视频' : '颠倒180°',
-      r.x + 2 * (fw + gap),
-      r.y + 166,
-      fw,
-      44,
-      'violet',
-      disabled,
-    );
+    const small = (r.w - 12) * 0.24;
     u.button(
       'hold',
       this.state.held ? '换入' : '暂存',
-      r.x + r.w - hold,
-      r.y + 166,
-      hold,
-      44,
+      r.x,
+      r.y + 56,
+      small,
+      48,
       'blue',
       disabled || this.state.holdUsed,
     );
-    u.text(
-      'held-name',
-      this.state.held?.name || '空槽',
-      r.x + r.w - hold / 2,
-      r.y + 221,
-      10,
-      hold,
-      C.muted,
+    if (this.state.held)
+      u.mini('held', this.state.held.cells, this.state.held.color, r.x + small - 14, r.y + 65, 4);
+    u.button('tools', '工具', r.x + small + 6, r.y + 56, small, 48, 'blue', disabled);
+    u.button(
+      'drop',
+      '↓ 直接落下',
+      r.x + 2 * (small + 6),
+      r.y + 56,
+      r.w - 2 * (small + 6),
+      48,
+      'amber',
+      disabled,
     );
-    const guide = [
-      '拖动方块，虚线是落点',
-      '按图示箭头旋转方块，反向可转回',
-      '点击落下，填满平面即可消层',
-      '左右侧翻，整舱向下重排',
-    ][this.tutorialStep];
-    u.text(
-      'guide',
-      this.mode === 'observe' ? '拖动方舱 · 自由旋转视角' : guide || '拖动移动 · 暂存每块一次',
-      r.x + (r.w - hold) / 2,
-      r.y + 221,
-      10,
-      r.w - hold - 4,
-      C.muted,
+    const modeLabel = this.mode === 'observe' ? '观察' : this.mode === 'pan' ? '平移' : '移动';
+    u.button(
+      this.mode === 'move' ? 'observe' : 'move',
+      modeLabel,
+      r.x,
+      r.y + 111,
+      62,
+      44,
+      this.mode === 'move' ? 'blue' : 'mint',
+      this.screen !== 'playing',
     );
+    u.button('zoom-out', '−', r.x + 68, r.y + 111, 44, 44, 'blue', this.screen !== 'playing');
+    u.button(
+      'fit',
+      Math.round(u.projection.zoom * 100) + '%',
+      r.x + 118,
+      r.y + 111,
+      62,
+      44,
+      'blue',
+      this.screen !== 'playing',
+    );
+    u.button('zoom-in', '＋', r.x + 186, r.y + 111, 44, 44, 'blue', this.screen !== 'playing');
+    if (r.w > 290)
+      u.text(
+        'gesture-guide',
+        this.mode === 'move' ? '拖动方块' : '跟手观察',
+        r.x + (230 + r.w) / 2,
+        r.y + 132,
+        10,
+        r.w - 236,
+        C.muted,
+      );
+    if (l.land)
+      u.text(
+        'game-hint',
+        this.level ? this.level.hint : '填满水平层，消层获得连锁',
+        r.x + r.w / 2,
+        l.y + 65,
+        11,
+        r.w,
+        C.muted,
+        4,
+        30,
+      );
   }
   overlay() {
     const u = this.ui;
@@ -1047,12 +1740,20 @@ export class Tetracube extends Component {
       this.screen === 'paused'
         ? '暂停'
         : this.screen === 'result'
-          ? '方舱已满'
+          ? this.run.status === 'won'
+            ? '挑战完成'
+            : this.level
+              ? '挑战结束'
+              : '本局结束'
           : this.screen === 'reward'
             ? this.rewardKind === 'revive'
-              ? '复活一次'
-              : '颠倒方舱'
-            : '玩法说明';
+              ? '救援续局'
+              : '空间重排'
+            : this.screen === 'tools'
+              ? '观察与工具'
+              : this.screen === 'layer'
+                ? '层面检查'
+                : '玩法说明';
     u.text('modal-title', title, u.w / 2, y + 38, 29, w - 20, C.text, 6);
     const button = (id: string, label: string, row: number, tone = 'blue', disabled = false) =>
       u.button(id, label, x + 18, y + row, w - 36, 46, tone, disabled, 5);
@@ -1092,51 +1793,263 @@ export class Tetracube extends Component {
           false,
           5,
         );
-        u.button('help', '玩法说明', x + 18, y + 218, bw, 46, 'blue', false, 5);
+        u.button(
+          this.level ? 'help' : 'finish-run',
+          this.level ? '玩法说明' : '结算本局',
+          x + 18,
+          y + 218,
+          bw,
+          46,
+          'blue',
+          false,
+          5,
+        );
         u.button('home', '返回首页', x + 26 + bw, y + 218, bw, 46, 'blue', false, 5);
       } else {
         const start = h - 270;
         button('resume', '继续游戏', start, 'amber');
         button('sound', this.soundEnabled ? '音效：开' : '音效：关', start + 52);
         button('motion', this.reducedMotion ? '动态效果：简化' : '动态效果：完整', start + 104);
-        button('help', '玩法说明', start + 156);
+        button(
+          this.level ? 'help' : 'finish-run',
+          this.level ? '玩法说明' : '结算本局',
+          start + 156,
+        );
         button('home', '返回首页', start + 208);
       }
-    } else if (this.screen === 'result') {
-      u.text('reason', '出生区没有空间容纳下一块', u.w / 2, y + 83, 14, w - 20, C.muted, 6);
-      u.text('result-score', String(this.state.score), u.w / 2, y + 125, 38, w - 20, C.amber, 6);
-      if (adPolicy(this.provider()).showRevive && this.rewards.used < REVIVE_LIMIT) {
-        u.text(
-          'revive-copy',
-          '完整观看后清理顶部四层\n继续本局 · 剩余 ' + (REVIVE_LIMIT - this.rewards.used) + ' 次',
-          u.w / 2,
-          y + 167,
-          13,
-          w - 24,
-          C.muted,
-          6,
+    } else if (this.screen === 'layer') {
+      const layer =
+        this.selectedLayer < 0
+          ? Math.max(0, Math.min(...this.state.ghost().map((c) => c[2]), this.state.dims[2] - 1))
+          : Math.min(this.selectedLayer, this.state.dims[2] - 1);
+      const [columns, rows] = this.state.dims,
+        occupied = this.state.board.filter((c) => c.z === layer);
+      const cells = new Map(occupied.map((c) => [c.x + ',' + c.y, c.color]));
+      const ghosts = new Set(
+        this.state
+          .ghost()
+          .filter((c) => c[2] === layer)
+          .map((c) => c[0] + ',' + c[1]),
+      );
+      const cell = Math.min(28, (w - 56) / columns, (h - 225) / rows),
+        gx = u.w / 2 - (columns * cell) / 2,
+        gy = y + 92;
+      u.text(
+        'inspect-info',
+        '第 ' + (layer + 1) + ' 层 · 已占 ' + occupied.length + ' / ' + columns * rows + ' 格',
+        u.w / 2,
+        y + 69,
+        14,
+        w - 30,
+        C.amber,
+        6,
+      );
+      for (let yy = 0; yy < rows; yy++)
+        for (let xx = 0; xx < columns; xx++) {
+          const key = xx + ',' + yy,
+            fill = cells.get(key);
+          u.panel(
+            gx + xx * cell,
+            gy + yy * cell,
+            cell,
+            cell,
+            fill || '#173149',
+            ghosts.has(key) ? '#81edce' : '#6b879d',
+            0,
+            5,
+          );
+        }
+      u.text(
+        'inspect-tip',
+        '正上方俯视 · 绿色轮廓为当前落点',
+        u.w / 2,
+        y + h - 110,
+        11,
+        w - 30,
+        C.muted,
+        6,
+      );
+      u.button(
+        'layer-down',
+        '− 上一层',
+        x + 18,
+        y + h - 92,
+        (w - 42) / 2,
+        44,
+        'blue',
+        layer === 0,
+        5,
+      );
+      u.button(
+        'layer-up',
+        '＋ 下一层',
+        x + 24 + (w - 42) / 2,
+        y + h - 92,
+        (w - 42) / 2,
+        44,
+        'blue',
+        layer === this.state.dims[2] - 1,
+        5,
+      );
+      // Keep the return action beside the title so the inspection grid owns the height.
+      u.button('tool-back', '×', x + w - 60, y + 14, 44, 44, 'blue', false, 5);
+    } else if (this.screen === 'tools') {
+      const gap = 6,
+        bw = (w - 36 - gap * 2) / 3;
+      for (const [i, [id, label]] of [
+        ['move', '移动方块'],
+        ['observe', '观察旋转'],
+        ['pan', '平移画面'],
+      ].entries())
+        u.button(
+          id,
+          label,
+          x + 18 + i * (bw + gap),
+          y + 74,
+          bw,
           44,
+          this.mode === id ? 'mint' : 'blue',
+          false,
+          5,
         );
-        button('revive', '复活一次 · 观看视频', h - 166, 'violet');
-      } else
-        u.text(
-          'no-revive',
-          this.rewards.used >= REVIVE_LIMIT ? '本局复活次数已用完' : '调整姿态与暂存，挑战更高分',
-          u.w / 2,
-          y + 194,
-          14,
-          w - 20,
-          C.muted,
-          6,
+      const vw = (w - 36 - 18) / 4;
+      for (const [i, name] of ['iso', 'top', 'front', 'side'].entries())
+        u.button(
+          'view-' + name,
+          ['立体', '俯视', '正面', '侧面'][i],
+          x + 18 + i * (vw + 6),
+          y + 124,
+          vw,
+          44,
+          this.viewName === name ? 'mint' : 'blue',
+          false,
+          5,
         );
-      button('restart', '重新开始', h - 112, 'amber');
+      u.button(
+        'layer-slice',
+        this.layerSlice ? '完整棋盘' : '隐藏上方层',
+        x + 18,
+        y + 174,
+        (w - 42) / 2,
+        44,
+        this.layerSlice ? 'mint' : 'blue',
+        false,
+        5,
+      );
+      u.button(
+        'layer-auto',
+        '自动跟随落点',
+        x + 24 + (w - 42) / 2,
+        y + 174,
+        (w - 42) / 2,
+        44,
+        'blue',
+        false,
+        5,
+      );
+      const limit = !!this.level && this.state.flipCount >= this.level.maxFlips;
+      for (const [i, [id, label]] of [
+        ['left', '左翻90°'],
+        ['right', '右翻90°'],
+        ['invert', '辅助180°'],
+      ].entries())
+        u.button(id, label, x + 18 + i * (bw + gap), y + 224, bw, 44, 'violet', limit, 5);
+      u.text(
+        'tools-tip',
+        '180°辅助后不计排行榜' +
+          (this.level ? ' · 重排 ' + this.state.flipCount + '/' + this.level.maxFlips + ' 次' : ''),
+        u.w / 2,
+        y + 282,
+        11,
+        w - 30,
+        C.muted,
+        6,
+      );
+      button('tool-back', '返回游戏', h - 62, 'amber');
+    } else if (this.screen === 'result') {
+      const result = runResult(this.run),
+        won = this.run.status === 'won',
+        compact = h < 400;
+      u.text(
+        'reason',
+        won
+          ? '消层目标已达成'
+          : this.level && this.state.placed >= this.level.pieceLimit
+            ? '可用方块已用完'
+            : this.state.pending
+              ? '出生区没有空间容纳下一块'
+              : '本次空间挑战已结束',
+        u.w / 2,
+        y + (compact ? 66 : 78),
+        13,
+        w - 20,
+        C.muted,
+        6,
+      );
+      u.text(
+        'result-score',
+        won ? '★'.repeat(result.stars) + '☆'.repeat(3 - result.stars) : String(this.state.score),
+        u.w / 2,
+        y + (compact ? 98 : 120),
+        32,
+        w - 20,
+        C.amber,
+        6,
+      );
+      u.text(
+        'result-detail',
+        '得分 ' +
+          this.state.score +
+          ' · 消层 ' +
+          this.state.lines +
+          ' · ' +
+          this.run.steps +
+          ' 步\n最高连锁 ' +
+          this.state.bestCombo +
+          ' · 用时 ' +
+          Math.floor(result.elapsedMs / 1000) +
+          ' 秒',
+        u.w / 2,
+        y + (compact ? 138 : 172),
+        12,
+        w - 24,
+        C.text,
+        6,
+        40,
+      );
+      u.text(
+        'result-ranked',
+        this.run.assisted
+          ? '使用过辅助：仅保存本地成绩'
+          : this.recordStatus === 'recording' || this.recordStatus === 'syncing'
+            ? '正在验证排行榜成绩…'
+            : this.recordStatus === 'finished'
+              ? '成绩已入榜'
+              : '本地成绩已保存',
+        u.w / 2,
+        y + (compact ? 171 : 213),
+        11,
+        w - 24,
+        C.muted,
+        6,
+      );
+      if (won && this.level && this.level.index < LEVELS.length - 1)
+        button('next-level', '下一关', h - 166, 'amber');
+      else if (
+        !won &&
+        adPolicy(this.provider()).showRevive &&
+        this.rewards.used < REVIVE_LIMIT &&
+        !!this.state.pending
+      )
+        button('revive', '救援续局 · 观看视频', h - 166, 'violet');
+      button('restart', won ? '再挑战一次' : '重新开始', h - 112, won ? 'blue' : 'amber');
       button('home', '返回首页', h - 58);
     } else if (this.screen === 'reward') {
       u.text(
         'reward-copy',
         this.rewardKind === 'revive'
-          ? '完整观看视频后，清理当前世界\n顶部四层，并让原方块重新进入。\n每局最多成功复活两次。'
-          : '完整观看视频后，方舱颠倒180°。\n当前方块也会参与重排，\n所有方块向世界下方落定。',
+          ? '完整观看后清理顶部四层，\n让原方块重新进入。每局最多两次。\n使用后保留本地进度，不计排行榜。'
+          : '完整观看后，方舱颠倒180°，\n所有方块重新落定。\n使用后保留本地进度，不计排行榜。',
         u.w / 2,
         y + 140,
         16,
@@ -1155,9 +2068,9 @@ export class Tetracube extends Component {
       button('cancel', '取消，返回游戏', h - 70);
     } else {
       const touch =
-        '目标：填满整层，消除获得连锁。\n\n在场景中拖动方块。\n观察模式：拖动方舱自由旋转，也可选4种视角。\n按图示平转、前后转、左右转，各有反向。\n虚线是落点，数字是离底部的层数。';
+        '目标：填满水平层，消除获得连锁。\n关卡需在方块数限制内达到消层目标。\n\n移动模式：拖动当前方块。\n观察模式：抓住方舱，随手旋转。\n双指缩放和平移；百分比一键适配。\n加减选层，层面图显示真实占用。';
       const keys =
-        '暂存：每块一次，落地后恢复。\n左右侧翻免费，重力始终向下。\n\n方向键/WASD移动，空格落下；\nQ/E/R旋转，Shift反转，C暂存；\nG颠倒，P/Esc暂停。';
+        '暂存每块一次，落地后恢复。\n工具中可选视角、切层和整舱重排。\n免费旋转的次数随关卡变化。\n\n方向键/WASD移动，空格落下；\nQ/E/R旋转，Shift反转，C暂存；\nG颠倒，P/Esc暂停。';
       const contentH = h - 148,
         cy = y + 72 + contentH / 2;
       if (wide) {
@@ -1192,6 +2105,12 @@ export class Tetracube extends Component {
       controls: this.ui?.controls.map((c) => ({ ...c })) || [],
       viewport: { width: this.ui?.w, height: this.ui?.h, coordinateSpace: 'css-px' },
       scene: this.ui ? this.layout().scene : null,
+      gesture: {
+        fingers: Array.from(this.touches),
+        points: Array.from(this.touchPoints.values()),
+        blocked: this.multiBlocked,
+        pinch: this.gesture && { ...this.gesture },
+      },
       animating: this.animating,
       motions: this.motions.length,
       visualPiece: this.motions.length
@@ -1204,6 +2123,19 @@ export class Tetracube extends Component {
       inputMode: this.mode,
       view: this.viewName,
       camera: this.ui ? { ...this.ui.projection.camera } : null,
+      zoom: this.ui?.projection.zoom,
+      pan: this.ui ? { ...this.ui.projection.pan } : null,
+      mode: this.run.mode,
+      levelId: this.run.levelId,
+      runStatus: this.run.status,
+      steps: this.run.steps,
+      elapsedMs: runResult(this.run).elapsedMs,
+      selectedLayer: this.selectedLayer,
+      layerSlice: this.layerSlice,
+      recordStatus: this.recordStatus,
+      assisted: this.run.assisted,
+      rankState: this.rankState,
+      progress: this.progress?.levels,
       containerCorners: this.ui?.projection._corners() || [],
       hidden: this.hidden,
       practice: this.practice,
@@ -1226,6 +2158,7 @@ export class Tetracube extends Component {
           snapshot.board.push({ id: snapshot.board.length + 1, x, y, z: layer, color: '#92b5ff' });
     snapshot.serial = snapshot.board.length;
     this.state.restore(snapshot);
+    this.run.status = kind === 'danger' ? 'lost' : 'playing';
     this.setupRewards();
     this.animations = [];
     this.goto(kind === 'danger' ? 'result' : 'playing');
@@ -1257,17 +2190,33 @@ export class Tetracube extends Component {
           remaining -= step;
           if (motion.elapsed >= motion.duration) this.motions.shift();
         }
-        this.fall += Math.min(dt, 0.05) * 1000;
-        if (this.fall >= this.state.fallInterval) {
-          this.fall = 0;
-          this.command('tick');
+        this.fall += Math.min(dt, 0.05) * 120;
+        const ticks = Math.floor(this.fall);
+        this.fall -= ticks;
+        const falling =
+          this.run.fallTicks + ticks >= Math.ceil((this.state.fallInterval * 120) / 1000);
+        const before = falling ? this.state.board.map((c) => ({ ...c })) : null,
+          dims = [...this.state.dims];
+        let applied = 0;
+        for (let i = 0; i < ticks && this.run.status === 'playing'; i++) {
+          advanceTicks(this.run, 1);
+          applied++;
         }
+        if (applied) this.recorder?.record({}, applied);
+        if (before) {
+          this.consume(dims, before);
+          this.persist();
+        }
+        this.settle();
       }
     }
     this.render();
   }
   onDestroy() {
     this.disposed = true;
+    this.runToken++;
+    this.rankToken++;
+    this.recorder?.invalidate();
     this.persist();
     this.cancelReward();
     this.rewards?.dispose();
@@ -1280,6 +2229,7 @@ export class Tetracube extends Component {
     input.off(Input.EventType.MOUSE_DOWN, this.mouseDown, this);
     input.off(Input.EventType.MOUSE_MOVE, this.mouseMove, this);
     input.off(Input.EventType.MOUSE_UP, this.mouseUp, this);
+    input.off(Input.EventType.MOUSE_WHEEL, this.mouseWheel, this);
     input.off(Input.EventType.KEY_DOWN, this.keyDown, this);
     input.off(Input.EventType.KEY_UP, this.keyUp, this);
     game.off(CocosGame.EVENT_HIDE, this.suspend, this);

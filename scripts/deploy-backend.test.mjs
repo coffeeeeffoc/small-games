@@ -208,7 +208,12 @@ test('backend receipt accepts only finite source and image evidence, without fak
     isolatedRestoreVerified: false,
     activeImages: { runtime: 'sha256:' + 'c'.repeat(64), kart: 'sha256:' + 'd'.repeat(64) },
     imageCapabilities: {
-      runtime: { image: 'sha256:' + 'c'.repeat(64), control: 1, authenticatedGameScope: 1 },
+      runtime: {
+        image: 'sha256:' + 'c'.repeat(64),
+        control: 1,
+        authenticatedGameScope: 1,
+        controlCatalog: 4,
+      },
       kart: {
         image: 'sha256:' + 'd'.repeat(64),
         control: 1,
@@ -218,6 +223,11 @@ test('backend receipt accepts only finite source and image evidence, without fak
     },
   };
   assert.deepEqual(backendReceipt(JSON.stringify(receipt), ['runtime']), receipt);
+  for (const controlCatalog of [undefined, 3, 5, true, '4']) {
+    const changed = structuredClone(receipt);
+    changed.imageCapabilities.runtime.controlCatalog = controlCatalog;
+    assert.throws(() => backendReceipt(JSON.stringify(changed), ['runtime']));
+  }
   for (const changes of [
     { oauth: 'CANARY' },
     { services: ['kart'] },
@@ -257,9 +267,10 @@ test('backend failure and rollback contracts use isolated mocks only', () => {
     '../infra/deployment/image-authority.test.py',
   ]) {
     const file = fileURLToPath(new URL(name, import.meta.url));
+    const posix = windows && name.includes('backend-update');
     const result = spawnSync(
-      windows ? 'wsl.exe' : 'python3',
-      windows
+      posix ? 'wsl.exe' : windows ? 'python' : 'python3',
+      posix
         ? ['--exec', 'bash', '-c', 'exec python3 -B "$(wslpath -u "$1")"', 'backend-contract', file]
         : ['-B', file],
       { encoding: 'utf8', timeout: 60000, env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } },

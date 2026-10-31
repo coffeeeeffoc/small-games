@@ -126,4 +126,5 @@ export const gameNames: Record<string, string> = {
   'three-choose-two': '摆消乐',
   'carding-car': '卡丁车',
   'night-overwatch': '夜航守望',
+  tetracube: '空间俄罗斯方块',
 };

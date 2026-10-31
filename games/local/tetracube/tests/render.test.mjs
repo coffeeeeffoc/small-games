@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Renderer } from '../src/render.mjs';
 import { Game } from '../src/engine.mjs';
-import { piecePose, rotateVector, cubeFaces } from '../assets/scripts/core/projection.js';
+import {
+  piecePose,
+  rotateVector,
+  cubeFaces,
+  cubeGeometry,
+} from '../assets/scripts/core/projection.js';
 
 const renderer = (dims = [8, 8, 18]) => {
   const value = new Renderer({ getContext: () => ({}) });
@@ -53,9 +58,9 @@ test('rounded cube patches stay inside the collision cell with unit outward norm
     assert.ok(Math.abs(Math.hypot(...face.normal) - 1) < 1e-9);
     assert.ok(face.normal[face.axis] * face.sign > 0);
     for (const vertex of face.vertices) {
-      assert.ok(vertex.every((n) => Math.abs(n) <= 0.48 + 1e-12));
-      const offset = vertex.map((n) => n - Math.max(-0.34, Math.min(0.34, n)));
-      assert.ok(Math.abs(Math.hypot(...offset) - 0.14) < 1e-9);
+      assert.ok(vertex.every((n) => Math.abs(n) <= 0.5 + 1e-12));
+      const offset = vertex.map((n) => n - Math.max(-0.45, Math.min(0.45, n)));
+      assert.ok(Math.abs(Math.hypot(...offset) - 0.05) < 1e-9);
     }
   }
 });
@@ -69,7 +74,7 @@ test('orbit coasts briefly, is frame-rate independent, and cancels on preset or 
   a.coast(0.1);
   for (let i = 0; i < 10; i++) b.coast(0.01);
   assert.ok(Math.abs(a.camera.yaw - b.camera.yaw) < 1e-9);
-  assert.ok(a.camera.yaw > release.yaw && a.camera.yaw - release.yaw < 0.28);
+  assert.ok(a.camera.yaw < release.yaw && release.yaw - a.camera.yaw < 0.5);
   for (let i = 0; i < 60; i++) a.coast(1 / 60);
   assert.deepEqual(a.velocity, { x: 0, y: 0 });
   const stopped = { ...a.camera };
@@ -114,7 +119,7 @@ test('camera drag crosses the top and horizon without hitting a pitch clamp', ()
   view.setView('top');
   const before = view.project([1, 2, 3]);
   view.orbit(0, 120);
-  assert.ok(view.camera.pitch > Math.PI / 2, 'Dragging through top view keeps rotating');
+  assert.ok(view._direction()[1] < 0, 'Dragging through top view crosses the pole');
   assert.ok(distance(before, view.project([1, 2, 3])) > 3);
   view.setView('front');
   view.orbit(0, -120);
@@ -165,4 +170,90 @@ test('screen movement follows the same horizontal plane under perspective', () =
       assert.ok(Math.abs(delta.y - y) < 0.001, `${preset}: dragged Y follows the projected plane`);
     }
   }
+});
+
+test('adjacent cube faces reach the same plane without a recessed connection edge', () => {
+  for (let axis = 0; axis < 3; axis++) {
+    const positive = cubeGeometry(1 << (axis * 2 + 1));
+    const negative = cubeGeometry(1 << (axis * 2));
+    for (const [mesh, sign] of [
+      [positive, 1],
+      [negative, -1],
+    ]) {
+      const edge = mesh
+        .flatMap((f) => f.vertices)
+        .filter((v) => Math.abs(v[axis] - sign * 0.5) < 1e-10);
+      assert(edge.length > 0);
+      const other = [0, 1, 2].filter((a) => a !== axis);
+      for (const a of other) assert(edge.some((v) => Math.abs(v[a] - 0.5) < 1e-10));
+    }
+    assert.strictEqual(positive, cubeGeometry(1 << (axis * 2 + 1)));
+  }
+});
+
+test('grabbed near surfaces follow right and down drags through poles and upside-down views', () => {
+  for (const pitch of [0.5, 1.56, 1.58, 2.2, -1.58])
+    for (const [dx, dy] of [
+      [2, 0],
+      [0, 2],
+    ]) {
+      const view = renderer();
+      view.camera.pitch = pitch;
+      view._fit();
+      const dir = view._direction(),
+        center = view.dims.map((n) => n / 2);
+      const radius = Math.min(
+        ...dir.map((n, i) => (Math.abs(n) < 1e-8 ? Infinity : center[i] / Math.abs(n))),
+      );
+      const point = center.map((n, i) => n + radius * dir[i]),
+        before = view.project(point);
+      view.orbit(dx, dy);
+      view._fit();
+      const after = view.project(point);
+      assert(dx ? after.x > before.x : after.y > before.y, `pitch ${pitch}, drag ${dx},${dy}`);
+      assert(Math.abs(Math.hypot(...view._direction()) - 1) < 1e-10);
+      assert(Math.abs(view.right.reduce((sum, n, i) => sum + n * view.down[i], 0)) < 1e-10);
+    }
+});
+
+test('zoom preserves the pinch anchor, clamps safely, and resets to a fitted view', () => {
+  const view = renderer(),
+    point = [4, 3, 8],
+    before = view.project(point);
+  const target = { x: before.x + 17, y: before.y - 9 };
+  view.magnify(1.6, before, target);
+  const after = view.project(point);
+  assert(distance(after, target) < 1e-8);
+  const start = view.project([3.5, 3.5, 8]),
+    end = view.project([3.7, 3.4, 8]);
+  const delta = view.planeDelta(end.x - start.x, end.y - start.y, [3.5, 3.5, 8]);
+  assert(Math.abs(delta.x - 0.2) < 1e-6 && Math.abs(delta.y + 0.1) < 1e-6);
+  view.magnify(100);
+  assert.equal(view.zoom, 2.5);
+  const atLimit = view.project(point);
+  view.magnify(2);
+  assert(distance(atLimit, view.project(point)) < 1e-8);
+  view.magnify(0.001);
+  assert.equal(view.zoom, 0.75);
+  view.resetZoom();
+  view._fit();
+  assert.equal(view.zoom, 1);
+  assert.deepEqual(view.pan, { x: 0, y: 0 });
+});
+
+test('near-horizontal movement preserves the visible direction after camera roll', () => {
+  const view = renderer();
+  view.setView('front');
+  view._fit();
+  view.right = [0, 0, 1];
+  view.down = [1, 0, 0];
+  view.eyeDirection = [0, 1, 0];
+  view._fit();
+  const point = view.dims.map((n) => n / 2),
+    before = view.project(point),
+    delta = view.planeDelta(0, 20, point);
+  const after = view.project([point[0] + delta.x, point[1] + delta.y, point[2]]);
+  assert(after.y > before.y);
+  assert(Math.abs(after.x - before.x) < 1e-8);
+  assert(Math.hypot(delta.x, delta.y) < 3);
 });

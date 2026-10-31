@@ -15,6 +15,10 @@ SPECS = {
                    'ADMIN_RBAC_PROTOCOL', {'control': 1, 'dbMemberRecheck': 1},
                    ('readAdminControlFlag', 'readAdminRbacPrincipal')),
 }
+CONTROL_GAMES = ('cops-robbers', 'cops-robbers-realtime', 'letters-words2',
+                 'vibeJam-myself-history-guess', 'xiangqi-five', 'flick-arena',
+                 'carrom-club', 'cage-rescue', 'tower-brake', 'three-choose-two',
+                 'carding-car', 'night-overwatch', 'tetracube')
 IMAGE_ID = r'sha256:[a-f0-9]{64}'
 CONTAINER_ID = r'[a-f0-9]{64}'
 LABEL = 'io.small-games.image-authority'
@@ -176,9 +180,22 @@ def owned_probe_output(image, script):
                 raise failure('AUTHORITY_PROBE_CLEANUP_FAILED', error) from error
 
 
-def image_capability(service, image):
+def image_capability(service, image, *, control_catalog=4):
     require(service in SPECS, 'AUTHORITY_IMAGE_REQUIRED')
+    require(type(control_catalog) is int and control_catalog in (3, 4), 'AUTHORITY_IMAGE_REQUIRED')
     module, export, floor, functions = SPECS[service]
+    catalog_probe = ''
+    if service in ('runtime', 'management'):
+        catalog_probe = (
+            'const {createRequire}=await import("node:module");'
+            'const {pathToFileURL}=await import("node:url");'
+            'const kit=await import(pathToFileURL(createRequire(' + json.dumps(module) + ').resolve("@coffeeeeffoc/service-kit")).href);'
+            'const expected=' + json.dumps(CONTROL_GAMES if control_catalog == 4 else CONTROL_GAMES[:-1]) + ';'
+            'const ids=kit.CONTROL_GAME_IDS;'
+            'if(!Array.isArray(ids)||ids.length!==expected.length||new Set(ids).size!==expected.length||expected.some(id=>!ids.includes(id)))throw new Error();'
+            'kit.controlSnapshotSchema.parse({apiOrigins:[],games:Object.fromEntries(expected.map(id=>[id,"disabled"]))});'
+            'kit.gameControlPolicySchema.parse({gameId:expected.at(-1),state:"disabled",killEpoch:0,revision:0});'
+            'result.controlCatalog=' + str(control_catalog) + ';')
     script = ('try {'
               'const m=await import(' + json.dumps(module) + ');'
               'const p=m[' + json.dumps(export) + '];'
@@ -190,21 +207,24 @@ def image_capability(service, image):
               'const version=p?.[key];'
               'if(!Number.isSafeInteger(version)||version<min)throw new Error();'
               'result[key]=version;}'
+              + catalog_probe +
               'process.stdout.write(JSON.stringify(result));'
               '}catch{process.exitCode=78;}')
     output = owned_probe_output(image, script)
     require(len(output) <= 1024, 'AUTHORITY_IMAGE_REQUIRED')
     versions = json.loads(output)
-    require(isinstance(versions, dict) and set(versions) == set(floor)
+    keys = set(floor) | ({'controlCatalog'} if catalog_probe else set())
+    require(isinstance(versions, dict) and set(versions) == keys
             and all(type(versions[key]) is int and floor[key] <= versions[key] <= 9007199254740991
-                    for key in floor), 'AUTHORITY_IMAGE_REQUIRED')
+                    for key in floor)
+            and (not catalog_probe or type(versions['controlCatalog']) is int and versions['controlCatalog'] == control_catalog), 'AUTHORITY_IMAGE_REQUIRED')
     return {'image': image, **versions}
 
 
-def require_images(images, failure='AUTHORITY_IMAGE_REQUIRED'):
+def require_images(images, failure='AUTHORITY_IMAGE_REQUIRED', *, control_catalog=4):
     require(isinstance(images, dict) and images and set(images) <= set(SPECS), failure)
     try:
-        return {name: image_capability(name, image) for name, image in images.items()}
+        return {name: image_capability(name, image, control_catalog=control_catalog) for name, image in images.items()}
     except AuthorityError as error:
         if error.code in ACTION_ERRORS:
             raise

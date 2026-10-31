@@ -4,7 +4,7 @@ export type BoardDefinition = {
   description: string;
   guestAllowed: boolean;
   scoreUnit: string;
-  secondaryUnit: 'milliseconds';
+  secondaryUnit: 'milliseconds' | 'steps';
 };
 export type Frame = { ticks: number; input: Record<string, unknown> };
 export type RankedResult = {

@@ -47,7 +47,7 @@ export function createManagementService(
   const checkControl = async () => {
     if (!control) return;
     const rows = await database.db.execute(
-      sql`select version from game_control.schema_version where version=3`,
+      sql`select version from game_control.schema_version where version=4`,
     );
     if (rows.length !== 1) throw new Error('Control schema is not initialized');
     await database.db.execute(

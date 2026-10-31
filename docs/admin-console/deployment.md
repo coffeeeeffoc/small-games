@@ -1,12 +1,22 @@
 # 管理配置中心发布与恢复
 
-## 夜航守望 schema3 升级（2026-10-27）
+## 空间俄罗斯方块 schema4 升级（2026-10-31）
 
-当前候选将控制游戏从 11 个扩展到 12 个。`002-control-center.sql` 保持原始字节；`003-night-overwatch-control.sql` 校验并升级 schema2，保留既有修订、发布、审计、其他游戏策略及权限。夜航初始为 disabled，必须通过正常管理员会话保存并发布 enabled 配置。
+当前候选将控制目录扩展为 13 款，新增 `tetracube`。002、003 原始字节保持不变；004 校验 schema3 的约束和全部 12 条策略后升级到 schema4，保留历史修订、发布、审计、既有策略及权限。新增策略为 disabled，killEpoch 为 0，revision 跟随现有 active head；11／12 款历史快照的原摘要不改写，读取时仅在内存补齐禁用项。
+
+先正常提交、验证并推送准确候选，再执行 `pnpm deploy:admin --prepare-control` 准备三服务统一候选。生产维护需按既定授权边界确认后使用 `--adopt-control=<bundle>`；schema3 不能先单独更新要求 13 条策略的新 Runtime。实际 Runtime 和 Management 镜像探针从各服务的依赖位置解析 service-kit，检查精确 13 项目录及真实快照／策略 schema，计算 `controlCatalog: 4`。自报版本、12 项旧镜像和未知未来版本均不能用于普通更新或回退。
+
+只有明确未提交、未激活新服务、数据库仍为 schema3、原容器身份不变的迁移前恢复，可以验证并恢复 catalog3 原镜像。迁移提交或结果未知时保持入口屏障，使用同一 bundle 向前恢复。schema4 的普通更新和回退必须同时具备可信数据库合同及实际 catalog4 镜像。现有通用 ranked 路由已覆盖 tetracube，无需追加代理路由；通过正常管理员会话保存并发布游戏 enabled 配置后，再验收实际积分榜和关卡榜。
+
+以下 schema3 和 schema2 章节保留当时部署背景，不作为本次候选或生产升级通过的证据。
+
+## 夜航守望 schema3 升级历史（2026-10-27）
+
+当时的候选将控制游戏从 11 个扩展到 12 个。`002-control-center.sql` 保持原始字节；`003-night-overwatch-control.sql` 校验并升级 schema2，保留既有修订、发布、审计、其他游戏策略及权限。夜航初始为 disabled，必须通过正常管理员会话保存并发布 enabled 配置。
 
 生产仍为 schema2 时，先正常提交、验证并推送准确候选，再运行 `pnpm deploy:admin --prepare-control` 和 `pnpm deploy:admin --adopt-control=<bundle>`。采用事务复用入口维护屏障、完整备份与隔离恢复验证，同步更新 Runtime、Kart、Management 和管理页面。不能先单独部署要求 12 条策略的新 Runtime。schema3 已采用并持有可信 proof 后，普通 `--reuse-remote-config` 和回退才可使用；仅数据库版本数字不足以证明部署成功。
 
-随后运行 `pnpm deploy:caddy --proxy-only`，更新两个公共 API 前缀下的 `/games/night-overwatch/match` 路由。保留其他游戏状态与现有来源，在管理台发布夜航开关后，验收匿名身份、120 个关卡榜、双人准备、真人匹配及 8 秒机器人回退。下面的 schema2/002 说明记录首次采用历史；当前清单、合同及普通更新要求为 schema3/003。迁移提交后的失败保持入口关闭，使用同一 bundle 的 `--recover-control` 恢复，不回退到仅认识 11 个游戏的旧镜像。
+随后运行 `pnpm deploy:caddy --proxy-only`，更新两个公共 API 前缀下的 `/games/night-overwatch/match` 路由。保留其他游戏状态与现有来源，在管理台发布夜航开关后，验收匿名身份、120 个关卡榜、双人准备、真人匹配及 8 秒机器人回退。下面的 schema2/002 说明记录首次采用历史；该轮清单、合同及普通更新要求为 schema3/003。迁移提交后的失败保持入口关闭，使用同一 bundle 的 `--recover-control` 恢复，不回退到仅认识 11 个游戏的旧镜像。
 
 当前入口为 `pnpm deploy:admin`，只接受下列显式模式。所有模式均不读取本地 `.env.admin.local`，不传输 OAuth 字段，不生成或轮换数据库密码。已有私有配置通过 Compose `env_file` 的 `format: raw` 原样复用；程序只核对规范路径、属主、0700 目录、0600 普通文件、单硬链接和 stat 身份，不读取其内容。
 
@@ -69,7 +79,7 @@ pnpm deploy:admin --recover-control=0d7bfdfe4087-1792248271760-eb122d --root-pre
 
 本次有限回归使用 WSL Python `-B`、实际非 root UID 1000 调用真实 helper/coordinator，Docker/数据库传输与服务生命周期为测试替身；覆盖停机前预检、停机后无数据库命令失败的旧容器恢复、COMMIT 超时闭锁、历史证据拒绝/成功和部分恢复重试。此证据不替代真实 PostgreSQL 事务演练、生产维护或公网回归。
 
-普通更新及回滚在停服务前要求 schema3、可信 control proof、现役三服务实际能力和显式控制 flag；回退目标必须同样兼容。历史 release 只提供 image/env/site 数据，执行逻辑始终来自当前 reviewed runner。失败恢复两个原管理指针，保留控制 flag，不回滚 Runtime、Caddy 或 DB。
+普通更新及回滚在停服务前要求 schema4、可信 control proof、现役三服务实际能力和显式控制 flag；回退目标必须同样兼容。历史 release 只提供 image/env/site 数据，执行逻辑始终来自当前 reviewed runner。失败恢复两个原管理指针，保留控制 flag，不回滚 Runtime、Caddy 或 DB。
 
 ## HTTPS、nonce 与 GitHub 边界
 

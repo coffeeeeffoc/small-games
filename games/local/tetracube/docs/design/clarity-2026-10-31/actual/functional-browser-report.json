@@ -1,0 +1,25 @@
+{
+  "environment": "win32 Chromium real mouse/CDP touch; no physical device or live ad fill",
+  "browser": "156.0.8078.79",
+  "checks": [
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 320x640",
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 390x844",
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 844x390",
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 1280x800",
+    "both leaderboards consume the real Runtime metadata shape (fixture, not live service)",
+    "delayed online start cancellation preserves practice saves and blur pauses new run",
+    "inversion completed",
+    "inversion dismissed",
+    "inversion unavailable",
+    "inversion failed",
+    "persisted revive quota 0",
+    "persisted revive quota 1",
+    "persisted revive quota 2",
+    "unconfigured result and restart",
+    "late completion after cancellation",
+    "simulated visibility during advertisement completed",
+    "simulated visibility during advertisement failed"
+  ],
+  "errors": [],
+  "recordings": {}
+}

@@ -25,7 +25,7 @@ import {
 const stateNames = { enabled: '开放', draining: '停止新局', disabled: '停用并终止旧局结算' };
 const editableSnapshot = (snapshot: Snapshot): Snapshot => ({
   ...snapshot,
-  games: { 'night-overwatch': 'disabled', ...snapshot.games },
+  games: { 'night-overwatch': 'disabled', tetracube: 'disabled', ...snapshot.games },
 });
 function Changes({ before, after }: { before: Snapshot | null; after: Snapshot }) {
   before = before && editableSnapshot(before);
@@ -98,7 +98,10 @@ export function ConfigWorkspace({
     const initial = nextState.snapshot ?? {
       apiOrigins: [],
       games: Object.fromEntries(
-        nextCatalog.games.map((id) => [id, id === 'night-overwatch' ? 'disabled' : 'enabled']),
+        nextCatalog.games.map((id) => [
+          id,
+          ['night-overwatch', 'tetracube'].includes(id) ? 'disabled' : 'enabled',
+        ]),
       ) as Snapshot['games'],
     };
     setSnapshot(editableSnapshot(initial));

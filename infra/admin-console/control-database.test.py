@@ -21,10 +21,10 @@ IMAGE = 'sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8
 
 class Contracts(unittest.TestCase):
     def test_upgrade_bytes_are_identical_across_checkout_platforms(self):
-        source = (HERE / 'migrations/003-night-overwatch-control.sql').read_bytes()
+        source = (HERE / 'migrations/004-tetracube-control.sql').read_bytes()
         self.assertNotIn(b'\r', source)
         self.assertEqual(hashlib.sha256(source).hexdigest(), db.MIGRATION_SHA256)
-        self.assertIn('migrations/003-night-overwatch-control.sql text eol=lf',
+        self.assertIn('migrations/004-tetracube-control.sql text eol=lf',
                       (HERE / '.gitattributes').read_text())
 
     def test_ready_waits_for_final_tcp_server_before_using_socket(self):
@@ -72,9 +72,9 @@ class Contracts(unittest.TestCase):
 
     def test_verify_uses_actual_readonly_and_never_temp_setup(self):
         parts = db.load_sql()
-        expected = {'version':1,'schema':'game_control','schemaVersion':3,'projectionSha256':parts['projection'],'metadataSha256':'a'*64}
+        expected = {'version':1,'schema':'game_control','schemaVersion':4,'projectionSha256':parts['projection'],'metadataSha256':'a'*64}
         for readonly in (True,False):
-            result = db.MARKER + json.dumps({'supported':True,'versions':[3],'metadataSha256':'a'*64,'readOnly':readonly})
+            result = db.MARKER + json.dumps({'supported':True,'versions':[4],'metadataSha256':'a'*64,'readOnly':readonly})
             with patch.object(db,'psql',return_value=result) as execute:
                 if readonly:
                     actual = db.verify_control_database(pg_id='b'*64,migration_sha256=db.MIGRATION_SHA256,expected_contract=expected)
@@ -89,8 +89,8 @@ class Contracts(unittest.TestCase):
 
     def test_wrong_versions_projection_metadata_and_unknown_profile_fail(self):
         parts = db.load_sql()
-        expected = {'version':1,'schema':'game_control','schemaVersion':3,'projectionSha256':parts['projection'],'metadataSha256':'a'*64}
-        for versions,supported,sha in [([],True,'a'*64),([1],True,'a'*64),([3],False,'a'*64),([3],True,'b'*64)]:
+        expected = {'version':1,'schema':'game_control','schemaVersion':4,'projectionSha256':parts['projection'],'metadataSha256':'a'*64}
+        for versions,supported,sha in [([],True,'a'*64),([1],True,'a'*64),([4],False,'a'*64),([4],True,'b'*64)]:
             value = db.MARKER+json.dumps({'supported':supported,'versions':versions,'metadataSha256':sha,'readOnly':True})
             with patch.object(db,'psql',return_value=value):
                 with self.assertRaises(db.ControlDatabaseError):
@@ -152,7 +152,7 @@ class Contracts(unittest.TestCase):
             backup = directory / 'control-database.dump'
             backup.write_bytes(b'fixture-backup')
             parts = db.load_sql()
-            contract = {'version': 1, 'schema': 'game_control', 'schemaVersion': 3,
+            contract = {'version': 1, 'schema': 'game_control', 'schemaVersion': 4,
                         'projectionSha256': parts['projection'], 'metadataSha256': 'a' * 64}
             with patch.object(db, 'preflight_control_database', return_value=('SELECT 1;', parts, 'a' * 64, directory)), patch.object(db, 'state', return_value={}), patch.object(db, 'write_private'), patch.object(db, 'command', return_value=b'fixture'), patch.object(db, 'restore_proof', return_value=({}, contract)), patch.object(db, 'check_inventory'), patch.object(db, 'psql', side_effect=db.ControlDatabaseError('CONTROL_COMMAND_TIMEOUT')) as execute:
                 with self.assertRaises(db.ControlDatabaseError) as caught:
@@ -228,10 +228,10 @@ def actual_postgres(fixture_uuid, receipt_path):
             release = base/('fixture-'+fixture_uuid)
             release.mkdir(mode=0o700)
             (release/'migrations').mkdir(mode=0o700)
-            for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql','migrations/003-night-overwatch-control.sql'):
+            for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql','migrations/003-night-overwatch-control.sql','migrations/004-tetracube-control.sql'):
                 shutil.copyfile(HERE/name,release/name)
             manifest={'release':release.name,'sourceSHA':'1'*40,'migrationArtifactSha256':db.MIGRATION_SHA256,
-                      'files':{name:hashlib.sha256((release/name).read_bytes()).hexdigest() for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql','migrations/003-night-overwatch-control.sql')}}
+                      'files':{name:hashlib.sha256((release/name).read_bytes()).hexdigest() for name in ('control-database.py','control-fingerprint.sql','migrations/002-control-center.sql','migrations/003-night-overwatch-control.sql','migrations/004-tetracube-control.sql')}}
             (release/'manifest.json').write_bytes(db.encoded_json(manifest))
             (private/release.name).mkdir(mode=0o700)
             with db.isolated_postgres(IMAGE,'source',fixture_uuid) as source:
@@ -297,7 +297,7 @@ INSERT INTO admin_console.admin_sessions VALUES(repeat('b',64),repeat('c',64),tr
                 db.require(pair.read_text(encoding='ascii')==hashlib.sha256(record.read_bytes()).hexdigest()+'\n','FIXTURE_PRECOMMIT_HASH')
                 for name in ('control-expected-full.json','control-expected-protected.json','control-expected-contract.json','control-database.dump','control-roles.sql'):
                     db.private_metadata(private/release.name/name)
-                passed.extend(['exact_schema2_to_3_upgrade_twice_idempotent','actual_positive_and_42501_negative_permissions','protected_precommit_pair','source_same_transaction_full_and_contract_guards','verify_actual_read_only'])
+                passed.extend(['exact_schema2_to_3_to_4_upgrade_twice_idempotent','actual_positive_and_42501_negative_permissions','protected_precommit_pair','source_same_transaction_full_and_contract_guards','verify_actual_read_only'])
                 # Keep the old canary intact, then exercise real UUID session tables after 002.
                 db.psql(source, 'ALTER TABLE runtime.competition_players RENAME TO canary_players;')
                 for number in ('010-competition.sql','011-competition-profiles.sql','012-three-choose-two.sql','013-competition-identities.sql'):
@@ -405,9 +405,9 @@ def exercise_mutations(pg,parts,passed,changed):
     rejected('trigger_enabled','ALTER TABLE game_control.roles DISABLE TRIGGER immutable_builtin;','ALTER TABLE game_control.roles ENABLE TRIGGER immutable_builtin;')
     rejected('policy','CREATE POLICY control_proof_policy ON game_control.members USING(true);','DROP POLICY control_proof_policy ON game_control.members;')
     rejected('unknown_type',"CREATE TYPE game_control.control_proof_type AS ENUM('a');",'DROP TYPE game_control.control_proof_type;')
-    rejected('missing_version','DELETE FROM game_control.schema_version;','INSERT INTO game_control.schema_version VALUES(3);')
+    rejected('missing_version','DELETE FROM game_control.schema_version;','INSERT INTO game_control.schema_version VALUES(4);')
     rejected('wrong_version','ALTER TABLE game_control.schema_version DROP CONSTRAINT schema_version_version_check; UPDATE game_control.schema_version SET version=2;',
-             'UPDATE game_control.schema_version SET version=3; ALTER TABLE game_control.schema_version ADD CONSTRAINT schema_version_version_check CHECK(version=3);')
+             'UPDATE game_control.schema_version SET version=4; ALTER TABLE game_control.schema_version ADD CONSTRAINT schema_version_version_check CHECK(version=4);')
     for value in (None,dict(expected,projectionSha256='0'*64)):
         try:
             db.verify_control_database(pg_id=pg,migration_sha256=db.MIGRATION_SHA256,expected_contract=value)

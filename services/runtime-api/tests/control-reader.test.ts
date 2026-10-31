@@ -29,7 +29,10 @@ function fixture() {
   let snapshot = normalizeControlSnapshot({
     apiOrigins: ['https://published.example'],
     games: Object.fromEntries(
-      CONTROL_GAME_IDS.map((id) => [id, id === 'night-overwatch' ? 'disabled' : 'enabled']),
+      CONTROL_GAME_IDS.map((id) => [
+        id,
+        ['night-overwatch', 'tetracube'].includes(id) ? 'disabled' : 'enabled',
+      ]),
     ),
   });
   const memory = controlDatabase((text, params) => {

@@ -1,0 +1,35 @@
+{
+  "realImmutableImages": true,
+  "productionExecuted": false,
+  "results": [
+    {
+      "service": "runtime",
+      "image": "sha256:2c39366441e5d703ede32c0c025e49ccc1d4274925ab0fde242842400348d96d",
+      "catalog3": {
+        "accepted": true,
+        "proof": {
+          "image": "sha256:2c39366441e5d703ede32c0c025e49ccc1d4274925ab0fde242842400348d96d",
+          "control": 1,
+          "authenticatedGameScope": 1,
+          "controlCatalog": 3
+        }
+      },
+      "catalog4": {
+        "accepted": false,
+        "code": "AUTHORITY_PROBE_COMMAND_FAILED"
+      }
+    },
+    {
+      "service": "management",
+      "image": "sha256:cc81941d76b4658d7825179b1740547ab06e2476e3c4c3bcd9bf0fe19e2b2596",
+      "catalog3": {
+        "accepted": false,
+        "code": "AUTHORITY_PROBE_COMMAND_FAILED"
+      },
+      "catalog4": {
+        "accepted": false,
+        "code": "AUTHORITY_PROBE_COMMAND_FAILED"
+      }
+    }
+  ]
+}
