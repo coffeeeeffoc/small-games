@@ -175,7 +175,13 @@ export function createGameServices({ gameId, ruleVersion }) {
     identity: async () => (await request(path)).identity,
     listBoards: async () => (await request(path)).boards,
     leaderboard: ({ boardId }) => request(path + '/leaderboards/' + encodeURIComponent(boardId)),
-    async startRun({ mode, levelId, requestId, playerId }) {
+    nightWallet: () => request(path + '/wallet'),
+    async nightWalletAction({ playerId, ...input }) {
+      const credential = await auth.current();
+      if (playerId && credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
+      return request(path + '/wallet', input, credential);
+    },
+    async startRun({ mode, levelId, requestId, playerId, loadout }) {
       if (typeof ruleVersion !== 'string' || !ruleVersion) throw failure('RULE_VERSION_CHANGED');
       const credential = await auth.current();
       if (playerId && credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
@@ -186,6 +192,7 @@ export function createGameServices({ gameId, ruleVersion }) {
           version: ruleVersion,
           ...(levelId ? { levelId } : {}),
           ...(requestId ? { requestId } : {}),
+          ...(loadout ? { loadout } : {}),
         },
         credential,
       );
@@ -371,6 +378,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
           const created = await services.startRun({
             mode: run.mode,
             levelId: run.levelId,
+            ...(run.loadout ? { loadout: run.loadout } : {}),
             requestId: run.requestId,
             playerId: run.playerId,
           });
@@ -488,7 +496,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     get pending() {
       return pending;
     },
-    async start({ mode, levelId, practice = false }) {
+    async start({ mode, levelId, practice = false, loadout }) {
       invalidate(practice ? 'practice' : 'local');
       if (practice) return null;
       const ownGeneration = generation;
@@ -518,6 +526,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
           requestId: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`,
           mode,
           levelId,
+          ...(loadout ? { loadout: JSON.parse(JSON.stringify(loadout)) } : {}),
           batches: [],
           tail: [],
           acked: 0,
@@ -572,8 +581,8 @@ function createDurableRecorder(services, { storage }, onStatus) {
       run.finishing = true;
       if (!seal(run) || run.synced) return null;
       report('pending-sync');
-      if (working.has(key(run))) await working.get(key(run));
-      return run.synced ? null : synchronize(run);
+      const receipt = await working.get(key(run));
+      return run.synced ? (receipt ?? null) : synchronize(run);
     },
     persist() {
       if (active && !active.synced) save(active);
@@ -712,7 +721,7 @@ export function createRunRecorder(
     get status() {
       return status;
     },
-    async start({ mode, levelId, practice = false }) {
+    async start({ mode, levelId, practice = false, loadout }) {
       invalidate(practice ? 'practice' : 'local');
       if (practice) return null;
       const ownGeneration = generation;
@@ -721,7 +730,7 @@ export function createRunRecorder(
         expired = false,
         failureStatus = 'unavailable';
       const pending = Promise.resolve()
-        .then(() => services.startRun({ mode, levelId }))
+        .then(() => services.startRun({ mode, levelId, ...(loadout ? { loadout } : {}) }))
         .then((run) => {
           if (expired || ownGeneration !== generation) {
             services.discardRun?.(run?.id);
