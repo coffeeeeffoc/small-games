@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-01",
+  "source": "built-in image_gen.imagegen",
+  "classification": "concept-art, not gameplay screenshots",
+  "runtimeChanges": false,
+  "userApprovedVisuals": false,
+  "images": [
+    {
+      "file": "01-home.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2235322,
+      "sha256": "94dfbda9b5bc42566cd2012670dd275a0e6598dd737a28f5f78b3a33b262e9d8"
+    },
+    {
+      "file": "02-loadout.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2124850,
+      "sha256": "5b4b8a236a70590a1dcb92ec973bfe2f0c9111f6ff47a8d35bb3c13ec6e113c8"
+    },
+    {
+      "file": "03-mode-selection.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2343718,
+      "sha256": "ef247afb46c0dc37ea8e5edbb5579793a0ddae11eec224458818a41c0a818830"
+    },
+    {
+      "file": "04-shop.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2251169,
+      "sha256": "616c6559bccf1bc2f6b763c7af50bff7780d21909184b619ce9dae9f20e0c259"
+    },
+    {
+      "file": "05-supply.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2246020,
+      "sha256": "5e05fa63a5f6dbbc20ffa2512f836590db4ecbad2f5bd1c5fafc9f83be8d5e24"
+    },
+    {
+      "file": "06-growth-skills.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2418701,
+      "sha256": "c3c659e20a13f653b0579b088f5f20f5ac2bc74fc2959a832946d51e3dfc5093"
+    },
+    {
+      "file": "07-tasks.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2082910,
+      "sha256": "2a3e158fb17123de96b8815a98a911032c31e5a90bb090e2e3ffbe3b9425ad0b"
+    },
+    {
+      "file": "08-inbox.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2254565,
+      "sha256": "5d4acb76bc8f77b644eb1bf058470cdf24c6328c9c21556cf96c67083d8f04df"
+    },
+    {
+      "file": "09-settlement.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 2196455,
+      "sha256": "dedb8a4b3dd54061c3a37b128b55254af0a1977474e787f9a2cdcb01072ccf33"
+    }
+  ]
+}

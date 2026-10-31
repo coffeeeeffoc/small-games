@@ -2,6 +2,8 @@
 
 更新：2026-10-30。Game ID：`night-overwatch`。本轮完成排行榜单人/对战分类、一次加载前100名及滚动、前三名奖牌、战斗关卡号、昵称回填及保存成功自动关闭、退出房间短期过滤与单人进度持久补传。金币、经验等级、个人资料和商店仅写入[后续计划](../docs/design/2026-10-29-personal-assets-plan.md)。
 
+2026-11-01设计资料更新：已整理[成长与军需方案](../docs/design/2026-10-29-personal-assets-plan.md)、[六批实施计划](../docs/design/personal-assets-implementation-plan.md)及[九张关键概念图](../docs/design/progression-2026-10-31/README.md)。首页与礼包套餐已纳入本次用户修订；仅设计，未修改运行代码、构建、数据库或部署。概念图不作为以下八类资料的实机截图，不改变当前发布素材的版本身份。
+
 Creator 3.8.8 Web-mobile 源码指纹：`fb8666660f64fc19fce5087707923064bc8d4b0b44a4178ae4dfc85054af33f8`。最后增加昵称确认成功关闭、失败保留，现有首页与战斗媒体视觉未变，保留原采集指纹并复核沿用。三尺寸浏览器、定向规则/输入、真实HTTP/PostgreSQL17续传通过；详细边界、身份调查及部署记录见[本轮验证](../docs/verification-2026-10-30-rankings-sync.md)。
 
 ## 八类资料
