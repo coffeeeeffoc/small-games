@@ -103,7 +103,7 @@ try {
         backgroundObservation,
         foregroundObservation,
         requiresFreshFire: true,
-        realFullscreenEntryExit: true,
+        realFullscreenEntryExit: false,
         retries: 10,
         renderNodesAfterRetry: counts,
         errors,

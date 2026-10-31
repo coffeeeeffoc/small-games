@@ -1097,6 +1097,7 @@ export async function validateTree({
         'scripts/publication-scopes.test.mjs',
         'scripts/night-runtime-scope.test.mjs',
         'scripts/night-growth-scope.test.mjs',
+        'scripts/night-retirement-scope.test.mjs',
         'scripts/ci-baseline.test.mjs',
         'scripts/ci-stages.test.mjs',
         'scripts/game-rename-scope.test.mjs',

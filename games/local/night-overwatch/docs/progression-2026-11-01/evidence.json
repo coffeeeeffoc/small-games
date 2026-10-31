@@ -373,5 +373,42 @@
       "height": 320,
       "hasAlpha": false
     }
-  ]
+  ],
+  "offlineLifecycle": {
+    "build": {
+      "creator": "3.8.8",
+      "target": "web-mobile",
+      "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
+    },
+    "base": "http://127.0.0.1:4338",
+    "realBrowserTabBackgroundAndForeground": false,
+    "realBackgroundStatus": "unsupported: tab switching emitted no lifecycle signal in headless and offscreen-headed Chrome",
+    "syntheticBrowserBlurFocus": true,
+    "headedBrowser": false,
+    "backgroundObservation": {
+      "hidden": false,
+      "focused": true
+    },
+    "foregroundObservation": {
+      "hidden": false,
+      "focused": true
+    },
+    "requiresFreshFire": true,
+    "realFullscreenEntryExit": false,
+    "retries": 10,
+    "renderNodesAfterRetry": [
+      16,
+      16,
+      16,
+      16,
+      16,
+      16,
+      16,
+      16,
+      16,
+      16
+    ],
+    "errors": [],
+    "metadataCorrection": "Legacy report flag corrected: the executed script asserted no fullscreen control and did not enter or exit fullscreen."
+  }
 }

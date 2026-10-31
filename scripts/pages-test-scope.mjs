@@ -1,5 +1,9 @@
 import { gameRenameFileScopes, isReviewedGameRename } from './game-rename-scope.mjs';
 import {
+  nightRetirementHeadQueryPaths,
+  isReviewedNightRetirement,
+} from './night-retirement-scope.mjs';
+import {
   fullscreenRemovalReviews,
   fullscreenRemovalFileScopes,
   isFullscreenRemovalDeletion,
@@ -674,6 +678,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
           ...Object.values(creatorScriptMoves).map((move) => move.to),
           ...retirementHeadQueryPaths(changedPaths),
           ...localRetirementHeadQueryPaths(changedPaths),
+          ...nightRetirementHeadQueryPaths(),
         ]),
       ];
       const headPaths = new Set(
@@ -718,6 +723,7 @@ export async function main(env = process.env, root = ROOT, fetchFn = fetch) {
             !isFullscreenRemovalDeletion({ change, ...catalog, ...retirementContext }) &&
             !isReviewedCreatorScriptMove({ change, ...catalog, ...retirementContext }) &&
             !isReviewedMossIconReplacement({ change, ...catalog, ...retirementContext }) &&
+            !isReviewedNightRetirement({ change, ...catalog, ...retirementContext }) &&
             !isReviewedRetirementDeletion(change, retiredScopes) &&
             !isReviewedGameRename(change, retiredScopes) &&
             !isReviewedLocalRetirementDeletion(change, retiredScopes),

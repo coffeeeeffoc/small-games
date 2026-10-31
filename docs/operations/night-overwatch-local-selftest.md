@@ -26,6 +26,12 @@ pnpm --filter @coffeeeeffoc/night-overwatch build
 
 私密文件 `.scratch/night-overwatch-selftest/database.env` 与 `.env.night-taptap-platform.local` 复用原值，不可提交或输出。成功后 `.scratch/night-overwatch-selftest/h5.json` 保存用户后续自行打包需要的公开 API、TapTap H5 登录与广告配置；`current.json` 保存本地镜像、制品、备份目录和迁移摘要。`pack` 是显式可选操作，本次未执行。原生小游戏与 H5 的配置、宿主能力不可互相当作验收证据。
 
+本次已经运行的隧道地址为 `https://nas.hc2a5c9f0.nyat.app:29549`。后续自行打包时可执行下列命令；它生成 H5 配置并调用统一打包入口，不重启后端，也不上传平台。本轮仅提供命令，未执行打包：
+
+```powershell
+node scripts/night-overwatch-selftest.mjs pack https://nas.hc2a5c9f0.nyat.app:29549 43003
+```
+
 ## 备份与恢复保护
 
 每次升级既有库均使用二进制 `pg_dump -Fc`，保存到忽略目录下的 `backup-<时间戳>/database.dump`。禁止 PowerShell 文本重定向处理此文件。恢复使用随机名称、`--network none`、不映射端口的独立 PostgreSQL 17.6 容器；恢复完整归档后对全部用户表比较行数和按行 JSON 排序的摘要。只有完全一致，才用本次新 Runtime 镜像在恢复副本上预演迁移，并检查重复执行、余额、累计签到及原始钱包流水不变。结束仅删除本次恢复容器及其匿名卷。
