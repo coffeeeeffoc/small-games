@@ -8,7 +8,7 @@ const publish = process.env.TETRACUBE_CAPTURE === '1';
 const captureOnly = publish && process.env.TETRACUBE_CAPTURE_ONLY === '1';
 const realClockPages = new WeakSet();
 const root = fileURLToPath(new URL('../', import.meta.url)),
-  out = root + (publish ? 'docs/design/clarity-2026-10-31/actual/' : 'reports/browser/');
+  out = root + (publish ? 'docs/design/quick-controls-2026-10-31/actual/' : 'reports/browser/');
 await mkdir(out, { recursive: true });
 if (publish) await mkdir(root + 'publishing/gameplay/screenshots', { recursive: true });
 const server = spawn(process.execPath, ['server.mjs', '--dist', '--port', '4189'], {
@@ -38,13 +38,17 @@ const phase = (p, s) =>
 const idle = (p) => p.waitForFunction(() => !globalThis.__tetracube?.snapshot().animating);
 async function press(p, id, mobile = true) {
   const initial = await snap(p);
-  if (
-    initial.screen === 'playing' &&
-    (id.startsWith('view-') ||
-      ['left', 'right', 'invert', 'layer-slice', 'layer-auto', 'pan'].includes(id)) &&
-    !initial.controls.some((c) => c.id === id)
-  ) {
-    await press(p, 'tools', mobile);
+  const drawer =
+    (id.startsWith('view-') && id !== 'view-open') ||
+    ['zoom-in', 'zoom-out', 'fit', 'pan'].includes(id)
+      ? 'view-open'
+      : ['layer-down', 'layer-up', 'layer-slice', 'layer-auto'].includes(id)
+        ? 'layer-open'
+        : ['hold', 'left', 'right', 'invert'].includes(id)
+          ? 'more-open'
+          : null;
+  if (initial.screen === 'playing' && drawer && !initial.controls.some((c) => c.id === id)) {
+    await press(p, drawer, mobile);
     if (realClockPages.has(p)) await p.waitForTimeout(50);
     else await p.clock.runFor(34);
   }
@@ -70,11 +74,6 @@ async function press(p, id, mobile = true) {
   await (mobile
     ? p.touchscreen.tap(b.x + position.x, b.y + position.y)
     : p.mouse.click(b.x + position.x, b.y + position.y));
-  if (
-    (id.startsWith('view-') || ['layer-slice', 'layer-auto'].includes(id)) &&
-    (await snap(p)).screen === 'tools'
-  )
-    await press(p, 'tool-back', mobile);
 }
 async function capture(p, name) {
   await p.screenshot({ path: out + name + '.png' });
@@ -160,6 +159,20 @@ async function fits(p) {
       c.id + ' fits',
     );
   }
+  const overlaps = (a, b) =>
+    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  for (let i = 0; i < s.controls.length; i++) {
+    for (const other of s.controls.slice(i + 1))
+      assert(!overlaps(s.controls[i], other), s.controls[i].id + ' overlaps ' + other.id);
+    if (s.screen === 'playing')
+      assert(!overlaps(s.controls[i], s.scene), s.controls[i].id + ' overlaps scene');
+  }
+  if (s.screen === 'playing')
+    for (const id of ['move', 'observe', 'drop', 'reverse', 'view-open', 'layer-open', 'more-open'])
+      assert(
+        s.controls.some((c) => c.id === id),
+        id + ' stays directly available',
+      );
   assert.equal(
     await p.evaluate(
       () =>
@@ -182,7 +195,15 @@ function blocked(used = 0) {
   s.serial = s.board.length;
   return { version: 1, game: s, revivesUsed: used, tutorialStep: 4 };
 }
-async function open({ width = 390, height = 844, mobile = true, save, ad, video = false, dev = false } = {}) {
+async function open({
+  width = 390,
+  height = 844,
+  mobile = true,
+  save,
+  ad,
+  video = false,
+  dev = false,
+} = {}) {
   const context = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor: 1,
@@ -284,6 +305,49 @@ try {
         await phase(p, 'playing');
         await fits(p);
         await capture(p, 'play-' + width);
+        const mainControls = (s) =>
+          s.controls
+            .filter((c) => ['move', 'observe', 'drop'].includes(c.id))
+            .map(({ id, x, y, w, h }) => ({ id, x, y, w, h }));
+        const fixedMain = mainControls(await snap(p));
+        for (const drawer of ['view', 'layer', 'more']) {
+          const previous = await snap(p);
+          await press(p, drawer + '-open', mobile);
+          assert.equal((await snap(p)).screen, 'playing', 'drawer never opens a modal');
+          assert.equal((await snap(p)).drawer, drawer);
+          assert.deepEqual(
+            mainControls(await snap(p)),
+            fixedMain,
+            'primary controls stay in place',
+          );
+          assert.deepEqual(
+            (await snap(p)).camera,
+            previous.camera,
+            'drawer keeps camera orientation',
+          );
+          assert.equal((await snap(p)).zoom, previous.zoom, 'drawer keeps zoom');
+          await fits(p);
+          await press(p, 'observe', mobile);
+          const observation = await snap(p);
+          await dragScene(p, context, mobile, 32, 24);
+          assertOrbit(observation, await snap(p));
+          await press(p, 'move', mobile);
+          const steps = (await snap(p)).steps;
+          await dragScene(p, context, mobile, 48, 0);
+          await dragScene(p, context, mobile, -48, 0);
+          assert((await snap(p)).steps > steps, 'piece can move with ' + drawer + ' open');
+          const elapsed = (await snap(p)).elapsedMs;
+          await p.clock.runFor(400);
+          assert(
+            (await snap(p)).elapsedMs > elapsed + 200,
+            'simulation continues with drawer open',
+          );
+          await capture(p, 'drawer-' + drawer + '-' + width);
+          await press(p, drawer + '-open', mobile);
+          assert.equal((await snap(p)).drawer, '', 'same tab collapses drawer');
+        }
+        await press(p, 'view-iso', mobile);
+        await press(p, 'view-open', mobile);
         const before = await snap(p);
         await p.clock.pauseAt(new Date(await p.evaluate(() => Date.now() + 50)));
         await press(p, 'rotate-XY-plus', mobile);
@@ -347,16 +411,28 @@ try {
         await capture(p, 'zoom-' + width);
         await press(p, 'fit', mobile);
         assert.equal((await snap(p)).zoom, 1);
-        await press(p, 'layer-up', mobile);
         await press(p, 'layer-open', mobile);
-        await phase(p, 'layer');
+        await press(p, 'layer-up', mobile);
+        await phase(p, 'playing');
+        assert.equal((await snap(p)).drawer, 'layer');
         await fits(p);
         await capture(p, 'layer-inspector-' + width);
-        await press(p, 'tool-back', mobile);
+        await press(p, 'layer-open', mobile);
         await press(p, 'layer-slice', mobile);
         await capture(p, 'layer-' + width);
         assert((await snap(p)).layerSlice);
         await press(p, 'layer-auto', mobile);
+        const placedWithDrawer = (await snap(p)).game.placed;
+        await press(p, 'drop', mobile);
+        await idle(p);
+        assert.equal(
+          (await snap(p)).game.placed,
+          placedWithDrawer + 1,
+          'drop works with layer drawer open',
+        );
+        assert.equal((await snap(p)).drawer, 'layer');
+        await press(p, 'layer-open', mobile);
+
         const released = await snap(p);
         await p.mouse.move(20, 200);
         await p.waitForTimeout(650);
@@ -481,9 +557,10 @@ try {
           s.game.active.pos.slice(0, 2),
           'drag',
         );
+        const beforeDrop = (await snap(p)).game.placed;
         await press(p, 'drop', mobile);
         await idle(p);
-        assert.equal((await snap(p)).game.placed, 1);
+        assert.equal((await snap(p)).game.placed, beforeDrop + 1);
         // Keep the real engine's animation clock within its first frames while dispatching
         // real input. Slow software WebGL must not turn this into an after-animation test.
         await p.clock.pauseAt(new Date(await p.evaluate(() => Date.now() + 100)));
@@ -556,6 +633,31 @@ try {
       }
     }
     {
+      const { page: p, context } = await open({ width: 640, height: 360 });
+      try {
+        await p.evaluate(() => document.documentElement.style.setProperty('--safe-bottom', '34px'));
+        await p.setViewportSize({ width: 641, height: 360 });
+        await p.waitForFunction(() => globalThis.__tetracube?.snapshot().viewport.width === 641);
+        await press(p, 'start');
+        for (const drawer of ['view', 'layer', 'more']) {
+          await press(p, drawer + '-open');
+          await fits(p);
+          for (const c of (await snap(p)).controls)
+            assert(c.y + c.h <= 326, c.id + ' respects bottom safe area');
+          await capture(p, 'safe-landscape-' + drawer);
+        }
+        await press(p, 'pause');
+        assert.equal((await snap(p)).drawer, '');
+        await press(p, 'resume');
+        assert.equal((await snap(p)).drawer, '', 'pause closes secondary controls');
+        report.checks.push(
+          '640x360 landscape with 34px bottom safe area; drawers stay in bounds and close on pause',
+        );
+      } finally {
+        await context.close();
+      }
+    }
+    {
       const { page: p, context } = await open();
       try {
         await p.evaluate(() => {
@@ -571,7 +673,12 @@ try {
             services: {
               leaderboard: async ({ boardId }) => {
                 globalThis.__rankRequests.push(boardId);
-                const me = { rank: 1, nickname: '契约测试', score: boardId === 'campaign' ? 3 : 1200, secondary: 12 };
+                const me = {
+                  rank: 1,
+                  nickname: '契约测试',
+                  score: boardId === 'campaign' ? 3 : 1200,
+                  secondary: 12,
+                };
                 return { top: [me], me };
               },
             },
@@ -582,10 +689,17 @@ try {
         await capture(p, 'ranking-contract-campaign');
         await press(p, 'rank-endless');
         await p.waitForFunction(() => globalThis.__tetracube.snapshot().rankState === 'ready');
-        assert.deepEqual(await p.evaluate(() => globalThis.__rankRequests), ['campaign', 'endless']);
+        assert.deepEqual(await p.evaluate(() => globalThis.__rankRequests), [
+          'campaign',
+          'endless',
+        ]);
         await capture(p, 'ranking-contract-endless');
-        report.checks.push('both leaderboards consume the real Runtime metadata shape (fixture, not live service)');
-      } finally { await context.close(); }
+        report.checks.push(
+          'both leaderboards consume the real Runtime metadata shape (fixture, not live service)',
+        );
+      } finally {
+        await context.close();
+      }
     }
     {
       const { page: p, context } = await open({ dev: true });
@@ -598,13 +712,22 @@ try {
         assert.equal((await snap(p)).practice, true);
         await press(p, 'pause');
         await press(p, 'home');
-        const stored = () => p.evaluate(() => [localStorage.getItem('tetracube.save.v1'), localStorage.getItem('tetracube.best.v1')]);
+        const stored = () =>
+          p.evaluate(() => [
+            localStorage.getItem('tetracube.save.v1'),
+            localStorage.getItem('tetracube.best.v1'),
+          ]);
         const before = await stored();
         await p.evaluate(() => {
           globalThis.SmallGamesServices = {
             createRecorder: () => ({
-              start: () => new Promise((resolve) => { globalThis.__resolveRankStart = resolve; }),
-              invalidate: () => {}, record: () => {}, finish: async () => null,
+              start: () =>
+                new Promise((resolve) => {
+                  globalThis.__resolveRankStart = resolve;
+                }),
+              invalidate: () => {},
+              record: () => {},
+              finish: async () => null,
             }),
           };
         });
@@ -628,11 +751,19 @@ try {
         const stopped = await snap(p);
         assert.equal(stopped.practice, false);
         await p.clock.runFor(3000);
-        assert.equal((await snap(p)).elapsedMs, stopped.elapsedMs, 'blurred connection does not start falling');
+        assert.equal(
+          (await snap(p)).elapsedMs,
+          stopped.elapsedMs,
+          'blurred connection does not start falling',
+        );
         await press(p, 'resume');
         await phase(p, 'playing');
-        report.checks.push('delayed online start cancellation preserves practice saves and blur pauses new run');
-      } finally { await context.close(); }
+        report.checks.push(
+          'delayed online start cancellation preserves practice saves and blur pauses new run',
+        );
+      } finally {
+        await context.close();
+      }
     }
     for (const status of ['completed', 'dismissed', 'unavailable', 'failed']) {
       const { page: p, context } = await open({ ad: status });
@@ -769,12 +900,14 @@ try {
           await p.waitForTimeout(1600);
           await press(p, 'layer-open');
           await p.waitForTimeout(2400);
-          await press(p, 'tool-back');
+          await press(p, 'layer-open');
           await press(p, 'observe');
           await dragScene(p, context, true, -80, 30);
           await p.waitForTimeout(2500);
           assert.equal((await snap(p)).levelId, 'space-02');
-          report.checks.push('separate landscape trailer: level selection, challenge clear, zoom and layer inspection');
+          report.checks.push(
+            'separate landscape trailer: level selection, challenge clear, zoom and layer inspection',
+          );
           continue;
         }
         await press(p, 'start');
@@ -795,24 +928,24 @@ try {
         });
         if (width === 720)
           await p.screenshot({
-            path: root + 'publishing/gameplay/screenshots/taptap/01-play-720x1280.png',
+            path: root + 'publishing/gameplay/screenshots/taptap/01-play-quick-720x1280.png',
           });
         await press(p, 'observe');
         await dragScene(p, context, true, 65, 36);
         await p.waitForTimeout(1200);
         if (width === 720)
           await p.screenshot({
-            path: root + 'publishing/gameplay/screenshots/taptap/02-observe-720x1280.png',
+            path: root + 'publishing/gameplay/screenshots/taptap/02-observe-quick-720x1280.png',
           });
         await press(p, 'view-iso');
         await press(p, 'layer-open');
         await p.waitForTimeout(1600);
         if (width === 720)
           await p.screenshot({
-            path: root + 'publishing/gameplay/screenshots/taptap/03-layer-720x1280.png',
+            path: root + 'publishing/gameplay/screenshots/taptap/03-layer-quick-720x1280.png',
           });
         await p.screenshot({ path: out + 'layer-' + size + '.png' });
-        await press(p, 'tool-back');
+        await press(p, 'layer-open');
         if (width !== 720) {
           await dragScene(p, context, true, -140, 60);
           await p.waitForTimeout(1000);

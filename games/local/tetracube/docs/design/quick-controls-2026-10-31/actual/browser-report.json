@@ -1,0 +1,13 @@
+{
+  "environment": "win32 Chromium real mouse/CDP touch; no physical device or live ad fill",
+  "browser": "156.0.8078.79",
+  "checks": [
+    "publishing real-input recording 720x1280",
+    "separate landscape trailer: level selection, challenge clear, zoom and layer inspection"
+  ],
+  "errors": [],
+  "recordings": {
+    "720x1280": "reports/video/taptap-720x1280-1793455389303.webm",
+    "1280x720": "reports/video/taptap-1280x720-1793455410213.webm"
+  }
+}

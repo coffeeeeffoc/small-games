@@ -40,8 +40,6 @@ type Screen =
   | 'result'
   | 'help'
   | 'reward'
-  | 'tools'
-  | 'layer'
   | 'settings'
   | 'ranking'
   | 'connecting';
@@ -120,6 +118,7 @@ export class Tetracube extends Component {
   progress!: ReturnType<typeof createProgressStore>;
   chapter = 0;
   reverse = false;
+  drawer: '' | 'view' | 'layer' | 'more' = '';
   selectedLayer = -1;
   layerSlice = false;
   recorder: Recorder | null = null;
@@ -343,6 +342,7 @@ export class Tetracube extends Component {
   };
   goto(screen: Screen) {
     this.clearInput();
+    this.drawer = '';
     this.screen = screen;
     this.fall = 0;
     this.display();
@@ -655,16 +655,12 @@ export class Tetracube extends Component {
       this.goto('settings');
       return;
     }
-    if (id === 'tools') {
-      this.goto('tools');
-      return;
-    }
-    if (id === 'layer-open') {
-      this.goto('layer');
-      return;
-    }
-    if (id === 'tool-back') {
-      this.goto('playing');
+    if (id === 'view-open' || id === 'layer-open' || id === 'more-open') {
+      if (this.screen !== 'playing') return;
+      const drawer = id === 'view-open' ? 'view' : id === 'layer-open' ? 'layer' : 'more';
+      this.clearInput();
+      this.drawer = this.drawer === drawer ? '' : drawer;
+      this.render();
       return;
     }
     if (id === 'reverse') {
@@ -762,7 +758,6 @@ export class Tetracube extends Component {
       return;
     }
     if (id === 'invert') {
-      if (this.screen === 'tools') this.goto('playing');
       this.askReward('invert');
       return;
     }
@@ -780,9 +775,8 @@ export class Tetracube extends Component {
       return;
     }
     if (id === 'move' || id === 'observe' || id === 'pan') {
+      this.clearInput();
       this.mode = id;
-      this.ui.projection.stopOrbit();
-      if (this.screen === 'tools') this.goto('playing');
       return;
     }
     if (id.startsWith('rotate-')) {
@@ -791,7 +785,6 @@ export class Tetracube extends Component {
       return;
     }
     if (id === 'left' || id === 'right') {
-      if (this.screen === 'tools') this.goto('playing');
       this.command('flip', id);
       return;
     }
@@ -1041,11 +1034,18 @@ export class Tetracube extends Component {
       h = u.h - s.top - s.bottom - m * 2;
     const cw = land ? Math.min(310, w * 0.39) : Math.min(540, w),
       cx = land ? x + w - cw : x + (w - cw) / 2;
-    const controls: Rect = { x: cx, y: land ? y + 94 : y + h - 155, w: cw, h: 155 };
+    const controls: Rect = { x: cx, y: land ? y + 46 : y + h - 148, w: cw, h: 148 };
+    const drawerHeight = this.drawer ? (this.drawer === 'layer' ? 156 : 106) : 0;
+    const drawer: Rect = {
+      x: cx,
+      y: land ? controls.y + controls.h + 6 : controls.y - drawerHeight - 6,
+      w: cw,
+      h: land ? Math.min(drawerHeight, y + h - controls.y - controls.h - 6) : drawerHeight,
+    };
     const scene: Rect = land
       ? { x, y: y + 68, w: w - cw - 12, h: h - 72 }
-      : { x, y: y + 116, w, h: Math.max(120, controls.y - y - 170) };
-    return { land, x, y, w, h, scene, controls };
+      : { x, y: y + 116, w, h: Math.max(120, (this.drawer ? drawer.y : controls.y) - y - 126) };
+    return { land, x, y, w, h, scene, controls, drawer };
   }
   render() {
     if (!this.ui || this.disposed) return;
@@ -1594,134 +1594,212 @@ export class Tetracube extends Component {
       this.layerSlice,
     );
     const disabled = this.animating || this.screen !== 'playing';
-    const layer =
-      this.selectedLayer < 0
-        ? Math.max(0, Math.min(...this.state.ghost().map((c) => c[2]), this.state.dims[2] - 1))
-        : Math.min(this.selectedLayer, this.state.dims[2] - 1);
-    const ly = l.land ? Math.min(l.y + l.h - 50, r.y + r.h + 12) : r.y - 49;
-    u.panel(r.x, ly, r.w, 44, '#0c263c', '#284b65', 7);
-    u.button('layer-down', '−', r.x, ly, 44, 44, 'blue', this.screen !== 'playing');
-    u.button('layer-up', '＋', r.x + r.w - 44, ly, 44, 44, 'blue', this.screen !== 'playing');
-    u.button('layer-open', '', r.x + 50, ly, r.w - 100, 44, 'blue', this.screen !== 'playing');
-    const occupied = this.state.board.filter((c) => c.z === layer),
-      area = this.state.dims[0] * this.state.dims[1];
-    u.text(
-      'layer-info',
-      '第 ' + (layer + 1) + ' 层 · ' + occupied.length + '/' + area + ' ›',
-      r.x + r.w * 0.48,
-      ly + 13,
-      12,
-      r.w - 140,
-      C.amber,
-    );
-    const mw = Math.min(50, (r.w - 110) * 0.27),
-      cell = Math.min(5, mw / this.state.dims[0]),
-      gx = r.x + r.w / 2 - (this.state.dims[0] * cell) / 2,
-      gy = ly + 23;
-    const cells = new Map(occupied.map((c) => [c.x + ',' + c.y, c.color]));
-    for (let yy = 0; yy < this.state.dims[1]; yy++)
-      for (let xx = 0; xx < this.state.dims[0]; xx++)
-        u.panel(
-          gx + xx * cell,
-          gy + yy * cell * 0.45,
-          cell - 0.5,
-          cell * 0.45 - 0.3,
-          cells.get(xx + ',' + yy) || '#1b3c52',
-          '',
-          0,
-        );
     const gap = 6,
-      bw = (r.w - gap * 3) / 4;
+      compact = r.w < 280,
+      third = (r.w - gap * 2) / 3,
+      quarter = (r.w - gap * 3) / 4;
+    for (const [i, [id, label]] of [
+      ['move', compact ? '移动' : '移动方块'],
+      ['observe', compact ? '观察' : '观察旋转'],
+    ].entries())
+      u.button(
+        id,
+        label + (this.mode === id ? ' ✓' : ''),
+        r.x + i * (third + gap),
+        r.y,
+        third,
+        48,
+        this.mode === id ? 'mint' : 'blue',
+        this.screen !== 'playing',
+      );
+    u.button(
+      'drop',
+      compact ? '↓ 落下' : '↓ 直接落下',
+      r.x + 2 * (third + gap),
+      r.y,
+      third,
+      48,
+      'amber',
+      disabled,
+    );
     for (const [i, plane] of ['XY', 'XZ', 'YZ'].entries())
       u.button(
         'rotate-' + plane + (this.reverse ? '-minus' : '-plus'),
-        ['↻ 平转', '↻ 前后', '↻ 左右'][i],
-        r.x + i * (bw + gap),
-        r.y,
-        bw,
-        48,
+        (compact ? '' : '↻ ') + ['平转', '前后', '左右'][i],
+        r.x + i * (quarter + gap),
+        r.y + 54,
+        quarter,
+        44,
         'blue',
         disabled,
       );
     u.button(
       'reverse',
       this.reverse ? '反向 ✓' : '反向',
-      r.x + 3 * (bw + gap),
-      r.y,
-      bw,
-      48,
+      r.x + 3 * (quarter + gap),
+      r.y + 54,
+      quarter,
+      44,
       this.reverse ? 'mint' : 'blue',
       disabled,
     );
-    const small = (r.w - 12) * 0.24;
-    u.button(
-      'hold',
-      this.state.held ? '换入' : '暂存',
-      r.x,
-      r.y + 56,
-      small,
-      48,
-      'blue',
-      disabled || this.state.holdUsed,
-    );
-    if (this.state.held)
-      u.mini('held', this.state.held.cells, this.state.held.color, r.x + small - 14, r.y + 65, 4);
-    u.button('tools', '工具', r.x + small + 6, r.y + 56, small, 48, 'blue', disabled);
-    u.button(
-      'drop',
-      '↓ 直接落下',
-      r.x + 2 * (small + 6),
-      r.y + 56,
-      r.w - 2 * (small + 6),
-      48,
-      'amber',
-      disabled,
-    );
-    const modeLabel = this.mode === 'observe' ? '观察' : this.mode === 'pan' ? '平移' : '移动';
-    u.button(
-      this.mode === 'move' ? 'observe' : 'move',
-      modeLabel,
-      r.x,
-      r.y + 111,
-      62,
-      44,
-      this.mode === 'move' ? 'blue' : 'mint',
-      this.screen !== 'playing',
-    );
-    u.button('zoom-out', '−', r.x + 68, r.y + 111, 44, 44, 'blue', this.screen !== 'playing');
-    u.button(
-      'fit',
-      Math.round(u.projection.zoom * 100) + '%',
-      r.x + 118,
-      r.y + 111,
-      62,
-      44,
-      'blue',
-      this.screen !== 'playing',
-    );
-    u.button('zoom-in', '＋', r.x + 186, r.y + 111, 44, 44, 'blue', this.screen !== 'playing');
-    if (r.w > 290)
-      u.text(
-        'gesture-guide',
-        this.mode === 'move' ? '拖动方块' : '跟手观察',
-        r.x + (230 + r.w) / 2,
-        r.y + 132,
-        10,
-        r.w - 236,
-        C.muted,
+    for (const [i, [id, label]] of [
+      ['view', '视角'],
+      ['layer', '层面'],
+      ['more', '更多'],
+    ].entries())
+      u.button(
+        id + '-open',
+        label + (this.drawer === id ? ' ▴' : ' ▾'),
+        r.x + i * (third + gap),
+        r.y + 104,
+        third,
+        44,
+        this.drawer === id ? 'mint' : 'blue',
+        this.screen !== 'playing',
       );
-    if (l.land)
+    if (this.drawer) this.quickControls(l.drawer, disabled);
+  }
+  quickControls(r: Rect, disabled: boolean) {
+    const u = this.ui,
+      x = r.x + 6,
+      y = r.y + 6,
+      w = r.w - 12,
+      quarter = (w - 18) / 4,
+      third = (w - 12) / 3;
+    u.panel(r.x, r.y, r.w, r.h, '#0c263c', '#284b65', 9);
+    if (this.drawer === 'view') {
+      for (const [i, name] of ['iso', 'top', 'front', 'side'].entries())
+        u.button(
+          'view-' + name,
+          ['立体', '俯视', '正面', '侧面'][i],
+          x + i * (quarter + 6),
+          y,
+          quarter,
+          44,
+          this.viewName === name ? 'mint' : 'blue',
+        );
+      for (const [i, [id, label]] of [
+        ['zoom-out', '− 缩小'],
+        ['fit', Math.round(u.projection.zoom * 100) + '%'],
+        ['zoom-in', '＋ 放大'],
+        ['pan', this.mode === 'pan' ? '平移 ✓' : '平移'],
+      ].entries())
+        u.button(
+          id,
+          label,
+          x + i * (quarter + 6),
+          y + 50,
+          quarter,
+          44,
+          id === 'pan' && this.mode === 'pan' ? 'mint' : 'blue',
+        );
+    } else if (this.drawer === 'layer') {
+      const layer =
+        this.selectedLayer < 0
+          ? Math.max(0, Math.min(...this.state.ghost().map((c) => c[2]), this.state.dims[2] - 1))
+          : Math.min(this.selectedLayer, this.state.dims[2] - 1);
+      const [columns, rows] = this.state.dims,
+        occupied = this.state.board.filter((c) => c.z === layer),
+        cells = new Map(occupied.map((c) => [c.x + ',' + c.y, c.color])),
+        ghosts = new Set(
+          this.state
+            .ghost()
+            .filter((c) => c[2] === layer)
+            .map((c) => c[0] + ',' + c[1]),
+        ),
+        gridW = Math.min(120, w * 0.4),
+        cell = Math.min(gridW / columns, (r.h - 34) / rows),
+        gx = x + (gridW - columns * cell) / 2,
+        gy = y + 22,
+        bx = x + gridW + 8,
+        by = r.h < 150 ? y : gy,
+        bw = (w - gridW - 14) / 2;
       u.text(
-        'game-hint',
-        this.level ? this.level.hint : '填满水平层，消层获得连锁',
-        r.x + r.w / 2,
-        l.y + 65,
-        11,
-        r.w,
+        'layer-info',
+        (r.h < 150 ? layer + 1 + '层·' : '第 ' + (layer + 1) + ' 层 · ') +
+          occupied.length +
+          '/' +
+          columns * rows +
+          (r.h < 150 ? '' : ' 格'),
+        r.h < 150 ? x + gridW / 2 : r.x + r.w / 2,
+        y + 8,
+        12,
+        r.h < 150 ? gridW : w,
+        C.amber,
+      );
+      for (let yy = 0; yy < rows; yy++)
+        for (let xx = 0; xx < columns; xx++) {
+          const key = xx + ',' + yy;
+          u.panel(
+            gx + xx * cell,
+            gy + yy * cell,
+            cell,
+            cell,
+            cells.get(key) || '#173149',
+            ghosts.has(key) ? '#81edce' : '#6b879d',
+            0,
+          );
+        }
+      u.button('layer-down', '− 下层', bx, by, bw, 44, 'blue', layer === 0);
+      u.button(
+        'layer-up',
+        '＋ 上层',
+        bx + bw + 6,
+        by,
+        bw,
+        44,
+        'blue',
+        layer === this.state.dims[2] - 1,
+      );
+      u.button(
+        'layer-slice',
+        this.layerSlice ? '看全层' : '藏上层',
+        bx,
+        by + 50,
+        bw,
+        44,
+        this.layerSlice ? 'mint' : 'blue',
+      );
+      u.button(
+        'layer-auto',
+        bw < 70 ? '跟随' : '跟随落点',
+        bx + bw + 6,
+        by + 50,
+        bw,
+        44,
+        this.selectedLayer < 0 && !this.layerSlice ? 'mint' : 'blue',
+      );
+    } else {
+      const limit = !!this.level && this.state.flipCount >= this.level.maxFlips;
+      u.button(
+        'hold',
+        this.state.held ? '换入' : '暂存',
+        x,
+        y,
+        third,
+        44,
+        'blue',
+        disabled || this.state.holdUsed,
+      );
+      if (this.state.held)
+        u.mini('held', this.state.held.cells, this.state.held.color, x + third - 15, y + 10, 4);
+      u.button('left', '左翻90°', x + third + 6, y, third, 44, 'violet', disabled || limit);
+      u.button('right', '右翻90°', x + 2 * (third + 6), y, third, 44, 'violet', disabled || limit);
+      u.button('invert', '辅助180°', x, y + 50, third, 44, 'violet', disabled || limit);
+      u.text(
+        'tools-tip',
+        '180°辅助不计排行' +
+          (this.level ? '\n重排 ' + this.state.flipCount + '/' + this.level.maxFlips + ' 次' : ''),
+        x + third + 6 + (w - third - 6) / 2,
+        y + 72,
+        12,
+        w - third - 8,
         C.muted,
         4,
-        30,
+        40,
       );
+    }
   }
   overlay() {
     const u = this.ui;
@@ -1749,11 +1827,7 @@ export class Tetracube extends Component {
             ? this.rewardKind === 'revive'
               ? '救援续局'
               : '空间重排'
-            : this.screen === 'tools'
-              ? '观察与工具'
-              : this.screen === 'layer'
-                ? '层面检查'
-                : '玩法说明';
+            : '玩法说明';
     u.text('modal-title', title, u.w / 2, y + 38, 29, w - 20, C.text, 6);
     const button = (id: string, label: string, row: number, tone = 'blue', disabled = false) =>
       u.button(id, label, x + 18, y + row, w - 36, 46, tone, disabled, 5);
@@ -1817,155 +1891,6 @@ export class Tetracube extends Component {
         );
         button('home', '返回首页', start + 208);
       }
-    } else if (this.screen === 'layer') {
-      const layer =
-        this.selectedLayer < 0
-          ? Math.max(0, Math.min(...this.state.ghost().map((c) => c[2]), this.state.dims[2] - 1))
-          : Math.min(this.selectedLayer, this.state.dims[2] - 1);
-      const [columns, rows] = this.state.dims,
-        occupied = this.state.board.filter((c) => c.z === layer);
-      const cells = new Map(occupied.map((c) => [c.x + ',' + c.y, c.color]));
-      const ghosts = new Set(
-        this.state
-          .ghost()
-          .filter((c) => c[2] === layer)
-          .map((c) => c[0] + ',' + c[1]),
-      );
-      const cell = Math.min(28, (w - 56) / columns, (h - 225) / rows),
-        gx = u.w / 2 - (columns * cell) / 2,
-        gy = y + 92;
-      u.text(
-        'inspect-info',
-        '第 ' + (layer + 1) + ' 层 · 已占 ' + occupied.length + ' / ' + columns * rows + ' 格',
-        u.w / 2,
-        y + 69,
-        14,
-        w - 30,
-        C.amber,
-        6,
-      );
-      for (let yy = 0; yy < rows; yy++)
-        for (let xx = 0; xx < columns; xx++) {
-          const key = xx + ',' + yy,
-            fill = cells.get(key);
-          u.panel(
-            gx + xx * cell,
-            gy + yy * cell,
-            cell,
-            cell,
-            fill || '#173149',
-            ghosts.has(key) ? '#81edce' : '#6b879d',
-            0,
-            5,
-          );
-        }
-      u.text(
-        'inspect-tip',
-        '正上方俯视 · 绿色轮廓为当前落点',
-        u.w / 2,
-        y + h - 110,
-        11,
-        w - 30,
-        C.muted,
-        6,
-      );
-      u.button(
-        'layer-down',
-        '− 上一层',
-        x + 18,
-        y + h - 92,
-        (w - 42) / 2,
-        44,
-        'blue',
-        layer === 0,
-        5,
-      );
-      u.button(
-        'layer-up',
-        '＋ 下一层',
-        x + 24 + (w - 42) / 2,
-        y + h - 92,
-        (w - 42) / 2,
-        44,
-        'blue',
-        layer === this.state.dims[2] - 1,
-        5,
-      );
-      // Keep the return action beside the title so the inspection grid owns the height.
-      u.button('tool-back', '×', x + w - 60, y + 14, 44, 44, 'blue', false, 5);
-    } else if (this.screen === 'tools') {
-      const gap = 6,
-        bw = (w - 36 - gap * 2) / 3;
-      for (const [i, [id, label]] of [
-        ['move', '移动方块'],
-        ['observe', '观察旋转'],
-        ['pan', '平移画面'],
-      ].entries())
-        u.button(
-          id,
-          label,
-          x + 18 + i * (bw + gap),
-          y + 74,
-          bw,
-          44,
-          this.mode === id ? 'mint' : 'blue',
-          false,
-          5,
-        );
-      const vw = (w - 36 - 18) / 4;
-      for (const [i, name] of ['iso', 'top', 'front', 'side'].entries())
-        u.button(
-          'view-' + name,
-          ['立体', '俯视', '正面', '侧面'][i],
-          x + 18 + i * (vw + 6),
-          y + 124,
-          vw,
-          44,
-          this.viewName === name ? 'mint' : 'blue',
-          false,
-          5,
-        );
-      u.button(
-        'layer-slice',
-        this.layerSlice ? '完整棋盘' : '隐藏上方层',
-        x + 18,
-        y + 174,
-        (w - 42) / 2,
-        44,
-        this.layerSlice ? 'mint' : 'blue',
-        false,
-        5,
-      );
-      u.button(
-        'layer-auto',
-        '自动跟随落点',
-        x + 24 + (w - 42) / 2,
-        y + 174,
-        (w - 42) / 2,
-        44,
-        'blue',
-        false,
-        5,
-      );
-      const limit = !!this.level && this.state.flipCount >= this.level.maxFlips;
-      for (const [i, [id, label]] of [
-        ['left', '左翻90°'],
-        ['right', '右翻90°'],
-        ['invert', '辅助180°'],
-      ].entries())
-        u.button(id, label, x + 18 + i * (bw + gap), y + 224, bw, 44, 'violet', limit, 5);
-      u.text(
-        'tools-tip',
-        '180°辅助后不计排行榜' +
-          (this.level ? ' · 重排 ' + this.state.flipCount + '/' + this.level.maxFlips + ' 次' : ''),
-        u.w / 2,
-        y + 282,
-        11,
-        w - 30,
-        C.muted,
-        6,
-      );
-      button('tool-back', '返回游戏', h - 62, 'amber');
     } else if (this.screen === 'result') {
       const result = runResult(this.run),
         won = this.run.status === 'won',
@@ -2068,9 +1993,9 @@ export class Tetracube extends Component {
       button('cancel', '取消，返回游戏', h - 70);
     } else {
       const touch =
-        '目标：填满水平层，消除获得连锁。\n关卡需在方块数限制内达到消层目标。\n\n移动模式：拖动当前方块。\n观察模式：抓住方舱，随手旋转。\n双指缩放和平移；百分比一键适配。\n加减选层，层面图显示真实占用。';
+        '目标：填满水平层，消除获得连锁。\n关卡需在方块数限制内达到消层目标。\n\n移动模式：拖动当前方块。\n观察模式：抓住方舱，随手旋转。\n双指缩放和平移；视角内一键适配。\n加减选层，层面图显示真实占用。';
       const keys =
-        '暂存每块一次，落地后恢复。\n工具中可选视角、切层和整舱重排。\n免费旋转的次数随关卡变化。\n\n方向键/WASD移动，空格落下；\nQ/E/R旋转，Shift反转，C暂存；\nG颠倒，P/Esc暂停。';
+        '暂存每块一次，落地后恢复。\n视角、层面、更多点击展开操作。\n免费旋转的次数随关卡变化。\n\n方向键/WASD移动，空格落下；\nQ/E/R旋转，Shift反转，C暂存；\nG颠倒，P/Esc暂停。';
       const contentH = h - 148,
         cy = y + 72 + contentH / 2;
       if (wide) {
@@ -2101,6 +2026,7 @@ export class Tetracube extends Component {
       engine: VERSION,
       ready: this.ready,
       screen: this.screen,
+      drawer: this.drawer,
       game: this.state.getSnapshot(),
       controls: this.ui?.controls.map((c) => ({ ...c })) || [],
       viewport: { width: this.ui?.w, height: this.ui?.h, coordinateSpace: 'css-px' },

@@ -3,7 +3,7 @@
   "name": "空间俄罗斯方块",
   "date": "2026-10-31",
   "creator": "3.8.8",
-  "sourceHash": "f41b255b80ef9c342a0e29d18241f4d5c7aab9507714dd52c17624be5d2181a6",
+  "sourceHash": "012318f9773607c52e99918b36c7ef1ea40b8f28d0430e00cac69a0b21cd386c",
   "environment": "Windows Chromium 156.0.8078.79, real-clock mouse/CDP touch capture; browser simulation, not a physical or native device",
   "specification": "docs/game-publishing.md: user supplied TapTap upload requirements, 2026-10-26/27",
   "imageProcessing": "Built-in imagegen; Lanczos export to exact pixels. Landscape original 1672x941, square and icon originals 1254x1254. No imagegen art is labeled gameplay footage.",
@@ -39,9 +39,9 @@
       "decoded": true
     },
     {
-      "file": "gameplay/screenshots/taptap/01-play-720x1280.png",
-      "bytes": 161756,
-      "sha256": "8923a0b27c87f27fe65ec1655e95394d2a25848f13bbf0124f195e656011c916",
+      "file": "gameplay/screenshots/taptap/01-play-quick-720x1280.png",
+      "bytes": 164521,
+      "sha256": "5dc14b7c9abe0ff83ee527654e16b47d779b22e3dbfc5d762e634968905b5e22",
       "format": "PNG",
       "width": 720,
       "height": 1280,
@@ -49,9 +49,9 @@
       "decoded": true
     },
     {
-      "file": "gameplay/screenshots/taptap/02-observe-720x1280.png",
-      "bytes": 169571,
-      "sha256": "0b07f919c12fa3076da824f8c2a297a6ea81c2340738039e5506f536ffee4848",
+      "file": "gameplay/screenshots/taptap/02-observe-quick-720x1280.png",
+      "bytes": 175432,
+      "sha256": "11c1f5cbced31c69efde20e1d7fb8572dd995426ecb41c55f1b917fea5e217ec",
       "format": "PNG",
       "width": 720,
       "height": 1280,
@@ -59,9 +59,9 @@
       "decoded": true
     },
     {
-      "file": "gameplay/screenshots/taptap/03-layer-720x1280.png",
-      "bytes": 97059,
-      "sha256": "598ae6ac7b77ff39a333af54e9ceac46b05f8bdf1e59670601049788f63a1fd0",
+      "file": "gameplay/screenshots/taptap/03-layer-quick-720x1280.png",
+      "bytes": 151521,
+      "sha256": "60d3d8b5ac91c4ce4fe36d8584a9fbad2e377d2fc3dfcccd9e9390374a1a94df",
       "format": "PNG",
       "width": 720,
       "height": 1280,
@@ -69,9 +69,9 @@
       "decoded": true
     },
     {
-      "file": "gameplay/videos/taptap/gameplay-720x1280.mp4",
-      "bytes": 1598997,
-      "sha256": "5f063c35012f65005aef0dd5499326f9038061fb8b6d169b465ed19a83138038",
+      "file": "gameplay/videos/taptap/gameplay-quick-720x1280.mp4",
+      "bytes": 1227393,
+      "sha256": "e56f8263fedb73947bf6e91500de1aeb399d5fb2ef30a5abcef701cc3f825624",
       "format": "MP4",
       "codec": "h264",
       "width": 720,
@@ -81,21 +81,21 @@
       "decoded": true
     },
     {
-      "file": "promo/videos/taptap/trailer-1280x720.mp4",
-      "bytes": 1160922,
-      "sha256": "b3a00aca9c56294d8cc75d6f6a14cd13f7fb611db7c1a59dc92142341905d9f9",
+      "file": "promo/videos/taptap/trailer-quick-1280x720.mp4",
+      "bytes": 1187538,
+      "sha256": "135b57dbb0fadc8c3b5fcc1b13e48c2f31a76fa8554481f1b0c759a034de0d07",
       "format": "MP4",
       "codec": "h264",
       "width": 1280,
       "height": 720,
-      "durationSeconds": 22.2,
+      "durationSeconds": 24.56,
       "audio": false,
       "decoded": true
     },
     {
       "file": "copy/developer-note.md",
-      "bytes": 720,
-      "sha256": "e3429ec078afbfbb92a3d98d892114135e24fb1896d70add00bd82ea44104ba3"
+      "bytes": 908,
+      "sha256": "da44a3d61c699ec2462dec1e14ab69222e0754194fee34141c2671e1f2c862fa"
     },
     {
       "file": "copy/introduction.md",
