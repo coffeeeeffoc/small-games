@@ -20,6 +20,7 @@ import { Game, type Cell, type MotionEvent, type Vec } from './core/engine.js';
 import { adPolicy, createRewardController, REVIVE_LIMIT } from './core/rewards.js';
 import { createSaveStore } from './core/storage.js';
 import { C, TetracubeView, type Rect } from './TetracubeView';
+import { piecePose, type Turn } from './core/projection.js';
 const { ccclass } = _decorator;
 type Screen = 'home' | 'playing' | 'paused' | 'result' | 'help' | 'reward';
 type RewardKind = 'invert' | 'revive';
@@ -51,6 +52,7 @@ type Press = {
   dx: number;
   dy: number;
   moved: boolean;
+  movedAt: number;
 };
 type Animation = {
   event: MotionEvent;
@@ -59,7 +61,7 @@ type Animation = {
   elapsed: number;
   duration: number;
 };
-type Motion = { from: Vec[]; to: Vec[]; elapsed: number; duration: number };
+type Motion = { event: MotionEvent; elapsed: number; duration: number };
 
 @ccclass('Tetracube')
 export class Tetracube extends Component {
@@ -91,7 +93,7 @@ export class Tetracube extends Component {
   press: Press | null = null;
   touches = new Set<number>();
   animations: Animation[] = [];
-  motion: Motion | null = null;
+  motions: Motion[] = [];
   audio!: AudioSource;
   clips: Record<string, AudioClip> = {};
   unregister: (() => void)[] = [];
@@ -133,7 +135,7 @@ export class Tetracube extends Component {
       document.addEventListener('visibilitychange', this.visibility);
       this.accessibility = document.createElement('div');
       this.accessibility.id = 'tetracube-accessibility';
-      this.accessibility.setAttribute('aria-label', '重力方舱');
+      this.accessibility.setAttribute('aria-label', '空间俄罗斯方块');
       this.accessibility.style.cssText =
         'position:fixed;left:-10000px;width:1px;height:1px;overflow:hidden';
       document.body.append(this.accessibility);
@@ -222,6 +224,7 @@ export class Tetracube extends Component {
     this.ui.pressed = '';
     this.touches.clear();
     this.shift = false;
+    this.ui.projection.stopOrbit();
   };
   suspend = () => {
     this.hidden = true;
@@ -301,7 +304,7 @@ export class Tetracube extends Component {
     this.runStarted = true;
     this.practice = practice;
     this.animations = [];
-    this.motion = null;
+    this.motions = [];
     this.mode = 'move';
     this.tutorialStep = 0;
     this.ui.projection.setView('iso');
@@ -341,13 +344,13 @@ export class Tetracube extends Component {
   }
   consume(dims = [...this.state.dims], board = this.state.board.map((c) => ({ ...c }))) {
     for (const event of this.state.drainEvents()) {
-      if (['move', 'rotate', 'fall'].includes(event.type))
-        this.motion = {
-          from: event.from,
-          to: event.to,
+      if (['move', 'rotate', 'fall'].includes(event.type) && !this.reducedMotion)
+        this.motions.push({
+          event,
           elapsed: 0,
-          duration: this.reducedMotion ? 0.04 : event.type === 'fall' ? 0.16 : 0.1,
-        };
+          duration: event.type === 'rotate' ? 0.16 : 0.1,
+        });
+      else this.motions = [];
       if (['drop', 'flip', 'compact', 'clear', 'revive'].includes(event.type)) {
         if (event.type === 'flip') dims = [...event.beforeDims];
         this.animations.push({
@@ -474,6 +477,10 @@ export class Tetracube extends Component {
     if (id === 'sound' || id === 'motion') {
       if (id === 'sound') this.soundEnabled = !this.soundEnabled;
       else this.reducedMotion = !this.reducedMotion;
+      if (this.reducedMotion) {
+        this.motions = [];
+        this.ui.projection.stopOrbit();
+      }
       try {
         sys.localStorage.setItem(
           'tetracube.settings.v1',
@@ -510,6 +517,7 @@ export class Tetracube extends Component {
     }
     if (id === 'move' || id === 'observe') {
       this.mode = id;
+      this.ui.projection.stopOrbit();
       return;
     }
     if (id.startsWith('rotate-')) {
@@ -529,6 +537,7 @@ export class Tetracube extends Component {
   }
   pressStart(id: number, x: number, y: number) {
     if (this.press || this.hidden) return;
+    this.ui.projection.stopOrbit();
     const hit = this.ui.at(x, y);
     const r = this.layout().scene;
     if (!hit && (this.screen !== 'playing' || x < r.x || y < r.y || x > r.x + r.w || y > r.y + r.h))
@@ -544,6 +553,7 @@ export class Tetracube extends Component {
       dx: 0,
       dy: 0,
       moved: false,
+      movedAt: this.time,
     };
     this.ui.pressed = hit?.id || '';
   }
@@ -561,7 +571,9 @@ export class Tetracube extends Component {
     }
     if (this.screen !== 'playing' || this.hidden) return;
     if (this.mode === 'observe') {
-      this.ui.projection.orbit(dx, dy);
+      this.ui.projection.orbit(dx, dy, this.time - p.movedAt);
+      p.movedAt = this.time;
+      if (this.reducedMotion) this.ui.projection.stopOrbit();
       this.viewName = 'free';
       return;
     }
@@ -586,6 +598,7 @@ export class Tetracube extends Component {
     if (!p || p.id !== id) return;
     this.press = null;
     this.ui.pressed = '';
+    if (p.control || this.time - p.movedAt > 0.08) this.ui.projection.stopOrbit();
     if (p.control && !p.moved && this.ui.at(x, y)?.id === p.control) this.activate(p.control);
   }
   touchStart(e: EventTouch) {
@@ -596,6 +609,7 @@ export class Tetracube extends Component {
     if (this.touches.size > 1) {
       this.press = null;
       this.ui.pressed = '';
+      this.ui.projection.stopOrbit();
       return;
     }
     const p = this.point(e);
@@ -619,6 +633,7 @@ export class Tetracube extends Component {
     if (id !== null) this.touches.delete(id);
     this.press = null;
     this.ui.pressed = '';
+    this.ui.projection.stopOrbit();
   }
   mouseDown(e: EventMouse) {
     if (this.time - this.lastTouch < 0.6 || e.getButton() !== 0) return;
@@ -720,7 +735,7 @@ export class Tetracube extends Component {
     u.begin();
     u.background();
     if (!u.ready) {
-      u.text('loading', u.error || '正在连接重力方舱…', u.w / 2, u.h / 2, 20, u.w - 30);
+      u.text('loading', u.error || '正在连接空间俄罗斯方块…', u.w / 2, u.h / 2, 20, u.w - 30);
       if (u.error) u.button('retry-assets', '重新加载', u.w / 2 - 80, u.h / 2 + 35, 160);
       u.end();
       return;
@@ -781,7 +796,7 @@ export class Tetracube extends Component {
         C.amber,
         [],
       );
-      u.text('title', '重力方舱', mx + mw / 2, l.y + 30, 34, mw);
+      u.text('title', '空间俄罗斯方块', mx + mw / 2, l.y + 30, Math.min(32, mw / 8.6), mw);
       u.text('best', '经典无尽 · 最佳 ' + this.best, mx + mw / 2, l.y + 68, 14, mw, C.amber);
       let row = l.y + 96;
       if (this.runStarted) {
@@ -800,8 +815,8 @@ export class Tetracube extends Component {
       );
       return;
     }
-    u.text('title', '重力方舱', u.w / 2, l.y + 40, Math.min(42, l.w / 8), l.w, C.text);
-    u.text('subtitle', 'T E T R A C U B E', u.w / 2, l.y + 76, 14, l.w, C.mint);
+    u.text('title', '空间俄罗斯方块', u.w / 2, l.y + 40, Math.min(38, l.w / 8.8), l.w, C.text);
+    u.text('subtitle', '立体堆叠 · 旋转消层', u.w / 2, l.y + 76, 14, l.w, C.mint);
     const demo: Cell[] = [];
     for (let z = 0; z < 3; z++)
       for (let x = 2; x < 6; x++)
@@ -865,6 +880,7 @@ export class Tetracube extends Component {
       active = this.state.cells(),
       ghost = this.state.ghost(),
       flip = null;
+    let activeTurn: Turn | null = null;
     const a = this.animations[0];
     if (a) {
       const e = a.event,
@@ -896,14 +912,22 @@ export class Tetracube extends Component {
           removed.has(c.id) ? { ...c, scale: 1 - t, color: t < 0.3 ? '#e6fff5' : c.color } : c,
         );
       }
-    } else if (this.motion && active.length === this.motion.from.length) {
-      const t = Math.min(1, this.motion.elapsed / this.motion.duration),
-        ease = 1 - (1 - t) ** 3;
-      active = this.motion.from.map((v, i) =>
-        v.map((n, k) => n + (this.motion!.to[i][k] - n) * ease),
-      );
+    } else if (this.motions.length) {
+      const motion = this.motions[0];
+      const pose = piecePose(motion.event, motion.elapsed / motion.duration);
+      active = pose.cells;
+      activeTurn = pose.rotation;
     }
-    u.world(scene, dims, board, active, this.state.active?.color || C.amber, ghost, flip);
+    u.world(
+      scene,
+      dims,
+      board,
+      active,
+      this.state.active?.color || C.amber,
+      ghost,
+      flip,
+      activeTurn,
+    );
     const disabled = this.animating || this.screen !== 'playing';
     if (this.mode === 'observe' && this.screen === 'playing') {
       const labels = ['立体', '俯视', '正面', '侧面'];
@@ -1169,6 +1193,11 @@ export class Tetracube extends Component {
       viewport: { width: this.ui?.w, height: this.ui?.h, coordinateSpace: 'css-px' },
       scene: this.ui ? this.layout().scene : null,
       animating: this.animating,
+      motions: this.motions.length,
+      visualPiece: this.motions.length
+        ? piecePose(this.motions[0].event, this.motions[0].elapsed / this.motions[0].duration)
+        : { cells: this.state.cells(), rotation: null },
+      orbitVelocity: this.ui ? { ...this.ui.projection.velocity } : null,
       revivesUsed: this.rewards?.used || 0,
       adsAvailable: adPolicy(this.provider()).invertNeedsAd,
       rewardPending: this.rewards?.pending || false,
@@ -1209,6 +1238,8 @@ export class Tetracube extends Component {
     this.time += Math.min(dt, 0.1);
     if (!this.ui) return;
     if (!this.hidden && this.screen === 'playing') {
+      if (this.mode === 'observe' && !this.press && !this.reducedMotion)
+        this.ui.projection.coast(Math.min(dt, 0.05));
       if (this.animations.length) {
         const a = this.animations[0];
         a.elapsed += Math.min(dt, 0.05);
@@ -1217,9 +1248,14 @@ export class Tetracube extends Component {
           this.settle();
         }
       } else {
-        if (this.motion) {
-          this.motion.elapsed += Math.min(dt, 0.05);
-          if (this.motion.elapsed >= this.motion.duration) this.motion = null;
+        // Catch up rapid taps in order, so successive quarter-turns never reverse direction.
+        let remaining = Math.min(dt, 0.05) * Math.max(1, this.motions.length);
+        while (this.motions.length && remaining > 0) {
+          const motion = this.motions[0];
+          const step = Math.min(remaining, motion.duration - motion.elapsed);
+          motion.elapsed += step;
+          remaining -= step;
+          if (motion.elapsed >= motion.duration) this.motions.shift();
         }
         this.fall += Math.min(dt, 0.05) * 1000;
         if (this.fall >= this.state.fallInterval) {

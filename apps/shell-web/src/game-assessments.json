@@ -846,7 +846,7 @@
     },
     {
       "id": "tetracube",
-      "title": "重力方舱",
+      "title": "空间俄罗斯方块",
       "source": "games/local/tetracube",
       "disposition": "potential",
       "potential": ["fun", "potential"],

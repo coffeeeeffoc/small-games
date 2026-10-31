@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Renderer } from '../src/render.mjs';
+import { Game } from '../src/engine.mjs';
+import { piecePose, rotateVector, cubeFaces } from '../assets/scripts/core/projection.js';
 
 const renderer = (dims = [8, 8, 18]) => {
   const value = new Renderer({ getContext: () => ({}) });
@@ -11,6 +13,76 @@ const renderer = (dims = [8, 8, 18]) => {
   return value;
 };
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+test('all six quarter turns stay rigid and end at the rule result, including wall kicks', () => {
+  let kicked = 0;
+  for (let seed = 1; seed <= 16; seed++)
+    for (const plane of ['XY', 'XZ', 'YZ'])
+      for (const direction of [-1, 1]) {
+        const game = new Game({ seed });
+        while (game.move(0, -1)) {}
+        while (game.move(1, -1)) {}
+        game.drainEvents();
+        if (!game.rotate(plane, direction)) continue;
+        const event = game.drainEvents().find((e) => e.type === 'rotate');
+        if (event.kick.some((n) => n !== 0)) kicked++;
+        for (const progress of [0, 0.2, 0.5, 0.9, 1]) {
+          const pose = piecePose(event, progress);
+          for (let i = 0; i < 4; i++)
+            for (let j = i + 1; j < 4; j++) {
+              const before = Math.hypot(...event.from[i].map((n, a) => n - event.from[j][a]));
+              const during = Math.hypot(...pose.cells[i].map((n, a) => n - pose.cells[j][a]));
+              assert.ok(Math.abs(before - during) < 1e-9, 'no shrinking or stretching');
+            }
+          if (progress === 0 || progress === 1) {
+            const expected = progress === 0 ? event.from : event.to;
+            pose.cells.forEach((cell, i) =>
+              cell.forEach((n, a) => assert.ok(Math.abs(n - expected[i][a]) < 1e-9)),
+            );
+          }
+          assert.ok(Math.abs(Math.hypot(...rotateVector([1, 0, 0], pose.rotation)) - 1) < 1e-9);
+        }
+      }
+  assert.ok(kicked > 0, 'wall kicks exercised');
+});
+
+test('rounded cube patches stay inside the collision cell with unit outward normals', () => {
+  assert.equal(cubeFaces.length, 54);
+  assert.equal(cubeFaces.filter((f) => f.center).length, 6);
+  for (const face of cubeFaces) {
+    assert.ok(Math.abs(Math.hypot(...face.normal) - 1) < 1e-9);
+    assert.ok(face.normal[face.axis] * face.sign > 0);
+    for (const vertex of face.vertices) {
+      assert.ok(vertex.every((n) => Math.abs(n) <= 0.48 + 1e-12));
+      const offset = vertex.map((n) => n - Math.max(-0.34, Math.min(0.34, n)));
+      assert.ok(Math.abs(Math.hypot(...offset) - 0.14) < 1e-9);
+    }
+  }
+});
+
+test('orbit coasts briefly, is frame-rate independent, and cancels on preset or new drag', () => {
+  const a = renderer(),
+    b = renderer();
+  a.orbit(30, 20);
+  b.orbit(30, 20);
+  const release = { ...a.camera };
+  a.coast(0.1);
+  for (let i = 0; i < 10; i++) b.coast(0.01);
+  assert.ok(Math.abs(a.camera.yaw - b.camera.yaw) < 1e-9);
+  assert.ok(a.camera.yaw > release.yaw && a.camera.yaw - release.yaw < 0.28);
+  for (let i = 0; i < 60; i++) a.coast(1 / 60);
+  assert.deepEqual(a.velocity, { x: 0, y: 0 });
+  const stopped = { ...a.camera };
+  a.coast(1);
+  assert.deepEqual(a.camera, stopped);
+  b.stopOrbit();
+  assert.deepEqual(b.velocity, { x: 0, y: 0 });
+  b.orbit(20, 10);
+  b.setView('top');
+  const preset = { ...b.camera };
+  b.coast(1);
+  assert.deepEqual(b.camera, preset);
+});
 
 test('top view separates the same XY position at different heights', () => {
   const view = renderer();

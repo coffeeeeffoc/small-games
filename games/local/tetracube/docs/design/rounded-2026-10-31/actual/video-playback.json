@@ -1,0 +1,21 @@
+{
+  "browser": "156.0.8078.79",
+  "results": [
+    {
+      "file": "publishing/gameplay/videos/taptap/gameplay-720x1280.mp4",
+      "ended": true,
+      "duration": 15.28,
+      "width": 720,
+      "height": 1280,
+      "error": null
+    },
+    {
+      "file": "publishing/promo/videos/taptap/trailer-1280x720.mp4",
+      "ended": true,
+      "duration": 19,
+      "width": 1280,
+      "height": 720,
+      "error": null
+    }
+  ]
+}

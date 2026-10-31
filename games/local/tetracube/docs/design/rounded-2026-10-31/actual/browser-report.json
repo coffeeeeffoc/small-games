@@ -1,0 +1,30 @@
+{
+  "environment": "win32 Chromium real mouse/CDP touch; no physical device or live ad fill",
+  "browser": "156.0.8078.79",
+  "checks": [
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 320x640",
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 390x844",
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 844x390",
+    "flow/spatial-icons/rotation/hold/presets/free-orbit/cancel/drag/drop/orbit-during-invert/save 1280x800",
+    "inversion completed",
+    "inversion dismissed",
+    "inversion unavailable",
+    "inversion failed",
+    "persisted revive quota 0",
+    "persisted revive quota 1",
+    "persisted revive quota 2",
+    "unconfigured result and restart",
+    "late completion after cancellation",
+    "simulated visibility during advertisement completed",
+    "simulated visibility during advertisement failed",
+    "publishing real-input recording 720x1280",
+    "publishing real-input recording 1280x720"
+  ],
+  "errors": [],
+  "recordings": {
+    "720x1280": "reports/video/taptap-720x1280-1793419106061.webm",
+    "1280x720": "reports/video/taptap-1280x720-1793419131622.webm"
+  },
+  "captureClock": "real browser clock for formal media; controlled clock for interaction checks",
+  "sourceHash": "0e0a4a7b1b409a3ce5b859045d1a17820947a9906a53d2071021c9f95bfb60c7"
+}

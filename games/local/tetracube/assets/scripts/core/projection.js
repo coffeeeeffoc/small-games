@@ -1,5 +1,77 @@
 // Original perspective math shared by the Cocos view and regression tests.
 const TAU = Math.PI * 2;
+const planes = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] };
+export function rotateVector(vector, turn) {
+  if (!turn) return [...vector];
+  const [a, b] = planes[turn.plane],
+    c = Math.cos(turn.angle),
+    s = Math.sin(turn.angle);
+  const out = [...vector];
+  out[a] = vector[a] * c + vector[b] * s;
+  out[b] = vector[b] * c - vector[a] * s;
+  return out;
+}
+
+// The centroid follows the wall kick while every cube keeps its rigid distance and orientation.
+export function piecePose(event, progress) {
+  const t = Math.max(0, Math.min(1, progress)),
+    ease = 1 - (1 - t) ** 3;
+  const rotation =
+    event.type === 'rotate'
+      ? { plane: event.plane, angle: ((event.direction * Math.PI) / 2) * ease }
+      : null;
+  const center = (cells) =>
+    [0, 1, 2].map((a) => cells.reduce((sum, v) => sum + v[a], 0) / cells.length);
+  const from = center(event.from),
+    to = center(event.to);
+  return {
+    rotation,
+    cells: event.from.map((v) =>
+      rotateVector(
+        v.map((n, a) => n - from[a]),
+        rotation,
+      ).map((n, a) => n + from[a] + (to[a] - from[a]) * ease),
+    ),
+  };
+}
+
+// Shared, cached rounded-box patches: flat centers, curved edge bands, rounded corners.
+export const cubeFaces = [];
+const stops = [-0.48, -0.34, 0.34, 0.48];
+for (let axis = 0; axis < 3; axis++)
+  for (const sign of [-1, 1]) {
+    const others = [0, 1, 2].filter((a) => a !== axis);
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++) {
+        const vertices = [
+          [i, j],
+          [i + 1, j],
+          [i + 1, j + 1],
+          [i, j + 1],
+        ].map(([u, v]) => {
+          const p = [0, 0, 0];
+          p[axis] = sign * 0.48;
+          p[others[0]] = stops[u];
+          p[others[1]] = stops[v];
+          const inner = p.map((n) => Math.max(-0.34, Math.min(0.34, n)));
+          const delta = p.map((n, a) => n - inner[a]),
+            length = Math.hypot(...delta);
+          return inner.map((n, a) => n + (delta[a] / length) * 0.14);
+        });
+        const a = vertices[1].map((n, k) => n - vertices[0][k]);
+        const b = vertices[3].map((n, k) => n - vertices[0][k]);
+        const cross = [
+          a[1] * b[2] - a[2] * b[1],
+          a[2] * b[0] - a[0] * b[2],
+          a[0] * b[1] - a[1] * b[0],
+        ];
+        const length = Math.hypot(...cross),
+          outward = Math.sign(cross[axis]) * sign;
+        const normal = cross.map((n) => (n / length) * outward);
+        cubeFaces.push({ axis, sign, vertices, normal, center: i === 1 && j === 1 });
+      }
+  }
+
 export class Projection {
   constructor() {
     this.camera = { yaw: Math.PI / 4, pitch: 0.5 };
@@ -11,8 +83,10 @@ export class Projection {
     this.distance = 24;
     this.centerX = 160;
     this.centerY = 200;
+    this.velocity = { x: 0, y: 0 };
   }
   setView(view) {
+    this.stopOrbit();
     // A slightly offset eye keeps stacked cells apart, including the center column.
     if (view === 'top') this.camera = { yaw: 0.38, pitch: 1.28 };
     else if (view === 'front') this.camera = { yaw: 0, pitch: 0.16 };
@@ -20,10 +94,28 @@ export class Projection {
     else this.camera = { yaw: Math.PI / 4, pitch: 0.5 };
   }
 
-  orbit(dx, dy) {
+  orbit(dx, dy, seconds = 1 / 60) {
     this.camera.yaw = (this.camera.yaw + dx * 0.008) % TAU;
     // Cross the poles continuously: no direction becomes blocked at a preset or limit.
     this.camera.pitch = (this.camera.pitch + dy * 0.006) % TAU;
+    const dt = Math.max(1 / 120, seconds);
+    this.velocity = {
+      x: Math.max(-480, Math.min(480, dx / dt)),
+      y: Math.max(-480, Math.min(480, dy / dt)),
+    };
+  }
+
+  stopOrbit() {
+    this.velocity = { x: 0, y: 0 };
+  }
+
+  coast(seconds) {
+    const decay = Math.exp(-14 * seconds);
+    this.camera.yaw = (this.camera.yaw + ((this.velocity.x * (1 - decay)) / 14) * 0.008) % TAU;
+    this.camera.pitch = (this.camera.pitch + ((this.velocity.y * (1 - decay)) / 14) * 0.006) % TAU;
+    this.velocity.x *= decay;
+    this.velocity.y *= decay;
+    if (Math.hypot(this.velocity.x, this.velocity.y) < 1) this.stopOrbit();
   }
 
   // Intersect screen rays with the grabbed cell's horizontal plane. Perspective

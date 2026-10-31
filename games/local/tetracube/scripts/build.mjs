@@ -75,7 +75,7 @@ if (target === 'web-mobile' && process.env.TETRACUBE_PREBUILT_DIR) {
   const out = path.join(root, 'build', target);
   let html = await readFile(path.join(out, 'index.html'), 'utf8');
   html = html
-    .replace(/<title>.*?<\/title>/, '<title>重力方舱 · Tetracube</title>')
+    .replace(/<title>.*?<\/title>/, '<title>空间俄罗斯方块 · Tetracube</title>')
     .replace(/<meta name="(?:full-screen|x5-fullscreen|360-fullscreen)"[^>]*>/g, '')
     .replace('minimal-ui=true', 'viewport-fit=cover')
     .replace(

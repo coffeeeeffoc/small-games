@@ -50,4 +50,4 @@ server.on('error', (error) => {
   console.error(error.message);
   process.exitCode = 1;
 });
-server.listen(port, host, () => console.log(`重力方舱 http://${host}:${port}/`));
+server.listen(port, host, () => console.log(`空间俄罗斯方块 http://${host}:${port}/`));

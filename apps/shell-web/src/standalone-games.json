@@ -247,7 +247,7 @@
   {
     "id": "tetracube",
     "source": "games/local/tetracube",
-    "title": "重力方舱",
+    "title": "空间俄罗斯方块",
     "description": "拖动并三轴旋转四连立方体，填满水平层；翻转 8×8×18 方舱，让方块重新下落，创造连锁消除。",
     "output": "dist"
   },

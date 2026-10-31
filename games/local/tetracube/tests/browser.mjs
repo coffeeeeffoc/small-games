@@ -6,7 +6,7 @@ import { chromium } from '@playwright/test';
 import { Game } from '../src/engine.mjs';
 const publish = process.env.TETRACUBE_CAPTURE === '1';
 const root = fileURLToPath(new URL('../', import.meta.url)),
-  out = root + (publish ? 'docs/design/cocos-2026-10-23/actual/' : 'reports/browser/');
+  out = root + (publish ? 'docs/design/rounded-2026-10-31/actual/' : 'reports/browser/');
 await mkdir(out, { recursive: true });
 if (publish) await mkdir(root + 'publishing/gameplay/screenshots', { recursive: true });
 const server = spawn(process.execPath, ['server.mjs', '--dist', '--port', '4189'], {
@@ -28,6 +28,7 @@ const report = {
   browser: browser.version(),
   checks: [],
   errors: [],
+  recordings: {},
 };
 const snap = (p) => p.evaluate(() => globalThis.__tetracube?.snapshot());
 const phase = (p, s) =>
@@ -191,7 +192,7 @@ async function open({ width = 390, height = 844, mobile = true, save, ad, video 
     { save, ad },
   );
   const page = await context.newPage();
-  await page.clock.install();
+  if (!video) await page.clock.install();
   page.on('pageerror', (e) => report.errors.push(e.message));
   await page.goto('http://127.0.0.1:4189/');
   await page.locator('body[data-tetracube-ready="true"]').waitFor({ timeout: 60000 });
@@ -209,7 +210,7 @@ try {
       width,
       height,
       mobile,
-      video: publish && width === 390,
+      video: false,
     });
     try {
       await fits(p);
@@ -224,11 +225,38 @@ try {
       await fits(p);
       await capture(p, 'play-' + width);
       const before = await snap(p);
+      await p.clock.pauseAt(new Date(await p.evaluate(() => Date.now() + 50)));
       await press(p, 'rotate-XY-plus', mobile);
+      await p.clock.runFor(80);
       assert.notDeepEqual((await snap(p)).game.active.cells, before.game.active.cells, 'rotation');
+      const rotating = await snap(p);
+      assert(
+        rotating.visualPiece.rotation?.angle > 0,
+        'quarter turn is visible between endpoints: ' +
+          JSON.stringify({
+            motions: rotating.motions,
+            pose: rotating.visualPiece,
+            screen: rotating.screen,
+          }),
+      );
+      assert(rotating.visualPiece.rotation.angle < Math.PI / 2, 'rotation has not snapped');
+      await press(p, 'rotate-XZ-plus', mobile);
+      await press(p, 'rotate-YZ-minus', mobile);
+      assert((await snap(p)).motions >= 2, 'rapid axes keep ordered visual turns');
       const holdBefore = (await snap(p)).game.active.id;
       await press(p, 'hold', mobile);
       assert.equal((await snap(p)).game.held.id, holdBefore);
+      assert.equal((await snap(p)).motions, 0, 'hold discards outgoing piece animation');
+      await press(p, 'rotate-XY-plus', mobile);
+      await press(p, 'rotate-XY-plus', mobile);
+      await press(p, 'rotate-XY-plus', mobile);
+      await p.clock.runFor(650);
+      assert.equal((await snap(p)).motions, 0, 'rapid turns catch up without blocking input');
+      assert.deepEqual(
+        (await snap(p)).visualPiece.cells,
+        new Game().restore((await snap(p)).game).cells(),
+      );
+      await p.clock.resume();
       await press(p, 'observe', mobile);
       for (const preset of ['iso', 'top', 'front', 'side']) {
         await press(p, 'view-' + preset, mobile);
@@ -244,7 +272,13 @@ try {
       await capture(p, 'observe-' + width);
       const released = await snap(p);
       await p.mouse.move(20, 200);
-      assert.deepEqual((await snap(p)).camera, released.camera, 'release stops dragging');
+      await p.waitForTimeout(650);
+      const stopped = await snap(p);
+      assert.deepEqual(stopped.orbitVelocity, { x: 0, y: 0 }, 'release coasts to a bounded stop');
+      assert(Math.abs(stopped.camera.yaw - released.camera.yaw) < 0.3, 'coast remains short');
+      await p.mouse.move(30, 200);
+      await p.waitForTimeout(60);
+      assert.deepEqual((await snap(p)).camera, stopped.camera, 'unpressed pointer cannot drag');
       if (mobile) {
         await dragScene(p, context, true, -40, -32, true);
         const cancelled = await snap(p);
@@ -258,7 +292,7 @@ try {
         assertOrbit(cancelled, await snap(p));
       }
       if (width === 390) {
-        const camera = (await snap(p)).camera;
+        let camera;
         const cdp = await context.newCDPSession(p);
         try {
           const first = { id: 1, x: 130, y: 300 },
@@ -276,8 +310,10 @@ try {
             ['touchEnd', [{ ...first, x: 150 }]],
             ['touchMove', [{ ...first, x: 180 }]],
             ['touchEnd', []],
-          ])
+          ]) {
             await cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+            if (!camera) camera = (await snap(p)).camera;
+          }
           assert.deepEqual(
             (await snap(p)).camera,
             camera,
@@ -341,9 +377,10 @@ try {
       await idle(p);
       assert.equal((await snap(p)).game.flipCount, 1);
       assert.equal((await snap(p)).screen, 'playing');
-      const pausedCamera = (await snap(p)).camera;
       await press(p, 'pause', mobile);
       await phase(p, 'paused');
+      const pausedCamera = (await snap(p)).camera;
+      assert.deepEqual((await snap(p)).orbitVelocity, { x: 0, y: 0 }, 'pause cancels inertia');
       // Use an unobstructed scene point; a stale drag must not survive the menu.
       await p.mouse.move(12, 150);
       await p.mouse.down();
@@ -368,8 +405,6 @@ try {
           await p.waitForTimeout(500);
         }
         await capture(p, 'stack-390');
-        if (publish)
-          await p.screenshot({ path: root + 'publishing/gameplay/screenshots/play-390x844.png' });
       }
       if ((await snap(p)).screen === 'playing') await press(p, 'pause', mobile);
       await press(p, 'home', mobile);
@@ -385,12 +420,7 @@ try {
           height,
       );
     } finally {
-      const video = p.video();
       await context.close();
-      if (width === 390 && video) {
-        await mkdir(root + 'publishing/gameplay/videos', { recursive: true });
-        await video.saveAs(root + 'publishing/gameplay/videos/real-play-390x844.webm');
-      }
     }
   }
   for (const status of ['completed', 'dismissed', 'unavailable', 'failed']) {
@@ -495,6 +525,75 @@ try {
       report.checks.push('simulated visibility during advertisement ' + status);
     } finally {
       await context.close();
+    }
+  }
+  if (publish) {
+    for (const [width, height] of [
+      [720, 1280],
+      [1280, 720],
+    ]) {
+      const { page: p, context } = await open({ width, height, video: true });
+      const size = width + 'x' + height;
+      try {
+        await p.screenshot({
+          path: out + 'home-' + size + '.png',
+        });
+        await p.waitForTimeout(1800);
+        await press(p, 'start');
+        await p.waitForTimeout(1500);
+        for (const plane of ['XY', 'XZ', 'YZ', 'XY']) {
+          await press(p, 'rotate-' + plane + '-plus');
+          await p.waitForTimeout(400);
+          await press(p, 'drop');
+          await idle(p);
+          await p.waitForTimeout(900);
+        }
+        await p.screenshot({
+          path: out + 'play-' + size + '.png',
+        });
+        if (width === 720)
+          await p.screenshot({
+            path: root + 'publishing/gameplay/screenshots/taptap/01-play-720x1280.png',
+          });
+        await press(p, 'observe');
+        await dragScene(p, context, true, 65, 36);
+        await p.waitForTimeout(1200);
+        if (width === 720)
+          await p.screenshot({
+            path: root + 'publishing/gameplay/screenshots/taptap/02-observe-720x1280.png',
+          });
+        await press(p, 'view-iso');
+        await press(p, 'left');
+        await idle(p);
+        await p.waitForTimeout(1600);
+        if (width === 720)
+          await p.screenshot({
+            path: root + 'publishing/gameplay/screenshots/taptap/03-flipped-720x1280.png',
+          });
+        else {
+          await dragScene(p, context, true, -140, 60);
+          await p.waitForTimeout(1000);
+          await press(p, 'invert');
+          await idle(p);
+          await p.waitForTimeout(1500);
+          await press(p, 'view-top');
+          await p.waitForTimeout(1500);
+        }
+        await press(p, 'pause');
+        await p.screenshot({
+          path: out + 'paused-' + size + '.png',
+        });
+        await p.waitForTimeout(1600);
+        await press(p, 'resume');
+        await p.waitForTimeout(1800);
+        report.checks.push('publishing real-input recording ' + size);
+      } finally {
+        const video = p.video();
+        await context.close();
+        const recording = 'reports/video/taptap-' + size + '-' + Date.now() + '.webm';
+        await video.saveAs(root + recording);
+        report.recordings[size] = recording;
+      }
     }
   }
   assert.deepEqual(report.errors, []);

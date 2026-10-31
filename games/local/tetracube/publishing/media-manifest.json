@@ -1,60 +1,111 @@
 {
   "gameId": "tetracube",
-  "version": "2.0.0",
+  "name": "空间俄罗斯方块",
+  "date": "2026-10-31",
   "creator": "3.8.8",
-  "sourceHash": "77e1c1b642a9383ae3f835f8fd070bba92f9b2bef2a438d194e78939d1e84c1c",
-  "date": "2026-10-25",
-  "environment": "Linux Chromium 140.0.7339.186, mobile viewport; verified Windows Creator 3.8.8 artifact; not native device",
+  "sourceHash": "0e0a4a7b1b409a3ce5b859045d1a17820947a9906a53d2071021c9f95bfb60c7",
+  "environment": "Windows Chromium 156.0.8078.79, real-clock mouse/CDP touch capture; browser simulation, not a physical or native device",
+  "specification": "docs/game-publishing.md: user supplied TapTap upload requirements, 2026-10-26/27",
+  "imageProcessing": "Built-in imagegen; Lanczos export to exact pixels. Landscape original 1672x941, square and icon originals 1254x1254. No imagegen art is labeled gameplay footage.",
   "files": [
     {
+      "file": "icon/taptap/icon-1024.png",
+      "bytes": 1560927,
+      "sha256": "e177b67915c780c044ae76a3282665cf4d56a76493cb24e67cb57b2607e3b531",
+      "format": "PNG",
+      "width": 1024,
+      "height": 1024,
+      "colorType": 2,
+      "decoded": true
+    },
+    {
+      "file": "promo/images/taptap/cover-landscape-1920x1080.png",
+      "bytes": 2454352,
+      "sha256": "8db5705a35fc2d49837cdc9c2d21b73aa3c3f8cffc1fb57c8059e13840859ac1",
+      "format": "PNG",
+      "width": 1920,
+      "height": 1080,
+      "colorType": 2,
+      "decoded": true
+    },
+    {
+      "file": "promo/images/taptap/cover-square-1440x1440.png",
+      "bytes": 2776699,
+      "sha256": "bb13f19aea5726c88ea187e2ea87761de6843bf298ac8fc57a8f851d31241db3",
+      "format": "PNG",
+      "width": 1440,
+      "height": 1440,
+      "colorType": 2,
+      "decoded": true
+    },
+    {
+      "file": "gameplay/screenshots/taptap/01-play-720x1280.png",
+      "bytes": 646611,
+      "sha256": "4f45b8e4509dcb96846199c05128d7994e452496fae7d076542f1529d63b0b27",
+      "format": "PNG",
+      "width": 720,
+      "height": 1280,
+      "colorType": 2,
+      "decoded": true
+    },
+    {
+      "file": "gameplay/screenshots/taptap/02-observe-720x1280.png",
+      "bytes": 637376,
+      "sha256": "7900987ca18be33b7c9a29c1723664522043dccd33f5e3a0a341314d2bff48f2",
+      "format": "PNG",
+      "width": 720,
+      "height": 1280,
+      "colorType": 2,
+      "decoded": true
+    },
+    {
+      "file": "gameplay/screenshots/taptap/03-flipped-720x1280.png",
+      "bytes": 652869,
+      "sha256": "540ba1d29b45ba34f61d188d277ded2806d18513187c519acf3ab0e5fc4be56c",
+      "format": "PNG",
+      "width": 720,
+      "height": 1280,
+      "colorType": 2,
+      "decoded": true
+    },
+    {
+      "file": "gameplay/videos/taptap/gameplay-720x1280.mp4",
+      "bytes": 1374301,
+      "sha256": "0fcdc284e69654615c8aa2a74a4d017d96b8a96943006de4f505902e37d8e425",
+      "format": "MP4",
+      "codec": "h264",
+      "width": 720,
+      "height": 1280,
+      "durationSeconds": 15.28,
+      "audio": false,
+      "decoded": true
+    },
+    {
+      "file": "promo/videos/taptap/trailer-1280x720.mp4",
+      "bytes": 1912617,
+      "sha256": "0a8fa444991785af7ff5a7b229e196fe661772361e96e4ccf90dd5ce91486e7d",
+      "format": "MP4",
+      "codec": "h264",
+      "width": 1280,
+      "height": 720,
+      "durationSeconds": 19.0,
+      "audio": false,
+      "decoded": true
+    },
+    {
       "file": "copy/developer-note.md",
-      "bytes": 410,
-      "sha256": "d5807a66e14ade5932df6be9eb2c3bbc57573ce6476d3ae10a3c8f9963397866"
+      "bytes": 493,
+      "sha256": "315691724d2947ff79ea37354ffd588c2c69c0695540fdd7e3a2b5bda6d5a94c"
     },
     {
       "file": "copy/introduction.md",
-      "bytes": 374,
-      "sha256": "0729cc4f64b646bdfe5c2d110e0448205780aa78bcf99d53529b625c3b3b5316"
+      "bytes": 392,
+      "sha256": "ec332dc77d2c4f4ea9e32931d07bfcf7f9a25a6b6abd2cba8d78c6b219a01863"
     },
     {
       "file": "copy/tagline.md",
-      "bytes": 61,
-      "sha256": "46f3f1d2eb8f3e9558f65e6eff01510bec33055ef748e4815291cbfff0a59327"
-    },
-    {
-      "file": "icon/tetracube.png",
-      "bytes": 2080265,
-      "sha256": "edba747fb3bb59bb6322156c51a5d9273f5ebac87006e784754105f0f863b3ae"
-    },
-    {
-      "file": "gameplay/screenshots/home-390x844.png",
-      "bytes": 262186,
-      "sha256": "c8efd0a3e366a87c551eb23c63e1b1d53f82c343b76d0549e6bbe37c808d8a26"
-    },
-    {
-      "file": "gameplay/screenshots/paused-390x844.png",
-      "bytes": 106834,
-      "sha256": "d517e9225aa7b7713a9f95b65713604b53a3c4b8691aa746d1fffbbb825b5a09"
-    },
-    {
-      "file": "gameplay/screenshots/play-390x844.png",
-      "bytes": 266314,
-      "sha256": "eb47e253a0b42acdbeb17c7a2c1d39fd0820aa770b2124fa3c94621b8f8d8303"
-    },
-    {
-      "file": "gameplay/videos/real-play-390x844.webm",
-      "bytes": 1885674,
-      "sha256": "b89db0773c33336ad4cbabee0f546e6688b74a1b00bc1bf56554ee747eba8630"
-    },
-    {
-      "file": "promo/images/tetracube-home-390x844.png",
-      "bytes": 262186,
-      "sha256": "c8efd0a3e366a87c551eb23c63e1b1d53f82c343b76d0549e6bbe37c808d8a26"
-    },
-    {
-      "file": "promo/videos/tetracube-preview-390x844.mp4",
-      "bytes": 524656,
-      "sha256": "8a14840e771a8438f534fb4d2bd9e84c7a5631e9314e223e532e781dc08370dc"
+      "bytes": 62,
+      "sha256": "0c24af28a375f8f483cbe15d5b3c30cfc2c947d2a3440121674f8ee9844febef"
     }
   ]
 }

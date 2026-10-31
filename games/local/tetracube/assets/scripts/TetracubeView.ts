@@ -15,7 +15,7 @@ import {
   resources,
   view,
 } from 'cc';
-import { Projection, type Point } from './core/projection.js';
+import { Projection, cubeFaces, rotateVector, type Point, type Turn } from './core/projection.js';
 import type { Cell, Vec } from './core/engine.js';
 
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -30,8 +30,8 @@ export const C = {
   violet: '#bc9cf5',
 };
 const color = (hex: string) => new Color().fromHEX(hex);
-const shade = (hex: string, brightness: number, alpha = 255) => {
-  const c = color(hex);
+const shade = (hex: string | Color, brightness: number, alpha = 255) => {
+  const c = typeof hex === 'string' ? color(hex) : hex;
   return new Color(
     Math.min(255, c.r * brightness),
     Math.min(255, c.g * brightness),
@@ -39,6 +39,7 @@ const shade = (hex: string, brightness: number, alpha = 255) => {
     alpha,
   );
 };
+const lighting = (normal: Vec) => 0.84 + normal[0] * 0.1 + normal[1] * 0.06 + normal[2] * 0.24;
 const faces = [
   {
     axis: 0,
@@ -376,9 +377,7 @@ export class TetracubeView {
       y: cy + (a + b) * scale * 0.4 - c * scale,
     });
     const axes = { XY: [0, 1], XZ: [0, 2], YZ: [1, 2] }[plane];
-    const tint = disabled
-      ? '#69778b'
-      : { XY: C.mint, XZ: '#8ccaff', YZ: '#efc18a' }[plane];
+    const tint = disabled ? '#69778b' : { XY: C.mint, XZ: '#8ccaff', YZ: '#efc18a' }[plane];
     const corners = Array.from({ length: 8 }, (_, i) =>
       [0, 1, 2].map((axis) => ((i >> axis) & 1) * 2 - 1),
     );
@@ -445,11 +444,11 @@ export class TetracubeView {
       y: y + (v[0] + v[1]) * scale * 0.4 - v[2] * scale,
     });
     for (const cell of [...cells].sort((a, b) => a[0] + a[1] + a[2] - (b[0] + b[1] + b[2]))) {
-      for (const f of faces.filter((f) => f.sign === 1))
+      for (const f of cubeFaces.filter((f) => f.normal.reduce((a, b) => a + b, 0) > 0.001))
         this.polygon(
-          f.v.map((v) => p(v.map((n, a) => n + cell[a] - center[a] - 0.5))),
-          shade(fill, f.light),
-          '#e4ffff99',
+          f.vertices.map((v) => p(v.map((n, a) => n + cell[a] - center[a]))),
+          shade(fill, lighting(f.normal)),
+          '',
           0.8,
           3,
         );
@@ -463,6 +462,7 @@ export class TetracubeView {
     activeColor: string,
     ghost: Vec[],
     flip: { axis: number; angle: number } | null = null,
+    activeTurn: Turn | null = null,
   ) {
     const p = this.projection;
     p.dims = dims;
@@ -521,34 +521,68 @@ export class TetracubeView {
       active: boolean;
     };
     const polygons: Face[] = [];
-    const occupied = new Set(board.map((c) => `${c.x},${c.y},${c.z}`));
+    const occupied = new Set(
+      board.filter((c) => (c.scale ?? 1) >= 1).map((c) => `${c.x},${c.y},${c.z}`),
+    );
+    const dir = p._direction();
     const add = (cells: Cell[], isActive = false, isGhost = false) => {
-      for (const cell of cells)
-        for (const f of faces) {
-          const normal = p._normal(f.axis, f.sign),
-            dir = p._direction();
-          if (normal.reduce((sum, n, a) => sum + n * dir[a], 0) <= 0.001) continue;
-          const neighbor = [cell.x, cell.y, cell.z];
-          neighbor[f.axis] += f.sign;
-          if (!isActive && !isGhost && occupied.has(neighbor.join(','))) continue;
+      const turn = isActive ? activeTurn : null;
+      const surfaces = (
+        isGhost
+          ? faces.map((face) => ({
+              ...face,
+              center: true,
+              vertices: face.v.map((v) => v.map((n) => n - 0.5)),
+              normal: [0, 1, 2].map((a) => (a === face.axis ? face.sign : 0)),
+            }))
+          : cubeFaces
+      )
+        .map((face) => {
+          const normal = p._rotate(rotateVector(face.normal, turn));
+          return {
+            ...face,
+            normal,
+            light: lighting(normal),
+            vertices: face.vertices.map((v) => rotateVector(v, turn)),
+            occluders: face.normal.flatMap((n, a) =>
+              Math.abs(n) > 0.001 ? [a * 2 + (n > 0 ? 1 : 0)] : [],
+            ),
+          };
+        })
+        .filter((face) => face.normal.reduce((sum, n, a) => sum + n * dir[a], 0) > 0.001);
+      for (const cell of cells) {
+        const neighbors =
+          !isActive && !isGhost
+            ? faces.map((face) => {
+                const neighbor = [cell.x, cell.y, cell.z];
+                neighbor[face.axis] += face.sign;
+                return occupied.has(neighbor.join(','));
+              })
+            : null;
+        if (neighbors?.every(Boolean)) continue;
+        const baseColor = color(cell.color);
+        for (const f of surfaces) {
+          // An edge stays visible unless neighbors hide every direction of its normal.
+          if (neighbors && f.occluders.every((index) => neighbors[index])) continue;
           const s = cell.scale ?? 1;
-          const vertices = f.v.map((v) =>
-            project(v.map((n, a) => [cell.x, cell.y, cell.z][a] + 0.5 + (n - 0.5) * s)),
+          const vertices = f.vertices.map((v) =>
+            project(v.map((n, a) => [cell.x, cell.y, cell.z][a] + 0.5 + n * s)),
           );
           polygons.push({
             points: vertices,
             depth: vertices.reduce((sum, v) => sum + v.depth, 0) / 4,
             fill: shade(
-              cell.color,
-              f.light * (0.82 + (0.18 * (cell.z + 1)) / h),
+              baseColor,
+              f.light * (isActive ? 1.06 : 0.96 + (0.04 * (cell.z + 1)) / h),
               isGhost ? 12 : 255,
             ),
             ghost: isGhost,
-            top: f.axis === 2 && f.sign === 1,
+            top: f.center && f.axis === 2 && f.sign === 1,
             cell,
             active: isActive,
           });
         }
+      }
     };
     add(board);
     add(
@@ -563,12 +597,7 @@ export class TetracubeView {
     polygons.sort((a, b) => a.depth - b.depth);
     const visibleTop = new Map<string, Face>();
     for (const f of polygons) {
-      this.polygon(
-        f.points,
-        f.fill,
-        f.ghost ? '' : f.active ? '#fff5cf' : '#d8ecffb0',
-        f.active ? 1.7 : 0.8,
-      );
+      this.polygon(f.points, f.fill, '', 0);
       if (f.ghost) {
         for (let i = 0; i < 4; i++) {
           const a = f.points[i],
