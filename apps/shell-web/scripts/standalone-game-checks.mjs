@@ -1093,6 +1093,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
         timeout: 60000,
       })
       .toBe('loaded');
+    await expect(frame.locator('#night-startup')).toHaveCount(0, { timeout: 60000 });
     const press = async (id) => {
       const buttons = await gameDocument.evaluate(() => globalThis.__night.snapshot().buttons);
       if (!buttons.some((b) => b.id === id) && buttons.some((b) => b.id === 'flightControls'))
@@ -1100,7 +1101,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
       await expect
         .poll(() =>
           gameDocument.evaluate(
-            (id) => globalThis.__night.snapshot().buttons.some((b) => b.id === id),
+            (id) => globalThis.__night.snapshot().buttons.some((b) => b.id === id && !b.disabled),
             id,
           ),
         )
@@ -1133,15 +1134,28 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
           ),
       );
     };
-    await press('missions');
+    await press('armory:base');
+    await expect
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().armory.page))
+      .toBe('base');
+    await press('armory:solo');
+    await expect
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().armory.page))
+      .toBe('loadout');
+    await press('armory:next');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
       .toBe('missions');
     await press('homeMenu');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
-      .toBe('home');
-    await press('missions');
+      .toBe('armory:loadout');
+    await expect
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().armory.page))
+      .toBe('loadout');
+    await press('armory:base');
+    await press('armory:solo');
+    await press('armory:next');
     await press('training');
     await press('start');
     await expect

@@ -154,6 +154,48 @@ test('Night armory and room integration from the saved CI/Pages base retains act
   }
 });
 
+test('Night armory entry checks retain Night and Shell and reject other shared gameplay edits', () => {
+  const file = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+  const source = 'games/local/night-overwatch';
+  const read = (name) => readFileSync(new URL('../' + name, import.meta.url), 'utf8');
+  const before = execFileSync('git', ['show', '425d2851ba4659cc868bd887469ed39746c4adc4:' + file], {
+    encoding: 'utf8',
+  });
+  const after = read(file);
+  const options = {
+    changedPaths: [file],
+    games: [{ id: 'night-overwatch', source }],
+    packages: [source, 'apps/shell-web'].map((dir) => ({
+      dir,
+      ...JSON.parse(read(dir + '/package.json')),
+    })),
+    readBase: () => before,
+    readHead: (name) => (name === file ? after : read(name)),
+  };
+  const scopes = reviewedSharedFileScopes(options);
+  assert.deepEqual(scopes.get(file), [source, 'apps/shell-web']);
+  const plan = incrementalPlan({ ...options, fileScopes: scopes, readSource: read });
+  assert(plan.browser_ids.includes('night-overwatch'));
+  for (const changed of [
+    after + '\n',
+    after.replace("id === 'carding-car'", "id === 'other-game'"),
+  ])
+    assert(
+      !reviewedSharedFileScopes({
+        ...options,
+        readHead: (name) => (name === file ? changed : read(name)),
+      }).has(file),
+    );
+  assert(!reviewedSharedFileScopes({ ...options, readBase: () => before + '\n' }).has(file));
+  assert(!reviewedSharedFileScopes({ ...options, games: [] }).has(file));
+  assert(
+    !reviewedSharedFileScopes({
+      ...options,
+      packages: options.packages.filter((pkg) => pkg.dir !== 'apps/shell-web'),
+    }).has(file),
+  );
+});
+
 test('Night service cache inputs retain the game consumer and reject unrelated Turbo changes', () => {
   const after = JSON.parse(readFileSync(new URL('../turbo.json', import.meta.url), 'utf8'));
   const before = structuredClone(after);

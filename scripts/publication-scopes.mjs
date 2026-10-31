@@ -5602,6 +5602,22 @@ export function reviewedSharedFileScopes({
         scopes.set(file, ['games/local/three-choose-two', 'services/runtime-api']);
       } else if (
         file === standaloneChecksFile &&
+        createHash('sha256').update(readBase(file).replaceAll('\r\n', '\n')).digest('hex') ===
+          '95cf0e066977513328a0d9fbcc250d31ffb1939e1e85734ac06a8646832d307c' &&
+        createHash('sha256').update(readHead(file).replaceAll('\r\n', '\n')).digest('hex') ===
+          'ec7c00b895cf233344e40b9e6bfe71537d507408e42b32ac83600500f6c5ec97'
+      ) {
+        const source = 'games/local/night-overwatch';
+        assert.equal(
+          games.filter((game) => game.id === 'night-overwatch' || game.source === source).length,
+          1,
+        );
+        assert(games.some((game) => game.id === 'night-overwatch' && game.source === source));
+        for (const dir of [source, 'apps/shell-web'])
+          assert.equal(packages.filter((pkg) => pkg.dir === dir).length, 1);
+        scopes.set(file, [source, 'apps/shell-web']);
+      } else if (
+        file === standaloneChecksFile &&
         exactHomeboundReadyGuard(readBase(file), readHead(file))
       ) {
         assert(
