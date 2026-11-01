@@ -22,3 +22,6 @@ reports/browser-results.json
 /reports/2026-10-24-flow/*.webm
 /reports/2026-10-24-sync/*.webm
 /reports/2026-10-28-visual-rebuild/**/*.webm
+/reports/2026-11-01-lifecycle/
+/reports/2026-11-01-live/
+/reports/2026-11-01-progression/
