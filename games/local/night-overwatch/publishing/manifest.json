@@ -1,5 +1,5 @@
 {
-  "sourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
+  "sourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
   "verified": "2026-11-01",
   "previousDelivery": "manifest-2026-10-30-taptap-login.json",
   "environment": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified",
@@ -8,7 +8,7 @@
       "path": "copy/introduction.md",
       "bytes": 1634,
       "sha256": "ef202ac65611056fbc9f7aac0d1db5a35e020d01acfe578332c38a90177c6c4d",
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
       "reusedUnchanged": true,
       "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
     },
@@ -16,7 +16,7 @@
       "path": "copy/tagline.md",
       "bytes": 68,
       "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
@@ -24,7 +24,7 @@
       "path": "copy/developer-note.md",
       "bytes": 995,
       "sha256": "cd26226cec2b0a19ee066ad511e5cc1c927e0600320ec303462fab8b72bb3d8d",
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
       "reusedUnchanged": true,
       "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
     },
@@ -35,7 +35,7 @@
       "width": 1024,
       "height": 1024,
       "hasAlpha": false,
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
@@ -46,7 +46,7 @@
       "width": 1920,
       "height": 1080,
       "hasAlpha": false,
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
@@ -57,7 +57,7 @@
       "width": 1440,
       "height": 1440,
       "hasAlpha": false,
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
@@ -68,8 +68,8 @@
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
+      "reusedUnchanged": true,
       "capturedSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
       "fixture": false,
       "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
@@ -81,8 +81,8 @@
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
+      "reusedUnchanged": true,
       "capturedSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
       "fixture": false,
       "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
@@ -94,8 +94,8 @@
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
+      "reusedUnchanged": true,
       "capturedSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
       "fixture": false,
       "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
@@ -107,8 +107,8 @@
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
+      "reusedUnchanged": true,
       "capturedSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
       "fixture": false,
       "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
@@ -120,8 +120,8 @@
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
+      "reusedUnchanged": true,
       "capturedSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
       "fixture": false,
       "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
@@ -130,8 +130,8 @@
       "path": "gameplay/videos/progression-2026-11-01-1280x720-silent.mp4",
       "bytes": 5324225,
       "sha256": "6bae74ca0960e944dac89f6b27a270cbc9f4027e871ac7416cd5ca5c86f3ea2e",
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
+      "reusedUnchanged": true,
       "capturedSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
       "fixture": false,
       "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified",
@@ -147,8 +147,8 @@
       "path": "promo/videos/progression-2026-11-01-1280x720-silent.mp4",
       "bytes": 2701199,
       "sha256": "3493235c5beebcf206aa1af80fa84978711233c3fcd5e2d61fd7ce133472636e",
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
+      "reusedUnchanged": true,
       "fixture": false,
       "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified",
       "width": 1280,
@@ -164,11 +164,12 @@
       "path": "promo/videos/progression-2026-11-01-edit.json",
       "bytes": 1248,
       "sha256": "2a6fbd428f1df5a3ec95dd76308f63569c09b47a5a0cbe80aa87fde651a3d18c",
-      "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "7ad4ecae1d9c3b14cc6826291e10ed3d6c718ed4aa850bafe70717fe6f771e3d",
+      "reusedUnchanged": true,
       "fixture": false,
       "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified",
       "capturedSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088"
     }
-  ]
+  ],
+  "verificationNote": "Only artifact.mjs text line-ending normalization changed after the interaction acceptance; runtime sources and media bytes unchanged. Original capturedSourceHash retained."
 }

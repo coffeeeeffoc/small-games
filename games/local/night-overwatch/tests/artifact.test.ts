@@ -32,11 +32,18 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     const modelScript = path.join(game, 'scripts/model-aircraft.py');
     const radioScript = path.join(game, 'scripts/generate-radio.ps1');
     const surfaceEffect = path.join(game, 'assets/terrain-surface.effect');
+    const fontLicense = path.join(game, 'assets/OFL.txt');
+    await writeFile(fontLicense, 'SIL OPEN FONT LICENSE\nVersion 1.1\n');
     await writeFile(surfaceEffect, 'CCEffect %{\n  techniques: []\n}%\n');
     await writeFile(modelScript, 'print("aircraft")\n');
     await writeFile(radioScript, 'Write-Output "radio"\n');
     await writeFile(script, 'const active = true;\n');
     const hash = await sourceHash(game);
+    await writeFile(fontLicense, 'SIL OPEN FONT LICENSE\r\nVersion 1.1\r\n');
+    assert.equal(await sourceHash(game), hash, 'Font licenses must hash identically across Windows producer and Linux consumer');
+    await writeFile(fontLicense, 'Changed license\n');
+    assert.notEqual(await sourceHash(game), hash, 'License content changes must invalidate the artifact');
+    await writeFile(fontLicense, 'SIL OPEN FONT LICENSE\nVersion 1.1\n');
     await writeFile(surfaceEffect, 'CCEffect %{\r\n  techniques: []\r\n}%\r\n');
     assert.equal(await sourceHash(game), hash, 'Creator effect text must hash identically on Windows and Unix');
     await writeFile(surfaceEffect, 'CCEffect %{\n  techniques: [changed]\n}%\n');
