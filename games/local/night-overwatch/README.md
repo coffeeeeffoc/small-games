@@ -131,6 +131,8 @@ node tests/flight-browser.mjs
 
 [当前视觉与交互规范](docs/design/interface.md) · [设计及概念图索引](docs/design/README.md) · [八类资料与验证状态](publishing/STATUS.md)。
 
+2026-11-01 [三轮交互审查](docs/interaction-audit-2026-11-01.md)：修复翻页选择错位、保存槽位顺序、确认返回与交易文案，补齐改装拖动交换、双方案草稿提示及断网保存保留请求退出。`tests/interaction-audit-browser.mjs` 覆盖三尺寸真实引擎操作，证据中的测试资产与正式游客媒体分别记录。
+
 2026-10-25 [首页、手册与即时设置设计](docs/design/2026-10-25-settings-home-guide.md)：首页使用独立夜航封面；点击选择任务后再展示关卡与场景预览；手册分层展示操作、绑定和完整说明，固定导航与返回。设置验收：设置上述构建环境变量后执行 `node tests/settings-browser.mjs`，在弹窗打开期间检查真实投影变化及战斗冻结。当时暂停配置使用v6；本轮四武器、巡逻与计时统一升级为 `night-input-replay-v7`，旧版本输入不能混用。
 
 界面回归入口：设置 `NIGHT_URL` 与 `NIGHT_EXPECTED_SOURCE_HASH`，运行 `node tests/ui-style-browser.mjs`（布局、皮肤、按下与拖出取消）和 `node tests/ui-input-browser.mjs`（输入框、键盘缩屏、战况与实际操作）。设置 `NIGHT_REPORT_URL` 为新的 `file:///.../` 目录以保留旧证据；结算修改追加 `NIGHT_STYLE_REVIEW=1 node tests/finish-browser.mjs`。实际打开各尺寸截图对照设计，测试通过不等于视觉达标。 本次大改另以 `node tests/visual-rebuild-browser.mjs` 验证真实单人/人机胜利、三尺寸结算及四尺寸光照；`node tests/lobby-visual-browser.mjs` 需设置隔离本地 `NIGHT_LOBBY_URL`，检查有房间大厅与加入/离开。当前结果见[视觉重做验证](docs/verification-2026-10-28-visual-rebuild.md)。

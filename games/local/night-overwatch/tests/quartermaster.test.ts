@@ -77,6 +77,26 @@ test('available equipment excludes inactive time vouchers and already-equipped e
   online.assets.active.rate=online.assets.serverNow+1000;assert(q.availableGear.some(p=>p.id==='rate-24h'));
 });
 
+test('moving mods swaps or fills slots without purchases; confirmed retry normalizes empty positions',async()=>{
+  const {q,online,calls}=setup();q.syncIdentity();
+  q.moveMod('mod:0','mod:1');assert.deepEqual(q.loadout.mods,['twin-match','burst-match']);assert.equal(q.slot,'mod:1');assert(q.dirty);
+  q.moveMod('mod:1','weapon');assert.deepEqual(q.loadout.mods,['twin-match','burst-match']);assert.equal(calls.length,0);
+  q.mode='duel';q.equip('power-permanent','mod:0');q.moveMod('mod:0','mod:1');assert.equal(q.modSlots[0],null);assert.equal(q.modSlots[1],'power-permanent');assert.deepEqual(q.dirtyModes,['solo','duel']);
+  online.assetCommand=async(command:any)=>{calls.push(command);throw Error('lost');};await q.save();const id=q.pending!.requestId;
+  q.moveMod('mod:1','mod:0');assert.equal(q.modSlots[1],'power-permanent');
+  q.page='loadout';q.requestLeave('');assert.equal(q.leaveTo,'');assert.equal(q.page,'loadout');q.discard();assert(q.dirty);assert.equal(q.pending!.requestId,id);
+  q.leavePending();assert.equal(q.page,'');assert.equal(calls.length,1);assert(q.dirty);assert.equal(q.pending!.requestId,id);q.page='loadout';
+  online.assetCommand=async(command:any)=>{calls.push(command);online.assets.loadouts[command.mode]=command.loadout;return online.assets;};await q.execute();
+  assert.equal(calls[1].requestId,id);assert.deepEqual(q.modSlots,['power-permanent']);assert.equal(q.slot,'mod:0');assert(!q.dirty);assert.deepEqual(q.dirtyModes,['solo']);
+});
+
+test('warehouse loadout entry selects the matching equipment or next empty compatible slot',()=>{
+  const {q}=setup();q.syncIdentity();q.item='emp-match';q.selectInventorySlot();assert.equal(q.slot,'skill');
+  q.item='twin-match';q.selectInventorySlot();assert.equal(q.slot,'mod:1');
+  q.unequip();q.item='power-permanent';q.selectInventorySlot();assert.equal(q.slot,'mod:1');
+  q.item='laser-match';q.selectInventorySlot();assert.equal(q.slot,'weapon');
+});
+
 test('multi-crate opening retries the same failed transaction and never reopens the completed group',async()=>{
   const {q,online,calls}=setup();q.syncIdentity();q.gift={packs:{'pack:general:0':2,'pack:gold:3':1},drops:[],opened:false};let lose=true;
   online.assetCommand=async(command:any)=>{calls.push({...command});if(command.item==='pack:gold:3'&&lose){lose=false;throw Error('lost reply');}return {...online.assets,lastReceipt:{kind:'open',requestId:command.requestId,drops:command.item==='pack:general:0'?[{coins:10},{item:'power-match'}]:[{item:'burst-match'}]}};};

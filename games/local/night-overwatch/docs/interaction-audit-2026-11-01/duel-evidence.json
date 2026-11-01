@@ -1,0 +1,66 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088"
+  },
+  "fixture": false,
+  "developmentAssets": true,
+  "checks": [
+    "Two authenticated human-player clients receive each other’s independent server loadout; no bot or asset fixture",
+    "Double burst × twin trajectory fires four shots, spends four rounds, and opponent observes the selected weapon and remaining ammunition",
+    "Opponent EMP changes from active to cooldown while the equipment view stays open; weapon switch to laser and battle time update live"
+  ],
+  "screens": [
+    {
+      "name": "both-loadouts-1280",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "both-loadouts-800",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "opponent-emp-active",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "opponent-laser-cooldown",
+      "width": 1280,
+      "height": 720
+    }
+  ],
+  "errors": [],
+  "players": [
+    "90d575ee-4eef-461f-a5eb-189d3f186e5b",
+    "b75c502d-0300-4e15-99c7-68b25f86c955"
+  ],
+  "final": {
+    "a": {
+      "level": 1,
+      "effects": [
+        "burst",
+        "twin",
+        "drone",
+        "tracking"
+      ],
+      "skipped": [],
+      "version": "night-growth-v1"
+    },
+    "b": {
+      "level": 1,
+      "effects": [
+        "power",
+        "rate",
+        "laser",
+        "emp"
+      ],
+      "skipped": [],
+      "version": "night-growth-v1"
+    },
+    "ammo": 41
+  }
+}

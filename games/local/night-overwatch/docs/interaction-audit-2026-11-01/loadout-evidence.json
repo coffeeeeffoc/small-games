@@ -1,0 +1,201 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088"
+  },
+  "fixture": true,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "shots": 4,
+      "draft": true,
+      "drag": true,
+      "cancel": true,
+      "scroll": true,
+      "gifts": true,
+      "reload": true
+    },
+    {
+      "width": 800,
+      "height": 366,
+      "touch": true,
+      "shots": 4,
+      "draft": true,
+      "drag": true,
+      "cancel": true,
+      "scroll": true,
+      "gifts": true,
+      "reload": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "shots": 4,
+      "draft": true,
+      "drag": true,
+      "cancel": true,
+      "scroll": true,
+      "gifts": true,
+      "reload": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "touch": false,
+      "shots": 4,
+      "draft": true,
+      "drag": true,
+      "cancel": false,
+      "scroll": true,
+      "gifts": true,
+      "reload": true
+    }
+  ],
+  "screens": [
+    {
+      "name": "home-coins",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "loadout",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "selected-scroll",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "gift-detail",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "gift-opened",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "battle-equipment",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "duel-equipment",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "home-coins",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "loadout",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "selected-scroll",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "gift-detail",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "gift-opened",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "battle-equipment",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "duel-equipment",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "home-coins",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "loadout",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "selected-scroll",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "gift-detail",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "gift-opened",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "battle-equipment",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "duel-equipment",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "home-coins",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "loadout",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "selected-scroll",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "gift-detail",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "gift-opened",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "battle-equipment",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "duel-equipment",
+      "width": 1280,
+      "height": 720
+    }
+  ],
+  "errors": []
+}

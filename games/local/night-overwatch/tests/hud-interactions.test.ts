@@ -1194,12 +1194,23 @@ test('warehouse identifies terms and pool tiers; inbox cannot claim a selection 
   q.page='warehouse';q.item='power-24h';hud.update(sim,world);
   assert(hud.buttons.find((b:any)=>b.id==='qm:activate')?.disabled);
   assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('24小时')));
-  q.item='pack:general:3';q.revision++;hud.update(sim,world);
+  q.item='pack:general:3';q.index=Math.floor(q.inventory.findIndex(([id])=>id===q.item)/3);q.revision++;hud.update(sim,world);
   assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('通用 · 史诗')));
   q.page='inbox';q.index=1;q.selectedMail='mail-0';q.revision++;hud.update(sim,world);
   assert(!hud.buttons.some((b:any)=>b.id==='qm:claimMail'));
   q.selectedMail='mail-2';q.revision++;hud.update(sim,world);
   assert(hud.buttons.some((b:any)=>b.id==='qm:claimMail'));
+});
+
+test('warehouse confirmation keeps the intended item and quantity when resizing changes the visible page',()=>{
+  Object.assign(frame,{width:1280,height:720});inset=0;
+  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+  online.assets=assetFixture();hud.online=online;const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
+  q.page='warehouse';q.index=1;hud.update(sim,world);q.amount=3;q.confirmation={kind:'sell',item:q.item,quantity:q.amount};q.revision++;hud.update(sim,world);
+  const before=hud.modal.getComponentsInChildren(cc.Label).find((l:any)=>l.string.includes('总计 ')).string;
+  Object.assign(frame,{width:568,height:320});hud.resize();q.revision++;hud.update(sim,world);
+  const after=hud.modal.getComponentsInChildren(cc.Label).find((l:any)=>l.string.includes('总计 ')).string;
+  assert.equal(after,before);assert(after.includes('×3'));assert.notEqual(q.item,q.confirmation.item);assert.equal(q.amount,1);
 });
 
 test('disabled active and cooling skills block battlefield input while special weapons remain separate',()=>{

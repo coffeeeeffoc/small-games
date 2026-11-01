@@ -24,7 +24,7 @@ export class Quartermaster {
   loadoutArea={x:0,y:0,w:0,h:0};
   drafts:Partial<Record<'solo'|'duel',Loadout>>={}; private modDrafts:Partial<Record<'solo'|'duel',Array<string|null>>>={}; leaveTo?:ProgressionPage;
   gift?:{packs:Record<string,number>;drops:Array<{item?:string;coins?:number}>;opened:boolean};
-  drag?:{item:string;x:number;y:number};
+  drag?:{item:string;x:number;y:number;target?:LoadoutSlot};
   private openingGift=false;
   busy=false; viewing=false; revision=0; message:[string,string]=['','']; pending?:AssetCommand;
   private owner=''; private disposed=false; private online:Online; private storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>;
@@ -35,18 +35,37 @@ export class Quartermaster {
   get pools(){return this.assets?.pools||POOLS;}
   sellPrice(id:string){const pack=/^pack:(general|gold):[0-3]$/.exec(id);return pack?this.pools[pack[1] as 'general'|'gold'].packSell:this.catalog.find(p=>p.id===id)?.sell??(id.startsWith('legacy')?20:0);}
   get loadout(){return this.drafts[this.mode]||this.assets?.loadouts[this.mode]||emptyLoadout();}
-  get dirty(){return JSON.stringify(this.loadout)!==JSON.stringify(this.assets?.loadouts[this.mode]||emptyLoadout());}
-  get anyDirty(){return (['solo','duel'] as const).some(mode=>this.drafts[mode]&&JSON.stringify(this.drafts[mode])!==JSON.stringify(this.assets?.loadouts[mode]||emptyLoadout()));}
+  get dirty(){return this.dirtyModes.includes(this.mode);}
+  get dirtyModes(){return (['solo','duel'] as const).filter(mode=>{
+    const saved=this.assets?.loadouts[mode]||emptyLoadout(),slots=this.modDrafts[mode];
+    return this.drafts[mode]&&(JSON.stringify(this.drafts[mode])!==JSON.stringify(saved)||slots&&[0,1].some(i=>(slots[i]??null)!==(saved.mods[i]??null)));
+  });}
+  get anyDirty(){return this.dirtyModes.length>0;}
   get slotCategory(){return this.slot.startsWith('mod:')?'mod':this.slot as 'weapon'|'skill';}
   get modSlots(){return this.modDrafts[this.mode]||this.loadout.mods;}
   get slotItem(){return this.slotCategory==='mod'?this.modSlots[Number(this.slot.slice(-1))]:this.loadout[this.slotCategory];}
   get availableGear(){return this.catalog.filter(p=>p.category===this.slotCategory&&(this.assets?.permanent.includes(p.effect)?p.term==='permanent':(this.assets?.active[p.effect]??0)>(this.assets?.serverNow??Date.now())?p.term==='24h':p.term==='match'&&(this.assets?.available[p.id]??0)>0));}
   equipped(effect:Effect){return [...this.loadout.mods,this.loadout.weapon,this.loadout.skill].some(id=>this.catalog.find(p=>p.id===id)?.effect===effect);}
   selectSlot(slot:LoadoutSlot){this.slot=slot;this.loadoutScroll=0;this.revision++;}
+  selectInventorySlot(){
+    const product=this.catalog.find(p=>p.id===this.item);if(!product)return;
+    const index=this.modSlots.findIndex(id=>this.catalog.find(p=>p.id===id)?.effect===product.effect);
+    this.selectSlot(product.category==='mod'?`mod:${index>=0?index:!this.modSlots[0]?0:!this.modSlots[1]?1:0}` as LoadoutSlot:product.category);
+  }
+  moveMod(from:LoadoutSlot,to:LoadoutSlot){
+    this.syncIdentity();if(this.busy||this.pending||from===to||!from.startsWith('mod:')||!to.startsWith('mod:'))return;
+    const slots=[...this.modSlots],a=Number(from.slice(-1)),b=Number(to.slice(-1));if(!slots[a])return;
+    [slots[a],slots[b]]=[slots[b]??null,slots[a]];
+    this.modDrafts[this.mode]=slots;this.drafts[this.mode]={...this.loadout,mods:slots.filter((id):id is string=>!!id)};this.slot=to;
+    this.message=['方案尚未保存，请点击确定保存','Unsaved changes. Confirm to save.'];this.revision++;
+  }
   scrollLoadout(amount:number){this.loadoutScroll=Math.max(0,Math.min(this.loadoutScrollMax,this.loadoutScroll+amount));this.revision++;}
-  requestLeave(page:ProgressionPage){if(this.page==='loadout'&&this.anyDirty){this.leaveTo=page;this.revision++;return;}this.show(page);}
-  discard(){this.drafts={};this.modDrafts={};const page=this.leaveTo;this.leaveTo=undefined;this.show(page??'');}
-  async save(){this.syncIdentity();const mode=this.mode,loadout=structuredClone(this.loadout);const result=await this.execute({kind:'loadout',mode,loadout});if(result){delete this.drafts[mode];this.revision++;}return result;}
+  requestLeave(page:ProgressionPage){
+    if(this.page==='loadout'&&(this.anyDirty||this.pending?.kind==='loadout')){this.leaveTo=page;this.revision++;return;}this.show(page);
+  }
+  leavePending(){if(this.pending?.kind==='loadout'&&this.leaveTo!==undefined)this.show(this.leaveTo);}
+  discard(){if(this.pending?.kind==='loadout'){this.requestLeave(this.leaveTo??'');return;}this.drafts={};this.modDrafts={};const page=this.leaveTo;this.leaveTo=undefined;this.show(page??'');}
+  async save(){this.syncIdentity();return this.execute({kind:'loadout',mode:this.mode,loadout:structuredClone(this.loadout)});}
   async openGifts(){
     this.syncIdentity();
     const gift=this.gift,owner=this.owner;if(!gift||this.busy||this.openingGift)return;
@@ -115,7 +134,12 @@ export class Quartermaster {
       this.pending=undefined;try{this.storage.removeItem(this.key());}catch{/* Replaying this accepted ID is safe. */}
       this.message=command.kind==='loadout'?['已保存 · 以后每场自动应用','Saved · applied automatically next match']:
         command.kind==='read-mail'?['','']:['操作成功，资产已同步','Completed. Assets synchronized.'];
-      if(command.kind==='loadout')delete this.drafts[command.mode];
+      if(command.kind==='loadout'){
+        const selected=this.mode===command.mode?this.slotItem:undefined;
+        delete this.drafts[command.mode];delete this.modDrafts[command.mode];
+        // The server stores mods in order without empty placeholders; show that same order immediately.
+        if(selected&&this.mode===command.mode&&this.slotCategory==='mod'){const index=snapshot.loadouts[command.mode].mods.indexOf(selected);if(index>=0)this.slot=`mod:${index}` as LoadoutSlot;}
+      }
       const receipt=snapshot.lastReceipt;
       const reward=receipt?.reward as {packs?:number}|undefined;
       const packs=receipt?.packs as Record<string,number>|undefined;

@@ -1,0 +1,105 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a"
+  },
+  "fixture": true,
+  "phase": "baseline",
+  "checks": [
+    {
+      "name": "shop pagination keeps preview and purchase on current page",
+      "width": 1280,
+      "pass": false,
+      "detail": {
+        "visible": [
+          "power-match",
+          "rate-match",
+          "radius-match",
+          "cooling-match"
+        ],
+        "bought": "burst-match"
+      }
+    },
+    {
+      "name": "warehouse pagination keeps selection and sale on current page",
+      "width": 1280,
+      "pass": false,
+      "detail": {
+        "visible": [
+          "twin-match",
+          "twin-24h",
+          "radius-match",
+          "radius-24h",
+          "cooling-match",
+          "cooling-24h"
+        ],
+        "sold": "power-match"
+      }
+    },
+    {
+      "name": "escape dismisses only the sale confirmation",
+      "width": 1280,
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "confirmed slot order matches reload",
+      "width": 1280,
+      "pass": false,
+      "detail": {
+        "before": [
+          "＋ 选择装配",
+          "威力增益"
+        ],
+        "after": [
+          "威力增益",
+          "＋ 选择装配"
+        ]
+      }
+    }
+  ],
+  "screens": [
+    {
+      "name": "shop-page",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "loadout-order",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "modes",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "growth",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "tasks",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "inbox",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "checkin",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "supply",
+      "width": 1280,
+      "height": 720
+    }
+  ],
+  "errors": []
+}

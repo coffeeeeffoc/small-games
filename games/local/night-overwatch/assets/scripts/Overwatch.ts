@@ -47,7 +47,7 @@ export class Overwatch extends Component {
   touches = new Map<number, TouchRole>();
   keys = new Set<number>();
   mouseButton = '';
-  private loadoutGesture?:{pointer:number|'mouse';item?:string;x:number;y:number;lastY:number;mode:'pending'|'scroll'|'drag'};
+  private loadoutGesture?:{pointer:number|'mouse';item?:string;source?:LoadoutSlot;x:number;y:number;lastY:number;mode:'pending'|'scroll'|'drag'};
   accumulator = 0;
   lastEvent = 0;
   frameCount = 0;
@@ -450,9 +450,15 @@ export class Overwatch extends Component {
     this.clear();this.hud.modalKey='rebuild';const [group,...rest]=id.split(':'),value=rest.join(':');
     if(group==='qm'){
       const pages=['modes','loadout','shop','supply','growth','tasks','inbox','warehouse','receipts','checkin','probability'];
-      if(pages.includes(value)){if(value==='loadout'&&q.page==='modes')q.mode=q.actionMode==='duel'?'duel':'solo';this.online?.show('');this.hud.missionsOpen=false;q.requestLeave(value as ProgressionPage);return true;}
+      if(pages.includes(value)){if(value==='loadout'&&q.page==='modes')q.mode=q.actionMode==='duel'?'duel':'solo';if(value==='loadout'&&q.page==='warehouse')q.selectInventorySlot();this.online?.show('');this.hud.missionsOpen=false;q.requestLeave(value as ProgressionPage);return true;}
       if(value==='home'){q.requestLeave('');return true;}
-      if(value==='back'){if(q.gift){q.gift=undefined;q.revision++;}else q.requestLeave(q.page==='receipts'?'warehouse':'');return true;}
+      if(value==='back'){
+        if(q.confirmation)q.confirmation=undefined;
+        else if(q.leaveTo!==undefined)q.leaveTo=undefined;
+        else if(q.gift){if(!q.busy)q.gift=undefined;}
+        else q.requestLeave(q.page==='receipts'?'warehouse':'');
+        q.revision++;return true;
+      }
       if(value==='announcements'){q.show('inbox');q.section='news';return true;}
       if(value==='refresh'){void q.refresh();return true;}
       if(value==='retry'){void q.execute();return true;}
@@ -467,6 +473,7 @@ export class Overwatch extends Component {
       if(value==='unequip')q.unequip();
       if(value==='keepEditing')q.leaveTo=undefined;
       if(value==='discard')q.discard();
+      if(value==='leavePending')q.leavePending();
       if(value==='giftOpen')void q.openGifts();
       if(value==='giftClose')q.gift=undefined;
       if(value==='giftWarehouse'){q.gift=undefined;q.show('warehouse');}
@@ -822,24 +829,32 @@ export class Overwatch extends Component {
     this.sim.setAim(p);
   }
   private beginLoadoutGesture(pointer:number|'mouse',x:number,y:number){
-    const q=this.quartermaster;if(!q||q.page!=='loadout'||q.gift||q.leaveTo!==undefined||q.confirmation||q.busy||this.loadoutGesture)return false;
-    const a=q.loadoutArea;if(x<a.x||x>a.x+a.w||y<a.y||y>a.y+a.h)return false;
-    const button=this.hud.hit(x,y),item=button&&/^(gear|equip):/.test(button.id)?button.id.slice(button.id.indexOf(':')+1):undefined;
-    this.loadoutGesture={pointer,item,x,y,lastY:y,mode:'pending'};return true;
+    const q=this.quartermaster;if(!q||q.page!=='loadout'||q.gift||q.leaveTo!==undefined||q.confirmation||q.busy||q.pending||this.loadoutGesture)return false;
+    const button=this.hud.hit(x,y),source=button?.id.startsWith('slot:')?button.id.slice(5) as LoadoutSlot:undefined,a=q.loadoutArea;
+    if(!source&&(x<a.x||x>a.x+a.w||y<a.y||y>a.y+a.h))return false;
+    const item=source?(source.startsWith('mod:')?q.modSlots[Number(source.slice(-1))]:q.loadout[source as 'weapon'|'skill'])||undefined:button&&/^(gear|equip):/.test(button.id)?button.id.slice(button.id.indexOf(':')+1):undefined;
+    this.loadoutGesture={pointer,item,source,x,y,lastY:y,mode:'pending'};return true;
   }
   private moveLoadoutGesture(pointer:number|'mouse',x:number,y:number){
     const gesture=this.loadoutGesture,q=this.quartermaster;if(!gesture||gesture.pointer!==pointer||!q)return false;
     const dx=x-gesture.x,dy=y-gesture.y;
-    if(gesture.mode==='pending'&&Math.max(Math.abs(dx),Math.abs(dy))>8)gesture.mode=gesture.item&&Math.abs(dx)>Math.abs(dy)?'drag':'scroll';
-    if(gesture.mode==='scroll')q.scrollLoadout(gesture.lastY-y);
-    if(gesture.mode==='drag'&&gesture.item){q.drag={item:gesture.item,x,y};q.revision++;}
+    if(gesture.mode==='pending'&&Math.max(Math.abs(dx),Math.abs(dy))>8)gesture.mode=gesture.item&&(gesture.source||Math.abs(dx)>Math.abs(dy))?'drag':'scroll';
+    if(gesture.mode==='scroll'&&!gesture.source)q.scrollLoadout(gesture.lastY-y);
+    if(gesture.mode==='drag'&&gesture.item){
+      const hit=this.hud.hit(x,y),slot=hit?.id.startsWith('slot:')?hit.id.slice(5) as LoadoutSlot:undefined,category=q.catalog.find(p=>p.id===gesture.item)?.category;
+      const target=slot&&(slot.startsWith('mod:')?'mod':slot)===category?slot:undefined;
+      q.drag={item:gesture.item,x,y,target};q.revision++;
+    }
     gesture.lastY=y;return true;
   }
   private endLoadoutGesture(pointer:number|'mouse',x:number,y:number){
     const gesture=this.loadoutGesture,q=this.quartermaster;if(!gesture||gesture.pointer!==pointer||!q)return false;
     this.loadoutGesture=undefined;q.drag=undefined;
     const target=this.hud.hit(x,y);
-    if(gesture.item&&gesture.mode==='drag'&&target?.id.startsWith('slot:'))q.equip(gesture.item,target.id.slice(5) as LoadoutSlot);
+    if(gesture.item&&gesture.mode==='drag'&&target?.id.startsWith('slot:')){
+      const slot=target.id.slice(5) as LoadoutSlot;if(gesture.source)q.moveMod(gesture.source,slot);else q.equip(gesture.item,slot);
+    }
+    else if(gesture.source&&gesture.mode==='pending'&&target?.id==='slot:'+gesture.source)q.selectSlot(gesture.source);
     else if(gesture.item&&gesture.mode==='pending'&&target?.id.endsWith(':'+gesture.item))q.equip(gesture.item);
     q.revision++;return true;
   }
@@ -1060,8 +1075,9 @@ export class Overwatch extends Component {
     this.keys.add(e.keyCode);
     this.hud.touch = false;
     this.platform.activate();
+    if(this.quartermaster?.page&&(['help','settings','mission'] as const).some(reason=>this.sim.pauses.has(reason))){if(e.keyCode===27)this.action('close');this.keys.add(e.keyCode);return;}
     if(this.hud.equipmentOpen&&e.keyCode===27){this.action('equipmentClose');return;}
-    if(this.quartermaster?.page){if(e.keyCode===27)this.action('qm:back');else if(e.keyCode===13&&this.quartermaster.page==='modes')this.action('mode:enter');return;}
+    if(this.quartermaster?.page){if(e.keyCode===27)this.action('qm:back');else if(e.keyCode===13&&this.quartermaster.page==='modes')this.action('mode:enter');this.keys.add(e.keyCode);return;}
     if (this.online?.panel || this.online?.entering) { if (e.keyCode === 27) this.action('online:back'); return; }
     if (e.keyCode === 27 && ['help', 'settings', 'mission', 'advert', 'supply'].some((reason) => this.sim.pauses.has(reason as PauseReason))) {
       this.action('close');

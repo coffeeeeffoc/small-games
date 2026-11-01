@@ -80,6 +80,15 @@ test('keyboard fire is blocked by battle reports and settings', () => {
   assert.equal(g.sim.fired, 0); g.platform.dispose();
 });
 
+test('quartermaster Escape respects the foreground settings and suppresses held-key repeats',()=>{
+  const g=mission();g.quartermaster={page:'warehouse',confirmation:{kind:'sell',item:'burst-match',quantity:1},revision:0,requestLeave(page:string){this.page=page;}};
+  g.keyDown({keyCode:27});g.keyDown({keyCode:27});assert.equal(g.quartermaster.confirmation,undefined);assert.equal(g.quartermaster.page,'warehouse');g.keyUp({keyCode:27});
+  g.quartermaster.confirmation={kind:'sell',item:'burst-match',quantity:1};g.sim.pause('settings',true);
+  g.keyDown({keyCode:27});g.keyDown({keyCode:27});assert(!g.sim.pauses.has('settings'));assert.equal(g.quartermaster.page,'warehouse');assert(g.quartermaster.confirmation);g.keyUp({keyCode:27});
+  g.platform.touchInput=false;g.sim.pause('settings',true);g.hud.hit=()=>({id:'close'});
+  const mouse={getUILocation:()=>({x:10,y:10}),getButton:()=>0};g.mouseDown(mouse);assert.equal(g.mouseButton,'close');g.mouseUp(mouse);assert(!g.sim.pauses.has('settings'));assert(g.quartermaster.confirmation);g.platform.dispose();
+});
+
 test('a new campaign can start while the previous recorder handshake is pending', async () => {
   const g = mission(), requests: (() => void)[] = []; g.hud.t = (text: string) => text;
   g.online = { leave() {}, startRanking: () => new Promise<void>(resolve => requests.push(resolve)), recorder: { record() {}, invalidate() {} } };

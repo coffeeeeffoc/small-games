@@ -1,13 +1,13 @@
 {
   "source": "reports/2026-11-01-loadout-live/source.webm",
-  "sourceSha256": "1265227bf343ca75493d1094eedf229cad2204620790278af9336d6d1f901dc4",
-  "capturedSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
-  "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
+  "sourceSha256": "fe40c2bfd676a06d956deb373a62f338830709c6b7c29fd978dc838d23117d8d",
+  "capturedSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
+  "verifiedForSourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088",
   "fixture": false,
   "environment": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified",
   "audio": "not captured",
   "gameplay": {
-    "start": 17.985,
+    "start": 17.83,
     "duration": 22
   },
   "promo": [
@@ -29,7 +29,7 @@
     {
       "source": "source.webm",
       "duration": 7,
-      "start": 17.985
+      "start": 17.83
     },
     {
       "source": "09-settlement-1280.png",

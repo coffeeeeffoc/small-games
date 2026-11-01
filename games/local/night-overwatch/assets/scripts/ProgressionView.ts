@@ -191,11 +191,12 @@ export class ProgressionView {
     const leftW=this.narrow?r-l:(r-l)*.53,tabW=leftW/3;
     terms.forEach((term,i)=>this.tab('term:'+term,this.term(term),l+i*tabW,y,tabW-4,q.term===term));
     const order=['burst','twin','laser','tracking'];const products=q.catalog.filter(p=>p.term===q.term).sort((a,b)=>(order.includes(a.effect)?order.indexOf(a.effect):10)-(order.includes(b.effect)?order.indexOf(b.effect):10));
-    const current=products.find(p=>p.id===q.selected)||products[0];if(!current)return;q.selected=current.id;
+    const pageSize=this.low?2:4;q.index=Math.max(0,Math.min(q.index,Math.ceil(products.length/pageSize)-1));
+    const visible=products.slice(q.index*pageSize,q.index*pageSize+pageSize),current=visible.find(p=>p.id===q.selected)||visible[0];if(!current)return;q.selected=current.id;
     const top=y+52,bottom=this.bottom-54;
     if(this.narrow&&q.detail){this.productDetail(current,l,top,r-l,bottom-top,true);this.button('qm:list',this.t('商品列表','ITEM LIST'),l,this.bottom-48,144);return;}
-    const pageSize=this.low?2:4,rows=pageSize/2,cw=(leftW-12)/2,ch=(bottom-top-(rows-1)*12)/rows;
-    products.slice(q.index*pageSize,q.index*pageSize+pageSize).forEach((p,i)=>{
+    const rows=pageSize/2,cw=(leftW-12)/2,ch=(bottom-top-(rows-1)*12)/rows;
+    visible.forEach((p,i)=>{
       const x=l+(i%2)*(cw+12),yy=top+Math.floor(i/2)*(ch+12);this.panel(x,yy,cw,ch,p.id===q.selected);
       this.picture(this.productArt(p.effect),x+5,yy+5,cw-10,ch*.72);this.h.gradient(this.g,x+5,yy+ch*.59,cw-10,ch*.38,'#06121a44','#06121af5');
       const b=this.h.button('product:'+p.id,'',x,yy,cw,ch,this.n);b.string=this.productName(p);b.fontSize=this.font(33,15);b.isBold=true;b.node.setPosition(x+cw/2-this.w/2,this.height/2-yy-ch*.77);b.node.getComponent(UITransform)!.setContentSize(cw-14,30);
@@ -207,8 +208,8 @@ export class ProgressionView {
   private loadout(){
     const q=this.q,l=this.left,r=this.right,y=this.top,load=q.loadout,width=r-l;
     const tabW=Math.min(180,width*.22);
-    this.tab('loadout:solo',this.t('单人方案','SOLO'),l,y,tabW,q.mode==='solo');
-    this.tab('loadout:duel',this.t('双人方案','DUEL'),l+tabW+6,y,tabW,q.mode==='duel');
+    this.tab('loadout:solo',this.t('单人方案','SOLO')+(q.dirtyModes.includes('solo')?' •':''),l,y,tabW,q.mode==='solo');
+    this.tab('loadout:duel',this.t('双人方案','DUEL')+(q.dirtyModes.includes('duel')?' •':''),l+tabW+6,y,tabW,q.mode==='duel');
     this.label(this.t(q.dirty?'有未保存的修改':'当前已保存方案',q.dirty?'UNSAVED CHANGES':'SAVED LOADOUT'),l+tabW*2+16,y,width-tabW*2-16,44,23,q.dirty?gold:dim,false,true);
     const top=y+52,bottom=this.bottom-52,lw=width*(this.narrow?.47:.55),rx=l+lw+14,rw=r-rx;
     const selected=q.slotCategory,selectedName=this.t(selected==='mod'?'武器增益':selected==='weapon'?'特种武器':'主动技能',selected==='mod'?'WEAPON MOD':selected==='weapon'?'SPECIAL WEAPON':'ACTIVE SKILL');
@@ -224,6 +225,7 @@ export class ProgressionView {
       label.fontSize=this.font(30,12);label.enableWrapText=false;label.overflow=Label.Overflow.SHRINK;
       label.node.setPosition(x+cw/2-this.w/2,this.height/2-yy-heading-hh+16);label.node.getComponent(UITransform)!.setContentSize(cw-12,28);
       if(q.slot===slot)this.label('✓',x+cw-28,yy+heading+4,22,22,25,cyan,true);
+      if(q.drag?.target===slot)this.h.rect(this.g,x+2,yy+heading+2,cw-4,hh-4,'#78e3ff22',cyan,4);
     });
     const preview=attackPreview([...load.mods,load.weapon,load.skill].map(id=>q.catalog.find(p=>p.id===id)?.effect||'')),previewH=this.low?48:74;
     this.panel(rx,top,rw,previewH);
@@ -243,16 +245,16 @@ export class ProgressionView {
       const tx=rx+iw+12,tw=rw-iw-82;
       this.label(this.productName(p),tx,py+6,tw,Math.max(21,rowH*.34),30,equipped?dim:ivory,true,true).overflow=Label.Overflow.SHRINK;
       this.label(selectedName+' · '+this.term(p.term),tx,py+rowH*.44,tw,rowH*.42,20,gold,false,true).overflow=Label.Overflow.SHRINK;
-      this.button('equip:'+p.id,this.t(equipped?'已装配':'装配',equipped?'USED':'EQUIP'),rx+rw-72,py+(rowH-44)/2,62,44,equipped?'panel':'blue',q.busy||equipped);
+      this.button('equip:'+p.id,this.t(equipped?'已装配':'装配',equipped?'USED':'EQUIP'),rx+rw-72,py+(rowH-44)/2,62,44,equipped?'panel':'blue',q.busy||!!q.pending||equipped);
       const button=this.h.buttons.at(-1)!;button.clip=q.loadoutArea;
       // The whole card is draggable; the button remains the explicit tap action.
-      const card=this.h.button('gear:'+p.id,'',rx,py,rw-78,rowH,this.n);const hit=this.h.buttons.at(-1)!;hit.disabled=equipped||q.busy;hit.clip=q.loadoutArea;
+      const card=this.h.button('gear:'+p.id,'',rx,py,rw-78,rowH,this.n);const hit=this.h.buttons.at(-1)!;hit.disabled=equipped||q.busy||!!q.pending;hit.clip=q.loadoutArea;
     });
     this.n=parent;this.surfaces=surfaces;this.g=g;
     if(!q.availableGear.length)this.label(this.t('此插槽暂无可用装配\n可前往商店或领取礼包','No compatible gear\nVisit the armory or claim a crate'),rx+8,listTop+8,rw-16,listH-16,25,dim);
     if(q.loadoutScrollMax){this.h.rect(this.g,r-4,listTop,3,listH,'#162a38');this.h.rect(this.g,r-4,listTop+(listH-28)*q.loadoutScroll/q.loadoutScrollMax,3,28,cyan);}
     const fy=this.bottom-48,unloadW=Math.min(132,lw*.42);
-    this.button('qm:unequip',this.t('卸载所选','UNEQUIP'),l,fy,unloadW,44,'panel',!q.slotItem||q.busy);
+    this.button('qm:unequip',this.t('卸载所选','UNEQUIP'),l,fy,unloadW,44,'panel',!q.slotItem||q.busy||!!q.pending);
     this.button('qm:shop',this.t('商店','ARMORY'),l+unloadW+8,fy,Math.min(100,lw-unloadW-8),44,'blue');
     this.button('qm:save',this.t(q.busy?'保存中…':'确定保存',q.busy?'SAVING…':'CONFIRM SAVE'),rx,fy,rw,44,'gold',q.busy||!q.dirty||!!q.pending);
     if(q.drag){const p=q.catalog.find(p=>p.id===q.drag!.item);this.panel(q.drag.x-60,q.drag.y-25,120,50,true);this.label(p?this.productName(p):'',q.drag.x-56,q.drag.y-20,112,40,26,cyan,true);}
@@ -376,9 +378,10 @@ export class ProgressionView {
   }
   private warehouse(){
     const q=this.q,l=this.left,r=this.right,y=this.top,items=q.inventory,size=this.low?3:6,cols=3,top=y+8,bottom=this.bottom-58;
-    const selected=q.item&&items.some(([id])=>id===q.item)?q.item:items[0]?.[0]||'';q.item=selected;
+    q.index=Math.max(0,Math.min(q.index,Math.ceil(items.length/size)-1));const visible=items.slice(q.index*size,q.index*size+size);
+    const selected=visible.some(([id])=>id===q.item)?q.item:visible[0]?.[0]||'';if(q.item!==selected)q.amount=1;q.item=selected;
     const lw=this.narrow?(r-l)*.58:(r-l)*.62,rx=l+lw+12,rw=r-rx,cw=(lw-16)/cols,rows=Math.ceil(size/cols),ch=(bottom-top-10*(rows-1))/rows;
-    items.slice(q.index*size,q.index*size+size).forEach(([id,n],i)=>{
+    visible.forEach(([id,n],i)=>{
       const x=l+i%cols*(cw+8),yy=top+Math.floor(i/cols)*(ch+10),p=q.catalog.find(p=>p.id===id),isPack=id.startsWith('pack:');this.panel(x,yy,cw,ch,id===selected);
       this.picture(isPack?'supply':p?this.productArt(p.effect):'homeWarehouse',x+5,yy+5,cw-10,ch*.7);
       const b=this.h.button('inventory:'+id,'',x,yy,cw,ch,this.n);b.string=this.inventoryName(id)+` ×${n}`;b.fontSize=this.font(27,12);b.overflow=Label.Overflow.SHRINK;b.node.setPosition(x+cw/2-this.w/2,this.height/2-yy-ch*.83);b.node.getComponent(UITransform)!.setContentSize(cw-8,ch*.3);
@@ -387,7 +390,7 @@ export class ProgressionView {
     if(selected){const p=q.catalog.find(p=>p.id===selected),pack=selected.startsWith('pack:'),available=q.assets?.available[selected]??0;q.amount=Math.max(1,Math.min(q.amount,available||1));
       this.label(this.inventoryName(selected),rx+8,top+5,rw-16,this.low?22:34,30,ivory,true).overflow=Label.Overflow.SHRINK;
       this.label(this.t(`可用 ${available} · 预留 ${(q.assets?.inventory[selected]??0)-available}`,`${available} available · ${(q.assets?.inventory[selected]??0)-available} reserved`),rx+8,top+(this.low?27:44),rw-16,this.low?18:25,23,dim);
-      const stepY=top+(this.low?50:Math.min(98,(bottom-top)*.4));this.button('qm:minus','−',rx+8,stepY,44);this.label(String(q.amount),rx+54,stepY,rw-108,44,32,ivory);this.button('qm:plus','+',rx+rw-52,stepY,44);
+      const stepY=top+(this.low?50:Math.min(98,(bottom-top)*.4));this.button('qm:minus','−',rx+8,stepY,44,44,'panel',q.amount<=1);this.label(String(q.amount),rx+54,stepY,rw-108,44,32,ivory);this.button('qm:plus','+',rx+rw-52,stepY,44,44,'panel',q.amount>=Math.min(100,available));
       const bw=this.low?(rw-24)/2:rw-16,owned24=!!(p?.term==='24h'&&q.assets?.permanent.includes(p.effect));
       this.button(pack?'qm:open':p?.term==='24h'?'qm:activate':'qm:loadout',this.t(pack?'打开':p?.term==='24h'?(owned24?'已永久拥有':'激活 / 续期'):'前往配装',pack?'OPEN':p?.term==='24h'?(owned24?'OWNED':'ACTIVATE'):'LOADOUT'),rx+8,bottom-(this.low?52:104),bw,44,'gold',q.busy||available<1||owned24);
       this.button('qm:sell',this.t(`出售 ${q.sellPrice(selected)*q.amount}`,`SELL ${q.sellPrice(selected)*q.amount}`),rx+8+(this.low?bw+8:0),bottom-52,bw,44,'blue',q.busy||available<1||q.sellPrice(selected)===0);
@@ -434,10 +437,11 @@ export class ProgressionView {
     return {x,y,pw,ph};
   }
   private leaveDialog(){
-    const {x,y,pw,ph}=this.dialog(this.t('方案尚未保存','UNSAVED LOADOUT'));
-    this.label(this.t('修改仅保留在草稿中。\n返回编辑并确定保存，或放弃修改后离开。','Your changes are still a draft.\nContinue editing to save, or discard and leave.'),x+22,y+55,pw-44,ph-126,29,ivory);
-    this.button('qm:keepEditing',this.t('返回编辑','KEEP EDITING'),x+20,y+ph-60,(pw-52)/2,44,'blue');
-    this.button('qm:discard',this.t('放弃修改','DISCARD'),x+32+(pw-52)/2,y+ph-60,(pw-52)/2,44,'panel');
+    const pending=this.q.pending?.kind==='loadout',{x,y,pw,ph}=this.dialog(this.t(pending?'保存结果待确认':'方案尚未保存',pending?'SAVE RESULT PENDING':'UNSAVED LOADOUT'));
+    const modes=this.q.dirtyModes.map(mode=>this.t(mode==='solo'?'单人方案':'双人方案',mode==='solo'?'Solo':'Duel')).join('、');
+    this.label(pending?this.t('保存请求已发送，结果尚未确认。\n离开不会取消请求；草稿与交易编号会保留，稍后可重试确认。','The save was sent but is not yet confirmed.\nLeaving keeps the request and draft. Retry later to confirm.'):this.t(`${modes}有未保存的修改。\n返回编辑并确定保存，或放弃修改后离开。`,`${modes} has unsaved changes.\nContinue editing to save, or discard and leave.`),x+22,y+55,pw-44,ph-126,29,ivory);
+    this.button('qm:keepEditing',this.t(pending?'继续确认':'返回编辑',pending?'CONTINUE':'KEEP EDITING'),x+20,y+ph-60,(pw-52)/2,44,'blue');
+    this.button(pending?'qm:leavePending':'qm:discard',this.t(pending?'保留请求并离开':'放弃修改',pending?'KEEP REQUEST & LEAVE':'DISCARD'),x+32+(pw-52)/2,y+ph-60,(pw-52)/2,44,'panel');
   }
   private giftDialog(){
     const q=this.q,gift=q.gift!,{x,y,pw,ph}=this.dialog(this.t(gift.opened?'礼包已打开':'获得礼包',gift.opened?'CRATE CONTENTS':'SUPPLIES RECEIVED'));
@@ -454,7 +458,7 @@ export class ProgressionView {
     const overlay=this.h.node('Confirmation',this.n);const g=overlay.addComponent(Graphics);this.h.rect(g,0,0,this.w,this.height,'#01070cce');
     this.h.rect(g,x,y,pw,ph,'#071723','#c4a268',8);
     for(const b of this.h.buttons)if(b.label.node.parent===this.n){b.disabled=true;b.label.node.active=false;}
-    const text=intent.kind==='sell'?this.t(`出售 ${q.amount} 件物资？\n总计 ${q.sellPrice(q.item)*q.amount} 金币`,`Sell ${q.amount} items?\nTotal ${q.sellPrice(q.item)*q.amount} coins`):intent.kind==='activate'?this.t('激活后连续24小时。\n再次激活只续期，不叠加强度。','Lasts 24 continuous hours.\nActivating again extends time, never strength.'):q.message[this.h.lang==='zh'?0:1];
+    const text=intent.kind==='sell'?this.t(`出售 ${this.inventoryName(intent.item)} ×${intent.quantity}？\n总计 ${q.sellPrice(intent.item)*intent.quantity} 金币`,`Sell ${this.inventoryName(intent.item)} ×${intent.quantity}?\nTotal ${q.sellPrice(intent.item)*intent.quantity} coins`):intent.kind==='activate'?this.t(`激活 ${this.inventoryName(intent.item)}？\n连续24小时；再次激活只续期，不叠加强度。`,`Activate ${this.inventoryName(intent.item)}?\nLasts 24 continuous hours. Renewal extends time, not strength.`):q.message[this.h.lang==='zh'?0:1];
     const label=this.label(text,x+24,y+20,pw-48,ph-95,30,ivory,true);label.node.setSiblingIndex(this.n.children.length-1);
     const left=this.h.button('qm:cancel',this.t('取消','CANCEL'),x+20,y+ph-62,(pw-52)/2,44,this.n);left.node.setSiblingIndex(this.n.children.length-1);
     const right=this.h.button('qm:confirm',this.t('确认','CONFIRM'),x+32+(pw-52)/2,y+ph-62,(pw-52)/2,44,this.n);right.color=color(gold);right.node.setSiblingIndex(this.n.children.length-1);

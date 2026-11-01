@@ -1,0 +1,734 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "1995f8a2640fc6242a1baff303dd8f352d4e3aa065d000aca20c5660e60be088"
+  },
+  "fixture": true,
+  "phase": "verified",
+  "checks": [
+    {
+      "name": "shop pagination keeps preview and purchase on current page",
+      "width": 568,
+      "pass": true,
+      "detail": {
+        "visible": [
+          "laser-match",
+          "tracking-match"
+        ],
+        "bought": "laser-match"
+      }
+    },
+    {
+      "name": "warehouse pagination keeps selection and sale on current page",
+      "width": 568,
+      "pass": true,
+      "detail": {
+        "visible": [
+          "rate-24h",
+          "burst-match",
+          "burst-24h"
+        ],
+        "sold": "rate-24h"
+      }
+    },
+    {
+      "name": "escape including held key dismisses only the sale confirmation",
+      "width": 568,
+      "pass": true,
+      "detail": "warehouse"
+    },
+    {
+      "name": "confirmed slot order matches reload",
+      "width": 568,
+      "pass": true,
+      "detail": {
+        "before": [
+          "威力增益",
+          "＋ 选择装配"
+        ],
+        "after": [
+          "威力增益",
+          "＋ 选择装配"
+        ]
+      }
+    },
+    {
+      "name": "blur cancels slot drag",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "touchcancel never swaps",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "compatible drop target highlighted",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "equipped mods swap by dragging",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "incompatible drop leaves configuration intact",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "vertical scroll never equips",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "vertical list scrolls",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "interrupted save retains draft and disables further edits",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "uncertain save offers explicit keep-request exit",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "pending save never traps the player in loadout",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "returning keeps the draft without automatically resending",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "retry confirms the original save without new transaction",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "both dirty loadout tabs are marked",
+      "width": 568,
+      "pass": true,
+      "detail": [
+        "单人方案 •",
+        "双人方案 •"
+      ]
+    },
+    {
+      "name": "leave dialog names both drafts",
+      "width": 568,
+      "pass": true,
+      "detail": [
+        "‹",
+        "方案尚未保存，请点击确定保存",
+        "12,480",
+        "单人方案 •",
+        "双人方案 •",
+        "有未保存的修改",
+        "武器增益 1",
+        "双弹道",
+        "武器增益 2",
+        "两连发",
+        "特种武器",
+        "＋ 选择装配",
+        "✓",
+        "主动技能",
+        "追踪资格",
+        "每次攻击 4 发",
+        "弹药 ×4 · 热量按发数计算",
+        "特种武器 · 上下滑动选择",
+        "无人机机群",
+        "特种武器 · 单场",
+        "装配",
+        "",
+        "激光武器",
+        "特种武器 · 单场",
+        "装配",
+        "",
+        "卸载所选",
+        "商店",
+        "确定保存",
+        "方案尚未保存",
+        "单人方案、双人方案有未保存的修改。\n返回编辑并确定保存，或放弃修改后离开。",
+        "返回编辑",
+        "放弃修改"
+      ]
+    },
+    {
+      "name": "escape returns to draft editing",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "warehouse opens matching skill slot",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "claim shows crate details",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "open all shows the actual received contents",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "shop pagination keeps preview and purchase on current page",
+      "width": 800,
+      "pass": true,
+      "detail": {
+        "visible": [
+          "laser-match",
+          "tracking-match"
+        ],
+        "bought": "laser-match"
+      }
+    },
+    {
+      "name": "warehouse pagination keeps selection and sale on current page",
+      "width": 800,
+      "pass": true,
+      "detail": {
+        "visible": [
+          "rate-24h",
+          "burst-match",
+          "burst-24h"
+        ],
+        "sold": "rate-24h"
+      }
+    },
+    {
+      "name": "escape including held key dismisses only the sale confirmation",
+      "width": 800,
+      "pass": true,
+      "detail": "warehouse"
+    },
+    {
+      "name": "confirmed slot order matches reload",
+      "width": 800,
+      "pass": true,
+      "detail": {
+        "before": [
+          "威力增益",
+          "＋ 选择装配"
+        ],
+        "after": [
+          "威力增益",
+          "＋ 选择装配"
+        ]
+      }
+    },
+    {
+      "name": "blur cancels slot drag",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "touchcancel never swaps",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "compatible drop target highlighted",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "equipped mods swap by dragging",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "incompatible drop leaves configuration intact",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "vertical scroll never equips",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "vertical list scrolls",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "interrupted save retains draft and disables further edits",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "uncertain save offers explicit keep-request exit",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "pending save never traps the player in loadout",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "returning keeps the draft without automatically resending",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "retry confirms the original save without new transaction",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "both dirty loadout tabs are marked",
+      "width": 800,
+      "pass": true,
+      "detail": [
+        "单人方案 •",
+        "双人方案 •"
+      ]
+    },
+    {
+      "name": "leave dialog names both drafts",
+      "width": 800,
+      "pass": true,
+      "detail": [
+        "‹",
+        "方案尚未保存，请点击确定保存",
+        "12,480",
+        "单人方案 •",
+        "双人方案 •",
+        "有未保存的修改",
+        "武器增益 1",
+        "双弹道",
+        "武器增益 2",
+        "两连发",
+        "特种武器",
+        "＋ 选择装配",
+        "✓",
+        "主动技能",
+        "追踪资格",
+        "每次攻击 4 发",
+        "弹药 ×4 · 热量按发数计算",
+        "特种武器 · 上下滑动选择",
+        "无人机机群",
+        "特种武器 · 单场",
+        "装配",
+        "",
+        "激光武器",
+        "特种武器 · 单场",
+        "装配",
+        "",
+        "卸载所选",
+        "商店",
+        "确定保存",
+        "方案尚未保存",
+        "单人方案、双人方案有未保存的修改。\n返回编辑并确定保存，或放弃修改后离开。",
+        "返回编辑",
+        "放弃修改"
+      ]
+    },
+    {
+      "name": "escape returns to draft editing",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "warehouse opens matching skill slot",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "claim shows crate details",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "open all shows the actual received contents",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "shop pagination keeps preview and purchase on current page",
+      "width": 1280,
+      "pass": true,
+      "detail": {
+        "visible": [
+          "power-match",
+          "rate-match",
+          "radius-match",
+          "cooling-match"
+        ],
+        "bought": "power-match"
+      }
+    },
+    {
+      "name": "warehouse pagination keeps selection and sale on current page",
+      "width": 1280,
+      "pass": true,
+      "detail": {
+        "visible": [
+          "twin-match",
+          "twin-24h",
+          "radius-match",
+          "radius-24h",
+          "cooling-match",
+          "cooling-24h"
+        ],
+        "sold": "twin-match"
+      }
+    },
+    {
+      "name": "escape including held key dismisses only the sale confirmation",
+      "width": 1280,
+      "pass": true,
+      "detail": "warehouse"
+    },
+    {
+      "name": "confirmed slot order matches reload",
+      "width": 1280,
+      "pass": true,
+      "detail": {
+        "before": [
+          "威力增益",
+          "＋ 选择装配"
+        ],
+        "after": [
+          "威力增益",
+          "＋ 选择装配"
+        ]
+      }
+    },
+    {
+      "name": "blur cancels slot drag",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "compatible drop target highlighted",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "equipped mods swap by dragging",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "incompatible drop leaves configuration intact",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "vertical scroll never equips",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "vertical list scrolls",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "interrupted save retains draft and disables further edits",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "uncertain save offers explicit keep-request exit",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "pending save never traps the player in loadout",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "returning keeps the draft without automatically resending",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "retry confirms the original save without new transaction",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "both dirty loadout tabs are marked",
+      "width": 1280,
+      "pass": true,
+      "detail": [
+        "单人方案 •",
+        "双人方案 •"
+      ]
+    },
+    {
+      "name": "leave dialog names both drafts",
+      "width": 1280,
+      "pass": true,
+      "detail": [
+        "‹",
+        "军需配置",
+        "12,480",
+        "单人方案 •",
+        "双人方案 •",
+        "有未保存的修改",
+        "武器增益 1",
+        "双弹道",
+        "武器增益 2",
+        "两连发",
+        "特种武器",
+        "＋ 选择装配",
+        "✓",
+        "主动技能",
+        "追踪资格",
+        "每次攻击 4 发",
+        "弹药 ×4 · 热量按发数计算",
+        "特种武器 · 上下滑动选择",
+        "无人机机群",
+        "特种武器 · 单场",
+        "装配",
+        "",
+        "激光武器",
+        "特种武器 · 单场",
+        "装配",
+        "",
+        "卸载所选",
+        "商店",
+        "确定保存",
+        "方案尚未保存",
+        "单人方案、双人方案有未保存的修改。\n返回编辑并确定保存，或放弃修改后离开。",
+        "返回编辑",
+        "放弃修改"
+      ]
+    },
+    {
+      "name": "escape returns to draft editing",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "warehouse opens matching skill slot",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "claim shows crate details",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "open all shows the actual received contents",
+      "width": 1280,
+      "pass": true
+    }
+  ],
+  "screens": [
+    {
+      "name": "home",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "shop-page",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "loadout-order",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "drag-target",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "save-pending",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "gift-detail",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "gift-opened",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "modes",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "growth",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "tasks",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "inbox",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "checkin",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "supply",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "home",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "shop-page",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "loadout-order",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "drag-target",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "save-pending",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "gift-detail",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "gift-opened",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "modes",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "growth",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "tasks",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "inbox",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "checkin",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "supply",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "home",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "shop-page",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "loadout-order",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "drag-target",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "save-pending",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "gift-detail",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "gift-opened",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "modes",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "growth",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "tasks",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "inbox",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "checkin",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "supply",
+      "width": 1280,
+      "height": 720
+    }
+  ],
+  "errors": []
+}
