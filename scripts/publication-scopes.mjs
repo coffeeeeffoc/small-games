@@ -4756,14 +4756,17 @@ export function reviewedSharedFileScopes({
         const digest = (value) =>
           createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
         const before = digest(readBase(file));
-        const echoBase = '289cc56316d72f73b0fa667543e35c9b0df324f3c30910040f9b128f416af8ab';
+        const echoBases = [
+          '289cc56316d72f73b0fa667543e35c9b0df324f3c30910040f9b128f416af8ab',
+          '067f41d7332c6391ba49b49b4c298cf342457252931120ba40236eed65fd51c1',
+        ];
         const nightBase = '8ab41c01c9912cea916cb52ac7d86b21d030be2f3cde1654b32e2f608b71c7f5';
         if (
-          [echoBase, nightBase].includes(before) &&
+          [...echoBases, nightBase].includes(before) &&
           digest(readHead(file)) ===
-            '067f41d7332c6391ba49b49b4c298cf342457252931120ba40236eed65fd51c1'
+            'd689fcac794a74589ef11da5fcb1bea4d55b5bc405f149a9c9b259aa3f0048c8'
         ) {
-          // fed04bb8 changes only Echo's URL assertion; baaae8d also includes Night's menu flow.
+          // fed04bb8/750a0de7 change Echo's URL assertion; baaae8d also includes Night's menu flow.
           const ids = before === nightBase ? ['echo-lab', 'night-overwatch'] : ['echo-lab'];
           for (const id of ids) {
             const source = 'games/local/' + id,

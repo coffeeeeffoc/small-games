@@ -882,7 +882,7 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await expect(frame.locator('#shareDialog')).toBeVisible();
     const shared = new URL(await frame.locator('#shareLink').inputValue());
     expect(shared.hash).toMatch(/^#room=[A-Za-z0-9_-]{1,12000}$/);
-    const entry = new URL(await frame.locator('body').evaluate(() => location.href));
+    const entry = new URL(await frame.locator('body').evaluate(() => globalThis.location.href));
     entry.search = '';
     entry.hash = shared.hash;
     expect(shared.href).toBe(entry.href);

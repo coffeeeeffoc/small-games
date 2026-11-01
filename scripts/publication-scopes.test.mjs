@@ -6563,7 +6563,7 @@ test('Echo share URL repair selects its real consumer for immediate and cumulati
     "    await expect(frame.locator('#shareLink')).toHaveValue(/\\/games\\/echo-lab\\/index\\.html#room=/);";
   const newAssertion = `    const shared = new URL(await frame.locator('#shareLink').inputValue());
     expect(shared.hash).toMatch(/^#room=[A-Za-z0-9_-]{1,12000}$/);
-    const entry = new URL(await frame.locator('body').evaluate(() => location.href));
+    const entry = new URL(await frame.locator('body').evaluate(() => globalThis.location.href));
     entry.search = '';
     entry.hash = shared.hash;
     expect(shared.href).toBe(entry.href);`;
@@ -6594,6 +6594,7 @@ test('Echo share URL repair selects its real consumer for immediate and cumulati
   assert.equal(fallback.catalog_rollout_checks, true);
   for (const [base, ids] of [
     [immediate, ['echo-lab']],
+    ['750a0de770c6ac42258160eed69242982ceab356', ['echo-lab']],
     ['baaae8d717559610df529aff43a0cb2a31961393', ['echo-lab', 'night-overwatch']],
   ]) {
     const before = read(base);
