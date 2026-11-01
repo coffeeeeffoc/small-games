@@ -95,6 +95,7 @@ test('CLI changes the default, preserves explicit game override, and delivers mi
     const actualEnvs = [];
     const result = await main(['--config', 'profiles.json', '--build-type', 'test'], {
       workspace: folder,
+      env: {},
       read: async () => JSON.stringify({ ...config, localBackend: true }),
       build: (values, options) =>
         buildH5Packages(values, {
