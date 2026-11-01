@@ -1,22 +1,22 @@
 {
-  "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+  "sourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
   "verified": "2026-11-01",
   "previousDelivery": "manifest-2026-10-30-taptap-login.json",
-  "environment": "Creator 3.8.8 web-mobile / Windows Chromium. Five screenshots and both videos from the real local Runtime via Sakura FRP; QA fixture screenshots are kept separately in docs. No phone, real TapTap host or real-ad validation.",
+  "environment": "Creator 3.8.8 web-mobile / Windows Chromium. Home/loadout stills use new guests on the real local Runtime loopback API. Gameplay footage and other screenshots retain their original Sakura FRP capture identity. No QA asset fixture is used in publishing media; no physical-device validation.",
   "files": [
     {
       "path": "copy/introduction.md",
       "bytes": 1634,
       "sha256": "ef202ac65611056fbc9f7aac0d1db5a35e020d01acfe578332c38a90177c6c4d",
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "reusedUnchanged": true,
       "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
     },
     {
       "path": "copy/tagline.md",
       "bytes": 68,
       "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
@@ -24,8 +24,8 @@
       "path": "copy/developer-note.md",
       "bytes": 995,
       "sha256": "cd26226cec2b0a19ee066ad511e5cc1c927e0600320ec303462fab8b72bb3d8d",
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "reusedUnchanged": true,
       "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
     },
     {
@@ -35,7 +35,7 @@
       "width": 1024,
       "height": 1024,
       "hasAlpha": false,
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
@@ -46,7 +46,7 @@
       "width": 1920,
       "height": 1080,
       "hasAlpha": false,
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
@@ -57,35 +57,35 @@
       "width": 1440,
       "height": 1440,
       "hasAlpha": false,
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
     {
       "path": "gameplay/screenshots/2026-11-01-progression/01-home.png",
-      "bytes": 1427597,
-      "sha256": "da2070d28466b1551ea9f1b26f3509ce91f0323d042a080d3b70e75436d5bdf7",
+      "bytes": 1426092,
+      "sha256": "68635a0bc781ab31c91bc3f6cf58372c3737c042672c85db232890d4490bd80d",
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "reusedUnchanged": false,
-      "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "capturedSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "fixture": false,
-      "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture"
+      "provenance": "Actual Creator browser, new guest on local Runtime loopback API; no simulated balances; not physical-device capture"
     },
     {
       "path": "gameplay/screenshots/2026-11-01-progression/02-loadout.png",
-      "bytes": 1467502,
-      "sha256": "4362e83b6da79fdfb4eacb82c7f1e5ec97efea80b2ffc98f67e3cd0437785875",
+      "bytes": 1454631,
+      "sha256": "a6fde3253bb592bd292231d1740cd0a1a24c4e527e4945dd483da3469290b2f3",
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "reusedUnchanged": false,
-      "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "capturedSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "fixture": false,
-      "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture"
+      "provenance": "Actual Creator browser, new guest on local Runtime loopback API; no simulated balances; not physical-device capture"
     },
     {
       "path": "gameplay/screenshots/2026-11-01-progression/03-fire.png",
@@ -94,8 +94,8 @@
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "reusedUnchanged": true,
       "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
       "fixture": false,
       "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture"
@@ -107,8 +107,8 @@
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "reusedUnchanged": true,
       "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
       "fixture": false,
       "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture"
@@ -120,8 +120,8 @@
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "reusedUnchanged": true,
       "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
       "fixture": false,
       "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture"
@@ -130,8 +130,8 @@
       "path": "gameplay/videos/progression-2026-11-01-1280x720-silent.mp4",
       "bytes": 7192338,
       "sha256": "dd21ca3ba8ba97a4709f41adbbf3945c773d3549513867ed4afe3d03f6757672",
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
-      "reusedUnchanged": false,
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "reusedUnchanged": true,
       "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
       "fixture": false,
       "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture",
@@ -144,29 +144,35 @@
     },
     {
       "path": "promo/videos/progression-2026-11-01-1280x720-silent.mp4",
-      "bytes": 6567945,
-      "sha256": "7b8f8f3c346dd8937e76b943fb0f7bcdb66505f1f1ac0f102af0c2ffd21190df",
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "bytes": 5033099,
+      "sha256": "6dfa802194bacedbc2c6842dde9bb8797aa2e528063070e50fb81d982c3f3842",
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "reusedUnchanged": false,
-      "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
       "fixture": false,
-      "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture",
+      "provenance": "Current real home/loadout stills for 3 seconds each plus 14 seconds of unchanged earlier real gameplay; exact sources in edit record",
       "width": 1280,
       "height": 720,
       "codec": "h264",
-      "durationSeconds": 20.0,
+      "durationSeconds": 20,
       "audio": false,
-      "validation": "Complete decode and first/last extracted frames reviewed"
+      "validation": "Complete decode and all 20 one-second frames visually reviewed",
+      "capturedSourceHashes": [
+        "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+        "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
+      ]
     },
     {
       "path": "promo/videos/progression-2026-11-01-edit.json",
-      "bytes": 607,
-      "sha256": "b073902aafe1a590655ad248c82e2b3f485460180b0f85427fb90dc1fe5dab23",
-      "verifiedForSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "bytes": 1766,
+      "sha256": "8a1d576bb1c16aaf453d70d79a2b48868fa082db99cca431edc7e3e6e81cbb96",
+      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "reusedUnchanged": false,
-      "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
       "fixture": false,
-      "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture"
+      "provenance": "Current real home/loadout stills for 3 seconds each plus 14 seconds of unchanged earlier real gameplay; exact sources in edit record",
+      "capturedSourceHashes": [
+        "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+        "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
+      ]
     }
   ]
 }

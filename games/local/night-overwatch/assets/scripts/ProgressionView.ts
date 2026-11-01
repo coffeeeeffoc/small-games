@@ -11,7 +11,7 @@ import { MISSIONS } from './core/MissionCatalog';
 
 const ivory='#f4e9d1',dim='#a7bcc9',cyan='#78e3ff',gold='#e5bd71';
 const color=(hex:string)=>new Color().fromHEX(hex);
-const names:Record<string,[string,string]>={modes:['开始行动','DEPLOY'],loadout:['军需准备','LOADOUT'],shop:['军需商店','ARMORY'],supply:['礼包','SUPPLY'],growth:['成长与技能','GROWTH & SKILLS'],tasks:['任务','TASKS'],inbox:['消息中心','MESSAGES'],warehouse:['补给仓库','WAREHOUSE'],receipts:['开包记录','OPENING HISTORY'],checkin:['每日签到','DAILY CHECK-IN'],probability:['概率与内容','CONTENTS & ODDS']};
+const names:Record<string,[string,string]>={modes:['开始行动','DEPLOY'],loadout:['军需配置','LOADOUT'],shop:['军需商店','ARMORY'],supply:['礼包','SUPPLY'],growth:['成长与技能','GROWTH & SKILLS'],tasks:['任务','TASKS'],inbox:['消息中心','MESSAGES'],warehouse:['补给仓库','WAREHOUSE'],receipts:['开包记录','OPENING HISTORY'],checkin:['每日签到','DAILY CHECK-IN'],probability:['概率与内容','CONTENTS & ODDS']};
 const rarity=['普通','精良','稀有','史诗'],rarityEn=['Common','Fine','Rare','Epic'],rarityColor=['#b8c0c7','#74cf9c','#69b7ff','#d08aff'];
 
 /** One responsive Cocos presentation for the approved nine screens, with live text and touch targets. */
@@ -122,7 +122,7 @@ export class ProgressionView {
     this.picture('title',l+8,titleY,titleW,titleW/3,false);
     const bw=w*.30,bh=Math.max(46,h*.133),by=Math.max(titleY+titleW/3+8,h*.405);
     for(const [i,id]of ['loadout','modes'].entries()){
-      const yy=by+i*(bh+Math.max(5,h*.014)),label=this.button('qm:'+id,this.t(i?'开始行动  ›':'军需准备  ›',i?'DEPLOY  ›':'LOADOUT  ›'),l+8,yy,bw,bh,i?'gold':'blue');
+      const yy=by+i*(bh+Math.max(5,h*.014)),label=this.button('qm:'+id,this.t(i?'开始行动  ›':'军需配置  ›',i?'DEPLOY  ›':'LOADOUT  ›'),l+8,yy,bw,bh,i?'gold':'blue');
       if(!this.narrow){this.picture(i?'homeCompass':'homeCrate',l+bw*.07,yy+bh*.18,bw*.22,bh*.64,false);label.fontSize=this.font(49,16);label.node.setPosition(l+8+bw*.64-w/2,h/2-yy-bh/2);label.node.getComponent(UITransform)!.setContentSize(bw*.65,bh-10);}
     }
     const fw=Math.max(128,w*.175),fy=h*.452,fh=Math.max(44,h*.11);
@@ -426,7 +426,8 @@ export class ProgressionView {
     const q=this.q,l=this.left,r=this.right,top=this.top+8,bottom=this.bottom-58;this.panel(l,top,r-l,bottom-top);
     this.label(this.t('累计签到，漏签不清零','CUMULATIVE CHECK-IN · MISSING A DAY NEVER RESETS'),l+12,top+8,r-l-24,36,38,gold,true);
     const cols=this.narrow?4:7,gap=8,cw=(r-l-32-(cols-1)*gap)/cols,rows=this.narrow?2:1,cy=top+50,ch=(bottom-cy-12-(rows-1)*8)/rows,count=q.assets?.signedDays.length??0;
-    for(let i=0;i<7;i++){const x=l+16+(i%cols)*(cw+gap),yy=cy+Math.floor(i/cols)*(ch+8),day=Math.floor(count/7)*7+i+1,done=day<=count;this.panel(x,yy,cw,ch,day===count+1);this.picture(i===6?'supply':'coins',x+4,yy+25,cw-8,Math.max(12,ch-52));this.label(this.t(`第 ${day} 天`,`DAY ${day}`),x+4,yy+3,cw-8,24,28,done?dim:gold,true);this.label(done?'✓':`● ${i===6?200:100} + XP40`,x+3,yy+ch-25,cw-6,22,20,done?dim:ivory);}
+    const currentDay=Math.max(1,count+(q.assets?.signedToday?0:1)),groupStart=Math.floor((currentDay-1)/7)*7;
+    for(let i=0;i<7;i++){const x=l+16+(i%cols)*(cw+gap),yy=cy+Math.floor(i/cols)*(ch+8),day=groupStart+i+1,done=day<=count;this.panel(x,yy,cw,ch,day===currentDay);this.picture(i===6?'supply':'coins',x+4,yy+25,cw-8,Math.max(12,ch-52));this.label(this.t(`第 ${day} 天`,`DAY ${day}`),x+4,yy+3,cw-8,24,28,done?dim:gold,true);this.label(done?'✓':`● ${i===6?200:100} + XP40`,x+3,yy+ch-25,cw-6,22,20,done?dim:ivory);}
     this.button('qm:checkinClaim',this.t(q.assets?.signedToday?'今日已签到':'今日签到',q.assets?.signedToday?'CHECKED IN':'CHECK IN TODAY'),r-220,this.bottom-48,220,48,'gold',q.busy||!q.assets||q.assets.signedToday);
     this.label(this.t('每日额外获得1个普通通用礼包','Includes 1 common general crate daily'),l,this.bottom-48,r-l-240,44,22,dim,false,true);
   }

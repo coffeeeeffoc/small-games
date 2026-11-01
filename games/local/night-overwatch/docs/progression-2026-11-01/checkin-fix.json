@@ -1,0 +1,40 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a"
+  },
+  "errors": [],
+  "checks": [
+    "1280x720: real local Runtime new guest day1, claim and reopen retain group; captions and layout pass",
+    "568x320: real local Runtime new guest day1, claim and reopen retain group; captions and layout pass",
+    "1280x720: isolated day7 fixture, claim and reopen retain group; captions and layout pass",
+    "568x320: isolated day7 fixture, claim and reopen retain group; captions and layout pass"
+  ],
+  "screens": [
+    {
+      "name": "day1-before-568",
+      "width": 568,
+      "height": 320,
+      "fixture": false,
+      "path": "checkin-day1-before-568.png",
+      "sha256": "478177314ce9841f9bbd06be2e34d1503fa7dd9a5725c101ac55c63d0bb97c6c"
+    },
+    {
+      "name": "day1-reloaded-568",
+      "width": 568,
+      "height": 320,
+      "fixture": false,
+      "path": "checkin-day1-reloaded-568.png",
+      "sha256": "3e6dad5d67040912cd15b7229a62a562899a08a51bffad2ccc2f7d2e08717c3f"
+    },
+    {
+      "name": "day7-after-568",
+      "width": 568,
+      "height": 320,
+      "fixture": true,
+      "path": "checkin-day7-after-568.png",
+      "sha256": "8ef1a1e68c055a631530d72e9b0b530c63278de1ba61636643757c04929ad878"
+    }
+  ]
+}

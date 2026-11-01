@@ -1154,6 +1154,33 @@ test('progression pages keep every live action reachable on short and wide scree
   inset=0;
 });
 
+test('check-in highlights today before and after claiming, retaining day seven until the next day',()=>{
+  for(const [width,height]of [[568,320],[1280,720]]){
+    Object.assign(frame,{width,height});inset=0;
+    const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+    online.assets=assetFixture();hud.online=online;
+    const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
+    hud.update(sim,world);
+    assert.equal(hud.buttons.find((b:any)=>b.id==='qm:loadout')?.label.string,'军需配置  ›');
+    q.page='loadout';q.revision++;hud.update(sim,world);
+    assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string==='军需配置'));
+    q.page='checkin';
+    for(const [count,signedToday,expected]of [[0,false,1],[1,true,1],[1,false,2],[2,true,2],[6,false,7],[7,true,7],[7,false,8],[8,true,8],[14,true,14]] as const){
+      online.assets.signedDays=Array.from({length:count},(_,i)=>`2026-10-${String(i+1).padStart(2,'0')}`);
+      online.assets.signedToday=signedToday;q.revision++;hud.update(sim,world);
+      const outlines=hud.modal.children.filter((n:SceneNode)=>n.name==='SelectedOutline');
+      assert.equal(outlines.length,1);
+      const [x,y,w,h]=outlines[0].getComponent(Graphics).calls.find((c:any)=>c.op==='roundRect').args;
+      const labels=hud.modal.getComponentsInChildren(cc.Label),days=labels.filter((l:any)=>/^第 \d+ 天$/.test(l.string));
+      const selected=days.filter((l:any)=>l.node.position.x>=x&&l.node.position.x<=x+w&&l.node.position.y>=y&&l.node.position.y<=y+h);
+      assert.deepEqual(selected.map((l:any)=>l.string),[`第 ${expected} 天`],`${count} claimed / today ${signedToday}`);
+      assert.equal(days[0].string,`第 ${expected<=7?1:8} 天`);
+      assert.equal(labels.filter((l:any)=>l.string==='✓').length,count-(expected<=7?0:7));
+      assert.equal(hud.buttons.find((b:any)=>b.id==='qm:checkinClaim')?.disabled,signedToday);
+    }
+  }
+});
+
 test('warehouse identifies terms and pool tiers; inbox cannot claim a selection from another page',()=>{
   Object.assign(frame,{width:568,height:320});inset=0;
   const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});

@@ -2,22 +2,24 @@
 
 更新：2026-11-01。Game ID：`night-overwatch`。已按 `358b1fe0` 的方案和九张效果图实现成长、金币军需、商店礼包、任务签到、邮件仓库、个人配装及结算。对照和验证见[本轮记录](../docs/verification-2026-11-01-progression.md)。
 
-Creator 3.8.8 web-mobile 源码摘要：`0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659`。正式截图和视频来自该构建与真实本地 Runtime，经 Sakura FRP 联调；未使用 QA 余额/奖励 fixture。
+当前 Creator 3.8.8 web-mobile 源码摘要：`ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a`。同日修正“军需配置”名称及签到当天高亮，闭环沿用下方真实战斗证据。首页/配置截图来自当前构建与真实本地 Runtime 新游客；宣传片前6秒同步替换。其余战斗素材保留 `0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659` 构建经 Sakura FRP 录制的身份，内容复核沿用；正式媒体未使用 QA 余额/奖励 fixture。
+
+当前阶段：本地修复及资料更新完成，按用户确认保留个人累计签到，修复与资料一并提交；未推送、生产部署或平台上传，后续渠道提交前按实际入口核对规格。
 
 ## 八类资料
 
 | 类别 | 状态 | 当前文件 |
 | --- | --- | --- |
-| 游戏简介 | 已更新 | [introduction.md](copy/introduction.md) |
-| 推荐语 | 复核沿用 | [tagline.md](copy/tagline.md) |
-| 开发者的话 | 已更新 | [developer-note.md](copy/developer-note.md) |
-| 图标 | 复核沿用 | [1024×1024 PNG](icon/icon-1024.png) |
-| 宣传图 | 复核沿用 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png) |
-| 宣传视频 | 本轮真实录制 | [20 秒 MP4](promo/videos/progression-2026-11-01-1280x720-silent.mp4)，首页 3 秒、军需 3 秒、连续战斗 14 秒 |
-| 游戏截图 | 本轮真实采集 | [首页](gameplay/screenshots/2026-11-01-progression/01-home.png)、[军需](gameplay/screenshots/2026-11-01-progression/02-loadout.png)、[开火](gameplay/screenshots/2026-11-01-progression/03-fire.png)、[命中](gameplay/screenshots/2026-11-01-progression/04-impact.png)、[结算](gameplay/screenshots/2026-11-01-progression/05-settlement.png) |
-| 实机录屏 | 本轮浏览器实录 | [22 秒连续战斗 MP4](gameplay/videos/progression-2026-11-01-1280x720-silent.mp4)，非实体手机采集 |
+| 游戏简介 | 已提供 | [introduction.md](copy/introduction.md)，复核沿用 |
+| 推荐语 | 已提供 | [tagline.md](copy/tagline.md)，复核沿用 |
+| 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，复核沿用 |
+| 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png)，复核沿用 |
+| 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png)，复核沿用 |
+| 宣传视频 | 已提供 | [20 秒 MP4](promo/videos/progression-2026-11-01-1280x720-silent.mp4)，当前首页/军需配置实机静帧各3秒，原连续战斗14秒 |
+| 游戏截图 | 已提供 | [开火](gameplay/screenshots/2026-11-01-progression/03-fire.png)、[命中](gameplay/screenshots/2026-11-01-progression/04-impact.png)、[结算](gameplay/screenshots/2026-11-01-progression/05-settlement.png)沿用；[首页](gameplay/screenshots/2026-11-01-progression/01-home.png)、[军需配置](gameplay/screenshots/2026-11-01-progression/02-loadout.png)更新 |
+| 实机录屏 | 已提供 | [22 秒连续战斗 MP4](gameplay/videos/progression-2026-11-01-1280x720-silent.mp4)，浏览器实录复核沿用，非实体手机采集 |
 
-截图为 1280×720、每张小于 4 MB；视频均为 1280×720 H.264、无音轨，完整解码及首尾抽帧核对通过。[manifest.json](manifest.json)记录尺寸、时长、摘要和沿用来源；[剪辑记录](promo/videos/progression-2026-11-01-edit.json)记录源视频摘要及区间。界面测试资产图单独保存在 docs，不混入正式媒体。
+2026-11-01复核：全部清单文件可读取、图片可解码且摘要一致。截图为1280×720、每张小于4 MB；两段视频均为1280×720 H.264、无音轨，完整解码通过，更新宣传片的全部20张逐秒帧已查看。[manifest.json](manifest.json)分别记录采集与复核版本、尺寸、时长和摘要；[剪辑记录](promo/videos/progression-2026-11-01-edit.json)记录当前静帧与历史战斗段的确切来源。界面测试资产图单独保存在docs，不混入正式媒体。
 
 素材来源和许可见[素材清单](../docs/ASSET_MANIFEST.json)。上一轮资料保留于[历史状态](STATUS-2026-10-30-taptap-login.md)和[历史清单](manifest-2026-10-30-taptap-login.json)。
 
