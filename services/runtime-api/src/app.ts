@@ -126,7 +126,13 @@ export function createRuntimeService(
       const carromEngine = (await import(carromUrl)) as CarromEngine;
       const { FRIEND_LEVELS } = (await import(levelsUrl)) as { FRIEND_LEVELS: CarromLevel[] };
       const carrom = createCarromStore(database.db, carromEngine, FRIEND_LEVELS, Date.now, control);
-      const competition = createCompetitionStore(database.db, rules, Date.now, control);
+      const competition = createCompetitionStore(
+        database.db,
+        rules,
+        Date.now,
+        control,
+        env.COMPETITION_DEVELOPMENT_ENABLED === '1',
+      );
       const rankedUrl = new URL('../rules/ranked-games.mjs', import.meta.url).href;
       const { rankedRules } = (await import(rankedUrl)) as { rankedRules: RankedRule[] };
       const gameRuns = createRankedStore(

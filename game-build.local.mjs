@@ -81,7 +81,17 @@ export default {
   ],
   ads: [false],
   backend: [false],
-  // 当前仅构建夜航本地联调包，手机经 Sakura FRP 访问本机 Runtime。
-  apiUrl: 'https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1',
+  // development：开发测试包；test：普通测试包；production：正式包。
+  // 命令行 --build-type 覆盖此默认值；单游戏 buildType 优先级更高。
+  buildType: 'development',
+  apiUrls: {
+    production: 'https://api.nenggongzhiren.cn/small-games/v1',
+  },
+  gameOverrides: {
+    'night-overwatch': {
+      // 当前 FRP 网关只放行夜航；其他游戏接通后再配置其测试地址。
+      apiUrls: { test: 'https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1' },
+    },
+  },
   localBackend: false,
 };

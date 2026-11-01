@@ -16,9 +16,40 @@ import { h5AdGames, h5PackageGames, additionalH5Games } from './h5-ad-config.mjs
 import { competitionService } from './competition-service-config.mjs';
 import { h5BasicServiceGames } from './h5-game-services.mjs';
 import { packageModes } from './h5-taptap-matrix.mjs';
+import { buildTypes } from './h5-build-type.mjs';
 
 export const localConfig = 'game-build.local.mjs';
 const record = (value) => value && typeof value === 'object' && !Array.isArray(value);
+function validateApiUrls(value = {}, local = false) {
+  assert(record(value), 'BUILD_API_URLS');
+  for (const [type, apiUrl] of Object.entries(value)) {
+    assert(['test', 'production'].includes(type) && typeof apiUrl === 'string', 'BUILD_API_URLS');
+    validateService({ apiUrl }, type === 'test' && local);
+    if (type === 'production') {
+      assert(
+        !['localhost', '127.0.0.1', '[::1]'].includes(new URL(apiUrl).hostname),
+        'BUILD_PRODUCTION_API',
+      );
+    }
+  }
+}
+export function gameBuildSettings(config, game) {
+  if (!config.buildType) return {};
+  const override = config.gameOverrides?.[game];
+  const buildType = override?.buildType ?? config.buildType;
+  const urls = { ...config.apiUrls, ...override?.apiUrls };
+  if (buildType !== 'production' && urls.test && urls.production)
+    assert(
+      new URL(urls.test).href.replace(/\/+$/, '') !==
+        new URL(urls.production).href.replace(/\/+$/, ''),
+      'BUILD_TEST_PRODUCTION_API_CONFLICT',
+    );
+  return {
+    buildType,
+    devMode: buildType === 'development',
+    apiUrl: urls[buildType === 'production' ? 'production' : 'test'] ?? '',
+  };
+}
 function validateService(config, local = Boolean(config.localBackend)) {
   assert(config.apiUrl, 'BUILD_API_URL_REQUIRED: backend=true requires apiUrl');
   try {
@@ -73,6 +104,7 @@ export function parseGameBuildConfig(config) {
     'backend',
     'apiUrl',
     'localBackend',
+    ...(config.version === 2 ? ['buildType', 'apiUrls', 'gameOverrides'] : []),
     config.version === 1 ? 'adUnits' : 'targets',
   ];
   assert(
@@ -92,6 +124,32 @@ export function parseGameBuildConfig(config) {
     'BUILD_CONFIG',
   );
   assert(config.apiUrl === undefined || typeof config.apiUrl === 'string', 'BUILD_CONFIG');
+  if (config.buildType !== undefined) {
+    assert(buildTypes.includes(config.buildType), 'BUILD_TYPE');
+    assert(config.apiUrl === undefined, 'BUILD_API_URL_CONFLICT: use apiUrls with buildType');
+    validateApiUrls(config.apiUrls, Boolean(config.localBackend));
+    assert(
+      config.gameOverrides === undefined || record(config.gameOverrides),
+      'BUILD_GAME_OVERRIDES',
+    );
+    for (const [game, override] of Object.entries(config.gameOverrides ?? {})) {
+      assert(h5PackageGames.includes(game) && record(override), 'BUILD_GAME_OVERRIDE');
+      assert(
+        Object.keys(override).every((key) => ['buildType', 'apiUrls'].includes(key)),
+        'BUILD_GAME_OVERRIDE',
+      );
+      assert(
+        override.buildType === undefined || buildTypes.includes(override.buildType),
+        'BUILD_TYPE',
+      );
+      validateApiUrls(override.apiUrls, Boolean(config.localBackend));
+    }
+  } else {
+    assert(
+      config.apiUrls === undefined && config.gameOverrides === undefined,
+      'BUILD_TYPE_REQUIRED',
+    );
+  }
   if (config.apiUrl || (config.version === 1 && config.backend.includes(true)))
     validateService(config);
   if (config.version === 1) {
@@ -161,6 +219,7 @@ export function gameBuildPlan(config) {
   return config.targets.flatMap((target) =>
     config.games.flatMap((game) =>
       target.modes.map(([ads, backend]) => {
+        const settings = gameBuildSettings(config, game);
         const job = {
           game,
           platform: target.platform,
@@ -178,13 +237,20 @@ export function gameBuildPlan(config) {
             target.adUnits[game],
             `BUILD_AD_UNIT_REQUIRED: ${game}/${target.platform}/${target.type}`,
           );
-        if (backend) validateService(config, target.type === 'h5' && Boolean(config.localBackend));
+        if (backend)
+          validateService(
+            config.buildType ? settings : config,
+            settings.buildType !== 'production' &&
+              target.type === 'h5' &&
+              Boolean(config.localBackend),
+          );
         assert(
           !backend || h5AdGames.includes(game) || h5BasicServiceGames.includes(game),
           `BUILD_SERVICE_UNSUPPORTED: ${game}/taptap/h5`,
         );
         return {
           ...job,
+          ...(config.buildType ? { ...settings, apiUrl: backend ? settings.apiUrl : '' } : {}),
           delivery: 'upload-zip',
           effectiveAdsEnabled: ads && Boolean(target.adUnits[game]),
           ...(backend && target.tapIdentityAppIds?.[game]
@@ -207,13 +273,14 @@ export async function main(
     args,
     options: {
       config: { type: 'string' },
+      'build-type': { type: 'string' },
       help: { type: 'boolean' },
       'dry-run': { type: 'boolean' },
     },
   });
   if (values.help) {
     console.log(
-      'pnpm build:games [--config path.mjs] [--dry-run]\n按带注释的 game-build.local.mjs 选择三款游戏的 TapTap H5 包；配置使用 export default。\n兼容 --config path.js / path.json；默认 mjs 不存在时才读取旧 game-build.local.json。\n--dry-run 仅校验并列出构建计划。构建串行执行，不自动上传、提审或部署。\n说明：docs/operations/game-builds.md；模板：infra/builds/games.example.mjs。',
+      'pnpm build:games [--config path.mjs] [--build-type development|test|production] [--dry-run]\n按 game-build.local.mjs 选择 TapTap H5 包；单游戏 buildType 优先于命令行全局默认。\n兼容 --config path.js / path.json；默认 mjs 不存在时才读取旧 game-build.local.json。\n--dry-run 仅校验并列出构建计划。构建串行执行，不自动上传、提审或部署。\n说明：docs/operations/game-builds.md；模板：infra/builds/games.example.mjs。',
     );
     return;
   }
@@ -241,7 +308,9 @@ export async function main(
   } catch {
     throw Error('BUILD_CONFIG_INVALID');
   }
-  const config = parseGameBuildConfig(raw);
+  const config = parseGameBuildConfig(
+    values['build-type'] === undefined ? raw : { ...raw, buildType: values['build-type'] },
+  );
   const jobs = gameBuildPlan(config);
   if (values['dry-run']) {
     const plan = {
@@ -292,6 +361,13 @@ export async function main(
             output: targetOutput,
             batch,
             tapIdentityAppIds: target.tapIdentityAppIds,
+            ...(config.buildType
+              ? {
+                  gameSettings: Object.fromEntries(
+                    config.games.map((game) => [game, gameBuildSettings(config, game)]),
+                  ),
+                }
+              : {}),
           },
           { workspace, env: buildEnv, allowDirty: true, perGame: true, buildOnly: true },
         );

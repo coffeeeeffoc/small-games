@@ -16,7 +16,10 @@ export default {
   ],
   ads: [false], // [false, true] 同时生成两种广告变体。
   backend: [false], // [false, true] 同时生成离线和在线变体。
-  apiUrl: 'https://api.nenggongzhiren.cn/small-games/v1',
+  buildType: 'production', // development / test / production；--build-type 可覆盖全局默认。
+  apiUrls: { production: 'https://api.nenggongzhiren.cn/small-games/v1' },
+  // 测试服支持共用时在 apiUrls.test 填写；单游戏覆盖优先于全局和 CLI。
+  gameOverrides: {}, // 例：{ 'night-overwatch': { buildType: 'test', apiUrls: { test: 'https://test.example/api/competition/v1' } } }
   localBackend: false, // true 仅允许本机 H5 HTTP 验证。
 };
 // 输出 outputs/game-builds/<批次>/taptap-h5/，单款 ZIP 上传到 H5 入口。

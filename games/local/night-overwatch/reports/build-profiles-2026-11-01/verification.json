@@ -1,0 +1,24 @@
+{
+  "isolatedDatabase": "competition_test",
+  "deployment": false,
+  "configurationOverride": "Browser route replaces Tap identity with guest and routes API to isolated test fixture; original package files unchanged",
+  "checks": [
+    {
+      "type": "development",
+      "coinsAfterPurchaseAndReload": 1700,
+      "xp": 400,
+      "mission": "operation-120",
+      "practice": true
+    },
+    {
+      "type": "test",
+      "locked": true
+    },
+    {
+      "type": "production",
+      "locked": true
+    }
+  ],
+  "passed": true,
+  "errors": []
+}

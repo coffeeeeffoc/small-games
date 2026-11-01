@@ -5,6 +5,8 @@ const base = { RUNTIME_DATABASE_URL: 'postgres://runtime_app:secret@localhost/ru
 it('rejects configuration typos and partial capability configuration without echoing secrets', () => {
   for (const invalid of [
     { COMPETITION_ENABLED: 'yes' },
+    { COMPETITION_DEVELOPMENT_ENABLED: 'true' },
+    { COMPETITION_DEVELOPMENT_ENABLED: '' },
     { TRUST_PROXY: 'true' },
     { TRUST_PROXY: '1' },
     { TRUST_PROXY: '1', RUNTIME_TRUSTED_PROXY_IP: 'uniquelocal' },
@@ -24,6 +26,12 @@ it('rejects configuration typos and partial capability configuration without ech
   } catch (error) {
     expect(String(error)).not.toContain('sensitive-token');
   }
+});
+it('development capability defaults off and accepts only explicit 0 or 1', () => {
+  for (const value of [undefined, '0', '1'])
+    expect(() =>
+      validateRuntimeEnvironment({ ...base, COMPETITION_DEVELOPMENT_ENABLED: value }),
+    ).not.toThrow();
 });
 it('accepts only an explicitly enabled exact proxy address', () => {
   for (const address of ['172.18.0.4', '::1'])

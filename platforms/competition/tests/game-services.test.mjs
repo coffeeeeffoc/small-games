@@ -788,6 +788,51 @@ test('Night cached account A cannot read or mutate assets using a newly selected
   await assert.rejects(api.nightAssets('a'), { code: 'IDENTITY_CHANGED' });
   assert.equal(f.calls.length, before);
 });
+test('shared development assets use each game scope and Night forwards its existing journal ID', async (t) => {
+  const f = authFixture(t, {
+    initial: JSON.stringify(credential('a', Date.now() + 900000, 'night-overwatch')),
+  });
+  const original = f.respond;
+  f.respond = async (url, init) => {
+    await original(url, init);
+    return { playerId: 'a', coins: 25 };
+  };
+  const api = createGameServices({ gameId: 'night-overwatch' });
+  await api.nightAssetCommand(
+    { kind: 'dev-adjust', requestId: 'same-id', coinsDelta: -7, xpDelta: 20 },
+    'a',
+  );
+  assert.equal(f.calls.at(-1).url, '/api/competition/v1/games/night-overwatch/development/assets');
+  assert.deepEqual(f.calls.at(-1).body, { requestId: 'same-id', deltas: { coins: -7, xp: 20 } });
+  f.setStorage(JSON.stringify(credential('a', Date.now() + 900000, 'wulong-city')));
+  const other = createGameServices({ gameId: 'wulong-city' });
+  await other.adjustDevelopmentAssets({ requestId: 'other-id', deltas: { energy: 3 } }, 'a');
+  assert.equal(f.calls.at(-1).url, '/api/competition/v1/games/wulong-city/development/assets');
+  const before = f.calls.length;
+  await assert.rejects(
+    other.adjustDevelopmentAssets({ requestId: 'wrong-owner', deltas: { energy: 1 } }, 'b'),
+    { code: 'IDENTITY_CHANGED' },
+  );
+  assert.equal(f.calls.length, before);
+});
+test('shared development mutations reject ownership changes and mismatched response owners', async (t) => {
+  const f = authFixture(t),
+    api = createGameServices({ gameId: 'tower-brake' });
+  await api.session();
+  f.respond = async () => ({ playerId: 'other' });
+  await assert.rejects(
+    api.adjustDevelopmentAssets({ requestId: 'id', deltas: { coins: 1 } }, 'a'),
+    { code: 'IDENTITY_CHANGED' },
+  );
+  f.respond = async () => {
+    f.setStorage(JSON.stringify(credential('b')));
+    return { playerId: 'a' };
+  };
+  await assert.rejects(
+    api.adjustDevelopmentAssets({ requestId: 'id', deltas: { coins: 1 } }, 'a'),
+    { code: 'SESSION_CHANGED' },
+  );
+});
 function recorderFixture(options = {}) {
   const calls = [],
     statuses = [];

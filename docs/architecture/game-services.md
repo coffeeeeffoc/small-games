@@ -18,6 +18,18 @@
 
 闯关榜不是累计星数或总通关时间，也不接受本地存档自报进度。完整失败的无尽局可入榜，未完成的闯关局不能入榜；零分不占榜位。同分且同用时并列，展示顺序由稳定玩家 ID 决定。
 
+## 测试服务器的通用资产调整
+
+`POST /games/:game/development/assets` 接受严格的 `{ requestId: UUID, deltas: { coins: 100, xp: -20 } }`。字段由该游戏服务端注册的资产适配器声明；每项须为 ±10 亿范围内的整数，至少一项非零。禁止附带 `playerId`、游戏 ID、开发开关、数据库或其他额外字段。路径游戏和已验证 Bearer 会话必须一致，修改对象始终为本人。
+
+Runtime 必须显式配置 `COMPETITION_DEVELOPMENT_ENABLED=1`，默认及 `0` 都返回 `DEV_TOOLS_DISABLED`。`GET /games/:game` 增加 `developmentAssets: { enabled, assets }`，其中未注册游戏返回 `false/[]`，调用返回 `DEVELOPMENT_ASSETS_UNSUPPORTED`；未声明资产返回 `DEVELOPMENT_ASSET_UNSUPPORTED`。客户端开发包标识不构成服务端授权，测试包隐藏按钮也不等于服务器禁止手工请求。
+
+注册通过 `createCompetitionStore` 的服务器端 `developmentAdapters` Map 完成。每个适配器接入该游戏已有的资产模型，在原钱包事务内重验会话与控制策略、按既有锁序防止并发覆盖，并保证 `(game, owner, requestId)` 的幂等及同 ID 不同内容冲突；不能只修改客户端数值，也不能为没有经济系统的游戏虚构钱包。**当前实际注册只有夜航守望的 `coins/xp`**，并且仅在 Night progression 规则存在时启用。两个独立测试适配器证明分派与隔离，不代表其他游戏已经上线资产能力。
+
+夜航适配器直接复用原 `nightAssets` 事务与私有流水，不新建数据表或第二套账本。新端点和兼容的 `/games/night-overwatch/assets` `dev-adjust` 使用同一个 requestId、规范化的金币/经验增量及同一回执；旧路径不能绕过服务端开关。结果为本人资产快照，包含 `playerId`、`coins/xp`、`devToolsEnabled` 与记录前后余额的 `lastReceipt`。余额不得为负或超出安全整数。提升经验按现有规则解锁资格，降低经验不回收永久物品；试玩与排行榜规则保持原隔离。
+
+共享 SDK 的 `adjustDevelopmentAssets({requestId,deltas}, expectedPlayerId)` 使用游戏绑定的凭据，发送前后检查主体和响应 `playerId`。夜航既有 `nightAssetCommand` 遇到 `dev-adjust` 自动转用此通用端点，保留原交易编号、重试日志及普通资产调用。部署与实际 FRP 验证见[本地联调说明](../operations/night-overwatch-local-selftest.md)；普通生产部署不启用此服务端能力。
+
 ## 输入回放协议
 
 1. `POST /games/:game/runs`：`{board, version, levelId?}`，返回 `{id,game,board,version,seed,stepHz:120,seq:0,status,expiresAt}`。无尽局必须采用返回的种子初始化相同核心。关卡 ID 来自游戏内容目录。

@@ -42,6 +42,33 @@ pnpm build:taptap:h5
 
 ## 配置
 
+### 开发测试包、测试包与正式包
+
+版本 2 配置可指定 `buildType: 'development' | 'test' | 'production'`。`development` 使用测试 API，强制启用常驻开发按钮；`test` 使用测试 API、锁定关闭开发模式；`production` 使用正式 API、锁定关闭开发模式。测试／正式包不能用 URL 或旧 `localStorage.dev` 打开开发模式。包类型控制构建配置，不代表已通过上线验收或已部署配套服务器。
+
+```js
+buildType: 'development',
+apiUrls: { production: 'https://api.nenggongzhiren.cn/small-games/v1' },
+gameOverrides: {
+  'night-overwatch': {
+    apiUrls: { test: 'https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1' },
+    // buildType: 'test', // 可选：覆盖全局默认与命令行默认。
+  },
+},
+```
+
+```powershell
+pnpm build:games --build-type development --dry-run
+pnpm build:games --build-type test
+pnpm build:games --build-type production
+```
+
+优先级为单游戏 `gameOverrides[game].buildType` → `--build-type` → 根 `buildType`。API 按单游戏 `apiUrls.test/production` 覆盖全局同名字段，开发测试与测试共用 `test`；未配置对应地址的联网包在编译前报错。`backend: false` 仍清空包内 API，目标级广告／后端布尔组合保持原语义。配置指定的测试地址不得与该游戏有效正式地址相同；正式地址拒绝回环地址和 HTTP，不能用 `localBackend` 绕过。
+
+Runtime 源码按 game ID 隔离服务、可供多游戏共用；**当前上述 FRP 网关只放行夜航守望**，因此根配置将它登记为夜航专用测试地址。其他游戏需配置已接通的测试地址；若日后网关和测试部署支持多款，才可移到全局 `apiUrls.test`。仅更改打包参数不会扩展服务器白名单。
+
+计划、ZIP 名称和清单记录实际包类型，计划及清单记录有效 API 和客户端 `devMode`。服务器调试资产能力须另行显式启用并验证，客户端开发模式不构成授权。旧配置不指定 `buildType` 时仍支持原 `apiUrl`；新字段与旧 `apiUrl` 同时存在会报错，避免静默选错服务器。
+
 ```js
 export default {
   version: 2,

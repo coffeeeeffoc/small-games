@@ -7,13 +7,21 @@ import vm from 'node:vm';
 import { syncGameDevMode } from './sync-game-dev-mode.mjs';
 
 const runtime = await readFile(new URL('../platforms/h5/dev-mode.js', import.meta.url), 'utf8');
-function tools({ search = '', hash = '', stored = null, parent, blockedStorage = false } = {}) {
+function tools({
+  search = '',
+  hash = '',
+  stored = null,
+  parent,
+  blockedStorage = false,
+  buildType,
+} = {}) {
   const window = {
     location: { search, hash, pathname: '/games/example/index.html' },
     localStorage: { getItem: () => stored },
     innerWidth: 390,
     innerHeight: 844,
     devicePixelRatio: 2,
+    ...(buildType ? { __SMALL_GAMES_BUILD__: Object.freeze({ type: buildType }) } : {}),
   };
   window.parent = parent ?? window;
   if (blockedStorage)
@@ -25,6 +33,22 @@ function tools({ search = '', hash = '', stored = null, parent, blockedStorage =
   vm.runInNewContext(runtime, { window, URLSearchParams });
   return window.SmallGamesDev;
 }
+
+test('package build type overrides URLs, parents and remembered developer mode', () => {
+  const parent = { location: { search: '?dev=1', hash: '' } };
+  parent.parent = parent;
+  for (const buildType of ['test', 'production']) {
+    const dev = tools({ buildType, search: '?dev=1', stored: '1', parent });
+    assert.deepEqual(JSON.parse(JSON.stringify(dev.state())), { enabled: false, source: 'build' });
+    assert.equal(dev.withMode(), 'dev=0');
+    assert.equal(dev.withMode('dev=1&mission=test'), 'dev=0&mission=test');
+  }
+  const dev = tools({ buildType: 'development', search: '?dev=0', stored: '0' });
+  assert.equal(dev.isEnabled(), true);
+  assert.equal(dev.withMode('dev=0'), 'dev=1');
+  dev.setPanelHidden(true);
+  assert.equal(dev.isEnabled(), true);
+});
 
 test('production defaults off; URL and localStorage use the same explicit opt-in', () => {
   assert.equal(tools().isEnabled(), false);

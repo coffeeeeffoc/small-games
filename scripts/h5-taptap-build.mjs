@@ -21,6 +21,8 @@ import path from 'node:path';
 import { h5AdGames, h5PackageGames, additionalH5Games, prepareH5Ads } from './h5-ad-config.mjs';
 import { prepareH5Service } from './competition-h5-service.mjs';
 import { h5BasicServiceGames, prepareGameServices } from './h5-game-services.mjs';
+import { buildTypes, prepareBuildType } from './h5-build-type.mjs';
+import { competitionService } from './competition-service-config.mjs';
 import {
   packageModes,
   h5Orientations,
@@ -51,7 +53,7 @@ export function validateTapIdentityAppIds(value = {}) {
 }
 export function compilerEnvironment(env = process.env) {
   const allowed =
-    /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|LANG|LC_[A-Z_]+|CI|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|HOMEBOUND_STATION_PREBUILT_DIR|MERGE_FRONT_PREBUILT_DIR|TETRACUBE_PREBUILT_DIR|PLACE_AND_CLEAR_PREBUILT_DIR|BULLET_GARDEN_PREBUILT_DIR|TOWER_BRAKE_PREBUILT_DIR|TIANXIA_PREBUILT_DIR|H5_ADS_ENABLED|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|TAPTAP_(?:PORCELAIN_PUZZLE|ASHFALL_FRONT|COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE|CARDING_CAR|VIBEJAM_MYSELF_HISTORY_GUESS|WULONG_CITY|NIGHT_OVERWATCH|TRAVEL_BUND|LETTERS_WORDS2|HOMEBOUND_STATION|MERGE_FRONT|TETRACUBE|PLACE_AND_CLEAR|THREE_CHOOSE_TWO|BULLET_GARDEN|TOWER_BRAKE|TIANXIA_CHALU|BALL_ROGUELITE|FLICK_ARENA|CHASE_THIEF|MOSS_GARDEN|CAGE_RESCUE|EMBER_BOUNCE|FOLD_THE_WORLD|OUT_OF_FRAME|SURPRISE_KEPT|TWO_SIDED_BOX)_(?:AD_UNIT_ID|INTERSTITIAL_AD_UNIT_ID|SERVICES))$/i;
+    /^(?:PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|TEMP|TMP|TMPDIR|LANG|LC_[A-Z_]+|CI|COCOS_CREATOR|KART_PREBUILT_DIR|NIGHT_OVERWATCH_PREBUILT_DIR|HOMEBOUND_STATION_PREBUILT_DIR|MERGE_FRONT_PREBUILT_DIR|TETRACUBE_PREBUILT_DIR|PLACE_AND_CLEAR_PREBUILT_DIR|BULLET_GARDEN_PREBUILT_DIR|TOWER_BRAKE_PREBUILT_DIR|TIANXIA_PREBUILT_DIR|H5_ADS_ENABLED|COMPETITION_SERVICE_ENABLED|COMPETITION_PUBLIC_API_URL|COMPETITION_LOCAL_BACKEND|TAPTAP_(?:PORCELAIN_PUZZLE|ASHFALL_FRONT|COPS_ROBBERS|COPS_ROBBERS_REALTIME|XIANGQI_FIVE|CARDING_CAR|VIBEJAM_MYSELF_HISTORY_GUESS|WULONG_CITY|NIGHT_OVERWATCH|TRAVEL_BUND|LETTERS_WORDS2|HOMEBOUND_STATION|MERGE_FRONT|TETRACUBE|PLACE_AND_CLEAR|THREE_CHOOSE_TWO|BULLET_GARDEN|TOWER_BRAKE|TIANXIA_CHALU|BALL_ROGUELITE|FLICK_ARENA|CHASE_THIEF|MOSS_GARDEN|CAGE_RESCUE|EMBER_BOUNCE|FOLD_THE_WORLD|OUT_OF_FRAME|SURPRISE_KEPT|TWO_SIDED_BOX)_(?:AD_UNIT_ID|INTERSTITIAL_AD_UNIT_ID|SERVICES))$/i;
   return {
     ...Object.fromEntries(
       Object.keys(env)
@@ -324,6 +326,35 @@ export async function buildH5Packages(
   if (!allowDirty) assert.equal(dirty, '', 'Commit source changes before packaging');
   const sourceDirty = dirty === null ? 'unknown' : Boolean(dirty);
   const requestedModes = selection?.modes ?? values.modes ?? packageModes(values, env);
+  if (values.gameSettings !== undefined) {
+    assert(
+      values.gameSettings &&
+        typeof values.gameSettings === 'object' &&
+        !Array.isArray(values.gameSettings),
+      'BUILD_GAME_SETTINGS',
+    );
+    assert(!selection, 'Acceptance profiles cannot override game settings');
+    assert(
+      Object.keys(values.gameSettings).every((game) => games.includes(game)),
+      'BUILD_GAME_SETTINGS',
+    );
+    for (const game of games) {
+      const settings = values.gameSettings[game];
+      assert(settings && buildTypes.includes(settings.buildType), 'BUILD_TYPE');
+      if (requestedModes.some(([, service]) => service)) {
+        competitionService({
+          env: { COMPETITION_SERVICE_ENABLED: '1' },
+          apiUrl: settings.apiUrl,
+          local: settings.buildType !== 'production' && Boolean(values.local),
+        });
+        if (settings.buildType === 'production')
+          assert(
+            !['localhost', '127.0.0.1', '[::1]'].includes(new URL(settings.apiUrl).hostname),
+            'BUILD_PRODUCTION_API',
+          );
+      }
+    }
+  }
   assert(
     !requestedModes.some(([, service]) => service) ||
       games.every((game) => h5AdGames.includes(game) || h5BasicServiceGames.includes(game)),
@@ -354,6 +385,8 @@ export async function buildH5Packages(
   const batch = values.batch ?? path.basename(output);
   assert(/^[A-Za-z0-9_-]+$/.test(batch), 'Invalid batch');
   for (const game of games) {
+    const settings = values.gameSettings?.[game];
+    const local = settings?.buildType !== 'production' && Boolean(values.local);
     const gameRoot = await realpath(
       path.join(
         workspace,
@@ -417,13 +450,15 @@ export async function buildH5Packages(
     const gameManifests = [];
     try {
       for (const [ads, service] of modes) {
-        const name = `${game}${buildOnly ? '-taptap-h5' : ''}-ads-${ads ? 'on' : 'off'}-service-${service ? 'on' : 'off'}`;
+        const name = `${game}${buildOnly ? '-taptap-h5' : ''}${settings ? '-' + settings.buildType : ''}-ads-${ads ? 'on' : 'off'}-service-${service ? 'on' : 'off'}`;
         const directory = path.join(output, name),
           dist = path.join(directory, 'dist');
         const buildEnv = compilerEnvironment({
           ...compilerEnvironment(env),
           H5_ADS_ENABLED: ads ? '1' : '0',
           COMPETITION_SERVICE_ENABLED: service ? '1' : '0',
+          COMPETITION_LOCAL_BACKEND: local ? '1' : '0',
+          ...(settings ? { COMPETITION_PUBLIC_API_URL: service ? settings.apiUrl : '' } : {}),
           ...(prebuilt ? { [prebuiltKey]: prebuilt } : {}),
         });
         const buildOutput = await cleanGeneratedOutput(gameRoot);
@@ -466,17 +501,18 @@ export async function buildH5Packages(
           serviceConfig = h5AdGames.includes(game)
             ? await prepareH5Service(game, dist, {
                 env: buildEnv,
-                local: Boolean(values.local),
+                local,
                 identityMode: 'persistent',
               })
             : h5BasicServiceGames.includes(game)
               ? await prepareGameServices(game, dist, {
                   env: buildEnv,
-                  local: Boolean(values.local),
+                  local,
                   tapAppId: service ? tapIdentityAppIds[game] || '' : '',
                 })
-              : { apiUrl: '' },
-          files = await inventory(dist);
+              : { apiUrl: '' };
+        if (settings) await prepareBuildType(dist, settings.buildType);
+        const files = await inventory(dist);
         assert(
           files.some((file) => file.path === 'index.html'),
           'Missing compiler entry',
@@ -496,6 +532,9 @@ export async function buildH5Packages(
           identityMode: 'persistent',
           name,
           game,
+          ...(settings
+            ? { buildType: settings.buildType, devMode: settings.buildType === 'development' }
+            : {}),
           platform: 'taptap-h5',
           packageType: 'h5',
           entry: 'dist/index.html',
@@ -515,7 +554,7 @@ export async function buildH5Packages(
               }
             : {}),
           apiUrl: serviceConfig.apiUrl,
-          localValidation: Boolean(values.local),
+          localValidation: local,
           sourceSHA,
           sourceDirty,
           submoduleSHA,

@@ -23,6 +23,18 @@ export function registerGameRoutes(
   ranked: ReturnType<typeof createRankedStore>,
   player: (authorization: string | undefined) => Promise<PlayerAuth>,
 ) {
+  routes.post(
+    '/games/:game/development/assets',
+    { bodyLimit: 4096, config: { rateLimit: { max: 120, timeWindow: '1 minute' } } },
+    async (request) => {
+      const { game } = gameParams(request.params);
+      return store.adjustDevelopmentAssets(
+        await player(request.headers.authorization),
+        game,
+        request.body,
+      );
+    },
+  );
   routes.get('/games/night-overwatch/assets', async (request) =>
     store.nightAssets(await player(request.headers.authorization)),
   );
@@ -70,6 +82,10 @@ export function registerGameRoutes(
         ...(multiplayer?.lobby ? { lobby: true, history: true } : {}),
       },
       boards,
+      developmentAssets: store.developmentAssetCapabilities?.(game) ?? {
+        enabled: false,
+        assets: [],
+      },
     };
   }
   routes.get('/games/:game', async (request) => {

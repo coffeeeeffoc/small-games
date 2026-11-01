@@ -4,6 +4,8 @@ export type AssetIntent = AssetCommand extends infer T ? T extends AssetCommand 
 export type ProgressionPage = ''|'modes'|'loadout'|'shop'|'supply'|'growth'|'tasks'|'inbox'|'warehouse'|'receipts'|'checkin'|'probability';
 export const effectEnglish:Record<Effect,string>={power:'Power upgrade',rate:'Rapid feed',burst:'Double burst',twin:'Twin trajectory',radius:'Blast radius',cooling:'Cooling system',drone:'Drone swarm',laser:'Laser weapon',tracking:'Tracking',emp:'Electromagnetic pulse'};
 const errors:Record<string,[string,string]>={
+  DEV_TOOLS_DISABLED:['服务器未启用开发调试，请连接已启用开发能力的测试服','Developer tools are disabled on this server.'],
+  INVALID_DEV_BALANCE:['调整后的金币或经验必须是非负安全整数','Adjusted coins and XP must be non-negative safe integers.'],
   INSUFFICIENT_COINS:['金币不足，完成行动或任务可获得金币','Not enough coins. Complete operations or tasks.'],
   INSUFFICIENT_INVENTORY:['库存不足或已被对局预留','Not enough available stock. Some items may be reserved.'],
   ALREADY_OWNED:['已永久拥有此资格','Already permanently owned.'],ALREADY_CLAIMED:['已经领取，请刷新查看','Already claimed. Refresh to see the result.'],
@@ -31,12 +33,21 @@ export class Quartermaster {
   get pendingOrder(){return this.assets?.videoOrders.find(o=>!o.delivered&&o.quantity===this.quantity);}
   get inventory(){return Object.entries(this.assets?.inventory||{}).filter(([,n])=>n>0);}
   private key(){return 'night-overwatch-asset-intent:'+this.owner;}
+  private allowDeveloperIntent(){
+    if((globalThis as {__SMALL_GAMES_BUILD__?:{type:string}}).__SMALL_GAMES_BUILD__?.type==='development')return true;
+    if(this.pending?.kind==='dev-adjust'){
+      this.pending=undefined;try{this.storage.removeItem(this.key());}catch{/* A rejected developer intention is never sent from this package. */}
+      this.message=['已清除开发包遗留的调试操作，当前包不会重试','Removed the saved developer operation; this package will not retry it.'];this.revision++;
+    }
+    return false;
+  }
   syncIdentity(){
     const id=this.online.authenticatedId;
     if(id===this.owner)return;
     this.owner=id;this.pending=undefined;this.message=['',''];this.confirmation=undefined;this.selectedMail='';this.revision++;
     if(!id)return;
     try{const value=JSON.parse(this.storage.getItem(this.key())||'null');if(value?.requestId&&value?.kind)this.pending=value;}catch{/* Corrupt local intent cannot alter server assets. */}
+    this.allowDeveloperIntent();
   }
   show(page:ProgressionPage){this.page=page;this.section='';this.index=0;this.detail=false;this.confirmation=undefined;this.message=['',''];this.revision++;if(page&&page!=='modes')void this.refresh().then(()=>{if(this.page==='inbox'&&this.section!=='news'){const mail=this.assets?.mail.find(m=>m.id===this.selectedMail)||this.assets?.mail[0];if(mail){this.selectedMail=mail.id;this.revision++;if(!mail.read)void this.execute({kind:'read-mail',mailId:mail.id});}}});}
   async refresh(){
@@ -48,6 +59,7 @@ export class Quartermaster {
   }
   async execute(intent?:AssetIntent):Promise<AssetSnapshot|undefined>{
     this.syncIdentity();if(this.busy||this.disposed)return;
+    if(!this.allowDeveloperIntent()&&intent?.kind==='dev-adjust'){this.message=['只有开发测试包可调整资产','Asset adjustment requires a development package.'];this.revision++;return;}
     if(!this.owner||!this.assets){this.message=['请先连接军需服务','Connect to the quartermaster first.'];this.revision++;return;}
     if(this.pending&&intent){this.message=['上一操作等待确认，请先重试，避免重复扣款','Confirm the pending operation before making another purchase.'];this.revision++;return;}
     if(intent){

@@ -106,6 +106,14 @@ const quantity = z.number().int().min(1).max(100),
   requestId = z.uuid(),
   item = z.string().min(1).max(80);
 export const nightAssetCommandSchema = z.discriminatedUnion('kind', [
+  z
+    .object({
+      kind: z.literal('dev-adjust'),
+      requestId,
+      coinsDelta: z.number().int().min(-1e9).max(1e9).default(0),
+      xpDelta: z.number().int().min(-1e9).max(1e9).default(0),
+    })
+    .strict(),
   z.object({ kind: z.literal('buy'), requestId, item, quantity: quantity.default(1) }).strict(),
   z.object({ kind: z.literal('checkin'), requestId }).strict(),
   z
@@ -506,7 +514,10 @@ export async function nightAssets(
   at: number,
   rules: ProgressionRules,
   command?: AssetCommand,
+  development = false,
 ) {
+  if (command?.kind === 'dev-adjust' && !development)
+    throw new CompetitionError('DEV_TOOLS_DISABLED', 403);
   const w = await locked(tx, owner, at, rules),
     day = nightDay(at);
   const response = async (lastReceipt?: unknown) => {
@@ -534,6 +545,7 @@ export async function nightAssets(
     });
     return {
       ...snapshot(w, owner, at, rules),
+      devToolsEnabled: development,
       openReceipts,
       ...(lastReceipt ? { lastReceipt } : {}),
     };
@@ -569,7 +581,15 @@ export async function nightAssets(
     }
   }
   let result: Record<string, unknown> = { kind: cmd.kind, requestId: cmd.requestId };
-  if (cmd.kind === 'buy') {
+  if (cmd.kind === 'dev-adjust') {
+    const before = { coins: w.coins, xp: w.xp };
+    const after = { coins: w.coins + cmd.coinsDelta, xp: w.xp + cmd.xpDelta };
+    if (!Object.values(after).every((value) => Number.isSafeInteger(value) && value >= 0))
+      fail('INVALID_DEV_BALANCE');
+    w.coins = after.coins;
+    w.xp = after.xp;
+    result = { ...result, before, after, coinsDelta: cmd.coinsDelta, xpDelta: cmd.xpDelta };
+  } else if (cmd.kind === 'buy') {
     const p = rules.catalog.find((p) => p.id === cmd.item) ?? fail('ITEM_UNAVAILABLE');
     if (p.term === 'permanent' && (w.permanent.includes(p.effect) || cmd.quantity !== 1))
       fail('ALREADY_OWNED');

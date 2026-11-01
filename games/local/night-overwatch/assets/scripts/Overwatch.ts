@@ -30,6 +30,7 @@ import { recordMissionTime } from './core/BattleRecords';
 import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
 import { Quartermaster, type ProgressionPage } from './Quartermaster';
 import { trainingLoadout } from './core/Progression';
+import { installDeveloperTools } from './DeveloperTools';
 const { ccclass } = _decorator;
 type TouchRole = { role: string; x: number; y: number; originX?: number; originY?: number; button?: string; moved?: boolean };
 @ccclass('Overwatch')
@@ -40,6 +41,7 @@ export class Overwatch extends Component {
   platform!: Platform;
   online?: Online;
   quartermaster?:Quartermaster;
+  private stopDeveloperTools?: () => void;
   private starting?: Simulation;
   private servicesReady?: Promise<void>;
   touches = new Map<number, TouchRole>();
@@ -99,6 +101,7 @@ export class Overwatch extends Component {
     this.hud.online = this.online;
     this.quartermaster=new Quartermaster(this.online,sys.localStorage);
     this.hud.quartermaster=this.quartermaster;
+    this.stopDeveloperTools=installDeveloperTools(this);
     this.servicesReady = this.connectServices();
     this.syncWorld();
     this.hud.tutorial = this.platform.readCoach();
@@ -1332,6 +1335,7 @@ export class Overwatch extends Component {
   }
   onDestroy() {
     this.disposed = true;
+    this.stopDeveloperTools?.();
     this.quartermaster?.dispose();
     this.online?.recorder?.persist?.();
     this.online?.leave(); this.online?.recorder?.invalidate();

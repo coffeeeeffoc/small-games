@@ -13,6 +13,12 @@ node scripts/night-overwatch-selftest.mjs start https://你的隧道域名:端�
 
 `plan` 无写入、不访问 Docker 或账号。`start` 保留既有 `night-overwatch-taptap-test` 项目与 PostgreSQL 卷，生成仅 Runtime 的制品；先构建镜像，再停旧 Runtime、备份恢复验证、迁移旧钱包，最后启动新 Runtime 和网关。它检查本地/公网健康、匿名资产拒绝、登录后资产访问、TapTap H5 CORS 及其他游戏/内部路径拒绝。公网入口只允许 Night 和共用登录路由，数据库及 Runtime 不发布宿主端口。
 
+本地生成的 Runtime compose 配置显式设置 `COMPETITION_DEVELOPMENT_ENABLED=1`，普通 Runtime 默认关闭（只接受 `0` 或 `1`）。通用接口为 `POST /games/:game/development/assets`，实际已接入夜航 `coins/xp`，其他游戏需要注册已有钱包的服务端适配器；完整协议见[通用服务规范](../architecture/game-services.md#测试服务器的通用资产调整)。它允许已验证的本人会话调整资产，金币/经验增减范围为每次 ±10 亿整数，结果不得为负或超过安全整数；新端点与旧夜航 `dev-adjust` 沿用同一资产锁、交易编号幂等及包含前后余额的私有流水。此能力属于测试服务器，不能配置到生产；测试包隐藏开发按钮并不代替服务器权限。
+
+`start` 在本地回环和 FRP 公网两端分别创建新的 QA 游客，验证 metadata 开启能力、通用接口正负调整、相同 requestId 重试不重复入账及负余额拒绝；不修改既有用户。结果保存为 `.scratch/night-overwatch-selftest/development-acceptance.json`，不含凭据。当前网关仍只放行夜航子路由，通用能力的代码复用不扩大其他游戏的公网白名单。
+
+`pack` 生成 `buildType: 'development'` 与 `apiUrls.test`。开发面板提供金币/经验增减、任意任务序号、火控热身、刷新和原交易重试；切关要求先正常结束行动并离开联机房间，继续使用试玩成绩/奖励隔离。提升经验会按现有成长规则解锁永久资格，降低经验不会撤销已经获得的永久物品。服务端未启用时显示明确错误，不伪造客户端余额。
+
 本地 API 为 `http://127.0.0.1:43003/api/competition/v1`。前端开关必须设置 `COMPETITION_SERVICE_ENABLED=1`，地址设置 `COMPETITION_PUBLIC_API_URL`；`COMPETITION_LOCAL_BACKEND=1` 只允许回环 HTTP，不会自动启用后端。最终 Creator 构建可按下列环境执行，手机浏览器应换为 FRP HTTPS 地址：
 
 ```powershell
@@ -57,6 +63,8 @@ GROUP BY 1, 2, 3 ORDER BY 1 DESC, 2, 3;
 开包结果作为不可变回执保存；本人资产接口及仓库“开包记录”显示最近 20 笔。服务端版本/kill/停用导致的无效局，在本人下一次资产读取时有界扫描并返还单场扣耗，重复读取不重复退款；正常退出不返还已开局耗材。当前正在被玩法事务锁定的记录留待下一次读取处理。
 
 ## 验证边界
+
+2026-11-01 三档打包改造已为本脚本准备 `COMPETITION_DEVELOPMENT_ENABLED=1` 的本地配置。该轮 `start` 被自动审批拒绝（`blocked by policy`），因此下述原运行版本未被替换，FRP 当前尚无开发增减币能力；新增能力仅在隔离 `competition_test` 上通过真实 HTTP/浏览器验证，详见[本轮记录](../../games/local/night-overwatch/docs/verification-2026-11-01-build-profiles.md)。
 
 独立 `competition_test` PostgreSQL 用于资产并发、身份隔离、幂等、旧钱包、订单、两连接锁序和无效局退款测试，不使用联调库做破坏性测试。本地恢复演练另有逐表摘要与迁移预演记录。实际证据在交付时更新；本流程不等于真机、TapTap 宿主、真实广告库存或平台上传审核通过。
 

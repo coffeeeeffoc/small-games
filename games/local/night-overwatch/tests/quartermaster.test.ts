@@ -36,3 +36,23 @@ test('failed local intent persistence prevents any purchase; removing accepted j
   storage.setItem=()=>{};storage.removeItem=()=>{throw Error('denied');};await q.execute({kind:'checkin'});
   assert.equal(q.pending,undefined);assert.match(q.message[0],/成功/);assert.equal(online.assets.playerId,'A');
 });
+test('developer journal retries one ID, clears definite failures, and cannot replay in normal packages',async(t)=>{
+  const scope=globalThis as any;
+  t.after(()=>{delete scope.__SMALL_GAMES_BUILD__;});
+  scope.__SMALL_GAMES_BUILD__={type:'development'};
+  const {q,online,storage,values,calls}=setup();
+  online.assetCommand=async(command:any)=>{calls.push({...command});throw Error('lost');};
+  await q.execute({kind:'dev-adjust',coinsDelta:100});
+  const id=q.pending!.requestId;
+  await q.execute();assert.equal(calls[1].requestId,id);
+  online.assetCommand=async()=>{throw Object.assign(Error('disabled'),{code:'DEV_TOOLS_DISABLED'});};
+  await q.execute();assert.equal(q.pending,undefined);assert.equal(values.size,0);assert.match(q.message[0],/未启用/);
+  online.assetCommand=async()=>{throw Object.assign(Error('balance'),{code:'INVALID_DEV_BALANCE'});};
+  await q.execute({kind:'dev-adjust',coinsDelta:-1e9});assert.equal(q.pending,undefined);
+  storage.setItem('night-overwatch-asset-intent:A',JSON.stringify({kind:'dev-adjust',requestId:id,xpDelta:200}));
+  scope.__SMALL_GAMES_BUILD__={type:'production'};
+  const restored=new Quartermaster(online,storage);restored.syncIdentity();assert.equal(restored.pending,undefined);
+  const previous=calls.length;await restored.execute();await restored.execute({kind:'dev-adjust',coinsDelta:100});assert.equal(calls.length,previous);
+  storage.setItem('night-overwatch-asset-intent:A',JSON.stringify({kind:'buy',requestId:id,item:'power-match'}));
+  const normal=new Quartermaster(online,storage);normal.syncIdentity();assert.equal(normal.pending?.kind,'buy');
+});

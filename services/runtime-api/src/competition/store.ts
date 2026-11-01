@@ -19,6 +19,7 @@ import {
   settleNightRoom,
 } from './night-ledger.js';
 import { createCompetitionIdentities } from './identity-store.js';
+import { createDevelopmentAssets, type DevelopmentAssetAdapter } from './development-assets.js';
 import {
   nightAssets,
   reserveNightLoadout,
@@ -81,6 +82,8 @@ export function createCompetitionStore(
   rules: Map<string, Rule>,
   now = Date.now,
   control?: CompetitionControl,
+  development = false,
+  developmentAdapters: ReadonlyMap<string, DevelopmentAssetAdapter> = new Map(),
 ) {
   function ruleFor(game: string) {
     const rule = rules.get(game);
@@ -1051,39 +1054,57 @@ export function createCompetitionStore(
     if (outcome instanceof CompetitionError) throw outcome;
     return outcome;
   }
+  async function nightAssetsFor(auth: PlayerAuth, command?: AssetCommand) {
+    let authorized = false;
+    try {
+      return await db.transaction(async (tx) => {
+        const policy = await gamePolicy(control, tx, 'night-overwatch');
+        await assertResourceAuth(tx, auth, 'night-overwatch', now());
+        authorized = true;
+        const rule = ruleFor('night-overwatch'),
+          progression = rule.progression;
+        if (!progression) throw new CompetitionError('GAME_UNAVAILABLE', 404);
+        if (command) assertGameControl(policy, policy?.killEpoch, true);
+        else if (rule.rankedVersion)
+          await reconcileNightLoadouts(
+            tx,
+            playerIdOf(auth),
+            now(),
+            progression,
+            { solo: rule.rankedVersion, duel: rule.version },
+            policy,
+          );
+        return nightAssets(tx, playerIdOf(auth), now(), progression, command, development);
+      });
+    } catch (error) {
+      if (authorized && command && error instanceof CompetitionError)
+        await db.transaction((tx) =>
+          recordNightAdAudit(tx, playerIdOf(auth), now(), command.kind, error.code),
+        );
+      throw error;
+    }
+  }
+  const adapters = new Map<string, DevelopmentAssetAdapter>();
+  if (rules.get('night-overwatch')?.progression)
+    adapters.set('night-overwatch', {
+      assets: ['coins', 'xp'],
+      adjust: (auth, command) =>
+        nightAssetsFor(auth, {
+          kind: 'dev-adjust',
+          requestId: command.requestId,
+          coinsDelta: command.deltas.coins ?? 0,
+          xpDelta: command.deltas.xp ?? 0,
+        }),
+    });
+  for (const [game, adapter] of developmentAdapters) {
+    if (adapters.has(game)) throw new Error('Duplicate development asset adapter');
+    adapters.set(game, adapter);
+  }
   return {
+    ...createDevelopmentAssets(development, adapters),
+    nightAssets: nightAssetsFor,
     ...createCompetitionIdentities(db, now),
     gameDefinitions: () => [...rules.values()],
-    async nightAssets(auth: PlayerAuth, command?: AssetCommand) {
-      let authorized = false;
-      try {
-        return await db.transaction(async (tx) => {
-          const policy = await gamePolicy(control, tx, 'night-overwatch');
-          await assertResourceAuth(tx, auth, 'night-overwatch', now());
-          authorized = true;
-          const rule = ruleFor('night-overwatch'),
-            progression = rule.progression;
-          if (!progression) throw new CompetitionError('GAME_UNAVAILABLE', 404);
-          if (command) assertGameControl(policy, policy?.killEpoch, true);
-          else if (rule.rankedVersion)
-            await reconcileNightLoadouts(
-              tx,
-              playerIdOf(auth),
-              now(),
-              progression,
-              { solo: rule.rankedVersion, duel: rule.version },
-              policy,
-            );
-          return nightAssets(tx, playerIdOf(auth), now(), progression, command);
-        });
-      } catch (error) {
-        if (authorized && command && error instanceof CompetitionError)
-          await db.transaction((tx) =>
-            recordNightAdAudit(tx, playerIdOf(auth), now(), command.kind, error.code),
-          );
-        throw error;
-      }
-    },
     ranking,
     ruleFor,
     roomAction,

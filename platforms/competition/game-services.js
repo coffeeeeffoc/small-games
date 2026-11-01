@@ -123,6 +123,18 @@ export function createGameServices({ gameId, ruleVersion }) {
     if (room.leaseId) roomLeases.set(room.code, room.leaseId);
     return room;
   }
+  async function adjustDevelopmentAssets(command, expectedPlayerId) {
+    const credential = await auth.current();
+    if (expectedPlayerId && credential.playerId !== expectedPlayerId)
+      throw failure('IDENTITY_CHANGED');
+    const result = await request(path + '/development/assets', command, credential);
+    if (
+      (await auth.current()).playerId !== credential.playerId ||
+      result.playerId !== credential.playerId
+    )
+      throw failure('IDENTITY_CHANGED');
+    return result;
+  }
   return {
     config,
     ruleVersion,
@@ -142,6 +154,7 @@ export function createGameServices({ gameId, ruleVersion }) {
       return auth.logout();
     },
     metadata: () => request(path),
+    adjustDevelopmentAssets,
     profile: (patch) => request('/me', patch),
     async updateProfile(patch) {
       const credential = await auth.current();
@@ -184,6 +197,14 @@ export function createGameServices({ gameId, ruleVersion }) {
     },
     async nightAssetCommand(command, expectedPlayerId) {
       if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');
+      if (command.kind === 'dev-adjust')
+        return adjustDevelopmentAssets(
+          {
+            requestId: command.requestId,
+            deltas: { coins: command.coinsDelta ?? 0, xp: command.xpDelta ?? 0 },
+          },
+          expectedPlayerId,
+        );
       const credential = await auth.current();
       if (expectedPlayerId && credential.playerId !== expectedPlayerId)
         throw failure('IDENTITY_CHANGED');

@@ -18,8 +18,10 @@ export type AssetSnapshot = {
   videoDailyLimit:number;videosToday:number;catalog:Product[];packages:typeof PACKAGES;pools:typeof POOLS;
   quoteVersion:string;adVerification:string;legacyPreserved:boolean;lastReceipt?:Record<string,unknown>;
   openReceipts?:OpenReceipt[];
+  devToolsEnabled?:boolean;
 };
 export type AssetCommand = {requestId:string}&(
+  {kind:'dev-adjust';coinsDelta?:number;xpDelta?:number}|
   {kind:'buy';item:string;quantity?:number}|{kind:'checkin'}|{kind:'buy-packs';quantity:number;pool?:'general'|'gold'}|
   {kind:'ad-order';quantity:number}|{kind:'ad-start';orderId:string}|{kind:'ad-complete';orderId:string;attemptId:string}|
   {kind:'open'|'sell';item:string;quantity:number}|{kind:'activate';item:string}|

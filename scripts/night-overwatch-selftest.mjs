@@ -1,6 +1,6 @@
 // A local, isolated TapTap test stack. Sakura Frp terminates public HTTPS at the loopback gateway.
 import assert from 'node:assert/strict';
-import { randomBytes, createHash } from 'node:crypto';
+import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -52,7 +52,8 @@ const h5 = {
   ],
   ads: [true],
   backend: [true],
-  apiUrl,
+  buildType: 'development',
+  apiUrls: { test: apiUrl },
 };
 const invoke = (command, args, { env = process.env, input, capture = false } = {}) => {
   const result = spawnSync(command, args, {
@@ -159,6 +160,7 @@ if (operation === 'plan') {
       'http://localhost:4318',
     ];
     cfg.services.runtime.environment.COMPETITION_ORIGINS = browserOrigins.join(',');
+    cfg.services.runtime.environment.COMPETITION_DEVELOPMENT_ENABLED = '1';
     await writeFile(composeFile, JSON.stringify(cfg, null, 2));
     const nginx = path.join(bundle, 'nginx.conf');
     const before = await readFile(nginx, 'utf8');
@@ -291,6 +293,7 @@ if (operation === 'plan') {
       ),
     );
     const gateway = 'http://127.0.0.1:' + port;
+    const developmentChecks = [];
     for (const base of [gateway, origin.origin]) {
       const get = (suffix, opts) =>
         fetch(base + suffix, { signal: AbortSignal.timeout(15000), ...opts });
@@ -300,7 +303,7 @@ if (operation === 'plan') {
         401,
         'Expected authenticated game API at ' + base,
       );
-      if (base === gateway) {
+      {
         const guest = await get('/api/competition/v1/sessions/guest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -308,14 +311,48 @@ if (operation === 'plan') {
         });
         assert(guest.ok, 'Guest login failed at ' + base);
         const { token } = await guest.json();
-        assert(
-          (
-            await get('/api/competition/v1/games/night-overwatch/assets', {
-              headers: { Authorization: 'Bearer ' + token },
-            })
-          ).ok,
-          'Authenticated assets unavailable at ' + base,
-        );
+        const headers = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+        const assetsPath = '/api/competition/v1/games/night-overwatch/assets';
+        const developmentPath = '/api/competition/v1/games/night-overwatch/development/assets';
+        const metadata = await get('/api/competition/v1/games/night-overwatch', { headers });
+        assert(metadata.ok, 'Authenticated metadata unavailable at ' + base);
+        assert.deepEqual((await metadata.json()).developmentAssets, {
+          enabled: true,
+          assets: ['coins', 'xp'],
+        });
+        const beforeResponse = await get(assetsPath, { headers });
+        assert(beforeResponse.ok, 'Authenticated assets unavailable at ' + base);
+        const beforeAssets = await beforeResponse.json();
+        const command = { requestId: randomUUID(), deltas: { coins: 23, xp: 47 } };
+        const post = (payload) =>
+          get(developmentPath, { method: 'POST', headers, body: JSON.stringify(payload) });
+        const added = await post(command);
+        assert(added.ok, 'Development asset adjustment unavailable at ' + base);
+        const afterAdd = await added.json();
+        assert.equal(afterAdd.coins, beforeAssets.coins + 23);
+        assert.equal(afterAdd.xp, beforeAssets.xp + 47);
+        const replay = await post(command);
+        assert(replay.ok, 'Development idempotent replay unavailable at ' + base);
+        assert.equal((await replay.json()).coins, afterAdd.coins);
+        const removed = await post({ requestId: randomUUID(), deltas: { coins: -9, xp: -11 } });
+        assert(removed.ok, 'Development negative adjustment unavailable at ' + base);
+        const afterRemove = await removed.json();
+        assert.equal(afterRemove.coins, beforeAssets.coins + 14);
+        assert.equal(afterRemove.xp, beforeAssets.xp + 36);
+        const invalid = await post({
+          requestId: randomUUID(),
+          deltas: { coins: -afterRemove.coins - 1 },
+        });
+        assert.equal(invalid.status, 422);
+        assert.equal((await invalid.json()).error, 'INVALID_DEV_BALANCE');
+        assert.equal((await (await get(assetsPath, { headers })).json()).coins, afterRemove.coins);
+        developmentChecks.push({
+          base,
+          capability: true,
+          positiveAndNegative: true,
+          idempotent: true,
+          negativeBalanceRejected: true,
+        });
       }
       assert.equal(
         (await get('/api/competition/v1/games/night-overwatch/assets')).status,
@@ -333,14 +370,17 @@ if (operation === 'plan') {
         'Internal API exposed at ' + base,
       );
       for (const browserOrigin of browserOrigins) {
-        const preflight = await get('/api/competition/v1/games/night-overwatch/assets', {
-          method: 'OPTIONS',
-          headers: {
-            Origin: browserOrigin,
-            'Access-Control-Request-Method': 'POST',
-            'Access-Control-Request-Headers': 'authorization,content-type',
+        const preflight = await get(
+          '/api/competition/v1/games/night-overwatch/development/assets',
+          {
+            method: 'OPTIONS',
+            headers: {
+              Origin: browserOrigin,
+              'Access-Control-Request-Method': 'POST',
+              'Access-Control-Request-Headers': 'authorization,content-type',
+            },
           },
-        });
+        );
         assert(
           preflight.ok && preflight.headers.get('access-control-allow-origin') === browserOrigin,
           'TapTap CORS preflight failed at ' + base,
@@ -359,6 +399,10 @@ if (operation === 'plan') {
         null,
       );
     }
+    await writeFile(
+      path.join(work, 'development-acceptance.json'),
+      JSON.stringify({ verifiedAt: new Date().toISOString(), checks: developmentChecks }, null, 2),
+    );
     console.log('Verified local and public runtimes. H5 API: ' + apiUrl);
   }
 }

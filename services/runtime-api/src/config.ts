@@ -29,6 +29,7 @@ export function validateRuntimeEnvironment(env: Record<string, string | undefine
   const schema = z.object({
     RUNTIME_DATABASE_URL: database,
     COMPETITION_ENABLED: z.enum(['true', 'false']).optional(),
+    COMPETITION_DEVELOPMENT_ENABLED: z.enum(['0', '1']).optional(),
     COMPETITION_CONTROL_ENABLED: z.enum(['true', 'false']).optional(),
     COMPETITION_CONTROL_INSTANCE_ID: z
       .string()

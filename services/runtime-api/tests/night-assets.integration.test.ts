@@ -1,6 +1,8 @@
 /* eslint-disable max-lines -- Shared isolated PostgreSQL fixture verifies atomic economy and battle transitions. */
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
+import Fastify from 'fastify';
+import { registerCompetition } from '../src/competition/routes.js';
 import { sql } from 'drizzle-orm';
 import { openDatabase } from '@coffeeeeffoc/service-kit';
 import { createCompetitionStore } from '../src/competition/store.js';
@@ -47,6 +49,172 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       sql`update runtime.competition_matches set data=data || ${JSON.stringify(patch)}::jsonb where id=${`night-assets:${id}`}`,
     );
   };
+  it('development adjustments require server capability and retain atomic idempotent receipts', async () => {
+    const id = await owner();
+    const cmd: AssetCommand = {
+      kind: 'dev-adjust',
+      requestId: randomUUID(),
+      coinsDelta: 400,
+      xpDelta: 250,
+    };
+    const develop = (input: AssetCommand) =>
+      database.db.transaction((tx) => nightAssets(tx, id, at, rules, input, true));
+    await expect(command(id, cmd)).rejects.toMatchObject({ code: 'DEV_TOOLS_DISABLED' });
+    expect((await get(id)).devToolsEnabled).toBe(false);
+    const results = await Promise.all([develop(cmd), develop(cmd)]);
+    expect(results[0].coins).toBe(400);
+    expect(results[1].xp).toBe(250);
+    expect(results[0].devToolsEnabled).toBe(true);
+    expect(results[0].lastReceipt).toMatchObject({
+      before: { coins: 0, xp: 0 },
+      after: { coins: 400, xp: 250 },
+      coinsDelta: 400,
+      xpDelta: 250,
+    });
+    await expect(command(id, cmd)).rejects.toMatchObject({ code: 'DEV_TOOLS_DISABLED' });
+    await expect(develop({ ...cmd, coinsDelta: 401 })).rejects.toMatchObject({
+      code: 'REQUEST_ID_CONFLICT',
+    });
+    await develop({ ...cmd, requestId: randomUUID(), coinsDelta: -35, xpDelta: -50 });
+    expect((await get(id)).coins).toBe(365);
+    expect((await get(id)).xp).toBe(200);
+    await expect(
+      develop({ ...cmd, requestId: randomUUID(), coinsDelta: 0, xpDelta: -201 }),
+    ).rejects.toMatchObject({ code: 'INVALID_DEV_BALANCE' });
+    await expect(
+      develop({ ...cmd, requestId: randomUUID(), coinsDelta: -366 }),
+    ).rejects.toMatchObject({ code: 'INVALID_DEV_BALANCE' });
+    for (const coinsDelta of [1.5, 1e9 + 1])
+      await expect(develop({ ...cmd, requestId: randomUUID(), coinsDelta })).rejects.toThrow();
+    expect((await get(id)).coins).toBe(365);
+    await seed(id, { coins: Number.MAX_SAFE_INTEGER });
+    await expect(develop({ ...cmd, requestId: randomUUID(), coinsDelta: 1 })).rejects.toMatchObject(
+      { code: 'INVALID_DEV_BALANCE' },
+    );
+  });
+  it('HTTP developer mutations authenticate and scope the owner, with production disabled', async () => {
+    const definitions = new Map(store.gameDefinitions().map((rule) => [rule.id, rule]));
+    const developmentStore = createCompetitionStore(
+      database.db,
+      definitions,
+      () => at,
+      undefined,
+      true,
+    );
+    const player = await store.guestSession({ game: 'night-overwatch' });
+    const other = await store.guestSession({ game: 'wulong-city' });
+    const cmd = { kind: 'dev-adjust', requestId: randomUUID(), coinsDelta: 77 };
+    for (const [current, enabled] of [
+      [store, false],
+      [developmentStore, true],
+    ] as const) {
+      const app = Fastify();
+      await registerCompetition(
+        app,
+        current,
+        {},
+        undefined,
+        undefined,
+        createRankedStore(database.db, new Map(), current.identityDetails, () => at),
+      );
+      try {
+        const url = '/api/competition/v1/games/night-overwatch/assets';
+        const post = (token?: string, payload: object = cmd) =>
+          app.inject({
+            method: 'POST',
+            url,
+            headers: token ? { authorization: `Bearer ${token}` } : {},
+            payload,
+          });
+        const shared = (
+          token?: string,
+          payload: object = { requestId: cmd.requestId, deltas: { coins: 77 } },
+          game = 'night-overwatch',
+        ) =>
+          app.inject({
+            method: 'POST',
+            url: `/api/competition/v1/games/${game}/development/assets`,
+            headers: token ? { authorization: `Bearer ${token}` } : {},
+            payload,
+          });
+        const metadata = await app.inject({
+          url: '/api/competition/v1/games/night-overwatch',
+          headers: { authorization: `Bearer ${player.token}` },
+        });
+        expect(metadata.json().developmentAssets).toEqual({ enabled, assets: ['coins', 'xp'] });
+        expect((await shared()).statusCode).toBe(401);
+        expect((await shared(other.token)).statusCode).toBe(403);
+        expect((await post()).statusCode).toBe(401);
+        expect((await post(other.token)).statusCode).toBe(403);
+        const result = await post(player.token);
+        expect(result.statusCode).toBe(enabled ? 200 : 403);
+        if (enabled) {
+          expect(result.json()).toMatchObject({
+            playerId: player.playerId,
+            coins: 77,
+            devToolsEnabled: true,
+          });
+          expect((await post(player.token)).json().coins).toBe(77);
+          expect((await shared(player.token)).json().coins).toBe(77);
+          const requestId = randomUUID();
+          expect(
+            (await shared(player.token, { requestId, deltas: { coins: -7, xp: 20 } })).json(),
+          ).toMatchObject({ coins: 70, xp: 20 });
+          expect(
+            (
+              await post(player.token, {
+                kind: 'dev-adjust',
+                requestId,
+                coinsDelta: -7,
+                xpDelta: 20,
+              })
+            ).json(),
+          ).toMatchObject({ coins: 70, xp: 20 });
+          expect(
+            (
+              await shared(player.token, { requestId: randomUUID(), deltas: { coins: -71 } })
+            ).json(),
+          ).toMatchObject({ error: 'INVALID_DEV_BALANCE' });
+          expect(
+            (await shared(player.token, { requestId: randomUUID(), deltas: { gems: 1 } })).json(),
+          ).toMatchObject({ error: 'DEVELOPMENT_ASSET_UNSUPPORTED' });
+          expect(
+            (
+              await shared(player.token, {
+                requestId: randomUUID(),
+                deltas: { coins: 1 },
+                development: true,
+              })
+            ).statusCode,
+          ).toBe(422);
+          expect(
+            (
+              await shared(
+                other.token,
+                { requestId: randomUUID(), deltas: { coins: 1 } },
+                'wulong-city',
+              )
+            ).json(),
+          ).toMatchObject({ error: 'DEVELOPMENT_ASSETS_UNSUPPORTED' });
+          expect((await post(player.token, { ...cmd, playerId: other.playerId })).statusCode).toBe(
+            422,
+          );
+        } else {
+          expect(result.json()).toMatchObject({ error: 'DEV_TOOLS_DISABLED' });
+          expect((await shared(player.token)).json()).toMatchObject({
+            error: 'DEV_TOOLS_DISABLED',
+          });
+        }
+      } finally {
+        await app.close();
+      }
+    }
+    expect(
+      await database.db.execute(
+        sql`select id from runtime.competition_matches where id=${`night-assets:${other.playerId}`}`,
+      ),
+    ).toHaveLength(0);
+  });
   it('previews and migrates old assets once, preserves original JSON and read/claim distinction', async () => {
     const id = await owner(),
       legacy = {

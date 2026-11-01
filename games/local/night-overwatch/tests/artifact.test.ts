@@ -14,7 +14,7 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     for (const dir of ['assets', 'scripts', 'settings/v2/packages', 'dist'])
       await mkdir(path.join(game, dir), { recursive: true });
     await mkdir(path.join(temp, 'games/local/carding-car/scripts'), { recursive: true });
-    for (const name of ['build.mjs', 'artifact.mjs'])
+    for (const name of ['build.mjs', 'artifact.mjs', 'write-report.mjs'])
       await cp(new URL(`../scripts/${name}`, import.meta.url), path.join(game, 'scripts', name));
     for (const name of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs', 'cocos-branding.mjs'])
       await cp(new URL('../../carding-car/scripts/' + name, import.meta.url),
