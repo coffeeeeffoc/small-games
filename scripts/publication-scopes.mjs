@@ -4752,6 +4752,47 @@ export function reviewedSharedFileScopes({
       }
     }
     try {
+      if (file === standaloneChecksFile) {
+        const digest = (value) =>
+          createHash('sha256').update(value.replaceAll('\r\n', '\n')).digest('hex');
+        const before = digest(readBase(file));
+        const echoBase = '289cc56316d72f73b0fa667543e35c9b0df324f3c30910040f9b128f416af8ab';
+        const nightBase = '8ab41c01c9912cea916cb52ac7d86b21d030be2f3cde1654b32e2f608b71c7f5';
+        if (
+          [echoBase, nightBase].includes(before) &&
+          digest(readHead(file)) ===
+            '067f41d7332c6391ba49b49b4c298cf342457252931120ba40236eed65fd51c1'
+        ) {
+          // fed04bb8 changes only Echo's URL assertion; baaae8d also includes Night's menu flow.
+          const ids = before === nightBase ? ['echo-lab', 'night-overwatch'] : ['echo-lab'];
+          for (const id of ids) {
+            const source = 'games/local/' + id,
+              name = '@coffeeeeffoc/' + id;
+            const entries = games.filter((game) => game.id === id || game.source === source);
+            assert.equal(entries.length, 1);
+            assert.equal(entries[0].id, id);
+            assert.equal(entries[0].source, source);
+            assert.equal(entries[0].output, 'dist');
+            const targets = packages.filter((pkg) => pkg.dir === source || pkg.name === name);
+            assert.equal(targets.length, 1);
+            assert.equal(targets[0].dir, source);
+            assert.equal(targets[0].name, name);
+            assert.equal(
+              targets[0].scripts?.build,
+              id === 'echo-lab' ? 'node build.mjs' : 'node scripts/build.mjs web-mobile',
+            );
+            if (id === 'night-overwatch') assert.equal(targets[0].creator?.version, '3.8.8');
+          }
+          const shell = packages.filter(
+            (pkg) => pkg.dir === 'apps/shell-web' || pkg.name === '@coffeeeeffoc/shell-web',
+          );
+          assert.equal(shell.length, 1);
+          assert.equal(shell[0].dir, 'apps/shell-web');
+          assert.equal(shell[0].name, '@coffeeeeffoc/shell-web');
+          scopes.set(file, [...ids.map((id) => 'games/local/' + id), 'apps/shell-web']);
+          continue;
+        }
+      }
       const towerPair = towerCreatorIntegrationHashes[file];
       if (towerPair) {
         const digest = (text) =>

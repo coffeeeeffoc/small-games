@@ -880,7 +880,12 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await click(frame.locator('#stopAudio'));
     await click(frame.locator('#shareLayout'));
     await expect(frame.locator('#shareDialog')).toBeVisible();
-    await expect(frame.locator('#shareLink')).toHaveValue(/\/games\/echo-lab\/index\.html#room=/);
+    const shared = new URL(await frame.locator('#shareLink').inputValue());
+    expect(shared.hash).toMatch(/^#room=[A-Za-z0-9_-]{1,12000}$/);
+    const entry = new URL(await frame.locator('body').evaluate(() => location.href));
+    entry.search = '';
+    entry.hash = shared.hash;
+    expect(shared.href).toBe(entry.href);
     await click(frame.locator('#closeShare'));
   } else if (id === 'echo-weaver') {
     const snapshot = () => frame.locator('body').evaluate(() => globalThis.__echoWeaverSnapshot());

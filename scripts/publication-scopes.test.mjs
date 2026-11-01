@@ -6552,3 +6552,104 @@ test('build-type checks classify only their three bounded runners without game c
     assert.throws(() => incrementalPlan({ ...context, fileScopes }), /scope undefined/);
   }
 });
+
+test('Echo share URL repair selects its real consumer for immediate and cumulative baselines', () => {
+  const file = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+  const immediate = 'fed04bb8fc68b05b9baac7b3e00fc443b8bcfd3b';
+  const read = (ref, path = file) =>
+    execFileSync('git', ['show', ref + ':' + path], { encoding: 'utf8' });
+  const original = read(immediate);
+  const oldAssertion =
+    "    await expect(frame.locator('#shareLink')).toHaveValue(/\\/games\\/echo-lab\\/index\\.html#room=/);";
+  const newAssertion = `    const shared = new URL(await frame.locator('#shareLink').inputValue());
+    expect(shared.hash).toMatch(/^#room=[A-Za-z0-9_-]{1,12000}$/);
+    const entry = new URL(await frame.locator('body').evaluate(() => location.href));
+    entry.search = '';
+    entry.hash = shared.hash;
+    expect(shared.href).toBe(entry.href);`;
+  assert.equal(original.split(oldAssertion).length, 2);
+  const after = original.replace(oldAssertion, newAssertion);
+  const games = ['echo-lab', 'night-overwatch'].map((id) => ({
+    id,
+    source: 'games/local/' + id,
+    output: 'dist',
+  }));
+  const packages = [...games.map((game) => game.source), 'apps/shell-web'].map((dir) => ({
+    dir,
+    ...JSON.parse(read(immediate, dir + '/package.json')),
+  }));
+  const context = { changedPaths: [file], games, packages, readHead: () => after };
+  // Without the proof, the Shell workspace fallback does not run Echo gameplay.
+  const fallback = incrementalPlan({
+    ...context,
+    games: [
+      ...games,
+      { id: 'letters-words2', source: 'games/local/letters-words2' },
+      { id: 'xiangqi-five', source: 'games/submodules/xiangqi-five' },
+    ],
+    fileScopes: new Map(),
+    readSource: () => '',
+  });
+  assert.deepEqual(fallback.browser_ids, ['letters-words2', 'xiangqi-five']);
+  assert.equal(fallback.catalog_rollout_checks, true);
+  for (const [base, ids] of [
+    [immediate, ['echo-lab']],
+    ['baaae8d717559610df529aff43a0cb2a31961393', ['echo-lab', 'night-overwatch']],
+  ]) {
+    const before = read(base);
+    const options = { ...context, readBase: () => before };
+    const scope = reviewedSharedFileScopes(options);
+    const consumers = [...ids.map((id) => 'games/local/' + id), 'apps/shell-web'];
+    assert.deepEqual([...scope], [[file, consumers]]);
+    const plan = incrementalPlan({ ...options, fileScopes: scope, readSource: () => '' });
+    assert.equal(plan.full, false);
+    assert.deepEqual(plan.browser_ids, ids);
+    assert.deepEqual(
+      plan.game_sources,
+      ids.map((id) => 'games/local/' + id),
+    );
+    for (const source of consumers) assert(plan.consumer_sources.includes(source));
+    assert.deepEqual(
+      reviewedSharedFileScopes({
+        ...options,
+        readBase: () => before.replaceAll('\n', '\r\n'),
+        readHead: () => after.replaceAll('\n', '\r\n'),
+      }).get(file),
+      consumers,
+    );
+    for (const invalid of [
+      { readBase: () => before + '\n' },
+      { readHead: () => after + '\n' },
+      {
+        readHead: () =>
+          after.replace('expect(shared.href).toBe(entry.href)', 'expect(true).toBe(true)'),
+      },
+      { readHead: () => after.replace("entry.search = '';", "entry.search = '?other=1';") },
+      { readHead: () => after.replace("id === 'echo-lab'", "id === 'other'") },
+      { readHead: () => after.replace("id === 'night-overwatch'", "id === 'other'") },
+      { changedPaths: [file + '.unknown'] },
+      { games: [...games, games[0]] },
+      { games: games.map((game) => ({ ...game, output: 'other' })) },
+      { packages: [...packages, packages.at(-1)] },
+      { packages: packages.map((pkg) => ({ ...pkg, name: '@other/' + pkg.name })) },
+      { packages: packages.map((pkg) => ({ ...pkg, scripts: { build: 'echo skipped' } })) },
+    ])
+      assert.equal(reviewedSharedFileScopes({ ...options, ...invalid }).size, 0);
+    for (const id of ids) {
+      assert.equal(
+        reviewedSharedFileScopes({ ...options, games: games.filter((game) => game.id !== id) })
+          .size,
+        0,
+      );
+    }
+    for (const source of consumers) {
+      assert.equal(
+        reviewedSharedFileScopes({
+          ...options,
+          packages: packages.filter((pkg) => pkg.dir !== source),
+        }).size,
+        0,
+      );
+    }
+  }
+});

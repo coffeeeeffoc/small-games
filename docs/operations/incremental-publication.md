@@ -20,6 +20,8 @@ Optional, separately approved competition HTTPS ingress uses the exact `competit
 
 夜航旧军需的两份 `.meta` 在加入开发工具后发生 Git 相似度重新配对；删除/改名证明同时保留旧配对和新配对的精确路径、状态、前后 blob 与候选树存在性，未知改名仍阻断。H5 三档构建工具选择实际28个打包消费者；开发入口镜像保留本地拷贝检查，象五子棋仅接受已审阅 gitlink 的精确提交与身份。六条构建类型/开发入口路径触发两个规则文件及真实浏览器专项，core阶段先准备浏览器并把选定路径交给runner；测试文件单独变化同样实际执行，未知同名文件不获得空范围。
 
+Echo Lab 分享链接断言按实际文档入口验证 origin/path、空 query 与 room 编码，兼容独立根挂载及 Pages/iframe 子路径。共享浏览器脚本的本次准确前后摘要分别绑定 `fed04bb8` 直接比较和 `baaae8d7` 累计比较：前者选择 Echo 与 Shell，后者同时保留 Night；未知字节和缺失/重复游戏身份不获得该证明。默认 Shell 导航样例不覆盖 Echo，不能替代其真实浏览器检查。根入口鼠标/触屏及 Pages 子路径的 Page/FrameLocator 四种组合共6项通过，范围正负例5组通过。
+
 2026-10-24 全屏移除由 `fullscreen-removal-scope.mjs` 绑定已审阅的共享文件前后摘要，以及控制器／副本／旧工具的原始摘要和候选树不存在证明；游戏删除保留真实游戏消费者，公共控制器与命令调整保留游戏和 Shell 消费者。Pages 范围规划与候选执行共用这套分类及候选树查询，避免规划通过后执行阶段遗漏证明。未知字节、复活文件和重命名仍阻断；`test:no-fullscreen` 检查普通 Web 入口不再提供全屏调用。
 
 CI 将同一冻结计划分为三个隔离 runner：`core` 保留构建、静态／规则、Shell 全部选中游戏嵌入、其他游戏专项、Tap 恢复、原生及后台／管理台检查；`castle` 仅承担原 Castle 四尺寸专项；`standalone` 承担末尾所有选中游戏桌面／触屏独立入口及 builtin smoke。各阶段仍走候选真实依赖构建及 Creator 制品校验，不共享会被 fixture 改写的输出，每个阶段上限 90 分钟。最终 `quality` 无条件汇总必要 jobs 和三份当前 run 的成功凭据，核对同一 SHA、base、冻结计划及实际 `incrementalScope` 摘要；失败、取消、缺失、重复、未知阶段及意外跳过均不能通过。无增量 base 时，core 继续执行原五项 aggregate：`test`、`test:contract`、`test:integration`、`test:dialogs`、`smoke`，其他阶段明确委托给 core。本地未指定阶段的 `validate:candidate`／`validateTree` 路径保持原完整串行顺序。
