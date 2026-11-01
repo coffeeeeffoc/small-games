@@ -98,11 +98,22 @@ test('public task shortcuts choose only one known task, and the original three e
   }
   assert.equal(readTrainingRecord('{broken'), undefined);
   assert.equal(readTrainingRecord('{"time":10,"fired":1,"hitShots":2}'), undefined);
-  assert.deepEqual(readTrainingRecord('{"time":61,"fired":10,"hitShots":5}'), {time:61,fired:10,hitShots:5});
-  assert.deepEqual(readTrainingRecord('{"time":20,"fired":10,"hitShots":5}'), { time: 20, fired: 10, hitShots: 5 });
+  assert.deepEqual(readTrainingRecord('{"time":61,"fired":10,"hitShots":5}'), {time:61,fired:10,hitShots:5,ammoSpent:10});
+  assert.deepEqual(readTrainingRecord('{"time":20,"fired":10,"hitShots":5}'), { time: 20, fired: 10, hitShots: 5, ammoSpent:10 });
 });
 
 test('campaign time beyond the old duration does not decide failure',()=>{
   const sim=new Simulation(); sim.start(); sim.time=sim.mission.duration;
   sim.step(1/60); assert.equal(sim.phase,'playing'); assert.equal(sim.failure,'');
+});
+
+test('training compares ammunition instead of projectile count and preserves legacy records',()=>{
+  const sim=completeWarmup(),old=bestTrainingRecord(undefined,sim)!;
+  sim.fired=12;sim.hitShots=3;sim.ammoSpent=3;
+  assert.match(trainingNextGoal(sim)[0],/预判/);sim.loadout.effects=['burst','twin'];
+  const best=bestTrainingRecord(old,sim)!;assert.equal(best.ammoSpent,3);assert.equal(best.fired,12);
+  assert.equal(bestTrainingRecord(best,sim),best);assert.doesNotMatch(trainingNextGoal(sim)[0],/少用一发/);
+  assert.deepEqual(readTrainingRecord(JSON.stringify(best)),best);
+  for(const ammoSpent of [0,-1,1.5,13,null,'3'])assert.equal(readTrainingRecord(JSON.stringify({...best,ammoSpent})),undefined);
+  assert(readTrainingRecord(JSON.stringify({time:100,fired:4000,hitShots:1000,ammoSpent:1000})));
 });

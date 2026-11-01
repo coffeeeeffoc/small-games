@@ -50,6 +50,7 @@ export type Unit = Point3 & {
   slowedUntil?: number;
 };
 export type Shot = Point & {
+  strength?: number;
   damageMultiplier?: number;
   radiusScale?: number;
   trackingUntil?: number;
@@ -126,6 +127,7 @@ export class Simulation {
   kills = 0;
   friendlyKills = 0;
   fired = 0;
+  ammoSpent = 0;
   hits = 0;
   hitShots = 0;
   friendlyDamage = 0;
@@ -145,7 +147,7 @@ export class Simulation {
   pilotSide = 0;
   duelStats = [this.combatStats(), this.combatStats()];
   private combatStats() {
-    return { kills: this.kills, fired: this.fired, hits: this.hits, hitShots: this.hitShots,
+    return { kills: this.kills, fired: this.fired, ammoSpent: this.ammoSpent, hits: this.hits, hitShots: this.hitShots,
       friendlyDamage: this.friendlyDamage, friendHitAt: this.friendHitAt, misses: this.misses, warning: this.warning };
   }
   private useSide(side: number) {
@@ -213,6 +215,8 @@ export class Simulation {
     const { missionId, flight, pauses, spawned, completed, held, ...state } = JSON.parse(JSON.stringify(value)) as typeof value;
     const sim = new Simulation(missionId);
     Object.assign(sim, state);
+    sim.ammoSpent = state.ammoSpent ?? state.fired;
+    for (const stats of sim.duelStats) stats.ammoSpent ??= stats.fired;
     sim.fireZones = state.fireZones ?? [];
     sim.guns = WEAPONS.map((weapon, index) => sim.guns[index] ??
       { heat: 0, ammo: Number(weapon.ammo), cooldown: 0, overheated: false });
@@ -435,17 +439,14 @@ export class Simulation {
     if (this.attackCount === 1) return [this.aim];
     const origin = muzzlePosition(this.aircraft, this.selected);
     const angle = Math.atan2(this.aim.z - origin.z, this.aim.x - origin.x);
-    const forward = { x: Math.cos(angle), z: Math.sin(angle) };
-    // Overlapping blast disks keep the reticle covered, including the rapid cannon.
     const spread = Math.min(2.4, Math.max(.35, WEAPONS[this.selected].radius * .55));
-    const columns = this.loadout.effects.includes('twin') ? 2 : 1;
+    const radius = spread * (this.attackCount === 4 ? Math.SQRT2 : 1);
+    // Keep the full-strength round on the reticle; alternate the surrounding coverage per attack.
+    const phase = angle - (this.loadout.effects.includes('twin') ? Math.PI / 2 : 0) + this.ammoSpent % 2 * Math.PI;
     return Array.from({ length: this.attackCount }, (_, n) => {
-      const across = columns === 2 ? (n % 2 === 0 ? -spread : spread) : 0;
-      const along = this.loadout.effects.includes('burst') ? (Math.floor(n / columns) === 0 ? -spread : spread) : 0;
-      return {
-        x: this.aim.x + forward.x * along - forward.z * across,
-        z: this.aim.z + forward.z * along + forward.x * across,
-      };
+      if (n === 0) return this.aim;
+      const direction = phase + (n - 1) * Math.PI * 2 / (this.attackCount - 1);
+      return { x: this.aim.x + Math.cos(direction) * radius, z: this.aim.z + Math.sin(direction) * radius };
     });
   }
   reason(): FireReason {
@@ -465,7 +466,7 @@ export class Simulation {
     if (this.selected>=4 && !this.loadout.effects.includes(this.selected===4?'drone':'laser')) return 'empty';
     if (this.selected===5 && (!this.aimedUnit || !this.canTrack(this.aimedUnit,w.radius) || !this.lineOfSight(this.aimedUnit))) return 'target';
     if (g.overheated) return 'overheated';
-    if (g.ammo < this.attackCount) return 'empty';
+    if (g.ammo < 1) return 'empty';
     if (g.cooldown > 1e-6) return 'cooldown';
     return 'ready';
   }
@@ -502,23 +503,25 @@ export class Simulation {
     if(this.selected>=4)return this.fireSpecial();
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
-    const count=this.attackCount;
+    const preview=attackPreview(this.loadout.effects),count=preview.shots;
     const launches=this.attackTargets().map((point,n)=>{
       const mount=w.muzzle;
-      const origin=Object.freeze(this.loadout.effects.includes('twin')
+      const origin=Object.freeze(n>0&&this.loadout.effects.includes('twin')
         ? aircraftPoint(this.aircraft,{...mount,x:mount.x+(n%2===0?-.6:.6)})
         : muzzlePosition(this.aircraft,this.selected));
       return {origin,point,launch:ballisticLaunch(origin,point,w.speed,this.height)};
     });
     if(launches.some(item=>!item.launch))return false;
-    g.ammo-=count;
-    g.heat = Math.min(100, g.heat + w.heat*count*(this.loadout.effects.includes('cooling')?.85:1));
+    g.ammo--;
+    this.ammoSpent++;
+    g.heat = Math.min(100, g.heat + w.heat*preview.heatMultiplier);
     g.overheated = g.heat >= 100;
-    g.cooldown = w.interval*(this.loadout.effects.includes('rate')?.88:1)*(this.loadout.level>=15?.95:1) / (this.buff?.kind === 'rate' ? COMBAT_BUFF.rateMultiplier : 1) + (this.loadout.effects.includes('burst')?.1:0);
+    g.cooldown = w.interval*(this.loadout.effects.includes('rate')?.88:1)*(this.loadout.level>=15?.95:1) / (this.buff?.kind === 'rate' ? COMBAT_BUFF.rateMultiplier : 1);
     const target = this.trackingTarget;
     for(let n=0;n<count;n++) {
     const {origin,point,launch}=launches[n];
-    const delay=this.loadout.effects.includes('burst')?Math.floor(n/(this.loadout.effects.includes('twin')?2:1))*.1:0;
+    const delay=this.loadout.effects.includes('burst')?Math.floor(n/(this.loadout.effects.includes('twin')?2:1))*Math.min(.1,g.cooldown/2):0;
+    const strength=n===0?1:preview.secondaryStrength;
     const shot: Shot = {
       id: ++this.serial,
       ...(this.duelMode ? { side: this.pilotSide } : {}),
@@ -530,7 +533,7 @@ export class Simulation {
       velocity: launch!.velocity,
       targetY: launch!.targetY,
       due: this.time + delay + launch!.duration,
-      damageMultiplier:this.powerMultiplier,radiusScale:this.radiusScale(),
+      strength,damageMultiplier:this.powerMultiplier*strength,radiusScale:this.radiusScale(),
       trackingUntil:Math.max(this.buff?.kind==='tracking'?this.time+this.buff.remaining:0,this.skillKind==='tracking'?this.skill.activeUntil:0),
     };
     if (target) shot.guidance = { kind: 'tracking', target: target.id, position: { ...origin }, trail: [{ ...origin, time: shot.born }] };
@@ -561,7 +564,7 @@ export class Simulation {
       const target=this.aimedUnit!;const event=this.emit('shot',origin,weapon);event.target={x:target.x,y:target.y,z:target.z};
       this.directHit(target,85*(target.kind==='heavy'?.85:1),weapon);
     }
-    g.ammo--;g.cooldown=WEAPONS[weapon].interval;this.fired++;this.completed.add('fire');return true;
+    g.ammo--;g.cooldown=WEAPONS[weapon].interval;this.fired++;this.ammoSpent++;this.completed.add('fire');return true;
   }
   private directHit(target: Unit, damage: number, weapon: number, countShot=true) {
     const actual=Math.min(target.hp,damage);target.hp-=actual;target.hit=.3;this.hits++;if(countShot)this.hitShots++;
@@ -589,6 +592,7 @@ export class Simulation {
     if (!Number.isFinite(range) || range <= 0) return false;
     this.clearInput();
     this.homingAmmo--;
+    this.ammoSpent++;
     const shot: Shot = {
       id: ++this.serial, weapon: 2, x: target.x, z: target.z, born: this.time,
       due: this.time + range / HOMING.speed, origin,
@@ -624,7 +628,7 @@ export class Simulation {
     if (s.weapon === 3 && !isWater(point, this.mission.map) &&
         Math.abs(point.x) <= MAP.halfWidth && Math.abs(point.z) <= MAP.halfDepth &&
         (this.duelMode || !PROTECTED.some(zone => distance(zone, point) <= zone.radius + WEAPONS[3].radius*(s.radiusScale??1)))) {
-      this.fireZones.push({ ...point, id: s.id, radius: WEAPONS[3].radius*(s.radiusScale??1), born: time, expires: time + FIRE_ZONE.duration, side: s.side });
+      this.fireZones.push({ ...point, id: s.id, radius: WEAPONS[3].radius*(s.radiusScale??1), born: time, expires: time + FIRE_ZONE.duration*(s.strength??1), side: s.side });
     }
     let hit = false,
       friendly = false,
@@ -676,7 +680,7 @@ export class Simulation {
       this.hitShots++;
       this.misses = 0;
       if (this.warning === 'lead') this.warning = '';
-    } else if (++this.misses >= 7) this.warning = 'lead';
+    } else if ((s.strength??1) === 1 && ++this.misses >= 7) this.warning = 'lead';
     const event = this.emit('impact', point, s.weapon);
     event.time = time;
     event.shot = s.id;

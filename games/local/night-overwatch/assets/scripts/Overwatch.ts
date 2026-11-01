@@ -1324,6 +1324,7 @@ export class Overwatch extends Component {
       friendlyKills: this.sim.friendlyKills,
       groundAttacks: this.sim.events.filter((e) => e.type === 'attack').slice(-12),
       fired: this.sim.fired,
+      ammoSpent: this.sim.ammoSpent,
       hits: this.sim.hits,
       friendlyDamage: this.sim.friendlyDamage,
       rescueDamage: this.sim.rescueDamage,

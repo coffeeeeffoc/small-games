@@ -1274,19 +1274,19 @@ export class HUD {
         let lines:string[]=[title];
         if(!pilot){lines.push(this.t(s.duelMode?'对方尚未提供装配信息':'地面敌军 · 无军需插槽',s.duelMode?'Opponent equipment is not available':'Ground forces · no loadout slots'));}
         else {
-          const load=pilot.loadout,effects=load.effects,w=WEAPONS[pilot.selected],ordinary=pilot.selected<4,shots=ordinary?attackPreview(effects).shots:1;
+          const load=pilot.loadout,effects=load.effects,w=WEAPONS[pilot.selected],ordinary=pilot.selected<4,preview=attackPreview(ordinary?effects:[]),shots=preview.shots;
           const names=effects.map(effect=>this.lang==='zh'?CATALOG.find(p=>p.effect===effect)!.name:effectEnglish[effect]);
           const damage=ordinary?w.damage*(1+(load.level>=3?.05:0)+(effects.includes('power')?.15:0)):w.damage;
-          const interval=ordinary?w.interval*(effects.includes('rate')?.88:1)*(load.level>=15?.95:1)/(pilot.buff?.kind==='rate'?1.3:1)+(effects.includes('burst')?.1:0):w.interval;
+          const interval=ordinary?w.interval*(effects.includes('rate')?.88:1)*(load.level>=15?.95:1)/(pilot.buff?.kind==='rate'?1.3:1):w.interval;
           const radius=pilot.selected>=1&&pilot.selected<=3&&effects.includes('radius')?w.radius*1.15:w.radius;
-          const heat=w.heat*shots*(ordinary&&effects.includes('cooling')?.85:1);
+          const heat=w.heat*preview.heatMultiplier;
           const fmt=(v:number)=>Number(v.toFixed(2)).toString(),skill=effects.includes('tracking')?'tracking':effects.includes('emp')?'emp':undefined;
           const remaining=Math.max(0,pilot.skill.activeUntil-s.time),cooldown=Math.max(0,pilot.skill.readyAt-s.time);
           const gun=pilot.guns[pilot.selected];
           lines=[title+` · Lv.${load.level}`,this.t('装配：','Equipped: ')+(names.join(' / ')||this.t('默认配置','Default')),
             this.t('装配武器：','Equipped weapon: ')+text(w.name,this.lang),
-            this.t('默认 → 当前：','Default → current: ')+this.t(`每次攻击 1 → ${shots} 发`,`Shots 1 → ${shots}`),
-            pilot.selected===4?this.t('无人机每次伤害 6 · 3架 × 24伤害预算','Drones: 6 per hit · 3 drones × 24 damage budget'):this.t(`基础伤害 ${fmt(w.damage)} → ${fmt(damage)} / 发`,`Base damage ${fmt(w.damage)} → ${fmt(damage)} / shot`),
+            this.t('默认 → 当前：','Default → current: ')+this.t(`每轮 1 → ${shots} 弹 · 耗弹 1`,`Projectiles 1 → ${shots} · ammo 1`),
+            pilot.selected===4?this.t('无人机每次伤害 6 · 3架 × 24伤害预算','Drones: 6 per hit · 3 drones × 24 damage budget'):shots>1?this.t(`主弹 ${fmt(damage)} ＋ ${shots-1}枚副弹各 ${fmt(damage*preview.secondaryStrength)}`,`Primary ${fmt(damage)} + ${shots-1} secondary × ${fmt(damage*preview.secondaryStrength)}`):this.t(`基础伤害 ${fmt(w.damage)} → ${fmt(damage)} / 发`,`Base damage ${fmt(w.damage)} → ${fmt(damage)} / shot`),
             this.t(`间隔 ${fmt(w.interval)} → ${fmt(interval)} 秒`,`Interval ${fmt(w.interval)} → ${fmt(interval)} s`),
             this.t(`热量 ${fmt(w.heat)} → ${fmt(heat)} / 次 · 范围 ${fmt(w.radius)} → ${fmt(radius)}`,`Heat ${fmt(w.heat)} → ${fmt(heat)} / attack · radius ${fmt(w.radius)} → ${fmt(radius)}`),
             this.t(`实时热量 ${Math.round(gun.heat)} · 武器冷却 ${fmt(gun.cooldown)} 秒`,`Heat ${Math.round(gun.heat)} · weapon cooldown ${fmt(gun.cooldown)} s`),
@@ -1582,7 +1582,7 @@ export class HUD {
         [training ? `${s.time.toFixed(1)}s` : formatTime(Math.round((s.completionTime ?? s.time) * 1000)), training
           ? this.trainingBest ? this.t(`用时 · 最佳${this.trainingBest.time.toFixed(1)}s`, `TIME · BEST ${this.trainingBest.time.toFixed(1)}s`)
             : this.t('热身用时', 'WARMUP TIME') : this.t(`本次用时 · ${rank[0]}`, `TIME · ${rank[1]}`)],
-        [training ? `${s.hitShots} / ${s.fired}` : `${cleared} / ${cleared + s.threatsRemaining}`, training ? this.t('命中发 / 已发射', 'HIT SHOTS / FIRED') : this.t('清除威胁', 'THREATS')],
+        [training ? `${s.hitShots} / ${s.fired}` : `${cleared} / ${cleared + s.threatsRemaining}`, training ? this.t(`命中弹 / 发射弹 · 耗弹${s.ammoSpent}`, `HIT / FIRED · AMMO ${s.ammoSpent}`) : this.t('清除威胁', 'THREATS')],
         [`${Math.round(s.friendlyDamage)}`, this.t('友方损伤', 'FRIENDLY DAMAGE')],
       ].entries()) {
         const x = px + 24 + statW * (i + 0.5);
@@ -1592,8 +1592,8 @@ export class HUD {
         this.label(n, caption, x, statY + 29, 12, statW - 8, 22, C.dim);
       }
       if (ph >= 310) this.label(n,
-        training ? this.t(`清靶 ${s.kills} / 3${this.trainingBest ? ` · 零友伤最佳 ${this.trainingBest.time.toFixed(1)}s / ${this.trainingBest.fired}发` : ''}`,
-          `CLEARED ${s.kills}/3${this.trainingBest ? ` · CLEAN BEST ${this.trainingBest.time.toFixed(1)}s / ${this.trainingBest.fired} shots` : ''}`)
+        training ? this.t(`清靶 ${s.kills} / 3${this.trainingBest ? ` · 零友伤最佳 ${this.trainingBest.time.toFixed(1)}s / 耗弹${this.trainingBest.ammoSpent}` : ''}`,
+          `CLEARED ${s.kills}/3${this.trainingBest ? ` · CLEAN BEST ${this.trainingBest.time.toFixed(1)}s / AMMO ${this.trainingBest.ammoSpent}` : ''}`)
           : this.t(`空中 ${s.kills} · 地面 ${s.friendlyKills}`, `AIR ${s.kills} · GROUND ${s.friendlyKills}`),
         px + pw / 2, statY + 51, 11, training ? pw - 48 : statW - 8, 20, C.dim);
       const comparison = !training && success ? this.timeComparison : undefined;
@@ -1603,8 +1603,8 @@ export class HUD {
         : training ? text(trainingNextGoal(s), this.lang) : success
         ? s.rating === 'S'
           ? this.t(
-              `${text(s.mission.name, this.lang)} · ${Math.floor(s.time)}s · ${s.fired} 发。再战，减少耗弹。`,
-              `${text(s.mission.name, this.lang)} · ${Math.floor(s.time)}s · ${s.fired} rounds. Try fewer shots.`,
+              `${text(s.mission.name, this.lang)} · ${Math.floor(s.time)}s · 耗弹${s.ammoSpent}发。再战，减少耗弹。`,
+              `${text(s.mission.name, this.lang)} · ${Math.floor(s.time)}s · ${s.ammoSpent} rounds used. Try fewer rounds.`,
             )
           : this.t(
               '下次目标：保护救援车，零友伤、零友军损失，争取 S。',

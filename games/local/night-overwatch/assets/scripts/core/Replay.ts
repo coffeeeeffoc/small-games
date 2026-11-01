@@ -2,7 +2,7 @@ import { Simulation, type PauseReason } from './Simulation.ts';
 import { WEAPONS } from './Data.ts';
 import { MISSIONS, TRAINING } from './MissionCatalog.ts';
 
-export const RANKED_RULE_VERSION = 'night-input-replay-v10';
+export const RANKED_RULE_VERSION = 'night-input-replay-v11';
 export type ReplayFrame = { input: Record<string, unknown>; ticks: number };
 export type NightReplay = { simulation: ReturnType<Simulation['checkpoint']>; assisted: boolean };
 const commands = ['setOrbitDirection', 'adjustAltitude', 'adjustRadius', 'pause',
@@ -106,7 +106,7 @@ export function nightReplayResult(state: NightReplay) {
   const cleared = complete && sim.phase === 'success' && !sim.threatsRemaining &&
     !sim.training && (!training || !sim.friendlyDamage && !sim.friendlyLosses);
   const eligible = cleared && !state.assisted;
-  return { complete, eligible, cleared, fastestEligible: eligible, assisted: state.assisted, participated:sim.fired>=3&&sim.hitShots>0,
+  return { complete, eligible, cleared, fastestEligible: eligible, assisted: state.assisted, participated:sim.ammoSpent>=3&&sim.hitShots>0,
     score: eligible ? training ? 1 : MISSIONS.findIndex(item => item.id === sim.mission.id) + 1 : 0,
     secondary: Math.round((sim.completionTime ?? sim.time) * 1000) };
 }

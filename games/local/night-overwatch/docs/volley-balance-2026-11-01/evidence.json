@@ -1,0 +1,613 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "a09671387758fd45f3ad3483486a09ab161391d913ff13d836fa0be71f7f0804"
+  },
+  "fixture": true,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "ammoSpent": 1,
+      "fireAim": {
+        "x": -108.00001042238962,
+        "z": 24.99998916633743
+      },
+      "spread": [
+        {
+          "x": -108.00001075335105,
+          "z": 24.999988604366763,
+          "born": 0.5666666666666668,
+          "strength": 1
+        },
+        {
+          "x": -110.91942976867607,
+          "z": 26.731171036393697,
+          "born": 0.5666666666666668,
+          "strength": 0.6
+        },
+        {
+          "x": -108.03954921040919,
+          "z": 21.606106356790477,
+          "born": 0.6666666666666667,
+          "strength": 0.6
+        },
+        {
+          "x": -105.04105328096789,
+          "z": 26.662688419916115,
+          "born": 0.6666666666666667,
+          "strength": 0.6
+        }
+      ]
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "impacts": [
+        {
+          "id": 28,
+          "type": "impact",
+          "x": -108.00001075335105,
+          "y": 1.503390692807338,
+          "z": 24.999988604366763,
+          "weapon": 2,
+          "time": 7.339379794678785,
+          "shot": 19,
+          "intercepted": false,
+          "outcome": "destroyed",
+          "damage": 90
+        },
+        {
+          "id": 29,
+          "type": "impact",
+          "x": -110.91942976867607,
+          "y": 1.615173229544919,
+          "z": 26.731171036393704,
+          "weapon": 2,
+          "time": 7.354037251697438,
+          "shot": 21,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        },
+        {
+          "id": 30,
+          "type": "impact",
+          "x": -105.04105328096789,
+          "y": 1.6378856978549776,
+          "z": 26.662688419916122,
+          "weapon": 2,
+          "time": 7.373309045482629,
+          "shot": 24,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        },
+        {
+          "id": 31,
+          "type": "impact",
+          "x": -108.03954921040919,
+          "y": 1.3196417297081227,
+          "z": 21.60610635679049,
+          "weapon": 2,
+          "time": 7.506551282562337,
+          "shot": 23,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        }
+      ]
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "shots": 4,
+      "draft": true,
+      "drag": true,
+      "cancel": true,
+      "scroll": true,
+      "gifts": true,
+      "reload": true
+    },
+    {
+      "width": 800,
+      "height": 366,
+      "ammoSpent": 1,
+      "fireAim": {
+        "x": -107.99990991826394,
+        "z": 24.999986025491893
+      },
+      "spread": [
+        {
+          "x": -107.99991078773877,
+          "z": 24.99998455075675,
+          "born": 0.4833333333333333,
+          "strength": 1
+        },
+        {
+          "x": -110.91390236608265,
+          "z": 26.740287134028094,
+          "born": 0.4833333333333333,
+          "strength": 0.6
+        },
+        {
+          "x": -108.0500612459515,
+          "z": 21.60624252586136,
+          "born": 0.5833333333333333,
+          "strength": 0.6
+        },
+        {
+          "x": -105.03576875118216,
+          "z": 26.653423992380795,
+          "born": 0.5833333333333333,
+          "strength": 0.6
+        }
+      ]
+    },
+    {
+      "width": 800,
+      "height": 366,
+      "impacts": [
+        {
+          "id": 28,
+          "type": "impact",
+          "x": -107.99991078773877,
+          "y": 1.5033905020794154,
+          "z": 24.99998455075675,
+          "weapon": 2,
+          "time": 7.2668549463224075,
+          "shot": 19,
+          "intercepted": false,
+          "outcome": "destroyed",
+          "damage": 90
+        },
+        {
+          "id": 29,
+          "type": "impact",
+          "x": -110.91390236608265,
+          "y": 1.6159000960626329,
+          "z": 26.740287134028108,
+          "weapon": 2,
+          "time": 7.281511575371702,
+          "shot": 21,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        },
+        {
+          "id": 30,
+          "type": "impact",
+          "x": -105.03576875118216,
+          "y": 1.6370603945850823,
+          "z": 26.653423992380795,
+          "weapon": 2,
+          "time": 7.300766306587409,
+          "shot": 24,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        },
+        {
+          "id": 31,
+          "type": "impact",
+          "x": -108.0500612459515,
+          "y": 1.319700035601755,
+          "z": 21.606242525861347,
+          "weapon": 2,
+          "time": 7.434049631789737,
+          "shot": 23,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        }
+      ]
+    },
+    {
+      "width": 800,
+      "height": 366,
+      "touch": true,
+      "shots": 4,
+      "draft": true,
+      "drag": true,
+      "cancel": true,
+      "scroll": true,
+      "gifts": true,
+      "reload": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "ammoSpent": 1,
+      "fireAim": {
+        "x": -107.9999085322124,
+        "z": 24.999988366974662
+      },
+      "spread": [
+        {
+          "x": -107.99990937225697,
+          "z": 24.999986939212164,
+          "born": 0.5333333333333333,
+          "strength": 1
+        },
+        {
+          "x": -110.91716027034197,
+          "z": 26.734820417567427,
+          "born": 0.5333333333333333,
+          "strength": 0.6
+        },
+        {
+          "x": -108.04369378680585,
+          "z": 21.60615681307995,
+          "born": 0.6333333333333333,
+          "strength": 0.6
+        },
+        {
+          "x": -105.03887405962308,
+          "z": 26.658983586989116,
+          "born": 0.6333333333333333,
+          "strength": 0.6
+        }
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "impacts": [
+        {
+          "id": 28,
+          "type": "impact",
+          "x": -107.99990937225697,
+          "y": 1.503390665075087,
+          "z": 24.999986939212164,
+          "weapon": 2,
+          "time": 7.310369755233291,
+          "shot": 19,
+          "intercepted": false,
+          "outcome": "destroyed",
+          "damage": 90
+        },
+        {
+          "id": 29,
+          "type": "impact",
+          "x": -110.91716027034197,
+          "y": 1.615464530429017,
+          "z": 26.73482041756742,
+          "weapon": 2,
+          "time": 7.325026870408503,
+          "shot": 21,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        },
+        {
+          "id": 30,
+          "type": "impact",
+          "x": -105.03887405962308,
+          "y": 1.6375556934585789,
+          "z": 26.65898358698911,
+          "weapon": 2,
+          "time": 7.344291836289186,
+          "shot": 24,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        },
+        {
+          "id": 31,
+          "type": "impact",
+          "x": -108.04369378680586,
+          "y": 1.3196645933495632,
+          "z": 21.606156813079934,
+          "weapon": 2,
+          "time": 7.477550543574974,
+          "shot": 23,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        }
+      ]
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "shots": 4,
+      "draft": true,
+      "drag": true,
+      "cancel": true,
+      "scroll": true,
+      "gifts": true,
+      "reload": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "ammoSpent": 1,
+      "fireAim": {
+        "x": -108.6228932213595,
+        "z": 24.56857538480986
+      },
+      "spread": [
+        {
+          "x": -108.6228932213595,
+          "z": 24.56857538480986,
+          "born": 0.4666666666666666,
+          "strength": 1
+        },
+        {
+          "x": -111.53312105956599,
+          "z": 26.31516461234105,
+          "born": 0.4666666666666666,
+          "strength": 0.6
+        },
+        {
+          "x": -108.68036994327451,
+          "z": 21.17494953235678,
+          "born": 0.5666666666666667,
+          "strength": 0.6
+        },
+        {
+          "x": -105.65518866123801,
+          "z": 26.21561200973175,
+          "born": 0.5666666666666667,
+          "strength": 0.6
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "impacts": [
+        {
+          "id": 28,
+          "type": "impact",
+          "x": -108.6228932213595,
+          "y": 1.4748365514381558,
+          "z": 24.56857538480986,
+          "weapon": 2,
+          "time": 7.2714938246206335,
+          "shot": 19,
+          "intercepted": false,
+          "outcome": "destroyed",
+          "damage": 90
+        },
+        {
+          "id": 29,
+          "type": "impact",
+          "x": -111.53312105956599,
+          "y": 1.580546957711826,
+          "z": 26.31516461234105,
+          "weapon": 2,
+          "time": 7.286209696421447,
+          "shot": 21,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        },
+        {
+          "id": 30,
+          "type": "impact",
+          "x": -105.65518866123801,
+          "y": 1.5980761717546912,
+          "z": 26.215612009731757,
+          "weapon": 2,
+          "time": 7.305445497084303,
+          "shot": 24,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        },
+        {
+          "id": 31,
+          "type": "impact",
+          "x": -108.68036994327451,
+          "y": 1.3057150191244502,
+          "z": 21.174949532356777,
+          "weapon": 2,
+          "time": 7.438605673425767,
+          "shot": 23,
+          "intercepted": false,
+          "outcome": "miss",
+          "damage": 0
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "touch": false,
+      "shots": 4,
+      "draft": true,
+      "drag": true,
+      "cancel": false,
+      "scroll": true,
+      "gifts": true,
+      "reload": true
+    }
+  ],
+  "screens": [
+    {
+      "name": "home-coins",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "loadout",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "selected-scroll",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "gift-detail",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "gift-opened",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "spread-flight",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "spread-impact",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "battle-equipment",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "duel-equipment",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "home-coins",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "loadout",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "selected-scroll",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "gift-detail",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "gift-opened",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "spread-flight",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "spread-impact",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "battle-equipment",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "duel-equipment",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "home-coins",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "loadout",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "selected-scroll",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "gift-detail",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "gift-opened",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "spread-flight",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "spread-impact",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "battle-equipment",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "duel-equipment",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "home-coins",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "loadout",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "selected-scroll",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "gift-detail",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "gift-opened",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "spread-flight",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "spread-impact",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "battle-equipment",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "duel-equipment",
+      "width": 1280,
+      "height": 720
+    }
+  ],
+  "errors": []
+}

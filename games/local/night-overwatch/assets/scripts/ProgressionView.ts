@@ -163,7 +163,7 @@ export class ProgressionView {
   }
   private catalogName(id:string){const p=this.q.catalog.find(p=>p.id===id);return p?this.productName(p):id;}
   private productDetail(p:Product,x:number,y:number,w:number,h:number,shop:boolean){
-    const details=this.h.lang==='zh'?p.description:({power:'Regular weapon damage +15%.',rate:'Regular attack interval −12%.',burst:'Two shots spread ahead and behind. Each uses ammo and heat.',twin:'Spread left and right. Combines with burst for four-point coverage.',radius:'HE / incendiary blast radius +15%.',cooling:'Weapon heat −15%. Skill cooldown is unchanged.',drone:'Limited lifetime and damage budget. Slows enemies.',laser:'Instant line-of-sight hit. Limited ammo, long cooldown.',tracking:'Tracks for 60s; then 90s cooldown. Repeatable.',emp:'Ground enemies stop for 4s; then 45s cooldown.'})[p.effect];
+    const details=this.h.lang==='zh'?p.description:({power:'Regular weapon damage +15%.',rate:'Regular attack interval −12%.',burst:'One ammo and heat charge: primary 100%, delayed secondary 60%. Secondary fire lasts 15s.',twin:'One ammo: primary 100%, side round 60%; with burst, three secondaries at 60% (280% total). Secondary fire lasts 15s.',radius:'HE / incendiary blast radius +15%.',cooling:'Weapon heat −15%. Skill cooldown is unchanged.',drone:'Limited lifetime and damage budget. Slows enemies.',laser:'Instant line-of-sight hit. Limited ammo, long cooldown.',tracking:'Tracks for 60s; then 90s cooldown. Repeatable.',emp:'Ground enemies stop for 4s; then 45s cooldown.'})[p.effect];
     if(this.low){
       this.panel(x,y,w,h);const iw=w*.31,tx=x+iw+12,tw=w-iw-24;
       this.picture(this.productArt(p.effect),x+6,y+6,iw-6,h-12);
@@ -229,8 +229,8 @@ export class ProgressionView {
     });
     const preview=attackPreview([...load.mods,load.weapon,load.skill].map(id=>q.catalog.find(p=>p.id===id)?.effect||'')),previewH=this.low?48:74;
     this.panel(rx,top,rw,previewH);
-    const title=this.label(this.t(`每次攻击 ${preview.shots} 发`,`SHOTS PER ATTACK: ${preview.shots}`),rx+10,top+5,rw-20,previewH*.46,38,ivory,true);title.enableWrapText=false;title.overflow=Label.Overflow.SHRINK;
-    const detail=this.label(this.t(`弹药 ×${preview.shots} · 热量按发数计算`,`Ammo ×${preview.shots} · heat per shot`),rx+10,top+previewH*.52,rw-20,previewH*.36,23,dim);detail.enableWrapText=false;detail.overflow=Label.Overflow.SHRINK;
+    const title=this.label(this.t(`每轮 ${preview.shots} 弹 · 只耗 1 发`,`PROJECTILES ${preview.shots} · AMMO 1`),rx+10,top+5,rw-20,previewH*.46,38,ivory,true);title.enableWrapText=false;title.overflow=Label.Overflow.SHRINK;
+    const detail=this.label(this.t(`主弹100%${preview.shots>1?`＋${preview.shots-1}×${preview.secondaryStrength*100}%`:''} · 热量×${preview.heatMultiplier}`,`Primary 100%${preview.shots>1?` + ${preview.shots-1}×${preview.secondaryStrength*100}%`:''} · heat ×${preview.heatMultiplier}`),rx+10,top+previewH*.52,rw-20,previewH*.36,23,dim);detail.enableWrapText=false;detail.overflow=Label.Overflow.SHRINK;
     const listTop=top+previewH+25,listH=Math.max(44,bottom-listTop),rowH=this.low?64:104;
     this.label(selectedName+this.t(' · 上下滑动选择',' · SCROLL TO CHOOSE'),rx,top+previewH+4,rw,20,23,cyan,false,true);
     q.loadoutArea={x:rx,y:listTop,w:rw,h:listH};q.loadoutScrollMax=Math.max(0,q.availableGear.length*(rowH+7)-7-listH);q.loadoutScroll=Math.min(q.loadoutScroll,q.loadoutScrollMax);

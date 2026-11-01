@@ -58,9 +58,9 @@ try{
   evidence.checks.push('Two authenticated human-player clients receive each other’s independent server loadout; no bot or asset fixture');
   await hit(a,'weapon2');await a.page.waitForFunction(()=>__night.snapshot().selected===2);sa=await snapshot(a.page);
   await a.page.keyboard.press('Space');await a.page.waitForFunction(fired=>__night.snapshot().fired>=fired+4,sa.fired);
-  const fired=await snapshot(a.page);assert.equal(fired.fired-sa.fired,4);assert.equal(sa.guns[2].ammo-fired.guns[2].ammo,4);
+  const fired=await snapshot(a.page);assert.equal(fired.fired-sa.fired,4);assert.equal(sa.guns[2].ammo-fired.guns[2].ammo,1);assert.equal(fired.ammoSpent-sa.ammoSpent,1);
   await b.page.waitForFunction(ammo=>{const p=__night.snapshot().enemyEquipment;return p.selected===2&&p.guns[2].ammo===ammo;},fired.guns[2].ammo);
-  evidence.checks.push('Double burst × twin trajectory fires four shots, spends four rounds, and opponent observes the selected weapon and remaining ammunition');
+  evidence.checks.push('Double burst × twin trajectory fires four projectiles, spends one round, and opponent observes the selected weapon and remaining ammunition');
   await hit(a,'battleReport');await hit(a,'equipment');await hit(b,'battleReport');await hit(b,'equipment');
   for(const actor of [a,b]){const text=await labels(actor.page);assert(text.includes('我方')&&text.includes('对方')&&text.includes('两连发')&&text.includes('电磁干扰')&&text.includes('默认 → 当前'));assert(!text.includes('尚未提供'));await shot(actor,'both-loadouts-'+actor.width);}
   await hit(b,'equipmentClose');await hit(b,'close');await hit(b,'skillUse');

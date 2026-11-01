@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { createDuel, configureDuel, commandDuel, advanceDuel, viewDuel } from '../assets/scripts/core/Duel.ts';
-import { createNightReplay, applyNightReplay } from '../assets/scripts/core/Replay.ts';
-import { CATALOG, PACKAGES, POOLS, GROWTH_VERSION, practiceLoadout, validLoadout, levelProgress, type Effect } from '../assets/scripts/core/Progression.ts';
-import { MAP, PROTECTED, UNITS, WEAPONS } from '../assets/scripts/core/Data.ts';
+import { createNightReplay, applyNightReplay, nightReplayResult } from '../assets/scripts/core/Replay.ts';
+import { CATALOG, PACKAGES, POOLS, GROWTH_VERSION, practiceLoadout, validLoadout, levelProgress, attackPreview, type Effect } from '../assets/scripts/core/Progression.ts';
+import { FIRE_ZONE, MAP, PROTECTED, UNITS, WEAPONS } from '../assets/scripts/core/Data.ts';
 import { muzzlePosition, shotPosition } from '../assets/scripts/core/Flight.ts';
 import { bestTrainingRecord, readTrainingRecord } from '../assets/scripts/core/TrainingRecords.ts';
 const setup = (effects: Effect[]) => {
@@ -23,16 +23,18 @@ test('slot limits deduplicate effects across terms and source pools cannot yield
   assert(CATALOG.filter(p=>p.term==='match').every(p=>p.sell<minCost));
   assert(levelProgress(1000).level>levelProgress(0).level);
 });
-test('two bursts and twin trajectories pay four rounds and heat, cannot fire for free, preserve snapshot',()=>{
+test('two bursts and twin trajectories pay one round and heat charge, cannot fire for free, preserve snapshot',()=>{
   const sim=setup(['burst','twin']);sim.choose(1);sim.setAim({x:-80,z:-40});
-  assert(sim.fire());assert.equal(sim.shots.length,4);assert.equal(sim.guns[1].ammo,116);assert.equal(sim.guns[1].heat,60);
+  assert(sim.fire());assert.equal(sim.shots.length,4);assert.equal(sim.guns[1].ammo,119);assert.equal(sim.guns[1].heat,15);assert.equal(sim.ammoSpent,1);
+  assert.deepEqual(sim.shots.map(s=>s.damageMultiplier),[1,.6,.6,.6]);
   assert.equal(new Set(sim.shots.map(s=>s.born)).size,2);
-  assert.equal(new Set(sim.shots.map(s=>JSON.stringify(s.origin))).size,2);
+  assert.equal(new Set(sim.shots.map(s=>JSON.stringify(s.origin))).size,3);
   assert.equal(sim.events.filter(e=>e.type==='shot').length,2);
   sim.step(.06);assert.equal(sim.events.filter(e=>e.type==='shot').length,2);
   sim.step(.06);assert.equal(sim.events.filter(e=>e.type==='shot').length,4);
   assert(sim.events.filter(e=>e.type==='shot').slice(2).every(e=>e.time===.1));
-  sim.guns[1].cooldown=0;sim.guns[1].ammo=3;assert(!sim.fire());assert.equal(sim.guns[1].ammo,3);
+  sim.guns[1].cooldown=0;sim.guns[1].ammo=1;assert(sim.fire());assert.equal(sim.guns[1].ammo,0);assert.equal(sim.ammoSpent,2);
+  sim.guns[1].cooldown=0;assert(!sim.fire());assert.equal(sim.ammoSpent,2);
   assert.deepEqual(Simulation.restore(sim.checkpoint()).loadout,sim.loadout);
 });
 
@@ -48,7 +50,9 @@ test('ordinary volleys spread real trajectories in two dimensions without leavin
         return {x:shot.x,z:shot.z};
       });
       assert.equal(new Set(points.map(p=>JSON.stringify(p))).size,sim.attackCount);
-      for (const axis of ['x','z'] as const)
+      assert.deepEqual(points[0],sim.aim);
+      assert.deepEqual(sim.shots[0].origin,muzzlePosition(sim.aircraft,weapon));
+      if (points.length===4) for (const axis of ['x','z'] as const)
         assert(Math.abs(points.reduce((sum,p)=>sum+p[axis],0)/points.length-sim.aim[axis])<1e-8);
       if (!effects.length) assert.deepEqual(points,[sim.aim]);
       if (points.length===4) {
@@ -85,16 +89,18 @@ test('spread checks protected areas, map bounds and friendly warnings before pay
     sim.setAim({x:MAP.halfWidth-.01,z:MAP.halfDepth-.01});
     const gun={...sim.guns[1]};
     assert.equal(sim.reason(),'outside');assert(!sim.fire());assert.deepEqual(sim.guns[1],gun);
+    sim.ammoSpent=1;
     const p=PROTECTED[0];sim.setAim({x:p.x+p.radius+WEAPONS[1].radius+.1,z:p.z});
     Object.assign(sim.aircraft,{x:sim.aim.x-100,z:sim.aim.z-100});
     assert.equal(sim.reason(),'protected');assert(!sim.fire());assert.deepEqual(sim.guns[1],gun);
     assert.equal(sim.shots.length,0);
-    sim.setAim({x:-80,z:-40});assert(sim.fire());
-    const shot=sim.shots[0],dx=shot.x-sim.aim.x,dz=shot.z-sim.aim.z,length=Math.hypot(dx,dz);
+    sim.setAim({x:-80,z:-40});const beforeFire=sim.checkpoint();assert(sim.fire());
+    const shot=sim.shots[1],dx=shot.x-sim.aim.x,dz=shot.z-sim.aim.z,length=Math.hypot(dx,dz);
     const radius=WEAPONS[1].radius+UNITS.escort.radius;
     const point={x:sim.aim.x+dx/length*(radius+length*.5),z:sim.aim.z+dz/length*(radius+length*.5)};
     const friend=sim.addUnit('escort',point,true);Object.assign(friend,point);sim.units=[friend];
-    assert(sim.friendlyRisk,'Warning includes a friend outside the original blast disk');
+    const warning=Simulation.restore(beforeFire);warning.units=[friend];
+    assert(warning.friendlyRisk,'Warning includes a friend outside the original blast disk');
     const plain=setup([]);plain.choose(1);plain.setAim(sim.aim);plain.units=sim.units;
     assert(!plain.friendlyRisk,'Control reticle alone does not cover that friend');
   }
@@ -229,4 +235,77 @@ test('ordinary weapon upgrades and level growth change the actual fired round an
     assert(Math.abs(gun.cooldown-WEAPONS[1].interval*.95*(effects.includes('rate')?.88:1))<1e-10);
     assert.equal(gun.heat,WEAPONS[1].heat*(effects.includes('cooling')?.85:1));assert.equal(gun.ammo,WEAPONS[1].ammo-1);
   }
+});
+
+test('all regular weapons retain their primary trajectory and one-charge cadence with a bounded secondary budget',()=>{
+  for(const effects of [[],['burst'],['twin'],['burst','twin']] as Effect[][])for(let weapon=0;weapon<4;weapon++){
+    const base=setup([]),sim=setup(effects);
+    for(const actor of [base,sim]){actor.choose(weapon);actor.setAim({x:-80,z:-40});actor.guns[weapon].ammo=1;assert(actor.fire());}
+    const primary=sim.shots[0],plain=base.shots[0];
+    assert.deepEqual(primary.origin,plain.origin);assert.deepEqual(primary.velocity,plain.velocity);assert.equal(primary.due,plain.due);
+    assert.equal(primary.damageMultiplier,1);assert.equal(sim.guns[weapon].ammo,0);assert.equal(sim.ammoSpent,1);
+    assert.equal(sim.guns[weapon].heat,base.guns[weapon].heat);assert.equal(sim.guns[weapon].cooldown,base.guns[weapon].cooldown);
+    const budget=sim.shots.reduce((sum,shot)=>sum+shot.damageMultiplier!,0);
+    assert(Math.abs(budget-(effects.length===2?2.8:effects.length===1?1.6:1))<1e-8);
+    const preview=attackPreview(effects);assert.equal(preview.shots,sim.shots.length);
+    assert(sim.shots.slice(1).every(shot=>shot.strength===preview.secondaryStrength));
+  }
+});
+
+test('tracking never multiplies one ammo into four full-damage hits',()=>{
+  const sim=setup(['burst','twin','tracking']);sim.height=()=>0;sim.choose(2);
+  const enemy=sim.units.find(u=>!u.friendly)!;enemy.y=0;enemy.hp=1000;sim.setAim(enemy);
+  assert(sim.useSkill());assert(sim.fire());
+  while(sim.shots.length&&sim.time<20)sim.step(1/60);
+  assert.equal(sim.shots.length,0);assert(Math.abs(1000-enemy.hp-WEAPONS[2].damage*2.8)<1e-6);
+  assert.equal(sim.ammoSpent,1);assert.equal(sim.hitShots,4);
+});
+
+test('accelerated bursts stay within their cycle, preserve heat rate and resume delayed events once',()=>{
+  const base=setup([]),sim=setup(['burst','twin']);
+  for(const actor of [base,sim]){actor.loadout.level=15;actor.buff={kind:'rate',remaining:60};actor.choose(0);actor.setAim({x:-80,z:-40});actor.setFire('held',true);}
+  const delay=sim.shots[2].born-sim.shots[0].born;
+  assert(delay>0&&delay<sim.guns[0].cooldown&&delay<.1);
+  sim.pause('manual',true);const before=sim.checkpoint();sim.step(.1);assert.deepEqual(sim.checkpoint(),before);sim.pause('manual',false);sim.setFire('held',true);
+  for(let i=0;i<12;i++){base.step(1/60);sim.step(1/60);}
+  for(const actor of [base,sim])actor.setFire('held',false);
+  assert.equal(sim.ammoSpent,base.ammoSpent);assert.equal(sim.fired,base.fired*4);assert.equal(sim.guns[0].heat,base.guns[0].heat);
+  const restored=Simulation.restore(sim.checkpoint());for(let i=0;i<10;i++){sim.step(1/60);restored.step(1/60);}
+  assert.deepEqual(restored.checkpoint(),sim.checkpoint());assert.equal(sim.events.filter(event=>event.type==='shot').length,sim.fired);
+});
+
+test('incendiary secondaries widen short-lived coverage within 160/280 percent fuel and never stack burn damage',()=>{
+  for(const effects of [['burst'],['twin'],['burst','twin']] as Effect[][]){
+    const sim=setup(effects);sim.height=()=>0;sim.choose(3);sim.setAim({x:-80,z:-40});assert(sim.fire());
+    const projectiles=[...sim.shots],end=Math.max(...projectiles.map(shot=>shot.due))+.02;
+    while(sim.time<end)sim.step(1/60);
+    assert.equal(sim.fireZones.length,projectiles.length);
+    const primary=sim.fireZones.find(zone=>zone.id===projectiles[0].id)!;
+    assert.equal(primary.radius,WEAPONS[3].radius);assert.equal(primary.expires-primary.born,FIRE_ZONE.duration);
+    const fuel=sim.fireZones.reduce((sum,zone)=>sum+zone.expires-zone.born,0);
+    assert(Math.abs(fuel-FIRE_ZONE.duration*(effects.length===2?2.8:1.6))<1e-8);
+    const side=sim.fireZones.find(zone=>zone.id===projectiles[1].id)!,dx=side.x-primary.x,dz=side.z-primary.z,range=Math.hypot(dx,dz);
+    const edge={x:primary.x+dx/range*(primary.radius+range*.5),z:primary.z+dz/range*(primary.radius+range*.5)};
+    assert(Math.hypot(edge.x-side.x,edge.z-side.z)<side.radius);
+    assert(Math.hypot(edge.x-primary.x,edge.z-primary.z)>primary.radius);
+    const unit=sim.addUnit('turret',primary);Object.assign(unit,{x:primary.x,z:primary.z,y:0,hp:1000});
+    const hp=unit.hp;sim.step(.1);assert(Math.abs(hp-unit.hp-FIRE_ZONE.damagePerSecond*.1)<1e-8);
+    const expires=Math.max(...sim.fireZones.filter(zone=>zone!==primary).map(zone=>zone.expires));
+    while(sim.time<=expires+.02)sim.step(1/60);
+    assert.deepEqual(sim.fireZones.map(zone=>zone.id),[primary.id]);
+  }
+});
+
+test('ammo counters migrate old checkpoints per pilot and ranked participation counts attacks, not projectiles',()=>{
+  const sim=setup(['burst','twin']);sim.choose(1);sim.setAim({x:-80,z:-40});assert(sim.fire());
+  const old=sim.checkpoint();delete (old as Partial<typeof old>).ammoSpent;
+  old.duelStats[0].fired=7;old.duelStats[1].fired=11;
+  for(const stats of old.duelStats)delete (stats as Partial<typeof stats>).ammoSpent;
+  const restored=Simulation.restore(old);assert.equal(restored.ammoSpent,4);assert.deepEqual(restored.duelStats.map(stats=>stats.ammoSpent),[7,11]);
+  sim.hitShots=1;assert(!nightReplayResult({simulation:sim.checkpoint(),assisted:false}).participated);
+  for(let i=0;i<2;i++){sim.guns[1].cooldown=0;assert(sim.fire());}
+  assert(nightReplayResult({simulation:sim.checkpoint(),assisted:false}).participated);
+  const duel=configureDuel(createDuel(11),[0,1].map(()=>({version:GROWTH_VERSION,level:1,effects:['burst','twin'],skipped:[]})));
+  commandDuel(duel,0,[{command:'fire',args:[]}]);assert.equal(viewDuel(duel,0).simulation.ammoSpent,1);assert.equal(viewDuel(duel,1).simulation.ammoSpent,0);
+  commandDuel(duel,1,[{command:'fire',args:[]}]);assert.equal(viewDuel(duel,0).simulation.ammoSpent,1);assert.equal(viewDuel(duel,1).simulation.ammoSpent,1);
 });

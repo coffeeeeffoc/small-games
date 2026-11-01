@@ -6,7 +6,7 @@ import { assetFixture } from './progression-fixture.ts';
 import { acceptanceBuild, snapshot, assertLayout, press, settleVisuals, navigateMap, aimAt } from './flight-browser.mjs';
 
 const base=process.env.NIGHT_URL,build=await acceptanceBuild(base);
-const out=new URL('../reports/2026-11-01-loadout-spread/',import.meta.url);await mkdir(out,{recursive:true});
+const out=new URL('../reports/2026-11-01-volley-balance/',import.meta.url);await mkdir(out,{recursive:true});
 const evidence={build,fixture:true,checks:[],screens:[],errors:[]};
 const browser=await chromium.launch({headless:true,args:['--use-angle=d3d11']});
 function fixture(assets){return `
@@ -85,15 +85,23 @@ try{
     await click('weapon2');s=await snapshot(page);const enemy=s.units.find(u=>!u.friendly&&u.hp>0);
     await navigateMap(page,enemy,touch);await aimAt(page,enemy,touch);
     const before=await snapshot(page);
+    // Desktop aim follows the moving camera; sample it at the real firing input, not an earlier frame.
+    if(!touch)await page.evaluate(()=>window.addEventListener('keydown',event=>{
+      if(event.code==='Space')globalThis.__volleyFireAim=structuredClone(__night.snapshot().aim);
+    },{capture:true,once:true}));
     if(touch)await click('fire');else await page.keyboard.press('Space');
     await page.waitForFunction(fired=>__night.snapshot().fired>=fired+4,before.fired);
-    s=await snapshot(page);assert.equal(s.fired-before.fired,4);assert.equal(before.guns[2].ammo-s.guns[2].ammo,4);
+    s=await snapshot(page);assert.equal(s.fired-before.fired,4);assert.equal(before.guns[2].ammo-s.guns[2].ammo,1);assert.equal(s.ammoSpent-before.ammoSpent,1);
     const volley=s.shots.filter(shot=>shot.weapon===2);
     assert.equal(volley.length,4,'Four real projectiles remain in flight');
+    assert.deepEqual(volley.map(projectile=>projectile.strength),[1,.6,.6,.6]);
+    const fireAim=touch?before.aim:await page.evaluate(()=>globalThis.__volleyFireAim);
+    assert(fireAim,'Firing input captures the reticle');
+    assert(Math.hypot(volley[0].x-fireAim.x,volley[0].z-fireAim.z)<1e-4,'Primary keeps the reticle landing point');
     assert.equal(new Set(volley.map(shot=>`${shot.x},${shot.z}`)).size,4,'Each projectile has a distinct landing point');
     const [first,second,third]=volley;
     assert(Math.abs((second.x-first.x)*(third.z-first.z)-(second.z-first.z)*(third.x-first.x))>1,'Combined upgrades cover a two-dimensional area');
-    evidence.checks.push({width,height,spread:volley.map(({x,z,born})=>({x,z,born}))});
+    evidence.checks.push({width,height,ammoSpent:s.ammoSpent-before.ammoSpent,fireAim,spread:volley.map(({x,z,born,strength})=>({x,z,born,strength}))});
     await shot('spread-flight');
     const shotIds=volley.map(projectile=>projectile.id);
     await page.waitForFunction(ids=>ids.every(id=>__night.snapshot().impacts.some(impact=>impact.shot===id)),shotIds);

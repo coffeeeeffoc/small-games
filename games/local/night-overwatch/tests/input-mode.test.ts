@@ -518,7 +518,7 @@ test('training result saves only a clean successful range score in its separate 
   try {
     g.prepareMission('?mission=training-60'); g.action('start');
     for (const unit of g.sim.units) if (!unit.friendly) unit.hp = 0;
-    Object.assign(g.sim, { phase: 'success', time: 20, fired: 5, hitShots: 5, kills: 3 });
+    Object.assign(g.sim, { phase: 'success', time: 20, fired: 5, hitShots: 5, ammoSpent: 5, kills: 3 });
     g.saveTrainingResult();
     assert.deepEqual(writes, ['night-overwatch-training-v1']);
     assert.equal(g.hud.trainingBest.time, 20);

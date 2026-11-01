@@ -55,3 +55,28 @@ it('uses authoritative time, atomic command batches and read-only views with a o
   expect(duel.roomSize('bot')).toBe(1);
   expect(duel.view(duel.initial(1, 'bot'), 0).bot).toBe(true);
 });
+
+it('counts paid attacks rather than secondary projectiles for duel participation', () => {
+  const loadout = { version: 'night-growth-v1', level: 1, effects: ['burst', 'twin'], skipped: [] };
+  let state = duel.configure(duel.initial(7, 'friend'), [loadout, loadout]);
+  state.simulation.hitShots = 1;
+  state.simulation.duelStats[0].hitShots = 1;
+  state = duel.action(
+    state,
+    {
+      commands: [
+        { command: 'choose', args: [2] },
+        { command: 'fire', args: [] },
+      ],
+    },
+    0,
+    0,
+  );
+  expect(duel.view(state, 0).simulation).toMatchObject({ fired: 4, ammoSpent: 1 });
+  expect(duel.view(state, 1).simulation.ammoSpent).toBe(0);
+  expect(duel.result(state, 0).participated).toBe(false);
+  for (const elapsed of [2500, 5000])
+    state = duel.action(state, { commands: [{ command: 'fire', args: [] }] }, elapsed, 0);
+  expect(duel.view(state, 0).simulation.ammoSpent).toBe(3);
+  expect(duel.result(state, 0).participated).toBe(true);
+});

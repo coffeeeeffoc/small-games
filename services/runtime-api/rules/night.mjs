@@ -50,7 +50,7 @@ export default {
   result(state, seat) {
     const sim = viewDuel(state, seat).simulation;
     return {
-      participated: sim.fired >= 3 && sim.hitShots > 0,
+      participated: sim.ammoSpent >= 3 && sim.hitShots > 0,
       finished: state.finished,
       eligible: state.finished,
       outcome: state.winner === null ? 'draw' : state.winner === seat ? 'win' : 'loss',

@@ -392,7 +392,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
       const trainingEntry = hud.buttons.find((button: any) => button.id === 'training');
       assert(trainingEntry); assert.equal(hud.hit(trainingEntry.x + trainingEntry.w / 2, trainingEntry.y + trainingEntry.h / 2)?.id, 'training');
       const sim = new Simulation('training-60'); hud.modalKey = 'rebuild'; hud.update(sim, world);
-      hud.trainingBest = { time: 20, fired: 5, hitShots: 5 };
+      hud.trainingBest = { time: 20, fired: 5, hitShots: 5, ammoSpent: 5 };
       for (const phase of ['briefing', 'success', 'failure'] as const) {
         sim.phase = phase; sim.failure = phase === 'failure' ? 'vehicle' : '';
         hud.update(sim, world);
