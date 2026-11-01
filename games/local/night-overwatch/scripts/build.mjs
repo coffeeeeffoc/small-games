@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { editor, runCreator } from '../../carding-car/scripts/toolchain.mjs';
 import { sourceHash, verifyPrebuilt } from './artifact.mjs';
 import { brandCocos } from '../../carding-car/scripts/cocos-branding.mjs';
-import { setTimeout as delay } from 'node:timers/promises';
+import { writeReport } from './write-report.mjs';
 import { prepareGameServices } from '../../../../scripts/h5-game-services.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
@@ -118,14 +118,5 @@ if (target === 'web-mobile') {
 let bytes = 0;
 for (const entry of await readdir(out, { recursive: true, withFileTypes: true }))
   if (entry.isFile()) bytes += (await stat(entry.parentPath + '/' + entry.name)).size;
-// Creator's Windows watcher can briefly retain the existing report after exit.
-for (let attempt = 0; ; attempt++) {
-  try {
-    await writeFile(root + `reports/${target}-size.json`, JSON.stringify({ creator: '3.8.8', target, bytes }, null, 2));
-    break;
-  } catch (error) {
-    if (process.platform !== 'win32' || !['UNKNOWN', 'EPERM', 'EBUSY', 'EACCES'].includes(error.code) || attempt === 5) throw error;
-    await delay(250);
-  }
-}
+await writeReport(root + `reports/${target}-size.json`, JSON.stringify({ creator: '3.8.8', target, bytes }, null, 2));
 console.log(`Built ${target}: ${bytes} bytes`);
