@@ -123,6 +123,18 @@ export function createGameServices({ gameId, ruleVersion }) {
     if (room.leaseId) roomLeases.set(room.code, room.leaseId);
     return room;
   }
+  async function adjustDevelopmentAssets(command, expectedPlayerId) {
+    const credential = await auth.current();
+    if (expectedPlayerId && credential.playerId !== expectedPlayerId)
+      throw failure('IDENTITY_CHANGED');
+    const result = await request(path + '/development/assets', command, credential);
+    if (
+      (await auth.current()).playerId !== credential.playerId ||
+      result.playerId !== credential.playerId
+    )
+      throw failure('IDENTITY_CHANGED');
+    return result;
+  }
   return {
     config,
     ruleVersion,
@@ -142,6 +154,7 @@ export function createGameServices({ gameId, ruleVersion }) {
       return auth.logout();
     },
     metadata: () => request(path),
+    adjustDevelopmentAssets,
     profile: (patch) => request('/me', patch),
     async updateProfile(patch) {
       const credential = await auth.current();
@@ -173,15 +186,45 @@ export function createGameServices({ gameId, ruleVersion }) {
       return roomRequest(code, operation, body);
     },
     identity: async () => (await request(path)).identity,
-    listBoards: async () => (await request(path)).boards,
-    leaderboard: ({ boardId }) => request(path + '/leaderboards/' + encodeURIComponent(boardId)),
-    nightWallet: () => request(path + '/wallet'),
-    async nightWalletAction({ playerId, ...input }) {
+    async nightAssets(expectedPlayerId) {
+      if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');
       const credential = await auth.current();
-      if (playerId && credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
-      return request(path + '/wallet', input, credential);
+      if (expectedPlayerId && credential.playerId !== expectedPlayerId)
+        throw failure('IDENTITY_CHANGED');
+      const result = await request(path + '/assets', undefined, credential);
+      if (result.playerId !== credential.playerId) throw failure('IDENTITY_CHANGED');
+      return result;
     },
-    async startRun({ mode, levelId, requestId, playerId, loadout }) {
+    async nightAssetCommand(command, expectedPlayerId) {
+      if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');
+      if (command.kind === 'dev-adjust')
+        return adjustDevelopmentAssets(
+          {
+            requestId: command.requestId,
+            deltas: { coins: command.coinsDelta ?? 0, xp: command.xpDelta ?? 0 },
+          },
+          expectedPlayerId,
+        );
+      const credential = await auth.current();
+      if (expectedPlayerId && credential.playerId !== expectedPlayerId)
+        throw failure('IDENTITY_CHANGED');
+      const result = await request(path + '/assets', command, credential);
+      if (
+        (await auth.current()).playerId !== credential.playerId ||
+        result.playerId !== credential.playerId
+      )
+        throw failure('IDENTITY_CHANGED');
+      return result;
+    },
+    listBoards: async () => (await request(path)).boards,
+    leaderboard: ({ boardId, ruleVersion }) =>
+      request(
+        path +
+          '/leaderboards/' +
+          encodeURIComponent(boardId) +
+          (ruleVersion ? '?ruleVersion=' + encodeURIComponent(ruleVersion) : ''),
+      ),
+    async startRun({ mode, levelId, requestId, playerId }) {
       if (typeof ruleVersion !== 'string' || !ruleVersion) throw failure('RULE_VERSION_CHANGED');
       const credential = await auth.current();
       if (playerId && credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
@@ -192,7 +235,6 @@ export function createGameServices({ gameId, ruleVersion }) {
           version: ruleVersion,
           ...(levelId ? { levelId } : {}),
           ...(requestId ? { requestId } : {}),
-          ...(loadout ? { loadout } : {}),
         },
         credential,
       );
@@ -220,6 +262,11 @@ export function createGameServices({ gameId, ruleVersion }) {
       ),
     finishRun: async ({ runId, seq }) =>
       request(`${path}/runs/${encodeURIComponent(runId)}/finish`, { seq }, await owner(runId)),
+    async cancelRun({ runId, playerId }) {
+      const credential = playerId ? await auth.current() : await owner(runId);
+      if (playerId && credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
+      return request(`${path}/runs/${encodeURIComponent(runId)}/cancel`, {}, credential);
+    },
     discardRun(id) {
       owners.delete(id);
     },
@@ -289,7 +336,9 @@ function createDurableRecorder(services, { storage }, onStatus) {
   }
   function save(run) {
     try {
-      if (run.abandoned) {
+      const stored = storage.getItem(key(run));
+      if (stored && JSON.parse(stored).cancelPending) run.cancelPending = true;
+      if (run.abandoned && !run.cancelPending) {
         storage.removeItem(key(run));
         return true;
       }
@@ -364,6 +413,48 @@ function createDurableRecorder(services, { storage }, onStatus) {
     retries.set(key(run), { delay, at: Date.now() + delay });
     if (!active || active === run) report(transient ? 'pending-sync' : 'needs-attention');
   }
+  function acknowledge(run, result) {
+    const done = {
+      schema: 1,
+      synced: true,
+      requestId: run.requestId,
+      playerId: run.playerId,
+      id: run.id,
+      at: Date.now(),
+      result,
+    };
+    const serialized = JSON.stringify(done);
+    storage.setItem(key(run) + ':synced', serialized);
+    if (storage.getItem(key(run) + ':synced') !== serialized) throw failure('STORAGE_UNAVAILABLE');
+    cleanAcknowledged(key(run));
+    run.synced = true;
+  }
+  async function cancelPending(run) {
+    if (!save(run) || run.synced) return true;
+    if (!run.cancelPending) return false;
+    if (!run.id) {
+      if (!run.startAttempted) {
+        storage.removeItem(key(run));
+        run.synced = true;
+        return true;
+      }
+      if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
+      const created = await services.startRun({
+        mode: run.mode,
+        levelId: run.levelId,
+        requestId: run.requestId,
+        playerId: run.playerId,
+      });
+      run.id = created.id;
+      if (!save(run) || run.synced) return true;
+    }
+    const result = await services.cancelRun({ runId: run.id, playerId: run.playerId });
+    acknowledge(
+      run,
+      typeof result?.accepted === 'boolean' ? result : { accepted: false, reason: 'CANCELLED' },
+    );
+    return true;
+  }
   function synchronize(run) {
     if (working.has(key(run))) return working.get(key(run));
     if ((retries.get(key(run))?.at || 0) > Date.now()) return Promise.resolve(null);
@@ -373,19 +464,30 @@ function createDurableRecorder(services, { storage }, onStatus) {
           throw failure('IDENTITY_CHANGED');
         if (!save(run)) return null;
         if (run.synced) return null;
+        if (await cancelPending(run)) return null;
         if (!run.id) {
           if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
+          run.startAttempted = true;
+          if (!save(run) || run.synced) return null;
           const created = await services.startRun({
             mode: run.mode,
             levelId: run.levelId,
-            ...(run.loadout ? { loadout: run.loadout } : {}),
             requestId: run.requestId,
             playerId: run.playerId,
           });
           run.id = created.id;
+          if (created.loadout) run.loadout = created.loadout;
           if (!save(run) || run.synced) return null;
+          if (await cancelPending(run)) return null;
         }
         let remote = await services.getRun({ runId: run.id, playerId: run.playerId });
+        if (await cancelPending(run)) return null;
+        if (
+          run.loadout &&
+          remote.loadout &&
+          JSON.stringify(run.loadout) !== JSON.stringify(remote.loadout)
+        )
+          throw failure('INVALID_JOURNAL');
         if (!save(run) || run.synced) return null;
         if (
           remote.id !== run.id ||
@@ -403,11 +505,13 @@ function createDurableRecorder(services, { storage }, onStatus) {
         if (remote.status === 'active' && remote.expiresAt <= Date.now()) {
           remote = await services.resumeRun({ runId: run.id });
           if (!save(run) || run.synced) return null;
+          if (await cancelPending(run)) return null;
         }
         // Replay the original unconfirmed batch even when the server sequence is ahead.
         while (run.acked < run.batches.length) {
           const seq = run.acked + 1;
           await services.appendFrames({ runId: run.id, seq, frames: run.batches[seq - 1] });
+          if (await cancelPending(run)) return null;
           run.acked = seq;
           if (!save(run) || run.synced) return null;
         }
@@ -476,21 +580,16 @@ function createDurableRecorder(services, { storage }, onStatus) {
     working.set(key(run), operation);
     return operation;
   }
-  const unbegunTrial = (run) =>
-    run &&
-    run.loadout?.some((item) => item.trial === true) &&
-    !run.begun &&
-    !run.finishing &&
-    !run.batches.length &&
-    !run.tail.length;
   function invalidate(reason = 'local') {
     generation++;
     if (active && !active.synced) {
       seal(active);
       // An interrupted, unfinished mission is not a completion claim.
-      if (!active.finishing && !unbegunTrial(active)) {
+      if (!active.finishing) {
         active.abandoned = true;
+        active.cancelPending = !!(active.startAttempted || active.id);
         save(active);
+        if (active.cancelPending) void synchronize(active);
       }
     }
     active = undefined;
@@ -503,8 +602,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     get pending() {
       return pending;
     },
-    async start({ mode, levelId, practice = false, loadout }) {
-      const previous = active;
+    async start({ mode, levelId, practice = false }) {
       invalidate(practice ? 'practice' : 'local');
       if (practice) return null;
       const ownGeneration = generation;
@@ -520,37 +618,6 @@ function createDurableRecorder(services, { storage }, onStatus) {
           deferred = error;
         }
         if (generation !== ownGeneration) return null;
-        const matching = (run) =>
-          unbegunTrial(run) &&
-          run.scope === scope &&
-          run.playerId === credential.playerId &&
-          run.version === services.ruleVersion &&
-          run.mode === mode &&
-          run.levelId === levelId;
-        let prepared = matching(previous) ? previous : undefined;
-        if (!prepared) {
-          const names = Array.from({ length: storage.length }, (_, i) => storage.key(i));
-          for (const name of names) {
-            if (!name?.startsWith(prefix(scope)) || name.endsWith(':synced')) continue;
-            let candidate;
-            try {
-              candidate = read(name);
-            } catch {
-              continue;
-            }
-            if (matching(candidate) && (!prepared || candidate.savedAt > prepared.savedAt))
-              prepared = candidate;
-          }
-        }
-        if (prepared) {
-          active = prepared;
-          retries.delete(key(prepared));
-          if (deferred) failed(prepared, deferred);
-          else await synchronize(prepared);
-          return generation === ownGeneration && prepared.id && status === 'recording'
-            ? prepared
-            : null;
-        }
         const bytes = new Uint8Array(16);
         if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
         else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
@@ -565,7 +632,6 @@ function createDurableRecorder(services, { storage }, onStatus) {
           requestId: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`,
           mode,
           levelId,
-          ...(loadout ? { loadout: JSON.parse(JSON.stringify(loadout)) } : {}),
           batches: [],
           tail: [],
           acked: 0,
@@ -584,31 +650,15 @@ function createDurableRecorder(services, { storage }, onStatus) {
         active = run;
         if (deferred) failed(run, deferred);
         else await synchronize(run);
-        return generation === ownGeneration &&
-          (!unbegunTrial(run) || (run.id && status === 'recording'))
-          ? run
-          : null;
+        return generation === ownGeneration ? run : null;
       } catch {
         if (generation === ownGeneration) report('unavailable');
         return null;
       }
     },
-    begin() {
-      const run = active;
-      if (!run || run.finishing || run.abandoned || run.synced) return false;
-      if (unbegunTrial(run)) {
-        if (!run.id || status !== 'recording') return false;
-        run.begun = true;
-        if (!save(run)) {
-          run.begun = false;
-          return false;
-        }
-      }
-      return true;
-    },
     record(input, ticks = 1) {
-      if (!recorder.begin()) return;
       const run = active;
+      if (!run || run.finishing || run.abandoned || run.cancelPending || run.synced) return;
       if (!Number.isInteger(ticks) || ticks < 0 || ticks > 600) {
         report('needs-attention');
         return;
@@ -632,12 +682,12 @@ function createDurableRecorder(services, { storage }, onStatus) {
     },
     async finish() {
       const run = active;
-      if (!run || run.synced) return null;
+      if (!run || run.synced || run.abandoned || run.cancelPending) return null;
       run.finishing = true;
       if (!seal(run) || run.synced) return null;
       report('pending-sync');
-      const receipt = await working.get(key(run));
-      return run.synced ? (receipt ?? null) : synchronize(run);
+      if (working.has(key(run))) await working.get(key(run));
+      return run.synced ? null : synchronize(run);
     },
     persist() {
       if (active && !active.synced) save(active);
@@ -666,12 +716,11 @@ function createDurableRecorder(services, { storage }, onStatus) {
               );
               continue;
             }
-            if (!run || run.abandoned) continue;
+            if (!run || (run.abandoned && !run.cancelPending)) continue;
             if (active && key(run) === key(active)) run = active;
-            if (!run.finishing && run !== active) {
+            if (!run.finishing && !run.cancelPending && run !== active) {
               if (
                 run.scope === scope &&
-                !unbegunTrial(run) &&
                 Number.isFinite(run.savedAt) &&
                 Date.now() - run.savedAt > 86400000
               )
@@ -777,7 +826,7 @@ export function createRunRecorder(
     get status() {
       return status;
     },
-    async start({ mode, levelId, practice = false, loadout }) {
+    async start({ mode, levelId, practice = false }) {
       invalidate(practice ? 'practice' : 'local');
       if (practice) return null;
       const ownGeneration = generation;
@@ -786,7 +835,7 @@ export function createRunRecorder(
         expired = false,
         failureStatus = 'unavailable';
       const pending = Promise.resolve()
-        .then(() => services.startRun({ mode, levelId, ...(loadout ? { loadout } : {}) }))
+        .then(() => services.startRun({ mode, levelId }))
         .then((run) => {
           if (expired || ownGeneration !== generation) {
             services.discardRun?.(run?.id);

@@ -43,7 +43,7 @@
       "0522891eccfc3bc7f1f6eb725f53b9ad8fbea8dfa683d4c120f3f6473e87c4f3"
     ]
   ],
-  "artifactSha256": "cae6d9183703fffde193caed7c24244fa0203abb8eef355fb7a4300365d61240",
+  "artifactSha256": "e37ba90872b60b76373a78a50e871794f502bd8de67c2aab00f9b9886e958283",
   "runtimeFiles": [
     {
       "path": "art/city-models.json",
@@ -97,8 +97,8 @@
     },
     {
       "path": "dev-mode.js",
-      "bytes": 14731,
-      "sha256": "fcc49bdcc071a234df52081bbb6f09ce0a002e4c633403cb460724c921cb4b39"
+      "bytes": 16244,
+      "sha256": "ad9b2b90d7c3d9318b5655e27d932bfca1c4fe6b183c841fb78c70d3c247f2e1"
     },
     {
       "path": "game/ChaseGame.js",
