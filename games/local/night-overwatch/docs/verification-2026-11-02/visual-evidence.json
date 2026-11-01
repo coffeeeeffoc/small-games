@@ -1,0 +1,206 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "5886fbab1a50fb67505c38134789fc6fae89bd3005a533099f8131ed13d84d64"
+  },
+  "fixture": true,
+  "screens": [
+    {
+      "name": "01-home",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "02-supply",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "02-odds",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "03-opening",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "03-rewards",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "03-wheel-reward",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "04-warehouse",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "04-history",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "04-history-middle",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "04-history-bottom",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "05-growth",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "05-skills",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "06-lobby",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "01-home",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "02-supply",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "02-odds",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "03-opening",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "03-rewards",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "03-wheel-reward",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "04-warehouse",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "04-history",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "04-history-middle",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "04-history-bottom",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "05-growth",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "05-skills",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "06-lobby",
+      "width": 844,
+      "height": 390
+    },
+    {
+      "name": "01-home",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "02-supply",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "02-odds",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "03-opening",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "03-rewards",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "03-wheel-reward",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "04-warehouse",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "04-history",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "04-history-middle",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "04-history-bottom",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "05-growth",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "05-skills",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "06-lobby",
+      "width": 1280,
+      "height": 720
+    }
+  ],
+  "errors": []
+}

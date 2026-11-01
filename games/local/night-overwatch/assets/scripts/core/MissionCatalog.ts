@@ -1,5 +1,6 @@
 import { MISSION, MAP, UNITS, routeLength, type BattlefieldId, type Kind } from './Data.ts';
 export type MissionId = 'corridor-01' | 'ambush-02' | 'patrol-03' | `operation-${string}` | 'training-60';
+export const CAMPAIGN_BOARD_VERSION='night-campaign-v2';
 export type MissionEvent = { time: number; progress: number; kind: Kind; x: number; z: number; direction: readonly string[] };
 export type MissionLight = 'day' | 'dusk' | 'night';
 export type MissionDefinition = Omit<typeof MISSION, 'id' | 'events'> & {
@@ -23,9 +24,13 @@ const chapters = ['谷地晨哨', '高地警戒', '河岸巡航', '山路截击'
 for (let number = 4; number <= 120; number++) {
   const chapter = Math.floor((number - 1) / 12), task = (number - 1) % 12;
   const map: BattlefieldId = (chapter + task) % 2 ? 'highland' : 'valley';
-  const style = task % 3, waveCount = style === 1 ? 3 : style === 2 ? 2 : 1;
+  const style = task % 3;
+  const spans=[[6,12,20,26],[13,24,28,36],[25,48,38,54],[49,72,56,70],[73,96,72,84],[97,120,86,96]];
+  const span=spans.find(([from,to])=>number>=from&&number<=to);
+  const total=number===4?12:number===5?16:Math.round(span![2]+(span![3]-span![2])*(number-span![0])/(span![1]-span![0]));
+  const waveCount=number<=5?1:Math.max(2,Math.ceil(total/18));
   const duration = 420 - chapter * 3;
-  const contacts = MISSION.events.slice(0, number === 4 ? 12 : number === 5 ? 16 : 24);
+  const contacts = Array.from({length:total},(_,i)=>MISSION.events[i%MISSION.events.length]);
   const events = contacts.map((event, i): MissionEvent => {
     const wave = Math.floor(i * waveCount / contacts.length);
     const jitterX = ((number * 37 + i * 29) % 127 - 63) / 32;
@@ -34,7 +39,7 @@ for (let number = 4; number <= 120; number++) {
     const kind: Kind = style === 2 && event.kind === 'turret' ? 'light'
       : chapter >= 5 && i === 4 + chapter ? 'heavy' : event.kind;
     return { ...event, kind, x: event.x + jitterX, z: event.z + jitterZ,
-      time: wave * (style === 1 ? 72 : 100), progress: wave * (style === 1 ? .3 : .52),
+      time: wave * 36, progress: wave / waveCount,
       direction: [`第 ${wave + 1} / ${waveCount} 批威胁出现 · 巡视四组友军`,
         `CONTACT WAVE ${wave + 1}/${waveCount} · Check all four friendly groups`] };
   });
@@ -64,7 +69,7 @@ if (new Set([...profiles, TRAINING].map(mission => mission.id)).size !== profile
 for (const profile of [...profiles, TRAINING]) {
   if (profile.duration <= (profile.speed ? routeLength(profile.map) / profile.speed : 0) || profile.attackInterval <= 0 || profile.warmup < 0) throw new Error('Invalid mission timing.');
   if (!['day', 'dusk', 'night'].includes(profile.light) || ![0, 1, 2].includes(profile.initialWeapon) ||
-    profile.events.length < 3 || profile.events.length > 24 || profile.events.some((event) =>
+    profile.events.length < 3 || profile.events.length > 96 || profile.events.some((event) =>
     !UNITS[event.kind] || ![event.time, event.progress, event.x, event.z].every(Number.isFinite) ||
     event.time < 0 || event.time >= profile.duration || event.progress < 0 || event.progress > 1 ||
     Math.abs(event.x) > MAP.halfWidth || Math.abs(event.z) > MAP.halfDepth)) throw new Error('Invalid mission profile.');

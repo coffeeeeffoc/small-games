@@ -3,6 +3,9 @@ import type { Online } from './Online';
 export type AssetIntent = AssetCommand extends infer T ? T extends AssetCommand ? Omit<T,'requestId'> : never : never;
 export type LoadoutSlot = 'mod:0'|'mod:1'|'weapon'|'skill';
 export type ProgressionPage = ''|'modes'|'loadout'|'shop'|'supply'|'growth'|'tasks'|'inbox'|'warehouse'|'receipts'|'checkin'|'probability';
+type NavigationState = Pick<Quartermaster,'page'|'section'|'index'|'detail'|'selected'|'item'|'amount'|'term'|'mode'|'slot'|'loadoutScroll'|'scrolls'|'selectedMail'|'selectedSkill'>;
+/** Wheel artwork has boundaries at 12 o'clock. A clockwise sector centre is 30 + i*60 degrees. */
+export const wheelLandingAngle=(index:number,start=0)=>start+360*5+((30+index*60-start%360+360)%360);
 export const effectEnglish:Record<Effect,string>={power:'Power upgrade',rate:'Rapid feed',burst:'Double burst',twin:'Twin trajectory',radius:'Blast radius',cooling:'Cooling system',drone:'Drone swarm',laser:'Laser weapon',tracking:'Tracking',emp:'Electromagnetic pulse'};
 const errors:Record<string,[string,string]>={
   DEV_TOOLS_DISABLED:['服务器未启用开发调试，请连接已启用开发能力的测试服','Developer tools are disabled on this server.'],
@@ -12,6 +15,10 @@ const errors:Record<string,[string,string]>={
   ALREADY_OWNED:['已永久拥有此资格','Already permanently owned.'],ALREADY_CLAIMED:['已经领取，请刷新查看','Already claimed. Refresh to see the result.'],
   DAILY_VIDEO_LIMIT:['今日视频额度已用完，明日可继续原订单','Daily video limit reached. Continue this order tomorrow.'],
   INVALID_AD_ATTEMPT:['观看确认已过期，请重新观看本段','Video confirmation expired. Please watch this segment again.'],
+  AD_IN_PROGRESS:['已有视频正在播放，请结束后再继续观看','A video is already playing. Finish or close it before continuing.'],
+  DAILY_WHEEL_LIMIT:['今日转盘视频已达上限，明日可继续；已有次数仍可使用','Today’s wheel video limit is reached. Saved spins remain available.'],
+  NO_WHEEL_TICKETS:['先完整观看一次视频，即可获得一次抽奖','Complete one video to earn a spin.'],
+  LEVEL_LOCKED:['等级尚未解锁这件物资','Reach the required level to unlock this item.'],
   NOT_CLAIMABLE:['条件尚未完成或奖励已领取','Not complete or already claimed.'],
   INVALID_LOADOUT:['方案最多2个改装、1个武器、1个技能，同效果不能重复','Use at most 2 mods, 1 weapon and 1 skill, with no duplicate effects.'],
 };
@@ -20,12 +27,15 @@ export class Quartermaster {
   page:ProgressionPage=''; mode:'solo'|'duel'='solo'; actionMode:'solo'|'duel'|'training'='solo';
   term:Product['term']='match'; selected='burst-match'; item=''; amount=1; quantity=5; pool:'general'|'gold'='general';
   section=''; index=0; detail=false; confirmation?:AssetIntent; selectedMail=''; selectedSkill:Effect='tracking';
+  scrolls:Record<string,number>={}; info=''; navigation:NavigationState[]=[]; externalReturn:''|'modes'|'result'='';
+  private leavingBack=false;
+  wheel?:{index:number;startAngle:number;started:number;duration:number;shown:boolean;coins:number;packs:Record<string,number>};
   slot:LoadoutSlot='mod:0'; loadoutScroll=0; loadoutScrollMax=0;
   loadoutArea={x:0,y:0,w:0,h:0};
   drafts:Partial<Record<'solo'|'duel',Loadout>>={}; private modDrafts:Partial<Record<'solo'|'duel',Array<string|null>>>={}; leaveTo?:ProgressionPage;
-  gift?:{packs:Record<string,number>;drops:Array<{item?:string;coins?:number}>;opened:boolean};
+  gift?:{packs:Record<string,number>;drops:Array<{item?:string;coins?:number}>;opened:boolean;started?:number;duration?:number;illuminated?:boolean};
   drag?:{item:string;x:number;y:number;target?:LoadoutSlot};
-  private openingGift=false;
+  private openingGift=false;private adReady?:{orderId:string;attemptId:string;startedAt:number};
   busy=false; viewing=false; revision=0; message:[string,string]=['','']; pending?:AssetCommand;
   private owner=''; private disposed=false; private online:Online; private storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>;
   constructor(online:Online,storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>){this.online=online;this.storage=storage;}
@@ -60,11 +70,21 @@ export class Quartermaster {
     this.message=['方案尚未保存，请点击确定保存','Unsaved changes. Confirm to save.'];this.revision++;
   }
   scrollLoadout(amount:number){this.loadoutScroll=Math.max(0,Math.min(this.loadoutScrollMax,this.loadoutScroll+amount));this.revision++;}
+  cancelLeave(){this.leaveTo=undefined;this.leavingBack=false;}
   requestLeave(page:ProgressionPage){
+    this.leavingBack=false;
     if(this.page==='loadout'&&(this.anyDirty||this.pending?.kind==='loadout')){this.leaveTo=page;this.revision++;return;}this.show(page);
   }
-  leavePending(){if(this.pending?.kind==='loadout'&&this.leaveTo!==undefined)this.show(this.leaveTo);}
-  discard(){if(this.pending?.kind==='loadout'){this.requestLeave(this.leaveTo??'');return;}this.drafts={};this.modDrafts={};const page=this.leaveTo;this.leaveTo=undefined;this.show(page??'');}
+  private capture():NavigationState {return {page:this.page,section:this.section,index:this.index,detail:this.detail,selected:this.selected,item:this.item,amount:this.amount,term:this.term,mode:this.mode,slot:this.slot,loadoutScroll:this.loadoutScroll,scrolls:{...this.scrolls},selectedMail:this.selectedMail,selectedSkill:this.selectedSkill};}
+  back(){
+    if(this.info){this.info='';this.revision++;return;}
+    if(this.detail&&this.page==='shop'){this.detail=false;this.revision++;return;}
+    if(this.page==='loadout'&&(this.anyDirty||this.pending?.kind==='loadout')){this.leavingBack=true;this.leaveTo=this.navigation.at(-1)?.page??'';this.revision++;return;}
+    this.pop();
+  }
+  private pop(){const previous=this.navigation.pop();this.show(previous?.page??'',false);if(previous)Object.assign(this,previous);this.leavingBack=false;this.revision++;}
+  leavePending(){if(this.pending?.kind==='loadout'&&this.leaveTo!==undefined){if(this.leavingBack)this.pop();else this.show(this.leaveTo);}}
+  discard(){if(this.pending?.kind==='loadout'){this.requestLeave(this.leaveTo??'');return;}this.drafts={};this.modDrafts={};const page=this.leaveTo;this.leaveTo=undefined;if(this.leavingBack)this.pop();else this.show(page??'');}
   async save(){this.syncIdentity();return this.execute({kind:'loadout',mode:this.mode,loadout:structuredClone(this.loadout)});}
   async openGifts(){
     this.syncIdentity();
@@ -79,13 +99,14 @@ export class Quartermaster {
         if(!result){this.gift=gift;return;}
         gift.drops.push(...(result.lastReceipt?.drops as Array<{item?:string;coins?:number}>||[]));delete gift.packs[item];
       }
-      gift.opened=true;this.gift=gift;
+      gift.opened=true;gift.started=Date.now();gift.duration=gift.drops.length>1?2200:1600;this.gift=gift;
     }finally{this.openingGift=false;this.revision++;}
   }
   get unread(){return this.assets?.mail.some(m=>!m.read||!m.claimed)||false;}
   get claimable(){return this.assets?.tasks.some(t=>!t.claimed&&t.progress>=t.target)||false;}
-  get pendingOrder(){return this.assets?.videoOrders.find(o=>!o.delivered&&o.quantity===this.quantity);}
-  get inventory(){return Object.entries(this.assets?.inventory||{}).filter(([,n])=>n>0);}
+  get pendingOrder(){return this.assets?.videoOrders.find(o=>!o.delivered&&o.purpose!=='wheel'&&o.quantity===this.quantity);}
+  get wheelOrder(){return this.assets?.videoOrders.find(o=>!o.delivered&&o.purpose==='wheel');}
+  get inventory(){return Object.entries(this.assets?.inventory||{}).filter(([,n])=>n>0).sort(([a],[b])=>Number(!a.startsWith('pack:'))-Number(!b.startsWith('pack:'))||(a.startsWith('pack:')&&b.startsWith('pack:')?Number(a.split(':')[2])-Number(b.split(':')[2]):0));}
   private key(){return 'night-overwatch-asset-intent:'+this.owner;}
   private allowDeveloperIntent(){
     if((globalThis as {__SMALL_GAMES_BUILD__?:{type:string}}).__SMALL_GAMES_BUILD__?.type==='development')return true;
@@ -98,12 +119,18 @@ export class Quartermaster {
   syncIdentity(){
     const id=this.online.authenticatedId;
     if(id===this.owner)return;
-    this.owner=id;this.pending=undefined;this.drafts={};this.modDrafts={};this.gift=undefined;this.leaveTo=undefined;this.message=['',''];this.confirmation=undefined;this.selectedMail='';this.revision++;
+    this.owner=id;this.adReady=undefined;this.pending=undefined;this.drafts={};this.modDrafts={};this.gift=undefined;this.wheel=undefined;this.leaveTo=undefined;this.message=['',''];this.confirmation=undefined;this.selectedMail='';this.info='';this.navigation=[];this.scrolls={};this.externalReturn='';this.revision++;
     if(!id)return;
     try{const value=JSON.parse(this.storage.getItem(this.key())||'null');if(value?.requestId&&value?.kind)this.pending=value;}catch{/* Corrupt local intent cannot alter server assets. */}
     this.allowDeveloperIntent();
   }
-  show(page:ProgressionPage){this.page=page;this.leaveTo=undefined;this.drag=undefined;this.section='';this.index=0;this.detail=false;this.confirmation=undefined;this.message=['',''];this.revision++;if(page&&page!=='modes')void this.refresh().then(()=>{if(this.page==='inbox'&&this.section!=='news'){const mail=this.assets?.mail.find(m=>m.id===this.selectedMail)||this.assets?.mail[0];if(mail){this.selectedMail=mail.id;this.revision++;if(!mail.read)void this.execute({kind:'read-mail',mailId:mail.id});}}});}
+  show(page:ProgressionPage,push=true){if(page!=='supply'&&this.wheel&&!this.wheel.shown){this.wheel.shown=true;this.wheel.started=0;}if(push&&page!==this.page)this.navigation.push(this.capture());this.page=page;this.leaveTo=undefined;this.leavingBack=false;this.drag=undefined;this.section=page==='growth'?'base':'';this.index=0;this.detail=false;this.info='';this.scrolls={};this.confirmation=undefined;this.message=['',''];this.revision++;if(page&&page!=='modes')void this.refresh().then(()=>{if(this.page==='inbox'&&this.section!=='news'){const mail=this.assets?.mail.find(m=>m.id===this.selectedMail)||this.assets?.mail[0];if(mail){this.selectedMail=mail.id;this.revision++;if(!mail.read)void this.execute({kind:'read-mail',mailId:mail.id});}}});}
+  tickPresentation(reduced=false){
+    const now=Date.now();
+    if(this.gift?.started&&!this.gift.illuminated&&now-this.gift.started>(this.gift.duration||1600)*.3){this.gift.illuminated=true;this.revision++;}
+    if(this.gift?.started&&(reduced||now-this.gift.started>=(this.gift.duration||1600))){this.gift.started=undefined;this.revision++;}
+    if(this.wheel&&!this.wheel.shown&&this.page==='supply'&&!this.gift&&(reduced||now-this.wheel.started>=this.wheel.duration)){this.wheel.shown=true;this.gift={packs:this.wheel.packs,drops:this.wheel.coins?[{coins:this.wheel.coins}]:[],opened:!Object.keys(this.wheel.packs).length};this.revision++;}
+  }
   async refresh(){
     if(this.busy)return;
     this.busy=true;this.revision++;
@@ -115,6 +142,7 @@ export class Quartermaster {
     this.syncIdentity();if(this.busy||this.disposed)return;
     if(!this.allowDeveloperIntent()&&intent?.kind==='dev-adjust'){this.message=['只有开发测试包可调整资产','Asset adjustment requires a development package.'];this.revision++;return;}
     if(!this.owner||!this.assets){this.message=['请先连接军需服务','Connect to the quartermaster first.'];this.revision++;return;}
+    if(this.wheel&&!this.wheel.shown&&intent&&intent.kind!=='read-mail'){this.message=['抽奖揭晓后可继续操作','Wait for the wheel to finish.'];this.revision++;return;}
     if(this.pending&&intent){this.message=['上一操作等待确认，请先重试，避免重复扣款','Confirm the pending operation before making another purchase.'];this.revision++;return;}
     if(intent){
       const bytes=new Uint8Array(16);
@@ -141,15 +169,20 @@ export class Quartermaster {
         if(selected&&this.mode===command.mode&&this.slotCategory==='mod'){const index=snapshot.loadouts[command.mode].mods.indexOf(selected);if(index>=0)this.slot=`mod:${index}` as LoadoutSlot;}
       }
       const receipt=snapshot.lastReceipt;
+      if(command.kind==='ad-start'&&typeof receipt?.attemptId==='string')this.adReady={orderId:command.orderId,attemptId:receipt.attemptId,startedAt:snapshot.videoOrders.find(o=>o.id===command.orderId)?.attempt?.startedAt??snapshot.serverNow};
+      if(command.kind==='ad-complete'||command.kind==='ad-cancel')this.adReady=undefined;
       const reward=receipt?.reward as {packs?:number}|undefined;
       const packs=receipt?.packs as Record<string,number>|undefined;
       if(packs&&Object.keys(packs).length)this.gift={packs:{...packs},drops:[],opened:false};
       else if(reward?.packs)this.gift={packs:{'pack:general:0':reward.packs},drops:[],opened:false};
       if(command.kind==='open'){
         const drops=snapshot.lastReceipt?.drops as Array<{item?:string;coins?:number}>|undefined;
-        if(!this.openingGift)this.gift={packs:{},drops:drops||[],opened:true};
+        if(!this.openingGift)this.gift={packs:{},drops:drops||[],opened:true,started:Date.now(),duration:command.quantity>1?2200:1600};
         const coins=(drops||[]).reduce((n,d)=>n+(d.coins||0),0),items=(drops||[]).filter(d=>d.item);
         this.message=[`已开 ${command.quantity} 个：金币 +${coins}，军需 ${items.length} 件（见仓库）`,`Opened ${command.quantity}: +${coins} coins, ${items.length} gear items in warehouse`];
+      }
+      if(command.kind==='wheel-spin'){
+        const startAngle=this.wheel?wheelLandingAngle(this.wheel.index,this.wheel.startAngle):0;this.gift=undefined;this.wheel={startAngle,index:Number(receipt?.prizeIndex)||0,started:Date.now(),duration:2800,shown:false,coins:Number(receipt?.coins)||0,packs:packs||{}};
       }
       return snapshot;
     }catch(error){
@@ -178,21 +211,24 @@ export class Quartermaster {
     if(this.slotCategory==='mod'){const slots=[...this.modSlots];slots[Number(this.slot.slice(-1))]=null;this.modDrafts[this.mode]=slots;loadout.mods=slots.filter((item):item is string=>!!item);}else loadout[this.slotCategory]=null;
     this.drafts[this.mode]=loadout;this.message=['方案尚未保存，请点击确定保存','Unsaved changes. Confirm to save.'];this.revision++;
   }
-  async watch(offer:()=>Promise<string>){
+  async watch(offer:()=>Promise<string>,purpose:'packs'|'wheel'='packs'){
     if(this.viewing||this.busy||this.pending)return;
     this.viewing=true;const owner=this.online.authenticatedId;this.revision++;
     try{
-      let order=this.pendingOrder;
-      if(!order){await this.execute({kind:'ad-order',quantity:this.quantity});order=this.pendingOrder;}
+      let order=purpose==='wheel'?this.wheelOrder:this.pendingOrder;
+      if(!order){await this.execute({kind:'ad-order',quantity:purpose==='wheel'?1:this.quantity,purpose});order=purpose==='wheel'?this.wheelOrder:this.pendingOrder;}
       if(!order||owner!==this.online.authenticatedId)return;
-      const started=await this.execute({kind:'ad-start',orderId:order.id});
-      const attemptId=started?.lastReceipt?.attemptId;
+      const now=(this.assets?.serverNow??Date.now())+Math.max(0,performance.now()-(this.online.assetsReceivedAt??performance.now()));
+      if(this.adReady&&(this.adReady.orderId!==order.id||now-this.adReady.startedAt>=30*60000))this.adReady=undefined;
+      if(!this.adReady&&order.attempt&&now>=order.attempt.startedAt&&now-order.attempt.startedAt<30*60000)this.adReady={orderId:order.id,attemptId:order.attempt.id,startedAt:order.attempt.startedAt};
+      if(this.adReady?.orderId!==order.id)await this.execute({kind:'ad-start',orderId:order.id});
+      const attemptId=this.adReady?.orderId===order.id?this.adReady.attemptId:undefined;
       if(typeof attemptId!=='string')return;
-      const result=await offer();
+      let result='failed';try{result=await offer();}catch{/* Provider failure releases its account-wide playback slot below. */}
       if(this.disposed||owner!==this.online.authenticatedId)return;
-      if(result==='completed')await this.execute({kind:'ad-complete',orderId:order.id,attemptId});
-      else this.message=result==='dismissed'?['未完整观看，本段未计入；已确认进度保留','Video not completed. Confirmed progress is kept.']:['视频暂不可用，已确认进度保留，可稍后继续','Video unavailable. Confirmed progress is kept. Try later.'];
+      if(result==='completed'){const completed=await this.execute({kind:'ad-complete',orderId:order.id,attemptId});if(!completed&&!this.pending&&!this.disposed&&owner===this.online.authenticatedId){const message=this.message;await this.execute({kind:'ad-cancel',orderId:order.id,attemptId});this.message=message;}}
+      else {await this.execute({kind:'ad-cancel',orderId:order.id,attemptId});this.message=result==='dismissed'?['未完整观看，本次未计入；已确认进度保留','Video not completed. Confirmed progress is kept.']:['视频暂不可用，已确认进度保留，可稍后继续','Video unavailable. Confirmed progress is kept. Try later.'];}
     }finally{this.viewing=false;this.revision++;}
   }
-  dispose(){this.disposed=true;}
+  dispose(){if(!this.disposed&&this.owner===this.online.authenticatedId&&this.adReady&&!this.busy&&!this.pending)void this.execute({kind:'ad-cancel',orderId:this.adReady.orderId,attemptId:this.adReady.attemptId});this.disposed=true;}
 }

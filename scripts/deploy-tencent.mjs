@@ -399,6 +399,7 @@ async function main() {
     '013-competition-identities.sql',
     '014-player-sessions.sql',
     '015-generic-content-drafts.sql',
+    '016-night-chat.sql',
   ])
     await cp(path.join(root, 'infra/migrations', file), path.join(bundle, 'migrations', file));
   await writeFile(

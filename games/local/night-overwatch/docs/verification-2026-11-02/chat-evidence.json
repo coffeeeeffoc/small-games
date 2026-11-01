@@ -1,0 +1,40 @@
+{
+  "fixture": "isolated-real-postgresql-http",
+  "checks": [
+    "two fresh real service identities exchange text",
+    "new message preserves live Chinese composition input element and draft",
+    "120 Chinese characters scroll without clipping at 568 and desktop",
+    "host invites without leaving public waiting room",
+    "second player joins matching room createdAt; full invitation becomes closed",
+    "block and restore by playerId",
+    "leaving lobby stops chat polling",
+    "third real guest spectates both named participants; top-left report/equipment at 568 and 1280"
+  ],
+  "errors": [],
+  "screens": [
+    "01-ime-survives-new-message",
+    "02-long-message-desktop",
+    "02-long-message-phone-bottom",
+    "02-long-message-phone-middle",
+    "02-public-room-invitation",
+    "03-full-invitation-closed",
+    "04-joined-room",
+    "05-spectator-1280",
+    "05-spectator-report-1280",
+    "05-spectator-equipment-1280",
+    "05-spectator-568",
+    "05-spectator-report-568",
+    "05-spectator-equipment-568"
+  ],
+  "runId": "0921a9db-708a-4cff-a20b-30bc9176031d",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "34409021a95c58d55241d0232c039c9d4d791147e036ff67efb9aec59b42a9f5"
+  },
+  "players": [
+    "a46abf7c-f0ce-4e88-9500-6841c1bb5075",
+    "db0d0446-e38f-4f03-8b72-abf59a288f6a"
+  ],
+  "cleaned": true
+}

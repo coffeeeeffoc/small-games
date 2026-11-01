@@ -280,3 +280,32 @@ test('changing ranking tabs ignores an older response',async()=>{
   pending[0]({top:[{rank:1,score:6}],me:null}); await first;
   assert.equal(online.ranking!.top[0].score,900);
 });
+
+test('chat replaces bounded snapshots, preserves draft and ignores polling after leave',async()=>{
+ const f=fixture(),online=new Online(storage(),()=>{});let resolve:any,calls=0;
+ (f.bridge.ready as any)=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true}});
+ (f.bridge.services as any).nightChat=async()=>{calls++;return new Promise(r=>resolve=r);};
+ await online.connect(f.bridge);online.show('menu');online.chatDraft='正在输入';void online.pump(1);await new Promise(r=>setImmediate(r));
+ online.show('profile');resolve({messages:[{id:'1',playerId:'b',nickname:'B',text:'hello',at:1}],cursor:'1',reset:true,serverNow:1});await new Promise(r=>setImmediate(r));
+ assert.deepEqual(online.chatMessages,[]);assert.equal(online.chatDraft,'正在输入');await online.pump(20);assert.equal(calls,1);
+ online.setForeground(false);online.show('menu');await online.pump(30);assert.equal(calls,1);online.dispose();
+});
+test('successful retry of an unknown chat result preserves a newer draft and block controls key by player identity',async()=>{
+ const f=fixture(),online=new Online(storage(),()=>{}),sent:any[]=[];
+ (f.bridge.services as any).nightChat=async()=>({messages:[],cursor:'',reset:true,serverNow:1});
+ (f.bridge.ready as any)=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true}});
+ (f.bridge.services as any).sendNightChat=async(intent:any)=>{sent.push({...intent});if(sent.length===1)throw Error('lost');return {messages:[{id:'1',playerId:'a',nickname:'A',text:intent.text,at:1}],cursor:'1',reset:true,serverNow:1};};
+ await online.connect(f.bridge);online.chatDraft='原消息';await online.sendChat();online.chatDraft='后来输入';await online.sendChat();assert.equal(sent[0].requestId,sent[1].requestId);assert.equal(sent[1].text,'原消息');assert.equal(online.chatDraft,'后来输入');
+ online.chatMessages.push({id:'2',playerId:'b',nickname:'A',text:'同名玩家',at:2});online.toggleBlock('b');assert.equal(online.visibleChat.length,1);online.toggleBlock('b');assert.equal(online.visibleChat.length,2);
+});
+test('a late poll cannot replace a newer acknowledged chat message or move the cursor backwards',async()=>{
+ const f=fixture(),online=new Online(storage(),()=>{});let finishPoll:any;
+ (f.bridge.ready as any)=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true}});
+ (f.bridge.services as any).nightChat=()=>new Promise(r=>finishPoll=r);
+ (f.bridge.services as any).sendNightChat=async()=>({messages:[{id:'2',playerId:'a',nickname:'A',text:'新消息',at:200}],cursor:'2',reset:true,serverNow:200});
+ await online.connect(f.bridge);online.show('menu');void online.pump(1);await new Promise(r=>setImmediate(r));online.chatDraft='新消息';await online.sendChat();finishPoll({messages:[],cursor:'1',reset:true,serverNow:100});await new Promise(r=>setImmediate(r));assert.equal(online.chatMessages[0].id,'2');assert.equal((online as any).chatCursor,'2');assert.equal(online.chatDraft,'');online.dispose();
+});
+
+test('level rankings cycle all current and historical rule versions with matching query parameters',async()=>{
+ const f=fixture(),online=new Online(storage(),()=>{}),requests:any[]=[];f.bridge.services.leaderboard=async(input:any)=>{requests.push(input);return{top:[],me:null};};await online.connect(f.bridge);await online.loadRanking(0,'level');for(let i=0;i<3;i++)await online.cycleRankingVersion();assert.deepEqual(requests.map(r=>r.ruleVersion),['night-campaign-v2','night-growth-v1','night-records-v1','night-campaign-v2']);assert(requests.every(r=>r.boardId==='level-corridor-01'));
+});

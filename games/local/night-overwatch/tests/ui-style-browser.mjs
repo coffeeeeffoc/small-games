@@ -1,3 +1,4 @@
+import {scrollPage,scrollToButton} from './scroll-helpers.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -85,7 +86,7 @@ try {
     await click('help'); await capture('help'); await click('close');
     await click('online:menu'); await capture('lobby');
     assert(!(await snapshot(page)).buttons.some(b => b.id === 'online:dismiss'));
-    if (!apiUrl) assert((await snapshot(page)).buttons.find(b => b.id === 'online:roomNext').disabled);
+    if (!apiUrl) assert((await snapshot(page)).scrollLists.find(a=>a.key==='rooms').max===0);
     await click('online:friend'); await click('online:private'); await capture('private-room'); await click('online:dismiss');
     await click('online:profile'); await capture('nickname'); await click('online:dismiss');
     await click('online:ranking');

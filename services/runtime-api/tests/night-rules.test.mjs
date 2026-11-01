@@ -6,6 +6,12 @@ it('publishes stable summary boards and binds sampled level replays', () => {
   expect(ranked.boards).toHaveLength(123);
   expect(new Set(ranked.boards.map((board) => board.id)).size).toBe(123);
   expect(ranked.boardVersion).toBe('night-records-v1');
+  expect(ranked.version).toBe('night-input-replay-v12');
+  expect(ranked.boardKey('level-operation-120')).toBe(
+    'night-overwatch:level-operation-120:night-campaign-v2',
+  );
+  expect(ranked.boardKey('points')).toBe('night-overwatch:points:night-records-v1');
+  expect(ranked.progression.version).toBe('night-growth-v1');
   expect(ranked.boards.slice(0, 3).map((board) => board.id)).toEqual([
     'clears',
     'points',

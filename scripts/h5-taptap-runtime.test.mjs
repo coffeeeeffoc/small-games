@@ -223,8 +223,11 @@ test('bootstrap and Runtime child environment use only owned credentials and req
       '012-three-choose-two.sql',
       '013-competition-identities.sql',
       '014-player-sessions.sql',
+      '016-night-chat.sql',
       '001-admin-auth.sql',
       '002-control-center.sql',
+      '003-night-overwatch-control.sql',
+      '004-tetracube-control.sql',
     ],
   );
   const env = runtimeEnvironment(

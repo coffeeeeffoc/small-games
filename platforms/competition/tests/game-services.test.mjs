@@ -788,6 +788,54 @@ test('Night cached account A cannot read or mutate assets using a newly selected
   await assert.rejects(api.nightAssets('a'), { code: 'IDENTITY_CHANGED' });
   assert.equal(f.calls.length, before);
 });
+test('Night chat uses scoped credentials, bounded polling, stable intents and invitation generation', async (t) => {
+  const f = authFixture(t, {
+    initial: JSON.stringify(credential('a', Date.now() + 900000, 'night-overwatch')),
+  });
+  const api = createGameServices({ gameId: 'night-overwatch' }),
+    cursor = 'a'.repeat(64);
+  await api.nightChat({ cursor, waitMs: 5000 }, 'a');
+  assert.equal(
+    f.calls.at(-1).url,
+    '/api/competition/v1/games/night-overwatch/chat?cursor=' + cursor + '&waitMs=5000',
+  );
+  await api.sendNightChat({ requestId: 'stable-intent', text: '来一局', roomCode: '123456' }, 'a');
+  assert.deepEqual(f.calls.at(-1).body, {
+    requestId: 'stable-intent',
+    text: '来一局',
+    roomCode: '123456',
+  });
+  await api.reportNightChat({ id: '123', reason: '垃圾信息' }, 'a');
+  assert.equal(f.calls.at(-1).url, '/api/competition/v1/games/night-overwatch/chat/report');
+  await api.joinRoom({ code: '123456', createdAt: 1793580000000 });
+  assert.deepEqual(f.calls.at(-1).body, { code: '123456', createdAt: 1793580000000 });
+  assert(f.calls.every((c) => c.token === 'Bearer ' + 'a'.repeat(64)));
+  f.setStorage(JSON.stringify(credential('b', Date.now() + 900000, 'night-overwatch')));
+  const count = f.calls.length;
+  await assert.rejects(api.sendNightChat({ requestId: 'stale-a', text: '旧草稿' }, 'a'), {
+    code: 'IDENTITY_CHANGED',
+  });
+  await assert.rejects(api.nightChat({}, 'a'), { code: 'IDENTITY_CHANGED' });
+  assert.equal(f.calls.length, count);
+  await assert.rejects(createGameServices({ gameId: 'wulong-city' }).nightChat(), {
+    code: 'GAME_UNAVAILABLE',
+  });
+});
+
+test('Night chat rejects late account A responses after selecting account B', async (t) => {
+  const f = authFixture(t, {
+    initial: JSON.stringify(credential('a', Date.now() + 900000, 'night-overwatch')),
+  });
+  const api = createGameServices({ gameId: 'night-overwatch' });
+  f.respond = async () => {
+    f.setStorage(JSON.stringify(credential('b', Date.now() + 900000, 'night-overwatch')));
+    return { messages: [{ playerId: 'a', text: '迟到' }] };
+  };
+  await assert.rejects(api.sendNightChat({ requestId: 'a-intent', text: '旧草稿' }, 'a'), (error) =>
+    ['IDENTITY_CHANGED', 'SESSION_CHANGED'].includes(error.code),
+  );
+});
+
 test('shared development assets use each game scope and Night forwards its existing journal ID', async (t) => {
   const f = authFixture(t, {
     initial: JSON.stringify(credential('a', Date.now() + 900000, 'night-overwatch')),

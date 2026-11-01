@@ -1,3 +1,4 @@
+import {scrollPage,scrollToButton} from './scroll-helpers.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir,writeFile } from 'node:fs/promises';
@@ -51,12 +52,12 @@ try{
       await settleVisuals(page);
     };
     await shot('home');
-    await click('qm:shop');await click('qm:next');let s=await snapshot(page),visible=s.buttons.filter(b=>b.id.startsWith('product:')).map(b=>b.id.slice(8));
-    if(width<700)await click('product:'+visible[0]);
+    await click('qm:shop');await scrollPage(page);let s=await snapshot(page),visible=s.buttons.filter(b=>b.id.startsWith('product:')).map(b=>b.id.slice(8));
+    await click('product:'+visible[0]);
     await click('qm:buy');const bought=await page.evaluate(()=>__uiAudit.calls.at(-1).item);check('shop pagination keeps preview and purchase on current page',visible.includes(bought),{visible,bought});await shot('shop-page');
     await click('qm:back');if((await snapshot(page)).progression.page==='shop')await click('qm:back');
-    await click('qm:warehouse');await click('qm:next');s=await snapshot(page);visible=s.buttons.filter(b=>b.id.startsWith('inventory:')).map(b=>b.id.slice(10));
-    await click('qm:sell');await click('qm:confirm');const sold=await page.evaluate(()=>__uiAudit.calls.at(-1).item);check('warehouse pagination keeps selection and sale on current page',visible.includes(sold),{visible,sold});
+    await click('qm:warehouse');await scrollPage(page);s=await snapshot(page);visible=s.buttons.filter(b=>b.id.startsWith('inventory:')).map(b=>b.id.slice(10));
+    await click('inventory:'+visible[0]);await click('qm:sell');await click('qm:confirm');const sold=await page.evaluate(()=>__uiAudit.calls.at(-1).item);check('warehouse pagination keeps selection and sale on current page',visible.includes(sold),{visible,sold});
     await click('qm:sell');await page.keyboard.down('Escape');await page.keyboard.down('Escape');await page.keyboard.up('Escape');await settleVisuals(page);check('escape including held key dismisses only the sale confirmation',(await snapshot(page)).progression.page==='warehouse',(await snapshot(page)).progression.page);
     if(!baseline&&(await snapshot(page)).buttons.some(b=>b.id==='settings'&&!b.disabled)){await click('settings');await page.keyboard.press('Escape');await settleVisuals(page);s=await snapshot(page);check('escape closes foreground settings and preserves warehouse',s.progression.page==='warehouse'&&s.buttons.some(b=>b.id==='qm:sell'&&!b.disabled));}
     if((await snapshot(page)).progression.page)await click('qm:back');
@@ -69,7 +70,7 @@ try{
       const first=await button('slot:mod:0'),second=await button('slot:mod:1');
       await gesture(first,second,'blur');check('blur cancels slot drag',JSON.stringify((await snapshot(page)).progression.draft)===JSON.stringify(original));
       if(touch){await gesture(first,second,'cancel');check('touchcancel never swaps',JSON.stringify((await snapshot(page)).progression.draft)===JSON.stringify(original));}
-      await gesture(first,second,'end',async()=>{check('compatible drop target highlighted',(await snapshot(page)).progression.drag?.target==='mod:1');await shot('drag-target');});
+      await gesture(first,second,'end',async()=>{const current=await snapshot(page);await shot('drag-target');check('compatible drop target highlighted',current.progression.drag?.target==='mod:1',{progression:current.progression,buttons:current.buttons.map(b=>({id:b.id,x:b.x,y:b.y,w:b.w,h:b.h}))});});
       check('equipped mods swap by dragging',JSON.stringify((await snapshot(page)).progression.draft.mods)===JSON.stringify([...original.mods].reverse()));
       const beforeInvalid=(await snapshot(page)).progression.draft;await gesture(await button('slot:mod:1'),await button('slot:weapon'));
       check('incompatible drop leaves configuration intact',JSON.stringify((await snapshot(page)).progression.draft)===JSON.stringify(beforeInvalid));
@@ -90,10 +91,12 @@ try{
       await click('qm:back');check('leave dialog names both drafts',(await texts(page)).some(t=>t.includes('单人方案')&&t.includes('双人方案')),await texts(page));
       await page.keyboard.press('Escape');await settleVisuals(page);check('escape returns to draft editing',(await snapshot(page)).progression.leaveTo===undefined);
       await click('qm:save');await click('loadout:duel');await click('qm:save');await click('qm:back');
-      await click('qm:warehouse');for(let i=0;i<12&&!(await snapshot(page)).buttons.some(b=>b.id==='inventory:emp-match');i++)await click('qm:next');
-      await click('inventory:emp-match');await click('qm:loadout');check('warehouse opens matching skill slot',(await snapshot(page)).progression.slot==='skill');await click('qm:back');
+      await click('qm:warehouse');for(let i=0;i<12&&!(await snapshot(page)).buttons.some(b=>b.id==='inventory:emp-match');i++)await scrollPage(page);
+      await click('inventory:emp-match');await click('qm:loadout');check('warehouse opens matching skill slot',(await snapshot(page)).progression.slot==='skill');await click('qm:back');check('nested loadout returns to its warehouse source',(await snapshot(page)).progression.page==='warehouse');await click('qm:back');
       await click('qm:checkin');await click('qm:checkinClaim');check('claim shows crate details',!!(await snapshot(page)).progression.gift?.packs);await shot('gift-detail');
-      await click('qm:giftOpen');check('open all shows the actual received contents',(await snapshot(page)).progression.gift?.drops.length===2);await shot('gift-opened');await click('qm:giftWarehouse');await click('qm:back');
+      await click('qm:giftOpen');check('open all shows the actual received contents',(await snapshot(page)).progression.gift?.drops.length===2);await shot('gift-opened');if((await snapshot(page)).buttons.some(b=>b.id==='qm:giftSkip'))await click('qm:giftSkip');
+      const info=await button('info:power-match');await gesture(info,info,'end',async()=>{await page.waitForTimeout(550);check('long press in a reward list opens the item explanation',(await snapshot(page)).buttons.some(b=>b.id==='qm:infoClose'&&!b.disabled));});await page.keyboard.press('Escape');await settleVisuals(page);s=await snapshot(page);check('back closes explanation before the underlying reward',s.progression.gift?.opened&&!s.buttons.some(b=>b.id==='qm:infoClose'),{gift:s.progression.gift,buttons:s.buttons.map(b=>b.id)});
+      await click('qm:giftWarehouse');await click('qm:back');await click('qm:back');
     }else{await click('qm:back');}
     for(const [id,name]of [['modes','modes'],['growth','growth'],['tasks','tasks'],['inbox','inbox'],['checkin','checkin'],['supply','supply']]){await click('qm:'+id);await shot(name);await click('qm:back');}
     await context.close();

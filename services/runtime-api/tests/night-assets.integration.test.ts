@@ -463,6 +463,137 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
     expect(audits).toHaveLength(3);
     expect(audits.every((row) => (row.data as { count: number }).count === 1)).toBe(true);
   });
+  it('unifies old crate keys without losing old retries and gates actual prizes and purchases', async () => {
+    const id = await owner();
+    await seed(id, { coins: 10000, inventory: { 'pack:general:3': 1, 'pack:gold:3': 2 } });
+    expect((await get(id)).inventory['pack:general:3']).toBe(3);
+    expect((await get(id)).inventory).not.toHaveProperty('pack:gold:3');
+    await expect(
+      command(id, { kind: 'buy', item: 'burst-match', quantity: 1, requestId: randomUUID() }),
+    ).rejects.toMatchObject({ code: 'LEVEL_LOCKED' });
+    const old: AssetCommand = {
+      kind: 'open',
+      item: 'pack:gold:3',
+      quantity: 1,
+      requestId: randomUUID(),
+    };
+    const low = await command(id, old);
+    expect(low.lastReceipt).toMatchObject({ drops: [{ coins: 800 }] });
+    expect((await command(id, old)).coins).toBe(low.coins);
+    await seed(id, { xp: 13200 });
+    const unlocked = await command(id, {
+      kind: 'open',
+      item: 'pack:general:3',
+      quantity: 1,
+      requestId: randomUUID(),
+    });
+    expect(unlocked.lastReceipt).toMatchObject({ drops: [{ item: 'burst-match' }] });
+    await seed(id, { permanent: ['burst'] });
+    expect(
+      (
+        await command(id, {
+          kind: 'open',
+          item: 'pack:gold:3',
+          quantity: 1,
+          requestId: randomUUID(),
+        })
+      ).lastReceipt,
+    ).toMatchObject({ drops: [{ coins: 800 }] });
+    expect((await get(id)).inventory['pack:general:3']).toBe(0);
+  });
+  it('wheel orders coexist with five legacy orders, serialize ad playback, retain tickets and settle once', async () => {
+    const id = await owner();
+    for (const quantity of [1, 3, 5, 10, 20])
+      await command(id, { kind: 'ad-order', quantity, requestId: randomUUID() });
+    const created = await command(id, {
+      kind: 'ad-order',
+      quantity: 1,
+      purpose: 'wheel',
+      requestId: randomUUID(),
+    });
+    const order = created.videoOrders.find((o) => o.purpose === 'wheel')!;
+    expect(order.required).toBe(1);
+    expect((await get(id)).videoOrders.at(-1)?.purpose).toBe('wheel');
+    await expect(
+      command(id, { kind: 'ad-order', quantity: 1, purpose: 'wheel', requestId: randomUUID() }),
+    ).rejects.toMatchObject({ code: 'TOO_MANY_ORDERS' });
+    const starts = await Promise.allSettled(
+      [1, 2].map(() =>
+        command(id, { kind: 'ad-start', orderId: order.id, requestId: randomUUID() }),
+      ),
+    );
+    expect(starts.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const started = (
+      starts.find((r) => r.status === 'fulfilled') as PromiseFulfilledResult<
+        Awaited<ReturnType<typeof command>>
+      >
+    ).value;
+    const attemptId = (started.lastReceipt as { attemptId: string }).attemptId;
+    await expect(
+      command(id, {
+        kind: 'ad-start',
+        orderId: created.videoOrders[0]!.id,
+        requestId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({ code: 'AD_IN_PROGRESS' });
+    await command(id, { kind: 'ad-cancel', orderId: order.id, attemptId, requestId: randomUUID() });
+    expect((await get(id)).wheelTickets).toBe(0);
+    expect((await get(id)).videosToday).toBe(0);
+    const retry = await command(id, {
+      kind: 'ad-start',
+      orderId: order.id,
+      requestId: randomUUID(),
+    });
+    const completed: AssetCommand = {
+      kind: 'ad-complete',
+      orderId: order.id,
+      attemptId: (retry.lastReceipt as { attemptId: string }).attemptId,
+      requestId: randomUUID(),
+    };
+    const done = await command(id, completed, at + 100);
+    expect(done.wheelTickets).toBe(1);
+    expect(done.wheelVideosToday).toBe(1);
+    expect(done.videosToday).toBe(1);
+    expect(
+      (await command(id, { ...completed, requestId: randomUUID() }, at + 86400000)).wheelTickets,
+    ).toBe(1);
+    const spin: AssetCommand = { kind: 'wheel-spin', requestId: randomUUID() };
+    const result = await command(id, spin, at + 86400000);
+    expect(result.wheelTickets).toBe(0);
+    expect((await command(id, spin, at + 86400000)).lastReceipt).toEqual(result.lastReceipt);
+    await expect(
+      command(id, { kind: 'wheel-spin', requestId: randomUUID() }),
+    ).rejects.toMatchObject({ code: 'NO_WHEEL_TICKETS' });
+    await seed(id, { videoDays: { [created.day]: 11 }, wheelVideoDays: { [created.day]: 4 } });
+    const next = await command(id, {
+      kind: 'ad-order',
+      quantity: 1,
+      purpose: 'wheel',
+      requestId: randomUUID(),
+    });
+    const nextOrder = next.videoOrders.find((o) => o.purpose === 'wheel' && !o.delivered)!;
+    const permit = await command(id, {
+      kind: 'ad-start',
+      orderId: nextOrder.id,
+      requestId: randomUUID(),
+    });
+    const last = await command(id, {
+      kind: 'ad-complete',
+      orderId: nextOrder.id,
+      attemptId: (permit.lastReceipt as { attemptId: string }).attemptId,
+      requestId: randomUUID(),
+    });
+    expect(last.videosToday).toBe(12);
+    expect(last.wheelVideosToday).toBe(5);
+    await expect(
+      command(id, {
+        kind: 'ad-start',
+        orderId: created.videoOrders[0]!.id,
+        requestId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({ code: 'DAILY_VIDEO_LIMIT' });
+    expect((await get(id, at + 86400000)).wheelTickets).toBe(1);
+  });
   it('rejected video callbacks retain sanitized audit counts after the asset transaction rolls back', async () => {
     const id = await owner();
     for (let n = 0; n < 2; n++)

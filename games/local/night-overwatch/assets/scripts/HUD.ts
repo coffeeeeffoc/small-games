@@ -66,6 +66,24 @@ const C = {
 const col = (hex: string) => new Color().fromHEX(hex);
 export type ButtonRect = { id: string; x: number; y: number; w: number; h: number; label: Label; visual?: { x: number; y: number; w: number; h: number }; disabled?: boolean; clip?:{x:number;y:number;w:number;h:number} };
 export class HUD {
+  listAreas:Array<{key:string;x:number;y:number;w:number;h:number;max:number}> = [];
+  listScroll:Record<string,number>={};
+  private semanticKey='';
+  listAt(x:number,y:number){return [...this.listAreas].reverse().find(a=>x>=a.x&&x<=a.x+a.w&&y>=a.y&&y<=a.y+a.h);}
+  moveList(key:string,amount:number){const a=this.listAreas.find(a=>a.key===key);if(!a)return;const states=key.startsWith('qm:')?this.quartermaster!.scrolls:this.listScroll;states[key]=Math.max(0,Math.min(a.max,(states[key]||0)+amount));this.modalKey='rebuild';}
+  listViewport(parent:Node,key:string,area:{x:number;y:number;w:number;h:number},total:number){
+    const max=Math.max(0,total-area.h),states=key.startsWith('qm:')?this.quartermaster!.scrolls:this.listScroll;
+    const offset=states[key]=Math.max(0,Math.min(max,states[key]||0));this.listAreas.push({...area,key,max});
+    const viewport=this.node('Scroll:'+key,parent),mx=area.x+area.w/2-this.w/2,my=this.h/2-area.y-area.h/2;
+    viewport.setPosition(mx,my);viewport.getComponent(UITransform)!.setContentSize(area.w,area.h);viewport.addComponent(Mask).type=Mask.Type.GRAPHICS_RECT;
+    const n=this.node('ScrollContent',viewport);n.setPosition(-mx,-my);const surfaces=this.node('Surfaces',n),g=this.node('Ink',n).addComponent(Graphics),start=this.buttons.length;
+    return {n,surfaces,g,offset,finish:()=>{for(const b of this.buttons.slice(start))b.clip=area;
+      if(max){const ink=this.node('ScrollIndicator',parent).addComponent(Graphics),x=area.x+area.w-5,track=Math.max(4,area.h-32),thumb=Math.max(20,track*area.h/total);
+        this.rect(ink,x,area.y+16,3,track,'#253e50');this.rect(ink,x-1,area.y+16+(track-thumb)*offset/max,5,thumb,C.amber);
+        const arrow=(y:number,down:boolean)=>{ink.strokeColor=col(C.white);ink.lineWidth=2;const xx=x-this.w/2,yy=this.h/2-y,d=down?-1:1;ink.moveTo(xx-4,yy-d*2);ink.lineTo(xx,yy+d*2);ink.lineTo(xx+4,yy-d*2);ink.stroke();};if(offset>1)arrow(area.y+6,false);if(offset<max-1)arrow(area.y+area.h-7,true);
+      }
+    }};
+  }
   quartermaster?:Quartermaster;
   progressionArt:ProgressionArt;
   private progressionRevision='';
@@ -382,6 +400,7 @@ export class HUD {
     const w = this.w, h = this.h, left = 12 + this.safe.left,
       right = w - 12 - this.safe.right, top = this.safe.top;
     this.live('health', left + 80, top + 18, 13, 160, 25);
+    for(const side of [0,1])this.live('spectator:'+side,left+100+side*198,top+37,18,182,52,C.white);
     this.live('progress', left + 80, top + 40, 11, 160, 20, C.dim);
     const small = this.mouseDesktop, settingsX = right - 44 - (this.touch ? 88 : 0) - (this.screenControl ? 52 : 0);
     this.live('status', settingsX - 40, top + 28, 11, 70, 54, C.white);
@@ -418,7 +437,8 @@ export class HUD {
     priority.isBold = true;
     this.labels.set('priorityMarker', priority);
     const map = this.minimapLayout;
-    this.button('battleReport', this.t('战况 / 装配', 'REPORT / GEAR'), map.x + map.w - 88, map.y + map.h + 6, 88, 44).fontSize = 12;
+    this.button('battleReport',this.t('战况','REPORT'),left,this.safe.top+76,72,44).fontSize=12;
+    this.button('equipment',this.t('装配','GEAR'),left+80,this.safe.top+76,72,44).fontSize=12;
     this.live('mapLegend', map.x + map.w / 2, map.y + 11, 10, map.w - 4, 20, C.dim);
   }
   rect(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke?: string, radius = 0) {
@@ -734,23 +754,11 @@ export class HUD {
     }
     this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#071a2d55');
     this.label(n, this.t('任务地图', 'MISSION MAP'), left + 78, this.safe.top + 80, 22, 156, 42).isBold = true;
-    const page = Math.max(0, Math.min(Math.ceil(MISSIONS.length / 3) - 1, this.missionPage));
-    const pagerWidth = this.compact ? 88 : 100, pagerY = this.safe.top + 58;
-    const nextX = right - pagerWidth, previousX = nextX - pagerWidth - 100;
-    for (const [id, x, active, caption] of [
-      ['missionsPrevious', previousX, page > 0, this.t('上一页', 'PREV')],
-      ['missionsNext', nextX, page < Math.ceil(MISSIONS.length / 3) - 1, this.t('下一页', 'NEXT')],
-    ] as const) {
-      this.menuButton(n,g,id,caption,x,pagerY,pagerWidth,'secondary',id==='missionsPrevious'?'back':'next',44,!active).fontSize=12;
-    }
-    this.label(n, `${page * 3 + 1}–${Math.min(MISSIONS.length, page * 3 + 3)} / ${MISSIONS.length}`,
-      previousX + pagerWidth + 50, pagerY + 22, 12, 100, 32, C.dim);
-    const top = this.safe.top + 110, bottom = h - this.safe.bottom - 58;
-    const gap = 10, cw = (right - left - gap * 2) / 3;
-    const ch = Math.min(300, Math.max(112, cw * .7), bottom - top - 8);
-    const y = top + Math.max(0, bottom - top - 8 - ch) * .35;
-    for (const [i, mission] of MISSIONS.slice(page * 3, page * 3 + 3).entries()) {
-      const x = left + i * (cw + gap), selected = mission.id === s.mission.id, number = page * 3 + i + 1;
+    const top=this.safe.top+104,bottom=h-this.safe.bottom-58,gap=10,cw=(right-left-gap*2)/3,ch=Math.min(240,Math.max(130,cw*.72));
+    const parent=n,originalG=g,list=this.listViewport(n,'missions',{x:left,y:top,w:right-left,h:bottom-top-8},Math.ceil(MISSIONS.length/3)*(ch+12));n=list.n;g=list.g;
+    for (const [i, mission] of MISSIONS.entries()) {
+      const x=left+(i%3)*(cw+gap),y=top+Math.floor(i/3)*(ch+12)-list.offset,selected=mission.id===s.mission.id,number=i+1;
+      if(y+ch<top||y>bottom)continue;
       const unlocked = this.developer || missionUnlocked(this.missionProgress, mission.id), smallCard = ch < 180;
       this.plate(g, x, y, cw, ch, '#101e2c', selected ? C.mint : C.line, 3);
       const artTop = y + 4, artH = ch - 8;
@@ -790,6 +798,7 @@ export class HUD {
           : this.t('完成上一关解锁', 'COMPLETE PREVIOUS');
       this.label(n, status, x + cw / 2, y + ch - (smallCard ? 10 : 15), smallCard ? 9 : 11, cw - 12, smallCard ? 16 : 19, unlocked ? C.mint : C.dim);
     }
+    list.finish();n=parent;g=originalG;
     const bw = (right - left - 24) / 3;
     for (const [i, id] of ['homeMenu', 'training', 'start'].entries()) {
       const x = left + i * (bw + 12), primary = id === 'start', selected = id === 'training' && s.mission.mode === 'training';
@@ -996,8 +1005,8 @@ export class HUD {
     field.getComponent(UITransform)!.setContentSize(width - 122, 44);
     const edit = field.addComponent(EditBox);
     edit.textLabel = this.label(field, '', this.w / 2, this.h / 2, 14, width - 122, 42);
-    edit.placeholder = key === 'draftCode' ? this.t('6位房间号', 'ROOM NUMBER') : key === 'draftPassword' ? this.t('公开房无需密码', 'OPTIONAL FOR PUBLIC ROOM') : '';
-    edit.placeholderLabel = this.label(field, edit.placeholder, this.w / 2, this.h / 2, 12, width - 122, 42, C.dim);
+    const placeholder = key === 'draftCode' ? this.t('6位房间号', 'ROOM NUMBER') : key === 'draftPassword' ? this.t('公开房无需密码', 'OPTIONAL FOR PUBLIC ROOM') : '';
+    edit.placeholderLabel = this.label(field, placeholder, this.w / 2, this.h / 2, 12, width - 122, 42, C.dim);
     edit.inputMode = EditBox.InputMode.SINGLE_LINE;
     for (const label of [edit.textLabel, edit.placeholderLabel]) {
       label.node.getComponent(UITransform)!.setAnchorPoint(0, 1);
@@ -1011,8 +1020,74 @@ export class HUD {
     field.on(EditBox.EventType.TEXT_CHANGED, () => { this.online![key] = edit.string; });
     field.active = true;
   }
+  private lobbyBody?:Node;
+  private lobbyComposer?:EditBox;
+  private lobbyStamp='';
+  private chatLayout:Array<{id:string;y:number;h:number}>=[];
+  private chatUnread=false;private lobbyOwner='';
+  private lobbySkin(parent:Node,key:string,x:number,y:number,w:number,h:number){const frame=this.progressionArt.get(key);if(!frame)return;const n=this.node('LobbySkin',parent),sp=n.addComponent(Sprite);n.setPosition(x+w/2-this.w/2,this.h/2-y-h/2);n.setScale(.24,.24,1);n.getComponent(UITransform)!.setContentSize(w/.24,h/.24);sp.sizeMode=Sprite.SizeMode.CUSTOM;sp.type=Sprite.Type.SLICED;sp.spriteFrame=frame;}
+  private renderLobby(n:Node,initial=false){
+    const o=this.online!,roomy=this.w>=1000,l=this.safe.left+12,r=this.w-this.safe.right-12,top=this.safe.top+56,b=this.h-this.safe.bottom-12,gap=14,lw=(r-l-gap)*.44,rx=l+lw+gap,rw=r-rx,inputY=b-48;
+    if(initial){
+      this.lobbySkin(n,'panel',l,top,lw,b-top);this.lobbySkin(n,'panel',rx,top,rw,b-top);
+      this.button('online:back','‹',l,this.safe.top+5,44,44,n).fontSize=31;this.label(n,this.t('全局大厅','GLOBAL LOBBY'),l+145,this.safe.top+27,25,190,40,C.white).isBold=true;
+      this.label(n,this.t('大厅交流','LOBBY CHAT'),rx+rw*.32,top+21,19,rw*.61,32,C.white).isBold=true;
+      const field=this.node('LobbyComposer',n),fw=Math.max(90,rw-142);field.active=false;field.setPosition(rx+10+fw/2-this.w/2,this.h/2-inputY-22);field.getComponent(UITransform)!.setContentSize(fw,44);
+      this.lobbySkin(n,'panel',rx+8,inputY,fw+4,44);
+      field.setSiblingIndex(n.children.length-1);
+      const edit=this.lobbyComposer=field.addComponent(EditBox);edit.textLabel=this.label(field,'',this.w/2,this.h/2,roomy?18:13,fw-12,40,C.white);edit.placeholderLabel=this.label(field,this.t('说点什么…','Say something…'),this.w/2,this.h/2,roomy?17:12,fw-12,40,C.dim);edit.inputMode=EditBox.InputMode.SINGLE_LINE;edit.inputFlag=EditBox.InputFlag.DEFAULT;edit.maxLength=240;edit.string=o.chatDraft;
+      for(const label of [edit.textLabel,edit.placeholderLabel]){label.node.getComponent(UITransform)!.setAnchorPoint(0,1);label.horizontalAlign=Label.HorizontalAlign.LEFT;label.verticalAlign=Label.VerticalAlign.CENTER;}
+      field.on(EditBox.EventType.TEXT_CHANGED,()=>{o.chatDraft=edit.string;});
+      field.active=true;
+      this.lobbySkin(n,'blue',r-122,inputY,54,44);this.button('online:chatInvite',this.t('邀请','INVITE'),r-122,inputY,54,44,n).fontSize=12;
+      this.lobbySkin(n,'gold',r-64,inputY,56,44);this.button('online:chatSend',this.t('发送','SEND'),r-64,inputY,56,44,n).fontSize=14;
+      if(this.lobbyOwner!==o.authenticatedId){this.lobbyOwner=o.authenticatedId;this.chatLayout=[];this.chatUnread=false;this.listScroll.chat=0;}
+    }
+    if(this.lobbyBody&&isValid(this.lobbyBody)){const old=this.lobbyBody;this.buttons=this.buttons.filter(b=>{let node:Node|null=b.label.node;while(node){if(node===old)return false;node=node.parent;}return true;});old.destroy();}
+    this.listAreas=this.listAreas.filter(a=>!['rooms','chat'].includes(a.key));
+    const body=this.lobbyBody=this.node('LobbyLiveContent',n),g=this.node('Ink',body).addComponent(Graphics);
+    const btn=(id:string,caption:string,x:number,y:number,w:number,kind='blue',disabled=false,parent=body)=>{this.lobbySkin(parent,kind,x,y,w,44);const label=this.button('online:'+id,caption,x,y,w,44,parent);label.fontSize=Math.min(14,Math.max(11,w/6));label.isBold=true;this.buttons.at(-1)!.disabled=disabled;};
+    const roomTop=top+8,roomBottom=b-98,rowH=this.h<420?112:136,rooms=o.rooms;
+    const roomList=this.listViewport(body,'rooms',{x:l+7,y:roomTop,w:lw-14,h:Math.max(44,roomBottom-roomTop)},rooms.length*(rowH+8));
+    rooms.forEach((room,i)=>{const y=roomTop+i*(rowH+8)-roomList.offset;if(y+rowH<roomTop||y>roomBottom)return;this.lobbySkin(roomList.n,'panel',l+9,y,lw-24,rowH);const frame=this.progressionArt.get('duel'),iw=roomy?Math.min(154,lw*.29):Math.min(92,lw*.34),ih=roomy?96:70;if(frame)this.coverImage(roomList.n,'RoomArt',frame,l+16,y+10,iw,ih);const tx=l+iw+26,tw=lw-iw-(roomy?148:44);
+      const title=this.label(roomList.n,this.t('房间 ','ROOM ')+room.code,tx+tw/2,y+(roomy?29:20),roomy?24:13,tw,32,C.white);title.isBold=true;title.horizontalAlign=Label.HorizontalAlign.LEFT;
+      this.label(roomList.n,room.players.map(p=>p.nickname||p.name||'飞行员').join(' / '),tx+tw/2,y+(roomy?64:42),roomy?17:12,tw,26,C.dim).horizontalAlign=Label.HorizontalAlign.LEFT;
+      this.label(roomList.n,`${room.playerCount}/2 · `+this.t(room.status==='waiting'?(room.canJoin?'等待加入':'等待开战'):'进行中',room.status==='waiting'?'WAITING':'PLAYING'),tx+tw/2,y+(roomy?97:63),roomy?18:12,tw,26,room.canJoin?C.mint:C.amber).horizontalAlign=Label.HorizontalAlign.LEFT;
+      const bw=roomy?94:Math.min(82,lw*.37);btn((room.canJoin?'joinCode:':'watchCode:')+room.code,this.t(room.canJoin?'加入':'观战',room.canJoin?'JOIN':'WATCH'),l+lw-bw-18,y+(roomy?(rowH-44)/2:rowH-45),bw,room.canJoin?'gold':'blue',!room.canJoin&&!room.canSpectate,roomList.n);
+    });roomList.finish();
+    if(!rooms.length)this.label(body,o.message||this.t('暂无公开房间','No public rooms'),l+lw/2,roomTop+42,14,lw-25,70,C.dim);
+    const ww=(lw-24)/2;btn(o.room?'roomReturn':'friend',this.t(o.room?'返回房间':'创建房间',o.room?'MY ROOM':'CREATE'),l+8,b-92,ww,'gold',o.busy);btn('join',this.t('房号加入','JOIN CODE'),l+16+ww,b-92,ww,'blue',o.busy);
+    btn('match',this.t('快速匹配','MATCH'),l+8,b-46,ww,'blue',o.busy);btn('bot',this.t('人机练习','PRACTICE'),l+16+ww,b-46,ww,'panel',o.busy);
+    const area={x:rx+8,y:top+43,w:rw-16,h:Math.max(44,inputY-top-68)},messages=o.visibleChat;
+    const old=this.chatLayout,oldOffset=this.listScroll.chat||0,oldTotal=old.length?old.at(-1)!.y+old.at(-1)!.h+8:0,atBottom=old.length===0||oldOffset>=oldTotal-area.h-3;
+    const anchor=old.find(row=>row.y+row.h>oldOffset),relative=anchor?oldOffset-anchor.y:0;
+    const messageFont=roomy?18:13,avatar=roomy?38:28,textX=rx+avatar+20,maxBubble=rw-avatar-66;
+    let total=0;this.chatLayout=messages.map(m=>{const lines=Math.max(1,Math.ceil(Array.from(m.text).length/Math.max(6,Math.floor((maxBubble-20)/messageFont)))),h=(m.room?(roomy?170:174):(roomy?80:68))+(lines-1)*messageFont*1.4;const row={id:m.id,y:total,h};total+=h+8;return row;});
+    const changed=old.map(r=>r.id).join()!==this.chatLayout.map(r=>r.id).join();
+    if(changed&&atBottom)this.listScroll.chat=Math.max(0,total-area.h);else if(changed){const row=this.chatLayout.find(r=>r.id===anchor?.id);if(row)this.listScroll.chat=row.y+relative;this.chatUnread=true;}
+    if(this.listScroll.chat>=total-area.h-3)this.chatUnread=false;
+    const chat=this.listViewport(body,'chat',area,total);
+    messages.forEach((m,i)=>{const row=this.chatLayout[i],y=area.y+row.y-chat.offset;if(y+row.h<area.y||y>area.y+area.h)return;const own=m.playerId===o.authenticatedId,date=new Date(m.at),stamp=`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+      this.rect(chat.g,rx+10,y+4,avatar,avatar,own?'#1c4559':'#203347','#8a7959',6);this.label(chat.n,Array.from(m.nickname)[0]||'航',rx+10+avatar/2,y+4+avatar/2,roomy?22:17,avatar,avatar,own?C.mint:C.amber).isBold=true;
+      this.label(chat.n,(own?this.t('你 · ','YOU · '):'')+m.nickname+'  '+stamp,textX+maxBubble/2,y+14,roomy?15:11,maxBubble,25,own?C.mint:C.white).horizontalAlign=Label.HorizontalAlign.LEFT;
+      const bubbleW=m.room?maxBubble:Math.min(maxBubble,Math.max(82,Array.from(m.text).length*messageFont+24)),bubbleY=y+32,textH=row.h-(m.room?(roomy?133:142):38);
+      this.rect(chat.g,textX,bubbleY,bubbleW,row.h-36,own?'#174358ee':'#142b3bee','#456477',7);const label=this.label(chat.n,m.text,textX+bubbleW/2,bubbleY+textH/2+3,messageFont,bubbleW-20,textH,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;
+      this.button('online:chatMenu:'+m.id,'⋮',r-46,y+20,44,44,chat.n).fontSize=24;
+      if(m.room){const cardY=bubbleY+textH+8,iw=roomy?90:44,ih=roomy?62:42,scene=this.progressionArt.get('duel');if(scene)this.coverImage(chat.n,'ChatInvitationArt',scene,textX+8,cardY,iw,ih);const tx=textX+iw+17,tw=Math.max(50,bubbleW-iw-28);this.label(chat.n,this.t('房间 ','ROOM ')+m.room.code,tx+tw/2,cardY+12,roomy?20:12,tw,24,m.room.canJoin?C.mint:C.dim).horizontalAlign=Label.HorizontalAlign.LEFT;this.label(chat.n,this.t(m.room.canJoin?'公开房间 · 等待加入':'已满或已关闭',m.room.canJoin?'PUBLIC · OPEN':'FULL OR CLOSED'),tx+tw/2,cardY+35,roomy?14:10,tw,22,C.dim).horizontalAlign=Label.HorizontalAlign.LEFT;btn('chatJoin:'+m.id,this.t(m.room.canJoin?'加入':'已失效',m.room.canJoin?'JOIN':'CLOSED'),textX+bubbleW-(roomy?104:72),y+row.h-48,roomy?96:68,'blue',!m.room.canJoin,chat.n);}
+      if(o.chatMenu===m.id){const menuY=y+24;this.lobbySkin(chat.n,'panel',r-146,menuY,100,92);btn('chatBlock:'+m.playerId,this.t('屏蔽','BLOCK'),r-144,menuY,96,'panel',own,chat.n);btn('chatReport:'+m.id,this.t('举报','REPORT'),r-144,menuY+46,96,'panel',own,chat.n);}
+    });chat.finish();
+    if(!o.chatAvailable||!messages.length)this.label(body,!o.chatAvailable?this.t('大厅交流暂不可用','CHAT UNAVAILABLE'):this.t('和大厅飞行员打个招呼','Say hello to other pilots'),rx+rw/2,area.y+42,13,rw-30,70,C.dim);
+    if(this.chatUnread)btn('chatLatest',this.t('新消息 ↓','NEW ↓'),r-108,top+1,98,'blue');
+    this.label(body,o.chatStatus||this.t('文字交流 · 120字 · 发言间隔3秒','TEXT · 120 CHARS · 3s INTERVAL'),rx+rw/2,inputY-12,10,rw-18,21,C.dim);
+    if(o.blockedPlayers.size)btn('chatBlocks',this.t(`屏蔽(${o.blockedPlayers.size})`,`BLOCKS (${o.blockedPlayers.size})`),rx+rw-105,area.y+area.h-45,96,'panel');
+    if(o.chatMenu==='blocks'){this.lobbySkin(body,'panel',rx+8,area.y,rw-16,Math.min(area.h,52*o.blockedPlayers.size+12));Array.from(o.blockedPlayers).slice(0,5).forEach((id,i)=>btn('chatBlock:'+id,this.t('恢复 ','UNBLOCK ')+id.slice(-6),rx+14,area.y+6+i*50,rw-28,'blue'));}
+    if(this.lobbyComposer&&this.lobbyComposer.string!==o.chatDraft)this.lobbyComposer.string=o.chatDraft;
+    const send=this.buttons.find(b=>b.id==='online:chatSend');if(send){send.disabled=!o.chatAvailable||o.chatSending;send.label.string=o.chatSending?this.t('发送中','SENDING'):this.t('发送','SEND');}
+    this.lobbyStamp=`${o.revision}:${o.chatRevision}`;
+  }
   renderOnline(n: Node, g: Graphics, s: Simulation, result: boolean) {
     const online = this.online!;
+    if(online.panel==='menu'&&!result){this.renderLobby(n,true);return;}
     const pw = Math.min(result ? 560 : 760, this.w - this.safe.left - this.safe.right - 32),
       ph = Math.min(result ? 360 : online.panel === 'ranking' ? 620 : 440, this.h - this.safe.top - this.safe.bottom - 28), px = (this.w - pw) / 2, py = (this.h - ph) / 2;
     this.panelFrame(g,px,py,pw,ph,result?C.amber:C.mint,result?'#050f1d66':'#050f1d55',!result&&!(online.panel==='ranking'&&ph<280));
@@ -1141,7 +1216,7 @@ export class HUD {
       label(me ? this.t('我的排名 第','MY RANK ') + me.rank + this.t('名 · ',' · ') + metric(me) : this.t('你 · 尚无上榜成绩', 'YOU · NOT YET RANKED'), bottom - 24, 11, C.mint);
       button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
       button('refresh',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
-      if(level)button('ruleVersion',online.rankingVersion==='night-growth-v1'?this.t('成长版 ▾','GROWTH ▾'):this.t('历史版 ▾','LEGACY ▾'),pw-160,bottom,142);
+      if(level)button('ruleVersion',online.rankingVersion==='night-campaign-v2'?this.t('当前梯度版 ▾','CURRENT ▾'):online.rankingVersion==='night-growth-v1'?this.t('旧成长版 ▾','OLD GROWTH ▾'):this.t('原始历史版 ▾','ORIGINAL ▾'),pw-160,bottom,142);
       else this.label(n, this.t(`已加载 ${rows.length} 名 · 上下滑动`, `${rows.length} LOADED · SCROLL`), px + 216 + (pw - 234) / 2, py + bottom + 22, 11, pw - 234, 26, C.dim);
       return;
     }
@@ -1150,9 +1225,9 @@ export class HUD {
       label(summary ? this.t('真人对战 ', 'MATCHES ') + summary.games + this.t(' · 胜 ', ' · W ') + summary.wins + this.t('  负 ', '  L ') + summary.losses
         + this.t('  平 ', '  D ') + summary.draws + ' · ' + Math.round(summary.winRate * 1000) / 10 + '%'
         : this.t('仅记录开局双方都是真人的对局', 'HUMAN MATCHES ONLY'), 63, 12, C.mint);
-      const rows = online.history?.matches.slice(online.historyPage * count, (online.historyPage + 1) * count) || [];
+      const rows=online.history?.matches||[],parent=n,oldG=g,list=this.listViewport(n,'history',{x:px+18,y:py+85,w:pw-36,h:bottom-91},rows.length*66);n=list.n;g=list.g;
       rows.forEach((match, i) => {
-        const y = 86 + i * 58, outcome = match.outcome === 'win' ? this.t('胜利', 'WIN') : match.outcome === 'loss' ? this.t('失败', 'LOSS') : this.t('平局', 'DRAW');
+        const y = 86 + i * 66-list.offset, outcome = match.outcome === 'win' ? this.t('胜利', 'WIN') : match.outcome === 'loss' ? this.t('失败', 'LOSS') : this.t('平局', 'DRAW');
         this.plate(g, px + 18, py + y, pw - 36, 52, '#1c2a2e', C.line, 5);
         this.label(n, outcome + ' · ' + (match.opponent.nickname || match.opponent.name || '飞行员') + '  +' + match.points,
           px + pw / 2, py + y + 15, 13, pw - 60, 26, match.outcome === 'win' ? '#75db9e' : match.outcome === 'loss' ? C.red : C.amber);
@@ -1160,12 +1235,11 @@ export class HUD {
         this.label(n, date + ' · ' + formatTime(match.durationMs) + (match.reason === 'disconnect' ? this.t(' · 掉线结算', ' · DISCONNECT') : match.reason === 'abandoned' ? this.t(' · 双方离开', ' · ABANDONED') : ''),
           px + pw / 2, py + y + 36, 10, pw - 60, 22, C.dim);
       });
+      list.finish();n=parent;g=oldG;
       if (!rows.length) label(online.message || (online.busy ? this.t('正在读取…', 'LOADING…') : this.t('暂无真人对战记录', 'NO HUMAN MATCHES YET')), 144, 13, C.dim);
       button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
       button('history',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
-      button('historyPrev','',pw-150,bottom,44,false,false,'back',online.historyPage===0);
-      button('historyNext','',pw-62,bottom,44,false,false,'next',!online.history||(online.history.matches.length<=(online.historyPage+1)*count&&!online.history.nextCursor));
-      this.label(n,String(online.historyPage+1),px+pw-84,py+bottom+22,12,40,24,C.dim);
+      if(online.history?.nextCursor)button('historyMore',this.t('加载更多','LOAD MORE'),pw-150,bottom,132,false,true,'next');
       return;
     }
     if (online.panel === 'menu') {
@@ -1206,12 +1280,13 @@ export class HUD {
     const cw = Math.min(180,(pw - 52) / 3);
     button('backLobby', this.t('离开房间', 'LEAVE'), 18, bottom, cw,false,false,'back');
     if (room?.status === 'waiting' && !online.spectator) {
-      button('share', this.t('分享链接', 'SHARE'), 26 + cw, bottom, cw);
+      button('chatInvite', this.t('大厅邀请', 'INVITE'), 26 + cw, bottom, cw);
       button('ready', room.players[room.you]?.ready ? this.t('取消准备', 'CANCEL READY') : this.t('准备', 'READY UP'), pw-18-cw, bottom, cw);
     }
   }
   renderModal(key: string, s: Simulation, world: World) {
     const family = key.startsWith('online:') ? key.split(':').slice(0, 2).join(':') : key.split(':')[0];
+    if(family==='online:menu'&&this.modalFamily===family&&this.modal&&this.lobbyComposer&&isValid(this.lobbyComposer.node)){if(key!==this.modalKey||this.lobbyStamp!==`${this.online!.revision}:${this.online!.chatRevision}`){this.renderLobby(this.modal);this.modalKey=key;}return;}
     if (family === this.modalFamily && this.editing) return;
     if (s.phase !== 'playing' && this.online && this.onlineRevision !== this.online.revision) {
       this.onlineRevision = this.online.revision; this.modalKey = '';
@@ -1223,7 +1298,9 @@ export class HUD {
       }
       return true;
     });
-    const animate = !this.reducedEffects && family !== this.modalFamily;
+    const q=this.quartermaster,semantic=[['settings','help','supply','advert'].includes(family)?key:family,this.lang,family==='online:ranking'?[this.online?.board,this.online?.level,this.online?.rankingVersion].join(':'):'',family==='online:create'?this.online?.privateRoom:'',key.startsWith('progression:')?q?.page:'',q?.section,q?.term,q?.mode,q?.selectedSkill,q?.detail,q?.info,!!q?.confirmation,q?.leaveTo!==undefined,q?.gift?(q.gift.started?'opening':q.gift.opened?'rewards':'received'):''].join('|');
+    const animate = !this.reducedEffects && semantic !== this.semanticKey;this.semanticKey=semantic;
+    this.listAreas=[];
     const previous = this.modal;
     if (previous) {
       for (const field of previous.getComponentsInChildren(EditBox)) field.enabled = false;
@@ -1245,7 +1322,7 @@ export class HUD {
     const n = this.node('Panel', this.root);
     this.modal = n;
     const opacity = n.addComponent(UIOpacity);
-    if (animate) { opacity.opacity = 0; tween(opacity).to(.2, { opacity: 255 }, { easing: 'quadOut' }).start(); }
+    if (animate) { opacity.opacity = 0; tween(opacity).to(.16, { opacity: 255 }, { easing: 'quadOut' }).start(); }
     this.node('Backdrop', n).addComponent(Graphics);
     this.surfaces = this.node('Surfaces', n);
     const g = this.node('Ink', n).addComponent(Graphics);
@@ -1269,7 +1346,7 @@ export class HUD {
       const gap=12,cw=(pw-36)/2,bodyH=ph-60,font=ph<380?11:14;
       const sides=[s.pilotState(),this.online?.view?.enemyEquipment];
       sides.forEach((pilot,side)=>{
-        const x=px+12+side*(cw+gap),title=side?this.t('对方','OPPONENT'):this.t('我方','YOU');
+        const x=px+12+side*(cw+gap),title=s.duelMode&&this.online?playerLabel(this.online.combatants[side]).split(' #')[0]:side?this.t('对方','OPPONENT'):this.t('我方','YOU');
         this.plate(g,x,py+48,cw,bodyH,'#0b1d2ae8',C.line,4);
         let lines:string[]=[title];
         if(!pilot){lines.push(this.t(s.duelMode?'对方尚未提供装配信息':'地面敌军 · 无军需插槽',s.duelMode?'Opponent equipment is not available':'Ground forces · no loadout slots'));}
@@ -1299,6 +1376,13 @@ export class HUD {
       });return;
     }
     if (key.startsWith('report:')) {
+      if(s.duelMode&&this.online){
+        const pw=Math.min(680,this.w-this.safe.left-this.safe.right-24),ph=Math.min(300,this.h-24),x=(this.w-pw)/2,y=(this.h-ph)/2;
+        this.panelFrame(g,x,y,pw,ph);this.label(n,this.t('战况','BATTLE REPORT'),this.w/2,y+26,23,pw-30,34,C.white).isBold=true;
+        this.online.combatants.forEach((player,i)=>{const xx=x+12+i*(pw-24)/2,cw=(pw-30)/2,units=s.units.filter(u=>i===0?u.friendly:!u.friendly),alive=units.filter(u=>u.hp>0).length;this.plate(g,xx,y+53,cw,ph-119,'#071725',i?C.amber:C.mint,4);this.label(n,playerLabel(player).split(' #')[0],xx+cw/2,y+78,18,cw-20,30,i?C.amber:C.mint);this.label(n,this.t(`已损失 ${units.length-alive}\n剩余 ${alive}`,`LOST ${units.length-alive}\nREMAINING ${alive}`),xx+cw/2,y+123,16,cw-20,60,C.white);});
+        this.button('close',this.t('关闭','CLOSE'),x+12,y+ph-54,(pw-36)/2,44,n);this.button('equipment',this.t('双方装配','LOADOUTS'),x+24+(pw-36)/2,y+ph-54,(pw-36)/2,44,n);return;
+      }
+
       const pw = Math.min(640, this.w - this.safe.left - this.safe.right - 32), ph = Math.min(310, this.h - this.safe.top - this.safe.bottom - 24);
       const px = (this.w - pw) / 2, py = (this.h - ph) / 2;
       this.panelFrame(g, px, py, pw, ph);
@@ -1683,6 +1767,7 @@ export class HUD {
       : this.t('战斗补给', 'COMBAT SUPPLY');
   }
   update(s: Simulation, world: World) {
+    this.quartermaster?.tickPresentation(this.reducedEffects);
     if(this.quartermaster){
       this.quartermaster.syncIdentity();
       const revision=`${this.quartermaster.revision}:${this.online?.revision}:${this.lang}`;
@@ -1798,15 +1883,17 @@ export class HUD {
     const plane = s.aircraft;
     const flightTime = s.flightTime(), flightText = Number.isFinite(flightTime) ? flightTime.toFixed(1) + 's' : '—';
     const allies = s.units.filter((u) => u.friendly).length;
-    this.set('health', s.duelMode && this.online ? playerLabel(this.online.identity) + this.t(' · 你', ' · YOU') : this.t(`□ 友军 ${allies - s.friendlyLosses} / ${allies}`, `□ ALLIES ${allies - s.friendlyLosses} / ${allies}`));
+    this.set('health', s.duelMode && this.online ? this.online.combatants.map(p=>playerLabel(p).split(' #')[0]).join('  VS  ') : this.t(`□ 友军 ${allies - s.friendlyLosses} / ${allies}`, `□ ALLIES ${allies - s.friendlyLosses} / ${allies}`));
     const bright = !world.thermal && s.mission.light === 'day';
     this.labels.get('health')!.color = col(!s.duelMode && s.rescue.hp / s.rescue.maxHp < 0.3 ? bright ? '#982536' : C.red : bright ? '#124652' : C.mint);
     this.labels.get('progress')!.color = col(bright ? '#243c42' : C.dim);
     this.labels.get('status')!.color = col(bright ? '#123844' : C.white);
     this.labels.get('health')!.fontSize = s.duelMode ? 10 : 13;
-    this.set('progress', s.duelMode ? this.t(`我 ${allies - s.friendlyLosses}/8 · 敌 ${s.units.filter(u => !u.friendly && u.hp > 0).length} / 8 · 全灭获胜`, `FOES ${s.units.filter(u => !u.friendly && u.hp > 0).length}/8 · ELIMINATE ALL`) : s.mission.mode === 'training'
+    this.set('progress', s.duelMode ? this.t(`蓝方剩余 ${allies-s.friendlyLosses} · 橙方剩余 ${s.units.filter(u=>!u.friendly&&u.hp>0).length}`,`BLUE ${allies-s.friendlyLosses} · ORANGE ${s.units.filter(u=>!u.friendly&&u.hp>0).length}`) : s.mission.mode === 'training'
       ? this.t(`热身清靶 ${s.kills} / 3 · 友伤 ${Math.round(s.friendlyDamage)}`, `WARMUP ${s.kills}/3 · FRIENDLY ${Math.round(s.friendlyDamage)}`)
       : this.t(`撤离 ${Math.floor(s.ratio * 100)}% · 威胁 ${s.threatsRemaining}`, `ROUTE ${Math.floor(s.ratio * 100)}% · THREATS ${s.threatsRemaining}`));
+    for(const side of [0,1]){const label=this.labels.get('spectator:'+side)!;label.node.active=!!this.online?.spectator;if(label.node.active){const cw=this.w<900?148:190,x=left+side*(cw+8),tint=side?'#efb366':'#7cd4f1',player=this.online!.combatants[side],alive=s.units.filter(u=>(side===0?u.friendly:!u.friendly)&&u.hp>0).length;this.rect(g,x,top+7,cw,59,'#071827df',tint,5);this.rect(g,x+1,top+8,3,57,tint);label.node.setPosition(x+cw/2-w/2,h/2-top-36);label.node.getComponent(UITransform)!.setContentSize(cw-14,52);label.fontSize=this.w<900?14:18;label.lineHeight=this.w<900?21:24;label.isBold=true;label.color=col(C.white);label.string=playerLabel(player).split(' #')[0]+'\n'+this.t(`剩余 ${alive}`,`REMAINING ${alive}`);}}
+    if(this.online?.spectator){this.labels.get('health')!.node.active=false;this.labels.get('progress')!.node.active=false;}
     const clock = Math.floor(s.time);
     const level = s.duelMode || s.mission.mode === 'training' ? 0 : MISSIONS.findIndex(m => m.id === s.mission.id) + 1;
     this.set('status', `${level ? this.t(`第 ${level} 关`, `LEVEL ${level}`) + '\n' : ''}${world.thermal ? this.t('热像', 'IR') : this.t(s.mission.light === 'day' ? '白天' : s.mission.light === 'dusk' ? '黄昏' : '夜间', s.mission.light.toUpperCase())}\n${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);

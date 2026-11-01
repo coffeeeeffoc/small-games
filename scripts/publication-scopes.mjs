@@ -1467,6 +1467,71 @@ export function threeChooseTwoBackendFileScope(file, before, after) {
   return expected === after;
 }
 
+const nightChatMigration = 'infra/migrations/016-night-chat.sql';
+const nightChatBackendChanges = {
+  'scripts/competition-gateway.mjs': [
+    '1ae84127e168f94a7e6c5539dc34ce0ce93bf29fd40f36b2ffd7d55d2683f87b',
+    String.raw`  if (/^\/api\/competition\/v1\/games\/night-overwatch\/chat(?:\/report)?$/.test(pathname))
+    return true;
+`,
+  ],
+  'scripts/competition.mjs': [
+    '4851eb0125f6c5c14dedbe133db178dddbc135f93dabf5924b2e1335fb9f35b2',
+    "  await psql(\n    await readFile(new URL('../infra/migrations/016-night-chat.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n",
+  ],
+  'scripts/platform.mjs': [
+    'd557e68e536132f7164d987565c317f67a92db27a143fe87ee38f4bcf2cd25f2',
+    "    '016-night-chat.sql',\n",
+  ],
+  'scripts/deploy-tencent.mjs': [
+    '567aebb384f1eedd181b2c99eec231e017b0713746dddeda29a701b45800b97f',
+    "    '016-night-chat.sql',\n",
+  ],
+  'scripts/h5-taptap-runtime.mjs': [
+    '3c93037383de7dcaaeaca0bf4bcf26ebf79e5e6763e01101b4bfeef27785e3f9',
+    "  'infra/migrations/016-night-chat.sql',\n",
+    "  'infra/admin-console/migrations/003-night-overwatch-control.sql',\n",
+    "  'infra/admin-console/migrations/004-tetracube-control.sql',\n",
+  ],
+};
+/** Only this migration and its exact consumers; compose the previously reviewed Night packaging delta. */
+export function nightChatBackendFileScope(file, before, after) {
+  before = before?.replaceAll('\r\n', '\n');
+  after = after?.replaceAll('\r\n', '\n');
+  const digest = (value) => createHash('sha256').update(value).digest('hex');
+  if (file === nightChatMigration)
+    return (
+      before == null &&
+      typeof after === 'string' &&
+      digest(after) === '504e7200a99c00d8a300be43983580df094f6f4b8201b76771f0d0d8a887806a'
+    );
+  const change = nightChatBackendChanges[file];
+  if (!change || typeof before !== 'string' || typeof after !== 'string') return false;
+  const [baseHash, ...additions] = change;
+  if (
+    file === 'scripts/h5-taptap-runtime.mjs' &&
+    !after.includes(
+      "  'infra/admin-console/migrations/002-control-center.sql',\n" + additions.slice(1).join(''),
+    )
+  )
+    return false;
+  let stripped = after;
+  for (const addition of additions) {
+    if (stripped.split(addition).length !== 2) return false;
+    stripped = stripped.replace(addition, '');
+  }
+  if (digest(stripped) !== baseHash) return false;
+  return (
+    before === stripped ||
+    (file === 'scripts/competition-gateway.mjs' &&
+      digest(before) === '5058a2adf4cb1fc6b3637f932175e33da718d508d3ca3d6b617b09a87b92a66f' &&
+      nightProgressionFileScope(file, before, stripped)) ||
+    (file === 'scripts/deploy-tencent.mjs' &&
+      digest(before) === '5d9060358752f4cdd154035d4e3568f854396fb7def4520b6081edfabf45e826' &&
+      nightProgressionFileScope(file, before, stripped))
+  );
+}
+
 const playerSessionMigration = 'infra/migrations/014-player-sessions.sql';
 const playerSessionChanges = {
   'scripts/competition.mjs': [
@@ -5305,6 +5370,22 @@ export function reviewedSharedFileScopes({
             assert(packages.some((pkg) => pkg.dir === source));
           scopes.set(file, [
             ...new Set([...consumers, 'apps/company-web', 'services/runtime-api']),
+          ]);
+          continue;
+        }
+      }
+      if (file === nightChatMigration || Object.hasOwn(nightChatBackendChanges, file)) {
+        let before = null;
+        try {
+          before = readBase(file);
+        } catch {}
+        if (nightChatBackendFileScope(file, before, readHead(file))) {
+          for (const source of ['games/local/night-overwatch', 'services/runtime-api'])
+            assert(packages.some((pkg) => pkg.dir === source));
+          scopes.set(file, [
+            'games/local/night-overwatch',
+            'services/runtime-api',
+            ...(file === 'scripts/competition-gateway.mjs' ? ['apps/shell-web'] : []),
           ]);
           continue;
         }

@@ -135,6 +135,15 @@ export function createGameServices({ gameId, ruleVersion }) {
       throw failure('IDENTITY_CHANGED');
     return result;
   }
+  async function nightChatRequest(suffix, body, expectedPlayerId) {
+    if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');
+    const credential = await auth.current();
+    if (expectedPlayerId && credential.playerId !== expectedPlayerId)
+      throw failure('IDENTITY_CHANGED');
+    const result = await request(path + '/chat' + suffix, body, credential);
+    if ((await auth.current()).playerId !== credential.playerId) throw failure('IDENTITY_CHANGED');
+    return result;
+  }
   return {
     config,
     ruleVersion,
@@ -174,8 +183,12 @@ export function createGameServices({ gameId, ruleVersion }) {
       if (room.leaseId) roomLeases.set(room.code, room.leaseId);
       return room;
     },
-    joinRoom: ({ code, password }) =>
-      openRoom('/join', { code, ...(password ? { password } : {}) }),
+    joinRoom: ({ code, password, createdAt }) =>
+      openRoom('/join', {
+        code,
+        ...(password ? { password } : {}),
+        ...(createdAt ? { createdAt } : {}),
+      }),
     spectateRoom: ({ code, password }) =>
       roomRequest(code, 'spectate', password ? { password } : {}),
     connectRoom: ({ code }) => roomRequest(code, 'connect', {}),
@@ -186,6 +199,15 @@ export function createGameServices({ gameId, ruleVersion }) {
       return roomRequest(code, operation, body);
     },
     identity: async () => (await request(path)).identity,
+    nightChat: ({ cursor, waitMs = 0 } = {}, expectedPlayerId) =>
+      nightChatRequest(
+        '?' + new URLSearchParams({ ...(cursor ? { cursor } : {}), waitMs: String(waitMs) }),
+        undefined,
+        expectedPlayerId,
+      ),
+    sendNightChat: (input, expectedPlayerId) => nightChatRequest('', input, expectedPlayerId),
+    reportNightChat: (input, expectedPlayerId) =>
+      nightChatRequest('/report', input, expectedPlayerId),
     async nightAssets(expectedPlayerId) {
       if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');
       const credential = await auth.current();

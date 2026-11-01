@@ -614,8 +614,10 @@ export class Simulation {
     return event;
   }
   private spawn() {
+    let active=this.units.filter(unit=>!unit.friendly&&unit.hp>0).length;
     this.mission.events.forEach((e, i) => {
-      if (!this.spawned.has(i) && (this.time >= e.time || this.ratio >= e.progress)) {
+      if (active<24&&!this.spawned.has(i) && (this.time >= e.time || this.ratio >= e.progress)) {
+        active++;
         this.spawned.add(i);
         this.addUnit(e.kind, landPoint(e, this.mission.map));
         this.lastWave = i;

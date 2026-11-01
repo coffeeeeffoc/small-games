@@ -1573,6 +1573,46 @@
         "mobileDevice": "not-tested",
         "taptapHost": "not-tested"
       }
+    },
+    {
+      "assetId": "ui.progression.reward-atlas",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-11-02/prompts.json",
+      "runtimeAsset": "assets/resources/ui/progression/reward-atlas.png",
+      "license": {
+        "source": "Built-in image_gen; current 17-item design",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-02",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "bytes": 2409856,
+        "sha256": "8f77ac14af443c36ba403a90e00752961cd7bdb9f7cac395c3e2f03147178d5c",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "Wordless illustration crops only; all labels and values are live UI"
+      }
+    },
+    {
+      "assetId": "ui.progression.gear-atlas-v2",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-11-02/prompts.json#runtime_gear_atlas_v2",
+      "runtimeAsset": "assets/resources/ui/progression/gear-atlas-v2.png",
+      "license": {
+        "source": "Built-in image_gen: six transparent standalone brass bullets, ammunition box, blast-range device, drone, cooling reactor, gold coins; no text, labels, UI frames or scenery",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-02",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1774,
+        "height": 887,
+        "hasAlpha": true,
+        "bytes": 2288638,
+        "sha256": "60a96ea404a598104505cc37ca52e6a24b212445e026d278559ac6d3a67416bf",
+        "runtimeUsage": "Individual transparent item sprites, live labels and values"
+      }
     }
   ]
 }

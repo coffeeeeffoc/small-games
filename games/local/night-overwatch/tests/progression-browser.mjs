@@ -1,3 +1,4 @@
+import {scrollPage,scrollToButton} from './scroll-helpers.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir,writeFile } from 'node:fs/promises';
@@ -40,20 +41,21 @@ try{
     }
     await capture('01-home');
     for(const [id,name]of [['loadout','02-loadout'],['modes','03-modes'],['shop','04-shop'],['supply','05-supply'],['growth','06-growth'],['tasks','07-tasks'],['inbox','08-inbox'],['warehouse','10-warehouse'],['checkin','11-checkin'],['probability','12-probability']]){
-      if(id==='probability'){await click('qm:supply');await click('qm:probability');}else await click('qm:'+id);
+      if(id==='probability'){await click('qm:supply');await click('info:pool');}else await click('qm:'+id);
       await capture(name);
-      if(id==='shop'&&(await snapshot(page)).ui.width<660){await click('product:burst-match');await capture('04-detail');}
-      if(id==='inbox'){await click('qm:next');await capture('08-inbox-next');}
+      if(id==='shop'&&(await snapshot(page)).ui.width<660){await scrollToButton(page,'product:burst-match');await click('product:burst-match');await capture('04-detail');await click('qm:back');}
+      if(id==='inbox'){const list=(await snapshot(page)).scrollLists.find(a=>a.key.startsWith('qm:inbox:'));if(list?.max>0)await scrollPage(page,list.key);await capture('08-inbox-scroll');}
       if(id==='warehouse'){await click('qm:sell');await capture('10-sell-confirm');await click('qm:cancel');await click('qm:receipts');await capture('10-open-history');await click('qm:back');}
+      if(id==='probability')await click('qm:infoClose');
       await click('qm:back');
     }
-    await click('qm:shop');if((await snapshot(page)).ui.width<660)await click('product:burst-match');await click('qm:trial');
+    await click('qm:shop');await scrollToButton(page,'product:burst-match');await click('product:burst-match');await click('qm:trial');
     await page.waitForFunction(()=>__night.snapshot().phase==='playing');await capture('13-battle-trial');
     await click('settings');await capture('14-pause');await click('home');await click('exitConfirm');
     assert.equal((await snapshot(page)).modal,'home');
     const trial=async(effect)=>{
       await click('qm:shop');
-      for(let i=0;i<6;i++){if((await snapshot(page)).buttons.some(b=>b.id==='product:'+effect+'-match'))break;await click('qm:next');}
+      for(let i=0;i<6;i++){if((await snapshot(page)).buttons.some(b=>b.id==='product:'+effect+'-match'))break;await scrollPage(page);}
       await click('product:'+effect+'-match');await click('qm:trial');await page.waitForFunction(()=>__night.snapshot().phase==='playing');
     };
     await trial('emp');await capture('15-skill-ready');await click('skillUse');await capture('16-skill-active');

@@ -1,3 +1,4 @@
+import {scrollPage,scrollToButton} from './scroll-helpers.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -118,7 +119,7 @@ try {
       assert(Math.hypot(located.aim.x - urgent.x, located.aim.z - urgent.z) < 1);
       assert.deepEqual(located.held, []);
     }
-    await hit('pause'); await hit('home'); await capture('exit-confirm'); await hit('exitConfirm'); await hit('missions'); await hit('missionsNext');
+    await hit('pause'); await hit('home'); await capture('exit-confirm'); await hit('exitConfirm'); await hit('missions'); await scrollPage(page,'missions');
     await hit('mission:operation-004'); await hit('start'); assert.equal((await snapshot(page)).light, 'dusk');
     await hit('pause'); await hit('home'); await capture('exit-confirm'); await hit('exitConfirm'); await hit('missions');
     await hit('mission:operation-006'); await hit('start');

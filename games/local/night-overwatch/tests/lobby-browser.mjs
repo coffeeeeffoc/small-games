@@ -1,3 +1,4 @@
+import {scrollPage,scrollToButton} from './scroll-helpers.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -69,7 +70,7 @@ try {
   await click(observer, 'online:menu');
   await observer.page.waitForFunction(code => __night.snapshot().online.rooms.some(room => room.code === code), code);
   const roomIndex = (await snapshot(observer.page)).online.rooms.findIndex(room => room.code === code);
-  for (let i = 0; i < Math.floor(roomIndex / 3); i++) await click(observer, 'online:roomNext');
+  for (let i = 0; i < Math.floor(roomIndex / 3); i++) await scrollPage(observer,'rooms');
   await observer.page.waitForFunction(code => __night.snapshot().buttons.some(button => button.id === 'online:watchCode:' + code), code);
   await click(observer, 'online:watchCode:' + code);
   await click(a, 'online:ready'); await click(b, 'online:ready');

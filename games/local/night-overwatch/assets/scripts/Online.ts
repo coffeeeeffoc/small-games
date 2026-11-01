@@ -19,7 +19,9 @@ type Ranking = { top: RankingRow[]; me: RankingRow | null };
 type Recorder = { start(options: { mode: string; levelId: string; practice: boolean }): Promise<{loadout?:BattleLoadout}|null|undefined>;
   record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<Settlement & { accepted?: boolean; fastestEligible?: boolean } | null | undefined>; invalidate(reason?: string): void;
   persist?(): void; recover?(): Promise<void>; pending?: number };
-type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean } };
+export type ChatMessage={id:string;playerId:string;nickname:string;text:string;at:number;room?:{code:string;createdAt:number;canJoin:boolean}};
+export type ChatSnapshot={messages:ChatMessage[];cursor:string;reset:boolean;serverNow:number};
+type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean;chat?:boolean } };
 type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Metadata | undefined>;
   services: { createRoom(input: { mode: string; visibility?: string; password?: string }): Promise<Room>; match(): Promise<Room>; joinRoom(input: { code: string; password?: string }): Promise<Room>;
     listRooms?(): Promise<{ rooms: RoomSummary[] }>; history?(input: { cursor?: string }): Promise<BattleHistory>;
@@ -27,6 +29,9 @@ type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Me
     spectateRoom?(input: { code: string; password?: string }): Promise<Room>;
     getRoom(input: { code: string }): Promise<Room>; roomAction(input: { code: string; operation: string; body?: object }): Promise<Room>;
     nightAssets?(expectedPlayerId?:string):Promise<AssetSnapshot>;nightAssetCommand?(input:AssetCommand,expectedPlayerId?:string):Promise<AssetSnapshot>;
+    nightChat?(input:{cursor?:string;waitMs?:number},expectedPlayerId?:string):Promise<ChatSnapshot>;
+    sendNightChat?(input:{requestId:string;text:string;roomCode?:string},expectedPlayerId?:string):Promise<ChatSnapshot>;
+    reportNightChat?(input:{id:string;reason:string},expectedPlayerId?:string):Promise<unknown>;
     leaderboard(input: { boardId: string;ruleVersion?:string }): Promise<Ranking> };
   createRecorder(version: string, options: { onStatus: (status: string) => void; startTimeoutMs?: number; durable?: { storage: Pick<Storage, 'getItem' | 'setItem'> } }): Recorder };
 const randomBytes = () => {
@@ -46,6 +51,37 @@ export function roomLink(href: string, code: string) {
 
 /** Transport stays in the shared services bridge; this owns only Night's screen and input state. */
 export class Online {
+  chatMessages:ChatMessage[]=[];chatDraft='';chatStatus='';chatRevision=0;chatSending=false;chatAvailable=false;chatMenu='';
+  blockedPlayers=new Set<string>();private chatOwner='';private chatEpoch=0;private chatPoll=false;private chatNext=0;private chatCursor='';private foreground=true;private destroyed=false;
+  private chatIntent?:{requestId:string;text:string;roomCode?:string};
+  panelHistory:Online['panel'][]=[];
+  get visibleChat(){return this.chatMessages.filter(m=>!this.blockedPlayers.has(m.playerId));}
+  setForeground(value:boolean){if(this.foreground===value)return;this.foreground=value;this.chatEpoch++;this.chatNext=0;}
+  private chatAcceptedAt=0;
+  private acceptChat(result:ChatSnapshot){if(result.serverNow<this.chatAcceptedAt)return;this.chatAcceptedAt=result.serverNow;if(JSON.stringify(this.chatMessages)!==JSON.stringify(result.messages)){this.chatMessages=result.messages;this.chatRevision++;}this.chatCursor=result.cursor;}
+  private async pollChat(now:number){
+    if(this.destroyed||!this.foreground||this.panel!=='menu'||!this.chatAvailable||!this.bridge?.services.nightChat||this.chatPoll||now<this.chatNext)return;
+    const epoch=this.chatEpoch,owner=this.authenticatedId;this.chatPoll=true;
+    try{const result=await this.bridge.services.nightChat({cursor:this.chatCursor||undefined,waitMs:this.chatCursor?5000:0},owner);if(epoch!==this.chatEpoch||owner!==this.authenticatedId||this.destroyed)return;this.acceptChat(result);this.chatStatus='';this.chatNext=performance.now()+200;}
+    catch{if(epoch===this.chatEpoch){this.chatStatus='交流暂不可用，正在重连';this.chatNext=performance.now()+4000;this.chatRevision++;}}
+    finally{this.chatPoll=false;}
+  }
+  async sendChat(invite=false){
+    if(this.chatSending||!this.chatAvailable||!this.bridge?.services.sendNightChat)return;
+    const text=this.chatDraft.normalize('NFKC').trim();
+    if(!this.chatIntent&&(!text&&!invite||Array.from(text).length>120)){this.chatStatus='请输入1–120个字';this.chatRevision++;return;}
+    const room=invite?this.room:undefined;
+    if(invite&&(!room||room.visibility!=='public'||room.status!=='waiting'||room.players[0]&&playerId(room.players[0])!==this.authenticatedId)){this.chatStatus='只有自己创建的公开等待房间可以邀请';this.chatRevision++;return;}
+    if(!this.chatIntent){const bytes=randomBytes();bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');this.chatIntent={requestId:`${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`,text:text||(invite?'来我的房间，一起出动！':''),...(room?{roomCode:room.code}:{})};}
+    const owner=this.authenticatedId,intent=this.chatIntent;this.chatSending=true;this.chatRevision++;
+    try{const result=await this.bridge.services.sendNightChat(intent,owner);if(owner!==this.authenticatedId||this.destroyed)return;this.chatEpoch++;this.chatNext=0;this.acceptChat(result);this.chatIntent=undefined;if(this.chatDraft.normalize('NFKC').trim()===intent.text)this.chatDraft='';this.chatStatus='';}
+    catch(error){if(owner!==this.authenticatedId||this.destroyed)return;const code=(error as {code?:string}).code||'';const known=['CHAT_RATE_LIMIT','CHAT_MUTED','INVALID_INPUT','INVITATION_UNAVAILABLE','REQUEST_ID_CONFLICT'].includes(code);if(known)this.chatIntent=undefined;this.chatStatus=code==='CHAT_RATE_LIMIT'?'发言间隔3秒，请稍后再发':code==='CHAT_MUTED'?'当前账号暂时无法发言':code==='INVITATION_UNAVAILABLE'?'房间已不再接受邀请':known?'消息未发送，请检查内容':'发送结果待确认，点击发送可安全重试';}
+    finally{if(owner===this.authenticatedId){this.chatSending=false;this.chatRevision++;}}
+  }
+  toggleBlock(id:string){if(id===this.authenticatedId)return;this.blockedPlayers.has(id)?this.blockedPlayers.delete(id):this.blockedPlayers.add(id);try{this.storage.setItem('night-chat-blocks:'+this.authenticatedId,JSON.stringify(Array.from(this.blockedPlayers)));}catch{}this.chatMenu='';this.chatRevision++;}
+  async reportChat(id:string){const owner=this.authenticatedId;try{await this.bridge?.services.reportNightChat?.({id,reason:'玩家举报：不适当或骚扰内容'},owner);if(owner===this.authenticatedId)this.chatStatus='举报已提交';}catch{if(owner===this.authenticatedId)this.chatStatus='举报失败，请稍后重试';}if(owner===this.authenticatedId){this.chatMenu='';this.chatRevision++;}}
+  back(){this.show(this.panelHistory.pop()||'',false);}
+  dispose(){this.destroyed=true;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';}
   identity: Player;
   panel: '' | 'menu' | 'room' | 'ranking' | 'profile' | 'create' | 'join' | 'history' = '';
   rooms: RoomSummary[] = [];
@@ -73,7 +109,7 @@ export class Online {
   rankStatus = 'local';
   assets?:AssetSnapshot;
   battleReward?:Settlement;
-  rankingVersion='night-growth-v1';
+  rankingVersion='night-campaign-v2';
   authenticatedId='';
   level = 0;
   ranking?: Ranking;
@@ -168,11 +204,12 @@ export class Online {
   private acceptMetadata(metadata: Metadata | undefined) {
     if (!metadata) return;
     const owner=playerId(metadata.identity);
-    if(owner!==this.authenticatedId){this.assets=undefined;this.battleReward=undefined;this.authenticatedId=owner;}
+    if(owner!==this.authenticatedId){this.assets=undefined;this.battleReward=undefined;this.authenticatedId=owner;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.chatIntent=undefined;this.chatSending=false;this.chatMenu='';this.chatCursor='';this.chatAcceptedAt=0;this.chatStatus='';this.chatOwner=owner;this.chatRevision++;this.blockedPlayers=new Set();try{this.blockedPlayers=new Set(JSON.parse(this.storage.getItem('night-chat-blocks:'+owner)||'[]'));}catch{}}
     this.identity = metadata.identity;
     this.draftName = this.identity.nickname || this.identity.name || '';
     this.available = metadata.capabilities.multiplayer;
     this.ranked = metadata.capabilities.leaderboards;
+    this.chatAvailable=!!metadata.capabilities.chat&&!!this.bridge?.services.nightChat;
     this.revision++;
   }
   assetsReceivedAt=0;
@@ -192,13 +229,16 @@ export class Online {
   get active() { return !!this.view; }
   get spectator() { return !!this.room?.spectator || this.room?.you === -1; }
   get entering() { return this.active && performance.now() < this.enteringUntil; }
+  get combatants():Player[]{const seat=this.view?.you??(this.room?.you===1?1:0);return [this.room?.players[seat]||this.identity,this.room?.players[1-seat]||this.opponent];}
   get opponent(): Player { return this.room?.players[this.room.you === 1 ? 0 : 1]
     || (this.view?.bot ? { id: 'bot-' + this.view.seed, name: '训练机器人' } : { name: '等待对手' }); }
   get offlineNotice() {
     const player = this.room?.players.find((p, i) => p.disconnected && (this.spectator || i !== this.room?.you));
     return player ? (player.nickname || player.name || '对方') + ' 已下线' : '';
   }
-  show(panel: Online['panel']) {
+  show(panel: Online['panel'],push=true) {
+    if(push&&panel&&panel!==this.panel)this.panelHistory.push(this.panel);
+    if(panel!==this.panel){this.chatEpoch++;this.chatNext=0;}
     if (panel === 'profile') this.draftName = this.identity.nickname || this.identity.name || '';
     this.panel = panel; this.message = ''; this.revision++;
   }
@@ -233,7 +273,7 @@ export class Online {
         this.storage.setItem('night-overwatch-pilot-v1', JSON.stringify(this.identity));
       }
       this.message = this.available ? '昵称已保存' : '昵称已保存在本机'; this.draftName = this.identity.nickname || this.identity.name || nickname;
-      if (this.panel === 'profile') this.panel = '';
+      if (this.panel === 'profile') this.back();
     } catch { this.message = '昵称保存失败，请重试'; }
     finally { this.busy = false; this.revision++; }
   }
@@ -251,7 +291,7 @@ export class Online {
     } catch { if (generation === this.generation) this.message = '对战记录读取失败，请重试'; }
     finally { if (generation === this.generation) { this.busy = false; this.revision++; } }
   }
-  async open(kind: 'friend' | 'match' | 'join' | 'bot' | 'watch' | 'resume', code?: string) {
+  async open(kind: 'friend' | 'match' | 'join' | 'bot' | 'watch' | 'resume', code?: string,createdAt?:number) {
     if (this.busy || this.active || this.room) return;
     if (kind === 'friend' && this.privateRoom && (this.draftPassword.length < 4 || this.draftPassword.length > 64)) {
       this.message = '私密房密码需要 4–64 个字符'; this.revision++; return;
@@ -268,7 +308,7 @@ export class Online {
         if (kind === 'bot') { this.busy = false; this.startBot(performance.now()); return; }
         this.message = '联机服务暂不可用，可选择本地人机练习'; return;
       }
-      const services = this.bridge.services, input = { code: code || this.draftCode.trim().toUpperCase(), password: this.draftPassword || undefined };
+      const services = this.bridge.services, input = { code: code || this.draftCode.trim().toUpperCase(), password: this.draftPassword || undefined,createdAt };
       const room = await this.requestRoom(async () => {
         if (generation !== this.generation) return;
         if (this.releasing) await this.releaseRoom(this.releasing);
@@ -345,6 +385,7 @@ export class Online {
     });
   }
   async pump(now: number) {
+    void this.pollChat(now);
     if (now >= this.syncAt) { this.syncAt = now + 10000; void this.recorder?.recover?.(); }
     if (this.replaced) return;
     if (this.bot) {
@@ -419,11 +460,12 @@ export class Online {
     this.view = view; if (start) this.panel = '';
     this.changed(view, start);
   }
+  async cycleRankingVersion() { this.rankingVersion=this.rankingVersion==='night-campaign-v2'?'night-growth-v1':this.rankingVersion==='night-growth-v1'?'night-records-v1':'night-campaign-v2';await this.loadRanking(); }
   async loadRanking(level = this.level, board = this.board) {
     const request = ++this.rankingRequest;
     this.board = board;
     this.level = Math.max(0, Math.min(MISSIONS.length - 1, level));
-    this.panel = 'ranking'; this.ranking = undefined; this.message = ''; this.revision++;
+    if(this.panel!=='ranking')this.show('ranking'); this.ranking = undefined; this.message = ''; this.revision++;
     const ownLevel = this.level, ownBoard = this.board, ownVersion=this.rankingVersion;
     try {
       if (!this.ranked) this.acceptMetadata(await this.bridge?.refresh?.());

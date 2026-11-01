@@ -29,6 +29,7 @@ if (mode === 'stop') {
     '013-competition-identities.sql',
     '014-player-sessions.sql',
     '015-generic-content-drafts.sql',
+    '016-night-chat.sql',
   ])
     await run(
       'docker',

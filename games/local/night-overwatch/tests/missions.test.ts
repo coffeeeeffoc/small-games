@@ -8,7 +8,7 @@ const tick = (s: Simulation, seconds: number) => {
 };
 
 test('introductory missions use fewer stationary targets in daylight before dusk and night', () => {
-  assert.deepEqual(MISSIONS.slice(0, 6).map(m => m.events.length), [4, 6, 8, 12, 16, 24]);
+  assert.deepEqual(MISSIONS.slice(0, 6).map(m => m.events.length), [4, 6, 8, 12, 16, 20]);
   assert.deepEqual(MISSIONS.slice(0, 7).map(m => m.light), ['day', 'day', 'day', 'dusk', 'dusk', 'night', 'day']);
   for (const mission of MISSIONS.slice(0, 3)) {
     const sim = new Simulation(mission.id); sim.start();
@@ -21,16 +21,31 @@ test('introductory missions use fewer stationary targets in daylight before dusk
     assert.equal(sim.guns[1].ammo, WEAPONS[1].ammo);
   }
   const ambush = new Simulation('operation-008'); ambush.start(); ambush.convoy = 'holding';
-  assert.equal(ambush.spawned.size, 8);
-  assert.equal(ambush.threatsRemaining, 24);
-  ambush.pause('manual', true); tick(ambush, 80); assert.equal(ambush.spawned.size, 8);
-  ambush.pause('manual', false); tick(ambush, 72.1); assert.equal(ambush.spawned.size, 16);
+  const initial=ambush.mission.events.filter(e=>e.time===0).length;
+  assert.equal(ambush.spawned.size, initial);
+  assert.equal(ambush.threatsRemaining, ambush.mission.events.length);
+  ambush.pause('manual', true); tick(ambush, 80); assert.equal(ambush.spawned.size, initial);
+  ambush.pause('manual', false); tick(ambush, 36.1); assert.equal(ambush.spawned.size, ambush.mission.events.length);
   assert.equal(nextMission('patrol-03'), 'operation-004');
   assert.equal(nextMission(MISSIONS.at(-1)!.id), MISSIONS.at(-1)!.id);
   assert.equal(missionDefinition('old-preference').id, 'corridor-01');
 });
+test('campaign grows monotonically with bounded waves and active contacts',()=>{
+  assert.equal(MISSIONS.at(-1)!.events.length,96);
+  MISSIONS.forEach((m,i)=>{if(i)assert(m.events.length>=MISSIONS[i-1].events.length);const waves=new Map<number,number>();for(const e of m.events)waves.set(e.time,(waves.get(e.time)||0)+1);if(i>=5)assert([...waves.values()].every(n=>n<=18));});
+  const active=(s:Simulation)=>s.units.filter(u=>!u.friendly&&u.hp>0);
+  for(const trigger of ['time','progress']){
+    const s=new Simulation(MISSIONS.at(-1)!.id);s.start();s.convoy='holding';
+    if(trigger==='time')s.time=250;else s.progress=1e5;
+    s.step(1/60);assert.equal(active(s).length,24);assert.equal(s.mission.events.length-s.spawned.size,72);
+    const spawned=s.spawned.size;s.step(1/60);assert.equal(s.spawned.size,spawned);
+    active(s)[0].hp=0;s.step(1/60);assert.equal(s.spawned.size,spawned+1);assert.equal(active(s).length,24);
+    s.pause('manual',true);active(s)[0].hp=0;s.step(1/60);assert.equal(s.spawned.size,spawned+1);
+    s.pause('manual',false);s.step(1/60);assert.equal(s.spawned.size,spawned+2);assert.equal(active(s).length,24);
+  }
+});
 
-for (const mission of MISSIONS) test(`${mission.name[0]} can be completed with finite ammunition and every friendly group surviving`, (t) => {
+for (const mission of MISSIONS) test(`${mission.name[0]} can be completed with basic weapons without resupply and every friendly group surviving`, (t) => {
   const s = new Simulation(mission.id); s.start();
   const pending = new Map<number, { unit: number; damage: number }>();
   for (let n = 0; n < s.mission.duration * 60 && s.phase === 'playing'; n++) {
@@ -63,6 +78,7 @@ for (const mission of MISSIONS) test(`${mission.name[0]} can be completed with f
       break;
     }
     s.step(1 / 60);
+    assert(s.units.filter(u=>!u.friendly&&u.hp>0).length<=24);
   }
   t.diagnostic(JSON.stringify({ mission: mission.id, phase: s.phase, time: s.time, kills: s.kills,
     fired: s.fired, friendlyDamage: s.friendlyDamage, ammo: s.guns.map((g) => g.ammo) }));

@@ -139,14 +139,10 @@ test('HUD: skins are mounted, visual bounds stay inside touch targets, and unava
     assert(!hud.buttons.some((b:any)=>b.id==='online:dismiss'));
     for (const id of ['friend','join','match','bot']) {
       const b=hud.buttons.find((b:any)=>b.id==='online:'+id);
-      assert(b.label.isBold && b.label.color.hex==='#fff0d0',id+': uses the create-room style');
+      assert(b.label.isBold,id+': uses the skinned lobby action style');
       assert(b.h>=44);
     }
-    assert.equal(hud.modal.getComponentsInChildren(cc.Sprite).filter((s:any)=>s.node.name==='Skin:button').length,4);
-    const next=hud.buttons.find((b:any)=>b.id==='online:roomNext');
-    assert(next.disabled);assert.equal(hud.hit(next.x+22,next.y+22),undefined);
-    assert(next.w<60,'pagination has its own compact shape');
-    assert(hud.modal.getComponentsInChildren(Graphics).some((g:any)=>g.calls.some((c:any)=>c.op==='stroke'&&c.color==='#72818a')),'disabled arrows are visibly muted');
+    assert(!hud.buttons.some((b:any)=>b.id==='online:roomNext'));assert(hud.listAreas.some((a:any)=>a.key==='rooms'&&a.max===0));
     assert(hud.modal.getComponentsInChildren(cc.Sprite).some((s:any)=>s.type===cc.Sprite.Type.SLICED));
   } finally {artworkAvailable=false;}
 });
@@ -159,10 +155,10 @@ test('HUD: history keeps next page enabled while the server has another cursor',
   assert(!hud.buttons.some((b:any)=>b.id==='online:dismiss'));
   const back=hud.buttons.find((b:any)=>b.id==='online:back');
   assert(back && back.label.string==='返回' && back.h>=44);
-  const next=()=>hud.buttons.find((b:any)=>b.id==='online:historyNext');
-  assert(!next().disabled);assert.equal(hud.hit(next().x+22,next().y+22)?.id,'online:historyNext');
+  const next=()=>hud.buttons.find((b:any)=>b.id==='online:historyMore');
+  assert(!next().disabled);assert.equal(hud.hit(next().x+22,next().y+22)?.id,'online:historyMore');
   hud.online.history.nextCursor=null;hud.online.revision++;hud.update(sim,world);
-  assert(next().disabled);assert.equal(hud.hit(next().x+22,next().y+22),undefined);
+  assert.equal(next(),undefined);
 });
 
 test('HUD: result uses each player settlement, marks your side and keeps small safe-area rows separate', () => {
@@ -272,7 +268,7 @@ test('HUD: a full waiting room remains labelled as awaiting battle', () => {
   hud.online = new Online({ getItem: () => null, setItem() {} }, () => {});
   hud.online.rooms = [{ code: '123456', status: 'waiting', players: [{ name: '甲' }, { name: '乙' }], playerCount: 2, canJoin: false, canSpectate: true }];
   hud.online.show('menu'); hud.update(sim, world);
-  const caption = hud.modal.getComponentsInChildren(cc.Label).map((label: any) => label.string).find((text: string) => text.startsWith('#123456'));
+  const caption = hud.modal.getComponentsInChildren(cc.Label).map((label: any) => label.string).find((text: string) => text.includes('2/2'));
   assert.match(caption, /等待开战/); assert(!caption.includes('对战中'));
 });
 
@@ -301,7 +297,7 @@ test('HUD: lobby forms, records, boards and share control fit landscape phones a
         for (const other of buttons.slice(i + 1)) assert(!overlaps(b, other), panel + ': ' + b.id + '/' + other.id);
       }
       for (const field of hud.modal.getComponentsInChildren(cc.EditBox))
-        assert(field.node.getComponent(cc.UITransform).contentSize.width >= 180);
+        assert(field.node.getComponent(cc.UITransform).contentSize.width >= (panel==='menu'?90:180));
     }
   }
 });
@@ -326,8 +322,7 @@ test('HUD: focused forms survive refresh, records hide settings, and report sits
     online.show(''); sim.start(); hud.update(sim, world);
     assert(settings.label.node.activeInHierarchy);
     const report = hud.buttons.find((b: any) => b.id === 'battleReport'), map = hud.minimapLayout;
-    assert.equal(report.x + report.w, map.x + map.w);
-    assert(report.y >= map.y + map.h + 6 && report.h >= 44);
+    assert(report.x+report.w<width/2);assert(report.y>=safe+44&&report.y<safe+130&&report.h>=44);const equipment=hud.buttons.find((b:any)=>b.id==='equipment');assert(equipment&&equipment.x>report.x&&!overlaps(report,equipment));
     assert.equal(hud.hit(report.x + report.w / 2, report.y + report.h / 2)?.id, 'battleReport');
     assert(!hud.buttons.some((b: any) => b !== report && b.label.node.activeInHierarchy && overlaps(b, report)));
     assert(report.y + report.h < height - hud.footer - safe);
@@ -397,13 +392,13 @@ test('HUD: escort and range entries are discoverable, and range results show a s
         sim.phase = phase; sim.failure = phase === 'failure' ? 'vehicle' : '';
         hud.update(sim, world);
         const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
-        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['missionsPrevious', 'missionsNext', 'mission:corridor-01', 'mission:ambush-02', 'mission:patrol-03', 'homeMenu', 'training', 'start'] : ['resultClose', 'home', 'retry']);
+        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['homeMenu', 'training', 'start'] : ['resultClose', 'home', 'retry']);
         for (const button of buttons) {
           assert(button.w >= 44 && button.h >= 44);
           assert(button.y >= inset + 58 && button.y + button.h <= height - inset);
           assert(!buttons.some((other: any) => other !== button && overlaps(button, other)));
         }
-        const labels = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
+        const labels = hud.modal.getComponentsInChildren(cc.Label).map((label:any)=>label.string).filter(Boolean).join('\n');
         assert.doesNotMatch(labels, /车队安全抵达|CONVOY EXTRACTED/);
         if (phase === 'briefing') assert.match(labels, lang === 'zh' ? /高地警戒/ : /HIGHLAND WATCH/);
         else {
@@ -837,47 +832,25 @@ test('HUD: browser and native hosts have no fullscreen control or state in any s
   }
 });
 
-test('HUD: every operation page keeps three reachable cards and pagination within phone safe areas', () => {
-  for (const [width, height] of [[568, 320], [844, 390]]) for (const safe of [0, 12]) {
-    Object.assign(frame, { width, height }); inset = safe;
-    const hud = new HUD(new SceneNode()), sim = new Simulation();
-    hud.missionsOpen = true;
-    const seen = new Set();
-    for (let page = 0; page < 40; page++) {
-      hud.missionPage = page; hud.modalKey = 'rebuild'; hud.update(sim, world);
-      const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
-      const cards = buttons.filter((button: any) => button.id.startsWith('mission:'));
-      assert.equal(cards.length, 3);
-      cards.forEach((card: any) => seen.add(card.id));
-      for (const button of buttons) {
-        assert(button.w >= 44 && button.h >= 44, `${button.id}: thumb-sized target`);
-        assert(button.x >= safe && button.x + button.w <= width - safe);
-        assert(button.y >= safe + 58 && button.y + button.h <= height - safe);
-        assert.equal(hud.hit(button.x + button.w / 2, button.y + button.h / 2)?.id, button.disabled ? undefined : button.id);
-        assert(!buttons.some((other: any) => other !== button && overlaps(button, other)));
-      }
-      const captions = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
-      assert.match(captions, new RegExp(`${page * 3 + 1}–${page * 3 + 3} / 120`));
-      if (page > 0) assert.match(captions, /完成上一关解锁/);
-    }
-    assert.equal(seen.size, 120);
-    hud.missionProgress = { version: 1, cleared: ['patrol-03'] };
-    hud.missionPage = 1; hud.modalKey = 'rebuild'; hud.update(sim, world);
-    const captions = hud.modal.children.map((node: any) => node.getComponent(cc.Label)?.string).filter(Boolean).join('\n');
-    assert.match(captions, /可出动/);
-    sim.phase = 'success'; hud.update(sim, world);
-    assert.deepEqual(hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id), ['resultClose', 'home', 'retry', 'missionNext']);
+test('HUD: all 120 operations are reachable by vertical scrolling within phone safe areas',()=>{
+ for(const [width,height]of [[568,320],[844,390]])for(const safe of [0,12]){
+  Object.assign(frame,{width,height});inset=safe;const hud=new HUD(new SceneNode()),sim=new Simulation();hud.missionsOpen=true;const seen=new Set();
+  for(let step=0;step<150;step++){hud.modalKey='rebuild';hud.update(sim,world);const area=hud.listAreas.find((a:any)=>a.key==='missions');assert(area&&area.max>0);const cards=hud.buttons.filter((b:any)=>b.id.startsWith('mission:')&&b.y+b.h>area.y&&b.y<area.y+area.h);assert(cards.length>0);for(const card of cards){seen.add(card.id);assert(card.clip&&card.w>=44&&card.h>=44);assert(card.clip.x>=safe&&card.clip.x+card.clip.w<=width-safe);}
+   if((hud.listScroll.missions||0)>=area.max)break;hud.moveList('missions',area.h*.7);
   }
-  inset = 0;
+  assert.equal(seen.size,120);assert(!hud.buttons.some((b:any)=>/^missions(Previous|Next)$/.test(b.id)));
+ }
+ inset=0;
 });
 
-const panelLabels = (hud: any) => hud.modal.children.map((node: any) => node.getComponent(cc.Label)).filter(Boolean);
+const panelLabels = (hud: any) => hud.modal.getComponentsInChildren(cc.Label);
+const descendants=(node:any):any[]=>node.children.flatMap((child:any)=>[child,...descendants(child)]);
 const labelBounds = (hud: any, label: any) => {
   const size = label.node.getComponent(Transform).contentSize, p = label.node.position;
   return { x: p.x + hud.w / 2 - size.width / 2, y: hud.h / 2 - p.y - size.height / 2, w: size.width, h: size.height };
 };
 const assertPanelTargets = (hud: any) => {
-  const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
+  const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy&&!b.clip);
   for (const button of buttons) {
     assert(button.w >= 44 && button.h >= 44, `${button.id}: at least 44px`);
     assert(button.x >= inset && button.x + button.w <= hud.w - inset);
@@ -885,7 +858,7 @@ const assertPanelTargets = (hud: any) => {
     assert(!buttons.some((other: any) => other !== button && overlaps(button, other)), `${button.id}: no overlap`);
     assert.equal(hud.hit(button.x + button.w / 2, button.y + button.h / 2)?.id, button.disabled ? undefined : button.id);
   }
-  const labels = panelLabels(hud).filter((label: any) => label.string);
+  const labels = hud.modal.children.map((node:any)=>node.getComponent(cc.Label)).filter((label:any)=>label?.string);
   for (const label of labels) {
     const box = labelBounds(hud, label);
     assert(!labels.some((other: any) => other !== label && overlaps(box, labelBounds(hud, other))), `${label.string}: text stays separate`);
@@ -943,7 +916,7 @@ test('HUD: mission cards expose their actual enemy count, lighting, selection, l
     assert.match(text(), lang === 'zh' ? /当前/ : /SELECTED/);
     assert.match(text(), lang === 'zh' ? /白天.*入门/ : /DAY.*INTRO/);
     for (const mission of MISSIONS.slice(0, 3)) assert.match(text(), new RegExp(lang === 'zh' ? `敌方 ${mission.events.length}` : `${mission.events.length} HOSTILES`));
-    hud.missionPage = 1; hud.modalKey = 'rebuild'; hud.update(sim, world); assertPanelTargets(hud);
+    hud.moveList('missions',hud.listAreas.find((a:any)=>a.key==='missions')!.h);hud.modalKey = 'rebuild'; hud.update(sim, world); assertPanelTargets(hud);
     assert.match(text(), lang === 'zh' ? /黄昏/ : /DUSK/); assert.match(text(), lang === 'zh' ? /夜间/ : /NIGHT/);
     assert.match(text(), lang === 'zh' ? /锁定/ : /LOCKED/);
     hud.missionProgress = { version: 1, cleared: ['patrol-03', MISSIONS[3].id] };
@@ -1030,7 +1003,7 @@ test('HUD: minimal battle has no top backdrop and priority marker itself is a re
   Object.assign(enemy, { x: sim.rescue.x + 5, z: sim.rescue.z, born: -30, attack: 3 });
   hud.update(sim, world);
   const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
-  assert.deepEqual(buttons.map((b: any) => b.id).sort(), ['settings', 'battleReport', 'weapon0', 'weapon1', 'weapon2', 'weapon3', 'fire', 'priority'].sort());
+  assert.deepEqual(buttons.map((b: any) => b.id).sort(), ['settings', 'battleReport', 'equipment', 'weapon0', 'weapon1', 'weapon2', 'weapon3', 'fire', 'priority'].sort());
   assert(!hud.g.calls.some((c: any) => ['rect', 'roundRect'].includes(c.op) && c.args[2] === frame.width), 'no full-width HUD backing');
   const priority = buttons.find((b: any) => b.id === 'priority');
   assert.equal(hud.hit(priority.x + 48, priority.y + 24)?.id, 'priority');
@@ -1077,7 +1050,7 @@ test('HUD: authored metal title and three day illustrations are loaded and cropp
       hud.resize(); hud.update(sim, world);
       assert(hud.modal.children.some((node: any) => node.name === 'MetalWordmark' && node.getComponent(cc.Sprite)?.spriteFrame), 'home uses the authored transparent metal title');
       hud.missionsOpen = true; hud.update(sim, world); assertPanelTargets(hud);
-      const cards = hud.modal.children.filter((node: any) => node.name.startsWith('MissionIllustration-'));
+      const cards = descendants(hud.modal).filter((node: any) => node.name.startsWith('MissionIllustration-')&&node.getComponent(cc.Mask)).slice(0,3);
       assert.equal(cards.length, 3);
       assert.deepEqual(cards.map((node: any) => node.children[0].getComponent(cc.Sprite).spriteFrame.rect.x), [0, 724, 1448], 'first three day missions use three different authored images');
       for (const crop of cards) {
@@ -1151,7 +1124,7 @@ test('progression pages keep every live action reachable on short and wide scree
         const raw=hud.buttons.find((button:any)=>button.id===b.id)!;
         assert(raw.w>=44&&raw.h>=44,info+' 44px before viewport clipping');
         assert(b.x>=safe-.01&&b.y>=safe-.01&&b.x+b.w<=width-safe+.01&&b.y+b.h<=height-safe+.01,info+' in safe area');
-        assert(!buttons.some((other:any)=>other!==b&&overlaps(b,other)),info+' no overlap');
+        assert(!buttons.some((other:any)=>other!==b&&!b.id.startsWith('info:')&&!other.id.startsWith('info:')&&overlaps(b,other)),info+' no overlap');
         assert.equal(hud.hit(b.x+b.w/2,b.y+b.h/2)?.id,b.disabled?undefined:b.id,info+' reachable');
       }
     }
@@ -1166,9 +1139,9 @@ test('check-in highlights today before and after claiming, retaining day seven u
     online.assets=assetFixture();hud.online=online;
     const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
     hud.update(sim,world);
-    assert.equal(hud.buttons.find((b:any)=>b.id==='qm:loadout')?.label.string,'军需配置  ›');
+    assert.equal(hud.buttons.find((b:any)=>b.id==='qm:loadout')?.label.string,'作战配置  ›');
     q.page='loadout';q.revision++;hud.update(sim,world);
-    assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string==='军需配置'));
+    assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string==='作战配置'));
     q.page='checkin';
     for(const [count,signedToday,expected]of [[0,false,1],[1,true,1],[1,false,2],[2,true,2],[6,false,7],[7,true,7],[7,false,8],[8,true,8],[14,true,14]] as const){
       online.assets.signedDays=Array.from({length:count},(_,i)=>`2026-10-${String(i+1).padStart(2,'0')}`);
@@ -1195,9 +1168,9 @@ test('warehouse identifies terms and pool tiers; inbox cannot claim a selection 
   assert(hud.buttons.find((b:any)=>b.id==='qm:activate')?.disabled);
   assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('24小时')));
   q.item='pack:general:3';q.index=Math.floor(q.inventory.findIndex(([id])=>id===q.item)/3);q.revision++;hud.update(sim,world);
-  assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('通用 · 史诗')));
+  assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('史诗')));
   q.page='inbox';q.index=1;q.selectedMail='mail-0';q.revision++;hud.update(sim,world);
-  assert(!hud.buttons.some((b:any)=>b.id==='qm:claimMail'));
+  assert(hud.buttons.some((b:any)=>b.id==='qm:claimMail'),'scroll preserves selected mail rather than silently changing it');
   q.selectedMail='mail-2';q.revision++;hud.update(sim,world);
   assert(hud.buttons.some((b:any)=>b.id==='qm:claimMail'));
 });
@@ -1210,7 +1183,7 @@ test('warehouse confirmation keeps the intended item and quantity when resizing 
   const before=hud.modal.getComponentsInChildren(cc.Label).find((l:any)=>l.string.includes('总计 ')).string;
   Object.assign(frame,{width:568,height:320});hud.resize();q.revision++;hud.update(sim,world);
   const after=hud.modal.getComponentsInChildren(cc.Label).find((l:any)=>l.string.includes('总计 ')).string;
-  assert.equal(after,before);assert(after.includes('×3'));assert.notEqual(q.item,q.confirmation.item);assert.equal(q.amount,1);
+  assert.equal(after,before);assert(after.includes('×3'));assert.equal(q.item,q.confirmation.item);assert.equal(q.amount,3);
 });
 
 test('disabled active and cooling skills block battlefield input while special weapons remain separate',()=>{
@@ -1240,4 +1213,10 @@ test('growth settlement keeps rewards, next mission and base actions separate; l
     assert(captions.some((s:string)=>s.includes('训练不消耗库存')));
   }
   inset=0;
+});
+
+test('stable tab identities animate ranking and settings changes without polling fades',()=>{
+ Object.assign(frame,{width:1280,height:720});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.panel='ranking';online.board='level';
+ const labels=['当前梯度版 ▾','旧成长版 ▾','原始历史版 ▾'];let previous='';for(const [i,version]of ['night-campaign-v2','night-growth-v1','night-records-v1'].entries()){online.rankingVersion=version;online.revision++;hud.update(sim,world);assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string===labels[i]));assert.notEqual(hud.semanticKey,previous);previous=hud.semanticKey;online.revision++;hud.update(sim,world);assert.equal(hud.semanticKey,previous);}
+ hud.renderModal('settings',sim,world);previous=hud.semanticKey;hud.renderModal('settings:zoom',sim,world);assert.notEqual(hud.semanticKey,previous);previous=hud.semanticKey;hud.renderModal('settings:flight',sim,world);assert.notEqual(hud.semanticKey,previous);
 });

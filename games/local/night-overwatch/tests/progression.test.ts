@@ -4,7 +4,7 @@ import test from 'node:test';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { createDuel, configureDuel, commandDuel, advanceDuel, viewDuel } from '../assets/scripts/core/Duel.ts';
 import { createNightReplay, applyNightReplay, nightReplayResult } from '../assets/scripts/core/Replay.ts';
-import { CATALOG, PACKAGES, POOLS, GROWTH_VERSION, practiceLoadout, validLoadout, levelProgress, attackPreview, type Effect } from '../assets/scripts/core/Progression.ts';
+import { CATALOG, PACKAGES, POOLS, WHEEL_PRIZES, eligibleDrops, GROWTH_VERSION, practiceLoadout, validLoadout, levelProgress, attackPreview, type Effect } from '../assets/scripts/core/Progression.ts';
 import { FIRE_ZONE, MAP, PROTECTED, UNITS, WEAPONS } from '../assets/scripts/core/Data.ts';
 import { muzzlePosition, shotPosition } from '../assets/scripts/core/Flight.ts';
 import { bestTrainingRecord, readTrainingRecord } from '../assets/scripts/core/TrainingRecords.ts';
@@ -12,16 +12,29 @@ const setup = (effects: Effect[]) => {
   const sim=new Simulation('training-60');sim.applyLoadout({version:GROWTH_VERSION,level:1,effects,skipped:[]});sim.start();
   sim.units=sim.units.filter(u=>u.friendly);sim.convoy='holding';sim.addUnit('turret',{x:150,z:90});return sim;
 };
-test('slot limits deduplicate effects across terms and source pools cannot yield gold-exclusive mods',()=>{
+test('slot limits deduplicate effects and all sources share level-gated contents',()=>{
   assert(validLoadout({mods:['burst-match','twin-match'],weapon:'drone-match',skill:'emp-permanent'}));
   assert(!validLoadout({mods:['power-match','power-permanent'],weapon:null,skill:null}));
   assert(!validLoadout({mods:['burst-match','twin-match','rate-match'],weapon:null,skill:null}));
   assert(!validLoadout({mods:[],weapon:'emp-match',skill:null}));
-  assert(POOLS.general.effects.every(e=>!['burst','twin'].includes(e)));
+  assert.deepEqual(POOLS.general,POOLS.gold);
+  assert(eligibleDrops(CATALOG,3,11,[]).length===0);
+  assert.deepEqual(eligibleDrops(CATALOG,3,12,[]).map(p=>p.effect),['burst']);
+  assert.deepEqual(eligibleDrops(CATALOG,3,15,['burst']).map(p=>p.effect),['twin']);
+  assert(eligibleDrops(CATALOG,1,50,[]).every(p=>p.category!=='skill'));
   assert.deepEqual(PACKAGES.map(p=>p.quantity),[1,3,5,10,20]);
   const minCost=Math.min(...PACKAGES.map(p=>p.coins/p.quantity));
   assert(CATALOG.filter(p=>p.term==='match').every(p=>p.sell<minCost));
   assert(levelProgress(1000).level>levelProgress(0).level);
+});
+test('all level and permanent ownership combinations stay below package cost, including currency substitutes',()=>{
+  const gear=CATALOG.filter(p=>p.term==='match'&&p.category!=='skill');
+  for(let level=1;level<=50;level++)for(let mask=0;mask<1<<gear.length;mask++){
+    const owned=gear.filter((_,i)=>mask&(1<<i)).map(p=>p.effect);
+    const value=POOLS.general.weights.reduce((sum,weight,tier)=>{const items=eligibleDrops(CATALOG,tier,level,owned);const recycle=items.length?items.reduce((n,p)=>n+p.sell,0)/items.length:POOLS.general.coinDrops[tier];return sum+weight*Math.max(40,recycle)/100;},0);
+    assert(value<=114+1e-9);assert(value<160);
+  }
+  assert.equal(WHEEL_PRIZES.reduce((sum,p)=>sum+p.weight,0),100);
 });
 test('two bursts and twin trajectories pay one round and heat charge, cannot fire for free, preserve snapshot',()=>{
   const sim=setup(['burst','twin']);sim.choose(1);sim.setAim({x:-80,z:-40});

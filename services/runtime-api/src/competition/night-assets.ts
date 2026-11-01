@@ -25,6 +25,7 @@ type Product = {
   name: string;
   description: string;
   goldOnly: boolean;
+  unlockLevel?: number;
 };
 export type ProgressionRules = {
   version: string;
@@ -35,6 +36,7 @@ export type ProgressionRules = {
     { name: string; packSell: number; coinDrops: number[]; weights: number[]; effects: string[] }
   >;
   skills: Record<string, { duration: number; cooldown: number; level: number }>;
+  wheelPrizes?: Array<{ coins: number; tier: number; weight: number }>;
   levelProgress(xp: number): { level: number; current: number; required: number };
   validLoadout(value: unknown): boolean;
 };
@@ -66,6 +68,7 @@ type Mail = {
   reward: Reward;
 };
 type VideoOrder = {
+  purpose?: 'packs' | 'wheel';
   id: string;
   quantity: number;
   required: number;
@@ -98,6 +101,8 @@ export type NightAssets = {
   mail: Mail[];
   videoOrders: VideoOrder[];
   videoDays: Record<string, number>;
+  wheelTickets?: number;
+  wheelVideoDays?: Record<string, number>;
   reservations: Record<string, Reservation>;
   legacy?: Record<string, unknown>;
   migratedAt: number;
@@ -124,8 +129,19 @@ export const nightAssetCommandSchema = z.discriminatedUnion('kind', [
       pool: z.enum(['general', 'gold']).default('general'),
     })
     .strict(),
-  z.object({ kind: z.literal('ad-order'), requestId, quantity }).strict(),
+  z
+    .object({
+      kind: z.literal('ad-order'),
+      requestId,
+      quantity,
+      purpose: z.enum(['packs', 'wheel']).optional(),
+    })
+    .strict(),
+  z.object({ kind: z.literal('wheel-spin'), requestId }).strict(),
   z.object({ kind: z.literal('ad-start'), requestId, orderId: z.uuid() }).strict(),
+  z
+    .object({ kind: z.literal('ad-cancel'), requestId, orderId: z.uuid(), attemptId: z.uuid() })
+    .strict(),
   z
     .object({ kind: z.literal('ad-complete'), requestId, orderId: z.uuid(), attemptId: z.uuid() })
     .strict(),
@@ -440,6 +456,7 @@ async function save(tx: Tx, owner: string, w: NightAssets) {
   );
 }
 const publicOrder = (order: VideoOrder) => ({
+  ...(order.purpose ? { purpose: order.purpose } : {}),
   id: order.id,
   quantity: order.quantity,
   required: order.required,
@@ -450,6 +467,13 @@ const publicOrder = (order: VideoOrder) => ({
   ...(order.attempt ? { attempt: order.attempt } : {}),
 });
 function snapshot(w: NightAssets, owner: string, at: number, rules: ProgressionRules) {
+  const inventory: Record<string, number> = {},
+    free: Record<string, number> = {};
+  for (const [id, n] of Object.entries(w.inventory)) {
+    const canonical = id.replace(/^pack:gold:/, 'pack:general:');
+    inventory[canonical] = (inventory[canonical] ?? 0) + n;
+    free[canonical] = (free[canonical] ?? 0) + available(w, id);
+  }
   return {
     playerId: owner,
     version: w.version,
@@ -457,8 +481,8 @@ function snapshot(w: NightAssets, owner: string, at: number, rules: ProgressionR
     xp: w.xp,
     ...rules.levelProgress(w.xp),
     revision: w.revision,
-    inventory: w.inventory,
-    available: Object.fromEntries(Object.keys(w.inventory).map((id) => [id, available(w, id)])),
+    inventory,
+    available: free,
     permanent: w.permanent,
     active: w.active,
     loadouts: w.loadouts,
@@ -547,6 +571,10 @@ export async function nightAssets(
       ...snapshot(w, owner, at, rules),
       devToolsEnabled: development,
       openReceipts,
+      wheelTickets: w.wheelTickets ?? 0,
+      wheelVideosToday: w.wheelVideoDays?.[day] ?? 0,
+      wheelDailyLimit: 5,
+      wheelPrizes: rules.wheelPrizes ?? [],
       ...(lastReceipt ? { lastReceipt } : {}),
     };
   };
@@ -591,6 +619,8 @@ export async function nightAssets(
     result = { ...result, before, after, coinsDelta: cmd.coinsDelta, xpDelta: cmd.xpDelta };
   } else if (cmd.kind === 'buy') {
     const p = rules.catalog.find((p) => p.id === cmd.item) ?? fail('ITEM_UNAVAILABLE');
+    if (rules.levelProgress(w.xp).level < (p.unlockLevel ?? rules.skills[p.effect]?.level ?? 1))
+      fail('LEVEL_LOCKED');
     if (p.term === 'permanent' && (w.permanent.includes(p.effect) || cmd.quantity !== 1))
       fail('ALREADY_OWNED');
     spend(w, p.price * cmd.quantity);
@@ -612,30 +642,45 @@ export async function nightAssets(
       result = {
         ...result,
         coins: -quote.coins,
-        packs: deliverPacks(w, drawPacks(rules, cmd.pool, cmd.quantity)),
+        packs: deliverPacks(w, drawPacks(rules, 'general', cmd.quantity)),
       };
     } else {
-      if (w.videoOrders.filter((o) => !o.delivered).length >= 5) fail('TOO_MANY_ORDERS');
+      if (cmd.purpose === 'wheel' && cmd.quantity !== 1) fail('INVALID_PACKAGE');
+      const wheel = cmd.purpose === 'wheel';
+      if (
+        w.videoOrders.filter((o) => !o.delivered && (o.purpose === 'wheel') === wheel).length >=
+        (wheel ? 1 : 5)
+      )
+        fail('TOO_MANY_ORDERS');
       const order: VideoOrder = {
+        ...(cmd.purpose === 'wheel' ? { purpose: 'wheel' as const } : {}),
         id: randomUUID(),
         quantity: quote.quantity,
-        required: quote.videos,
+        required: cmd.purpose === 'wheel' ? 1 : quote.videos,
         completed: 0,
         delivered: false,
         version: rules.version,
         createdAt: at,
-        grants: drawPacks(rules, 'general', quote.quantity),
+        ...(cmd.purpose === 'wheel' ? {} : { grants: drawPacks(rules, 'general', quote.quantity) }),
       };
       w.videoOrders.push(order);
       result = { ...result, order: publicOrder(order) };
     }
+  } else if (cmd.kind === 'ad-cancel') {
+    const order = w.videoOrders.find((o) => o.id === cmd.orderId) ?? fail('ORDER_NOT_FOUND');
+    if (order.attempt?.id === cmd.attemptId) delete order.attempt;
   } else if (cmd.kind === 'ad-start' || cmd.kind === 'ad-complete') {
     const order = w.videoOrders.find((o) => o.id === cmd.orderId) ?? fail('ORDER_NOT_FOUND');
     if (order.delivered) fail('ALREADY_CLAIMED');
     if ((w.videoDays[day] ?? 0) >= 12) fail('DAILY_VIDEO_LIMIT');
+    if (order.purpose === 'wheel' && (w.wheelVideoDays?.[day] ?? 0) >= 5) fail('DAILY_WHEEL_LIMIT');
     if (cmd.kind === 'ad-start') {
+      const playing = w.videoOrders.find(
+        (o) => !o.delivered && o.attempt && at - o.attempt.startedAt < 30 * 60000,
+      );
+      if (playing) fail('AD_IN_PROGRESS');
       order.attempt = { id: randomUUID(), startedAt: at };
-      result = { ...result, orderId: order.id, attemptId: order.attempt.id };
+      result = { ...result, orderId: order.id, attemptId: order.attempt!.id };
     } else {
       // shortcut: H5 exposes no server-verifiable receipt here; quota/order/time checks limit abuse, not prove viewing.
       if (
@@ -649,11 +694,22 @@ export async function nightAssets(
         await recordNightAdAudit(tx, owner, at, 'ad-complete', 'FAST_CALLBACK');
       order.completed++;
       w.videoDays[day] = (w.videoDays[day] ?? 0) + 1;
+      if (order.purpose === 'wheel') {
+        w.wheelVideoDays ??= {};
+        w.wheelVideoDays[day] = (w.wheelVideoDays[day] ?? 0) + 1;
+      }
       delete order.attempt;
       progress(w, day, ['video']);
       if (order.completed === order.required) {
         order.delivered = true;
-        result.packs = deliverPacks(w, order.grants ?? drawPacks(rules, 'general', order.quantity));
+        if (order.purpose === 'wheel') {
+          w.wheelTickets = (w.wheelTickets ?? 0) + 1;
+          result.tickets = 1;
+        } else
+          result.packs = deliverPacks(
+            w,
+            order.grants ?? drawPacks(rules, 'general', order.quantity),
+          );
         progress(w, day, ['exchange']);
       }
       result = { ...result, order: publicOrder(order) };
@@ -661,29 +717,58 @@ export async function nightAssets(
         sql`insert into runtime.competition_matches(id,board,data,created_at) values(${eventId(owner, `ad:${cmd.attemptId}`)},${board},${JSON.stringify({ orderId: order.id, result, at })}::jsonb,${at})`,
       );
     }
+  } else if (cmd.kind === 'wheel-spin') {
+    if (!(w.wheelTickets ?? 0)) fail('NO_WHEEL_TICKETS');
+    const prizes = rules.wheelPrizes;
+    if (!prizes?.length) fail('ITEM_UNAVAILABLE');
+    const roll = randomInt(prizes!.reduce((sum, p) => sum + p.weight, 0));
+    let cumulative = 0;
+    const prizeIndex = prizes!.findIndex((p) => (cumulative += p.weight) > roll),
+      prize = prizes![prizeIndex]!;
+    w.wheelTickets = (w.wheelTickets ?? 0) - 1;
+    if (prize.coins) w.coins += prize.coins;
+    const packs =
+      prize.tier >= 0 ? deliverPacks(w, { [`pack:general:${prize.tier}`]: 1 }) : undefined;
+    result = { ...result, prizeIndex, coins: prize.coins, ...(packs ? { packs } : {}) };
   } else if (cmd.kind === 'open' || cmd.kind === 'sell') {
-    if (available(w, cmd.item) < cmd.quantity) fail('INSUFFICIENT_INVENTORY');
     const p = rules.catalog.find((p) => p.id === cmd.item),
       pack = /^pack:(general|gold):([0-3])$/.exec(cmd.item);
+    const keys = pack ? [`pack:general:${pack[2]}`, `pack:gold:${pack[2]}`] : [cmd.item];
+    if (keys.reduce((sum, id) => sum + available(w, id), 0) < cmd.quantity)
+      fail('INSUFFICIENT_INVENTORY');
+    const consume = () => {
+      let left = cmd.quantity;
+      for (const id of keys) {
+        const take = Math.min(left, available(w, id));
+        stock(w, id, -take);
+        left -= take;
+      }
+    };
     if (cmd.kind === 'sell') {
       const unit = pack
         ? rules.pools[pack[1]!]!.packSell
         : (p?.sell ?? (cmd.item.startsWith('legacy') ? 20 : 0));
       if (!unit) fail('ITEM_NOT_SELLABLE');
-      stock(w, cmd.item, -cmd.quantity);
+      consume();
       w.coins += unit * cmd.quantity;
       result = { ...result, coins: unit * cmd.quantity };
     } else {
       if (!pack) throw new CompetitionError('ITEM_NOT_PACK', 422);
-      stock(w, cmd.item, -cmd.quantity);
+      consume();
       const pool = rules.pools[pack[1]!]!,
         tier = Number(pack[2]);
       const drops: Array<{ item?: string; coins?: number }> = [];
       const choices = rules.catalog.filter(
-        (p) => p.term === 'match' && p.rarity === tier && pool.effects.includes(p.effect),
+        (p) =>
+          p.term === 'match' &&
+          p.rarity === tier &&
+          p.category !== 'skill' &&
+          pool.effects.includes(p.effect) &&
+          (p.unlockLevel ?? 1) <= rules.levelProgress(w.xp).level &&
+          !w.permanent.includes(p.effect),
       );
       for (let n = 0; n < cmd.quantity; n++) {
-        if (!choices.length || randomInt(4) === 0) {
+        if (!choices.length) {
           const coins = pool.coinDrops[tier]!;
           w.coins += coins;
           drops.push({ coins });

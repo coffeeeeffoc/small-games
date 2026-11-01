@@ -221,6 +221,17 @@ export async function registerCompetition(
               validForMs: 2000,
             };
       });
+      routes.post('/internal/night-chat/moderate', { bodyLimit: 1024 }, async (request) => {
+        internal(request);
+        return store.nightChat.moderate(request.body);
+      });
+      routes.post('/internal/night-chat/reports', { bodyLimit: 1024 }, async (request) => {
+        internal(request);
+        z.object({})
+          .strict()
+          .parse(request.body ?? {});
+        return store.nightChat.reports();
+      });
       routes.post('/internal/control-observation', { bodyLimit: 1024 }, async (request) => {
         internal(request);
         const input = z

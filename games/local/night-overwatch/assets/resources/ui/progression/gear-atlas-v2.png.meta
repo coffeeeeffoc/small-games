@@ -1,0 +1,42 @@
+{
+  "ver": "1.0.27",
+  "importer": "image",
+  "imported": true,
+  "uuid": "34a287de-76d1-461d-b744-e63666a99c73",
+  "files": [
+    ".json",
+    ".png"
+  ],
+  "subMetas": {
+    "6c48a": {
+      "ver": "1.0.22",
+      "importer": "texture",
+      "imported": true,
+      "uuid": "34a287de-76d1-461d-b744-e63666a99c73@6c48a",
+      "files": [
+        ".json"
+      ],
+      "subMetas": {},
+      "id": "6c48a",
+      "name": "texture",
+      "displayName": "gear-atlas-v2",
+      "userData": {
+        "wrapModeS": "clamp-to-edge",
+        "wrapModeT": "clamp-to-edge",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "none",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "34a287de-76d1-461d-b744-e63666a99c73",
+        "visible": false
+      }
+    }
+  },
+  "userData": {
+    "type": "texture",
+    "hasAlpha": true,
+    "redirect": "34a287de-76d1-461d-b744-e63666a99c73@6c48a",
+    "fixAlphaTransparencyArtifacts": false
+  }
+}

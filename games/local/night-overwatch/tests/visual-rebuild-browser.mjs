@@ -1,3 +1,4 @@
+import {scrollPage,scrollToButton} from './scroll-helpers.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile, readFile, copyFile } from 'node:fs/promises';
@@ -159,7 +160,7 @@ try {
     assert.equal((await snapshot(page)).light,'day'); await capture(page,'day-'+width+'x'+height);
     for (const [id,light] of [['operation-004','dusk'],['operation-006','night']]) {
       await hit('settings'); await hit('home'); await hit('exitConfirm'); await hit('missions');
-      if (!(await snapshot(page)).buttons.some(b=>b.id==='mission:'+id)) await hit('missionsNext');
+      if (!(await snapshot(page)).buttons.some(b=>b.id==='mission:'+id)) await scrollPage(page,'missions');
       await hit('mission:'+id); await hit('start');
       await page.waitForFunction(()=>__night.snapshot().phase==='playing');
       assert.equal((await snapshot(page)).light,light); await capture(page,light+'-'+width+'x'+height);

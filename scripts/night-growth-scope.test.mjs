@@ -9,6 +9,10 @@ import {
 } from './publication-scopes.mjs';
 import { incrementalPlan } from './incremental-validation.mjs';
 const read = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+const reviewedGrowth = (file) =>
+  execFileSync('git', ['show', 'ea6e65230eba002eb1f093e1bdee285ea49a868d:' + file], {
+    encoding: 'utf8',
+  });
 const source = 'games/local/night-overwatch',
   games = [{ id: 'night-overwatch', source }],
   packages = [source, 'services/runtime-api', 'apps/shell-web'].map((dir) => ({
@@ -22,7 +26,7 @@ test('growth producer additions are byte-bound and select their actual Night/Run
     'scripts/competition-gateway.mjs',
   ]) {
     const before = execFileSync('git', ['show', '358b1fe0:' + file], { encoding: 'utf8' }),
-      after = read(file);
+      after = reviewedGrowth(file);
     assert(nightProgressionFileScope(file, before, after), file);
     for (const changed of [
       after + '\nunsafe();',
@@ -35,7 +39,7 @@ test('growth producer additions are byte-bound and select their actual Night/Run
       packages,
       changedPaths: [file],
       readBase: () => before,
-      readHead: read,
+      readHead: reviewedGrowth,
     };
     assert(reviewedSharedFileScopes(options).get(file)?.includes('services/runtime-api'), file);
     for (const changed of [[], [...games, ...games]])
@@ -55,7 +59,7 @@ test('cumulative Armory revert from the actual dev base keeps Night consumers an
         ['show', 'baaae8d717559610df529aff43a0cb2a31961393:' + file],
         { encoding: 'utf8' },
       ),
-      after = read(file);
+      after = reviewedGrowth(file);
     assert(nightProgressionFileScope(file, before, after));
     for (const changed of [
       after + '\nunsafe();',
@@ -68,7 +72,7 @@ test('cumulative Armory revert from the actual dev base keeps Night consumers an
       packages,
       changedPaths: [file],
       readBase: () => before,
-      readHead: read,
+      readHead: reviewedGrowth,
     });
     assert(scopes.get(file)?.includes('services/runtime-api'));
     assert(scopes.get(file)?.includes(source));

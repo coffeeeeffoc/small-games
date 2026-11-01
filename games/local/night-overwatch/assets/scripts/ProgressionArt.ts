@@ -3,6 +3,8 @@ import type { HUD } from './HUD';
 
 // Rectangles sample only the approved illustrations; prices and UI text are rendered live.
 const cuts: Record<string, [string, number, number, number, number]> = {
+  closedCrate:['reward-atlas',0,165,790,530],openCrate:['reward-atlas',790,0,720,724],wheel:['reward-atlas',1510,30,662,662],
+  powerGear:['gear-atlas-v2',60,0,510,440],rateGear:['gear-atlas-v2',610,0,560,440],radiusGear:['gear-atlas-v2',1240,0,510,440],droneGear:['gear-atlas-v2',0,440,720,440],coolingGear:['gear-atlas-v2',760,440,370,440],coinPile:['gear-atlas-v2',1140,440,634,440],burstGear:['gear-atlas-v2',60,0,510,440],
   homeBadge:['01-home',34,24,120,72],coin:['01-home',1137,27,46,47],homeCrate:['01-home',90,404,94,94],homeCompass:['01-home',59,547,123,98],calendar:['01-home',1390,454,53,52],gift:['01-home',1390,551,60,59],
   loadoutBurst:['02-loadout',146,283,206,86],loadoutTwin:['02-loadout',418,284,217,88],loadoutTracking:['02-loadout',1060,500,195,108],loadoutEmp:['02-loadout',145,676,258,89],
   homeShop:['01-home',31,716,390,111],homeGrowth:['01-home',446,716,380,111],homeTasks:['01-home',849,716,379,111],homeWarehouse:['01-home',1253,716,388,111],

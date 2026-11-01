@@ -20,6 +20,7 @@ import {
 } from './night-ledger.js';
 import { createCompetitionIdentities } from './identity-store.js';
 import { createDevelopmentAssets, type DevelopmentAssetAdapter } from './development-assets.js';
+import { createNightChat } from './night-chat.js';
 import {
   nightAssets,
   reserveNightLoadout,
@@ -852,6 +853,7 @@ export function createCompetitionStore(
       password?: string;
       leaseId?: string;
       ready?: boolean;
+      createdAt?: number;
     } = {},
   ) {
     const playerId = playerIdOf(auth);
@@ -879,6 +881,8 @@ export function createCompetitionStore(
       await assertResourceAuth(tx, auth, room.game, now());
       if (policy && policy.gameId !== room.game) throw new CompetitionError('WRONG_GAME');
       if (input.game && room.game !== input.game) throw new CompetitionError('WRONG_GAME', 409);
+      if (input.createdAt !== undefined && room.createdAt !== input.createdAt)
+        throw new CompetitionError('INVITATION_NOT_FOUND', 404);
       const rule = ruleFor(room.game);
       const invalid =
         room.version !== rule.version
@@ -1103,6 +1107,7 @@ export function createCompetitionStore(
   return {
     ...createDevelopmentAssets(development, adapters),
     nightAssets: nightAssetsFor,
+    nightChat: createNightChat(db, now, control, rules.get('night-overwatch')?.version),
     ...createCompetitionIdentities(db, now),
     gameDefinitions: () => [...rules.values()],
     ranking,

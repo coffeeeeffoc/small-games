@@ -382,6 +382,11 @@ export function assertLayout(s, width, height) {
   for (let i = 0; i < s.buttons.length; i++) {
     for (const b of s.buttons.slice(i + 1)) {
       const a = s.buttons[i];
+      if (a.disabled || b.disabled) continue; // A foreground modal disables every covered target.
+      const info = a.id.startsWith('info:') ? a : b.id.startsWith('info:') ? b : undefined;
+      const card = info === a ? b : a;
+      // Details are a deliberate nested target; hit testing gives the small info control priority.
+      if (info && /^(slot|equip|product|inventory):/.test(card.id) && info.x >= card.x && info.y >= card.y && info.x + info.w <= card.x + card.w && info.y + info.h <= card.y + card.h) continue;
       const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
       const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
       assert(

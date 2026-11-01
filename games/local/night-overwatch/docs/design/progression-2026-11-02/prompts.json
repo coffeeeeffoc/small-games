@@ -1,0 +1,57 @@
+{
+  "tool": "image_gen.imagegen",
+  "date": "2026-11-02",
+  "prompts": [
+    {
+      "key": "supply_v2",
+      "prompt": "Create polished production game UI concept art for 夜航守望, a landscape mobile Cocos aerial escort game. Match the referenced navy-blue brushed steel, thin steel bevels, warm brass primary actions, readable ivory Chinese typography, cyan selection, detailed realistic equipment illustrations and atmospheric night airfield. All UI text is Chinese. This is a concrete implementable screen mockup, not a poster, no device frame, no extra branding. Preserve phone-friendly hierarchy and generous touch spacing. Small corner caption 概念设计·数值示例. No server jargon. Single 16:9 landscape screen titled 礼包·抽奖, back chevron top-left, coins top-right. Two balanced main panels. LEFT 55%: title 统一补给箱 and tiny circular information icon; a beautifully detailed blue steel crate illustration above a compact horizontal selector 1 / 3 / 5 / 10 / 20, 5 selected; bottom two small purchase options 金币购买 900 with 购买5个 button, 视频兑换 0/3 with 观看视频 button. A subtle one-line caption 单场物资 · 随等级解锁. No daily checkin or warehouse navigation, no gold/general pool tabs, no giant odds area. RIGHT 42%: title 幸运转盘 with tiny info icon. Detailed six-segment metallic wheel with fixed golden pointer at top, each segment clearly has reward icon and tiny probability: 40金币35%,80金币25%,160金币15%,普通礼包15%,稀有礼包8%,史诗礼包2%. Wheel colors elegant navy blue teal violet brass, no casino red. Below wheel show 剩余次数 1 and 今日视频 0/5; gold short 抽一次 button, blue 看视频+1次 button. Small probability tooltip inset anchored to info icon shows 档位概率 普通60% 精良25% 稀有12% 史诗3%, Lv.12解锁两连发, rewards obey unlocked level. Layout is uncluttered, content large enough for 844x390."
+    },
+    {
+      "key": "reveal_v2",
+      "prompt": "Create polished production game UI concept art for 夜航守望, a landscape mobile Cocos aerial escort game. Match the referenced navy-blue brushed steel, thin steel bevels, warm brass primary actions, readable ivory Chinese typography, cyan selection, detailed realistic equipment illustrations and atmospheric night airfield. All UI text is Chinese. This is a concrete implementable screen mockup, not a poster, no device frame, no extra branding. Preserve phone-friendly hierarchy and generous touch spacing. Small corner caption 概念设计·数值示例. No server jargon. A two-frame storyboard arranged vertically; each frame is an entire 16:9 landscape phone game screen. TOP frame opening animation peak: title 礼包开启, detailed blue steel chest centered with lid opening and controlled warm light rays, purple rare accent, a few gold sparks, navy hangar stays visible, small 跳过 button upper right. BOTTOM frame complete results: title 获得物资, an elegant brass divider and opened crate on the left 20%, three large illustrated reward cards in remaining center: 两连发 ×1 with 史诗 单场 tag and 一轮追加1枚副弹 short caption; 范围增益 ×2 with 稀有 单场 tag and 爆炸范围提高15%; 金币 +40 with coin pile. Each item has tiny info icon. Fine scroll thumb on right and down arrow indicate more rewards. Bottom short buttons 完成 and 查看仓库. No black void, no giant text list. Show strong differentiated card rarity, tangible material, restrained celebratory feeling."
+    },
+    {
+      "key": "warehouse_v2",
+      "prompt": "Create polished production game UI concept art for 夜航守望, a landscape mobile Cocos aerial escort game. Match the referenced navy-blue brushed steel, thin steel bevels, warm brass primary actions, readable ivory Chinese typography, cyan selection, detailed realistic equipment illustrations and atmospheric night airfield. All UI text is Chinese. This is a concrete implementable screen mockup, not a poster, no device frame, no extra branding. Preserve phone-friendly hierarchy and generous touch spacing. Small corner caption 概念设计·数值示例. No server jargon. A two-screen design board vertically stacked, EACH a full 16:9 landscape screen. TOP title 我的仓库, back arrow. Left 62% a vertically scrollable grid of detailed item cards with names, quantities, one-line descriptions and single-match badges: 补给箱 ×5, 威力增益 ×3, 高速供弹 ×2, 范围增益 ×2, 无人机 ×1, 两连发 ×1. Narrow visible vertical scrollbar with top/down arrows appropriate to overflow, NO pagination arrows. Right 34% selected 高速供弹 detail with equipment illustration, caption 攻击间隔缩短12%, info icon, 单场 · 可用2, quantity minus 1 plus. At bottom of detail show separate compact income line 可得 with coin icon and 14 in gold, then two equally compact short buttons 配装 and 出售; never long sentence inside sell button. Footer small 开包记录 button. BOTTOM title 开包记录 with back arrow and vertical scrollable rows newest first showing time, crate rarity, reward icons and names, e.g. 11/02 18:30 史诗补给箱 两连发×1; next rows 稀有 无人机×1 and 普通 金币+40. Right scrollbar, bottom more-content down chevron. No server receipt labels or transaction identifiers."
+    },
+    {
+      "key": "growth_v2",
+      "ref": "06-growth-skills",
+      "prompt": "High fidelity Cocos landscape mobile game UI mockup for 夜航守望. Match attached references' detailed navy brushed steel panels, thin metallic edges, warm brass primary buttons, cyan selected states, ivory Chinese text, aerial night escort mood. Realistic but achievable UI using illustrated cards and textured nine-slice panels. Never use grey wireframe placeholders. No device frames, no fake server receipt text. All wording Chinese. Two full landscape game screen states stacked vertically on a design board, very clearly separated. BOTH titled 等级成长. Shared narrow left panel medal Lv.12 and XP 320/2400 with thin cyan bar. TOP state selected tab 成长加成, unselected 主动技能: main region a prominent current-stat row 基础威力 +10%, then vertical milestone rows Lv.3 基础强化 已生效; Lv.6 追踪 永久解锁; Lv.10 电磁干扰 永久解锁; Lv.15 火控精修 尚未解锁, each with distinctive icon and concise effect. This top state MUST NOT show the tracking/EMP two large skill cards. BOTTOM state selected 主动技能: main region two illustrated skill cards 追踪 永久资格 and 电磁干扰 永久资格, with one-line effect and actual durations 追踪60秒 / 冷却90秒 and 电磁干扰4秒 / 冷却45秒. Small info icons; one skill marked 已装配. Small bottom brass button 作战配置. Large typography and actual different main contents between tabs. Caption 概念设计·数值示例."
+    },
+    {
+      "key": "social_v2",
+      "ref": "01-home",
+      "prompt": "High fidelity Cocos landscape mobile game UI mockup for 夜航守望. Match attached references' detailed navy brushed steel panels, thin metallic edges, warm brass primary buttons, cyan selected states, ivory Chinese text, aerial night escort mood. Realistic but achievable UI using illustrated cards and textured nine-slice panels. Never use grey wireframe placeholders. No device frames, no fake server receipt text. All wording Chinese. Design board with TWO complete 16:9 screens stacked vertically. TOP title 全局大厅. Left 45% scrollable room cards 房间 4821 夜航07 等待加入 with short 加入 button; second 房间 7302 进行中 with 观战 button; footer 创建房间. Right 51% title 大厅交流, scrollable Chinese text messages with nicknames and times: 林间风 18:30 有人来一局吗？, 夜航07 18:31 来4821. A compact room invite card 房间4821 等待加入 and blue 加入房间 button, sender 夜航07. Fixed bottom input 说点什么… and short 发送 button, smaller 邀请 button; tiny safety menu for 屏蔽/举报. Show scrollbar and 新消息 pill without covering input. NO reservation, voice, payment, friends. BOTTOM a realistic top-down valley aerial escort battlefield spectator HUD; terrain and vehicles occupy most of screen. Top-left two actual player panels 夜航07 vs 林间风 with small contrasting cyan/orange identity bars and lives/score, tiny 观战 tag, two compact buttons 战况 and 装配 directly below toward LEFT, not on right. A medium centered 战况 panel showing two balanced columns with actual player names and enemy-cleared/remaining stats, no 我的/你/敌我 labels referring to viewer. Back arrow. Keep gameplay recognizable not aircraft dogfight. Caption 概念设计."
+    },
+    {
+      "key": "home_v2",
+      "ref": "01-home",
+      "prompt": "High fidelity Cocos landscape mobile game UI mockup for 夜航守望. Match attached references' detailed navy brushed steel panels, thin metallic edges, warm brass primary buttons, cyan selected states, ivory Chinese text, aerial night escort mood. Realistic but achievable UI using illustrated cards and textured nine-slice panels. Never use grey wireframe placeholders. No device frames, no fake server receipt text. All wording Chinese. Update single 16:9 night aerial escort game HOME screen matching attached original composition: night moon, detailed transport gunship over valley convoy on right, metallic 夜航守望 title on upper left. Main action buttons left: 作战配置 in blue steel ABOVE 开始行动 in warm brass. Right compact two-entry stack 每日签到 and 礼包·抽奖. Four bottom illustrated tiles: 军需商店, 等级成长, 任务, 我的仓库. Top player 夜航07 Lv.12 XP, coin balance, 公告 信箱 settings. Preserve readable exact revised Chinese wording, substantial airfield/valley scenery, texture hierarchy and 44px touch concept. No extra options. Small corner 概念设计·数值示例."
+    },
+    {
+      "key": "social_v3",
+      "prompt": "Edit this exact two-panel Night Overwatch concept image. Preserve all composition, textures, Chinese chat layout, spectator HUD and colors. Correct the top lobby to TWO-PLAYER matches ONLY: room4821 shows 1/2 等待加入, room7302 shows 2/2 进行中, room9916 shows 1/2 等待加入, room invitation4821 shows 1/2 等待加入. Replace any 3/4,4/4,2/4 with these exact values. Top left add compact visible title 全局大厅 with back chevron. Lower spectator panel keep actual names 夜航07 and 林间风 and left aligned 战况 / 装配 buttons; no invented extra-player capacity. Nothing else changed.",
+      "paths": [
+        "C:/Users/15211/.codex/generated_images/01a1980e-35c8-7871-8205-d7c9ce04e15f/exec-9a173c2e-a370-46c3-9f0c-0c9bce929cdb.png"
+      ],
+      "transparent": false
+    },
+    {
+      "key": "reward_assets",
+      "prompt": "Create a production GAME UI SPRITE SHEET on a truly transparent background, 3 separate non-overlapping assets on a single horizontal row with generous transparent gutters. Match the referenced blue-steel military airfield crate and brushed steel/brass UI style exactly. LEFT: closed blue steel supply chest front three-quarter view, tangible metal, brass corners, no text. CENTER: same chest open, hinged lid tilted up, interior warm golden light and restrained purple rays, no items, no letters, transparent surroundings. RIGHT: perfect front-facing circular six-segment prize wheel, six equal wedges alternating dark navy/blue/teal/purple, fine brushed metal rim with tiny rivets, brass central cap, blank wedges with no numbers/text/icons, absolutely no pointer (pointer will be a separate UI primitive). Assets isolated with alpha, don't connect or overlap, no shadow background, no words or UI, crisp detailed texture for scaling down to mobile. This will be used as actual runtime sprite art, not a mockup.",
+      "paths": [
+        "F:/playground/playground-ai/small-games/games/local/night-overwatch/docs/design/progression-2026-10-31/05-supply.png",
+        "C:/Users/15211/.codex/generated_images/01a1980e-35c8-7871-8205-d7c9ce04e15f/exec-9744c6dc-2e50-4bdf-807c-1a560ee6ac18.png"
+      ],
+      "transparent": true
+    },
+    {
+      "key": "runtime_gear_atlas_v2",
+      "transparent_background": true,
+      "promptSummary": "Six transparent standalone brass bullets, ammunition box, blast-range device, drone, cooling reactor, gold coins; no text, labels, UI frames or scenery.",
+      "recordType": "生成摘要，非完整请求原文",
+      "sha256": "60a96ea404a598104505cc37ca52e6a24b212445e026d278559ac6d3a67416bf"
+    }
+  ]
+}

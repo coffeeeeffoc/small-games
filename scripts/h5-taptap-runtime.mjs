@@ -28,8 +28,11 @@ export const fixtureMigrations = Object.freeze([
   'infra/migrations/012-three-choose-two.sql',
   'infra/migrations/013-competition-identities.sql',
   'infra/migrations/014-player-sessions.sql',
+  'infra/migrations/016-night-chat.sql',
   'infra/admin-console/migrations/001-admin-auth.sql',
   'infra/admin-console/migrations/002-control-center.sql',
+  'infra/admin-console/migrations/003-night-overwatch-control.sql',
+  'infra/admin-console/migrations/004-tetracube-control.sql',
 ]);
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 export function ownedNames(runId) {

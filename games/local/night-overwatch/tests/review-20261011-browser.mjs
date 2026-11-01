@@ -1,3 +1,4 @@
+import {scrollPage,scrollToButton} from './scroll-helpers.mjs';
 import { settleVisuals } from './visual-helpers.mjs';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -40,8 +41,8 @@ try {
     await page.waitForFunction(() => globalThis.__night && !document.getElementById('night-startup') && __night.snapshot().modal === 'home' && __night.snapshot().ui.width > __night.snapshot().ui.height);
     await layout(); await capture('home');
     await press('missions'); await layout(); await capture('missions');
-    if ((await snapshot(page)).buttons.some(button => button.id === 'missionsNext')) {
-      await press('missionsNext'); await layout(); await capture('missions-locked');
+    if ((await snapshot(page)).scrollLists?.some(a=>a.key==='missions'&&a.max>0)) {
+      await scrollPage(page,'missions'); await layout(); await capture('missions-locked');
       const locked = (await snapshot(page)).buttons.find(button => button.id === 'mission:operation-004');
       assert(locked, 'second page exposes task 004');
       await press(locked.id); assert.equal((await snapshot(page)).mission.id, 'corridor-01', 'locked card cannot change the mission');

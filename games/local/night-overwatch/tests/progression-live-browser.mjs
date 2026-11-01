@@ -1,3 +1,4 @@
+import {scrollPage,scrollToButton} from './scroll-helpers.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir,writeFile } from 'node:fs/promises';
@@ -6,7 +7,7 @@ import { acceptanceBuild,snapshot,assertLayout,navigateMap,aimAt,waitForImpact }
 import { press,settleVisuals } from './visual-helpers.mjs';
 
 // Ordinary guest on the explicitly configured local test backend; never fake balances or battle outcomes.
-const base=process.env.NIGHT_URL,build=await acceptanceBuild(base),out=new URL('../reports/2026-11-01-loadout-live/',import.meta.url);
+const base=process.env.NIGHT_URL,build=await acceptanceBuild(base),out=new URL('../reports/2026-11-02-publication-live/',import.meta.url);
 await mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--use-angle=d3d11']}),context=await browser.newContext({viewport:{width:1280,height:720},recordVideo:{dir:fileURLToPath(out),size:{width:1280,height:720}}});
 const page=await context.newPage(),start=Date.now(),evidence={build,fixture:false,errors:[],checks:[],screens:[],clips:{}};
@@ -21,11 +22,12 @@ try{
   await click('qm:inbox');await page.waitForFunction(()=>__night.snapshot().buttons.some(b=>b.id==='qm:claimMail'&&!b.disabled));await click('qm:claimMail');
   assert((await snapshot(page)).progression.assets.mail.some(m=>m.claimed));await shot('02-mail');await click('qm:giftClose');await click('qm:back');
   await click('qm:checkin');await click('qm:checkinClaim');assert((await snapshot(page)).progression.assets.signedToday);await click('qm:giftClose');await click('qm:back');
-  await click('qm:warehouse');let state=await snapshot(page),pack=Object.keys(state.progression.assets.available).find(k=>k.startsWith('pack:')&&state.progression.assets.available[k]>0);assert(pack);
-  for(let i=0;i<8&&!((await snapshot(page)).buttons.some(b=>b.id==='inventory:'+pack));i++)await click('qm:next');
-  await click('inventory:'+pack);await click('qm:open');assert((await snapshot(page)).progression.assets.openReceipts.length>0);await click('qm:giftClose');
+  await click('qm:supply');await shot('02-supply');await click('qm:back');await click('qm:growth');await shot('02-growth');await click('growth:skills');await shot('02-skills');await click('qm:back');
+  await click('qm:warehouse');await shot('02-warehouse');let state=await snapshot(page),pack=Object.keys(state.progression.assets.available).find(k=>k.startsWith('pack:')&&state.progression.assets.available[k]>0);assert(pack);
+  for(let i=0;i<8&&!((await snapshot(page)).buttons.some(b=>b.id==='inventory:'+pack));i++)await scrollPage(page);
+  await click('inventory:'+pack);mark('opening');await click('qm:open');assert((await snapshot(page)).progression.assets.openReceipts.length>0);await page.waitForTimeout(2300);await shot('03-rewards');mark('opened');if((await snapshot(page)).buttons.some(b=>b.id==='qm:giftSkip'))await click('qm:giftSkip');await click('qm:giftClose');
   await click('qm:receipts');await shot('03-opening');await click('qm:back');await click('qm:back');
-  await click('qm:shop');await click('qm:next');await click('product:power-match');state=await snapshot(page);const beforeCoins=state.progression.assets.coins;
+  await click('qm:shop');await scrollToButton(page,'product:power-match');await click('product:power-match');state=await snapshot(page);const beforeCoins=state.progression.assets.coins;
   await click('qm:buy');assert.equal((await snapshot(page)).progression.assets.coins,beforeCoins-160);mark('shop');await shot('04-shop');await page.waitForTimeout(2300);await click('qm:back');
   await click('qm:loadout');await click('equip:power-match');assert.deepEqual((await snapshot(page)).progression.assets.loadouts.solo.mods,[]);await shot('05-loadout-draft');await click('qm:save');state=await snapshot(page);assert.deepEqual(state.progression.assets.loadouts.solo.mods,['power-match']);
   const inventoryBefore=state.progression.assets.inventory['power-match'];mark('loadout');await shot('05-loadout');await page.waitForTimeout(2500);await click('qm:back');

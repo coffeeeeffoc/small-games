@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Quartermaster } from '../assets/scripts/Quartermaster.ts';
+import { Quartermaster, wheelLandingAngle } from '../assets/scripts/Quartermaster.ts';
 import { assetFixture } from './progression-fixture.ts';
 
 function setup(){
@@ -28,7 +28,7 @@ test('late asset response cannot clear another account intent or replace its UI 
 test('video cancellation preserves confirmed progress and never calls completion',async()=>{
   const {q,online,calls}=setup();q.quantity=5;
   online.assetCommand=async(command:any)=>{calls.push(command);return {...online.assets,lastReceipt:{attemptId:'attempt'}};};
-  await q.watch(async()=> 'dismissed');assert.deepEqual(calls.map(c=>c.kind),['ad-start']);assert.equal(q.pendingOrder?.completed,1);assert.equal(q.viewing,false);
+  await q.watch(async()=> 'dismissed');assert.deepEqual(calls.map(c=>c.kind),['ad-start','ad-cancel']);assert.equal(q.pendingOrder?.completed,1);assert.equal(q.viewing,false);
 });
 test('failed local intent persistence prevents any purchase; removing accepted journal may fail safely',async()=>{
   const {q,online,storage,calls}=setup();storage.setItem=()=>{throw Error('full');};
@@ -123,4 +123,34 @@ test('identity changes discard draft intentions and cannot resurrect an old acco
   online.authenticatedId='B';online.assets=assetFixture('B');await q.save();assert.equal(calls[0].loadout.weapon,'drone-match');
   q.gift={packs:{'pack:general:0':1},drops:[],opened:false};let reply:any;online.assetCommand=()=>new Promise(resolve=>{reply=resolve;});
   const opening=q.openGifts();online.authenticatedId='C';online.assets=assetFixture('C');q.syncIdentity();reply(assetFixture('B'));await opening;assert.equal(q.gift,undefined);assert.deepEqual(q.drafts,{});
+});
+
+test('navigation restores source filters, selected item and scroll after nested pages',async()=>{
+ const {q}=setup();q.syncIdentity();q.show('warehouse');await Promise.resolve();q.item='power-match';q.scrolls['qm:warehouse']=208;q.show('receipts');await Promise.resolve();q.back();assert.equal(q.page,'warehouse');assert.equal(q.item,'power-match');assert.equal(q.scrolls['qm:warehouse'],208);q.back();assert.equal(q.page,'');
+});
+test('all six wheel results land their sector centre at the fixed top pointer',()=>{
+ for(const start of [0,1830,2010,3960])for(let i=0;i<6;i++){const clockwiseCentre=30+i*60,end=wheelLandingAngle(i,start);assert.equal(Math.abs((clockwiseCentre-end)%360),0);assert(end>=start+1800);}
+});
+test('retrying a lost ad-start receipt resumes that attempt and cancellation releases it',async()=>{
+ const {q,online,calls}=setup();let lost=true,plays=0;
+ online.assetCommand=async(command:any)=>{calls.push({...command});if(command.kind==='ad-start'&&lost){lost=false;throw Error('lost');}return {...online.assets,lastReceipt:{attemptId:'accepted-attempt'}};};
+ await q.watch(async()=>{plays++;return 'completed';});const id=q.pending!.requestId;assert.equal(plays,0);
+ await q.execute();await q.watch(async()=>{plays++;return 'dismissed';});assert.equal(plays,1);assert.equal(calls[1].requestId,id);assert.deepEqual(calls.map(c=>c.kind),['ad-start','ad-start','ad-cancel']);assert.equal(calls[2].attemptId,'accepted-attempt');assert.equal(q.pending,undefined);
+});
+test('daily wheel rejection releases the journal and cancelled back does not hijack the next destination',async()=>{
+ const {q,online}=setup();online.assetCommand=async()=>{throw Object.assign(Error('limit'),{code:'DAILY_WHEEL_LIMIT'});};await q.execute({kind:'ad-order',purpose:'wheel',quantity:1});assert.equal(q.pending,undefined);assert.match(q.message[0],/上限/);
+ q.show('warehouse');await Promise.resolve();q.show('loadout');await Promise.resolve();q.equip('power-permanent');q.back();q.cancelLeave();q.requestLeave('shop');q.discard();assert.equal(q.page,'shop');
+});
+test('video attempts recover from refreshed snapshots, expire by server time and release on confirmed completion failure',async()=>{
+ const {q,online,calls}=setup();online.assets.videoOrders[0].attempt={id:'restored-attempt',startedAt:online.assets.serverNow-1000};
+ online.assetCommand=async(command:any)=>{calls.push({...command});if(command.kind==='ad-complete')throw Object.assign(Error('limit'),{code:'DAILY_VIDEO_LIMIT'});return {...online.assets,lastReceipt:{attemptId:'new-attempt'}};};
+ await q.watch(async()=> 'completed');assert.deepEqual(calls.map(c=>c.kind),['ad-complete','ad-cancel']);assert.equal(calls[0].attemptId,'restored-attempt');assert.match(q.message[0],/额度/);
+ calls.length=0;online.assets.videoOrders[0].attempt.startedAt=online.assets.serverNow-31*60000;
+ await q.watch(async()=> 'dismissed');assert.deepEqual(calls.map(c=>c.kind),['ad-start','ad-cancel']);assert.equal(calls[1].attemptId,'new-attempt');
+ calls.length=0;await q.execute({kind:'ad-start',orderId:'video-order'});online.assets.serverNow+=31*60000;await q.watch(async()=> 'dismissed');assert.deepEqual(calls.map(c=>c.kind),['ad-start','ad-start','ad-cancel'],'an expired in-memory attempt must start a fresh viewing');
+});
+test('unknown completion is never cancelled, while dispose journals release of an accepted idle attempt',async()=>{
+ const {q,online,calls,storage}=setup();online.assets.videoOrders[0].attempt={id:'active',startedAt:online.assets.serverNow};online.assetCommand=async(command:any)=>{calls.push({...command});throw Error('lost');};
+ await q.watch(async()=> 'completed');assert.equal(q.pending?.kind,'ad-complete');assert.equal(calls.length,1);q.dispose();assert.equal(calls.length,1);
+ const next=setup();next.online.assetCommand=async(command:any)=>{next.calls.push({...command});return {...next.online.assets,lastReceipt:{attemptId:'ready'}};};await next.q.execute({kind:'ad-start',orderId:'video-order'});next.q.dispose();assert.equal(next.calls.at(-1).kind,'ad-cancel');await Promise.resolve();const restored=new Quartermaster(next.online,next.storage);restored.syncIdentity();assert.equal(restored.pending?.kind,'ad-cancel');
 });

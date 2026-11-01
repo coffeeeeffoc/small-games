@@ -38,6 +38,30 @@ export function registerGameRoutes(
   routes.get('/games/night-overwatch/assets', async (request) =>
     store.nightAssets(await player(request.headers.authorization)),
   );
+  routes.get('/games/night-overwatch/chat', async (request, reply) => {
+    const input = z
+      .object({
+        cursor: z
+          .string()
+          .regex(/^[a-f0-9]{64}$/)
+          .optional(),
+        waitMs: z.coerce.number().int().min(0).max(5000).default(0),
+      })
+      .strict()
+      .parse(request.query);
+    return store.nightChat.list(
+      await player(request.headers.authorization),
+      input.cursor,
+      input.waitMs,
+      () => reply.raw.destroyed,
+    );
+  });
+  routes.post('/games/night-overwatch/chat', { bodyLimit: 2048 }, async (request) =>
+    store.nightChat.send(await player(request.headers.authorization), request.body),
+  );
+  routes.post('/games/night-overwatch/chat/report', { bodyLimit: 1024 }, async (request) =>
+    store.nightChat.report(await player(request.headers.authorization), request.body),
+  );
   routes.post(
     '/games/night-overwatch/assets',
     { bodyLimit: 4096, config: { rateLimit: { max: 120, timeWindow: '1 minute' } } },
@@ -80,6 +104,7 @@ export function registerGameRoutes(
         leaderboards: boards.length > 0,
         multiplayer: !!multiplayer,
         ...(multiplayer?.lobby ? { lobby: true, history: true } : {}),
+        ...(game === 'night-overwatch' && multiplayer ? { chat: true } : {}),
       },
       boards,
       developmentAssets: store.developmentAssetCapabilities?.(game) ?? {
@@ -106,7 +131,11 @@ export function registerGameRoutes(
       if (game === 'night-overwatch') await store.prepareNightBoards(playerId);
       const { key, rule, definition: boardDefinition } = ranked.boardFor(game, board);
       const query = z
-        .object({ ruleVersion: z.enum(['night-records-v1', 'night-growth-v1']).optional() })
+        .object({
+          ruleVersion: z
+            .enum(['night-records-v1', 'night-growth-v1', 'night-campaign-v2'])
+            .optional(),
+        })
         .strict()
         .parse(request.query);
       const boardKey =
@@ -118,7 +147,10 @@ export function registerGameRoutes(
         boardType: board,
         version: rule.version,
         ...(game === 'night-overwatch' && board.startsWith('level-')
-          ? { ruleVersion: boardKey.split(':').at(-1), historyVersions: ['night-records-v1'] }
+          ? {
+              ruleVersion: boardKey.split(':').at(-1),
+              historyVersions: ['night-records-v1', 'night-growth-v1'],
+            }
           : {}),
         ...boardDefinition,
         ...(await store.ranking(boardKey, playerId)),
@@ -234,13 +266,18 @@ export function registerGameRoutes(
     { bodyLimit: 1024, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
     async (request) => {
       const game = multiplayerGame(request.params);
-      const { code, password } = z
-        .object({ code: roomCode, password: z.string().max(64).optional() })
+      const { code, password, createdAt } = z
+        .object({
+          code: roomCode,
+          password: z.string().max(64).optional(),
+          createdAt: z.number().int().positive().optional(),
+        })
         .strict()
         .parse(request.body);
       return store.roomAction(await player(request.headers.authorization), code, 'join', {
         game,
         password,
+        createdAt,
       });
     },
   );

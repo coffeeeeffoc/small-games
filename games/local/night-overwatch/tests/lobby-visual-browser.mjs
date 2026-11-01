@@ -1,3 +1,4 @@
+import {scrollPage,scrollToButton} from './scroll-helpers.mjs';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -32,7 +33,7 @@ try {
     await capture('populated-lobby');
     const roomButtons = state => state.buttons.filter(b => /^online:(joinCode|watchCode):/.test(b.id)).map(b => b.id);
     const firstPage = roomButtons(state);
-    await hit('online:roomNext'); await capture('lobby-next-page');
+    await scrollPage(page,'rooms'); await capture('lobby-next-page');
     assert.notDeepEqual(roomButtons(await snapshot(page)), firstPage, 'Next shows different actual rooms');
     await hit('online:roomPrev'); assert.deepEqual(roomButtons(await snapshot(page)), firstPage);
     state=await snapshot(page);

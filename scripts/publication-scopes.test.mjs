@@ -1,5 +1,59 @@
 import { test } from 'node:test';
 
+test('Night chat migration and exact consumers classify from both immediate and last successful CI bases', async () => {
+  const { nightChatBackendFileScope } = await import('./publication-scopes.mjs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const packages = await workspacePackages(root);
+  const changedPaths = [
+    'infra/migrations/016-night-chat.sql',
+    'scripts/competition.mjs',
+    'scripts/platform.mjs',
+    'scripts/deploy-tencent.mjs',
+    'scripts/h5-taptap-runtime.mjs',
+    'scripts/competition-gateway.mjs',
+  ];
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const base of [
+    'ea6e65230eba002eb1f093e1bdee285ea49a868d',
+    'baaae8d717559610df529aff43a0cb2a31961393',
+  ]) {
+    const readBase = (file) =>
+      file === 'infra/migrations/016-night-chat.sql'
+        ? null
+        : execFileSync('git', ['show', base + ':' + file], { encoding: 'utf8' });
+    for (const file of changedPaths) {
+      assert(nightChatBackendFileScope(file, readBase(file), readHead(file)), base + ':' + file);
+      assert(
+        !nightChatBackendFileScope(file, readBase(file), readHead(file) + '\n// unrelated delta\n'),
+        file,
+      );
+      assert(!nightChatBackendFileScope(file + '.other', readBase(file), readHead(file)), file);
+      if (file === 'scripts/h5-taptap-runtime.mjs') {
+        const current = readHead(file).replaceAll('\r\n', '\n'),
+          third = "  'infra/admin-console/migrations/003-night-overwatch-control.sql',\n",
+          fourth = "  'infra/admin-console/migrations/004-tetracube-control.sql',\n";
+        for (const malformed of [
+          current.replace(third, ''),
+          current.replace(fourth, fourth + fourth),
+          current.replace(third + fourth, fourth + third),
+          current.replace(fourth, fourth + "  'infra/migrations/unreviewed.sql',\n"),
+        ])
+          assert(
+            !nightChatBackendFileScope(file, readBase(file), malformed),
+            'Only the exact ordered fixture migrations',
+          );
+      }
+    }
+    const scopes = reviewedSharedFileScopes({ games, packages, changedPaths, readBase, readHead });
+    for (const file of changedPaths)
+      assert(scopes.has(file), 'missing consumer ' + base + ':' + file);
+  }
+});
+
 test('Tetracube service wiring binds six reviewed files and the real Runtime import path', async () => {
   const { tetracubeServiceReviews: reviews, tetracubeCreatorFileScopes: scope } = await import(
     './publication-scopes.mjs'
@@ -5016,7 +5070,11 @@ test('anonymous session migration and Pages service defaults admit only the revi
         ? execFileSync('git', ['show', 'ba3f3966082a24861e1a05c1e1e293ae1f032136:' + file], {
             encoding: 'utf8',
           })
-        : ['scripts/platform.mjs', 'scripts/deploy-tencent.mjs'].includes(file)
+        : [
+              'scripts/competition.mjs',
+              'scripts/platform.mjs',
+              'scripts/deploy-tencent.mjs',
+            ].includes(file)
           ? execFileSync('git', ['show', '0459b0cb3c89a748f3a6bd252858951ba1ca073d:' + file], {
               encoding: 'utf8',
             })

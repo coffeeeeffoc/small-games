@@ -4,7 +4,10 @@ import {
   applyNightReplay,
   nightReplayResult,
 } from '../../../games/local/night-overwatch/assets/scripts/core/Replay.ts';
-import { MISSIONS } from '../../../games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts';
+import {
+  MISSIONS,
+  CAMPAIGN_BOARD_VERSION,
+} from '../../../games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts';
 import { PROGRESSION } from '../../../games/local/night-overwatch/assets/scripts/core/Progression.ts';
 import { Simulation } from '../../../games/local/night-overwatch/assets/scripts/core/Simulation.ts';
 
@@ -15,7 +18,7 @@ export default {
   boardVersion: 'night-records-v1',
   progression: PROGRESSION,
   boardKey: (board) =>
-    `night-overwatch:${board}:${board.startsWith('level-') ? PROGRESSION.version : 'night-records-v1'}`,
+    `night-overwatch:${board}:${board.startsWith('level-') ? CAMPAIGN_BOARD_VERSION : 'night-records-v1'}`,
   configure(state, loadout) {
     const sim = Simulation.restore(state.simulation);
     sim.applyLoadout(loadout);
