@@ -163,7 +163,7 @@ export class ProgressionView {
   }
   private catalogName(id:string){const p=this.q.catalog.find(p=>p.id===id);return p?this.productName(p):id;}
   private productDetail(p:Product,x:number,y:number,w:number,h:number,shop:boolean){
-    const details=this.h.lang==='zh'?p.description:({power:'Regular weapon damage +15%.',rate:'Regular attack interval −12%.',burst:'Fire twice. Each shot uses ammunition and heat.',twin:'Two trajectories. Combines with double burst.',radius:'HE / incendiary blast radius +15%.',cooling:'Weapon heat −15%. Skill cooldown is unchanged.',drone:'Limited lifetime and damage budget. Slows enemies.',laser:'Instant line-of-sight hit. Limited ammo, long cooldown.',tracking:'Tracks for 60s; then 90s cooldown. Repeatable.',emp:'Ground enemies stop for 4s; then 45s cooldown.'})[p.effect];
+    const details=this.h.lang==='zh'?p.description:({power:'Regular weapon damage +15%.',rate:'Regular attack interval −12%.',burst:'Two shots spread ahead and behind. Each uses ammo and heat.',twin:'Spread left and right. Combines with burst for four-point coverage.',radius:'HE / incendiary blast radius +15%.',cooling:'Weapon heat −15%. Skill cooldown is unchanged.',drone:'Limited lifetime and damage budget. Slows enemies.',laser:'Instant line-of-sight hit. Limited ammo, long cooldown.',tracking:'Tracks for 60s; then 90s cooldown. Repeatable.',emp:'Ground enemies stop for 4s; then 45s cooldown.'})[p.effect];
     if(this.low){
       this.panel(x,y,w,h);const iw=w*.31,tx=x+iw+12,tw=w-iw-24;
       this.picture(this.productArt(p.effect),x+6,y+6,iw-6,h-12);

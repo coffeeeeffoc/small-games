@@ -431,6 +431,23 @@ export class Simulation {
   setExtractionRadioPending(pending: boolean) {
     if (this.phase === 'playing') this.extractionRadioPending = pending;
   }
+  private attackTargets(): Point[] {
+    if (this.attackCount === 1) return [this.aim];
+    const origin = muzzlePosition(this.aircraft, this.selected);
+    const angle = Math.atan2(this.aim.z - origin.z, this.aim.x - origin.x);
+    const forward = { x: Math.cos(angle), z: Math.sin(angle) };
+    // Overlapping blast disks keep the reticle covered, including the rapid cannon.
+    const spread = Math.min(2.4, Math.max(.35, WEAPONS[this.selected].radius * .55));
+    const columns = this.loadout.effects.includes('twin') ? 2 : 1;
+    return Array.from({ length: this.attackCount }, (_, n) => {
+      const across = columns === 2 ? (n % 2 === 0 ? -spread : spread) : 0;
+      const along = this.loadout.effects.includes('burst') ? (Math.floor(n / columns) === 0 ? -spread : spread) : 0;
+      return {
+        x: this.aim.x + forward.x * along - forward.z * across,
+        z: this.aim.z + forward.z * along + forward.x * across,
+      };
+    });
+  }
   reason(): FireReason {
     if (this.phase === 'briefing') return 'briefing';
     if (this.phase !== 'playing') return 'finished';
@@ -439,11 +456,12 @@ export class Simulation {
     if (this.homingSelected) return this.homingAmmo <= 0 ? 'empty' : this.homingTarget ? 'ready' : 'target';
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
-    if (![this.aim.x, this.aim.z].every(Number.isFinite) ||
-        Math.abs(this.aim.x) > MAP.halfWidth || Math.abs(this.aim.z) > MAP.halfDepth)
+    const targets = this.attackTargets();
+    if (targets.some(point => ![point.x, point.z].every(Number.isFinite) ||
+        Math.abs(point.x) > MAP.halfWidth || Math.abs(point.z) > MAP.halfDepth))
       return 'outside';
     // The entire blast disk must stay outside a protected area, including its boundary.
-    if (!this.duelMode && PROTECTED.some((p) => distance(p, this.aim) <= p.radius + this.effectiveRadius)) return 'protected';
+    if (!this.duelMode && targets.some(point => PROTECTED.some((p) => distance(p, point) <= p.radius + this.effectiveRadius))) return 'protected';
     if (this.selected>=4 && !this.loadout.effects.includes(this.selected===4?'drone':'laser')) return 'empty';
     if (this.selected===5 && (!this.aimedUnit || !this.canTrack(this.aimedUnit,w.radius) || !this.lineOfSight(this.aimedUnit))) return 'target';
     if (g.overheated) return 'overheated';
@@ -453,12 +471,13 @@ export class Simulation {
   }
   get friendlyRisk() {
     if (this.homingSelected) return false;
-    const point = this.trackingTarget ?? this.aim;
+    const target = this.trackingTarget;
+    const points = target ? [target] : this.attackTargets();
     return this.units.some(
       (u) =>
         u.friendly &&
         u.hp > 0 &&
-        distance(u, point) <= this.effectiveRadius + UNITS[u.kind].radius,
+        points.some(point => distance(u, point) <= this.effectiveRadius + UNITS[u.kind].radius),
     );
   }
   get aimedUnit() {
@@ -484,12 +503,12 @@ export class Simulation {
     const w = WEAPONS[this.selected],
       g = this.guns[this.selected];
     const count=this.attackCount;
-    const launches=Array.from({length:count},(_,n)=>{
+    const launches=this.attackTargets().map((point,n)=>{
       const mount=w.muzzle;
       const origin=Object.freeze(this.loadout.effects.includes('twin')
         ? aircraftPoint(this.aircraft,{...mount,x:mount.x+(n%2===0?-.6:.6)})
         : muzzlePosition(this.aircraft,this.selected));
-      return {origin,launch:ballisticLaunch(origin,this.aim,w.speed,this.height)};
+      return {origin,point,launch:ballisticLaunch(origin,point,w.speed,this.height)};
     });
     if(launches.some(item=>!item.launch))return false;
     g.ammo-=count;
@@ -498,14 +517,14 @@ export class Simulation {
     g.cooldown = w.interval*(this.loadout.effects.includes('rate')?.88:1)*(this.loadout.level>=15?.95:1) / (this.buff?.kind === 'rate' ? COMBAT_BUFF.rateMultiplier : 1) + (this.loadout.effects.includes('burst')?.1:0);
     const target = this.trackingTarget;
     for(let n=0;n<count;n++) {
-    const {origin,launch}=launches[n];
+    const {origin,point,launch}=launches[n];
     const delay=this.loadout.effects.includes('burst')?Math.floor(n/(this.loadout.effects.includes('twin')?2:1))*.1:0;
     const shot: Shot = {
       id: ++this.serial,
       ...(this.duelMode ? { side: this.pilotSide } : {}),
       weapon: this.selected,
-      x: this.aim.x,
-      z: this.aim.z,
+      x: point.x,
+      z: point.z,
       born: this.time+delay,
       origin,
       velocity: launch!.velocity,

@@ -30,8 +30,8 @@ export type AssetCommand = {requestId:string}&(
 const effects: Array<[Effect, Product['category'], string, string, number, number, boolean]> = [
   ['power', 'mod', '威力增益', '普通武器威力提高 15%。', 160, 1, false],
   ['rate', 'mod', '高速供弹', '普通武器攻击间隔缩短 12%。', 180, 1, false],
-  ['burst', 'mod', '两连发', '连续发射 2 次，每发独立消耗弹药和热量。', 1200, 3, true],
-  ['twin', 'mod', '双弹道', '每次发射双弹道，可与两连发组合为 4 发。', 1500, 3, true],
+  ['burst', 'mod', '两连发', '连续发射 2 次，落点前后错开覆盖；每发独立消耗弹药和热量。', 1200, 3, true],
+  ['twin', 'mod', '双弹道', '双弹道左右散布，可与两连发组合为 4 点覆盖。', 1500, 3, true],
   ['radius', 'mod', '范围增益', '榴弹与燃烧弹有效半径提高 15%。', 220, 2, false],
   ['cooling', 'mod', '冷却改装', '普通武器热量降低 15%，不改变技能冷却。', 180, 1, false],
   ['drone', 'weapon', '无人机机群', '有限寿命与伤害预算，自动攻击并减速合法敌人。', 600, 2, false],

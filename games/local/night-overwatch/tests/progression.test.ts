@@ -5,8 +5,8 @@ import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { createDuel, configureDuel, commandDuel, advanceDuel, viewDuel } from '../assets/scripts/core/Duel.ts';
 import { createNightReplay, applyNightReplay } from '../assets/scripts/core/Replay.ts';
 import { CATALOG, PACKAGES, POOLS, GROWTH_VERSION, practiceLoadout, validLoadout, levelProgress, type Effect } from '../assets/scripts/core/Progression.ts';
-import { PROTECTED, WEAPONS } from '../assets/scripts/core/Data.ts';
-import { muzzlePosition } from '../assets/scripts/core/Flight.ts';
+import { MAP, PROTECTED, UNITS, WEAPONS } from '../assets/scripts/core/Data.ts';
+import { muzzlePosition, shotPosition } from '../assets/scripts/core/Flight.ts';
 import { bestTrainingRecord, readTrainingRecord } from '../assets/scripts/core/TrainingRecords.ts';
 const setup = (effects: Effect[]) => {
   const sim=new Simulation('training-60');sim.applyLoadout({version:GROWTH_VERSION,level:1,effects,skipped:[]});sim.start();
@@ -34,6 +34,86 @@ test('two bursts and twin trajectories pay four rounds and heat, cannot fire for
   assert(sim.events.filter(e=>e.type==='shot').slice(2).every(e=>e.time===.1));
   sim.guns[1].cooldown=0;sim.guns[1].ammo=3;assert(!sim.fire());assert.equal(sim.guns[1].ammo,3);
   assert.deepEqual(Simulation.restore(sim.checkpoint()).loadout,sim.loadout);
+});
+
+test('ordinary volleys spread real trajectories in two dimensions without leaving a hole at the reticle',()=>{
+  for (const effects of [[], ['burst'], ['twin'], ['burst','twin']] as Effect[][]) {
+    for (let weapon=0;weapon<4;weapon++) {
+      const sim=setup(effects);sim.choose(weapon);sim.setAim({x:-80,z:-40});
+      assert(sim.fire());
+      const points=sim.shots.map(shot=>{
+        const landing=shotPosition(shot,shot.due);
+        assert(Math.hypot(landing.x-shot.x,landing.z-shot.z,landing.y-shot.targetY)<1e-7);
+        assert(Math.hypot(shot.x-sim.aim.x,shot.z-sim.aim.z)<=WEAPONS[weapon].radius);
+        return {x:shot.x,z:shot.z};
+      });
+      assert.equal(new Set(points.map(p=>JSON.stringify(p))).size,sim.attackCount);
+      for (const axis of ['x','z'] as const)
+        assert(Math.abs(points.reduce((sum,p)=>sum+p[axis],0)/points.length-sim.aim[axis])<1e-8);
+      if (!effects.length) assert.deepEqual(points,[sim.aim]);
+      if (points.length===4) {
+        const [a,b,c]=points;
+        assert(Math.abs((b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x))>.1,'Four points cover area, not one line');
+      }
+    }
+  }
+});
+
+test('spread damages a displaced target outside the original blast coverage',()=>{
+  for (const [effects,offset] of [
+    [['burst'],{x:0,z:4.6}], [['twin'],{x:4.6,z:0}], [['burst','twin'],{x:3.4,z:3.4}],
+  ] as [Effect[],{x:number;z:number}][]) {
+    const damage=(mods:Effect[])=>{
+      const sim=setup(mods);sim.height=()=>0;sim.choose(1);sim.setAim({x:-80,z:-40});
+      Object.assign(sim.aircraft,{x:-80,z:-140,y:100,yaw:0,bank:0,pitch:0});
+      const enemy=sim.addUnit('turret',sim.aim);enemy.y=0;const hp=enemy.hp;
+      assert(sim.fire());
+      enemy.x+=offset.x;enemy.z+=offset.z;
+      const finish=Math.max(...sim.shots.map(shot=>shot.due))+.1;
+      while(sim.time<finish)sim.step(1/60);
+      return hp-enemy.hp;
+    };
+    assert.equal(damage([]),0,'Original precise shot misses the displaced target');
+    assert(damage(effects)>0,'Extra rounds cover the displacement');
+  }
+});
+
+test('spread checks protected areas, map bounds and friendly warnings before paying for a volley',()=>{
+  for (const effects of [['burst'],['twin'],['burst','twin']] as Effect[][]) {
+    const sim=setup(effects);sim.choose(1);
+    Object.assign(sim.aircraft,{x:0,z:0,y:100,yaw:0,bank:0,pitch:0});
+    sim.setAim({x:MAP.halfWidth-.01,z:MAP.halfDepth-.01});
+    const gun={...sim.guns[1]};
+    assert.equal(sim.reason(),'outside');assert(!sim.fire());assert.deepEqual(sim.guns[1],gun);
+    const p=PROTECTED[0];sim.setAim({x:p.x+p.radius+WEAPONS[1].radius+.1,z:p.z});
+    Object.assign(sim.aircraft,{x:sim.aim.x-100,z:sim.aim.z-100});
+    assert.equal(sim.reason(),'protected');assert(!sim.fire());assert.deepEqual(sim.guns[1],gun);
+    assert.equal(sim.shots.length,0);
+    sim.setAim({x:-80,z:-40});assert(sim.fire());
+    const shot=sim.shots[0],dx=shot.x-sim.aim.x,dz=shot.z-sim.aim.z,length=Math.hypot(dx,dz);
+    const radius=WEAPONS[1].radius+UNITS.escort.radius;
+    const point={x:sim.aim.x+dx/length*(radius+length*.5),z:sim.aim.z+dz/length*(radius+length*.5)};
+    const friend=sim.addUnit('escort',point,true);Object.assign(friend,point);sim.units=[friend];
+    assert(sim.friendlyRisk,'Warning includes a friend outside the original blast disk');
+    const plain=setup([]);plain.choose(1);plain.setAim(sim.aim);plain.units=sim.units;
+    assert(!plain.friendlyRisk,'Control reticle alone does not cover that friend');
+  }
+});
+
+test('spread survives checkpoint, ranked input replay and both duel pilots deterministically',()=>{
+  const direct=setup(['burst','twin']);direct.choose(1);direct.setAim({x:-80,z:-40});
+  const restored=Simulation.restore(direct.checkpoint());
+  const replay={simulation:direct.checkpoint(),assisted:false};
+  assert(direct.fire());assert(restored.fire());
+  applyNightReplay(replay,[{input:{command:'fire',args:[]},ticks:0}]);
+  assert.deepEqual(restored.shots,direct.shots);assert.deepEqual(replay.simulation.shots,direct.checkpoint().shots);
+  const duel=configureDuel(createDuel(11),[0,1].map(()=>({version:GROWTH_VERSION,level:1,effects:['burst','twin'],skipped:[]})));
+  for (const side of [0,1]) {
+    const local=Simulation.restore(viewDuel(duel,side).simulation);
+    local.choose(1);assert(local.fire());
+    commandDuel(duel,side,[{command:'choose',args:[1]},{command:'fire',args:[]}]);
+    assert.deepEqual(duel.simulation.shots.filter(s=>s.side===side),local.checkpoint().shots.filter(s=>s.side===side));
+  }
 });
 test('rate advertisement expiry preserves personal tracking and a delayed guided round only moves after birth',()=>{
   const sim=setup(['burst','tracking']);sim.choose(1);sim.setAim(sim.units.find(u=>!u.friendly)!);

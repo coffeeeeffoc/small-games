@@ -6,7 +6,7 @@ import { assetFixture } from './progression-fixture.ts';
 import { acceptanceBuild, snapshot, assertLayout, press, settleVisuals, navigateMap, aimAt } from './flight-browser.mjs';
 
 const base=process.env.NIGHT_URL,build=await acceptanceBuild(base);
-const out=new URL('../reports/2026-11-01-loadout/',import.meta.url);await mkdir(out,{recursive:true});
+const out=new URL('../reports/2026-11-01-loadout-spread/',import.meta.url);await mkdir(out,{recursive:true});
 const evidence={build,fixture:true,checks:[],screens:[],errors:[]};
 const browser=await chromium.launch({headless:true,args:['--use-angle=d3d11']});
 function fixture(assets){return `
@@ -88,6 +88,18 @@ try{
     if(touch)await click('fire');else await page.keyboard.press('Space');
     await page.waitForFunction(fired=>__night.snapshot().fired>=fired+4,before.fired);
     s=await snapshot(page);assert.equal(s.fired-before.fired,4);assert.equal(before.guns[2].ammo-s.guns[2].ammo,4);
+    const volley=s.shots.filter(shot=>shot.weapon===2);
+    assert.equal(volley.length,4,'Four real projectiles remain in flight');
+    assert.equal(new Set(volley.map(shot=>`${shot.x},${shot.z}`)).size,4,'Each projectile has a distinct landing point');
+    const [first,second,third]=volley;
+    assert(Math.abs((second.x-first.x)*(third.z-first.z)-(second.z-first.z)*(third.x-first.x))>1,'Combined upgrades cover a two-dimensional area');
+    evidence.checks.push({width,height,spread:volley.map(({x,z,born})=>({x,z,born}))});
+    await shot('spread-flight');
+    const shotIds=volley.map(projectile=>projectile.id);
+    await page.waitForFunction(ids=>ids.every(id=>__night.snapshot().impacts.some(impact=>impact.shot===id)),shotIds);
+    const impacts=(await snapshot(page)).impacts.filter(impact=>shotIds.includes(impact.shot));
+    assert.equal(new Set(impacts.map(impact=>`${impact.x.toFixed(3)},${impact.z.toFixed(3)}`)).size,4,'Terrain contacts also remain distinct');
+    evidence.checks.push({width,height,impacts});await shot('spread-impact');
     await click('battleReport');await click('equipment');assert((await snapshot(page)).equipmentOpen);await shot('battle-equipment');
     await click('equipmentClose');await click('close');await click('skillUse');assert((await snapshot(page)).skill.remaining>0);
     await click('settings');await click('home');await click('exitConfirm');
