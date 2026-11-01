@@ -51,7 +51,7 @@ test('only the three explicit Tap H5 producers select persistent mode; generic/n
   const source = await readFile(new URL('./h5-taptap-build.mjs', import.meta.url), 'utf8');
   assert.match(
     source,
-    /prepareH5Service\(game, dist, \{\s*env: buildEnv,\s*local: Boolean\(values.local\),\s*identityMode: 'persistent'/,
+    /prepareH5Service\(game, dist, \{\s*env: buildEnv,\s*local,\s*identityMode: 'persistent'/,
   );
 });
 test('reconfigure keeps explicit persistent mode with service disabled without building a game', async () => {

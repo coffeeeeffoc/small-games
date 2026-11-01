@@ -22,6 +22,8 @@ Optional, separately approved competition HTTPS ingress uses the exact `competit
 
 混合构建类型的临时打包 fixture 显式使用空环境，避免继承 CI 的 `NIGHT_OVERWATCH_PREBUILT_DIR` 后导入临时目录中不存在的真实 Creator 校验模块。保留生产制品校验；外部注入不存在的 prebuilt 路径后，开发模式/构建类型10项规则与真实浏览器专项均通过。
 
+H5 服务配置契约跟随构建类型的预计算 `local` 参数，保留 `env: buildEnv` 和显式 persistent 身份约束。生产包仍禁止本地后端；已有实际打包测试覆盖 test/production 的本地标记区别。同组八个测试文件复测72项通过、1项按条件跳过，三款游戏的离线零请求及指定在线地址触屏入口检查通过；不修改生产构建逻辑或放宽服务校验。
+
 Echo Lab 分享链接断言按实际文档入口验证 origin/path、空 query 与 room 编码，兼容独立根挂载及 Pages/iframe 子路径。浏览器全局使用 `globalThis.location`，保持 Shell lint 约束。共享浏览器脚本的本次准确前后摘要绑定 `fed04bb8` / `750a0de7` 直接比较和 `baaae8d7` 累计比较：前两者选择 Echo 与 Shell，后者同时保留 Night；未知字节和缺失/重复游戏身份不获得该证明。默认 Shell 导航样例不覆盖 Echo，不能替代其真实浏览器检查。根入口鼠标/触屏及 Pages 子路径的 Page/FrameLocator 四种组合共6项通过，范围正负例5组通过。
 
 2026-10-24 全屏移除由 `fullscreen-removal-scope.mjs` 绑定已审阅的共享文件前后摘要，以及控制器／副本／旧工具的原始摘要和候选树不存在证明；游戏删除保留真实游戏消费者，公共控制器与命令调整保留游戏和 Shell 消费者。Pages 范围规划与候选执行共用这套分类及候选树查询，避免规划通过后执行阶段遗漏证明。未知字节、复活文件和重命名仍阻断；`test:no-fullscreen` 检查普通 Web 入口不再提供全屏调用。
