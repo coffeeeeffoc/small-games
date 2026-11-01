@@ -1,0 +1,135 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a"
+  },
+  "fixture": false,
+  "errors": [],
+  "checks": [
+    "Real local Runtime guest, welcome mail, cumulative check-in, opening receipt, purchase, loadout, authoritative solo win, one-time stock consumption, coins/XP settlement, task claim and reload persistence"
+  ],
+  "screens": [
+    {
+      "name": "01-home",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "02-mail",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "03-opening",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "04-shop",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "05-loadout-draft",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "05-loadout",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "06-combat-0",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "06-combat-1",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "06-combat-2",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "09-settlement-1280",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "09-settlement-1672",
+      "viewport": {
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "name": "09-settlement-568",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      }
+    },
+    {
+      "name": "09-settlement-844",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      }
+    },
+    {
+      "name": "07-tasks",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "08-persisted-home",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    }
+  ],
+  "clips": {
+    "home": 1.447,
+    "shop": 9.639,
+    "loadout": 13.912,
+    "gameplay": 17.985,
+    "settlement": 56.823
+  },
+  "playerId": "de9d4ff5-730a-466f-8ed5-346ac81f915f",
+  "result": {
+    "phase": "success",
+    "kills": 4,
+    "fired": 4,
+    "coins": 180,
+    "xp": 120
+  },
+  "environment": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
+}

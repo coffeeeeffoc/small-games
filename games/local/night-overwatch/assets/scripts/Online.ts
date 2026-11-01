@@ -1,5 +1,6 @@
+import { practiceLoadout } from './core/Progression.ts';
 import { Simulation } from './core/Simulation.ts';
-import { createDuel, commandDuel, advanceDuel, viewDuel, type DuelCommand, type DuelState } from './core/Duel.ts';
+import { createDuel, configureDuel, commandDuel, advanceDuel, viewDuel, type DuelCommand, type DuelState } from './core/Duel.ts';
 import { RANKED_RULE_VERSION, observeNightInputs } from './core/Replay.ts';
 import { MISSIONS } from './core/MissionCatalog.ts';
 import type { AssetCommand, AssetSnapshot, BattleLoadout } from './core/Progression.ts';
@@ -7,7 +8,7 @@ import type { AssetCommand, AssetSnapshot, BattleLoadout } from './core/Progress
 export type Player = { id?: string; userId?: string; playerId?: string; name?: string; nickname?: string; ready?: boolean; disconnected?: boolean; reconnectUntil?: number; takenOver?: boolean; settlement?: Settlement };
 export const playerId = (player: Player) => player.playerId || player.userId || player.id || '';
 export const playerLabel = (player: Player) => `${player.nickname || player.name || '飞行员'} #${playerId(player).replace(/-/g, '').slice(-8).toUpperCase()}`;
-type DuelView = ReturnType<typeof viewDuel>;
+type DuelView = Omit<ReturnType<typeof viewDuel>,'enemyEquipment'>&Partial<Pick<ReturnType<typeof viewDuel>,'enemyEquipment'>>;
 export type Settlement = { points: number; totalPoints?: number; wins?: number; games?: number; outcome?: string; coins?:number; xp?:number; totalXp?:number; status?:string };
 export type RoomSummary = { code: string; status: string; mode: string; players: Player[]; playerCount: number; canJoin: boolean; canSpectate: boolean };
 export type BattleHistory = { summary: { wins: number; losses: number; draws: number; games: number; winRate: number };
@@ -174,18 +175,19 @@ export class Online {
     this.ranked = metadata.capabilities.leaderboards;
     this.revision++;
   }
+  assetsReceivedAt=0;
   async refreshAssets(){
     if(!this.bridge?.services.nightAssets)throw Error('Assets unavailable');
     this.acceptMetadata(await (this.bridge.refresh?.()??this.bridge.ready));
     const owner=this.authenticatedId,result=await this.bridge.services.nightAssets(owner);
     if(owner!==this.authenticatedId||result.playerId!==owner)throw Object.assign(Error('Identity changed'),{code:'IDENTITY_CHANGED'});
-    this.assets=result;this.revision++;return result;
+    this.assets=result;this.assetsReceivedAt=performance.now();this.revision++;return result;
   }
   async assetCommand(command:AssetCommand){
     if(!this.bridge?.services.nightAssetCommand)throw Error('Assets unavailable');
     const owner=this.authenticatedId,result=await this.bridge.services.nightAssetCommand(command,owner);
     if(owner!==this.authenticatedId||result.playerId!==owner)throw Object.assign(Error('Identity changed'),{code:'IDENTITY_CHANGED'});
-    this.assets=result;this.revision++;return result;
+    this.assets=result;this.assetsReceivedAt=performance.now();this.revision++;return result;
   }
   get active() { return !!this.view; }
   get spectator() { return !!this.room?.spectator || this.room?.you === -1; }
@@ -301,6 +303,7 @@ export class Online {
   startBot(now: number) {
     if (this.busy || this.active || this.room) return;
     this.generation++; this.bot = createDuel(new DataView(randomBytes().buffer).getUint32(0) & 0x7fffffff, true);
+    configureDuel(this.bot,[practiceLoadout(this.assets,'duel',performance.now()-this.assetsReceivedAt)]);
     this.botStarted = now + 1200; this.nextPoll = 0; this.panel = ''; this.message = '本地练习 · 不计公开积分';
     this.enteringUntil = this.botStarted;
     this.acceptView(viewDuel(this.bot));

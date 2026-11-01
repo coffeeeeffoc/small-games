@@ -87,7 +87,7 @@ const cc = {
   Rect: class { x: number; y: number; width: number; height: number; constructor(x: number, y: number, width: number, height: number) { Object.assign(this, { x, y, width, height }); } },
   resources: { load(name: string, _type: any, done: any) { if(artworkAvailable&&!name.includes('home'))done(null,{width:1024,height:512});else done(new Error('unavailable art')); } },
   isValid: () => true,
-  Label: class { static Overflow = { CLAMP: 0, SHRINK: 1 }; static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0 }; },
+  Label: class { static Overflow = { CLAMP: 0, SHRINK: 1 }; static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0, TOP: 1 }; },
   Layers: { Enum: { UI_2D: 1 } }, ResolutionPolicy: { EXACT_FIT: 0 },
   sys: { isMobile: false, isBrowser: false, getSafeAreaRect: () => ({ x: inset, y: inset, width: frame.width - inset * 2, height: frame.height - inset * 2 }) },
   view: { getFrameSize: () => frame, setDesignResolutionSize() {}, getScaleX: () => 1, getScaleY: () => 1 },
@@ -1139,12 +1139,17 @@ test('progression pages keep every live action reachable on short and wide scree
     const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
     for(const page of pages)for(const detail of page==='shop'?[false,true]:[false]){
       q.page=page;q.detail=detail;q.index=0;q.message=['',''];q.revision++;hud.update(sim,world);
-      const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
+      const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy).map((b:any)=>{
+        if(!b.clip)return b;
+        const x=Math.max(b.x,b.clip.x),y=Math.max(b.y,b.clip.y);
+        return {...b,x,y,w:Math.max(0,Math.min(b.x+b.w,b.clip.x+b.clip.w)-x),h:Math.max(0,Math.min(b.y+b.h,b.clip.y+b.clip.h)-y)};
+      }).filter((b:any)=>b.w>0&&b.h>0);
       const ids=new Set();
       for(const b of buttons){
         const info=`${width}x${height}/${safe}/${lang}/${page}/${detail}/${b.id}`;
         assert(!ids.has(b.id),info+' unique');ids.add(b.id);
-        assert(b.w>=44&&b.h>=44,info+' 44px');
+        const raw=hud.buttons.find((button:any)=>button.id===b.id)!;
+        assert(raw.w>=44&&raw.h>=44,info+' 44px before viewport clipping');
         assert(b.x>=safe-.01&&b.y>=safe-.01&&b.x+b.w<=width-safe+.01&&b.y+b.h<=height-safe+.01,info+' in safe area');
         assert(!buttons.some((other:any)=>other!==b&&overlaps(b,other)),info+' no overlap');
         assert.equal(hud.hit(b.x+b.w/2,b.y+b.h/2)?.id,b.disabled?undefined:b.id,info+' reachable');

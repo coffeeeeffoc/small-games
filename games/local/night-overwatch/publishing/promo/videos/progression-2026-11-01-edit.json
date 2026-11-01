@@ -1,49 +1,41 @@
 {
-  "source": "reports/2026-11-01-live/source.webm",
-  "sourceSha256": "61858fb13509df56652689a195a7c9749b5c41aed935712f7fedbf8d036c5cda",
-  "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+  "source": "reports/2026-11-01-loadout-live/source.webm",
+  "sourceSha256": "1265227bf343ca75493d1094eedf229cad2204620790278af9336d6d1f901dc4",
+  "capturedSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
+  "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
   "fixture": false,
+  "environment": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified",
   "audio": "not captured",
   "gameplay": {
-    "start": 18.172,
+    "start": 17.985,
     "duration": 22
   },
-  "decode": "Both complete videos decoded; updated promo reviewed at one-second intervals. No audio.",
-  "previousPromo": [
-    {
-      "start": 1.469,
-      "duration": 3
-    },
-    {
-      "start": 13.947,
-      "duration": 3
-    },
-    {
-      "start": 18.172,
-      "duration": 14
-    }
-  ],
   "promo": [
     {
-      "source": "gameplay/screenshots/2026-11-01-progression/01-home.png",
+      "source": "01-home.png",
       "duration": 3,
-      "capturedSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "type": "real browser still"
     },
     {
-      "source": "gameplay/screenshots/2026-11-01-progression/02-loadout.png",
+      "source": "05-loadout.png",
       "duration": 3,
-      "capturedSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
       "type": "real browser still"
     },
     {
-      "source": "https://github.com/coffeeeeffoc/small-games/blob/f8ad57a3c7d0f31f925b47d8b6f6e4f562341edb/games/local/night-overwatch/publishing/promo/videos/progression-2026-11-01-1280x720-silent.mp4",
-      "sourceSha256": "7b8f8f3c346dd8937e76b943fb0f7bcdb66505f1f1ac0f102af0c2ffd21190df",
-      "start": 6,
-      "duration": 14,
-      "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
-      "type": "unchanged gameplay segment"
+      "source": "03-opening.png",
+      "duration": 3,
+      "type": "real browser still"
+    },
+    {
+      "source": "source.webm",
+      "duration": 7,
+      "start": 17.985
+    },
+    {
+      "source": "09-settlement-1280.png",
+      "duration": 4,
+      "type": "real browser still"
     }
   ],
-  "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a"
+  "decode": "Both complete MP4 files decoded successfully. Promo uses five distinct sections; gameplay is continuous."
 }

@@ -56,3 +56,51 @@ test('developer journal retries one ID, clears definite failures, and cannot rep
   storage.setItem('night-overwatch-asset-intent:A',JSON.stringify({kind:'buy',requestId:id,item:'power-match'}));
   const normal=new Quartermaster(online,storage);normal.syncIdentity();assert.equal(normal.pending?.kind,'buy');
 });
+
+
+test('loadout edits select compatible slots, keep empty slot positions and save only on confirmation',async()=>{
+  const {q,online,calls}=setup();q.syncIdentity();online.assets.loadouts.solo={mods:[],weapon:null,skill:null};
+  q.selectSlot('mod:1');q.equip('burst-match');assert.equal(q.modSlots[0],undefined);assert.equal(q.modSlots[1],'burst-match');
+  q.selectSlot('mod:0');q.equip('twin-match');q.unequip();assert.equal(q.modSlots[0],null);assert.equal(q.modSlots[1],'burst-match');
+  q.equip('laser-match');assert.equal(q.loadout.weapon,null);assert.equal(calls.length,0);assert.deepEqual(online.assets.loadouts.solo.mods,[]);
+  q.selectSlot('mod:0');q.equip('power-permanent');q.mode='duel';q.equip('twin-match');q.mode='solo';assert.deepEqual(q.loadout.mods,['power-permanent','burst-match']);
+  q.page='loadout';q.requestLeave('');assert.equal(q.page,'loadout');assert.equal(q.leaveTo,'');
+  online.assetCommand=async(command:any)=>{calls.push(command);online.assets.loadouts[command.mode]=command.loadout;return online.assets;};
+  await q.save();assert.equal(calls.length,1);assert.equal(calls[0].kind,'loadout');assert.deepEqual(online.assets.loadouts.solo.mods,['power-permanent','burst-match']);
+  assert.deepEqual(online.assets.loadouts.duel.mods,[]);q.discard();assert.deepEqual(q.drafts,{});
+});
+
+test('available equipment excludes inactive time vouchers and already-equipped effects stay identifiable',()=>{
+  const {q,online}=setup();q.syncIdentity();
+  assert(!q.availableGear.some(p=>p.term==='24h'));assert(q.availableGear.some(p=>p.id==='power-permanent'));
+  assert(q.equipped('burst'));q.equip('burst-permanent');assert.deepEqual(q.loadout.mods,['burst-match','twin-match']);
+  online.assets.active.rate=online.assets.serverNow+1000;assert(q.availableGear.some(p=>p.id==='rate-24h'));
+});
+
+test('multi-crate opening retries the same failed transaction and never reopens the completed group',async()=>{
+  const {q,online,calls}=setup();q.syncIdentity();q.gift={packs:{'pack:general:0':2,'pack:gold:3':1},drops:[],opened:false};let lose=true;
+  online.assetCommand=async(command:any)=>{calls.push({...command});if(command.item==='pack:gold:3'&&lose){lose=false;throw Error('lost reply');}return {...online.assets,lastReceipt:{kind:'open',requestId:command.requestId,drops:command.item==='pack:general:0'?[{coins:10},{item:'power-match'}]:[{item:'burst-match'}]}};};
+  await q.openGifts();assert.deepEqual(q.gift?.packs,{'pack:gold:3':1});assert.equal(q.gift?.drops.length,2);const pending=q.pending!.requestId;
+  await q.openGifts();assert.deepEqual(calls.map(c=>c.item),['pack:general:0','pack:gold:3','pack:gold:3']);assert.equal(calls[2].requestId,pending);assert.equal(q.gift?.opened,true);assert.equal(q.gift?.drops.length,3);
+});
+
+test('gift receipts survive idempotent responses without relying on inventory deltas',async()=>{
+  const {q,online}=setup();online.assetCommand=async()=>({...online.assets,lastReceipt:{kind:'buy-packs',packs:{'pack:gold:2':3}}});
+  await q.execute({kind:'buy-packs',quantity:3,pool:'gold'});assert.deepEqual(q.gift?.packs,{'pack:gold:2':3});
+  online.assetCommand=async()=>({...online.assets,lastReceipt:{kind:'checkin',reward:{packs:1,coins:100}}});
+  await q.execute({kind:'checkin'});assert.deepEqual(q.gift?.packs,{'pack:general:0':1});
+});
+
+test('switching accounts before opening a gift never spends the new account inventory',async()=>{
+  const {q,online,calls}=setup();q.syncIdentity();
+  q.gift={packs:{'pack:general:0':1},drops:[],opened:false};
+  online.authenticatedId='B';online.assets=assetFixture('B');
+  await q.openGifts();assert.equal(calls.length,0);assert.equal(q.gift,undefined);
+});
+
+test('identity changes discard draft intentions and cannot resurrect an old account gift',async()=>{
+  const {q,online,calls}=setup();q.syncIdentity();q.selectSlot('weapon');q.equip('laser-match');
+  online.authenticatedId='B';online.assets=assetFixture('B');await q.save();assert.equal(calls[0].loadout.weapon,'drone-match');
+  q.gift={packs:{'pack:general:0':1},drops:[],opened:false};let reply:any;online.assetCommand=()=>new Promise(resolve=>{reply=resolve;});
+  const opening=q.openGifts();online.authenticatedId='C';online.assets=assetFixture('C');q.syncIdentity();reply(assetFixture('B'));await opening;assert.equal(q.gift,undefined);assert.deepEqual(q.drafts,{});
+});

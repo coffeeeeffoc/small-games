@@ -28,8 +28,8 @@ import { completeMission, missionUnlocked } from './core/MissionProgress';
 import { bestTrainingRecord } from './core/TrainingRecords';
 import { recordMissionTime } from './core/BattleRecords';
 import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
-import { Quartermaster, type ProgressionPage } from './Quartermaster';
-import { trainingLoadout } from './core/Progression';
+import { Quartermaster, type ProgressionPage, type LoadoutSlot } from './Quartermaster';
+import { trainingLoadout, practiceLoadout } from './core/Progression';
 import { installDeveloperTools } from './DeveloperTools';
 const { ccclass } = _decorator;
 type TouchRole = { role: string; x: number; y: number; originX?: number; originY?: number; button?: string; moved?: boolean };
@@ -47,6 +47,7 @@ export class Overwatch extends Component {
   touches = new Map<number, TouchRole>();
   keys = new Set<number>();
   mouseButton = '';
+  private loadoutGesture?:{pointer:number|'mouse';item?:string;x:number;y:number;lastY:number;mode:'pending'|'scroll'|'drag'};
   accumulator = 0;
   lastEvent = 0;
   frameCount = 0;
@@ -163,6 +164,7 @@ export class Overwatch extends Component {
   }
   clear = () => {
     if (this.hud) this.hud.mousePointer = undefined;
+    this.loadoutGesture=undefined;if(this.quartermaster?.drag){this.quartermaster.drag=undefined;this.quartermaster.revision++;}
     this.sim.clearInput();
     this.touches.clear();
     this.keys.clear();
@@ -195,7 +197,7 @@ export class Overwatch extends Component {
     this.world.reset();
     this.syncRewards();
     this.hud.modalKey = 'rebuild';
-    this.hud.supplyOpen = this.hud.reportOpen = false;
+    this.hud.equipmentOpen = this.hud.supplyOpen = this.hud.reportOpen = false;
     this.hud.timeComparison = undefined;
     this.hud.exitConfirm = this.hud.toolsOpen = this.hud.zoomOpen = false;
   }
@@ -224,7 +226,7 @@ export class Overwatch extends Component {
     this.syncWorld();
     this.lastEvent = this.accumulator = 0;
     this.hud.modalKey = 'rebuild';
-    this.hud.supplyOpen = this.hud.reportOpen = false;
+    this.hud.equipmentOpen = this.hud.supplyOpen = this.hud.reportOpen = false;
     this.hud.timeComparison = undefined;
     this.hud.exitConfirm = this.hud.toolsOpen = this.hud.zoomOpen = false;
   }
@@ -265,7 +267,7 @@ export class Overwatch extends Component {
       if (recorder && sim.homingAmmo > 0) recorder.record({ command: 'grantHomingAmmo', args: [sim.homingAmmo] }, 0);
       if (recorder) for (const reason of sim.pauses) recorder.record({ command: 'pause', args: [reason, true] }, 0);
     };
-    if (!online || sim.mission.mode !== 'escort') { begin(); return; }
+    if (!online || sim.mission.mode !== 'escort') { if(!sim.loadout.effects.length)sim.applyLoadout(practiceLoadout(online?.assets,'solo',online?performance.now()-online.assetsReceivedAt:0));begin(); return; }
     this.starting = sim;
     this.hud.toast = this.hud.t('正在准备计时…', 'PREPARING TIMER…'); this.hud.toastUntil = Date.now() + 16000;
     const start = async () => {
@@ -275,7 +277,8 @@ export class Overwatch extends Component {
         practice: this.operationPractice || this.platform.developer });
       if(this.sim!==sim||this.disposed)return;
       if(run?.loadout){sim.applyLoadout(run.loadout);if(run.loadout.skipped.length){this.hud.toast=this.hud.t('部分军需不足或已过期，本场使用其余方案','Some gear is unavailable. Remaining loadout applied.');this.hud.toastUntil=Date.now()+5000;}}
-      else if(!this.operationPractice&&!this.platform.developer)online.recorder?.invalidate('local');
+      else if(this.operationPractice||this.platform.developer)sim.applyLoadout(practiceLoadout(online.assets,'solo',performance.now()-online.assetsReceivedAt));
+      else online.recorder?.invalidate('local');
     };
     void start().then(begin, begin).finally(() => { if (this.starting === sim) this.starting = undefined; });
   }
@@ -438,16 +441,18 @@ export class Overwatch extends Component {
   }
   private progressionAction(id:string){
     if(id==='qm:warehouseGo')id='qm:warehouse';
-    if(id.startsWith('slot:'))id='equip:'+id.slice(5);
+
     const q=this.quartermaster;if(!q)return false;
+    if(id==='equipment'){this.clear();this.hud.equipmentOpen=!this.hud.equipmentOpen;this.hud.modalKey='rebuild';return true;}
+    if(id==='equipmentClose'){this.clear();this.hud.equipmentOpen=false;this.hud.modalKey='rebuild';return true;}
     if(id==='skillUse'){if(!this.hud.modal&&!this.online?.spectator)this.sim.useSkill();return true;}
-    if(!/^(qm:|mode:|term:|product:|loadout:|equip:|package:|pool:|growth:|skill:|tasks:|task:|taskalt:|achievement:|inbox:|mail:|inventory:)/.test(id))return false;
+    if(!/^(qm:|mode:|term:|product:|loadout:|slot:|gear:|equip:|package:|pool:|growth:|skill:|tasks:|task:|taskalt:|achievement:|inbox:|mail:|inventory:)/.test(id))return false;
     this.clear();this.hud.modalKey='rebuild';const [group,...rest]=id.split(':'),value=rest.join(':');
     if(group==='qm'){
       const pages=['modes','loadout','shop','supply','growth','tasks','inbox','warehouse','receipts','checkin','probability'];
-      if(pages.includes(value)){if(value==='loadout'&&q.page==='modes')q.mode=q.actionMode==='duel'?'duel':'solo';this.online?.show('');this.hud.missionsOpen=false;q.show(value as ProgressionPage);return true;}
-      if(value==='home'){q.show('');this.action('home');return true;}
-      if(value==='back'){q.show(q.page==='receipts'?'warehouse':'');return true;}
+      if(pages.includes(value)){if(value==='loadout'&&q.page==='modes')q.mode=q.actionMode==='duel'?'duel':'solo';this.online?.show('');this.hud.missionsOpen=false;q.requestLeave(value as ProgressionPage);return true;}
+      if(value==='home'){q.requestLeave('');return true;}
+      if(value==='back'){if(q.gift){q.gift=undefined;q.revision++;}else q.requestLeave(q.page==='receipts'?'warehouse':'');return true;}
       if(value==='announcements'){q.show('inbox');q.section='news';return true;}
       if(value==='refresh'){void q.refresh();return true;}
       if(value==='retry'){void q.execute();return true;}
@@ -458,6 +463,13 @@ export class Overwatch extends Component {
       if(value.startsWith('choose:')){q.index=0;q.message=['从右侧选择已有军需；缺少时可前往商店','Select owned gear on the right, or visit the armory.'];}
       if(value==='buy')void q.execute({kind:'buy',item:q.selected,quantity:1});
       if(value==='equip')q.equip(q.selected);
+      if(value==='save')void q.save();
+      if(value==='unequip')q.unequip();
+      if(value==='keepEditing')q.leaveTo=undefined;
+      if(value==='discard')q.discard();
+      if(value==='giftOpen')void q.openGifts();
+      if(value==='giftClose')q.gift=undefined;
+      if(value==='giftWarehouse'){q.gift=undefined;q.show('warehouse');}
       if(value==='buyPacks')void q.execute({kind:'buy-packs',quantity:q.quantity,pool:q.pool});
       if(value==='watch')void q.watch(()=>this.platform.offerSupplyVideo());
       if(value==='checkinClaim')void q.execute({kind:'checkin'});
@@ -479,8 +491,9 @@ export class Overwatch extends Component {
       }else if(['solo','duel','training'].includes(value))q.actionMode=value as typeof q.actionMode;
     }else if(group==='term'){q.term=value as typeof q.term;q.selected='burst-'+value;q.index=0;q.detail=false;}
     else if(group==='product'){q.selected=value;q.detail=true;}
-    else if(group==='loadout'){q.mode=value as typeof q.mode;q.index=0;}
-    else if(group==='equip')q.equip(value);
+    else if(group==='loadout'){q.mode=value as typeof q.mode;q.index=0;q.loadoutScroll=0;}
+    else if(group==='slot')q.selectSlot(value as LoadoutSlot);
+    else if(group==='equip'||group==='gear')q.equip(value);
     else if(group==='package')q.quantity=Number(value);
     else if(group==='pool')q.pool=value as typeof q.pool;
     else if(group==='growth'||group==='tasks'){q.section=value;q.index=0;}
@@ -808,11 +821,34 @@ export class Overwatch extends Component {
     this.world.updateCamera();
     this.sim.setAim(p);
   }
+  private beginLoadoutGesture(pointer:number|'mouse',x:number,y:number){
+    const q=this.quartermaster;if(!q||q.page!=='loadout'||q.gift||q.leaveTo!==undefined||q.confirmation||q.busy||this.loadoutGesture)return false;
+    const a=q.loadoutArea;if(x<a.x||x>a.x+a.w||y<a.y||y>a.y+a.h)return false;
+    const button=this.hud.hit(x,y),item=button&&/^(gear|equip):/.test(button.id)?button.id.slice(button.id.indexOf(':')+1):undefined;
+    this.loadoutGesture={pointer,item,x,y,lastY:y,mode:'pending'};return true;
+  }
+  private moveLoadoutGesture(pointer:number|'mouse',x:number,y:number){
+    const gesture=this.loadoutGesture,q=this.quartermaster;if(!gesture||gesture.pointer!==pointer||!q)return false;
+    const dx=x-gesture.x,dy=y-gesture.y;
+    if(gesture.mode==='pending'&&Math.max(Math.abs(dx),Math.abs(dy))>8)gesture.mode=gesture.item&&Math.abs(dx)>Math.abs(dy)?'drag':'scroll';
+    if(gesture.mode==='scroll')q.scrollLoadout(gesture.lastY-y);
+    if(gesture.mode==='drag'&&gesture.item){q.drag={item:gesture.item,x,y};q.revision++;}
+    gesture.lastY=y;return true;
+  }
+  private endLoadoutGesture(pointer:number|'mouse',x:number,y:number){
+    const gesture=this.loadoutGesture,q=this.quartermaster;if(!gesture||gesture.pointer!==pointer||!q)return false;
+    this.loadoutGesture=undefined;q.drag=undefined;
+    const target=this.hud.hit(x,y);
+    if(gesture.item&&gesture.mode==='drag'&&target?.id.startsWith('slot:'))q.equip(gesture.item,target.id.slice(5) as LoadoutSlot);
+    else if(gesture.item&&gesture.mode==='pending'&&target?.id.endsWith(':'+gesture.item))q.equip(gesture.item);
+    q.revision++;return true;
+  }
   mouseMove(e: EventMouse) {
     if (this.platform.touchInput) return;
     this.hud.touch = false;
     const p = this.mousePosition(e);
     this.hud.mousePointer = p;
+    if(this.moveLoadoutGesture('mouse',p.x,p.y))return;
     if (this.mouseButton && this.hud.hit(p.x, p.y)?.id !== this.mouseButton) {
       this.sim.setFire('mouse', false);
       this.mouseButton = '';
@@ -834,9 +870,10 @@ export class Overwatch extends Component {
     const p = this.mousePosition(e),
       b = this.hud.hit(p.x, p.y);
     this.hud.mousePointer = p;
+    if(e.getButton()===0&&this.beginLoadoutGesture('mouse',p.x,p.y))return;
     if (b) {
       if (e.getButton() !== 0) return;
-      if (this.hud.modal && b.label.node.parent !== this.hud.modal && !this.hud.isGlobalAction(b.id)) return;
+      if (this.hud.modal && !this.hud.inModal(b.label.node) && !this.hud.isGlobalAction(b.id)) return;
       this.mouseButton = b.id;
       if (b.id === 'fire' && e.getButton() === 0 && !this.online?.spectator && !this.online?.entering) this.sim.setFire('mouse', true);
       return;
@@ -872,12 +909,14 @@ export class Overwatch extends Component {
     this.sim.setFire('mouse', false);
     const p = this.mousePosition(e),
       b = this.hud.hit(p.x, p.y);
+    if(this.endLoadoutGesture('mouse',p.x,p.y))return;
     const id = this.mouseButton;
     this.mouseButton = '';
     if (id && id !== 'fire' && b?.id === id) this.action(id);
   }
   wheel(e: EventMouse) {
     if (this.hud.modal) {
+      const q=this.quartermaster;if(q?.page==='loadout'&&!q.gift&&q.leaveTo===undefined){const p=this.mousePosition(e),a=q.loadoutArea;if(p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h){q.scrollLoadout(-e.getScrollY()*.2);return;}}
       if (this.hud.scrollNode) this.hud.scrollBy(-e.getScrollY() * 0.2);
       return;
     }
@@ -901,13 +940,15 @@ export class Overwatch extends Component {
         b = this.hud.hit(x, y),
         id = t.getID();
       if (this.touches.has(id)) continue;
+      if(this.loadoutGesture&&this.loadoutGesture.pointer!==id){this.touches.set(id,{role:'cancelled',x,y});continue;}
+      if(this.beginLoadoutGesture(id,x,y)){this.touches.set(id,{role:'loadout',x,y});continue;}
       const mapPoint = this.hud.minimapPoint(x, y);
       if (!b && mapPoint) {
         this.locateMap(mapPoint);
         this.touches.set(id, { role: 'map', x, y });
         continue;
       }
-      if (b && (!this.hud.modal || b.label.node.parent === this.hud.modal || this.hud.isGlobalAction(b.id))) {
+      if (b && (!this.hud.modal || this.hud.inModal(b.label.node) || this.hud.isGlobalAction(b.id))) {
         if (b.id === 'fire' && Array.from(this.touches.values()).some((t) => t.role === 'pinch')) {
           this.touches.set(id, { role: 'cancelled', x, y });
           continue;
@@ -934,6 +975,7 @@ export class Overwatch extends Component {
     if (e.simulate || (sys.isBrowser && !this.platform.touchInput)) return;
     for (const t of e.getTouches()) {
       const role = this.touches.get(t.getID()), p = t.getUILocation();
+      if(role?.role==='loadout'){this.moveLoadoutGesture(t.getID(),p.x,this.hud.h-p.y);continue;}
       if (role?.role === 'button' && this.hud.hit(p.x,this.hud.h-p.y)?.id !== role.button) role.role='cancelled';
     }
     const fingers = Array.from(this.touches.values()).filter((t) => t.role === 'pinch');
@@ -987,6 +1029,7 @@ export class Overwatch extends Component {
         role = this.touches.get(id);
       this.touches.delete(id);
       this.sim.setFire('touch:' + id, false);
+      if(role?.role==='loadout'){const p=t.getUILocation();this.endLoadoutGesture(id,p.x,this.hud.h-p.y);continue;}
       if (role?.role === 'pinch')
         for (const finger of this.touches.values()) if (finger.role === 'pinch') finger.role = 'cancelled';
       if (role?.role === 'button') {
@@ -1017,6 +1060,7 @@ export class Overwatch extends Component {
     this.keys.add(e.keyCode);
     this.hud.touch = false;
     this.platform.activate();
+    if(this.hud.equipmentOpen&&e.keyCode===27){this.action('equipmentClose');return;}
     if(this.quartermaster?.page){if(e.keyCode===27)this.action('qm:back');else if(e.keyCode===13&&this.quartermaster.page==='modes')this.action('mode:enter');return;}
     if (this.online?.panel || this.online?.entering) { if (e.keyCode === 27) this.action('online:back'); return; }
     if (e.keyCode === 27 && ['help', 'settings', 'mission', 'advert', 'supply'].some((reason) => this.sim.pauses.has(reason as PauseReason))) {
@@ -1195,13 +1239,14 @@ export class Overwatch extends Component {
   }
   snapshot() {
     return {
-      progression:this.quartermaster&&{page:this.quartermaster.page,mode:this.quartermaster.mode,actionMode:this.quartermaster.actionMode,busy:this.quartermaster.busy,assets:this.online?.assets,message:this.quartermaster.message,pending:!!this.quartermaster.pending},
+      progression:this.quartermaster&&{draft:this.quartermaster.loadout,slot:this.quartermaster.slot,dirty:this.quartermaster.dirty,scroll:this.quartermaster.loadoutScroll,gift:this.quartermaster.gift,leaveTo:this.quartermaster.leaveTo,drag:this.quartermaster.drag,page:this.quartermaster.page,mode:this.quartermaster.mode,actionMode:this.quartermaster.actionMode,busy:this.quartermaster.busy,assets:this.online?.assets,message:this.quartermaster.message,pending:!!this.quartermaster.pending},
       skill:{kind:this.sim.skillKind,remaining:this.sim.skillRemaining,cooldown:this.sim.skillCooldown},
       online: this.online && { identity: this.online.identity, panel: this.online.panel, room: this.online.room,
         active: this.online.active, message: this.online.message, rankStatus: this.online.rankStatus,
         rooms: this.online.rooms, history: this.online.history, ranking: this.online.ranking, board: this.online.board },
       fireZones: this.sim.fireZones,
       battleReport: this.hud.reportOpen,
+      equipmentOpen:this.hud.equipmentOpen,loadout:this.sim.loadout,attackCount:this.sim.attackCount,enemyEquipment:this.online?.view?.enemyEquipment,
       timeComparison: this.hud.timeComparison,
       homingAmmo: this.sim.homingAmmo,
       homingSelected: this.sim.homingSelected,
@@ -1303,9 +1348,13 @@ export class Overwatch extends Component {
         .filter(
           (b) =>
             b.label.node.activeInHierarchy &&
-            (!this.hud.modal || b.label.node.parent === this.hud.modal || this.hud.isGlobalAction(b.id)),
+            (!this.hud.modal || this.hud.inModal(b.label.node) || this.hud.isGlobalAction(b.id)),
         )
-        .map(({ id, x, y, w, h, label, visual, disabled }) => ({ id, x, y, w, h, visual, disabled:!!disabled, text: label.string, bold: label.isBold, color: label.color.toHEX() })),
+        .map(({ id, x, y, w, h, label, visual, disabled, clip }) => {
+          const right=clip?Math.min(x+w,clip.x+clip.w):x+w,bottom=clip?Math.min(y+h,clip.y+clip.h):y+h;
+          if(clip){x=Math.max(x,clip.x);y=Math.max(y,clip.y);}w=Math.max(0,right-x);h=Math.max(0,bottom-y);
+          return {id,x,y,w,h,visual,clip,disabled:!!disabled,text:label.string,bold:label.isBold,color:label.color.toHEX()};
+        }).filter(b=>b.w>0&&b.h>0),
       zoom: this.world.zoom,
       follow: this.world.follow,
       safe: this.hud.safe,

@@ -1,4 +1,4 @@
-import { Color, Label, Node, Graphics, Sprite, UITransform } from 'cc';
+import { Color, Label, Node, Graphics, Sprite, UITransform, Mask } from 'cc';
 import type { HUD } from './HUD';
 import { playerLabel } from './Online';
 import { ProgressionArt } from './ProgressionArt';
@@ -28,11 +28,19 @@ export class ProgressionView {
   private get low(){return this.height<500;}
   private font(size:number,min=12){return Math.max(min,size*this.scale);}
   private label(value:string,x:number,y:number,w:number,h:number,size=26,tone=ivory,serif=false,left=false){
+    const money=/^● [\d—]/.test(value);if(money){const d=Math.min(24,h-4);this.coin(x,y+(h-d)/2,d);value=value.slice(2);x+=d+5;w-=d+5;}
     const l=this.h.label(this.n,value,x+w/2,y+h/2,this.font(size),w,h,tone);
-    l.lineHeight=l.fontSize*1.23;l.isBold=serif;
+    l.lineHeight=l.fontSize*1.23;l.isBold=serif;if(money){l.enableWrapText=false;l.overflow=Label.Overflow.SHRINK;}
     if(serif&&this.h.lang==='zh'&&this.a.font){l.font=this.a.font;l.useSystemFont=false;}
     if(left)l.horizontalAlign=Label.HorizontalAlign.LEFT;
     return l;
+  }
+  private coin(x:number,y:number,d:number){
+    const g=this.g,cx=x+d/2-this.w/2,cy=this.height/2-y-d/2;
+    g.fillColor=color('#d59a2d');g.strokeColor=color('#ffe8a1');g.lineWidth=1;g.circle(cx,cy,d*.44);g.fill();g.stroke();
+    g.fillColor=color('#f4c85d');g.circle(cx-d*.04,cy+d*.04,d*.32);g.fill();
+    g.strokeColor=color('#9d6519');g.lineWidth=Math.max(1,d*.07);g.circle(cx,cy,d*.30);g.stroke();
+    g.moveTo(cx,cy+d*.17);g.lineTo(cx,cy-d*.17);g.moveTo(cx-d*.1,cy+d*.08);g.lineTo(cx+d*.1,cy+d*.08);g.moveTo(cx-d*.1,cy-d*.08);g.lineTo(cx+d*.1,cy-d*.08);g.stroke();
   }
   private picture(key:string,x:number,y:number,w:number,h:number,cover=true){
     const frame=this.a.get(key);if(!frame)return;
@@ -78,6 +86,8 @@ export class ProgressionView {
   }
   private footer(){
     if(this.q.confirmation)this.confirm();
+    else if(this.q.leaveTo!==undefined)this.leaveDialog();
+    else if(this.q.gift)this.giftDialog();
   }
   private pager(total:number,size:number,y:number){
     const pages=Math.max(1,Math.ceil(total/size));this.q.index=Math.min(this.q.index,pages-1);
@@ -86,8 +96,8 @@ export class ProgressionView {
     this.button('qm:next','›',x+150,y,48,44,'panel',this.q.index>=pages-1);
   }
   render(s:Simulation,result=false){
-    if(result){this.settlement(s);return;}
-    if(!this.q.page){this.home();return;}
+    if(result){this.settlement(s);this.footer();return;}
+    if(!this.q.page){this.home();this.footer();return;}
     const page=this.q.page;this.header(this.t(...names[page]));
     if(page==='modes')this.modes();else if(page==='shop')this.shop();else if(page==='loadout')this.loadout();
     else if(page==='supply')this.supply();else if(page==='growth')this.growth();else if(page==='tasks')this.tasks();
@@ -110,13 +120,12 @@ export class ProgressionView {
     this.h.button('online:ranking',this.t('战绩','Records'),recordX,top+3,compactHeader?50:75,Math.max(44,bar-6),this.n).fontSize=this.font(24,13);
     if(!compactHeader)this.h.controlIcon(this.g,'ranking',recordX+37,top+bar*.26,25,ivory);
     const settingsX=this.h.buttons.find(b=>b.id==='settings')?.x??r-44;
-    const inboxW=compactHeader?46:132,coinW=compactHeader?56:170;
+    const inboxW=compactHeader?46:132,coinW=compactHeader?112:170;
     this.h.button('qm:inbox',this.t('信箱','Inbox'),settingsX-inboxW-6,top+3,inboxW,Math.max(44,bar-6),this.n).fontSize=this.font(26,13);
     const noticeX=settingsX-inboxW*2-12;
     if(!compactHeader)this.h.button('qm:announcements',this.t('公告','News'),noticeX,top+3,inboxW,Math.max(44,bar-6),this.n).fontSize=this.font(26,13);
     const coinX=(compactHeader?settingsX-inboxW-6:noticeX)-coinW-8;
-    if(!compactHeader)this.picture('coin',coinX,top+bar*.29,bar*.43,bar*.44);
-    this.label((compactHeader?'● ':'')+(q.assets?.coins.toLocaleString()??'—'),coinX+(compactHeader?0:bar*.5),top+8,coinW-(compactHeader?0:bar*.5),bar-16,30,ivory);
+    this.label('● '+(q.assets?.coins.toLocaleString()??'—'),coinX,top+8,coinW,bar-16,30,gold);
     if(q.unread){this.g.fillColor=color('#ec4940');this.g.circle(settingsX-11-w/2,h/2-top-10,4);this.g.fill();}
     const titleW=w*(this.low?.29:.33),titleY=top+bar+h*.045;
     this.picture('title',l+8,titleY,titleW,titleW/3,false);
@@ -196,80 +205,57 @@ export class ProgressionView {
     if(!this.narrow)this.productDetail(current,l+leftW+18,top,r-l-leftW-18,bottom-top,true);
   }
   private loadout(){
-    if(!this.low){this.hangarLoadout();return;}
-    const q=this.q,l=this.left,r=this.right,y=this.top,load=q.loadout;
-    this.tab('loadout:solo',this.t('单人方案','SOLO'),l,y,Math.min(170,(r-l)*.23),q.mode==='solo');
-    this.tab('loadout:duel',this.t('双人方案','DUEL'),l+Math.min(178,(r-l)*.24),y,Math.min(170,(r-l)*.23),q.mode==='duel');
-    if(!this.narrow)this.label(this.t('方案自动保存 · 每场自动应用','Auto-saved · used next match'),l+(r-l)*.48,y,(r-l)*.5,44,23,dim);
-    const top=y+(this.low?48:53),bottom=this.bottom-(this.low?50:54),lw=this.narrow?(r-l)*.46:(r-l)*.59,rw=r-l-lw-16,rx=l+lw+16;
-    const groups:[string,string,string[],number][]=[['武器改装','MODIFICATIONS',load.mods,2],['特种武器','SPECIAL WEAPON',load.weapon?[load.weapon]:[],1],['主动技能','ACTIVE SKILL',load.skill?[load.skill]:[],1]];
-    const gh=this.low?(bottom-top-8)/2:(bottom-top-16)/3;
-    groups.forEach(([zh,en,ids,limit],i)=>{
-      const yy=top+(this.low?Math.min(i,1):i)*(gh+8),heading=this.low?18:24,groupL=this.low&&i>0?l+(i-1)*(lw+8)/2:l,groupW=this.low&&i>0?(lw-8)/2:lw;
-      this.label(`${this.t(zh,this.low?['MODS','WEAPON','SKILL'][i]:en)}  ${ids.length}/${limit}`,groupL,yy,groupW,heading,26,gold,true,true);
-      const cw=(groupW-(limit-1)*8)/limit,hh=gh-heading;
-      for(let j=0;j<limit;j++){
-        const x=groupL+j*(cw+8),id=ids[j],p=q.catalog.find(p=>p.id===id);this.panel(x,yy+heading,cw,hh);
-        if(p&&!this.narrow){this.picture(this.productArt(p.effect),x+4,yy+heading+4,cw-8,hh-8);this.h.gradient(this.g,x+4,yy+heading+hh-28,cw-8,24,'#07131b88','#07131bee');}
-        const caption=p?this.productName(p)+' ×':this.low?this.t(zh,en)+' ＋':this.t('＋ 选择','＋ Select');
-        const b=this.h.button(id?'slot:'+id:`qm:choose:${i}:${j}`,caption,x,yy+heading,cw,Math.max(44,hh),this.n);
-        b.fontSize=this.font(27,12);if(!this.narrow){b.node.setPosition(x+cw/2-this.w/2,this.height/2-yy-heading-hh+15);b.node.getComponent(UITransform)!.setContentSize(cw-8,28);}
-      }
+    const q=this.q,l=this.left,r=this.right,y=this.top,load=q.loadout,width=r-l;
+    const tabW=Math.min(180,width*.22);
+    this.tab('loadout:solo',this.t('单人方案','SOLO'),l,y,tabW,q.mode==='solo');
+    this.tab('loadout:duel',this.t('双人方案','DUEL'),l+tabW+6,y,tabW,q.mode==='duel');
+    this.label(this.t(q.dirty?'有未保存的修改':'当前已保存方案',q.dirty?'UNSAVED CHANGES':'SAVED LOADOUT'),l+tabW*2+16,y,width-tabW*2-16,44,23,q.dirty?gold:dim,false,true);
+    const top=y+52,bottom=this.bottom-52,lw=width*(this.narrow?.47:.55),rx=l+lw+14,rw=r-rx;
+    const selected=q.slotCategory,selectedName=this.t(selected==='mod'?'武器增益':selected==='weapon'?'特种武器':'主动技能',selected==='mod'?'WEAPON MOD':selected==='weapon'?'SPECIAL WEAPON':'ACTIVE SKILL');
+    const heading=20,gh=(bottom-top-8)/2,cw=(lw-8)/2;
+    const slots=[['mod:0',q.modSlots[0]],['mod:1',q.modSlots[1]],['weapon',load.weapon],['skill',load.skill]] as const;
+    slots.forEach(([slot,id],i)=>{
+      const x=l+(i%2)*(cw+8),yy=top+Math.floor(i/2)*(gh+8),p=q.catalog.find(p=>p.id===id),hh=gh-heading;
+      const type=this.t(i<2?`武器增益 ${i+1}`:i===2?'特种武器':'主动技能',i<2?`MOD ${i+1}`:i===2?'WEAPON':'SKILL');
+      this.label(type,x,yy,cw,heading,25,q.slot===slot?cyan:gold,true,true);
+      this.panel(x,yy+heading,cw,hh,q.slot===slot);
+      if(p){this.picture(this.productArt(p.effect),x+5,yy+heading+5,cw-10,hh-10);this.h.gradient(this.g,x+5,yy+heading+hh*.45,cw-10,hh*.5,'#07131b33','#07131bf2');}
+      const label=this.h.button('slot:'+slot,p?this.productName(p):this.t('＋ 选择装配','＋ Choose'),x,yy+heading,cw,Math.max(44,hh),this.n);
+      label.fontSize=this.font(30,12);label.enableWrapText=false;label.overflow=Label.Overflow.SHRINK;
+      label.node.setPosition(x+cw/2-this.w/2,this.height/2-yy-heading-hh+16);label.node.getComponent(UITransform)!.setContentSize(cw-12,28);
+      if(q.slot===slot)this.label('✓',x+cw-28,yy+heading+4,22,22,25,cyan,true);
     });
-    const equipped=[...load.mods,load.weapon,load.skill].filter(Boolean).map(id=>q.catalog.find(p=>p.id===id)?.effect||''),preview=attackPreview(equipped),previewH=this.low?30:(bottom-top)*.34;
-    this.panel(rx,top,rw,previewH);if(!this.low)this.picture('combo',rx+5,top+5,rw-10,previewH*.58);
-    this.label(this.t(`每次攻击 ${preview.shots} 发`,`SHOTS PER ATTACK: ${preview.shots}`),rx+8,top+(this.low?0:previewH*.48),rw-16,this.low?17:30,36,ivory,true);
-    this.label(this.t(`弹药 ×${preview.shots} · 热量按发数计算`,`Ammo ×${preview.shots} · heat per shot`),rx+8,top+previewH-(this.low?17:26),rw-16,this.low?17:23,20,dim);
-    const available=q.catalog.filter(p=>(q.assets?.available[p.id]??0)>0||q.assets?.permanent.includes(p.effect)&&p.term==='permanent'||(q.assets?.active[p.effect]??0)>(q.assets?.serverNow??Date.now())&&p.term==='24h');
-    const size=this.low?1:3,yy=top+previewH+6,rowH=(bottom-yy-48)/size;
-    available.slice(q.index*size,q.index*size+size).forEach((p,i)=>{
-      const py=yy+i*rowH;this.panel(rx,py,rw,rowH-5);if(!this.narrow)this.picture(this.productArt(p.effect),rx+5,py+5,rw*.3,rowH-15);
-      const tx=rx+(this.narrow?8:rw*.33),tw=rw-(tx-rx)-72;
-      this.label(this.productName(p),tx,py+4,tw,rowH*.48,27,ivory,true,true);
-      this.label(q.assets?.permanent.includes(p.effect)?this.t('永久资格','Permanent'):this.term(p.term)+` ×${q.assets?.available[p.id]??0}`,tx,py+rowH*.48,tw,rowH*.4,19,gold,false,true);
-      this.button('equip:'+p.id,this.t('选择','Select'),rx+rw-70,py+Math.max(0,(rowH-49)/2),66,44,'panel',q.busy);
+    const preview=attackPreview([...load.mods,load.weapon,load.skill].map(id=>q.catalog.find(p=>p.id===id)?.effect||'')),previewH=this.low?48:74;
+    this.panel(rx,top,rw,previewH);
+    const title=this.label(this.t(`每次攻击 ${preview.shots} 发`,`SHOTS PER ATTACK: ${preview.shots}`),rx+10,top+5,rw-20,previewH*.46,38,ivory,true);title.enableWrapText=false;title.overflow=Label.Overflow.SHRINK;
+    const detail=this.label(this.t(`弹药 ×${preview.shots} · 热量按发数计算`,`Ammo ×${preview.shots} · heat per shot`),rx+10,top+previewH*.52,rw-20,previewH*.36,23,dim);detail.enableWrapText=false;detail.overflow=Label.Overflow.SHRINK;
+    const listTop=top+previewH+25,listH=Math.max(44,bottom-listTop),rowH=this.low?64:104;
+    this.label(selectedName+this.t(' · 上下滑动选择',' · SCROLL TO CHOOSE'),rx,top+previewH+4,rw,20,23,cyan,false,true);
+    q.loadoutArea={x:rx,y:listTop,w:rw,h:listH};q.loadoutScrollMax=Math.max(0,q.availableGear.length*(rowH+7)-7-listH);q.loadoutScroll=Math.min(q.loadoutScroll,q.loadoutScrollMax);
+    const parent=this.n,surfaces=this.surfaces,g=this.g,viewport=this.h.node('LoadoutViewport',parent),maskX=rx+rw/2-this.w/2,maskY=this.height/2-listTop-listH/2;
+    viewport.setPosition(maskX,maskY);viewport.getComponent(UITransform)!.setContentSize(rw,listH);viewport.addComponent(Mask).type=Mask.Type.GRAPHICS_RECT;
+    const content=this.h.node('LoadoutItems',viewport);content.setPosition(-maskX,-maskY);
+    this.n=content;this.surfaces=this.h.node('ItemSurfaces',content);this.g=this.h.node('ItemInk',content).addComponent(Graphics);
+    q.availableGear.forEach((p,i)=>{
+      const py=listTop+i*(rowH+7)-q.loadoutScroll;if(py+rowH<listTop||py>bottom)return;
+      const equipped=q.equipped(p.effect);this.panel(rx,py,rw-7,rowH);
+      const iw=this.narrow?42:Math.min(100,rw*.23);this.picture(this.productArt(p.effect),rx+5,py+5,iw,rowH-10);
+      const tx=rx+iw+12,tw=rw-iw-82;
+      this.label(this.productName(p),tx,py+6,tw,Math.max(21,rowH*.34),30,equipped?dim:ivory,true,true).overflow=Label.Overflow.SHRINK;
+      this.label(selectedName+' · '+this.term(p.term),tx,py+rowH*.44,tw,rowH*.42,20,gold,false,true).overflow=Label.Overflow.SHRINK;
+      this.button('equip:'+p.id,this.t(equipped?'已装配':'装配',equipped?'USED':'EQUIP'),rx+rw-72,py+(rowH-44)/2,62,44,equipped?'panel':'blue',q.busy||equipped);
+      const button=this.h.buttons.at(-1)!;button.clip=q.loadoutArea;
+      // The whole card is draggable; the button remains the explicit tap action.
+      const card=this.h.button('gear:'+p.id,'',rx,py,rw-78,rowH,this.n);const hit=this.h.buttons.at(-1)!;hit.disabled=equipped||q.busy;hit.clip=q.loadoutArea;
     });
-      if(!available.length)this.label(this.t('还没有可用军需\n前往商店或领取签到礼包','No gear yet.\nVisit the armory or check in.'),rx,yy,rw,Math.max(44,bottom-yy-44),25,dim);
-    this.button('qm:choosePrev','‹',rx,bottom-44,46,44,'panel',q.index===0);this.button('qm:chooseNext','›',rx+52,bottom-44,46,44,'panel',(q.index+1)*size>=available.length);
-    this.button('qm:shop',this.t('前往商店','ARMORY'),rx+rw-130,bottom-44,130,44,'blue');
-    this.label(this.t('基础成长自动生效，不占军需槽','Base growth is automatic; no slot required'),l,this.bottom-48,lw,44,21,dim,false,true);
-    this.button('qm:home',this.t('返回基地','BASE'),r-152,this.bottom-48,152,44,'gold');
-  }
-  private hangarLoadout(){
-    const q=this.q,l=this.left,r=this.right,w=this.w,h=this.height,load=q.loadout,rx=w*.62,rw=r-rx,sy=this.h.safe.top+Math.max(4,h*.02),tabW=w*.115;
-    this.button('loadout:solo',this.t('单人方案','SOLO'),w*.21,sy,tabW,Math.max(44,h*.055),q.mode==='solo'?'blue':'panel');
-    this.button('loadout:duel',this.t('双人方案','DUEL'),w*.33,sy,tabW,Math.max(44,h*.055),q.mode==='duel'?'blue':'panel');
-    this.label(this.t('方案自动保存 · 每场自动应用','Auto-saved · used next match'),w*.455,sy,w*.36,Math.max(44,h*.055),23,dim,false,true);
-    const gx=w*.083,gw=w*.32,gy=h*.255,gh=h*.21,cardH=h*.14;
-    const groups:[string,string,string[],number][]=[['武器改装','MODIFICATIONS',load.mods,2],['特种武器','SPECIAL WEAPON',load.weapon?[load.weapon]:[],1],['主动技能','ACTIVE SKILL',load.skill?[load.skill]:[],1]];
-    groups.forEach(([zh,en,ids,limit],i)=>{
-      const yy=gy+i*gh,cw=limit===2?(gw-12)/2:gw*.75;
-      this.label(`${this.t(zh,en)}  ${ids.length}/${limit}`,gx,yy,gw,Math.max(24,h*.035),27,ivory,true,true);
-      for(let j=0;j<limit;j++){
-        const x=gx+j*(cw+12),cy=yy+h*.04,id=ids[j],p=q.catalog.find(p=>p.id===id);this.panel(x,cy,cw,cardH);
-        if(p){const key=({burst:'loadoutBurst',twin:'loadoutTwin',tracking:'loadoutTracking',emp:'loadoutEmp'} as Partial<Record<Effect,string>>)[p.effect]||this.productArt(p.effect);this.picture(key,x+4,cy+4,cw-8,cardH-8);this.h.gradient(this.g,x+4,cy+cardH*.6,cw-8,cardH*.36,'#04101a00','#04101aee');}
-        const label=this.h.button(id?'slot:'+id:`qm:choose:${i}:${j}`,p?this.productName(p):this.t('＋ 选择','＋ Select'),x,cy,cw,cardH,this.n);label.fontSize=this.font(28,15);label.node.setPosition(x+cw/2-w/2,h/2-cy-cardH+18);label.node.getComponent(UITransform)!.setContentSize(cw-12,32);
-        if(p)this.label('⊗',x+cw-40,cy+5,32,32,31,ivory);
-      }
-    });
-    const top=this.top,previewH=h*.36,preview=attackPreview([...load.mods,load.weapon,load.skill].filter(Boolean).map(id=>q.catalog.find(p=>p.id===id)?.effect||''));
-    this.panel(rx,top,rw,previewH);this.label(this.t('组合效果预览','COMBINATION PREVIEW'),rx+14,top+5,rw-28,h*.035,26,cyan,false,true);
-    this.picture('combo',rx+8,top+h*.044,rw-16,previewH*.53);this.h.gradient(this.g,rx+8,top+previewH*.4,rw-16,previewH*.58,'#06131b00','#06131bf5');
-    this.label(load.mods.map(id=>this.catalogName(id)).join(' × ')||this.t('基础火控','STANDARD FIRE CONTROL'),rx+20,top+previewH*.5,rw-40,h*.05,36,ivory,true,true);
-    this.label(this.t(`每次攻击 ${preview.shots} 发`,`SHOTS PER ATTACK: ${preview.shots}`),rx+20,top+previewH*.64,rw-40,h*.07,56,ivory,true,true);
-    this.label(this.t(`弹药 ×${preview.shots} · 热量按发数计算`,`Ammo ×${preview.shots} · heat per shot`),rx+20,top+previewH*.87,rw-40,h*.04,26,dim,false,true);
-    const available=q.catalog.filter(p=>q.assets?.permanent.includes(p.effect)?p.term==='permanent':(q.assets?.active[p.effect]??0)>(q.assets?.serverNow??Date.now())?p.term==='24h':(q.assets?.available[p.id]??0)>0),size=2,yy=top+previewH+12,rowH=h*.19;
-    available.slice(q.index*size,q.index*size+size).forEach((p,i)=>{
-      const py=yy+i*(rowH+8);this.panel(rx,py,rw,rowH);this.label(this.t(p.category==='skill'?'可选技能':p.category==='weapon'?'可选武器':'可选改装',p.category==='skill'?'AVAILABLE SKILL':'AVAILABLE EQUIPMENT'),rx+14,py+3,rw-28,h*.032,25,cyan,false,true);
-      const key=p.effect==='tracking'?'loadoutTracking':p.effect==='emp'?'loadoutEmp':this.productArt(p.effect);this.picture(key,rx+8,py+h*.045,rw*.35,rowH-h*.052);
-      const tx=rx+rw*.38,tw=rw*.59;this.label(this.productName(p),tx,py+h*.045,tw,h*.047,36,ivory,true,true);
-      this.label(q.assets?.permanent.includes(p.effect)?this.t('永久资格','Permanent'):this.term(p.term)+` ×${q.assets?.available[p.id]??0}`,tx,py+h*.092,tw,h*.032,23,gold,false,true);
-      this.button('equip:'+p.id,this.t('选择','Select'),rx+rw-Math.max(90,rw*.20)-12,py+rowH-Math.max(44,h*.054)-8,Math.max(90,rw*.20),Math.max(44,h*.054),'blue',q.busy);
-    });
-    if(!available.length)this.label(this.t('还没有可用军需\n前往商店或领取签到礼包','No gear yet.\nVisit the armory or check in.'),rx,yy,rw,rowH,25,dim);
-    this.panel(l,this.bottom-h*.08,rx-l-12,h*.08);this.label(q.busy?this.t('正在保存…','Saving…'):q.message[this.h.lang==='zh'?0:1]||this.t('基础成长自动生效，不占军需槽','Base growth is automatic; no slot required'),l+20,this.bottom-h*.08,rx-l-40,h*.08,25,dim,false,true);
-    const fy=this.bottom-Math.max(48,h*.075);this.button('qm:choosePrev','‹',rx,fy,44,44,'panel',!q.index);this.button('qm:chooseNext','›',rx+50,fy,44,44,'panel',(q.index+1)*size>=available.length);
-    this.button('qm:shop',this.t('商店','ARMORY'),rx+102,fy,Math.max(76,rw*.17),44,'blue');this.button('qm:home',this.t('返回基地','RETURN TO BASE'),r-rw*.53,fy,rw*.53,Math.max(48,h*.075),'gold');
+    this.n=parent;this.surfaces=surfaces;this.g=g;
+    if(!q.availableGear.length)this.label(this.t('此插槽暂无可用装配\n可前往商店或领取礼包','No compatible gear\nVisit the armory or claim a crate'),rx+8,listTop+8,rw-16,listH-16,25,dim);
+    if(q.loadoutScrollMax){this.h.rect(this.g,r-4,listTop,3,listH,'#162a38');this.h.rect(this.g,r-4,listTop+(listH-28)*q.loadoutScroll/q.loadoutScrollMax,3,28,cyan);}
+    const fy=this.bottom-48,unloadW=Math.min(132,lw*.42);
+    this.button('qm:unequip',this.t('卸载所选','UNEQUIP'),l,fy,unloadW,44,'panel',!q.slotItem||q.busy);
+    this.button('qm:shop',this.t('商店','ARMORY'),l+unloadW+8,fy,Math.min(100,lw-unloadW-8),44,'blue');
+    this.button('qm:save',this.t(q.busy?'保存中…':'确定保存',q.busy?'SAVING…':'CONFIRM SAVE'),rx,fy,rw,44,'gold',q.busy||!q.dirty||!!q.pending);
+    if(q.drag){const p=q.catalog.find(p=>p.id===q.drag!.item);this.panel(q.drag.x-60,q.drag.y-25,120,50,true);this.label(p?this.productName(p):'',q.drag.x-56,q.drag.y-20,112,40,26,cyan,true);}
   }
   private supply(){
     const q=this.q,l=this.left,r=this.right,y=this.low?this.top:this.height*.13,width=r-l;
@@ -438,6 +424,29 @@ export class ProgressionView {
     pool.weights.forEach((weight,i)=>{const x=l+20+i*rw;this.label(this.t(rarity[i],rarityEn[i]),x,y+60,rw,this.low?20:30,32,rarityColor[i],true);this.label(`${weight}%`,x,y+(this.low?82:95),rw,this.low?26:45,44,ivory,true);
       const products=this.q.catalog.filter(p=>p.term==='match'&&p.rarity===i&&pool.effects.includes(p.effect));this.label(products.map(p=>this.productName(p)).join(' · ')+this.t(`\n金币 ${pool.coinDrops[i]}`,`\nCoins ${pool.coinDrops[i]}`),x+6,y+(this.low?112:150),rw-12,Math.max(35,bottom-y-(this.low?120:158)),24,dim);});
     this.label(this.t('同来源套餐概率相同。仅单场资格，不掉永久权益。','All package sizes share these odds. One-match items only; no permanent drops.'),l,this.bottom-48,r-l,44,23,dim);
+  }
+  private dialog(title:string){
+    const pw=Math.min(650,this.right-this.left),ph=Math.min(390,this.height-24),x=(this.w-pw)/2,y=(this.height-ph)/2;
+    for(const b of this.h.buttons)if(this.h.inModal(b.label.node))b.disabled=true;
+    const overlay=this.h.node('RewardDialog',this.n);this.n=overlay;this.surfaces=this.h.node('DialogSurfaces',overlay);this.g=this.h.node('DialogInk',overlay).addComponent(Graphics);
+    this.h.rect(this.g,0,0,this.w,this.height,'#01070cdd');this.panel(x,y,pw,ph);
+    this.label(title,x+16,y+10,pw-32,34,38,gold,true);
+    return {x,y,pw,ph};
+  }
+  private leaveDialog(){
+    const {x,y,pw,ph}=this.dialog(this.t('方案尚未保存','UNSAVED LOADOUT'));
+    this.label(this.t('修改仅保留在草稿中。\n返回编辑并确定保存，或放弃修改后离开。','Your changes are still a draft.\nContinue editing to save, or discard and leave.'),x+22,y+55,pw-44,ph-126,29,ivory);
+    this.button('qm:keepEditing',this.t('返回编辑','KEEP EDITING'),x+20,y+ph-60,(pw-52)/2,44,'blue');
+    this.button('qm:discard',this.t('放弃修改','DISCARD'),x+32+(pw-52)/2,y+ph-60,(pw-52)/2,44,'panel');
+  }
+  private giftDialog(){
+    const q=this.q,gift=q.gift!,{x,y,pw,ph}=this.dialog(this.t(gift.opened?'礼包已打开':'获得礼包',gift.opened?'CRATE CONTENTS':'SUPPLIES RECEIVED'));
+    const counts=new Map<string,number>();let coins=0;
+    for(const drop of gift.drops){if(drop.item)counts.set(drop.item,(counts.get(drop.item)||0)+1);else coins+=drop.coins||0;}
+    const lines=gift.opened?[...(coins?[this.t(`金币 +${coins.toLocaleString()}`,`Coins +${coins.toLocaleString()}`)]:[]),...Array.from(counts,([id,n])=>this.catalogName(id)+` ×${n}`)]:Object.entries(gift.packs).map(([id,n])=>this.inventoryName(id)+` ×${n}`);
+    const text=this.label(lines.join('\n')||this.t('内容已存入仓库','Contents added to your inventory'),x+24,y+54,pw-48,ph-122,29,ivory);text.overflow=Label.Overflow.SHRINK;
+    this.button('qm:giftClose',this.t(gift.opened?'完成':'稍后打开',gift.opened?'DONE':'OPEN LATER'),x+20,y+ph-60,(pw-52)/2,44,'panel',q.busy);
+    this.button(gift.opened?'qm:giftWarehouse':'qm:giftOpen',this.t(gift.opened?'查看仓库':q.pending?'重试打开':'一键打开',gift.opened?'INVENTORY':q.pending?'RETRY':'OPEN ALL'),x+32+(pw-52)/2,y+ph-60,(pw-52)/2,44,'gold',q.busy);
   }
   private confirm(){
     const q=this.q,intent=q.confirmation!,pw=Math.min(590,this.right-this.left),ph=Math.min(260,this.height-24),x=(this.w-pw)/2,y=(this.height-ph)/2;

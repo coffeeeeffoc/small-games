@@ -125,7 +125,8 @@ export function viewDuel(state: DuelState, seat = 0) {
   const sim = Simulation.restore(state.simulation); sim.usePilot(state.pilots[seat], seat);
   for (const event of sim.events) if (event.friendly !== undefined && event.side !== undefined) event.friendly = event.side === seat;
   if (state.finished) sim.phase = state.winner === seat ? 'success' : 'failure';
-  return { simulation: sim.checkpoint(), seed: state.seed, bot: state.bot, bots: [...state.bots], finished: state.finished,
+  const enemy=state.pilots[1-seat];
+  return { enemyEquipment:copy({loadout:enemy.loadout,selected:enemy.selected,guns:enemy.guns,skill:enemy.skill,buff:enemy.buff}), simulation: sim.checkpoint(), seed: state.seed, bot: state.bot, bots: [...state.bots], finished: state.finished,
     winner: state.winner, you: seat, enemyAircraft: copy(state.pilots[1 - seat].flight.aircraft),
     elapsed: sim.time, remaining: 0 };
 }

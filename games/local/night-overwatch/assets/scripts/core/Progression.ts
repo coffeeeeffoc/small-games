@@ -82,3 +82,16 @@ export function validBattleLoadout(value: unknown): value is BattleLoadout {
 export const trainingLoadout = (effect: Effect): BattleLoadout => ({ version: GROWTH_VERSION, level: 1, effects: [effect], skipped: [] });
 export const attackPreview = (effects: readonly string[]) => ({ shots: (effects.includes('burst') ? 2 : 1) * (effects.includes('twin') ? 2 : 1), heatMultiplier: effects.includes('cooling') ? .85 : 1 });
 export const PROGRESSION = { version: GROWTH_VERSION, catalog: CATALOG, packages: PACKAGES, pools: POOLS, skills: SKILLS, levelProgress, validLoadout };
+
+/** Practice uses a server snapshot only; ranked matches still require the authoritative reservation. */
+export function practiceLoadout(assets:AssetSnapshot|undefined,mode:'solo'|'duel',elapsedMs=0):BattleLoadout {
+  const loadout:BattleLoadout={version:GROWTH_VERSION,level:assets?.level||1,effects:[],skipped:[]};
+  if(!assets)return loadout;
+  const saved=assets.loadouts[mode],now=assets.serverNow+Math.max(0,elapsedMs);
+  for(const id of [...saved.mods,saved.weapon,saved.skill]){
+    if(!id)continue;const product=assets.catalog.find(p=>p.id===id);
+    if(product&&(assets.permanent.includes(product.effect)||(assets.active[product.effect]||0)>now||product.term==='match'&&(assets.available[id]||0)>0))loadout.effects.push(product.effect);
+    else loadout.skipped.push(id);
+  }
+  return loadout;
+}

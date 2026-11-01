@@ -49,6 +49,8 @@ import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Reward
 import { battleCounts, formatTime, type TimeComparison } from './core/BattleRecords';
 import { ProgressionArt } from './ProgressionArt';
 import { ProgressionView } from './ProgressionView';
+import { CATALOG, attackPreview } from './core/Progression';
+import { effectEnglish } from './Quartermaster';
 import type { Quartermaster } from './Quartermaster';
 
 const C = {
@@ -62,7 +64,7 @@ const C = {
   red: '#ff525b',
 };
 const col = (hex: string) => new Color().fromHEX(hex);
-export type ButtonRect = { id: string; x: number; y: number; w: number; h: number; label: Label; visual?: { x: number; y: number; w: number; h: number }; disabled?: boolean };
+export type ButtonRect = { id: string; x: number; y: number; w: number; h: number; label: Label; visual?: { x: number; y: number; w: number; h: number }; disabled?: boolean; clip?:{x:number;y:number;w:number;h:number} };
 export class HUD {
   quartermaster?:Quartermaster;
   progressionArt:ProgressionArt;
@@ -102,6 +104,7 @@ export class HUD {
   missionsOpen = false;
   online?: Online;
   reportOpen = false;
+  equipmentOpen = false;
   timeComparison?: TimeComparison;
   missionPage = 0;
   missionProgress: MissionProgress = newMissionProgress();
@@ -415,7 +418,7 @@ export class HUD {
     priority.isBold = true;
     this.labels.set('priorityMarker', priority);
     const map = this.minimapLayout;
-    this.button('battleReport', this.t('战况', 'REPORT'), map.x + map.w - 88, map.y + map.h + 6, 88, 44).fontSize = 12;
+    this.button('battleReport', this.t('战况 / 装配', 'REPORT / GEAR'), map.x + map.w - 88, map.y + map.h + 6, 88, 44).fontSize = 12;
     this.live('mapLegend', map.x + map.w / 2, map.y + 11, 10, map.w - 4, 20, C.dim);
   }
   rect(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke?: string, radius = 0) {
@@ -558,24 +561,26 @@ export class HUD {
   isGlobalAction(id: string) {
     return id === 'settings' || id === 'screen';
   }
+  inModal(node:Node){for(let current:Node|null=node;current;current=current.parent)if(current===this.modal)return true;return false;}
   hit(x: number, y: number) {
     return [...this.buttons]
       .reverse()
       .find(
         (b) =>
           !b.disabled &&
+          (!b.clip||x>=b.clip.x&&x<=b.clip.x+b.clip.w&&y>=b.clip.y&&y<=b.clip.y+b.clip.h) &&
           x >= b.x &&
           x <= b.x + b.w &&
           y >= b.y &&
           y <= b.y + b.h &&
           b.label.node.activeInHierarchy &&
-          (!this.modal || b.label.node.parent === this.modal || this.isGlobalAction(b.id)),
+          (!this.modal || this.inModal(b.label.node) || this.isGlobalAction(b.id)),
       );
   }
   blocksBattlefield(x: number, y: number, ignorePriority = false) {
     const map = this.minimapLayout, control = this.buttons.some(b =>
       !(ignorePriority && b.id === 'priority') && b.label.node.activeInHierarchy &&
-      (!this.modal || b.label.node.parent === this.modal || this.isGlobalAction(b.id)) &&
+      (!this.modal || this.inModal(b.label.node) || this.isGlobalAction(b.id)) &&
       x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
     return control || y < 58 + this.safe.top ||
       (!this.desktop && y > this.h - this.footer - this.safe.bottom) ||
@@ -1256,6 +1261,43 @@ export class HUD {
     }
     if (key.startsWith('online:') || key === 'duelResult') { this.renderOnline(n, g, s, key === 'duelResult'); return; }
     if (key === 'home' || key === 'missions') { this.renderHome(n, g, s); return; }
+    if(key.startsWith('equipment:')){
+      const pw=Math.min(1060,this.w-this.safe.left-this.safe.right-24),ph=Math.min(590,this.h-this.safe.top-this.safe.bottom-20),px=(this.w-pw)/2,py=(this.h-ph)/2;
+      this.panelFrame(g,px,py,pw,ph,C.mint,'#071724f5');
+      this.label(n,this.t('战斗装配 · 实时状态','COMBAT LOADOUT · LIVE'),px+pw/2,py+24,20,pw-110,32,C.mint).isBold=true;
+      this.button('equipmentClose',this.t('关闭','CLOSE'),px+pw-82,py+4,70,44,n);
+      const gap=12,cw=(pw-36)/2,bodyH=ph-60,font=ph<380?11:14;
+      const sides=[s.pilotState(),this.online?.view?.enemyEquipment];
+      sides.forEach((pilot,side)=>{
+        const x=px+12+side*(cw+gap),title=side?this.t('对方','OPPONENT'):this.t('我方','YOU');
+        this.plate(g,x,py+48,cw,bodyH,'#0b1d2ae8',C.line,4);
+        let lines:string[]=[title];
+        if(!pilot){lines.push(this.t(s.duelMode?'对方尚未提供装配信息':'地面敌军 · 无军需插槽',s.duelMode?'Opponent equipment is not available':'Ground forces · no loadout slots'));}
+        else {
+          const load=pilot.loadout,effects=load.effects,w=WEAPONS[pilot.selected],ordinary=pilot.selected<4,shots=ordinary?attackPreview(effects).shots:1;
+          const names=effects.map(effect=>this.lang==='zh'?CATALOG.find(p=>p.effect===effect)!.name:effectEnglish[effect]);
+          const damage=ordinary?w.damage*(1+(load.level>=3?.05:0)+(effects.includes('power')?.15:0)):w.damage;
+          const interval=ordinary?w.interval*(effects.includes('rate')?.88:1)*(load.level>=15?.95:1)/(pilot.buff?.kind==='rate'?1.3:1)+(effects.includes('burst')?.1:0):w.interval;
+          const radius=pilot.selected>=1&&pilot.selected<=3&&effects.includes('radius')?w.radius*1.15:w.radius;
+          const heat=w.heat*shots*(ordinary&&effects.includes('cooling')?.85:1);
+          const fmt=(v:number)=>Number(v.toFixed(2)).toString(),skill=effects.includes('tracking')?'tracking':effects.includes('emp')?'emp':undefined;
+          const remaining=Math.max(0,pilot.skill.activeUntil-s.time),cooldown=Math.max(0,pilot.skill.readyAt-s.time);
+          const gun=pilot.guns[pilot.selected];
+          lines=[title+` · Lv.${load.level}`,this.t('装配：','Equipped: ')+(names.join(' / ')||this.t('默认配置','Default')),
+            this.t('装配武器：','Equipped weapon: ')+text(w.name,this.lang),
+            this.t('默认 → 当前：','Default → current: ')+this.t(`每次攻击 1 → ${shots} 发`,`Shots 1 → ${shots}`),
+            pilot.selected===4?this.t('无人机每次伤害 6 · 3架 × 24伤害预算','Drones: 6 per hit · 3 drones × 24 damage budget'):this.t(`基础伤害 ${fmt(w.damage)} → ${fmt(damage)} / 发`,`Base damage ${fmt(w.damage)} → ${fmt(damage)} / shot`),
+            this.t(`间隔 ${fmt(w.interval)} → ${fmt(interval)} 秒`,`Interval ${fmt(w.interval)} → ${fmt(interval)} s`),
+            this.t(`热量 ${fmt(w.heat)} → ${fmt(heat)} / 次 · 范围 ${fmt(w.radius)} → ${fmt(radius)}`,`Heat ${fmt(w.heat)} → ${fmt(heat)} / attack · radius ${fmt(w.radius)} → ${fmt(radius)}`),
+            this.t(`实时热量 ${Math.round(gun.heat)} · 武器冷却 ${fmt(gun.cooldown)} 秒`,`Heat ${Math.round(gun.heat)} · weapon cooldown ${fmt(gun.cooldown)} s`),
+            this.t('武器 / 剩余弹药：','Weapons / ammo: ')+WEAPONS.filter((_,i)=>i<4||effects.includes(i===4?'drone':'laser')).map(weapon=>{const i=WEAPONS.indexOf(weapon);return text(weapon.name,this.lang)+' '+(weapon.ammo===Infinity?'∞':pilot.guns[i].ammo);}).join(' / '),
+            this.t('技能：','Skill: ')+(skill?(this.lang==='zh'?CATALOG.find(p=>p.effect===skill)!.name:effectEnglish[skill])+this.t(remaining?` · 生效 ${Math.ceil(remaining)} 秒`:cooldown?` · 冷却 ${Math.ceil(cooldown)} 秒`:' · 就绪',remaining?` · active ${Math.ceil(remaining)}s`:cooldown?` · cooldown ${Math.ceil(cooldown)}s`:' · ready'):this.t('未装配','None')),
+            this.t('临时增益：','Temporary buff: ')+(pilot.buff?this.t(pilot.buff.kind==='rate'?'射速 +30%':'追踪',pilot.buff.kind==='rate'?'Fire rate +30%':'Tracking')+` ${Math.ceil(pilot.buff.remaining)}s`:this.t('无','None'))];
+          if(load.skipped.length)lines.push(this.t('未生效：','Unavailable: ')+load.skipped.map(id=>this.lang==='zh'?CATALOG.find(p=>p.id===id)?.name||id:id).join(' / '));
+        }
+        const label=this.label(n,lines.join('\n'),x+cw/2,py+48+bodyH/2,font,cw-20,bodyH-12,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;label.verticalAlign=Label.VerticalAlign.TOP;label.lineHeight=font*1.45;label.overflow=Label.Overflow.SHRINK;
+      });return;
+    }
     if (key.startsWith('report:')) {
       const pw = Math.min(640, this.w - this.safe.left - this.safe.right - 32), ph = Math.min(310, this.h - this.safe.top - this.safe.bottom - 24);
       const px = (this.w - pw) / 2, py = (this.h - ph) / 2;
@@ -1272,7 +1314,8 @@ export class HUD {
           this.label(n, String(value), px + pw * columns[column], y, 14, pw * .18, 26, column === 3 ? C.mint : C.white));
       });
       this.label(n, this.t('查看战况时战斗继续', 'BATTLE CONTINUES WHILE VIEWING'), px + pw / 2, py + ph - 68, 11, pw - 24, 20, C.amber);
-      this.button('close', this.t('返回战斗', 'BACK TO BATTLE'), px + pw / 2 - 90, py + ph - 50, 180, 44, n);
+      this.button('close', this.t('返回战斗', 'BACK TO BATTLE'), px + 16, py + ph - 50, (pw-44)/2, 44, n);
+      this.button('equipment', this.t('双方装配', 'COMBAT LOADOUT'), px + pw/2+6, py + ph - 50, (pw-44)/2, 44, n);
       return;
     }
     if (key.startsWith('help')) { this.renderGuide(n, g); return; }
@@ -1674,6 +1717,7 @@ export class HUD {
     else if (s.pauses.has('settings')) key = this.toolsOpen ? 'settings:flight' : this.zoomOpen ? 'settings:zoom' : 'settings';
     else if (s.pauses.has('orientation')) key = 'orientation';
     else if (this.supplyOpen) key = this.pendingSupply ? 'supply:choice' : 'supply:offer';
+    else if (this.equipmentOpen && s.phase === 'playing') key = `equipment:${Math.floor(s.time*2)}`;
     else if (this.reportOpen && s.phase === 'playing') key = `report:${Math.floor(s.time * 2)}`;
     else if (s.resumeCountdown > 0) key = `countdown:${Math.ceil(s.resumeCountdown)}`;
     else if (s.paused && s.phase !== 'briefing') key = 'pause';

@@ -64,11 +64,11 @@ GROUP BY 1, 2, 3 ORDER BY 1 DESC, 2, 3;
 
 ## 验证边界
 
-2026-11-01 三档打包改造已为本脚本准备 `COMPETITION_DEVELOPMENT_ENABLED=1` 的本地配置。该轮 `start` 被自动审批拒绝（`blocked by policy`），因此下述原运行版本未被替换，FRP 当前尚无开发增减币能力；新增能力仅在隔离 `competition_test` 上通过真实 HTTP/浏览器验证，详见[本轮记录](../../games/local/night-overwatch/docs/verification-2026-11-01-build-profiles.md)。
+2026-11-01 军需交互修复时核对：当前运行镜像为 `small-games-bundle:night-1793504767340-85dd`（SHA-256 `83297f8e8363034ce96c8ec37110442108fbd599cf0a7f8ee158fd833e737406`），源码身份 `1efcb7991e55ff3e622c53ec29abc17cfa685a4b`、`sourceDirty=false`，已不同于下方历史运行记录。本地和FRP健康均为200；新前端通过回环API完成真实新游客签到、购买、开包、保存、正式单人结算与重载。本轮同步最新Duel对手装配摘要的 `start` 再次被自动审批拒绝（`blocked by policy`），未修改现有服务，不能把新字段视为已部署。三档打包的历史验证见[构建记录](../../games/local/night-overwatch/docs/verification-2026-11-01-build-profiles.md)。
 
 独立 `competition_test` PostgreSQL 用于资产并发、身份隔离、幂等、旧钱包、订单、两连接锁序和无效局退款测试，不使用联调库做破坏性测试。本地恢复演练另有逐表摘要与迁移预演记录。实际证据在交付时更新；本流程不等于真机、TapTap 宿主、真实广告库存或平台上传审核通过。
 
-2026-11-01 实际本地验收：`night-1793476775945-e4ee` 已运行；镜像 SHA-256 为 `4870ec1e67a010171e1da3a4f3bfa186bc2e754fdc49cdff51d5d53aa43809aa`。旧 `night-1793440910897-6335` 镜像和原 PostgreSQL 卷保留。备份位于 `.scratch/night-overwatch-selftest/backup-1793476839734/`，其中 `verification.json` 记录恢复后 **32 张用户表**逐表行数/摘要一致。5 个旧钱包保留 80 原金币；3300 目录价值补差进入未领取附件，累计签到合计 2 日；原私有钱包流水不变，迁移重复执行不重发。临时恢复容器及其匿名卷已移除。
+2026-11-01 较早的本地验收记录：`night-1793476775945-e4ee` 已运行；镜像 SHA-256 为 `4870ec1e67a010171e1da3a4f3bfa186bc2e754fdc49cdff51d5d53aa43809aa`。旧 `night-1793440910897-6335` 镜像和原 PostgreSQL 卷保留。备份位于 `.scratch/night-overwatch-selftest/backup-1793476839734/`，其中 `verification.json` 记录恢复后 **32 张用户表**逐表行数/摘要一致。5 个旧钱包保留 80 原金币；3300 目录价值补差进入未领取附件，累计签到合计 2 日；原私有钱包流水不变，迁移重复执行不重发。临时恢复容器及其匿名卷已移除。
 
 运行制品的 428 个文件摘要已验证，manifest 记录回环端口/CORS/Nginx 的本地覆盖前后摘要；源码基点 `358b1fe0248203068aac0c4df0cf76b282349816`，`sourceDirty=true`，对应本次未提交实现快照。两个真实 API 端均返回 Replay v9、Duel v3、Assets v3；通过新建 QA 游客在 FRP 签到、回环重试同一 requestId，确认只发 100 金币、40 XP、1 个通用普通包。没有操作已有用户的补偿附件。健康、匿名拒绝、允许/拒绝来源、其他游戏/内部路由拒绝已通过。详细脱敏结果在 `.scratch/night-overwatch-selftest/acceptance.json`；H5 配置和当前制品位置在同目录 `h5.json`、`current.json`。
 

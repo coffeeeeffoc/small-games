@@ -44,6 +44,7 @@ test('manual candidate validation checks exact-SHA snapshots and rejects invalid
       'admin-csp.mjs',
       'vite-patch-scope.mjs',
       'pages-test-scope.mjs',
+      'night-retirement-scope.mjs',
       'fullscreen-removal-scope.mjs',
       'pages-registration-scope.mjs',
       'game-retirement-scope.mjs',

@@ -1,9 +1,10 @@
+import { assetFixture } from './progression-fixture.ts';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { createDuel, configureDuel, commandDuel, advanceDuel, viewDuel } from '../assets/scripts/core/Duel.ts';
 import { createNightReplay, applyNightReplay } from '../assets/scripts/core/Replay.ts';
-import { CATALOG, PACKAGES, POOLS, GROWTH_VERSION, validLoadout, levelProgress, type Effect } from '../assets/scripts/core/Progression.ts';
+import { CATALOG, PACKAGES, POOLS, GROWTH_VERSION, practiceLoadout, validLoadout, levelProgress, type Effect } from '../assets/scripts/core/Progression.ts';
 import { PROTECTED, WEAPONS } from '../assets/scripts/core/Data.ts';
 import { muzzlePosition } from '../assets/scripts/core/Flight.ts';
 import { bestTrainingRecord, readTrainingRecord } from '../assets/scripts/core/TrainingRecords.ts';
@@ -120,4 +121,32 @@ test('a drone volley records one hit shot across repeated damage, checkpoints an
   assert.equal(viewDuel(duel,0).simulation.hitShots,0);
   assert.equal(viewDuel(duel,1).simulation.hitShots,1);
   assert.equal(viewDuel(duel,1).simulation.fired,1);
+});
+
+
+test('practice resolves saved loadouts without consuming stock and rejects inactive or elapsed time entitlements',()=>{
+  const assets=assetFixture();assets.loadouts.solo={mods:['burst-match','twin-24h'],weapon:'laser-24h',skill:'tracking-permanent'};
+  assets.active.twin=assets.serverNow+1000;const stock=structuredClone(assets.inventory);
+  const load=practiceLoadout(assets,'solo');assert.deepEqual(load.effects,['burst','twin','tracking']);assert.deepEqual(load.skipped,['laser-24h']);assert.deepEqual(assets.inventory,stock);
+  const sim=new Simulation('training-60');sim.applyLoadout(load);assert.equal(sim.attackCount,4);
+  assert.deepEqual(practiceLoadout(assets,'solo',1001).effects,['burst','tracking']);
+});
+
+test('duel views expose only public opponent equipment and preserve each side effects',()=>{
+  const duel=createDuel(22);configureDuel(duel,[{version:GROWTH_VERSION,level:3,effects:['burst','twin'],skipped:[]},{version:GROWTH_VERSION,level:1,effects:['laser','emp'],skipped:[]}]);
+  const view=viewDuel(duel,0),reverse=viewDuel(duel,1);
+  assert.deepEqual(view.enemyEquipment.loadout.effects,['laser','emp']);assert.deepEqual(reverse.enemyEquipment.loadout.effects,['burst','twin']);
+  assert.deepEqual(Object.keys(view.enemyEquipment).sort(),['guns','loadout','selected','skill']);
+});
+
+
+test('ordinary weapon upgrades and level growth change the actual fired round and gun resources',()=>{
+  for(const effects of [['power','rate'],['radius','cooling']] as Effect[][]){
+    const sim=new Simulation('training-60');sim.applyLoadout({version:GROWTH_VERSION,level:15,effects,skipped:[]});sim.start();sim.choose(1);sim.setAim({x:-80,z:-40});
+    assert(sim.fire());const shot=sim.shots[0],gun=sim.guns[1];
+    assert(Math.abs(shot.damageMultiplier!-(effects.includes('power')?1.2:1.05))<1e-10);
+    assert.equal(shot.radiusScale,effects.includes('radius')?1.15:1);
+    assert(Math.abs(gun.cooldown-WEAPONS[1].interval*.95*(effects.includes('rate')?.88:1))<1e-10);
+    assert.equal(gun.heat,WEAPONS[1].heat*(effects.includes('cooling')?.85:1));assert.equal(gun.ammo,WEAPONS[1].ammo-1);
+  }
 });

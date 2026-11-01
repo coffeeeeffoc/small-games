@@ -1,14 +1,14 @@
 {
-  "sourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+  "sourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
   "verified": "2026-11-01",
   "previousDelivery": "manifest-2026-10-30-taptap-login.json",
-  "environment": "Creator 3.8.8 web-mobile / Windows Chromium. Home/loadout stills use new guests on the real local Runtime loopback API. Gameplay footage and other screenshots retain their original Sakura FRP capture identity. No QA asset fixture is used in publishing media; no physical-device validation.",
+  "environment": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified",
   "files": [
     {
       "path": "copy/introduction.md",
       "bytes": 1634,
       "sha256": "ef202ac65611056fbc9f7aac0d1db5a35e020d01acfe578332c38a90177c6c4d",
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "reusedUnchanged": true,
       "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
     },
@@ -16,7 +16,7 @@
       "path": "copy/tagline.md",
       "bytes": 68,
       "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
@@ -24,7 +24,7 @@
       "path": "copy/developer-note.md",
       "bytes": 995,
       "sha256": "cd26226cec2b0a19ee066ad511e5cc1c927e0600320ec303462fab8b72bb3d8d",
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "reusedUnchanged": true,
       "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
     },
@@ -35,7 +35,7 @@
       "width": 1024,
       "height": 1024,
       "hasAlpha": false,
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
@@ -46,7 +46,7 @@
       "width": 1920,
       "height": 1080,
       "hasAlpha": false,
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
@@ -57,122 +57,116 @@
       "width": 1440,
       "height": 1440,
       "hasAlpha": false,
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "reusedUnchanged": true,
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
     },
     {
       "path": "gameplay/screenshots/2026-11-01-progression/01-home.png",
-      "bytes": 1426092,
-      "sha256": "68635a0bc781ab31c91bc3f6cf58372c3737c042672c85db232890d4490bd80d",
+      "bytes": 1425211,
+      "sha256": "d32249be402a5c6690053257ce99d44303583410a536ccee500ca49d8a8afc91",
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "reusedUnchanged": false,
-      "capturedSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "capturedSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "fixture": false,
-      "provenance": "Actual Creator browser, new guest on local Runtime loopback API; no simulated balances; not physical-device capture"
+      "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
     },
     {
       "path": "gameplay/screenshots/2026-11-01-progression/02-loadout.png",
-      "bytes": 1454631,
-      "sha256": "a6fde3253bb592bd292231d1740cd0a1a24c4e527e4945dd483da3469290b2f3",
+      "bytes": 1356457,
+      "sha256": "62d2f4e11a0f14abf42e4a16dc629f8038f11bb6c7b3526947f1d3fe555afe27",
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "reusedUnchanged": false,
-      "capturedSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "capturedSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "fixture": false,
-      "provenance": "Actual Creator browser, new guest on local Runtime loopback API; no simulated balances; not physical-device capture"
+      "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
     },
     {
       "path": "gameplay/screenshots/2026-11-01-progression/03-fire.png",
-      "bytes": 893575,
-      "sha256": "6f58a4a9a906e686b67505442421ac0a6aeaef04b00713fb1969729414ed10b0",
+      "bytes": 900007,
+      "sha256": "5e0bd2f20a9843b23c2a6d22d1e224a9140826d189b82b2c8e512f845693aa0c",
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
+      "reusedUnchanged": false,
+      "capturedSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "fixture": false,
-      "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture"
+      "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
     },
     {
       "path": "gameplay/screenshots/2026-11-01-progression/04-impact.png",
-      "bytes": 848462,
-      "sha256": "ee596f5652c80444b5ff5bc841b9231e0a36b2286d09f4ee83a2fa52a5c7a878",
+      "bytes": 849983,
+      "sha256": "4556980f29d67b7a227e749d153e624bf340f898aac35b8242728c64a88fed1b",
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
+      "reusedUnchanged": false,
+      "capturedSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "fixture": false,
-      "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture"
+      "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
     },
     {
       "path": "gameplay/screenshots/2026-11-01-progression/05-settlement.png",
-      "bytes": 935131,
-      "sha256": "67f8cd32f4a36fcecac571795c6eb1369f9a622b6b1fbdd551d55fe6398aece4",
+      "bytes": 935198,
+      "sha256": "24138dd15bed143f9304e7c3eef2d23cefc476746daa2e043efc0864e1840b5f",
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
+      "reusedUnchanged": false,
+      "capturedSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "fixture": false,
-      "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture"
+      "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified"
     },
     {
       "path": "gameplay/videos/progression-2026-11-01-1280x720-silent.mp4",
-      "bytes": 7192338,
-      "sha256": "dd21ca3ba8ba97a4709f41adbbf3945c773d3549513867ed4afe3d03f6757672",
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+      "bytes": 5510631,
+      "sha256": "7288972e7e5c25b898c7b373a0f64c959575991a802ead95783b70ffac014198",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
+      "reusedUnchanged": false,
+      "capturedSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "fixture": false,
-      "provenance": "Actual Creator browser and local backend through Sakura FRP; no simulated balances or outcomes; not physical-device capture",
+      "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified",
       "width": 1280,
       "height": 720,
       "codec": "h264",
-      "durationSeconds": 21.96,
+      "durationSeconds": 22,
       "audio": false,
-      "validation": "Complete decode and first/last extracted frames reviewed"
+      "validation": "Complete decode and every one-second contact-sheet frame visually reviewed"
     },
     {
       "path": "promo/videos/progression-2026-11-01-1280x720-silent.mp4",
-      "bytes": 5033099,
-      "sha256": "6dfa802194bacedbc2c6842dde9bb8797aa2e528063070e50fb81d982c3f3842",
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "bytes": 2781899,
+      "sha256": "41833fd633122582be4b92e3442b45343a05def160dee80d7fd8f11f37e30576",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "reusedUnchanged": false,
       "fixture": false,
-      "provenance": "Current real home/loadout stills for 3 seconds each plus 14 seconds of unchanged earlier real gameplay; exact sources in edit record",
+      "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified",
       "width": 1280,
       "height": 720,
       "codec": "h264",
       "durationSeconds": 20,
       "audio": false,
-      "validation": "Complete decode and all 20 one-second frames visually reviewed",
-      "capturedSourceHashes": [
-        "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
-        "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
-      ]
+      "validation": "Complete decode and every one-second contact-sheet frame visually reviewed",
+      "capturedSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a"
     },
     {
       "path": "promo/videos/progression-2026-11-01-edit.json",
-      "bytes": 1766,
-      "sha256": "8a1d576bb1c16aaf453d70d79a2b48868fa082db99cca431edc7e3e6e81cbb96",
-      "verifiedForSourceHash": "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
+      "bytes": 1250,
+      "sha256": "e3fe017a36bb1ca6534184636bc537fdf2a3a735aa93cdae42730d341cd5e188",
+      "verifiedForSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a",
       "reusedUnchanged": false,
       "fixture": false,
-      "provenance": "Current real home/loadout stills for 3 seconds each plus 14 seconds of unchanged earlier real gameplay; exact sources in edit record",
-      "capturedSourceHashes": [
-        "ba624680adf6b79d140eedbd081f09e86d956b28d1e192ee52c005f4623b7e0a",
-        "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659"
-      ]
+      "provenance": "Creator 3.8.8 / Chromium 1280x720 / real local Runtime at http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player modified",
+      "capturedSourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a"
     }
   ]
 }
