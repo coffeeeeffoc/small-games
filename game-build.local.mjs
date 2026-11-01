@@ -81,6 +81,7 @@ export default {
   ],
   ads: [false],
   backend: [false],
-  apiUrl: 'https://api.nenggongzhiren.cn/small-games/v1',
+  // 当前仅构建夜航本地联调包，手机经 Sakura FRP 访问本机 Runtime。
+  apiUrl: 'https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1',
   localBackend: false,
 };
