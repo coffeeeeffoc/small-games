@@ -1,0 +1,40 @@
+{
+  "source": "reports/2026-11-02-publication-live/source.webm",
+  "sourceSha256": "aedf1f67fa98f46d9499ab9cb75ba2fe027eb65bbcd108e5808b35c429f1bc2d",
+  "capturedSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
+  "fixture": false,
+  "environment": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
+  "audio": false,
+  "gameplay": {
+    "start": 24.622,
+    "duration": 22
+  },
+  "promo": [
+    {
+      "path": "01-home.png",
+      "duration": 3,
+      "still": true
+    },
+    {
+      "path": "02-supply.png",
+      "duration": 3,
+      "still": true
+    },
+    {
+      "path": "source.webm",
+      "start": 11.081,
+      "duration": 3.149000000000001
+    },
+    {
+      "path": "source.webm",
+      "start": 24.622,
+      "duration": 8
+    },
+    {
+      "path": "09-settlement-1280.png",
+      "duration": 4,
+      "still": true
+    }
+  ],
+  "decode": "Both complete videos decoded; contact sheets reviewed separately"
+}

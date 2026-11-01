@@ -1,0 +1,29 @@
+{
+  "verifiedAt": "2026-11-01T22:12:25.034Z",
+  "sourceCommit": "0227fe76b72ff6d11b0b30e3ef3db5085b0f91d6",
+  "image": "small-games-bundle:night-20261102-chat-0227fe76",
+  "imageId": "sha256:f71536ce527f4802b55f561fabd6e30e267e6ffabb16f5655634fb6ac38e43bf",
+  "bundleFiles": 433,
+  "sourceDirty": false,
+  "backup": "F:\\playground\\playground-ai\\small-games\\.scratch\\night-overwatch-selftest\\backup-1793570595681",
+  "restoredTables": 32,
+  "preservedTables": 32,
+  "addedTables": [
+    "runtime.night_chat_limits",
+    "runtime.night_chat_messages",
+    "runtime.night_chat_reports"
+  ],
+  "liveLegacyMigration": false,
+  "componentsChanged": [
+    "runtime"
+  ],
+  "checks": {
+    "localHealth": 200,
+    "frpHealth": 200,
+    "anonymousGame": 401,
+    "tapCors": 204,
+    "authenticatedChatRead": 200,
+    "chatBound": 100
+  },
+  "note": "Only additive 016 was applied to the existing database; existing table fingerprints stayed equal. No public chat message or existing player asset was modified."
+}

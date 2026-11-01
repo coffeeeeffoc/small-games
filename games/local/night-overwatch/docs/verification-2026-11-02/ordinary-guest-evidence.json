@@ -1,0 +1,171 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209"
+  },
+  "fixture": false,
+  "errors": [],
+  "checks": [
+    "Real configured Runtime guest, welcome mail, cumulative check-in, opening receipt, purchase, loadout, authoritative solo win, one-time stock consumption, coins/XP settlement, task claim and reload persistence"
+  ],
+  "screens": [
+    {
+      "name": "01-home",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "02-mail",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "02-supply",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "02-growth",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "02-skills",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "02-warehouse",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "03-rewards",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "03-opening",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "04-shop",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "05-loadout-draft",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "05-loadout",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "06-combat-0",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "06-combat-1",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "06-combat-2",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "09-settlement-1280",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "09-settlement-1672",
+      "viewport": {
+        "width": 1672,
+        "height": 941
+      }
+    },
+    {
+      "name": "09-settlement-568",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      }
+    },
+    {
+      "name": "09-settlement-844",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      }
+    },
+    {
+      "name": "07-tasks",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "name": "08-persisted-home",
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    }
+  ],
+  "clips": {
+    "home": 1.314,
+    "opening": 11.081,
+    "opened": 14.23,
+    "shop": 16.071,
+    "loadout": 20.494,
+    "gameplay": 24.622,
+    "settlement": 63.49
+  },
+  "playerId": "ec3a62b9-c228-49e5-8b6f-20fc89128e24",
+  "result": {
+    "phase": "success",
+    "kills": 4,
+    "fired": 4,
+    "coins": 180,
+    "xp": 120
+  }
+}

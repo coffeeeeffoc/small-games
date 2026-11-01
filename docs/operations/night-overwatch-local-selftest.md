@@ -64,7 +64,11 @@ GROUP BY 1, 2, 3 ORDER BY 1 DESC, 2, 3;
 
 ## 验证边界
 
-用户继续授权后，最新本地运行版本为 `night-1793508637129-5b62`，镜像SHA-256 `7e102557989b70209bde3dc246d1e3d2d5b2b3a2fef83267c0771220cb516e49`，源码基点 `312e39a39b9871cfa4ec0723c258ca13612c20f0`。430项制品摘要及7份Night核心源码与该提交一致；既有包体报告使manifest保留`sourceDirty=true`。备份 `.scratch/night-overwatch-selftest/backup-1793508754286/`恢复校验32表一致，迁移幂等；本地/FRP健康及开发接口验收通过。两个全新QA游客通过真实回环API联机，双方装配、四发扣弹、EMP生效/冷却和激光切换均已在画布验证，未改已有用户或其他房间。见[本轮证据](../../games/local/night-overwatch/docs/verification-2026-11-01-progression.md#本地runtime更新与真实双端装配验收)。下段保留之前受阻时的版本记录。
+2026-11-02 当前本地Runtime为 `small-games-bundle:night-20261102-chat-0227fe76`，镜像 `sha256:f71536ce527f4802b55f561fabd6e30e267e6ffabb16f5655634fb6ac38e43bf`；433项制品对应干净提交 `0227fe76b72ff6d11b0b30e3ef3db5085b0f91d6`。完整start脚本被自动审批返回`blocked by policy`后，采用更小的本地升级：只预先构建镜像、停止旧Runtime、验证备份恢复、应用新增016聊天表、重建Runtime；不在原库重跑旧钱包迁移、不重启PostgreSQL或网关、不通过公网写测试数据。备份`backup-1793570595681`恢复32张原表摘要一致；应用016前后32张原表未变，新增3张空聊天表。本地与FRP健康200、匿名401、Tap CORS 204、本人聊天读取200。当前启动需组合`current.json`内的`composeFile`与`composeOverride`，后者仅覆盖Runtime镜像和构建目录；原配置和旧镜像保留。详情见[本轮验证](../../games/local/night-overwatch/docs/verification-2026-11-02-revision.md)和[脱敏Docker回执](../../games/local/night-overwatch/docs/verification-2026-11-02/docker-evidence.json)。没有发送公共测试聊天、没有修改已有玩家资产。
+
+以下保留历史记录：
+
+2026-11-01 用户继续授权后，本地运行版本为 `night-1793508637129-5b62`，镜像SHA-256 `7e102557989b70209bde3dc246d1e3d2d5b2b3a2fef83267c0771220cb516e49`，源码基点 `312e39a39b9871cfa4ec0723c258ca13612c20f0`。430项制品摘要及7份Night核心源码与该提交一致；既有包体报告使manifest保留`sourceDirty=true`。备份 `.scratch/night-overwatch-selftest/backup-1793508754286/`恢复校验32表一致，迁移幂等；本地/FRP健康及开发接口验收通过。两个全新QA游客通过真实回环API联机，双方装配、四发扣弹、EMP生效/冷却和激光切换均已在画布验证，未改已有用户或其他房间。见[本轮证据](../../games/local/night-overwatch/docs/verification-2026-11-01-progression.md#本地runtime更新与真实双端装配验收)。下段保留之前受阻时的版本记录。
 
 2026-11-01 军需交互修复时核对：当前运行镜像为 `small-games-bundle:night-1793504767340-85dd`（SHA-256 `83297f8e8363034ce96c8ec37110442108fbd599cf0a7f8ee158fd833e737406`），源码身份 `1efcb7991e55ff3e622c53ec29abc17cfa685a4b`、`sourceDirty=false`，已不同于下方历史运行记录。本地和FRP健康均为200；新前端通过回环API完成真实新游客签到、购买、开包、保存、正式单人结算与重载。本轮同步最新Duel对手装配摘要的 `start` 再次被自动审批拒绝（`blocked by policy`），未修改现有服务，不能把新字段视为已部署。三档打包的历史验证见[构建记录](../../games/local/night-overwatch/docs/verification-2026-11-01-build-profiles.md)。
 

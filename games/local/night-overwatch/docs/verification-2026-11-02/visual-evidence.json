@@ -2,7 +2,7 @@
   "build": {
     "creator": "3.8.8",
     "target": "web-mobile",
-    "sourceHash": "5886fbab1a50fb67505c38134789fc6fae89bd3005a533099f8131ed13d84d64"
+    "sourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209"
   },
   "fixture": true,
   "screens": [
@@ -42,6 +42,11 @@
       "height": 320
     },
     {
+      "name": "03-single-reward",
+      "width": 568,
+      "height": 320
+    },
+    {
       "name": "04-history",
       "width": 568,
       "height": 320
@@ -107,6 +112,11 @@
       "height": 390
     },
     {
+      "name": "03-single-reward",
+      "width": 844,
+      "height": 390
+    },
+    {
       "name": "04-history",
       "width": 844,
       "height": 390
@@ -168,6 +178,11 @@
     },
     {
       "name": "04-warehouse",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "name": "03-single-reward",
       "width": 1280,
       "height": 720
     },
