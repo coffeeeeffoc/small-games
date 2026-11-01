@@ -259,6 +259,7 @@ import {
   competitionToolPlan,
   competitionServiceScopePaths,
   h5AcceptanceScopePaths,
+  h5BuildTypeCheckPaths,
   sixH5Ids,
   sixH5ScopePaths,
   sixH5PresetOnly,
@@ -6451,4 +6452,103 @@ test('Nullrange lock migration replaces only its actual Three/Vite importer with
       manifest,
     ),
   );
+});
+
+test('build-type producer reaches all 28 H5 consumers and rejects missing identities or wiring', () => {
+  const file = 'scripts/h5-build-type.mjs';
+  const games = [
+    ...['cops-robbers', 'cops-robbers-realtime', 'xiangqi-five'].map((id) => ({
+      id,
+      source: competitionConsumers[id],
+    })),
+    ...sixH5Ids.map((id) => ({ id, source: `games/local/${id}` })),
+    ...rewardH5Fixture,
+  ];
+  const packages = games.map((game) => ({ name: game.id, dir: game.source }));
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const context = { changedPaths: [file], games, packages, readHead, readSource: readHead };
+  const fileScopes = reviewedSharedFileScopes(context),
+    sources = games.map((game) => game.source);
+  assert.equal(sources.length, 28);
+  assert.deepEqual(fileScopes.get(file), sources);
+  const plan = incrementalPlan({ ...context, fileScopes });
+  assert.equal(plan.h5_build_type_checks, true);
+  assert.deepEqual(plan.browser_ids, games.map((game) => game.id).sort());
+  for (const game of games) {
+    assert.equal(
+      reviewedSharedFileScopes({ ...context, games: games.filter((item) => item !== game) }).has(
+        file,
+      ),
+      false,
+      game.id,
+    );
+    assert.equal(
+      reviewedSharedFileScopes({
+        ...context,
+        packages: packages.filter((pkg) => pkg.dir !== game.source),
+      }).has(file),
+      false,
+      game.id,
+    );
+  }
+  for (const change of [
+    (source) =>
+      source.replace(
+        "import { buildTypes, prepareBuildType } from './h5-build-type.mjs';",
+        "// import { buildTypes, prepareBuildType } from './h5-build-type.mjs';",
+      ),
+    (source) =>
+      source.replace(
+        'if (settings) await prepareBuildType(dist, settings.buildType);',
+        '// if (settings) await prepareBuildType(dist, settings.buildType);',
+      ),
+    (source) =>
+      source.replace(
+        'await prepareBuildType(dist, settings.buildType)',
+        'await otherType(dist, settings.buildType)',
+      ),
+  ])
+    assert.equal(
+      reviewedSharedFileScopes({
+        ...context,
+        readHead: (path) =>
+          path === 'scripts/h5-taptap-build.mjs' ? change(readHead(path)) : readHead(path),
+      }).has(file),
+      false,
+    );
+  assert.equal(
+    reviewedSharedFileScopes({
+      ...context,
+      readHead: (path) =>
+        path === 'scripts/h5-ad-config.mjs'
+          ? readHead(path).replace(/  'porcelain-puzzle',\r?\n/, '')
+          : readHead(path),
+    }).has(file),
+    false,
+  );
+});
+
+test('build-type checks classify only their three bounded runners without game consumers', () => {
+  for (const file of h5BuildTypeCheckPaths.filter(
+    (file) => file.endsWith('.test.mjs') || file.endsWith('-browser.mjs'),
+  )) {
+    const context = { changedPaths: [file], games: [], packages: [] },
+      fileScopes = reviewedSharedFileScopes(context);
+    assert.deepEqual(fileScopes.get(file), []);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.equal(plan.h5_build_type_checks, true);
+    assert.equal(plan.browser, false);
+    assert.deepEqual(plan.consumer_sources, []);
+  }
+  for (const file of [
+    'scripts/h5-build-type-extra.mjs',
+    'scripts/game-dev-mode-private.test.mjs',
+    'scripts/test-h5-build-type-browser-extra.mjs',
+    'platforms/h5/dev-mode-private.js',
+  ]) {
+    const context = { changedPaths: [file], games: [], packages: [] },
+      fileScopes = reviewedSharedFileScopes(context);
+    assert.equal(fileScopes.size, 0);
+    assert.throws(() => incrementalPlan({ ...context, fileScopes }), /scope undefined/);
+  }
 });

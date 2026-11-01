@@ -1,0 +1,13 @@
+{
+  "release": "night-1793508637129-5b62",
+  "image": "small-games-bundle:night-1793508637129-5b62",
+  "imageSha256": "7e102557989b70209bde3dc246d1e3d2d5b2b3a2fef83267c0771220cb516e49",
+  "sourceCommit": "312e39a39b9871cfa4ec0723c258ca13612c20f0",
+  "sourceDirty": true,
+  "dirtyReason": "Pre-existing web-mobile-size.json report; all copied Night core sources match the committed source",
+  "verifiedManifestFiles": 430,
+  "verifiedNightCoreFiles": 7,
+  "backup": "backup-1793508754286",
+  "apiUrl": "https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1",
+  "localApiUrl": "http://127.0.0.1:43003/api/competition/v1"
+}

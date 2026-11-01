@@ -497,7 +497,14 @@ export function nightProtocolFileScopes({ changedPaths, readBase, readHead, game
 }
 
 /** Undefined entries deliberately leave unsupported/unknown changes blocked. */
-export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, packages }) {
+export function nineNativeFileScopes({
+  changedPaths,
+  readBase,
+  readHead,
+  readHeadEntry,
+  games,
+  packages,
+}) {
   const scopes = new Map();
   for (const [file, affected] of optionalServiceNativeFileScopes({
     changedPaths,
@@ -697,6 +704,25 @@ export function nineNativeFileScopes({ changedPaths, readBase, readHead, games, 
       for (const pkg of packages.filter((pkg) =>
         /^games\/(?:local|submodules)\/[^/]+$/.test(pkg.dir),
       )) {
+        if (pkg.dir.startsWith('games/submodules/')) {
+          const source = 'games/submodules/xiangqi-five';
+          assert.equal(pkg.dir, source);
+          const bindings = games.filter(
+            (game) => game.id === 'xiangqi-five' || game.source === source,
+          );
+          assert.equal(bindings.length, 1);
+          assert.equal(bindings[0].id, 'xiangqi-five');
+          assert.equal(bindings[0].source, source);
+          assert.equal(pkg.name, '@coffeeeeffoc/xiangqi-five');
+          assert.equal(pkg.scripts?.build, 'node build.js');
+          // Parent Git cannot read inside a gitlink; this reviewed commit loads and copies both mirrors.
+          assert.equal(
+            readHeadEntry(source),
+            '160000 commit 0b7d2b346a670e7300ce9126728c76b6018c0c98\t' + source + '\n',
+          );
+          consumers.push(source);
+          continue;
+        }
         const metadata = JSON.parse(readHead(pkg.dir + '/package.json'));
         const build = metadata.scripts?.build || '';
         const generated = /\bnode scripts\/build\.mjs web-mobile\b/.test(build);

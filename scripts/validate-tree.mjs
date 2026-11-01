@@ -513,6 +513,21 @@ export function runIncrementalToolChecks({
       env,
       'logged',
     );
+  if (plan.h5_build_type_checks) {
+    execute(
+      process.execPath,
+      [
+        '--test',
+        '--test-concurrency=1',
+        'scripts/game-dev-mode.test.mjs',
+        'scripts/h5-build-type.test.mjs',
+      ],
+      root,
+      env,
+      'logged',
+    );
+    execute(process.execPath, ['scripts/test-h5-build-type-browser.mjs'], root, env, 'logged');
+  }
   if (plan.h5_acceptance_checks)
     execute(
       process.execPath,
@@ -1066,6 +1081,7 @@ export async function validateTree({
     core &&
     (incrementalScope?.browser ||
       incrementalScope?.admin_console_checks ||
+      incrementalScope?.h5_build_type_checks ||
       incrementalScope?.tap_services_checks ||
       incrementalScope?.submodule_dialog_ids?.length)
   ) {

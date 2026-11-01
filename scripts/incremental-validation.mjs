@@ -22,6 +22,7 @@ import {
   tapServiceConfigScopePath,
   h5AcceptanceScopePaths,
   sixH5ScopePaths,
+  h5BuildTypeCheckPaths,
   competitionIdentityScopePaths,
   competitionIdentityMirrorPaths,
   gameServiceScopePaths,
@@ -466,6 +467,9 @@ export function incrementalPlan({
           fileScopes.get(file)?.includes('games/local/cops-robbers')) ||
         (['package.json', 'turbo.json'].includes(file) &&
           fileScopes.get(file)?.includes('games/local/cops-robbers')),
+    ),
+    h5_build_type_checks: paths.some(
+      (file) => h5BuildTypeCheckPaths.includes(file) && fileScopes.has(file),
     ),
     h5_acceptance_checks: paths.some(
       (file) => h5AcceptanceScopePaths.includes(file) && fileScopes.has(file),

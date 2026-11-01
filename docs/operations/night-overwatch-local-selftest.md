@@ -64,6 +64,8 @@ GROUP BY 1, 2, 3 ORDER BY 1 DESC, 2, 3;
 
 ## 验证边界
 
+用户继续授权后，最新本地运行版本为 `night-1793508637129-5b62`，镜像SHA-256 `7e102557989b70209bde3dc246d1e3d2d5b2b3a2fef83267c0771220cb516e49`，源码基点 `312e39a39b9871cfa4ec0723c258ca13612c20f0`。430项制品摘要及7份Night核心源码与该提交一致；既有包体报告使manifest保留`sourceDirty=true`。备份 `.scratch/night-overwatch-selftest/backup-1793508754286/`恢复校验32表一致，迁移幂等；本地/FRP健康及开发接口验收通过。两个全新QA游客通过真实回环API联机，双方装配、四发扣弹、EMP生效/冷却和激光切换均已在画布验证，未改已有用户或其他房间。见[本轮证据](../../games/local/night-overwatch/docs/verification-2026-11-01-progression.md#本地runtime更新与真实双端装配验收)。下段保留之前受阻时的版本记录。
+
 2026-11-01 军需交互修复时核对：当前运行镜像为 `small-games-bundle:night-1793504767340-85dd`（SHA-256 `83297f8e8363034ce96c8ec37110442108fbd599cf0a7f8ee158fd833e737406`），源码身份 `1efcb7991e55ff3e622c53ec29abc17cfa685a4b`、`sourceDirty=false`，已不同于下方历史运行记录。本地和FRP健康均为200；新前端通过回环API完成真实新游客签到、购买、开包、保存、正式单人结算与重载。本轮同步最新Duel对手装配摘要的 `start` 再次被自动审批拒绝（`blocked by policy`），未修改现有服务，不能把新字段视为已部署。三档打包的历史验证见[构建记录](../../games/local/night-overwatch/docs/verification-2026-11-01-build-profiles.md)。
 
 独立 `competition_test` PostgreSQL 用于资产并发、身份隔离、幂等、旧钱包、订单、两连接锁序和无效局退款测试，不使用联调库做破坏性测试。本地恢复演练另有逐表摘要与迁移预演记录。实际证据在交付时更新；本流程不等于真机、TapTap 宿主、真实广告库存或平台上传审核通过。

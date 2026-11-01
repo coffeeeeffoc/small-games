@@ -2521,3 +2521,108 @@ test('core retains no-game-browser Admin, service and root contracts with native
     /core gate failure/,
   );
 });
+
+test('build-type tool checks run serial unit contracts before the real browser runner and propagate failures', () => {
+  const calls = [],
+    options = {
+      root: '/candidate',
+      env: {},
+      packages: [],
+      plan: { h5_build_type_checks: true, native_consumers: [], developer_mode_ids: [] },
+      execute: (command, args) => calls.push([command, ...args]),
+    };
+  runIncrementalToolChecks(options);
+  assert.deepEqual(calls, [
+    [
+      process.execPath,
+      '--test',
+      '--test-concurrency=1',
+      'scripts/game-dev-mode.test.mjs',
+      'scripts/h5-build-type.test.mjs',
+    ],
+    [process.execPath, 'scripts/test-h5-build-type-browser.mjs'],
+  ]);
+  for (const failure of [0, 1]) {
+    let count = 0;
+    assert.throws(
+      () =>
+        runIncrementalToolChecks({
+          ...options,
+          execute() {
+            if (count++ === failure) throw Error('build-type gate failure');
+          },
+        }),
+      /build-type gate failure/,
+    );
+    assert.equal(count, failure + 1);
+  }
+});
+
+test('build-type runner-only candidates prepare a browser before metadata early return without Shell builds', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'h5-build-type-candidate-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, 'apps/shell-web/src'), { recursive: true });
+  await writeFile(path.join(root, 'apps/shell-web/src/standalone-games.json'), '[]');
+  await writeFile(
+    path.join(root, 'package.json'),
+    JSON.stringify({ volta: { node: process.versions.node }, packageManager: 'pnpm@12.6.0' }),
+  );
+  const calls = [],
+    env = { MINIGAME_RELEASE_GATES: '0' };
+  const options = {
+    root,
+    head: 'candidate',
+    incremental: true,
+    env,
+    selectScope: async () => ({ required: true, full: false, risk: 'metadata' }),
+    prepareBrowser() {
+      calls.push(['prepare']);
+      env.PLAYWRIGHT_EXECUTABLE_PATH = '/verified/chromium';
+    },
+    execute(command, args, _root, childEnv) {
+      if (command === 'git') return 'scripts/test-h5-build-type-browser.mjs\0';
+      if (args[0] === '--version') return '12.6.0';
+      calls.push(args);
+      if (args[0] === 'scripts/test-h5-build-type-browser.mjs')
+        assert.equal(childEnv.PLAYWRIGHT_EXECUTABLE_PATH, '/verified/chromium');
+    },
+  };
+  const selected = await validateTree(options);
+  assert.equal(selected.h5_build_type_checks, true);
+  assert.equal(selected.browser, false);
+  const prepare = calls.findIndex((call) => call[0] === 'prepare'),
+    unit = calls.findIndex((call) => call.includes('scripts/game-dev-mode.test.mjs')),
+    browser = calls.findIndex((call) => call[0] === 'scripts/test-h5-build-type-browser.mjs');
+  assert(prepare >= 0 && prepare < unit && unit < browser);
+  assert(!calls.some((args) => args.includes('build') || args.includes('typecheck')));
+  await assert.rejects(
+    validateTree({
+      ...options,
+      prepareBrowser() {
+        throw Error('browser missing');
+      },
+    }),
+    /browser missing/,
+  );
+});
+
+test('build-type browser runner really launches the prepared executable and honors its fallback', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const missing = path.join(os.tmpdir(), `h5-build-type-missing-browser-${process.pid}.exe`);
+  const runner = fileURLToPath(new URL('./test-h5-build-type-browser.mjs', import.meta.url));
+  for (const override of [
+    { PLAYWRIGHT_EXECUTABLE_PATH: missing, CHROMIUM_PATH: missing + '-lower-priority' },
+    { PLAYWRIGHT_EXECUTABLE_PATH: '', CHROMIUM_PATH: missing },
+  ]) {
+    const result = spawnSync(process.execPath, [runner], {
+      env: { ...process.env, ...override },
+      encoding: 'utf8',
+      timeout: 15000,
+    });
+    assert.equal(result.error, undefined);
+    assert.notEqual(result.status, 0);
+    assert((result.stderr + result.stdout).includes(missing), result.stderr);
+    assert(!(result.stderr + result.stdout).includes(missing + '-lower-priority'));
+  }
+});

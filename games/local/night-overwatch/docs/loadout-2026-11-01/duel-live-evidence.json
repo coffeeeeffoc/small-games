@@ -1,0 +1,72 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "226005dbf780c9f237ec098758493f9ef67c6799326bd084da3f2017ff1c000a"
+  },
+  "fixture": false,
+  "developmentAssets": true,
+  "checks": [
+    "Two authenticated human-player clients receive each other’s independent server loadout; no bot or asset fixture",
+    "Double burst × twin trajectory fires four shots, spends four rounds, and opponent observes the selected weapon and remaining ammunition",
+    "Opponent EMP changes from active to cooldown while the equipment view stays open; weapon switch to laser and battle time update live"
+  ],
+  "screens": [
+    {
+      "name": "both-loadouts-1280",
+      "width": 1280,
+      "height": 720,
+      "sha256": "462de49377c4cef6c760755d4b4ce728db8e70ed47072447d5bae638c9232d88"
+    },
+    {
+      "name": "both-loadouts-800",
+      "width": 800,
+      "height": 366,
+      "sha256": "16f613949a9332d24f333df162c73aad31934c8b0e79307eaff3c8faaefc60cf"
+    },
+    {
+      "name": "opponent-emp-active",
+      "width": 1280,
+      "height": 720,
+      "sha256": "1ef8063e840abfcec5ee273cbe5facc1e7ac5f7b79470d9b23e32ec20c8a3b5a"
+    },
+    {
+      "name": "opponent-laser-cooldown",
+      "width": 1280,
+      "height": 720,
+      "sha256": "a214f799150b7c3d6c5e330104097223276f301c20bc58e58c2e3eb344cbf95d"
+    }
+  ],
+  "errors": [],
+  "players": [
+    "63d81842-c6ef-4635-985c-31df9c0a3c37",
+    "f4668991-e274-49b4-8e14-af97c7c2f0ce"
+  ],
+  "final": {
+    "a": {
+      "level": 1,
+      "effects": [
+        "burst",
+        "twin",
+        "drone",
+        "tracking"
+      ],
+      "skipped": [],
+      "version": "night-growth-v1"
+    },
+    "b": {
+      "level": 1,
+      "effects": [
+        "power",
+        "rate",
+        "laser",
+        "emp"
+      ],
+      "skipped": [],
+      "version": "night-growth-v1"
+    },
+    "ammo": 41
+  },
+  "runtime": "night-1793508637129-5b62",
+  "apiUrl": "http://127.0.0.1:43003/api/competition/v1"
+}

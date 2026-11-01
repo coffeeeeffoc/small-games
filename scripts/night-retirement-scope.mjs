@@ -146,6 +146,11 @@ const reviews = Object.freeze(
         to: 'games/local/night-overwatch/assets/scripts/ProgressionArt.ts.meta',
         after:
           '100644 blob d805aa61208bf025d19d399a37bba12ab577a021\tgames/local/night-overwatch/assets/scripts/ProgressionArt.ts.meta\n',
+        alternate: {
+          to: 'games/local/night-overwatch/assets/scripts/DeveloperTools.ts.meta',
+          after:
+            '100644 blob a0c9e09c09a6a1f0f9500a9b78d554a3c1cf2efc\tgames/local/night-overwatch/assets/scripts/DeveloperTools.ts.meta\n',
+        },
       },
       'games/local/night-overwatch/assets/scripts/core/Armory.ts.meta': {
         status: 'R070',
@@ -154,6 +159,11 @@ const reviews = Object.freeze(
         to: 'games/local/night-overwatch/assets/scripts/ProgressionView.ts.meta',
         after:
           '100644 blob d4c719d6f404121c2868ab0f7a70d240dd5ffb1d\tgames/local/night-overwatch/assets/scripts/ProgressionView.ts.meta\n',
+        alternate: {
+          to: 'games/local/night-overwatch/assets/scripts/ProgressionArt.ts.meta',
+          after:
+            '100644 blob d805aa61208bf025d19d399a37bba12ab577a021\tgames/local/night-overwatch/assets/scripts/ProgressionArt.ts.meta\n',
+        },
       },
       'games/local/night-overwatch/publishing/manifest-2026-10-30-rankings.json': {
         status: 'R100',
@@ -171,7 +181,9 @@ export function nightRetirementHeadQueryPaths() {
   return [
     ...new Set([
       ...Object.keys(reviews),
-      ...Object.values(reviews).flatMap((review) => (review.to ? [review.to] : [])),
+      ...Object.values(reviews).flatMap((review) =>
+        review.to ? [review.to, ...(review.alternate ? [review.alternate.to] : [])] : [],
+      ),
     ]),
   ];
 }
@@ -188,7 +200,12 @@ export function isReviewedNightRetirement({
 }) {
   if (!Array.isArray(change?.paths)) return false;
   const [from, to] = change.paths,
-    review = Object.hasOwn(reviews, from) ? reviews[from] : undefined;
+    original = Object.hasOwn(reviews, from) ? reviews[from] : undefined,
+    // DeveloperTools changes Git's similarity pairing; both exact pairs were reviewed.
+    review =
+      original?.alternate && original.alternate.to === to
+        ? { ...original, ...original.alternate }
+        : original;
   if (
     base !== baseCommit ||
     !review ||

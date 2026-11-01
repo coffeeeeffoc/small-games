@@ -1091,6 +1091,14 @@ function flickRewardConsumers(file, games, packages) {
   assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
   return [source];
 }
+export const h5BuildTypeCheckPaths = [
+  'platforms/h5/dev-mode.js',
+  'platforms/h5/dev-mode.d.ts',
+  'scripts/game-dev-mode.test.mjs',
+  'scripts/h5-build-type.mjs',
+  'scripts/h5-build-type.test.mjs',
+  'scripts/test-h5-build-type-browser.mjs',
+];
 export const sixH5ScopePaths = [
   'scripts/h5-game-build.mjs',
   'scripts/six-taptap-h5.test.mjs',
@@ -5402,6 +5410,62 @@ export function reviewedSharedFileScopes({
             ? ['games/local/three-choose-two']
             : []),
         ]);
+        continue;
+      }
+      if (file === 'scripts/h5-build-type.mjs') {
+        const producer = readHead('scripts/h5-taptap-build.mjs'),
+          program = parsedSource(producer);
+        const dependency = program.body.find(
+          (node) =>
+            node.type === 'ImportDeclaration' && node.source.value === './h5-build-type.mjs',
+        );
+        assert(
+          dependency?.specifiers.some(
+            (node) =>
+              node.type === 'ImportSpecifier' &&
+              node.imported.name === 'prepareBuildType' &&
+              node.local.name === 'prepareBuildType',
+          ),
+        );
+        const injection = 'if (settings) await prepareBuildType(dist, settings.buildType);';
+        assert.equal(producer.split(injection).length, 2);
+        ifStatementAt(program, producer.indexOf(injection));
+        assert.deepEqual(
+          literalDeclaration(readHead('scripts/h5-ad-config.mjs'), 'h5AdGames'),
+          competitionServiceIds,
+        );
+        assert.deepEqual(
+          literalDeclaration(readHead('scripts/competition-service-config.mjs'), 'serviceGames'),
+          competitionServiceIds,
+        );
+        const sources = [
+          ...competitionServiceIds.map((id) => competitionConsumers[id]),
+          ...assertSixH5(games, packages, readHead),
+        ];
+        assert.equal(sources.length, 28);
+        assert.equal(new Set(sources).size, sources.length);
+        for (const source of sources) {
+          const entries = games.filter((game) => game.source === source);
+          assert.equal(entries.length, 1);
+          assert.equal(games.filter((game) => game.id === entries[0].id).length, 1);
+          if (competitionServiceIds.includes(entries[0].id))
+            assert.equal(competitionConsumers[entries[0].id], source);
+          assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
+        }
+        for (const id of competitionServiceIds)
+          assert.equal(
+            games.filter((game) => game.id === id && game.source === competitionConsumers[id])
+              .length,
+            1,
+          );
+        scopes.set(file, sources);
+        continue;
+      }
+      if (
+        h5BuildTypeCheckPaths.includes(file) &&
+        (file.endsWith('.test.mjs') || file === 'scripts/test-h5-build-type-browser.mjs')
+      ) {
+        scopes.set(file, []);
         continue;
       }
       if (sixH5ScopePaths.includes(file)) {

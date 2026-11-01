@@ -3,7 +3,11 @@ import { readFile } from 'node:fs/promises';
 import { chromium, expect } from '@playwright/test';
 
 const runtime = await readFile(new URL('../platforms/h5/dev-mode.js', import.meta.url), 'utf8');
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+  headless: true,
+  channel: 'chromium',
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || process.env.CHROMIUM_PATH,
+});
 try {
   for (const type of ['development', 'test', 'production']) {
     const context = await browser.newContext({

@@ -1205,7 +1205,16 @@ test('developer helper proves actual Git producer bytes and rejects CRLF produce
     packages: pkgs,
     changedPaths: [file],
     readBase: readSource,
-    readHead: readSource,
+    readHead: (file) => {
+      if (file.startsWith('games/submodules/'))
+        throw Error('Parent Git cannot read a gitlink child');
+      return readSource(file);
+    },
+    readHeadEntry: (file) =>
+      execFileSync('git', ['--literal-pathspecs', 'ls-tree', 'HEAD', '--', file], {
+        cwd: root,
+        encoding: 'utf8',
+      }),
   };
   const fileScopes = nineNativeFileScopes(context);
   const expected = (await devModeTargets(root)).map((target) => target.source);
@@ -1214,6 +1223,40 @@ test('developer helper proves actual Git producer bytes and rejects CRLF produce
   assert.deepEqual(result.browser_ids, actual.map((game) => game.id).sort());
   assert.equal(result.nine_native_targets.length, 12);
   assert.equal(result.nine_native_blocked.length, 2);
+  const xiangqi = 'games/submodules/xiangqi-five';
+  for (const readHeadEntry of [
+    undefined,
+    () => '',
+    () => '160000 commit ' + '1'.repeat(40) + '\t' + xiangqi + '\n',
+    () => {
+      throw Error('unreadable tree');
+    },
+  ])
+    assert.equal(nineNativeFileScopes({ ...context, readHeadEntry }).size, 0);
+  for (const variant of [
+    { games: actual.filter((game) => game.id !== 'xiangqi-five') },
+    { games: [...actual, { id: 'xiangqi-five', source: 'games/submodules/imposter' }] },
+    { packages: pkgs.map((pkg) => (pkg.dir === xiangqi ? { ...pkg, name: 'wrong' } : pkg)) },
+    {
+      packages: pkgs.map((pkg) =>
+        pkg.dir === xiangqi ? { ...pkg, scripts: { build: 'node other.js' } } : pkg,
+      ),
+    },
+    { packages: [...pkgs, { dir: 'games/submodules/unknown', name: 'unknown' }] },
+    {
+      readHead: (file) => {
+        if (file.endsWith('/scripts/dev-mode.js')) throw Error('missing mirror');
+        return context.readHead(file);
+      },
+    },
+  ])
+    assert.equal(nineNativeFileScopes({ ...context, ...variant }).size, 0);
+  assert(
+    nineNativeFileScopes({ ...context, changedPaths: ['platforms/h5/dev-mode.d.ts'] }).has(
+      'platforms/h5/dev-mode.d.ts',
+    ),
+  );
+  assert.equal(result.h5_build_type_checks, true);
   const crlfProducer = producerBlob.replace(/\r?\n/g, '\r\n');
   assert(crlfProducer.includes('\r\n'));
   assert.notEqual(crlfProducer, producerBlob);
