@@ -269,7 +269,12 @@ export function createGameServices({ gameId, ruleVersion }) {
       const credential = await auth.current();
       if (credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
       const run = await request(`${path}/runs/${encodeURIComponent(runId)}`, undefined, credential);
-      if (run.game !== gameId || (!run.settlement && run.version !== ruleVersion))
+      if (
+        run.game !== gameId ||
+        (!run.settlement &&
+          run.version !== ruleVersion &&
+          !(gameId === 'night-overwatch' && run.status === 'finished'))
+      )
         throw failure('RULE_VERSION_CHANGED');
       owners.set(runId, { ...credential });
       return run;
@@ -351,7 +356,9 @@ function createDurableRecorder(services, { storage }, onStatus) {
           ? done.result.fastestEligible === false
             ? 'assisted'
             : 'finished'
-          : 'local',
+          : ['RUN_EXPIRED', 'RUN_FINISHED'].includes(done.result.reason)
+            ? 'expired'
+            : 'local',
       );
     }
     return true;
@@ -433,9 +440,20 @@ function createDurableRecorder(services, { storage }, onStatus) {
     const previous = retries.get(key(run));
     const delay = transient ? Math.min(60000, (previous?.delay || 1000) * 2) : 60000;
     retries.set(key(run), { delay, at: Date.now() + delay });
-    if (!active || active === run) report(transient ? 'pending-sync' : 'needs-attention');
+    if (!active || active === run)
+      report(
+        error?.code === 'STORAGE_UNAVAILABLE'
+          ? 'storage-unavailable'
+          : transient
+            ? 'pending-sync'
+            : 'needs-attention',
+      );
   }
   function acknowledge(run, result) {
+    if (cleanAcknowledged(key(run))) {
+      run.synced = true;
+      return;
+    }
     const done = {
       schema: 1,
       synced: true,
@@ -446,8 +464,13 @@ function createDurableRecorder(services, { storage }, onStatus) {
       result,
     };
     const serialized = JSON.stringify(done);
-    storage.setItem(key(run) + ':synced', serialized);
-    if (storage.getItem(key(run) + ':synced') !== serialized) throw failure('STORAGE_UNAVAILABLE');
+    try {
+      storage.setItem(key(run) + ':synced', serialized);
+      if (storage.getItem(key(run) + ':synced') !== serialized)
+        throw failure('STORAGE_UNAVAILABLE');
+    } catch {
+      throw failure('STORAGE_UNAVAILABLE');
+    }
     cleanAcknowledged(key(run));
     run.synced = true;
   }
@@ -518,11 +541,17 @@ function createDurableRecorder(services, { storage }, onStatus) {
           remote.version !== run.version
         )
           throw failure('INVALID_JOURNAL');
-        if (!remote.settlement && run.version !== services.ruleVersion)
-          throw failure('RULE_VERSION_CHANGED');
+        if (remote.status === 'finished' && !remote.settlement) {
+          acknowledge(run, { accepted: false, reason: 'RUN_FINISHED' });
+          return null;
+        }
+        if (remote.settlement) {
+          if (typeof remote.settlement.accepted !== 'boolean') throw failure('INVALID_SETTLEMENT');
+          acknowledge(run, remote.settlement);
+          return remote.settlement;
+        }
+        if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
         if (remote.seq < run.acked || remote.seq > run.batches.length)
-          throw failure('SEQUENCE_CONFLICT');
-        if (remote.settlement && (!run.finishing || remote.seq !== run.batches.length))
           throw failure('SEQUENCE_CONFLICT');
         if (remote.status === 'active' && remote.expiresAt <= Date.now()) {
           remote = await services.resumeRun({ runId: run.id });
@@ -587,11 +616,25 @@ function createDurableRecorder(services, { storage }, onStatus) {
         // when the request rejects. Never resume or downgrade a confirmed run.
         if (stopRecovery()) return null;
         let cause = error;
-        if (error?.code === 'RUN_EXPIRED' && run.id) {
+        if (['RUN_EXPIRED', 'RUN_FINISHED'].includes(error?.code) && run.id) {
           try {
-            await services.resumeRun({ runId: run.id });
-          } catch (resumeError) {
-            cause = resumeError;
+            // Server errors are authoritative; the local clock alone cannot discard input.
+            // Re-read first so a concurrent successful finish always takes precedence.
+            const remote = await services.getRun({ runId: run.id, playerId: run.playerId });
+            if (stopRecovery()) return null;
+            if (
+              remote.id !== run.id ||
+              remote.board !== run.mode ||
+              remote.levelId !== run.levelId ||
+              remote.version !== run.version
+            )
+              throw failure('INVALID_JOURNAL');
+            if (remote.settlement && typeof remote.settlement.accepted !== 'boolean')
+              throw failure('INVALID_SETTLEMENT');
+            acknowledge(run, remote.settlement || { accepted: false, reason: error.code });
+            return remote.settlement || null;
+          } catch (confirmationError) {
+            cause = confirmationError;
           }
           if (stopRecovery()) return null;
         }
