@@ -35,7 +35,8 @@ class Contracts(unittest.TestCase):
         self.assertIn('FOR UPDATE', sql)
         self.assertIn("data->>'status'='finished'", sql)
         self.assertIn("(data->>'createdAt')::bigint+86400000", sql)
-        self.assertIn("':[1-9][0-9]*$'", sql)
+        self.assertIn('a.id = ANY(ARRAY(', sql)
+        self.assertIn('generate_series(1,', sql)
         self.assertIn('a.board=r.board', sql)
         self.assertEqual(sql.count('DELETE FROM'), 1)
         self.assertIn("'{state}','null'::jsonb", sql)
@@ -116,7 +117,7 @@ class PostgresContracts(unittest.TestCase):
         data = dict(row, kind='ranked-run-v1', board='level-corridor-01', boardKey='night:retention-test',
                     version='night-input-replay-v12',status='finished',seq=2,createdAt=1,expiresAt=86400001,
                     state={'large':'checkpoint'},settlement={'accepted':True,'runId':row['id']})
-        names = [root,prefix+'1',prefix+'2',prefix+'2extra',prefix+'3','night-asset-event:'+row['id']]
+        names = [root,prefix+'1',prefix+'2',prefix+'2extra',prefix+'3','night-asset-event:'+row['id'],prefix+'4']
         for name in names:
             board = 'other-board' if name == prefix+'3' else 'night:retention-test'
             value = data if name == root else {'protected':name}
@@ -142,6 +143,7 @@ class PostgresContracts(unittest.TestCase):
         self.assertNotIn(prefix+'2', after)
         self.assertEqual(json.loads(self.sql(retention.compact_sql(row, RULES)))['actions'], 0)
         self.assertEqual(read(), after)
+        self.assertNotIn(row['id'], [value['id'] for value in json.loads(self.sql(retention.selection_sql(RULES)))])
         # A root reactivated or extended after selection is rechecked under the lock.
         self.sql("UPDATE runtime.competition_matches SET data=jsonb_set(data,'{status}','\"active\"') WHERE id='"+root+"';")
         self.assertEqual(json.loads(self.sql(retention.compact_sql(row, RULES))), {'runs':0,'actions':0})
@@ -150,7 +152,7 @@ class PostgresContracts(unittest.TestCase):
         old, current = item(), item()
         now = int(self.sql('SELECT (extract(epoch from now())*1000)::bigint;'))
         for row, version in [(old,'night-input-replay-v8'),(current,RULES['night-overwatch'])]:
-            data = dict(row, kind='ranked-run-v1',version=version,status='finished',createdAt=now,
+            data = dict(row, kind='ranked-run-v1',version=version,status='finished',seq=0,createdAt=now,
                         expiresAt=now+86400000,state={'large':'checkpoint'})
             self.sql("INSERT INTO runtime.competition_matches VALUES ('ranked-run:"+row['id']+"','night:retention-test','"+json.dumps(data)+"'::jsonb,1);")
         selected = json.loads(self.sql(retention.selection_sql(RULES)))
@@ -158,6 +160,33 @@ class PostgresContracts(unittest.TestCase):
         self.assertNotIn(current['id'], [row['id'] for row in selected])
         self.assertEqual(json.loads(self.sql(retention.compact_sql(old,RULES))), {'runs':1,'actions':0})
         self.assertEqual(json.loads(self.sql(retention.compact_sql(current,RULES))), {'runs':0,'actions':0})
+
+    def test_unknown_sequences_are_preserved_and_deletion_uses_primary_key(self):
+        for sequence in ('2', -1, 1.5, 1000000):
+            row = item()
+            data = dict(row, kind='ranked-run-v1',version=RULES['night-overwatch'],status='finished',
+                        seq=sequence,createdAt=1,expiresAt=86400001,state={'large':'checkpoint'})
+            self.sql("INSERT INTO runtime.competition_matches VALUES ('ranked-run:"+row['id']+"','night:retention-test','"+json.dumps(data)+"'::jsonb,1);")
+            self.assertEqual(json.loads(self.sql(retention.compact_sql(row,RULES))), {'runs':0,'actions':0})
+            self.assertNotIn(row['id'], [value['id'] for value in json.loads(self.sql(retention.selection_sql(RULES)))])
+        row = item()
+        data = dict(row, kind='ranked-run-v1',version=RULES['night-overwatch'],status='finished',
+                    seq=2,createdAt=1,expiresAt=86400001,state={'large':'checkpoint'})
+        self.sql("INSERT INTO runtime.competition_matches VALUES ('ranked-run:"+row['id']+"','night:retention-test','"+json.dumps(data)+"'::jsonb,1);")
+        prefix = 'retention-plan:'+row['id']+':'
+        try:
+            self.sql("INSERT INTO runtime.competition_matches SELECT '"+prefix+"'||n,'fixture','{}',1 FROM generate_series(1,25000) n; ANALYZE runtime.competition_matches;")
+            plan = self.sql(retention.compact_sql(row,RULES).replace('WITH target AS (','EXPLAIN (FORMAT JSON) WITH target AS ('))
+            def nodes(value):
+                if isinstance(value,dict):
+                    yield value
+                    for child in value.values(): yield from nodes(child)
+                elif isinstance(value,list):
+                    for child in value: yield from nodes(child)
+            self.assertTrue(any(node.get('Alias')=='a' and node.get('Index Name')=='competition_matches_pkey'
+                                and 'ANY' in node.get('Index Cond','') for node in nodes(json.loads(plan))))
+        finally:
+            self.sql("DELETE FROM runtime.competition_matches WHERE id LIKE '"+prefix+"%';")
 
 
 if __name__ == '__main__':

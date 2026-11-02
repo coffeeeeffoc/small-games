@@ -77,10 +77,10 @@ SELECT coalesce(json_agg(json_build_object('id',data->>'id','game',data->>'game'
  WHERE id>'__AFTER__' AND id='ranked-run:'||(data->>'id') AND id ~ '^ranked-run:__UUID__$'
  AND data->>'kind'='ranked-run-v1' AND data->>'game' IN (__GAMES__)
  AND data->>'status' IN ('active','finished')
+ AND jsonb_typeof(data->'seq')='number' AND data->>'seq' ~ '^(0|[1-9][0-9]{0,5})$'
  AND (least((data->>'expiresAt')::bigint,(data->>'createdAt')::bigint+86400000)<=(extract(epoch from now())*1000)::bigint
       OR data->>'version'<>__VERSIONS__)
- AND (data->'state' IS DISTINCT FROM 'null'::jsonb OR NOT (data ? 'retainedAt') OR EXISTS (
-   SELECT 1 FROM runtime.competition_matches a WHERE a.board=r.board AND a.id ~ ('^ranked-action:'||(r.data->>'id')||':[1-9][0-9]*$')))
+ AND (data->'state' IS DISTINCT FROM 'null'::jsonb OR NOT (data ? 'retainedAt'))
  ORDER BY id LIMIT 100) selected;
 COMMIT;""".replace('__AFTER__', after).replace('__UUID__', UUID).replace('__GAMES__', games).replace('__VERSIONS__', versions)
 
@@ -97,12 +97,15 @@ WITH target AS (
  SELECT id,board,data FROM runtime.competition_matches
  WHERE id='ranked-run:__ID__' AND data->>'id'='__ID__' AND data->>'playerId'='__OWNER__'
  AND data->>'game'='__GAME__' AND data->>'kind'='ranked-run-v1' AND data->>'status'='finished'
+ AND jsonb_typeof(data->'seq')='number' AND data->>'seq' ~ '^(0|[1-9][0-9]{0,5})$'
  AND (least((data->>'expiresAt')::bigint,(data->>'createdAt')::bigint+86400000)<=(extract(epoch from now())*1000)::bigint
       OR data->>'version'<>'__VERSION__')
  FOR UPDATE
 ), removed AS (
  DELETE FROM runtime.competition_matches a USING target r
- WHERE a.board=r.board AND a.id ~ ('^ranked-action:'||(r.data->>'id')||':[1-9][0-9]*$') RETURNING a.id
+ WHERE a.board=r.board AND a.id = ANY(ARRAY(
+   SELECT 'ranked-action:'||(r.data->>'id')||':'||sequence::text
+   FROM generate_series(1,(r.data->>'seq')::integer) sequence)) RETURNING a.id
 ), compacted AS (
  UPDATE runtime.competition_matches r SET data=jsonb_set(jsonb_set(r.data,'{state}','null'::jsonb),'{expiresAt}',
  to_jsonb(least((r.data->>'expiresAt')::bigint,(r.data->>'createdAt')::bigint+86400000)))
