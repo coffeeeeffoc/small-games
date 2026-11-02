@@ -6,7 +6,9 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
+import sqlite3
 import subprocess
 from pathlib import Path
 import tempfile
@@ -921,6 +923,212 @@ class RootPreconditionRecovery(unittest.TestCase):
                 control.adoption_journal(changed, release, value)
             self.assertEqual(control.adopt(release, value, release.parent, True, True)['outcome'], 'restored-before-migration')
             self.assertTrue(all(item['running'] for item in live.values()))
+
+
+class NightV8CutoverContracts(unittest.TestCase):
+    def snapshot(self, count=170):
+        return {'observedAt': 1793650000000, 'exemptedCount': count, 'matchedCount': count + 2,
+                'rowsSha256': '7' * 64}
+
+    def evidence(self, release, finalized=True):
+        return dict(control.NIGHT_V8_CUTOVER, release=release.name, sourceSHA=SHA,
+                    candidateImage=IMAGE, finalized=finalized, snapshot=self.snapshot())
+
+    def test_cutover_sql_only_exempts_exact_old_ranked_rows_and_retains_all_other_guards(self):
+        tools = SimpleNamespace(psql=Mock(return_value=json.dumps({'blocked': 0, 'snapshot': self.snapshot()})))
+        with patch.object(control, 'support', return_value=tools):
+            self.assertEqual(control.runtime_idle('pg', True), self.snapshot())
+            query = tools.psql.call_args.args[1]
+            control.runtime_idle('pg', True, self.snapshot()['observedAt'])
+            self.assertIn("'observedAt', 1793650000000", tools.psql.call_args.args[1])
+            for count in (1, 2):
+                tools.psql.return_value = json.dumps({'blocked': count, 'snapshot': self.snapshot()})
+                with self.assertRaisesRegex(control.Stopped, 'ACTIVE_GAME'):
+                    control.runtime_idle('pg', True)
+            for invalid in (False, '0', -1):
+                tools.psql.return_value = json.dumps({'blocked': invalid, 'snapshot': self.snapshot()})
+                with self.assertRaisesRegex(control.Stopped, 'NIGHT_CUTOVER_EVIDENCE'):
+                    control.runtime_idle('pg', True)
+        self.assertTrue(query.startswith('BEGIN TRANSACTION READ ONLY;'))
+        self.assertNotRegex(query, r'\b(?:UPDATE|DELETE|INSERT|ALTER|CREATE)\b')
+        self.assertIn('runtime.three_choose_two_sessions', query)
+        self.assertIn('WHERE NOT eligible AND', query)
+        self.assertIn('json_build_array(id, board, created_at, data)', query)
+        self.assertIn('ORDER BY id COLLATE "C"', query)
+        self.assertIn('sha256(convert_to', query)
+        # Execute the actual predicate/CTEs against a finite in-memory row corpus.
+        # Only adapt PostgreSQL's JSON extraction syntax; do not reimplement the predicate.
+        prefix = query[query.index('WITH ranked AS ('):query.index('SELECT json_build_object(')]
+        prefix = re.sub(r"data->>'([A-Za-z]+)'", r"json_extract(data, '$.\1')", prefix)
+        with sqlite3.connect(':memory:') as db:
+            db.execute("ATTACH DATABASE ':memory:' AS runtime")
+            db.execute('CREATE TABLE runtime.competition_matches (id TEXT, board TEXT, created_at INTEGER, data TEXT)')
+            base = {'kind': 'ranked-run-v1', 'game': 'night-overwatch', 'version': 'night-input-replay-v8', 'status': 'active', 'expiresAt': 9999999999999}
+            changes = [{}, {'game': 'tetracube'}, {'version': 'night-input-replay-v12'},
+                       {'version': None}, {'game': None}, {'kind': 'admission-v1'},
+                       {'status': 'finished'}, {'expiresAt': 0}]
+            for index, change in enumerate(changes):
+                db.execute('INSERT INTO runtime.competition_matches VALUES (?, ?, ?, ?)',
+                           (str(index), 'board', 1, json.dumps(dict(base, **change))))
+            self.assertEqual(db.execute(prefix + 'SELECT id, eligible FROM ranked ORDER BY id').fetchall(),
+                             [('0', 1), ('1', 0), ('2', 0), ('3', 0), ('4', 0), ('7', 1)])
+            self.assertEqual(db.execute(prefix + 'SELECT id FROM old_rows ORDER BY id').fetchall(), [('0',), ('7',)])
+        backend = SimpleNamespace(guard_games=Mock())
+        tools.psql.return_value = '0'
+        with patch.object(control, 'support', side_effect=lambda name: backend if name == 'backend-context.py' else tools), patch.object(control, 'runtime_idle', return_value=self.snapshot()) as idle:
+            control.active_guards(facts(), True)
+            backend.guard_games.assert_called_once_with({name: facts()[name] for name in ('runtime', 'kart')})
+            control.stopped_writers('pg', True)
+            idle.assert_called_with('pg', True)
+            tools.psql.return_value = '1'
+            with self.assertRaisesRegex(control.Stopped, 'UNKNOWN_DATABASE_WRITER'):
+                control.stopped_writers('pg', True)
+            tools.psql.side_effect = ['0', '1']
+            with self.assertRaisesRegex(control.Stopped, 'ACTIVE_GAME'):
+                control.stopped_writers('pg', True)
+
+    def test_cutover_uses_actual_runtime_registry_in_owned_image_probe(self):
+        module = SimpleNamespace(owned_probe_output=Mock(return_value=b'night-input-replay-v12'), AuthorityError=RuntimeError)
+        with patch.object(control, 'support', return_value=module):
+            control.night_v12_authority(IMAGE)
+            image, script = module.owned_probe_output.call_args.args
+            self.assertEqual(image, IMAGE)
+            self.assertIn('file:///app/services/runtime-api/rules/ranked-games.mjs', script)
+            self.assertIn('rules.length!==1', script)
+            self.assertIn('rules[0].version!=="night-input-replay-v12"', script)
+            for output in (b'night-input-replay-v8', b'night-input-replay-v13', b'night-input-replay-v12\n', b''):
+                module.owned_probe_output.return_value = output
+                with self.assertRaisesRegex(control.Stopped, 'NIGHT_CUTOVER_IMAGE'):
+                    control.night_v12_authority(IMAGE)
+
+    def test_journal_binds_authorization_to_target_image_and_finalized_set(self):
+        release = Path('/candidate')
+        state = dict(journal(release), initialFloor='schema3', nightV8Cutover=self.evidence(release))
+        self.assertIs(control.adoption_journal(state, release, manifest()), state)
+        for change in ({'authorized': False}, {'game': 'tetracube'}, {'release': 'other'},
+                       {'sourceSHA': 'b' * 40}, {'candidateImage': 'sha256:' + 'c' * 64},
+                       {'fromVersion': 'night-input-replay-v9'}, {'toVersion': 'night-input-replay-v13'},
+                       {'finalized': False}, {'extra': True}, {'version': True},
+                       {'snapshot': dict(self.snapshot(), exemptedCount=999)}):
+            with self.subTest(change=change), self.assertRaisesRegex(control.Stopped, 'NIGHT_CUTOVER_EVIDENCE'):
+                control.adoption_journal(dict(state, nightV8Cutover=dict(state['nightV8Cutover'], **change)), release, manifest())
+        for key in state['nightV8Cutover']:
+            changed = copy.deepcopy(state)
+            del changed['nightV8Cutover'][key]
+            with self.assertRaisesRegex(control.Stopped, 'NIGHT_CUTOVER_EVIDENCE'):
+                control.adoption_journal(changed, release, manifest())
+
+    def test_payload_rejects_cutover_outside_adopt_and_nonboolean_or_extra_fields(self):
+        for mode in ('--adopt', '--recover', '--repair', '--reuse', '--rollback'):
+            for flag in (True, False, 1, 'true', None):
+                if mode == '--adopt' and flag is True:
+                    continue
+                payload = {'caddyDirectory': '/opt/company', 'sourceSHA': SHA, 'allowNightV8Cutover': flag}
+                if mode in ('--recover', '--repair'):
+                    payload.update(targetRelease='old', targetManifestSHA256='b' * 64)
+                if mode == '--repair':
+                    payload.update(applicationRelease='new', applicationManifestSHA256='c' * 64)
+                with self.subTest(mode=mode, flag=flag), patch.object(control, 'domain_module') as domain:
+                    with self.assertRaisesRegex(control.Stopped, 'CONFIG'):
+                        control.main([mode], payload)
+                    domain.assert_not_called()
+        with patch.object(control, 'manifest_from', side_effect=control.Stopped('VALID_PAYLOAD')):
+            with self.assertRaisesRegex(control.Stopped, 'VALID_PAYLOAD'):
+                control.main(['--adopt'], {'caddyDirectory': '/opt/company', 'sourceSHA': SHA, 'allowNightV8Cutover': True})
+
+    @contextlib.contextmanager
+    def fixture(self):
+        with tempfile.TemporaryDirectory() as folder, contextlib.ExitStack() as stack:
+            base, private = Path(folder) / 'public', Path(folder) / 'private'
+            previous = base / 'releases/previous'
+            previous.mkdir(parents=True)
+            (base / 'current').symlink_to(previous)
+            private.mkdir(mode=0o700)
+            release = base / 'releases/candidate'
+            release.mkdir()
+            domain = SimpleNamespace(player_session_migration=Mock(), preflight_control_database=Mock(),
+                                     provision_control_database=Mock(), provision_player_sessions=Mock())
+            live = facts()
+            current = {name: dict(live[name], image=IMAGE) for name in control.SERVICES}
+            proof = {'controlContract': CONTRACT, 'databaseProof': {'backupSHA256': 'a' * 64, 'oldStateSHA256': 'b' * 64}}
+            patches = {
+                'BASE': base, 'PRIVATE': private, 'domain_module': Mock(return_value=domain),
+                'inventory': Mock(return_value=live), 'database_floor': Mock(return_value='schema3'),
+                'manifest_from': Mock(return_value={}), 'management_config': Mock(return_value=(Path('/opaque/management.env'), [1, 2, 3, 4], {})),
+                'contexts_for': Mock(return_value={'runtime': {}, 'kart': {}}),
+                'active_guards': Mock(return_value=self.snapshot(171)), 'build_image': Mock(return_value=IMAGE),
+                'authority': Mock(), 'night_v12_authority': Mock(), 'pointers_for': Mock(return_value={}),
+                'command': Mock(), 'assert_nginx': Mock(), 'stopped_writers': Mock(return_value=self.snapshot()),
+                'restore_before_migration': Mock(), 'assert_env': Mock(), 'check_protected': Mock(),
+                'verified_database': Mock(), 'activate_services': Mock(return_value=current),
+                'persist_control_proof': Mock(return_value=proof), 'switch_pointer': Mock(), 'public_probe': Mock(),
+                'target_inventory': Mock(return_value=live['postgres']),
+                'read_precommit': Mock(return_value=({'controlContract': CONTRACT}, 'c' * 64)),
+            }
+            for name, value in patches.items():
+                stack.enter_context(patch.object(control, name, value))
+            yield release, private, domain, patches
+
+    def test_incompatible_candidate_stops_before_journal_or_service_changes(self):
+        with self.fixture() as (release, private, domain, mocks):
+            mocks['night_v12_authority'].side_effect = control.Stopped('NIGHT_CUTOVER_IMAGE')
+            with self.assertRaisesRegex(control.Stopped, 'NIGHT_CUTOVER_IMAGE'):
+                control.adopt(release, manifest(), release.parent, allow_night_v8_cutover=True)
+            self.assertFalse((private / release.name / 'control-journal.json').exists())
+            mocks['command'].assert_not_called()
+            domain.provision_control_database.assert_not_called()
+
+    def test_final_snapshot_is_saved_before_migration_and_safe_restore_keeps_evidence(self):
+        with self.fixture() as (release, private, domain, mocks):
+            def migration(**_):
+                saved = control.private_json(private / release.name / 'control-journal.json')
+                self.assertTrue(saved['nightV8Cutover']['finalized'])
+                self.assertEqual(saved['nightV8Cutover']['snapshot'], self.snapshot())
+                self.assertEqual(saved['stopped'], ['management', 'kart', 'runtime'])
+                self.assertEqual([call.args[-1] for call in mocks['command'].call_args_list],
+                                 [facts()[name]['id'] for name in ('nginx', 'management', 'kart', 'runtime')])
+                raise SimpleNotCommitted()
+            domain.provision_control_database.side_effect = migration
+            with self.assertRaisesRegex(control.Stopped, 'DATABASE_NOT_COMMITTED'):
+                control.adopt(release, manifest(), release.parent, allow_night_v8_cutover=True)
+            mocks['night_v12_authority'].assert_called_once_with(IMAGE)
+            self.assertEqual(mocks['active_guards'].call_count, 2)
+            mocks['stopped_writers'].assert_called_once_with(facts()['postgres']['id'], True)
+            saved = control.private_json(private / release.name / 'control-journal.json')
+            self.assertTrue(saved['verifiedNotCommitted'])
+            mocks['night_v12_authority'].side_effect = AssertionError('safe restore must not probe candidate')
+            with patch.object(control, 'restored_control_enabled', return_value=True):
+                receipt = control.adopt(release, manifest(), release.parent, recover=True)
+            self.assertEqual(receipt['outcome'], 'restored-before-migration')
+            self.assertEqual(receipt['nightV8Cutover'], saved['nightV8Cutover'])
+            self.assertNotIn('publicHtmlVerified', receipt)
+
+    def test_recovery_reuses_exact_final_evidence_and_rejects_changed_rows(self):
+        for changed in (False, True):
+            with self.subTest(changed=changed), self.fixture() as (release, private, domain, mocks):
+                directory = private / release.name
+                directory.mkdir(mode=0o700)
+                state = dict(journal(release), initialFloor='schema3', nightV8Cutover=self.evidence(release))
+                control.write_private(directory / 'control-journal.json', state)
+                mocks['database_floor'].return_value = 'schema4'
+                snapshot = dict(self.snapshot(), rowsSha256='8' * 64) if changed else self.snapshot()
+                with patch.object(control, 'runtime_idle', return_value=snapshot) as idle:
+                    if changed:
+                        with self.assertRaisesRegex(control.Stopped, 'NIGHT_CUTOVER_EVIDENCE'):
+                            control.adopt(release, manifest(), release.parent, recover=True)
+                        mocks['activate_services'].assert_not_called()
+                    else:
+                        receipt = control.adopt(release, manifest(), release.parent, recover=True)
+                        self.assertEqual(receipt['nightV8Cutover'], state['nightV8Cutover'])
+                        self.assertTrue(receipt['publicHtmlVerified'])
+                    idle.assert_called_once_with(facts()['postgres']['id'], True, self.snapshot()['observedAt'])
+                    domain.provision_control_database.assert_not_called()
+                    mocks['night_v12_authority'].assert_called_once_with(IMAGE)
+
+
+class SimpleNotCommitted(Exception):
+    outcome = 'not_committed'
+    oldDataUnchanged = True
 
 
 if __name__ == '__main__':

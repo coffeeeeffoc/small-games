@@ -308,6 +308,52 @@ test('control CLI closes legacy modes before config and prepare never reads SSH 
   assert.throws(() => controlInput(['--adopt-control=../release']), /ARGUMENTS/);
 });
 
+test('Night v8 cutover is explicit adopt-only authorization and reaches the exact payload', async () => {
+  assert.deepEqual(controlInput(['--adopt-control=candidate', '--allow-night-v8-cutover']), {
+    mode: '--adopt-control',
+    bundle: 'candidate',
+    allowNightV8Cutover: true,
+  });
+  for (const args of [
+    ['--recover-control=candidate', '--allow-night-v8-cutover'],
+    ['--prepare-control', '--allow-night-v8-cutover'],
+    ['--reuse-remote-config', '--allow-night-v8-cutover'],
+    ['--rollback', '--allow-night-v8-cutover'],
+    ['--adopt-control=candidate', '--allow-night-v8-cutover=false'],
+    ['--adopt-control=candidate', '--allow-night-v8-cutover', '--allow-night-v8-cutover'],
+    ['--adopt-control=candidate', '--allow-night-v8-cutover', '--root-precondition'],
+    ['--repair-control=old', '--application=new', '--allow-night-v8-cutover'],
+  ])
+    assert.throws(() => controlInput(args), /ARGUMENTS|CONTROL_MODE_REQUIRED/);
+  for (const enabled of [false, true]) {
+    let payload;
+    await assert.rejects(
+      main(['--adopt-control=candidate', ...(enabled ? ['--allow-night-v8-cutover'] : [])], {
+        readBundle: async () => ({ release: 'candidate', sourceSHA: 'a'.repeat(40) }),
+        loadConfig: async () => ({
+          host: '192.0.2.10',
+          user: 'fixture',
+          port: '22',
+          caddyDirectory: '/opt/company',
+        }),
+        sameCandidate() {},
+        sendBundle: async () => '/opt/public/candidate',
+        run: async (_program, _args, options) => {
+          if (options.stage !== 'protected_remote_transaction') return '';
+          payload = JSON.parse(options.input);
+          return '{}'; // Deliberately stop before saving any receipt or operating a service.
+        },
+      }),
+      /REMOTE_FAILED/,
+    );
+    assert.deepEqual(payload, {
+      caddyDirectory: '/opt/company',
+      sourceSHA: 'a'.repeat(40),
+      ...(enabled ? { allowNightV8Cutover: true } : {}),
+    });
+  }
+});
+
 async function controlWorkspace(folder) {
   const workspace = path.join(folder, 'source');
   for (const name of [
@@ -549,6 +595,64 @@ test('control receipt requires complete typed evidence and distinguishes runner 
     oldStateSHA256: '2'.repeat(64),
   };
   assert.deepEqual(controlReceipt(JSON.stringify(value), 'recover', value.runnerSourceSHA), value);
+  const evidence = {
+    version: 1,
+    authorized: true,
+    game: 'night-overwatch',
+    fromVersion: 'night-input-replay-v8',
+    toVersion: 'night-input-replay-v12',
+    release: value.release,
+    sourceSHA: value.sourceSHA,
+    candidateImage: value.activeImages.runtime,
+    finalized: true,
+    snapshot: {
+      observedAt: 1793650000000,
+      exemptedCount: 170,
+      matchedCount: 172,
+      rowsSha256: '3'.repeat(64),
+    },
+  };
+  const cutover = { ...value, nightV8Cutover: evidence };
+  assert.deepEqual(
+    controlReceipt(JSON.stringify(cutover), 'recover', value.runnerSourceSHA),
+    cutover,
+  );
+  for (const patch of [
+    { authorized: false },
+    { game: 'tetracube' },
+    { fromVersion: 'night-input-replay-v9' },
+    { toVersion: 'night-input-replay-v13' },
+    { release: 'other' },
+    { sourceSHA: 'c'.repeat(40) },
+    { candidateImage: 'sha256:' + 'e'.repeat(64) },
+    { finalized: false },
+    { extra: true },
+    { snapshot: { ...evidence.snapshot, exemptedCount: 173 } },
+    { snapshot: { ...evidence.snapshot, observedAt: true } },
+    { snapshot: { ...evidence.snapshot, rowsSha256: 'bad' } },
+  ])
+    assert.throws(
+      () =>
+        controlReceipt(
+          JSON.stringify({ ...cutover, nightV8Cutover: { ...evidence, ...patch } }),
+          'recover',
+          value.runnerSourceSHA,
+        ),
+      /REMOTE_FAILED/,
+    );
+  for (const key of Object.keys(evidence)) {
+    const missing = { ...evidence };
+    delete missing[key];
+    assert.throws(
+      () =>
+        controlReceipt(
+          JSON.stringify({ ...cutover, nightV8Cutover: missing }),
+          'recover',
+          value.runnerSourceSHA,
+        ),
+      /REMOTE_FAILED/,
+    );
+  }
   for (const key of Object.keys(value)) {
     const missing = { ...value };
     delete missing[key];

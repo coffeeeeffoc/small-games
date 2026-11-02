@@ -41,6 +41,8 @@ UI_PATHS = ['/', '/login', '/forbidden', '/config', '/games', '/members', '/role
 CSP_CONTRACT = {'version': 1, 'kind': 'nonce-v1', 'prefix': CSP_PREFIX, 'meta': CSP_META, 'baseCsp': CSP_BASE, 'paths': UI_PATHS}
 MODULES = {}
 STAGE = 'preflight'
+NIGHT_V8_CUTOVER = {'version': 1, 'authorized': True, 'game': 'night-overwatch',
+                    'fromVersion': 'night-input-replay-v8', 'toVersion': 'night-input-replay-v12'}
 ROOT_PRECONDITION = {
     'release': '0d7bfdfe4087-1792248271760-eb122d',
     'sourceSHA': '0d7bfdfe4087b85139dc525e9a75f3ab792e17f6',
@@ -275,6 +277,45 @@ def authority(images, failure='AUTHORITY_IMAGE_REQUIRED', *, control_catalog=4):
         for name in ('ownedContainerId', 'probeUUID', 'probeName', 'probeProcessId'):
             setattr(stopped, name, getattr(error, name, None))
         raise stopped from None
+
+
+def night_v12_authority(image):
+    module = support('image-authority.py')
+    # Probe the registry imported by Runtime, in the same owned, isolated image probe.
+    script = ('try {const {rankedRules}=await import("file:///app/services/runtime-api/rules/ranked-games.mjs");'
+              'const rules=rankedRules.filter(rule=>rule.id==="night-overwatch");'
+              'if(rules.length!==1||rules[0].version!=="night-input-replay-v12"'
+              '||["create","apply","result"].some(key=>typeof rules[0][key]!=="function"))throw new Error();'
+              'process.stdout.write(rules[0].version);}catch{process.exitCode=78;}')
+    try:
+        output = module.owned_probe_output(image, script)
+    except module.AuthorityError as error:
+        stopped = Stopped(error.code)
+        for name in ('ownedContainerId', 'probeUUID', 'probeName', 'probeProcessId'):
+            setattr(stopped, name, getattr(error, name, None))
+        raise stopped from None
+    require(output == b'night-input-replay-v12', 'NIGHT_CUTOVER_IMAGE')
+
+
+def night_cutover_evidence(value, release, manifest, image):
+    require(isinstance(value, dict) and set(value) == set(NIGHT_V8_CUTOVER) | {
+                'release', 'sourceSHA', 'candidateImage', 'finalized', 'snapshot'}
+            and all(type(value[key]) is type(expected) and value[key] == expected
+                    for key, expected in NIGHT_V8_CUTOVER.items())
+            and value['release'] == release.name and value['sourceSHA'] == manifest['sourceSHA']
+            and value['candidateImage'] == image and type(value['finalized']) is bool,
+            'NIGHT_CUTOVER_EVIDENCE')
+    night_cutover_snapshot(value['snapshot'])
+    return value
+
+
+def night_cutover_snapshot(value):
+    require(isinstance(value, dict) and set(value) == {'observedAt', 'exemptedCount', 'matchedCount', 'rowsSha256'}
+            and all(type(value[key]) is int and 0 <= value[key] <= 9007199254740991
+                    for key in ('observedAt', 'exemptedCount', 'matchedCount'))
+            and value['observedAt'] > 0 and value['exemptedCount'] <= value['matchedCount']
+            and digest(value['rowsSha256']), 'NIGHT_CUTOVER_EVIDENCE')
+    return value
 
 
 def management_config(release, allow_legacy=False):
@@ -522,12 +563,36 @@ def check_protected(items, pointers):
     require(all(Path(file).resolve(strict=True) == Path(target) for file, target in pointers.items()), 'PROTECTED_POINTER_CHANGED')
 
 
-def active_guards(items):
+def active_guards(items, allow_night_v8_cutover=False):
     support('backend-context.py').guard_games({name: items[name] for name in ('runtime', 'kart')})
-    runtime_idle(items['postgres']['id'])
+    return runtime_idle(items['postgres']['id'], allow_night_v8_cutover)
 
 
-def runtime_idle(pg):
+def runtime_idle(pg, allow_night_v8_cutover=False, observed_at=None):
+    require(type(allow_night_v8_cutover) is bool and (observed_at is None or (
+        allow_night_v8_cutover and type(observed_at) is int and 0 < observed_at <= 9007199254740991)), 'NIGHT_CUTOVER_EVIDENCE')
+    if allow_night_v8_cutover:
+        # Retain every old row. Hash the stable full set, including expired v8 rows;
+        # count the actual exemption at the recorded time so recovery is repeatable.
+        cutoff = str(observed_at) if observed_at is not None else '(extract(epoch from now())*1000)::bigint'
+        sql = """BEGIN TRANSACTION READ ONLY;
+WITH ranked AS (
+  SELECT *, COALESCE(data->>'game'='night-overwatch' AND data->>'version'='night-input-replay-v8', false) AS eligible
+  FROM runtime.competition_matches WHERE data->>'kind'='ranked-run-v1' AND data->>'status'='active'
+), old_rows AS (SELECT * FROM ranked WHERE eligible)
+SELECT json_build_object(
+ 'blocked', (SELECT count(*) FROM ranked WHERE NOT eligible AND (data->>'expiresAt')::bigint>(extract(epoch from now())*1000)::bigint)
+          + (SELECT count(*) FROM runtime.three_choose_two_sessions WHERE status='active' AND expires_at>(extract(epoch from now())*1000)::bigint),
+ 'snapshot', json_build_object('observedAt', __CUTOFF__,
+   'exemptedCount', (SELECT count(*) FROM old_rows WHERE (data->>'expiresAt')::bigint>__CUTOFF__),
+   'matchedCount', (SELECT count(*) FROM old_rows),
+   'rowsSha256', (SELECT encode(sha256(convert_to(COALESCE(string_agg(json_build_array(id, board, created_at, data)::text, E'\\n' ORDER BY id COLLATE "C"), ''), 'UTF8')), 'hex') FROM old_rows)));
+COMMIT;""".replace('__CUTOFF__', cutoff)
+        value = json_value(support('legacy-tools.py').psql(pg, sql))
+        require(isinstance(value, dict) and set(value) == {'blocked', 'snapshot'}
+                and type(value['blocked']) is int and value['blocked'] >= 0, 'NIGHT_CUTOVER_EVIDENCE')
+        require(value['blocked'] == 0, 'ACTIVE_GAME')
+        return night_cutover_snapshot(value['snapshot'])
     # ranked-types.ts stores expiresAt in JSON milliseconds; three-choose-two
     # stores the same millisecond expiry in its dedicated expires_at column.
     sql = """BEGIN TRANSACTION READ ONLY;
@@ -540,11 +605,11 @@ COMMIT;"""
     require(support('legacy-tools.py').psql(pg, sql) == '0', 'ACTIVE_GAME')
 
 
-def stopped_writers(pg):
+def stopped_writers(pg, allow_night_v8_cutover=False):
     tools = support('legacy-tools.py')
     require(tools.psql(pg, "BEGIN TRANSACTION READ ONLY; SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND backend_type='client backend'; COMMIT;") == '0', 'UNKNOWN_DATABASE_WRITER')
     require(tools.psql(pg, "BEGIN TRANSACTION READ ONLY; SELECT count(*) FROM runtime.competition_rooms WHERE data->>'status' IN ('waiting','playing') AND expires_at>(extract(epoch from now())*1000)::bigint; COMMIT;") == '0', 'ACTIVE_GAME')
-    runtime_idle(pg)
+    return runtime_idle(pg, allow_night_v8_cutover)
 
 
 def service_health(name, item):
@@ -673,7 +738,7 @@ def restored_control_enabled(items):
     return flags[0] == 'true'
 
 
-def public_receipt(mode, release, manifest, runner_sha, current, proof):
+def public_receipt(mode, release, manifest, runner_sha, current, proof, night_cutover=None):
     return {'ok': True, 'mode': mode, 'runnerSourceSHA': runner_sha, 'sourceSHA': manifest['sourceSHA'],
             'release': release.name, 'services': list(SERVICES) if mode in ('adopt', 'recover') else ['management'],
             'activeImages': {name: current[name]['image'] for name in SERVICES},
@@ -681,7 +746,8 @@ def public_receipt(mode, release, manifest, runner_sha, current, proof):
             'controlEnabled': True, 'remoteConfigReused': True, 'internalHealthVerified': True,
             'publicHtmlVerified': True, 'anonymousSessionVerified': True, 'oauthStartVerified': True,
             'realGithubLoginVerified': False, 'backupSHA256': proof['databaseProof']['backupSHA256'],
-            'oldStateSHA256': proof['databaseProof']['oldStateSHA256']}
+            'oldStateSHA256': proof['databaseProof']['oldStateSHA256'],
+            **({'nightV8Cutover': night_cutover} if night_cutover is not None else {})}
 
 
 def build_image(release):
@@ -706,7 +772,7 @@ def adoption_journal(value, release, manifest):
     keys = {'version', 'release', 'sourceSHA', 'phase', 'inventory', 'contexts', 'candidateImage', 'previous',
             'envFile', 'envMetadata', 'pointers', 'precommitPath', 'precommitSHA256', 'newActivationAttempted',
             'stopped', 'runtimeIds', 'kartRemovalAttempted', 'domainInvoked', 'barrierAttempted', 'verifiedNotCommitted'}
-    require(isinstance(value, dict) and set(value) in (keys, keys | {'rootPreconditionEvidence'}, keys | {'initialFloor'}) and type(value['version']) is int and value['version'] == 1
+    require(isinstance(value, dict) and set(value) in (keys, keys | {'rootPreconditionEvidence'}, keys | {'initialFloor'}, keys | {'initialFloor', 'nightV8Cutover'}) and type(value['version']) is int and value['version'] == 1
             and value['release'] == release.name and value['sourceSHA'] == manifest['sourceSHA']
             and value['phase'] in ('prepared', 'barrier', 'database', 'database-unknown', 'verified-not-committed', 'activate', 'recovery-required', 'restored')
             and value['precommitPath'] == str(PRIVATE / release.name / 'control-precommit.json')
@@ -723,6 +789,9 @@ def adoption_journal(value, release, manifest):
             and isinstance(value['contexts'], dict) and set(value['contexts']) == {'runtime', 'kart'}
             and isinstance(value['pointers'], dict), 'RECOVERY_REQUIRED')
     require(value.get('initialFloor', 'absent') in ('absent', 'schema2', 'schema3'), 'RECOVERY_REQUIRED')
+    if 'nightV8Cutover' in value:
+        evidence = night_cutover_evidence(value['nightV8Cutover'], release, manifest, value['candidateImage'])
+        require(not (value['domainInvoked'] or value['newActivationAttempted']) or evidence['finalized'], 'NIGHT_CUTOVER_EVIDENCE')
     require(all(isinstance(item, dict) and digest(item.get('id')) and isinstance(item.get('image'), str)
                 and re.fullmatch(r'sha256:[a-f0-9]{64}', item['image']) for item in value['inventory'].values()), 'RECOVERY_REQUIRED')
     require(not value['verifiedNotCommitted'] or (value['phase'] in ('verified-not-committed', 'restored')
@@ -817,7 +886,8 @@ def restore_before_migration(release, journal, *, explicit_not_committed=False):
     save_journal(release, journal)
 
 
-def adopt(release, manifest, caddy, recover=False, root_precondition=False):
+def adopt(release, manifest, caddy, recover=False, root_precondition=False, allow_night_v8_cutover=False):
+    require(type(allow_night_v8_cutover) is bool and not (allow_night_v8_cutover and (recover or root_precondition)), 'CONFIG')
     require(manifest['kind'] == 'control-application' and manifest['services'] == list(SERVICES), 'ADOPTION_BUNDLE')
     domain = domain_module()  # Missing real implementation stops before maintenance or image build.
     directory = PRIVATE / release.name
@@ -838,7 +908,8 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
                     'runnerSourceSHA': manifest['sourceSHA'],
                     'migrationArtifactSha256': manifest['migrationArtifactSha256'],
                     'controlEnabled': restored_control_enabled(journal['inventory']), 'internalHealthVerified': True,
-                    'restoredImages': {name: journal['inventory'][name]['image'] for name in SERVICES}}
+                    'restoredImages': {name: journal['inventory'][name]['image'] for name in SERVICES},
+                    **({'nightV8Cutover': journal['nightV8Cutover']} if 'nightV8Cutover' in journal else {})}
         assert_nginx(journal['inventory'], True)
         require(target_inventory('postgres')['id'] == journal['inventory']['postgres']['id'], 'DATABASE_IDENTITY')
         require(database_floor(journal['inventory']['postgres']['id']) == 'schema4', 'DATABASE_OUTCOME_UNKNOWN')
@@ -847,6 +918,11 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
         journal['precommitSHA256'] = checksum
         write_private(journal_file, journal, True)
         authority({name: journal['candidateImage'] for name in SERVICES})
+        if 'nightV8Cutover' in journal:
+            night_v12_authority(journal['candidateImage'])
+            snapshot = journal['nightV8Cutover']['snapshot']
+            require(runtime_idle(journal['inventory']['postgres']['id'], True, snapshot['observedAt']) == snapshot,
+                    'NIGHT_CUTOVER_EVIDENCE')
         assert_env(Path(journal['envFile']), journal['envMetadata'])
         require(contexts_for(journal['inventory']) == journal['contexts'], 'COMPOSE_CONTEXT_CHANGED')
         verified_database(domain, journal['inventory']['postgres']['id'], manifest, precommit['controlContract'])
@@ -864,9 +940,11 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
         require(items['management']['admin'] == previous.name, 'UNKNOWN_MANAGEMENT_SERVICE')
         envfile, signature, _ = management_config(previous, True)
         contexts = contexts_for(items)
-        active_guards(items)
+        snapshot = active_guards(items, True) if allow_night_v8_cutover else active_guards(items)
         image = build_image(release)
         authority({name: image for name in SERVICES})
+        if allow_night_v8_cutover:
+            night_v12_authority(image)
         try:
             domain.preflight_control_database(release=release, source_sha=manifest['sourceSHA'],
                 migration_sha256=manifest['migrationArtifactSha256'], inventory=items, writers_running=True)
@@ -879,6 +957,10 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
                    'newActivationAttempted': False, 'stopped': [], 'runtimeIds': [],
                    'kartRemovalAttempted': False, 'domainInvoked': False, 'barrierAttempted': False,
                    'verifiedNotCommitted': False, 'initialFloor': initial_floor}
+        if allow_night_v8_cutover:
+            journal['nightV8Cutover'] = night_cutover_evidence(dict(NIGHT_V8_CUTOVER,
+                release=release.name, sourceSHA=manifest['sourceSHA'], candidateImage=image,
+                finalized=False, snapshot=snapshot), release, manifest, image)
         write_private(journal_file, journal)
         try:
             stage('service_stop')
@@ -888,12 +970,20 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
             assert_nginx(items, True)
             journal['phase'] = 'barrier'
             save_journal(release, journal)
-            active_guards(items)
+            if allow_night_v8_cutover:
+                active_guards(items, True)
+            else:
+                active_guards(items)
             for name in ('management', 'kart', 'runtime'):
                 journal['stopped'].append(name)
                 save_journal(release, journal)
                 command('docker', 'stop', '--time', '30', items[name]['id'])
-            stopped_writers(items['postgres']['id'])
+            if allow_night_v8_cutover:
+                snapshot = stopped_writers(items['postgres']['id'], True)
+                journal['nightV8Cutover'].update(finalized=True, snapshot=night_cutover_snapshot(snapshot))
+                save_journal(release, journal)
+            else:
+                stopped_writers(items['postgres']['id'])
         except BaseException:
             restore_before_migration(release, journal)
             raise
@@ -938,7 +1028,8 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False):
         public_probe(release)
         journal['phase'] = 'complete'
         write_private(journal_file, journal, True)
-        return public_receipt('recover' if recover else 'adopt', release, manifest, manifest['sourceSHA'], current, proof)
+        return public_receipt('recover' if recover else 'adopt', release, manifest, manifest['sourceSHA'], current, proof,
+                              journal.get('nightV8Cutover'))
     except BaseException:
         # Reassert the same barrier even if the final HTTPS probe failed after opening it.
         command('docker', 'stop', '--time', '30', journal['inventory']['nginx']['id'])
@@ -1217,6 +1308,9 @@ def main(args=None, payload=None):
     root_precondition = isinstance(payload, dict) and payload.get('recoveryEvidence') == 'root-precondition-v1'
     if root_precondition and args[0] == '--recover':
         keys.add('recoveryEvidence')
+    allow_night_v8_cutover = isinstance(payload, dict) and payload.get('allowNightV8Cutover') is True
+    if allow_night_v8_cutover and args[0] == '--adopt':
+        keys.add('allowNightV8Cutover')
     require(isinstance(payload, dict) and set(payload) == keys
             and digest(payload['sourceSHA'], 40) and isinstance(payload['caddyDirectory'], str)
             and re.fullmatch(r'/opt/(?:[A-Za-z0-9_-]+/)*[A-Za-z0-9_-]+', payload['caddyDirectory']), 'CONFIG')
@@ -1246,7 +1340,7 @@ def main(args=None, payload=None):
             receipt = repair_application(application, application_manifest, target, target_manifest)
             receipt['runnerSourceSHA'] = manifest['sourceSHA']
         elif args[0] in ('--adopt', '--recover'):
-            receipt = adopt(target, target_manifest, caddy, args[0] == '--recover', root_precondition)
+            receipt = adopt(target, target_manifest, caddy, args[0] == '--recover', root_precondition, allow_night_v8_cutover)
             receipt['runnerSourceSHA'] = manifest['sourceSHA']
         else:
             receipt = update(release, manifest, caddy, args[0] == '--rollback')

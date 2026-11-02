@@ -445,8 +445,10 @@ export function controlInput(args) {
   if (repair && application && args.length === 2 && repair[1] !== application[1])
     return { mode: '--repair-control', bundle: repair[1], application: application[1] };
   const rootPrecondition = args.length === 2 && args[1] === '--root-precondition';
-  if (args.length !== 1 && !rootPrecondition) stop('CONTROL_MODE_REQUIRED');
+  const nightV8Cutover = args.length === 2 && args[1] === '--allow-night-v8-cutover';
+  if (args.length !== 1 && !rootPrecondition && !nightV8Cutover) stop('CONTROL_MODE_REQUIRED');
   if (rootPrecondition && !/^--recover-control=[a-z0-9-]{1,100}$/.test(args[0])) stop('ARGUMENTS');
+  if (nightV8Cutover && !/^--adopt-control=[a-z0-9-]{1,100}$/.test(args[0])) stop('ARGUMENTS');
   if (['--prepare-control', '--reuse-remote-config', '--rollback', '--help'].includes(args[0]))
     return { mode: args[0] };
   const found = /^(--adopt-control|--recover-control)=([a-z0-9-]{1,100})$/.exec(args[0]);
@@ -455,6 +457,7 @@ export function controlInput(args) {
       mode: found[1],
       bundle: found[2],
       ...(rootPrecondition ? { recoveryEvidence: 'root-precondition-v1' } : {}),
+      ...(nightV8Cutover ? { allowNightV8Cutover: true } : {}),
     };
   stop(['--execute', '--provision-only'].includes(args[0]) ? 'CONTROL_MODE_REQUIRED' : 'ARGUMENTS');
 }
@@ -727,6 +730,37 @@ export async function controlExecution(
   return { runner, target, application };
 }
 
+function validNightV8Cutover(evidence, receipt, mode) {
+  const snapshot = evidence?.snapshot;
+  return (
+    ['adopt', 'recover'].includes(mode) &&
+    evidence &&
+    Object.keys(evidence).sort().join(',') ===
+      'authorized,candidateImage,finalized,fromVersion,game,release,snapshot,sourceSHA,toVersion,version' &&
+    evidence.version === 1 &&
+    evidence.authorized === true &&
+    evidence.game === 'night-overwatch' &&
+    evidence.fromVersion === 'night-input-replay-v8' &&
+    evidence.toVersion === 'night-input-replay-v12' &&
+    evidence.release === receipt.release &&
+    evidence.sourceSHA === receipt.sourceSHA &&
+    typeof evidence.candidateImage === 'string' &&
+    /^sha256:[a-f0-9]{64}$/.test(evidence.candidateImage) &&
+    typeof evidence.finalized === 'boolean' &&
+    (receipt.outcome === 'restored-before-migration' ||
+      (evidence.finalized && evidence.candidateImage === receipt.activeImages?.runtime)) &&
+    snapshot &&
+    Object.keys(snapshot).sort().join(',') === 'exemptedCount,matchedCount,observedAt,rowsSha256' &&
+    ['observedAt', 'exemptedCount', 'matchedCount'].every(
+      (key) => Number.isSafeInteger(snapshot[key]) && snapshot[key] >= 0,
+    ) &&
+    snapshot.observedAt > 0 &&
+    snapshot.exemptedCount <= snapshot.matchedCount &&
+    typeof snapshot.rowsSha256 === 'string' &&
+    /^[a-f0-9]{64}$/.test(snapshot.rowsSha256)
+  );
+}
+
 export function controlReceipt(text, mode, runnerSourceSHA) {
   let value;
   try {
@@ -734,6 +768,8 @@ export function controlReceipt(text, mode, runnerSourceSHA) {
   } catch {
     stop('REMOTE_FAILED');
   }
+  const cutover = Object.hasOwn(value ?? {}, 'nightV8Cutover');
+  if (cutover && !validNightV8Cutover(value.nightV8Cutover, value, mode)) stop('REMOTE_FAILED');
   if (value?.outcome === 'restored-before-migration') {
     const expected = [
       'ok',
@@ -746,6 +782,7 @@ export function controlReceipt(text, mode, runnerSourceSHA) {
       'controlEnabled',
       'internalHealthVerified',
       'restoredImages',
+      ...(cutover ? ['nightV8Cutover'] : []),
     ];
     if (
       mode !== 'recover' ||
@@ -789,6 +826,7 @@ export function controlReceipt(text, mode, runnerSourceSHA) {
     'realGithubLoginVerified',
     'backupSHA256',
     'oldStateSHA256',
+    ...(cutover ? ['nightV8Cutover'] : []),
   ];
   const contract = value?.controlContract;
   if (
@@ -842,7 +880,7 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
   const input = controlInput(args); // No legacy executionInput/OAuth reader on any CLI route.
   if (input.mode === '--help') {
     console.log(
-      'pnpm deploy:admin --prepare-control | --adopt-control=<bundle> | --recover-control=<bundle> [--root-precondition] | --repair-control=<failed-bundle> --application=<prepared-bundle> | --reuse-remote-config | --rollback\nprepare纯本地；repair仅替换已迁移失败候选的Management；root-precondition仅恢复已核实的2026-10-17首守卫故障；所有模式均不读取OAuth文件，旧001安装入口关闭。',
+      'pnpm deploy:admin --prepare-control | --adopt-control=<bundle> [--allow-night-v8-cutover] | --recover-control=<bundle> [--root-precondition] | --repair-control=<failed-bundle> --application=<prepared-bundle> | --reuse-remote-config | --rollback\nprepare纯本地；night-v8-cutover显式接受夜航v8旧局在v12升级后不可续玩，保留全部数据；repair仅替换已迁移失败候选的Management；root-precondition仅恢复已核实的2026-10-17首守卫故障；所有模式均不读取OAuth文件，旧001安装入口关闭。',
     );
     return;
   }
@@ -914,6 +952,7 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
   );
   (dependencies.sameCandidate ?? sameCandidate)(manifest.sourceSHA);
   const payload = { caddyDirectory: config.caddyDirectory, sourceSHA: manifest.sourceSHA };
+  if (input.allowNightV8Cutover) payload.allowNightV8Cutover = true;
   if (mode === 'recover' || mode === 'repair') {
     if (input.recoveryEvidence) payload.recoveryEvidence = input.recoveryEvidence;
     payload.targetRelease = target.manifest.release;
@@ -939,6 +978,7 @@ export async function main(args = process.argv.slice(2), dependencies = {}) {
   );
   const receipt = controlReceipt(text, mode, manifest.sourceSHA);
   if (
+    (mode === 'adopt' && Boolean(receipt.nightV8Cutover) !== Boolean(input.allowNightV8Cutover)) ||
     receipt.migrationArtifactSha256 !== manifest.migrationArtifactSha256 ||
     (mode !== 'rollback' &&
       (receipt.sourceSHA !==

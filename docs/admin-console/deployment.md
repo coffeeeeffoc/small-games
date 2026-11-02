@@ -48,6 +48,10 @@ Runtime/Kart/Management 统一 image 使用三个固定启动命令，不创建 
 
 屏障后再次核对公共房间、ranked-run、三选二及 Kart 无活动游戏，再按 Management→Kart→Runtime 停止同一批 writer；只读确认未知 DB 客户端为 0。Street admission-v1 的持久票据不按活动对局阻塞，仍受完整数据保护。迁移调用前的活动变化、停止失败或可恢复中断，只能在 DB 仍无 schema2、原精确 ID/边界/上下文未变且新服务未激活时恢复实际记录停止的旧容器及同一 Nginx。
 
+维护者明确接受夜航 v8 旧单人局在 v12 升级后不可续玩时，可使用 `pnpm deploy:admin --adopt-control=<bundle> --allow-night-v8-cutover`。此选项只允许 adopt；默认活动守卫不变。候选须通过原三服务能力检查，并在同一隔离镜像探针中实际导入 Runtime 使用的 `ranked-games.mjs`，核对唯一夜航规则为 `night-input-replay-v12`。只有 `kind=ranked-run-v1`、`game=night-overwatch`、`version=night-input-replay-v8`、`status=active` 的记录获准穿过 ranked 活动守卫；其他游戏、版本（含缺失字段）、公共房间、三选二、Kart 和未知数据库客户端继续阻塞。该选项不更新或删除数据库行，不改变游戏开关、发布历史或积分；新规则正常拒绝旧局的续玩／新动作／结算，读取旧状态或已有动作回执仍可能成功。
+
+私有 journal 和最终 receipt 记录明确授权、release/sourceSHA、候选镜像 ID、已探测的 v12 版本及快照。入口关闭且 writers 停止后固定快照：`exemptedCount` 是采样时尚未过期的豁免数；`matchedCount` 和 `rowsSha256` 覆盖全部匹配 v8 active 行（含已过期），按主键排序对主键、board、created_at、完整 data 求摘要。`--recover-control` 只能继承同目标 journal 的证据，重新探测候选并按原采样时间核验相同集合；不能通过 CLI 新增授权或重取更大的集合。迁移前恢复仍启动原服务和 Nginx，返回 `restored-before-migration`，不会声称 v12 切换完成；未固定最终快照的 journal 不能进入迁移后恢复激活。
+
 domain helper 负责私有备份、完整隔离恢复及旧行/schema/owner/成员/ACL 对比；只有它的已证明 `not_committed` 才允许迁移调用后的旧态恢复。尚未发送数据库命令（或仅执行上述只读预检）的失败，明确返回 `oldDataUnchanged=true`、`mutationReached=false`；已采集旧状态的后续失败仍须比对旧状态。生产事务一经发送，超时/断连仍为 `unknown`，不能因 schema 缺失或没有响应而恢复。COMMIT、unknown 或无法读 DB 时保持 Nginx 关闭，禁止启动旧 guardless 镜像。对外错误仅保留有限的 `DATABASE_PREFLIGHT_FAILED` / `DATABASE_NOT_COMMITTED` / `DATABASE_OUTCOME_UNKNOWN` 与 `CONTROL_*` 原因枚举，不透传异常正文、SQL、stderr 或秘密。
 
 隔离 PostgreSQL 的 PGDATA 使用 512 MiB tmpfs，容器内存上限 768 MiB、1 CPU、128 PID，保持无网络和无发布端口。2026-11-02 线上数据库已约 239 MiB，旧 128 MiB tmpfs 无法完成恢复；创建和身份清理检查使用相同资源约束。每次维护仍须核对宿主可用内存与数据库大小，并以完整恢复成功为准，不能因容量不足跳过恢复或删减数据。
