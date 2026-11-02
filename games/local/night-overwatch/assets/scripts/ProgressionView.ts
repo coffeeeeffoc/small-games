@@ -273,17 +273,18 @@ export class ProgressionView {
     if(!this.low){this.label(this.t('单场物资 · 随等级解锁','ONE MATCH · LEVEL UNLOCKS'),l+12,cy+35,lw-24,24,23,dim);}
     this.button('qm:buyPacks',this.t(`购买${quote.quantity}个`,`BUY ${quote.quantity}`),l+10,by,cw,44,'gold',q.busy||!q.assets||!!q.pending||!!q.wheel&&!q.wheel.shown);
     this.button('qm:watch',q.viewing?this.t('观看中','WATCHING'):this.t(order?'继续观看':'观看视频',order?'CONTINUE':'WATCH'),l+20+cw,by,cw,44,'blue',q.busy||q.viewing||!q.assets||!!q.pending||!!q.wheel&&!q.wheel.shown);
-    const diameter=Math.min(rw-20,h-(this.low?100:140)),cx=rx+rw/2,cyWheel=y+35+diameter/2;
+    const diameter=Math.min(rw-20,by-37-(y+35)),cx=rx+rw/2,cyWheel=y+35+diameter/2;
     const wheel=this.h.node('LuckyWheel',this.n);wheel.setPosition(cx-this.w/2,this.height/2-cyWheel);
     const frame=this.a.get('wheel');if(frame){const sprite=wheel.addComponent(Sprite);sprite.spriteFrame=frame;sprite.sizeMode=Sprite.SizeMode.CUSTOM;wheel.getComponent(UITransform)!.setContentSize(diameter,diameter);}
-    const prizes=q.assets?.wheelPrizes||WHEEL_PRIZES;
-    prizes.forEach((p,i)=>{const angle=(30+i*60)*Math.PI/180,rr=diameter*.31,xx=Math.sin(angle)*rr,yy=Math.cos(angle)*rr;
-      const icon=this.a.get(p.coins?'coinPile':'closedCrate');if(icon)this.h.image(wheel,'WheelPrize:'+i,icon,this.w/2+xx-diameter*.095,this.height/2-yy-diameter*.125,diameter*.19,diameter*.13);
-      const label=this.h.label(wheel,(p.coins?`${p.coins}${this.low?'':' '+this.t('金币','coins')}`:this.t(rarity[p.tier]+(this.low?'':'礼包'),rarityEn[p.tier]))+`\n${p.weight}%`,this.w/2+xx,this.height/2-yy+diameter*.035,Math.max(12,diameter*.044),diameter*.31,diameter*.20,p.tier>=0?rarityColor[p.tier]:gold);label.isBold=true;label.lineHeight=label.fontSize*1.25;
-    });
-    const badge=this.a.get('homeBadge');if(badge)this.h.image(wheel,'WheelBadge',badge,this.w/2-diameter*.09,this.height/2-diameter*.06,diameter*.18,diameter*.12);
     const motion=q.wheel,end=motion?wheelLandingAngle(motion.index,motion.startAngle):0,elapsed=motion?Math.min(1,(Date.now()-motion.started)/motion.duration):1;
     wheel.angle=motion?motion.startAngle+(end-motion.startAngle)*(1-Math.pow(1-elapsed,4)):0;
+    const prizes=q.assets?.wheelPrizes||WHEEL_PRIZES;
+    prizes.forEach((p,i)=>{const angle=(30+i*60)*Math.PI/180,rr=diameter*.32,xx=Math.sin(angle)*rr,yy=Math.cos(angle)*rr;
+      const name=p.coins?this.t(`${p.coins}币`,`${p.coins}`):this.t(rarity[p.tier]+'箱',rarityEn[p.tier]);
+      const label=this.h.label(wheel,`${name}\n${p.weight}%`,this.w/2+xx,this.height/2-yy,Math.max(10,diameter*.052),diameter*.26,diameter*.16,p.tier>=0?rarityColor[p.tier]:gold);
+      label.node.name='WheelPrize:'+i;label.node.angle=-wheel.angle;label.isBold=true;label.lineHeight=label.fontSize*1.08;label.overflow=Label.Overflow.SHRINK;
+      if(motion&&elapsed<1&&!this.h.reducedEffects)tween(label.node).to((motion.duration/1000)*(1-elapsed),{angle:-end},{easing:'quartOut'}).start();
+    });
     if(motion&&elapsed<1&&!this.h.reducedEffects)tween(wheel).to((motion.duration/1000)*(1-elapsed),{angle:end},{easing:'quartOut'}).start();
     this.label('▼',cx-16,cyWheel-diameter/2-7,32,32,42,gold,true);
     this.label(this.t(`剩余次数 ${q.assets?.wheelTickets??0} · 今日视频 ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`,`SPINS ${q.assets?.wheelTickets??0} · VIDEOS ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`),rx+8,by-34,rw-16,30,26,gold,true);
@@ -417,7 +418,7 @@ export class ProgressionView {
     const q=this.q,p=q.catalog.find(p=>p.id===q.info);
     let lines:string[]=[];
     if(p)lines=[p.description,this.t(`使用期限：${this.term(p.term)} · Lv.${p.unlockLevel}解锁`,`TERM: ${this.term(p.term)} · UNLOCK Lv.${p.unlockLevel}`),this.t('同效果不可重复装配。单场资格在正式出动时消耗；训练不消耗。','Duplicate effects cannot stack. One-match gear is consumed on deployment, not in training.')];
-    else if(q.info==='wheel')lines=(q.assets?.wheelPrizes||WHEEL_PRIZES).map(p=>(p.coins?`${p.coins} ${this.t('金币','coins')}`:this.t(rarity[p.tier]+'礼包',rarityEn[p.tier]+' crate'))+`：${p.weight}%`).concat(this.t('完整观看1段视频获得1次；每日最多5段，与礼包共用每日12段。次数跨天保留。','One completed video grants one saved spin. 5 wheel videos/day, sharing 12 total videos/day.'));
+    else if(q.info==='wheel')lines=(q.assets?.wheelPrizes||WHEEL_PRIZES).map(p=>(p.coins?`${p.coins} ${this.t('金币','coins')}`:this.t(rarity[p.tier]+'礼包',rarityEn[p.tier]+' crate'))+`：${p.weight}%`).concat(this.t('扇区面积相同，中奖概率以标注数值为准。','Sectors are equal in size; the displayed percentages are the actual odds.'),this.t('完整观看1段视频获得1次；每日最多5段，与礼包共用每日12段。次数跨天保留。','One completed video grants one saved spin. 5 wheel videos/day, sharing 12 total videos/day.'));
     else {const pool=q.pools.general,pack=/^pack:(general|gold):([0-3])$/.exec(q.info),tier=pack?Number(pack[2]):-1;lines=[this.t(pack?'此箱档位已确定，开启不重新抽取档位。':'以下是获取随机礼包时的档位概率。已持有的箱子档位已确定，开启不重新抽档。',pack?'This crate’s tier is fixed. Opening does not reroll its tier.':'These are random crate acquisition odds. Owned crates keep their existing tier.')];lines.push(...pool.weights.flatMap((weight,i)=>{if(tier>=0&&tier!==i)return [];const eligible=eligibleDrops(q.catalog,i,q.assets?.level||1,q.assets?.permanent||[]),content=i===0?this.t('获得40金币','Receive 40 coins'):eligible.length?eligible.map(p=>this.productName(p)).join(' / ')+this.t(`（每种${(100/eligible.length).toFixed(1)}%，档内等概率）`,` (equal odds within tier)`):this.t(`本档当前无可用装备，获得${pool.coinDrops[i]}金币`,`No eligible item: ${pool.coinDrops[i]} coins`);return [this.t(rarity[i],rarityEn[i])+(tier<0?` ${weight}%`:'')+'\n'+content];}));lines.push(this.t('仅抽取已解锁、未永久拥有的单场武器或增益；主动技能在Lv.6/10永久解锁。各数量套餐概率相同。','Only unlocked, unowned one-match gear. Active skills unlock permanently at Lv.6/10. All package sizes share odds.'));const locked=q.catalog.filter(p=>p.term==='match'&&p.category!=='skill'&&p.unlockLevel>(q.assets?.level||1));if(locked.length){lines.push(this.t('尚未进入当前奖池（达到等级后解锁）：','NOT IN THE CURRENT POOL (unlock by level):'));lines.push(...locked.map(p=>`${this.productName(p)} · Lv.${p.unlockLevel}`));}}
     const pw=Math.min(650,this.right-this.left),font=this.font(27),width=pw-52;
     const heights=lines.map(line=>Math.max(30,line.split('\n').reduce((n,part)=>n+Math.max(1,Math.ceil(Array.from(part).reduce((sum,c)=>sum+(/[^\x00-\x7f]/.test(c)?1:.6),0)*font/width)),0)*font*1.23+8));
