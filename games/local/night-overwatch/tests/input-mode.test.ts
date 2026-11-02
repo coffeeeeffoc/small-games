@@ -54,7 +54,7 @@ const touch = (id: number, x = 950, y = 100, simulate = false) => ({ simulate,
 function mission() {
   const g = new Overwatch();
   g.hud = { t: (value: string) => value, supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire' } : undefined,
-    minimapPoint: () => undefined, blocksBattlefield: () => false };
+    listAt: () => undefined, minimapPoint: () => undefined, blocksBattlefield: () => false };
   g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, updateCamera() {}, reset() {} };
   g.platform = new Platform(new Node(), g.pause, g.clear);
   g.sim.start(); g.sim.choose(0);
@@ -64,7 +64,7 @@ function mission() {
 test('rankings scroll with wheel and touch only inside the list, and cancellation releases the gesture', () => {
   const g=mission();let offset=0;
   Object.assign(g.hud,{modal:{},scrollNode:{},scrollArea:{x:50,y:100,w:400,h:200},scrollBy:(n:number)=>{offset+=n;}});
-  g.wheel({getScrollY:()=>-120});assert.equal(offset,24);
+  g.wheel({getScrollY:()=>-120,getUILocation:()=>({x:100,y:450})});assert.equal(offset,24);
   g.touchStart(touch(1,100,450));assert.equal(g.touches.get(1).role,'scroll');
   g.touchMove(touch(1,100,480));assert.equal(offset,54);
   g.touchCancel(touch(1));g.touchMove(touch(1,100,490));assert.equal(offset,54);

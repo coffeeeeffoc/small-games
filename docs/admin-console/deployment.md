@@ -50,6 +50,8 @@ Runtime/Kart/Management 统一 image 使用三个固定启动命令，不创建 
 
 domain helper 负责私有备份、完整隔离恢复及旧行/schema/owner/成员/ACL 对比；只有它的已证明 `not_committed` 才允许迁移调用后的旧态恢复。尚未发送数据库命令（或仅执行上述只读预检）的失败，明确返回 `oldDataUnchanged=true`、`mutationReached=false`；已采集旧状态的后续失败仍须比对旧状态。生产事务一经发送，超时/断连仍为 `unknown`，不能因 schema 缺失或没有响应而恢复。COMMIT、unknown 或无法读 DB 时保持 Nginx 关闭，禁止启动旧 guardless 镜像。对外错误仅保留有限的 `DATABASE_PREFLIGHT_FAILED` / `DATABASE_NOT_COMMITTED` / `DATABASE_OUTCOME_UNKNOWN` 与 `CONTROL_*` 原因枚举，不透传异常正文、SQL、stderr 或秘密。
 
+隔离 PostgreSQL 的 PGDATA 使用 512 MiB tmpfs，容器内存上限 768 MiB、1 CPU、128 PID，保持无网络和无发布端口。2026-11-02 线上数据库已约 239 MiB，旧 128 MiB tmpfs 无法完成恢复；创建和身份清理检查使用相同资源约束。每次维护仍须核对宿主可用内存与数据库大小，并以完整恢复成功为准，不能因容量不足跳过恢复或删减数据。
+
 COMMIT 后按 Runtime→Kart→Management 启动，Kart 绑定新 Runtime namespace；三个服务内部健康、完整只读 DB 合同、网络/挂载/端口边界及受保护容器/指针均通过后，才开启同一 Nginx。最终 HTTPS 探针失败立即重闭入口并保留私有 journal/备份，首次采用可能延长维护。
 
 ## 崩溃恢复与普通回退

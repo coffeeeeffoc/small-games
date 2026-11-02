@@ -94,8 +94,8 @@ test('public task shortcuts choose only one known task, and the original three e
     '?mission=unknown', '?mission=../training-60', '?mission=', '']) assert.equal(readMissionSearch(search), undefined);
   for (const mission of MISSIONS) {
     assert.equal(mission.mode, 'escort'); assert(mission.duration >= 390 && mission.duration <= 420);
-    assert.equal(mission.events.length, [4, 6, 8, 12, 16][MISSIONS.indexOf(mission)] ?? 24);
   }
+  assert.deepEqual(MISSIONS.slice(0, 3).map(mission => mission.events.length), [4, 6, 8]);
   assert.equal(readTrainingRecord('{broken'), undefined);
   assert.equal(readTrainingRecord('{"time":10,"fired":1,"hitShots":2}'), undefined);
   assert.deepEqual(readTrainingRecord('{"time":61,"fired":10,"hitShots":5}'), {time:61,fired:10,hitShots:5,ammoSpent:10});

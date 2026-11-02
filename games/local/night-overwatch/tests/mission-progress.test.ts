@@ -9,10 +9,15 @@ test('120 immutable unique operations retain old IDs and have distinct deploymen
   assert.equal(new Set(MISSIONS.map(m => m.id)).size, 120);
   assert.equal(new Set(MISSIONS.map(m => JSON.stringify([m.map, m.events]))).size, 120);
   assert(Object.isFrozen(MISSIONS));
-  for (const mission of MISSIONS) {
+  assert.deepEqual(MISSIONS.slice(0, 5).map(mission => mission.events.length), [4, 6, 8, 12, 16]);
+  for (const [number, contacts] of [[6, 20], [12, 26], [13, 28], [24, 36], [25, 38], [48, 54],
+    [49, 56], [72, 70], [73, 72], [96, 84], [97, 86], [120, 96]])
+    assert.equal(MISSIONS[number - 1].events.length, contacts, `operation ${number}`);
+  for (const [index, mission] of MISSIONS.entries()) {
     assert(Object.isFrozen(mission) && Object.isFrozen(mission.events));
     assert(mission.events.every(event => Object.isFrozen(event) && Object.isFrozen(event.direction)));
-    assert.equal(mission.events.length, [4, 6, 8, 12, 16][MISSIONS.indexOf(mission)] ?? 24);
+    assert(mission.events.length >= (MISSIONS[index - 1]?.events.length ?? 4));
+    assert(mission.events.length <= 96);
     assert(mission.duration > 240 && mission.attackInterval >= 4.8);
   }
   assert.equal(missionDefinition('training-60'), TRAINING);

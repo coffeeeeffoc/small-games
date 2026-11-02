@@ -312,8 +312,8 @@ def require_fixture_identity(identifier, image, token, name):
     facts = inspect_container(identifier)
     require(facts['id']==identifier and facts['image']==image and facts['fixture']==token and facts['name']=='/'+name
             and facts['networkMode']=='none' and not facts['ports']
-            and facts['memory']==268435456 and facts['cpu']==1000000000
-            and facts['tmpfs']=={'/var/lib/postgresql/data':'rw,size=134217728'}
+            and facts['memory']==805306368 and facts['cpu']==1000000000
+            and facts['tmpfs']=={'/var/lib/postgresql/data':'rw,size=536870912'}
             and len(facts['mounts'])<=1
             and all(mount.get('Type')=='tmpfs' and mount.get('Destination')=='/var/lib/postgresql/data'
                     and mount.get('RW') is True for mount in facts['mounts']), 'CONTROL_CLEANUP_IDENTITY')
@@ -329,7 +329,7 @@ def isolated_postgres(image, kind='restore', fixture_uuid=None):
     identifier, original, uncertain = None, None, False
     try:
         identifier = scalar('docker','run','-d','--pull=never','--name',name,'--label',FIXTURE_LABEL + '=' + token,
-            '--network','none','--memory','256m','--cpus','1','--pids-limit','128','--tmpfs','/var/lib/postgresql/data:rw,size=134217728',
+            '--network','none','--memory','768m','--cpus','1','--pids-limit','128','--tmpfs','/var/lib/postgresql/data:rw,size=536870912',
             '-e','POSTGRES_USER=platform_owner','-e','POSTGRES_DB=postgres','-e','POSTGRES_PASSWORD=fixture-not-a-secret',image)
         require(re.fullmatch(r'[a-f0-9]{64}', identifier) is not None, 'CONTROL_FIXTURE_ID')
         require_fixture_identity(identifier,image,token,name)

@@ -287,8 +287,8 @@ test('prediction and finite ammunition can clear all 24 threats while all four f
     remaining: s.units.filter((u) => !u.friendly && u.hp > 0).map((u) => ({ kind: u.kind, hp: u.hp })) }));
   assert.equal(s.phase, 'success');
   assert.equal(s.convoy, 'arrived');
-  assert.equal(s.spawned.size, MISSION.events.length);
-  assert.equal(s.kills + s.friendlyKills, MISSION.events.length);
+  assert.equal(s.spawned.size, s.mission.events.length);
+  assert.equal(s.kills + s.friendlyKills, s.mission.events.length);
   assert.equal(s.friendlyDamage, 0);
   assert.equal(s.friendlyLosses, 0);
   assert.equal(s.threatsRemaining, 0);
