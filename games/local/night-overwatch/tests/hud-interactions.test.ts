@@ -1175,6 +1175,33 @@ test('warehouse identifies terms and pool tiers; inbox cannot claim a selection 
   assert(hud.buttons.some((b:any)=>b.id==='qm:claimMail'));
 });
 
+test('warehouse sale includes the total, current crates have valid tiers, and synchronization stays an icon',()=>{
+  for(const [width,height]of [[568,320],[844,390],[1280,720]])for(const lang of ['zh','en']){
+    Object.assign(frame,{width,height});inset=12;
+    const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.lang=lang;
+    online.assets=assetFixture();hud.online=online;
+    const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;q.page='warehouse';q.item='tracking-match';
+    for(const amount of [1,3,5]){
+      q.amount=amount;q.revision++;hud.update(sim,world);
+      const sale=hud.buttons.find((b:any)=>b.id==='qm:sell'),labels=hud.modal.getComponentsInChildren(cc.Label);
+      assert.equal(sale.label.string,lang==='zh'?`出售可得${24*amount}`:`SELL FOR ${24*amount}`);
+      assert(!labels.some((l:any)=>/^(可得|GAIN)/.test(l.string)));
+      assert(hud.modal.children.some((n:SceneNode)=>n.name==='AssetSync:ready'));
+    }
+    for(const pool of ['general','gold'])for(let tier=0;tier<4;tier++){
+      q.item=`pack:${pool}:${tier}`;online.assets.inventory[q.item]=1;online.assets.available[q.item]=1;q.revision++;hud.update(sim,world);
+      assert(!hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>String(l.string).includes('undefined')));
+    }
+    q.busy=true;q.revision++;hud.update(sim,world);
+    assert(hud.modal.children.some((n:SceneNode)=>n.name==='AssetSync:busy'));
+    assert(!hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>/正在同步|Synchronizing/.test(l.string)));
+    q.busy=false;q.message=['网络中断，请重试','Connection interrupted. Retry.'];q.revision++;hud.update(sim,world);
+    assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string===q.message[lang==='zh'?0:1]));
+    assert(!hud.modal.children.some((n:SceneNode)=>n.name==='AssetSync:ready'));
+  }
+  inset=0;
+});
+
 test('warehouse confirmation keeps the intended item and quantity when resizing changes the visible page',()=>{
   Object.assign(frame,{width:1280,height:720});inset=0;
   const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});

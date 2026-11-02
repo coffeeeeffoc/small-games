@@ -34,7 +34,7 @@ test('failed local intent persistence prevents any purchase; removing accepted j
   const {q,online,storage,calls}=setup();storage.setItem=()=>{throw Error('full');};
   await q.execute({kind:'buy',item:'power-match'});assert.equal(calls.length,0);
   storage.setItem=()=>{};storage.removeItem=()=>{throw Error('denied');};await q.execute({kind:'checkin'});
-  assert.equal(q.pending,undefined);assert.match(q.message[0],/成功/);assert.equal(online.assets.playerId,'A');
+  assert.equal(q.pending,undefined);assert.deepEqual(q.message,['','']);assert.equal(online.assets.playerId,'A');
 });
 test('developer journal retries one ID, clears definite failures, and cannot replay in normal packages',async(t)=>{
   const scope=globalThis as any;

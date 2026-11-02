@@ -1,0 +1,32 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "98ddd04666a1b788911f9fb517486fa35a6ac3db0cdbec80d3587007cab4e24e"
+  },
+  "fixture": false,
+  "errors": [],
+  "checks": [
+    "Fresh isolated browser guest on real local Runtime; claimed welcome mail once; closed the mail reward panel and entered warehouse from home; proceeds inline, valid crate rarity, no generic sync message"
+  ],
+  "page": "warehouse",
+  "labels": [
+    "‹",
+    "我的仓库",
+    "200",
+    "补给箱 ×1",
+    "打开获得金币或物资",
+    "普通",
+    "补给箱",
+    "ⓘ",
+    "金币或单场物资",
+    "普通 · 可用 1",
+    "−",
+    "1",
+    "+",
+    "打开",
+    "出售可得40",
+    "开包记录",
+    "获取礼包"
+  ]
+}

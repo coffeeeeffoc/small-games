@@ -1,5 +1,5 @@
 {
-  "sourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
+  "sourceHash": "98ddd04666a1b788911f9fb517486fa35a6ac3db0cdbec80d3587007cab4e24e",
   "verified": "2026-11-02",
   "previousDelivery": "manifest-2026-10-30-taptap-login.json",
   "environment": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
@@ -105,17 +105,17 @@
     },
     {
       "path": "gameplay/screenshots/2026-11-02-revision/04-warehouse.png",
-      "bytes": 1238557,
-      "sha256": "e7a23e82dcf25aa137f370cf44f47186277f29c8c9692023475dd516e80371ce",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "5886fbab1a50fb67505c38134789fc6fae89bd3005a533099f8131ed13d84d64",
+      "bytes": 1233863,
+      "sha256": "1d57e23dedad90c93aec14805f0176281c3291334d75bdb338b4f3beec42d43d",
+      "verifiedForSourceHash": "98ddd04666a1b788911f9fb517486fa35a6ac3db0cdbec80d3587007cab4e24e",
+      "reusedUnchanged": false,
+      "capturedSourceHash": "98ddd04666a1b788911f9fb517486fa35a6ac3db0cdbec80d3587007cab4e24e",
       "width": 1280,
       "height": 720,
       "hasAlpha": false,
       "fixture": false,
       "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode passed; current ordinary-guest screenshot"
+      "validation": "Full PNG decode and visual review passed; fresh ordinary guest, real local Runtime, inline sale proceeds and sync icon"
     },
     {
       "path": "gameplay/screenshots/2026-11-02-revision/05-history.png",

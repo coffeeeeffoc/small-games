@@ -1,0 +1,444 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "98ddd04666a1b788911f9fb517486fa35a6ac3db0cdbec80d3587007cab4e24e"
+  },
+  "fixture": true,
+  "phase": "verified",
+  "checks": [
+    {
+      "name": "shop pagination keeps preview and purchase on current page",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "sale button includes proceeds",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "current inventory has no undefined labels",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "warehouse pagination keeps selection and sale on current page",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "asset synchronization does not replace the page title",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "escape including held key dismisses only the sale confirmation",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "confirmed slot order matches reload",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "blur cancels slot drag",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "touchcancel never swaps",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "compatible drop target highlighted",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "equipped mods swap by dragging",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "incompatible drop leaves configuration intact",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "vertical scroll never equips",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "vertical list scrolls",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "interrupted save retains draft and disables further edits",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "uncertain save offers explicit keep-request exit",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "pending save never traps the player in loadout",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "returning keeps the draft without automatically resending",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "retry confirms the original save without new transaction",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "both dirty loadout tabs are marked",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "leave dialog names both drafts",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "escape returns to draft editing",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "warehouse opens matching skill slot",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "nested loadout returns to its warehouse source",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "claim shows crate details",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "open all shows the actual received contents",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "long press in a reward list opens the item explanation",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "back closes explanation before the underlying reward",
+      "width": 568,
+      "pass": true
+    },
+    {
+      "name": "shop pagination keeps preview and purchase on current page",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "sale button includes proceeds",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "current inventory has no undefined labels",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "warehouse pagination keeps selection and sale on current page",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "asset synchronization does not replace the page title",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "escape including held key dismisses only the sale confirmation",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "confirmed slot order matches reload",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "blur cancels slot drag",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "touchcancel never swaps",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "compatible drop target highlighted",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "equipped mods swap by dragging",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "incompatible drop leaves configuration intact",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "vertical scroll never equips",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "vertical list scrolls",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "interrupted save retains draft and disables further edits",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "uncertain save offers explicit keep-request exit",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "pending save never traps the player in loadout",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "returning keeps the draft without automatically resending",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "retry confirms the original save without new transaction",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "both dirty loadout tabs are marked",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "leave dialog names both drafts",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "escape returns to draft editing",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "warehouse opens matching skill slot",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "nested loadout returns to its warehouse source",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "claim shows crate details",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "open all shows the actual received contents",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "long press in a reward list opens the item explanation",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "back closes explanation before the underlying reward",
+      "width": 800,
+      "pass": true
+    },
+    {
+      "name": "shop pagination keeps preview and purchase on current page",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "sale button includes proceeds",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "current inventory has no undefined labels",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "warehouse pagination keeps selection and sale on current page",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "asset synchronization does not replace the page title",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "escape including held key dismisses only the sale confirmation",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "confirmed slot order matches reload",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "blur cancels slot drag",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "compatible drop target highlighted",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "equipped mods swap by dragging",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "incompatible drop leaves configuration intact",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "vertical scroll never equips",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "vertical list scrolls",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "interrupted save retains draft and disables further edits",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "uncertain save offers explicit keep-request exit",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "pending save never traps the player in loadout",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "returning keeps the draft without automatically resending",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "retry confirms the original save without new transaction",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "both dirty loadout tabs are marked",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "leave dialog names both drafts",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "escape returns to draft editing",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "warehouse opens matching skill slot",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "nested loadout returns to its warehouse source",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "claim shows crate details",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "open all shows the actual received contents",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "long press in a reward list opens the item explanation",
+      "width": 1280,
+      "pass": true
+    },
+    {
+      "name": "back closes explanation before the underlying reward",
+      "width": 1280,
+      "pass": true
+    }
+  ],
+  "screens": [
+    {
+      "name": "warehouse-sale",
+      "width": 568,
+      "height": 320
+    },
+    {
+      "name": "warehouse-sale",
+      "width": 800,
+      "height": 366
+    },
+    {
+      "name": "warehouse-sale",
+      "width": 1280,
+      "height": 720
+    }
+  ],
+  "errors": []
+}

@@ -57,7 +57,11 @@ try{
     await click('qm:buy');const bought=await page.evaluate(()=>__uiAudit.calls.at(-1).item);check('shop pagination keeps preview and purchase on current page',visible.includes(bought),{visible,bought});await shot('shop-page');
     await click('qm:back');if((await snapshot(page)).progression.page==='shop')await click('qm:back');
     await click('qm:warehouse');await scrollPage(page);s=await snapshot(page);visible=s.buttons.filter(b=>b.id.startsWith('inventory:')).map(b=>b.id.slice(10));
-    await click('inventory:'+visible[0]);await click('qm:sell');await click('qm:confirm');const sold=await page.evaluate(()=>__uiAudit.calls.at(-1).item);check('warehouse pagination keeps selection and sale on current page',visible.includes(sold),{visible,sold});
+    await click('inventory:'+visible[0]);
+    check('sale button includes proceeds',(await texts(page)).some(t=>/^出售可得\d+$/.test(t)));
+    check('current inventory has no undefined labels',!(await texts(page)).some(t=>String(t).includes('undefined')));await shot('warehouse-sale');
+    await click('qm:sell');await click('qm:confirm');const sold=await page.evaluate(()=>__uiAudit.calls.at(-1).item);check('warehouse pagination keeps selection and sale on current page',visible.includes(sold),{visible,sold});
+    check('asset synchronization does not replace the page title',!(await texts(page)).some(t=>/资产已同步|正在同步/.test(t)));
     await click('qm:sell');await page.keyboard.down('Escape');await page.keyboard.down('Escape');await page.keyboard.up('Escape');await settleVisuals(page);check('escape including held key dismisses only the sale confirmation',(await snapshot(page)).progression.page==='warehouse',(await snapshot(page)).progression.page);
     if(!baseline&&(await snapshot(page)).buttons.some(b=>b.id==='settings'&&!b.disabled)){await click('settings');await page.keyboard.press('Escape');await settleVisuals(page);s=await snapshot(page);check('escape closes foreground settings and preserves warehouse',s.progression.page==='warehouse'&&s.buttons.some(b=>b.id==='qm:sell'&&!b.disabled));}
     if((await snapshot(page)).progression.page)await click('qm:back');

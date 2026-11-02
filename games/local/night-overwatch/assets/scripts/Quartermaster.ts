@@ -160,8 +160,7 @@ export class Quartermaster {
       const snapshot=await this.online.assetCommand(command);
       if(this.owner!==owner||this.disposed)return;
       this.pending=undefined;try{this.storage.removeItem(this.key());}catch{/* Replaying this accepted ID is safe. */}
-      this.message=command.kind==='loadout'?['已保存 · 以后每场自动应用','Saved · applied automatically next match']:
-        command.kind==='read-mail'?['','']:['操作成功，资产已同步','Completed. Assets synchronized.'];
+      this.message=['',''];
       if(command.kind==='loadout'){
         const selected=this.mode===command.mode?this.slotItem:undefined;
         delete this.drafts[command.mode];delete this.modDrafts[command.mode];

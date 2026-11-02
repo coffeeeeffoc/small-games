@@ -79,8 +79,13 @@ export class ProgressionView {
   private header(title:string){
     const y=this.h.safe.top,h=this.top-y-6;this.h.rect(this.g,0,y,this.w,h,'#03101dda','#566872');
     this.button('qm:back','‹',this.left,y+3,48,Math.max(44,h-6));
-    const q=this.q,status=q.page==='loadout'&&!this.low?'':q.busy?this.t('正在同步…','Synchronizing…'):q.message[this.h.lang==='zh'?0:1];
+    const q=this.q,status=q.page==='loadout'&&!this.low||q.busy?'':q.message[this.h.lang==='zh'?0:1];
     this.label(status||title,this.left+60,y+4,q.page==='loadout'&&!this.low&&!status?this.w*.15:this.right-this.left-(q.pending?160:200),h-8,status?23:52,status?cyan:ivory,!status,true);
+    if(q.busy||q.assets&&!q.pending&&!q.message[0]){
+      const g=this.h.node(q.busy?'AssetSync:busy':'AssetSync:ready',this.n).addComponent(Graphics),x=this.right-172,cy=y+h/2;
+      if(q.busy)this.h.controlIcon(g,'refresh',x,cy,16,dim);
+      else {g.strokeColor=color(dim);g.lineWidth=2;g.moveTo(x-6-this.w/2,this.height/2-cy);g.lineTo(x-2-this.w/2,this.height/2-cy-4);g.lineTo(x+6-this.w/2,this.height/2-cy+5);g.stroke();}
+    }
     if(q.pending)this.button('qm:retry',this.t('重试','Retry'),this.right-92,y+3,92,Math.max(44,h-6),'blue',q.busy);
     else this.label(`● ${q.assets?.coins.toLocaleString()??'—'}`,this.right-148,y+6,148,h-12,34,gold,false);
   }
@@ -384,9 +389,8 @@ export class ProgressionView {
       const yy=bottom-154;this.label(p?this.brief(p):this.t('金币或单场物资','Coins or one-match supplies'),rx+8,yy-32,rw-16,28,22,dim);
       this.label((p?this.term(p.term)+' · ':this.t(rarity[Number(id.split(':')[2])],rarityEn[Number(id.split(':')[2])])+' · ')+this.t(`可用 ${available}`,`${available} available`),rx+8,yy-9,rw-16,22,21,dim);
       this.button('qm:minus','−',rx+8,yy+15,44,44,'panel',q.amount<=1);this.label(String(q.amount),rx+52,yy+15,rw-104,44,32,ivory);this.button('qm:plus','+',r-52,yy+15,44,44,'panel',q.amount>=Math.min(100,available));
-      this.label(this.t('可得  ','GAIN  ')+`● ${q.sellPrice(id)*q.amount}`,rx+8,bottom-85,rw-16,30,31,gold,true);
-      const bw=(rw-24)/2,owned=!!(p?.term==='24h'&&q.assets?.permanent.includes(p.effect));this.button(pack?'qm:open':p?.term==='24h'?'qm:activate':'qm:loadout',this.t(pack?'打开':p?.term==='24h'?'激活':'配装',pack?'OPEN':p?.term==='24h'?'USE':'EQUIP'),rx+8,bottom-49,bw,44,'gold',q.busy||available<1||owned);
-      this.button('qm:sell',this.t('出售','SELL'),rx+16+bw,bottom-49,bw,44,'blue',q.busy||available<1||q.sellPrice(id)===0);
+      const bw=Math.max(44,(rw-24)*.32),owned=!!(p?.term==='24h'&&q.assets?.permanent.includes(p.effect));this.button(pack?'qm:open':p?.term==='24h'?'qm:activate':'qm:loadout',this.t(pack?'打开':p?.term==='24h'?'激活':'配装',pack?'OPEN':p?.term==='24h'?'USE':'EQUIP'),rx+8,bottom-49,bw,44,'gold',q.busy||available<1||owned);
+      const proceeds=q.sellPrice(id)*q.amount;this.button('qm:sell',this.t(`出售可得${proceeds}`,`SELL FOR ${proceeds}`),rx+16+bw,bottom-49,rw-24-bw,44,'blue',q.busy||available<1||q.sellPrice(id)===0);
     }else this.label(this.t('仓库暂无物资','No supplies yet'),rx+8,top+30,rw-16,65,28,dim);
     this.button('qm:receipts',this.t('开包记录','HISTORY'),r-240,this.bottom-46,112,44);this.button('qm:supply',this.t('获取礼包','SUPPLIES'),r-120,this.bottom-46,120,44,'gold');
   }

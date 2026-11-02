@@ -2,7 +2,7 @@
 
 更新：2026-11-02。Game ID：`night-overwatch`。17项改版与页面、标签、弹窗动效已按[当前方案和效果图](../docs/design/progression-2026-11-02/README.md)实现。本轮包含统一奖池与等级限制、礼包转盘、仓库和记录滚动、真实来源返回、等级成长、120关梯度、公共文字与房间邀请、双方观战身份。
 
-最终 Creator 3.8.8 web-mobile 源码摘要：`bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209`。规则版本为 `night-input-replay-v12` / `night-duel-v5`，新最快榜使用 `night-campaign-v2`，历史榜保留。本地 Docker 后端已更新；旧 TapTap H5 包须重新构建以匹配新回放协议。本轮未生成渠道 ZIP、未上传平台或部署生产。
+仓库反馈修订后的 Creator 3.8.8 web-mobile 源码摘要：`98ddd04666a1b788911f9fb517486fa35a6ac3db0cdbec80d3587007cab4e24e`。出售按钮内合并金额，军需同步中/成功改为小图标；仓库正式截图已用真实本地Runtime的普通新游客重采，其余七类资料及未受影响截图沿用清单所记原采集摘要。历史17项改版验证摘要仍为 `bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209`，不能当作本轮重新执行的结果。规则版本为 `night-input-replay-v12` / `night-duel-v5`，新最快榜使用 `night-campaign-v2`，历史榜保留。本地 Docker 后端已更新；旧 TapTap H5 包须重新构建以匹配新回放协议。本轮未生成渠道 ZIP、未上传平台或部署生产。
 
 ## 八类资料
 
