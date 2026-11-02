@@ -315,6 +315,42 @@ test('allows only exact shared competition rule edges, never game runtime servic
   assert.ok(violations.some((entry) => entry.message.includes('main.js')));
 });
 
+test('Night chat acceptance imports only its exact Runtime fixture tool', async (t) => {
+  const fixtureImport = "import '../../../../scripts/h5-taptap-runtime.mjs';\n";
+  const root = await createWorkspace([
+    {
+      path: 'games/local/night-overwatch',
+      manifest: { name: '@coffeeeeffoc/night-overwatch' },
+      files: { 'tests/chat-live-browser.mjs': fixtureImport },
+    },
+    {
+      path: 'games/local/other-game',
+      manifest: { name: '@coffeeeeffoc/other-game' },
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await validateWorkspace(root), []);
+  const rejected = {
+    'games/local/night-overwatch/tests/chat-live-browser.mjs':
+      fixtureImport + "import '../../../../scripts/h5-taptap-build.mjs';\n",
+    'games/local/night-overwatch/tests/chat-other-browser.mjs': fixtureImport,
+    'games/local/night-overwatch/assets/scripts/main.ts':
+      "import '../../../../../scripts/h5-taptap-runtime.mjs';\n",
+    'games/local/other-game/tests/chat-live-browser.mjs': fixtureImport,
+  };
+  for (const [relative, source] of Object.entries(rejected)) {
+    const file = path.join(root, relative);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, source);
+  }
+  const violations = await validateWorkspace(root);
+  assert(violations.every((entry) => entry.code === 'cross-package-relative'));
+  assert.deepEqual(
+    violations.map((entry) => entry.message.replaceAll('\\', '/').split(' imports ')[0]).sort(),
+    Object.keys(rejected).sort(),
+  );
+});
+
 test('allows shared Creator tooling only in declared build scripts', async (t) => {
   const root = await createWorkspace([
     {

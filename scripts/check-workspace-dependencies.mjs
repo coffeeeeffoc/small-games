@@ -135,6 +135,7 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/night-overwatch/scripts/typecheck.mjs -> games/local/carding-car/scripts/toolchain.mjs',
   'games/local/night-overwatch/tests/h5.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',
   'games/local/night-overwatch/tests/smoke.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',
+  'games/local/night-overwatch/tests/chat-live-browser.mjs -> scripts/h5-taptap-runtime.mjs',
   'apps/shell-web/scripts/prepare-standalone-games.mjs -> scripts/competition-build.mjs',
   // TapTap artifact acceptance reuses the existing pure native SDK/actions and
   // vocabulary fixtures; no runtime or other Shell script gains these edges.
