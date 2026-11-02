@@ -1,0 +1,268 @@
+{
+  "recordedAt": "2026-11-02T18:09:32.765Z",
+  "timeZone": "Asia/Shanghai",
+  "chatMigration": {
+    "ok": true,
+    "sourceSHA": "876ef4f23ab4b948ec366eb5d54b0e00ff5d51ea",
+    "release": "night-chat-876ef4f23ab4-1793638239639",
+    "sqlSHA256": "504e7200a99c00d8a300be43983580df094f6f4b8201b76771f0d0d8a887806a",
+    "backupSHA256": "5f409905964b586ce1ce124844b5753568b9d03e0c5f3ce23b1fde94fe6ec4ce",
+    "isolatedRestoreVerified": true,
+    "migrationIdempotent": true,
+    "existingRelationsPreserved": 29,
+    "newTables": ["night_chat_limits", "night_chat_messages", "night_chat_reports"],
+    "oldServicesRestored": true
+  },
+  "controlDeployment": {
+    "ok": true,
+    "mode": "adopt",
+    "runnerSourceSHA": "876ef4f23ab4b948ec366eb5d54b0e00ff5d51ea",
+    "sourceSHA": "876ef4f23ab4b948ec366eb5d54b0e00ff5d51ea",
+    "release": "876ef4f23ab4-1793638221274-aa6a45",
+    "services": ["runtime", "kart", "management"],
+    "activeImages": {
+      "runtime": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+      "kart": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+      "management": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8"
+    },
+    "controlContract": {
+      "metadataSha256": "9b00a4c02ad6c0ebb5be0014403cada30c648975860a536da434ac72eb7b9acc",
+      "projectionSha256": "06fed71e3914a5421040c4b8919a32901e83c2f0e5c45d09950326a0abb4c86f",
+      "schema": "game_control",
+      "schemaVersion": 4,
+      "version": 1
+    },
+    "migrationArtifactSha256": "b114f40c7a0e7255dc2d0c97b166a5c23545297111065479eb002feaa8760f66",
+    "controlEnabled": true,
+    "remoteConfigReused": true,
+    "internalHealthVerified": true,
+    "publicHtmlVerified": true,
+    "anonymousSessionVerified": true,
+    "oauthStartVerified": true,
+    "realGithubLoginVerified": false,
+    "backupSHA256": "e97608d6760d28329ee2d8b8e336d6759390dc8e14b36cc03d2cb0aaf45f1002",
+    "oldStateSHA256": "b97428eef035c94b15f2b114c093265775dacdcc93e932df076f4a25282e512a",
+    "nightV8Cutover": {
+      "version": 1,
+      "authorized": true,
+      "game": "night-overwatch",
+      "fromVersion": "night-input-replay-v8",
+      "toVersion": "night-input-replay-v12",
+      "release": "876ef4f23ab4-1793638221274-aa6a45",
+      "sourceSHA": "876ef4f23ab4b948ec366eb5d54b0e00ff5d51ea",
+      "candidateImage": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+      "finalized": true,
+      "snapshot": {
+        "observedAt": 1793638499940,
+        "exemptedCount": 161,
+        "matchedCount": 1099,
+        "rowsSha256": "5d65843e0bcd5fc6047e41234bb49bab00019d51606d7044da67d6cd2c3c7af9"
+      }
+    }
+  },
+  "runtimeDeployment": {
+    "ok": true,
+    "mode": "execute",
+    "sourceSHA": "2fadb94ff0e8159149d02e93b4179b97534024ee",
+    "release": "2fadb94ff0e8-1793641138847-85b317",
+    "services": ["runtime"],
+    "recreateCompanions": ["kart"],
+    "healthVerified": true,
+    "databaseReplaced": false,
+    "schemaChanged": false,
+    "backupCreated": true,
+    "backupSHA256": "c9137eea9085246291618fd8bc5e74803b759fb1826b3a0962c81464776bfb58",
+    "isolatedRestoreVerified": false,
+    "activeImages": {
+      "runtime": "sha256:ce60e8b6118a7bbf6deffd7cf9854b4d5f9ef86f0579b95c22139ef9e07eb500",
+      "kart": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8"
+    },
+    "imageCapabilities": {
+      "runtime": {
+        "image": "sha256:ce60e8b6118a7bbf6deffd7cf9854b4d5f9ef86f0579b95c22139ef9e07eb500",
+        "control": 1,
+        "authenticatedGameScope": 1,
+        "controlCatalog": 4
+      },
+      "kart": {
+        "image": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+        "control": 1,
+        "identityRecheck": 1,
+        "authenticatedGameScope": 1
+      }
+    }
+  },
+  "retention": {
+    "sourceSHA": "c7c55f1165ad5743893bb72a86a2740e0e0533e2",
+    "scriptSHA256": "504d06d51db92968ca6e21aef720021f9a39608a8a56528fa15fb8864b4e9ed9",
+    "firstCompleteRun": {
+      "ok": true,
+      "service": {
+        "Result": "success",
+        "ExecMainStatus": "0",
+        "ActiveState": "inactive"
+      },
+      "cleanup": {
+        "runs": 1000,
+        "actions": 39343,
+        "skipped": 0
+      }
+    },
+    "before": {
+      "roots": 3914,
+      "receipts": 154086,
+      "compacted": 0,
+      "active": 1104,
+      "payloadBytes": 86945878,
+      "players": 1268,
+      "results": 5787,
+      "best": 4514,
+      "history": 20,
+      "oldV8Roots": 3880,
+      "oldV8PreservedHash": "74167ac9894d4c19987ede6d14d2add888703e94ddabe7fc711fae4d0e19e91c",
+      "checkedAt": "2026-11-02T17:41:55.220Z"
+    },
+    "after": {
+      "roots": 3914,
+      "receipts": 106815,
+      "compacted": 1197,
+      "active": 774,
+      "payloadBytes": 61212214,
+      "players": 1268,
+      "results": 5787,
+      "best": 4514,
+      "history": 20,
+      "oldV8Roots": 3880,
+      "oldV8PreservedHash": "74167ac9894d4c19987ede6d14d2add888703e94ddabe7fc711fae4d0e19e91c",
+      "checkedAt": "2026-11-02T18:05:47.056Z",
+      "protectedDataVerified": true
+    },
+    "timer": {
+      "enabled": "enabled",
+      "active": "active",
+      "schedule": {
+        "NextElapseUSecRealtime": "Tue 2026-11-03 03:00:02 CST",
+        "LastTriggerUSec": "",
+        "ActiveState": "active"
+      },
+      "checkedAt": "2026-11-02T18:06:29.845Z"
+    },
+    "initialScanStoppedForOptimization": true,
+    "productionExplainPrimaryKeyVerified": true
+  },
+  "publicSmoke": {
+    "checkedAt": "2026-11-02T18:05:47.308Z",
+    "checks": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/small-games/v1/games/night-overwatch/chat",
+        "status": 401
+      },
+      {
+        "method": "POST",
+        "path": "/small-games/v1/games/night-overwatch/chat/report",
+        "status": 401
+      },
+      {
+        "method": "GET",
+        "path": "/small-games/v1/internal/night-chat/moderate",
+        "status": 404
+      },
+      {
+        "method": "POST",
+        "path": "/small-games/v1/games/night-overwatch/development/assets",
+        "status": 404
+      },
+      {
+        "method": "OPTIONS",
+        "path": "/small-games/v1/games/night-overwatch/chat",
+        "status": 204
+      },
+      {
+        "method": "GET",
+        "path": "/api/competition/v1/games/night-overwatch/chat",
+        "status": 401
+      },
+      {
+        "method": "POST",
+        "path": "/api/competition/v1/games/night-overwatch/chat/report",
+        "status": 401
+      },
+      {
+        "method": "GET",
+        "path": "/api/competition/v1/internal/night-chat/moderate",
+        "status": 404
+      },
+      {
+        "method": "POST",
+        "path": "/api/competition/v1/games/night-overwatch/development/assets",
+        "status": 404
+      },
+      {
+        "method": "OPTIONS",
+        "path": "/api/competition/v1/games/night-overwatch/chat",
+        "status": 204
+      },
+      {
+        "method": "POST",
+        "path": "/small-games/v1/sessions/guest",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/small-games/v1/games/night-overwatch",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/small-games/v1/games/night-overwatch/chat",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/competition/v1/games/night-overwatch",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/api/competition/v1/games/night-overwatch/chat",
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/small-games/v1/sessions/logout",
+        "status": 200
+      }
+    ],
+    "realDeviceVerified": false,
+    "realAdsVerified": false,
+    "ok": true,
+    "sessionLoggedOut": true
+  },
+  "checks": {
+    "runtimeUnitPassed": 233,
+    "runtimeConditionalSkipped": 68,
+    "relatedPostgresPassed": 29,
+    "postgresHttpRecheckPassed": 1,
+    "ownerPostgresFinalPassed": 9,
+    "adapterPassed": 59,
+    "nightOnlinePassed": 27,
+    "nightTypecheck": true,
+    "creatorBuiltBytes": 59183268,
+    "creatorPrebuilt": false,
+    "formatAndDiff": true,
+    "fullCandidateSingleCommandPassed": false
+  },
+  "limits": {
+    "realDeviceVerified": false,
+    "realAdsVerified": false,
+    "realGithubLoginVerified": false,
+    "channelPackageUploaded": false,
+    "allRuntimeIntegrationTestsExecuted": false
+  }
+}
