@@ -6611,6 +6611,79 @@ test('build-type checks classify only their three bounded runners without game c
   }
 });
 
+test('Night return flow repair keeps its browser consumer and cumulative Echo coverage', () => {
+  const file = 'apps/shell-web/scripts/standalone-game-checks.mjs';
+  const immediate = '8522c509d3bd91944402b15e0a1071f1b378e403';
+  const read = (ref, path = file) =>
+    execFileSync('git', ['show', ref + ':' + path], { encoding: 'utf8' });
+  const before = read(immediate);
+  const anchor = "    await press('homeMenu');\n";
+  assert.equal(before.split(anchor).length, 2);
+  const after = before.replace(
+    anchor,
+    anchor +
+      `    await expect
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
+      .toBe('progression:modes');
+    await press('qm:back');
+`,
+  );
+  const games = ['echo-lab', 'night-overwatch'].map((id) => ({
+    id,
+    source: 'games/local/' + id,
+    output: 'dist',
+  }));
+  const packages = [...games.map((game) => game.source), 'apps/shell-web'].map((dir) => ({
+    dir,
+    ...JSON.parse(read(immediate, dir + '/package.json')),
+  }));
+  for (const [base, ids] of [
+    [immediate, ['night-overwatch']],
+    ['40a7813205470ec899765fa9195c13713a2725b5', ['night-overwatch']],
+    ['fed04bb8fc68b05b9baac7b3e00fc443b8bcfd3b', ['echo-lab', 'night-overwatch']],
+    ['750a0de770c6ac42258160eed69242982ceab356', ['echo-lab', 'night-overwatch']],
+    ['baaae8d717559610df529aff43a0cb2a31961393', ['echo-lab', 'night-overwatch']],
+  ]) {
+    const original = read(base);
+    const options = {
+      changedPaths: [file],
+      games,
+      packages,
+      readBase: () => original,
+      readHead: () => after,
+    };
+    const consumers = [...ids.map((id) => 'games/local/' + id), 'apps/shell-web'];
+    const scopes = reviewedSharedFileScopes(options);
+    assert.deepEqual([...scopes], [[file, consumers]]);
+    const plan = incrementalPlan({ ...options, fileScopes: scopes, readSource: () => '' });
+    assert.equal(plan.full, false);
+    assert.deepEqual(plan.browser_ids, ids);
+    for (const source of consumers) assert(plan.consumer_sources.includes(source));
+    assert.deepEqual(
+      reviewedSharedFileScopes({
+        ...options,
+        readBase: () => original.replaceAll('\n', '\r\n'),
+        readHead: () => after.replaceAll('\n', '\r\n'),
+      }).get(file),
+      consumers,
+    );
+    for (const invalid of [
+      { readBase: () => original + '\n' },
+      { readHead: () => after + '\n' },
+      { readHead: () => after.replace(".toBe('progression:modes')", '.toBeTruthy()') },
+      { readHead: () => after.replace("await press('qm:back');", '') },
+      { readHead: () => after.replace("id === 'night-overwatch'", "id === 'other'") },
+      { changedPaths: [file + '.unknown'] },
+      { games: [...games, games[1]] },
+      { packages: [...packages, packages.at(-1)] },
+      { packages: packages.map((pkg) => ({ ...pkg, creator: { version: 'other' } })) },
+      { games: games.filter((game) => game.id !== 'night-overwatch') },
+      { packages: packages.filter((pkg) => pkg.dir !== 'apps/shell-web') },
+    ])
+      assert.equal(reviewedSharedFileScopes({ ...options, ...invalid }).size, 0);
+  }
+});
+
 test('Echo share URL repair selects its real consumer for immediate and cumulative baselines', () => {
   const file = 'apps/shell-web/scripts/standalone-game-checks.mjs';
   const immediate = 'fed04bb8fc68b05b9baac7b3e00fc443b8bcfd3b';

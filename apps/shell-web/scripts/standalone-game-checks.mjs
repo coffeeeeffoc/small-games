@@ -1147,6 +1147,10 @@ export async function assertStandaloneGameplay(frame, id, mobile = false) {
     await press('homeMenu');
     await expect
       .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
+      .toBe('progression:modes');
+    await press('qm:back');
+    await expect
+      .poll(() => gameDocument.evaluate(() => globalThis.__night.snapshot().modal))
       .toBe('home');
     await press('qm:modes');
     await press('mode:training');

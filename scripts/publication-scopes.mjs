@@ -4826,13 +4826,21 @@ export function reviewedSharedFileScopes({
           '067f41d7332c6391ba49b49b4c298cf342457252931120ba40236eed65fd51c1',
         ];
         const nightBase = '8ab41c01c9912cea916cb52ac7d86b21d030be2f3cde1654b32e2f608b71c7f5';
-        if (
-          [...echoBases, nightBase].includes(before) &&
-          digest(readHead(file)) ===
-            'd689fcac794a74589ef11da5fcb1bea4d55b5bc405f149a9c9b259aa3f0048c8'
-        ) {
+        const echoHead = 'd689fcac794a74589ef11da5fcb1bea4d55b5bc405f149a9c9b259aa3f0048c8';
+        const after = digest(readHead(file));
+        const echoRepair = [...echoBases, nightBase].includes(before) && after === echoHead;
+        const nightReturnRepair =
+          [...echoBases, nightBase, echoHead].includes(before) &&
+          after === 'a1a98badf4494e115d9ea024f5120adc938088ed9f943f054b42770a7f8bfb34';
+        if (echoRepair || nightReturnRepair) {
           // fed04bb8/750a0de7 change Echo's URL assertion; baaae8d also includes Night's menu flow.
-          const ids = before === nightBase ? ['echo-lab', 'night-overwatch'] : ['echo-lab'];
+          const ids = nightReturnRepair
+            ? before === echoHead
+              ? ['night-overwatch']
+              : ['echo-lab', 'night-overwatch']
+            : before === nightBase
+              ? ['echo-lab', 'night-overwatch']
+              : ['echo-lab'];
           for (const id of ids) {
             const source = 'games/local/' + id,
               name = '@coffeeeeffoc/' + id;
