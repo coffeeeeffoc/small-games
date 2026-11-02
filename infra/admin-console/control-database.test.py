@@ -202,7 +202,7 @@ class Contracts(unittest.TestCase):
         token='12345678123442348234123456789012'
         name='sg-control-source-'+token
         facts={'id':identifier,'image':IMAGE,'fixture':token,'name':'/'+name,'networkMode':'none','ports':{},
-               'memory':805306368,'cpu':1000000000,'tmpfs':{'/var/lib/postgresql/data':'rw,size=536870912'},'mounts':[]}
+               'memory':1610612736,'cpu':1000000000,'tmpfs':{'/var/lib/postgresql/data':'rw,size=1073741824'},'mounts':[]}
         with patch.object(db,'inspect_container',return_value=facts):
             db.require_fixture_identity(identifier,IMAGE,token,name)
             for key,value in [('image','sha256:'+'b'*64),('networkMode','bridge'),('ports',{'1/tcp':[]}),
@@ -219,8 +219,8 @@ class Contracts(unittest.TestCase):
             with db.isolated_postgres(IMAGE,'source',token) as clone:
                 self.assertEqual(clone,identifier)
                 args=run.call_args.args
-                self.assertEqual(args[args.index('--memory')+1],'768m')
-                self.assertEqual(args[args.index('--tmpfs')+1],'/var/lib/postgresql/data:rw,size=536870912')
+                self.assertEqual(args[args.index('--memory')+1],'1536m')
+                self.assertEqual(args[args.index('--tmpfs')+1],'/var/lib/postgresql/data:rw,size=1073741824')
                 self.assertEqual(args[args.index('--network')+1],'none')
                 self.assertEqual(args[args.index('--cpus')+1],'1')
                 self.assertEqual(args[args.index('--pids-limit')+1],'128')
@@ -254,7 +254,7 @@ def actual_postgres(fixture_uuid, receipt_path):
             with db.isolated_postgres(IMAGE,'source',fixture_uuid) as source:
                 owned.append({'id':source,'uuid':fixture_uuid})
                 facts=db.json_value(db.command('docker','inspect','--format','{"memory":{{json .HostConfig.Memory}},"cpu":{{json .HostConfig.NanoCpus}},"network":{{json .HostConfig.NetworkMode}},"ports":{{json .HostConfig.PortBindings}}}',source))
-                db.require(facts['memory']==805306368 and facts['cpu']==1000000000 and facts['network']=='none' and not facts['ports'],'FIXTURE_LIMITS')
+                db.require(facts['memory']==1610612736 and facts['cpu']==1000000000 and facts['network']=='none' and not facts['ports'],'FIXTURE_LIMITS')
                 db.psql(source,'CREATE DATABASE small_games;','postgres')
                 db.psql(source,"""
 REVOKE ALL ON DATABASE small_games FROM PUBLIC; REVOKE ALL ON SCHEMA public FROM PUBLIC;
@@ -367,7 +367,7 @@ INSERT INTO admin_console.admin_sessions VALUES(repeat('b',64),repeat('c',64),tr
             for item in owned:
                 db.require(not db.scalar('docker','ps','-aq','--no-trunc','--filter','label='+db.FIXTURE_LABEL+'='+item['uuid']),'FIXTURE_RESOURCE_REMAINED')
         receipt={'version':1,'status':'passed','fixtureUUID':fixture_uuid,'postgresImage':IMAGE,'postgresVersion':'17.6',
-                 'limits':{'memoryBytes':805306368,'cpus':1,'network':'none','publishedPorts':[]},
+                 'limits':{'memoryBytes':1610612736,'cpus':1,'network':'none','publishedPorts':[]},
                  'implementationSHA256':code_files,'ownedResources':owned,'ownedResourcesRemaining':0,
                  'lifecycleInventory':'injected; no real Nginx or application services','realPostgresRestoreAndSQL':True,
                  'productionExecuted':False,'realGithubLoginVerified':False,'passed':passed,'contractMutationsRejected':changed,
