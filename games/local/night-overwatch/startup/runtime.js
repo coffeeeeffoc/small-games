@@ -13,8 +13,8 @@
   const watchdog = setTimeout(() => fail(new Error('连接超时，请检查网络后重试。')), 60000);
 
   function listen(target, name, callback, capture = false) {
-    target.addEventListener(name, callback, capture);
-    cleanups.push(() => target.removeEventListener(name, callback, capture));
+    target.addEventListener(name, callback, { capture });
+    cleanups.push(() => target.removeEventListener(name, callback, { capture }));
   }
   function once(target, name, callback) {
     target.once(name, callback);
@@ -74,6 +74,10 @@
     awaitFrame();
   });
   listen(window, 'night-overwatch:error', (event) => fail(event.detail));
+  for (const name of ['keydown', 'keyup']) listen(window, name, (event) => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
   listen(window, 'error', (event) => {
     if (event.target === window || event.target?.tagName === 'SCRIPT')
       fail(event.error || new Error('启动资源加载失败，请检查网络后重试。'));
@@ -102,7 +106,7 @@
         once(engine.game, engine.Game.EVENT_POST_PROJECT_INIT, () => stage('正在展开夜航场景…'));
         once(engine.director, engine.Director.EVENT_AFTER_SCENE_LAUNCH, () => {
           sceneLaunched = true;
-          stage('正在准备机舱与护航界面…');
+          stage('正在加载首页画面…');
           awaitFrame();
         });
         const application = new Application();

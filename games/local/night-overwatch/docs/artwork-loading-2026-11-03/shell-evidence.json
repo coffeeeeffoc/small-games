@@ -1,0 +1,13 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "a10b99011fcf8db290d883840cce46fd13ff3ed6d7d955d2f1c7e7598bd22ad6"
+  },
+  "entry": "existing Shell static build with current Night artifact",
+  "iframe": true,
+  "homeReady": true,
+  "modeNavigation": true,
+  "fixture": true,
+  "errors": []
+}

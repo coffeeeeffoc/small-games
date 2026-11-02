@@ -103,6 +103,20 @@ test('an early game signal is retained but cannot bypass scene launch', async ()
   assert.equal(h.nodes['night-startup'].removed, true);
 });
 
+test('startup blocks game keyboard shortcuts until ready or a retryable failure',async()=>{
+  for(const failure of [false,true]){
+    const h=harness();await h.boot();
+    for(const name of ['keydown','keyup']){
+      const event=new Event(name,{cancelable:true});h.window.dispatchEvent(event);
+      assert(event.defaultPrevented,'No keyboard action may enter the hidden home screen');
+    }
+    if(failure)h.emit('night-overwatch:error',{message:'首页画面加载失败'});
+    else {h.emit('night-overwatch:ready');h.director.emit('draw');}
+    const event=new Event('keydown',{cancelable:true});h.window.dispatchEvent(event);
+    assert.equal(event.defaultPrevented,false,'Ready controls and the retry button remain keyboard accessible');
+  }
+});
+
 test('engine import and initialization failures expose a real reload action', async () => {
   for (const options of [{ importError: Error('offline') }, { startError: Error('WebGL unavailable') }]) {
     const h = harness(options);
@@ -179,7 +193,9 @@ test('both Creator entries are repeatable, preserve hashed files and tolerate Bu
       assert.equal(await readFile(path.join(out, 'index.a12b3.js'), 'utf8'), index);
       assert.equal(await readFile(path.join(out, 'application.abc12.js'), 'utf8'), app);
       assert.equal(await readFile(settingsFile, 'utf8'), JSON.stringify(settings));
-      assert.match(first, /startup\/background\.[a-f0-9]{12}\.webp/);
+      const image=first.match(/data:image\/webp;base64,([A-Za-z0-9+/=]+)/);
+      assert(image,'The full-screen cover is present before engine and image requests');
+      assert.deepEqual(Buffer.from(image[1],'base64'),await readFile(new URL('../startup/background.webp',import.meta.url)));
       assert.equal((first.match(/id="night-startup"/g) || []).length, 1);
       assert.equal((first.match(/NightStartup\.boot\(/g) || []).length, 1);
       assert.ok(first.indexOf('id="night-startup"') < first.indexOf('id="GameCanvas"'));

@@ -1,5 +1,6 @@
 import { resources, Texture2D, SpriteFrame, Rect, TTFFont, isValid } from 'cc';
 import type { HUD } from './HUD';
+import type { ProgressionPage } from './Quartermaster';
 
 // Rectangles sample only the approved illustrations; prices and UI text are rendered live.
 const cuts: Record<string, [string, number, number, number, number]> = {
@@ -18,38 +19,82 @@ const cuts: Record<string, [string, number, number, number, number]> = {
   resultEmblem:['09-settlement',600,21,470,148],
   gold:['skins',51,126,1154,244],blue:['skins',51,439,1154,251],panel:['skins',46,744,1163,414],
 };
+const homeAssets = ['home','title','skins','01-home','night-ui-serif'];
+const equipmentAssets = ['gear-atlas-v2','04-shop','06-growth-skills'];
+const pageAssets: Record<ProgressionPage,string[]> = {
+  '': ['home','title','01-home'], modes: ['base','03-mode-selection'],
+  shop: ['base',...equipmentAssets], loadout: ['hangar',...equipmentAssets],
+  supply: ['base','reward-atlas'], growth: ['base','06-growth-skills','gear-atlas-v2'],
+  tasks: ['hangar','07-tasks'], inbox: ['base','08-inbox'],
+  warehouse: ['hangar','reward-atlas',...equipmentAssets,'01-home'],
+  receipts: ['base','reward-atlas'], checkin: ['hangar','05-supply','08-inbox'], probability: ['base'],
+};
+const warmAssets = ['base','hangar','03-mode-selection',...equipmentAssets,'reward-atlas','07-tasks','08-inbox','05-supply','resultBadge'];
+
 export class ProgressionArt {
   frames = new Map<string, SpriteFrame>();
-  private loading = new Set<string>();
+  private loading = new Map<string,Promise<void>>();
+  private disposed = false;
+  private warming = false;
   failed = new Set<string>();
   font?: TTFFont;
   private hud:HUD;
   constructor(hud: HUD) {
     this.hud=hud;
-    for (const name of ['home','title','skins','01-home']) this.load(name);
-    resources.load('ui/progression/night-ui-serif',TTFFont,(error,font)=>{
-      if (!error && isValid(hud.root)) { this.font=font; hud.modalKey='rebuild'; }
-    });
+    this.ensure(homeAssets);
   }
-  load(name:string) {
-    if(this.loading.has(name))return;
-    this.loading.add(name);
-    resources.load('ui/progression/'+name+'/texture',Texture2D,(error,texture)=>{
-      if(!isValid(this.hud.root))return;
-      if(error){this.failed.add(name);return;}
-      const frame=new SpriteFrame();frame.texture=texture;this.frames.set(name,frame);
-      for(const [key,[source,x,y,w,h]] of Object.entries(cuts))if(source===name){
-        const crop=new SpriteFrame();crop.texture=texture;crop.rect=new Rect(x,y,w,h);
-        if(['gold','blue','panel'].includes(key))crop.insetLeft=crop.insetRight=crop.insetTop=crop.insetBottom=48;
-        this.frames.set(key,crop);
+  private has(name:string){return name==='night-ui-serif'?!!this.font:this.frames.has(name);}
+  load(name:string):Promise<void> {
+    if(this.disposed||this.has(name)||this.failed.has(name))return Promise.resolve();
+    const pending=this.loading.get(name);if(pending)return pending;
+    const request=new Promise<void>(resolve=>{
+      const finish=(error:Error|null)=>{
+        this.loading.delete(name);
+        if(!this.disposed&&isValid(this.hud.root)){
+          if(error)this.failed.add(name);
+          if(!this.hud.editing)this.hud.modalKey='rebuild';
+        }
+        resolve();
+      };
+      if(name==='night-ui-serif'){
+        resources.load('ui/progression/'+name,TTFFont,(error,font)=>{
+          if(!error&&!this.disposed&&isValid(this.hud.root))this.font=font;
+          finish(error);
+        });
+        return;
       }
-      this.hud.modalKey='rebuild';
+      resources.load('ui/progression/'+name+'/texture',Texture2D,(error,texture)=>{
+        if(!error&&!this.disposed&&isValid(this.hud.root)){
+          const frame=new SpriteFrame();frame.texture=texture;this.frames.set(name,frame);
+          for(const [key,[source,x,y,w,h]] of Object.entries(cuts))if(source===name){
+            const crop=new SpriteFrame();crop.texture=texture;crop.rect=new Rect(x,y,w,h);
+            if(['gold','blue','panel'].includes(key))crop.insetLeft=crop.insetRight=crop.insetTop=crop.insetBottom=48;
+            this.frames.set(key,crop);
+          }
+        }
+        finish(error);
+      });
     });
+    this.loading.set(name,request);
+    void request.then(()=>{if(this.loading.get(name)===request)this.loading.delete(name);});
+    return request;
+  }
+  ensure(names:string[]){for(const name of names)void this.load(name);return names.every(name=>this.has(name));}
+  required(page:ProgressionPage,result=false,gift=false){return ['skins','night-ui-serif',...(result?['resultBadge']:pageAssets[page]),...(gift?['base','reward-atlas',...equipmentAssets]:[])];}
+  retry(){const names=Array.from(this.failed);this.failed.clear();this.ensure(names);this.hud.modalKey='rebuild';}
+  warm(){
+    if(this.warming||!this.homeReady||this.disposed)return;
+    this.warming=true;
+    const queue=[...warmAssets];
+    const next=async()=>{while(queue.length&&!this.disposed)await this.load(queue.shift()!);};
+    void next();void next();
   }
   get(key:string) {
     if(!this.frames.has(key))this.load(cuts[key]?.[0]||key);
     return this.frames.get(key);
   }
-  get homeReady(){return ['home','title','gold','homeShop'].every(key=>this.frames.has(key))&&!!this.font;}
-  destroy(){for(const frame of this.frames.values())frame.destroy();this.frames.clear();}
+  get homeReady(){return homeAssets.every(name=>this.has(name));}
+  get homeFailed(){return homeAssets.some(name=>this.failed.has(name));}
+  get loadingAssets(){return Array.from(this.loading.keys());}
+  destroy(){this.disposed=true;for(const frame of this.frames.values())frame.destroy();this.frames.clear();this.font=undefined;}
 }

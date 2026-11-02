@@ -82,10 +82,10 @@ const cc = {
   Node: SceneNode, UITransform: Transform, Graphics, Color,
   Camera: class { static ProjectionType = { ORTHO: 0 }; static ClearFlag = { DEPTH_ONLY: 0 }; },
   Canvas: class {}, Mask: class { static Type = { GRAPHICS_RECT: 0 }; },
-  Sprite: class { static SizeMode = { CUSTOM: 0 }; static Type = { SIMPLE: 0, SLICED: 1 }; }, SpriteFrame: class { texture: any; rect: any; get originalSize() { return this.texture; } destroy() {} }, Texture2D: class {},
+  Sprite: class { static SizeMode = { CUSTOM: 0 }; static Type = { SIMPLE: 0, SLICED: 1 }; }, SpriteFrame: class { texture: any; rect: any={width:1024,height:512}; get originalSize() { return this.texture; } destroy() {} }, Texture2D: class {},
   TTFFont: class {},
   Rect: class { x: number; y: number; width: number; height: number; constructor(x: number, y: number, width: number, height: number) { Object.assign(this, { x, y, width, height }); } },
-  resources: { load(name: string, _type: any, done: any) { if(artworkAvailable&&!name.includes('home'))done(null,{width:1024,height:512});else done(new Error('unavailable art')); } },
+  resources: { load(name: string, _type: any, done: any) { if(name.startsWith('ui/progression/')||artworkAvailable&&!name.includes('home'))done(null,{width:1024,height:512});else done(new Error('unavailable art')); } },
   isValid: () => true,
   Label: class { static Overflow = { CLAMP: 0, SHRINK: 1 }; static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0, TOP: 1 }; },
   Layers: { Enum: { UI_2D: 1 } }, ResolutionPolicy: { EXACT_FIT: 0 },
@@ -1102,6 +1102,19 @@ test('combined phone safe areas keep lobby reconnect targets separate and rankin
  }finally{cc.sys.getSafeAreaRect=safe;}
 });
 
+
+test('failed loadout artwork preserves the pending transaction leave confirmation',()=>{
+  Object.assign(frame,{width:844,height:390});inset=0;
+  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+  online.authenticatedId='qa-pilot';online.assets=assetFixture();hud.online=online;
+  const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
+  hud.update(sim,world);q.show('loadout');
+  q.pending={kind:'loadout',mode:'solo',loadout:structuredClone(q.loadout),requestId:'saved-loadout'};
+  hud.progressionArt.frames.delete('hangar');hud.progressionArt.failed.add('hangar');
+  q.back();hud.update(sim,world);
+  assert(hud.buttons.some((b:any)=>b.id==='qm:leavePending'));
+  assert.equal(q.pending.requestId,'saved-loadout','Loading must not discard a pending transaction');
+});
 
 test('progression pages keep every live action reachable on short and wide screens',()=>{
   const pages:ProgressionPage[]=['','modes','loadout','shop','supply','growth','tasks','inbox','warehouse','receipts','checkin','probability'];

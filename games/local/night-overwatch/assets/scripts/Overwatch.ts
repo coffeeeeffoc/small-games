@@ -453,6 +453,7 @@ export class Overwatch extends Component {
     if(!/^(qm:|mode:|term:|product:|loadout:|slot:|gear:|equip:|package:|pool:|growth:|skill:|tasks:|task:|taskalt:|achievement:|inbox:|mail:|inventory:|info:)/.test(id))return false;
     this.clear();this.hud.modalKey='rebuild';const [group,...rest]=id.split(':'),value=rest.join(':');
     if(group==='qm'){
+      if(value==='artRetry'){this.hud.retryArtwork();return true;}
       const pages=['modes','loadout','shop','supply','growth','tasks','inbox','warehouse','receipts','checkin','probability'];
       if(pages.includes(value)){if(value==='loadout'&&q.page==='modes')q.mode=q.actionMode==='duel'?'duel':'solo';if(value==='loadout'&&q.page==='warehouse')q.selectInventorySlot();this.online?.show('');this.hud.missionsOpen=false;q.requestLeave(value as ProgressionPage);return true;}
       if(value==='home'){q.requestLeave('');return true;}
@@ -1278,11 +1279,13 @@ export class Overwatch extends Component {
       this.pauseControl.disabled = !!this.rewardRequest || this.hud.supplyOpen || this.sim.resumeCountdown > 0 || this.hud.exitConfirm;
       this.pauseControl.setAttribute('aria-pressed', String(this.sim.pauses.has('settings') || this.sim.pauses.has('manual')));
     }
-    if (sys.isBrowser && !this.startupSignalled && this.world.aircraftModel.status !== 'loading' && this.world.modelImport !== 'loading') {
-      this.startupSignalled = true;
-      if (this.world.aircraftModel.status === 'error')
-        window.dispatchEvent(new CustomEvent('night-overwatch:error', { detail: new Error('机舱资源加载失败，请重试。') }));
-      else window.dispatchEvent(new Event('night-overwatch:ready'));
+    if (sys.isBrowser && !this.startupSignalled) {
+      const startupError=this.world.aircraftModel.status==='error'?'机舱资源加载失败，请重试。':this.hud.progressionArt.homeFailed?'首页画面加载失败，请检查网络后重试。':'';
+      if(startupError||this.world.aircraftModel.status!=='loading'&&this.world.modelImport!=='loading'&&this.hud.interfaceArtworkReady&&this.hud.homeArtwork.spriteFrame){
+        this.startupSignalled = true;
+        if(startupError)window.dispatchEvent(new CustomEvent('night-overwatch:error',{detail:new Error(startupError)}));
+        else window.dispatchEvent(new Event('night-overwatch:ready'));
+      }
     }
     this.platform.ambience(this.sim.phase === 'playing' && !this.sim.paused);
     if (TUTORIAL.every((e) => this.sim.completed.has(e)) && this.hud.tutorial) {
@@ -1386,6 +1389,7 @@ export class Overwatch extends Component {
       ui: {
         homeArtworkReady: !!this.hud.homeArtwork.spriteFrame,
         interfaceArtworkReady: this.hud.interfaceArtworkReady,
+        artwork: { loading:this.hud.progressionArt.loadingAssets, failed:Array.from(this.hud.progressionArt.failed), ready:Array.from(this.hud.progressionArt.frames.keys()) },
         pressedButton: this.hud.pressedButton,
         worldVisible: this.world.root.active,
         width: this.hud.w,
