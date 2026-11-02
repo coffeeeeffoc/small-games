@@ -73,7 +73,7 @@ export class ProgressionView {
     this.h.rect(this.g,x,y,w,h,'#06121a','#64808d',h/2);if(ratio>0)this.h.gradient(this.g,x+2,y+2,Math.max(0,(w-4)*Math.min(1,ratio)),h-4,tone,'#4887a7',Math.min(4,h/2));
   }
   private productName(p:Product){return this.t(p.name,effectEnglish[p.effect]);}
-  private productArt(effect:Effect){return ({rate:'rateGear',radius:'radiusGear',power:'powerGear',drone:'droneGear',burst:'burstGear',cooling:'coolingGear',twin:'burstGear'} as Partial<Record<Effect,string>>)[effect]||effect;}
+  private productArt(effect:Effect){return ({rate:'rateGear',radius:'radiusGear',power:'powerGear',drone:'droneGear',burst:'burst',cooling:'coolingGear',twin:'twin'} as Partial<Record<Effect,string>>)[effect]||effect;}
   private term(term:Product['term']){return this.t(term==='match'?'单场':term==='24h'?'24小时':'永久',term==='match'?'One match':term==='24h'?'24 hours':'Permanent');}
   private reward(r:AssetReward){return `${this.t('金币','Coins')} +${r.coins}   XP +${r.xp}${r.packs?`   ${this.t('礼包','Crates')} ×${r.packs}`:''}`;}
   private header(title:string){
@@ -414,24 +414,30 @@ export class ProgressionView {
   }
   private probability(){this.q.info='pool';}
   private infoDialog(){
-    const q=this.q,p=q.catalog.find(p=>p.id===q.info),{x,y,pw,ph}=this.dialog(p?this.productName(p):this.t(q.info==='wheel'?'转盘概率':'补给箱概率与内容',q.info==='wheel'?'WHEEL ODDS':'CRATE CONTENTS & ODDS'));
+    const q=this.q,p=q.catalog.find(p=>p.id===q.info);
     let lines:string[]=[];
     if(p)lines=[p.description,this.t(`使用期限：${this.term(p.term)} · Lv.${p.unlockLevel}解锁`,`TERM: ${this.term(p.term)} · UNLOCK Lv.${p.unlockLevel}`),this.t('同效果不可重复装配。单场资格在正式出动时消耗；训练不消耗。','Duplicate effects cannot stack. One-match gear is consumed on deployment, not in training.')];
     else if(q.info==='wheel')lines=(q.assets?.wheelPrizes||WHEEL_PRIZES).map(p=>(p.coins?`${p.coins} ${this.t('金币','coins')}`:this.t(rarity[p.tier]+'礼包',rarityEn[p.tier]+' crate'))+`：${p.weight}%`).concat(this.t('完整观看1段视频获得1次；每日最多5段，与礼包共用每日12段。次数跨天保留。','One completed video grants one saved spin. 5 wheel videos/day, sharing 12 total videos/day.'));
     else {const pool=q.pools.general,pack=/^pack:(general|gold):([0-3])$/.exec(q.info),tier=pack?Number(pack[2]):-1;lines=[this.t(pack?'此箱档位已确定，开启不重新抽取档位。':'以下是获取随机礼包时的档位概率。已持有的箱子档位已确定，开启不重新抽档。',pack?'This crate’s tier is fixed. Opening does not reroll its tier.':'These are random crate acquisition odds. Owned crates keep their existing tier.')];lines.push(...pool.weights.flatMap((weight,i)=>{if(tier>=0&&tier!==i)return [];const eligible=eligibleDrops(q.catalog,i,q.assets?.level||1,q.assets?.permanent||[]),content=i===0?this.t('获得40金币','Receive 40 coins'):eligible.length?eligible.map(p=>this.productName(p)).join(' / ')+this.t(`（每种${(100/eligible.length).toFixed(1)}%，档内等概率）`,` (equal odds within tier)`):this.t(`本档当前无可用装备，获得${pool.coinDrops[i]}金币`,`No eligible item: ${pool.coinDrops[i]} coins`);return [this.t(rarity[i],rarityEn[i])+(tier<0?` ${weight}%`:'')+'\n'+content];}));lines.push(this.t('仅抽取已解锁、未永久拥有的单场武器或增益；主动技能在Lv.6/10永久解锁。各数量套餐概率相同。','Only unlocked, unowned one-match gear. Active skills unlock permanently at Lv.6/10. All package sizes share odds.'));const locked=q.catalog.filter(p=>p.term==='match'&&p.category!=='skill'&&p.unlockLevel>(q.assets?.level||1));if(locked.length){lines.push(this.t('尚未进入当前奖池（达到等级后解锁）：','NOT IN THE CURRENT POOL (unlock by level):'));lines.push(...locked.map(p=>`${this.productName(p)} · Lv.${p.unlockLevel}`));}}
-    const rowH=p?92:70;this.list('info',x+18,y+53,pw-36,ph-118,lines.length*rowH,offset=>lines.forEach((line,i)=>this.label(line,x+22,y+55+i*rowH-offset,pw-52,rowH-6,27,ivory,false,true)));
+    const pw=Math.min(650,this.right-this.left),font=this.font(27),width=pw-52;
+    const heights=lines.map(line=>Math.max(30,line.split('\n').reduce((n,part)=>n+Math.max(1,Math.ceil(Array.from(part).reduce((sum,c)=>sum+(/[^\x00-\x7f]/.test(c)?1:.6),0)*font/width)),0)*font*1.23+8));
+    const content=heights.reduce((a,b)=>a+b,0),title=p?this.productName(p):this.t(q.info==='wheel'?'转盘概率':'补给箱概率与内容',q.info==='wheel'?'WHEEL ODDS':'CRATE CONTENTS & ODDS');
+    const {x,y,ph}=this.dialog(title,content+118);
+    this.list('info',x+18,y+53,pw-36,ph-118,content,offset=>{let yy=y+55-offset;lines.forEach((line,i)=>{this.label(line,x+22,yy,width,heights[i]-8,27,ivory,false,true);yy+=heights[i];});});
     this.button('qm:infoClose',this.t('知道了','CLOSE'),x+pw/2-70,y+ph-57,140,44,'blue');
   }
-  private dialog(title:string){
-    const pw=Math.min(650,this.right-this.left),ph=Math.min(390,this.height-24),x=(this.w-pw)/2,y=(this.height-ph)/2;
+  private dialog(title:string,desiredHeight=390){
+    const pw=Math.min(650,this.right-this.left),ph=Math.min(desiredHeight,this.height-this.h.safe.top-this.h.safe.bottom-24),x=(this.w-pw)/2,y=this.h.safe.top+(this.height-this.h.safe.top-this.h.safe.bottom-ph)/2;
     for(const b of this.h.buttons)if(this.h.inModal(b.label.node))b.disabled=true;this.h.listAreas=[];
-    const overlay=this.h.node('RewardDialog',this.n);this.n=overlay;this.surfaces=this.h.node('DialogSurfaces',overlay);this.g=this.h.node('DialogInk',overlay).addComponent(Graphics);
-    this.h.rect(this.g,0,0,this.w,this.height,'#01070cdd');this.panel(x,y,pw,ph);
-    this.label(title,x+16,y+10,pw-32,34,38,gold,true);
+    const overlay=this.h.node('RewardDialog',this.n);this.n=overlay;this.g=this.h.node('DialogShade',overlay).addComponent(Graphics);
+    this.h.rect(this.g,0,0,this.w,this.height,'#01070ca8');this.surfaces=this.h.node('DialogPanel',overlay);this.panel(x,y,pw,ph);
+    this.g=this.h.node('DialogFill',overlay).addComponent(Graphics);this.h.gradient(this.g,x+6,y+6,pw-12,ph-12,'#1a3547f5','#0b1b2af5',4);
+    this.surfaces=this.h.node('DialogSurfaces',overlay);this.g=this.h.node('DialogInk',overlay).addComponent(Graphics);
+    if(title)this.label(title,x+16,y+10,pw-32,34,38,gold,true);
     return {x,y,pw,ph};
   }
   private leaveDialog(){
-    const pending=this.q.pending?.kind==='loadout',{x,y,pw,ph}=this.dialog(this.t(pending?'保存结果待确认':'方案尚未保存',pending?'SAVE RESULT PENDING':'UNSAVED LOADOUT'));
+    const pending=this.q.pending?.kind==='loadout',{x,y,pw,ph}=this.dialog(this.t(pending?'保存结果待确认':'方案尚未保存',pending?'SAVE RESULT PENDING':'UNSAVED LOADOUT'),220);
     const modes=this.q.dirtyModes.map(mode=>this.t(mode==='solo'?'单人方案':'双人方案',mode==='solo'?'Solo':'Duel')).join('、');
     this.label(pending?this.t('保存请求已发送，结果尚未确认。\n离开不会取消请求；草稿与交易编号会保留，稍后可重试确认。','The save was sent but is not yet confirmed.\nLeaving keeps the request and draft. Retry later to confirm.'):this.t(`${modes}有未保存的修改。\n返回编辑并确定保存，或放弃修改后离开。`,`${modes} has unsaved changes.\nContinue editing to save, or discard and leave.`),x+22,y+55,pw-44,ph-126,29,ivory);
     this.button('qm:keepEditing',this.t(pending?'继续确认':'返回编辑',pending?'CONTINUE':'KEEP EDITING'),x+20,y+ph-60,(pw-52)/2,44,'blue');
@@ -457,16 +463,11 @@ export class ProgressionView {
     const bw=(rw-12)/2;this.button('qm:giftClose',this.t(gift.opened?'完成':'稍后打开',gift.opened?'DONE':'LATER'),rx,b-48,bw,44,'gold',q.busy);this.button(gift.opened?'qm:giftWarehouse':'qm:giftOpen',this.t(gift.opened?'查看仓库':q.pending?'重试打开':'一键打开',gift.opened?'INVENTORY':q.pending?'RETRY':'OPEN ALL'),rx+bw+12,b-48,bw,44,'blue',q.busy);
   }
   private confirm(){
-    const q=this.q,intent=q.confirmation!,pw=Math.min(590,this.right-this.left),ph=Math.min(260,this.height-24),x=(this.w-pw)/2,y=(this.height-ph)/2;
-    // The confirmation gets its own top layer so it blocks both pictures and older touch targets.
-    const overlay=this.h.node('Confirmation',this.n);const g=overlay.addComponent(Graphics);this.h.rect(g,0,0,this.w,this.height,'#01070cce');
-    this.h.rect(g,x,y,pw,ph,'#071723','#c4a268',8);
-    for(const b of this.h.buttons)if(this.h.inModal(b.label.node)){b.disabled=true;}this.h.listAreas=[];
+    const q=this.q,intent=q.confirmation!,{x,y,pw,ph}=this.dialog('',220);
     const text=intent.kind==='sell'?this.t(`出售 ${this.inventoryName(intent.item)} ×${intent.quantity}？\n总计 ${q.sellPrice(intent.item)*intent.quantity} 金币`,`Sell ${this.inventoryName(intent.item)} ×${intent.quantity}?\nTotal ${q.sellPrice(intent.item)*intent.quantity} coins`):intent.kind==='activate'?this.t(`激活 ${this.inventoryName(intent.item)}？\n连续24小时；再次激活只续期，不叠加强度。`,`Activate ${this.inventoryName(intent.item)}?\nLasts 24 continuous hours. Renewal extends time, not strength.`):q.message[this.h.lang==='zh'?0:1];
-    const label=this.label(text,x+24,y+20,pw-48,ph-95,30,ivory,true);label.node.setSiblingIndex(this.n.children.length-1);
-    const left=this.h.button('qm:cancel',this.t('取消','CANCEL'),x+20,y+ph-62,(pw-52)/2,44,this.n);left.node.setSiblingIndex(this.n.children.length-1);
-    const right=this.h.button('qm:confirm',this.t('确认','CONFIRM'),x+32+(pw-52)/2,y+ph-62,(pw-52)/2,44,this.n);right.color=color(gold);right.node.setSiblingIndex(this.n.children.length-1);
-    this.h.rect(g,x+20,y+ph-62,(pw-52)/2,44,'#193348','#708b9b',4);this.h.rect(g,x+32+(pw-52)/2,y+ph-62,(pw-52)/2,44,'#634a27','#e2bb74',4);
+    this.label(text,x+24,y+16,pw-48,ph-88,30,ivory,true);
+    this.button('qm:cancel',this.t('取消','CANCEL'),x+20,y+ph-60,(pw-52)/2,44,'panel');
+    this.button('qm:confirm',this.t('确认','CONFIRM'),x+32+(pw-52)/2,y+ph-60,(pw-52)/2,44,'gold');
   }
   private settlement(s:Simulation){
     const q=this.q,online=this.h.online,reward=s.duelMode?online?.room?.settlement:online?.battleReward,training=s.mission.mode==='training',success=s.phase==='success';
