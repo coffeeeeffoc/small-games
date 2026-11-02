@@ -1,17 +1,15 @@
-import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const template = (name) => readFile(new URL(name, import.meta.url), 'utf8')
   .then((text) => text.replaceAll('\r\n', '\n'));
-const digest = (bytes) => createHash('sha256').update(bytes).digest('hex').slice(0, 12);
 
 export async function startupMarkup(background) {
   const [css, html, js] = await Promise.all([
     template('overlay.css'), template('overlay.html'), template('runtime.js'),
   ]);
   return {
-    head: `<!-- night-startup:head --><link rel="preload" as="image" href="${background}" fetchpriority="high"><style>${css.replaceAll('__NIGHT_BACKGROUND__', background)}</style><!-- /night-startup:head -->`,
+    head: `<!-- night-startup:head --><style>${css.replaceAll('__NIGHT_BACKGROUND__', background)}</style><!-- /night-startup:head -->`,
     body: `<!-- night-startup:body -->${html}<script>${js}</script><!-- /night-startup:body -->`,
   };
 }
@@ -37,8 +35,8 @@ export async function installStartup(out, target) {
     console.log('Creator emitted its default splash; startup disables it through settings.overrideSettings at onPostBaseInitDelegate, before SplashScreen.init.');
 
   const background = await readFile(new URL('background.webp', import.meta.url));
-  const backgroundPath = `startup/background.${digest(background)}.webp`;
-  const markup = await startupMarkup(backgroundPath);
+  // The small cover travels with HTML, so the loader itself never waits on another image request.
+  const markup = await startupMarkup(`data:image/webp;base64,${background.toString('base64')}`);
   for (const part of ['head', 'body'])
     html = html.replace(new RegExp(`\\s*<!-- night-startup:${part} -->[\\s\\S]*?<!-- /night-startup:${part} -->\\s*`, 'g'), '');
   const boot = `<script data-night-entry="${entry}">window.NightStartup.boot(${JSON.stringify(application)}, ${JSON.stringify(target)});</script>`;
@@ -55,7 +53,5 @@ export async function installStartup(out, target) {
   html = html.replace(/<html(?:\s[^>]*)?>/, '<html lang="zh-CN">')
     .replace(/\s*<\/head>/, `${markup.head}\n</head>`)
     .replace(/(<body\b[^>]*>)\s*/, (_, body) => `${body}\n${markup.body}\n`);
-  await mkdir(path.join(out, 'startup'), { recursive: true });
-  await writeFile(path.join(out, backgroundPath), background);
   await writeFile(indexPath, html);
 }

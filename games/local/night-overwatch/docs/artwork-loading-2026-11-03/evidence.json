@@ -1,0 +1,63 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "a10b99011fcf8db290d883840cce46fd13ff3ed6d7d955d2f1c7e7598bd22ad6"
+  },
+  "fixture": true,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "fullScreenLoading": true,
+      "homeWait": true,
+      "keyboardBlocked": true,
+      "preloadBeforeNavigation": true,
+      "fastOpenAndBack": true,
+      "warmPages": 8,
+      "repeatImageRequests": 0
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "fullScreenLoading": true,
+      "homeWait": true,
+      "keyboardBlocked": true,
+      "preloadBeforeNavigation": true,
+      "fastOpenAndBack": true,
+      "warmPages": 8,
+      "repeatImageRequests": 0
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "fullScreenLoading": true,
+      "homeWait": true,
+      "keyboardBlocked": true,
+      "preloadBeforeNavigation": true,
+      "fastOpenAndBack": true,
+      "warmPages": 8,
+      "repeatImageRequests": 0
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "fullScreenLoading": true,
+      "homeWait": true,
+      "keyboardBlocked": true,
+      "preloadBeforeNavigation": true,
+      "fastOpenAndBack": true,
+      "warmPages": 8,
+      "repeatImageRequests": 0
+    },
+    {
+      "homeFailure": true,
+      "keyboardRetry": true
+    },
+    {
+      "secondaryFailure": true,
+      "inPlaceRetry": true
+    }
+  ],
+  "errors": []
+}

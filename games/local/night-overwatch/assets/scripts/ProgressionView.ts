@@ -102,6 +102,10 @@ export class ProgressionView {
     this.n=list.n;this.surfaces=list.surfaces;this.g=list.g;draw(list.offset);list.finish();Object.assign(this,old);
   }
   render(s:Simulation,result=false){
+    if(this.loading(this.a.required(this.q.page,result,!!this.q.gift),result?'home':'qm:back')){
+      if(this.q.leaveTo!==undefined)this.leaveDialog();
+      return;
+    }
     if(result){this.settlement(s);this.footer();return;}
     if(!this.q.page){this.home();this.footer();return;}
     const page=this.q.page;this.header(this.t(...names[page]));
@@ -110,6 +114,20 @@ export class ProgressionView {
     else if(page==='inbox')this.inbox();else if(page==='warehouse')this.warehouse();else if(page==='checkin')this.checkin();else if(page==='receipts')this.receipts();else this.probability();
     if(!this.q.assets&&!this.q.busy&&!this.q.pending&&page!=='modes')this.button('qm:refresh',this.t('连接','Connect'),this.right-104,this.h.safe.top+3,104,44,'blue');
     this.footer();
+  }
+  loading(required:string[],back='qm:back',pending=false,failed=false){
+    const ready=this.a.ensure(required);
+    if(ready&&!pending&&!failed)return false;
+    failed=failed||required.some(name=>this.a.failed.has(name));
+    this.h.gradient(this.g,0,0,this.w,this.height,'#06121a55','#06121acc');
+    const w=Math.min(this.w*.65,this.height*.9,580),x=(this.w-w)/2,y=this.height*.20;
+    this.picture('title',x,y,w,w/3,false);
+    this.label(this.t(failed?'画面加载未完成':'正在加载画面…',failed?'ARTWORK UNAVAILABLE':'PREPARING THE VIEW…'),x,this.height*.57,w,42,42,ivory,true);
+    this.label(this.t(failed?'请检查网络后重试':'即将就绪，请稍候',failed?'Check your connection and retry.':'Almost ready. Please wait.'),x,this.height*.57+42,w,26,24,dim);
+    const by=Math.min(this.height-56,this.height*.57+82),bw=Math.min(160,(w-12)/2);
+    this.button(back,this.t('返回','BACK'),this.w/2-bw-(failed?6:-bw/2),by,bw,44,'panel');
+    if(failed)this.button('qm:artRetry',this.t('重新加载','RETRY'),this.w/2+6,by,bw,44,'gold');
+    return true;
   }
   private home(){
     const h=this.height,w=this.w,l=this.left,r=this.right,q=this.q,top=this.h.safe.top,bar=Math.max(48,h*.115);

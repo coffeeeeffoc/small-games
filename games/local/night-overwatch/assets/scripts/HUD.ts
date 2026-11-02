@@ -108,7 +108,9 @@ export class HUD {
   mousePointer?: { x: number; y: number };
   pressedButton = '';
   private uiFrames = new Map<string, SpriteFrame>();
+  private artworkRetries = new Map<string,()=>void>();
   private surfaces?: Node;
+  retryArtwork(){this.progressionArt.retry();for(const [name,retry] of Array.from(this.artworkRetries)){this.artworkRetries.delete(name);retry();}this.modalKey='rebuild';}
   get interfaceArtworkReady() { return this.quartermaster ? this.progressionArt.homeReady : this.uiFrames.size === 3 && !!this.titleArtwork && this.missionArtwork.length === 3 && this.dayArtwork.length === 3; }
   effects: EffectsFrame = { impacts: [], projectiles: [] };
   buttons: ButtonRect[] = [];
@@ -203,16 +205,12 @@ export class HUD {
     this.homeBackground.addComponent(Graphics);
     this.homeArtwork = this.node('HomeArtwork', this.homeBackground).addComponent(Sprite);
     this.homeArtwork.sizeMode = Sprite.SizeMode.CUSTOM;
-    resources.load('ui/progression/home/texture', Texture2D, (error, texture) => {
-      if (!error && isValid(this.root)) {
-        const frame = new SpriteFrame(); frame.texture = texture;
-        this.homeArtwork.spriteFrame = frame; this.artworkFrames.push(frame);
-      }
-    });
     // These are original unlettered illustrations and a separate transparent wordmark.
     // All mission data, interaction and status text remain live Cocos UI.
-    for (const asset of ['title-metal', 'mission-atlas', 'mission-day-atlas']) resources.load('ui/' + asset + '/texture', Texture2D, (error, texture) => {
-      if (error || !isValid(this.root)) return;
+    for (const asset of ['title-metal', 'mission-atlas', 'mission-day-atlas']) {
+      const load=()=>resources.load('ui/' + asset + '/texture', Texture2D, (error, texture) => {
+      if (!isValid(this.root)) return;
+      if(error){this.artworkRetries.set(asset,load);if(!this.editing)this.modalKey='rebuild';return;}
       const count = asset === 'title-metal' ? 1 : 3;
       for (let index = 0; index < count; index++) {
         const frame = new SpriteFrame(); frame.texture = texture;
@@ -222,16 +220,20 @@ export class HUD {
         else if (count === 3) this.missionArtwork.push(frame); else this.titleArtwork = frame;
       }
       if (!this.editing) this.modalKey = 'rebuild';
-    });
-    for (const name of ['panel', 'button', 'insignia']) resources.load(`ui/${name}/texture`, Texture2D, (error, texture) => {
-      if (error || !isValid(this.root)) return;
+      });load();
+    }
+    for (const name of ['panel', 'button', 'insignia']) {
+      const load=()=>resources.load(`ui/${name}/texture`, Texture2D, (error, texture) => {
+      if (!isValid(this.root)) return;
+      if(error){this.artworkRetries.set(name,load);if(!this.editing)this.modalKey='rebuild';return;}
       const frame = new SpriteFrame(); frame.texture = texture;
       if (name !== 'insignia') {
         const edge = Math.round(Math.min(texture.width, texture.height) * .065);
         frame.insetLeft = frame.insetRight = frame.insetTop = frame.insetBottom = edge;
       }
       this.uiFrames.set(name, frame); this.artworkFrames.push(frame); if (!this.editing) this.modalKey = 'rebuild';
-    });
+      });load();
+    }
     this.g = this.node('Backdrop', this.root).addComponent(Graphics);
     this.marks = this.node('Telemetry', this.root).addComponent(Graphics);
     this.globalControls = this.node('GlobalControls', this.root);
@@ -1329,6 +1331,10 @@ export class HUD {
     if(this.quartermaster&&(key==='home'||key.startsWith('progression:')||key==='success'||key==='failure'||key==='duelResult')){
       new ProgressionView(this,this.quartermaster,this.progressionArt,n,g,this.surfaces).render(s,['success','failure','duelResult'].includes(key));return;
     }
+    if(this.quartermaster&&(key==='missions'||key.startsWith('online:'))){
+      const missions=key==='missions',required=key.startsWith('online:menu')?['skins','night-ui-serif','03-mode-selection']:[];
+      if(new ProgressionView(this,this.quartermaster,this.progressionArt,n,g,this.surfaces).loading(required,missions?'homeMenu':'online:back',missions&&(this.missionArtwork.length!==3||this.dayArtwork.length!==3),missions&&['mission-atlas','mission-day-atlas'].some(name=>this.artworkRetries.has(name))))return;
+    }
     if (key === 'entering') {
       const pw = Math.min(480, this.w - 48), px = (this.w - pw) / 2, py = this.h / 2 - 75;
       this.panelFrame(g, px, py, pw, 150, C.amber, '#050f1d38');
@@ -1767,6 +1773,7 @@ export class HUD {
       : this.t('战斗补给', 'COMBAT SUPPLY');
   }
   update(s: Simulation, world: World) {
+    if(this.quartermaster&&this.progressionArt.homeReady)this.progressionArt.warm();
     this.quartermaster?.tickPresentation(this.reducedEffects);
     if(this.quartermaster){
       this.quartermaster.syncIdentity();
@@ -1776,6 +1783,7 @@ export class HUD {
       const frame=this.progressionArt.get(page==='loadout'||page==='warehouse'||page==='checkin'||page==='tasks'?'hangar':page?'base':'home');
       if(frame)this.homeArtwork.spriteFrame=frame;
     }
+    else if(!this.homeArtwork.spriteFrame)this.homeArtwork.spriteFrame=this.progressionArt.get('home')||null;
     this.lockedTargets = [];
     this.effects = { impacts: [], projectiles: [] };
     const w = this.w, h = this.h, g = this.g, top = this.safe.top,
