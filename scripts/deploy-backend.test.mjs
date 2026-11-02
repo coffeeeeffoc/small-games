@@ -264,6 +264,7 @@ test('backend failure and rollback contracts use isolated mocks only', () => {
   const windows = process.platform === 'win32';
   for (const name of [
     '../infra/backend-update/deploy.test.py',
+    '../infra/backend-update/ranked-retention.test.py',
     '../infra/deployment/image-authority.test.py',
   ]) {
     const file = fileURLToPath(new URL(name, import.meta.url));

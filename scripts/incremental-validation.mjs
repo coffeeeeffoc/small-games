@@ -39,6 +39,7 @@ import {
   adminDeploymentScopePaths,
   adminCspScopePaths,
   backendDeploymentScopePaths,
+  rankedRetentionScopePaths,
   backendSharedScopePaths,
   imageAuthorityScopePaths,
   runtimeProxyDefaultScopePaths,
@@ -385,6 +386,8 @@ export function incrementalPlan({
     ...(paths.some(
       (file) =>
         backendDeploymentScopePaths.includes(file) ||
+        rankedRetentionScopePaths.includes(file) ||
+        file === 'services/runtime-api/src/competition/ranked-maintenance.ts' ||
         backendSharedScopePaths.includes(file) ||
         (file === 'package.json' && fileScopes.get(file)?.includes('services/tianxia-server')),
     )

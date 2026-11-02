@@ -15,6 +15,14 @@ function fixture() {
     createRecorder: () => ({ start: async () => null, record() {}, finish: async () => null, invalidate() {} }) };
   return { current, bridge, received, count: () => calls, fail: () => { fail = true; } };
 }
+test('server-confirmed ranked retirement displays a new-run notice instead of pending sync', async () => {
+  const f=fixture(), online=new Online(storage(),()=>{}); let status:(value:string)=>void=()=>{};
+  Object.assign(f.bridge,{createRecorder:(_version:string, options:any)=>{status=options.onStatus;return {start:async()=>null,record(){},finish:async()=>null,invalidate(){}};}});
+  await online.connect(f.bridge); status('expired');
+  assert.equal(online.rankStatus,'unavailable'); assert.equal(online.message,'本次行动已结束或超过 24 小时，请重新开始');
+  status('recording'); assert.equal(online.rankStatus,'recording'); online.dispose();
+});
+
 test('rankings retain the complete top 100 and the current player outside that list', async () => {
   const f=fixture(), online=new Online(storage(),()=>{}), requests:string[]=[];
   const rows=Array.from({length:100},(_,i)=>({id:String(i),rank:i+1,score:100-i,secondary:1200}));

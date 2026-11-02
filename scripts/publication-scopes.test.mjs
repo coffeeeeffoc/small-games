@@ -341,6 +341,7 @@ import {
   sharedDeploymentScopePaths,
   selectedBackendConsumers,
   backendDeploymentScopePaths,
+  rankedRetentionScopePaths,
   backendSharedScopePaths,
   imageAuthorityScopePaths,
   imageAuthorityConsumers,
@@ -5049,6 +5050,49 @@ test('shared authority helper selects only its three backend consumers and bound
     });
   } finally {
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('ranked retention selects only Runtime and finite owner contracts', () => {
+  const packages = [
+    'services/runtime-api',
+    'services/kart-server',
+    'services/tianxia-server',
+    'services/management-api',
+  ].map((dir) => ({ dir, name: dir }));
+  for (const file of [
+    ...rankedRetentionScopePaths,
+    'services/runtime-api/src/competition/ranked-maintenance.ts',
+  ]) {
+    const context = { changedPaths: [file], packages, games: [], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    if (rankedRetentionScopePaths.includes(file))
+      assert.deepEqual(fileScopes.get(file), ['services/runtime-api']);
+    const plan = incrementalPlan({ ...context, fileScopes });
+    assert.equal(plan.full, false);
+    assert.equal(plan.backend_deployment_checks, true);
+    assert.deepEqual(plan.service_rule_sources, ['services/runtime-api']);
+    assert.deepEqual(plan.browser_ids, []);
+    assert.deepEqual(plan.native_consumers, []);
+    assert.equal(plan.admin_console_checks, false);
+  }
+  assert.equal(
+    reviewedSharedFileScopes({
+      changedPaths: rankedRetentionScopePaths,
+      packages: packages.slice(1),
+      games: [],
+    }).size,
+    0,
+  );
+  for (const file of [
+    'infra/backend-update/ranked-retention-extra.py',
+    'infra/backend-update/extra.service',
+    'infra/backend-update/extra.timer',
+  ]) {
+    const context = { changedPaths: [file], packages, games: [], readSource: () => '' };
+    const fileScopes = reviewedSharedFileScopes(context);
+    assert.equal(fileScopes.size, 0);
+    assert.throws(() => incrementalPlan({ ...context, fileScopes }), /Incremental scope undefined/);
   }
 });
 

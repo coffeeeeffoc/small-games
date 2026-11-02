@@ -3176,6 +3176,12 @@ export const backendDeploymentScopePaths = [
   'infra/backend-update/deploy.py',
   'infra/backend-update/deploy.test.py',
 ];
+export const rankedRetentionScopePaths = [
+  'infra/backend-update/ranked-retention.py',
+  'infra/backend-update/ranked-retention.test.py',
+  'infra/backend-update/small-games-ranked-retention.service',
+  'infra/backend-update/small-games-ranked-retention.timer',
+];
 export const imageAuthorityScopePaths = [
   'infra/deployment/image-authority.py',
   'infra/deployment/image-authority.test.py',
@@ -5281,6 +5287,11 @@ export function reviewedSharedFileScopes({
       if (backendDeploymentScopePaths.includes(file)) {
         for (const dir of selectedBackendConsumers) assert(packages.some((pkg) => pkg.dir === dir));
         scopes.set(file, selectedBackendConsumers);
+        continue;
+      }
+      if (rankedRetentionScopePaths.includes(file)) {
+        assert(packages.some((pkg) => pkg.dir === 'services/runtime-api'));
+        scopes.set(file, ['services/runtime-api']);
         continue;
       }
       if (file === 'package.json' && readBase && readHead) {

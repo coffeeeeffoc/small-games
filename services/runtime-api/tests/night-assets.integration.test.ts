@@ -20,6 +20,7 @@ import {
   type AssetCommand,
 } from '../src/competition/night-assets.js';
 import type { Rule } from '../src/competition/types.js';
+import { gateFixture } from './control-fixture.js';
 const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
 (databaseUrl ? describe : describe.skip)('Night asset transactions in isolated PostgreSQL', () => {
   let database: ReturnType<typeof openDatabase>,
@@ -720,6 +721,102 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
     await ranked.actions(id, rule.id, next.id, { seq: 1, frames: [{ input: {}, ticks: 2 }] });
     await ranked.cancel(id, rule.id, next.id);
     expect((await get(id)).inventory['power-match']).toBe(1);
+  });
+  it('retention persists raw reservation releases, preserves consumed stock and honors existing invalidation refunds', async () => {
+    for (const mode of ['unused', 'consumed', 'old-unused', 'old-consumed', 'disabled', 'epoch']) {
+      const id = await owner();
+      await seed(id, {
+        inventory: { 'power-match': 2 },
+        loadouts: {
+          solo: { mods: ['power-match'], weapon: null, skill: null },
+          duel: { mods: [], weapon: null, skill: null },
+        },
+      });
+      const rule = {
+        ...(await import(new URL('../rules/night-ranked.mjs', import.meta.url).href)).default,
+      } as RankedRule;
+      const registry = new Map([[rule.id, rule]]),
+        gate = gateFixture();
+      let time = at;
+      const ranked = createRankedStore(
+        database.db,
+        registry,
+        store.identityDetails,
+        () => time,
+        gate.control,
+      );
+      const requestId = randomUUID();
+      const run = await ranked.create(
+        id,
+        rule.id,
+        'level-corridor-01',
+        'corridor-01',
+        rule.version,
+        requestId,
+      );
+      const consumed = ['consumed', 'old-consumed', 'disabled', 'epoch'].includes(mode);
+      if (consumed)
+        await ranked.actions(id, rule.id, run.id, { seq: 1, frames: [{ input: {}, ticks: 2 }] });
+      if (mode.startsWith('old-'))
+        registry.set(rule.id, { ...rule, version: rule.version + '-next' });
+      if (mode === 'disabled') gate.set('disabled', 1);
+      if (mode === 'epoch') gate.set('enabled', 1);
+      time += 86400000;
+      if (!['unused', 'consumed'].includes(mode))
+        await expect(ranked.retireExpired(id, rule.id, run.id)).rejects.toMatchObject({
+          code:
+            mode === 'disabled'
+              ? 'GAME_DISABLED'
+              : mode === 'epoch'
+                ? 'GAME_CANCELLED'
+                : 'RULE_VERSION_CHANGED',
+        });
+      const results = await Promise.all([
+        ranked.retireExpired(id, rule.id, run.id),
+        ranked.retireExpired(id, rule.id, run.id),
+      ]);
+      expect(results.every((value) => value.status === 'finished')).toBe(true);
+      // Inspect persisted JSON directly: an assets GET would hide a missing save by preparing in memory.
+      const wallet = (
+        await database.db.execute(
+          sql`select data from runtime.competition_matches where id=${`night-assets:${id}`}`,
+        )
+      )[0]!.data as NightAssets;
+      expect(wallet.inventory['power-match']).toBe(mode === 'consumed' ? 1 : 2);
+      expect(wallet.reservations[`run:${run.id}`]!.status).toBe(
+        mode === 'consumed' ? 'consumed' : consumed ? 'refunded' : 'released',
+      );
+      const before = structuredClone(wallet);
+      await ranked.retireExpired(id, rule.id, run.id);
+      expect(
+        (
+          await database.db.execute(
+            sql`select data from runtime.competition_matches where id=${`night-assets:${id}`}`,
+          )
+        )[0]!.data,
+      ).toEqual(before);
+      gate.set('enabled', 0);
+      registry.set(rule.id, rule);
+      expect(
+        (
+          await ranked.create(
+            id,
+            rule.id,
+            'level-corridor-01',
+            'corridor-01',
+            rule.version,
+            requestId,
+          )
+        ).id,
+      ).toBe(run.id);
+      expect(
+        (
+          await database.db.execute(
+            sql`select count(*)::integer as n from runtime.competition_matches where id=${`ranked-run:${run.id}`}`,
+          )
+        )[0]!.n,
+      ).toBe(1);
+    }
   });
   it('room advancement and solo settlement maintain ledger-before-assets lock order on two connections', async () => {
     const [a, b] = await Promise.all([owner(), owner()]);

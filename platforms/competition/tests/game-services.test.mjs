@@ -252,7 +252,7 @@ test('Night acknowledgement during a request stops subsequent uploads and preser
 });
 
 test('Night acknowledgement wins over a rejected request without resuming or lowering completion', async () => {
-  for (const boundary of ['getRun', 'appendFrames', 'resumeRun', 'finishRun', 'recovery-resume']) {
+  for (const boundary of ['getRun', 'appendFrames', 'resumeRun', 'finishRun', 'recovery-confirm']) {
     for (const code of ['RUN_EXPIRED', 'SERVICE_UNAVAILABLE']) {
       const f = durableFixture(),
         recorder = f.recorder(),
@@ -261,13 +261,14 @@ test('Night acknowledgement wins over a rejected request without resuming or low
       await recorder.start({ mode: 'campaign', levelId: 'first' });
       recorder.record({}, 120);
       if (boundary === 'resumeRun') [...f.runs.values()][0].expiresAt = 0;
-      const method = boundary === 'recovery-resume' ? 'resumeRun' : boundary;
-      if (boundary === 'recovery-resume')
-        f.services.getRun = async () => {
-          throw Object.assign(Error('expired before confirmation'), { code: 'RUN_EXPIRED' });
-        };
+      const method = boundary === 'recovery-confirm' ? 'getRun' : boundary;
       const original = f.services[method];
+      let firstRead = true;
       f.services[method] = async (input) => {
+        if (boundary === 'recovery-confirm' && firstRead) {
+          firstRead = false;
+          throw Object.assign(Error('expired before confirmation'), { code: 'RUN_EXPIRED' });
+        }
         await original(input);
         hit.resolve();
         await release.promise;
@@ -589,9 +590,99 @@ test('Night lost finish response, expired session and duplicate recovery preserv
   await second.finish();
   f.offline(false);
   [...f.runs.values()][1].expiresAt = 0;
+  f.services.resumeRun = async () => {
+    f.calls.push('resume');
+    throw Object.assign(Error(), { code: 'RUN_EXPIRED' });
+  };
   f.calls.length = 0;
   await f.recorder().recover();
-  assert.deepEqual(f.calls, ['get', 'resume', 'append', 'finish']);
+  assert.deepEqual(f.calls, ['get', 'resume', 'get']);
+  const ended = [...f.values]
+    .filter(([key]) => key.endsWith(':synced'))
+    .map(([, value]) => JSON.parse(value));
+  assert.ok(ended.some((entry) => entry.result.reason === 'RUN_EXPIRED'));
+  f.calls.length = 0;
+  await f.recorder().recover();
+  assert.deepEqual(f.calls, []);
+});
+
+test('Night retired roots persist a terminal acknowledgement and stale tabs cannot upload again', async () => {
+  const f = durableFixture(),
+    first = f.recorder();
+  await first.start({ mode: 'campaign', levelId: 'first' });
+  first.record({}, 120);
+  f.offline(true);
+  await first.finish();
+  const name = [...f.values.keys()][0];
+  [...f.runs.values()][0].status = 'finished';
+  f.offline(false);
+  const restored = f.recorder();
+  await restored.recover();
+  assert.equal(restored.status, 'expired');
+  assert.equal(JSON.parse(f.values.get(name + ':synced')).result.reason, 'RUN_FINISHED');
+  first.persist();
+  assert.equal(f.values.has(name), false);
+  f.calls.length = 0;
+  await Promise.all([restored.recover(), first.finish()]);
+  assert.deepEqual(f.calls, []);
+  await restored.start({ mode: 'campaign', levelId: 'second' });
+  assert.equal(f.runs.size, 2);
+});
+
+test('Night authoritative settlement wins over a stale shorter unfinished journal and terminal errors', async () => {
+  for (const viaError of [false, true]) {
+    const f = durableFixture(),
+      first = f.recorder();
+    await first.start({ mode: 'campaign', levelId: 'first' });
+    const run = [...f.runs.values()][0];
+    run.seq = 3;
+    run.status = 'finished';
+    run.settlement = { accepted: true, fastestEligible: true };
+    if (viaError) {
+      const get = f.services.getRun;
+      let once = true;
+      f.services.getRun = async (input) => {
+        if (once) {
+          once = false;
+          throw Object.assign(Error(), { code: 'RUN_FINISHED' });
+        }
+        return get(input);
+      };
+    }
+    await first.recover();
+    assert.equal(first.status, 'finished');
+    assert.equal([...f.values.keys()].filter((key) => !key.endsWith(':synced')).length, 0);
+    const marker = JSON.parse([...f.values.values()][0]);
+    assert.equal(marker.result.accepted, true);
+  }
+});
+
+test('Night terminal acknowledgement storage failures retain the journal until a durable retry', async () => {
+  for (const silent of [false, true]) {
+    const f = durableFixture(),
+      first = f.recorder();
+    await first.start({ mode: 'campaign', levelId: 'first' });
+    first.record({}, 120);
+    first.persist();
+    const name = [...f.values.keys()][0],
+      set = f.storage.setItem;
+    [...f.runs.values()][0].status = 'finished';
+    f.storage.setItem = (key, value) => {
+      if (key.endsWith(':synced')) {
+        if (silent) return;
+        throw Error('quota');
+      }
+      return set(key, value);
+    };
+    await first.finish();
+    assert.equal(first.status, 'storage-unavailable');
+    assert.equal(f.values.has(name), true);
+    assert.equal(f.values.has(name + ':synced'), false);
+    f.storage.setItem = set;
+    await f.recorder().recover();
+    assert.equal(f.values.has(name), false);
+    assert.equal(JSON.parse(f.values.get(name + ':synced')).result.reason, 'RUN_FINISHED');
+  }
 });
 test('Night unavailable start is persisted before transport and retries the same request without bypassing time', async () => {
   const f = durableFixture();
@@ -965,6 +1056,29 @@ function authFixture(t, { initial = JSON.stringify(credential()), config = {} } 
   }));
   return fixture;
 }
+test('Night authenticated retired old-version reads are allowed without allowing active or other-game roots', async (t) => {
+  const owner = credential('a', Date.now() + 900000, 'night-overwatch');
+  const f = authFixture(t, { initial: JSON.stringify(owner) }),
+    api = createGameServices({ gameId: 'night-overwatch', ruleVersion: 'v12' });
+  let remote = {
+    id: 'retired-run',
+    game: 'night-overwatch',
+    version: 'v8',
+    status: 'finished',
+    settlement: null,
+  };
+  f.respond = async () => remote;
+  assert.deepEqual(await api.getRun({ runId: remote.id, playerId: owner.playerId }), remote);
+  remote = { ...remote, status: 'active' };
+  await assert.rejects(api.getRun({ runId: remote.id, playerId: owner.playerId }), {
+    code: 'RULE_VERSION_CHANGED',
+  });
+  remote = { ...remote, status: 'finished', game: 'tower-brake' };
+  await assert.rejects(api.getRun({ runId: remote.id, playerId: owner.playerId }), {
+    code: 'RULE_VERSION_CHANGED',
+  });
+});
+
 test('first guest reads and writes automatically share one scoped credential', async (t) => {
   const f = authFixture(t, { initial: null }),
     api = createGameServices({ gameId: 'tower-brake', ruleVersion: 'v1' });

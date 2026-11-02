@@ -11,6 +11,11 @@ import type {
 } from './ranked-types.js';
 
 const lifetime = 24 * 60 * 60 * 1000;
+export function rankedRunDeadline(run: Pick<RankedRun, 'createdAt' | 'expiresAt'>) {
+  return Number.isSafeInteger(run.createdAt) && Number.isSafeInteger(run.expiresAt)
+    ? Math.min(run.expiresAt, run.createdAt + lifetime)
+    : 0;
+}
 const view = (run: RankedRun): RunView => ({
   ...(run.loadout ? { loadout: run.loadout } : {}),
   id: run.id,
@@ -22,7 +27,7 @@ const view = (run: RankedRun): RunView => ({
   seq: run.seq,
   status: run.status,
   stepHz: 120,
-  expiresAt: run.expiresAt,
+  expiresAt: rankedRunDeadline(run),
 });
 // Canonical object key order makes retries independent of JSON property ordering.
 const canonical = (value: unknown): unknown =>
@@ -63,7 +68,7 @@ export function createRankedRuns(
   }
   function assertActive(run: RankedRun) {
     if (run.status !== 'active') throw new CompetitionError('RUN_FINISHED');
-    if (run.expiresAt <= now()) throw new CompetitionError('RUN_EXPIRED');
+    if (rankedRunDeadline(run) <= now()) throw new CompetitionError('RUN_EXPIRED');
     if (ruleFor(run.game).version !== run.version)
       throw new CompetitionError('RULE_VERSION_CHANGED');
   }
@@ -108,6 +113,7 @@ export function createRankedRuns(
         const hex = bytes.toString('hex');
         id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
       }
+      const createdAt = now();
       const run: RankedRun = {
         kind: 'ranked-run-v1',
         id,
@@ -121,8 +127,8 @@ export function createRankedRuns(
         seq: 0,
         ticks: 0,
         state,
-        createdAt: now(),
-        expiresAt: now() + lifetime,
+        createdAt,
+        expiresAt: createdAt + lifetime,
         status: 'active',
       };
       const stored = await repository.create(run, auth);
@@ -163,8 +169,7 @@ export function createRankedRuns(
           if (ruleFor(game).version !== run.version)
             throw new CompetitionError('RULE_VERSION_CHANGED');
           if (!run.settlement) {
-            if (run.status !== 'active') throw new CompetitionError('RUN_FINISHED');
-            run.expiresAt = now() + lifetime;
+            assertActive(run);
           }
           return { ...view(run), settlement: run.settlement ?? null };
         },
@@ -208,7 +213,6 @@ export function createRankedRuns(
           run.seq = input.seq;
           if (ticks > 0) await tx.consumeLoadout?.();
           run.ticks += ticks;
-          run.expiresAt = now() + lifetime;
           const response = view(run);
           await tx.saveReceipt(input.seq, { hash, response });
           return response;
@@ -265,6 +269,28 @@ export function createRankedRuns(
           return view(tx.run);
         },
         auth,
+      );
+    },
+    /** Trusted maintenance only: no HTTP route; recheck inside the repository row lock. */
+    retireExpired(owner: string, game: string, id: string) {
+      return repository.mutate(
+        id,
+        async (tx) => {
+          assertOwner(tx.run, owner, game);
+          const current = rules.get(game);
+          if (!current) throw new CompetitionError('WRONG_GAME');
+          if (
+            tx.run.status === 'active' &&
+            !tx.run.settlement &&
+            (rankedRunDeadline(tx.run) <= now() || tx.run.version !== current.version)
+          ) {
+            if (!tx.run.loadoutStarted) await tx.releaseLoadout?.();
+            tx.run.expiresAt = rankedRunDeadline(tx.run);
+            tx.run.status = 'finished';
+          }
+          return { ...view(tx.run), settlement: tx.run.settlement ?? null };
+        },
+        owner,
       );
     },
   };

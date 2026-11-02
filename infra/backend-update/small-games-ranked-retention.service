@@ -1,0 +1,15 @@
+[Unit]
+Description=Expire ranked runs and compact their checkpoints
+After=docker.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+UMask=0077
+ExecStart=/usr/bin/python3 -B /opt/small-games/ranked-retention/ranked-retention.py
+Nice=10
+TimeoutStartSec=30min
+# Let the owner finish its bounded in-container call while retaining deploy.lock.
+KillMode=process
+NoNewPrivileges=true
+PrivateTmp=true

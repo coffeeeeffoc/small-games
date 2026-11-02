@@ -958,7 +958,12 @@ export async function consumeNightLoadout(
     r = w.reservations[battle];
   if (!release && (!r || r.status === 'released' || r.status === 'refunded'))
     fail('LOADOUT_RESERVATION_EXPIRED');
-  if (!r || r.status !== 'reserved') return;
+  if (!r || r.status !== 'reserved') {
+    // prepare() may have released an expired reservation in memory. Maintenance
+    // must persist that release even when there is no consumption left to perform.
+    if (release && r?.status === 'released') await save(tx, owner, w);
+    return;
+  }
   if (release) r.status = 'released';
   else {
     r.consumedItems = r.items.filter(
@@ -979,7 +984,10 @@ export async function refundNightLoadout(
 ) {
   const w = await locked(tx, owner, at, rules),
     r = w.reservations[battle];
-  if (!r || r.status === 'released' || r.status === 'refunded') return;
+  if (!r || r.status === 'released' || r.status === 'refunded') {
+    if (r?.status === 'released') await save(tx, owner, w);
+    return;
+  }
   if (r.status === 'consumed') for (const id of r.consumedItems ?? r.items) stock(w, id, 1);
   r.status = 'refunded';
   await save(tx, owner, w);

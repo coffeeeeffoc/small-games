@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly bounded ranked run retention
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=2min
+Unit=small-games-ranked-retention.service
+
+[Install]
+WantedBy=timers.target

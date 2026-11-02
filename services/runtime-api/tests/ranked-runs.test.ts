@@ -60,6 +60,55 @@ function setup(game = rule.id) {
 }
 
 describe('shared ranked run lifecycle', () => {
+  it('caps legacy renewals and retires under the same root lock without replaying or rewarding', async () => {
+    const f = setup(night),
+      requestId = 'aaaaaaaa-0000-4000-8000-000000000002';
+    const run = await f.service.create('member', night, 'endless', undefined, 'v1', requestId);
+    const stored = f.runs.get(run.id)!;
+    stored.expiresAt += 7 * 86400000;
+    expect((await f.service.get('member', night, run.id)).expiresAt).toBe(run.expiresAt);
+    expect((await f.service.retireExpired('member', night, run.id)).status).toBe('active');
+    const mutate = f.repository.mutate;
+    let released = 0;
+    f.repository.mutate = (id, change, auth) =>
+      mutate(
+        id,
+        (tx) =>
+          change({
+            ...tx,
+            releaseLoadout: async () => {
+              released++;
+            },
+          }),
+        auth,
+      );
+    f.advance(86400000);
+    await expect(f.service.resume('member', night, run.id)).rejects.toMatchObject({
+      code: 'RUN_EXPIRED',
+    });
+    await expect(
+      f.service.actions('member', night, run.id, { seq: 1, frames: [{ input: {}, ticks: 1 }] }),
+    ).rejects.toMatchObject({ code: 'RUN_EXPIRED' });
+    await Promise.all([
+      f.service.retireExpired('member', night, run.id),
+      f.service.retireExpired('member', night, run.id),
+    ]);
+    expect(released).toBe(1);
+    expect(f.runs.get(run.id)).toMatchObject({
+      status: 'finished',
+      expiresAt: run.expiresAt,
+      seq: 0,
+    });
+    expect(
+      (await f.service.create('member', night, 'endless', undefined, 'v1', requestId)).id,
+    ).toBe(run.id);
+    expect(f.runs.size).toBe(1);
+    expect(f.results.size).toBe(0);
+    await expect(f.service.retireExpired('outsider', night, run.id)).rejects.toMatchObject({
+      code: 'NOT_A_MEMBER',
+    });
+  });
+
   it('only Night accepts request IDs and concurrent retries keep the original checkpoint', async () => {
     const fixture = setup(night),
       requestId = 'aaaaaaaa-0000-4000-8000-000000000001';
@@ -102,7 +151,7 @@ describe('shared ranked run lifecycle', () => {
       fixture.service.create('member', night, 'endless', undefined, 'v2', 'not-a-uuid'),
     ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   });
-  it('Night resume renews only expiry, preserves input and returns settled results without rewarding twice', async () => {
+  it('Night resume keeps the creation deadline and settled results remain readable', async () => {
     const fixture = setup(night);
     const run = await fixture.service.create('member', night, 'endless', undefined, 'v1');
     await fixture.service.actions('member', night, run.id, {
@@ -110,26 +159,34 @@ describe('shared ranked run lifecycle', () => {
       frames: [{ ticks: 120, input: {} }],
     });
     const before = structuredClone(fixture.runs.get(run.id)!);
-    fixture.advance(24 * 3600000 + 1);
+    fixture.advance(23 * 3600000);
+    expect((await fixture.service.resume('member', night, run.id)).expiresAt).toBe(run.expiresAt);
+    expect(fixture.runs.get(run.id)).toEqual(before);
+    fixture.advance(3600000);
     const next = { seq: 2, frames: [{ ticks: 120, input: {} }] };
     await expect(fixture.service.actions('member', night, run.id, next)).rejects.toMatchObject({
       code: 'RUN_EXPIRED',
     });
     await fixture.service.get('member', night, run.id);
     expect(fixture.runs.get(run.id)).toEqual(before);
-    const resumed = await fixture.service.resume('member', night, run.id);
-    expect(resumed.expiresAt).toBeGreaterThan(before.expiresAt);
-    expect(fixture.runs.get(run.id)).toEqual({ ...before, expiresAt: resumed.expiresAt });
-    await fixture.service.actions('member', night, run.id, next);
-    const settlement = await fixture.service.finish('member', night, run.id, 2);
+    await expect(fixture.service.resume('member', night, run.id)).rejects.toMatchObject({
+      code: 'RUN_EXPIRED',
+    });
+    expect(fixture.runs.get(run.id)).toEqual(before);
+    const fresh = await fixture.service.create('member', night, 'endless', undefined, 'v1');
+    await fixture.service.actions('member', night, fresh.id, {
+      seq: 1,
+      frames: [{ ticks: 120, input: {} }],
+    });
+    const settlement = await fixture.service.finish('member', night, fresh.id, 1);
     expect(settlement.accepted).toBe(true);
-    const finished = structuredClone(fixture.runs.get(run.id));
+    const finished = structuredClone(fixture.runs.get(fresh.id));
     fixture.advance(24 * 3600000 + 1);
     for (let i = 0; i < 2; i++)
-      expect((await fixture.service.resume('member', night, run.id)).settlement).toEqual(
+      expect((await fixture.service.resume('member', night, fresh.id)).settlement).toEqual(
         settlement,
       );
-    expect(fixture.runs.get(run.id)).toEqual(finished);
+    expect(fixture.runs.get(fresh.id)).toEqual(finished);
     expect(fixture.results.size).toBe(1);
   });
   it('Night resume enforces ownership, game scope, current version and control', async () => {
@@ -284,7 +341,7 @@ describe('shared ranked run lifecycle', () => {
       code: 'RULE_VERSION_CHANGED',
     });
   });
-  it('allows endless time to grow through bounded batches and extends activity expiry', async () => {
+  it('allows bounded batches without extending the creation deadline', async () => {
     const fixture = setup();
     const run = await fixture.service.create('member', 'sample', 'endless', undefined, 'v1');
     for (let seq = 1; seq <= 12; seq++) {
@@ -295,6 +352,6 @@ describe('shared ranked run lifecycle', () => {
       });
     }
     expect(fixture.runs.get(run.id)?.ticks).toBe(28800);
-    expect(fixture.runs.get(run.id)?.expiresAt).toBeGreaterThan(run.expiresAt);
+    expect(fixture.runs.get(run.id)?.expiresAt).toBe(run.expiresAt);
   });
 });

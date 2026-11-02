@@ -171,7 +171,7 @@ export class Online {
     const generation = this.generation;
     this.bridge = bridge;
     if (bridge) {
-      this.recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage }, startTimeoutMs: 8000, onStatus: status => { this.rankStatus = status; this.revision++; } });
+      this.recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage }, startTimeoutMs: 8000, onStatus: status => { this.rankStatus = status === 'expired' ? 'unavailable' : status; if (status === 'expired') this.message = '本次行动已结束或超过 24 小时，请重新开始'; this.revision++; } });
       const metadata = await bridge.ready;
       this.acceptMetadata(metadata);
       void this.recorder.recover?.();

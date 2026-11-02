@@ -791,7 +791,7 @@ integration('Night real HTTP and PostgreSQL', () => {
     ).toHaveLength(1);
   });
 
-  it('preserves PostgreSQL run state on concurrent start retries and resumes expired input without resetting it', async () => {
+  it('preserves PostgreSQL start retries but never revives expired input', async () => {
     const a = await player(),
       b = await player(),
       wrongGame = await player('cops-robbers');
@@ -809,10 +809,10 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(concurrent).toEqual(run);
     const actions = { seq: 1, frames: [{ ticks: 120, input: {} }] };
     await request(`${path}/runs/${run.id}/actions`, a, actions);
-    const read = async () =>
+    const read = async (id = run.id) =>
       (
         await database.db.execute(
-          sql`select data from runtime.competition_matches where id=${`ranked-run:${run.id}`}`,
+          sql`select data from runtime.competition_matches where id=${`ranked-run:${id}`}`,
         )
       )[0]!.data;
     const original = await read();
@@ -847,15 +847,22 @@ integration('Night real HTTP and PostgreSQL', () => {
     });
     expect((await request(`${path}/runs/${run.id}`, a)).expiresAt).toBe(0);
     expect(await read()).toEqual(expired);
-    const resumed = await request(`${path}/runs/${run.id}/resume`, a, {});
-    expect(resumed.expiresAt).toBeGreaterThan(time);
-    expect(await read()).toEqual({ ...(expired as object), expiresAt: resumed.expiresAt });
-    await request(`${path}/runs/${run.id}/actions`, a, next);
-    const result = await request(`${path}/runs/${run.id}/finish`, a, { seq: 2 });
-    const finished = await read();
-    expect((await request(`${path}/runs/${run.id}/resume`, a, {})).settlement).toEqual(result);
-    expect((await request(`${path}/runs/${run.id}/resume`, a, {})).settlement).toEqual(result);
-    expect(await read()).toEqual(finished);
+    expect(await request(`${path}/runs/${run.id}/resume`, a, {}, 409)).toEqual({
+      error: 'RUN_EXPIRED',
+    });
+    expect(await read()).toEqual(expired);
+    // A separate valid attempt can still settle and replay its result.
+    await request(`${path}/runs/${independent.id}/actions`, b, actions);
+    const result = await request(`${path}/runs/${independent.id}/finish`, b, { seq: 1 });
+    const finished = await read(independent.id);
+    expect((await request(`${path}/runs/${independent.id}/resume`, b, {})).settlement).toEqual(
+      result,
+    );
+    expect((await request(`${path}/runs/${independent.id}/resume`, b, {})).settlement).toEqual(
+      result,
+    );
+    expect(await read(independent.id)).toEqual(finished);
+    expect(await read()).toEqual(expired);
   });
 
   it('replays actual controls, ranks per level, retains faster times and rejects another player', async () => {
