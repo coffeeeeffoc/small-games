@@ -75,7 +75,7 @@ export class ProgressionView {
   private productName(p:Product){return this.t(p.name,effectEnglish[p.effect]);}
   private productArt(effect:Effect){return ({rate:'rateGear',radius:'radiusGear',power:'powerGear',drone:'droneGear',burst:'burst',cooling:'coolingGear',twin:'twin'} as Partial<Record<Effect,string>>)[effect]||effect;}
   private term(term:Product['term']){return this.t(term==='match'?'单场':term==='24h'?'24小时':'永久',term==='match'?'One match':term==='24h'?'24 hours':'Permanent');}
-  private reward(r:AssetReward){return `${this.t('金币','Coins')} +${r.coins}   XP +${r.xp}${r.packs?`   ${this.t('礼包','Crates')} ×${r.packs}`:''}`;}
+  private reward(r:AssetReward){return `${this.t('金币','Coins')} +${r.coins}   EXP +${r.xp}${r.packs?`   ${this.t('礼包','Crates')} ×${r.packs}`:''}`;}
   private header(title:string){
     const y=this.h.safe.top,h=this.top-y-6;this.h.rect(this.g,0,y,this.w,h,'#03101dda','#566872');
     this.button('qm:back','‹',this.left,y+3,48,Math.max(44,h-6));
@@ -95,7 +95,7 @@ export class ProgressionView {
     else if(this.q.leaveTo!==undefined)this.leaveDialog();
     else if(this.q.gift)this.giftDialog();
   }
-  private brief(p:Product){return this.h.lang==='zh'?({power:'普通武器威力 +15%',rate:'攻击间隔 −12%',burst:'追加一枚60%威力副弹',twin:'追加一枚侧向副弹',radius:'爆炸范围 +15%',cooling:'普通武器热量 −15%',drone:'自动攻击并减速敌人',laser:'视线内即时命中',tracking:'追踪60秒 · 冷却90秒',emp:'定身4秒 · 冷却45秒'})[p.effect]:p.description;}
+  private brief(p:Product){return this.h.lang==='zh'?({power:'普通武器威力 +15%',rate:'攻击间隔 −12%',burst:'追加一枚60%威力副弹',twin:'追加一枚侧向副弹',radius:'爆炸范围 +15%',cooling:'普通武器热量 −15%',drone:'自动攻击并减速敌人',laser:'持续3秒 · 每秒80伤害',tracking:'追踪60秒 · 冷却90秒',emp:'定身4秒 · 冷却45秒'})[p.effect]:p.description;}
   private infoButton(id:string,x:number,y:number){this.h.button('info:'+id,'ⓘ',x,y,44,44,this.n).fontSize=22;}
   private list(key:string,x:number,y:number,w:number,h:number,total:number,draw:(offset:number)=>void){
     const old={n:this.n,surfaces:this.surfaces,g:this.g},list=this.h.listViewport(this.n,'qm:'+key,{x,y,w,h},total);
@@ -137,9 +137,9 @@ export class ProgressionView {
     const px=l+(compactHeader?0:bar*1.3),pw=profileW-(px-l);
     this.h.button('online:profile','',px,top,pw,Math.max(44,bar),this.n);
     this.label(playerLabel(this.h.online?.identity||{}).split(' #')[0],px+8,top+3,pw-16,bar*.48,32,ivory,true,true);
-    this.label(`Lv.${q.assets?.level??1}`,px+8,top+bar*.53,48,20,20,ivory);
-    this.bar(px+62,top+bar*.67,Math.max(25,pw-(compactHeader?76:178)),Math.max(5,bar*.09),(q.assets?.current??0)/(q.assets?.required||200));
-    if(!compactHeader)this.label(`${q.assets?.current??0}/${q.assets?.required??200}`,px+pw-112,top+bar*.53,104,25,18,dim);
+    this.label(`Lv.${q.assets?.level??1}${compactHeader?' EXP':''}`,px+8,top+bar*.53,compactHeader?70:48,20,compactHeader?15:20,ivory);
+    this.bar(px+(compactHeader?82:62),top+bar*.67,Math.max(25,pw-(compactHeader?96:178)),Math.max(5,bar*.09),(q.assets?.current??0)/(q.assets?.required||200));
+    if(!compactHeader)this.label(`EXP ${q.assets?.current??0}/${q.assets?.required??200}`,px+pw-112,top+bar*.53,104,25,18,dim);
     const recordX=l+profileW+8;
     this.h.button('online:ranking',this.t('战绩','Records'),recordX,top+3,compactHeader?50:75,Math.max(44,bar-6),this.n).fontSize=this.font(24,13);
     if(!compactHeader)this.h.controlIcon(this.g,'ranking',recordX+37,top+bar*.26,25,ivory);
@@ -181,13 +181,13 @@ export class ProgressionView {
       this.label(this.t(desc,edesc),x+6,y+ch*.9,cw-12,ch*.08,27,dim);
     }
     const summary=q.assets?.loadouts[q.actionMode==='duel'?'duel':'solo'];const equipped=summary?[...summary.mods,summary.weapon,summary.skill].filter(Boolean).map(id=>this.catalogName(id!)).join(' · '):this.t('基础方案','Basic loadout');
-    const bw=Math.max(168,(r-l)*.27);this.button('qm:loadout',this.t('当前方案','Loadout')+'  ›',l,this.bottom-48,this.narrow?144:190,44);
+    const bw=Math.max(168,(r-l)*.27);this.button('qm:loadout',this.t('作战配置','Combat loadout')+'  ›',l,this.bottom-48,this.narrow?144:190,44);
     if(!this.narrow)this.label(equipped,l+198,this.bottom-48,r-l-bw-210,44,22,dim);
     this.button('mode:enter',this.t(q.actionMode==='solo'?'进入选关':q.actionMode==='duel'?'进入大厅':'开始训练',q.actionMode==='solo'?'MISSION MAP':q.actionMode==='duel'?'ENTER LOBBY':'START TRAINING'),r-bw,this.bottom-48,bw,48,'gold');
   }
   private catalogName(id:string){const p=this.q.catalog.find(p=>p.id===id);return p?this.productName(p):id;}
   private productDetail(p:Product,x:number,y:number,w:number,h:number,shop:boolean){
-    const details=(this.q.assets?.level??1)<p.unlockLevel?this.t(`Lv.${p.unlockLevel}解锁。${p.description}`,`Unlock at Lv.${p.unlockLevel}.`):this.h.lang==='zh'?p.description:({power:'Regular weapon damage +15%.',rate:'Regular attack interval −12%.',burst:'One ammo and heat charge: primary 100%, delayed secondary 60%. Secondary fire lasts 15s.',twin:'One ammo: primary 100%, side round 60%; with burst, three secondaries at 60% (280% total). Secondary fire lasts 15s.',radius:'HE / incendiary blast radius +15%.',cooling:'Weapon heat −15%. Skill cooldown is unchanged.',drone:'Limited lifetime and damage budget. Slows enemies.',laser:'Instant line-of-sight hit. Limited ammo, long cooldown.',tracking:'Tracks for 60s; then 90s cooldown. Repeatable.',emp:'Ground enemies stop for 4s; then 45s cooldown.'})[p.effect];
+    const details=(this.q.assets?.level??1)<p.unlockLevel?this.t(`Lv.${p.unlockLevel}解锁。${p.description}`,`Unlock at Lv.${p.unlockLevel}.`):this.h.lang==='zh'?p.description:({power:'Regular weapon damage +15%.',rate:'Regular attack interval −12%.',burst:'One ammo and heat charge: primary 100%, delayed secondary 60%. Secondary fire lasts 15s.',twin:'One ammo: primary 100%, side round 60%; with burst, three secondaries at 60% (280% total). Secondary fire lasts 15s.',radius:'HE / incendiary blast radius +15%.',cooling:'Weapon heat −15%. Skill cooldown is unchanged.',drone:'Limited lifetime and damage budget. Slows enemies.',laser:'Tracks one visible target for 3s, 80 damage/s. 8s cooldown, 6 shots.',tracking:'Tracks for 60s; then 90s cooldown. Repeatable.',emp:'Ground enemies stop for 4s; then 45s cooldown.'})[p.effect];
     if(this.low){
       this.panel(x,y,w,h);const iw=w*.31,tx=x+iw+12,tw=w-iw-24;
       this.picture(this.productArt(p.effect),x+6,y+6,iw-6,h-12);
@@ -313,7 +313,7 @@ export class ProgressionView {
   private growth(){
     const q=this.q,l=this.left,r=this.right,y=this.top,b=this.bottom,lw=(r-l)*.27,rx=l+lw+14,rw=r-rx,h=b-y;
     this.panel(l,y,lw,h);this.picture('emblem',l+8,y+6,lw-16,h*.28);this.label(`Lv.${q.assets?.level??1}`,l+8,y+h*.29,lw-16,30,48,gold,true);
-    this.bar(l+14,y+h*.43,lw-28,10,(q.assets?.current??0)/(q.assets?.required||200));this.label(`${q.assets?.current??0} / ${q.assets?.required??200}`,l+8,y+h*.48,lw-16,25,24,dim);
+    this.bar(l+14,y+h*.43,lw-28,10,(q.assets?.current??0)/(q.assets?.required||200));this.label(`EXP ${q.assets?.current??0} / ${q.assets?.required??200}`,l+8,y+h*.48,lw-16,25,24,dim);
     const milestones=[[3,'基础强化','BASE STRENGTH'],[6,'追踪资格','TRACKING'],[10,'电磁干扰','EMP'],[15,'火控精修','PRECISION']] as const;
     milestones.forEach(([level,zh,en],i)=>this.label(`${(q.assets?.level??1)>=level?'✓':'○'} Lv.${level} ${this.t(zh,en)}`,l+8,y+h*.61+i*h*.085,lw-16,Math.max(18,h*.08),25,(q.assets?.level??1)>=level?gold:dim,false,true));
     const tw=Math.min(185,(rw-6)/2);this.tab('growth:base',this.t('成长加成','GROWTH'),rx,y,tw,q.section!=='skills');this.tab('growth:skills',this.t('主动技能','SKILLS'),rx+tw+6,y,tw,q.section==='skills');
@@ -376,13 +376,13 @@ export class ProgressionView {
     const title=this.h.lang==='zh'?selected.title:news?'Growth & supplies update':'Welcome / return compensation';
     this.picture('mailAircraft',rx+5,top+5,rw-10,(bottom-top)*.33);this.h.gradient(this.g,rx+5,top+5,rw-10,(bottom-top)*.33,'#03101c88','#03101cb0');
     this.label(title,rx+18,top+(this.low?6:15),rw-36,this.low?30:Math.max(34,(bottom-top)*.14),45,ivory,true,true);
-    const body=this.h.lang==='zh'?selected.body:news?'Points retain their original rules. Coins and XP are separate. Save solo and duel loadouts independently. Skills can be reused after cooldown.':'Your previous points, progress and verified assets are preserved. The attachment can be claimed once.';
+    const body=this.h.lang==='zh'?selected.body:news?'Points retain their original rules. Coins and EXP are separate. Save solo and duel loadouts independently. Skills can be reused after cooldown.':'Your previous points, progress and verified assets are preserved. The attachment can be claimed once.';
     const bodyLabel=this.label(body,rx+18,top+(this.low?38:(bottom-top)*.33),rw-36,this.low?bottom-top-90:(bottom-top)*.19,25,ivory,false,true);
     if(this.low)bodyLabel.overflow=Label.Overflow.SHRINK;
     const mail=!news?q.assets?.mail.find(m=>m.id===selected.id):undefined;
     if(mail&&this.low){this.button('qm:claimMail',this.t(mail.claimed?'附件已领取':`领取 · ${mail.reward.coins}金币 / ${mail.reward.packs||0}礼包`,mail.claimed?'CLAIMED':`CLAIM · ${mail.reward.coins} COINS / ${mail.reward.packs||0} CRATES`),rx+8,bottom-48,rw-16,44,'gold',mail.claimed||q.busy);}
     else if(mail){const cy=top+(bottom-top)*.53,cw=(rw-40)/2,ch=(bottom-top)*.26;this.picture('coins',rx+14,cy,cw,ch);this.picture('rewardSupply',rx+26+cw,cy,cw,ch);
-      this.label(`● ${mail.reward.coins}   XP ${mail.reward.xp}`,rx+14,cy+ch-26,cw,24,25,gold);this.label(this.t(`礼包 ×${mail.reward.packs||0}`,`CRATES ×${mail.reward.packs||0}`),rx+26+cw,cy+ch-26,cw,24,25,ivory);
+      this.label(`● ${mail.reward.coins}   EXP ${mail.reward.xp}`,rx+14,cy+ch-26,cw,24,25,gold);this.label(this.t(`礼包 ×${mail.reward.packs||0}`,`CRATES ×${mail.reward.packs||0}`),rx+26+cw,cy+ch-26,cw,24,25,ivory);
       this.button('qm:claimMail',this.t(mail.claimed?'已领取':'领取附件',mail.claimed?'CLAIMED':'CLAIM ATTACHMENT'),rx+rw*.28,bottom-54,rw*.66,44,'gold',mail.claimed||q.busy);
       if(!this.narrow)this.label(this.t(mail.read?'已读':'未读',mail.read?'Read':'Unread'),rx+14,bottom-52,rw*.22,40,21,dim);
     }
@@ -427,7 +427,7 @@ export class ProgressionView {
     this.label(this.t('累计签到，漏签不清零','CUMULATIVE CHECK-IN · MISSING A DAY NEVER RESETS'),l+12,top+8,r-l-24,36,38,gold,true);
     const cols=this.narrow?4:7,gap=8,cw=(r-l-32-(cols-1)*gap)/cols,rows=this.narrow?2:1,cy=top+50,ch=(bottom-cy-12-(rows-1)*8)/rows,count=q.assets?.signedDays.length??0;
     const currentDay=Math.max(1,count+(q.assets?.signedToday?0:1)),groupStart=Math.floor((currentDay-1)/7)*7;
-    for(let i=0;i<7;i++){const x=l+16+(i%cols)*(cw+gap),yy=cy+Math.floor(i/cols)*(ch+8),day=groupStart+i+1,done=day<=count;this.panel(x,yy,cw,ch,day===currentDay);this.picture(i===6?'supply':'coins',x+4,yy+25,cw-8,Math.max(12,ch-52));this.label(this.t(`第 ${day} 天`,`DAY ${day}`),x+4,yy+3,cw-8,24,28,done?dim:gold,true);this.label(done?'✓':`● ${i===6?200:100} + XP40`,x+3,yy+ch-25,cw-6,22,20,done?dim:ivory);}
+    for(let i=0;i<7;i++){const x=l+16+(i%cols)*(cw+gap),yy=cy+Math.floor(i/cols)*(ch+8),day=groupStart+i+1,done=day<=count;this.panel(x,yy,cw,ch,day===currentDay);this.picture(i===6?'supply':'coins',x+4,yy+25,cw-8,Math.max(12,ch-52));this.label(this.t(`第 ${day} 天`,`DAY ${day}`),x+4,yy+3,cw-8,24,28,done?dim:gold,true);this.label(done?'✓':`● ${i===6?200:100} + EXP40`,x+3,yy+ch-25,cw-6,22,20,done?dim:ivory);}
     this.button('qm:checkinClaim',this.t(q.assets?.signedToday?'今日已签到':'今日签到',q.assets?.signedToday?'CHECKED IN':'CHECK IN TODAY'),r-220,this.bottom-48,220,48,'gold',q.busy||!q.assets||q.assets.signedToday);
     this.label(this.t('每日额外获得1个普通礼包','Includes 1 common general crate daily'),l,this.bottom-48,r-l-240,44,22,dim,false,true);
   }
@@ -502,10 +502,10 @@ export class ProgressionView {
     this.label(subtitle,x+18,y+banner-22,pw-36,22,26,ivory);
     const sy=y+banner+8,gap=8,cw=(pw-40-gap*3)/4,sh=this.low?65:ph*.21;
     const credited=reward?.status==='credited',values=[formatTime(Math.round((s.completionTime??s.time)*1000)),training?'—':`+${reward?.points??(!duel&&(online?.rankStatus==='finished'||online?.rankStatus==='assisted')?100:0)}`,credited?`+${reward?.coins??0}`:'—',credited?`+${reward?.xp??0}`:'—'];
-    ['作战用时','本局积分','获得金币','获得经验'].forEach((zh,i)=>{const xx=x+20+i*(cw+gap);this.panel(xx,sy,cw,sh);this.label(this.t(zh,['TIME','POINTS','COINS','XP'][i]),xx+4,sy+5,cw-8,sh*.35,28,dim);this.label(values[i],xx+4,sy+sh*.35,cw-8,sh*.6,61,i===2?gold:i===3?'#b8e3a5':ivory,true);});
+    ['作战用时','本局积分','获得金币','获得经验'].forEach((zh,i)=>{const xx=x+20+i*(cw+gap);this.panel(xx,sy,cw,sh);this.label(this.t(zh,['TIME','POINTS','COINS','EXP'][i]),xx+4,sy+5,cw-8,sh*.35,28,dim);this.label(values[i],xx+4,sy+sh*.35,cw-8,sh*.6,61,i===2?gold:i===3?'#b8e3a5':ivory,true);});
     const py=sy+sh+(this.low?10:20*this.scale);if(!this.low)this.panel(x+20,py,pw-40,76*this.scale);
     this.label(`Lv.${q.assets?.level??1}`,x+20,py+(this.low?0:16*this.scale),this.low?75:150*this.scale,this.low?28:42*this.scale,this.low?29:39,gold,true);
-    this.bar(x+(this.low?98:184*this.scale),py+(this.low?8:29*this.scale),pw-(this.low?220:380*this.scale),this.low?11:18*this.scale,(q.assets?.current??0)/(q.assets?.required||200));this.label(`${q.assets?.current??0}/${q.assets?.required??200}`,x+pw-(this.low?117:185*this.scale),py+(this.low?0:16*this.scale),this.low?98:160*this.scale,this.low?28:42*this.scale,26,dim);
+    this.bar(x+(this.low?98:184*this.scale),py+(this.low?8:29*this.scale),pw-(this.low?220:380*this.scale),this.low?11:18*this.scale,(q.assets?.current??0)/(q.assets?.required||200));this.label(`EXP ${q.assets?.current??0}/${q.assets?.required??200}`,x+pw-(this.low?117:185*this.scale),py+(this.low?0:16*this.scale),this.low?98:160*this.scale,this.low?28:42*this.scale,26,dim);
     const next=!duel&&!training&&success&&s.mission.id!==MISSIONS.at(-1)!.id;
     if(!this.low){const task=q.assets?.tasks.find(t=>t.event===(duel?'duel':'solo')||t.event==='complete'),ty=py+90*this.scale;this.panel(x+20,ty,pw-40,72*this.scale);this.label(task?`${this.t('每日任务','DAILY TASK')}  ${task.progress}/${task.target}`:this.t('查看每日任务与奖励','VIEW DAILY TASKS & REWARDS'),x+30,ty+7,pw*(next?.46:.59),44,31,ivory,false,true);this.button('qm:tasks',this.t('查看奖励','REWARDS'),x+pw*(next?.51:.69),ty+7,pw*(next?.22:.27),44);if(next)this.button('missionNext',this.t('下一任务 ›','NEXT ›'),x+pw*.75,ty+7,pw*.21,44);}
     const pending=['pending-sync','syncing','recording'].includes(online?.rankStatus||'');

@@ -48,7 +48,7 @@ export class Overwatch extends Component {
   keys = new Set<number>();
   mouseButton = '';
   private infoHold?:{id:string;at:number};
-  private listGesture?:{pointer:number|'mouse';key:string;x:number;y:number;lastY:number;button?:string;moved:boolean;started:number};
+  private listGesture?:{pointer:number|'mouse';key:string;x:number;y:number;lastX:number;lastY:number;axis:'x'|'y';button?:string;moved:boolean;started:number};
   private loadoutGesture?:{pointer:number|'mouse';item?:string;source?:LoadoutSlot;x:number;y:number;lastY:number;mode:'pending'|'scroll'|'drag'};
   accumulator = 0;
   lastEvent = 0;
@@ -87,14 +87,14 @@ export class Overwatch extends Component {
       if (state.finished) {
         if(previous.phase==='playing')void this.quartermaster?.refresh();
         for (const reason of ['settings', 'help', 'manual', 'countdown'] as const) this.sim.pauses.delete(reason);
-        this.hud.exitConfirm = this.hud.reportOpen = this.hud.toolsOpen = this.hud.zoomOpen = false;
+        this.hud.exitConfirm = this.hud.reportOpen = this.hud.equipmentOpen = this.hud.toolsOpen = this.hud.zoomOpen = false;
       }
       if (!start) this.sim.aim = { ...previous.aim };
       this.online!.bind(this.sim, () => this.sim.paused || !!this.hud.modal);
       if (start) {
         this.presentation = new DuelPresentation(); this.completionSpoken = false;
         this.clear(); this.lastEvent = 0; this.accumulator = 0;
-        this.hud.reportOpen = false; this.hud.timeComparison = undefined;
+        this.hud.reportOpen = this.hud.equipmentOpen = false; this.hud.timeComparison = undefined;
         this.hud.missionsOpen = false; this.hud.tutorial = false;
         this.syncWorld(); this.world.follow = false; this.world.center = { x: 0, z: 0 }; this.world.updateCamera();
       }
@@ -109,6 +109,8 @@ export class Overwatch extends Component {
     this.syncWorld();
     this.hud.tutorial = this.platform.readCoach();
     this.hud.muted = this.platform.muted;
+    this.hud.voicePrompts = this.platform.voicePrompts;
+    this.hud.autoPriority = this.platform.autoPriority;
     this.hud.reducedEffects = this.platform.reducedEffects;
     if (sys.isBrowser) {
       this.screenControl = shareScreenControl(location.search, active => { this.hud.screenActive = active; });
@@ -183,6 +185,7 @@ export class Overwatch extends Component {
     this.online?.recorder?.persist?.();
   }
   show() {
+    this.resizeKey='';
     this.platform?.restoreFocus();
     this.online?.setForeground(true);
     this.pause('background', false);
@@ -199,9 +202,10 @@ export class Overwatch extends Component {
     this.accumulator = 0;
     this.lastEvent = 0;
     this.world.reset();
+    this.world.setView(this.platform.viewMode);
     this.syncRewards();
     this.hud.modalKey = 'rebuild';
-    this.hud.equipmentOpen = this.hud.supplyOpen = this.hud.reportOpen = false;
+    this.hud.equipmentOpen = this.hud.supplyOpen = this.hud.reportOpen = this.hud.equipmentOpen = false;
     this.hud.timeComparison = undefined;
     this.hud.exitConfirm = this.hud.toolsOpen = this.hud.zoomOpen = false;
   }
@@ -230,18 +234,19 @@ export class Overwatch extends Component {
     this.syncWorld();
     this.lastEvent = this.accumulator = 0;
     this.hud.modalKey = 'rebuild';
-    this.hud.equipmentOpen = this.hud.supplyOpen = this.hud.reportOpen = false;
+    this.hud.equipmentOpen = this.hud.supplyOpen = this.hud.reportOpen = this.hud.equipmentOpen = false;
     this.hud.timeComparison = undefined;
     this.hud.exitConfirm = this.hud.toolsOpen = this.hud.zoomOpen = false;
   }
   syncWorld() {
-    if (this.world.map !== this.sim.mission.map || this.world.light !== this.sim.mission.light) {
+    if (this.world.map !== this.sim.mission.map) {
       this.world.root.active = false;
       this.world.root.destroy();
-      this.world = new World(this.node, this.sim.mission.map, this.sim.mission.light);
+      this.world = new World(this.node, this.sim.mission.map);
       this.world.camera.visibility = 1 << 30;
     }
     this.world.reset();
+    this.world.setView(this.platform.viewMode);
     this.syncRewards();
   }
   async connectServices() {
@@ -355,7 +360,7 @@ export class Overwatch extends Component {
   openSupply() {
     if (!this.platform.rewardsAvailable && !this.platform.rewards.pendingSupply) return;
     if (this.sim.phase !== 'playing' || this.rewardRequest || this.sim.resumeCountdown > 0) return;
-    this.hud.reportOpen = this.hud.toolsOpen = this.hud.zoomOpen = false;
+    this.hud.reportOpen = this.hud.equipmentOpen = this.hud.toolsOpen = this.hud.zoomOpen = false;
     this.pause('supply', true);
     this.pause('settings', false);
     this.hud.supplyOpen = true;
@@ -447,8 +452,6 @@ export class Overwatch extends Component {
     if(id==='qm:warehouseGo')id='qm:warehouse';
 
     const q=this.quartermaster;if(!q)return false;
-    if(id==='equipment'){this.clear();this.hud.equipmentOpen=!this.hud.equipmentOpen;this.hud.modalKey='rebuild';return true;}
-    if(id==='equipmentClose'){this.clear();this.hud.equipmentOpen=false;this.hud.modalKey='rebuild';return true;}
     if(id==='skillUse'){if(!this.hud.modal&&!this.online?.spectator)this.sim.useSkill();return true;}
     if(!/^(qm:|mode:|term:|product:|loadout:|slot:|gear:|equip:|package:|pool:|growth:|skill:|tasks:|task:|taskalt:|achievement:|inbox:|mail:|inventory:|info:)/.test(id))return false;
     this.clear();this.hud.modalKey='rebuild';const [group,...rest]=id.split(':'),value=rest.join(':');
@@ -604,11 +607,12 @@ export class Overwatch extends Component {
     if (online?.panel && !this.sim.pauses.has('settings') && !this.sim.pauses.has('help') && ['close', 'home', 'resume'].includes(id)) { this.action('online:back'); return; }
     if (this.sim.duelMode && ['supply', 'homingReward', 'homing', 'zoomUpgrade', 'convoy', 'mission', 'retry', 'missionNext'].includes(id)) return;
     if (this.sim.duelMode && (id === 'exitConfirm' || id === 'home' && this.sim.phase !== 'playing')) { this.hud.exitConfirm = false; this.action(id==='home'?'online:back':'online:backLobby'); return; }
+    if (['equipment','reportOverview'].includes(id) && this.sim.phase === 'playing') { this.clear();this.hud.reportOpen=true;this.hud.equipmentOpen=id==='equipment';this.hud.modalKey='rebuild';return; }
     if (id === 'battleReport' && this.sim.phase === 'playing') {
-      this.clear(); this.hud.reportOpen = !this.hud.reportOpen; this.hud.modalKey = 'rebuild'; return;
+      this.clear(); this.hud.reportOpen = !this.hud.reportOpen; this.hud.equipmentOpen=false; this.hud.modalKey = 'rebuild'; return;
     }
-    if (this.hud.reportOpen && ['close', 'resume', 'pause'].includes(id)) {
-      this.hud.reportOpen = false; this.hud.modalKey = 'rebuild'; return;
+    if ((this.hud.reportOpen || this.hud.equipmentOpen) && ['close', 'equipmentClose', 'resume', 'pause'].includes(id)) {
+      this.hud.reportOpen = this.hud.equipmentOpen = false; this.hud.modalKey = 'rebuild'; return;
     }
     if (id === 'lensIn') id = 'zoomIn';
     if (id === 'lensOut') id = 'zoomOut';
@@ -673,7 +677,7 @@ export class Overwatch extends Component {
       this.online?.leave();
       this.clear();
       this.hud.missionsOpen = id === 'missions';
-      if (id === 'missions') this.hud.missionPage = Math.floor(Math.max(0, MISSIONS.findIndex(mission => mission.id === this.selectedMission)) / 3);
+      if (id === 'missions') {this.hud.missionPage = Math.floor(Math.max(0, MISSIONS.findIndex(mission => mission.id === this.selectedMission)) / 3);this.hud.missionFocus=Math.max(0,MISSIONS.findIndex(mission=>mission.id===this.selectedMission));}
       this.hud.modalKey = 'rebuild';
       return;
     }
@@ -682,6 +686,7 @@ export class Overwatch extends Component {
       this.clear();
       this.hud.missionPage = Math.max(0, Math.min(Math.ceil(MISSIONS.length / 3) - 1,
         this.hud.missionPage + (id === 'missionsNext' ? 1 : -1)));
+      this.hud.missionFocus=this.hud.missionPage*3;
       this.hud.modalKey = 'rebuild';
       return;
     }
@@ -768,6 +773,30 @@ export class Overwatch extends Component {
       if (this.platform.muted) this.platform.stop();
       return;
     }
+    if (id === 'voicePrompts' || id === 'autoPriority') {
+      this.platform[id] = !this.platform[id];
+      this.hud[id] = this.platform[id];
+      if (id === 'autoPriority' && !this.platform.autoPriority && ['priority','night'].some(cue => this.platform.radio.clip === this.platform.clips.get(`radio-${cue}-${this.hud.lang}`))) {
+        this.platform.stopRadio(); this.hud.radioText = '';
+      }
+      this.platform.savePreferences();
+      if (id === 'voicePrompts' && !this.platform.voicePrompts) {
+        this.platform.stopRadio();
+        if (this.sim.extractionRemaining !== undefined) this.sim.setExtractionRadioPending(false);
+      }
+      this.hud.modalKey = 'rebuild';
+      return;
+    }
+    if (id === 'sensor' || ['view:night', 'view:enhanced', 'view:thermal'].includes(id)) {
+      if (this.sim.paused && Array.from(this.sim.pauses).some(reason => !['settings','manual'].includes(reason))) return;
+      if (id === 'sensor') this.world.sensor();
+      else this.world.setView(id.slice(5) as Platform['viewMode']);
+      this.platform.viewMode = this.world.viewMode;
+      this.platform.savePreferences();
+      this.sim.completed.add('sensor');
+      if (this.hud.modal) this.hud.modalKey = 'rebuild';
+      return;
+    }
     if (id === 'effects') {
       this.platform.reducedEffects = !this.platform.reducedEffects;
       this.hud.reducedEffects = this.platform.reducedEffects;
@@ -790,7 +819,7 @@ export class Overwatch extends Component {
     if (menuPaused) { this.pause('settings', true); this.hud.modalKey = 'rebuild'; }
     if (id === 'priority') {
       const threat = this.sim.priorityThreat;
-      if (threat) this.locateMap(threat.unit);
+      if (threat && this.platform.autoPriority) this.locateMap(threat.unit);
       return;
     }
     if (flightActions.includes(id)) {
@@ -813,10 +842,6 @@ export class Overwatch extends Component {
     }
     if (id === 'previous') this.sim.choose((this.sim.selected + WEAPONS.length - 1) % WEAPONS.length);
     if (id === 'next') this.sim.choose((this.sim.selected + 1) % WEAPONS.length);
-    if (id === 'sensor') {
-      this.world.sensor();
-      this.sim.completed.add('sensor');
-    }
     if (id === 'convoy') this.sim.command();
     if (id === 'locate') {
       this.world.locate(this.sim.rescue);
@@ -854,16 +879,16 @@ export class Overwatch extends Component {
   private beginListGesture(pointer:number|'mouse',x:number,y:number){
     const area=this.hud.listAt(x,y),button=this.hud.hit(x,y);if(!area||this.listGesture)return false;
     if(button?.id.startsWith('info:'))this.infoHold={id:button.id,at:Date.now()};
-    this.listGesture={pointer,key:area.key,x,y,lastY:y,button:button?.id,moved:false,started:Date.now()};return true;
+    this.listGesture={pointer,key:area.key,x,y,lastX:x,lastY:y,axis:area.axis||'y',button:button?.id,moved:false,started:Date.now()};return true;
   }
   private moveListGesture(pointer:number|'mouse',x:number,y:number){
     const a=this.listGesture;if(!a||a.pointer!==pointer)return false;
     if(Math.hypot(x-a.x,y-a.y)>8){a.moved=true;this.infoHold=undefined;}
-    if(a.moved)this.hud.moveList(a.key,a.lastY-y);a.lastY=y;return true;
+    if(a.moved)this.hud.moveList(a.key,a.axis==='x'?a.lastX-x:a.lastY-y);a.lastX=x;a.lastY=y;return true;
   }
   private endListGesture(pointer:number|'mouse',x:number,y:number){
     const a=this.listGesture;if(!a||a.pointer!==pointer)return false;this.listGesture=undefined;this.infoHold=undefined;
-    if(!a.moved&&a.button&&this.hud.hit(x,y)?.id===a.button)this.action(a.button);return true;
+    if(!a.moved&&Math.hypot(x-a.x,y-a.y)<=8&&a.button&&this.hud.hit(x,y)?.id===a.button)this.action(a.button);return true;
   }
   private beginLoadoutGesture(pointer:number|'mouse',x:number,y:number){
     const q=this.quartermaster;if(!q||q.page!=='loadout'||q.gift||q.info||q.leaveTo!==undefined||q.confirmation||q.busy||q.pending||this.loadoutGesture)return false;
@@ -969,7 +994,7 @@ export class Overwatch extends Component {
   }
   wheel(e: EventMouse) {
     if (this.hud.modal) {
-      const point=this.mousePosition(e),area=this.hud.listAt(point.x,point.y);if(area){this.hud.moveList(area.key,-e.getScrollY()*.2);return;}
+      const point=this.mousePosition(e),area=this.hud.listAt(point.x,point.y);if(area){this.hud.moveList(area.key,(area.axis==='x'&&e.getScrollX?.()?e.getScrollX():-e.getScrollY())*.2);return;}
       const q=this.quartermaster;if(q?.page==='loadout'&&!q.gift&&!q.confirmation&&!q.info&&q.leaveTo===undefined){const p=this.mousePosition(e),a=q.loadoutArea;if(p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h){q.scrollLoadout(-e.getScrollY()*.2);return;}}
       if (this.hud.scrollNode) this.hud.scrollBy(-e.getScrollY() * 0.2);
       return;
@@ -1120,7 +1145,7 @@ export class Overwatch extends Component {
     this.hud.touch = false;
     this.platform.activate();
     if(this.quartermaster?.page&&(['help','settings','mission'] as const).some(reason=>this.sim.pauses.has(reason))){if(e.keyCode===27)this.action('close');this.keys.add(e.keyCode);return;}
-    if(this.hud.equipmentOpen&&e.keyCode===27){this.action('equipmentClose');return;}
+    if((this.hud.reportOpen||this.hud.equipmentOpen)&&e.keyCode===27){this.action('equipmentClose');return;}
     if(this.quartermaster?.page){if(e.keyCode===27)this.action('qm:back');else if(e.keyCode===13&&this.quartermaster.page==='modes')this.action('mode:enter');this.keys.add(e.keyCode);return;}
     if (this.online?.panel || this.online?.entering) { if (e.keyCode === 27) this.action('online:back'); return; }
     if (e.keyCode === 27 && ['help', 'settings', 'mission', 'advert', 'supply'].some((reason) => this.sim.pauses.has(reason as PauseReason))) {
@@ -1159,10 +1184,11 @@ export class Overwatch extends Component {
     if (this.sim.extractionRemaining !== undefined && this.radioTarget !== -1) {
       cue = 'clear'; this.radioTarget = -1;
     } else if (newMission) {
-      cue = this.sim.mission.light === 'night' ? 'night' : 'day';
+      cue = this.platform.autoPriority ? 'night' : 'day';
     } else if (this.sim.time - this.radioAt >= 10) {
       if (threat && (threat.unit.id !== this.radioTarget || this.sim.time - this.radioAt >= 24)) {
-        cue = threat.critical ? 'critical' : 'priority';
+        cue = threat.critical ? 'critical' : this.platform.autoPriority ? 'priority' : undefined;
+        if (!cue) { this.hud.radioText = this.hud.t('敌方即将开火 · 掩护友军', 'ENEMY PREPARING TO FIRE · COVER OUR UNITS'); this.radioAt = this.sim.time; }
         this.radioTarget = threat.unit.id;
       } else if (!threat && this.radioTarget !== undefined && this.sim.units.find(u => u.id === this.radioTarget)?.hp === 0) {
         cue = 'clear'; this.radioTarget = undefined;
@@ -1182,7 +1208,7 @@ export class Overwatch extends Component {
     if (this.online && !this.online.recorder && (globalThis as any).SmallGamesServices)
       this.servicesReady = this.connectServices();
     const frame = view.getFrameSize(),
-      key = frame.width + 'x' + frame.height + ':' + this.hud.touch;
+      key = frame.width + 'x' + frame.height + ':' + this.hud.touch + ':' + this.hud.safeRevision;
     // Keyboard resize and input-mode changes must not destroy an active EditBox.
     if (key !== this.resizeKey && !this.hud.editing) {
       this.resizeKey = key;
@@ -1366,6 +1392,8 @@ export class Overwatch extends Component {
       lastSound: this.platform.lastSound,
       mousePointer: this.hud.mousePointer,
       selected: this.sim.selected,
+      weaponReadiness: this.sim.guns.map((_,i)=>this.sim.weaponReadiness(i)),
+      lasers:this.sim.lasers,
       guns: this.sim.guns.map((g) => ({ ...g, ammo: g.ammo === Infinity ? 'infinite' : g.ammo })),
       shots: this.sim.shots,
       units: this.sim.units.map((u) => ({ ...u })),
@@ -1403,6 +1431,11 @@ export class Overwatch extends Component {
         tutorial: this.hud.labels.get('tutorial')?.string,
         feedback: this.hud.labels.get('target')?.string,
         muted: this.platform.muted,
+        voicePrompts: this.platform.voicePrompts,
+        autoPriority: this.platform.autoPriority,
+        viewMode: this.world.viewMode,
+        battleStatus: this.hud.labels.get('health')?.string,
+        combatantNames:[0,1].map(side=>{const label=this.hud.labels.get('spectator:'+side);return {text:label?.string,active:label?.node.activeInHierarchy,fontSize:label?.fontSize,wrap:label?.enableWrapText};}),
         reducedEffects: this.platform.reducedEffects,
       },
       held: Array.from(this.sim.held),
@@ -1427,6 +1460,7 @@ export class Overwatch extends Component {
       safe: this.hud.safe,
       temporary: this.world.temporary,
       thermal: this.world.thermal,
+      viewMode: this.world.viewMode,
       modelImport: this.world.modelImport,
       visualMaterialStatus: this.world.visualMaterialStatus,
       visualMaterialError: this.world.visualMaterialError,

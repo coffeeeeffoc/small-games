@@ -36,7 +36,7 @@ const effects: Array<[Effect, Product['category'], string, string, number, numbe
   ['radius', 'mod', '范围增益', '榴弹与燃烧弹有效半径提高 15%。', 220, 2, false],
   ['cooling', 'mod', '冷却改装', '普通武器热量降低 15%，不改变技能冷却。', 180, 1, false],
   ['drone', 'weapon', '无人机机群', '有限寿命与伤害预算，自动攻击并减速合法敌人。', 600, 2, false],
-  ['laser', 'weapon', '激光武器', '视线内即时命中；长冷却、有限弹药。', 800, 2, false],
+  ['laser', 'weapon', '激光武器', '持续3秒，每秒80伤害（总240）；重甲伤害85%，冷却8秒，6发。', 800, 2, false],
   ['tracking', 'skill', '追踪资格', '普通武器追踪 60 秒，结束后冷却 90 秒。', 300, 1, false],
   ['emp', 'skill', '电磁干扰', '敌方地面单位定身 4 秒，结束后冷却 45 秒。', 400, 2, false],
 ];

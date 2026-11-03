@@ -1,3 +1,4 @@
+import { safeArea, watchSafeArea, fitName } from './core/SafeArea';
 import { playerId, playerLabel, type Online } from './Online';
 import {
   Camera,
@@ -49,7 +50,7 @@ import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Reward
 import { battleCounts, formatTime, type TimeComparison } from './core/BattleRecords';
 import { ProgressionArt } from './ProgressionArt';
 import { ProgressionView } from './ProgressionView';
-import { CATALOG, attackPreview } from './core/Progression';
+import { CATALOG, SKILLS, attackPreview } from './core/Progression';
 import { effectEnglish } from './Quartermaster';
 import type { Quartermaster } from './Quartermaster';
 
@@ -66,19 +67,24 @@ const C = {
 const col = (hex: string) => new Color().fromHEX(hex);
 export type ButtonRect = { id: string; x: number; y: number; w: number; h: number; label: Label; visual?: { x: number; y: number; w: number; h: number }; disabled?: boolean; clip?:{x:number;y:number;w:number;h:number} };
 export class HUD {
-  listAreas:Array<{key:string;x:number;y:number;w:number;h:number;max:number}> = [];
+  listAreas:Array<{key:string;x:number;y:number;w:number;h:number;max:number;axis:'x'|'y'}> = [];
   listScroll:Record<string,number>={};
+  missionFocus:number|undefined;
+  safeRevision=0;
+  private nameFits=new Map<string,string>();
+  nativeCapsule=false;
   private semanticKey='';
   listAt(x:number,y:number){return [...this.listAreas].reverse().find(a=>x>=a.x&&x<=a.x+a.w&&y>=a.y&&y<=a.y+a.h);}
   moveList(key:string,amount:number){const a=this.listAreas.find(a=>a.key===key);if(!a)return;const states=key.startsWith('qm:')?this.quartermaster!.scrolls:this.listScroll;states[key]=Math.max(0,Math.min(a.max,(states[key]||0)+amount));this.modalKey='rebuild';}
-  listViewport(parent:Node,key:string,area:{x:number;y:number;w:number;h:number},total:number){
-    const max=Math.max(0,total-area.h),states=key.startsWith('qm:')?this.quartermaster!.scrolls:this.listScroll;
-    const offset=states[key]=Math.max(0,Math.min(max,states[key]||0));this.listAreas.push({...area,key,max});
+  listViewport(parent:Node,key:string,area:{x:number;y:number;w:number;h:number},total:number,axis:'x'|'y'='y'){
+    const max=Math.max(0,total-(axis==='x'?area.w:area.h)),states=key.startsWith('qm:')?this.quartermaster!.scrolls:this.listScroll;
+    const offset=states[key]=Math.max(0,Math.min(max,states[key]||0));this.listAreas.push({...area,key,max,axis});
     const viewport=this.node('Scroll:'+key,parent),mx=area.x+area.w/2-this.w/2,my=this.h/2-area.y-area.h/2;
     viewport.setPosition(mx,my);viewport.getComponent(UITransform)!.setContentSize(area.w,area.h);viewport.addComponent(Mask).type=Mask.Type.GRAPHICS_RECT;
     const n=this.node('ScrollContent',viewport);n.setPosition(-mx,-my);const surfaces=this.node('Surfaces',n),g=this.node('Ink',n).addComponent(Graphics),start=this.buttons.length;
     return {n,surfaces,g,offset,finish:()=>{for(const b of this.buttons.slice(start))b.clip=area;
-      if(max){const ink=this.node('ScrollIndicator',parent).addComponent(Graphics),x=area.x+area.w-5,track=Math.max(4,area.h-32),thumb=Math.max(20,track*area.h/total);
+      if(max&&axis==='x'){const ink=this.node('ScrollIndicator',parent).addComponent(Graphics),track=area.w-32,thumb=Math.max(20,track*area.w/total),y=area.y+area.h-5;this.rect(ink,area.x+16,y,track,3,'#253e50');this.rect(ink,area.x+16+(track-thumb)*offset/max,y-1,thumb,5,C.amber);if(offset>1)this.label(parent,'‹',area.x+5,area.y+area.h/2,25,14,32,C.white);if(offset<max-1)this.label(parent,'›',area.x+area.w-5,area.y+area.h/2,25,14,32,C.white);}
+      if(max&&axis==='y'){const ink=this.node('ScrollIndicator',parent).addComponent(Graphics),x=area.x+area.w-5,track=Math.max(4,area.h-32),thumb=Math.max(20,track*area.h/total);
         this.rect(ink,x,area.y+16,3,track,'#253e50');this.rect(ink,x-1,area.y+16+(track-thumb)*offset/max,5,thumb,C.amber);
         const arrow=(y:number,down:boolean)=>{ink.strokeColor=col(C.white);ink.lineWidth=2;const xx=x-this.w/2,yy=this.h/2-y,d=down?-1:1;ink.moveTo(xx-4,yy-d*2);ink.lineTo(xx,yy+d*2);ink.lineTo(xx+4,yy-d*2);ink.stroke();};if(offset>1)arrow(area.y+6,false);if(offset<max-1)arrow(area.y+area.h-7,true);
       }
@@ -137,6 +143,8 @@ export class HUD {
   scrollArea = { x: 0, y: 0, w: 0, h: 0 };
   tutorial = true;
   muted = false;
+  voicePrompts = true;
+  autoPriority = true;
   reducedEffects = false;
   toolsOpen = false;
   zoomOpen = false;
@@ -159,7 +167,7 @@ export class HUD {
     return this.h < 500;
   }
   get footer() {
-    return this.mouseDesktop ? 60 : this.compact ? 74 : 90;
+    return 60;
   }
   get desktop() {
     return !this.compact && this.w - this.safe.left - this.safe.right >= 900;
@@ -187,6 +195,7 @@ export class HUD {
     parent.addChild(this.root);
     this.root.layer = Layers.Enum.UI_2D;
     this.progressionArt=new ProgressionArt(this);
+    const unwatch=watchSafeArea(()=>this.safeRevision++);this.root.once(Node.EventType.NODE_DESTROYED,unwatch);
     this.root.once(Node.EventType.NODE_DESTROYED,()=>this.progressionArt.destroy());
     this.root.once(Node.EventType.NODE_DESTROYED, () => { for (const frame of this.artworkFrames) frame.destroy(); });
     this.root.addComponent(UITransform);
@@ -257,13 +266,14 @@ export class HUD {
     this.w = size.width;
     this.h = size.height;
     view.setDesignResolutionSize(this.w, this.h, ResolutionPolicy.EXACT_FIT);
-    const rect = sys.getSafeAreaRect();
-    this.safe = {
+    const rect = sys.getSafeAreaRect(false);
+    const merged = safeArea(this.w,this.h,{
       left: Math.max(0, rect.x),
       right: Math.max(0, this.w - rect.x - rect.width),
       bottom: Math.max(0, rect.y),
       top: Math.max(0, this.h - rect.y - rect.height),
-    };
+    });
+    this.nativeCapsule=merged.capsule;this.safe={left:merged.left,right:merged.right,top:merged.top,bottom:merged.bottom};
     this.root.getComponent(UITransform)!.setContentSize(this.w, this.h);
     this.root.setPosition(this.w / 2, this.h / 2, 0);
     this.camera.node.setPosition(this.w / 2, this.h / 2, 1000);
@@ -401,32 +411,36 @@ export class HUD {
   buildControls() {
     const w = this.w, h = this.h, left = 12 + this.safe.left,
       right = w - 12 - this.safe.right, top = this.safe.top;
-    this.live('health', left + 80, top + 18, 13, 160, 25);
-    for(const side of [0,1])this.live('spectator:'+side,left+100+side*198,top+37,18,182,52,C.white);
-    this.live('progress', left + 80, top + 40, 11, 160, 20, C.dim);
-    const small = this.mouseDesktop, settingsX = right - 44 - (this.touch ? 88 : 0) - (this.screenControl ? 52 : 0);
-    this.live('status', settingsX - 40, top + 28, 11, 70, 54, C.white);
-    this.button('settings', '', settingsX, top + 6, 44, 44, this.globalControls);
-    if (this.screenControl) this.button('screen', '', settingsX + 52, top + 6, 44, 44, this.globalControls);
+    const small = this.mouseDesktop, settingsX = right - 44 - (!sys.isBrowser && this.touch && !this.nativeCapsule ? 88 : 0) - (this.screenControl ? 52 : 0);
+    const sensorX = settingsX - 56, statusX = sensorX - 86, statsX = left + 64;
+    this.live('health', (statsX + statusX - 6) / 2, top + 24, this.compact ? 11 : 13, Math.max(80, statusX - statsX - 6), 28);
+    this.labels.get('health')!.enableWrapText = false;
+    this.labels.get('health')!.horizontalAlign = Label.HorizontalAlign.LEFT;
+    this.labels.get('health')!.overflow = Label.Overflow.SHRINK;
+    for(const side of [0,1])this.live('spectator:'+side,left+100+side*198,top+64,14,182,36,C.white);
+    this.live('progress', left + 120, top + 58, 11, 240, 20, C.dim);
+    this.live('status', statusX + 40, top + 24, 11, 80, 28, C.white);
+    this.button('sensor', '', sensorX, top + 2, 50, 44).fontSize = 11;
+    this.button('settings', '', settingsX, top + 2, 44, 44, this.globalControls);
+    if (this.screenControl) this.button('screen', '', settingsX + 52, top + 2, 44, 44, this.globalControls);
     this.live('connectionNotice', left + 150, top + 68, 12, Math.min(300, right - left - 140), 28, C.red).node.parent = this.globalControls;
-    this.live('buff', (left + 164 + settingsX - 160) / 2, top + 26, 11,
-      Math.max(40, settingsX - 160 - left - 164), 40, C.mint).node.parent = this.globalControls;
+    this.live('buff', w / 2, top + 61, 11, Math.min(180, w - 200), 24, C.mint).node.parent = this.globalControls;
     const toastWidth = Math.min(420, settingsX - left - 12);
     this.live('globalToast', left + toastWidth / 2, top + 26, 12, toastWidth, 36, C.amber).node.parent = this.globalControls;
     const by = h - this.footer - this.safe.bottom;
-    const cardW = small ? 76 : this.compact ? Math.min(68, (right - left - 118) / 5 - 8) : 90;
-    const fireW = this.compact ? 64 : 76;
-    const cardsLeft = this.desktop ? right - fireW - 18 - 5 * (cardW + 8) : left;
+    const cardW = Math.min(this.compact ? 64 : 78, (right - left - 146) / 5 - 6);
+    const fireW = 68;
+    const cardsLeft = left;
     for (let i = 0; i < 4; i++) {
-      const label = this.button('weapon' + i, '', cardsLeft + i * (cardW + 8), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
+      const label = this.button('weapon' + i, '', cardsLeft + i * (cardW + 6), by + 8, cardW, 44);
       if (small) { label.fontSize = 12; label.lineHeight = 17; }
     }
-    this.button('homing', '', cardsLeft + 4 * (cardW + 8), by + (small ? 8 : 10), cardW, small ? 44 : this.footer - 20);
-    for (const i of [4,5]) this.button('weapon'+i,'',left+116,by-82,108,44);
-    this.button('skillUse','',left,by-82,108,44);
+    this.button('homing', '', cardsLeft + 4 * (cardW + 6), by + 8, cardW, 44);
+    for (const i of [4,5]) this.button('weapon'+i,'',left+108+(i-4)*88,by-40,82,44);
+    this.button('skillUse','',left,by-40,100,44);
     this.button('fire', '', right - fireW, h - this.safe.bottom - fireW - 10, fireW, fireW);
-    const stateX = this.desktop ? cardsLeft - 144 : left + 5 * (cardW + 8) + 4;
-    const stateW = this.desktop ? 132 : right - fireW - stateX - 12;
+    const stateX = left + 5 * (cardW + 6) + 4;
+    const stateW = Math.min(132, right - fireW - stateX - 12);
     this.live('weaponState', stateX + stateW / 2, by + this.footer / 2, small ? 12 : this.compact ? 12 : 14, Math.max(60, stateW), this.footer - 14, C.dim);
     this.live('notice', w / 2, by - 17, this.compact ? 12 : 15, this.compact ? w - 40 : Math.min(w - 260, 560), this.compact ? 28 : 36, C.amber);
     this.live('friendWarning', w / 2, by - 17, this.compact ? 13 : 16, this.compact ? w - 40 : Math.min(w - 260, 560), 28, C.red).isBold = true;
@@ -439,8 +453,7 @@ export class HUD {
     priority.isBold = true;
     this.labels.set('priorityMarker', priority);
     const map = this.minimapLayout;
-    this.button('battleReport',this.t('战况','REPORT'),left,this.safe.top+76,72,44).fontSize=12;
-    this.button('equipment',this.t('装配','GEAR'),left+80,this.safe.top+76,72,44).fontSize=12;
+    this.button('battleReport',this.t('战况','REPORT'),left,top+2,56,44).fontSize=11;
     this.live('mapLegend', map.x + map.w / 2, map.y + 11, 10, map.w - 4, 20, C.dim);
   }
   rect(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke?: string, radius = 0) {
@@ -604,8 +617,7 @@ export class HUD {
       !(ignorePriority && b.id === 'priority') && b.label.node.activeInHierarchy &&
       (!this.modal || this.inModal(b.label.node) || this.isGlobalAction(b.id)) &&
       x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
-    return control || y < 58 + this.safe.top ||
-      (!this.desktop && y > this.h - this.footer - this.safe.bottom) ||
+    return control || y < 46 + this.safe.top ||
       (x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h);
   }
   scrollBy(amount: number) {
@@ -703,7 +715,7 @@ export class HUD {
   }
   renderHome(n: Node, g: Graphics, s: Simulation) {
     const w = this.w, h = this.h, left = this.safe.left + 24, right = w - this.safe.right - 24;
-    const light = (number: number) => ({ day: this.t('白天', 'DAY'), dusk: this.t('黄昏', 'DUSK'), night: this.t('夜间', 'NIGHT') })[MISSIONS[number - 1]?.light || 'day'];
+    const light = (_number: number) => this.t('夜航', 'NIGHT OPS');
     const number = Math.max(0, MISSIONS.findIndex(mission => mission.id === s.mission.id)) + 1;
     this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#07121c28');
     if (!this.missionsOpen) {
@@ -756,18 +768,19 @@ export class HUD {
     }
     this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#071a2d55');
     this.label(n, this.t('任务地图', 'MISSION MAP'), left + 78, this.safe.top + 80, 22, 156, 42).isBold = true;
-    const top=this.safe.top+104,bottom=h-this.safe.bottom-58,gap=10,cw=(right-left-gap*2)/3,ch=Math.min(240,Math.max(130,cw*.72));
-    const parent=n,originalG=g,list=this.listViewport(n,'missions',{x:left,y:top,w:right-left,h:bottom-top-8},Math.ceil(MISSIONS.length/3)*(ch+12));n=list.n;g=list.g;
+    const top=this.safe.top+104,bottom=h-this.safe.bottom-58,gap=12,cw=Math.min(300,Math.max(160,(right-left)/3.2)),ch=Math.max(100,bottom-top-22);
+    if(this.missionFocus!==undefined){this.listScroll.missions=this.missionFocus*(cw+gap);this.missionFocus=undefined;}
+    const parent=n,originalG=g,list=this.listViewport(n,'missions',{x:left,y:top,w:right-left,h:bottom-top-8},MISSIONS.length*(cw+gap)-gap,'x');n=list.n;g=list.g;
     for (const [i, mission] of MISSIONS.entries()) {
-      const x=left+(i%3)*(cw+gap),y=top+Math.floor(i/3)*(ch+12)-list.offset,selected=mission.id===s.mission.id,number=i+1;
-      if(y+ch<top||y>bottom)continue;
+      const x=left+i*(cw+gap)-list.offset,y=top,selected=mission.id===s.mission.id,number=i+1;
+      if(x+cw<left||x>right)continue;
       const unlocked = this.developer || missionUnlocked(this.missionProgress, mission.id), smallCard = ch < 180;
       this.plate(g, x, y, cw, ch, '#101e2c', selected ? C.mint : C.line, 3);
       const artTop = y + 4, artH = ch - 8;
-      const artIndex = mission.light === 'night' ? 2 : mission.map === 'highland' || mission.light === 'dusk' ? 1 : 0;
-      const artwork = mission.light === 'day' ? this.dayArtwork[number <= 3 ? number - 1 : mission.map === 'highland' ? 1 : number % 3 === 0 ? 2 : 0] : this.missionArtwork[artIndex];
+      const artIndex = mission.map === 'highland' ? 1 : 2;
+      const artwork = this.missionArtwork[artIndex];
       if (artwork) this.coverImage(n, 'MissionIllustration-' + mission.id, artwork, x + 4, artTop, cw - 8, artH);
-      else this.routeGraphic(g, x + 4, artTop, cw - 8, artH, 0, mission.map, mission.light, mission.events);
+      else this.routeGraphic(g, x + 4, artTop, cw - 8, artH, 0, mission.map, 'night', mission.events);
       const overlay = this.artOverlay(n, 'MissionSurface-' + mission.id);
       this.gradient(overlay, x + 4, artTop, cw - 8, Math.min(40, artH), '#04131bca', '#04131b00');
       this.gradient(overlay, x + 4, artTop + artH * .25, cw - 8, artH * .75, '#04131b00', '#04131bf2', 0, 24);
@@ -847,7 +860,7 @@ export class HUD {
     const short = this.h - this.safe.top - this.safe.bottom < 360;
     const pw = Math.min(flight || zoom ? Math.max(344, Math.min(420, this.w * .5)) : 640,
       this.w - this.safe.left - this.safe.right - 32);
-    const ph = Math.min(zoom ? this.rewardsAvailable && nextZoomLimit(this.zoomLimit) ? 248 : 222 : short ? 260 : flight ? 304 : 360, this.h - this.safe.top - this.safe.bottom - 32);
+    const ph = Math.min(zoom ? 248 : short ? 288 : flight ? 304 : 360, this.h - this.safe.top - this.safe.bottom - 32);
     const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2,
       py = this.safe.top + (this.h - this.safe.top - this.safe.bottom - ph) / 2;
     this.panelFrame(g, px, py, pw, ph, C.mint, flight || zoom ? '#050f1d18' : '#050f1d45');
@@ -893,21 +906,24 @@ export class HUD {
       control('lensOut', '−', px + 16, y, 44, false, world.zoom <= .65);
       control('lensIn', '+', px + pw - 60, y, 44, false, world.zoom >= this.zoomLimit);
       this.label(n, `${world.zoom.toFixed(1)}×`, px + pw / 2, y + 22, 26, inner - 104, 40, C.white).isBold = true;
-      control('sensor', world.thermal ? this.t('成像 · 热像', 'SENSOR · THERMAL') : this.t('成像 · 光学', 'SENSOR · OPTICAL'), px + 16, y + step, half, world.thermal);
-      control('effects', this.reducedEffects ? this.t('特效 · 精简', 'FX · REDUCED') : this.t('特效 · 完整', 'FX · FULL'), px + 24 + half, y + step, half, !this.reducedEffects);
+      const viewW = (inner - 12) / 3;
+      for (const [i, mode] of (['night','enhanced','thermal'] as const).entries())
+        control('view:'+mode, this.t(({night:'夜景',enhanced:'增强',thermal:'热像'})[mode], mode.toUpperCase()), px+16+i*(viewW+6), y+step, viewW, (world.viewMode || 'night')===mode);
+      control('effects', this.reducedEffects ? this.t('特效 · 精简', 'FX · REDUCED') : this.t('特效 · 完整', 'FX · FULL'), px+16, y+step*2, half, !this.reducedEffects);
       const limit = nextZoomLimit(this.zoomLimit);
-      if (this.rewardsAvailable && limit) control('zoomUpgrade', s.buff ? this.t('支援生效中', 'SUPPORT ACTIVE') : this.pendingSupply ? this.t('请先领取补给', 'CLAIM SUPPLY FIRST')
-        : this.t(`解锁 ${limit}× 上限 · 广告`, `UNLOCK ${limit}× · AD`), px + 16, y + step * 2, inner, false, !!s.buff || this.pendingSupply);
-      else this.label(n, this.t(`已解锁上限 ${this.zoomLimit}×`, `ZOOM LIMIT ${this.zoomLimit}×`), px + pw / 2, y + 110, 11, inner, 20, C.dim);
+      if (this.rewardsAvailable && limit) control('zoomUpgrade', s.buff ? this.t('支援生效中','SUPPORT ACTIVE') : this.pendingSupply ? this.t('先领取补给','CLAIM SUPPLY') : this.t(`解锁 ${limit}× · 广告`,`UNLOCK ${limit}× · AD`),px+24+half,y+step*2,half,false,!!s.buff||this.pendingSupply);
+      else this.label(n,this.t(`上限 ${this.zoomLimit}×`,`LIMIT ${this.zoomLimit}×`),px+24+half+half/2,y+step*2+22,11,half,28,C.dim);
     } else {
-      const x = px + 16, inner = pw - 32, top = py + 44, step = short ? 46 : 48;
+      const x = px + 16, inner = pw - 32, top = py + (short ? 34 : 44), step = short ? 44 : 48;
       if (playing) {
         const half = (inner - 8) / 2;
         control('flightControls', this.t('飞行 / 视野  ›', 'FLIGHT / VIEW  ›'), x, top, half, true);
         control('zoomControls', this.t('画面 / 倍率  ›', 'DISPLAY / ZOOM  ›'), x + half + 8, top, half, true);
       }
       const items = [
-        ['sound', this.muted ? this.t('声音 关', 'SOUND OFF') : this.t('声音 开', 'SOUND ON')],
+        ['sound', this.muted ? this.t('游戏声音 关', 'SOUND OFF') : this.t('游戏声音 开', 'SOUND ON')],
+        ['voicePrompts', this.voicePrompts ? this.t('语音提示 开', 'VOICE ON') : this.t('语音提示 关', 'VOICE OFF')],
+        ['autoPriority', this.autoPriority ? this.t('优先标注 开', 'AUTO MARK ON') : this.t('优先标注 关', 'AUTO MARK OFF')],
         ['language', this.lang === 'zh' ? '语言 · 中文' : 'LANGUAGE · EN'],
         ['help', this.t('飞行手册', 'FIELD GUIDE')],
         ...(playing ? [
@@ -919,13 +935,18 @@ export class HUD {
       const cols = short ? 3 : 2, cw = (inner - (cols - 1) * 16) / cols;
       items.forEach(([id, caption], i) => {
         const bx=x+i%cols*(cw+16),by=top+(playing?step:0)+Math.floor(i/cols)*step;
-        const glyph = ({sound:this.muted?'muted':'sound',language:'language',help:'guide','online:profile':'profile',effects:'effects',mission:'mission',convoy:'next',supply:'plus'} as Record<string,string>)[id];
+        const glyph = ({sound:this.muted?'muted':'sound',voicePrompts:this.voicePrompts?'sound':'muted',autoPriority:'mission',language:'language',help:'guide','online:profile':'profile',effects:'effects',mission:'mission',convoy:'next',supply:'plus'} as Record<string,string>)[id];
         const label=this.menuButton(n,g,id,caption,bx,by,cw,'quiet',glyph);
         label.fontSize=cw<160?11:13; label.horizontalAlign=Label.HorizontalAlign.LEFT;
         this.rect(g,bx+8,by+43,cw-16,1,'#8ba0ab28');
-        if(id==='sound'&&cw>220){
-          this.rect(g,bx+cw-54,by+14,38,18,this.muted?'#283b45':'#927744',this.muted?C.line:C.amber,9);
-          g.fillColor=col(this.muted?C.dim:C.action);g.circle(bx+cw-(this.muted?44:26)-this.w/2,this.h/2-by-23,6);g.fill();
+        if(['sound','voicePrompts','autoPriority'].includes(id)){
+          const enabled=id==='sound'?!this.muted:id==='voicePrompts'?this.voicePrompts:this.autoPriority;
+          const sw=cw>220?34:20,sx=bx+cw-sw-10,sy=by+16;
+          this.rect(g,sx,sy,sw,12,enabled?'#34766f':'#283b45',enabled?C.mint:C.line,6);
+          g.fillColor=col(enabled?C.mint:C.dim);g.circle(sx+(enabled?sw-6:6)-this.w/2,this.h/2-sy-6,4);g.fill();
+          label.node.getComponent(UITransform)!.setContentSize(cw-42-sw,40);
+          label.node.setPosition(bx+30+(cw-42-sw)/2-this.w/2,this.h/2-by-22);
+          label.fontSize=cw<180?10:12;
         } else if(cw>220)this.controlIcon(g,'next',bx+cw-22,by+22,16);
         if(id==='supply'&&s.buff){this.buttons[this.buttons.length-1].disabled=true;label.color=col(C.dim);}
       });
@@ -1344,16 +1365,34 @@ export class HUD {
     }
     if (key.startsWith('online:') || key === 'duelResult') { this.renderOnline(n, g, s, key === 'duelResult'); return; }
     if (key === 'home' || key === 'missions') { this.renderHome(n, g, s); return; }
-    if(key.startsWith('equipment:')){
-      const pw=Math.min(1060,this.w-this.safe.left-this.safe.right-24),ph=Math.min(590,this.h-this.safe.top-this.safe.bottom-20),px=(this.w-pw)/2,py=(this.h-ph)/2;
+    if(key.startsWith('report:')){
+      const pw=Math.min(1060,this.w-this.safe.left-this.safe.right-24),ph=Math.min(590,this.h-this.safe.top-this.safe.bottom-20),px=this.safe.left+(this.w-this.safe.left-this.safe.right-pw)/2,py=this.safe.top+(this.h-this.safe.top-this.safe.bottom-ph)/2;
       this.panelFrame(g,px,py,pw,ph,C.mint,'#071724f5');
-      this.label(n,this.t('战斗装配 · 实时状态','COMBAT LOADOUT · LIVE'),px+pw/2,py+24,20,pw-110,32,C.mint).isBold=true;
-      this.button('equipmentClose',this.t('关闭','CLOSE'),px+pw-82,py+4,70,44,n);
-      const gap=12,cw=(pw-36)/2,bodyH=ph-60,font=ph<380?11:14;
+      this.label(n,this.t('战况','BATTLE REPORT'),px+(pw-96)/2,py+24,20,pw-120,32,C.mint).isBold=true;
+      this.button('close',this.t('关闭','CLOSE'),px+pw-82,py+4,70,44,n).fontSize=12;
+      for(const [i,id] of ['reportOverview','equipment'].entries()){
+        const x=px+12+i*110,selected=this.equipmentOpen===(i===1);
+        this.plate(g,x,py+49,104,44,selected?'#23404b':'#0b1d2a',selected?C.mint:C.line,3);
+        this.button(id,i?this.t('装配','LOADOUT'):this.t('概况','OVERVIEW'),x,py+49,104,44,n).fontSize=13;
+      }
+      if(!this.equipmentOpen){
+        if(s.duelMode&&this.online){this.online.combatants.forEach((player,i)=>{
+          const cw=(pw-36)/2,x=px+12+i*(cw+12),units=s.units.filter(u=>i===0?u.friendly:!u.friendly),alive=units.filter(u=>u.hp>0).length;
+          this.plate(g,x,py+102,cw,ph-116,'#071725',i?C.amber:C.mint,4);
+          this.label(n,playerLabel(player).split(' #')[0],x+cw/2,py+137,16,cw-24,58,i?C.amber:C.mint);
+          this.label(n,this.t(`已损失 ${units.length-alive} · 剩余 ${alive}`,`LOST ${units.length-alive} · REMAINING ${alive}`),x+cw/2,py+189,14,cw-24,44,C.white);
+        });return;}
+        const columns=[.17,.41,.57,.73,.9],headings=this.lang==='zh'?['类型','总数','存活','消灭','未出场']:['TYPE','TOTAL','ALIVE','LOST','PENDING'];
+        headings.forEach((v,i)=>this.label(n,v,px+pw*columns[i],py+113,12,pw*.18,22,C.dim));
+        const names={light:['轻车','LIGHT'],turret:['炮台','TURRET'],heavy:['重甲','ARMOR'],rescue:['救援车','RESCUE'],escort:['护卫','ESCORT']};
+        battleCounts(s,false,s.duelMode).forEach((row,i)=>[text(names[row.kind],this.lang),row.total,row.alive,row.destroyed,row.pending].forEach((v,j)=>this.label(n,String(v),px+pw*columns[j],py+140+i*23,13,pw*.18,23,j===3?C.mint:C.white)));
+        this.label(n,this.t('查看时战斗继续','BATTLE CONTINUES'),px+pw/2,py+ph-17,11,pw-24,22,C.amber);return;
+      }
+      const gap=12,cw=(pw-36)/2,bodyH=ph-110,font=ph<380?11:14;
       const sides=[s.pilotState(),this.online?.view?.enemyEquipment];
       sides.forEach((pilot,side)=>{
         const x=px+12+side*(cw+gap),title=s.duelMode&&this.online?playerLabel(this.online.combatants[side]).split(' #')[0]:side?this.t('对方','OPPONENT'):this.t('我方','YOU');
-        this.plate(g,x,py+48,cw,bodyH,'#0b1d2ae8',C.line,4);
+        this.plate(g,x,py+100,cw,bodyH,'#0b1d2ae8',C.line,4);
         let lines:string[]=[title];
         if(!pilot){lines.push(this.t(s.duelMode?'对方尚未提供装配信息':'地面敌军 · 无军需插槽',s.duelMode?'Opponent equipment is not available':'Ground forces · no loadout slots'));}
         else {
@@ -1369,7 +1408,7 @@ export class HUD {
           lines=[title+` · Lv.${load.level}`,this.t('装配：','Equipped: ')+(names.join(' / ')||this.t('默认配置','Default')),
             this.t('装配武器：','Equipped weapon: ')+text(w.name,this.lang),
             this.t('默认 → 当前：','Default → current: ')+this.t(`每轮 1 → ${shots} 弹 · 耗弹 1`,`Projectiles 1 → ${shots} · ammo 1`),
-            pilot.selected===4?this.t('无人机每次伤害 6 · 3架 × 24伤害预算','Drones: 6 per hit · 3 drones × 24 damage budget'):shots>1?this.t(`主弹 ${fmt(damage)} ＋ ${shots-1}枚副弹各 ${fmt(damage*preview.secondaryStrength)}`,`Primary ${fmt(damage)} + ${shots-1} secondary × ${fmt(damage*preview.secondaryStrength)}`):this.t(`基础伤害 ${fmt(w.damage)} → ${fmt(damage)} / 发`,`Base damage ${fmt(w.damage)} → ${fmt(damage)} / shot`),
+            pilot.selected===5?this.t('持续3秒 · 每秒80 · 总240 · 重甲×0.85','3s beam · 80/s · total 240 · armor ×0.85'):pilot.selected===4?this.t('无人机每次伤害 6 · 3架 × 24伤害预算','Drones: 6 per hit · 3 drones × 24 damage budget'):shots>1?this.t(`主弹 ${fmt(damage)} ＋ ${shots-1}枚副弹各 ${fmt(damage*preview.secondaryStrength)}`,`Primary ${fmt(damage)} + ${shots-1} secondary × ${fmt(damage*preview.secondaryStrength)}`):this.t(`基础伤害 ${fmt(w.damage)} → ${fmt(damage)} / 发`,`Base damage ${fmt(w.damage)} → ${fmt(damage)} / shot`),
             this.t(`间隔 ${fmt(w.interval)} → ${fmt(interval)} 秒`,`Interval ${fmt(w.interval)} → ${fmt(interval)} s`),
             this.t(`热量 ${fmt(w.heat)} → ${fmt(heat)} / 次 · 范围 ${fmt(w.radius)} → ${fmt(radius)}`,`Heat ${fmt(w.heat)} → ${fmt(heat)} / attack · radius ${fmt(w.radius)} → ${fmt(radius)}`),
             this.t(`实时热量 ${Math.round(gun.heat)} · 武器冷却 ${fmt(gun.cooldown)} 秒`,`Heat ${Math.round(gun.heat)} · weapon cooldown ${fmt(gun.cooldown)} s`),
@@ -1378,35 +1417,8 @@ export class HUD {
             this.t('临时增益：','Temporary buff: ')+(pilot.buff?this.t(pilot.buff.kind==='rate'?'射速 +30%':'追踪',pilot.buff.kind==='rate'?'Fire rate +30%':'Tracking')+` ${Math.ceil(pilot.buff.remaining)}s`:this.t('无','None'))];
           if(load.skipped.length)lines.push(this.t('未生效：','Unavailable: ')+load.skipped.map(id=>this.lang==='zh'?CATALOG.find(p=>p.id===id)?.name||id:id).join(' / '));
         }
-        const label=this.label(n,lines.join('\n'),x+cw/2,py+48+bodyH/2,font,cw-20,bodyH-12,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;label.verticalAlign=Label.VerticalAlign.TOP;label.lineHeight=font*1.45;label.overflow=Label.Overflow.SHRINK;
+        const label=this.label(n,lines.join('\n'),x+cw/2,py+100+bodyH/2,font,cw-20,bodyH-12,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;label.verticalAlign=Label.VerticalAlign.TOP;label.lineHeight=font*1.45;label.overflow=Label.Overflow.SHRINK;
       });return;
-    }
-    if (key.startsWith('report:')) {
-      if(s.duelMode&&this.online){
-        const pw=Math.min(680,this.w-this.safe.left-this.safe.right-24),ph=Math.min(300,this.h-24),x=(this.w-pw)/2,y=(this.h-ph)/2;
-        this.panelFrame(g,x,y,pw,ph);this.label(n,this.t('战况','BATTLE REPORT'),this.w/2,y+26,23,pw-30,34,C.white).isBold=true;
-        this.online.combatants.forEach((player,i)=>{const xx=x+12+i*(pw-24)/2,cw=(pw-30)/2,units=s.units.filter(u=>i===0?u.friendly:!u.friendly),alive=units.filter(u=>u.hp>0).length;this.plate(g,xx,y+53,cw,ph-119,'#071725',i?C.amber:C.mint,4);this.label(n,playerLabel(player).split(' #')[0],xx+cw/2,y+78,18,cw-20,30,i?C.amber:C.mint);this.label(n,this.t(`已损失 ${units.length-alive}\n剩余 ${alive}`,`LOST ${units.length-alive}\nREMAINING ${alive}`),xx+cw/2,y+123,16,cw-20,60,C.white);});
-        this.button('close',this.t('关闭','CLOSE'),x+12,y+ph-54,(pw-36)/2,44,n);this.button('equipment',this.t('双方装配','LOADOUTS'),x+24+(pw-36)/2,y+ph-54,(pw-36)/2,44,n);return;
-      }
-
-      const pw = Math.min(640, this.w - this.safe.left - this.safe.right - 32), ph = Math.min(310, this.h - this.safe.top - this.safe.bottom - 24);
-      const px = (this.w - pw) / 2, py = (this.h - ph) / 2;
-      this.panelFrame(g, px, py, pw, ph);
-      this.label(n, this.t('战况 · 敌方单位', 'BATTLE REPORT · HOSTILES'), px + pw / 2, py + 24, 20, pw - 32, 32, C.white).isBold = true;
-      if (s.duelMode && this.online) this.label(n, playerLabel(this.online.opponent) + (this.online.view?.bot ? ' · BOT' : ''), px + pw / 2, py + 47, 11, pw - 36, 22, C.amber);
-      const columns = [.17, .41, .57, .73, .9], headings = this.lang === 'zh' ? ['类型', '总数', '存活', '消灭', '未出场'] : ['TYPE', 'TOTAL', 'ALIVE', 'LOST', 'PENDING'];
-      headings.forEach((heading, i) => this.label(n, heading, px + pw * columns[i], py + (s.duelMode ? 72 : 58), 12, pw * .18, 24, C.dim));
-      const names = { light: ['轻车', 'LIGHT'], turret: ['炮台', 'TURRET'], heavy: ['重甲', 'ARMOR'], rescue: ['救援车', 'RESCUE'], escort: ['护卫', 'ESCORT'] };
-      const rows = battleCounts(s, false, s.duelMode);
-      rows.forEach((row, i) => {
-        const y = py + (s.duelMode ? 100 : 87) + i * 25;
-        [text(names[row.kind], this.lang), row.total, row.alive, row.destroyed, row.pending].forEach((value, column) =>
-          this.label(n, String(value), px + pw * columns[column], y, 14, pw * .18, 26, column === 3 ? C.mint : C.white));
-      });
-      this.label(n, this.t('查看战况时战斗继续', 'BATTLE CONTINUES WHILE VIEWING'), px + pw / 2, py + ph - 68, 11, pw - 24, 20, C.amber);
-      this.button('close', this.t('返回战斗', 'BACK TO BATTLE'), px + 16, py + ph - 50, (pw-44)/2, 44, n);
-      this.button('equipment', this.t('双方装配', 'COMBAT LOADOUT'), px + pw/2+6, py + ph - 50, (pw-44)/2, 44, n);
-      return;
     }
     if (key.startsWith('help')) { this.renderGuide(n, g); return; }
     if (key.startsWith('countdown:')) {
@@ -1554,7 +1566,7 @@ export class HUD {
             this.t('◇ 重甲目标 → 重型榴弹炮', '◇ ARMOR → HEAVY')].entries())
             this.label(n, target, px + pw * .72, contentTop + 52 + i * 56, 17, pw * .43, 44, C.amber);
         } else {
-          this.routeGraphic(g, px + pw * 0.48, contentTop + 28, pw * 0.46, ph - 235, s.progress, s.mission.map, s.mission.light, s.mission.events);
+          this.routeGraphic(g, px + pw * 0.48, contentTop + 28, pw * 0.46, ph - 235, s.progress, s.mission.map, 'night', s.mission.events);
           this.label(
           n,
           this.t('西岭 → 河谷桥 → 东岭营地', 'WEST RIDGE → RIVER → EXTRACTION'),
@@ -1583,7 +1595,7 @@ export class HUD {
       for (const [i, message] of [
         training ? this.t('练瞄准，友军仍不能误伤', 'Practice aiming; do not hit allies')
           : this.t(`□  保护救援车与 ${FRIENDLY_POSTS.length} 处分散据点`, `□  Protect rescue & all ${FRIENDLY_POSTS.length} outposts`),
-        text(s.mission.description, this.lang),
+        text(s.mission.description, this.lang).replace(/^(白天|DAY) · /, this.t('夜航 · ', 'NIGHT OPS · ')),
       ].entries())
         this.label(
           n,
@@ -1810,8 +1822,7 @@ export class HUD {
     else if (s.pauses.has('settings')) key = this.toolsOpen ? 'settings:flight' : this.zoomOpen ? 'settings:zoom' : 'settings';
     else if (s.pauses.has('orientation')) key = 'orientation';
     else if (this.supplyOpen) key = this.pendingSupply ? 'supply:choice' : 'supply:offer';
-    else if (this.equipmentOpen && s.phase === 'playing') key = `equipment:${Math.floor(s.time*2)}`;
-    else if (this.reportOpen && s.phase === 'playing') key = `report:${Math.floor(s.time * 2)}`;
+    else if (this.reportOpen && s.phase === 'playing') key = `report:${this.equipmentOpen?'equipment':'overview'}:${Math.floor(s.time * 2)}`;
     else if (s.resumeCountdown > 0) key = `countdown:${Math.ceil(s.resumeCountdown)}`;
     else if (s.paused && s.phase !== 'briefing') key = 'pause';
     this.renderModal(key, s, world);
@@ -1841,7 +1852,7 @@ export class HUD {
         b.label.node.active = !key || key === 'home';
         if (!b.label.node.active) continue;
         const gx = b.x + b.w / 2 - w / 2, gy = h / 2 - b.y - b.h / 2, gear = this.globalGraphics;
-        gear.strokeColor = col(!key && !world.thermal && s.mission.light === 'day' ? '#123844' : C.white); gear.lineWidth = 2;
+        gear.strokeColor = col(!key && world.viewMode === 'enhanced' ? '#123844' : C.white); gear.lineWidth = 2;
         if (b.id === 'screen') {
           for (const dx of [-1, 1]) for (const dy of [-1, 1]) {
             const r = this.screenActive ? 5 : 12, direction = this.screenActive ? 1 : -1;
@@ -1857,7 +1868,7 @@ export class HUD {
           if (i) gear.lineTo(x, y); else gear.moveTo(x, y);
         }
         gear.close(); gear.fillColor = gear.strokeColor; gear.fill();
-        gear.fillColor = col(!key && !world.thermal && s.mission.light === 'day' ? '#b9d7dd' : '#122433');
+        gear.fillColor = col(!key && world.viewMode === 'enhanced' ? '#b9d7dd' : '#122433');
         gear.circle(gx, gy, 5.5); gear.fill();
       }
     }
@@ -1867,7 +1878,7 @@ export class HUD {
     connection.node.active = s.duelMode && !!connection.string;
     if (connection.node.active) this.plate(this.globalGraphics, left, top + 54, Math.min(300, right - left - 140), 28, '#2f1118ee', C.red, 4);
     const toast = this.labels.get('globalToast')!;
-    toast.node.active = ['missions', 'pause', 'settings', 'settings:zoom'].includes(key) && !!this.toast && Date.now() < this.toastUntil;
+    toast.node.active = ['missions', 'settings:zoom'].includes(key) && !!this.toast && Date.now() < this.toastUntil;
     toast.string = this.toast;
     if (toast.node.active) {
       const tw = toast.node.getComponent(UITransform)!.contentSize.width;
@@ -1891,23 +1902,28 @@ export class HUD {
     const plane = s.aircraft;
     const flightTime = s.flightTime(), flightText = Number.isFinite(flightTime) ? flightTime.toFixed(1) + 's' : '—';
     const allies = s.units.filter((u) => u.friendly).length;
-    this.set('health', s.duelMode && this.online ? this.online.combatants.map(p=>playerLabel(p).split(' #')[0]).join('  VS  ') : this.t(`□ 友军 ${allies - s.friendlyLosses} / ${allies}`, `□ ALLIES ${allies - s.friendlyLosses} / ${allies}`));
-    const bright = !world.thermal && s.mission.light === 'day';
-    this.labels.get('health')!.color = col(!s.duelMode && s.rescue.hp / s.rescue.maxHp < 0.3 ? bright ? '#982536' : C.red : bright ? '#124652' : C.mint);
+    const bright = world.viewMode === 'enhanced';
+    const counts = s.duelMode ? this.t(`友军 ${allies-s.friendlyLosses} · 敌军 ${s.units.filter(u=>!u.friendly&&u.hp>0).length}`, `ALLY ${allies-s.friendlyLosses} · HOST ${s.units.filter(u=>!u.friendly&&u.hp>0).length}`)
+      : this.t(`友军 ${allies-s.friendlyLosses}/${allies} · 撤离 ${Math.floor(s.ratio*100)}% · 威胁 ${s.threatsRemaining}`, `ALLY ${allies-s.friendlyLosses}/${allies} · EXIT ${Math.floor(s.ratio*100)}% · HOST ${s.threatsRemaining}`);
+    this.set('health', counts);
+    this.labels.get('health')!.color = col(!s.duelMode && s.rescue.hp / s.rescue.maxHp < .3 ? bright ? '#982536' : C.red : bright ? '#123844' : C.white);
     this.labels.get('progress')!.color = col(bright ? '#243c42' : C.dim);
     this.labels.get('status')!.color = col(bright ? '#123844' : C.white);
-    this.labels.get('health')!.fontSize = s.duelMode ? 10 : 13;
-    this.set('progress', s.duelMode ? this.t(`蓝方剩余 ${allies-s.friendlyLosses} · 橙方剩余 ${s.units.filter(u=>!u.friendly&&u.hp>0).length}`,`BLUE ${allies-s.friendlyLosses} · ORANGE ${s.units.filter(u=>!u.friendly&&u.hp>0).length}`) : s.mission.mode === 'training'
-      ? this.t(`热身清靶 ${s.kills} / 3 · 友伤 ${Math.round(s.friendlyDamage)}`, `WARMUP ${s.kills}/3 · FRIENDLY ${Math.round(s.friendlyDamage)}`)
-      : this.t(`撤离 ${Math.floor(s.ratio * 100)}% · 威胁 ${s.threatsRemaining}`, `ROUTE ${Math.floor(s.ratio * 100)}% · THREATS ${s.threatsRemaining}`));
-    for(const side of [0,1]){const label=this.labels.get('spectator:'+side)!;label.node.active=!!this.online?.spectator;if(label.node.active){const cw=this.w<900?148:190,x=left+side*(cw+8),tint=side?'#efb366':'#7cd4f1',player=this.online!.combatants[side],alive=s.units.filter(u=>(side===0?u.friendly:!u.friendly)&&u.hp>0).length;this.rect(g,x,top+7,cw,59,'#071827df',tint,5);this.rect(g,x+1,top+8,3,57,tint);label.node.setPosition(x+cw/2-w/2,h/2-top-36);label.node.getComponent(UITransform)!.setContentSize(cw-14,52);label.fontSize=this.w<900?14:18;label.lineHeight=this.w<900?21:24;label.isBold=true;label.color=col(C.white);label.string=playerLabel(player).split(' #')[0]+'\n'+this.t(`剩余 ${alive}`,`REMAINING ${alive}`);}}
-    if(this.online?.spectator){this.labels.get('health')!.node.active=false;this.labels.get('progress')!.node.active=false;}
+    this.set('progress', s.mission.mode === 'training' ? this.t(`热身清靶 ${s.kills}/3 · 友伤 ${Math.round(s.friendlyDamage)}`, `WARMUP ${s.kills}/3 · FRIENDLY ${Math.round(s.friendlyDamage)}`) : '');
+    for(const side of [0,1]){
+      const label=this.labels.get('spectator:'+side)!;label.node.active=s.duelMode&&!!this.online;
+      if(label.node.active){const cw=Math.min(220,(right-left-this.minimapLayout.w-24)/2),x=left+side*(cw+8),tint=side?'#efb366':'#7cd4f1',name=playerLabel(this.online!.combatants[side]).split(' #')[0];
+        this.rect(g,x,top+49,cw,28,'#07182788',tint,4);label.node.setPosition(x+cw/2-w/2,h/2-top-63);label.node.getComponent(UITransform)!.setContentSize(cw-14,24);
+        label.fontSize=this.w<900?12:14;label.lineHeight=18;label.enableWrapText=false;label.overflow=Label.Overflow.CLAMP;label.isBold=true;label.color=col(tint);label.string=this.fitBattleName(label,name,cw-20);label.node.getComponent(UITransform)!.setContentSize(cw-14,24);
+      }
+    }
+    if(this.online?.spectator)this.labels.get('progress')!.node.active=false;
     const clock = Math.floor(s.time);
     const level = s.duelMode || s.mission.mode === 'training' ? 0 : MISSIONS.findIndex(m => m.id === s.mission.id) + 1;
-    this.set('status', `${level ? this.t(`第 ${level} 关`, `LEVEL ${level}`) + '\n' : ''}${world.thermal ? this.t('热像', 'IR') : this.t(s.mission.light === 'day' ? '白天' : s.mission.light === 'dusk' ? '黄昏' : '夜间', s.mission.light.toUpperCase())}\n${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
+    this.set('status', `${level ? this.t(`${level}关`, `L${level}`) + ' · ' : ''}${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
     this.set('weaponState', this.t(
-      `${this.mouseDesktop ? '' : flightText + ' 弹着\n'}${gun.overheated ? '过热 · 冷却至40' : gun.cooldown > 0 && s.selected > 0 ? '装填 ' + gun.cooldown.toFixed(1) + 's' : '热量 ' + Math.round(gun.heat) + '%'}`,
-      `${this.mouseDesktop ? '' : flightText + ' IMPACT\n'}${gun.overheated ? 'OVERHEATED' : gun.cooldown > 0 && s.selected > 0 ? 'RELOAD ' + gun.cooldown.toFixed(1) + 's' : 'HEAT ' + Math.round(gun.heat) + '%'}`));
+      `${this.mouseDesktop ? '' : flightText + ' 弹着\n'}${gun.overheated ? '过热 · 冷却至40' : '热量 ' + Math.round(gun.heat) + '%'}`,
+      `${this.mouseDesktop ? '' : flightText + ' IMPACT\n'}${gun.overheated ? 'OVERHEATED' : 'HEAT ' + Math.round(gun.heat) + '%'}`));
     if (s.homingSelected) this.set('weaponState', s.homingAmmo <= 0 ? this.t('点战斗补给', 'OPEN SUPPLY')
       : s.homingTarget ? this.t('已锁定', 'LOCKED') : this.t('点选敌人', 'TAP AN ENEMY'));
     const reasons: Record<string, string[]> = {
@@ -1943,6 +1959,7 @@ export class HUD {
     }
     for (const id of ['notice', 'friendWarning', 'tutorial']) {
       const label = this.labels.get(id)!;
+      label.node.setPosition(0, h / 2 - (by - (s.skillKind || s.hasWeapon(4) || s.hasWeapon(5) ? 64 : 18)));
       if (!label.node.active || !label.string) continue;
       label.node.getComponent(UITransform)!.setContentSize(Math.min(w - 40, Math.max(180, label.string.length * label.fontSize + 24)), 28);
       const size = label.node.getComponent(UITransform)!.contentSize, p = label.node.position;
@@ -1950,48 +1967,50 @@ export class HUD {
     }
     for (const b of this.buttons.filter((b) => b.label.node.parent === this.root && b.label.node.active)) {
       if (b.id === 'priority') continue;
-      if (b.id === 'battleReport') {
-        this.rect(g, b.x, b.y, b.w, b.h, '#101a1e88', '#9acbb966', 6);
+      if (b.id === 'battleReport' || b.id === 'sensor') {
+        if (b.id === 'sensor') b.label.string = this.t(({night:'夜景',enhanced:'增强',thermal:'热像'})[world.viewMode || 'night'], ({night:'NIGHT',enhanced:'ENH',thermal:'IR'})[world.viewMode || 'night']);
+        b.visual = { x: b.x + 2, y: b.y + 8, w: b.w - 4, h: 28 };
+        this.rect(g, b.visual.x, b.visual.y, b.visual.w, b.visual.h, '#0b192950', '#b4e5dd99', 4);
+        b.label.color = col(C.white);
         continue;
       }
-      if (b.id === 'homing') b.label.string = this.t('追踪', 'HOMING') + '\n' + (tracking
+      if (b.id === 'homing') b.label.string = this.t('追踪', 'LOCK') + ' ' + (tracking
         ? this.t(`${Math.ceil(s.buff!.remaining)}秒`, `${Math.ceil(s.buff!.remaining)}s`) : s.homingAmmo || '+');
       const selected = (!s.homingSelected && b.id === 'weapon' + s.selected) || ((s.homingSelected || tracking) && b.id === 'homing') || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
       if (b.id.startsWith('weapon')) {
-        const i = Number(b.id.slice(-1)), a = s.guns[i];
+        const i = Number(b.id.slice(-1)), a = s.guns[i],ready=s.weaponReadiness(i);
         const compactNames=[['速射','AUTO'],['榴弹','HE'],['重炮','HVY'],['燃烧','FIRE']];
-        b.label.string = (b.w<100&&i<4?this.t(...compactNames[i] as [string,string]):text(WEAPONS[i].name,this.lang)) + '\n' + (a.ammo === Infinity ? '∞' : a.ammo);
+        b.label.string = (b.w<100&&i<4?this.t(...compactNames[i] as [string,string]):text(WEAPONS[i].name,this.lang)) + ' ' + (a.ammo === Infinity ? '∞' : a.ammo)+(ready.empty?'\n'+this.t('弹尽','EMPTY'):ready.remaining>0?'\n'+ready.displaySeconds.toFixed(1)+'s':'');
       }
       if(b.id==='skillUse') {
-        b.label.string=(s.skillKind==='tracking'?this.t('个人追踪','TRACKING'):this.t('电磁定身','EMP'))+'\n'+(s.skillRemaining>0?this.t('生效 ','ACTIVE ')+Math.ceil(s.skillRemaining)+'s':s.skillCooldown>0?this.t('冷却 ','COOLDOWN ')+Math.ceil(s.skillCooldown)+'s':this.t('就绪','READY'));
+        b.label.string=(s.skillKind==='tracking'?this.t('追踪','TRACK'):this.t('定身','EMP'))+'\n'+(s.skillRemaining>0?this.t('生效 ','ACTIVE ')+Math.ceil(s.skillRemaining)+'s':s.skillCooldown>0?this.t('冷却 ','COOLDOWN ')+Math.ceil(s.skillCooldown)+'s':this.t('就绪','READY'));
         b.disabled=s.skillCooldown>0||s.paused||s.extractionRemaining!==undefined;
       }
       if (b.id === 'fire') b.label.string = reason === 'extracting' ? this.t('停火', 'CEASE FIRE') : s.homingSelected
         ? s.homingAmmo <= 0 ? this.t('无弹药', 'EMPTY') : s.homingTarget ? this.t('发射', 'LAUNCH') : this.t('待锁定', 'LOCK')
-        : reason === 'protected' ? this.t('禁射', 'BLOCKED') : reason === 'overheated' ? this.t('冷却', 'COOL')
+        : s.weaponReadiness().empty ? this.t('弹尽','EMPTY') : reason === 'protected' ? this.t('禁射', 'BLOCKED') : reason === 'overheated' ? this.t('冷却', 'COOL')
         : reason === 'empty' ? this.t('无弹药', 'EMPTY') : this.t('开火', 'FIRE');
       const fire = b.id === 'fire';
-      this.plate(g, b.x, b.y, b.w, b.h, fire ? danger ? '#482832' : C.mint : selected ? '#29463ee0' : '#101a1ee6', fire && danger ? C.red : selected || fire ? C.mint : '#708a8066', fire ? 12 : 7);
-      b.label.color = col(fire && !danger ? C.action : selected ? C.mint : C.white);
+      if(fire&&!s.homingSelected&&!s.weaponReadiness().empty&&s.weaponReadiness().remaining>0)b.label.string+='\n'+s.weaponReadiness().displaySeconds.toFixed(1)+'s';
+      b.visual = { x: b.x + 2, y: b.y + 5, w: b.w - 4, h: b.h - 10 };
+      if (fire) {
+        const radius = 29, x = b.x + b.w / 2 - w / 2, y = h / 2 - b.y - b.h / 2;
+        b.visual = { x: b.x + b.w/2-radius, y: b.y+b.h/2-radius, w:radius*2,h:radius*2 };
+        g.fillColor=col(danger?'#48283266':'#0b192944');g.strokeColor=col(danger?C.red:C.mint);g.lineWidth=2;
+        g.circle(x,y,radius);g.fill();g.stroke();g.lineWidth=1;
+      } else {
+        const v=b.visual;this.rect(g,v.x,v.y,v.w,v.h,selected?'#173b3b70':'#0b192950',selected?C.mint:'#b4c9cd77',4);
+        if(selected)this.rect(g,v.x+8,v.y+v.h-2,v.w-16,2,C.mint);
+      }
+      if(b.id.startsWith('weapon'))this.cooldownBorder(g,b,s.weaponReadiness(Number(b.id.slice(-1))).ratio);
+      if(fire&&!s.homingSelected)this.cooldownBorder(g,b,s.weaponReadiness().ratio,true);
+      if(b.id==='skillUse'&&s.skillKind)this.cooldownBorder(g,b,Math.min(1,s.skillRemaining>0?s.skillRemaining/SKILLS[s.skillKind].duration:s.skillCooldown/SKILLS[s.skillKind].cooldown),false,s.skillRemaining>0?C.mint:C.amber);
+      b.label.color = col(fire && danger ? C.red : selected ? C.mint : C.white);
+      b.label.fontSize = fire ? 14 : b.id==='skillUse' ? 11 : this.compact ? 12 : 13;
+      b.label.lineHeight = 15;
       if(b.id==='skillUse')b.label.color=col(s.skillRemaining>0?C.mint:s.skillCooldown>0?C.dim:C.white);
       if (b.id === 'homing' && tracking && s.buff!.remaining <= 5) b.label.color = col(C.amber);
       b.label.isBold = selected || fire;
-      if ((b.id.startsWith('weapon') || b.id === 'homing') && b.w >= 64) {
-        const x = b.x + 17 - w / 2, y = h / 2 - b.y - b.h / 2;
-        g.strokeColor = col(selected ? C.mint : C.dim); g.lineWidth = 2;
-        if (b.id === 'homing') {
-          g.circle(x, y, 7); g.stroke();
-          for (const sign of [-1, 1]) { g.moveTo(x + sign * 5, y); g.lineTo(x + sign * 11, y); g.moveTo(x, y + sign * 5); g.lineTo(x, y + sign * 11); } g.stroke();
-        } else {
-          const barrels = b.id === 'weapon0' ? 2 : 1;
-          for (let i = 0; i < barrels; i++) { g.moveTo(x - 8, y - 7 + i * 5); g.lineTo(x + 8, y + 7 + i * 5); } g.stroke();
-          g.moveTo(x - 7, y - 9); g.lineTo(x - 11, y - 2); g.lineTo(x - 5, y + 3); g.stroke();
-        }
-        b.label.node.setPosition(b.x + 30 + (b.w - 30) / 2 - w / 2, h / 2 - b.y - b.h / 2);
-        b.label.node.getComponent(UITransform)!.setContentSize(b.w - 32, b.h - 4);
-        b.label.fontSize = 12;
-        b.label.lineHeight = 15;
-      }
       if (b.id.startsWith('weapon')) {
         const a = s.guns[Number(b.id.slice(-1))];
         this.rect(g, b.x + 5, b.y + b.h - 5, (b.w - 10) * a.heat / 100, 2, a.overheated ? C.red : C.amber);
@@ -2001,9 +2020,28 @@ export class HUD {
     this.drawWorld(s, world);
     this.drawMinimap(s);
   }
+  private fitBattleName(label:Label,name:string,width:number) {
+    const key=`${name}:${width}:${label.fontSize}`;let fitted=this.nameFits.get(key);if(fitted!==undefined)return fitted;
+    const measure=typeof label.updateRenderData==='function'?(value:string)=>{
+      label.overflow=Label.Overflow.NONE;label.string=value;label.updateRenderData(true);
+      return label.node.getComponent(UITransform)!.contentSize.width;
+    }:undefined;
+    fitted=fitName(name,width,label.fontSize,measure);label.overflow=Label.Overflow.CLAMP;
+    this.nameFits.set(key,fitted);return fitted;
+  }
+  private cooldownBorder(g:Graphics,b:ButtonRect,ratio:number,circle=false,tint=C.amber) {
+    if(ratio<=0)return;
+    const v=b.visual||b,steps=48;g.strokeColor=col(tint);g.lineWidth=2.5;
+    for(let i=0;i<=Math.ceil(steps*ratio);i++){
+      const t=Math.min(ratio,i/steps);let x:number,y:number;
+      if(circle){const angle=-Math.PI/2+t*Math.PI*2;x=v.x+v.w/2+Math.cos(angle)*v.w/2;y=v.y+v.h/2+Math.sin(angle)*v.h/2;}
+      else {const d=t*(v.w+v.h)*2;if(d<=v.w){x=v.x+d;y=v.y;}else if(d<=v.w+v.h){x=v.x+v.w;y=v.y+d-v.w;}else if(d<=v.w*2+v.h){x=v.x+v.w-(d-v.w-v.h);y=v.y+v.h;}else{x=v.x;y=v.y+v.h-(d-v.w*2-v.h);}}
+      if(i)g.lineTo(x-this.w/2,this.h/2-y);else g.moveTo(x-this.w/2,this.h/2-y);
+    }g.stroke();g.lineWidth=1;
+  }
   drawMinimap(s: Simulation) {
-    const g = this.marks, map = this.minimapLayout, priorityId = s.priorityThreat?.unit.id;
-    this.rect(g, map.x, map.y, map.w, map.h, '#0c171de8', '#91e6cb55');
+    const g = this.marks, map = this.minimapLayout, priorityId = this.autoPriority ? s.priorityThreat?.unit.id : undefined;
+    this.rect(g, map.x, map.y, map.w, map.h, '#0c171d66', '#91e6cb55');
     this.set('mapLegend', this.t('北 ↑', 'N ↑'));
     const point = (p: Point) => ({
       x: map.x + 8 + (p.x + MAP.halfWidth) / (2 * MAP.halfWidth) * (map.w - 16) - this.w / 2,
@@ -2058,7 +2096,7 @@ export class HUD {
     const priorityLabel = this.labels.get('priorityMarker')!;
     priorityLabel.node.active = false;
     const threat = s.priorityThreat;
-    if (threat) {
+    if (threat && this.autoPriority) {
       const p = project(threat.unit, 1.5);
       if (p.visible) {
         let x = Math.max(-this.w / 2 + this.safe.left + 48, Math.min(this.w / 2 - this.safe.right - 48, p.x));

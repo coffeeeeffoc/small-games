@@ -1,0 +1,20 @@
+{
+  "fixture": false,
+  "environment": "Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; no asset fixture or developer grant",
+  "screens": [
+    "home",
+    "growth",
+    "tasks",
+    "modes",
+    "missions"
+  ],
+  "errors": [],
+  "runId": "4a1800d1-25eb-437e-82e0-469f941b3f6f",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a"
+  },
+  "playerId": "eb8d24ee-fb47-43b7-8bfd-81a7de3293c2",
+  "cleaned": true
+}

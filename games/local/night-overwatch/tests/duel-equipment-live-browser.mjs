@@ -35,7 +35,7 @@ async function make(width,height,loadout){
 async function shot(actor,name){await settleVisuals(actor.page);const state=await snapshot(actor.page);assertLayout(state,actor.width,actor.height);await actor.page.screenshot({path:fileURLToPath(new URL(name+'.png',out))});evidence.screens.push({name,width:actor.width,height:actor.height});}
 async function leave(actor){
   const state=await snapshot(actor.page);
-  if(state.equipmentOpen){await hit(actor,'equipmentClose');await hit(actor,'close');}
+  if(state.equipmentOpen){await hit(actor,'close');}
   if((await snapshot(actor.page)).online.active){await hit(actor,'settings');await hit(actor,'home');await hit(actor,'exitConfirm');}
   else if((await snapshot(actor.page)).online.room)await hit(actor,'online:leave');
 }
@@ -63,7 +63,7 @@ try{
   evidence.checks.push('Double burst × twin trajectory fires four projectiles, spends one round, and opponent observes the selected weapon and remaining ammunition');
   await hit(a,'battleReport');await hit(a,'equipment');await hit(b,'battleReport');await hit(b,'equipment');
   for(const actor of [a,b]){const text=await labels(actor.page);assert(text.includes('我方')&&text.includes('对方')&&text.includes('两连发')&&text.includes('电磁干扰')&&text.includes('默认 → 当前'));assert(!text.includes('尚未提供'));await shot(actor,'both-loadouts-'+actor.width);}
-  await hit(b,'equipmentClose');await hit(b,'close');await hit(b,'skillUse');
+  await hit(b,'close');await hit(b,'skillUse');
   await a.page.waitForFunction(()=>{const s=__night.snapshot();return s.enemyEquipment.skill.activeUntil>s.time;});
   await waitText(a.page,'电磁干扰 · 生效');await shot(a,'opponent-emp-active');
   const time=(await snapshot(a.page)).time;

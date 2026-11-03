@@ -1,4 +1,5 @@
 import { AudioClip, AudioSource, Node, resources, sys } from 'cc';
+import type { ViewMode } from './World';
 import type { PauseReason } from './core/Simulation';
 import { missionDefinition, type MissionId } from './core/MissionCatalog';
 import { newMissionProgress, readMissionProgress, type MissionProgress } from './core/MissionProgress';
@@ -17,6 +18,9 @@ export class Platform {
   touchInput = sys.isMobile || (sys.isBrowser && window.matchMedia('(pointer: coarse)').matches);
   muted = false;
   reducedEffects = false;
+  voicePrompts = true;
+  autoPriority = true;
+  viewMode: ViewMode = 'night';
   activated = false;
   voices = new Map<string, AudioSource>();
   engine: AudioSource;
@@ -45,6 +49,10 @@ export class Platform {
       this.rewards = readRewards(sys.localStorage.getItem(this.rewardStorageKey));
       this.times = readMissionTimes(sys.localStorage.getItem('night-overwatch-times-v1'));
       this.muted = sys.localStorage.getItem('night-overwatch-muted') === 'true';
+      this.voicePrompts = sys.localStorage.getItem('night-overwatch-voice-prompts') !== 'false';
+      this.autoPriority = sys.localStorage.getItem('night-overwatch-auto-priority') !== 'false';
+      const view = sys.localStorage.getItem('night-overwatch-view');
+      this.viewMode = view === 'enhanced' || view === 'thermal' ? view : 'night';
       const preference = sys.localStorage.getItem('night-overwatch-reduced-effects');
       this.reducedEffects =
         preference === 'true' ||
@@ -157,6 +165,9 @@ export class Platform {
   savePreferences() {
     try {
       sys.localStorage.setItem('night-overwatch-muted', String(this.muted));
+      sys.localStorage.setItem('night-overwatch-voice-prompts', String(this.voicePrompts));
+      sys.localStorage.setItem('night-overwatch-auto-priority', String(this.autoPriority));
+      sys.localStorage.setItem('night-overwatch-view', this.viewMode);
       sys.localStorage.setItem('night-overwatch-reduced-effects', String(this.reducedEffects));
     } catch {
       /* Optional local preferences. */
@@ -189,7 +200,7 @@ export class Platform {
   speak(id: keyof typeof RADIO, lang: 'zh' | 'en') {
     this.stopRadio();
     const clip = this.clips.get(`radio-${id}-${lang}`);
-    if (!clip || this.muted || !this.activated || this.disposed) return;
+    if (!clip || this.muted || !this.voicePrompts || !this.activated || this.disposed) return;
     this.radio.clip = clip;
     this.radioPending = true;
     this.radioStartWait = 0;
@@ -198,7 +209,7 @@ export class Platform {
   }
   advanceRadio(dt: number) {
     if (!this.radioPending) return;
-    if (this.muted || this.disposed) { this.stopRadio(); return; }
+    if (this.muted || !this.voicePrompts || this.disposed) { this.stopRadio(); return; }
     if (this.radioPaused) {
       this.radioPaused = false;
       this.radioStartWait = 0;

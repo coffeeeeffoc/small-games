@@ -109,7 +109,7 @@ try{
     assert.equal(new Set(impacts.map(impact=>`${impact.x.toFixed(3)},${impact.z.toFixed(3)}`)).size,4,'Terrain contacts also remain distinct');
     evidence.checks.push({width,height,impacts});await shot('spread-impact');
     await click('battleReport');await click('equipment');assert((await snapshot(page)).equipmentOpen);await shot('battle-equipment');
-    await click('equipmentClose');await click('close');await click('skillUse');assert((await snapshot(page)).skill.remaining>0);
+    await click('close');await click('skillUse');assert((await snapshot(page)).skill.remaining>0);
     await click('settings');await click('home');await click('exitConfirm');
     await click('qm:modes');await click('mode:duel');await click('mode:enter');await click('online:bot');
     await page.waitForFunction(()=>__night.snapshot().online.active&&!__night.snapshot().modal);

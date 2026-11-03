@@ -321,13 +321,13 @@ export const ACTIONS = [
   {
     id: 'sensor',
     group: 'advanced',
-    name: ['传感器', 'Sensor'],
+    name: ['成像视图', 'View mode'],
     keys: [86],
     binding: 'V',
-    touch: ['点击传感器', 'Tap SENSOR'],
+    touch: ['点击右上视图', 'Tap the top-right view'],
     description: [
-      '热成像 / 日光切换。青色方框为友军，琥珀色菱形为敌军；仅关注目标显示受损状态。',
-      'Thermal/daylight: mint squares are friendly, amber diamonds hostile. Damage status appears only on the focused unit.',
+      '夜景 / 增强 / 热像循环切换，只改变显示。增强更易辨认地形；方框为友军，菱形为敌军。',
+      'Cycle Night / Enhanced / Thermal without changing combat. Enhanced reveals terrain clearly; squares are allies, diamonds are enemies.',
     ],
     event: 'sensor',
   },
@@ -407,7 +407,7 @@ export const ACTIONS = [
   },
   { id: 'priority', group: 'basic', name: ['紧急目标', 'Priority threat'], keys: [], binding: '',
     touch: ['点击红色提示定位', 'Tap red alert to locate'],
-    description: ['红框标出即将攻击友军的敌人，数字是开火倒计时。电台同步提示；夜间可开启热成像。', 'Red brackets mark enemies about to attack allies. The timer shows time to fire. Listen to radio calls; use thermal at night.'] },
+    description: ['红框标出即将攻击友军的敌人，数字是开火倒计时。设置中可分别开关语音提示和优先标注；友伤警告始终保留。', 'Red brackets show imminent threats and their firing timer. Settings separately control voice prompts and auto marks; friendly-fire warnings remain.'] },
   {
     id: 'protection',
     group: 'rules',

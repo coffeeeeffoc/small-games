@@ -1,0 +1,29 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "02b287e3ecc7b37c08e123b2e28e7c04906db67295087ceb433ec3d6e2be02f5"
+  },
+  "fixture": true,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "weapon": "drone",
+      "skill": "tracking",
+      "skillActive": true,
+      "specialWeaponSelected": true,
+      "botTactics": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "weapon": "laser",
+      "skill": "emp",
+      "skillActive": true,
+      "specialWeaponSelected": true,
+      "botTactics": true
+    }
+  ],
+  "errors": []
+}

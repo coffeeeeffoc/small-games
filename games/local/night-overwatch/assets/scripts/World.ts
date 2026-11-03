@@ -50,6 +50,8 @@ import {
 import { recoilOffset } from './core/Flight';
 import { AircraftModel } from './AircraftModel';
 
+export type ViewMode = 'night' | 'enhanced' | 'thermal';
+
 type Geometry = {
   positions: number[];
   normals: number[];
@@ -468,7 +470,8 @@ export class World {
   follow = false;
   focusSpan?: { x: number; z: number };
   temporary = false;
-  thermal = false;
+  viewMode: ViewMode = 'night';
+  get thermal() { return this.viewMode === 'thermal'; }
   views = new Map<number, { node: Node; material: Material; wreck: boolean }>();
   impactClouds: BattleEvent[] = [];
   private lastImpact = 0;
@@ -1057,8 +1060,8 @@ export class World {
         for (const terrain of this.terrain) if (terrain.surface !== undefined) {
           const material = new Material(); replacements.push({ terrain, material });
           material.initialize({ effectAsset: effect });
-          material.setProperty('mainColor', color(this.thermal ? terrain.heat : terrain.day));
-          material.setProperty('surfaceParams', new Vec4(terrain.surface, 0, this.thermal ? 1 : 0, this.light === 'night' ? .35 : this.light === 'dusk' ? .7 : 1));
+          material.setProperty('mainColor', this.sceneColor(terrain.day, terrain.heat));
+          material.setProperty('surfaceParams', new Vec4(terrain.surface, 0, this.thermal ? 1 : 0, this.viewMode === 'night' ? .7 : 1));
           if (!material.passes.length || !material.passes.every(pass => pass.tryCompile()))
             throw new Error('terrain-surface shader compilation failed for surface ' + terrain.surface);
         }
@@ -1088,13 +1091,14 @@ export class World {
         heat = '#659389',
         m = new Material();
       m.initialize({ effectName: 'builtin-unlit' });
-      m.setProperty('mainColor', color(this.thermal ? heat : day));
+      m.setProperty('mainColor', this.sceneColor(day, heat));
       for (const r of n.getComponentsInChildren(MeshRenderer)) r.setMaterial(m, 0);
       this.terrain.push({ material: m, day, heat });
       fallback.active = false;
       this.modelImport = 'loaded';
       this.assets.add('prop.beacon');
     });
+    this.setView(this.viewMode);
     this.updateCamera();
   }
   private mesh(g: Geometry) {
@@ -1122,7 +1126,8 @@ export class World {
     this.root.addChild(n);
     const r = n.addComponent(MeshRenderer);
     r.mesh = this.mesh(g);
-    const m = this.material(this.thermal ? heat : day, id === 'terrain.clouds' || id === 'terrain.canopyShadows');
+    const m = this.material(day, id === 'terrain.clouds' || id === 'terrain.canopyShadows');
+    m.setProperty('mainColor', this.sceneColor(day, heat));
     r.setMaterial(m, 0);
     const surface = ({ 'terrain.ground': 0, 'terrain.water': 1, 'terrain.roads': 2, 'terrain.ridges': 3, 'terrain.riverbank': 3, 'terrain.forest': 4, 'terrain.distantForest': 4 } as Record<string, number>)[id];
     this.terrain.push({ material: m, day, heat, surface, renderer: r });
@@ -1247,11 +1252,21 @@ export class World {
       return new Vec3(-1000000, -1000000, -1);
     return this.camera.worldToScreen(new Vec3(p.x, p.y, p.z));
   }
+  private sceneColor(day: string, heat: string) {
+    const tint = color(this.thermal ? heat : day);
+    if (this.viewMode === 'night') { tint.r *= .4; tint.g *= .53; tint.b *= .74; }
+    return tint;
+  }
   sensor() {
-    this.thermal = !this.thermal;
-    this.camera.clearColor = color(this.thermal ? '#10191d' : this.light === 'day' ? '#88b8d6' : this.light === 'dusk' ? '#a17c79' : '#26354e');
+    this.setView(this.viewMode === 'night' ? 'enhanced' : this.viewMode === 'enhanced' ? 'thermal' : 'night');
+  }
+  setView(mode: ViewMode) {
+    const wasThermal = this.thermal;
+    this.viewMode = mode;
+    this.camera.clearColor = color(this.thermal ? '#10191d' : mode === 'enhanced' ? '#88b8d6' : '#26354e');
     for (const t of this.terrain)
-      t.material.setProperty('mainColor', color(this.thermal ? t.heat : t.day));
+      t.material.setProperty('mainColor', this.sceneColor(t.day, t.heat));
+    if (wasThermal === this.thermal) return;
     // Optical paint and baked vertex shadows must not attenuate thermal heat.
     // Owned Material assets cannot recompile instance-only shader defines.
     for (const v of this.views.values()) {
@@ -1306,10 +1321,10 @@ export class World {
   }
   update(s: Simulation, reduced = false) {
     if (this.surfaceEffectReady) for (const terrain of this.terrain) if (terrain.surface !== undefined)
-      terrain.material.setProperty('surfaceParams', new Vec4(terrain.surface, reduced ? 0 : s.time, this.thermal ? 1 : 0, this.light === 'night' ? .35 : this.light === 'dusk' ? .7 : 1));
+      terrain.material.setProperty('surfaceParams', new Vec4(terrain.surface, reduced ? 0 : s.time, this.thermal ? 1 : 0, this.viewMode === 'night' ? .7 : 1));
     this.cloudLayer?.setPosition(Math.sin(s.time * .008) * 14, 0, Math.cos(s.time * .006) * 8);
     if (this.waterGlints && !this.thermal) {
-      const glint = (this.light === 'night' ? 75 : 190) + Math.sin(s.time * 1.4) * 22;
+      const glint = (this.viewMode === 'night' ? 75 : 190) + Math.sin(s.time * 1.4) * 22;
       this.waterGlints.getComponent(MeshRenderer)!.getMaterial(0)!.setProperty('mainColor', new Color(glint * .86, glint * .95, glint));
     }
     for (const event of s.events) {
@@ -1386,7 +1401,7 @@ export class World {
         : u.hp <= 0 ? color('#302e2b') : color(u.friendly ? '#afc7b5' : u.kind === 'heavy' ? '#988376' : '#b3a68b');
       if (!this.thermal && u.hp > 0) {
         const shade = 0.45 + 0.55 * u.hp / u.maxHp;
-        c.r *= shade; c.g *= shade; c.b *= shade;
+        c.r *= shade * (this.viewMode === 'night' ? .6 : 1); c.g *= shade * (this.viewMode === 'night' ? .72 : 1); c.b *= shade * (this.viewMode === 'night' ? .9 : 1);
       }
       v.material.setProperty('mainColor', u.hit > 0 ? Color.WHITE : c);
     }

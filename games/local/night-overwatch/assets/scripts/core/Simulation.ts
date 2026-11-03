@@ -1,5 +1,6 @@
 import {
   WEAPONS,
+  LASER,
   MAP,
   FRIENDLY_POSTS,
   terrainHeight,
@@ -67,6 +68,7 @@ export type Shot = Point & {
 };
 export type FireZone = Point3 & { id: number; radius: number; born: number; expires: number; side?: number };
 export type Drone = Point3 & { id: number; volley: number; hitCounted: boolean; side: number; expires: number; budget: number; nextAttack: number; target?: number };
+export type Laser = { id: number; side: number; targetId: number; origin: Point3; remaining: number; budget: number; hitCounted: boolean };
 export type BattleEvent = Point & {
   side?: number;
   id: number;
@@ -102,6 +104,7 @@ export class Simulation {
   loadout: BattleLoadout = { version: GROWTH_VERSION, level: 1, effects: [], skipped: [] };
   skill = { activeUntil: 0, readyAt: 0 };
   drones: Drone[] = [];
+  lasers: Laser[] = [];
   resumeCountdown = 0;
   resumeRequired = false;
   time = 0;
@@ -115,7 +118,7 @@ export class Simulation {
   homingSelected = false;
   homingTargetId?: number;
   aim: Point = { x: MISSION.events[0].x, z: MISSION.events[0].z };
-  guns = WEAPONS.map((w) => ({ heat: 0, ammo: Number(w.ammo), cooldown: 0, overheated: false }));
+  guns = WEAPONS.map((w) => ({ heat: 0, ammo: Number(w.ammo), cooldown: 0, cooldownTotal: 0, overheated: false }));
   units: Unit[] = [];
   shots: Shot[] = [];
   private pendingShotEvents: number[] = [];
@@ -167,13 +170,14 @@ export class Simulation {
   usePilot(pilot: ReturnType<Simulation['pilotState']>, side: number) {
     this.useSide(side);
     this.flight.restore(pilot.flight);
-    this.guns = pilot.guns.map((gun, i) => ({ ...gun, ammo: Number.isFinite(WEAPONS[i].ammo) ? gun.ammo : Infinity }));
+    this.guns = pilot.guns.map((gun, i) => ({ ...gun, cooldownTotal: gun.cooldownTotal ?? WEAPONS[i].interval, ammo: Number.isFinite(WEAPONS[i].ammo) ? gun.ammo : Infinity }));
     this.aim = { ...pilot.aim }; this.selected = pilot.selected; this.held = new Set(pilot.held);
     this.loadout = JSON.parse(JSON.stringify(pilot.loadout ?? {version:GROWTH_VERSION,level:1,effects:[],skipped:[]}));
     this.skill = {...(pilot.skill ?? {activeUntil:0,readyAt:0})}; this.buff = pilot.buff ? {...pilot.buff} : undefined;
   }
   stepPilot(dt: number) {
     this.flight.step(dt);
+    this.updateLaserOrigin();
     for (const gun of this.guns) {
       gun.cooldown = Math.max(0, gun.cooldown - dt); gun.heat = Math.max(0, gun.heat - 18 * dt);
       if (gun.overheated && gun.heat <= 40) gun.overheated = false;
@@ -218,10 +222,11 @@ export class Simulation {
     sim.ammoSpent = state.ammoSpent ?? state.fired;
     for (const stats of sim.duelStats) stats.ammoSpent ??= stats.fired;
     sim.fireZones = state.fireZones ?? [];
+    sim.lasers = state.lasers ?? [];
     sim.guns = WEAPONS.map((weapon, index) => sim.guns[index] ??
-      { heat: 0, ammo: Number(weapon.ammo), cooldown: 0, overheated: false });
+      { heat: 0, ammo: Number(weapon.ammo), cooldown: 0, cooldownTotal: 0, overheated: false });
     // JSON stores unlimited ammunition as null; its value comes from the weapon rules.
-    sim.guns.forEach((gun, index) => { if (!Number.isFinite(WEAPONS[index].ammo)) gun.ammo = Infinity; });
+    sim.guns.forEach((gun, index) => { gun.cooldownTotal ??= WEAPONS[index].interval; if (!Number.isFinite(WEAPONS[index].ammo)) gun.ammo = Infinity; });
     sim.flight.restore(flight);
     sim.pauses = new Set(pauses);
     sim.spawned = new Set(spawned);
@@ -449,6 +454,11 @@ export class Simulation {
       return { x: this.aim.x + Math.cos(direction) * radius, z: this.aim.z + Math.sin(direction) * radius };
     });
   }
+  weaponReadiness(index = this.selected) {
+    const gun=this.guns[index], heatTime=gun.overheated?Math.max(0,(gun.heat-40)/18):0;
+    const remaining=Math.max(gun.cooldown,heatTime),total=Math.max(gun.cooldownTotal||WEAPONS[index].interval,gun.overheated?60/18:0);
+    return { remaining, displaySeconds:Math.ceil(remaining*10)/10, total, ratio: Math.max(0,Math.min(1,remaining/total)), empty:gun.ammo<=0, overheated:gun.overheated };
+  }
   reason(): FireReason {
     if (this.phase === 'briefing') return 'briefing';
     if (this.phase !== 'playing') return 'finished';
@@ -517,6 +527,7 @@ export class Simulation {
     g.heat = Math.min(100, g.heat + w.heat*preview.heatMultiplier);
     g.overheated = g.heat >= 100;
     g.cooldown = w.interval*(this.loadout.effects.includes('rate')?.88:1)*(this.loadout.level>=15?.95:1) / (this.buff?.kind === 'rate' ? COMBAT_BUFF.rateMultiplier : 1);
+    g.cooldownTotal = g.cooldown;
     const target = this.trackingTarget;
     for(let n=0;n<count;n++) {
     const {origin,point,launch}=launches[n];
@@ -547,7 +558,7 @@ export class Simulation {
   }
   private lineOfSight(target: Point3,origin=muzzlePosition(this.aircraft,this.selected),maximum=650) {
     const range=Math.hypot(target.x-origin.x,target.y-origin.y,target.z-origin.z);
-    if(range>maximum)return false;
+    if(!Number.isFinite(range)||range>maximum)return false;
     const samples=Math.max(2,Math.ceil(range/.5));
     for(let i=1;i<samples;i++){const t=i/samples,x=origin.x+(target.x-origin.x)*t,z=origin.z+(target.z-origin.z)*t,y=origin.y+(target.y-origin.y)*t;
       if(y<=this.height(x,z)+.05)return false;}
@@ -561,15 +572,36 @@ export class Simulation {
       for(let i=0;i<3;i++)this.drones.push({...origin,id:++this.serial,volley,hitCounted:false,side:this.pilotSide,expires:this.time+12,budget:24,nextAttack:this.time+.5+i*.12});
       this.emit('shot',origin,weapon);
     } else {
-      const target=this.aimedUnit!;const event=this.emit('shot',origin,weapon);event.target={x:target.x,y:target.y,z:target.z};
-      this.directHit(target,85*(target.kind==='heavy'?.85:1),weapon);
+      if(this.lasers.some(beam=>beam.side===this.pilotSide))return false;
+      const target=this.aimedUnit!;
+      this.lasers.push({id:++this.serial,side:this.pilotSide,targetId:target.id,origin:{...origin},remaining:LASER.duration,budget:WEAPONS[weapon].damage,hitCounted:false});
+      this.emit('shot',origin,weapon).target={x:target.x,y:target.y,z:target.z};
     }
-    g.ammo--;g.cooldown=WEAPONS[weapon].interval;this.fired++;this.ammoSpent++;this.completed.add('fire');return true;
+    g.ammo--;g.cooldown=g.cooldownTotal=WEAPONS[weapon].interval;this.fired++;this.ammoSpent++;this.completed.add('fire');return true;
   }
-  private directHit(target: Unit, damage: number, weapon: number, countShot=true) {
-    const actual=Math.min(target.hp,damage);target.hp-=actual;target.hit=.3;this.hits++;if(countShot)this.hitShots++;
-    const event=this.emit('impact',target,weapon,target.id);event.damage=actual;event.outcome=target.hp>0?'hit':'destroyed';
+  private directHit(target: Unit, damage: number, weapon: number, countShot=true, continuous=false) {
+    const actual=Math.min(target.hp,damage);target.hp-=actual;target.hit=.3;if(!continuous||countShot)this.hits++;if(countShot)this.hitShots++;
+    if(!continuous||countShot||target.hp<=0){const event=this.emit('impact',target,weapon,target.id);event.damage=actual;event.outcome=target.hp>0?'hit':'destroyed';}
     if(target.hp<=0){target.deadAt=this.time;this.kills++;this.emit('kill',target,weapon,target.id);}
+  }
+  private updateLaserOrigin() {
+    for(const beam of this.lasers)if(beam.side===this.pilotSide)beam.origin={...muzzlePosition(this.aircraft,5)};
+  }
+  private stepLasers(dt: number) {
+    const side=this.pilotSide;
+    for(const beam of this.lasers){
+      if(this.duelMode)this.useSide(beam.side);
+      const target=this.units.find(unit=>unit.id===beam.targetId);
+      if(!target||target.hp<=0||!this.canTrack(target,WEAPONS[5].radius)||Math.abs(target.x)>MAP.halfWidth||Math.abs(target.z)>MAP.halfDepth||
+        !this.lineOfSight(target,beam.origin,LASER.range)){beam.remaining=0;continue;}
+      const duration=Math.min(dt,beam.remaining,beam.budget/LASER.dps),damage=duration*LASER.dps;
+      if(duration<=0)continue;
+      beam.remaining=Math.max(0,beam.remaining-duration);beam.budget=Math.max(0,beam.budget-damage);
+      this.directHit(target,damage*(target.kind==='heavy'?WEAPONS[5].armor:1),5,!beam.hitCounted,true);beam.hitCounted=true;
+      if(target.hp<=0)beam.remaining=0;
+    }
+    if(this.duelMode)this.useSide(side);
+    this.lasers=this.lasers.filter(beam=>beam.remaining>1e-8&&beam.budget>1e-8);
   }
   private stepDrones(dt: number) {
     for(const drone of this.drones) {
@@ -817,7 +849,7 @@ export class Simulation {
       return;
     }
     this.time += dt;
-    if (!this.duelMode) this.flight.step(dt);
+    if (!this.duelMode) { this.flight.step(dt); this.updateLaserOrigin(); }
     const previous = this.units.map(({ x, y, z }) => ({ x, y, z }));
     for (const g of this.duelMode ? [] : this.guns) {
       g.cooldown = Math.max(0, g.cooldown - dt);
@@ -928,6 +960,7 @@ export class Simulation {
       if (this.duelMode) this.useSide(side);
     }
     this.shots = this.shots.filter((shot) => !contacts.some((c) => c.shot === shot));
+    this.stepLasers(dt);
     this.stepDrones(dt);
     this.burn(dt);
     this.fireZones = this.fireZones.filter(zone => zone.expires > this.time + 1e-8);

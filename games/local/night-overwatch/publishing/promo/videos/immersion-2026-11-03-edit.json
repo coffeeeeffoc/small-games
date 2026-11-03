@@ -1,0 +1,21 @@
+{
+  "source": "reports\\immersion-2026-11-03\\ordinary-gameplay-1280.webm",
+  "sourceSha256": "4a2317ef62811528f196771e45c1035b4d2c5026d50eb8fc5dbf7e65fa20800a",
+  "capturedSourceHash": "02b287e3ecc7b37c08e123b2e28e7c04906db67295087ceb433ec3d6e2be02f5",
+  "fixture": false,
+  "environment": "Chromium; offline ordinary first mission; no developer or asset fixture",
+  "audio": false,
+  "gameplay": {
+    "start": 10.829,
+    "duration": 20
+  },
+  "promo": [
+    "title still 2s",
+    "night still 3s",
+    "enhanced still 3s",
+    "thermal still 3s",
+    "actual combat from 13.829s for 7s",
+    "settings still 2s"
+  ],
+  "filter": "[0:v]trim=duration=2,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[title];[1:v]trim=duration=3,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[night];[2:v]trim=duration=3,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[enhanced];[3:v]trim=duration=3,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[thermal];[4:v]trim=start=13.829:duration=7,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[combat];[5:v]trim=duration=2,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[settings];[title][night][enhanced][thermal][combat][settings]concat=n=6:v=1:a=0[out]"
+}

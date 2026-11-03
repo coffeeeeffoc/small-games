@@ -116,7 +116,7 @@ let HUD: any;
 try { ({ HUD } = await import(hudURL.href)); }
 finally { hooks.deregister(); delete (globalThis as any).__nightHudTestCC; }
 const heights: number[] = [];
-const world = { zoom: 1, thermal: false, project(p: data.Point, y = 0) {
+const world = { zoom: 1, thermal: false, viewMode: 'night', project(p: data.Point, y = 0) {
   heights.push(y);
   return { x: frame.width / 2 + p.x, y: frame.height / 2 - p.z + y * 10, z: 0.5 };
 } };
@@ -215,8 +215,8 @@ test('HUD: campaign status shows the actual first and last level, excluding warm
   const hud=new HUD(new SceneNode());
   for (const index of [0,119]) {
     const sim=new Simulation(MISSIONS[index].id);sim.start();hud.update(sim,world);
-    assert.match(hud.labels.get('status').string,new RegExp(`^第 ${index+1} 关\\n`));
-    hud.lang='en';hud.update(sim,world);assert.match(hud.labels.get('status').string,new RegExp(`^LEVEL ${index+1}\\n`));hud.lang='zh';
+    assert.match(hud.labels.get('status').string,new RegExp(`^${index+1}关 · `));
+    hud.lang='en';hud.update(sim,world);assert.match(hud.labels.get('status').string,new RegExp(`^L${index+1} · `));hud.lang='zh';
     sim.duelMode=true;hud.update(sim,world);assert(!hud.labels.get('status').string.includes('关'));
   }
   const warmup=new Simulation('training-60');warmup.start();hud.update(warmup,world);
@@ -322,11 +322,11 @@ test('HUD: focused forms survive refresh, records hide settings, and report sits
     online.show(''); sim.start(); hud.update(sim, world);
     assert(settings.label.node.activeInHierarchy);
     const report = hud.buttons.find((b: any) => b.id === 'battleReport'), map = hud.minimapLayout;
-    assert(report.x+report.w<width/2);assert(report.y>=safe+44&&report.y<safe+130&&report.h>=44);const equipment=hud.buttons.find((b:any)=>b.id==='equipment');assert(equipment&&equipment.x>report.x&&!overlaps(report,equipment));
+    assert(report.x+report.w<width/2);assert(report.y>=safe&&report.y<safe+8&&report.h>=44);assert(!hud.buttons.some((b:any)=>b.id==='equipment'&&b.label.node.activeInHierarchy));
     assert.equal(hud.hit(report.x + report.w / 2, report.y + report.h / 2)?.id, 'battleReport');
     assert(!hud.buttons.some((b: any) => b !== report && b.label.node.activeInHierarchy && overlaps(b, report)));
     assert(report.y + report.h < height - hud.footer - safe);
-    assert(hud.g.calls.some((c: any) => c.op === 'roundRect' && c.fill === '#101a1e88'));
+    assert(hud.g.calls.some((c: any) => c.op === 'roundRect' && c.fill === '#0b192950'));
   }
   inset = 0;
 });
@@ -365,7 +365,7 @@ test('HUD: desktop bottom battlefield accepts aim while controls and touch foote
       const hud = new HUD(new SceneNode()), sim = new Simulation();
       sim.start(); hud.update(sim, world);
       for (const y of [height - hud.footer + 2, height - safe - 2])
-        assert.equal(hud.blocksBattlefield(40 + safe, y), !hud.desktop, 'empty desktop footer is battlefield');
+        assert.equal(hud.blocksBattlefield(width / 2, y), false, 'empty footer is battlefield on mouse and touch');
       for (const id of ['weapon0', 'weapon1', 'weapon2']) {
         const b = hud.buttons.find((b: any) => b.id === id);
         assert(hud.blocksBattlefield(b.x + b.w / 2, b.y + b.h / 2), `${id} still blocks aim and battlefield fire`);
@@ -451,7 +451,7 @@ test('HUD: global actions hide behind panels, with safe modal layout, focus mark
           assert(back && back.label.string === (lang === 'zh' ? '返回' : 'BACK'));
           assert.equal(back.y, Math.max(...controls.map((b: any) => b.y)), 'return stays in the footer');
         }
-        if (reason === 'manual' || reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'flightControls,zoomControls,sound,language,help,convoy,mission,supply,home,' + (reason === 'settings' ? 'close' : 'resume'));
+        if (reason === 'manual' || reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'flightControls,zoomControls,sound,voicePrompts,autoPriority,language,help,convoy,mission,supply,home,' + (reason === 'settings' ? 'close' : 'resume'));
       }
       sim.pause('settings', true); hud.toolsOpen = true; hud.update(sim, world);
       assert.equal(hud.modalKey, 'settings:flight');
@@ -634,7 +634,7 @@ test('HUD: short-screen information priority, focus clearance and friendly group
 });
 
 
-test('HUD: desktop controls stay compact, touch keeps FIRE, reload has a single home', () => {
+test('HUD: desktop controls stay compact, touch keeps FIRE, cooldown stays on the weapon and trigger', () => {
   for (const touch of [false, true]) for (const width of [1366, 1920, 2560]) {
     Object.assign(frame, { width, height: 1080 }); inset = 0;
     const hud = new HUD(new SceneNode()), sim = new Simulation();
@@ -650,7 +650,7 @@ test('HUD: desktop controls stay compact, touch keeps FIRE, reload has a single 
     }
     const visibleText = [...hud.labels.values(), ...hud.buttons.map((b: any) => b.label)]
       .filter((l: any) => l.node.activeInHierarchy).map((l: any) => l.string).join('\n');
-    assert.equal(visibleText.match(/装填/g)?.length, 1);
+    assert(!visibleText.includes('装填'));assert(hud.buttons.find((b:any)=>b.id==='weapon2').label.string.includes('2.0s'));if(touch)assert(fire.label.string.includes('2.0s'));
     if (!touch) assert.equal(hud.footer, 60);
   }
 });
@@ -768,13 +768,13 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert(!hud.labels.get('buff').node.activeInHierarchy, 'tracking countdown moved into its button');
         assert.equal(control('homing').label.color.hex, control('weapon' + sim.selected).label.color.hex);
         assert(control('homing').label.isBold);
-        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n60秒' : 'HOMING\n60s');
+        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪 60秒' : 'LOCK 60s');
         hud.rewardsAvailable = false; hud.update(sim, world);
         assert(control('homing'), 'active tracking remains visible without ad availability or homing ammo');
         hud.rewardsAvailable = true;
         sim.buff.remaining = 4.2; hud.update(sim, world); checkLayout();
         assert.equal(control('homing').label.color.hex, '#e5b65c');
-        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n5秒' : 'HOMING\n5s');
+        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪 5秒' : 'LOCK 5s');
         sim.pause('settings', true); hud.zoomOpen = true; hud.update(sim, world); checkLayout();
         assert.equal(control('zoomUpgrade').label.color.hex, '#9bb4c8');
         assert.match(control('zoomUpgrade').label.string, lang === 'zh' ? /支援生效中/ : /SUPPORT ACTIVE/);
@@ -787,10 +787,10 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         sim.buff = { kind: 'rate', remaining: 60 }; hud.update(sim, world); checkLayout();
         assert.match(hud.labels.get('buff').string, lang === 'zh' ? /射速提升/ : /RATE ×1\.3/);
         assert(!control('homing').label.isBold, 'expiry clears the tracking highlight');
-        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n+' : 'HOMING\n+');
+        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪 +' : 'LOCK +');
         sim.homingAmmo = 2; sim.selectHoming(); hud.update(sim, world);
         assert(control('homing').label.isBold, 'homing weapon selection still highlights independently');
-        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪\n2' : 'HOMING\n2');
+        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪 2' : 'LOCK 2');
         sim.buff = undefined; hud.update(sim, world); checkLayout();
         assert(!hud.labels.get('buff').node.activeInHierarchy);
         sim.pause('settings', true); hud.update(sim, world); checkLayout();
@@ -832,11 +832,11 @@ test('HUD: browser and native hosts have no fullscreen control or state in any s
   }
 });
 
-test('HUD: all 120 operations are reachable by vertical scrolling within phone safe areas',()=>{
+test('HUD: all 120 operations are reachable by horizontal scrolling within phone safe areas',()=>{
  for(const [width,height]of [[568,320],[844,390]])for(const safe of [0,12]){
   Object.assign(frame,{width,height});inset=safe;const hud=new HUD(new SceneNode()),sim=new Simulation();hud.missionsOpen=true;const seen=new Set();
-  for(let step=0;step<150;step++){hud.modalKey='rebuild';hud.update(sim,world);const area=hud.listAreas.find((a:any)=>a.key==='missions');assert(area&&area.max>0);const cards=hud.buttons.filter((b:any)=>b.id.startsWith('mission:')&&b.y+b.h>area.y&&b.y<area.y+area.h);assert(cards.length>0);for(const card of cards){seen.add(card.id);assert(card.clip&&card.w>=44&&card.h>=44);assert(card.clip.x>=safe&&card.clip.x+card.clip.w<=width-safe);}
-   if((hud.listScroll.missions||0)>=area.max)break;hud.moveList('missions',area.h*.7);
+  for(let step=0;step<150;step++){hud.modalKey='rebuild';hud.update(sim,world);const area=hud.listAreas.find((a:any)=>a.key==='missions');assert(area&&area.max>0);const cards=hud.buttons.filter((b:any)=>b.id.startsWith('mission:')&&b.x+b.w>area.x&&b.x<area.x+area.w);assert(cards.length>0);for(const card of cards){seen.add(card.id);assert(card.clip&&card.w>=44&&card.h>=44);assert(card.clip.x>=safe&&card.clip.x+card.clip.w<=width-safe);}
+   if((hud.listScroll.missions||0)>=area.max)break;hud.moveList('missions',area.w*.7);
   }
   assert.equal(seen.size,120);assert(!hud.buttons.some((b:any)=>/^missions(Previous|Next)$/.test(b.id)));
  }
@@ -900,7 +900,7 @@ test('HUD: independent title cover precedes mission previews and compact setting
       }
       hud.supplyOpen = false; hud.pendingSupply = false; hud.rewardsAvailable = false; hud.modalKey = 'rebuild'; hud.update(sim, world);
       assertPanelTargets(hud);
-      assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).map((b: any) => b.id), ['flightControls', 'zoomControls', 'sound', 'language', 'help', 'convoy', 'mission', 'home', 'resume'], 'offline settings omit only ads');
+      assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).map((b: any) => b.id), ['flightControls', 'zoomControls', 'sound', 'voicePrompts', 'autoPriority', 'language', 'help', 'convoy', 'mission', 'home', 'resume'], 'offline settings omit only ads');
     }
   inset = 0;
 });
@@ -914,10 +914,10 @@ test('HUD: mission cards expose their actual enemy count, lighting, selection, l
     hud.update(sim, world); assertPanelTargets(hud);
     assert.match(text(), /001/); assert.match(text(), /002/); assert.match(text(), /003/);
     assert.match(text(), lang === 'zh' ? /当前/ : /SELECTED/);
-    assert.match(text(), lang === 'zh' ? /白天.*入门/ : /DAY.*INTRO/);
+    assert.match(text(), lang === 'zh' ? /夜航.*入门/ : /NIGHT OPS.*INTRO/);
     for (const mission of MISSIONS.slice(0, 3)) assert.match(text(), new RegExp(lang === 'zh' ? `敌方 ${mission.events.length}` : `${mission.events.length} HOSTILES`));
-    hud.moveList('missions',hud.listAreas.find((a:any)=>a.key==='missions')!.h);hud.modalKey = 'rebuild'; hud.update(sim, world); assertPanelTargets(hud);
-    assert.match(text(), lang === 'zh' ? /黄昏/ : /DUSK/); assert.match(text(), lang === 'zh' ? /夜间/ : /NIGHT/);
+    hud.moveList('missions',hud.listAreas.find((a:any)=>a.key==='missions')!.w);hud.modalKey = 'rebuild'; hud.update(sim, world); assertPanelTargets(hud);
+    assert.match(text(), lang === 'zh' ? /夜航/ : /NIGHT OPS/);
     assert.match(text(), lang === 'zh' ? /锁定/ : /LOCKED/);
     hud.missionProgress = { version: 1, cleared: ['patrol-03', MISSIONS[3].id] };
     hud.modalKey = 'rebuild'; hud.update(sim, world);
@@ -962,7 +962,7 @@ test('HUD: flight values, direction selection and display controls stay separate
     assert(panelLabels(hud).some((l: any) => l.string === '1200'));
     assert.equal(hud.buttons.find((b: any) => b.id === 'orbitLeft').label.color.hex, '#82c9ed');
     hud.toolsOpen = false; hud.zoomOpen = true; hud.update(sim, world); assertPanelTargets(hud);
-    for (const id of ['sensor', 'effects', 'lensIn', 'lensOut', 'zoomUpgrade'])
+    for (const id of ['view:night', 'view:enhanced', 'view:thermal', 'effects', 'lensIn', 'lensOut', 'zoomUpgrade'])
       assert(hud.buttons.some((b: any) => b.id === id && b.label.node.parent === hud.modal));
   }
   inset = 0;
@@ -1003,12 +1003,38 @@ test('HUD: minimal battle has no top backdrop and priority marker itself is a re
   Object.assign(enemy, { x: sim.rescue.x + 5, z: sim.rescue.z, born: -30, attack: 3 });
   hud.update(sim, world);
   const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy);
-  assert.deepEqual(buttons.map((b: any) => b.id).sort(), ['settings', 'battleReport', 'equipment', 'weapon0', 'weapon1', 'weapon2', 'weapon3', 'fire', 'priority'].sort());
+  assert.deepEqual(buttons.map((b: any) => b.id).sort(), ['settings', 'battleReport', 'sensor', 'weapon0', 'weapon1', 'weapon2', 'weapon3', 'fire', 'priority'].sort());
   assert(!hud.g.calls.some((c: any) => ['rect', 'roundRect'].includes(c.op) && c.args[2] === frame.width), 'no full-width HUD backing');
   const priority = buttons.find((b: any) => b.id === 'priority');
   assert.equal(hud.hit(priority.x + 48, priority.y + 24)?.id, 'priority');
   assert.equal(hud.hit(priority.x + 48, priority.y + 57)?.id, 'priority', 'caption is clickable too');
   assert(priority.w >= 44 && priority.h >= 44); inset = 0;
+});
+
+test('automatic priority toggle removes only priority overlays and restores their touch target', () => {
+  Object.assign(frame,{width:844,height:390});inset=0;
+  const hud=new HUD(new SceneNode()),sim=new Simulation();sim.start();hud.touch=true;hud.resize();
+  const enemy=sim.units.find(u=>!u.friendly)!;Object.assign(enemy,{x:sim.rescue.x+5,z:sim.rescue.z,born:-30,attack:3});
+  hud.update(sim,world);const target=hud.buttons.find((b:any)=>b.id==='priority');assert(target.label.node.activeInHierarchy);
+  const markCircles=()=>hud.marks.calls.filter((c:any)=>c.op==='circle'&&c.args[2]===6).length;
+  const enabled=markCircles();hud.autoPriority=false;hud.update(sim,world);
+  assert(!target.label.node.activeInHierarchy);assert.notEqual(hud.hit(target.x+48,target.y+24)?.id,'priority');
+  assert(markCircles()<enabled);assert(hud.marks.calls.some((c:any)=>c.op==='fill'&&c.fill==='#ff525b'),'ordinary enemy contacts remain');
+  hud.autoPriority=true;hud.update(sim,world);assert(target.label.node.activeInHierarchy);
+});
+
+test('compact tactics row, weapon skins and equipped skills keep independent readable targets',()=>{
+  for(const [width,height]of [[568,320],[844,390],[1280,720]])for(const lang of ['zh','en']){
+    Object.assign(frame,{width,height});inset=12;const hud=new HUD(new SceneNode()),sim=new Simulation('training-60');
+    hud.lang=lang;hud.touch=width<1000;hud.resize();sim.applyLoadout({version:'night-growth-v1',level:10,effects:['emp','drone'],skipped:[]});sim.start();hud.update(sim,world);
+    const controls=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy),tactic=controls.find((b:any)=>b.id==='battleReport');
+    assert.equal(hud.h/2-hud.labels.get('health').node.position.y,tactic.y+tactic.h/2);
+    assert(!hud.labels.get('health').string.includes('\n'));assert(!controls.some((b:any)=>b.id==='equipment'));
+    for(const b of controls){assert(b.w>=44&&b.h>=44);for(const other of controls)if(other!==b)assert(!overlaps(b,other),`${width}: ${b.id}/${other.id}`);}
+    sim.pause('settings',true);hud.update(sim,world);assertPanelTargets(hud);
+    for(const id of ['sound','voicePrompts','autoPriority'])assert(hud.buttons.find((b:any)=>b.id===id)?.label.node.activeInHierarchy);
+  }
+  inset=0;
 });
 
 test('HUD: sound states draw different icons and ad feedback never paints over action buttons', () => {
@@ -1017,18 +1043,20 @@ test('HUD: sound states draw different icons and ad feedback never paints over a
   hud.update(sim, world); const on = hud.modal.getComponentsInChildren(Graphics).flatMap((g: any) => g.calls);
   hud.muted = true; hud.modalKey = 'rebuild'; hud.update(sim, world);
   const off = hud.modal.getComponentsInChildren(Graphics).flatMap((g: any) => g.calls);
-  assert.notDeepEqual(on, off); assert(panelLabels(hud).some((l: any) => l.string === '声音 关'));
+  assert.notDeepEqual(on, off); assert(panelLabels(hud).some((l: any) => l.string === '游戏声音 关'));
   sim.pause('settings', false); hud.supplyOpen = true; hud.rewardsAvailable = true; sim.pause('supply', true);
   hud.supplyMessage = '观看已中断，未获得奖励'; hud.toast = hud.supplyMessage; hud.toastUntil = Date.now() + 4000;
   hud.update(sim, world); assert(!hud.labels.get('globalToast').node.activeInHierarchy);
   assert(panelLabels(hud).some((l: any) => l.string === hud.supplyMessage)); assertPanelTargets(hud);
   hud.supplyOpen = false; sim.pause('supply', false); sim.pause('manual', true); hud.update(sim, world);
+  assert(!hud.labels.get('globalToast').node.activeInHierarchy, 'a transient battle notice must not cover the settings title');
+  sim.pause('settings', true); hud.zoomOpen = true; hud.update(sim, world);
   assert(hud.labels.get('globalToast').node.activeInHierarchy, 'zoom ad errors remain visible above the panel');
   const toastY = hud.h / 2 - hud.labels.get('globalToast').node.position.y;
   assert(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).every((b: any) => b.y > toastY + 18));
   const toast = hud.labels.get('globalToast'), gear = hud.buttons.find((b: any) => b.id === 'settings');
   assert(toast.node.position.x + hud.w / 2 + toast.node.getComponent(Transform).contentSize.width / 2 < gear.x);
-  sim.pause('settings', true); hud.toolsOpen = true; sim.pause('mission', true); hud.update(sim, world);
+  hud.zoomOpen = false; sim.pause('settings', true); hud.toolsOpen = true; sim.pause('mission', true); hud.update(sim, world);
   assert.equal(hud.modalKey, 'mission'); sim.pause('mission', false); hud.update(sim, world);
   assert.equal(hud.modalKey, 'settings:flight');
   hud.supplyOpen = false; sim.pause('supply', false); sim.pause('settings', true); hud.exitConfirm = true; hud.update(sim, world);
@@ -1052,7 +1080,7 @@ test('HUD: authored metal title and three day illustrations are loaded and cropp
       hud.missionsOpen = true; hud.update(sim, world); assertPanelTargets(hud);
       const cards = descendants(hud.modal).filter((node: any) => node.name.startsWith('MissionIllustration-')&&node.getComponent(cc.Mask)).slice(0,3);
       assert.equal(cards.length, 3);
-      assert.deepEqual(cards.map((node: any) => node.children[0].getComponent(cc.Sprite).spriteFrame.rect.x), [0, 724, 1448], 'first three day missions use three different authored images');
+      assert.deepEqual(cards.map((node: any) => node.children[0].getComponent(cc.Sprite).spriteFrame.rect.x), [1448, 724, 1448], 'mission previews use the night operation artwork for each terrain');
       for (const crop of cards) {
         assert(crop.getComponent(cc.Mask), 'image crop has a real UI mask');
         const image = crop.children[0].getComponent(cc.Sprite), size = crop.getComponent(Transform).contentSize;
@@ -1259,4 +1287,38 @@ test('stable tab identities animate ranking and settings changes without polling
  Object.assign(frame,{width:1280,height:720});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.panel='ranking';online.board='level';
  const labels=['当前梯度版 ▾','旧成长版 ▾','原始历史版 ▾'];let previous='';for(const [i,version]of ['night-campaign-v2','night-growth-v1','night-records-v1'].entries()){online.rankingVersion=version;online.revision++;hud.update(sim,world);assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string===labels[i]));assert.notEqual(hud.semanticKey,previous);previous=hud.semanticKey;online.revision++;hud.update(sim,world);assert.equal(hud.semanticKey,previous);}
  hud.renderModal('settings',sim,world);previous=hud.semanticKey;hud.renderModal('settings:zoom',sim,world);assert.notEqual(hud.semanticKey,previous);previous=hud.semanticKey;hud.renderModal('settings:flight',sim,world);assert.notEqual(hud.semanticKey,previous);
+});
+
+
+test('refinement: one report shell keeps tabs and close fixed; names remain single-line in duel and spectating',()=>{
+ for(const [width,height] of [[568,320],[844,390],[1280,720]]){
+  Object.assign(frame,{width,height});inset=12;const hud=new HUD(new SceneNode()),sim=new Simulation();sim.start();sim.duelMode=true;
+  const online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;
+  const players=[{playerId:'10000001',nickname:'夜航守望这是很长的中文玩家昵称'},{playerId:'10000002',nickname:'WWWWMMMMWWWWMMMM'}];
+  online.room={code:'ROOM',status:'playing',mode:'friend',you:0,seq:0,players,state:null};
+  for(const spectator of [false,true]){online.room.spectator=spectator;hud.update(sim,world);
+   for(const side of [0,1]){const l=hud.labels.get('spectator:'+side);assert(l.node.activeInHierarchy);assert.equal(l.enableWrapText,false);assert(!l.string.includes('\n'));assert(l.fontSize>=12);if(width===568)assert(l.string.endsWith('…'));}
+  }
+  hud.reportOpen=true;hud.update(sim,world);assertPanelTargets(hud);const close=hud.buttons.find((b:any)=>b.id==='close'),geometry=[close.x,close.y,close.w,close.h];
+  assert(panelLabels(hud).some((l:any)=>l.string===players[0].nickname));assert(panelLabels(hud).some((l:any)=>l.string===players[1].nickname));
+  hud.equipmentOpen=true;hud.update(sim,world);assertPanelTargets(hud);const second=hud.buttons.find((b:any)=>b.id==='close');assert.deepEqual([second.x,second.y,second.w,second.h],geometry);
+  assert.equal(hud.buttons.filter((b:any)=>['close','equipmentClose'].includes(b.id)&&b.label.node.activeInHierarchy).length,1);
+  assert(hud.buttons.some((b:any)=>b.id==='reportOverview'));assert(hud.buttons.some((b:any)=>b.id==='equipment'));
+ }
+ inset=0;
+});
+test('refinement: selected mission is positioned in the horizontal viewport and weapon cooldown switches immediately',()=>{
+ Object.assign(frame,{width:568,height:320});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(MISSIONS[79].id);hud.missionsOpen=true;hud.missionFocus=79;hud.update(sim,world);
+ const area=hud.listAreas.find((a:any)=>a.key==='missions');assert.equal(area.axis,'x');const selected=hud.buttons.find((b:any)=>b.id==='mission:'+MISSIONS[79].id);assert(selected.x>=area.x&&selected.x+selected.w<=area.x+area.w);
+ hud.missionsOpen=false;sim.start();hud.touch=true;hud.resize();Object.assign(sim.guns[2],{cooldown:2.3,cooldownTotal:4});sim.choose(2);hud.update(sim,world);
+ const fire=()=>hud.buttons.find((b:any)=>b.id==='fire').label.string;assert(fire().includes('2.3s'));assert(hud.buttons.find((b:any)=>b.id==='weapon2').label.string.includes('2.3s'));
+ sim.choose(0);hud.update(sim,world);assert(!fire().includes('2.3s'));Object.assign(sim.guns[0],{heat:94,overheated:true,cooldown:.1,cooldownTotal:.2});hud.update(sim,world);assert(fire().includes('3.0s'));
+ sim.guns[0].ammo=0;hud.update(sim,world);assert(!fire().includes('s'));assert(hud.buttons.find((b:any)=>b.id==='weapon0').label.string.includes('弹尽'));
+});
+
+test('refinement: player-facing experience labels use EXP and combat configuration is named explicitly',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});online.authenticatedId='qa-pilot';online.assets=assetFixture();hud.online=online;
+ const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;hud.update(sim,world);
+ let labels=panelLabels(hud).map((l:any)=>l.string);assert(labels.some((s:string)=>s.includes('EXP')));assert(!labels.some((s:string)=>/\bXP\b/.test(s)));
+ q.show('modes');hud.update(sim,world);assert(hud.buttons.find((b:any)=>b.id==='qm:loadout').label.string.includes('作战配置'));
 });

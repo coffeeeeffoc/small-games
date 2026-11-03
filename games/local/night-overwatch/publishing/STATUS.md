@@ -1,5 +1,9 @@
 # 夜航守望 · 交付状态
 
+2026-11-04 操作细化已完成：战况与装配共用弹窗、单行昵称与安全区、横向选关、EXP、武器/技能/开火冷却环及3秒持续激光。最终 Creator 3.8.8 web-mobile 源码摘要为 `c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a`，规则为 v13/v6。定向规则、输入、原生契约与Runtime消费者通过；三尺寸42张QA图、37张普通首关图和隔离真实服务普通游客菜单通过，页面异常0。见[本轮验证](../docs/verification-2026-11-04-refinement.md)。本轮未提交、推送、部署或打渠道包；新前端与Runtime需配套发布，实体手机/真宿主未验收。以下旧日期内容保留历史身份。
+
+2026-11-03 沉浸 HUD 与成像更新：语音提示、优先标注独立保存，左上“战术 / 友军 / 撤离 / 威胁”同一行，武器和开火使用紧凑透明皮肤。默认夜景，可切换增强、热像，只改变显示。最终 Creator 3.8.8 web-mobile 源码摘要为 `02b287e3ecc7b37c08e123b2e28e7c04906db67295087ceb433ec3d6e2be02f5`。新战斗媒体来自该构建的普通离线首关，Chromium 1280×720，无开发余额/资产fixture；技能QA另存。见[本轮验证](../docs/verification-2026-11-03-immersion.md)。未提交/推送、打渠道包或对外发布；下方旧日期记录保留当时身份。
+
 2026-11-03 生产后端已更新：Runtime 使用 `2fadb94ff0e8159149d02e93b4179b97534024ee`，规则为 v12/v5，聊天迁移及公网入口已上线。单人恢复从创建起最多 24 小时，每小时清理失效回放，保留结算与资产历史；首轮累计精简 1197 局、删除 47271 条动作回执，17 项公网回归通过。[生产验收与版本边界](../../../../docs/operations/backend-server-2026-11-03.md)。本轮未上传渠道包，旧 TapTap H5 包仍须配套更新；下文 2026-11-02 的“未部署生产”为当时记录。
 
 2026-11-03 前端加载更新：首页图片及字体就绪后才显示内容，整个启动过程保留整屏图片；其他页面图片分批预加载，过快进入时显示完整背景加载页，失败可重试。[验证与截图](../docs/verification-2026-11-03-artwork-loading.md)记录当前 Creator 源码摘要、定向测试及四尺寸延迟/失败检查。既有八类资料的19个文件大小与摘要复核一致，保留原采集身份；本轮未更新玩法宣传素材、未打渠道包或上传平台。
@@ -14,18 +18,18 @@
 
 | 类别 | 状态 | 当前文件 |
 | --- | --- | --- |
-| 游戏简介 | 已更新 | [introduction.md](copy/introduction.md) |
-| 推荐语 | 复核沿用 | [tagline.md](copy/tagline.md) |
-| 开发者的话 | 已更新 | [developer-note.md](copy/developer-note.md) |
-| 图标 | 复核沿用 | [1024×1024 PNG](icon/icon-1024.png) |
-| 宣传图 | 复核沿用 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png) |
-| 宣传视频 | 已更新 | [21.13 秒 MP4](promo/videos/revision-2026-11-02-1280x720-silent.mp4)，首页、礼包静帧，实际开箱动画、战斗和结算 |
-| 游戏截图 | 已更新 | [首页](gameplay/screenshots/2026-11-02-revision/01-home.png)、[礼包·抽奖](gameplay/screenshots/2026-11-02-revision/02-supply.png)、[奖励](gameplay/screenshots/2026-11-02-revision/03-rewards.png)、[仓库](gameplay/screenshots/2026-11-02-revision/04-warehouse.png)、[记录](gameplay/screenshots/2026-11-02-revision/05-history.png)、[成长](gameplay/screenshots/2026-11-02-revision/06-growth.png)、[技能](gameplay/screenshots/2026-11-02-revision/07-skills.png)、[作战配置](gameplay/screenshots/2026-11-02-revision/08-loadout.png)、[战斗](gameplay/screenshots/2026-11-02-revision/09-combat.png)、[结算](gameplay/screenshots/2026-11-02-revision/10-settlement.png) |
-| 实机录屏 | 已更新 | [22 秒连续战斗 MP4](gameplay/videos/revision-2026-11-02-1280x720-silent.mp4)，浏览器实录，非实体手机 |
+| 游戏简介 | 已提供 | [introduction.md](copy/introduction.md)，同步战况、横向选关、EXP、冷却与激光 |
+| 推荐语 | 已提供 | [tagline.md](copy/tagline.md)，复核沿用 |
+| 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，同步战况与持续反馈 |
+| 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png)，复核沿用 |
+| 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png)，仅标题，复核沿用 |
+| 宣传视频 | 已提供 | [20秒MP4](promo/videos/refinement-2026-11-04-1280x720-silent.mp4)，标题、三视图静帧、7秒实际战斗、设置静帧；H.264无音轨 |
+| 游戏截图 | 已提供 | 10张1280×720 PNG：[夜景](gameplay/screenshots/2026-11-04-refinement/night-1280.png)、[增强](gameplay/screenshots/2026-11-04-refinement/enhanced-1280.png)、[热像](gameplay/screenshots/2026-11-04-refinement/thermal-1280.png)、[设置](gameplay/screenshots/2026-11-04-refinement/settings-1280.png)、[战况](gameplay/screenshots/2026-11-04-refinement/tactics-1280.png)、[装配](gameplay/screenshots/2026-11-04-refinement/equipment-1280.png)、[首页](gameplay/screenshots/2026-11-04-refinement/home-1280.png)、[等级成长](gameplay/screenshots/2026-11-04-refinement/growth-1280.png)、[开始行动](gameplay/screenshots/2026-11-04-refinement/modes-1280.png)、[横向选关](gameplay/screenshots/2026-11-04-refinement/missions-1280.png) |
+| 实机录屏 | 已提供 | [18秒连续战斗MP4](gameplay/videos/refinement-2026-11-04-1280x720-silent.mp4)，H.264无音轨，浏览器实录，非实体手机 |
 
-[19项清单](manifest.json)记录尺寸、大小、SHA-256、采集与复核源码摘要；静态品牌图保留原采集来源。10张新截图及两段完整视频解码通过，逐秒视频画面已查看。新截图均为1280×720，两段视频为H.264、无音轨；[剪辑记录](promo/videos/revision-2026-11-02-edit.json)保留来源和时间区间。素材许可见[素材清单](../docs/ASSET_MANIFEST.json)。
+[19项清单](manifest.json)记录大小、尺寸、摘要及采集身份。6张战斗图和录屏来自当前构建的普通离线首关；4张菜单图来自隔离真实PostgreSQL/HTTP的普通新游客，无测试资产和开发余额，专属服务已清理。QA激光/技能与长昵称图片单独放在验证文档，不作正式媒体。视频完整解码并检查逐秒画面，实录取连续18秒，排除后续菜单；[剪辑记录](promo/videos/refinement-2026-11-04-edit.json)保留来源与区间。
 
-当前截图、开箱和战斗视频来自真实本地Runtime下的普通新游客，没有使用开发余额或资产fixture。欢迎邮件、签到、开包、购买、保存配装、正式单人通关、单场资格只扣一次、180金币/120经验到账和刷新保留均通过，页面异常0；[普通游客证据](../docs/verification-2026-11-02/ordinary-guest-evidence.json)。独立QA的高等级、批量物资和特殊状态图单列在docs，不混入正式媒体。
+静态图标、宣传图和推荐语保留原采集身份；历史截图与视频继续归档保留。素材许可见[素材清单](../docs/ASSET_MANIFEST.json)，本轮内置imagegen提示词、效果图和实际对照见[设计目录](../docs/design/refinement-2026-11-04/README.md)。
 
 ## 本地联调与验证
 

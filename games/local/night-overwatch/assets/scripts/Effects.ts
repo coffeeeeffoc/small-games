@@ -203,12 +203,11 @@ export function drawEffects(
   }
 
   // Special weapons remain presentation-only; authoritative hits come from the simulation.
-  for(const event of s.events.slice(-64)) {
-    const age=s.time-event.time;
-    if(event.type!=='shot'||event.weapon!==5||!event.target||age<0||age>.22)continue;
-    const origin=airborne({...event,y:event.y??0}),target=airborne(event.target),fade=1-age/.22;
-    if(!reduced)line(origin,target,.7,.2*fade,7,true);
-    line(origin,target,1,fade,reduced?1.5:2.5,true);blob(target,5,5,1,fade);
+  for(const beam of s.lasers) {
+    const unit=s.units.find(unit=>unit.id===beam.targetId);if(!unit||unit.hp<=0)continue;
+    const origin=airborne(beam.origin),target=airborne(unit),pulse=.82+Math.sin(s.time*36)*.12;
+    if(!reduced)line(origin,target,.7,.25*pulse,7,true);
+    line(origin,target,1,pulse,reduced?1.5:2.5,true);blob(target,5,5,1,pulse);
   }
   for(const drone of s.drones.slice(0,6)) {
     const p=airborne(drone),size=Math.max(4,Math.min(12,scaleAt(drone)*.45));

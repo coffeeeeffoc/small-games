@@ -9,12 +9,12 @@ const normalize = (text) => text.replaceAll('\r\n', '\n');
 const recipe = [
   {
     file: 'assets/scripts/HUD.ts',
-    originalSha256: 'ab670e8e4bf9444dfcd41393e74b84ea48a085424949707871b6cf3f0131b38e',
+    originalSha256: 'b8b9e73dbb32a54b7cb48e5db5fa681c90b58630afa11fbb474af2a9666d2ead',
     changes: [],
   },
   {
     file: 'assets/scripts/Platform.ts',
-    originalSha256: '604459ebf75acb84ec966fcf620213f1cd40d06b78e5ecbcb4a737393668d659',
+    originalSha256: 'a0cf9e00a34cb4290f17b48d642783eb8e9649a2b510aac5d1502a8a6971753f',
     changes: [],
   },
 ];

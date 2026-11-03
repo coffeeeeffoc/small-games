@@ -1,0 +1,21 @@
+{
+  "source": "reports\\refinement-ordinary-2026-11-04\\ordinary-gameplay-1280.webm",
+  "sourceSha256": "16c2a1ea1956e4509527195fc74e15de458850d4a6644fbffe3e157201f4d981",
+  "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+  "fixture": false,
+  "environment": "Chromium; offline ordinary first mission; no developer or asset fixture",
+  "audio": false,
+  "gameplay": {
+    "start": 7.956,
+    "duration": 18
+  },
+  "promo": [
+    "title still 2s",
+    "night still 3s",
+    "enhanced still 3s",
+    "thermal still 3s",
+    "actual combat from 10.956s for 7s",
+    "settings still 2s"
+  ],
+  "filter": "[0:v]trim=duration=2,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[title];[1:v]trim=duration=3,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[night];[2:v]trim=duration=3,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[enhanced];[3:v]trim=duration=3,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[thermal];[4:v]trim=start=10.956:duration=7,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[combat];[5:v]trim=duration=2,setpts=PTS-STARTPTS,scale=1280:720,setsar=1,fps=25[settings];[title][night][enhanced][thermal][combat][settings]concat=n=6:v=1:a=0[out]"
+}

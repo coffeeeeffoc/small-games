@@ -70,6 +70,7 @@ export function terrainHeight(x: number, z: number, map: BattlefieldId = 'valley
 // calibres, ammunition, traverse and ballistics are gameplay abstractions, not an AC-130J loadout.
 // Aim has no azimuth firing-sector restriction, including after orbit reversal; stations stay port.
 // This is arcade targeting, not authentic fire control.
+export const LASER = { duration: 3, dps: 80, range: 650 } as const;
 export const WEAPONS = [
   {
     id: 'rapid',
@@ -142,7 +143,7 @@ export const WEAPONS = [
   },
   {
     id: 'laser', muzzle: AIRFRAME.muzzles[2], name: ['激光', 'Laser'], interval: 8,
-    speed: 10000, calibre: 0.004, length: 0.021, tracerTime: 0.055, damage: 85, radius: .6,
+    speed: 10000, calibre: 0.004, length: 0.021, tracerTime: 0.055, damage: LASER.dps * LASER.duration, radius: .6,
     ammo: 6, heat: 0, armor: .85, automatic: false,
   },
 ] as const;

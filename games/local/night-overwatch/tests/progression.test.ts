@@ -185,11 +185,11 @@ test('duel ownership isolates tracking and EMP and survives checkpoints',()=>{
   assert(state.simulation.units.filter(u=>u.group===0).every(u=>u.rootedUntil===4));
   assert(state.simulation.units.filter(u=>u.group===1).every(u=>!u.rootedUntil));
 });
-test('special weapons require entitlement; laser is immediate but bounded, drones expire without budget renewal',()=>{
+test('special weapons require entitlement; laser is continuous and bounded, drones expire without budget renewal',()=>{
   const base=setup([]);base.choose(5);assert.notEqual(base.selected,5);assert(!base.hasWeapon(4));
   const laser=setup(['laser']);const target=laser.addUnit('heavy',{x:-80,z:-40});target.hp=1000;
-  Object.assign(laser.aircraft,{x:-80,z:-40,y:200});laser.choose(5);laser.setAim(target);
-  assert(laser.fire());assert(target.hp<1000&&target.hp>900);assert.equal(laser.guns[5].ammo,5);assert(!laser.fire());
+  Object.assign(laser.aircraft,{x:-80,z:-40,y:100});laser.choose(5);laser.setAim(target);
+  assert(laser.fire());assert.equal(target.hp,1000);laser.step(.1);assert(Math.abs(target.hp-993.2)<1e-6);assert.equal(laser.guns[5].ammo,5);assert(!laser.fire());
   const drone=setup(['drone']);drone.choose(4);assert(drone.fire());assert.equal(drone.drones.length,3);
   const budget=drone.drones.reduce((n,d)=>n+d.budget,0);assert.equal(budget,72);
   drone.time=13;drone.step(.1);assert.equal(drone.drones.length,0);assert.equal(drone.guns[4].ammo,2);

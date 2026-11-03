@@ -1,248 +1,219 @@
 {
-  "sourceHash": "98ddd04666a1b788911f9fb517486fa35a6ac3db0cdbec80d3587007cab4e24e",
-  "verified": "2026-11-02",
-  "previousDelivery": "manifest-2026-10-30-taptap-login.json",
-  "environment": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
+  "sourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+  "verified": "2026-11-04",
+  "environment": "Chromium; offline ordinary first mission; no developer or asset fixture; menu stills: Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; no asset fixture or developer grant",
   "files": [
     {
+      "path": "gameplay/screenshots/2026-11-04-refinement/night-1280.png",
+      "bytes": 630841,
+      "sha256": "48f2479af7910f95603b88512a254a1ff041a416bbcf1315d547211028de9d8d",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-04-refinement/enhanced-1280.png",
+      "bytes": 916591,
+      "sha256": "c9d356893c381f042c3c1c83158895ca967b3dfacb3dab5e9770dbe3af01403c",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-04-refinement/thermal-1280.png",
+      "bytes": 255171,
+      "sha256": "4d925e8cca87979966545ba4351a869362d310d92036a69728ec71546e3a7521",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-04-refinement/settings-1280.png",
+      "bytes": 612594,
+      "sha256": "81a773a3b124690a21e3fc34b348d53f10a4707b87ae805d030f2f872661498c",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-04-refinement/tactics-1280.png",
+      "bytes": 584424,
+      "sha256": "70a4a5ab455bdfea5f6fc256f39e5ee185b872981ae7aaa9a38bbc9d284225fe",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-04-refinement/equipment-1280.png",
+      "bytes": 233625,
+      "sha256": "3a17a13636dd19b2bf9c917f1bf57c330cc0a945e672181484d3b91a95b6963e",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-04-refinement/home-1280.png",
+      "bytes": 1427418,
+      "sha256": "88b92b0ec5114d64f0e95ef9fbbe48a611d4b5927d4ac4c147ff3c476084ac76",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-04-refinement/growth-1280.png",
+      "bytes": 1342528,
+      "sha256": "30952cb9c6eba16bff22bd89a0cbdc2065ab76353d49322794e7663354fbe0ff",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-04-refinement/modes-1280.png",
+      "bytes": 1262760,
+      "sha256": "8bae9ac1333614215792a6918e9e082a3da9453ffa93b18640b23b83411e69cd",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-04-refinement/missions-1280.png",
+      "bytes": 793452,
+      "sha256": "4bee13411ff2c5dfc1c6229255ba246faa47dbd38c3b083456965d59b210f841",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/videos/refinement-2026-11-04-1280x720-silent.mp4",
+      "bytes": 3415585,
+      "sha256": "3c80249f178977034b762195a4d42422cebb51b73834095ad0e8b40005ddd74c",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          }
+        ],
+        "format": {
+          "duration": "18.000000"
+        }
+      },
+      "decoded": true,
+      "audio": false
+    },
+    {
+      "path": "promo/videos/refinement-2026-11-04-1280x720-silent.mp4",
+      "bytes": 1930880,
+      "sha256": "b87cbe130c4f960525106887503c89e394f08150cda28fc1969929389d2465db",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720
+          }
+        ],
+        "format": {
+          "duration": "20.000000"
+        }
+      },
+      "decoded": true,
+      "audio": false
+    },
+    {
+      "path": "promo/videos/refinement-2026-11-04-edit.json",
+      "bytes": 1238,
+      "sha256": "5e8705969533960112052daddf307d5a331e39b73ad3c51ddfcacb4532b64a9c",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false
+    },
+    {
       "path": "copy/introduction.md",
-      "bytes": 2150,
-      "sha256": "85ceeb7fe329da2a6da38572a5b141bfd1fe88b7bd51521f11c68acbdc1bc2ac",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "5886fbab1a50fb67505c38134789fc6fae89bd3005a533099f8131ed13d84d64"
+      "bytes": 2607,
+      "sha256": "8d96684567c841c2283c0deb3595eeba4cd3f32032422bc62b311cfcdc95fae0",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false
+    },
+    {
+      "path": "copy/developer-note.md",
+      "bytes": 1693,
+      "sha256": "1045faff1a4de1c8fc3f2009e1bcf1264e1c711532f469dd9ef054831c1dc301",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false
     },
     {
       "path": "copy/tagline.md",
       "bytes": 68,
       "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70"
-    },
-    {
-      "path": "copy/developer-note.md",
-      "bytes": 1371,
-      "sha256": "2e011bcdee345cb606159d314337eae65187568b5abfda78e27993dacdbb779a",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "5886fbab1a50fb67505c38134789fc6fae89bd3005a533099f8131ed13d84d64"
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
+      "reusedUnchanged": true
     },
     {
       "path": "icon/icon-1024.png",
       "bytes": 1168540,
       "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
+      "reusedUnchanged": true,
       "width": 1024,
-      "height": 1024,
-      "hasAlpha": false
+      "height": 1024
     },
     {
       "path": "promo/images/title-1920x1080.png",
       "bytes": 2392478,
       "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
+      "reusedUnchanged": true,
       "width": 1920,
-      "height": 1080,
-      "hasAlpha": false
+      "height": 1080
     },
     {
       "path": "promo/images/title-1440x1440.png",
       "bytes": 2285613,
       "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
+      "reusedUnchanged": true,
       "width": 1440,
-      "height": 1440,
-      "hasAlpha": false
-    },
-    {
-      "path": "gameplay/screenshots/2026-11-02-revision/01-home.png",
-      "bytes": 1426219,
-      "sha256": "0a456a9b3dbab867d570a5e741fc17bc7763356ff3e9af52f7d7885ac8f1a447",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": false,
-      "capturedSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "width": 1280,
-      "height": 720,
-      "hasAlpha": false,
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode passed; current ordinary-guest screenshot"
-    },
-    {
-      "path": "gameplay/screenshots/2026-11-02-revision/02-supply.png",
-      "bytes": 1513513,
-      "sha256": "f21b344cf44aeebae1b60e48bb3dd6b08b8b6b7bf8887784ec6b1b99a499d132",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "5886fbab1a50fb67505c38134789fc6fae89bd3005a533099f8131ed13d84d64",
-      "width": 1280,
-      "height": 720,
-      "hasAlpha": false,
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode passed; current ordinary-guest screenshot"
-    },
-    {
-      "path": "gameplay/screenshots/2026-11-02-revision/03-rewards.png",
-      "bytes": 1348249,
-      "sha256": "d502976207367380d24ac843f507143fe08c8f1e24fe8f9502a07f460f01a15e",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": false,
-      "capturedSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "width": 1280,
-      "height": 720,
-      "hasAlpha": false,
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode passed; current ordinary-guest screenshot"
-    },
-    {
-      "path": "gameplay/screenshots/2026-11-02-revision/04-warehouse.png",
-      "bytes": 1233863,
-      "sha256": "1d57e23dedad90c93aec14805f0176281c3291334d75bdb338b4f3beec42d43d",
-      "verifiedForSourceHash": "98ddd04666a1b788911f9fb517486fa35a6ac3db0cdbec80d3587007cab4e24e",
-      "reusedUnchanged": false,
-      "capturedSourceHash": "98ddd04666a1b788911f9fb517486fa35a6ac3db0cdbec80d3587007cab4e24e",
-      "width": 1280,
-      "height": 720,
-      "hasAlpha": false,
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode and visual review passed; fresh ordinary guest, real local Runtime, inline sale proceeds and sync icon"
-    },
-    {
-      "path": "gameplay/screenshots/2026-11-02-revision/05-history.png",
-      "bytes": 945298,
-      "sha256": "874c3f844f95251f38295f0734a51aa2603a047ecbcbcba009e6ee90ebed2f33",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": false,
-      "capturedSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "width": 1280,
-      "height": 720,
-      "hasAlpha": false,
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode passed; current ordinary-guest screenshot"
-    },
-    {
-      "path": "gameplay/screenshots/2026-11-02-revision/06-growth.png",
-      "bytes": 1342950,
-      "sha256": "b55fbd23938c8a02e60dd5ba053276d0eba384ef0c6c8fc7579082b0eec346ab",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "5886fbab1a50fb67505c38134789fc6fae89bd3005a533099f8131ed13d84d64",
-      "width": 1280,
-      "height": 720,
-      "hasAlpha": false,
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode passed; current ordinary-guest screenshot"
-    },
-    {
-      "path": "gameplay/screenshots/2026-11-02-revision/07-skills.png",
-      "bytes": 1280005,
-      "sha256": "3e4f3c025f4224a3b66a235d6d2d03e36cc01629fc51d52abcb099990f26dfb2",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "5886fbab1a50fb67505c38134789fc6fae89bd3005a533099f8131ed13d84d64",
-      "width": 1280,
-      "height": 720,
-      "hasAlpha": false,
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode passed; current ordinary-guest screenshot"
-    },
-    {
-      "path": "gameplay/screenshots/2026-11-02-revision/08-loadout.png",
-      "bytes": 1388180,
-      "sha256": "16044fda5094dda7bc37233dc3750a89d562d7bfa6e7c31f39f81fc91a1d376c",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": true,
-      "capturedSourceHash": "5886fbab1a50fb67505c38134789fc6fae89bd3005a533099f8131ed13d84d64",
-      "width": 1280,
-      "height": 720,
-      "hasAlpha": false,
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode passed; current ordinary-guest screenshot"
-    },
-    {
-      "path": "gameplay/screenshots/2026-11-02-revision/09-combat.png",
-      "bytes": 898527,
-      "sha256": "65bf608bad4c8dafd98b7e20d4b2283fca607510c1418f9cc6f9de3f077adadf",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": false,
-      "capturedSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "width": 1280,
-      "height": 720,
-      "hasAlpha": false,
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode passed; current ordinary-guest screenshot"
-    },
-    {
-      "path": "gameplay/screenshots/2026-11-02-revision/10-settlement.png",
-      "bytes": 934454,
-      "sha256": "045ff36cc2828d1599351679514c1c07facd45780cd8f773fab1f081e7d69924",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": false,
-      "capturedSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "width": 1280,
-      "height": 720,
-      "hasAlpha": false,
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "validation": "Full PNG decode passed; current ordinary-guest screenshot"
-    },
-    {
-      "path": "gameplay/videos/revision-2026-11-02-1280x720-silent.mp4",
-      "bytes": 4696758,
-      "sha256": "6d9db1008996cbae81411c30a56c416938c4893644e1e67e87f69696be58e39b",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": false,
-      "capturedSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "width": 1280,
-      "height": 720,
-      "codec": "h264",
-      "durationSeconds": 21.966667,
-      "audio": false,
-      "validation": "Full decode passed; every one-second contact frame visually reviewed"
-    },
-    {
-      "path": "promo/videos/revision-2026-11-02-1280x720-silent.mp4",
-      "bytes": 3098649,
-      "sha256": "73eefd97fe3593e4500b8e9c39eb44ceec5992c4353103673820a964f46936e5",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": false,
-      "capturedSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed",
-      "width": 1280,
-      "height": 720,
-      "codec": "h264",
-      "durationSeconds": 21.133333,
-      "audio": false,
-      "validation": "Full decode passed; every one-second contact frame visually reviewed"
-    },
-    {
-      "path": "promo/videos/revision-2026-11-02-edit.json",
-      "bytes": 1072,
-      "sha256": "9c56a9210386c7ac20d32c04293360c32ad853ece904778ae78e7f6d1d12d47c",
-      "verifiedForSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "reusedUnchanged": false,
-      "capturedSourceHash": "bb709842aec7fabeb8508eb399869301a533d9e3657e4cfd99b4966b4468e209",
-      "fixture": false,
-      "provenance": "Creator 3.8.8 / Chromium 1280x720 / ordinary new guest on real local Runtime http://127.0.0.1:43003/api/competition/v1; no asset fixture or existing player changed"
+      "height": 1440
     }
-  ],
-  "verificationNote": "Current interface screenshots and videos from ordinary new guest; static brand icon/promo images retain original capturedSourceHash. QA fixture images are separate in docs."
+  ]
 }

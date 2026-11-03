@@ -37,7 +37,7 @@ const hooks = registerHooks({
     if (url === 'night-input:cc') return { format: 'module', shortCircuit: true,
       source: `export const { ${Object.keys(cc).join(',')} } = globalThis.__nightInputCC;` };
     if (url === 'night-input:./World' || url === 'night-input:./HUD') return { format: 'module', shortCircuit: true,
-      source: `export class World { constructor(parent, map = 'valley', light = 'day') { this.map = map; this.light = light; } root = { active: true, destroy() {} }; camera = {}; reset() {} updateCamera() {} } export class HUD {}` };
+      source: `export class World { constructor(parent, map = 'valley', light = 'day') { this.map = map; this.light = light; } root = { active: true, destroy() {} }; camera = {}; reset() {} updateCamera() {} setView(mode) { this.viewMode = mode; this.thermal = mode === 'thermal'; } } export class HUD {}` };
     const result = next(url, context);
     if (url === sourceURL.href) return { ...result, format: 'module', source:
       stripTypeScriptTypes(result.source!.toString().replace("@ccclass('Overwatch')", ''), { mode: 'transform' }) };
@@ -55,7 +55,7 @@ function mission() {
   const g = new Overwatch();
   g.hud = { t: (value: string) => value, supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire' } : undefined,
     listAt: () => undefined, minimapPoint: () => undefined, blocksBattlefield: () => false };
-  g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, updateCamera() {}, reset() {} };
+  g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, viewMode: 'night', updateCamera() {}, reset() {}, setView(mode) { this.viewMode=mode;this.thermal=mode==='thermal'; }, sensor() { this.setView(this.viewMode==='night'?'enhanced':this.viewMode==='enhanced'?'thermal':'night'); } };
   g.platform = new Platform(new Node(), g.pause, g.clear);
   g.sim.start(); g.sim.choose(0);
   return g;
@@ -186,7 +186,7 @@ test('silent, unavailable and rejected audio cannot strand extraction; retry dro
     if (mode === 'mute-during') { p.muted = true; p.stop(); }
     if (mode === 'retry') {
       g.retry(); g.updateRadio(1 / 60); assert(!g.sim.extractionRadioPending);
-      assert.equal(p.radio.clip, p.clips.get('radio-day-zh'));
+      assert.equal(p.radio.clip, p.clips.get('radio-night-zh'));
     } else {
       for (let i = 0; i < 240; i++) { g.sim.step(1 / 60); g.updateRadio(1 / 60); }
       assert.equal(g.sim.phase, 'success', mode); assert(!g.sim.extractionRadioPending, mode);
@@ -758,6 +758,35 @@ test('muting through settings stops every voice, persists the choice and blocks 
   } finally { cc.sys.localStorage = previous; p.dispose(); }
 });
 
+test('independent guidance preferences persist and cancelling voice during extraction cannot block completion', () => {
+  const saved = new Map<string,string>(), previous = cc.sys.localStorage;
+  cc.sys.localStorage = { getItem:key=>saved.get(key)??null, setItem:(key,value)=>saved.set(key,value) } as any;
+  const g=mission(),p=g.platform;p.activate();g.hud.lang='zh';
+  try {
+    assert(p.voicePrompts && p.autoPriority);assert.equal(p.viewMode,'night');
+    for(const u of g.sim.units)if(!u.friendly)u.hp=0;
+    g.sim.step(1/60);g.updateRadio(1/60);assert(p.radioPending);
+    g.action('voicePrompts');assert(!p.radioPending&&!g.sim.extractionRadioPending);assert(!p.muted&&p.autoPriority);
+    p.play('rapid');assert(p.voices.get('rapid').playing);p.speak('critical','zh');assert(!p.radio.playing);
+    for(let i=0;i<300;i++){g.sim.step(1/60);g.updateRadio(1/60);}assert.equal(g.sim.phase,'success');
+    g.action('autoPriority');assert(!p.autoPriority);g.action('view:enhanced');
+    const restored=new Platform(new Node(),()=>{},()=>{});
+    assert(!restored.voicePrompts&&!restored.autoPriority&&!restored.muted);assert.equal(restored.viewMode,'enhanced');restored.dispose();
+  } finally {p.dispose();cc.sys.localStorage=previous;}
+});
+
+test('views preserve the mission and camera while respecting system pauses and allowing spectators', () => {
+  const g=mission();g.online={spectator:true};g.world.zoom=2;g.world.sensorRotation=37;g.world.center={x:4,z:6};
+  const before={aim:{...g.sim.aim},time:g.sim.time,center:{...g.world.center},zoom:g.world.zoom,rotation:g.world.sensorRotation};
+  g.pause('settings',true);g.action('view:enhanced');assert.equal(g.world.viewMode,'enhanced');
+  for(const reason of ['background','focus','orientation']){
+    g.pause(reason,true);g.action('sensor');g.action('view:thermal');assert.equal(g.world.viewMode,'enhanced');g.pause(reason,false);
+  }
+  g.action('view:thermal');assert(g.world.thermal);g.action('view:night');assert(!g.world.thermal);
+  assert.deepEqual({aim:g.sim.aim,time:g.sim.time,center:g.world.center,zoom:g.world.zoom,rotation:g.world.sensorRotation},before);
+  g.platform.dispose();
+});
+
 test('skipping support keeps background frozen without reintroducing a countdown', () => {
   const g = mission(); g.hud.t = (zh: string) => zh; g.platform.rewards.pendingSupply = true;
   g.action('settings'); g.action('supply'); g.hide(); g.action('supplyLater');
@@ -814,4 +843,28 @@ test('browser ad return reconciles missing focus events without resuming an actu
 test('support entered from the battle report returns to an unobstructed battlefield',async()=>{
  const g=mission();g.hud.t=(zh:string)=>zh;g.hud.reportOpen=true;g.platform.rewardProvider=async()=>({status:'completed'});
  try{g.openSupply();assert.equal(g.hud.reportOpen,false);await g.requestReward('supply','ammo');assert(!g.hud.supplyOpen);assert(!g.sim.paused);assert.equal(g.sim.homingAmmo,2);}finally{g.platform.dispose();}
+});
+
+
+test('refinement: report tabs work without quartermaster and every close or Escape clears both flags',()=>{
+ const g=mission();for(const close of ['close','equipmentClose','escape']){
+  g.action('battleReport');assert(g.hud.reportOpen&&!g.hud.equipmentOpen);g.action('equipment');assert(g.hud.reportOpen&&g.hud.equipmentOpen);
+  g.action('reportOverview');assert(g.hud.reportOpen&&!g.hud.equipmentOpen);g.action('equipment');
+  if(close==='escape'){g.keyDown({keyCode:27});g.keyUp({keyCode:27});}else g.action(close);
+  assert(!g.hud.reportOpen&&!g.hud.equipmentOpen);assert.equal(g.sim.fired,0);
+ }g.platform.dispose();
+});
+test('refinement: horizontal mouse and touch drags cancel activation, including release-only displacement',()=>{
+ const g=mission();let offset=0,activated=0;g.hud.listAt=()=>({key:'missions',axis:'x'});g.hud.hit=()=>({id:'mission:01'});g.hud.moveList=(_key,amount)=>offset+=amount;g.action=()=>activated++;
+ for(const pointer of [1,'mouse']){g.beginListGesture(pointer,100,100);g.moveListGesture(pointer,60,102);g.endListGesture(pointer,60,102);assert.equal(activated,0);}
+ assert.equal(offset,80);g.beginListGesture(2,100,100);g.endListGesture(2,80,100);assert.equal(activated,0);
+ g.beginListGesture(3,100,100);g.clear();assert.equal(g.listGesture,undefined);g.endListGesture(3,100,100);assert.equal(activated,0);
+ g.beginListGesture(4,100,100);g.endListGesture(4,100,100);assert.equal(activated,1);
+ g.resizeKey='same';g.show();assert.equal(g.resizeKey,'');g.platform.dispose();
+});
+test('refinement: horizontal wheel moves right and vertical wheel remains a forward-scroll fallback',()=>{
+ const g=mission();let offset=0;g.hud.modal=true;g.mousePosition=()=>({x:80,y:140});g.hud.listAt=()=>({key:'missions',axis:'x'});g.hud.moveList=(_key,amount)=>offset+=amount;
+ g.wheel({getScrollX:()=>30,getScrollY:()=>0});assert.equal(offset,6);
+ g.wheel({getScrollX:()=>0,getScrollY:()=>-20});assert.equal(offset,10);
+ g.wheel({getScrollX:()=>-50,getScrollY:()=>0});assert.equal(offset,0);g.platform.dispose();
 });

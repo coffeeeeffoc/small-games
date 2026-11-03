@@ -251,8 +251,14 @@ export async function settleVisuals(page) {
     const { director, UIOpacity, isValid } = await System.import('cc');
     const panels = director.getScene().getComponentsInChildren(UIOpacity)
       .filter(component => isValid(component.node) && component.node.activeInHierarchy && component.node.name === 'Panel');
-    return panels.length <= 1 && panels.every(component => component.opacity === 255);
+    const expected = globalThis.__night?.snapshot().modal ? 1 : 0;
+    return panels.length === expected && panels.every(component => component.opacity === 255);
   }, null, { timeout: 15000 });
+  await page.evaluate(async () => {
+    const { director, Director } = await System.import('cc');
+    for (let frame = 0; frame < 2; frame++)
+      await new Promise(resolve => director.once(Director.EVENT_AFTER_DRAW, resolve));
+  });
 }
 
 
