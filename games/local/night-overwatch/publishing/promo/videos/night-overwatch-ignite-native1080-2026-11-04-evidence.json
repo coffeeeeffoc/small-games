@@ -1,0 +1,248 @@
+{
+  "date": "2026-11-04",
+  "file": "promo/videos/night-overwatch-ignite-native1080-2026-11-04.mp4",
+  "sha256": "e4d39cd708f44b6a852c2dc0746dbabda6de9f7f5ea630d29b827d8dafec97f3",
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "r_frame_rate": "30/1",
+        "nb_read_frames": "900"
+      },
+      {
+        "codec_name": "aac",
+        "sample_rate": "48000",
+        "channels": 2,
+        "r_frame_rate": "0/0",
+        "nb_read_frames": "1407"
+      }
+    ],
+    "format": {
+      "duration": "30.000000",
+      "size": "25926290"
+    }
+  },
+  "sourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+  "buildIdentity": "Isolated copy of stable Creator 3.8.8 web-mobile artifact; not current in-progress sources",
+  "audio": {
+    "source": "promo/videos/night-overwatch-ignite-2026-11-04-1920x1080.mp4",
+    "compressedStreamHash": "SHA256=8e76614688942508aa546926c8c91916590f1bbc2b2931d6ed5dfa715ffd1d98",
+    "bitExactCopy": true
+  },
+  "combatSeconds": 22,
+  "sources": [
+    {
+      "path": "gameplay/videos/native1080-2026-11-04/rapid1080.mp4",
+      "sha256": "b10e67ef00a00ebdfc28432d3dd0854c1319b955c18ed63efe023d1edfec0d32",
+      "bytes": 13863168,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 1080,
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "r_frame_rate": "30/1",
+            "nb_read_frames": "330"
+          }
+        ],
+        "format": {
+          "duration": "11.000000",
+          "size": "13863168"
+        }
+      },
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "cssWidth": 1920,
+        "cssHeight": 1080,
+        "dpr": 1,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080
+      },
+      "weaponIndex": 0,
+      "view": "enhanced",
+      "simulationSeconds": 11.050000000000226,
+      "shotsFired": 45
+    },
+    {
+      "path": "gameplay/videos/native1080-2026-11-04/blast1080.mp4",
+      "sha256": "19cd581fe7d119fd8d5df64fb26c2456a2f05244f061a900fc5af0830e8710c8",
+      "bytes": 16621794,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 1080,
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "r_frame_rate": "30/1",
+            "nb_read_frames": "336"
+          }
+        ],
+        "format": {
+          "duration": "11.200000",
+          "size": "16621794"
+        }
+      },
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "cssWidth": 1920,
+        "cssHeight": 1080,
+        "dpr": 1,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080
+      },
+      "weaponIndex": 1,
+      "view": "enhanced",
+      "simulationSeconds": 11.200000000000232,
+      "shotsFired": 15
+    },
+    {
+      "path": "gameplay/videos/native1080-2026-11-04/heavy1080.mp4",
+      "sha256": "011bd8f126bd7b33a63e18949f6d8e0d86bfc7e3f518a46067da55c00d3e72d8",
+      "bytes": 9150334,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 1080,
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "r_frame_rate": "30/1",
+            "nb_read_frames": "333"
+          }
+        ],
+        "format": {
+          "duration": "11.100000",
+          "size": "9150334"
+        }
+      },
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "cssWidth": 1920,
+        "cssHeight": 1080,
+        "dpr": 1,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080
+      },
+      "weaponIndex": 2,
+      "view": "night",
+      "simulationSeconds": 11.150000000000231,
+      "shotsFired": 5
+    },
+    {
+      "path": "gameplay/videos/native1080-2026-11-04/incendiary1080.mp4",
+      "sha256": "c4edfa2ade817d6b92a24f1cceb3e9f6c5bbb36552ff69e77b3881fcb484b23d",
+      "bytes": 12105806,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 1080,
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "r_frame_rate": "30/1",
+            "nb_read_frames": "331"
+          }
+        ],
+        "format": {
+          "duration": "11.033333",
+          "size": "12105806"
+        }
+      },
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "cssWidth": 1920,
+        "cssHeight": 1080,
+        "dpr": 1,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080
+      },
+      "weaponIndex": 3,
+      "view": "enhanced",
+      "simulationSeconds": 11.066666666666901,
+      "shotsFired": 3
+    },
+    {
+      "path": "gameplay/videos/native1080-2026-11-04/thermal1080.mp4",
+      "sha256": "847a3ee028d16a7f72e899bc10212136ec051573d2d85f196f465de03b8c73cb",
+      "bytes": 5380249,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 1080,
+            "display_aspect_ratio": "16:9",
+            "pix_fmt": "yuv420p",
+            "r_frame_rate": "30/1",
+            "nb_read_frames": "337"
+          }
+        ],
+        "format": {
+          "duration": "11.233333",
+          "size": "5380249"
+        }
+      },
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "cssWidth": 1920,
+        "cssHeight": 1080,
+        "dpr": 1,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080
+      },
+      "weaponIndex": 1,
+      "view": "thermal",
+      "simulationSeconds": 11.233333333333558,
+      "shotsFired": 16
+    }
+  ],
+  "checks": {
+    "typecheck": true,
+    "fullDecode": true,
+    "storyboardVisualReview": true,
+    "allGameplayNative1080": true,
+    "provenanceOverlaysRemoved": true,
+    "browserPlayback": {
+      "ended": true,
+      "duration": 30,
+      "currentTime": 30,
+      "width": 1920,
+      "height": 1080,
+      "muted": false,
+      "frames": 900,
+      "dropped": 0,
+      "environment": "Headless Chrome; unmuted normal-speed decode/playback, not human listening"
+    }
+  },
+  "limits": [
+    "Desktop browser recording, not physical phone/native host",
+    "No platform upload or review",
+    "In-progress gameplay changes not included"
+  ]
+}

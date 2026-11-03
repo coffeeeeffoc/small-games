@@ -1,0 +1,105 @@
+{
+  "date": "2026-11-04",
+  "file": "promo/videos/night-overwatch-ignite-2026-11-04-1920x1080.mp4",
+  "sha256": "5bfdf6236e29fb520a5154f5a47960898e674e914a0b14a015202f43723a8713",
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "display_aspect_ratio": "16:9",
+        "pix_fmt": "yuvj420p",
+        "r_frame_rate": "30/1",
+        "side_data_list": [
+          {}
+        ]
+      },
+      {
+        "codec_name": "aac",
+        "sample_rate": "48000",
+        "channels": 2,
+        "r_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "30.000000",
+      "size": "18825870"
+    }
+  },
+  "sourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+  "visualSource": "promo/videos/night-overwatch-tactical-2026-11-04-1920x1080.mp4",
+  "visualSourceSha256": "41466044915f0e47b5d8bd90e462baa3a722fababfb950a09315f4b8d2d6354b",
+  "scenes": [
+    {
+      "start": 0,
+      "end": 4,
+      "kind": "animated-brand"
+    },
+    {
+      "start": 4,
+      "end": 7,
+      "kind": "night-still-composition"
+    },
+    {
+      "start": 7,
+      "end": 10,
+      "kind": "enhanced-still-composition"
+    },
+    {
+      "start": 10,
+      "end": 13,
+      "kind": "thermal-still-composition"
+    },
+    {
+      "start": 13,
+      "end": 18,
+      "kind": "browser-gameplay",
+      "sourceStart": 3
+    },
+    {
+      "start": 18,
+      "end": 23,
+      "kind": "browser-gameplay",
+      "sourceStart": 11
+    },
+    {
+      "start": 23,
+      "end": 30,
+      "kind": "animated-brand-close"
+    }
+  ],
+  "audio": {
+    "source": "ignite-2026-11-04-source/score.py; original synthesis, no external samples",
+    "bpm": 120,
+    "integratedLufs": -15.03,
+    "truePeakDbtp": -1.92,
+    "loudnessRangeLu": 3.7,
+    "scoreScriptSha256": "fc3f36c5fade7c36a916007a156e24791b556233d93d2d0c0b907ffade768f72"
+  },
+  "checks": {
+    "fullDecode": true,
+    "identicalCompressedVideoStream": true,
+    "videoStreamHash": "SHA256=7edf8bfbb0b263cee00530891919080c8ad3a5e601226e8c05f393a33c3c4202",
+    "storyboardVisualReview": true,
+    "generatorAssertions": true,
+    "browserPlayback": {
+      "ended": true,
+      "duration": 30,
+      "currentTime": 30,
+      "width": 1920,
+      "height": 1080,
+      "muted": false,
+      "frames": 900,
+      "dropped": 0,
+      "environment": "Headless Chrome; unmuted normal-speed decode/playback, not human listening"
+    }
+  },
+  "limits": [
+    "720p browser gameplay source arranged in 1080p; no additional video recompression",
+    "No human target-device listening",
+    "Not uploaded or reviewed by platform"
+  ]
+}

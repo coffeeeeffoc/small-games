@@ -1,0 +1,81 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c"
+  },
+  "fixture": false,
+  "environment": "Chromium; offline ordinary first mission; no developer or asset fixture",
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "touch": true,
+      "preferencesPersisted": true,
+      "viewPreservesCamera": true,
+      "tacticsNavigation": true,
+      "noInputLeak": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "preferencesPersisted": true,
+      "viewPreservesCamera": true,
+      "tacticsNavigation": true,
+      "noInputLeak": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "touch": false,
+      "preferencesPersisted": true,
+      "viewPreservesCamera": true,
+      "tacticsNavigation": true,
+      "noInputLeak": true
+    }
+  ],
+  "screens": [
+    "night-568.png",
+    "tactics-568.png",
+    "equipment-568.png",
+    "settings-568.png",
+    "settings-off-568.png",
+    "view-settings-enhanced-568.png",
+    "view-settings-thermal-568.png",
+    "view-settings-night-568.png",
+    "enhanced-568.png",
+    "thermal-568.png",
+    "settings-en-568.png",
+    "settings-restored-568.png",
+    "night-844.png",
+    "tactics-844.png",
+    "equipment-844.png",
+    "settings-844.png",
+    "settings-off-844.png",
+    "view-settings-enhanced-844.png",
+    "view-settings-thermal-844.png",
+    "view-settings-night-844.png",
+    "enhanced-844.png",
+    "thermal-844.png",
+    "settings-en-844.png",
+    "settings-restored-844.png",
+    "night-1280.png",
+    "tactics-1280.png",
+    "equipment-1280.png",
+    "settings-1280.png",
+    "settings-off-1280.png",
+    "view-settings-enhanced-1280.png",
+    "view-settings-thermal-1280.png",
+    "view-settings-night-1280.png",
+    "enhanced-1280.png",
+    "thermal-1280.png",
+    "combat-after-input-1280.png",
+    "settings-en-1280.png",
+    "settings-restored-1280.png"
+  ],
+  "errors": [],
+  "videoCombatStartSeconds": 10.26,
+  "videoCombatSeconds": 21.87,
+  "video": "F:\\playground\\playground-ai\\small-games\\games\\local\\night-overwatch\\reports\\support-ordinary/ordinary-gameplay-1280.webm"
+}

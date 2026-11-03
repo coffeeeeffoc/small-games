@@ -1,64 +1,64 @@
 {
-  "sourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+  "sourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
   "verified": "2026-11-04",
   "environment": "Chromium; offline ordinary first mission; no developer or asset fixture; menu stills: Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; no asset fixture or developer grant",
   "files": [
     {
-      "path": "gameplay/screenshots/2026-11-04-refinement/night-1280.png",
-      "bytes": 630841,
-      "sha256": "48f2479af7910f95603b88512a254a1ff041a416bbcf1315d547211028de9d8d",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",
+      "bytes": 635122,
+      "sha256": "267a21b3fe14fc3a94886d76f7f1f914821f915d25d9ef771c32710f5a4db7b9",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false,
       "width": 1280,
       "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-11-04-refinement/enhanced-1280.png",
-      "bytes": 916591,
-      "sha256": "c9d356893c381f042c3c1c83158895ca967b3dfacb3dab5e9770dbe3af01403c",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "path": "gameplay/screenshots/2026-11-04-support/enhanced-1280.png",
+      "bytes": 918489,
+      "sha256": "2e9f5468115d9a649cc5c36d59730ee7d0f67f6a189dc0ec2b36911867b597a0",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false,
       "width": 1280,
       "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-11-04-refinement/thermal-1280.png",
-      "bytes": 255171,
-      "sha256": "4d925e8cca87979966545ba4351a869362d310d92036a69728ec71546e3a7521",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "path": "gameplay/screenshots/2026-11-04-support/thermal-1280.png",
+      "bytes": 256434,
+      "sha256": "3cd18104d5a7ca2acff8b5e33d2c1a6616b628dee4ad10f329c90503d82b554d",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false,
       "width": 1280,
       "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-11-04-refinement/settings-1280.png",
-      "bytes": 612594,
-      "sha256": "81a773a3b124690a21e3fc34b348d53f10a4707b87ae805d030f2f872661498c",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "path": "gameplay/screenshots/2026-11-04-support/settings-1280.png",
+      "bytes": 611958,
+      "sha256": "59b97392d359d07b762840404ec5b14089cb858ee7afb6484fe14eb81f1bc6a2",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false,
       "width": 1280,
       "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-11-04-refinement/tactics-1280.png",
-      "bytes": 584424,
-      "sha256": "70a4a5ab455bdfea5f6fc256f39e5ee185b872981ae7aaa9a38bbc9d284225fe",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "path": "gameplay/screenshots/2026-11-04-support/tactics-1280.png",
+      "bytes": 584600,
+      "sha256": "68e740f5e1da6aca5685f2b18b9f64bf870ecfa5ced94b1c2afc055c745545d8",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false,
       "width": 1280,
       "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-11-04-refinement/equipment-1280.png",
-      "bytes": 233625,
-      "sha256": "3a17a13636dd19b2bf9c917f1bf57c330cc0a945e672181484d3b91a95b6963e",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "path": "gameplay/screenshots/2026-11-04-support/equipment-1280.png",
+      "bytes": 233610,
+      "sha256": "1a8dfdb25a4bd8422ce12b22fc418275581224643263bc7d3c3a34da5582d5b7",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false,
       "width": 1280,
       "height": 720
@@ -67,9 +67,9 @@
       "path": "gameplay/screenshots/2026-11-04-refinement/home-1280.png",
       "bytes": 1427418,
       "sha256": "88b92b0ec5114d64f0e95ef9fbbe48a611d4b5927d4ac4c147ff3c476084ac76",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720
     },
@@ -77,9 +77,9 @@
       "path": "gameplay/screenshots/2026-11-04-refinement/growth-1280.png",
       "bytes": 1342528,
       "sha256": "30952cb9c6eba16bff22bd89a0cbdc2065ab76353d49322794e7663354fbe0ff",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720
     },
@@ -87,9 +87,9 @@
       "path": "gameplay/screenshots/2026-11-04-refinement/modes-1280.png",
       "bytes": 1262760,
       "sha256": "8bae9ac1333614215792a6918e9e082a3da9453ffa93b18640b23b83411e69cd",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720
     },
@@ -97,18 +97,18 @@
       "path": "gameplay/screenshots/2026-11-04-refinement/missions-1280.png",
       "bytes": 793452,
       "sha256": "4bee13411ff2c5dfc1c6229255ba246faa47dbd38c3b083456965d59b210f841",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720
     },
     {
-      "path": "gameplay/videos/refinement-2026-11-04-1280x720-silent.mp4",
-      "bytes": 3415585,
-      "sha256": "3c80249f178977034b762195a4d42422cebb51b73834095ad0e8b40005ddd74c",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "path": "gameplay/videos/support-2026-11-04-1280x720-silent.mp4",
+      "bytes": 4065288,
+      "sha256": "82921f825b8c3bb260936d318dc5723e4ddd37db0ff300e75f607bc1adfd25c5",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false,
       "probe": {
         "programs": [],
@@ -116,17 +116,20 @@
         "streams": [
           {
             "codec_name": "h264",
-            "codec_type": "video",
             "width": 1280,
-            "height": 720
+            "height": 720,
+            "pix_fmt": "yuv420p"
           }
         ],
         "format": {
-          "duration": "18.000000"
+          "duration": "17.960000",
+          "size": "4065288"
         }
       },
       "decoded": true,
-      "audio": false
+      "audio": false,
+      "duration": 17.96,
+      "playedToEnd": true
     },
     {
       "path": "promo/videos/refinement-2026-11-04-1280x720-silent.mp4",
@@ -163,25 +166,25 @@
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 2607,
-      "sha256": "8d96684567c841c2283c0deb3595eeba4cd3f32032422bc62b311cfcdc95fae0",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "bytes": 2860,
+      "sha256": "8ebef08bc5b3c2f6e479489490755e438c384d8e3fae1b732a8ee01a409e5c25",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false
     },
     {
       "path": "copy/developer-note.md",
-      "bytes": 1693,
-      "sha256": "1045faff1a4de1c8fc3f2009e1bcf1264e1c711532f469dd9ef054831c1dc301",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "bytes": 1982,
+      "sha256": "235dddfad83830520761a84baf20cfc09b38b4b3206ceeff0e813cf662d7eae9",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false
     },
     {
       "path": "copy/tagline.md",
       "bytes": 68,
       "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "reusedUnchanged": true
     },
@@ -189,7 +192,7 @@
       "path": "icon/icon-1024.png",
       "bytes": 1168540,
       "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "reusedUnchanged": true,
       "width": 1024,
@@ -199,7 +202,7 @@
       "path": "promo/images/title-1920x1080.png",
       "bytes": 2392478,
       "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "reusedUnchanged": true,
       "width": 1920,
@@ -209,11 +212,87 @@
       "path": "promo/images/title-1440x1440.png",
       "bytes": 2285613,
       "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
-      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "reusedUnchanged": true,
       "width": 1440,
       "height": 1440
+    },
+    {
+      "path": "promo/videos/night-overwatch-tactical-2026-11-04-1920x1080.mp4",
+      "bytes": 18825252,
+      "sha256": "41466044915f0e47b5d8bd90e462baa3a722fababfb950a09315f4b8d2d6354b",
+      "width": 1920,
+      "height": 1080,
+      "durationSeconds": 30.016,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "environment": "Edited promotional composition; browser gameplay 1280x720 scaled in 1920x1080 canvas; original synthesized underscore",
+      "evidence": "promo/videos/night-overwatch-tactical-2026-11-04-evidence.json"
+    },
+    {
+      "path": "promo/videos/night-overwatch-ignite-2026-11-04-1920x1080.mp4",
+      "bytes": 18825870,
+      "sha256": "5bfdf6236e29fb520a5154f5a47960898e674e914a0b14a015202f43723a8713",
+      "width": 1920,
+      "height": 1080,
+      "durationSeconds": 30,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "environment": "Promotional edit; original 120 BPM stereo electronic score; H264 video reused without recompression; gameplay source 1280x720",
+      "evidence": "promo/videos/night-overwatch-ignite-2026-11-04-evidence.json"
+    },
+    {
+      "path": "promo/videos/night-overwatch-ignite-native1080-2026-11-04.mp4",
+      "bytes": 25926290,
+      "sha256": "e4d39cd708f44b6a852c2dc0746dbabda6de9f7f5ea630d29b827d8dafec97f3",
+      "width": 1920,
+      "height": 1080,
+      "durationSeconds": 30,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+      "reusedUnchanged": false,
+      "environment": "Five native 1920x1080 WebGL canvas takes from pinned stable browser build; 22s multi-weapon edit; original ignite AAC copied bit-exact",
+      "evidence": "promo/videos/night-overwatch-ignite-native1080-2026-11-04-evidence.json"
+    },
+    {
+      "path": "promo/videos/support-2026-11-04-1280x720-silent.mp4",
+      "bytes": 2178634,
+      "sha256": "4f040926c75c54f27b9b5af2cbac8d75c1759b7af828173c09cb6e2f75fab99f",
+      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720,
+      "duration": 20,
+      "codec": "h264",
+      "audio": false,
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1280,
+            "height": 720,
+            "pix_fmt": "yuv420p"
+          }
+        ],
+        "format": {
+          "duration": "20.000000",
+          "size": "2178634"
+        }
+      },
+      "decoded": true,
+      "playedToEnd": true
     }
   ]
 }

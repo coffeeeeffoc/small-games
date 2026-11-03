@@ -210,14 +210,18 @@ export function drawEffects(
     line(origin,target,1,pulse,reduced?1.5:2.5,true);blob(target,5,5,1,pulse);
   }
   for(const drone of s.drones.slice(0,6)) {
-    const p=airborne(drone),size=Math.max(4,Math.min(12,scaleAt(drone)*.45));
-    for(const sign of [-1,1])line({x:p.x-size,y:p.y+sign*size*.45},{x:p.x+size,y:p.y-sign*size*.45},.8,.9,2,true);
+    const p=airborne(drone),size=Math.max(4,Math.min(12,scaleAt(drone)*.45)),falling=s.time>=drone.expires;
+    const angle=falling?(s.time-drone.expires)*9:0,cos=Math.cos(angle),sin=Math.sin(angle);
+    const rotor=(x:number,y:number)=>({x:p.x+x*cos-y*sin,y:p.y+x*sin+y*cos});
+    for(const sign of [-1,1])line(rotor(-size,sign*size*.45),rotor(size,-sign*size*.45),.8,.9,2,true);
     for(const dx of [-1,1])for(const dy of [-1,1]) {
-      g.strokeColor=new Color(143,222,230,210);g.lineWidth=1;g.ellipse(p.x+dx*size,p.y+dy*size*.45,size*.45,size*.15);g.stroke();
+      const r=rotor(dx*size,dy*size*.45);
+      g.strokeColor=falling?new Color(245,168,91,210):new Color(143,222,230,210);g.lineWidth=1;g.ellipse(r.x,r.y,size*.45,size*.15);g.stroke();
     }
     blob(p,2,2,1,.9);
+    if(falling)for(let i=0;i<(reduced?1:3);i++)blob({x:p.x+i*2,y:p.y+size+i*5},3+i,4+i,.25,.5-i*.12,true);
     const target=s.units.find(u=>u.id===drone.target);
-    if(target&&s.time>drone.nextAttack-.12&&s.time<=drone.nextAttack)line(p,project(target,target.y+.2),1,.65,1,true);
+    if(!falling&&target&&s.time>drone.nextAttack-.12&&s.time<=drone.nextAttack)line(p,project(target,target.y+.2),1,.65,1,true);
   }
   for(const unit of s.units)if((unit.rootedUntil??0)>s.time) {
     const p=project(unit,unit.y+.5),r=Math.max(5,Math.min(30,scaleAt(unit)*.8));

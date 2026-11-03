@@ -1,0 +1,2935 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a"
+  },
+  "canvas": {
+    "width": 1920,
+    "height": 1080,
+    "cssWidth": 1920,
+    "cssHeight": 1080,
+    "dpr": 1,
+    "drawingBufferWidth": 1920,
+    "drawingBufferHeight": 1080
+  },
+  "weapon": 0,
+  "view": "enhanced",
+  "zoom": 4,
+  "recording": "WebGL canvas.captureStream(30); VP9 target 24Mbps; native 1920x1080; no scale",
+  "fixture": false,
+  "events": [
+    {
+      "elapsed": 0.352,
+      "fired": 3,
+      "target": 15
+    },
+    {
+      "elapsed": 1.036,
+      "fired": 6,
+      "target": 15
+    },
+    {
+      "elapsed": 1.737,
+      "fired": 9,
+      "target": 15
+    },
+    {
+      "elapsed": 2.437,
+      "fired": 12,
+      "target": 15
+    },
+    {
+      "elapsed": 3.132,
+      "fired": 15,
+      "target": 15
+    },
+    {
+      "elapsed": 3.843,
+      "fired": 18,
+      "target": 15
+    },
+    {
+      "elapsed": 4.389,
+      "screenshot": true
+    },
+    {
+      "elapsed": 4.92,
+      "fired": 21,
+      "target": 15
+    },
+    {
+      "elapsed": 5.633,
+      "fired": 24,
+      "target": 15
+    },
+    {
+      "elapsed": 6.351,
+      "fired": 27,
+      "target": 15
+    },
+    {
+      "elapsed": 7.05,
+      "fired": 30,
+      "target": 15
+    },
+    {
+      "elapsed": 7.745,
+      "fired": 33,
+      "target": 15
+    },
+    {
+      "elapsed": 8.441,
+      "fired": 36,
+      "target": 15
+    },
+    {
+      "elapsed": 9.135,
+      "fired": 39,
+      "target": 15
+    },
+    {
+      "elapsed": 9.832,
+      "fired": 42,
+      "target": 15
+    },
+    {
+      "elapsed": 10.386,
+      "fired": 45,
+      "target": 15
+    }
+  ],
+  "before": {
+    "progression": {
+      "draft": {
+        "mods": [],
+        "weapon": null,
+        "skill": null
+      },
+      "slot": "mod:0",
+      "dirty": false,
+      "scroll": 0,
+      "page": "",
+      "mode": "solo",
+      "actionMode": "solo",
+      "busy": false,
+      "message": [
+        "",
+        ""
+      ],
+      "pending": false
+    },
+    "skill": {
+      "kind": null,
+      "remaining": 0,
+      "cooldown": 0
+    },
+    "online": {
+      "identity": {
+        "id": "acb95184-4ecc-4b8e-a085-1feb6da63175",
+        "name": "逐月海燕"
+      },
+      "panel": "",
+      "active": false,
+      "message": "",
+      "rankStatus": "unavailable",
+      "rooms": [],
+      "board": "clears"
+    },
+    "fireZones": [],
+    "battleReport": false,
+    "equipmentOpen": false,
+    "loadout": {
+      "version": "night-growth-v1",
+      "level": 1,
+      "effects": [],
+      "skipped": []
+    },
+    "attackCount": 1,
+    "homingAmmo": 0,
+    "homingSelected": false,
+    "zoomLimit": 10,
+    "pendingSupply": false,
+    "supplySelection": "tracking",
+    "supplyMessage": "",
+    "extractionRadioPending": true,
+    "buff": null,
+    "resumeCountdown": 0,
+    "locks": [],
+    "phase": "playing",
+    "mission": {
+      "id": "corridor-01",
+      "mode": "escort",
+      "map": "valley",
+      "name": [
+        "晨光护送",
+        "FIRST LIGHT"
+      ],
+      "spawned": 4,
+      "total": 4
+    },
+    "operationProgress": {
+      "version": 1,
+      "cleared": []
+    },
+    "operationPractice": false,
+    "missionPage": 0,
+    "scrollLists": [],
+    "chat": {
+      "messages": [],
+      "draft": "",
+      "status": "",
+      "blocked": [],
+      "sending": false
+    },
+    "time": 1.9333333333333313,
+    "presentedTime": 1.9333333333333313,
+    "remaining": 388.06666666666666,
+    "pauses": [],
+    "convoy": "moving",
+    "progress": 0.008055555555555576,
+    "aim": {
+      "x": -71.48200279000088,
+      "z": -60.271155617413484
+    },
+    "aircraft": {
+      "x": -17.378058205518453,
+      "y": 100,
+      "z": 199.24357729423963,
+      "heading": 265.01526718236164,
+      "yaw": -1.6577963267948999,
+      "pitch": 0,
+      "bank": 0.3915295526610782,
+      "radius": 200,
+      "altitude": 100,
+      "direction": 1
+    },
+    "aircraftModel": {
+      "status": "ready",
+      "error": "",
+      "triangles": 2132,
+      "muzzle": {
+        "x": -18.102453424510387,
+        "y": 99.84854614151558,
+        "z": 198.91736678635888
+      }
+    },
+    "flightTime": 4.647921456303127,
+    "threatsRemaining": 4,
+    "camera": {
+      "position": {
+        "x": -17.71304407487379,
+        "y": 99.80512823807547,
+        "z": 199.05620209914517
+      },
+      "rotation": {
+        "x": -20.366992125319104,
+        "y": 12.15216752868207,
+        "z": 0
+      },
+      "center": {
+        "x": -73.60000000000001,
+        "z": -60.48
+      },
+      "fov": 15.74953226836488,
+      "projection": 1
+    },
+    "shotPositions": [],
+    "unitLabels": [
+      {
+        "id": 15,
+        "text": "炮台",
+        "active": true,
+        "x": 28.93753077582403,
+        "y": 62.96809499947426
+      }
+    ],
+    "effects": {
+      "impacts": [],
+      "projectiles": [],
+      "smoke": [],
+      "fires": [],
+      "lights": []
+    },
+    "recoil": {
+      "x": 0,
+      "y": 0
+    },
+    "lastSound": "alert",
+    "mousePointer": {
+      "x": 988,
+      "y": 543
+    },
+    "selected": 0,
+    "weaponReadiness": [
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 0.12,
+        "ratio": 0,
+        "empty": false,
+        "overheated": false
+      },
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 0.65,
+        "ratio": 0,
+        "empty": false,
+        "overheated": false
+      },
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 2.4,
+        "ratio": 0,
+        "empty": false,
+        "overheated": false
+      },
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 5,
+        "ratio": 0,
+        "empty": false,
+        "overheated": false
+      },
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 20,
+        "ratio": 0,
+        "empty": true,
+        "overheated": false
+      },
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 8,
+        "ratio": 0,
+        "empty": true,
+        "overheated": false
+      }
+    ],
+    "lasers": [],
+    "guns": [
+      {
+        "heat": 0,
+        "ammo": "infinite",
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 120,
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 45,
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 12,
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 0,
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 0,
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      }
+    ],
+    "shots": [],
+    "units": [
+      {
+        "x": -125.90094976583495,
+        "z": 47.599999999999994,
+        "y": 2.704027432022225,
+        "heading": 1.5707963267948966,
+        "id": 1,
+        "kind": "rescue",
+        "hp": 520,
+        "maxHp": 520,
+        "friendly": true,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -128.79999999999998,
+          "z": 47.599999999999994,
+          "patrolId": 1
+        },
+        "group": 0,
+        "routeOffset": 0
+      },
+      {
+        "x": -120.90094976583488,
+        "z": 47.599999999999994,
+        "y": 3.183683445233849,
+        "heading": 1.5707963267948966,
+        "id": 2,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -123.79999999999998,
+          "z": 47.599999999999994,
+          "patrolId": 2
+        },
+        "group": 0,
+        "routeOffset": 5
+      },
+      {
+        "x": -115.90094976583488,
+        "z": 47.599999999999994,
+        "y": 3.7175885720486326,
+        "heading": 1.5707963267948966,
+        "id": 3,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -118.79999999999998,
+          "z": 47.599999999999994,
+          "patrolId": 3
+        },
+        "group": 0,
+        "routeOffset": 10
+      },
+      {
+        "x": -85.39999999999999,
+        "z": -44.8,
+        "y": 1.2723967683987272,
+        "id": 4,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -85.39999999999999,
+          "z": -44.8,
+          "patrolId": 4
+        },
+        "group": 1
+      },
+      {
+        "x": -82.39999999999999,
+        "z": -42.8,
+        "y": 1.3295571260675438,
+        "id": 5,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -82.39999999999999,
+          "z": -42.8,
+          "patrolId": 5
+        },
+        "group": 1
+      },
+      {
+        "x": -88.39999999999999,
+        "z": -41.8,
+        "y": 1.2532554928436572,
+        "id": 6,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -88.39999999999999,
+          "z": -41.8,
+          "patrolId": 6
+        },
+        "group": 1
+      },
+      {
+        "x": 16.799999999999997,
+        "z": 36.4,
+        "y": 5.947994579466573,
+        "id": 7,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 16.799999999999997,
+          "z": 36.4,
+          "patrolId": 7
+        },
+        "group": 2
+      },
+      {
+        "x": 19.799999999999997,
+        "z": 38.4,
+        "y": 5.671834276955748,
+        "id": 8,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 19.799999999999997,
+          "z": 38.4,
+          "patrolId": 8
+        },
+        "group": 2
+      },
+      {
+        "x": 13.799999999999997,
+        "z": 39.4,
+        "y": 4.8570628772273094,
+        "id": 9,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 13.799999999999997,
+          "z": 39.4,
+          "patrolId": 9
+        },
+        "group": 2
+      },
+      {
+        "x": 109.19999999999999,
+        "z": -33.599999999999994,
+        "y": 1.6885459994362435,
+        "id": 10,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 109.19999999999999,
+          "z": -33.599999999999994,
+          "patrolId": 10
+        },
+        "group": 3
+      },
+      {
+        "x": 112.19999999999999,
+        "z": -31.599999999999994,
+        "y": 1.2413842637768542,
+        "id": 11,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 112.19999999999999,
+          "z": -31.599999999999994,
+          "patrolId": 11
+        },
+        "group": 3
+      },
+      {
+        "x": 106.19999999999999,
+        "z": -30.599999999999994,
+        "y": 1.7907854430760102,
+        "id": 12,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 106.19999999999999,
+          "z": -30.599999999999994,
+          "patrolId": 12
+        },
+        "group": 3
+      },
+      {
+        "x": -109.19999999999999,
+        "z": 22.4,
+        "y": 1.3588882072435753,
+        "id": 13,
+        "kind": "turret",
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -109.19999999999999,
+          "z": 22.4,
+          "patrolId": 13
+        }
+      },
+      {
+        "x": -71.39999999999999,
+        "z": -60.199999999999996,
+        "y": 1.256955781985637,
+        "id": 15,
+        "kind": "turret",
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -71.39999999999999,
+          "z": -60.199999999999996,
+          "patrolId": 15
+        }
+      },
+      {
+        "x": 49,
+        "z": 15.399999999999999,
+        "y": 6.26751675756237,
+        "id": 17,
+        "kind": "turret",
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 49,
+          "z": 15.399999999999999,
+          "patrolId": 17
+        }
+      },
+      {
+        "x": 133,
+        "z": -39.199999999999996,
+        "y": 0.3924646631035702,
+        "id": 19,
+        "kind": "turret",
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 16.066666666666777,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 133,
+          "z": -39.199999999999996,
+          "patrolId": 19
+        }
+      }
+    ],
+    "kills": 0,
+    "friendlyKills": 0,
+    "groundAttacks": [],
+    "fired": 0,
+    "ammoSpent": 0,
+    "hits": 0,
+    "friendlyDamage": 0,
+    "rescueDamage": {
+      "friendly": 0,
+      "enemy": 0
+    },
+    "damageByThreat": {},
+    "failureCause": "",
+    "impacts": [],
+    "rating": "—",
+    "failure": "",
+    "reason": "ready",
+    "friendlyRisk": false,
+    "aimedUnit": 15,
+    "ui": {
+      "homeArtworkReady": true,
+      "interfaceArtworkReady": true,
+      "artwork": {
+        "loading": [],
+        "failed": [],
+        "ready": [
+          "home",
+          "title",
+          "skins",
+          "gold",
+          "blue",
+          "panel",
+          "01-home",
+          "homeBadge",
+          "coin",
+          "homeCrate",
+          "homeCompass",
+          "calendar",
+          "gift",
+          "homeShop",
+          "homeGrowth",
+          "homeTasks",
+          "homeWarehouse",
+          "base",
+          "hangar",
+          "03-mode-selection",
+          "solo",
+          "duel",
+          "training",
+          "gear-atlas-v2",
+          "powerGear",
+          "rateGear",
+          "radiusGear",
+          "droneGear",
+          "coolingGear",
+          "coinPile",
+          "burstGear",
+          "04-shop",
+          "burst",
+          "twin",
+          "laser",
+          "trackingDevice",
+          "06-growth-skills",
+          "tracking",
+          "emp",
+          "emblem",
+          "reward-atlas",
+          "closedCrate",
+          "openCrate",
+          "wheel",
+          "07-tasks",
+          "checkin",
+          "taskSolo",
+          "taskDuel",
+          "taskSupply",
+          "08-inbox",
+          "envelope",
+          "mailAircraft",
+          "coins",
+          "rewardSupply",
+          "05-supply",
+          "supply",
+          "pack1",
+          "pack3",
+          "pack5",
+          "pack10",
+          "pack20",
+          "resultBadge"
+        ]
+      },
+      "pressedButton": "",
+      "worldVisible": true,
+      "width": 1920,
+      "height": 1080,
+      "minimap": {
+        "x": 1752,
+        "y": 64,
+        "w": 156,
+        "h": 108
+      },
+      "notice": "本局成绩仅保存在本机，不计入全站榜",
+      "warning": "",
+      "warningColor": "ff525b",
+      "fire": "",
+      "radio": "指挥部：进入夜间战区。切换热成像，优先处理红色标记。",
+      "tutorial": "",
+      "feedback": "",
+      "muted": false,
+      "voicePrompts": true,
+      "autoPriority": true,
+      "viewMode": "enhanced",
+      "battleStatus": "友军 12/12 · 撤离 0% · 威胁 4",
+      "combatantNames": [
+        {
+          "text": "",
+          "active": false,
+          "fontSize": 14,
+          "wrap": true
+        },
+        {
+          "text": "",
+          "active": false,
+          "fontSize": 14,
+          "wrap": true
+        }
+      ],
+      "reducedEffects": false
+    },
+    "held": [],
+    "completed": [
+      "sensor",
+      "weapon",
+      "aim",
+      "zoom"
+    ],
+    "modal": "",
+    "scroll": 0,
+    "scrollMax": 0,
+    "lastHelpLine": "",
+    "buttons": [
+      {
+        "id": "sensor",
+        "x": 1808,
+        "y": 2,
+        "w": 50,
+        "h": 44,
+        "visual": {
+          "x": 1810,
+          "y": 10,
+          "w": 46,
+          "h": 28
+        },
+        "disabled": false,
+        "text": "增强",
+        "bold": false,
+        "color": "e5edf3"
+      },
+      {
+        "id": "settings",
+        "x": 1864,
+        "y": 2,
+        "w": 44,
+        "h": 44,
+        "visual": {
+          "x": 1866,
+          "y": 4,
+          "w": 40,
+          "h": 40
+        },
+        "disabled": false,
+        "text": "",
+        "bold": false,
+        "color": "e5edf3"
+      },
+      {
+        "id": "weapon0",
+        "x": 12,
+        "y": 1028,
+        "w": 78,
+        "h": 44,
+        "visual": {
+          "x": 14,
+          "y": 1033,
+          "w": 74,
+          "h": 34
+        },
+        "disabled": false,
+        "text": "速射 ∞",
+        "bold": true,
+        "color": "82c9ed"
+      },
+      {
+        "id": "weapon1",
+        "x": 96,
+        "y": 1028,
+        "w": 78,
+        "h": 44,
+        "visual": {
+          "x": 98,
+          "y": 1033,
+          "w": 74,
+          "h": 34
+        },
+        "disabled": false,
+        "text": "榴弹 120",
+        "bold": false,
+        "color": "e5edf3"
+      },
+      {
+        "id": "weapon2",
+        "x": 180,
+        "y": 1028,
+        "w": 78,
+        "h": 44,
+        "visual": {
+          "x": 182,
+          "y": 1033,
+          "w": 74,
+          "h": 34
+        },
+        "disabled": false,
+        "text": "重炮 45",
+        "bold": false,
+        "color": "e5edf3"
+      },
+      {
+        "id": "weapon3",
+        "x": 264,
+        "y": 1028,
+        "w": 78,
+        "h": 44,
+        "visual": {
+          "x": 266,
+          "y": 1033,
+          "w": 74,
+          "h": 34
+        },
+        "disabled": false,
+        "text": "燃烧 12",
+        "bold": false,
+        "color": "e5edf3"
+      },
+      {
+        "id": "battleReport",
+        "x": 12,
+        "y": 2,
+        "w": 56,
+        "h": 44,
+        "visual": {
+          "x": 14,
+          "y": 10,
+          "w": 52,
+          "h": 28
+        },
+        "disabled": false,
+        "text": "战况",
+        "bold": false,
+        "color": "e5edf3"
+      }
+    ],
+    "zoom": 5.0625,
+    "follow": false,
+    "safe": {
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0
+    },
+    "temporary": false,
+    "thermal": false,
+    "viewMode": "enhanced",
+    "modelImport": "loaded",
+    "visualMaterialStatus": "ready",
+    "visualMaterialError": "",
+    "audio": "ready",
+    "enginePlaying": true,
+    "radioPlaying": true,
+    "radioPending": true,
+    "radioTime": 1.9339000000357633,
+    "radioDuration": 6.765578,
+    "light": "day",
+    "assets": [
+      "terrain.sky",
+      "terrain.clouds",
+      "terrain.moon",
+      "terrain.ground",
+      "terrain.water",
+      "terrain.reflections",
+      "terrain.riverbank",
+      "terrain.roads",
+      "terrain.markings",
+      "terrain.grass",
+      "terrain.gravel",
+      "terrain.ridges",
+      "terrain.fields",
+      "terrain.structures",
+      "terrain.windows",
+      "terrain.roofs",
+      "terrain.canopyShadows",
+      "terrain.forest",
+      "terrain.distantForest",
+      "terrain.details",
+      "zone.shelter",
+      "zone.exit",
+      "prop.beaconFallback",
+      "vehicle.rescue",
+      "vehicle.escort",
+      "aircraft.cabin",
+      "prop.beacon",
+      "vehicle.turret"
+    ],
+    "renderNodes": 16,
+    "wrecks": [
+      {
+        "id": 1,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 2,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 3,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 4,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 5,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 6,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 7,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 8,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 9,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 10,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 11,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 12,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 13,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 15,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 17,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 19,
+        "wreck": false,
+        "scale": 0.25
+      }
+    ],
+    "markerLabels": 1,
+    "frameRate": 33.72681281638829,
+    "drawCalls": 53,
+    "triangles": 467697,
+    "visibleEffects": 0
+  },
+  "after": {
+    "progression": {
+      "draft": {
+        "mods": [],
+        "weapon": null,
+        "skill": null
+      },
+      "slot": "mod:0",
+      "dirty": false,
+      "scroll": 0,
+      "page": "",
+      "mode": "solo",
+      "actionMode": "solo",
+      "busy": false,
+      "message": [
+        "",
+        ""
+      ],
+      "pending": false
+    },
+    "skill": {
+      "kind": null,
+      "remaining": 0,
+      "cooldown": 0
+    },
+    "online": {
+      "identity": {
+        "id": "acb95184-4ecc-4b8e-a085-1feb6da63175",
+        "name": "逐月海燕"
+      },
+      "panel": "",
+      "active": false,
+      "message": "",
+      "rankStatus": "unavailable",
+      "rooms": [],
+      "board": "clears"
+    },
+    "fireZones": [],
+    "battleReport": false,
+    "equipmentOpen": false,
+    "loadout": {
+      "version": "night-growth-v1",
+      "level": 1,
+      "effects": [],
+      "skipped": []
+    },
+    "attackCount": 1,
+    "homingAmmo": 0,
+    "homingSelected": false,
+    "zoomLimit": 10,
+    "pendingSupply": false,
+    "supplySelection": "tracking",
+    "supplyMessage": "",
+    "extractionRadioPending": true,
+    "buff": null,
+    "resumeCountdown": 0,
+    "locks": [],
+    "phase": "playing",
+    "mission": {
+      "id": "corridor-01",
+      "mode": "escort",
+      "map": "valley",
+      "name": [
+        "晨光护送",
+        "FIRST LIGHT"
+      ],
+      "spawned": 4,
+      "total": 4
+    },
+    "operationProgress": {
+      "version": 1,
+      "cleared": []
+    },
+    "operationPractice": false,
+    "missionPage": 0,
+    "scrollLists": [],
+    "chat": {
+      "messages": [],
+      "draft": "",
+      "status": "",
+      "blocked": [],
+      "sending": false
+    },
+    "time": 12.983333333333558,
+    "presentedTime": 12.983333333333558,
+    "remaining": 377.0166666666664,
+    "pauses": [],
+    "convoy": "moving",
+    "progress": 0.05409722222222187,
+    "aim": {
+      "x": -71.42596081289417,
+      "z": -60.267728498618396
+    },
+    "aircraft": {
+      "x": -110.31478860367251,
+      "y": 100,
+      "z": 166.82520018068854,
+      "heading": 236.52494081948092,
+      "yaw": -2.1550463267949094,
+      "pitch": 0,
+      "bank": 0.3915295526610238,
+      "radius": 200,
+      "altitude": 100,
+      "direction": 1
+    },
+    "aircraftModel": {
+      "status": "ready",
+      "error": "",
+      "triangles": 2132,
+      "muzzle": {
+        "x": -110.79585207081108,
+        "y": 99.8485461415156,
+        "z": 166.19295049161403
+      }
+    },
+    "flightTime": 4.115873104895797,
+    "threatsRemaining": 3,
+    "camera": {
+      "position": {
+        "x": -110.51982698867626,
+        "y": 99.80512823807548,
+        "z": 166.50072482402877
+      },
+      "rotation": {
+        "x": -23.1992452088473,
+        "y": -9.238606567563421,
+        "z": -3.975693351829396e-16
+      },
+      "center": {
+        "x": -73.60000000000001,
+        "z": -60.48
+      },
+      "fov": 15.74953226836488,
+      "projection": 1
+    },
+    "shotPositions": [
+      {
+        "id": 85,
+        "x": -72.07736030786575,
+        "y": 9.72376265339016,
+        "z": -40.96420389841259
+      },
+      {
+        "id": 88,
+        "x": -72.4336488044337,
+        "y": 12.839943250616532,
+        "z": -33.84718608102318
+      },
+      {
+        "id": 92,
+        "x": -72.85484069497322,
+        "y": 15.948323420268757,
+        "z": -26.738173400141562
+      },
+      {
+        "id": 95,
+        "x": -74.5398697775264,
+        "y": 25.663407121706435,
+        "z": -4.595490429642894
+      },
+      {
+        "id": 98,
+        "x": -75.2308153399731,
+        "y": 28.73892612697304,
+        "z": 2.476035690173461
+      },
+      {
+        "id": 101,
+        "x": -75.9878248025392,
+        "y": 31.806074372684442,
+        "z": 9.537353933776757
+      },
+      {
+        "id": 105,
+        "x": -79.14894211497442,
+        "y": 42.48613090187714,
+        "z": 34.16135291892601
+      },
+      {
+        "id": 108,
+        "x": -80.19825478962596,
+        "y": 45.522383029941004,
+        "z": 41.168792840791184
+      },
+      {
+        "id": 110,
+        "x": -81.31298780020467,
+        "y": 48.551603818850204,
+        "z": 48.16300309156853
+      },
+      {
+        "id": 112,
+        "x": -85.04832339792121,
+        "y": 57.599629928629355,
+        "z": 69.06068313433822
+      },
+      {
+        "id": 114,
+        "x": -86.4234739092853,
+        "y": 60.603129034993835,
+        "z": 75.9964446276041
+      },
+      {
+        "id": 117,
+        "x": -87.86400716233737,
+        "y": 63.60017857075682,
+        "z": 82.91637938933435
+      },
+      {
+        "id": 121,
+        "x": -93.18794915204128,
+        "y": 73.68906358614585,
+        "z": 106.14226829187454
+      },
+      {
+        "id": 123,
+        "x": -94.91554602519338,
+        "y": 76.65811117745619,
+        "z": 112.98709943173401
+      },
+      {
+        "id": 126,
+        "x": -96.7083920055912,
+        "y": 79.62133794379046,
+        "z": 119.81324329907143
+      },
+      {
+        "id": 130,
+        "x": -100.734444803101,
+        "y": 85.89977019851877,
+        "z": 134.2541919111093
+      },
+      {
+        "id": 132,
+        "x": -102.73065949898208,
+        "y": 88.84604283819401,
+        "z": 141.01833188104538
+      },
+      {
+        "id": 134,
+        "x": -104.79195336678023,
+        "y": 91.78704990944792,
+        "z": 147.76153581433735
+      }
+    ],
+    "unitLabels": [
+      {
+        "id": 15,
+        "text": "炮台 · 重创",
+        "active": false,
+        "x": 32.83370270430055,
+        "y": 65.85561489459474
+      }
+    ],
+    "effects": {
+      "impacts": [
+        {
+          "id": 120,
+          "weapon": 0,
+          "outcome": "miss",
+          "x": 993.2503588350908,
+          "y": 538.5080157144874,
+          "radius": 7.698391415819911,
+          "age": 1.4147574330435297,
+          "primitives": 1
+        },
+        {
+          "id": 125,
+          "weapon": 0,
+          "outcome": "miss",
+          "x": 994.185253442914,
+          "y": 538.6288357505141,
+          "radius": 7.698750302581001,
+          "age": 1.002832515501325,
+          "primitives": 1
+        },
+        {
+          "id": 128,
+          "weapon": 0,
+          "outcome": "miss",
+          "x": 994.1533202191977,
+          "y": 538.6819222399031,
+          "radius": 7.699017218514065,
+          "age": 0.8761139595380243,
+          "primitives": 1
+        },
+        {
+          "id": 129,
+          "weapon": 0,
+          "outcome": "miss",
+          "x": 994.1159652009335,
+          "y": 538.7424905752534,
+          "radius": 7.699321993057353,
+          "age": 0.7494375821796471,
+          "primitives": 1
+        },
+        {
+          "id": 136,
+          "weapon": 0,
+          "outcome": "miss",
+          "x": 993.9730616792992,
+          "y": 538.9614834789588,
+          "radius": 7.700425990741442,
+          "age": 0.3062755189559816,
+          "primitives": 1
+        },
+        {
+          "id": 137,
+          "weapon": 0,
+          "outcome": "miss",
+          "x": 993.9367838707029,
+          "y": 539.0141363294568,
+          "radius": 7.7006919245464465,
+          "age": 0.17968706721917016,
+          "primitives": 5
+        },
+        {
+          "id": 138,
+          "weapon": 0,
+          "outcome": "miss",
+          "x": 993.8998285753294,
+          "y": 539.066738522458,
+          "radius": 7.7009577871097274,
+          "age": 0.05312190640348291,
+          "primitives": 6
+        }
+      ],
+      "projectiles": [
+        {
+          "id": 92,
+          "weapon": 0,
+          "x": 1072.2996091578707,
+          "y": 531.9503960390014,
+          "width": 1.5,
+          "length": 4,
+          "speed": 61.35643598661093
+        },
+        {
+          "id": 95,
+          "weapon": 0,
+          "x": 1125.5278167976337,
+          "y": 526.5332335267688,
+          "width": 1.5,
+          "length": 4,
+          "speed": 61.20090883930453
+        },
+        {
+          "id": 98,
+          "weapon": 0,
+          "x": 1142.280975684694,
+          "y": 525.2409286746374,
+          "width": 1.5,
+          "length": 4,
+          "speed": 61.151590939799206
+        },
+        {
+          "id": 101,
+          "weapon": 0,
+          "x": 1159.0193821556195,
+          "y": 524.0113028354467,
+          "width": 1.5,
+          "length": 4,
+          "speed": 61.10236762688043
+        },
+        {
+          "id": 105,
+          "weapon": 0,
+          "x": 1217.612687276226,
+          "y": 519.9584638978915,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.930657789820145
+        },
+        {
+          "id": 108,
+          "weapon": 0,
+          "x": 1234.3396594489245,
+          "y": 518.8585936134749,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.881753687167304
+        },
+        {
+          "id": 110,
+          "weapon": 0,
+          "x": 1251.0361906801877,
+          "y": 517.7925490705929,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.832923658468616
+        },
+        {
+          "id": 112,
+          "weapon": 0,
+          "x": 1300.8585815318727,
+          "y": 514.7065837682075,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.686838553426746
+        },
+        {
+          "id": 114,
+          "weapon": 0,
+          "x": 1317.33022289731,
+          "y": 513.6774875620825,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.638267689331265
+        },
+        {
+          "id": 117,
+          "weapon": 0,
+          "x": 1333.6773169697592,
+          "y": 512.6447291016184,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.58976231323101
+        },
+        {
+          "id": 121,
+          "weapon": 0,
+          "x": 1388.3252560668664,
+          "y": 507.63791700518914,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.42619386303952
+        },
+        {
+          "id": 123,
+          "weapon": 0,
+          "x": 1403.3818823762515,
+          "y": 506.2325714301568,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.377973081244484
+        },
+        {
+          "id": 126,
+          "weapon": 0,
+          "x": 1417.7188466558778,
+          "y": 504.58865453148076,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.32980840748573
+        },
+        {
+          "id": 130,
+          "weapon": 0,
+          "x": 1443.6374849759186,
+          "y": 499.423629061023,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.227630688913536
+        },
+        {
+          "id": 132,
+          "weapon": 0,
+          "x": 1451.296243815178,
+          "y": 495.23608767062444,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.1796220616341
+        },
+        {
+          "id": 134,
+          "weapon": 0,
+          "x": 1451.6544750027365,
+          "y": 488.19974507794757,
+          "width": 1.5,
+          "length": 4,
+          "speed": 60.13166100821861
+        }
+      ],
+      "smoke": [
+        {
+          "id": 15,
+          "age": 3.7837742190975447,
+          "kind": "wreck"
+        }
+      ],
+      "fires": [
+        {
+          "id": 15,
+          "age": 3.7837742190975447,
+          "life": 18
+        }
+      ],
+      "lights": []
+    },
+    "recoil": {
+      "x": 0,
+      "y": 0
+    },
+    "lastSound": "rapid",
+    "mousePointer": {
+      "x": 994,
+      "y": 539
+    },
+    "selected": 0,
+    "weaponReadiness": [
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 0.12,
+        "ratio": 0,
+        "empty": false,
+        "overheated": false
+      },
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 0.65,
+        "ratio": 0,
+        "empty": false,
+        "overheated": false
+      },
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 2.4,
+        "ratio": 0,
+        "empty": false,
+        "overheated": false
+      },
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 5,
+        "ratio": 0,
+        "empty": false,
+        "overheated": false
+      },
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 20,
+        "ratio": 0,
+        "empty": true,
+        "overheated": false
+      },
+      {
+        "remaining": 0,
+        "displaySeconds": 0,
+        "total": 8,
+        "ratio": 0,
+        "empty": true,
+        "overheated": false
+      }
+    ],
+    "lasers": [],
+    "guns": [
+      {
+        "heat": 77.70000000000098,
+        "ammo": "infinite",
+        "cooldown": 0,
+        "cooldownTotal": 0.12,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 120,
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 45,
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 12,
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 0,
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      },
+      {
+        "heat": 0,
+        "ammo": 0,
+        "cooldown": 0,
+        "cooldownTotal": 0,
+        "overheated": false
+      }
+    ],
+    "shots": [
+      {
+        "id": 85,
+        "weapon": 0,
+        "x": -71.44924699377329,
+        "z": -60.226275287244135,
+        "born": 9.000000000000027,
+        "origin": {
+          "x": -79.38983262664298,
+          "y": 99.84854614151558,
+          "z": 183.28412944038223
+        },
+        "velocity": {
+          "x": 1.8357671093163697,
+          "y": -20.67164365810558,
+          "z": -56.29665272103356
+        },
+        "targetY": 1.2564601790297478,
+        "due": 13.325486382543797,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 88,
+        "weapon": 0,
+        "x": -71.45325692509248,
+        "z": -60.21813247670963,
+        "born": 9.133333333333367,
+        "origin": {
+          "x": -80.48810179236827,
+          "y": 99.84854614151558,
+          "z": 182.8044941982186
+        },
+        "velocity": {
+          "x": 2.092065711151733,
+          "y": -20.711212114518016,
+          "z": -56.27316370889117
+        },
+        "targetY": 1.256535529458454,
+        "due": 13.45195717918852,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 92,
+        "weapon": 0,
+        "x": -71.45730707397027,
+        "z": -60.21001596419757,
+        "born": 9.266666666666707,
+        "origin": {
+          "x": -81.58347339512173,
+          "y": 99.84854614151558,
+          "z": 182.31827801400672
+        },
+        "velocity": {
+          "x": 2.348511040398585,
+          "y": -20.751025956388066,
+          "z": -56.248372577794946
+        },
+        "targetY": 1.256610461518298,
+        "due": 13.578405528849302,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 95,
+        "weapon": 0,
+        "x": -71.39684080371696,
+        "z": -60.35671360478085,
+        "born": 9.683333333333394,
+        "origin": {
+          "x": -84.98740038576695,
+          "y": 99.84854614151558,
+          "z": 180.75663032064563
+        },
+        "velocity": {
+          "x": 3.1659183661333383,
+          "y": -20.861695157516728,
+          "z": -56.167309318266454
+        },
+        "targetY": 1.2552131254849477,
+        "due": 13.976103395705117,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 98,
+        "weapon": 0,
+        "x": -71.3999732259644,
+        "z": -60.34912732617548,
+        "born": 9.816666666666734,
+        "origin": {
+          "x": -86.0704038918462,
+          "y": 99.84854614151558,
+          "z": 180.24345536828702
+        },
+        "velocity": {
+          "x": 3.423027963749228,
+          "y": -20.902419478275398,
+          "z": -56.13707989834886
+        },
+        "targetY": 1.2552849355631204,
+        "due": 14.102471755390969,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 101,
+        "weapon": 0,
+        "x": -71.40473365346521,
+        "z": -60.33776988138294,
+        "born": 9.950000000000074,
+        "origin": {
+          "x": -87.15030887268095,
+          "y": 99.84854614151558,
+          "z": 179.72379167100144
+        },
+        "velocity": {
+          "x": 3.6799398033432555,
+          "y": -20.943734099613472,
+          "z": -56.105419034247106
+        },
+        "targetY": 1.2553922561481763,
+        "due": 14.228758909292761,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 105,
+        "weapon": 0,
+        "x": -71.42057287107852,
+        "z": -60.3013922162782,
+        "born": 10.416666666666764,
+        "origin": {
+          "x": -90.90501516331103,
+          "y": 99.84854614151558,
+          "z": 177.85414205849514
+        },
+        "velocity": {
+          "x": 4.5802882006504015,
+          "y": -21.09004295050731,
+          "z": -55.98420356086831
+        },
+        "targetY": 1.2557343771337353,
+        "due": 14.670644023258806,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 108,
+        "weapon": 0,
+        "x": -71.42450976473296,
+        "z": -60.29266405932469,
+        "born": 10.550000000000104,
+        "origin": {
+          "x": -91.97049732756032,
+          "y": 99.84854614151558,
+          "z": 177.305513875137
+        },
+        "velocity": {
+          "x": 4.837907892301551,
+          "y": -21.1322704568103,
+          "z": -55.946597685344805
+        },
+        "targetY": 1.2558160749119363,
+        "due": 14.79687447967379,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 110,
+        "weapon": 0,
+        "x": -71.42906311329921,
+        "z": -60.282712074479406,
+        "born": 10.683333333333444,
+        "origin": {
+          "x": -93.03266856383864,
+          "y": 99.84854614151558,
+          "z": 176.75050271242824
+        },
+        "velocity": {
+          "x": 5.0955133754927795,
+          "y": -21.174868401157696,
+          "z": -55.90760853080579
+        },
+        "targetY": 1.2559090403222453,
+        "due": 14.923064221774137,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 112,
+        "weapon": 0,
+        "x": -71.4436596614874,
+        "z": -60.251800097828834,
+        "born": 11.083333333333464,
+        "origin": {
+          "x": -96.19893492857001,
+          "y": 99.84854614151557,
+          "z": 175.04737229622705
+        },
+        "velocity": {
+          "x": 5.868742910867497,
+          "y": -21.304321690991593,
+          "z": -55.782467979938716
+        },
+        "targetY": 1.2561964352347228,
+        "due": 15.30148969885457,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 114,
+        "weapon": 0,
+        "x": -71.44784687937023,
+        "z": -60.24318717706282,
+        "born": 11.216666666666804,
+        "origin": {
+          "x": -97.24748128501932,
+          "y": 99.84854614151557,
+          "z": 174.46703130656226
+        },
+        "velocity": {
+          "x": 6.126796627773665,
+          "y": -21.34783704142625,
+          "z": -55.73806793148297
+        },
+        "targetY": 1.2562761429021656,
+        "due": 15.4276166904844,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 117,
+        "weapon": 0,
+        "x": -71.45268458722352,
+        "z": -60.23337736698957,
+        "born": 11.350000000000144,
+        "origin": {
+          "x": -98.2925267426451,
+          "y": 99.84854614151558,
+          "z": 173.88040952261287
+        },
+        "velocity": {
+          "x": 6.38480790631053,
+          "y": -21.391728104545038,
+          "z": -55.69226334690244
+        },
+        "targetY": 1.2563667081189025,
+        "due": 15.553703940551586,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 121,
+        "weapon": 0,
+        "x": -71.38363189293696,
+        "z": -60.36162115557619,
+        "born": 11.800000000000166,
+        "origin": {
+          "x": -101.79321204575137,
+          "y": 99.84854614151558,
+          "z": 171.8544721868298
+        },
+        "velocity": {
+          "x": 7.272053149613801,
+          "y": -21.52617997636766,
+          "z": -55.53143991122704
+        },
+        "targetY": 1.25520963073351,
+        "due": 15.98170488130035,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 123,
+        "weapon": 0,
+        "x": -71.38758830027948,
+        "z": -60.3522644157417,
+        "born": 11.933333333333506,
+        "origin": {
+          "x": -102.82250041980251,
+          "y": 99.84854614151558,
+          "z": 171.2406232078851
+        },
+        "velocity": {
+          "x": 7.530432756770229,
+          "y": -21.571103537198308,
+          "z": -55.47954645347447
+        },
+        "targetY": 1.255297947349476,
+        "due": 16.107716550720514,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 126,
+        "weapon": 0,
+        "x": -71.3921683566289,
+        "z": -60.34159718033024,
+        "born": 12.066666666666846,
+        "origin": {
+          "x": -103.84808719494333,
+          "y": 99.84854614151557,
+          "z": 170.6206095849989
+        },
+        "velocity": {
+          "x": 7.788758388383766,
+          "y": -21.61642030660809,
+          "z": -55.42621776646357
+        },
+        "targetY": 1.2553984491555938,
+        "due": 16.233687547263106,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 130,
+        "weapon": 0,
+        "x": -71.4027000844564,
+        "z": -60.317702714260435,
+        "born": 12.350000000000193,
+        "origin": {
+          "x": -106.01500023955128,
+          "y": 99.84854614151558,
+          "z": 169.2827142782543
+        },
+        "velocity": {
+          "x": 8.337719110184254,
+          "y": -21.713733067888604,
+          "z": -55.30819321127883
+        },
+        "targetY": 1.255622829111256,
+        "due": 16.501291222178338,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 132,
+        "weapon": 0,
+        "x": -71.40688074581331,
+        "z": -60.30844697397043,
+        "born": 12.483333333333533,
+        "origin": {
+          "x": -107.02878216677455,
+          "y": 99.84854614151558,
+          "z": 168.64358101363442
+        },
+        "velocity": {
+          "x": 8.59624533558452,
+          "y": -21.759756606642053,
+          "z": -55.25049826517531
+        },
+        "targetY": 1.2557094633946075,
+        "due": 16.627224070549104,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      },
+      {
+        "id": 134,
+        "weapon": 0,
+        "x": -71.41110863637289,
+        "z": -60.29921337522134,
+        "born": 12.616666666666873,
+        "origin": {
+          "x": -108.03871106939891,
+          "y": 99.84854614151558,
+          "z": 167.9983765983114
+        },
+        "velocity": {
+          "x": 8.854793734414143,
+          "y": -21.80604881472888,
+          "z": -55.19138395629015
+        },
+        "targetY": 1.2557957268833209,
+        "due": 16.753138224516142,
+        "strength": 1,
+        "damageMultiplier": 1,
+        "radiusScale": 1,
+        "trackingUntil": 0
+      }
+    ],
+    "units": [
+      {
+        "x": -109.33137816883965,
+        "z": 47.599999999999994,
+        "y": 4.4228917273507635,
+        "heading": 1.5707963267948966,
+        "id": 1,
+        "kind": "rescue",
+        "hp": 520,
+        "maxHp": 520,
+        "friendly": true,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -128.79999999999998,
+          "z": 47.599999999999994,
+          "patrolId": 1
+        },
+        "group": 0,
+        "routeOffset": 0
+      },
+      {
+        "x": -104.56486668017651,
+        "z": 47.09234446020592,
+        "y": 4.817863151923083,
+        "heading": 2.4329663814621227,
+        "id": 2,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -123.79999999999998,
+          "z": 47.599999999999994,
+          "patrolId": 2
+        },
+        "group": 0,
+        "routeOffset": 5
+      },
+      {
+        "x": -101.31090981289667,
+        "z": 43.29606144837944,
+        "y": 4.51762856734173,
+        "heading": 2.4329663814621227,
+        "id": 3,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -118.79999999999998,
+          "z": 47.599999999999994,
+          "patrolId": 3
+        },
+        "group": 0,
+        "routeOffset": 10
+      },
+      {
+        "x": -85.39999999999999,
+        "z": -44.8,
+        "y": 1.2723967683987272,
+        "id": 4,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -85.39999999999999,
+          "z": -44.8,
+          "patrolId": 4
+        },
+        "group": 1
+      },
+      {
+        "x": -82.39999999999999,
+        "z": -42.8,
+        "y": 1.3295571260675438,
+        "id": 5,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -82.39999999999999,
+          "z": -42.8,
+          "patrolId": 5
+        },
+        "group": 1
+      },
+      {
+        "x": -88.39999999999999,
+        "z": -41.8,
+        "y": 1.2532554928436572,
+        "id": 6,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -88.39999999999999,
+          "z": -41.8,
+          "patrolId": 6
+        },
+        "group": 1
+      },
+      {
+        "x": 16.799999999999997,
+        "z": 36.4,
+        "y": 5.947994579466573,
+        "id": 7,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 16.799999999999997,
+          "z": 36.4,
+          "patrolId": 7
+        },
+        "group": 2
+      },
+      {
+        "x": 19.799999999999997,
+        "z": 38.4,
+        "y": 5.671834276955748,
+        "id": 8,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 19.799999999999997,
+          "z": 38.4,
+          "patrolId": 8
+        },
+        "group": 2
+      },
+      {
+        "x": 13.799999999999997,
+        "z": 39.4,
+        "y": 4.8570628772273094,
+        "id": 9,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 13.799999999999997,
+          "z": 39.4,
+          "patrolId": 9
+        },
+        "group": 2
+      },
+      {
+        "x": 109.19999999999999,
+        "z": -33.599999999999994,
+        "y": 1.6885459994362435,
+        "id": 10,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 109.19999999999999,
+          "z": -33.599999999999994,
+          "patrolId": 10
+        },
+        "group": 3
+      },
+      {
+        "x": 112.19999999999999,
+        "z": -31.599999999999994,
+        "y": 1.2413842637768542,
+        "id": 11,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 112.19999999999999,
+          "z": -31.599999999999994,
+          "patrolId": 11
+        },
+        "group": 3
+      },
+      {
+        "x": 106.19999999999999,
+        "z": -30.599999999999994,
+        "y": 1.7907854430760102,
+        "id": 12,
+        "kind": "escort",
+        "hp": 360,
+        "maxHp": 360,
+        "friendly": true,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 106.19999999999999,
+          "z": -30.599999999999994,
+          "patrolId": 12
+        },
+        "group": 3
+      },
+      {
+        "x": -109.19999999999999,
+        "z": 22.4,
+        "y": 1.3588882072435753,
+        "id": 13,
+        "kind": "turret",
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": -109.19999999999999,
+          "z": 22.4,
+          "patrolId": 13
+        }
+      },
+      {
+        "x": -71.39999999999999,
+        "z": -60.199999999999996,
+        "y": 1.256955781985637,
+        "id": 15,
+        "kind": "turret",
+        "hp": 0,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 8.799999999999756,
+        "hit": 0,
+        "deadAt": 9.199559114236013,
+        "origin": {
+          "x": -71.39999999999999,
+          "z": -60.199999999999996,
+          "patrolId": 15
+        }
+      },
+      {
+        "x": 49,
+        "z": 15.399999999999999,
+        "y": 6.26751675756237,
+        "id": 17,
+        "kind": "turret",
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 49,
+          "z": 15.399999999999999,
+          "patrolId": 17
+        }
+      },
+      {
+        "x": 133,
+        "z": -39.199999999999996,
+        "y": 0.3924646631035702,
+        "id": 19,
+        "kind": "turret",
+        "hp": 90,
+        "maxHp": 90,
+        "friendly": false,
+        "heading": 1.5707963267948966,
+        "born": 0,
+        "attack": 5.016666666666394,
+        "hit": 0,
+        "deadAt": -1,
+        "origin": {
+          "x": 133,
+          "z": -39.199999999999996,
+          "patrolId": 19
+        }
+      }
+    ],
+    "kills": 1,
+    "friendlyKills": 0,
+    "groundAttacks": [],
+    "fired": 45,
+    "ammoSpent": 45,
+    "hits": 12,
+    "friendlyDamage": 0,
+    "rescueDamage": {
+      "friendly": 0,
+      "enemy": 0
+    },
+    "damageByThreat": {},
+    "failureCause": "",
+    "impacts": [
+      {
+        "id": 128,
+        "type": "impact",
+        "x": -71.4073338553932,
+        "y": 1.2555975391677625,
+        "z": -60.3183535495906,
+        "weapon": 0,
+        "time": 12.107219373795534,
+        "shot": 70,
+        "intercepted": false,
+        "outcome": "miss",
+        "damage": 0
+      },
+      {
+        "id": 129,
+        "type": "impact",
+        "x": -71.41139649576976,
+        "y": 1.2556878419740063,
+        "z": -60.308803705466545,
+        "weapon": 0,
+        "time": 12.233895751153911,
+        "shot": 73,
+        "intercepted": false,
+        "outcome": "miss",
+        "damage": 0
+      },
+      {
+        "id": 136,
+        "type": "impact",
+        "x": -71.42657832182346,
+        "y": 1.2560119625846535,
+        "z": -60.274366955862945,
+        "weapon": 0,
+        "time": 12.677057814377577,
+        "shot": 76,
+        "intercepted": false,
+        "outcome": "miss",
+        "damage": 0
+      },
+      {
+        "id": 137,
+        "type": "impact",
+        "x": -71.43034913164541,
+        "y": 1.256089292830509,
+        "z": -60.266109749412465,
+        "weapon": 0,
+        "time": 12.803646266114388,
+        "shot": 79,
+        "intercepted": false,
+        "outcome": "miss",
+        "damage": 0
+      },
+      {
+        "id": 138,
+        "type": "impact",
+        "x": -71.43416106438431,
+        "y": 1.256166324641884,
+        "z": -60.25786885607462,
+        "weapon": 0,
+        "time": 12.930211426930075,
+        "shot": 82,
+        "intercepted": false,
+        "outcome": "miss",
+        "damage": 0
+      }
+    ],
+    "rating": "—",
+    "failure": "",
+    "reason": "ready",
+    "friendlyRisk": false,
+    "ui": {
+      "homeArtworkReady": true,
+      "interfaceArtworkReady": true,
+      "artwork": {
+        "loading": [],
+        "failed": [],
+        "ready": [
+          "home",
+          "title",
+          "skins",
+          "gold",
+          "blue",
+          "panel",
+          "01-home",
+          "homeBadge",
+          "coin",
+          "homeCrate",
+          "homeCompass",
+          "calendar",
+          "gift",
+          "homeShop",
+          "homeGrowth",
+          "homeTasks",
+          "homeWarehouse",
+          "base",
+          "hangar",
+          "03-mode-selection",
+          "solo",
+          "duel",
+          "training",
+          "gear-atlas-v2",
+          "powerGear",
+          "rateGear",
+          "radiusGear",
+          "droneGear",
+          "coolingGear",
+          "coinPile",
+          "burstGear",
+          "04-shop",
+          "burst",
+          "twin",
+          "laser",
+          "trackingDevice",
+          "06-growth-skills",
+          "tracking",
+          "emp",
+          "emblem",
+          "reward-atlas",
+          "closedCrate",
+          "openCrate",
+          "wheel",
+          "07-tasks",
+          "checkin",
+          "taskSolo",
+          "taskDuel",
+          "taskSupply",
+          "08-inbox",
+          "envelope",
+          "mailAircraft",
+          "coins",
+          "rewardSupply",
+          "05-supply",
+          "supply",
+          "pack1",
+          "pack3",
+          "pack5",
+          "pack10",
+          "pack20",
+          "resultBadge"
+        ]
+      },
+      "pressedButton": "",
+      "worldVisible": true,
+      "width": 1920,
+      "height": 1080,
+      "minimap": {
+        "x": 1752,
+        "y": 64,
+        "w": 156,
+        "h": 108
+      },
+      "notice": "预留弹着提前量",
+      "warning": "",
+      "warningColor": "ff525b",
+      "fire": "",
+      "radio": "车队呼叫！敌方即将开火，优先压制红色标记！",
+      "tutorial": "",
+      "feedback": "未命中",
+      "muted": false,
+      "voicePrompts": true,
+      "autoPriority": true,
+      "viewMode": "enhanced",
+      "battleStatus": "友军 12/12 · 撤离 5% · 威胁 3",
+      "combatantNames": [
+        {
+          "text": "",
+          "active": false,
+          "fontSize": 14,
+          "wrap": true
+        },
+        {
+          "text": "",
+          "active": false,
+          "fontSize": 14,
+          "wrap": true
+        }
+      ],
+      "reducedEffects": false
+    },
+    "held": [],
+    "completed": [
+      "sensor",
+      "weapon",
+      "aim",
+      "zoom",
+      "fire",
+      "hit"
+    ],
+    "modal": "",
+    "scroll": 0,
+    "scrollMax": 0,
+    "lastHelpLine": "",
+    "buttons": [
+      {
+        "id": "sensor",
+        "x": 1808,
+        "y": 2,
+        "w": 50,
+        "h": 44,
+        "visual": {
+          "x": 1810,
+          "y": 10,
+          "w": 46,
+          "h": 28
+        },
+        "disabled": false,
+        "text": "增强",
+        "bold": false,
+        "color": "e5edf3"
+      },
+      {
+        "id": "settings",
+        "x": 1864,
+        "y": 2,
+        "w": 44,
+        "h": 44,
+        "visual": {
+          "x": 1866,
+          "y": 4,
+          "w": 40,
+          "h": 40
+        },
+        "disabled": false,
+        "text": "",
+        "bold": false,
+        "color": "e5edf3"
+      },
+      {
+        "id": "weapon0",
+        "x": 12,
+        "y": 1028,
+        "w": 78,
+        "h": 44,
+        "visual": {
+          "x": 14,
+          "y": 1033,
+          "w": 74,
+          "h": 34
+        },
+        "disabled": false,
+        "text": "速射 ∞",
+        "bold": true,
+        "color": "82c9ed"
+      },
+      {
+        "id": "weapon1",
+        "x": 96,
+        "y": 1028,
+        "w": 78,
+        "h": 44,
+        "visual": {
+          "x": 98,
+          "y": 1033,
+          "w": 74,
+          "h": 34
+        },
+        "disabled": false,
+        "text": "榴弹 120",
+        "bold": false,
+        "color": "e5edf3"
+      },
+      {
+        "id": "weapon2",
+        "x": 180,
+        "y": 1028,
+        "w": 78,
+        "h": 44,
+        "visual": {
+          "x": 182,
+          "y": 1033,
+          "w": 74,
+          "h": 34
+        },
+        "disabled": false,
+        "text": "重炮 45",
+        "bold": false,
+        "color": "e5edf3"
+      },
+      {
+        "id": "weapon3",
+        "x": 264,
+        "y": 1028,
+        "w": 78,
+        "h": 44,
+        "visual": {
+          "x": 266,
+          "y": 1033,
+          "w": 74,
+          "h": 34
+        },
+        "disabled": false,
+        "text": "燃烧 12",
+        "bold": false,
+        "color": "e5edf3"
+      },
+      {
+        "id": "priority",
+        "x": 407.9835444789571,
+        "y": 944,
+        "w": 96,
+        "h": 68,
+        "visual": {
+          "x": 2,
+          "y": 2,
+          "w": 92,
+          "h": 64
+        },
+        "disabled": false,
+        "text": "优先 6s ↗",
+        "bold": true,
+        "color": "ff525b"
+      },
+      {
+        "id": "battleReport",
+        "x": 12,
+        "y": 2,
+        "w": 56,
+        "h": 44,
+        "visual": {
+          "x": 14,
+          "y": 10,
+          "w": 52,
+          "h": 28
+        },
+        "disabled": false,
+        "text": "战况",
+        "bold": false,
+        "color": "e5edf3"
+      }
+    ],
+    "zoom": 5.0625,
+    "follow": false,
+    "safe": {
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0
+    },
+    "temporary": false,
+    "thermal": false,
+    "viewMode": "enhanced",
+    "modelImport": "loaded",
+    "visualMaterialStatus": "ready",
+    "visualMaterialError": "",
+    "audio": "ready",
+    "enginePlaying": true,
+    "radioPlaying": true,
+    "radioPending": true,
+    "radioTime": 2.979100000023843,
+    "radioDuration": 5.597415,
+    "light": "day",
+    "priority": {
+      "id": 13,
+      "targetId": 3,
+      "dueIn": 5.016666666666442,
+      "critical": false
+    },
+    "assets": [
+      "terrain.sky",
+      "terrain.clouds",
+      "terrain.moon",
+      "terrain.ground",
+      "terrain.water",
+      "terrain.reflections",
+      "terrain.riverbank",
+      "terrain.roads",
+      "terrain.markings",
+      "terrain.grass",
+      "terrain.gravel",
+      "terrain.ridges",
+      "terrain.fields",
+      "terrain.structures",
+      "terrain.windows",
+      "terrain.roofs",
+      "terrain.canopyShadows",
+      "terrain.forest",
+      "terrain.distantForest",
+      "terrain.details",
+      "zone.shelter",
+      "zone.exit",
+      "prop.beaconFallback",
+      "vehicle.rescue",
+      "vehicle.escort",
+      "aircraft.cabin",
+      "prop.beacon",
+      "vehicle.turret"
+    ],
+    "renderNodes": 16,
+    "wrecks": [
+      {
+        "id": 1,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 2,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 3,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 4,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 5,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 6,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 7,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 8,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 9,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 10,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 11,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 12,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 13,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 15,
+        "wreck": true,
+        "scale": 0.25
+      },
+      {
+        "id": 17,
+        "wreck": false,
+        "scale": 0.25
+      },
+      {
+        "id": 19,
+        "wreck": false,
+        "scale": 0.25
+      }
+    ],
+    "markerLabels": 1,
+    "frameRate": 53.45990507119666,
+    "drawCalls": 54,
+    "triangles": 468732,
+    "visibleEffects": 6
+  },
+  "errors": []
+}

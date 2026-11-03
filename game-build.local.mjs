@@ -83,7 +83,7 @@ export default {
   backend: [false],
   // development：开发测试包；test：普通测试包；production：正式包。
   // 命令行 --build-type 覆盖此默认值；单游戏 buildType 优先级更高。
-  buildType: 'development',
+  buildType: 'production',
   apiUrls: {
     production: 'https://api.nenggongzhiren.cn/small-games/v1',
   },

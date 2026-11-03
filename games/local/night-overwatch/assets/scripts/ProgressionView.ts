@@ -95,7 +95,7 @@ export class ProgressionView {
     else if(this.q.leaveTo!==undefined)this.leaveDialog();
     else if(this.q.gift)this.giftDialog();
   }
-  private brief(p:Product){return this.h.lang==='zh'?({power:'普通武器威力 +15%',rate:'攻击间隔 −12%',burst:'追加一枚60%威力副弹',twin:'追加一枚侧向副弹',radius:'爆炸范围 +15%',cooling:'普通武器热量 −15%',drone:'自动攻击并减速敌人',laser:'持续3秒 · 每秒80伤害',tracking:'追踪60秒 · 冷却90秒',emp:'定身4秒 · 冷却45秒'})[p.effect]:p.description;}
+  private brief(p:Product){return this.h.lang==='zh'?({power:'普通武器威力 +15%',rate:'攻击间隔 −12%',burst:'追加一枚60%威力副弹',twin:'追加一枚侧向副弹',radius:'爆炸范围 +15%',cooling:'普通武器热量 −15%',drone:'3架持续攻击 · 12秒后坠毁',laser:'持续3秒 · 每秒80伤害',tracking:'追踪60秒 · 冷却90秒',emp:'干扰12秒 · 冷却45秒'})[p.effect]:p.description;}
   private infoButton(id:string,x:number,y:number){this.h.button('info:'+id,'ⓘ',x,y,44,44,this.n).fontSize=22;}
   private list(key:string,x:number,y:number,w:number,h:number,total:number,draw:(offset:number)=>void){
     const old={n:this.n,surfaces:this.surfaces,g:this.g},list=this.h.listViewport(this.n,'qm:'+key,{x,y,w,h},total);

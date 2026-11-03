@@ -1,0 +1,42 @@
+{
+  "command": "pnpm build:games",
+  "sourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+  "builds": [
+    {
+      "batch": "20261103T191130884Z-7d757d",
+      "name": "night-overwatch-taptap-h5-production-ads-on-service-on",
+      "buildType": "production",
+      "devMode": false,
+      "apiUrl": "https://api.nenggongzhiren.cn/small-games/v1",
+      "sourceSHA": "be90ddc624654ffedc5ea451e9bf1e57be80d9ec",
+      "sourceDirty": true,
+      "bytes": 53023824,
+      "sha256": "2c3d9669dfbc64b449484a1c2065f3c6fe90e9d5596f9c4a72d71c36aff9d3b8",
+      "zip": "night-overwatch-taptap-h5-production-ads-on-service-on.zip",
+      "identityProvider": "taptap",
+      "exitCode": 0
+    },
+    {
+      "batch": "20261103T191240661Z-639b5b",
+      "name": "night-overwatch-taptap-h5-production-ads-on-service-on",
+      "buildType": "production",
+      "devMode": false,
+      "apiUrl": "https://api.nenggongzhiren.cn/small-games/v1",
+      "sourceSHA": "be90ddc624654ffedc5ea451e9bf1e57be80d9ec",
+      "sourceDirty": true,
+      "bytes": 53023822,
+      "sha256": "afde972c05fb9ebd2088010767968e1e07fe83d60e2b116419708220e8df1c31",
+      "zip": "night-overwatch-taptap-h5-production-ads-on-service-on.zip",
+      "identityProvider": "taptap",
+      "exitCode": 0
+    }
+  ],
+  "originalFailure": "Creator Terser spawn UNKNOWN; did not recur in two consecutive original-command runs; no shared toolchain change",
+  "runtime": {
+    "passed": 233,
+    "skipped": 68,
+    "firstRun": "metadata cold-import 5s timeout; isolated 8 tests and complete unchanged rerun passed"
+  },
+  "buildConfigurationTests": 14,
+  "platformAcceptance": "not-run"
+}

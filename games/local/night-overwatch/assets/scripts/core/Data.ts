@@ -71,6 +71,7 @@ export function terrainHeight(x: number, z: number, map: BattlefieldId = 'valley
 // Aim has no azimuth firing-sector restriction, including after orbit reversal; stations stay port.
 // This is arcade targeting, not authentic fire control.
 export const LASER = { duration: 3, dps: 80, range: 650 } as const;
+export const DRONE = { count: 3, duration: 12, damage: 6, interval: .5 } as const;
 export const WEAPONS = [
   {
     id: 'rapid',
@@ -137,7 +138,7 @@ export const WEAPONS = [
     automatic: false,
   },
   {
-    id: 'drone', muzzle: AIRFRAME.muzzles[1], name: ['无人机机群', 'Drone swarm'], interval: 20,
+    id: 'drone', muzzle: AIRFRAME.muzzles[1], name: ['无人机集群', 'Drone swarm'], interval: 20,
     speed: 35, calibre: 0.004, length: 0.021, tracerTime: 0.055, damage: 8, radius: .6,
     ammo: 3, heat: 0, armor: .75, automatic: false,
   },

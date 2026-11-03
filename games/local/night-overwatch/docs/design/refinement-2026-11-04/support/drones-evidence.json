@@ -1,0 +1,43 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c"
+  },
+  "fixture": true,
+  "checks": [
+    {
+      "width": 844,
+      "height": 390,
+      "touch": true,
+      "mission": "patrol-03",
+      "droneCount": 3,
+      "lifetime": 12,
+      "empDuration": 12,
+      "landed": true,
+      "remainingAmmo": 2
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "touch": false,
+      "mission": "patrol-03",
+      "droneCount": 3,
+      "lifetime": 12,
+      "empDuration": 12,
+      "landed": true,
+      "remainingAmmo": 2
+    }
+  ],
+  "screens": [
+    "formation-attacking-844.png",
+    "emp-after-ten-seconds-844.png",
+    "drones-falling-844.png",
+    "drones-landed-844.png",
+    "formation-attacking-1280.png",
+    "emp-after-ten-seconds-1280.png",
+    "drones-falling-1280.png",
+    "drones-landed-1280.png"
+  ],
+  "errors": []
+}

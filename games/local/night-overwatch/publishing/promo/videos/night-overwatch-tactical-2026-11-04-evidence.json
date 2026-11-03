@@ -1,0 +1,98 @@
+{
+  "date": "2026-11-04",
+  "file": "promo/videos/night-overwatch-tactical-2026-11-04-1920x1080.mp4",
+  "sha256": "41466044915f0e47b5d8bd90e462baa3a722fababfb950a09315f4b8d2d6354b",
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "r_frame_rate": "30/1",
+        "side_data_list": [
+          {}
+        ]
+      },
+      {
+        "codec_name": "aac",
+        "sample_rate": "48000",
+        "channels": 2,
+        "r_frame_rate": "0/0"
+      }
+    ],
+    "format": {
+      "duration": "30.016000",
+      "size": "18825252"
+    }
+  },
+  "sourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
+  "sourceRecording": "gameplay/videos/refinement-2026-11-04-1280x720-silent.mp4",
+  "recordingSha256": "3c80249f178977034b762195a4d42422cebb51b73834095ad0e8b40005ddd74c",
+  "scenes": [
+    {
+      "start": 0,
+      "end": 4,
+      "kind": "animated-brand"
+    },
+    {
+      "start": 4,
+      "end": 7,
+      "kind": "night-still-composition"
+    },
+    {
+      "start": 7,
+      "end": 10,
+      "kind": "enhanced-still-composition"
+    },
+    {
+      "start": 10,
+      "end": 13,
+      "kind": "thermal-still-composition"
+    },
+    {
+      "start": 13,
+      "end": 18,
+      "kind": "browser-gameplay",
+      "sourceStart": 3
+    },
+    {
+      "start": 18,
+      "end": 23,
+      "kind": "browser-gameplay",
+      "sourceStart": 11
+    },
+    {
+      "start": 23,
+      "end": 30,
+      "kind": "animated-brand-close"
+    }
+  ],
+  "checks": {
+    "typecheck": true,
+    "studioPreview": true,
+    "fullDecode": true,
+    "storyboardVisualReview": true,
+    "existingManifestHashes": true,
+    "audioMeanDb": -22.3,
+    "audioPeakDb": -3.8,
+    "browserPlayback": {
+      "ended": true,
+      "time": 30.016,
+      "duration": 30.016,
+      "width": 1920,
+      "height": 1080,
+      "decodedFrames": 900,
+      "droppedFrames": 0,
+      "muted": true,
+      "browser": "Chrome; normal speed; muted playback; audio separately decoded and measured"
+    }
+  },
+  "limits": [
+    "Browser footage, not physical device",
+    "1280x720 gameplay source scaled in 1920x1080 composition",
+    "No target-device listening or platform review"
+  ],
+  "audio": "Original procedural music and transition sounds; score.mjs"
+}

@@ -52,7 +52,7 @@ try{
       evidence.videoCombatSeconds=(Date.now()-started)/1000;await capture('combat-after-input');
     }
     await click('settings');await click('language');await capture('settings-en');await click('language');await click('autoPriority');await click('zoomControls');await click('view:enhanced');
-    await page.reload();await ready();s=await snapshot(page);assert(!s.ui.voicePrompts&&s.ui.autoPriority&&!s.ui.muted);assert.equal(s.viewMode,'enhanced');
+    await page.reload();await ready();s=await snapshot(page);assert(!s.ui.voicePrompts&&s.ui.autoPriority&&!s.ui.muted);assert.equal(s.viewMode,'night');
     await click('settings');await click('voicePrompts');await capture('settings-restored');assert((await snapshot(page)).ui.voicePrompts);
     evidence.checks.push({width,height,touch,preferencesPersisted:true,viewPreservesCamera:true,tacticsNavigation:true,noInputLeak:true});
     const video=page.video();await context.close();if(video){const path=`${out}/ordinary-gameplay-1280.webm`;await video.saveAs(path);evidence.video=path;}

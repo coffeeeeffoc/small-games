@@ -1,0 +1,104 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c"
+  },
+  "fixture": true,
+  "environment": "Chromium mouse/touch; QA equipment; no production assets modified",
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "weapon": "drone",
+      "touch": true,
+      "drag": true,
+      "cancelled": true,
+      "disabledDrag": true,
+      "reload": true,
+      "resize": true
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "weapon": "laser",
+      "touch": true,
+      "drag": true,
+      "cancelled": true,
+      "disabledDrag": true,
+      "reload": true,
+      "resize": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "weapon": "drone",
+      "touch": true,
+      "drag": true,
+      "cancelled": true,
+      "disabledDrag": true,
+      "reload": true,
+      "resize": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "weapon": "laser",
+      "touch": true,
+      "drag": true,
+      "cancelled": true,
+      "disabledDrag": true,
+      "reload": true,
+      "resize": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "weapon": "drone",
+      "touch": false,
+      "drag": true,
+      "cancelled": true,
+      "disabledDrag": true,
+      "reload": true,
+      "resize": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "weapon": "laser",
+      "touch": false,
+      "drag": true,
+      "cancelled": true,
+      "disabledDrag": true,
+      "reload": true,
+      "resize": true
+    }
+  ],
+  "screens": [
+    "drone-default-568.png",
+    "drone-moved-568.png",
+    "drone-active-moved-568.png",
+    "drone-resized-568.png",
+    "laser-default-568.png",
+    "laser-moved-568.png",
+    "laser-active-moved-568.png",
+    "laser-resized-568.png",
+    "drone-default-844.png",
+    "drone-moved-844.png",
+    "drone-active-moved-844.png",
+    "drone-resized-844.png",
+    "laser-default-844.png",
+    "laser-moved-844.png",
+    "laser-active-moved-844.png",
+    "laser-resized-844.png",
+    "drone-default-1280.png",
+    "drone-moved-1280.png",
+    "drone-active-moved-1280.png",
+    "drone-resized-1280.png",
+    "laser-default-1280.png",
+    "laser-moved-1280.png",
+    "laser-active-moved-1280.png",
+    "laser-resized-1280.png"
+  ],
+  "errors": []
+}

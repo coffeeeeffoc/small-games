@@ -1,6 +1,7 @@
 import {
   WEAPONS,
   LASER,
+  DRONE,
   MAP,
   FRIENDLY_POSTS,
   terrainHeight,
@@ -567,9 +568,13 @@ export class Simulation {
   private fireSpecial() {
     const weapon=this.selected,g=this.guns[weapon],origin=muzzlePosition(this.aircraft,weapon);
     if(weapon===4) {
-      if(this.drones.filter(d=>d.side===this.pilotSide).length>=3)return false;
+      if(this.drones.filter(d=>d.side===this.pilotSide).length>=DRONE.count)return false;
       const volley=++this.serial;
-      for(let i=0;i<3;i++)this.drones.push({...origin,id:++this.serial,volley,hitCounted:false,side:this.pilotSide,expires:this.time+12,budget:24,nextAttack:this.time+.5+i*.12});
+      for(let i=0;i<DRONE.count;i++){
+        const angle=i*Math.PI*2/DRONE.count;
+        this.drones.push({...origin,x:origin.x+Math.cos(angle)*6,z:origin.z+Math.sin(angle)*6,id:++this.serial,volley,hitCounted:false,side:this.pilotSide,
+          expires:this.time+DRONE.duration,budget:DRONE.damage*DRONE.duration/DRONE.interval,nextAttack:this.time+DRONE.interval+i*.12});
+      }
       this.emit('shot',origin,weapon);
     } else {
       if(this.lasers.some(beam=>beam.side===this.pilotSide))return false;
@@ -604,15 +609,31 @@ export class Simulation {
     this.lasers=this.lasers.filter(beam=>beam.remaining>1e-8&&beam.budget>1e-8);
   }
   private stepDrones(dt: number) {
+    const side=this.pilotSide,claimed=new Map<number,Set<number>>();
     for(const drone of this.drones) {
-      if(drone.expires<=this.time||drone.budget<=0)continue;
-      const side=this.pilotSide;if(this.duelMode)this.useSide(drone.side);
-      const target=this.units.filter(u=>this.canTrack(u,0)).sort((a,b)=>distance(a,drone)-distance(b,drone))[0];
-      if(target){drone.target=target.id;const length=Math.max(.1,distance(target,drone)),travel=Math.min(1,35*dt/length);drone.x+=(target.x-drone.x)*travel;drone.z+=(target.z-drone.z)*travel;drone.y=Math.max(target.y+16,this.height(drone.x,drone.z)+8,drone.y-60*dt);
-        if(length<30&&this.time>=drone.nextAttack&&this.lineOfSight(target,drone,40)){const damage=Math.min(6,drone.budget);drone.budget-=damage;drone.nextAttack=this.time+.5;target.slowedUntil=this.time+2;const countShot=!drone.hitCounted;for(const member of this.drones)if(member.volley===drone.volley)member.hitCounted=true;this.directHit(target,damage,4,countShot);}}
-      if(this.duelMode)this.useSide(side);
+      if(this.duelMode)this.useSide(drone.side);
+      const ground=this.height(drone.x,drone.z);
+      if(drone.expires<=this.time){
+        drone.target=undefined;drone.y=Math.max(ground,drone.y-48*dt);
+        if(drone.y<=ground)this.emit('impact',drone,4);
+        continue;
+      }
+      const assigned=claimed.get(drone.side)??new Set<number>();claimed.set(drone.side,assigned);
+      const target=this.units.filter(u=>this.canTrack(u,0)).sort((a,b)=>Number(assigned.has(a.id))-Number(assigned.has(b.id))||distance(a,drone)-distance(b,drone))[0];
+      drone.target=target?.id;
+      if(target){
+        assigned.add(target.id);
+        const angle=(drone.id-drone.volley-1)*Math.PI*2/DRONE.count;
+        const hover={x:target.x+Math.cos(angle)*6,z:target.z+Math.sin(angle)*6},length=Math.max(.1,distance(hover,drone)),travel=Math.min(1,WEAPONS[4].speed*dt/length);
+        drone.x+=(hover.x-drone.x)*travel;drone.z+=(hover.z-drone.z)*travel;drone.y=Math.max(target.y+16,this.height(drone.x,drone.z)+8,drone.y-60*dt);
+        if(drone.budget>0&&distance(target,drone)<30&&this.time>=drone.nextAttack&&this.lineOfSight(target,drone,40)){
+          const damage=Math.min(DRONE.damage,drone.budget);drone.budget-=damage;drone.nextAttack=this.time+DRONE.interval;target.slowedUntil=this.time+2;
+          const countShot=!drone.hitCounted;for(const member of this.drones)if(member.volley===drone.volley)member.hitCounted=true;this.directHit(target,damage,4,countShot);
+        }
+      }
     }
-    this.drones=this.drones.filter(d=>d.expires>this.time&&d.budget>0);
+    if(this.duelMode)this.useSide(side);
+    this.drones=this.drones.filter(d=>d.expires>this.time||d.y>this.height(d.x,d.z));
   }
   fireHoming() {
     const target = this.homingTarget;

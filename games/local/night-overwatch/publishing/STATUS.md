@@ -1,5 +1,13 @@
 # 夜航守望 · 交付状态
 
+2026-11-04 试玩反馈已修订：横向技能栏支持拖动保存，弹着/热量靠近开火，每次打开默认夜景。无人机集群一次3架、12秒后自动坠毁；电磁干扰固定名称并生效12秒。Creator源码摘要 `acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c`，回放v14/对战v7；规则、输入、原生源码适配、Runtime入口及三尺寸浏览器检查通过。[验证与截图](../docs/verification-2026-11-04-refinement.md#试玩反馈修订)。正式TapTap H5配置连续两次构建通过，构建/ZIP身份见验证记录；提交、推送和Runtime部署回执随后单列。未上传平台。
+
+2026-11-04 原生1080p多武器宣传片：已去掉“浏览器实录”等来源角标，五组战斗镜头重新以1920×1080 Canvas/WebGL缓冲直接采集，未放大720p录像。战斗内容增加到22秒，含速射、榴弹、重炮、燃烧弹和热像；30秒H.264 MP4约25.93 MB。上一版燃向AAC音轨逐字节保留。完整900帧正常速度播放、全片解码、分镜和源尺寸通过。[成片](promo/videos/night-overwatch-ignite-native1080-2026-11-04.mp4)、[源码与来源](promo/videos/native1080-2026-11-04-source/README.md)、[验证证据](promo/videos/night-overwatch-ignite-native1080-2026-11-04-evidence.json)。采用固定稳定制品c3f32a92…，未混入当前在途游戏修改；原生1080p指渲染采集分辨率，非实体手机录制。未上传平台。
+
+2026-11-04 燃向配乐版：沿用当日战术宣传片画面，重做120 BPM原创立体声电子配乐，包含重鼓、失真低音、旋律和转场冲击；23秒后保留高潮，结尾渐出。H.264视频轨道无损复用。成片30秒、1920×1080、约18.83 MB，音轨测量−15.03 LUFS / −1.92 dBTP。[成片与来源](promo/videos/ignite-2026-11-04-source/README.md)、[技术证据](promo/videos/night-overwatch-ignite-2026-11-04-evidence.json)。实录源为720p浏览器画面；未进行人工目标设备听感或平台上传审核。
+
+2026-11-04 宣传片独立更新：新增30秒1080p战术宣传片，用于首页与详情页。含原创合成配乐；10秒战斗取自当天已采集的浏览器实录，其余为品牌动画与三种成像介绍。技术参数、全片解码、分镜画面及完整播放结果见[成片证据](promo/videos/night-overwatch-tactical-2026-11-04-evidence.json)。素材工作未修改游戏逻辑、提交或上传平台。
+
 2026-11-04 操作细化已完成：战况与装配共用弹窗、单行昵称与安全区、横向选关、EXP、武器/技能/开火冷却环及3秒持续激光。最终 Creator 3.8.8 web-mobile 源码摘要为 `c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a`，规则为 v13/v6。定向规则、输入、原生契约与Runtime消费者通过；三尺寸42张QA图、37张普通首关图和隔离真实服务普通游客菜单通过，页面异常0。见[本轮验证](../docs/verification-2026-11-04-refinement.md)。本轮未提交、推送、部署或打渠道包；新前端与Runtime需配套发布，实体手机/真宿主未验收。以下旧日期内容保留历史身份。
 
 2026-11-03 沉浸 HUD 与成像更新：语音提示、优先标注独立保存，左上“战术 / 友军 / 撤离 / 威胁”同一行，武器和开火使用紧凑透明皮肤。默认夜景，可切换增强、热像，只改变显示。最终 Creator 3.8.8 web-mobile 源码摘要为 `02b287e3ecc7b37c08e123b2e28e7c04906db67295087ceb433ec3d6e2be02f5`。新战斗媒体来自该构建的普通离线首关，Chromium 1280×720，无开发余额/资产fixture；技能QA另存。见[本轮验证](../docs/verification-2026-11-03-immersion.md)。未提交/推送、打渠道包或对外发布；下方旧日期记录保留当时身份。
@@ -23,11 +31,11 @@
 | 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，同步战况与持续反馈 |
 | 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png)，复核沿用 |
 | 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png)，仅标题，复核沿用 |
-| 宣传视频 | 已提供 | [20秒MP4](promo/videos/refinement-2026-11-04-1280x720-silent.mp4)，标题、三视图静帧、7秒实际战斗、设置静帧；H.264无音轨 |
-| 游戏截图 | 已提供 | 10张1280×720 PNG：[夜景](gameplay/screenshots/2026-11-04-refinement/night-1280.png)、[增强](gameplay/screenshots/2026-11-04-refinement/enhanced-1280.png)、[热像](gameplay/screenshots/2026-11-04-refinement/thermal-1280.png)、[设置](gameplay/screenshots/2026-11-04-refinement/settings-1280.png)、[战况](gameplay/screenshots/2026-11-04-refinement/tactics-1280.png)、[装配](gameplay/screenshots/2026-11-04-refinement/equipment-1280.png)、[首页](gameplay/screenshots/2026-11-04-refinement/home-1280.png)、[等级成长](gameplay/screenshots/2026-11-04-refinement/growth-1280.png)、[开始行动](gameplay/screenshots/2026-11-04-refinement/modes-1280.png)、[横向选关](gameplay/screenshots/2026-11-04-refinement/missions-1280.png) |
-| 实机录屏 | 已提供 | [18秒连续战斗MP4](gameplay/videos/refinement-2026-11-04-1280x720-silent.mp4)，H.264无音轨，浏览器实录，非实体手机 |
+| 宣传视频 | 已提供 | [新版UI 20秒静音预览](promo/videos/support-2026-11-04-1280x720-silent.mp4)，1280×720 / H.264 / 约2.18 MB，独立分镜与7秒实录；原有配乐版保留： [原生1080p多武器宣传片](promo/videos/night-overwatch-ignite-native1080-2026-11-04.mp4)，30秒 / 1920×1080 / 16:9 / H.264 MP4 / AAC立体声 / 约25.93 MB；22秒真实多武器战斗，来源角标已移除，上一版燃向配乐完整保留。[源码与验证](promo/videos/native1080-2026-11-04-source/README.md)；旧燃向版、战术版及静音版保留归档 |
+| 游戏截图 | 已提供 | 10张1280×720 PNG：[夜景](gameplay/screenshots/2026-11-04-support/night-1280.png)、[增强](gameplay/screenshots/2026-11-04-support/enhanced-1280.png)、[热像](gameplay/screenshots/2026-11-04-support/thermal-1280.png)、[设置](gameplay/screenshots/2026-11-04-support/settings-1280.png)、[战况](gameplay/screenshots/2026-11-04-support/tactics-1280.png)、[装配](gameplay/screenshots/2026-11-04-support/equipment-1280.png)、[首页](gameplay/screenshots/2026-11-04-refinement/home-1280.png)、[等级成长](gameplay/screenshots/2026-11-04-refinement/growth-1280.png)、[开始行动](gameplay/screenshots/2026-11-04-refinement/modes-1280.png)、[横向选关](gameplay/screenshots/2026-11-04-refinement/missions-1280.png) |
+| 实机录屏 | 已提供 | [约18秒连续战斗MP4](gameplay/videos/support-2026-11-04-1280x720-silent.mp4)，H.264无音轨，浏览器实录，非实体手机 |
 
-[19项清单](manifest.json)记录大小、尺寸、摘要及采集身份。6张战斗图和录屏来自当前构建的普通离线首关；4张菜单图来自隔离真实PostgreSQL/HTTP的普通新游客，无测试资产和开发余额，专属服务已清理。QA激光/技能与长昵称图片单独放在验证文档，不作正式媒体。视频完整解码并检查逐秒画面，实录取连续18秒，排除后续菜单；[剪辑记录](promo/videos/refinement-2026-11-04-edit.json)保留来源与区间。
+[媒体清单](manifest.json)记录大小、尺寸、摘要及采集身份。6张战斗图和约18秒录屏来自本次构建的普通离线首关；4张菜单图来自隔离真实PostgreSQL/HTTP的普通新游客，无测试资产和开发余额，专属服务已清理。QA激光/技能与长昵称图片单独放在验证文档，不作正式媒体。视频完整解码并检查逐秒画面，实录取连续18秒，排除后续菜单；[最新剪辑记录](promo/videos/support-2026-11-04-edit.json)保留来源与区间。
 
 静态图标、宣传图和推荐语保留原采集身份；历史截图与视频继续归档保留。素材许可见[素材清单](../docs/ASSET_MANIFEST.json)，本轮内置imagegen提示词、效果图和实际对照见[设计目录](../docs/design/refinement-2026-11-04/README.md)。
 

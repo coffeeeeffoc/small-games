@@ -1,0 +1,20 @@
+{
+  "source": "reports/support-ordinary/ordinary-gameplay-1280.webm",
+  "sourceSha256": "e95fb9a3ce1c15a12c1469122b2cec5b161266eb90fab69112333262f6f9bab9",
+  "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+  "fixture": false,
+  "environment": "Chromium; offline ordinary first mission; no developer or asset fixture",
+  "audio": false,
+  "gameplay": {
+    "start": 10.26,
+    "duration": 17.96
+  },
+  "promo": [
+    "title 2s",
+    "night 3s",
+    "enhanced 3s",
+    "thermal 3s",
+    "actual combat from gameplay 3s for 7s",
+    "settings 2s"
+  ]
+}

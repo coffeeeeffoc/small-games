@@ -163,6 +163,33 @@ export class HUD {
   unitLabels = new Map<number, Label>();
   lastHelpLine = '';
   safe = { left: 0, right: 0, top: 0, bottom: 0 };
+  supportPosition = { x: .5, y: 1 };
+  get supportBounds() {
+    const x = 12 + this.safe.left, y = this.safe.top + 84;
+    return { x, y, w: Math.max(0, this.w - 24 - this.safe.left - this.safe.right - 312),
+      h: Math.max(0, this.h - this.footer - this.safe.bottom - 84 - y) };
+  }
+  placeSupport(position = this.supportPosition) {
+    this.supportPosition = { x: Math.max(0, Math.min(1, position.x)), y: Math.max(0, Math.min(1, position.y)) };
+    const bounds = this.supportBounds, map = this.minimapLayout, y = bounds.y + bounds.h * this.supportPosition.y;
+    const right = y < map.y + map.h + 8 && y + 44 > map.y - 8 ? Math.min(bounds.x + bounds.w, map.x - 320) : bounds.x + bounds.w;
+    const x = Math.max(bounds.x, Math.min(right, bounds.x + bounds.w * this.supportPosition.x));
+    this.supportPosition.x = (x - bounds.x) / Math.max(1, bounds.w);
+    ['weapon4', 'skillUse', 'weapon5'].forEach((id, index) => {
+      const b = this.buttons.find(b => b.id === id); if (!b) return;
+      b.x = x + index * 106; b.y = y;
+      b.visual = { x: b.x + 2, y: b.y + 2, w: b.w - 4, h: b.h - 4 };
+      b.label.node.setPosition(b.x + b.w / 2 - this.w / 2, this.h / 2 - b.y - b.h / 2);
+    });
+  }
+  supportAt(x: number, y: number) {
+    return this.buttons.find(b => ['weapon4', 'skillUse', 'weapon5'].includes(b.id) && b.label.node.activeInHierarchy &&
+      x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+  }
+  saveSupportPosition() {
+    try { sys.localStorage.setItem('night-overwatch-support-position-v1', JSON.stringify(this.supportPosition)); }
+    catch { /* Optional control placement never blocks play. */ }
+  }
   get compact() {
     return this.h < 500;
   }
@@ -191,6 +218,11 @@ export class HUD {
       z: (y - top) / height * MAP.halfDepth * 2 - MAP.halfDepth };
   }
   constructor(parent: Node) {
+    try {
+      const position = JSON.parse(sys.localStorage.getItem('night-overwatch-support-position-v1') || 'null');
+      if (position && [position.x, position.y].every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1))
+        this.supportPosition = { x: position.x, y: position.y };
+    } catch { /* Ignore unavailable storage or invalid layout preferences. */ }
     this.root = new Node('OverwatchHUD');
     parent.addChild(this.root);
     this.root.layer = Layers.Enum.UI_2D;
@@ -436,12 +468,11 @@ export class HUD {
       if (small) { label.fontSize = 12; label.lineHeight = 17; }
     }
     this.button('homing', '', cardsLeft + 4 * (cardW + 6), by + 8, cardW, 44);
-    for (const i of [4,5]) this.button('weapon'+i,'',left+108+(i-4)*88,by-40,82,44);
-    this.button('skillUse','',left,by-40,100,44);
+    for (const id of ['weapon4', 'skillUse', 'weapon5']) this.button(id, '', left, by - 84, 100, 44);
+    this.placeSupport();
     this.button('fire', '', right - fireW, h - this.safe.bottom - fireW - 10, fireW, fireW);
-    const stateX = left + 5 * (cardW + 6) + 4;
-    const stateW = Math.min(132, right - fireW - stateX - 12);
-    this.live('weaponState', stateX + stateW / 2, by + this.footer / 2, small ? 12 : this.compact ? 12 : 14, Math.max(60, stateW), this.footer - 14, C.dim);
+    const stateW = Math.min(132, right - fireW - (left + 5 * (cardW + 6)) - 12);
+    this.live('weaponState', right - fireW - 8 - stateW / 2, h - this.safe.bottom - fireW / 2 - 10, small ? 12 : this.compact ? 12 : 14, Math.max(60, stateW), this.footer - 14, C.dim);
     this.live('notice', w / 2, by - 17, this.compact ? 12 : 15, this.compact ? w - 40 : Math.min(w - 260, 560), this.compact ? 28 : 36, C.amber);
     this.live('friendWarning', w / 2, by - 17, this.compact ? 13 : 16, this.compact ? w - 40 : Math.min(w - 260, 560), 28, C.red).isBold = true;
     this.live('tutorial', w / 2, by - 17, this.compact ? 11 : 13, w - 40, 28, C.mint);
@@ -1408,7 +1439,7 @@ export class HUD {
           lines=[title+` · Lv.${load.level}`,this.t('装配：','Equipped: ')+(names.join(' / ')||this.t('默认配置','Default')),
             this.t('装配武器：','Equipped weapon: ')+text(w.name,this.lang),
             this.t('默认 → 当前：','Default → current: ')+this.t(`每轮 1 → ${shots} 弹 · 耗弹 1`,`Projectiles 1 → ${shots} · ammo 1`),
-            pilot.selected===5?this.t('持续3秒 · 每秒80 · 总240 · 重甲×0.85','3s beam · 80/s · total 240 · armor ×0.85'):pilot.selected===4?this.t('无人机每次伤害 6 · 3架 × 24伤害预算','Drones: 6 per hit · 3 drones × 24 damage budget'):shots>1?this.t(`主弹 ${fmt(damage)} ＋ ${shots-1}枚副弹各 ${fmt(damage*preview.secondaryStrength)}`,`Primary ${fmt(damage)} + ${shots-1} secondary × ${fmt(damage*preview.secondaryStrength)}`):this.t(`基础伤害 ${fmt(w.damage)} → ${fmt(damage)} / 发`,`Base damage ${fmt(w.damage)} → ${fmt(damage)} / shot`),
+            pilot.selected===5?this.t('持续3秒 · 每秒80 · 总240 · 重甲×0.85','3s beam · 80/s · total 240 · armor ×0.85'):pilot.selected===4?this.t('3架无人机 · 12秒后坠毁 · 每架最多144伤害','3 drones · crash after 12s · up to 144 damage each'):shots>1?this.t(`主弹 ${fmt(damage)} ＋ ${shots-1}枚副弹各 ${fmt(damage*preview.secondaryStrength)}`,`Primary ${fmt(damage)} + ${shots-1} secondary × ${fmt(damage*preview.secondaryStrength)}`):this.t(`基础伤害 ${fmt(w.damage)} → ${fmt(damage)} / 发`,`Base damage ${fmt(w.damage)} → ${fmt(damage)} / shot`),
             this.t(`间隔 ${fmt(w.interval)} → ${fmt(interval)} 秒`,`Interval ${fmt(w.interval)} → ${fmt(interval)} s`),
             this.t(`热量 ${fmt(w.heat)} → ${fmt(heat)} / 次 · 范围 ${fmt(w.radius)} → ${fmt(radius)}`,`Heat ${fmt(w.heat)} → ${fmt(heat)} / attack · radius ${fmt(w.radius)} → ${fmt(radius)}`),
             this.t(`实时热量 ${Math.round(gun.heat)} · 武器冷却 ${fmt(gun.cooldown)} 秒`,`Heat ${Math.round(gun.heat)} · weapon cooldown ${fmt(gun.cooldown)} s`),
@@ -1922,8 +1953,8 @@ export class HUD {
     const level = s.duelMode || s.mission.mode === 'training' ? 0 : MISSIONS.findIndex(m => m.id === s.mission.id) + 1;
     this.set('status', `${level ? this.t(`${level}关`, `L${level}`) + ' · ' : ''}${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
     this.set('weaponState', this.t(
-      `${this.mouseDesktop ? '' : flightText + ' 弹着\n'}${gun.overheated ? '过热 · 冷却至40' : '热量 ' + Math.round(gun.heat) + '%'}`,
-      `${this.mouseDesktop ? '' : flightText + ' IMPACT\n'}${gun.overheated ? 'OVERHEATED' : 'HEAT ' + Math.round(gun.heat) + '%'}`));
+      `${flightText} 弹着\n${gun.overheated ? '过热 · 冷却至40' : '热量 ' + Math.round(gun.heat) + '%'}`,
+      `${flightText} IMPACT\n${gun.overheated ? 'OVERHEATED' : 'HEAT ' + Math.round(gun.heat) + '%'}`));
     if (s.homingSelected) this.set('weaponState', s.homingAmmo <= 0 ? this.t('点战斗补给', 'OPEN SUPPLY')
       : s.homingTarget ? this.t('已锁定', 'LOCKED') : this.t('点选敌人', 'TAP AN ENEMY'));
     const reasons: Record<string, string[]> = {
@@ -1959,9 +1990,10 @@ export class HUD {
     }
     for (const id of ['notice', 'friendWarning', 'tutorial']) {
       const label = this.labels.get(id)!;
-      label.node.setPosition(0, h / 2 - (by - (s.skillKind || s.hasWeapon(4) || s.hasWeapon(5) ? 64 : 18)));
+      label.node.setPosition((left + right - 76) / 2 - w / 2, h / 2 - (by - 24));
+      label.node.getComponent(UITransform)!.setContentSize(Math.min(right - left - 76, Math.max(180, label.string.length * label.fontSize + 24)), 28);
+      label.overflow = Label.Overflow.SHRINK;
       if (!label.node.active || !label.string) continue;
-      label.node.getComponent(UITransform)!.setContentSize(Math.min(w - 40, Math.max(180, label.string.length * label.fontSize + 24)), 28);
       const size = label.node.getComponent(UITransform)!.contentSize, p = label.node.position;
       this.rect(g, p.x + w / 2 - size.width / 2, h / 2 - p.y - size.height / 2, size.width, size.height, id === 'friendWarning' ? '#381c26dd' : '#0c171da0');
     }
@@ -1983,7 +2015,7 @@ export class HUD {
         b.label.string = (b.w<100&&i<4?this.t(...compactNames[i] as [string,string]):text(WEAPONS[i].name,this.lang)) + ' ' + (a.ammo === Infinity ? '∞' : a.ammo)+(ready.empty?'\n'+this.t('弹尽','EMPTY'):ready.remaining>0?'\n'+ready.displaySeconds.toFixed(1)+'s':'');
       }
       if(b.id==='skillUse') {
-        b.label.string=(s.skillKind==='tracking'?this.t('追踪','TRACK'):this.t('定身','EMP'))+'\n'+(s.skillRemaining>0?this.t('生效 ','ACTIVE ')+Math.ceil(s.skillRemaining)+'s':s.skillCooldown>0?this.t('冷却 ','COOLDOWN ')+Math.ceil(s.skillCooldown)+'s':this.t('就绪','READY'));
+        b.label.string=(s.skillKind==='tracking'?this.t('追踪','TRACK'):this.t('电磁干扰','EMP'))+'\n'+(s.skillRemaining>0?this.t('生效 ','ACTIVE ')+Math.ceil(s.skillRemaining)+'s':s.skillCooldown>0?this.t('冷却 ','COOLDOWN ')+Math.ceil(s.skillCooldown)+'s':this.t('就绪','READY'));
         b.disabled=s.skillCooldown>0||s.paused||s.extractionRemaining!==undefined;
       }
       if (b.id === 'fire') b.label.string = reason === 'extracting' ? this.t('停火', 'CEASE FIRE') : s.homingSelected
