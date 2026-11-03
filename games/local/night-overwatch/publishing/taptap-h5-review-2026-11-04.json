@@ -1,0 +1,33 @@
+{
+  "verifiedAt": "2026-11-03T20:14:04.886Z",
+  "appId": 987511,
+  "miniappId": "tapmcjgwi2thafs87k",
+  "developerId": 492506,
+  "review": {
+    "version": "V-20261103-1",
+    "status": 1,
+    "statusText": "审核中",
+    "packageId": 428665,
+    "screenOrientation": 2
+  },
+  "previousReviewPackageId": 428434,
+  "online": {
+    "version": "V-20261103",
+    "packageId": 423016,
+    "status": 4
+  },
+  "build": {
+    "sourceSHA": "703a8fa8cc96edb09e34458569fab60608686183",
+    "sourceDirty": false,
+    "sourceHash": "91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e",
+    "batch": "20261103T200933820Z-81f322",
+    "zip": "night-overwatch-taptap-h5-production-ads-on-service-on.zip",
+    "bytes": 53024352,
+    "sha256": "447d7ec600e585f070e666cbfb63bcf617e281bdb813763f6cea2ab7e91212ea",
+    "buildType": "production",
+    "apiUrl": "https://api.nenggongzhiren.cn/small-games/v1",
+    "devMode": false
+  },
+  "method": "TapTap MCP upload_h5_game; forced current-app refresh and review form_data verification",
+  "note": "Initial orientation synchronization warning resolved on forced refresh; one package upload only. Review status is distinct from the previously online version."
+}

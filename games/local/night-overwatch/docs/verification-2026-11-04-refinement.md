@@ -1,6 +1,6 @@
 # 夜航守望 · 操作细化验证
 
-2026-11-04。先核对旧线上截图和当前代码，再生成[效果图](design/refinement-2026-11-04/README.md)，随后实现和检查实际画面。最终 Creator 3.8.8 web-mobile 源码摘要：`c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a`，包体 59,211,819 字节。本轮未提交、推送、部署或上传渠道包。
+2026-11-04 早期阶段记录。先核对旧线上截图和当前代码，再生成[效果图](design/refinement-2026-11-04/README.md)，随后实现和检查实际画面。当时 Creator 3.8.8 web-mobile 源码摘要：`c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a`，包体 59,211,819 字节。当时尚未提交、推送、部署或上传渠道包；后续结果见下方“最终按钮布局与交付”和“TapTap H5提审回执”。
 
 ## 七项结果
 
@@ -97,3 +97,11 @@ Replay 升至 `night-input-replay-v13`，Duel 升至 `night-duel-v6`。前端和
 服务器Runtime已实际部署`be1c600e80699ee5d6b4e47fc1501c14f4f4b2a7`，发布号`be1c600e8069-1793733684321-a1b7a1`。服务器直接读取确认为回放v14/对战v7、无人机3架与12秒、电磁12秒；公网health为200，新旧API前缀及资产未认证请求为401。已备份，数据库未替换、schema未改，Kart沿用原镜像重建网络依赖；本次没有隔离恢复验证。见[部署回执](design/refinement-2026-11-04/controls/runtime-deployment.json)及[规则/公网核对](design/refinement-2026-11-04/controls/runtime-verification.json)。后续按钮调整不改权威core或Runtime源码，不重复部署。
 
 CI/Pages上一次因15分钟job总预算耗尽取消，未到游戏构建；基础job改30分钟且只绑定准确字节，范围/检出/阶段7项定向检查通过。最终流水线与平台提审另行记录，不以本地通过代替CI或真机。
+
+## TapTap H5提审回执
+
+源码提交`703a8fa8cc96edb09e34458569fab60608686183`的干净工作区通过`pnpm build:games`重新打包。复用已经真实Creator编译、源摘要校验及正式ZIP七场景验证的制品；最终ZIP与被验证ZIP逐字节相同，SHA-256为`447d7ec600e585f070e666cbfb63bcf617e281bdb813763f6cea2ab7e91212ea`，53,024,352字节，production、devMode=false、生产API及TapTap身份。
+
+应用987511（tapmcjgwi2thafs87k）经用户确认；实时查询广告已生效，横屏2，广告位1054323。通过MCP只上传一次；原待审包428434更新为428665，版本名仍为`V-20261103-1`，状态1审核中。首个工具回执提示方向缓存未同步，强制刷新后待审表单明确为横屏2，未重复上传。[结构化回执](../publishing/taptap-h5-review-2026-11-04.json)保留准确提交、包体、应用和状态。原线上版本/包保持V-20261103/423016；未宣称审核通过或已上线。
+
+实体手机、TapTap真实广告播放和完整真人关卡平衡未由本轮自动检查验收；CI/Pages须独立看最终提交的流水线。
