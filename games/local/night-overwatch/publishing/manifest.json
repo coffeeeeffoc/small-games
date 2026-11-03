@@ -1,5 +1,5 @@
 {
-  "sourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+  "sourceHash": "91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e",
   "verified": "2026-11-04",
   "environment": "Chromium; offline ordinary first mission; no developer or asset fixture; menu stills: Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; no asset fixture or developer grant",
   "files": [
@@ -166,17 +166,17 @@
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 2860,
-      "sha256": "8ebef08bc5b3c2f6e479489490755e438c384d8e3fae1b732a8ee01a409e5c25",
-      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "bytes": 2920,
+      "sha256": "42155a03e13bf48640f9bd72824668c8bebc9ba07e54f4813fe88370bba54e33",
+      "verifiedForSourceHash": "91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e",
       "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false
     },
     {
       "path": "copy/developer-note.md",
-      "bytes": 1982,
-      "sha256": "235dddfad83830520761a84baf20cfc09b38b4b3206ceeff0e813cf662d7eae9",
-      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "bytes": 2051,
+      "sha256": "389e5d23563e75e1e38540a31bb2d4fd0731dadaaf23598a9ee836715469c337",
+      "verifiedForSourceHash": "91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e",
       "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "reusedUnchanged": false
     },
@@ -184,7 +184,7 @@
       "path": "copy/tagline.md",
       "bytes": 68,
       "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
-      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "verifiedForSourceHash": "91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e",
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "reusedUnchanged": true
     },

@@ -1,0 +1,36 @@
+{
+  "ok": true,
+  "mode": "execute",
+  "sourceSHA": "be1c600e80699ee5d6b4e47fc1501c14f4f4b2a7",
+  "release": "be1c600e8069-1793733684321-a1b7a1",
+  "services": [
+    "runtime"
+  ],
+  "recreateCompanions": [
+    "kart"
+  ],
+  "healthVerified": true,
+  "databaseReplaced": false,
+  "schemaChanged": false,
+  "backupCreated": true,
+  "backupSHA256": "0559ba9d280e6dbeb4fa860178bea8cd5566c222cdca9259a54732cd21baa263",
+  "isolatedRestoreVerified": false,
+  "activeImages": {
+    "runtime": "sha256:955421236ec957eca68867f7bf34db44f845adf31f03a361adb3d9eaa7e45b76",
+    "kart": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8"
+  },
+  "imageCapabilities": {
+    "runtime": {
+      "image": "sha256:955421236ec957eca68867f7bf34db44f845adf31f03a361adb3d9eaa7e45b76",
+      "control": 1,
+      "authenticatedGameScope": 1,
+      "controlCatalog": 4
+    },
+    "kart": {
+      "image": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+      "control": 1,
+      "identityRecheck": 1,
+      "authenticatedGameScope": 1
+    }
+  }
+}

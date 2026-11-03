@@ -65,6 +65,8 @@ const C = {
   red: '#ff525b',
 };
 const col = (hex: string) => new Color().fromHEX(hex);
+const movableControls = ['weapon0', 'weapon1', 'weapon2', 'weapon3', 'homing', 'weapon4', 'skillUse', 'weapon5'];
+type ControlPosition = { x: number; y: number };
 export type ButtonRect = { id: string; x: number; y: number; w: number; h: number; label: Label; visual?: { x: number; y: number; w: number; h: number }; disabled?: boolean; clip?:{x:number;y:number;w:number;h:number} };
 export class HUD {
   listAreas:Array<{key:string;x:number;y:number;w:number;h:number;max:number;axis:'x'|'y'}> = [];
@@ -163,32 +165,68 @@ export class HUD {
   unitLabels = new Map<number, Label>();
   lastHelpLine = '';
   safe = { left: 0, right: 0, top: 0, bottom: 0 };
-  supportPosition = { x: .5, y: 1 };
-  get supportBounds() {
-    const x = 12 + this.safe.left, y = this.safe.top + 84;
-    return { x, y, w: Math.max(0, this.w - 24 - this.safe.left - this.safe.right - 312),
-      h: Math.max(0, this.h - this.footer - this.safe.bottom - 84 - y) };
+  controlPositions: Record<string, ControlPosition> = {};
+  controlBounds(id: string) {
+    const b = this.buttons.find(b => b.id === id)!;
+    return { x: this.safe.left, y: this.safe.top,
+      w: Math.max(0, this.w - this.safe.left - this.safe.right - b.w),
+      h: Math.max(0, this.h - this.safe.top - this.safe.bottom - b.h) };
   }
-  placeSupport(position = this.supportPosition) {
-    this.supportPosition = { x: Math.max(0, Math.min(1, position.x)), y: Math.max(0, Math.min(1, position.y)) };
-    const bounds = this.supportBounds, map = this.minimapLayout, y = bounds.y + bounds.h * this.supportPosition.y;
-    const right = y < map.y + map.h + 8 && y + 44 > map.y - 8 ? Math.min(bounds.x + bounds.w, map.x - 320) : bounds.x + bounds.w;
-    const x = Math.max(bounds.x, Math.min(right, bounds.x + bounds.w * this.supportPosition.x));
-    this.supportPosition.x = (x - bounds.x) / Math.max(1, bounds.w);
-    ['weapon4', 'skillUse', 'weapon5'].forEach((id, index) => {
-      const b = this.buttons.find(b => b.id === id); if (!b) return;
-      b.x = x + index * 106; b.y = y;
-      b.visual = { x: b.x + 2, y: b.y + 2, w: b.w - 4, h: b.h - 4 };
-      b.label.node.setPosition(b.x + b.w / 2 - this.w / 2, this.h / 2 - b.y - b.h / 2);
-    });
+  private positionControl(b: ButtonRect, x: number, y: number, width = b.w) {
+    b.x = x; b.y = y; b.w = width;
+    b.visual = { x: x + 2, y: y + 2, w: width - 4, h: b.h - 4 };
+    b.label.node.setPosition(x + width / 2 - this.w / 2, this.h / 2 - y - b.h / 2);
+    b.label.node.getComponent(UITransform)!.setContentSize(width - 8, b.h - 2);
+    b.label.overflow = Label.Overflow.SHRINK;
   }
-  supportAt(x: number, y: number) {
-    return this.buttons.find(b => ['weapon4', 'skillUse', 'weapon5'].includes(b.id) && b.label.node.activeInHierarchy &&
-      x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+  placeControl(id: string, position?: ControlPosition) {
+    if (position) this.controlPositions[id] = { x: Math.max(0, Math.min(1, position.x)), y: Math.max(0, Math.min(1, position.y)) };
+    else delete this.controlPositions[id];
+    this.layoutCombatControls();
   }
-  saveSupportPosition() {
-    try { sys.localStorage.setItem('night-overwatch-support-position-v1', JSON.stringify(this.supportPosition)); }
-    catch { /* Optional control placement never blocks play. */ }
+  controlAt(x: number, y: number) {
+    const button = this.hit(x, y, true);
+    return button && movableControls.includes(button.id) ? button : undefined;
+  }
+  private avoidFixedControls(id: string) {
+    const b = this.buttons.find(b => b.id === id)!, bounds = this.controlBounds(id);
+    if (!b.label.node.activeInHierarchy) return;
+    for (const fixed of this.buttons.filter(b => !movableControls.includes(b.id) && !b.disabled && b.label.node.activeInHierarchy).sort((a, b) => b.x - a.x)) {
+      if (b.x >= fixed.x + fixed.w || b.x + b.w <= fixed.x || b.y >= fixed.y + fixed.h || b.y + b.h <= fixed.y) continue;
+      const above = fixed.y > this.h / 2 && fixed.y - b.h - 4 >= bounds.y;
+      const x = !above && fixed.x - b.w - 4 >= bounds.x ? fixed.x - b.w - 4 : b.x;
+      const y = above ? fixed.y - b.h - 4 : x !== b.x ? b.y : Math.min(bounds.y + bounds.h, fixed.y + fixed.h + 4);
+      this.positionControl(b, x, y);
+      this.controlPositions[id] = { x: (x - bounds.x) / Math.max(1, bounds.w), y: (y - bounds.y) / Math.max(1, bounds.h) };
+    }
+  }
+  private layoutCombatControls() {
+    const left = 12 + this.safe.left, right = this.w - 12 - this.safe.right, by = this.h - this.footer - this.safe.bottom;
+    const normal = this.buttons.filter(b => movableControls.slice(0, 5).includes(b.id));
+    const support = ['weapon4', 'skillUse', 'weapon5'].map(id => this.buttons.find(b => b.id === id)!).filter(b => b.label.node.activeInHierarchy);
+    const visible = normal.filter(b => b.label.node.activeInHierarchy), fire = this.buttons.find(b => b.id === 'fire')!;
+    const cardW = Math.min(this.compact ? 64 : 78, (right - left - 146) / 5 - 6);
+    let regularW = cardW, supportW = 100;
+    if (support.length) {
+      const room = fire.x - left - 12, gaps = Math.max(0, visible.length - 1) * 6 + 8 + (support.length - 1) * 6;
+      supportW = Math.min(100, Math.max(72, (room - visible.length * cardW - gaps) / support.length));
+      regularW = Math.max(44, Math.min(cardW, (room - support.length * supportW - gaps) / Math.max(1, visible.length)));
+    }
+    normal.forEach((b, index) => this.positionControl(b, left + index * (cardW + 6), by + 8, cardW));
+    if (support.length) visible.forEach((b, index) => this.positionControl(b, left + index * (regularW + 6), by + 8, regularW));
+    const dockX = left + visible.length * (regularW + 6) + 2;
+    support.forEach((b, index) => this.positionControl(b, dockX + index * (supportW + 6), by + 8, supportW));
+    const state = this.labels.get('weaponState')!, stateW = Math.max(60, Math.min(132, right - 68 - (left + 5 * (cardW + 6)) - 12));
+    const crowded = support.length > 0 && dockX + support.length * (supportW + 6) - 6 > fire.x - stateW - 16;
+    state.node.setPosition((crowded ? right - stateW / 2 : fire.x - 8 - stateW / 2) - this.w / 2,
+      this.h / 2 - (crowded ? fire.y - 8 - (this.footer - 14) / 2 : fire.y + fire.h / 2));
+    state.node.getComponent(UITransform)!.setContentSize(stateW, this.footer - 14);
+    for (const id of movableControls) {
+      const position = this.controlPositions[id]; if (!position) continue;
+      const bounds = this.controlBounds(id), b = this.buttons.find(b => b.id === id)!;
+      this.positionControl(b, bounds.x + bounds.w * position.x, bounds.y + bounds.h * position.y);
+      this.avoidFixedControls(id);
+    }
   }
   get compact() {
     return this.h < 500;
@@ -218,11 +256,6 @@ export class HUD {
       z: (y - top) / height * MAP.halfDepth * 2 - MAP.halfDepth };
   }
   constructor(parent: Node) {
-    try {
-      const position = JSON.parse(sys.localStorage.getItem('night-overwatch-support-position-v1') || 'null');
-      if (position && [position.x, position.y].every(value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1))
-        this.supportPosition = { x: position.x, y: position.y };
-    } catch { /* Ignore unavailable storage or invalid layout preferences. */ }
     this.root = new Node('OverwatchHUD');
     parent.addChild(this.root);
     this.root.layer = Layers.Enum.UI_2D;
@@ -468,8 +501,7 @@ export class HUD {
       if (small) { label.fontSize = 12; label.lineHeight = 17; }
     }
     this.button('homing', '', cardsLeft + 4 * (cardW + 6), by + 8, cardW, 44);
-    for (const id of ['weapon4', 'skillUse', 'weapon5']) this.button(id, '', left, by - 84, 100, 44);
-    this.placeSupport();
+    for (const id of ['weapon4', 'skillUse', 'weapon5']) this.button(id, '', left, by + 8, 100, 44);
     this.button('fire', '', right - fireW, h - this.safe.bottom - fireW - 10, fireW, fireW);
     const stateW = Math.min(132, right - fireW - (left + 5 * (cardW + 6)) - 12);
     this.live('weaponState', right - fireW - 8 - stateW / 2, h - this.safe.bottom - fireW / 2 - 10, small ? 12 : this.compact ? 12 : 14, Math.max(60, stateW), this.footer - 14, C.dim);
@@ -628,12 +660,12 @@ export class HUD {
     return id === 'settings' || id === 'screen';
   }
   inModal(node:Node){for(let current:Node|null=node;current;current=current.parent)if(current===this.modal)return true;return false;}
-  hit(x: number, y: number) {
-    return [...this.buttons]
-      .reverse()
+  hit(x: number, y: number, includeDisabled = false) {
+    const buttons = [...this.buttons].reverse();
+    return [...buttons.filter(b => this.isGlobalAction(b.id)), ...buttons.filter(b => !this.isGlobalAction(b.id))]
       .find(
         (b) =>
-          !b.disabled &&
+          (includeDisabled || !b.disabled) &&
           (!b.clip||x>=b.clip.x&&x<=b.clip.x+b.clip.w&&y>=b.clip.y&&y<=b.clip.y+b.clip.h) &&
           x >= b.x &&
           x <= b.x + b.w &&
@@ -1903,6 +1935,7 @@ export class HUD {
         gear.circle(gx, gy, 5.5); gear.fill();
       }
     }
+    if (!key) this.layoutCombatControls();
     this.buttonFeedback();
     const connection = this.labels.get('connectionNotice')!;
     connection.string = this.online?.connectionLost ? this.t('网络异常 · 正在重连', 'NETWORK LOST · RECONNECTING') : this.online?.offlineNotice || '';
@@ -1990,8 +2023,11 @@ export class HUD {
     }
     for (const id of ['notice', 'friendWarning', 'tutorial']) {
       const label = this.labels.get(id)!;
-      label.node.setPosition((left + right - 76) / 2 - w / 2, h / 2 - (by - 24));
-      label.node.getComponent(UITransform)!.setContentSize(Math.min(right - left - 76, Math.max(180, label.string.length * label.fontSize + 24)), 28);
+      const state = this.labels.get('weaponState')!, stateSize = state.node.getComponent(UITransform)!.contentSize;
+      const stateY = h / 2 - state.node.position.y, messageY = by - 24;
+      const messageRight = Math.abs(stateY - messageY) < stateSize.height / 2 + 14 ? Math.min(right - 76, state.node.position.x + w / 2 - stateSize.width / 2 - 8) : right - 76;
+      label.node.setPosition((left + messageRight) / 2 - w / 2, h / 2 - messageY);
+      label.node.getComponent(UITransform)!.setContentSize(Math.min(messageRight - left, Math.max(180, label.string.length * label.fontSize + 24)), 28);
       label.overflow = Label.Overflow.SHRINK;
       if (!label.node.active || !label.string) continue;
       const size = label.node.getComponent(UITransform)!.contentSize, p = label.node.position;
@@ -2012,7 +2048,8 @@ export class HUD {
       if (b.id.startsWith('weapon')) {
         const i = Number(b.id.slice(-1)), a = s.guns[i],ready=s.weaponReadiness(i);
         const compactNames=[['速射','AUTO'],['榴弹','HE'],['重炮','HVY'],['燃烧','FIRE']];
-        b.label.string = (b.w<100&&i<4?this.t(...compactNames[i] as [string,string]):text(WEAPONS[i].name,this.lang)) + ' ' + (a.ammo === Infinity ? '∞' : a.ammo)+(ready.empty?'\n'+this.t('弹尽','EMPTY'):ready.remaining>0?'\n'+ready.displaySeconds.toFixed(1)+'s':'');
+        const name=b.w<100&&i<4?this.t(...compactNames[i] as [string,string]):text(WEAPONS[i].name,this.lang), ammo=a.ammo===Infinity?'∞':String(a.ammo), status=ready.empty?this.t('弹尽','EMPTY'):ready.remaining>0?ready.displaySeconds.toFixed(1)+'s':'';
+        b.label.string=i>=4||b.w<60?name+'\n'+ammo+(status?'·'+status:''):name+' '+ammo+(status?'\n'+status:'');
       }
       if(b.id==='skillUse') {
         b.label.string=(s.skillKind==='tracking'?this.t('追踪','TRACK'):this.t('电磁干扰','EMP'))+'\n'+(s.skillRemaining>0?this.t('生效 ','ACTIVE ')+Math.ceil(s.skillRemaining)+'s':s.skillCooldown>0?this.t('冷却 ','COOLDOWN ')+Math.ceil(s.skillCooldown)+'s':this.t('就绪','READY'));
@@ -2038,7 +2075,7 @@ export class HUD {
       if(fire&&!s.homingSelected)this.cooldownBorder(g,b,s.weaponReadiness().ratio,true);
       if(b.id==='skillUse'&&s.skillKind)this.cooldownBorder(g,b,Math.min(1,s.skillRemaining>0?s.skillRemaining/SKILLS[s.skillKind].duration:s.skillCooldown/SKILLS[s.skillKind].cooldown),false,s.skillRemaining>0?C.mint:C.amber);
       b.label.color = col(fire && danger ? C.red : selected ? C.mint : C.white);
-      b.label.fontSize = fire ? 14 : b.id==='skillUse' ? 11 : this.compact ? 12 : 13;
+      b.label.fontSize = fire ? 14 : b.id==='skillUse'||b.w<60 ? 11 : this.compact ? 12 : 13;
       b.label.lineHeight = 15;
       if(b.id==='skillUse')b.label.color=col(s.skillRemaining>0?C.mint:s.skillCooldown>0?C.dim:C.white);
       if (b.id === 'homing' && tracking && s.buff!.remaining <= 5) b.label.color = col(C.amber);

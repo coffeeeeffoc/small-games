@@ -122,42 +122,79 @@ const world = { zoom: 1, thermal: false, viewMode: 'night', project(p: data.Poin
 } };
 const overlaps = (a: any, b: any) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
-test('support bar stays horizontal, persists safely and remains reachable after resize; telemetry follows fire', () => {
-  let stored:string|null=null;
-  (cc.sys as any).localStorage={getItem:()=>stored,setItem:(_key:string,value:string)=>{stored=value;}};
+test('equipped supports dock after normal weapons and every control reaches each safe edge independently', () => {
   try {
-    for(const [width,height]of [[568,320],[844,390],[1280,720]]) {
+    for(const [width,height]of [[568,320],[844,390],[1280,720]]) for(const effects of [[],['emp'],['emp','drone'],['emp','laser']]) {
       Object.assign(frame,{width,height});inset=12;
       const hud=new HUD(new SceneNode()),sim=new Simulation('training-60');hud.touch=true;
-      sim.applyLoadout({version:'night-growth-v1',level:10,effects:['emp','drone'],skipped:[]});sim.start();hud.update(sim,world);
-      const row=()=>['weapon4','skillUse','weapon5'].map(id=>hud.buttons.find((b:any)=>b.id===id));
+      sim.applyLoadout({version:'night-growth-v1',level:10,effects,skipped:[]});sim.homingAmmo=5;sim.start();hud.update(sim,world);
+      const ids=['weapon0','weapon1','weapon2','weapon3','homing','weapon4','skillUse','weapon5'];
+      const controls=()=>hud.buttons.filter((b:any)=>ids.includes(b.id)&&b.label.node.activeInHierarchy);
+      const rectangle=(l:any)=>{const size=l.node.getComponent(Transform).contentSize;return{x:l.node.position.x+frame.width/2-size.width/2,y:frame.height/2-l.node.position.y-size.height/2,w:size.width,h:size.height};};
+      const support=controls().filter((b:any)=>['weapon4','skillUse','weapon5'].includes(b.id)).sort((a:any,b:any)=>a.x-b.x),homing=hud.buttons.find((b:any)=>b.id==='homing'),fire=hud.buttons.find((b:any)=>b.id==='fire');
+      assert.equal(support.length,effects.length);assert(controls().every((b:any)=>b.y===homing.y&&b.w>=44&&b.h===44));
+      if(support.length){assert.equal(support[0].x,homing.x+homing.w+8);for(let i=1;i<support.length;i++)assert(Math.abs(support[i].x-support[i-1].x-support[i-1].w-6)<1e-9);}
+      for(const b of controls()) {
+        assert(!overlaps(b,fire));assert(!overlaps(b,rectangle(hud.labels.get('weaponState'))));
+        assert(controls().every((other:any)=>other===b||!overlaps(b,other)));
+      }
       for(const id of ['notice','friendWarning','tutorial']) {
-        const label=hud.labels.get(id),size=label.node.getComponent(Transform).contentSize;
-        const notice={x:label.node.position.x+width/2-size.width/2,y:height/2-label.node.position.y-size.height/2,w:size.width,h:size.height};
-        assert(row().every((b:any)=>!overlaps(b,notice)),'default support row leaves status messages clear');
-        assert(!overlaps(notice,hud.buttons.find((b:any)=>b.id==='fire')),'status messages stay clear of fire');
+        const notice=rectangle(hud.labels.get(id));assert(controls().every((b:any)=>!overlaps(b,notice)));assert(!overlaps(notice,fire));assert(!overlaps(notice,rectangle(hud.labels.get('weaponState'))));
       }
-      for(const position of [{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:.4,y:.6}]) {
-        hud.placeSupport(position);
-        const buttons=row();assert(buttons.every((b:any)=>b.y===buttons[0].y&&b.w===100&&b.h===44));
-        for(const [index,b]of buttons.entries()) {
-          assert(b.x>=12+inset&&b.x+b.w<=width-12-inset);assert(b.y>=inset+84&&b.y+b.h<height-inset-hud.footer);
-          assert(!overlaps(b,hud.minimapLayout));assert.equal(b.label.node.position.x,b.x+b.w/2-width/2);
-          if(index)assert(Math.abs(b.x-buttons[index-1].x-106)<1e-9);
+      const geometry=()=>controls().map(({id,x,y,w,h}:any)=>({id,x,y,w,h}));
+      for(const b of controls()) {
+        const others=geometry().filter((r:any)=>r.id!==b.id);
+        for(const position of [{x:0,y:.5},{x:1,y:.5},{x:.5,y:0},{x:.5,y:1}]) {
+          hud.placeControl(b.id,position);const bounds=hud.controlBounds(b.id);
+          assert.equal(b.x,bounds.x+bounds.w*position.x);assert.equal(b.y,bounds.y+bounds.h*position.y);
+          assert.equal(b.label.node.position.x,b.x+b.w/2-width/2);assert.deepEqual(geometry().filter((r:any)=>r.id!==b.id),others);
         }
+        hud.placeControl(b.id);assert.equal(hud.controlPositions[b.id],undefined);
       }
-      const state=hud.labels.get('weaponState'),fire=hud.buttons.find((b:any)=>b.id==='fire'),size=state.node.getComponent(Transform).contentSize;
-      assert.equal(state.node.position.x+width/2+size.width/2,fire.x-8);assert.match(state.string,/弹着\n热量/);
-      hud.saveSupportPosition();const restored=new HUD(new SceneNode());assert.deepEqual(restored.supportPosition,hud.supportPosition);
-      Object.assign(frame,{width:568,height:320});restored.resize();assert(restored.buttons.filter((b:any)=>['weapon4','skillUse','weapon5'].includes(b.id)).every((b:any)=>b.x>=12+inset&&b.x+b.w<=568-12-inset));
+      assert.match(hud.labels.get('weaponState').string,/弹着\n热量/);
+      hud.placeControl('weapon0',{x:.2,y:0});
+      const fresh=new HUD(new SceneNode());fresh.touch=true;fresh.update(sim,world);assert.deepEqual(fresh.controlPositions,{});
+      Object.assign(frame,{width:568,height:320});hud.resize();hud.update(sim,world);
+      const moved=hud.buttons.find((b:any)=>b.id==='weapon0');assert.equal(moved.y,inset);assert(moved.x>=inset&&moved.x+moved.w<=568-inset);
     }
-    Object.assign(frame,{width:844,height:390});inset=0;
-    for(const invalid of ['{','{"x":2,"y":0}','{"x":"0","y":0}','{"x":null,"y":0}']) {
-      stored=invalid;assert.deepEqual(new HUD(new SceneNode()).supportPosition,{x:.5,y:1});
-    }
-    (cc.sys as any).localStorage={getItem(){throw Error('blocked');},setItem(){throw Error('blocked');}};
-    const hud=new HUD(new SceneNode());assert.doesNotThrow(()=>hud.saveSupportPosition());
   } finally {delete (cc.sys as any).localStorage;inset=0;}
+});
+
+test('temporary layout ignores all old storage and keeps settings reachable',()=>{
+  const accessed:string[]=[];
+  (cc.sys as any).localStorage={getItem(key:string){accessed.push(key);return JSON.stringify({weapon4:{x:.5,y:.4},skillUse:{x:.6,y:.4},weapon5:{x:.7,y:.4}});},setItem(key:string){accessed.push(key);}};
+  try {
+    Object.assign(frame,{width:844,height:390});inset=0;
+    const sim=new Simulation('training-60');sim.applyLoadout({version:'night-growth-v1',level:10,effects:['emp','drone'],skipped:[]});sim.start();
+    const hud=new HUD(new SceneNode());hud.touch=true;
+    assert(hud.buttons.filter((b:any)=>['weapon4','skillUse','weapon5'].includes(b.id)).every((b:any)=>b.y===390-60+8),'initial support nodes start on the bottom line');
+    hud.update(sim,world);assert.deepEqual(hud.controlPositions,{});
+    const emp=hud.buttons.find((b:any)=>b.id==='skillUse'),drone=hud.buttons.find((b:any)=>b.id==='weapon4');assert.equal(emp.y,390-60+8);assert.equal(drone.y,emp.y);assert.equal(emp.x,drone.x+drone.w+6);
+    hud.placeControl('skillUse',{x:.2,y:.3});const temporary={...hud.controlPositions.skillUse};
+    const ordinary=new Simulation('training-60');ordinary.start();hud.update(ordinary,world);hud.update(sim,world);assert.deepEqual(hud.controlPositions.skillUse,temporary);
+    assert.deepEqual(new HUD(new SceneNode()).controlPositions,{});
+    const settings=hud.buttons.find((b:any)=>b.id==='settings'),bounds=hud.controlBounds('weapon0');
+    hud.placeControl('weapon0',{x:(settings.x-bounds.x)/bounds.w,y:(settings.y-bounds.y)/bounds.h});
+    assert.equal(hud.hit(settings.x+20,settings.y+20).id,'settings');assert.equal(hud.controlAt(settings.x+20,settings.y+20),undefined);
+    const weapon=hud.buttons.find((b:any)=>b.id==='weapon0');assert(!overlaps(weapon,settings));assert.equal(hud.controlAt(weapon.x+weapon.w/2,weapon.y+weapon.h/2).id,'weapon0');
+    assert.deepEqual(accessed,[],'layout never reads or writes localStorage');
+  } finally {delete (cc.sys as any).localStorage;inset=0;}
+});
+
+test('custom controls remain draggable after large-to-small resize and hidden fire becomes visible',()=>{
+  Object.assign(frame,{width:1280,height:720});inset=0;
+  const sim=new Simulation('training-60');sim.applyLoadout({version:'night-growth-v1',level:10,effects:['emp','drone'],skipped:[]});sim.homingAmmo=5;sim.start();
+  const hud=new HUD(new SceneNode());hud.touch=true;hud.update(sim,world);
+  const bounds=hud.controlBounds('weapon0'),fire=hud.buttons.find((b:any)=>b.id==='fire');
+  hud.placeControl('weapon0',{x:1173/bounds.w,y:(fire.y+5)/bounds.h});
+  Object.assign(frame,{width:568,height:320});hud.resize();hud.update(sim,world);
+  let weapon=hud.buttons.find((b:any)=>b.id==='weapon0'),trigger=hud.buttons.find((b:any)=>b.id==='fire');
+  assert(!overlaps(weapon,trigger));assert.equal(hud.controlAt(weapon.x+weapon.w/2,weapon.y+weapon.h/2)?.id,'weapon0');
+  Object.assign(frame,{width:1280,height:720});hud.touch=false;hud.resize();hud.update(sim,world);
+  const desktopBounds=hud.controlBounds('weapon0'),hiddenFire=hud.buttons.find((b:any)=>b.id==='fire');assert(!hiddenFire.label.node.activeInHierarchy);
+  hud.placeControl('weapon0',{x:(hiddenFire.x+3)/desktopBounds.w,y:(hiddenFire.y+5)/desktopBounds.h});
+  hud.touch=true;hud.resize();hud.update(sim,world);weapon=hud.buttons.find((b:any)=>b.id==='weapon0');trigger=hud.buttons.find((b:any)=>b.id==='fire');
+  assert(trigger.label.node.activeInHierarchy);assert(!overlaps(weapon,trigger));assert.equal(hud.controlAt(weapon.x+weapon.w/2,weapon.y+weapon.h/2)?.id,'weapon0');
 });
 
 test('HUD: skins are mounted, visual bounds stay inside touch targets, and unavailable pagination rejects input', () => {
@@ -1299,7 +1336,7 @@ test('disabled active and cooling skills block battlefield input while special w
     sim.applyLoadout({version:'night-growth-v1',level:10,effects:['emp','drone'],skipped:[]});sim.start();sim.useSkill();sim.time=time;hud.update(sim,world);
     const skill=hud.buttons.find((b:any)=>b.id==='skillUse'),weapon=hud.buttons.find((b:any)=>b.id==='weapon4');
     assert(skill?.disabled);assert(weapon);assert(!overlaps(skill,weapon));
-    assert(skill.label.string.startsWith('电磁干扰\n'));assert.equal(hud.supportAt(skill.x+20,skill.y+20),skill);
+    assert(skill.label.string.startsWith('电磁干扰\n'));assert.equal(hud.controlAt(skill.x+20,skill.y+20),skill);
     assert.equal(hud.hit(skill.x+20,skill.y+20),undefined);
     assert(hud.blocksBattlefield(skill.x+20,skill.y+20),'a disabled control must consume touch/mouse input');
   }

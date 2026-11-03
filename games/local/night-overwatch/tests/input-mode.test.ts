@@ -54,37 +54,48 @@ const touch = (id: number, x = 950, y = 100, simulate = false) => ({ simulate,
 function mission() {
   const g = new Overwatch();
   g.hud = { t: (value: string) => value, supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire' } : undefined,
-    supportAt: () => undefined, listAt: () => undefined, minimapPoint: () => undefined, blocksBattlefield: () => false };
+    controlAt: () => undefined, listAt: () => undefined, minimapPoint: () => undefined, blocksBattlefield: () => false };
   g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, viewMode: 'night', updateCamera() {}, reset() {}, setView(mode) { this.viewMode=mode;this.thermal=mode==='thermal'; }, sensor() { this.setView(this.viewMode==='night'?'enhanced':this.viewMode==='enhanced'?'thermal':'night'); } };
   g.platform = new Platform(new Node(), g.pause, g.clear);
   g.sim.start(); g.sim.choose(0);
   return g;
 }
 
-test('support bar mouse/touch drags consume input, save only on release and cancel without actions', () => {
-  for (const mouse of [false,true]) {
-    const g=mission(),actions:string[]=[];let saves=0,disabled=false;
+test('each weapon and skill drags independently within the match and cancels without actions', () => {
+  for (const mouse of [false,true]) for(const id of ['weapon0','weapon1','weapon2','weapon3','homing','weapon4','skillUse','weapon5']) {
+    const g=mission(),actions:string[]=[];let disabled=false;
     g.platform.touchInput=!mouse;g.action=(id:string)=>actions.push(id);
-    const button={id:'skillUse'},position={x:.5,y:1};
-    Object.assign(g.hud,{supportPosition:{...position},supportBounds:{w:400,h:200},
-      supportAt:(x:number,y:number)=>x>=100&&x<=200&&y>=100&&y<=144?button:undefined,
-      hit:(x:number,y:number)=>!disabled&&x>=100&&x<=200&&y>=100&&y<=144?button:undefined,
-      placeSupport(p:any){this.supportPosition={...p};},saveSupportPosition(){saves++;}});
+    const button={id,x:100,y:100,w:100,h:44},other=id==='weapon0'?'weapon1':'weapon0';
+    const hit=(x:number,y:number)=>x>=button.x&&x<=button.x+button.w&&y>=button.y&&y<=button.y+button.h?button:undefined;
+    Object.assign(g.hud,{controlPositions:{[other]:{x:.8,y:.2}},controlBounds:()=>({x:0,y:0,w:400,h:200}),
+      controlAt:hit,hit:(x:number,y:number)=>!disabled?hit(x,y):undefined,
+      placeControl(key:string,p:any){if(p)this.controlPositions[key]={...p};else delete this.controlPositions[key];button.x=p?p.x*400:100;button.y=p?p.y*200:100;}});
     const event=(x:number,y:number)=>mouse?{getButton:()=>0,getUILocation:()=>({x,y:600-y}),getLocation:()=>({x,y:600-y})}:touch(1,x,600-y);
-    const down=(x=120,y=120)=>mouse?g.mouseDown(event(x,y)):g.touchStart(event(x,y));
+    const down=()=>{const p={x:button.x+20,y:button.y+20};if(mouse)g.mouseDown(event(p.x,p.y));else g.touchStart(event(p.x,p.y));return p;};
     const move=(x:number,y:number)=>mouse?g.mouseMove(event(x,y)):g.touchMove(event(x,y));
     const up=(x:number,y:number)=>mouse?g.mouseUp(event(x,y)):g.touchEnd(event(x,y));
-    down();up(120,120);assert.deepEqual(actions,['skillUse']);actions.length=0;
-    down();move(160,100);assert.deepEqual(g.hud.supportPosition,{x:.6,y:.9});assert.equal(saves,0);
+    let p=down();up(p.x,p.y);assert.deepEqual(actions,[id]);actions.length=0;assert.equal(g.hud.controlPositions[id],undefined,'taps never customize layout');
+    p=down();move(p.x+40,p.y-20);assert.deepEqual(g.hud.controlPositions[id],{x:.35,y:.4});
+    g.clear();up(p.x+40,p.y-20);assert.equal(g.hud.controlPositions[id],undefined,'first cancelled drag restores default placement');
+    p=down();move(p.x+40,p.y-20);
     if(!mouse){g.touchStart(touch(2,400,300));assert.equal(g.touches.get(2).role,'cancelled');}
-    up(160,100);assert.equal(saves,1);assert.deepEqual(actions,[]);assert.deepEqual([...g.sim.held],[]);
-    const committed={...g.hud.supportPosition};down();move(170,90);g.clear();up(170,90);
-    assert.deepEqual(g.hud.supportPosition,committed);assert.equal(saves,1);assert.deepEqual(actions,[]);
-    down();move(170,90);g.pause('settings',true);up(170,90);assert.deepEqual(g.hud.supportPosition,committed);assert.equal(saves,1);
-    g.pause('settings',false);disabled=true;down();up(120,120);assert.deepEqual(actions,[]);
-    down();up(160,100);assert.equal(saves,2,'release-only displacement is a drag, never activation');
-    assert.deepEqual(actions,[]);assert.equal(g.sim.fired,0);g.platform.dispose();
+    up(p.x+40,p.y-20);g.clear();assert.deepEqual(g.hud.controlPositions[id],{x:.35,y:.4});assert.deepEqual(actions,[]);assert.deepEqual([...g.sim.held],[]);
+    const committed={...g.hud.controlPositions[id]};p=down();move(p.x+50,p.y-30);g.clear();up(p.x+50,p.y-30);
+    assert.deepEqual(g.hud.controlPositions[id],committed);assert.deepEqual(actions,[]);
+    p=down();move(p.x+50,p.y-30);g.pause('settings',true);up(p.x+50,p.y-30);assert.deepEqual(g.hud.controlPositions[id],committed);
+    g.pause('settings',false);disabled=true;p=down();up(p.x,p.y);assert.deepEqual(actions,[]);
+    p=down();up(p.x+40,p.y-20);assert.notDeepEqual(g.hud.controlPositions[id],committed,'release-only displacement is a drag, never activation');
+    assert.deepEqual(g.hud.controlPositions[other],{x:.8,y:.2});assert.deepEqual(actions,[]);assert.equal(g.sim.fired,0);g.platform.dispose();
   }
+});
+
+test('new missions and retries reset temporary controls while settings resume preserves them',()=>{
+  const g=mission(),position={weapon0:{x:.2,y:.3}};g.hud.controlPositions=structuredClone(position);
+  g.pause('settings',true);g.pause('settings',false);assert.deepEqual(g.hud.controlPositions,position);
+  g.sim.phase='briefing';g.beginCampaign();assert.deepEqual(g.hud.controlPositions,{});assert.equal(g.sim.phase,'playing');
+  g.hud.controlPositions=structuredClone(position);g.retry();assert.deepEqual(g.hud.controlPositions,{});assert.equal(g.sim.phase,'playing');
+  g.hud.controlPositions=structuredClone(position);g.sim.phase='success';g.selectMission('training-60');g.action('start');assert.deepEqual(g.hud.controlPositions,{});assert.equal(g.sim.phase,'playing');
+  g.platform.dispose();
 });
 
 test('rankings scroll with wheel and touch only inside the list, and cancellation releases the gesture', () => {

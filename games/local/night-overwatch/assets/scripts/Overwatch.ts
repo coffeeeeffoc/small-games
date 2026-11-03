@@ -50,7 +50,7 @@ export class Overwatch extends Component {
   private infoHold?:{id:string;at:number};
   private listGesture?:{pointer:number|'mouse';key:string;x:number;y:number;lastX:number;lastY:number;axis:'x'|'y';button?:string;moved:boolean;started:number};
   private loadoutGesture?:{pointer:number|'mouse';item?:string;source?:LoadoutSlot;x:number;y:number;lastY:number;mode:'pending'|'scroll'|'drag'};
-  private supportGesture?: { pointer: number | 'mouse'; button: string; x: number; y: number; position: { x: number; y: number }; moved: boolean };
+  private controlGesture?: { pointer: number | 'mouse'; button: string; x: number; y: number; origin: { x: number; y: number }; position?: { x: number; y: number }; moved: boolean };
   accumulator = 0;
   lastEvent = 0;
   frameCount = 0;
@@ -95,6 +95,7 @@ export class Overwatch extends Component {
       if (start) {
         this.presentation = new DuelPresentation(); this.completionSpoken = false;
         this.clear(); this.lastEvent = 0; this.accumulator = 0;
+        this.hud.controlPositions = {};
         this.hud.reportOpen = this.hud.equipmentOpen = false; this.hud.timeComparison = undefined;
         this.hud.missionsOpen = false; this.hud.tutorial = false;
         this.syncWorld(); this.world.follow = false; this.world.center = { x: 0, z: 0 }; this.world.updateCamera();
@@ -168,8 +169,8 @@ export class Overwatch extends Component {
     this.hud.trainingBest = this.platform.readWarmupRecord();
   }
   clear = () => {
-    if (this.supportGesture) this.hud.placeSupport(this.supportGesture.position);
-    this.supportGesture = undefined;
+    if (this.controlGesture) this.hud.placeControl(this.controlGesture.button, this.controlGesture.position);
+    this.controlGesture = undefined;
     if (this.hud) this.hud.mousePointer = undefined;
     this.infoHold=undefined;this.listGesture=undefined;this.loadoutGesture=undefined;if(this.quartermaster?.drag){this.quartermaster.drag=undefined;this.quartermaster.revision++;}
     this.sim.clearInput();
@@ -267,7 +268,9 @@ export class Overwatch extends Component {
     if(this.quartermaster)this.quartermaster.page='';
     if(this.online)this.online.battleReward=undefined;
     const sim = this.sim, online = this.online;
-    const begin = () => { if (this.sim !== sim || this.disposed) return; sim.start(); this.completionSpoken = false;
+    const begin = () => { if (this.sim !== sim || this.disposed) return;
+      if (sim.phase === 'briefing') this.hud.controlPositions = {};
+      sim.start(); this.completionSpoken = false;
       const recorder = online?.recorder;
       if (online?.rankStatus === 'recording') this.hud.toastUntil = 0;
       if (sim.mission.mode === 'escort' && online?.rankStatus === 'pending-sync') {
@@ -884,26 +887,27 @@ export class Overwatch extends Component {
     if(button?.id.startsWith('info:'))this.infoHold={id:button.id,at:Date.now()};
     this.listGesture={pointer,key:area.key,x,y,lastX:x,lastY:y,axis:area.axis||'y',button:button?.id,moved:false,started:Date.now()};return true;
   }
-  private beginSupportGesture(pointer: number | 'mouse', x: number, y: number) {
-    if (this.supportGesture || this.hud.modal || this.sim.paused || this.sim.phase !== 'playing' || this.online?.spectator || this.online?.entering) return false;
-    const button = this.hud.supportAt(x, y); if (!button) return false;
-    this.supportGesture = { pointer, button: button.id, x, y, position: { ...this.hud.supportPosition }, moved: false };
+  private beginControlGesture(pointer: number | 'mouse', x: number, y: number) {
+    if (this.controlGesture || this.hud.modal || this.sim.paused || this.sim.phase !== 'playing' || this.online?.spectator || this.online?.entering) return false;
+    const button = this.hud.controlAt(x, y); if (!button) return false;
+    const bounds = this.hud.controlBounds(button.id), saved = this.hud.controlPositions[button.id];
+    this.controlGesture = { pointer, button: button.id, x, y, position: saved && { ...saved },
+      origin: { x: (button.x - bounds.x) / Math.max(1, bounds.w), y: (button.y - bounds.y) / Math.max(1, bounds.h) }, moved: false };
     return true;
   }
-  private moveSupportGesture(pointer: number | 'mouse', x: number, y: number) {
-    const gesture = this.supportGesture; if (!gesture || gesture.pointer !== pointer) return false;
+  private moveControlGesture(pointer: number | 'mouse', x: number, y: number) {
+    const gesture = this.controlGesture; if (!gesture || gesture.pointer !== pointer) return false;
     if (Math.hypot(x - gesture.x, y - gesture.y) > 8) gesture.moved = true;
     if (gesture.moved) {
-      const bounds = this.hud.supportBounds;
-      this.hud.placeSupport({ x: gesture.position.x + (x - gesture.x) / Math.max(1, bounds.w), y: gesture.position.y + (y - gesture.y) / Math.max(1, bounds.h) });
+      const bounds = this.hud.controlBounds(gesture.button);
+      this.hud.placeControl(gesture.button, { x: gesture.origin.x + (x - gesture.x) / Math.max(1, bounds.w), y: gesture.origin.y + (y - gesture.y) / Math.max(1, bounds.h) });
     }
     return true;
   }
-  private endSupportGesture(pointer: number | 'mouse', x: number, y: number) {
-    const gesture = this.supportGesture; if (!gesture || gesture.pointer !== pointer) return false;
-    this.moveSupportGesture(pointer, x, y); this.supportGesture = undefined;
-    if (gesture.moved) this.hud.saveSupportPosition();
-    else if (this.hud.hit(x, y)?.id === gesture.button) this.action(gesture.button);
+  private endControlGesture(pointer: number | 'mouse', x: number, y: number) {
+    const gesture = this.controlGesture; if (!gesture || gesture.pointer !== pointer) return false;
+    this.moveControlGesture(pointer, x, y); this.controlGesture = undefined;
+    if (!gesture.moved && this.hud.hit(x, y)?.id === gesture.button) this.action(gesture.button);
     return true;
   }
   private moveListGesture(pointer:number|'mouse',x:number,y:number){
@@ -950,7 +954,7 @@ export class Overwatch extends Component {
     this.hud.touch = false;
     const p = this.mousePosition(e);
     this.hud.mousePointer = p;
-    if(this.moveSupportGesture('mouse',p.x,p.y)||this.moveLoadoutGesture('mouse',p.x,p.y)||this.moveListGesture('mouse',p.x,p.y))return;
+    if(this.moveControlGesture('mouse',p.x,p.y)||this.moveLoadoutGesture('mouse',p.x,p.y)||this.moveListGesture('mouse',p.x,p.y))return;
     if (this.mouseButton && this.hud.hit(p.x, p.y)?.id !== this.mouseButton) {
       this.sim.setFire('mouse', false);
       this.mouseButton = '';this.infoHold=undefined;
@@ -972,7 +976,7 @@ export class Overwatch extends Component {
     const p = this.mousePosition(e),
       b = this.hud.hit(p.x, p.y);
     this.hud.mousePointer = p;
-    if(e.getButton()===0&&(this.beginSupportGesture('mouse',p.x,p.y)||this.beginLoadoutGesture('mouse',p.x,p.y)||this.beginListGesture('mouse',p.x,p.y)))return;
+    if(e.getButton()===0&&(this.beginControlGesture('mouse',p.x,p.y)||this.beginLoadoutGesture('mouse',p.x,p.y)||this.beginListGesture('mouse',p.x,p.y)))return;
     if (b) {
       if (e.getButton() !== 0) return;
       if (this.hud.modal && !this.hud.inModal(b.label.node) && !this.hud.isGlobalAction(b.id)) return;
@@ -1011,7 +1015,7 @@ export class Overwatch extends Component {
     this.sim.setFire('mouse', false);
     const p = this.mousePosition(e),
       b = this.hud.hit(p.x, p.y);
-    if(this.endSupportGesture('mouse',p.x,p.y)||this.endLoadoutGesture('mouse',p.x,p.y)||this.endListGesture('mouse',p.x,p.y))return;
+    if(this.endControlGesture('mouse',p.x,p.y)||this.endLoadoutGesture('mouse',p.x,p.y)||this.endListGesture('mouse',p.x,p.y))return;
     this.infoHold=undefined;
     const id = this.mouseButton;
     this.mouseButton = '';
@@ -1044,8 +1048,8 @@ export class Overwatch extends Component {
         b = this.hud.hit(x, y),
         id = t.getID();
       if (this.touches.has(id)) continue;
-      if(this.supportGesture&&this.supportGesture.pointer!==id){this.touches.set(id,{role:'cancelled',x,y});continue;}
-      if(this.beginSupportGesture(id,x,y)){this.touches.set(id,{role:'support',x,y});continue;}
+      if(this.controlGesture&&this.controlGesture.pointer!==id){this.touches.set(id,{role:'cancelled',x,y});continue;}
+      if(this.beginControlGesture(id,x,y)){this.touches.set(id,{role:'control',x,y});continue;}
       if(this.loadoutGesture&&this.loadoutGesture.pointer!==id){this.touches.set(id,{role:'cancelled',x,y});continue;}
       if(this.beginLoadoutGesture(id,x,y)){this.touches.set(id,{role:'loadout',x,y});continue;}
       if(this.listGesture&&this.listGesture.pointer!==id){this.touches.set(id,{role:'cancelled',x,y});continue;}
@@ -1084,7 +1088,7 @@ export class Overwatch extends Component {
     if (e.simulate || (sys.isBrowser && !this.platform.touchInput)) return;
     for (const t of e.getTouches()) {
       const role = this.touches.get(t.getID()), p = t.getUILocation();
-      if(role?.role==='support'){this.moveSupportGesture(t.getID(),p.x,this.hud.h-p.y);continue;}
+      if(role?.role==='control'){this.moveControlGesture(t.getID(),p.x,this.hud.h-p.y);continue;}
       if(role?.role==='list'){this.moveListGesture(t.getID(),p.x,this.hud.h-p.y);continue;}
       if(role?.role==='loadout'){this.moveLoadoutGesture(t.getID(),p.x,this.hud.h-p.y);continue;}
       if (role?.role === 'button' && this.hud.hit(p.x,this.hud.h-p.y)?.id !== role.button) {role.role='cancelled';this.infoHold=undefined;}
@@ -1140,7 +1144,7 @@ export class Overwatch extends Component {
         role = this.touches.get(id);
       this.touches.delete(id);this.infoHold=undefined;
       this.sim.setFire('touch:' + id, false);
-      if(role?.role==='support'){const p=t.getUILocation();this.endSupportGesture(id,p.x,this.hud.h-p.y);continue;}
+      if(role?.role==='control'){const p=t.getUILocation();this.endControlGesture(id,p.x,this.hud.h-p.y);continue;}
       if(role?.role==='list'){const p=t.getUILocation();this.endListGesture(id,p.x,this.hud.h-p.y);continue;}
       if(role?.role==='loadout'){const p=t.getUILocation();this.endLoadoutGesture(id,p.x,this.hud.h-p.y);continue;}
       if (role?.role === 'pinch')
@@ -1241,7 +1245,7 @@ export class Overwatch extends Component {
     // Keyboard resize and input-mode changes must not destroy an active EditBox.
     if (key !== this.resizeKey && !this.hud.editing) {
       this.resizeKey = key;
-      if (this.supportGesture) this.clear();
+      if (this.controlGesture) this.clear();
       this.hud.resize();
       this.world.updateCamera();
       this.pause('orientation', frame.width < frame.height);
@@ -1328,7 +1332,7 @@ export class Overwatch extends Component {
       this.platform.saveRewards();
     }
     this.updateRadio(Math.min(dt, .1));
-    this.hud.pressedButton=this.supportGesture&&!this.supportGesture.moved?this.supportGesture.button:this.mouseButton || Array.from(this.touches.values()).find(t=>t.role==='button'||t.role==='fire')?.button || '';
+    this.hud.pressedButton=this.controlGesture&&!this.controlGesture.moved?this.controlGesture.button:this.mouseButton || Array.from(this.touches.values()).find(t=>t.role==='button'||t.role==='fire')?.button || '';
     this.hud.update(presented, this.world);
     if (this.pauseControl) {
       this.pauseControl.hidden = !this.hud.buttons.find(button => button.id === 'settings')?.label.node.activeInHierarchy;

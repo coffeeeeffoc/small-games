@@ -1,0 +1,25 @@
+{
+  "command": "pnpm build:games",
+  "exitCode": 0,
+  "creator": "3.8.8",
+  "sourceHash": "91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e",
+  "batch": "20261103T195050265Z-674307",
+  "name": "night-overwatch-taptap-h5-production-ads-on-service-on",
+  "buildType": "production",
+  "devMode": false,
+  "apiUrl": "https://api.nenggongzhiren.cn/small-games/v1",
+  "bytes": 53024352,
+  "sha256": "447d7ec600e585f070e666cbfb63bcf617e281bdb813763f6cea2ab7e91212ea",
+  "zip": "night-overwatch-taptap-h5-production-ads-on-service-on.zip",
+  "sourceSHA": "be1c600e80699ee5d6b4e47fc1501c14f4f4b2a7",
+  "sourceDirty": true,
+  "tests": {
+    "hudAndInput": 93,
+    "browserScenarios": 7,
+    "browserScreenshots": 35,
+    "browserErrors": 0,
+    "nativeStaging": 7,
+    "ciScopeAndWorkflow": 7
+  },
+  "scope": "Exact extracted production ZIP; SDK availability fixture; no ad shown"
+}

@@ -1,0 +1,42 @@
+{
+  "rules": {
+    "ranked": "night-input-replay-v14",
+    "duel": "night-duel-v7",
+    "drone": {
+      "count": 3,
+      "duration": 12,
+      "damage": 6,
+      "interval": 0.5
+    },
+    "emp": {
+      "duration": 12,
+      "cooldown": 45,
+      "immunity": 8,
+      "level": 10
+    }
+  },
+  "runtimeImage": "sha256:955421236ec957eca68867f7bf34db44f845adf31f03a361adb3d9eaa7e45b76",
+  "checkedAt": "2026-11-03T19:23:03.338Z",
+  "publicChecks": [
+    {
+      "path": "/health",
+      "status": 200,
+      "body": {
+        "service": "runtime",
+        "status": "ok"
+      }
+    },
+    {
+      "path": "/small-games/v1/games/night-overwatch",
+      "status": 401
+    },
+    {
+      "path": "/api/competition/v1/games/night-overwatch",
+      "status": 401
+    },
+    {
+      "path": "/small-games/v1/games/night-overwatch/assets",
+      "status": 401
+    }
+  ]
+}
