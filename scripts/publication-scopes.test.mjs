@@ -3079,10 +3079,7 @@ test('planning partial clone retains full history and accepts only the two revie
   ]) {
     const file = `.github/workflows/${name}.yml`;
     const before = execFileSync('git', ['show', `35587c10:${file}`], { encoding: 'utf8' });
-    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
-      '\r\n',
-      '\n',
-    );
+    const after = execFileSync('git', ['show', `be1c600e:${file}`], { encoding: 'utf8' });
     const anchor = `  ${job}:\n    runs-on: ubuntu-latest\n    timeout-minutes: 5\n`;
     const checkout =
       '          fetch-depth: 0\n      - name: Read locked game workspaces for planning\n';
@@ -3112,6 +3109,29 @@ test('planning partial clone retains full history and accepts only the two revie
       assert.equal(classify(file, before, invalid).has(file), false);
     assert.equal(classify(file, before + '\n', after).has(file), false);
     assert.equal(classify(file, after, before).has(file), false);
+  }
+});
+
+test('planning budgets preserve reviewed commands, permissions and consumers', () => {
+  for (const name of ['ci', 'pages']) {
+    const file = `.github/workflows/${name}.yml`;
+    const before = execFileSync('git', ['show', `be1c600e:${file}`], { encoding: 'utf8' });
+    const after = readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll(
+      '\r\n',
+      '\n',
+    );
+    assert.equal(after, before.replaceAll('timeout-minutes: 15', 'timeout-minutes: 30'));
+    const scopes = classify(file, before, after);
+    assert.deepEqual(scopes.get(file), []);
+    assert.equal(plan([file], scopes).validation_tools, true);
+    for (const invalid of [
+      after + '\n      - run: echo unexpected\n',
+      after.replace('contents: read', 'contents: write'),
+      after.replace('timeout-minutes: 30', 'timeout-minutes: 31'),
+      after.replace('fetch-depth: 0', 'fetch-depth: 1'),
+    ])
+      assert.equal(classify(file, before, invalid).has(file), false);
+    assert.equal(classify(file, before + '\n', after).has(file), false);
   }
 });
 

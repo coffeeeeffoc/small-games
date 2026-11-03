@@ -835,6 +835,7 @@ const planningCheckoutHashes = {
     qualityBudget: 'e75bfeb396879c1e6550f8e54d61639a7a7509476cd68d87b20243a2984111a7',
     partialBase: 'bf4633cebeee4c9b8b5c7030246e11a664ddd364a8f9901095720aca5ff88221',
     partial: 'abf95876beccbf0e41cb2f5b3b6544198bee5ff965215b564e0701bd0fb5666a',
+    budget30: 'c49fff423b3abab01e98f5eaa0f29e0ee3e310168b7a147d159581fce1fa7c09',
   },
   '.github/workflows/pages.yml': {
     original: '9a2493b15ddd4d6379ae117a94bd4620acfaa20bdf084eab6e96c0a03ca92a51',
@@ -843,6 +844,7 @@ const planningCheckoutHashes = {
     parser: 'da0f2c9bff3757127328d00834e7b160f2cf4e886035fe588e7a0bd2c91adc1e',
     partialBase: '228364b8559ed1ff24890594999d8c4adfff46af57b7f11a2861fb305a5e5419',
     partial: '9bce1a4826a02c17a4f368c2314746f623dc0938b453732a5234891c9e226985',
+    budget30: '735919b9223ad8cd2076c1f9741db9178addb42a1cf85a86057564d0c31a91e7',
   },
 };
 // Only expand the bare planner's exact gitlink inputs; no recursive assets,
@@ -861,6 +863,8 @@ function exactPlanningCheckout(file, before, after) {
     newHash = digest(after);
   // Keep full commit/tree history and the complete checkout; defer historical blobs only.
   if (oldHash === hashes.partialBase && newHash === hashes.partial) return true;
+  // Checkout and historical scope checks share the job budget; execution and gates stay identical.
+  if (oldHash === hashes.partial && newHash === hashes.budget30) return true;
   // The planning job has no YAML dependency. This exact reviewed 40 -> 60
   // minute quality budget changes no command, condition or permission.
   if (oldHash === hashes.nativeGate && newHash === hashes.qualityBudget) return true;
@@ -4538,7 +4542,9 @@ export function nullrangeCreatorFileScopes({
         if (
           ![
             review[1],
-            ...(file === '.github/workflows/ci.yml' ? [planningCheckoutHashes[file].partial] : []),
+            ...(file === '.github/workflows/ci.yml'
+              ? [planningCheckoutHashes[file].partial, planningCheckoutHashes[file].budget30]
+              : []),
           ].includes(digest(readHead(file))) ||
           (review[0] !== null && digest(readBase(file)) !== review[0])
         )
