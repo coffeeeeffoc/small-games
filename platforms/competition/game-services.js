@@ -301,7 +301,106 @@ export function createGameServices({ gameId, ruleVersion }) {
 }
 
 // Each attempt has its own key; finished journals are immutable except for acknowledgements.
-function createDurableRecorder(services, { storage }, onStatus) {
+function createDurableRecorder(services, { storage, source = 'provided' }, onStatus) {
+  let selectionError,
+    storageDiagnostic = '';
+  if (services.config.platform === 'h5' && typeof globalThis.window !== 'undefined') {
+    try {
+      const browserStorage = globalThis.window.localStorage;
+      if (!browserStorage) throw Error('window.localStorage is unavailable');
+      storage = browserStorage;
+      source = 'window.localStorage';
+    } catch (error) {
+      selectionError = error;
+    }
+  }
+  const safeMessage = (value) =>
+    String(value ?? '')
+      .replace(/[\r\n\t]/g, ' ')
+      .replace(/https?:\/\/[^\s"'<>]+/gi, '[URL]')
+      .replace(/[\[{][\s\S]*/g, '[details omitted]')
+      .replace(/Bearer\s+\S+/gi, 'Bearer [redacted]')
+      .replace(
+        /((?:(?:access|refresh|player)[-_ ]?)?token|authorization|cookie|password|secret|api[-_ ]?key|session[-_ ]?id|player[-_ ]?id|request[-_ ]?id)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi,
+        '$1=[redacted]',
+      )
+      .replace(/night-pending-run-v1:[^\s]+/g, '[journal key]')
+      .replace(/[A-Za-z0-9_+/=.-]{28,}/g, '[opaque value]')
+      .slice(0, 320);
+  const safeName = (value) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? String(value)
+      : /^[A-Za-z][A-Za-z0-9_.-]{0,63}$/.test(String(value || ''))
+        ? safeMessage(value)
+        : 'unknown';
+  const bytes = (value) =>
+    typeof value === 'string'
+      ? [...value].reduce((total, c) => {
+          const point = c.codePointAt(0);
+          return total + (point < 128 ? 1 : point < 2048 ? 2 : point < 65536 ? 3 : 4);
+        }, 0)
+      : 0;
+  const describeError = (error) =>
+    `name=${safeName(error?.name || 'Error')} code=${safeName(error?.code)}\nmessage=${safeMessage(error?.message || 'Storage operation failed')}`;
+  function diagnose(stage, error, details = '') {
+    const methods = ['getItem', 'setItem', 'removeItem', 'key']
+      .map((method) => {
+        try {
+          return `${method}=${typeof storage?.[method]}`;
+        } catch {
+          return `${method}=throws`;
+        }
+      })
+      .join(' ');
+    let length;
+    try {
+      const value = storage?.length;
+      length =
+        typeof value === 'number' && Number.isFinite(value) ? `number:${value}` : typeof value;
+    } catch {
+      length = 'throws';
+    }
+    storageDiagnostic = `stage=${stage}\nsource=${['window.localStorage', 'cocos.localStorage', 'provided'].includes(source) ? source : 'provided'}\n${describeError(error)}\n${methods}\nlength=${length}${details ? '\n' + details : ''}${selectionError ? '\nwindow.localStorage selection failed\n' + describeError(selectionError) : ''}`;
+  }
+  function access(stage, operation, details = '') {
+    try {
+      return operation();
+    } catch (error) {
+      diagnose(stage, error, details);
+      throw error;
+    }
+  }
+  const getStored = (name) => access('get', () => storage.getItem(name));
+  const setStored = (name, value) =>
+    access('set', () => storage.setItem(name, value), `writeBytes=${bytes(value)}`);
+  const removeStored = (name) => access('remove', () => storage.removeItem(name));
+  function verifyStored(name, expected) {
+    const actual = access('readback', () => storage.getItem(name), `writeBytes=${bytes(expected)}`);
+    if (actual !== expected) {
+      const error = failure('STORAGE_UNAVAILABLE', 'Storage readback does not match written data');
+      diagnose(
+        'readback',
+        error,
+        `writeBytes=${bytes(expected)} actualType=${actual === null ? 'null' : typeof actual} readBytes=${bytes(actual)} matches=false`,
+      );
+      return false;
+    }
+    return true;
+  }
+  function canPersist() {
+    try {
+      if (
+        typeof storage.key === 'function' &&
+        typeof storage.removeItem === 'function' &&
+        Number.isInteger(storage.length)
+      )
+        return true;
+      throw Error('Storage enumeration or removal capability is unavailable');
+    } catch (error) {
+      diagnose('capability', error);
+      return false;
+    }
+  }
   const scope =
     services.authority ||
     JSON.stringify([
@@ -351,7 +450,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     for (let i = 0; i < run.acked; i++) run.batches[i] = null;
   }
   function cleanAcknowledged(name) {
-    const serialized = storage.getItem(name + ':synced');
+    const serialized = getStored(name + ':synced');
     if (!serialized) return false;
     const done = JSON.parse(serialized);
     if (
@@ -381,7 +480,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     // A valid acknowledgement already prevents replay. Cleanup is best effort;
     // Cocos/platform storage may return an empty string for an absent key.
     try {
-      storage.removeItem(name);
+      removeStored(name);
     } catch {
       /* Retry cleanup on recovery. */
     }
@@ -389,10 +488,10 @@ function createDurableRecorder(services, { storage }, onStatus) {
   }
   function save(run, online = false) {
     try {
-      const stored = storage.getItem(key(run));
+      const stored = getStored(key(run));
       if (stored && JSON.parse(stored).cancelPending) run.cancelPending = true;
       if (run.abandoned && !run.cancelPending) {
-        storage.removeItem(key(run));
+        removeStored(key(run));
         return true;
       }
       if (cleanAcknowledged(key(run))) {
@@ -403,7 +502,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
       const serialized = JSON.stringify(run);
       let writeFailed = false;
       try {
-        storage.setItem(key(run), serialized);
+        setStored(key(run), serialized);
       } catch {
         writeFailed = true;
       }
@@ -412,7 +511,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
         run.synced = true;
         return true;
       }
-      if (!writeFailed && storage.getItem(key(run)) !== serialized) writeFailed = true;
+      if (!writeFailed && !verifyStored(key(run), serialized)) writeFailed = true;
       if (writeFailed) {
         volatile.add(run);
         if ((!active || active === run) && !run.synced) report('storage-unavailable');
@@ -422,15 +521,22 @@ function createDurableRecorder(services, { storage }, onStatus) {
       }
       persisted.add(run);
       volatile.delete(run);
+      storageDiagnostic = '';
       return true;
-    } catch {
+    } catch (error) {
+      if (error instanceof SyntaxError || error?.code === 'INVALID_JOURNAL')
+        diagnose('journal-parse', {
+          name: error.name,
+          code: error.code,
+          message: 'Stored journal or acknowledgement is invalid',
+        });
       if ((!active || active === run) && !run.synced) report('storage-unavailable');
       return false;
     }
   }
   function read(name) {
     if (cleanAcknowledged(name)) return null;
-    const run = JSON.parse(storage.getItem(name));
+    const run = JSON.parse(getStored(name));
     if (run?.synced) return null;
     const validFrame = (frame) =>
       frame &&
@@ -528,9 +634,8 @@ function createDurableRecorder(services, { storage }, onStatus) {
     };
     const serialized = JSON.stringify(done);
     try {
-      storage.setItem(key(run) + ':synced', serialized);
-      if (storage.getItem(key(run) + ':synced') !== serialized)
-        throw failure('STORAGE_UNAVAILABLE');
+      setStored(key(run) + ':synced', serialized);
+      if (!verifyStored(key(run) + ':synced', serialized)) throw failure('STORAGE_UNAVAILABLE');
     } catch {
       return;
     }
@@ -545,7 +650,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
     if (!run.cancelPending) return false;
     if (!run.id) {
       if (!run.startAttempted) {
-        storage.removeItem(key(run));
+        removeStored(key(run));
         run.synced = true;
         return true;
       }
@@ -713,6 +818,9 @@ function createDurableRecorder(services, { storage }, onStatus) {
     report(reason === 'practice' ? 'practice' : 'local');
   }
   const recorder = {
+    get storageDiagnostic() {
+      return storageDiagnostic;
+    },
     get status() {
       return status;
     },
@@ -725,6 +833,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
         : undefined;
     },
     async start({ mode, levelId, practice = false }) {
+      storageDiagnostic = '';
       invalidate(practice ? 'practice' : 'local');
       if (practice) return null;
       const ownGeneration = generation;
@@ -760,12 +869,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
           finishing: false,
           savedAt: Date.now(),
         };
-        if (
-          typeof storage.key !== 'function' ||
-          typeof storage.removeItem !== 'function' ||
-          !Number.isInteger(storage.length) ||
-          !save(run)
-        ) {
+        if (!canPersist() || !save(run)) {
           report('storage-unavailable');
           return null;
         }
@@ -828,7 +932,9 @@ function createDurableRecorder(services, { storage }, onStatus) {
       recovering = (async () => {
         pending = 0;
         try {
-          const names = Array.from({ length: storage.length }, (_, i) => storage.key(i));
+          const names = access('enumerate', () =>
+            Array.from({ length: storage.length }, (_, i) => storage.key(i)),
+          );
           for (const name of names) {
             if (
               !name ||
@@ -856,7 +962,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
                 Number.isFinite(run.savedAt) &&
                 Date.now() - run.savedAt > 86400000
               )
-                storage.removeItem(name);
+                removeStored(name);
               continue;
             }
             pending++;

@@ -268,6 +268,7 @@ export class Overwatch extends Component {
   }
   beginCampaign() {
     if (this.starting === this.sim) return;
+    this.hud.storageError = '';
     this.online?.cancelRanking?.();
     this.online?.leave();
     if(this.quartermaster)this.quartermaster.page='';
@@ -313,6 +314,7 @@ export class Overwatch extends Component {
       };
       this.hud.toast = this.hud.t(...(message[online.rankStatus] || ['行动服务暂不可用，请联网后重试','SERVICE UNAVAILABLE · CONNECT AND RETRY']));
       this.hud.toastUntil = Infinity;
+      if(online.rankStatus==='storage-unavailable'&&online.storageDiagnostic){this.hud.storageError=online.storageDiagnostic;this.hud.toastUntil=0;}
       this.hud.missionsOpen = true; this.hud.modalKey = 'rebuild';
     };
     void start().then(ready => ready ? begin() : failed(), failed).finally(() => { if (this.starting === sim) this.starting = undefined; });
@@ -553,6 +555,7 @@ export class Overwatch extends Component {
     q.revision++;return true;
   }
   action(id: string) {
+    if(this.hud.storageError){if(id==='close'){this.hud.storageError='';this.hud.modalKey='rebuild';}return;}
     if (this.hud.layoutEditing && !['layoutDone','settings','close','resume','pause'].includes(id)) return;
     if (id === 'resultClose') id = 'home';
     const online = this.online;
@@ -1248,6 +1251,7 @@ export class Overwatch extends Component {
     this.keys.add(e.keyCode);
     this.hud.touch = false;
     this.platform.activate();
+    if(this.hud.storageError){if(e.keyCode===27)this.action('close');return;}
     if(this.quartermaster?.page&&(['help','settings','mission'] as const).some(reason=>this.sim.pauses.has(reason))){if(e.keyCode===27)this.action('close');this.keys.add(e.keyCode);return;}
     if((this.hud.reportOpen||this.hud.equipmentOpen)&&e.keyCode===27){this.action('equipmentClose');return;}
     if(this.quartermaster?.page){if(e.keyCode===27)this.action('qm:back');else if(e.keyCode===13&&this.quartermaster.page==='modes')this.action('mode:enter');this.keys.add(e.keyCode);return;}

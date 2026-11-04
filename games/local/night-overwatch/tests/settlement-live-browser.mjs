@@ -9,6 +9,7 @@ const workspace=fileURLToPath(new URL('../../../../',import.meta.url)),out=new U
 await mkdir(out,{recursive:true});
 const evidence={environment:'Isolated real PostgreSQL/HTTP; fresh guest; ordinary first mission and real mouse input; network failures are injected',checks:[],errors:[],screens:[]};
 const storageFaults=process.env.NIGHT_STORAGE_FAULTS==='1';
+const startDiagnostics=process.env.NIGHT_START_STORAGE_DIAGNOSTICS==='1';
 if(storageFaults){evidence.environment+='; missing journal keys return empty strings, journal writes fail after admission, and receipt writes fail';evidence.storageFaults={missingKey:'empty string',journalWriteAfterAdmission:'QuotaExceededError',receiptWrite:'QuotaExceededError'};}
 let fixture,server,browser,context,page;
 try{
@@ -18,7 +19,44 @@ try{
  for(let i=0;i<50;i++){try{if((await fetch(origin)).ok)break;}catch{}await new Promise(r=>setTimeout(r,200));}
  process.env.NIGHT_URL=origin;evidence.build=await acceptanceBuild(origin);
  browser=await chromium.launch({headless:true,args:['--use-angle=d3d11']});
+ if(startDiagnostics){
+  evidence.startDiagnostics=[];
+  for(const [fault,width,height]of [['quota',568,320],['noop',844,390]]){
+   const diagnosticContext=await browser.newContext({viewport:{width,height},hasTouch:true,isMobile:true});
+   try{
+    await diagnosticContext.addInitScript(fault=>{
+     localStorage.setItem('night-overwatch-coach-v2','done');const set=Storage.prototype.setItem;
+     Storage.prototype.setItem=function(key,value){if(String(key).startsWith('night-pending-run-v1:')){if(fault==='quota')throw new DOMException('Injected initial quota; token=private-sentinel; retry required','QuotaExceededError');return;}return set.call(this,key,value);};
+    },fault);
+    const diagnosticPage=await diagnosticContext.newPage();diagnosticPage.on('pageerror',e=>evidence.errors.push(e.message));
+    await diagnosticPage.route('**/game-service-config.js',r=>r.fulfill({contentType:'text/javascript',body:`globalThis.__COMPETITION_CONFIG__=Object.freeze(${JSON.stringify({game:'night-overwatch',platform:'h5',competitionEnabled:true,apiUrl:api})});`}));
+    let starts=0;diagnosticPage.on('request',r=>{if(r.method()==='POST'&&r.url().endsWith('/runs'))starts++;});
+    await diagnosticPage.goto(origin+'/?dev=0');await diagnosticPage.waitForFunction(()=>globalThis.__night?.snapshot().progression.assets?.playerId&&!document.getElementById('night-startup'));
+    for(const id of ['qm:modes','mode:solo','mode:enter','start']){await press(diagnosticPage,id,true,false);await settleVisuals(diagnosticPage);}
+    await diagnosticPage.waitForFunction(()=>__night.snapshot().modal.startsWith('storageError:'));let diagnostic=await snapshot(diagnosticPage);
+    assert.equal(diagnostic.phase,'briefing');assert.equal(starts,0);assert(diagnostic.modal.includes('source=window.localStorage'));assert(!diagnostic.modal.includes('private-sentinel'));
+    assert(diagnostic.modal.includes(fault==='quota'?'name=QuotaExceededError':'matches=false'));assert(diagnostic.modal.includes(fault==='quota'?'stage=set':'stage=readback'));if(fault==='quota')assert(diagnostic.scrollMax>0,'small-screen long details require scrolling');
+    const name=`storage-${fault}-${width}`;await diagnosticPage.screenshot({path:fileURLToPath(new URL(name+'.png',out))});evidence.screens.push(name+'.png');
+    const cdp=await diagnosticContext.newCDPSession(diagnosticPage);
+    for(let drag=0;drag<8&&(await snapshot(diagnosticPage)).scroll<diagnostic.scrollMax;drag++){
+     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:width/2,y:height*.58}]});
+     for(let step=1;step<=6;step++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:width/2,y:height*.58-step*10}]});
+     await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await settleVisuals(diagnosticPage);
+    }
+    const scrolled=await snapshot(diagnosticPage);assert.equal(scrolled.scroll,scrolled.scrollMax,'touch can reach the last diagnostic line');
+    await diagnosticPage.screenshot({path:fileURLToPath(new URL(name+'-scrolled.png',out))});evidence.screens.push(name+'-scrolled.png');
+    const close=scrolled.buttons.find(b=>b.id==='close');assert(close&&close.h>=44&&close.y+close.h<=height);
+    await press(diagnosticPage,'close',true,false);await settleVisuals(diagnosticPage);assert(!(await snapshot(diagnosticPage)).modal.startsWith('storageError:'));
+    await press(diagnosticPage,'start',true,false);await diagnosticPage.waitForFunction(()=>__night.snapshot().modal.startsWith('storageError:'));assert.equal(starts,0);
+    evidence.startDiagnostics.push({fault,width,height,detail:diagnostic.modal.slice('storageError:'.length),scrollMax:scrolled.scrollMax,starts,closeAndRetry:true});
+   }finally{await diagnosticContext.close();}
+  }
+ }
  context=await browser.newContext({viewport:{width:1280,height:720}});await context.addInitScript(()=>localStorage.setItem('night-overwatch-coach-v2','done'));
+ if(startDiagnostics)await context.addInitScript(()=>{
+  const set=Storage.prototype.setItem;globalThis.__nightEngineProbeFailures=0;
+  Storage.prototype.setItem=function(key,value){if(key==='storage'&&!globalThis.__nightEngineProbeFailures){globalThis.__nightEngineProbeFailures++;throw new DOMException('Injected engine initialization probe','QuotaExceededError');}return set.call(this,key,value);};
+ });
  if(storageFaults)await context.addInitScript(()=>{
   const get=Storage.prototype.getItem,set=Storage.prototype.setItem;
   globalThis.__nightStorageFaults={emptyReads:0,receiptFailures:0,journalFailures:0,blockJournalWrites:false};
@@ -38,6 +76,7 @@ try{
  const click=async id=>{await press(page,id,false,false);await settleVisuals(page);};
  const shot=async name=>{await settleVisuals(page);await page.screenshot({path:fileURLToPath(new URL(name+'.png',out))});evidence.screens.push(name+'.png');};
  await page.goto(origin+'/?dev=0');await page.waitForFunction(()=>globalThis.__night?.snapshot().progression.assets?.playerId&&!document.getElementById('night-startup'));
+ if(startDiagnostics){evidence.engineStorage=await page.evaluate(async()=>{const {sys}=await System.import('cc');return {probeFailures:globalThis.__nightEngineProbeFailures,engineStorageIsBrowser:sys.localStorage===window.localStorage};});assert.equal(evidence.engineStorage.probeFailures,1);assert.equal(evidence.engineStorage.engineStorageIsBrowser,false);}
  await shot('home-1280');
  for(const id of ['qm:modes','mode:solo','mode:enter','start'])await click(id);
  await page.waitForFunction(()=>__night.snapshot().online.rankStatus==='pending-sync');

@@ -135,6 +135,7 @@ export class HUD {
   screenControl = false;
   screenActive = false;
   missionsOpen = false;
+  storageError = '';
   online?: Online;
   reportOpen = false;
   equipmentOpen = false;
@@ -1466,6 +1467,19 @@ export class HUD {
     this.node('Backdrop', n).addComponent(Graphics);
     this.surfaces = this.node('Surfaces', n);
     const g = this.node('Ink', n).addComponent(Graphics);
+    if(key.startsWith('storageError:')){
+      const pw=Math.min(720,this.w-this.safe.left-this.safe.right-24),ph=Math.min(420,this.h-this.safe.top-this.safe.bottom-24),px=this.safe.left+(this.w-this.safe.left-this.safe.right-pw)/2,py=this.safe.top+(this.h-this.safe.top-this.safe.bottom-ph)/2;
+      this.panelFrame(g,px,py,pw,ph,C.amber,'#071724fa');
+      this.label(n,this.t('行动记录保存失败 · 错误详情','RUN STORAGE FAILED · DETAILS'),px+pw/2,py+23,17,pw-28,32,C.amber).isBold=true;
+      const vw=pw-32,vh=ph-112,mask=this.node('StorageErrorViewport',n);
+      mask.setPosition(px+pw/2-this.w/2,this.h/2-(py+48+vh/2));mask.getComponent(UITransform)!.setContentSize(vw,vh);mask.addComponent(Mask).type=Mask.Type.GRAPHICS_RECT;
+      const content=this.node('StorageErrorDetails',mask);this.scrollNode=content;this.scrollArea={x:px+16,y:py+48,w:vw,h:vh};
+      const rows:string[]=[];for(const line of this.storageError.split('\n')){let row='',units=0;for(const c of line){const unit=c.charCodeAt(0)>255?2:1;if(units+unit>Math.floor(vw/8.5)){rows.push(row);row='';units=0;}row+=c;units+=unit;}rows.push(row);}
+      rows.forEach((line,i)=>{const l=this.label(content,line,this.w/2,this.h/2,14,vw,22,C.white);l.horizontalAlign=Label.HorizontalAlign.LEFT;l.enableWrapText=false;l.node.setPosition(0,vh/2-11-i*22);});
+      this.scrollMax=Math.max(0,rows.length*22-vh);
+      this.button('close',this.t('关闭 · 返回重试','CLOSE · RETRY'),px+pw/2-92,py+ph-54,184,44,n);
+      return;
+    }
     if(this.quartermaster&&(key==='home'||key.startsWith('progression:')||key==='success'||key==='failure'||key==='duelResult')){
       new ProgressionView(this,this.quartermaster,this.progressionArt,n,g,this.surfaces).render(s,['success','failure','duelResult'].includes(key));return;
     }
@@ -1944,6 +1958,7 @@ export class HUD {
     else if (s.paused && s.phase !== 'briefing') key = 'pause';
     const editingLayout = this.layoutEditing && s.phase === 'playing' && Array.from(s.pauses).every(reason => reason === 'settings' || reason === 'manual');
     if (editingLayout) key = '';
+    if(this.storageError)key='storageError:'+this.storageError;
     this.renderModal(key, s, world);
     g.clear();
     this.marks.clear();

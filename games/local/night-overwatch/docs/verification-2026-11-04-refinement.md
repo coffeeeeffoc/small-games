@@ -141,3 +141,28 @@ CI/Pages上一次因15分钟job总预算耗尽取消，未到游戏构建；基�
 [真实服务故障回执](design/refinement-2026-11-04/k90/settlement-evidence.json)：隔离PostgreSQL/HTTP、普通新游客及实际输入，叠加首次网络开局失败、finish丢响应、缺失键空串、正式开局后journal写失败、确认标记写失败；实际触发442次空串读取、197次journal写失败、8次标记写失败。首关55.63秒、6发，得到100积分、180金币、120 EXP，单人任务0/2→1/2、胜利任务0/1→1/1。重复恢复和重载后资产/任务不重复增长；重载后journal故障开关复位，标记写故障仍持续，因此不宣称重载后所有写入继续失败。页面异常0、专属资源清理成功。脚本为 `NIGHT_STORAGE_FAULTS=1 node games/local/night-overwatch/tests/settlement-live-browser.mjs`，必须先配置实际NIGHT_EXPECTED_SOURCE_HASH。[到账截图](design/refinement-2026-11-04/k90/settlement-844.png)、[任务截图](design/refinement-2026-11-04/k90/tasks-updated.png)已打开核对。
 
 八类现有23项素材逐项大小/SHA复核，简介更新直接拖动操作，其余图像视频保留原始采集身份；本轮故障注入截图作为QA证据。未改Runtime或数据库，无需部署。未获取K90实际存储实现/配额及安全区参数，不能声称已经定位该设备唯一原因；未完成实体K90、TapTap真宿主或真实广告验证，未上传渠道包。
+
+## K90开局存储诊断
+
+2026-11-05。用户反馈K90点击“出发001”仍被“行动记录暂时无法保存”阻断，并允许本轮先显示完整错误用于自测。本轮保留首次持久化要求，仅修正H5存储来源并提供脱敏详情；没有引入内存开局、修改服务端协议或补发资产。最终Creator 3.8.8源码摘要 `bc9df2df1ad3085c61ef643e4880964e4e578f654067de60be3bb43d926dc48c`，真实web-mobile 59,238,364字节；用户原有59,232,246字节的尺寸报告逐字节保留，未纳入提交。
+
+代码确认：Cocos初始化会对`window.localStorage`写入/删除`storage`探针，异常后将`sys.localStorage`保留为空实现；身份与排行榜使用浏览器存储，行动记录以前使用引擎存储，因此二者表现可能不同。现在仅H5的Night durable入口优先使用真实`window.localStorage`，原生继续使用传入存储。该路径已在真实Creator构建中复现，但尚不能认定就是K90现场的错误原因。
+
+开局失败时弹出可滚动详情，正式`dev=0`模式也可见：失败步骤、来源、异常name/code/message、接口类型、length、写入字节数及读回匹配信息。浏览器storage getter失败时保留该异常和回退来源。凭据、URL、完整日志键和存档正文不输出，解析失败不引用存储原文。真实get/readback异常仍阻断，读回不匹配独立描述；关闭/Esc回选关，成功重试清旧详情。
+
+验证：
+
+- 输入、HUD、Online、共享日志205项，bootstrap/native消费者9项，Night类型及managed Prettier通过；新增两项共享故障测试先红后绿。最终仅将读回不匹配的默认排行榜文案改为明确的存储错误后，相关两项复测通过（与205重叠）。原生HUD摘要精确同步。
+- [最终真实浏览器证据](design/refinement-2026-11-04/k90-start/evidence.json)：568×320注入首次写入`QuotaExceededError`，844×390注入无操作写入导致读回不匹配；两者生产模式均显示准确详情、凭据哨兵脱敏、停留选关，首次和关闭后重试的`POST /runs`数量都为0。568触摸滚动到最后一行；844短详情完整容纳，无需人为制造滚动。
+- 同一真实服务fixture中，仅让引擎初始化探针失败一次，实际确认`sys.localStorage !== window.localStorage`；未人为替换引擎对象。随后普通新游客通过真实鼠标输入完成首关，含开局网络失败重试、服务端处理finish后丢失响应、联网恢复。最终100积分、180金币、120 EXP，单人任务0/2→1/2，重复恢复及重新进入任务页不重复增加。页面异常0，专属PostgreSQL/HTTP资源清理成功；未注入开发资产或模拟战斗结果。
+- 实际打开[小屏错误详情](design/refinement-2026-11-04/k90-start/storage-quota-568.png)、[小屏最后一行](design/refinement-2026-11-04/k90-start/storage-quota-568-scrolled.png)、[读回不一致](design/refinement-2026-11-04/k90-start/storage-noop-844.png)、[正式到账](design/refinement-2026-11-04/k90-start/settlement-844.png)和[任务更新](design/refinement-2026-11-04/k90-start/tasks-updated.png)检查。初次browser测试误要求844短详情也必须溢出，改为仅568长内容要求滚动；保留实际UI和到账断言。
+
+复验命令（先构建并固定真实源码摘要）：
+
+```powershell
+$env:NIGHT_START_STORAGE_DIAGNOSTICS='1'
+$env:NIGHT_EXPECTED_SOURCE_HASH='bc9df2df1ad3085c61ef643e4880964e4e578f654067de60be3bb43d926dc48c'
+node games/local/night-overwatch/tests/settlement-live-browser.mjs
+```
+
+八类23个上架资料大小/SHA逐项一致，按原采集身份复用；本轮错误画面仅归档QA。本轮未改Runtime/数据库，无需部署；未运行全仓候选验证、未上传TapTap、未完成K90实体机/真宿主测试。dev代码推送不会自动替换TapTap线上游戏包，现场仍报错时需用新包错误详情继续定位。

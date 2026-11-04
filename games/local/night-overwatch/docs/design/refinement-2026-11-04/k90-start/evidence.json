@@ -1,0 +1,77 @@
+{
+  "environment": "Isolated real PostgreSQL/HTTP; fresh guest; ordinary first mission and real mouse input; network failures are injected",
+  "checks": [
+    "A failed official start stays in briefing instead of silently becoming a local run",
+    "Real completed first mission credits 100 points, 180 coins, 120 EXP and each applicable task once after a lost finish response",
+    "Opening the task page and repeated online recovery preserve exactly-once rewards and progress"
+  ],
+  "errors": [],
+  "screens": [
+    "storage-quota-568.png",
+    "storage-quota-568-scrolled.png",
+    "storage-noop-844.png",
+    "storage-noop-844-scrolled.png",
+    "home-1280.png",
+    "start-retry.png",
+    "settings-1280.png",
+    "controls-1280.png",
+    "settlement-pending.png",
+    "settlement-1280.png",
+    "settlement-844.png",
+    "settlement-568.png",
+    "tasks-updated.png"
+  ],
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "bc9df2df1ad3085c61ef643e4880964e4e578f654067de60be3bb43d926dc48c"
+  },
+  "startDiagnostics": [
+    {
+      "fault": "quota",
+      "width": 568,
+      "height": 320,
+      "detail": "stage=set\nsource=window.localStorage\nname=QuotaExceededError code=22\nmessage=Injected initial quota; token=[redacted]; retry required\ngetItem=function setItem=function removeItem=function key=function\nlength=number:4\nwriteBytes=346",
+      "scrollMax": 14,
+      "starts": 0,
+      "closeAndRetry": true
+    },
+    {
+      "fault": "noop",
+      "width": 844,
+      "height": 390,
+      "detail": "stage=readback\nsource=window.localStorage\nname=Error code=STORAGE_UNAVAILABLE\nmessage=Storage readback does not match written data\ngetItem=function setItem=function removeItem=function key=function\nlength=number:4\nwriteBytes=346 actualType=null readBytes=0 matches=false",
+      "scrollMax": 0,
+      "starts": 0,
+      "closeAndRetry": true
+    }
+  ],
+  "engineStorage": {
+    "probeFailures": 1,
+    "engineStorageIsBrowser": false
+  },
+  "result": {
+    "points": 100,
+    "coins": 180,
+    "xp": 120,
+    "shots": 6,
+    "tasks": [
+      {
+        "id": "2026-11-05:solo",
+        "event": "solo",
+        "before": 0,
+        "after": 1,
+        "target": 2
+      },
+      {
+        "id": "2026-11-05:win",
+        "event": "win",
+        "before": 0,
+        "after": 1,
+        "target": 1
+      }
+    ]
+  },
+  "cleanupFailures": [],
+  "cleaned": true
+}

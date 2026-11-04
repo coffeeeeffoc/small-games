@@ -244,6 +244,16 @@ test('formal campaign start preserves failure reasons and retries before gamepla
  }finally{if(config===undefined)delete (globalThis as any).__COMPETITION_CONFIG__;else(globalThis as any).__COMPETITION_CONFIG__=config;}
 });
 
+test('storage failure details open in production, close back to retry and clear on successful start',async()=>{
+ const g=mission();g.sim.phase='briefing';assert.equal(g.platform.developer,false);
+ const detail='stage=readback\nsource=window.localStorage\nname=QuotaExceededError\nwriteBytes=300 matches=false';
+ g.online={rankStatus:'storage-unavailable',storageDiagnostic:detail,leave(){},startRanking:async()=>undefined,recorder:{record(){}}};
+ g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(g.sim.phase,'briefing');assert.equal(g.hud.storageError,detail);assert.equal(g.hud.toastUntil,0);
+ g.action('start');assert.equal(g.sim.phase,'briefing','modal consumes underlying actions');g.action('close');assert.equal(g.hud.storageError,'');assert(g.hud.missionsOpen);
+ g.online.startRanking=async()=>{g.online.rankStatus='recording';return{loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}};};
+ g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(g.sim.phase,'playing');assert.equal(g.hud.storageError,'');g.platform.dispose();
+});
+
 test('offset aim survives slow microdrags, release-only displacement, taps and cancelled gestures', () => {
   const g = mission();
   g.world.project = (p: any) => ({ x: p.x, y: p.z, z: .5 });

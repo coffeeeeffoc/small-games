@@ -142,6 +142,97 @@ test('Night durable completion survives lost append response and reload, queryin
   assert.ok([...f.values.keys()].some((k) => k.endsWith(':synced')));
 });
 
+test('Night storage diagnostics identify no-op readback and sanitize thrown storage messages', async () => {
+  for (const fault of ['noop', 'write', 'read', 'length']) {
+    const f = durableFixture();
+    if (fault === 'noop') f.storage.setItem = () => {};
+    if (fault === 'write')
+      f.storage.setItem = () => {
+        throw Object.assign(
+          Error(
+            'quota token=secret-player-token https://example.test/?token=secret-url {"playerId":"secret-owner","tail":[1]}',
+          ),
+          { name: 'QuotaExceededError', code: 'QUOTA' },
+        );
+      };
+    if (fault === 'read')
+      f.storage.getItem = () => {
+        throw Object.assign(Error('Storage access denied'), { name: 'SecurityError' });
+      };
+    if (fault === 'length')
+      Object.defineProperty(f.storage, 'length', {
+        get() {
+          throw Object.assign(Error('Length unavailable'), { name: 'SecurityError' });
+        },
+      });
+    const recorder = createRunRecorder(f.services, {
+      durable: { storage: f.storage, source: 'cocos.localStorage' },
+    });
+    await recorder.start({ mode: 'campaign', levelId: 'first' });
+    const detail = recorder.storageDiagnostic;
+    assert.equal(recorder.status, 'storage-unavailable');
+    assert.equal(typeof detail, 'string');
+    assert(detail.includes('cocos.localStorage'));
+    assert(detail.includes('getItem=function'));
+    assert(detail.includes('length='));
+    assert(
+      detail.includes(
+        'stage=' + { noop: 'readback', write: 'set', read: 'get', length: 'capability' }[fault],
+      ),
+    );
+    assert(!/secret-player-token|secret-url|secret-owner|night-pending-run-v1/.test(detail));
+    if (fault === 'noop') {
+      assert(detail.includes('Storage readback does not match written data'));
+      assert(detail.includes('matches=false'));
+      assert(detail.includes('actualType=null'));
+      assert(/writeBytes=\d+/.test(detail));
+    }
+    if (fault === 'write')
+      assert(detail.includes('QuotaExceededError') && detail.includes('code=QUOTA'));
+  }
+});
+
+test('Night H5 uses real browser storage while native retains its supplied storage and getter failures are visible', async () => {
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  try {
+    for (const mode of ['h5', 'wechat', 'getter']) {
+      const f = durableFixture(),
+        noop = { length: 0, key() {}, getItem() {}, setItem() {}, removeItem() {} };
+      if (mode === 'wechat') f.services.config.platform = 'wechat';
+      const browser = {};
+      Object.defineProperty(browser, 'localStorage', {
+        get() {
+          if (mode === 'getter')
+            throw Object.assign(Error('Browser storage blocked'), { name: 'SecurityError' });
+          return f.storage;
+        },
+      });
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: browser });
+      const recorder = createRunRecorder(f.services, {
+        durable: { storage: noop, source: 'cocos.localStorage' },
+      });
+      await recorder.start({ mode: 'campaign', levelId: 'first' });
+      if (mode === 'h5') {
+        assert.equal(recorder.status, 'recording');
+        assert.equal(f.runs.size, 1);
+        assert.equal(recorder.storageDiagnostic, '');
+      } else {
+        assert.equal(recorder.status, 'storage-unavailable');
+        assert.equal(f.runs.size, 0);
+        assert(recorder.storageDiagnostic.includes('cocos.localStorage'));
+        if (mode === 'getter')
+          assert(
+            recorder.storageDiagnostic.includes('window.localStorage') &&
+              recorder.storageDiagnostic.includes('SecurityError'),
+          );
+      }
+    }
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'window', previous);
+    else delete globalThis.window;
+  }
+});
+
 test('Night empty-string missing keys do not hide a server-confirmed settlement', async () => {
   const f = durableFixture(),
     recorder = f.recorder();

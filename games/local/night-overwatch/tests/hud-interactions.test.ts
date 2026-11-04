@@ -306,6 +306,18 @@ test('fire press and hover feedback follow the circular trigger at every configu
  }
 });
 
+test('storage diagnostics remain readable and scrollable above a reachable close action on phones',()=>{
+ for(const [width,height]of [[568,320],[844,390],[1280,720]]){
+  Object.assign(frame,{width,height});inset=12;const hud=new HUD(new SceneNode()),sim=new Simulation();hud.missionsOpen=true;
+  hud.storageError=['stage=readback','source=window.localStorage','name=QuotaExceededError code=22','message=Storage operation failed','getItem=function setItem=function removeItem=function key=function','length=number:3','writeBytes=320 actualType=undefined readBytes=0 matches=false','window.localStorage selection failed','name=SecurityError','message=Browser storage blocked'].join('\n');
+  hud.update(sim,world);assert(hud.modalKey.startsWith('storageError:'));assert(hud.scrollNode);const close=hud.buttons.find((b:any)=>b.id==='close');assert(close.w>=44&&close.h>=44);assert.equal(hud.hit(close.x+close.w/2,close.y+close.h/2)?.id,'close');
+  assert(hud.scrollArea.y+hud.scrollArea.h<=close.y);assert(hud.modal.getComponentsInChildren(cc.Label).filter((l:any)=>l.node.parent===hud.scrollNode).every((l:any)=>l.fontSize>=14));
+  if(height===320){assert(hud.scrollMax>0);hud.scrollBy(hud.scrollMax);assert.equal(hud.scroll,hud.scrollMax);}
+  hud.storageError='';hud.update(sim,world);assert.equal(hud.modalKey,'missions');
+ }
+ inset=0;
+});
+
 test('HUD: history keeps next page enabled while the server has another cursor', () => {
   Object.assign(frame,{width:844,height:390});inset=0;
   const hud=new HUD(new SceneNode()),sim=new Simulation();

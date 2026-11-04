@@ -1,7 +1,7 @@
 {
-  "sourceHash": "2e058f55dd557c293128542a2326ff51638411f6cd6c5c008acd67a665e87776",
+  "sourceHash": "bc9df2df1ad3085c61ef643e4880964e4e578f654067de60be3bb43d926dc48c",
   "verified": "2026-11-05",
-  "environment": "Existing media reused with original capture identities; direct-fire-drag copy updated. Current storage-fault and mobile-gesture captures are QA evidence under docs/design/refinement-2026-11-04/k90, not device capture.",
+  "environment": "All 23 existing media files verified and reused with original capture identities. Start-storage diagnostics and engine-initialization fault captures are QA evidence under docs/design/refinement-2026-11-04/k90-start, not device capture.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",

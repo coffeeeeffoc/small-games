@@ -18,7 +18,7 @@ type RankingRow = Player & { rank: number; score: number; secondary: number; win
 type Ranking = { top: RankingRow[]; me: RankingRow | null };
 type Recorder = { start(options: { mode: string; levelId: string; practice: boolean }): Promise<{loadout?:BattleLoadout}|null|undefined>;
   record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<Settlement & { accepted?: boolean; fastestEligible?: boolean } | null | undefined>; invalidate(reason?: string): void;
-  persist?(): void; recover?(): Promise<void>; pending?: number;
+  persist?(): void; recover?(): Promise<void>; pending?: number; storageDiagnostic?: string;
   settlement?: { playerId: string; runId: string; result: Settlement } };
 export type ChatMessage={id:string;playerId:string;nickname:string;text:string;at:number;room?:{code:string;createdAt:number;canJoin:boolean}};
 export type ChatSnapshot={messages:ChatMessage[];cursor:string;reset:boolean;serverNow:number};
@@ -34,7 +34,7 @@ type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Me
     sendNightChat?(input:{requestId:string;text:string;roomCode?:string},expectedPlayerId?:string):Promise<ChatSnapshot>;
     reportNightChat?(input:{id:string;reason:string},expectedPlayerId?:string):Promise<unknown>;
     leaderboard(input: { boardId: string;ruleVersion?:string }): Promise<Ranking> };
-  createRecorder(version: string, options: { onStatus: (status: string) => void; startTimeoutMs?: number; durable?: { storage: Pick<Storage, 'getItem' | 'setItem'> } }): Recorder };
+  createRecorder(version: string, options: { onStatus: (status: string) => void; startTimeoutMs?: number; durable?: { storage: Pick<Storage, 'getItem' | 'setItem'>; source?: string } }): Recorder };
 const randomBytes = () => {
   const bytes = new Uint8Array(16);
   if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
@@ -174,7 +174,7 @@ export class Online {
     const generation = this.generation;
     this.bridge = bridge;
     if (bridge) {
-      const recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage }, startTimeoutMs: 8000, onStatus: status => {
+      const recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage, source: 'cocos.localStorage' }, startTimeoutMs: 8000, onStatus: status => {
         if (this.destroyed || this.bridge !== bridge || this.recorder !== recorder) return;
         this.rankStatus = status === 'expired' ? 'unavailable' : status;
         if (status === 'expired') this.message = '本次行动已结束或超过 24 小时，请重新开始';
@@ -217,6 +217,7 @@ export class Online {
     this.rankingAttempt++; this.battleReward = undefined; this.battleReceipt = '';
     this.recorder?.invalidate();
   }
+  get storageDiagnostic() { return this.recorder?.storageDiagnostic || ''; }
   private receiveBattleReward(result: Settlement | null | undefined, receipt: string) {
     if (result?.status !== 'credited' || !Number.isSafeInteger(result.coins) || !Number.isSafeInteger(result.xp) || result.coins! < 0 || result.xp! < 0 || this.battleReceipt === receipt) return;
     this.battleReward = result; this.battleReceipt = receipt; this.revision++;
