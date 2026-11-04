@@ -1,0 +1,61 @@
+{
+  "environment": "Isolated real PostgreSQL/HTTP; fresh guest; ordinary first mission and real mouse input; network failures are injected; missing journal keys return empty strings, journal writes fail after admission, and receipt writes fail",
+  "checks": [
+    "A failed official start stays in briefing instead of silently becoming a local run",
+    "Reload after failed receipt storage preserves credited assets and exactly-once task progress",
+    "Real completed first mission credits 100 points, 180 coins, 120 EXP and each applicable task once after a lost finish response",
+    "Opening the task page and repeated online recovery preserve exactly-once rewards and progress"
+  ],
+  "errors": [],
+  "screens": [
+    "home-1280.png",
+    "start-retry.png",
+    "settings-1280.png",
+    "controls-1280.png",
+    "settlement-pending.png",
+    "settlement-1280.png",
+    "settlement-844.png",
+    "settlement-568.png",
+    "tasks-updated.png"
+  ],
+  "storageFaults": {
+    "missingKey": "empty string",
+    "journalWriteAfterAdmission": "QuotaExceededError",
+    "receiptWrite": "QuotaExceededError",
+    "observed": {
+      "emptyReads": 442,
+      "receiptFailures": 8,
+      "journalFailures": 197,
+      "blockJournalWrites": true
+    }
+  },
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "2e058f55dd557c293128542a2326ff51638411f6cd6c5c008acd67a665e87776"
+  },
+  "result": {
+    "points": 100,
+    "coins": 180,
+    "xp": 120,
+    "shots": 6,
+    "tasks": [
+      {
+        "id": "2026-11-05:solo",
+        "event": "solo",
+        "before": 0,
+        "after": 1,
+        "target": 2
+      },
+      {
+        "id": "2026-11-05:win",
+        "event": "win",
+        "before": 0,
+        "after": 1,
+        "target": 1
+      }
+    ]
+  },
+  "cleanupFailures": [],
+  "cleaned": true
+}

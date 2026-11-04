@@ -131,7 +131,7 @@ export class ProgressionView {
   }
   private home(){
     const h=this.height,w=this.w,l=this.left,r=this.right,q=this.q,top=this.h.safe.top,bar=Math.max(48,h*.115);
-    this.h.rect(this.g,0,top,w,bar,'#020e19c9','#61707c');
+    this.h.rect(this.g,0,0,w,top+bar,'#020e19c9','#61707c');
     const compactHeader=w<1000,profileW=compactHeader?160:w*.29;
     if(!compactHeader)this.picture('homeBadge',l,top+bar*.2,bar*1.15,bar*.69);
     const px=l+(compactHeader?0:bar*1.3),pw=profileW-(px-l);
@@ -521,7 +521,7 @@ export class ProgressionView {
     const issues:Record<string,[string,string]>={
       'update-required':['版本已更新，请退出游戏后重新打开','UPDATE REQUIRED · REOPEN THE GAME'],
       'identity-changed':['账号已变化，请切回本局账号确认收益','ACCOUNT CHANGED · RETURN TO THE ORIGINAL ACCOUNT'],
-      'storage-unavailable':['行动记录无法保存，请检查存储空间','RUN COULD NOT BE SAVED · CHECK STORAGE'],
+      'storage-unavailable':['行动记录暂未保存，请保持页面打开并联网','RUN NOT SAVED · KEEP THIS PAGE OPEN AND ONLINE'],
       'needs-attention':['收益校验未通过，请重新开始行动','REWARD VERIFICATION FAILED · START AGAIN'],
       unavailable:['收益确认失败，请重新连接','REWARD CONFIRMATION FAILED · RECONNECT'],
     };

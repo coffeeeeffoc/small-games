@@ -142,6 +142,225 @@ test('Night durable completion survives lost append response and reload, queryin
   assert.ok([...f.values.keys()].some((k) => k.endsWith(':synced')));
 });
 
+test('Night empty-string missing keys do not hide a server-confirmed settlement', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  f.storage.getItem = (key) => f.values.get(key) ?? '';
+  const run = await recorder.start({ mode: 'campaign', levelId: 'first' });
+  const reward = { accepted: true, status: 'credited', points: 100, coins: 180, xp: 120 };
+  f.runs.get(run.id).settlement = reward;
+  const result = await recorder.finish();
+  assert.deepEqual(result, reward);
+  assert.equal(recorder.status, 'finished');
+  assert.deepEqual(recorder.settlement, { playerId: 'pilot-a', runId: run.id, result: reward });
+  assert.equal([...f.values.keys()].filter((key) => !key.endsWith(':synced')).length, 0);
+});
+
+test('Night confirmed rewards survive marker quota errors and unrelated corrupt recovery data', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  const run = await recorder.start({ mode: 'campaign', levelId: 'first' }),
+    name = [...f.values.keys()][0];
+  const reward = { accepted: true, status: 'credited', points: 100, coins: 180, xp: 120 };
+  const finish = f.services.finishRun;
+  f.services.finishRun = async (input) => {
+    f.runs.get(run.id).settlement = reward;
+    return finish(input);
+  };
+  const set = f.storage.setItem;
+  f.storage.setItem = (key, value) => {
+    if (key.endsWith(':synced')) throw Error('quota');
+    set(key, value);
+  };
+  recorder.record({}, 120);
+  assert.deepEqual(await recorder.finish(), reward);
+  assert.equal(recorder.status, 'finished');
+  assert.deepEqual(recorder.settlement?.result, reward);
+  assert(f.values.has(name), 'retry material survives failed marker persistence');
+  f.values.set(name.replace(run.requestId, 'broken'), 'not JSON');
+  await recorder.recover();
+  assert.equal(recorder.status, 'finished');
+  assert.deepEqual(recorder.settlement?.result, reward);
+  f.storage.setItem = set;
+  await recorder.recover();
+  assert(!f.values.has(name));
+  assert.equal(f.calls.filter((call) => call === 'finish').length, 1);
+});
+
+test('Night ACK compaction keeps long runs below a 16 KiB per-key limit without dropping unconfirmed frames', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder(),
+    set = f.storage.setItem;
+  f.storage.setItem = (key, value) => {
+    if (Buffer.byteLength(value) > 16384) throw Error('quota');
+    set(key, value);
+  };
+  const run = await recorder.start({ mode: 'campaign', levelId: 'first' }),
+    name = [...f.values.keys()][0];
+  for (let i = 0; i < 24; i++) {
+    recorder.record({ aim: i, payload: 'x'.repeat(1200) }, 600);
+    await turn();
+  }
+  assert.equal(
+    f.runs.get(run.id).seq,
+    24,
+    'every batch continues uploading after many input windows',
+  );
+  const journal = JSON.parse(f.values.get(name));
+  assert.equal(journal.acked, 24);
+  assert(journal.batches.every((batch) => batch === null));
+  assert(Buffer.byteLength(f.values.get(name)) < 2000);
+  f.loseAppend();
+  recorder.record({ aim: 'unconfirmed' }, 600);
+  await turn();
+  const pending = JSON.parse(f.values.get(name));
+  assert.equal(pending.acked, 24);
+  assert.equal(pending.batches[24][0].input.aim, 'unconfirmed');
+  await recorder.finish();
+  const restored = f.recorder();
+  await restored.recover();
+  assert.equal(restored.status, 'finished');
+  assert.equal(f.runs.get(run.id).seq, 25);
+});
+
+test('Night an already-started in-memory run can finish online when further journal writes fail', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  await recorder.start({ mode: 'campaign', levelId: 'first' });
+  f.storage.setItem = () => {
+    throw Error('quota');
+  };
+  recorder.record({ aim: 1 }, 120);
+  recorder.persist();
+  assert.equal(recorder.status, 'storage-unavailable');
+  assert.equal((await recorder.finish())?.accepted, true);
+  assert.equal(recorder.status, 'finished');
+  assert.equal([...f.runs.values()][0].batches[0][0].input.aim, 1);
+});
+
+test('Night legacy ACK payloads are compacted on reload and null unconfirmed batches are rejected', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  const run = await recorder.start({ mode: 'campaign', levelId: 'first' }),
+    name = [...f.values.keys()][0];
+  const legacy = JSON.parse(f.values.get(name));
+  legacy.batches = Array.from({ length: 18 }, (_, i) => [
+    { ticks: 600, input: { aim: i, payload: 'x'.repeat(1200) } },
+  ]);
+  legacy.acked = 18;
+  legacy.finishing = true;
+  const remote = f.runs.get(run.id);
+  remote.batches = structuredClone(legacy.batches);
+  remote.seq = 18;
+  f.values.set(name, JSON.stringify(legacy));
+  const set = f.storage.setItem;
+  f.storage.setItem = (key, value) => {
+    if (Buffer.byteLength(value) > 16384) throw Error('quota');
+    set(key, value);
+  };
+  await f.recorder().recover();
+  assert.equal(remote.status, 'finished');
+  assert(!f.values.has(name));
+  assert.equal(f.calls.filter((call) => call === 'append').length, 0);
+  const other = durableFixture(),
+    initial = other.recorder();
+  await initial.start({ mode: 'campaign', levelId: 'first' });
+  const key = [...other.values.keys()][0],
+    invalid = JSON.parse(other.values.get(key));
+  invalid.batches = [null];
+  invalid.finishing = true;
+  other.values.set(key, JSON.stringify(invalid));
+  other.calls.length = 0;
+  const restored = other.recorder();
+  await restored.recover();
+  assert.equal(restored.status, 'needs-attention');
+  assert.deepEqual(other.calls, []);
+  assert(other.values.has(key));
+});
+
+test('Night first start-attempt persistence and unreadable live storage never bypass the journal guard', async () => {
+  for (const fault of ['first-start', 'read']) {
+    const f = durableFixture(),
+      recorder = f.recorder(),
+      set = f.storage.setItem;
+    if (fault === 'first-start')
+      f.storage.setItem = (key, value) => {
+        if (JSON.parse(value).startAttempted) throw Error('quota');
+        set(key, value);
+      };
+    await recorder.start({ mode: 'campaign', levelId: 'first' });
+    if (fault === 'first-start') {
+      assert.equal(f.requests.length, 0);
+      assert.equal(recorder.status, 'storage-unavailable');
+      continue;
+    }
+    f.calls.length = 0;
+    f.storage.getItem = () => {
+      throw Error('unreadable');
+    };
+    recorder.record({}, 120);
+    await recorder.finish();
+    assert.equal(recorder.status, 'storage-unavailable');
+    assert.deepEqual(f.calls, []);
+  }
+});
+
+test('Night recovered tails and cancellation metadata remain strict even during quota failures', async () => {
+  for (const patch of [
+    { tail: [{ ticks: -1, input: {} }] },
+    { tail: [{ ticks: 1, input: null }] },
+    { finishing: 'true' },
+    { cancelPending: 'yes' },
+    { version: '' },
+    { playerId: '' },
+  ]) {
+    const f = durableFixture(),
+      recorder = f.recorder();
+    await recorder.start({ mode: 'campaign', levelId: 'first' });
+    const name = [...f.values.keys()][0],
+      run = JSON.parse(f.values.get(name));
+    Object.assign(run, { finishing: true }, patch);
+    f.values.set(name, JSON.stringify(run));
+    f.storage.setItem = () => {
+      throw Error('quota');
+    };
+    f.calls.length = 0;
+    const restored = f.recorder();
+    await restored.recover();
+    assert.equal(restored.status, 'needs-attention');
+    assert.deepEqual(f.calls, []);
+    assert(f.values.has(name));
+  }
+});
+
+test('Night another tab acknowledgement wins when the stale journal write itself fails', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  await recorder.start({ mode: 'campaign', levelId: 'first' });
+  recorder.record({}, 120);
+  const name = [...f.values.keys()][0],
+    run = JSON.parse(f.values.get(name));
+  f.storage.setItem = () => {
+    f.values.set(
+      name + ':synced',
+      JSON.stringify({
+        schema: 1,
+        synced: true,
+        requestId: run.requestId,
+        playerId: run.playerId,
+        id: run.id,
+        result: { accepted: true },
+      }),
+    );
+    throw Error('quota');
+  };
+  f.calls.length = 0;
+  await recorder.finish();
+  assert.equal(recorder.status, 'finished');
+  assert.deepEqual(f.calls, []);
+  assert.equal(recorder.settlement?.result.accepted, true);
+});
+
 test('Night recovery exposes only the active owner-bound receipt before reporting completion', async () => {
   for (const nextRun of [false, true]) {
     const f = durableFixture(),
@@ -225,14 +444,14 @@ test('Night acknowledged journals are reclaimed after failed deletion without an
       if (!silent) throw Error('storage busy');
     };
     await first.finish();
-    assert.equal(first.status, 'storage-unavailable');
+    assert.equal(first.status, 'finished', 'a confirmed reward is independent of journal cleanup');
     assert.ok(f.values.has(name));
     const marker = f.values.get(name + ':synced');
     assert.equal(JSON.parse(marker).result.accepted, true);
     f.calls.length = 0;
     const failedRecovery = f.recorder();
     await failedRecovery.recover();
-    assert.equal(failedRecovery.status, 'storage-unavailable');
+    assert.equal(failedRecovery.status, 'finished');
     assert.equal(failedRecovery.pending, 0);
     f.storage.removeItem = remove;
     const restored = sameInstance ? first : f.recorder();
@@ -414,7 +633,11 @@ test('Night rejected-request recovery preserves unreadable acknowledgements and 
     await recorder.finish();
     assert.equal(
       recorder.status,
-      fault === 'malformed' ? 'needs-attention' : 'storage-unavailable',
+      fault === 'malformed'
+        ? 'needs-attention'
+        : fault === 'delete'
+          ? 'finished'
+          : 'storage-unavailable',
     );
     assert.equal(JSON.parse(f.values.get(name)).batches[0][0].ticks, 120);
     assert.equal(f.calls.includes('resume'), false);
@@ -422,7 +645,7 @@ test('Night rejected-request recovery preserves unreadable acknowledgements and 
   }
 });
 
-test('Night acknowledgement write and readback faults preserve the unconfirmed journal', async () => {
+test('Night acknowledgement write and readback faults preserve confirmed rewards and cleanup retry material', async () => {
   for (const boundary of ['write', 'silent-write', 'read', 'mismatch']) {
     const f = durableFixture(),
       first = f.recorder();
@@ -447,11 +670,13 @@ test('Night acknowledgement write and readback faults preserve the unconfirmed j
       }
       return get(k);
     };
-    await first.finish();
-    assert.equal(first.status, 'storage-unavailable', boundary);
+    assert.equal((await first.finish())?.accepted, true);
+    assert.equal(first.status, 'finished', boundary);
+    assert.equal(first.settlement?.result.accepted, true);
     const journal = JSON.parse(f.values.get(name));
     assert.equal(journal.finishing, true);
-    assert.equal(journal.batches[0][0].ticks, 120);
+    assert.equal(journal.acked, 1);
+    assert.equal(journal.batches[0], null, 'only the acknowledged batch is reclaimed');
     f.storage.setItem = set;
     f.storage.getItem = get;
     f.calls.length = 0;
@@ -741,7 +966,7 @@ test('Night terminal acknowledgement storage failures retain the journal until a
       return set(key, value);
     };
     await first.finish();
-    assert.equal(first.status, 'storage-unavailable');
+    assert.equal(first.status, 'expired', 'server-confirmed retirement is not a storage failure');
     assert.equal(f.values.has(name), true);
     assert.equal(f.values.has(name + ':synced'), false);
     f.storage.setItem = set;
@@ -788,8 +1013,12 @@ test('Night pending data stays with its owner and survives quota failure or malf
   };
   const broken = f.recorder();
   await broken.recover();
-  assert.equal(broken.status, 'storage-unavailable');
-  assert.equal([...f.runs.values()][0].seq, 0);
+  assert.equal(
+    broken.status,
+    'finished',
+    'a complete saved journal can finish online despite new quota errors',
+  );
+  assert.equal([...f.runs.values()][0].seq, 1);
 });
 test('Night unfinished mission is never submitted as a completion on reload', async () => {
   const f = durableFixture(),

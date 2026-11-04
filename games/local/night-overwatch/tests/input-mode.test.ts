@@ -53,7 +53,8 @@ const touch = (id: number, x = 950, y = 100, simulate = false) => ({ simulate,
   getTouches: () => [{ getID: () => id, getUILocation: () => ({ x, y }), getLocation: () => ({ x, y }) }] });
 function mission() {
   const g = new Overwatch();
-  g.hud = { t: (value: string) => value, supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire' } : undefined,
+  g.hud = { t: (value: string) => value, supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire',x:900,y:450,w:68,h:68 } : undefined,
+    controlPositions:{},controlBounds:()=>({x:0,y:0,w:932,h:532}),placeControl(){},
     controlAt: () => undefined, listAt: () => undefined, minimapPoint: () => undefined, blocksBattlefield: () => false };
   g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, viewMode: 'night', updateCamera() {}, reset() {}, setView(mode) { this.viewMode=mode;this.thermal=mode==='thermal'; }, sensor() { this.setView(this.viewMode==='night'?'enhanced':this.viewMode==='enhanced'?'thermal':'night'); } };
   g.platform = new Platform(new Node(), g.pause, g.clear);
@@ -118,6 +119,38 @@ test('fire layout editing stays paused, never fires, and cancelling restores its
   g.pause('background',false);g.action('layoutDone');assert(!g.hud.layoutEditing&&g.hud.controlsOpen&&g.sim.paused);
   g.action('resume');assert(!g.sim.paused&&!g.hud.controlsOpen);assert.equal(g.sim.fired,0);
   g.platform.dispose();
+ }
+});
+
+test('combat fire presses fire immediately, drag stops its source, and cancellation rolls back',()=>{
+ for(const mouse of [false,true]){
+  const g=mission();g.platform.touchInput=!mouse;
+  const button={id:'fire',x:100,y:100,w:68,h:68},hit=(x:number,y:number)=>x>=button.x&&x<=button.x+button.w&&y>=button.y&&y<=button.y+button.h?button:undefined;
+  Object.assign(g.hud,{controlPositions:{},controlBounds:()=>({x:0,y:0,w:400,h:200}),hit,controlAt:hit,
+   placeControl(key:string,p:any){if(p)this.controlPositions[key]={...p};else delete this.controlPositions[key];button.x=p?p.x*400:100;button.y=p?p.y*200:100;}});
+  const event=(x:number,y:number)=>mouse?{getButton:()=>0,getUILocation:()=>({x,y:600-y}),getLocation:()=>({x,y:600-y})}:touch(1,x,600-y);
+  const down=(x:number,y:number)=>mouse?g.mouseDown(event(x,y)):g.touchStart(event(x,y)),move=(x:number,y:number)=>mouse?g.mouseMove(event(x,y)):g.touchMove(event(x,y)),up=(x:number,y:number)=>mouse?g.mouseUp(event(x,y)):g.touchEnd(event(x,y));
+  const source=mouse?'mouse':'touch:1';down(120,120);assert(g.sim.held.has(source));assert.equal(g.sim.fired,1);
+  move(125,120);assert(g.sim.held.has(source));for(let i=0;i<30;i++)g.sim.step(1/60);const heldFired=g.sim.fired;assert(heldFired>1,'holding advances repeated shots');up(125,120);assert.equal(g.sim.held.size,0);assert.equal(g.sim.fired,heldFired);assert.equal(g.hud.controlPositions.fire,undefined);
+  down(120,120);move(160,100);assert(!g.sim.held.has(source));assert.deepEqual(g.hud.controlPositions.fire,{x:.35,y:.4});const fired=g.sim.fired;for(let i=0;i<30;i++)g.sim.step(1/60);assert.equal(g.sim.fired,fired,'dragging stops sustained fire');up(160,100);assert.equal(g.sim.fired,fired);
+  const position={...g.hud.controlPositions.fire};down(160,100);move(200,140);g.clear();up(200,140);assert.deepEqual(g.hud.controlPositions.fire,position);assert.equal(g.sim.held.size,0);
+  down(160,100);move(200,140);g.pause('background',true);up(200,140);assert.deepEqual(g.hud.controlPositions.fire,position);assert.equal(g.sim.held.size,0);g.pause('background',false);
+  down(160,100);move(200,140);const beforeResize=(cc.view as any).getFrameSize;(cc.view as any).getFrameSize=()=>({width:1000,height:600});g.hud.resize=()=>{throw Error('resize reached');};
+  try{assert.throws(()=>g.update(0),/resize reached/);assert.deepEqual(g.hud.controlPositions.fire,position);assert.equal(g.sim.held.size,0);}finally{(cc.view as any).getFrameSize=beforeResize;}
+  down(160,100);const beforeUp=g.sim.fired;up(210,130);assert.notDeepEqual(g.hud.controlPositions.fire,position,'release-only displacement commits a drag');assert.equal(g.sim.fired,beforeUp);assert.equal(g.sim.held.size,0);g.platform.dispose();
+ }
+});
+
+test('combat fire keeps both aim-finger orders, refuses a second fire finger, and yields to pinch',()=>{
+ for(const fireFirst of [false,true]){
+  const g=mission();g.platform.touchInput=true;
+  const button={id:'fire',x:900,y:450,w:68,h:68};Object.assign(g.hud,{controlPositions:{},controlBounds:()=>({x:0,y:0,w:932,h:532}),placeControl(){}});
+  const fire=()=>g.touchStart(touch(1,930,120)),aim=()=>g.touchStart(touch(2,300,300));
+  if(fireFirst){fire();aim();}else{aim();fire();}
+  assert.equal(g.touches.get(1).role,'fire');assert.equal(g.touches.get(2).role,'aim');assert(g.sim.held.has('touch:1'));
+  g.touchStart(touch(3,940,120));assert.equal(g.touches.get(3).role,'cancelled');assert.equal(g.fireGesture.pointer,1);
+  g.touchStart(touch(4,400,300));assert.equal(g.touches.get(1).role,'cancelled');assert.equal(g.fireGesture,undefined);assert.equal(g.sim.held.size,0);
+  g.touchEnd(touch(1,930,120));assert.equal(g.sim.held.size,0);g.platform.dispose();
  }
 });
 

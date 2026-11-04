@@ -320,6 +320,8 @@ function createDurableRecorder(services, { storage }, onStatus) {
   const prefix = (value) => 'night-pending-run-v1:' + encodeURIComponent(value) + ':';
   const working = new Map(),
     retries = new Map();
+  const persisted = new WeakSet(),
+    volatile = new WeakSet();
   let active,
     status = 'local',
     generation = 0,
@@ -330,6 +332,24 @@ function createDurableRecorder(services, { storage }, onStatus) {
     onStatus(value);
   };
   const key = (run) => prefix(run.scope) + run.requestId;
+  const resultStatus = (result) =>
+    result.accepted
+      ? result.fastestEligible === false
+        ? 'assisted'
+        : 'finished'
+      : ['RUN_EXPIRED', 'RUN_FINISHED'].includes(result.reason)
+        ? 'expired'
+        : 'local';
+  function confirmed(run, result) {
+    run.synced = true;
+    run.result = result;
+    retries.delete(key(run));
+    if (!active || active === run) report(resultStatus(result));
+  }
+  function compact(run) {
+    // Keep absolute sequence numbers and every unconfirmed batch for idempotent retries.
+    for (let i = 0; i < run.acked; i++) run.batches[i] = null;
+  }
   function cleanAcknowledged(name) {
     const serialized = storage.getItem(name + ':synced');
     if (!serialized) return false;
@@ -350,30 +370,24 @@ function createDurableRecorder(services, { storage }, onStatus) {
       (done.playerId !== active.playerId || (active.id && done.id !== active.id))
     )
       throw failure('INVALID_JOURNAL');
-    // Keep the small acknowledgement: stale tabs must never upload this journal again.
-    storage.removeItem(name);
-    if (storage.getItem(name) != null) throw failure('STORAGE_UNAVAILABLE');
     retries.delete(name);
     services.discardRun?.(done.id);
     if (!active || key(active) === name) {
       if (active) {
         active.id = done.id;
-        active.synced = true;
-        active.result = done.result;
-      }
-      report(
-        done.result.accepted
-          ? done.result.fastestEligible === false
-            ? 'assisted'
-            : 'finished'
-          : ['RUN_EXPIRED', 'RUN_FINISHED'].includes(done.result.reason)
-            ? 'expired'
-            : 'local',
-      );
+        confirmed(active, done.result);
+      } else report(resultStatus(done.result));
+    }
+    // A valid acknowledgement already prevents replay. Cleanup is best effort;
+    // Cocos/platform storage may return an empty string for an absent key.
+    try {
+      storage.removeItem(name);
+    } catch {
+      /* Retry cleanup on recovery. */
     }
     return true;
   }
-  function save(run) {
+  function save(run, online = false) {
     try {
       const stored = storage.getItem(key(run));
       if (stored && JSON.parse(stored).cancelPending) run.cancelPending = true;
@@ -385,17 +399,32 @@ function createDurableRecorder(services, { storage }, onStatus) {
         run.synced = true;
         return true;
       }
+      compact(run);
       const serialized = JSON.stringify(run);
-      storage.setItem(key(run), serialized);
-      // Another tab may acknowledge between our pre-write check and the write.
+      let writeFailed = false;
+      try {
+        storage.setItem(key(run), serialized);
+      } catch {
+        writeFailed = true;
+      }
+      // Another tab may acknowledge even while our write fails.
       if (cleanAcknowledged(key(run))) {
         run.synced = true;
         return true;
       }
-      if (storage.getItem(key(run)) !== serialized) throw failure('STORAGE_UNAVAILABLE');
+      if (!writeFailed && storage.getItem(key(run)) !== serialized) writeFailed = true;
+      if (writeFailed) {
+        volatile.add(run);
+        if ((!active || active === run) && !run.synced) report('storage-unavailable');
+        // Never bypass the first durable save. Existing complete in-memory input
+        // can still be uploaded online; it must not be advertised as safely cached.
+        return online && persisted.has(run);
+      }
+      persisted.add(run);
+      volatile.delete(run);
       return true;
     } catch {
-      report('storage-unavailable');
+      if ((!active || active === run) && !run.synced) report('storage-unavailable');
       return false;
     }
   }
@@ -403,32 +432,51 @@ function createDurableRecorder(services, { storage }, onStatus) {
     if (cleanAcknowledged(name)) return null;
     const run = JSON.parse(storage.getItem(name));
     if (run?.synced) return null;
+    const validFrame = (frame) =>
+      frame &&
+      Number.isInteger(frame.ticks) &&
+      frame.ticks >= 0 &&
+      frame.ticks <= 600 &&
+      frame.input &&
+      typeof frame.input === 'object' &&
+      !Array.isArray(frame.input);
     if (
       run?.schema !== 1 ||
       name !== key(run) ||
       !scopes.has(run.scope) ||
+      typeof run.requestId !== 'string' ||
+      !run.requestId ||
       typeof run.playerId !== 'string' ||
+      !run.playerId ||
       typeof run.version !== 'string' ||
+      !run.version ||
+      typeof run.mode !== 'string' ||
+      !run.mode ||
+      (run.levelId !== undefined && typeof run.levelId !== 'string') ||
+      (run.id !== undefined && typeof run.id !== 'string') ||
+      typeof run.finishing !== 'boolean' ||
+      ['abandoned', 'cancelPending', 'startAttempted'].some(
+        (field) => run[field] !== undefined && typeof run[field] !== 'boolean',
+      ) ||
       !Array.isArray(run.batches) ||
       !Array.isArray(run.tail) ||
+      run.tail.length > 500 ||
+      run.tail.some((frame) => !validFrame(frame)) ||
       !Number.isInteger(run.acked) ||
       run.acked < 0 ||
       run.acked > run.batches.length ||
       run.batches.some(
-        (batch) =>
-          !Array.isArray(batch) ||
-          !batch.length ||
-          batch.length > 500 ||
-          batch.some(
-            (frame) =>
-              !Number.isInteger(frame.ticks) ||
-              frame.ticks < 0 ||
-              frame.ticks > 600 ||
-              !frame.input,
-          ),
+        (batch, index) =>
+          !(batch === null && index < run.acked) &&
+          (!Array.isArray(batch) ||
+            !batch.length ||
+            batch.length > 500 ||
+            batch.some((frame) => !validFrame(frame))),
       )
     )
       throw failure('INVALID_JOURNAL');
+    compact(run);
+    persisted.add(run);
     return run;
   }
   function seal(run) {
@@ -458,16 +506,17 @@ function createDurableRecorder(services, { storage }, onStatus) {
             ? 'update-required'
             : error?.code === 'IDENTITY_CHANGED'
               ? 'identity-changed'
-              : transient
-                ? 'pending-sync'
-                : 'needs-attention',
+              : volatile.has(run)
+                ? 'storage-unavailable'
+                : transient
+                  ? 'pending-sync'
+                  : 'needs-attention',
       );
   }
   function acknowledge(run, result) {
-    if (cleanAcknowledged(key(run))) {
-      run.synced = true;
-      return;
-    }
+    // The caller has verified the server run and receipt. Local persistence
+    // failure cannot turn that authoritative reward back into an unknown result.
+    confirmed(run, result);
     const done = {
       schema: 1,
       synced: true,
@@ -483,13 +532,16 @@ function createDurableRecorder(services, { storage }, onStatus) {
       if (storage.getItem(key(run) + ':synced') !== serialized)
         throw failure('STORAGE_UNAVAILABLE');
     } catch {
-      throw failure('STORAGE_UNAVAILABLE');
+      return;
     }
-    cleanAcknowledged(key(run));
-    run.synced = true;
+    try {
+      cleanAcknowledged(key(run));
+    } catch {
+      /* The verified server receipt remains authoritative. */
+    }
   }
   async function cancelPending(run) {
-    if (!save(run) || run.synced) return true;
+    if (!save(run, true) || run.synced) return true;
     if (!run.cancelPending) return false;
     if (!run.id) {
       if (!run.startAttempted) {
@@ -505,7 +557,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
         playerId: run.playerId,
       });
       run.id = created.id;
-      if (!save(run) || run.synced) return true;
+      if (!save(run, true) || run.synced) return true;
     }
     const result = await services.cancelRun({ runId: run.id, playerId: run.playerId });
     acknowledge(
@@ -519,9 +571,13 @@ function createDurableRecorder(services, { storage }, onStatus) {
     if ((retries.get(key(run))?.at || 0) > Date.now()) return Promise.resolve(null);
     const operation = (async () => {
       try {
+        if (run.synced) {
+          if (run.result) acknowledge(run, run.result);
+          return null;
+        }
         if (run.scope !== scope && (await services.session()).playerId !== run.playerId)
           throw failure('IDENTITY_CHANGED');
-        if (!save(run)) return null;
+        if (!save(run, true)) return null;
         if (run.synced) return null;
         if (await cancelPending(run)) return null;
         if (!run.id) {
@@ -536,7 +592,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
           });
           run.id = created.id;
           if (created.loadout) run.loadout = created.loadout;
-          if (!save(run) || run.synced) return null;
+          if (!save(run, true) || run.synced) return null;
           if (await cancelPending(run)) return null;
         }
         let remote = await services.getRun({ runId: run.id, playerId: run.playerId });
@@ -547,7 +603,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
           JSON.stringify(run.loadout) !== JSON.stringify(remote.loadout)
         )
           throw failure('INVALID_JOURNAL');
-        if (!save(run) || run.synced) return null;
+        if (!save(run, true) || run.synced) return null;
         if (
           remote.id !== run.id ||
           remote.board !== run.mode ||
@@ -569,7 +625,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
           throw failure('SEQUENCE_CONFLICT');
         if (remote.status === 'active' && remote.expiresAt <= Date.now()) {
           remote = await services.resumeRun({ runId: run.id });
-          if (!save(run) || run.synced) return null;
+          if (!save(run, true) || run.synced) return null;
           if (await cancelPending(run)) return null;
         }
         // Replay the original unconfirmed batch even when the server sequence is ahead.
@@ -578,36 +634,18 @@ function createDurableRecorder(services, { storage }, onStatus) {
           await services.appendFrames({ runId: run.id, seq, frames: run.batches[seq - 1] });
           if (await cancelPending(run)) return null;
           run.acked = seq;
-          if (!save(run) || run.synced) return null;
+          compact(run);
+          if (!save(run, true) || run.synced) return null;
         }
         if (run.finishing) {
           const result =
             remote.settlement || (await services.finishRun({ runId: run.id, seq: run.acked }));
           if (!result || typeof result.accepted !== 'boolean') throw failure('INVALID_SETTLEMENT');
-          const done = {
-            schema: 1,
-            synced: true,
-            requestId: run.requestId,
-            playerId: run.playerId,
-            id: run.id,
-            at: Date.now(),
-            result,
-          };
-          try {
-            const serialized = JSON.stringify(done);
-            storage.setItem(key(run) + ':synced', serialized);
-            if (storage.getItem(key(run) + ':synced') !== serialized)
-              throw failure('STORAGE_UNAVAILABLE');
-            cleanAcknowledged(key(run));
-          } catch {
-            report('storage-unavailable');
-            return null;
-          }
-          run.synced = true;
+          acknowledge(run, result);
           return result;
         }
         retries.delete(key(run));
-        if (active === run) report('recording');
+        if (active === run) report(volatile.has(run) ? 'storage-unavailable' : 'recording');
         return null;
       } catch (error) {
         const stopRecovery = () => {
@@ -765,7 +803,8 @@ function createDurableRecorder(services, { storage }, onStatus) {
         previous.ticks += ticks;
       else run.tail.push({ ticks, input: JSON.parse(encoded) });
       if (run.tail.length >= 500 || run.tail.reduce((sum, frame) => sum + frame.ticks, 0) >= 600) {
-        if (seal(run)) void synchronize(run);
+        seal(run);
+        void synchronize(run);
       } else if (Date.now() - run.savedAt >= 1000) {
         run.savedAt = Date.now();
         save(run);
@@ -775,8 +814,9 @@ function createDurableRecorder(services, { storage }, onStatus) {
       const run = active;
       if (!run || run.synced || run.abandoned || run.cancelPending) return null;
       run.finishing = true;
-      if (!seal(run) || run.synced) return null;
-      report('pending-sync');
+      seal(run);
+      if (run.synced) return null;
+      report(volatile.has(run) ? 'storage-unavailable' : 'pending-sync');
       if (working.has(key(run))) await working.get(key(run));
       return run.synced ? null : synchronize(run);
     },
@@ -800,11 +840,12 @@ function createDurableRecorder(services, { storage }, onStatus) {
             try {
               run = read(name);
             } catch (error) {
-              report(
-                error instanceof SyntaxError || error?.code === 'INVALID_JOURNAL'
-                  ? 'needs-attention'
-                  : 'storage-unavailable',
-              );
+              if (!active || (key(active) === name && !active.synced))
+                report(
+                  error instanceof SyntaxError || error?.code === 'INVALID_JOURNAL'
+                    ? 'needs-attention'
+                    : 'storage-unavailable',
+                );
               continue;
             }
             if (!run || (run.abandoned && !run.cancelPending)) continue;
@@ -823,7 +864,7 @@ function createDurableRecorder(services, { storage }, onStatus) {
             if (run.synced) pending--;
           }
         } catch {
-          report('storage-unavailable');
+          if (!active?.synced) report('storage-unavailable');
         }
       })().finally(() => {
         recovering = undefined;

@@ -196,7 +196,7 @@ export class HUD {
   }
   controlAt(x: number, y: number) {
     const button = this.hit(x, y, true);
-    return button && (movableControls.includes(button.id) || this.layoutEditing && button.id === 'fire') ? button : undefined;
+    return button && (movableControls.includes(button.id) || button.id === 'fire') ? button : undefined;
   }
   private avoidFixedControls(id: string) {
     const b = this.buttons.find(b => b.id === id)!, bounds = this.controlBounds(id);
@@ -493,6 +493,10 @@ export class HUD {
     const b = this.pressedButton ? this.buttons.find(b => b.id === this.pressedButton)
       : this.mousePointer ? this.hit(this.mousePointer.x,this.mousePointer.y) : undefined;
     if (!b || b.disabled || !b.label.node.activeInHierarchy || (this.modal && b.label.node.parent !== this.modal && !this.isGlobalAction(b.id))) return;
+    if(b.id==='fire'){
+      const g=this.globalGraphics;g.fillColor=col(this.pressedButton?'#e5d5b433':'#e0efff14');g.strokeColor=col(this.pressedButton?C.amber:'#bdcfd6aa');g.lineWidth=3;
+      g.circle(b.x+b.w/2-this.w/2,this.h/2-b.y-b.h/2,Math.min(b.w,b.h)/2-3);g.fill();g.stroke();return;
+    }
     const v = b.visual || { x:b.x+3,y:b.y+4,w:b.w-6,h:b.h-8 };
     this.rect(this.globalGraphics,v.x,v.y,v.w,v.h,this.pressedButton?'#e5d5b433':'#e0efff14',this.pressedButton?C.amber:'#bdcfd6aa',3);
   }

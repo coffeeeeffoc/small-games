@@ -57,9 +57,30 @@ try{
    await drag('fire',width-10,20);s=await shot('fire-capsule');assert(!overlap(s.buttons.find(b=>b.id==='fire'),{x:width-96,y:16,w:84,h:36}));
   }
   await click('layoutDone');await click('resume');s=await snapshot(page);assert(!s.modal&&!s.pauses.length);
-  const fire=s.buttons.find(b=>b.id==='fire');
+  let fire=s.buttons.find(b=>b.id==='fire');
+  await page.evaluate(async()=>{
+   const {director}=await System.import('cc'),g=director.getScene().getComponentsInChildren('Overwatch')[0].hud.globalGraphics;
+   globalThis.__fireFeedback=[];
+   for(const name of ['circle','rect','roundRect']){const original=g[name];g[name]=function(...args){globalThis.__fireFeedback.push({name,args});return original.apply(this,args);};}
+  });
+  const directOrigin=geometry(fire);
   await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:fire.x+fire.w/2,y:fire.y+fire.h/2,id:1}]});
-  await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});assert.deepEqual((await snapshot(page)).held,[]);
+  await page.waitForFunction(()=>__night.snapshot().held.length>0);await page.waitForTimeout(150);await shot('fire-pressed');
+  const feedback=await page.evaluate(()=>globalThis.__fireFeedback),cx=fire.x+fire.w/2-width/2,cy=height/2-fire.y-fire.h/2;
+  assert(feedback.some(p=>p.name==='circle'&&Math.hypot(p.args[0]-cx,p.args[1]-cy)<1&&p.args[2]>fire.w*.35),'fire press uses its circular outline');
+  assert(!feedback.some(p=>p.name!=='circle'&&Math.hypot(p.args[0]+p.args[2]/2-cx,p.args[1]+p.args[3]/2-cy)<3),'fire press has no rectangular overlay');
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:width*.4,y:height*.52,id:1}]});await settleVisuals(page);
+  s=await shot('fire-direct-drag');const directMoved=geometry(s.buttons.find(b=>b.id==='fire')),stopped=s.fired;
+  assert.notDeepEqual(directMoved,directOrigin);assert.deepEqual(s.held,[]);assert(!s.modal&&!s.pauses.length);
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(200);assert.equal((await snapshot(page)).fired,stopped,'drag release never adds a shot');
+  await drag('fire',width*.6,height*.6,true);assert.deepEqual(geometry((await snapshot(page)).buttons.find(b=>b.id==='fire')),directMoved,'direct drag cancel restores position');
+  fire=(await snapshot(page)).buttons.find(b=>b.id==='fire');
+  const finger={x:fire.x+fire.w/2,y:fire.y+fire.h/2,id:1},aimFinger={x:width*.25,y:height*.4,id:2};
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger]});
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[finger,aimFinger]});
+  assert((await snapshot(page)).held.length>0,'second aim finger does not cancel fire');
+  await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[finger,{...aimFinger,x:aimFinger.x+20}]});
+  assert((await snapshot(page)).held.length>0);await cdp.send('Input.dispatchTouchEvent',{type:'touchCancel',touchPoints:[]});assert.deepEqual((await snapshot(page)).held,[]);
   await click('settings');await click('buttonControls');for(const id of ['fireScale:down','controlScale:down'])for(let i=0;i<7;i++)await click(id);
   s=await shot('size-min');assert(s.buttons.find(b=>b.id==='fireScale:down').disabled&&s.buttons.find(b=>b.id==='controlScale:down').disabled);
   await click('layoutEdit');s=await snapshot(page);assert(s.buttons.filter(b=>/^(weapon|fire)/.test(b.id)).every(b=>b.w>=44&&b.h>=44));
@@ -98,7 +119,7 @@ try{
    await shot('marker-zoom');const probe=await page.evaluate(()=>globalThis.__markerProbe);
    assert(probe.frames>50&&probe.contacts>100&&probe.covered>0,JSON.stringify(probe));assert(probe.maxZoom/probe.minZoom>3,JSON.stringify(probe));assert.deepEqual(probe.missing,[]);evidence.markers=probe;
   }
-  evidence.checks.push({width,height,host,homeClear:true,sizeLimits:true,sizePersisted:true,dragFire:true,cancelRestores:true,layoutPaused:true,resume:true,touchCancel:true});
+  evidence.checks.push({width,height,host,homeClear:true,sizeLimits:true,sizePersisted:true,dragFire:true,directFireDrag:true,circularFireFeedback:true,aimAndFire:true,cancelRestores:true,layoutPaused:true,resume:true,touchCancel:true});
   await context.close();
  }
  assert.deepEqual(evidence.errors,[]);await acceptanceBuild(base);await writeFile(`${out}/evidence.json`,JSON.stringify(evidence,null,2));console.log(JSON.stringify(evidence,null,2));

@@ -1,7 +1,7 @@
 {
-  "sourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
+  "sourceHash": "2e058f55dd557c293128542a2326ff51638411f6cd6c5c008acd67a665e87776",
   "verified": "2026-11-05",
-  "environment": "Current home, settings and settlement: Chromium 1280x720; isolated real PostgreSQL/HTTP, ordinary guest and real play. Other images/video are reused with their original capture identities; no device capture or new video recording.",
+  "environment": "Existing media reused with original capture identities; direct-fire-drag copy updated. Current storage-fault and mobile-gesture captures are QA evidence under docs/design/refinement-2026-11-04/k90, not device capture.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",
@@ -39,7 +39,7 @@
       "sha256": "1c8c91433ab0580e4355db90b51cafa2b30f48d0b1c559ec2e7e5e8aa3252fd9",
       "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
       "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720,
       "environment": "Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; ordinary first mission; no developer assets or balance fixture"
@@ -50,7 +50,7 @@
       "sha256": "81b050e23fc36d5e1a55e7d9104935b8911574581d262d6472ccc59e278286a7",
       "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
       "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720,
       "environment": "Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; ordinary first mission; no developer assets or balance fixture"
@@ -71,7 +71,7 @@
       "sha256": "8b248fda5cc73e72919a77bd2f1ede0d38429fa9c6327df7fa8313fcdc2ade5b",
       "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
       "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720,
       "environment": "Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; ordinary first mission; no developer assets or balance fixture"
@@ -169,10 +169,10 @@
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 3179,
-      "sha256": "23166d69ad29bd68737931879e22a4fc3d1b85c915e89eabc6734d14f3f1701f",
-      "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
-      "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
+      "bytes": 3275,
+      "sha256": "fac26d86ecb32ca868c1e14a4578db553d181f4b9159d166582e1d9cb5a71be9",
+      "verifiedForSourceHash": "2e058f55dd557c293128542a2326ff51638411f6cd6c5c008acd67a665e87776",
+      "capturedSourceHash": "2e058f55dd557c293128542a2326ff51638411f6cd6c5c008acd67a665e87776",
       "reusedUnchanged": false
     },
     {
@@ -181,7 +181,7 @@
       "sha256": "8a798fcf66e232626281a20fcf4dba61da81b04eca9cf4ba4d4786b5204e7fa9",
       "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
       "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
-      "reusedUnchanged": false
+      "reusedUnchanged": true
     },
     {
       "path": "copy/tagline.md",

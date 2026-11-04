@@ -199,6 +199,8 @@ test('high physical top insets and full capsules cannot push home actions into c
    if(fullCapsule)(globalThis as any).tap={getWindowInfo:()=>({windowWidth:width,windowHeight:height,statusBarHeight:24}),getMenuButtonBoundingClientRect:()=>capsule};
    const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.touch=true;
    online.assets=assetFixture();hud.online=online;hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.update(sim,world);
+   const strip=hud.modal.getComponentsInChildren(Graphics).flatMap((g:any)=>g.calls).find((c:any)=>c.op==='rect'&&c.fill==='#020e19c9');
+   assert(strip,'home header backdrop is drawn');assert.equal(strip.args[1]+strip.args[3],height/2,'header backdrop reaches the screen top without moving safe content');
    if(width===568){const title=hud.modal.getComponentsInChildren(cc.Sprite).find((sprite:any)=>sprite.node.name==='Illustration:title');assert(title.node.getComponent(Transform).contentSize.width>=100,'the title stays readable beside the controls on a short safe viewport');}
    const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
    for(const b of buttons){assert(b.y>=52&&b.y+b.h<=height-12,`${width}/${fullCapsule}/${b.id} bounded`);assert(!buttons.some((other:any)=>other!==b&&overlaps(b,other)),`${width}/${fullCapsule}/${b.id} separated`);}
@@ -290,6 +292,18 @@ test('HUD: skins are mounted, visual bounds stay inside touch targets, and unava
     assert(!hud.buttons.some((b:any)=>b.id==='online:roomNext'));assert(hud.listAreas.some((a:any)=>a.key==='rooms'&&a.max===0));
     assert(hud.modal.getComponentsInChildren(cc.Sprite).some((s:any)=>s.type===cc.Sprite.Type.SLICED));
   } finally {artworkAvailable=false;}
+});
+
+test('fire press and hover feedback follow the circular trigger at every configurable size',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;
+ const hud=new HUD(new SceneNode()),sim=new Simulation();hud.touch=true;sim.start();
+ for(const scale of [.8,1,1.5]){
+  hud.fireScale=scale;hud.update(sim,world);const fire=hud.buttons.find((b:any)=>b.id==='fire');assert.equal(hud.controlAt(fire.x+fire.w/2,fire.y+fire.h/2)?.id,'fire');
+  for(const pressed of [false,true]){
+   hud.pressedButton=pressed?'fire':'';hud.mousePointer={x:fire.x+fire.w/2,y:fire.y+fire.h/2};hud.globalGraphics.clear();hud.buttonFeedback();
+   const calls=hud.globalGraphics.calls;assert(calls.some((c:any)=>c.op==='circle'&&c.args[2]===Math.min(fire.w,fire.h)/2-3));assert(!calls.some((c:any)=>c.op==='rect'||c.op==='roundRect'));
+  }
+ }
 });
 
 test('HUD: history keeps next page enabled while the server has another cursor', () => {
