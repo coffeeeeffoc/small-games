@@ -36,6 +36,20 @@ test('failed local intent persistence prevents any purchase; removing accepted j
   storage.setItem=()=>{};storage.removeItem=()=>{throw Error('denied');};await q.execute({kind:'checkin'});
   assert.equal(q.pending,undefined);assert.deepEqual(q.message,['','']);assert.equal(online.assets.playerId,'A');
 });
+test('IndexedDB intent commit failure, double tap and account change cannot send a purchase',async()=>{
+  for(const fault of ['abort','account','double']){
+    const {q,online,storage,calls}=setup();let resolve!:()=>void,reject!:(error:Error)=>void;
+    const commit=new Promise<void>((yes,no)=>{resolve=yes;reject=no;});
+    Object.assign(storage,{flush:()=>commit});
+    const request=q.execute({kind:'buy',item:'power-match'});
+    assert.equal(q.busy,true);assert.equal(calls.length,0);
+    await q.execute({kind:'buy',item:'power-match'});assert.equal(calls.length,0);
+    if(fault==='abort')reject(Error('transaction aborted'));
+    else{if(fault==='account')online.authenticatedId='B';resolve();}
+    await request;assert.equal(q.busy,false);assert.equal(calls.length,fault==='double'?1:0);
+    if(fault==='abort'){assert(q.pending?.requestId);assert.match(q.message[0],/尚未发送/);}
+  }
+});
 test('developer journal retries one ID, clears definite failures, and cannot replay in normal packages',async(t)=>{
   const scope=globalThis as any;
   t.after(()=>{delete scope.__SMALL_GAMES_BUILD__;});

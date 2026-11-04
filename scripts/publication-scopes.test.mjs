@@ -1,5 +1,55 @@
 import { test } from 'node:test';
 
+test('Night IndexedDB files and its sole Turbo input select only Night and reject unrelated drift', () => {
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const packages = games.map((game) => ({ dir: game.source, name: game.id }));
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const input = '$TURBO_ROOT$/platforms/competition/night-storage.js';
+  const base = JSON.parse(readHead('turbo.json'));
+  base.tasks['@coffeeeeffoc/night-overwatch#build'].inputs = base.tasks[
+    '@coffeeeeffoc/night-overwatch#build'
+  ].inputs.filter((value) => value !== input);
+  const readBase = (file) => (file === 'turbo.json' ? JSON.stringify(base) : null);
+  const changedPaths = [
+    'platforms/competition/night-storage.js',
+    'platforms/competition/tests/night-storage.browser.test.mjs',
+    'turbo.json',
+  ];
+  const context = { games, packages, readHead, readBase, changedPaths };
+  const scopes = reviewedSharedFileScopes(context);
+  for (const file of changedPaths)
+    assert.deepEqual(scopes.get(file), ['games/local/night-overwatch'], file);
+  const plan = incrementalPlan({ ...context, fileScopes: scopes, readSource: readHead });
+  assert.deepEqual(plan.browser_ids, ['night-overwatch']);
+  assert.equal(plan.browser, true);
+  const changed = JSON.parse(readHead('turbo.json'));
+  changed.tasks['@coffeeeeffoc/night-overwatch#build'].env.push('UNREVIEWED_SETTING');
+  assert(
+    !reviewedSharedFileScopes({
+      ...context,
+      changedPaths: ['turbo.json'],
+      readHead: (file) => (file === 'turbo.json' ? JSON.stringify(changed) : readHead(file)),
+    }).has('turbo.json'),
+  );
+  assert(
+    !reviewedSharedFileScopes({
+      ...context,
+      readHead: (file) =>
+        file === 'scripts/h5-game-services.mjs'
+          ? readHead(file).replaceAll('night-storage.js', 'unrelated.js')
+          : readHead(file),
+    }).has(changedPaths[0]),
+  );
+  assert(
+    !reviewedSharedFileScopes({
+      ...context,
+      changedPaths: ['platforms/competition/unknown-storage.js'],
+    }).size,
+  );
+});
+
 test('Night chat migration and exact consumers classify from both immediate and last successful CI bases', async () => {
   const { nightChatBackendFileScope } = await import('./publication-scopes.mjs');
   const { workspacePackages } = await import('./validation-plan.mjs');

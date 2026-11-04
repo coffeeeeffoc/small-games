@@ -5,6 +5,46 @@ import os from 'node:os';
 import path from 'node:path';
 import { assertNodeOnly, validateTree, runIncrementalToolChecks } from './validate-tree.mjs';
 
+test('Night browser selection runs the real IndexedDB suite with the prepared browser and propagates failures', () => {
+  const calls = [];
+  const options = {
+    root: '/candidate',
+    env: { CHROMIUM_PATH: '/prepared/chromium' },
+    packages: [],
+    plan: {
+      browser: true,
+      browser_ids: ['night-overwatch'],
+      native_consumers: [],
+      developer_mode_ids: [],
+    },
+    execute: (...args) => calls.push(args),
+  };
+  runIncrementalToolChecks(options);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0][1], [
+    '--test',
+    'platforms/competition/tests/night-storage.browser.test.mjs',
+  ]);
+  assert.equal(calls[0][3].CHROMIUM_PATH, '/prepared/chromium');
+  assert.throws(
+    () =>
+      runIncrementalToolChecks({
+        ...options,
+        execute: () => {
+          throw Error('IDB regression');
+        },
+      }),
+    /IDB regression/,
+  );
+  calls.length = 0;
+  for (const plan of [
+    { browser: true, browser_ids: ['cage-rescue'] },
+    { browser: false, browser_ids: ['night-overwatch'] },
+  ])
+    runIncrementalToolChecks({ ...options, plan: { ...options.plan, ...plan } });
+  assert.equal(calls.length, 0);
+});
+
 test('candidate execution applies fullscreen removal proofs and still rejects drift or revived files', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'fullscreen-candidate-'));
   t.after(() => rm(root, { recursive: true, force: true }));

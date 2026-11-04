@@ -1630,6 +1630,51 @@ export const gameServiceScopePaths = Object.freeze([
   'scripts/competition-gateway.mjs',
   'scripts/competition-gateway.test.mjs',
 ]);
+const nightStoragePaths = [
+  'platforms/competition/night-storage.js',
+  'platforms/competition/tests/night-storage.browser.test.mjs',
+];
+function nightStorageTurboOnly(before, after) {
+  try {
+    const base = JSON.parse(before),
+      head = JSON.parse(after);
+    const key = '@coffeeeeffoc/night-overwatch#build';
+    const input = '$TURBO_ROOT$/platforms/competition/night-storage.js';
+    assert(!base.tasks[key].inputs.includes(input));
+    assert.equal(head.tasks[key].inputs.filter((value) => value === input).length, 1);
+    head.tasks[key].inputs = head.tasks[key].inputs.filter((value) => value !== input);
+    return isDeepStrictEqual(base, head);
+  } catch {
+    return false;
+  }
+}
+function assertNightStorageConsumer(games, packages, readHead) {
+  const source = 'games/local/night-overwatch';
+  assert.equal(
+    games.filter((game) => game.id === 'night-overwatch' && game.source === source).length,
+    1,
+  );
+  assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
+  assert(
+    importsModule(
+      readHead(source + '/scripts/build.mjs'),
+      '../../../../scripts/h5-game-services.mjs',
+    ),
+  );
+  assert(
+    readHead('scripts/h5-game-services.mjs').includes(
+      "new URL('../platforms/competition/night-storage.js', import.meta.url)",
+    ),
+  );
+  assert(
+    readHead(source + '/scripts/artifact.mjs').includes("'platforms/competition/night-storage.js'"),
+  );
+  assert(
+    JSON.parse(readHead('turbo.json')).tasks['@coffeeeeffoc/night-overwatch#build'].inputs.includes(
+      '$TURBO_ROOT$/platforms/competition/night-storage.js',
+    ),
+  );
+}
 export const nightRuntimeInputs = Object.freeze(
   ['Duel', 'Replay', 'Simulation', 'MissionCatalog', 'Data', 'Flight', 'Progression'].map(
     (name) => `games/local/night-overwatch/assets/scripts/core/${name}.ts`,
@@ -5752,6 +5797,14 @@ export function reviewedSharedFileScopes({
           ),
           ...(gateway ? ['services/runtime-api', 'apps/shell-web'] : []),
         ]);
+        continue;
+      }
+      if (
+        nightStoragePaths.includes(file) ||
+        (file === 'turbo.json' && nightStorageTurboOnly(readBase(file), readHead(file)))
+      ) {
+        assertNightStorageConsumer(games, packages, readHead);
+        scopes.set(file, ['games/local/night-overwatch']);
         continue;
       }
       if (file === 'turbo.json' && nightServiceTurboOnly(readBase(file), readHead(file))) {

@@ -1,0 +1,35 @@
+{
+  "checks": [
+    {
+      "scenario": "ordinary",
+      "nativeWrites": 0,
+      "requests": 6,
+      "screenshot": "ordinary.png"
+    },
+    {
+      "scenario": "developer",
+      "nativeWrites": 0,
+      "requests": 3,
+      "screenshot": "developer.png"
+    },
+    {
+      "scenario": "unsupported",
+      "nativeWrites": 0,
+      "requests": 0,
+      "screenshot": "unsupported.png"
+    },
+    {
+      "scenario": "missing-script",
+      "nativeWrites": 0,
+      "requests": 0,
+      "screenshot": "missing-script.png"
+    }
+  ],
+  "errors": [],
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "54733b744cee33fdd1733504aee89b1687c556331436d88f9df99d58660a0f4e"
+  },
+  "cleanupFailures": []
+}

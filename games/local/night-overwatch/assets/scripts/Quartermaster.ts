@@ -4,6 +4,7 @@ export type AssetIntent = AssetCommand extends infer T ? T extends AssetCommand 
 export type LoadoutSlot = 'mod:0'|'mod:1'|'weapon'|'skill';
 export type ProgressionPage = ''|'modes'|'loadout'|'shop'|'supply'|'growth'|'tasks'|'inbox'|'warehouse'|'receipts'|'checkin'|'probability';
 type NavigationState = Pick<Quartermaster,'page'|'section'|'index'|'detail'|'selected'|'item'|'amount'|'term'|'mode'|'slot'|'loadoutScroll'|'scrolls'|'selectedMail'|'selectedSkill'>;
+type IntentStorage = Pick<Storage,'getItem'|'setItem'|'removeItem'> & {flush?:()=>Promise<void>};
 /** Wheel artwork has boundaries at 12 o'clock. A clockwise sector centre is 30 + i*60 degrees. */
 export const wheelLandingAngle=(index:number,start=0)=>start+360*5+((30+index*60-start%360+360)%360);
 export const effectEnglish:Record<Effect,string>={power:'Power upgrade',rate:'Rapid feed',burst:'Double burst',twin:'Twin trajectory',radius:'Blast radius',cooling:'Cooling system',drone:'Drone swarm',laser:'Laser weapon',tracking:'Tracking',emp:'Electromagnetic pulse'};
@@ -37,8 +38,8 @@ export class Quartermaster {
   drag?:{item:string;x:number;y:number;target?:LoadoutSlot};
   private openingGift=false;private adReady?:{orderId:string;attemptId:string;startedAt:number};
   busy=false; viewing=false; revision=0; message:[string,string]=['','']; pending?:AssetCommand;
-  private owner=''; private disposed=false; private online:Online; private storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>;
-  constructor(online:Online,storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>){this.online=online;this.storage=storage;}
+  private owner=''; private disposed=false; private online:Online; private storage:IntentStorage;
+  constructor(online:Online,storage:IntentStorage){this.online=online;this.storage=storage;}
   get assets(){return this.online.assets;}
   get catalog(){return this.assets?.catalog||CATALOG;}
   get packages(){return this.assets?.packages||PACKAGES;}
@@ -157,6 +158,11 @@ export class Quartermaster {
     if(!this.pending)return;
     const command=this.pending,owner=this.owner;this.busy=true;this.revision++;
     try{
+      if(this.storage.flush){
+        try{await this.storage.flush();}
+        catch{this.message=['无法保存交易编号，请重试；尚未发送交易','Cannot save the transaction ID. Retry; no transaction was sent.'];return;}
+        if(this.owner!==owner||this.online.authenticatedId!==owner||this.pending!==command||this.disposed)return;
+      }
       const snapshot=await this.online.assetCommand(command);
       if(this.owner!==owner||this.disposed)return;
       this.pending=undefined;try{this.storage.removeItem(this.key());}catch{/* Replaying this accepted ID is safe. */}

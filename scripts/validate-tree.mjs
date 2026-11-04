@@ -817,6 +817,15 @@ export function runIncrementalToolChecks({
       env,
       'logged',
     );
+  // validateTree prepares the selected browser before these candidate checks.
+  if (plan.browser && plan.browser_ids?.includes('night-overwatch'))
+    execute(
+      process.execPath,
+      ['--test', 'platforms/competition/tests/night-storage.browser.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
   if (plan.ranked_deployment_checks)
     execute(process.execPath, ['--test', 'scripts/deploy-tencent.test.mjs'], root, env, 'logged');
   // These reviewed entry points exercise sharing/ad lifecycle in the real UI.

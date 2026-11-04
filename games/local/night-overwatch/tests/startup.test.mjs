@@ -9,7 +9,7 @@ import { installStartup } from '../startup/install.mjs';
 import { sourceHash } from '../scripts/artifact.mjs';
 
 const runtime = await readFile(new URL('../startup/runtime.js', import.meta.url), 'utf8');
-function harness({ reduced = true, importError, startError, stalled = false } = {}) {
+function harness({ reduced = true, importError, startError, stalled = false, storageReady = Promise.resolve(), devReady } = {}) {
   class Element extends EventTarget {
     dataset = {};
     attrs = new Map();
@@ -26,6 +26,8 @@ function harness({ reduced = true, importError, startError, stalled = false } = 
     'night-progress', 'GameDiv', 'GameCanvas'].map((id) => [id, new Element()]));
   const timers = new Map();
   const window = new EventTarget();
+  window.__nightStorageReady = storageReady;
+  window.__nightDevModeReady = devReady;
   let reloads = 0;
   window.location = { reload: () => reloads++ };
   const game = new EventEmitter();
@@ -72,6 +74,28 @@ function harness({ reduced = true, importError, startError, stalled = false } = 
   return { nodes, timers, game, director, window, emit, reloads: () => reloads,
     boot: () => window.NightStartup.boot('./application.js', 'web-mobile') };
 }
+
+test('Creator waits for IndexedDB and developer settings before importing or starting the engine', async () => {
+  let storageDone, devDone;
+  const h = harness({ storageReady: new Promise(resolve => { storageDone = resolve; }), devReady: new Promise(resolve => { devDone = resolve; }) });
+  const boot = h.boot();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.nodes.GameCanvas.width, undefined);
+  storageDone();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.nodes.GameCanvas.width, undefined);
+  devDone();
+  await boot;
+  assert.equal(h.nodes.GameCanvas.width, 390);
+});
+test('missing storage module stops before Creator and exposes a reload action', async () => {
+  const h = harness({ storageReady: null });
+  await h.boot();
+  assert.equal(h.nodes.GameCanvas.width, undefined);
+  assert.equal(h.nodes['night-startup'].dataset.state, 'error');
+  assert.match(h.nodes['night-hint'].textContent, /存储组件加载失败/);
+  assert.equal(h.nodes['night-retry'].hidden, false);
+});
 
 test('ready requires the game signal AND a subsequent scene draw, then cleans up', async () => {
   const h = harness();

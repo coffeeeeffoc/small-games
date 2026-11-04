@@ -1,0 +1,90 @@
+{
+  "environment": "Isolated real PostgreSQL/HTTP; fresh guest; ordinary first mission and real mouse input; network failures are injected; missing journal keys return empty strings, journal transactions abort after admission, and receipt writes fail",
+  "checks": [
+    "A failed official start stays in briefing instead of silently becoming a local run",
+    "Reload after failed receipt storage preserves credited assets and exactly-once task progress",
+    "Real completed first mission credits 100 points, 180 coins, 120 EXP and each applicable task once after a lost finish response",
+    "Opening the task page and repeated online recovery preserve exactly-once rewards and progress"
+  ],
+  "errors": [],
+  "screens": [
+    "storage-quota-568.png",
+    "storage-quota-568-scrolled.png",
+    "storage-abort-844.png",
+    "storage-abort-844-scrolled.png",
+    "home-1280.png",
+    "start-retry.png",
+    "settings-1280.png",
+    "controls-1280.png",
+    "settlement-pending.png",
+    "settlement-1280.png",
+    "settlement-844.png",
+    "settlement-568.png",
+    "tasks-updated.png"
+  ],
+  "storageFaults": {
+    "missingKey": "empty string",
+    "journalWriteAfterAdmission": "transaction abort after put success",
+    "receiptWrite": "QuotaExceededError",
+    "observed": {
+      "emptyReads": 392,
+      "receiptFailures": 162,
+      "journalFailures": 343,
+      "blockJournalWrites": true
+    }
+  },
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "54733b744cee33fdd1733504aee89b1687c556331436d88f9df99d58660a0f4e"
+  },
+  "startDiagnostics": [
+    {
+      "fault": "quota",
+      "width": 568,
+      "height": 320,
+      "detail": "stage=commit\nsource=indexedDB\nname=QuotaExceededError code=STORAGE_UNAVAILABLE\nmessage=Injected initial quota; token=[redacted]; retry required. IndexedDB could not commit the action journal. No run was registered. Close the details and retry after storage becomes available. This deliberately long diagnostic verifies the small-screen scrolling boundary.\ngetItem=function setItem=function removeItem=function key=function\nlength=number:5",
+      "scrollMax": 58,
+      "starts": 0,
+      "closeAndRetry": true
+    },
+    {
+      "fault": "abort",
+      "width": 844,
+      "height": 390,
+      "detail": "stage=commit\nsource=indexedDB\nname=Error code=STORAGE_UNAVAILABLE\nmessage=IndexedDB transaction was aborted\ngetItem=function setItem=function removeItem=function key=function\nlength=number:5",
+      "scrollMax": 0,
+      "starts": 0,
+      "closeAndRetry": true
+    }
+  ],
+  "engineStorage": {
+    "nativeWrites": 0,
+    "source": "indexedDB",
+    "engineStorageIsBrowser": true
+  },
+  "result": {
+    "points": 100,
+    "coins": 180,
+    "xp": 120,
+    "shots": 6,
+    "tasks": [
+      {
+        "id": "2026-11-05:solo",
+        "event": "solo",
+        "before": 0,
+        "after": 1,
+        "target": 2
+      },
+      {
+        "id": "2026-11-05:complete",
+        "event": "complete",
+        "before": 0,
+        "after": 1,
+        "target": 3
+      }
+    ]
+  },
+  "cleanupFailures": [],
+  "cleaned": true
+}

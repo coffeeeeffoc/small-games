@@ -54,6 +54,7 @@ test('five-game delivery enables verified slots and a separate no-UI service boo
       const html = await readFile(path.join(dir, 'index.html'), 'utf8');
       assert(html.indexOf('game-service-config') < html.indexOf('entry.js'));
       assert(!html.includes('competition-renderer'));
+      assert.equal(html.includes('night-storage.js'), game === 'night-overwatch');
       await prepareGameServices(game, dir, { env: {} });
       assert.match(await readFile(path.join(dir, 'game-service-config.js'), 'utf8'), /"apiUrl":""/);
     }
@@ -65,6 +66,32 @@ test('five-game delivery enables verified slots and a separate no-UI service boo
         },
       }),
       /HTTPS/,
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('Night storage and deferred developer initialization remain unique and precede game entry after repack', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'night-idb-bootstrap-'));
+  try {
+    const index = path.join(dir, 'index.html');
+    await writeFile(
+      index,
+      '<html><head><script src="./dev-mode.js"></script><script src="./entry.js"></script></head></html>',
+    );
+    await prepareGameServices('night-overwatch', dir, { env: {} });
+    await prepareGameServices('night-overwatch', dir, { env: {} });
+    await reconfigureGameServices(index, {});
+    const html = await readFile(index, 'utf8');
+    assert.equal(html.match(/src="\.\/game-services\/night-storage\.js"/g)?.length, 1);
+    assert.equal(html.match(/__nightDevModeReady =/g)?.length, 1);
+    assert(html.indexOf('night-storage.js') < html.indexOf('game-service-config.js'));
+    assert(html.indexOf('__nightDevModeReady') < html.indexOf('entry.js'));
+    assert.doesNotMatch(html, /<script src="\.\/dev-mode\.js"/);
+    assert.equal(
+      await readFile(path.join(dir, 'game-services/night-storage.js'), 'utf8'),
+      await readFile(new URL('../platforms/competition/night-storage.js', import.meta.url), 'utf8'),
     );
   } finally {
     await rm(dir, { recursive: true, force: true });

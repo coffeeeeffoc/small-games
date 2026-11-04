@@ -41,5 +41,11 @@ export function connectGameServices() {
 }
 
 if (typeof window !== 'undefined') {
-  globalThis.SmallGamesServices = connectGameServices();
+  const connect = () => {
+    globalThis.SmallGamesServices = connectGameServices();
+  };
+  if (globalThis.__COMPETITION_CONFIG__?.game === 'night-overwatch') {
+    if (globalThis.__nightStorageReady)
+      void globalThis.__nightStorageReady.then(connect).catch(() => {});
+  } else connect();
 }

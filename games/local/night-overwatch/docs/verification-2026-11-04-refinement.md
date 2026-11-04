@@ -1,5 +1,31 @@
 # 夜航守望 · 操作细化验证
 
+## H5 IndexedDB存储迁移
+
+2026-11-05。用户提供的新详情为真实 `window.localStorage.setItem` 抛 `QuotaExceededError`，写入行动日志时超出旧存储配额。本轮按用户要求将夜航守望普通H5及TapTap H5迁到IndexedDB；原生小游戏继续使用渠道存储。真实Creator 3.8.8最终web-mobile源码摘要 `54733b744cee33fdd1733504aee89b1687c556331436d88f9df99d58660a0f4e`，59,251,115字节。以下两套真实制品验收均来自该摘要，未复用早期失败批次作为通过证据。
+
+- 页面在开发模式、身份服务和Creator引擎之前安装新存储适配器，初始化完成才启动消费者；Cocos自己的存储探测也写新库。真实localStorage仅保留读取引用，未调用其setItem/removeItem/clear。设置、训练记录、军需编号、游客/Tap身份、行动日志和确认回执由同一入口写入IndexedDB，未清空旧库或新建云存档。
+- 新库优先，旧值按需兼容读取；删除写入墓碑，重载不复活旧数据。关键操作等待事务complete，put请求成功后事务abort仍判失败；首次开局、开局已尝试标记、军需编号没有提交前不发送正式请求。身份使用原子比较更新，跨页读取权威新值，不依赖BroadcastChannel通知；旧页迟到响应不能覆盖新账号。
+- 运行中日志存储失效时保留已有可恢复记录及完整内存记录，允许既有身份联网获取权威结算；失败日志不会阻断无关的身份读/令牌刷新。确认回执提交失败时不提前删除恢复输入，重复请求仍由既有幂等协议保护。没有修改后端规则、数据库或结算协议。
+- IndexedDB不可用时旧偏好可读、本地训练仍可玩，正式保存明确报告存储失败，不降级写旧库。若存储组件文件本身缺失，则入口显示重新连接并在启动引擎/身份服务前停止，避免重新落回真实localStorage。IndexedDB仍有宿主配额及清理机制，不承诺无限容量或永久保存。
+
+验证结果：
+
+| 范围 | 实际结果 |
+| --- | --- |
+| 共享服务、身份、打包及启动 | 115/115；其中9项使用真实Chromium IndexedDB，覆盖旧库填满且全部写方法拒绝、旧未结算日志恢复、墓碑/重载、事务abort、回执故障、无跨页通知下的旧页及账号竞争、身份提交失败、战中日志故障后的身份刷新。 |
+| Night在线、输入、军需与原生契约 | 101/101；包括保存屏障期间双击/切账号不扣款、取消开局后迟到失败不覆盖新状态。类型检查通过。原生为源码/配置契约，未重新生成各原生渠道包。 |
+| 共享client真实消费者 | Tap登录/服务、Carrom、Flick及经典H5/原生身份消费者30项；抖音Vitest登录2项；摆消乐session/artifact8项通过。Flick和摆消乐两个受管client副本逐字同步唯一源，游戏逻辑及存储策略不变。 |
+| 准确消费者与执行接线 | 新IDB/Turbo输入正反例、共享服务/身份范围与执行定向7/7通过；显式Chromium路径分别通过存储和身份两个真实用例。曾启动两份范围工具测试的全文件运行，因无关历史Git路径递归探测耗时而按增量范围终止，未计入通过数量；相关子进程和临时目录已确认无残留。 |
+| 最终Creator入口 | [4场景回执](design/refinement-2026-11-04/indexeddb/startup-evidence.json)：dev=0保存偏好并重载，新库覆盖旧值；dev=1正确启用；无IDB仍进入[训练](design/refinement-2026-11-04/indexeddb/unsupported.png)；组件404显示[重新连接](design/refinement-2026-11-04/indexeddb/missing-script.png)，0服务请求。四场均原生localStorage写入0、页面异常0。 |
+| 真实PostgreSQL/HTTP普通首关 | [完整回执](design/refinement-2026-11-04/indexeddb/settlement-evidence.json)：初始quota与事务abort均0开局请求，可滚动/关闭/重试；战中journal事务abort343次、receipt quota162次，同时丢失finish响应。恢复后[正式结算](design/refinement-2026-11-04/indexeddb/settlement-844.png)100积分/180金币/120 EXP，单人任务0/2→1/2、完成任务0/3→1/3。重复online恢复及重载均不重复奖励或任务，原生localStorage写入0，页面异常0，专属服务与数据清理成功。 |
+
+已实际打开无IDB训练、缺组件重试及[568保存失败详情](design/refinement-2026-11-04/indexeddb/storage-quota-568.png)核对；主会话实际检查844正式结算画面。截图为故障注入QA，未替换上架素材。八类23项已有素材沿用本轮只读存在性、尺寸/哈希核验结果与原采集身份；无视觉逻辑改动，无需重录。
+
+执行入口：`node --test` 定向运行共享game-services/identity/game-bootstrap/night-storage浏览器、h5-game-services、Night startup/artifact；Night online/input-mode/quartermaster/native-build/native-host-boundary使用`--test-concurrency=1`。真实制品分别执行`tests/indexeddb-browser.mjs`、`tests/settlement-live-browser.mjs`，后者开启`NIGHT_START_STORAGE_DIAGNOSTICS=1`及`NIGHT_STORAGE_FAULTS=1`，并固定`NIGHT_EXPECTED_SOURCE_HASH`。构建使用`node games/local/night-overwatch/scripts/build.mjs web-mobile`，类型使用其` scripts/typecheck.mjs`；共享改动格式检查通过。
+
+新增模块已纳入源码摘要和Turbo的Night构建输入；新模块/真实IDB测试路径仅映射Night消费者，并登记到已选择Night的浏览器校验流程，复用已准备的Chromium路径。普通新H5存储默认规则同步到通用规范，不代表全仓已迁移。本轮未提交、推送、制作/上传新TapTap ZIP、部署生产服务；实体K90、TapTap实际宿主及真实广告仍待后续验收。
+
 2026-11-04 早期阶段记录。先核对旧线上截图和当前代码，再生成[效果图](design/refinement-2026-11-04/README.md)，随后实现和检查实际画面。当时 Creator 3.8.8 web-mobile 源码摘要：`c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a`，包体 59,211,819 字节。当时尚未提交、推送、部署或上传渠道包；后续结果见下方“最终按钮布局与交付”和“TapTap H5提审回执”。
 
 ## 七项结果

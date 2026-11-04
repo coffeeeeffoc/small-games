@@ -395,6 +395,30 @@ test('Night first start-attempt persistence and unreadable live storage never by
     assert.deepEqual(f.calls, []);
   }
 });
+test('Night cancelled initial IndexedDB commit cannot replace the newer practice status', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder(),
+    commit = defer();
+  f.storage.flush = () => commit.promise;
+  const start = recorder.start({ mode: 'campaign', levelId: 'first' });
+  await turn();
+  recorder.invalidate('practice');
+  commit.resolve(Promise.reject(Object.assign(Error('aborted'), { code: 'STORAGE_UNAVAILABLE' })));
+  await start;
+  assert.equal(recorder.status, 'practice');
+  assert.equal(f.requests.length, 0);
+});
+test('Night identity storage initialization failure is reported as storage, not network failure', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  f.services.session = async () => {
+    throw Object.assign(Error('IndexedDB unavailable'), { code: 'STORAGE_UNAVAILABLE' });
+  };
+  assert.equal(await recorder.start({ mode: 'campaign', levelId: 'first' }), null);
+  assert.equal(recorder.status, 'storage-unavailable');
+  assert.match(recorder.storageDiagnostic, /stage=initialize[\s\S]*IndexedDB unavailable/);
+  assert.equal(f.requests.length, 0);
+});
 
 test('Night recovered tails and cancellation metadata remain strict even during quota failures', async () => {
   for (const patch of [

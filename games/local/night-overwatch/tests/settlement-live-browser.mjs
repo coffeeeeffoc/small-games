@@ -10,7 +10,7 @@ await mkdir(out,{recursive:true});
 const evidence={environment:'Isolated real PostgreSQL/HTTP; fresh guest; ordinary first mission and real mouse input; network failures are injected',checks:[],errors:[],screens:[]};
 const storageFaults=process.env.NIGHT_STORAGE_FAULTS==='1';
 const startDiagnostics=process.env.NIGHT_START_STORAGE_DIAGNOSTICS==='1';
-if(storageFaults){evidence.environment+='; missing journal keys return empty strings, journal writes fail after admission, and receipt writes fail';evidence.storageFaults={missingKey:'empty string',journalWriteAfterAdmission:'QuotaExceededError',receiptWrite:'QuotaExceededError'};}
+if(storageFaults){evidence.environment+='; missing journal keys return empty strings, journal transactions abort after admission, and receipt writes fail';evidence.storageFaults={missingKey:'empty string',journalWriteAfterAdmission:'transaction abort after put success',receiptWrite:'QuotaExceededError'};}
 let fixture,server,browser,context,page;
 try{
  fixture=await createOwnedRuntime({workspace});
@@ -21,12 +21,12 @@ try{
  browser=await chromium.launch({headless:true,args:['--use-angle=d3d11']});
  if(startDiagnostics){
   evidence.startDiagnostics=[];
-  for(const [fault,width,height]of [['quota',568,320],['noop',844,390]]){
+  for(const [fault,width,height]of [['quota',568,320],['abort',844,390]]){
    const diagnosticContext=await browser.newContext({viewport:{width,height},hasTouch:true,isMobile:true});
    try{
     await diagnosticContext.addInitScript(fault=>{
-     localStorage.setItem('night-overwatch-coach-v2','done');const set=Storage.prototype.setItem;
-     Storage.prototype.setItem=function(key,value){if(String(key).startsWith('night-pending-run-v1:')){if(fault==='quota')throw new DOMException('Injected initial quota; token=private-sentinel; retry required','QuotaExceededError');return;}return set.call(this,key,value);};
+     localStorage.setItem('night-overwatch-coach-v2','done');const put=IDBObjectStore.prototype.put;
+     IDBObjectStore.prototype.put=function(value,key){if(String(key).startsWith('night-pending-run-v1:')&&fault==='quota')throw new DOMException('Injected initial quota; token=private-sentinel; retry required. IndexedDB could not commit the action journal. No run was registered. Close the details and retry after storage becomes available. This deliberately long diagnostic verifies the small-screen scrolling boundary.','QuotaExceededError');const request=put.call(this,value,key);if(String(key).startsWith('night-pending-run-v1:'))request.addEventListener('success',()=>this.transaction.abort());return request;};
     },fault);
     const diagnosticPage=await diagnosticContext.newPage();diagnosticPage.on('pageerror',e=>evidence.errors.push(e.message));
     await diagnosticPage.route('**/game-service-config.js',r=>r.fulfill({contentType:'text/javascript',body:`globalThis.__COMPETITION_CONFIG__=Object.freeze(${JSON.stringify({game:'night-overwatch',platform:'h5',competitionEnabled:true,apiUrl:api})});`}));
@@ -34,8 +34,8 @@ try{
     await diagnosticPage.goto(origin+'/?dev=0');await diagnosticPage.waitForFunction(()=>globalThis.__night?.snapshot().progression.assets?.playerId&&!document.getElementById('night-startup'));
     for(const id of ['qm:modes','mode:solo','mode:enter','start']){await press(diagnosticPage,id,true,false);await settleVisuals(diagnosticPage);}
     await diagnosticPage.waitForFunction(()=>__night.snapshot().modal.startsWith('storageError:'));let diagnostic=await snapshot(diagnosticPage);
-    assert.equal(diagnostic.phase,'briefing');assert.equal(starts,0);assert(diagnostic.modal.includes('source=window.localStorage'));assert(!diagnostic.modal.includes('private-sentinel'));
-    assert(diagnostic.modal.includes(fault==='quota'?'name=QuotaExceededError':'matches=false'));assert(diagnostic.modal.includes(fault==='quota'?'stage=set':'stage=readback'));if(fault==='quota')assert(diagnostic.scrollMax>0,'small-screen long details require scrolling');
+    assert.equal(diagnostic.phase,'briefing');assert.equal(starts,0);assert(diagnostic.modal.includes('source=indexedDB'));assert(!diagnostic.modal.includes('private-sentinel'));
+    assert(diagnostic.modal.includes(fault==='quota'?'name=QuotaExceededError':'transaction was aborted'));assert(diagnostic.modal.includes('stage=commit'));if(fault==='quota')assert(diagnostic.scrollMax>0,'small-screen long details require scrolling');
     const name=`storage-${fault}-${width}`;await diagnosticPage.screenshot({path:fileURLToPath(new URL(name+'.png',out))});evidence.screens.push(name+'.png');
     const cdp=await diagnosticContext.newCDPSession(diagnosticPage);
     for(let drag=0;drag<8&&(await snapshot(diagnosticPage)).scroll<diagnostic.scrollMax;drag++){
@@ -52,16 +52,15 @@ try{
    }finally{await diagnosticContext.close();}
   }
  }
- context=await browser.newContext({viewport:{width:1280,height:720}});await context.addInitScript(()=>localStorage.setItem('night-overwatch-coach-v2','done'));
- if(startDiagnostics)await context.addInitScript(()=>{
-  const set=Storage.prototype.setItem;globalThis.__nightEngineProbeFailures=0;
-  Storage.prototype.setItem=function(key,value){if(key==='storage'&&!globalThis.__nightEngineProbeFailures){globalThis.__nightEngineProbeFailures++;throw new DOMException('Injected engine initialization probe','QuotaExceededError');}return set.call(this,key,value);};
+ context=await browser.newContext({viewport:{width:1280,height:720}});await context.addInitScript(()=>{
+  localStorage.setItem('night-overwatch-coach-v2','done');globalThis.__nightNativeWrites=0;
+  for(const method of ['setItem','removeItem','clear'])Storage.prototype[method]=function(){globalThis.__nightNativeWrites++;throw new DOMException('Legacy localStorage is read-only','QuotaExceededError');};
  });
  if(storageFaults)await context.addInitScript(()=>{
-  const get=Storage.prototype.getItem,set=Storage.prototype.setItem;
+  const get=Storage.prototype.getItem,put=IDBObjectStore.prototype.put;
   globalThis.__nightStorageFaults={emptyReads:0,receiptFailures:0,journalFailures:0,blockJournalWrites:false};
   Storage.prototype.getItem=function(key){const value=get.call(this,key);if(String(key).startsWith('night-pending-run-v1:')&&value===null){globalThis.__nightStorageFaults.emptyReads++;return '';}return value;};
-  Storage.prototype.setItem=function(key,value){if(String(key).startsWith('night-pending-run-v1:')){if(String(key).endsWith(':synced')){globalThis.__nightStorageFaults.receiptFailures++;throw new DOMException('Injected receipt quota','QuotaExceededError');}if(globalThis.__nightStorageFaults.blockJournalWrites){globalThis.__nightStorageFaults.journalFailures++;throw new DOMException('Injected journal quota','QuotaExceededError');}}return set.call(this,key,value);};
+  IDBObjectStore.prototype.put=function(value,key){if(String(key).startsWith('night-pending-run-v1:')&&String(key).endsWith(':synced')){globalThis.__nightStorageFaults.receiptFailures++;throw new DOMException('Injected receipt quota','QuotaExceededError');}const request=put.call(this,value,key);if(String(key).startsWith('night-pending-run-v1:')&&globalThis.__nightStorageFaults.blockJournalWrites){globalThis.__nightStorageFaults.journalFailures++;request.addEventListener('success',()=>this.transaction.abort());}return request;};
  });
  page=await context.newPage();page.setDefaultTimeout(45000);page.on('pageerror',e=>evidence.errors.push(e.message));
  await page.route('**/game-service-config.js',r=>r.fulfill({contentType:'text/javascript',body:`globalThis.__COMPETITION_CONFIG__=Object.freeze(${JSON.stringify({game:'night-overwatch',platform:'h5',competitionEnabled:true,apiUrl:api})});`}));
@@ -76,7 +75,7 @@ try{
  const click=async id=>{await press(page,id,false,false);await settleVisuals(page);};
  const shot=async name=>{await settleVisuals(page);await page.screenshot({path:fileURLToPath(new URL(name+'.png',out))});evidence.screens.push(name+'.png');};
  await page.goto(origin+'/?dev=0');await page.waitForFunction(()=>globalThis.__night?.snapshot().progression.assets?.playerId&&!document.getElementById('night-startup'));
- if(startDiagnostics){evidence.engineStorage=await page.evaluate(async()=>{const {sys}=await System.import('cc');return {probeFailures:globalThis.__nightEngineProbeFailures,engineStorageIsBrowser:sys.localStorage===window.localStorage};});assert.equal(evidence.engineStorage.probeFailures,1);assert.equal(evidence.engineStorage.engineStorageIsBrowser,false);}
+ evidence.engineStorage=await page.evaluate(async()=>{const {sys}=await System.import('cc');return {nativeWrites:globalThis.__nightNativeWrites,source:window.localStorage.source,engineStorageIsBrowser:sys.localStorage===window.localStorage};});assert.equal(evidence.engineStorage.nativeWrites,0);assert.equal(evidence.engineStorage.source,'indexedDB');assert.equal(evidence.engineStorage.engineStorageIsBrowser,true);
  await shot('home-1280');
  for(const id of ['qm:modes','mode:solo','mode:enter','start'])await click(id);
  await page.waitForFunction(()=>__night.snapshot().online.rankStatus==='pending-sync');
@@ -123,7 +122,7 @@ try{
  }
  evidence.checks.push('Real completed first mission credits 100 points, 180 coins, 120 EXP and each applicable task once after a lost finish response');
  evidence.checks.push('Opening the task page and repeated online recovery preserve exactly-once rewards and progress');
- assert.deepEqual(evidence.errors,[]);await acceptanceBuild(origin);
+ assert.equal(await page.evaluate(()=>globalThis.__nightNativeWrites),0,'all game writes, including engine probes and identity, stay off legacy localStorage');assert.deepEqual(evidence.errors,[]);await acceptanceBuild(origin);
 }catch(error){evidence.failure=String(error);if(page){const state=await snapshot(page).catch(()=>null);evidence.lastState=state&&{phase:state.phase,rankStatus:state.online?.rankStatus,coins:state.progression?.assets?.coins,xp:state.progression?.assets?.xp};}await page?.screenshot({path:fileURLToPath(new URL('failure.png',out))}).catch(()=>{});throw error;}
 finally{
  evidence.cleanupFailures=await cleanupOwnedSteps([['browser',()=>browser?.close()],['server',()=>server?.close()],['fixture',()=>fixture?.close()]]);

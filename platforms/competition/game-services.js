@@ -67,11 +67,13 @@ export function createGameServices({ gameId, ruleVersion }) {
   }
   async function request(url, body, credential) {
     credential ||= await auth.current();
+    if (storage?.refresh) await storage.refresh();
     auth.assertCurrent(credential);
     const data = await transport(url, body, credential).catch((error) => {
       auth.invalidate(credential, error);
       throw error;
     });
+    if (storage?.refresh) await storage.refresh();
     auth.assertCurrent(credential);
     return data;
   }
@@ -168,7 +170,7 @@ export function createGameServices({ gameId, ruleVersion }) {
     async updateProfile(patch) {
       const credential = await auth.current();
       const profile = await request('/me', patch, credential);
-      auth.acceptProfile(profile, credential);
+      await auth.acceptProfile(profile, credential);
       return profile;
     },
     listRooms: () => request(path + '/rooms'),
@@ -309,7 +311,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       const browserStorage = globalThis.window.localStorage;
       if (!browserStorage) throw Error('window.localStorage is unavailable');
       storage = browserStorage;
-      source = 'window.localStorage';
+      source = storage.source === 'indexedDB' ? 'indexedDB' : 'window.localStorage';
     } catch (error) {
       selectionError = error;
     }
@@ -360,7 +362,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     } catch {
       length = 'throws';
     }
-    storageDiagnostic = `stage=${stage}\nsource=${['window.localStorage', 'cocos.localStorage', 'provided'].includes(source) ? source : 'provided'}\n${describeError(error)}\n${methods}\nlength=${length}${details ? '\n' + details : ''}${selectionError ? '\nwindow.localStorage selection failed\n' + describeError(selectionError) : ''}`;
+    storageDiagnostic = `stage=${stage}\nsource=${['indexedDB', 'window.localStorage', 'cocos.localStorage', 'provided'].includes(source) ? source : 'provided'}\n${describeError(error)}\n${methods}\nlength=${length}${details ? '\n' + details : ''}${selectionError ? '\nwindow.localStorage selection failed\n' + describeError(selectionError) : ''}`;
   }
   function access(stage, operation, details = '') {
     try {
@@ -420,7 +422,8 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
   const working = new Map(),
     retries = new Map();
   const persisted = new WeakSet(),
-    volatile = new WeakSet();
+    volatile = new WeakSet(),
+    attempts = new WeakMap();
   let active,
     status = 'local',
     generation = 0,
@@ -431,6 +434,8 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     onStatus(value);
   };
   const key = (run) => prefix(run.scope) + run.requestId;
+  const currentRun = (run) =>
+    (!active || active === run) && (!attempts.has(run) || attempts.get(run) === generation);
   const resultStatus = (result) =>
     result.accepted
       ? result.fastestEligible === false
@@ -443,7 +448,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     run.synced = true;
     run.result = result;
     retries.delete(key(run));
-    if (!active || active === run) report(resultStatus(result));
+    if (currentRun(run)) report(resultStatus(result));
   }
   function compact(run) {
     // Keep absolute sequence numbers and every unconfirmed batch for idempotent retries.
@@ -514,14 +519,22 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       if (!writeFailed && !verifyStored(key(run), serialized)) writeFailed = true;
       if (writeFailed) {
         volatile.add(run);
-        if ((!active || active === run) && !run.synced) report('storage-unavailable');
+        if (currentRun(run) && !run.synced) report('storage-unavailable');
         // Never bypass the first durable save. Existing complete in-memory input
         // can still be uploaded online; it must not be advertised as safely cached.
         return online && persisted.has(run);
       }
-      persisted.add(run);
-      volatile.delete(run);
-      storageDiagnostic = '';
+      if (!storage.flush) {
+        persisted.add(run);
+        volatile.delete(run);
+        storageDiagnostic = '';
+      } else {
+        void storage.flush().catch((error) => {
+          diagnose('commit', error);
+          volatile.add(run);
+          if (currentRun(run) && !run.synced) report('storage-unavailable');
+        });
+      }
       return true;
     } catch (error) {
       if (error instanceof SyntaxError || error?.code === 'INVALID_JOURNAL')
@@ -530,9 +543,31 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           code: error.code,
           message: 'Stored journal or acknowledgement is invalid',
         });
-      if ((!active || active === run) && !run.synced) report('storage-unavailable');
+      if (currentRun(run) && !run.synced) report('storage-unavailable');
       return false;
     }
+  }
+  async function saveCommitted(run, online = false) {
+    try {
+      if (storage.refresh) await storage.refresh();
+    } catch (error) {
+      diagnose('refresh', error);
+      if (currentRun(run) && !run.synced) report('storage-unavailable');
+      return false;
+    }
+    if (!save(run, online)) return false;
+    try {
+      if (storage.flush) await storage.flush();
+    } catch (error) {
+      diagnose('commit', error);
+      volatile.add(run);
+      if (currentRun(run) && !run.synced) report('storage-unavailable');
+      return online && persisted.has(run);
+    }
+    persisted.add(run);
+    volatile.delete(run);
+    storageDiagnostic = '';
+    return true;
   }
   function read(name) {
     if (cleanAcknowledged(name)) return null;
@@ -604,7 +639,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     const previous = retries.get(key(run));
     const delay = transient ? Math.min(60000, (previous?.delay || 1000) * 2) : 60000;
     retries.set(key(run), { delay, at: Date.now() + delay });
-    if (!active || active === run)
+    if (currentRun(run))
       report(
         error?.code === 'STORAGE_UNAVAILABLE'
           ? 'storage-unavailable'
@@ -619,7 +654,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
                   : 'needs-attention',
       );
   }
-  function acknowledge(run, result) {
+  async function acknowledge(run, result) {
     // The caller has verified the server run and receipt. Local persistence
     // failure cannot turn that authoritative reward back into an unknown result.
     confirmed(run, result);
@@ -635,18 +670,20 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     const serialized = JSON.stringify(done);
     try {
       setStored(key(run) + ':synced', serialized);
+      if (storage.flush) await storage.flush();
       if (!verifyStored(key(run) + ':synced', serialized)) throw failure('STORAGE_UNAVAILABLE');
     } catch {
       return;
     }
     try {
       cleanAcknowledged(key(run));
+      if (storage.flush) await storage.flush();
     } catch {
       /* The verified server receipt remains authoritative. */
     }
   }
   async function cancelPending(run) {
-    if (!save(run, true) || run.synced) return true;
+    if (!(await saveCommitted(run, true)) || run.synced) return true;
     if (!run.cancelPending) return false;
     if (!run.id) {
       if (!run.startAttempted) {
@@ -662,10 +699,10 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
         playerId: run.playerId,
       });
       run.id = created.id;
-      if (!save(run, true) || run.synced) return true;
+      if (!(await saveCommitted(run, true)) || run.synced) return true;
     }
     const result = await services.cancelRun({ runId: run.id, playerId: run.playerId });
-    acknowledge(
+    await acknowledge(
       run,
       typeof result?.accepted === 'boolean' ? result : { accepted: false, reason: 'CANCELLED' },
     );
@@ -677,18 +714,18 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     const operation = (async () => {
       try {
         if (run.synced) {
-          if (run.result) acknowledge(run, run.result);
+          if (run.result) await acknowledge(run, run.result);
           return null;
         }
         if (run.scope !== scope && (await services.session()).playerId !== run.playerId)
           throw failure('IDENTITY_CHANGED');
-        if (!save(run, true)) return null;
+        if (!(await saveCommitted(run, true))) return null;
         if (run.synced) return null;
         if (await cancelPending(run)) return null;
         if (!run.id) {
           if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
           run.startAttempted = true;
-          if (!save(run) || run.synced) return null;
+          if (!(await saveCommitted(run)) || run.synced) return null;
           const created = await services.startRun({
             mode: run.mode,
             levelId: run.levelId,
@@ -697,7 +734,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           });
           run.id = created.id;
           if (created.loadout) run.loadout = created.loadout;
-          if (!save(run, true) || run.synced) return null;
+          if (!(await saveCommitted(run, true)) || run.synced) return null;
           if (await cancelPending(run)) return null;
         }
         let remote = await services.getRun({ runId: run.id, playerId: run.playerId });
@@ -708,7 +745,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           JSON.stringify(run.loadout) !== JSON.stringify(remote.loadout)
         )
           throw failure('INVALID_JOURNAL');
-        if (!save(run, true) || run.synced) return null;
+        if (!(await saveCommitted(run, true)) || run.synced) return null;
         if (
           remote.id !== run.id ||
           remote.board !== run.mode ||
@@ -717,12 +754,12 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
         )
           throw failure('INVALID_JOURNAL');
         if (remote.status === 'finished' && !remote.settlement) {
-          acknowledge(run, { accepted: false, reason: 'RUN_FINISHED' });
+          await acknowledge(run, { accepted: false, reason: 'RUN_FINISHED' });
           return null;
         }
         if (remote.settlement) {
           if (typeof remote.settlement.accepted !== 'boolean') throw failure('INVALID_SETTLEMENT');
-          acknowledge(run, remote.settlement);
+          await acknowledge(run, remote.settlement);
           return remote.settlement;
         }
         if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
@@ -730,7 +767,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           throw failure('SEQUENCE_CONFLICT');
         if (remote.status === 'active' && remote.expiresAt <= Date.now()) {
           remote = await services.resumeRun({ runId: run.id });
-          if (!save(run, true) || run.synced) return null;
+          if (!(await saveCommitted(run, true)) || run.synced) return null;
           if (await cancelPending(run)) return null;
         }
         // Replay the original unconfirmed batch even when the server sequence is ahead.
@@ -740,27 +777,28 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           if (await cancelPending(run)) return null;
           run.acked = seq;
           compact(run);
-          if (!save(run, true) || run.synced) return null;
+          if (!(await saveCommitted(run, true)) || run.synced) return null;
         }
         if (run.finishing) {
           const result =
             remote.settlement || (await services.finishRun({ runId: run.id, seq: run.acked }));
           if (!result || typeof result.accepted !== 'boolean') throw failure('INVALID_SETTLEMENT');
-          acknowledge(run, result);
+          await acknowledge(run, result);
           return result;
         }
         retries.delete(key(run));
         if (active === run) report(volatile.has(run) ? 'storage-unavailable' : 'recording');
         return null;
       } catch (error) {
-        const stopRecovery = () => {
+        const stopRecovery = async () => {
           try {
+            if (storage.refresh) await storage.refresh();
             if (run.synced) return true;
             if (!cleanAcknowledged(key(run))) return false;
             run.synced = true;
             return true;
           } catch (storageError) {
-            if (!active || active === run)
+            if (currentRun(run))
               report(
                 storageError instanceof SyntaxError || storageError?.code === 'INVALID_JOURNAL'
                   ? 'needs-attention'
@@ -771,14 +809,14 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
         };
         // A different tab can settle while this request is pending, including
         // when the request rejects. Never resume or downgrade a confirmed run.
-        if (stopRecovery()) return null;
+        if (await stopRecovery()) return null;
         let cause = error;
         if (['RUN_EXPIRED', 'RUN_FINISHED'].includes(error?.code) && run.id) {
           try {
             // Server errors are authoritative; the local clock alone cannot discard input.
             // Re-read first so a concurrent successful finish always takes precedence.
             const remote = await services.getRun({ runId: run.id, playerId: run.playerId });
-            if (stopRecovery()) return null;
+            if (await stopRecovery()) return null;
             if (
               remote.id !== run.id ||
               remote.board !== run.mode ||
@@ -788,7 +826,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
               throw failure('INVALID_JOURNAL');
             if (remote.settlement && typeof remote.settlement.accepted !== 'boolean')
               throw failure('INVALID_SETTLEMENT');
-            acknowledge(run, remote.settlement || { accepted: false, reason: error.code });
+            await acknowledge(run, remote.settlement || { accepted: false, reason: error.code });
             return remote.settlement || null;
           } catch (confirmationError) {
             cause = confirmationError;
@@ -869,8 +907,14 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           finishing: false,
           savedAt: Date.now(),
         };
-        if (!canPersist() || !save(run)) {
-          report('storage-unavailable');
+        attempts.set(run, ownGeneration);
+        if (!canPersist() || !(await saveCommitted(run))) {
+          if (generation === ownGeneration) report('storage-unavailable');
+          return null;
+        }
+        if (generation !== ownGeneration) {
+          run.abandoned = true;
+          save(run);
           return null;
         }
         active = run;
@@ -878,13 +922,17 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
         else await synchronize(run);
         return generation === ownGeneration ? run : null;
       } catch (error) {
+        if (generation === ownGeneration && error?.code === 'STORAGE_UNAVAILABLE')
+          diagnose('initialize', error);
         if (generation === ownGeneration)
           report(
-            error?.code === 'RULE_VERSION_CHANGED'
-              ? 'update-required'
-              : error?.code === 'IDENTITY_CHANGED'
-                ? 'identity-changed'
-                : 'unavailable',
+            error?.code === 'STORAGE_UNAVAILABLE'
+              ? 'storage-unavailable'
+              : error?.code === 'RULE_VERSION_CHANGED'
+                ? 'update-required'
+                : error?.code === 'IDENTITY_CHANGED'
+                  ? 'identity-changed'
+                  : 'unavailable',
           );
         return null;
       }
@@ -932,6 +980,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       recovering = (async () => {
         pending = 0;
         try {
+          if (storage.refresh) await storage.refresh();
           const names = access('enumerate', () =>
             Array.from({ length: storage.length }, (_, i) => storage.key(i)),
           );

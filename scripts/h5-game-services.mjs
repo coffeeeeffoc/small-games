@@ -32,6 +32,11 @@ export async function prepareGameServices(
       new URL(`../platforms/competition/${name}`, import.meta.url),
       path.join(servicesDir, name),
     );
+  if (game === 'night-overwatch')
+    await copyFile(
+      new URL('../platforms/competition/night-storage.js', import.meta.url),
+      path.join(servicesDir, 'night-storage.js'),
+    );
   if (tapAppId) {
     for (const name of ['competition-identity.mjs', 'calls.mjs'])
       await copyFile(
@@ -48,14 +53,23 @@ export async function prepareGameServices(
   const index = path.join(directory, 'index.html');
   let html = await readFile(index, 'utf8');
   html = html.replace(
+    /<script[^>]*src="\.\/game-services\/night-storage\.js"[^>]*><\/script>/g,
+    '',
+  );
+  html = html.replace(
     /<script[^>]*src="\.\/(?:game-service-config\.js|game-services\/game-bootstrap\.js)"[^>]*><\/script>/g,
     '',
   );
   html = html.replace(
     /<head(?:\s[^>]*)?>/i,
     (head) =>
-      `${head}<script src="./game-service-config.js"></script><script type="module" src="./game-services/game-bootstrap.js"></script>`,
+      `${head}${game === 'night-overwatch' ? '<script src="./game-services/night-storage.js"></script>' : ''}<script src="./game-service-config.js"></script><script type="module" src="./game-services/game-bootstrap.js"></script>`,
   );
+  if (game === 'night-overwatch')
+    html = html.replace(
+      '<script src="./dev-mode.js"></script>',
+      '<script>globalThis.__nightDevModeReady = globalThis.__nightStorageReady?.then(() => import("./dev-mode.js")); void globalThis.__nightDevModeReady?.catch(() => {});</script>',
+    );
   await writeFile(index, html);
   return config;
 }

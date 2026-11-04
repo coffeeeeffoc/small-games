@@ -88,6 +88,10 @@
   window.NightStartup = {
     async boot(applicationPath, target) {
       try {
+        stage('正在准备本地行动记录…');
+        if (!window.__nightStorageReady) throw new Error('本地存储组件加载失败，请重新加载。');
+        await window.__nightStorageReady;
+        await window.__nightDevModeReady;
         const canvas = document.getElementById('GameCanvas');
         document.getElementById('GameDiv').setAttribute('inert', '');
         listen(canvas, 'webglcontextlost', () => fail(new Error('图形连接已中断，请重试。')));
