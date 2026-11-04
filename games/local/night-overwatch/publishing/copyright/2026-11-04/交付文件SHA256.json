@@ -1,0 +1,485 @@
+{
+  "date": "2026-11-04",
+  "files": [
+    {
+      "path": "先读我.md",
+      "bytes": 3963,
+      "sha256": "46f4181ab096f2870f8f63ac8c794679c988509b3e29cb6aa0404a3312237e24"
+    },
+    {
+      "path": "夜航守望游戏软件 V1.0 文档鉴别材料.docx",
+      "bytes": 12753897,
+      "sha256": "536370cd17834824dde5483fae82078672df7ff16d1c63a5e2e753f5dca3540e"
+    },
+    {
+      "path": "夜航守望游戏软件 V1.0 文档鉴别材料.pdf",
+      "bytes": 1622291,
+      "sha256": "22329bc8bcb74e56d802462ca4d4d1e85706fd0a9e88b770e95447525cb36535"
+    },
+    {
+      "path": "夜航守望游戏软件 V1.0 申请信息与材料清单.docx",
+      "bytes": 47196,
+      "sha256": "002defccc9a86a730323e565d87a3e3967ba35df46bbc5867470bfdabb12371c"
+    },
+    {
+      "path": "夜航守望游戏软件 V1.0 申请信息与材料清单.pdf",
+      "bytes": 208661,
+      "sha256": "dd92e92671f5bc841a110238fb68faf35bb8f7bbe793065797227a19825dee67"
+    },
+    {
+      "path": "夜航守望游戏软件 V1.0 程序鉴别材料.docx",
+      "bytes": 91461,
+      "sha256": "b826d9c9d2fdd3d5a7c29767bc5b88db26e67806af214ac1f61268b389a2b21b"
+    },
+    {
+      "path": "夜航守望游戏软件 V1.0 程序鉴别材料.pdf",
+      "bytes": 582074,
+      "sha256": "0414f894cd7f54d07c15d7cf0d1802bd6153b5b4668115c5d2b0953a09f6cebc"
+    },
+    {
+      "path": "核验附件/PDF与源码逐行核验.json",
+      "bytes": 6772,
+      "sha256": "0e4fc8a502b38e80abff509be70d3c1cd1f925a23ba587562160511c45dbd4bf"
+    },
+    {
+      "path": "核验附件/交付核验记录.json",
+      "bytes": 1824,
+      "sha256": "09a3dfa69dc60a88434900f8eb83b0915ac0a5b1cce00f5ec0e257e888c5d21c"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+      "bytes": 7710,
+      "sha256": "9417bf214870ce4b93a1ed0f14730692ada9c756ac4afcf68bf36e6cc73ce20b"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/Actions.ts",
+      "bytes": 18540,
+      "sha256": "13e8d7f50af5116f97d0ec71c7cd48f38273cf12788ebeb285f9e7340b7c401b"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/BattleRecords.ts",
+      "bytes": 2481,
+      "sha256": "cedee26512b5e3604a07fab5a139dff8274ddecd8a93786cb5c7063e1872353a"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/CameraMath.ts",
+      "bytes": 6531,
+      "sha256": "b87c6d354fc094c8d5374fb5478a19afc901ef0f1147fdebcd7c0be0b79334b4"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/Data.ts",
+      "bytes": 14045,
+      "sha256": "43055911b2ae1784feb47d29a2394e7ff69ec20d09174491df13cc88996af0a5"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/Duel.ts",
+      "bytes": 8063,
+      "sha256": "df401ea65d025eece9530375f7df017ce54a06404120f5890c8a3f14da08a67e"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/Flight.ts",
+      "bytes": 9624,
+      "sha256": "e79644d44d406dfaaec24587adb9d2d381dc83474c70e7a8eb0b90c1e191cfd5"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts",
+      "bytes": 7078,
+      "sha256": "5884d71a36e9a34bc96af6e9af3ef10723f7adce7ff14a0b6008b33843260188"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/MissionProgress.ts",
+      "bytes": 1507,
+      "sha256": "fc0dc953ac2f478dfb509c8193a52e7ed89929e2430ac4c01b047a43c666f1dd"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/Progression.ts",
+      "bytes": 9455,
+      "sha256": "44fdeff744688a5153af61444600cddc92f007be12e3bb2e534942411b0e8408"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/Replay.ts",
+      "bytes": 7137,
+      "sha256": "c2c53b178ebd1abba06fb2d38e00d63b5d98ec76a2518ffb636873113e4a0ce6"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/Rewards.ts",
+      "bytes": 1107,
+      "sha256": "aef8b4f9ddc7c22ff05d419fd77742a7f46b91403207584c85198255606c46c3"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/SafeArea.ts",
+      "bytes": 2270,
+      "sha256": "987a72449a8f3fc14e7b5bfb11d7a3d43acaa11682b0fb0565a26571c9a98a5d"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/Simulation.ts",
+      "bytes": 54670,
+      "sha256": "2480a8d45f118efdcd975c71009acfe770a3d3539038e3a6b1ac4de0823dcfac"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/core/TrainingRecords.ts",
+      "bytes": 2470,
+      "sha256": "8462dc1106f6812f80ab866186f362d18e6078ebd3b4b63575f45c7b09f547c2"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/DeveloperTools.ts",
+      "bytes": 3188,
+      "sha256": "24d72f501fa99722e39dc42743b8d5b355895797ec9904d65b729a149fc6fd07"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/Effects.ts",
+      "bytes": 20527,
+      "sha256": "d68b8d8c87780a447c31e3e4004ff4ab44d2190282d04b10452510f4012fb3d9"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/HUD.ts",
+      "bytes": 174934,
+      "sha256": "9cc3ca78733e8bef217534c33a14b5754b0cf8141dd532d5154cc35e480dc99b"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/Online.ts",
+      "bytes": 35423,
+      "sha256": "cd565eb1b7bcd1375b0be3a2f4fe26b4f30ff71bc72a596774ced40430e0f5a5"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/Overwatch.ts",
+      "bytes": 85122,
+      "sha256": "d9387fa2b3a02da66965b5f6133b65002d24c7abc93e7c499f004df7a96b43f1"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/Platform.ts",
+      "bytes": 15311,
+      "sha256": "426f0d17fb036d9346538a09c28868255ad26c8a5b8d30f85d0d4cd44f5ec5fd"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/Presentation.ts",
+      "bytes": 2763,
+      "sha256": "22ff2133b51bda100f564d23decc4fdeb5fd86068723a9438276596c956b9dd1"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/ProgressionArt.ts",
+      "bytes": 6517,
+      "sha256": "d22b27dd9510c4490375ce54249432bf2389e676391d662f20c64186ee74084a"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/ProgressionView.ts",
+      "bytes": 65285,
+      "sha256": "bae5b9a383dae2aaf447b6403eb0a25c9ea0b9faf5c5ab3bf9c25ee9d05a9696"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/Quartermaster.ts",
+      "bytes": 22867,
+      "sha256": "91519982d1028866b3d9e37cd1477b263ac183168c1ad61cb43d269b17620075"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/ShareScreen.ts",
+      "bytes": 760,
+      "sha256": "5544ea4855323ae0fea7ff45223bcffbbe3b595f2434996534b3d6b434fb9e7d"
+    },
+    {
+      "path": "核验附件/原始源码/games/local/night-overwatch/assets/scripts/World.ts",
+      "bytes": 60633,
+      "sha256": "6ce794236b762211f4b654f2251963f543a4e615f22619bae059bacfae959db6"
+    },
+    {
+      "path": "核验附件/原始源码/services/runtime-api/rules/night-ranked.mjs",
+      "bytes": 2180,
+      "sha256": "53421a4dc8aeb93282d0a07795f670b4c7593bf6b06502415b0cc6fef27cc760"
+    },
+    {
+      "path": "核验附件/原始源码/services/runtime-api/rules/night.mjs",
+      "bytes": 2238,
+      "sha256": "1270c6fb170812c79853075710c8736597dd154ec51229d1dcf012b4200c1604"
+    },
+    {
+      "path": "核验附件/原始源码/services/runtime-api/src/competition/night-assets.ts",
+      "bytes": 40527,
+      "sha256": "c2e7fa9ee6e30b877b91b2d2bd729776e62065816afcfd396ea4f6f8480aaabe"
+    },
+    {
+      "path": "核验附件/原始源码/services/runtime-api/src/competition/night-chat.ts",
+      "bytes": 9752,
+      "sha256": "83efc72d6bac1d095b96b18e915a33b52a327703ec4a3c0accda7e78b145e62e"
+    },
+    {
+      "path": "核验附件/原始源码/services/runtime-api/src/competition/night-ledger.ts",
+      "bytes": 9782,
+      "sha256": "db3dbb8cebc11c9bc2757da0b5c4f5af4c4eb6a8cdc20b57f9d97d11e6645b8b"
+    },
+    {
+      "path": "核验附件/完整排版源码.txt",
+      "bytes": 844169,
+      "sha256": "76b95920149e2382438e64f4dbf014a9af35b75b54fdb7a93b5d8c802567647d"
+    },
+    {
+      "path": "核验附件/截图原件/01-home-1280.png",
+      "bytes": 1427418,
+      "sha256": "88b92b0ec5114d64f0e95ef9fbbe48a611d4b5927d4ac4c147ff3c476084ac76"
+    },
+    {
+      "path": "核验附件/截图原件/02-modes-1280.png",
+      "bytes": 1262760,
+      "sha256": "8bae9ac1333614215792a6918e9e082a3da9453ffa93b18640b23b83411e69cd"
+    },
+    {
+      "path": "核验附件/截图原件/03-missions-1280.png",
+      "bytes": 793452,
+      "sha256": "4bee13411ff2c5dfc1c6229255ba246faa47dbd38c3b083456965d59b210f841"
+    },
+    {
+      "path": "核验附件/截图原件/04-drone-default-844.png",
+      "bytes": 296952,
+      "sha256": "32ff5a12a18a362ec1b310c8f4f05a6d7b1364072152ee0e087e1f4ce5e0a174"
+    },
+    {
+      "path": "核验附件/截图原件/05-thermal-1280.png",
+      "bytes": 256434,
+      "sha256": "3cd18104d5a7ca2acff8b5e33d2c1a6616b628dee4ad10f329c90503d82b554d"
+    },
+    {
+      "path": "核验附件/截图原件/06-night-1280.png",
+      "bytes": 635122,
+      "sha256": "267a21b3fe14fc3a94886d76f7f1f914821f915d25d9ef771c32710f5a4db7b9"
+    },
+    {
+      "path": "核验附件/截图原件/07-laser-default-844.png",
+      "bytes": 297501,
+      "sha256": "6fb5cc0f04e6fc81cedfba5a276d74877bccb4ae90db83ae14a6adc560c832bb"
+    },
+    {
+      "path": "核验附件/截图原件/08-tactics-1280.png",
+      "bytes": 584600,
+      "sha256": "68e740f5e1da6aca5685f2b18b9f64bf870ecfa5ced94b1c2afc055c745545d8"
+    },
+    {
+      "path": "核验附件/截图原件/09-08-loadout.png",
+      "bytes": 1388180,
+      "sha256": "16044fda5094dda7bc37233dc3750a89d562d7bfa6e7c31f39f81fc91a1d376c"
+    },
+    {
+      "path": "核验附件/截图原件/10-04-warehouse.png",
+      "bytes": 1233863,
+      "sha256": "1d57e23dedad90c93aec14805f0176281c3291334d75bdb338b4f3beec42d43d"
+    },
+    {
+      "path": "核验附件/截图原件/11-02-supply.png",
+      "bytes": 1513513,
+      "sha256": "f21b344cf44aeebae1b60e48bb3dd6b08b8b6b7bf8887784ec6b1b99a499d132"
+    },
+    {
+      "path": "核验附件/截图原件/12-chat-invite.png",
+      "bytes": 1058023,
+      "sha256": "f46d8d21c87c84f976d7fe8903c1f120c8ea348baed6dcb21c11d3b30f9bb816"
+    },
+    {
+      "path": "核验附件/截图原件/13-growth-1280.png",
+      "bytes": 1342528,
+      "sha256": "30952cb9c6eba16bff22bd89a0cbdc2065ab76353d49322794e7663354fbe0ff"
+    },
+    {
+      "path": "核验附件/截图原件/14-settings-1280.png",
+      "bytes": 611958,
+      "sha256": "59b97392d359d07b762840404ec5b14089cb858ee7afb6484fe14eb81f1bc6a2"
+    },
+    {
+      "path": "核验附件/截图来源.json",
+      "bytes": 6275,
+      "sha256": "a6eb42896f40e545d3386a7e0b039c71bb6190b3fa406aaa1e316bd21c0752ab"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+      "bytes": 7612,
+      "sha256": "133507db9e2961a0c072f885701449a9d1beff204b607fdbdb94b500b39cffd4"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/Actions.ts",
+      "bytes": 18042,
+      "sha256": "ee9924670c25f891fdb98fc0104e24fab411d852bfe47ddbcf2e985c350437ea"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/BattleRecords.ts",
+      "bytes": 2759,
+      "sha256": "1fe140500b36ba2c474b7945153865947b54d791a95e221513cf42a7618bc8ce"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/CameraMath.ts",
+      "bytes": 6529,
+      "sha256": "eb320d0e114c385d782690f1347939adb732cd60f333d1f8960c2770b8322c59"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/Data.ts",
+      "bytes": 14245,
+      "sha256": "9040fbfb01eac2899dea5b6dd7c10ff3377e0d9f21161374830c44b825fbce43"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/Duel.ts",
+      "bytes": 8772,
+      "sha256": "6b3b830c1772d8be72edbcdfff07a2f7ce34c2485660da1e21c085de97f15ab0"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/Flight.ts",
+      "bytes": 10107,
+      "sha256": "754940c991a3b0b7410588fbe1f6f48e77acc8cc54276db22c648f88233d0f12"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts",
+      "bytes": 7918,
+      "sha256": "909da7454b8ec8fc9ff1b662ed0bc396f3de8f5ee56ca16fd819cc6f2d7402d0"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/MissionProgress.ts",
+      "bytes": 1616,
+      "sha256": "53fbb1badada181f2a621bbe2e3b0da38de48b32bcd4314f72c698d91b9e112c"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/Progression.ts",
+      "bytes": 10936,
+      "sha256": "0d520a12368fee8add46677356be3ec6a24e30c6538f6d43e60c1b58f0ca164a"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/Replay.ts",
+      "bytes": 8008,
+      "sha256": "64e63a6f0ee031299deaa62731c786f20d9a7c765154486d6d0649ccf83f7a50"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/Rewards.ts",
+      "bytes": 1126,
+      "sha256": "a7a22768d0d404d8b35d8cdf446ac4df6971ea82d12aa99d4f225f0019783901"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/SafeArea.ts",
+      "bytes": 2736,
+      "sha256": "af5c296a3cbceb1ab817e17d7ab62da4066c26b1098567da81ae9e728ee148f6"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/Simulation.ts",
+      "bytes": 62207,
+      "sha256": "b1404a909ebd806ee55b1d02493cf97c7337e251a5413d1401e8a56181c0722e"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/core/TrainingRecords.ts",
+      "bytes": 2718,
+      "sha256": "c239f6f9f42341e1f4d505b537b7a437e4863f4d57c485d843f13ccd5de40a59"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/DeveloperTools.ts",
+      "bytes": 3611,
+      "sha256": "69bb23b84bca83e925e5093dd11adfa8bb8b08c9d14a5bbd6914bd61fd426ef7"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/Effects.ts",
+      "bytes": 23134,
+      "sha256": "cfcc77aa50c00ff6f80b312ff14a60a19c277e0dcea4dca4dbbe02b7aecf9648"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/HUD.ts",
+      "bytes": 225204,
+      "sha256": "2e3df308830be7dc3375f095be851dc588f1bf745698fd8662cfcef5b0cefb57"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/Online.ts",
+      "bytes": 41139,
+      "sha256": "cf83894c3262aa390c2cad408383a15ca3e94c455cb8dbbaa2a18a57a60c302a"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/Overwatch.ts",
+      "bytes": 96015,
+      "sha256": "426bba3577a4a0065ed737bc63c9dbb3fda0c281f9b6ecfcf56ecd5a11918f39"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/Platform.ts",
+      "bytes": 16221,
+      "sha256": "20e72f25b8023cb2386c01e736bdabf7ca958dc045599312c8c51d2dde0d8585"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/Presentation.ts",
+      "bytes": 2977,
+      "sha256": "803cb1c2120c9dfaf13f13362dfe03b0bfaf8ba00e3e6c5dde131fa00240afaf"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/ProgressionArt.ts",
+      "bytes": 7499,
+      "sha256": "c944086f977c7691e9c5123670da1a410b80130e4115e0bb2189aa4d9f018859"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/ProgressionView.ts",
+      "bytes": 101063,
+      "sha256": "3456630bcac8490037ddb3dcbd1f7183f7686b6605ca13e800aaa44685a3cf4f"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/Quartermaster.ts",
+      "bytes": 29313,
+      "sha256": "0b7f3b59836eed86737c01aa06f928674ca8ae5f90604b6ab9d4b03be7de524b"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/ShareScreen.ts",
+      "bytes": 801,
+      "sha256": "6b344e5c1842bcb735f837f7f9557004593b28d69ffc12579c185f6dc7e97ca3"
+    },
+    {
+      "path": "核验附件/排版源码/games/local/night-overwatch/assets/scripts/World.ts",
+      "bytes": 67296,
+      "sha256": "c5f3f6b88c3d98c8e2086005fc14801d0056482fc2c67d86de6ddcffe4dd204b"
+    },
+    {
+      "path": "核验附件/排版源码/services/runtime-api/rules/night-ranked.mjs",
+      "bytes": 2199,
+      "sha256": "6d48dc6945ed352cf57a902319550511bbccbf8cf655362534d7bebc45dcc0d2"
+    },
+    {
+      "path": "核验附件/排版源码/services/runtime-api/rules/night.mjs",
+      "bytes": 2227,
+      "sha256": "76250780f181ed3b5e850ae35d7c4cb7357543f8a32caf0aa5913c735378f803"
+    },
+    {
+      "path": "核验附件/排版源码/services/runtime-api/src/competition/night-assets.ts",
+      "bytes": 40689,
+      "sha256": "b0d981abf416e68f5e60af1bcdd0a77e0a26dc2096f6e1fdcfb6b328f5a9e61f"
+    },
+    {
+      "path": "核验附件/排版源码/services/runtime-api/src/competition/night-chat.ts",
+      "bytes": 9861,
+      "sha256": "0810b27aa4cc8acfd371729239d502aa55dc09869469463935b5fe50c69d085d"
+    },
+    {
+      "path": "核验附件/排版源码/services/runtime-api/src/competition/night-ledger.ts",
+      "bytes": 9677,
+      "sha256": "057b4cc55f8ced294083392b899973326e144d41fc885e34ff9fbe80dab0fbb9"
+    },
+    {
+      "path": "核验附件/排版语法树核验.json",
+      "bytes": 3888,
+      "sha256": "cda67b9ce912cc267e7c23526d3c291115b3e5c4e9878c3136bfebaf6b850df3"
+    },
+    {
+      "path": "核验附件/文档技术核验.json",
+      "bytes": 9626,
+      "sha256": "027531dd8caa46fa1f0b3b057f1279e94c6b69ccf931a760df1ce52df39cd7c1"
+    },
+    {
+      "path": "核验附件/既有素材来源清单.json",
+      "bytes": 63695,
+      "sha256": "08d69c0b9fe3530a223d52be6768a319b96edeb0d334e8eb301b63abb277cc9c"
+    },
+    {
+      "path": "核验附件/本地重复片段核对.json",
+      "bytes": 4292,
+      "sha256": "d6f2140b8991ef1d90e554ad361ca374d20a0661769e19ccd3eff60178f9661d"
+    },
+    {
+      "path": "核验附件/本地重复片段核对.md",
+      "bytes": 1898,
+      "sha256": "4b8adfaf7413ec280b5dd0bc9c01b571e7fdf3c5c71772c5bf7cb7caf96a7a0c"
+    },
+    {
+      "path": "核验附件/源码清单与页码映射.json",
+      "bytes": 32045,
+      "sha256": "630c8fcc43b4d1a1dfb3e52a6181b91ada3c389d28047ea4d5e191b5cd6811fd"
+    },
+    {
+      "path": "核验附件/说明书正文.txt",
+      "bytes": 19133,
+      "sha256": "474b2a86e70570ba67fb2a3a4060cb6f1b54801d37cf10ee6913d656a38d74a3"
+    }
+  ]
+}

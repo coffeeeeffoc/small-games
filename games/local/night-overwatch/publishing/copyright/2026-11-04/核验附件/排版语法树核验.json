@@ -1,0 +1,133 @@
+{
+  "method": "TypeScript 5.9.3 parsed AST; ignore positions, trivia and redundant parentheses; compare node kinds, token text and ordered children. Not a full runtime test.",
+  "results": [
+    {
+      "file": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/DeveloperTools.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/Online.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/Overwatch.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/Platform.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/Presentation.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/ProgressionArt.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/ProgressionView.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/Quartermaster.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/ShareScreen.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/World.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/Actions.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/BattleRecords.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/CameraMath.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/Data.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/Duel.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/Flight.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/MissionProgress.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/Progression.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/Replay.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/Rewards.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/SafeArea.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/Simulation.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "games/local/night-overwatch/assets/scripts/core/TrainingRecords.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "services/runtime-api/rules/night-ranked.mjs",
+      "astEquivalent": true
+    },
+    {
+      "file": "services/runtime-api/rules/night.mjs",
+      "astEquivalent": true
+    },
+    {
+      "file": "services/runtime-api/src/competition/night-assets.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "services/runtime-api/src/competition/night-chat.ts",
+      "astEquivalent": true
+    },
+    {
+      "file": "services/runtime-api/src/competition/night-ledger.ts",
+      "astEquivalent": true
+    }
+  ]
+}

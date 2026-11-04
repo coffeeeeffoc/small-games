@@ -1,0 +1,431 @@
+{
+  "renderer": "Microsoft Word native ExportAsFixedFormat; canonical render_docx.py attempted but LibreOffice is not installed; pages rendered with bundled pypdfium2 for visual review.",
+  "files": [
+    {
+      "file": "夜航守望游戏软件 V1.0 文档鉴别材料.pdf",
+      "pages": 14,
+      "bytes": 1622291,
+      "pageChecks": [
+        {
+          "page": 1,
+          "characters": 480,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 2,
+          "characters": 504,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 3,
+          "characters": 555,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 4,
+          "characters": 544,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 5,
+          "characters": 531,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 6,
+          "characters": 544,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 7,
+          "characters": 576,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 8,
+          "characters": 546,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 9,
+          "characters": 536,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 10,
+          "characters": 533,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 11,
+          "characters": 561,
+          "numberedCodeRows": 1
+        },
+        {
+          "page": 12,
+          "characters": 545,
+          "numberedCodeRows": 1
+        },
+        {
+          "page": 13,
+          "characters": 542,
+          "numberedCodeRows": 1
+        },
+        {
+          "page": 14,
+          "characters": 568,
+          "numberedCodeRows": 1
+        }
+      ]
+    },
+    {
+      "file": "夜航守望游戏软件 V1.0 申请信息与材料清单.pdf",
+      "pages": 7,
+      "bytes": 208661,
+      "pageChecks": [
+        {
+          "page": 1,
+          "characters": 606,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 2,
+          "characters": 566,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 3,
+          "characters": 939,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 4,
+          "characters": 862,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 5,
+          "characters": 987,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 6,
+          "characters": 887,
+          "numberedCodeRows": 0
+        },
+        {
+          "page": 7,
+          "characters": 1012,
+          "numberedCodeRows": 0
+        }
+      ]
+    },
+    {
+      "file": "夜航守望游戏软件 V1.0 程序鉴别材料.pdf",
+      "pages": 60,
+      "bytes": 582074,
+      "pageChecks": [
+        {
+          "page": 1,
+          "characters": 1961,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 2,
+          "characters": 2324,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 3,
+          "characters": 2233,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 4,
+          "characters": 2194,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 5,
+          "characters": 2271,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 6,
+          "characters": 1492,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 7,
+          "characters": 1632,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 8,
+          "characters": 2072,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 9,
+          "characters": 1770,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 10,
+          "characters": 1860,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 11,
+          "characters": 2091,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 12,
+          "characters": 1825,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 13,
+          "characters": 1855,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 14,
+          "characters": 2095,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 15,
+          "characters": 1946,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 16,
+          "characters": 2009,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 17,
+          "characters": 1990,
+          "numberedCodeRows": 51
+        },
+        {
+          "page": 18,
+          "characters": 2119,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 19,
+          "characters": 2102,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 20,
+          "characters": 2159,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 21,
+          "characters": 1541,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 22,
+          "characters": 1357,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 23,
+          "characters": 1487,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 24,
+          "characters": 2103,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 25,
+          "characters": 1832,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 26,
+          "characters": 1863,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 27,
+          "characters": 1749,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 28,
+          "characters": 2089,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 29,
+          "characters": 2046,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 30,
+          "characters": 1947,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 31,
+          "characters": 1630,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 32,
+          "characters": 1292,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 33,
+          "characters": 2102,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 34,
+          "characters": 2491,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 35,
+          "characters": 1761,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 36,
+          "characters": 2122,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 37,
+          "characters": 2074,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 38,
+          "characters": 1962,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 39,
+          "characters": 1966,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 40,
+          "characters": 2172,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 41,
+          "characters": 1778,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 42,
+          "characters": 2245,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 43,
+          "characters": 2491,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 44,
+          "characters": 2100,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 45,
+          "characters": 2089,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 46,
+          "characters": 2064,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 47,
+          "characters": 2841,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 48,
+          "characters": 1978,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 49,
+          "characters": 1767,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 50,
+          "characters": 1878,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 51,
+          "characters": 1960,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 52,
+          "characters": 2214,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 53,
+          "characters": 2028,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 54,
+          "characters": 2892,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 55,
+          "characters": 2966,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 56,
+          "characters": 2884,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 57,
+          "characters": 3028,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 58,
+          "characters": 2058,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 59,
+          "characters": 1804,
+          "numberedCodeRows": 50
+        },
+        {
+          "page": 60,
+          "characters": 1853,
+          "numberedCodeRows": 50
+        }
+      ]
+    }
+  ]
+}

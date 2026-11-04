@@ -1,0 +1,122 @@
+{
+  "scope": "只与2026-09-29本地归档其余八款比较；不是官方重复率或侵权认定，没有外部提审样本。窗口重叠且不是独立重复段落数。",
+  "manualMethod": "说明书去标点与空白后连续12字符精确匹配；保留字母数字及中文。",
+  "programMethod": "完整32文件原始源码去空白后连续80字符精确匹配；不删除代码，不用指标调整源码。",
+  "manual": [
+    {
+      "reference": "outputs_backup_20261020/archive/formal/software-copyright-2026-09-29/01-浪湾卡丁车/使用说明书文字稿.md",
+      "matchedDistinct12CharacterWindows": 1,
+      "examples": [
+        "游戏软件V10使用说明书"
+      ]
+    },
+    {
+      "reference": "outputs_backup_20261020/archive/formal/software-copyright-2026-09-29/02-围捕小队/使用说明书文字稿.md",
+      "matchedDistinct12CharacterWindows": 1,
+      "examples": [
+        "游戏软件V10使用说明书"
+      ]
+    },
+    {
+      "reference": "outputs_backup_20261020/archive/formal/software-copyright-2026-09-29/03-别跑街区围捕/使用说明书文字稿.md",
+      "matchedDistinct12CharacterWindows": 1,
+      "examples": [
+        "游戏软件V10使用说明书"
+      ]
+    },
+    {
+      "reference": "outputs_backup_20261020/archive/formal/software-copyright-2026-09-29/04-词屿字母叠叠乐/使用说明书文字稿.md",
+      "matchedDistinct12CharacterWindows": 1,
+      "examples": [
+        "游戏软件V10使用说明书"
+      ]
+    },
+    {
+      "reference": "outputs_backup_20261020/archive/formal/software-copyright-2026-09-29/05-此时此地/使用说明书文字稿.md",
+      "matchedDistinct12CharacterWindows": 1,
+      "examples": [
+        "游戏软件V10使用说明书"
+      ]
+    },
+    {
+      "reference": "outputs_backup_20261020/archive/formal/software-copyright-2026-09-29/06-象五子棋/使用说明书文字稿.md",
+      "matchedDistinct12CharacterWindows": 1,
+      "examples": [
+        "游戏软件V10使用说明书"
+      ]
+    },
+    {
+      "reference": "outputs_backup_20261020/archive/formal/software-copyright-2026-09-29/07-江风入境外滩漫游/使用说明书文字稿.md",
+      "matchedDistinct12CharacterWindows": 1,
+      "examples": [
+        "游戏软件V10使用说明书"
+      ]
+    },
+    {
+      "reference": "outputs_backup_20261020/archive/formal/software-copyright-2026-09-29/09-乌龙城/使用说明书文字稿.md",
+      "matchedDistinct12CharacterWindows": 1,
+      "examples": [
+        "游戏软件V10使用说明书"
+      ]
+    }
+  ],
+  "program": [
+    {
+      "game": "carding-car",
+      "matchedDistinct80CharacterWindows": 373,
+      "files": [
+        {
+          "file": "games/local/carding-car/assets/scripts/HUD.ts",
+          "windows": 37,
+          "examples": [
+            "){constn=newNode(name);n.layer=Layers.Enum.UI_2D;parent.addChild(n);n.addCompone",
+            ".horizontalAlign=Label.HorizontalAlign.CENTER;l.verticalAlign=Label.VerticalAlig"
+          ]
+        },
+        {
+          "file": "games/local/carding-car/assets/scripts/KartController.ts",
+          "windows": 336,
+          "examples": [
+            "(Input.EventType.KEY_DOWN,this.keyDown,this);input.off(Input.EventType.KEY_UP,th",
+            "(Input.EventType.KEY_DOWN,this.keyDown,this);input.on(Input.EventType.KEY_UP,thi"
+          ]
+        }
+      ]
+    },
+    {
+      "game": "cops-robbers",
+      "matchedDistinct80CharacterWindows": 0,
+      "files": []
+    },
+    {
+      "game": "cops-robbers-realtime",
+      "matchedDistinct80CharacterWindows": 0,
+      "files": []
+    },
+    {
+      "game": "letters-words2",
+      "matchedDistinct80CharacterWindows": 0,
+      "files": []
+    },
+    {
+      "game": "travel-bund",
+      "matchedDistinct80CharacterWindows": 0,
+      "files": []
+    },
+    {
+      "game": "vibeJam-myself-history-guess",
+      "matchedDistinct80CharacterWindows": 0,
+      "files": []
+    },
+    {
+      "game": "wulong-city",
+      "matchedDistinct80CharacterWindows": 0,
+      "files": []
+    },
+    {
+      "game": "xiangqi-five",
+      "matchedDistinct80CharacterWindows": 0,
+      "files": []
+    }
+  ]
+}

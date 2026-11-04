@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-04",
+  "sourceHead": "cd8a65363887c4ae14d7ccf88d6e283bf15627c5",
+  "scope": "文件生成和鉴别材料核验；未更改游戏运行逻辑或提交登记申请。",
+  "wordPdfTextChecks": [
+    {
+      "word": "夜航守望游戏软件 V1.0 文档鉴别材料.docx",
+      "pdf": "夜航守望游戏软件 V1.0 文档鉴别材料.pdf",
+      "bodyAndTableParagraphsPresent": 140
+    },
+    {
+      "word": "夜航守望游戏软件 V1.0 申请信息与材料清单.docx",
+      "pdf": "夜航守望游戏软件 V1.0 申请信息与材料清单.pdf",
+      "bodyAndTableParagraphsPresent": 154
+    },
+    {
+      "word": "夜航守望游戏软件 V1.0 程序鉴别材料.docx",
+      "pdf": "夜航守望游戏软件 V1.0 程序鉴别材料.pdf",
+      "bodyAndTableParagraphsPresent": 3137
+    }
+  ],
+  "visualReview": {
+    "program": "1–30和31–60由两位只读复核者分别逐页原尺寸查看，均无缺字、裁切、重叠或溢出。",
+    "manual": "主会话逐页查看1–14；图、字、表格和页眉页码可读，无溢出。",
+    "application": "只读复核者逐页查看1–7；表格完整无越界，主会话另复看5–6排除误报。",
+    "totalPages": 81
+  },
+  "sourceHashesVerified": 32,
+  "screenshotHashesVerified": 14,
+  "programPdfSourceRowsVerified": 3017,
+  "privateKeyAndObviousCredentialPatternScan": "未匹配所列有限模式；不等于完整安全审计。",
+  "pending": [
+    "登记版本与申请状态",
+    "申请主体及权属材料",
+    "实际开发完成与首次发表信息",
+    "账号实时上传限制"
+  ],
+  "notRun": [
+    "游戏重建或全仓测试",
+    "实体手机、真实广告或渠道验收",
+    "外部提审数据库查重",
+    "官方AI检测或受理审查"
+  ]
+}

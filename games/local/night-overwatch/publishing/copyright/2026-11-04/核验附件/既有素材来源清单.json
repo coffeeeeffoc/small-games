@@ -1,0 +1,1618 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "assetId": "terrain.ground",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0,
+        "presentationRevision": "2026-10-28"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      },
+      "historicalValidation": [
+        {
+          "engine": "Cocos Creator 3.8.8",
+          "web": "verified-2026-09-28-refinement",
+          "mobileDevice": "not-tested",
+          "wechat": "not-tested",
+          "douyin": "not-tested"
+        }
+      ]
+    },
+    {
+      "assetId": "terrain.roads",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0,
+        "presentationRevision": "2026-10-28"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      },
+      "historicalValidation": [
+        {
+          "engine": "Cocos Creator 3.8.8",
+          "web": "verified-2026-09-28-refinement",
+          "mobileDevice": "not-tested",
+          "wechat": "not-tested",
+          "douyin": "not-tested"
+        }
+      ]
+    },
+    {
+      "assetId": "terrain.markings",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.ridges",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0,
+        "presentationRevision": "2026-10-28"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      },
+      "historicalValidation": [
+        {
+          "engine": "Cocos Creator 3.8.8",
+          "web": "verified-2026-09-28-refinement",
+          "mobileDevice": "not-tested",
+          "wechat": "not-tested",
+          "douyin": "not-tested"
+        }
+      ]
+    },
+    {
+      "assetId": "terrain.structures",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.details",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle.rescue",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle.escort",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle.light",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle.heavy",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "vehicle.turret",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "zone.shelter",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "zone.exit",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "prop.beaconFallback",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "prop.beacon",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/models/beacon.gltf",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "fx.impact",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/Effects.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "fx.tracer",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/Effects.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "fx.warning",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/HUD.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.rapid",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/rapid.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.blast",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/blast.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.heavy",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/heavy.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.hit",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/hit.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.alert",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/alert.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.water",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0,
+        "presentationRevision": "2026-10-28"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      },
+      "historicalValidation": [
+        {
+          "engine": "Cocos Creator 3.8.8",
+          "web": "verified-2026-09-28-refinement",
+          "mobileDevice": "not-tested",
+          "wechat": "not-tested",
+          "douyin": "not-tested"
+        }
+      ]
+    },
+    {
+      "assetId": "terrain.fields",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.roofs",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "terrain.forest",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0,
+        "presentationRevision": "2026-10-28"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      },
+      "historicalValidation": [
+        {
+          "engine": "Cocos Creator 3.8.8",
+          "web": "verified-2026-09-28-refinement",
+          "mobileDevice": "not-tested",
+          "wechat": "not-tested",
+          "douyin": "not-tested"
+        }
+      ]
+    },
+    {
+      "assetId": "audio.impact1",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/impact1.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.impact2",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/impact2.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "audio.engine",
+      "status": "original-procedural",
+      "sourceFile": "scripts/generate-assets.mjs",
+      "runtimeAsset": "assets/resources/audio/engine.wav",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-09-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No third-party asset restrictions introduced; source follows project licensing."
+      },
+      "metadata": {
+        "units": "project-world-unit",
+        "up": "+Y",
+        "forward": "+Z",
+        "textureCount": 0
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "verified-2026-09-28-refinement",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.title-metal",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/title-metal.png",
+      "runtimeAsset": "assets/resources/ui/title-metal.png",
+      "license": {
+        "source": "Built-in imagegen generated specifically for this project; original output retained unchanged",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No external stock asset was imported; retain generation provenance."
+      },
+      "metadata": {
+        "generatedSource": "exec-89accca5-1663-444d-b075-d17ec2b0c8b9.png",
+        "width": 2172,
+        "height": 724,
+        "hasAlpha": true,
+        "sha256": "cedb41c70ca984b1ed8761b01454356a39f51d6b062103f232b7362246b37eb1",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "sliceCount": 1
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "HUD node integration tests passed",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      }
+    },
+    {
+      "assetId": "ui.mission-atlas",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/mission-atlas.png",
+      "runtimeAsset": "assets/resources/ui/mission-atlas.png",
+      "license": {
+        "source": "Built-in imagegen generated specifically for this project; original output retained unchanged",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No external stock asset was imported; retain generation provenance."
+      },
+      "metadata": {
+        "generatedSource": "exec-8e6857bd-e1e1-447e-a6ac-cd22578971be.png",
+        "width": 2172,
+        "height": 724,
+        "hasAlpha": false,
+        "sha256": "55475cb5e3e03fd2ebe316c1a63018ec5be55382dc807057f4f1a1db095faf68",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "sliceCount": 3
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "HUD node integration tests passed",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      }
+    },
+    {
+      "assetId": "ui.mission-day-atlas",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/mission-day-atlas.png",
+      "runtimeAsset": "assets/resources/ui/mission-day-atlas.png",
+      "license": {
+        "source": "Built-in imagegen generated specifically for this project; original output retained unchanged",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "No external stock asset was imported; retain generation provenance."
+      },
+      "metadata": {
+        "generatedSource": "exec-2f75896a-c191-4be6-ab46-30c5c99d8bf0.png",
+        "width": 2172,
+        "height": 724,
+        "hasAlpha": false,
+        "sha256": "9209132989f813172ac0c9965fd41598709d88bc30f7db347dde63cc15d97255",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "sliceCount": 3
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "HUD node integration tests passed",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      }
+    },
+    {
+      "assetId": "terrain.surface-material",
+      "status": "original-shader",
+      "sourceFile": "assets/resources/terrain-surface.effect",
+      "runtimeAsset": "assets/resources/terrain-surface.effect",
+      "license": {
+        "source": "original project source",
+        "authorOrService": "project",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false,
+        "commercialConditions": "Source follows project licensing."
+      },
+      "metadata": {
+        "surfaces": [
+          "ground",
+          "water",
+          "roads",
+          "ridges",
+          "riverbank",
+          "forest"
+        ],
+        "geometryAuthority": "core/Data.terrainHeight unchanged",
+        "runtimeEvidence": "__night.snapshot().visualMaterialStatus must equal ready"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      }
+    },
+    {
+      "assetId": "ui.panel",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/panel.png",
+      "runtimeAsset": "assets/resources/ui/panel.png",
+      "license": {
+        "source": "Built-in imagegen; introduced by commit 02eba10a, retained unchanged during integration",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1254,
+        "height": 1254,
+        "hasAlpha": false,
+        "bytes": 1882742,
+        "sha256": "c0f700e8af30a3a763999b888fb55fc841a210fa4be7712318faaa511aaafd29",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "nine-slice"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "merged HUD node integration tests passed",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      }
+    },
+    {
+      "assetId": "ui.button",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/button.png",
+      "runtimeAsset": "assets/resources/ui/button.png",
+      "license": {
+        "source": "Built-in imagegen; introduced by commit 02eba10a, retained unchanged during integration",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 2172,
+        "height": 724,
+        "hasAlpha": false,
+        "bytes": 1689252,
+        "sha256": "5d8dd4c1dc824a1a816d82d932c818b3ea20119d3744ada3f532321e119e4f6d",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "nine-slice with a chamfer silhouette mask"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "merged HUD node integration tests passed",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      }
+    },
+    {
+      "assetId": "ui.insignia",
+      "status": "project-generated-image",
+      "sourceFile": "assets/resources/ui/insignia.png",
+      "runtimeAsset": "assets/resources/ui/insignia.png",
+      "license": {
+        "source": "Built-in imagegen; introduced by commit 02eba10a, retained unchanged during integration",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-10-28",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 2098,
+        "height": 749,
+        "hasAlpha": true,
+        "bytes": 1110698,
+        "sha256": "8cdc1b43afb051dd003a0ad9ab0c8e3d979bebde77307145c644aa80c3f63696",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "transparent emblem"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "resourceChain": "merged HUD node integration tests passed",
+        "web": "passed-current-Creator-and-browser-visual-review-2026-10-28",
+        "mobileDevice": "not-tested",
+        "wechat": "not-tested",
+        "douyin": "not-tested",
+        "sourceHash": "9c90c5006cefe2ed2027b8182712410606532cad22b6f73fabf57f14361548bd",
+        "evidence": "verification-2026-10-28-visual-rebuild.md"
+      }
+    },
+    {
+      "assetId": "ui.progression.01-home",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/01-home.png",
+      "runtimeAsset": "assets/resources/ui/progression/01-home.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2235322,
+        "sha256": "94dfbda9b5bc42566cd2012670dd275a0e6598dd737a28f5f78b3a33b262e9d8",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.02-loadout",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/02-loadout.png",
+      "runtimeAsset": "assets/resources/ui/progression/02-loadout.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2124850,
+        "sha256": "5b4b8a236a70590a1dcb92ec973bfe2f0c9111f6ff47a8d35bb3c13ec6e113c8",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.03-mode-selection",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/03-mode-selection.png",
+      "runtimeAsset": "assets/resources/ui/progression/03-mode-selection.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2343718,
+        "sha256": "ef247afb46c0dc37ea8e5edbb5579793a0ddae11eec224458818a41c0a818830",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.04-shop",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/04-shop.png",
+      "runtimeAsset": "assets/resources/ui/progression/04-shop.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2251169,
+        "sha256": "616c6559bccf1bc2f6b763c7af50bff7780d21909184b619ce9dae9f20e0c259",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.05-supply",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/05-supply.png",
+      "runtimeAsset": "assets/resources/ui/progression/05-supply.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2246020,
+        "sha256": "5e05fa63a5f6dbbc20ffa2512f836590db4ecbad2f5bd1c5fafc9f83be8d5e24",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.06-growth-skills",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/06-growth-skills.png",
+      "runtimeAsset": "assets/resources/ui/progression/06-growth-skills.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2418701,
+        "sha256": "c3c659e20a13f653b0579b088f5f20f5ac2bc74fc2959a832946d51e3dfc5093",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.07-tasks",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/07-tasks.png",
+      "runtimeAsset": "assets/resources/ui/progression/07-tasks.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2082910,
+        "sha256": "2a3e158fb17123de96b8815a98a911032c31e5a90bb090e2e3ffbe3b9425ad0b",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.08-inbox",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/08-inbox.png",
+      "runtimeAsset": "assets/resources/ui/progression/08-inbox.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2254565,
+        "sha256": "5d4acb76bc8f77b644eb1bf058470cdf24c6328c9c21556cf96c67083d8f04df",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.09-settlement",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-10-31/09-settlement.png",
+      "runtimeAsset": "assets/resources/ui/progression/09-settlement.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2196455,
+        "sha256": "dedb8a4b3dd54061c3a37b128b55254af0a1977474e787f9a2cdcb01072ccf33",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.base",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-704f6a7b-f806-46da-b49c-03657c563a78.png",
+      "runtimeAsset": "assets/resources/ui/progression/base.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2462146,
+        "sha256": "d3cb432b9c16aa2b2cb15db1b702f54b91307092eea8af2d4833b829b8cee9a1",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.hangar",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-7842121f-c827-47e0-abe4-92bd89ef8f85.png",
+      "runtimeAsset": "assets/resources/ui/progression/hangar.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2400035,
+        "sha256": "49cc71fd195edf37034ab96e15a1df84ad7c33b7149328dd22cd48a14a27e5c5",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.home",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-6e949d8c-3074-49a6-8606-97b20a3b547f.png",
+      "runtimeAsset": "assets/resources/ui/progression/home.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1672,
+        "height": 941,
+        "hasAlpha": false,
+        "bytes": 2318607,
+        "sha256": "c3253f61c8429b0d2b258d154065fd40807c08f8c9ae7f06d2ef3719ddaca81f",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.skins",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-eac58686-8630-4106-b42d-931edd3ceb4a.png",
+      "runtimeAsset": "assets/resources/ui/progression/skins.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1254,
+        "height": 1254,
+        "hasAlpha": true,
+        "bytes": 1943105,
+        "sha256": "7f50095f2a02b364236658c58197b55e5a9abc1bf5ff50c398c37cf91761548b",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.title",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-e66366e9-89ad-4250-96ab-88098fa1396c.png",
+      "runtimeAsset": "assets/resources/ui/progression/title.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 2172,
+        "height": 724,
+        "hasAlpha": true,
+        "bytes": 1630462,
+        "sha256": "9cc5ed4f4f30594cb2bbd3af049c799f85dd1cbac18e282df1767811eef7b644",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.font",
+      "status": "licensed-font-subset",
+      "sourceFile": "C:/Windows/Fonts/NotoSerifSC-VF.ttf",
+      "runtimeAsset": "assets/resources/ui/progression/night-ui-serif.ttf",
+      "license": {
+        "source": "assets/resources/ui/progression/OFL.txt",
+        "authorOrService": "Adobe / Noto Serif SC",
+        "license": "SIL Open Font License 1.1",
+        "thirdParty": true,
+        "attributionRequired": true,
+        "modification": "Static weight 700, text subset; renamed NightUISerif"
+      },
+      "metadata": {
+        "bytes": 288232,
+        "sha256": "f43e8f0aa88672c2dd30f7db852a558b6e7c91c158a4f83491d4145c02941f56",
+        "runtimeLoader": "Cocos TTFFont"
+      },
+      "validation": {
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md"
+      }
+    },
+    {
+      "assetId": "ui.progression.resultBadge",
+      "status": "project-generated-image",
+      "sourceFile": "C:/Users/15211/.codex/generated_images/01a192d3-518d-7300-9b93-1f595c8ee29d/exec-3004d4cd-01a5-4bd7-b5b2-048188d3b2aa.png",
+      "runtimeAsset": "assets/resources/ui/progression/resultBadge.png",
+      "license": {
+        "source": "Built-in image_gen; exact requests in docs/design/progression-2026-10-31/runtime-prompts.json or original prompts.json",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-01",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 2167,
+        "height": 726,
+        "hasAlpha": true,
+        "bytes": 1636850,
+        "sha256": "a3ad11a0dd6a34826fbbb323a1f8366d87b49c9dffaceddc2defee819390db78",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "ProgressionArt.ts samples wordless art rectangles; all variable names, quantities, prices and controls are live engine text"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "web": "actual-navigation-and-opened-screenshot-review",
+        "sourceHash": "0739a52422ac870b0423307cfc0608966ce6ff0747d715a7103b8829d09fb659",
+        "evidence": "verification-2026-11-01-progression.md",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
+      }
+    },
+    {
+      "assetId": "ui.progression.reward-atlas",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-11-02/prompts.json",
+      "runtimeAsset": "assets/resources/ui/progression/reward-atlas.png",
+      "license": {
+        "source": "Built-in image_gen; current 17-item design",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-02",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "bytes": 2409856,
+        "sha256": "8f77ac14af443c36ba403a90e00752961cd7bdb9f7cac395c3e2f03147178d5c",
+        "runtimeLoader": "Cocos resources Texture2D / SpriteFrame",
+        "runtimeUsage": "Wordless illustration crops only; all labels and values are live UI"
+      }
+    },
+    {
+      "assetId": "ui.progression.gear-atlas-v2",
+      "status": "project-generated-image",
+      "sourceFile": "docs/design/progression-2026-11-02/prompts.json#runtime_gear_atlas_v2",
+      "runtimeAsset": "assets/resources/ui/progression/gear-atlas-v2.png",
+      "license": {
+        "source": "Built-in image_gen: six transparent standalone brass bullets, ammunition box, blast-range device, drone, cooling reactor, gold coins; no text, labels, UI frames or scenery",
+        "authorOrService": "OpenAI imagegen",
+        "acquiredAt": "2026-11-02",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "width": 1774,
+        "height": 887,
+        "hasAlpha": true,
+        "bytes": 2288638,
+        "sha256": "60a96ea404a598104505cc37ca52e6a24b212445e026d278559ac6d3a67416bf",
+        "runtimeUsage": "Individual transparent item sprites, live labels and values"
+      }
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+[
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-04-refinement/home-1280.png",
+    "copy": "核验附件/截图原件/01-home-1280.png",
+    "sha256": "88b92b0ec5114d64f0e95ef9fbbe48a611d4b5927d4ac4c147ff3c476084ac76",
+    "caption": "图1 首页与常用入口",
+    "note": "2026年11月4日浏览器采集，隔离服务中的普通新游客。菜单画面沿用该次采集。"
+  },
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-04-refinement/modes-1280.png",
+    "copy": "核验附件/截图原件/02-modes-1280.png",
+    "sha256": "8bae9ac1333614215792a6918e9e082a3da9453ffa93b18640b23b83411e69cd",
+    "caption": "图2 开始行动与三种模式",
+    "note": "2026年11月4日浏览器采集，隔离服务中的普通新游客。菜单画面沿用该次采集。"
+  },
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-04-refinement/missions-1280.png",
+    "copy": "核验附件/截图原件/03-missions-1280.png",
+    "sha256": "4bee13411ff2c5dfc1c6229255ba246faa47dbd38c3b083456965d59b210f841",
+    "caption": "图3 横向任务地图",
+    "note": "2026年11月4日浏览器采集，隔离服务中的普通新游客。菜单画面沿用该次采集。"
+  },
+  {
+    "source": "games/local/night-overwatch/docs/design/refinement-2026-11-04/controls/drone-default-844.png",
+    "copy": "核验附件/截图原件/04-drone-default-844.png",
+    "sha256": "32ff5a12a18a362ec1b310c8f4f05a6d7b1364072152ee0e087e1f4ce5e0a174",
+    "caption": "图4 触屏火控与底部按钮",
+    "note": "2026年11月4日最终构建演示，使用测试装备展示已实现功能；不代表初始账号拥有这些装备。"
+  },
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-04-support/thermal-1280.png",
+    "copy": "核验附件/截图原件/05-thermal-1280.png",
+    "sha256": "3cd18104d5a7ca2acff8b5e33d2c1a6616b628dee4ad10f329c90503d82b554d",
+    "caption": "图5 热像观察模式",
+    "note": "2026年11月4日浏览器普通首关实录。后续修订增加独立按钮拖动，本图用于说明战场内容。"
+  },
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-04-support/night-1280.png",
+    "copy": "核验附件/截图原件/06-night-1280.png",
+    "sha256": "267a21b3fe14fc3a94886d76f7f1f914821f915d25d9ef771c32710f5a4db7b9",
+    "caption": "图6 战场中的武器与资源显示",
+    "note": "2026年11月4日浏览器普通首关实录。后续修订增加独立按钮拖动，本图用于说明战场内容。"
+  },
+  {
+    "source": "games/local/night-overwatch/docs/design/refinement-2026-11-04/controls/laser-default-844.png",
+    "copy": "核验附件/截图原件/07-laser-default-844.png",
+    "sha256": "6fb5cc0f04e6fc81cedfba5a276d74877bccb4ae90db83ae14a6adc560c832bb",
+    "caption": "图7 激光与电磁干扰的战斗入口",
+    "note": "2026年11月4日最终构建演示，使用测试装备展示已实现功能；不代表初始账号拥有这些装备。"
+  },
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-04-support/tactics-1280.png",
+    "copy": "核验附件/截图原件/08-tactics-1280.png",
+    "sha256": "68e740f5e1da6aca5685f2b18b9f64bf870ecfa5ced94b1c2afc055c745545d8",
+    "caption": "图8 战况概况与装配页签",
+    "note": "2026年11月4日浏览器普通首关实录。后续修订增加独立按钮拖动，本图用于说明战场内容。"
+  },
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-02-revision/08-loadout.png",
+    "copy": "核验附件/截图原件/09-08-loadout.png",
+    "sha256": "16044fda5094dda7bc37233dc3750a89d562d7bfa6e7c31f39f81fc91a1d376c",
+    "caption": "图9 作战配置的槽位与物品列表",
+    "note": "2026年11月2日浏览器实录，沿用未改动的该页流程；截图中的余额和库存为采集时状态。"
+  },
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-02-revision/04-warehouse.png",
+    "copy": "核验附件/截图原件/10-04-warehouse.png",
+    "sha256": "1d57e23dedad90c93aec14805f0176281c3291334d75bdb338b4f3beec42d43d",
+    "caption": "图10 仓库数量与出售收益",
+    "note": "2026年11月2日浏览器实录，沿用未改动的该页流程；截图中的余额和库存为采集时状态。"
+  },
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-02-revision/02-supply.png",
+    "copy": "核验附件/截图原件/11-02-supply.png",
+    "sha256": "f21b344cf44aeebae1b60e48bb3dd6b08b8b6b7bf8887784ec6b1b99a499d132",
+    "caption": "图11 统一补给箱与转盘",
+    "note": "2026年11月2日浏览器实录，沿用未改动的该页流程；截图中的余额和库存为采集时状态。"
+  },
+  {
+    "source": "games/local/night-overwatch/docs/verification-2026-11-02/chat-invite.png",
+    "copy": "核验附件/截图原件/12-chat-invite.png",
+    "sha256": "f46d8d21c87c84f976d7fe8903c1f120c8ea348baed6dcb21c11d3b30f9bb816",
+    "caption": "图12 大厅文字消息与房间邀请",
+    "note": "2026年11月2日隔离真实服务测试截图，用于演示聊天与邀请；不是生产公共频道活动。"
+  },
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-04-refinement/growth-1280.png",
+    "copy": "核验附件/截图原件/13-growth-1280.png",
+    "sha256": "30952cb9c6eba16bff22bd89a0cbdc2065ab76353d49322794e7663354fbe0ff",
+    "caption": "图13 等级成长与EXP",
+    "note": "2026年11月4日浏览器采集，隔离服务中的普通新游客。菜单画面沿用该次采集。"
+  },
+  {
+    "source": "games/local/night-overwatch/publishing/gameplay/screenshots/2026-11-04-support/settings-1280.png",
+    "copy": "核验附件/截图原件/14-settings-1280.png",
+    "sha256": "59b97392d359d07b762840404ec5b14089cb858ee7afb6484fe14eb81f1bc6a2",
+    "caption": "图14 战斗设置",
+    "note": "2026年11月4日浏览器普通首关实录。后续修订增加独立按钮拖动，本图用于说明战场内容。"
+  }
+]

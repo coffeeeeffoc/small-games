@@ -1,0 +1,1117 @@
+{
+  "date": "2026-11-04",
+  "name": "夜航守望游戏软件",
+  "version": "V1.0",
+  "versionStatus": "沿用旧归档拟登记版本，提交前确认",
+  "head": "cd8a65363887c4ae14d7ccf88d6e283bf15627c5",
+  "ordering": "仓库相对路径 Unicode 升序，文件内部顺序不变；Prettier 3.6.2 仅作用于副本；展示不计空行，不删注释或代码。",
+  "manifest": [
+    {
+      "path": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+      "sha256": "9417bf214870ce4b93a1ed0f14730692ada9c756ac4afcf68bf36e6cc73ce20b",
+      "bytes": 7710,
+      "physicalLines": 203,
+      "nonemptyLines": 191,
+      "formattedLines": 226,
+      "displayLines": 214,
+      "formattedSha256": "133507db9e2961a0c072f885701449a9d1beff204b607fdbdb94b500b39cffd4"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/DeveloperTools.ts",
+      "sha256": "24d72f501fa99722e39dc42743b8d5b355895797ec9904d65b729a149fc6fd07",
+      "bytes": 3188,
+      "physicalLines": 53,
+      "nonemptyLines": 52,
+      "formattedLines": 115,
+      "displayLines": 114,
+      "formattedSha256": "69bb23b84bca83e925e5093dd11adfa8bb8b08c9d14a5bbd6914bd61fd426ef7"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/Effects.ts",
+      "sha256": "d68b8d8c87780a447c31e3e4004ff4ab44d2190282d04b10452510f4012fb3d9",
+      "bytes": 20527,
+      "physicalLines": 402,
+      "nonemptyLines": 396,
+      "formattedLines": 730,
+      "displayLines": 724,
+      "formattedSha256": "cfcc77aa50c00ff6f80b312ff14a60a19c277e0dcea4dca4dbbe02b7aecf9648"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/HUD.ts",
+      "sha256": "9cc3ca78733e8bef217534c33a14b5754b0cf8141dd532d5154cc35e480dc99b",
+      "bytes": 174934,
+      "physicalLines": 2488,
+      "nonemptyLines": 2486,
+      "formattedLines": 7566,
+      "displayLines": 7564,
+      "formattedSha256": "2e3df308830be7dc3375f095be851dc588f1bf745698fd8662cfcef5b0cefb57"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/Online.ts",
+      "sha256": "cd565eb1b7bcd1375b0be3a2f4fe26b4f30ff71bc72a596774ced40430e0f5a5",
+      "bytes": 35423,
+      "physicalLines": 487,
+      "nonemptyLines": 485,
+      "formattedLines": 1326,
+      "displayLines": 1324,
+      "formattedSha256": "cf83894c3262aa390c2cad408383a15ca3e94c455cb8dbbaa2a18a57a60c302a"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/Overwatch.ts",
+      "sha256": "d9387fa2b3a02da66965b5f6133b65002d24c7abc93e7c499f004df7a96b43f1",
+      "bytes": 85122,
+      "physicalLines": 1543,
+      "nonemptyLines": 1542,
+      "formattedLines": 2873,
+      "displayLines": 2872,
+      "formattedSha256": "426bba3577a4a0065ed737bc63c9dbb3fda0c281f9b6ecfcf56ecd5a11918f39"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/Platform.ts",
+      "sha256": "426f0d17fb036d9346538a09c28868255ad26c8a5b8d30f85d0d4cd44f5ec5fd",
+      "bytes": 15311,
+      "physicalLines": 340,
+      "nonemptyLines": 340,
+      "formattedLines": 525,
+      "displayLines": 525,
+      "formattedSha256": "20e72f25b8023cb2386c01e736bdabf7ca958dc045599312c8c51d2dde0d8585"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/Presentation.ts",
+      "sha256": "22ff2133b51bda100f564d23decc4fdeb5fd86068723a9438276596c956b9dd1",
+      "bytes": 2763,
+      "physicalLines": 49,
+      "nonemptyLines": 47,
+      "formattedLines": 89,
+      "displayLines": 87,
+      "formattedSha256": "803cb1c2120c9dfaf13f13362dfe03b0bfaf8ba00e3e6c5dde131fa00240afaf"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/ProgressionArt.ts",
+      "sha256": "d22b27dd9510c4490375ce54249432bf2389e676391d662f20c64186ee74084a",
+      "bytes": 6517,
+      "physicalLines": 100,
+      "nonemptyLines": 98,
+      "formattedLines": 207,
+      "displayLines": 205,
+      "formattedSha256": "c944086f977c7691e9c5123670da1a410b80130e4115e0bb2189aa4d9f018859"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/ProgressionView.ts",
+      "sha256": "bae5b9a383dae2aaf447b6403eb0a25c9ea0b9faf5c5ab3bf9c25ee9d05a9696",
+      "bytes": 65285,
+      "physicalLines": 520,
+      "nonemptyLines": 516,
+      "formattedLines": 3660,
+      "displayLines": 3656,
+      "formattedSha256": "3456630bcac8490037ddb3dcbd1f7183f7686b6605ca13e800aaa44685a3cf4f"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/Quartermaster.ts",
+      "sha256": "91519982d1028866b3d9e37cd1477b263ac183168c1ad61cb43d269b17620075",
+      "bytes": 22867,
+      "physicalLines": 233,
+      "nonemptyLines": 233,
+      "formattedLines": 965,
+      "displayLines": 965,
+      "formattedSha256": "0b7f3b59836eed86737c01aa06f928674ca8ae5f90604b6ab9d4b03be7de524b"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/ShareScreen.ts",
+      "sha256": "5544ea4855323ae0fea7ff45223bcffbbe3b595f2434996534b3d6b434fb9e7d",
+      "bytes": 760,
+      "physicalLines": 15,
+      "nonemptyLines": 15,
+      "formattedLines": 26,
+      "displayLines": 26,
+      "formattedSha256": "6b344e5c1842bcb735f837f7f9557004593b28d69ffc12579c185f6dc7e97ca3"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/World.ts",
+      "sha256": "6ce794236b762211f4b654f2251963f543a4e615f22619bae059bacfae959db6",
+      "bytes": 60633,
+      "physicalLines": 1409,
+      "nonemptyLines": 1397,
+      "formattedLines": 2135,
+      "displayLines": 2123,
+      "formattedSha256": "c5f3f6b88c3d98c8e2086005fc14801d0056482fc2c67d86de6ddcffe4dd204b"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/Actions.ts",
+      "sha256": "13e8d7f50af5116f97d0ec71c7cd48f38273cf12788ebeb285f9e7340b7c401b",
+      "bytes": 18540,
+      "physicalLines": 539,
+      "nonemptyLines": 539,
+      "formattedLines": 551,
+      "displayLines": 551,
+      "formattedSha256": "ee9924670c25f891fdb98fc0104e24fab411d852bfe47ddbcf2e985c350437ea"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/BattleRecords.ts",
+      "sha256": "cedee26512b5e3604a07fab5a139dff8274ddecd8a93786cb5c7063e1872353a",
+      "bytes": 2481,
+      "physicalLines": 37,
+      "nonemptyLines": 36,
+      "formattedLines": 93,
+      "displayLines": 92,
+      "formattedSha256": "1fe140500b36ba2c474b7945153865947b54d791a95e221513cf42a7618bc8ce"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/CameraMath.ts",
+      "sha256": "b87c6d354fc094c8d5374fb5478a19afc901ef0f1147fdebcd7c0be0b79334b4",
+      "bytes": 6531,
+      "physicalLines": 177,
+      "nonemptyLines": 171,
+      "formattedLines": 218,
+      "displayLines": 212,
+      "formattedSha256": "eb320d0e114c385d782690f1347939adb732cd60f333d1f8960c2770b8322c59"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/Data.ts",
+      "sha256": "43055911b2ae1784feb47d29a2394e7ff69ec20d09174491df13cc88996af0a5",
+      "bytes": 14045,
+      "physicalLines": 349,
+      "nonemptyLines": 349,
+      "formattedLines": 499,
+      "displayLines": 499,
+      "formattedSha256": "9040fbfb01eac2899dea5b6dd7c10ff3377e0d9f21161374830c44b825fbce43"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/Duel.ts",
+      "sha256": "df401ea65d025eece9530375f7df017ce54a06404120f5890c8a3f14da08a67e",
+      "bytes": 8063,
+      "physicalLines": 132,
+      "nonemptyLines": 130,
+      "formattedLines": 276,
+      "displayLines": 274,
+      "formattedSha256": "6b3b830c1772d8be72edbcdfff07a2f7ce34c2485660da1e21c085de97f15ab0"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/Flight.ts",
+      "sha256": "e79644d44d406dfaaec24587adb9d2d381dc83474c70e7a8eb0b90c1e191cfd5",
+      "bytes": 9624,
+      "physicalLines": 195,
+      "nonemptyLines": 182,
+      "formattedLines": 323,
+      "displayLines": 310,
+      "formattedSha256": "754940c991a3b0b7410588fbe1f6f48e77acc8cc54276db22c648f88233d0f12"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts",
+      "sha256": "5884d71a36e9a34bc96af6e9af3ef10723f7adce7ff14a0b6008b33843260188",
+      "bytes": 7078,
+      "physicalLines": 91,
+      "nonemptyLines": 91,
+      "formattedLines": 270,
+      "displayLines": 270,
+      "formattedSha256": "909da7454b8ec8fc9ff1b662ed0bc396f3de8f5ee56ca16fd819cc6f2d7402d0"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/MissionProgress.ts",
+      "sha256": "fc0dc953ac2f478dfb509c8193a52e7ed89929e2430ac4c01b047a43c666f1dd",
+      "bytes": 1507,
+      "physicalLines": 23,
+      "nonemptyLines": 23,
+      "formattedLines": 54,
+      "displayLines": 54,
+      "formattedSha256": "53fbb1badada181f2a621bbe2e3b0da38de48b32bcd4314f72c698d91b9e112c"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/Progression.ts",
+      "sha256": "44fdeff744688a5153af61444600cddc92f007be12e3bb2e534942411b0e8408",
+      "bytes": 9455,
+      "physicalLines": 104,
+      "nonemptyLines": 103,
+      "formattedLines": 429,
+      "displayLines": 428,
+      "formattedSha256": "0d520a12368fee8add46677356be3ec6a24e30c6538f6d43e60c1b58f0ca164a"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/Replay.ts",
+      "sha256": "c2c53b178ebd1abba06fb2d38e00d63b5d98ec76a2518ffb636873113e4a0ce6",
+      "bytes": 7137,
+      "physicalLines": 136,
+      "nonemptyLines": 130,
+      "formattedLines": 306,
+      "displayLines": 300,
+      "formattedSha256": "64e63a6f0ee031299deaa62731c786f20d9a7c765154486d6d0649ccf83f7a50"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/Rewards.ts",
+      "sha256": "aef8b4f9ddc7c22ff05d419fd77742a7f46b91403207584c85198255606c46c3",
+      "bytes": 1107,
+      "physicalLines": 21,
+      "nonemptyLines": 20,
+      "formattedLines": 33,
+      "displayLines": 32,
+      "formattedSha256": "a7a22768d0d404d8b35d8cdf446ac4df6971ea82d12aa99d4f225f0019783901"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/SafeArea.ts",
+      "sha256": "987a72449a8f3fc14e7b5bfb11d7a3d43acaa11682b0fb0565a26571c9a98a5d",
+      "bytes": 2270,
+      "physicalLines": 33,
+      "nonemptyLines": 33,
+      "formattedLines": 86,
+      "displayLines": 86,
+      "formattedSha256": "af5c296a3cbceb1ab817e17d7ab62da4066c26b1098567da81ae9e728ee148f6"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/Simulation.ts",
+      "sha256": "2480a8d45f118efdcd975c71009acfe770a3d3539038e3a6b1ac4de0823dcfac",
+      "bytes": 54670,
+      "physicalLines": 1105,
+      "nonemptyLines": 1105,
+      "formattedLines": 2016,
+      "displayLines": 2016,
+      "formattedSha256": "b1404a909ebd806ee55b1d02493cf97c7337e251a5413d1401e8a56181c0722e"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/core/TrainingRecords.ts",
+      "sha256": "8462dc1106f6812f80ab866186f362d18e6078ebd3b4b63575f45c7b09f547c2",
+      "bytes": 2470,
+      "physicalLines": 31,
+      "nonemptyLines": 31,
+      "formattedLines": 93,
+      "displayLines": 93,
+      "formattedSha256": "c239f6f9f42341e1f4d505b537b7a437e4863f4d57c485d843f13ccd5de40a59"
+    },
+    {
+      "path": "services/runtime-api/rules/night-ranked.mjs",
+      "sha256": "53421a4dc8aeb93282d0a07795f670b4c7593bf6b06502415b0cc6fef27cc760",
+      "bytes": 2180,
+      "physicalLines": 55,
+      "nonemptyLines": 54,
+      "formattedLines": 66,
+      "displayLines": 65,
+      "formattedSha256": "6d48dc6945ed352cf57a902319550511bbccbf8cf655362534d7bebc45dcc0d2"
+    },
+    {
+      "path": "services/runtime-api/rules/night.mjs",
+      "sha256": "1270c6fb170812c79853075710c8736597dd154ec51229d1dcf012b4200c1604",
+      "bytes": 2238,
+      "physicalLines": 61,
+      "nonemptyLines": 60,
+      "formattedLines": 68,
+      "displayLines": 67,
+      "formattedSha256": "76250780f181ed3b5e850ae35d7c4cb7357543f8a32caf0aa5913c735378f803"
+    },
+    {
+      "path": "services/runtime-api/src/competition/night-assets.ts",
+      "sha256": "c2e7fa9ee6e30b877b91b2d2bd729776e62065816afcfd396ea4f6f8480aaabe",
+      "bytes": 40527,
+      "physicalLines": 1044,
+      "nonemptyLines": 1042,
+      "formattedLines": 1244,
+      "displayLines": 1242,
+      "formattedSha256": "b0d981abf416e68f5e60af1bcdd0a77e0a26dc2096f6e1fdcfb6b328f5a9e61f"
+    },
+    {
+      "path": "services/runtime-api/src/competition/night-chat.ts",
+      "sha256": "83efc72d6bac1d095b96b18e915a33b52a327703ec4a3c0accda7e78b145e62e",
+      "bytes": 9752,
+      "physicalLines": 219,
+      "nonemptyLines": 217,
+      "formattedLines": 238,
+      "displayLines": 236,
+      "formattedSha256": "0810b27aa4cc8acfd371729239d502aa55dc09869469463935b5fe50c69d085d"
+    },
+    {
+      "path": "services/runtime-api/src/competition/night-ledger.ts",
+      "sha256": "db3dbb8cebc11c9bc2757da0b5c4f5af4c4eb6a8cdc20b57f9d97d11e6645b8b",
+      "bytes": 9782,
+      "physicalLines": 226,
+      "nonemptyLines": 218,
+      "formattedLines": 249,
+      "displayLines": 241,
+      "formattedSha256": "057b4cc55f8ced294083392b899973326e144d41fc885e34ff9fbe80dab0fbb9"
+    }
+  ],
+  "physicalLines": 12420,
+  "nonemptyLines": 12332,
+  "formattedLines": 27555,
+  "displayLines": 27467,
+  "fullPages": 549,
+  "selectedPages": [
+    {
+      "depositPage": 1,
+      "fullPage": 1,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+        "line": 1
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+        "line": 53
+      }
+    },
+    {
+      "depositPage": 2,
+      "fullPage": 2,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+        "line": 54
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+        "line": 106
+      }
+    },
+    {
+      "depositPage": 3,
+      "fullPage": 3,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+        "line": 107
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+        "line": 159
+      }
+    },
+    {
+      "depositPage": 4,
+      "fullPage": 4,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+        "line": 160
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+        "line": 216
+      }
+    },
+    {
+      "depositPage": 5,
+      "fullPage": 5,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/AircraftModel.ts",
+        "line": 217
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/DeveloperTools.ts",
+        "line": 42
+      }
+    },
+    {
+      "depositPage": 6,
+      "fullPage": 6,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/DeveloperTools.ts",
+        "line": 43
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/DeveloperTools.ts",
+        "line": 93
+      }
+    },
+    {
+      "depositPage": 7,
+      "fullPage": 7,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/DeveloperTools.ts",
+        "line": 94
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 30
+      }
+    },
+    {
+      "depositPage": 8,
+      "fullPage": 8,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 31
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 82
+      }
+    },
+    {
+      "depositPage": 9,
+      "fullPage": 9,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 83
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 133
+      }
+    },
+    {
+      "depositPage": 10,
+      "fullPage": 10,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 134
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 185
+      }
+    },
+    {
+      "depositPage": 11,
+      "fullPage": 11,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 186
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 236
+      }
+    },
+    {
+      "depositPage": 12,
+      "fullPage": 12,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 237
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 287
+      }
+    },
+    {
+      "depositPage": 13,
+      "fullPage": 13,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 288
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 339
+      }
+    },
+    {
+      "depositPage": 14,
+      "fullPage": 14,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 340
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 391
+      }
+    },
+    {
+      "depositPage": 15,
+      "fullPage": 15,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 392
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 442
+      }
+    },
+    {
+      "depositPage": 16,
+      "fullPage": 16,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 443
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 493
+      }
+    },
+    {
+      "depositPage": 17,
+      "fullPage": 17,
+      "lines": 51,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 494
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 544
+      }
+    },
+    {
+      "depositPage": 18,
+      "fullPage": 18,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 545
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 595
+      }
+    },
+    {
+      "depositPage": 19,
+      "fullPage": 19,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 596
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 645
+      }
+    },
+    {
+      "depositPage": 20,
+      "fullPage": 20,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 646
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 695
+      }
+    },
+    {
+      "depositPage": 21,
+      "fullPage": 21,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/Effects.ts",
+        "line": 696
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 15
+      }
+    },
+    {
+      "depositPage": 22,
+      "fullPage": 22,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 16
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 65
+      }
+    },
+    {
+      "depositPage": 23,
+      "fullPage": 23,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 66
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 116
+      }
+    },
+    {
+      "depositPage": 24,
+      "fullPage": 24,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 117
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 166
+      }
+    },
+    {
+      "depositPage": 25,
+      "fullPage": 25,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 167
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 216
+      }
+    },
+    {
+      "depositPage": 26,
+      "fullPage": 26,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 217
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 266
+      }
+    },
+    {
+      "depositPage": 27,
+      "fullPage": 27,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 267
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 316
+      }
+    },
+    {
+      "depositPage": 28,
+      "fullPage": 28,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 317
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 366
+      }
+    },
+    {
+      "depositPage": 29,
+      "fullPage": 29,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 367
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 416
+      }
+    },
+    {
+      "depositPage": 30,
+      "fullPage": 30,
+      "lines": 50,
+      "first": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 417
+      },
+      "last": {
+        "file": "games/local/night-overwatch/assets/scripts/HUD.ts",
+        "line": 466
+      }
+    },
+    {
+      "depositPage": 31,
+      "fullPage": 520,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 220
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 269
+      }
+    },
+    {
+      "depositPage": 32,
+      "fullPage": 521,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 270
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 319
+      }
+    },
+    {
+      "depositPage": 33,
+      "fullPage": 522,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 320
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 369
+      }
+    },
+    {
+      "depositPage": 34,
+      "fullPage": 523,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 370
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 419
+      }
+    },
+    {
+      "depositPage": 35,
+      "fullPage": 524,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 420
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 469
+      }
+    },
+    {
+      "depositPage": 36,
+      "fullPage": 525,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 470
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 519
+      }
+    },
+    {
+      "depositPage": 37,
+      "fullPage": 526,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 520
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 569
+      }
+    },
+    {
+      "depositPage": 38,
+      "fullPage": 527,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 570
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 619
+      }
+    },
+    {
+      "depositPage": 39,
+      "fullPage": 528,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 620
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 669
+      }
+    },
+    {
+      "depositPage": 40,
+      "fullPage": 529,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 670
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 719
+      }
+    },
+    {
+      "depositPage": 41,
+      "fullPage": 530,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 720
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 769
+      }
+    },
+    {
+      "depositPage": 42,
+      "fullPage": 531,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 770
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 819
+      }
+    },
+    {
+      "depositPage": 43,
+      "fullPage": 532,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 820
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 869
+      }
+    },
+    {
+      "depositPage": 44,
+      "fullPage": 533,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 870
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 919
+      }
+    },
+    {
+      "depositPage": 45,
+      "fullPage": 534,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 920
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 969
+      }
+    },
+    {
+      "depositPage": 46,
+      "fullPage": 535,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 970
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 1020
+      }
+    },
+    {
+      "depositPage": 47,
+      "fullPage": 536,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 1021
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 1071
+      }
+    },
+    {
+      "depositPage": 48,
+      "fullPage": 537,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 1072
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 1121
+      }
+    },
+    {
+      "depositPage": 49,
+      "fullPage": 538,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 1122
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 1171
+      }
+    },
+    {
+      "depositPage": 50,
+      "fullPage": 539,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 1172
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 1221
+      }
+    },
+    {
+      "depositPage": 51,
+      "fullPage": 540,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-assets.ts",
+        "line": 1222
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-chat.ts",
+        "line": 28
+      }
+    },
+    {
+      "depositPage": 52,
+      "fullPage": 541,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-chat.ts",
+        "line": 29
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-chat.ts",
+        "line": 79
+      }
+    },
+    {
+      "depositPage": 53,
+      "fullPage": 542,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-chat.ts",
+        "line": 80
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-chat.ts",
+        "line": 129
+      }
+    },
+    {
+      "depositPage": 54,
+      "fullPage": 543,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-chat.ts",
+        "line": 130
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-chat.ts",
+        "line": 179
+      }
+    },
+    {
+      "depositPage": 55,
+      "fullPage": 544,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-chat.ts",
+        "line": 180
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-chat.ts",
+        "line": 229
+      }
+    },
+    {
+      "depositPage": 56,
+      "fullPage": 545,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-chat.ts",
+        "line": 230
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-ledger.ts",
+        "line": 45
+      }
+    },
+    {
+      "depositPage": 57,
+      "fullPage": 546,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-ledger.ts",
+        "line": 46
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-ledger.ts",
+        "line": 98
+      }
+    },
+    {
+      "depositPage": 58,
+      "fullPage": 547,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-ledger.ts",
+        "line": 99
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-ledger.ts",
+        "line": 148
+      }
+    },
+    {
+      "depositPage": 59,
+      "fullPage": 548,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-ledger.ts",
+        "line": 149
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-ledger.ts",
+        "line": 199
+      }
+    },
+    {
+      "depositPage": 60,
+      "fullPage": 549,
+      "lines": 50,
+      "first": {
+        "file": "services/runtime-api/src/competition/night-ledger.ts",
+        "line": 200
+      },
+      "last": {
+        "file": "services/runtime-api/src/competition/night-ledger.ts",
+        "line": 249
+      }
+    }
+  ]
+}
