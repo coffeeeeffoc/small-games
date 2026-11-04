@@ -1,5 +1,6 @@
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { nightStorageFiles } from '../platforms/competition/night-storage/manifest.mjs';
 import { competitionService } from './competition-service-config.mjs';
 
 export const h5BasicServiceGames = [
@@ -33,10 +34,13 @@ export async function prepareGameServices(
       path.join(servicesDir, name),
     );
   if (game === 'night-overwatch')
-    await copyFile(
-      new URL('../platforms/competition/night-storage.js', import.meta.url),
-      path.join(servicesDir, 'night-storage.js'),
-    );
+    for (const file of nightStorageFiles) {
+      await mkdir(path.dirname(path.join(servicesDir, file)), { recursive: true });
+      await copyFile(
+        new URL('../platforms/competition/' + file, import.meta.url),
+        path.join(servicesDir, file),
+      );
+    }
   if (tapAppId) {
     for (const name of ['competition-identity.mjs', 'calls.mjs'])
       await copyFile(

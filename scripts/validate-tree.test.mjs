@@ -23,6 +23,7 @@ test('Night browser selection runs the real IndexedDB suite with the prepared br
   assert.equal(calls.length, 1);
   assert.deepEqual(calls[0][1], [
     '--test',
+    'platforms/competition/tests/night-storage.test.mjs',
     'platforms/competition/tests/night-storage.browser.test.mjs',
   ]);
   assert.equal(calls[0][3].CHROMIUM_PATH, '/prepared/chromium');

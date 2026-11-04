@@ -1,0 +1,53 @@
+{
+  "checks": [
+    {
+      "scenario": "ordinary",
+      "nativeWrites": 0,
+      "requests": 6,
+      "screenshot": "ordinary.png"
+    },
+    {
+      "scenario": "developer",
+      "nativeWrites": 0,
+      "requests": 3,
+      "screenshot": "developer.png"
+    },
+    {
+      "scenario": "unsupported",
+      "nativeWrites": 0,
+      "requests": 0,
+      "screenshot": "unsupported.png"
+    },
+    {
+      "scenario": "missing-script",
+      "nativeWrites": 0,
+      "requests": 0,
+      "screenshot": "missing-script.png"
+    },
+    {
+      "scenario": "missing-runtime",
+      "nativeWrites": 0,
+      "requests": 0,
+      "screenshot": "missing-runtime.png"
+    },
+    {
+      "scenario": "missing-store",
+      "nativeWrites": 0,
+      "requests": 0,
+      "screenshot": "missing-store.png"
+    },
+    {
+      "scenario": "missing-indexeddb",
+      "nativeWrites": 0,
+      "requests": 0,
+      "screenshot": "missing-indexeddb.png"
+    }
+  ],
+  "errors": [],
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "6ba6bfd5db3ebb40387c8957240d7e39edf87a6efe7de25a0e8aa4acc61a8721"
+  },
+  "cleanupFailures": []
+}

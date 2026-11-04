@@ -1,3 +1,4 @@
+import { nightStorageSourceFiles } from '../../../platforms/competition/night-storage/manifest.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, cp, mkdir, readFile, writeFile, rm, readdir } from 'node:fs/promises';
@@ -37,6 +38,7 @@ async function fixture() {
     'platforms/competition/client.js',
     'platforms/competition/game-services.js',
     'platforms/competition/game-bootstrap.js',
+    ...nightStorageSourceFiles,
     'platforms/taptap/competition-identity.mjs',
     'platforms/taptap/calls.mjs',
   ]) {
@@ -104,6 +106,21 @@ test('fresh persistent stages exclude caches, release secrets, and old outputs',
       pathToFileURL(path.join(first.projectRoot, 'scripts/artifact.mjs'))
     );
     assert.equal(await stagedArtifact.sourceHash(), first.sourceHash);
+    for (const file of nightStorageSourceFiles) {
+      const staged = path.resolve(first.projectRoot, '../../..', file);
+      const original = await readFile(path.resolve(gameRoot, '../../..', file));
+      assert.deepEqual(await readFile(staged), original, file + ' is copied to a fresh stage');
+      await writeFile(
+        staged,
+        Buffer.concat([original, Buffer.from('\n// changed backend input\n')]),
+      );
+      assert.notEqual(
+        await stagedArtifact.sourceHash(),
+        first.sourceHash,
+        file + ' invalidates the staged artifact',
+      );
+      await writeFile(staged, original);
+    }
   }));
 test('unreviewed or already adapted canonical files fail closed before staging', () =>
   runFixture(async ({ gameRoot, stageBase }) => {

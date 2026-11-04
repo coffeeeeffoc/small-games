@@ -15,6 +15,10 @@ test('Night IndexedDB files and its sole Turbo input select only Night and rejec
   const changedPaths = [
     'platforms/competition/night-storage.js',
     'platforms/competition/tests/night-storage.browser.test.mjs',
+    'platforms/competition/tests/night-storage.test.mjs',
+    'platforms/competition/night-storage/store.mjs',
+    'platforms/competition/night-storage/indexeddb.mjs',
+    'platforms/competition/night-storage/manifest.mjs',
     'turbo.json',
   ];
   const context = { games, packages, readHead, readBase, changedPaths };
@@ -24,6 +28,18 @@ test('Night IndexedDB files and its sole Turbo input select only Night and rejec
   const plan = incrementalPlan({ ...context, fileScopes: scopes, readSource: readHead });
   assert.deepEqual(plan.browser_ids, ['night-overwatch']);
   assert.equal(plan.browser, true);
+  const missingModuleInputs = JSON.parse(readHead('turbo.json'));
+  missingModuleInputs.tasks['@coffeeeeffoc/night-overwatch#build'].inputs =
+    missingModuleInputs.tasks['@coffeeeeffoc/night-overwatch#build'].inputs.filter(
+      (value) => value !== '$TURBO_ROOT$/platforms/competition/night-storage/**',
+    );
+  assert(
+    !reviewedSharedFileScopes({
+      ...context,
+      readHead: (file) =>
+        file === 'turbo.json' ? JSON.stringify(missingModuleInputs) : readHead(file),
+    }).has(changedPaths[0]),
+  );
   const changed = JSON.parse(readHead('turbo.json'));
   changed.tasks['@coffeeeeffoc/night-overwatch#build'].env.push('UNREVIEWED_SETTING');
   assert(
@@ -38,7 +54,7 @@ test('Night IndexedDB files and its sole Turbo input select only Night and rejec
       ...context,
       readHead: (file) =>
         file === 'scripts/h5-game-services.mjs'
-          ? readHead(file).replaceAll('night-storage.js', 'unrelated.js')
+          ? readHead(file).replaceAll('night-storage/manifest.mjs', 'unrelated.mjs')
           : readHead(file),
     }).has(changedPaths[0]),
   );

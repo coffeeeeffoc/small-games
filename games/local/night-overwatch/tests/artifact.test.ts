@@ -1,3 +1,4 @@
+import { nightStorageSourceFiles } from '../../../../platforms/competition/night-storage/manifest.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -21,7 +22,7 @@ test('restores matching web artifacts without Creator and rejects stale or incom
         path.join(temp, 'games/local/carding-car/scripts', name));
     for (const file of ['scripts/h5-game-services.mjs', 'scripts/competition-service-config.mjs',
       'platforms/competition/client.js', 'platforms/competition/game-services.js', 'platforms/competition/game-bootstrap.js',
-      'platforms/competition/night-storage.js',
+      ...nightStorageSourceFiles,
       'platforms/taptap/competition-identity.mjs', 'platforms/taptap/calls.mjs']) {
       await mkdir(path.dirname(path.join(temp, file)), { recursive: true });
       await cp(new URL('../../../../' + file, import.meta.url), path.join(temp, file));

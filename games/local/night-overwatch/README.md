@@ -1,5 +1,7 @@
 # 夜航守望 / Night Overwatch
 
+2026-11-05 模块整理：统一存储入口与可替换后端、设置/指南和在线大厅视图、只读遥测快照分离，保留既有持久化与交互契约。最终Creator源码摘要`6ba6bfd5…`，7场启动、真实首关故障结算、三尺寸交互与真实聊天均通过，[验证与QA](docs/verification-2026-11-04-refinement.md#统一存储与视图模块整理)。上一轮存储迁移检查点已推送dev（`d36cf1f3`）。接口、降级语义和暂不接入Cache Storage的依据见[架构说明](docs/architecture/storage-and-view-modules.md)。
+
 2026-11-05 H5存储迁移：普通H5与TapTap H5默认使用IndexedDB，原localStorage只兼容读取，偏好、身份、军需意图和行动记录后续均写入新库。首次开局、交易编号与结算确认等待事务完成；旧日志恢复、跨页换号和重复结算保护保留。无IndexedDB时仍可本地训练，正式保存明确失败，不回写旧库。[实现与验证](docs/verification-2026-11-04-refinement.md#h5-indexeddb存储迁移)。本轮未上传TapTap，实体宿主待验证。
 
 2026-11-05 K90开局诊断：H5行动记录优先使用真实浏览器存储，避免Cocos初始化探测失败后一直沿用空实现；开局保存失败会显示可滚动的脱敏错误详情，包含阶段、来源、原始异常及写入/读回结果。首次保存校验仍保留，关闭详情即可重试。[验证与截图](docs/verification-2026-11-04-refinement.md#k90开局存储诊断)。

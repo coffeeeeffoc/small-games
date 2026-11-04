@@ -10,6 +10,7 @@ const port = Number(process.env.PORT || (desktop ? 4319 : 4318));
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript',
+  '.mjs': 'text/javascript',
   '.json': 'application/json',
   '.css': 'text/css',
   '.wasm': 'application/wasm',

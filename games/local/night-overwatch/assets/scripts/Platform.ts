@@ -1,3 +1,4 @@
+import { getNightStorage, type NightStorage } from './Storage';
 import { AudioClip, AudioSource, Node, resources, sys } from 'cc';
 import type { ViewMode } from './World';
 import type { PauseReason } from './core/Simulation';
@@ -15,6 +16,7 @@ export const RADIO = {
   clear: ['收到，威胁已解除。继续掩护友军。', 'Confirmed. Threat eliminated. Keep covering our units.'],
 } as const;
 export class Platform {
+  readonly storage: NightStorage;
   touchInput = sys.isMobile || (sys.isBrowser && window.matchMedia('(pointer: coarse)').matches);
   muted = false;
   reducedEffects = false;
@@ -44,20 +46,21 @@ export class Platform {
   private readonly rewardStorageKey = this.rewardPractice ? 'night-overwatch-rewards-dev-v1' : 'night-overwatch-rewards-v1';
   private clear: () => void;
   private pause: (reason: PauseReason, on: boolean) => void;
-  constructor(parent: Node, pause: (reason: PauseReason, on: boolean) => void, clear: () => void) {
+  constructor(parent: Node, pause: (reason: PauseReason, on: boolean) => void, clear: () => void, storage: NightStorage = getNightStorage()) {
+    this.storage = storage;
     this.clear = clear;
     this.pause = pause;
     try {
-      this.rewards = readRewards(sys.localStorage.getItem(this.rewardStorageKey));
-      this.times = readMissionTimes(sys.localStorage.getItem('night-overwatch-times-v1'));
-      this.muted = sys.localStorage.getItem('night-overwatch-muted') === 'true';
-      this.voicePrompts = sys.localStorage.getItem('night-overwatch-voice-prompts') !== 'false';
-      this.autoPriority = sys.localStorage.getItem('night-overwatch-auto-priority') !== 'false';
+      this.rewards = readRewards(this.storage.getItem(this.rewardStorageKey));
+      this.times = readMissionTimes(this.storage.getItem('night-overwatch-times-v1'));
+      this.muted = this.storage.getItem('night-overwatch-muted') === 'true';
+      this.voicePrompts = this.storage.getItem('night-overwatch-voice-prompts') !== 'false';
+      this.autoPriority = this.storage.getItem('night-overwatch-auto-priority') !== 'false';
       for (const key of ['fireScale', 'controlScale'] as const) {
-        const value = Number(sys.localStorage.getItem('night-overwatch-' + key));
+        const value = Number(this.storage.getItem('night-overwatch-' + key));
         if (Number.isFinite(value) && value >= .8 && value <= 1.5) this[key] = Math.round(value * 10) / 10;
       }
-      const preference = sys.localStorage.getItem('night-overwatch-reduced-effects');
+      const preference = this.storage.getItem('night-overwatch-reduced-effects');
       this.reducedEffects =
         preference === 'true' ||
         (preference === null &&
@@ -168,12 +171,12 @@ export class Platform {
   }
   savePreferences() {
     try {
-      sys.localStorage.setItem('night-overwatch-muted', String(this.muted));
-      sys.localStorage.setItem('night-overwatch-voice-prompts', String(this.voicePrompts));
-      sys.localStorage.setItem('night-overwatch-auto-priority', String(this.autoPriority));
-      sys.localStorage.setItem('night-overwatch-reduced-effects', String(this.reducedEffects));
-      sys.localStorage.setItem('night-overwatch-fireScale', String(this.fireScale));
-      sys.localStorage.setItem('night-overwatch-controlScale', String(this.controlScale));
+      this.storage.setItem('night-overwatch-muted', String(this.muted));
+      this.storage.setItem('night-overwatch-voice-prompts', String(this.voicePrompts));
+      this.storage.setItem('night-overwatch-auto-priority', String(this.autoPriority));
+      this.storage.setItem('night-overwatch-reduced-effects', String(this.reducedEffects));
+      this.storage.setItem('night-overwatch-fireScale', String(this.fireScale));
+      this.storage.setItem('night-overwatch-controlScale', String(this.controlScale));
     } catch {
       /* Optional local preferences. */
     }
@@ -238,7 +241,7 @@ export class Platform {
   }
   readCoach() {
     try {
-      return sys.localStorage.getItem('night-overwatch-coach-v2') !== 'done';
+      return this.storage.getItem('night-overwatch-coach-v2') !== 'done';
     } catch {
       return true;
     }
@@ -288,7 +291,7 @@ export class Platform {
     return true;
   }
   saveRewards() {
-    try { sys.localStorage.setItem(this.rewardStorageKey, JSON.stringify(this.rewards)); }
+    try { this.storage.setItem(this.rewardStorageKey, JSON.stringify(this.rewards)); }
     catch { /* The current session remains playable without storage. */ }
   }
   cancelReward() {
@@ -296,7 +299,7 @@ export class Platform {
   }
   saveCoach() {
     try {
-      sys.localStorage.setItem('night-overwatch-coach-v2', 'done');
+      this.storage.setItem('night-overwatch-coach-v2', 'done');
     } catch {
       /* Optional preference; storage denial never blocks play. */
     }
@@ -307,37 +310,37 @@ export class Platform {
     catch { return false; }
   }
   readOperationProgress() {
-    try { this.missions = readMissionProgress(sys.localStorage.getItem('night-overwatch-progress-v1')); }
+    try { this.missions = readMissionProgress(this.storage.getItem('night-overwatch-progress-v1')); }
     catch { /* Retain current-session progress if optional storage is denied. */ }
     return this.missions;
   }
   saveOperationProgress(progress: MissionProgress) {
     this.missions = progress;
-    try { sys.localStorage.setItem('night-overwatch-progress-v1', JSON.stringify(progress)); }
+    try { this.storage.setItem('night-overwatch-progress-v1', JSON.stringify(progress)); }
     catch { /* All remaining operations can still unlock in the current session. */ }
   }
   saveTimes() {
-    try { sys.localStorage.setItem('night-overwatch-times-v1', JSON.stringify(this.times)); }
+    try { this.storage.setItem('night-overwatch-times-v1', JSON.stringify(this.times)); }
     catch { /* Keep this session's personal best when optional storage is denied. */ }
   }
   readMission(): MissionId {
     try {
-      const mission = missionDefinition(sys.localStorage.getItem('night-overwatch-mission-v1'));
+      const mission = missionDefinition(this.storage.getItem('night-overwatch-mission-v1'));
       return mission.mode === 'escort' ? mission.id : 'corridor-01';
     }
     catch { return 'corridor-01'; }
   }
   saveMission(id: MissionId) {
     if (missionDefinition(id).mode !== 'escort') return;
-    try { sys.localStorage.setItem('night-overwatch-mission-v1', id); }
+    try { this.storage.setItem('night-overwatch-mission-v1', id); }
     catch { /* Choosing a mission works even when storage is denied. */ }
   }
   readWarmupRecord(): TrainingRecord | undefined {
-    try { return parseTrainingRecord(sys.localStorage.getItem('night-overwatch-training-v1')); }
+    try { return parseTrainingRecord(this.storage.getItem('night-overwatch-training-v1')); }
     catch { return; }
   }
   saveWarmupRecord(record: TrainingRecord) {
-    try { sys.localStorage.setItem('night-overwatch-training-v1', JSON.stringify(record)); }
+    try { this.storage.setItem('night-overwatch-training-v1', JSON.stringify(record)); }
     catch { /* A denied optional record never blocks another attempt. */ }
   }
   dispose() {

@@ -3,9 +3,17 @@ import assert from 'node:assert/strict';
 import { connectGameServices } from '../game-bootstrap.js';
 
 test('normal startup creates game-scoped anonymous identity, reads metadata and never submits scores', async (t) => {
-  const previous = globalThis.__COMPETITION_CONFIG__;
+  const previous = globalThis.__COMPETITION_CONFIG__,
+    previousStorage = globalThis.__nightStorage;
+  const values = new Map();
+  globalThis.__nightStorage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+    removeItem: (key) => values.delete(key),
+  };
   t.after(() => {
     globalThis.__COMPETITION_CONFIG__ = previous;
+    globalThis.__nightStorage = previousStorage;
   });
   const calls = [];
   t.mock.method(globalThis, 'fetch', async (url, init) => {

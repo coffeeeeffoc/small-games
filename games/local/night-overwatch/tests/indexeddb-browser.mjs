@@ -14,7 +14,7 @@ try{
  for(let i=0;i<50;i++){try{if((await fetch(origin)).ok)break;}catch{}await new Promise(r=>setTimeout(r,200));}
  process.env.NIGHT_URL=origin;evidence.build=await acceptanceBuild(origin);
  browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH||process.env.CHROMIUM_PATH,args:['--use-angle=d3d11']});
- for(const scenario of ['ordinary','developer','unsupported','missing-script']){
+ for(const scenario of ['ordinary','developer','unsupported','missing-script','missing-runtime','missing-store','missing-indexeddb']){
   const context=await browser.newContext({viewport:{width:844,height:390}});
   try{
    await context.addInitScript(scenario=>{
@@ -28,16 +28,17 @@ try{
    await page.route('**/game-service-config.js',route=>route.fulfill({contentType:'text/javascript',body:`globalThis.__COMPETITION_CONFIG__=Object.freeze(${JSON.stringify({game:'night-overwatch',platform:'h5',competitionEnabled:true,apiUrl:origin+'/api'})});`}));
    await page.route('**/api/**',route=>{requests++;return route.fulfill({status:503,contentType:'application/json',body:'{"error":{"code":"SERVICE_UNAVAILABLE"}}'});});
    if(scenario==='missing-script')await page.route('**/game-services/night-storage.js',route=>route.fulfill({status:404,body:'Missing storage component'}));
+   if(scenario.startsWith('missing-')&&scenario!=='missing-script')await page.route('**/game-services/night-storage/'+scenario.slice('missing-'.length)+'.mjs',route=>route.fulfill({status:404,body:'Missing module'}));
    await page.goto(origin+'/?dev='+(scenario==='developer'?'1':'0'));
-   if(scenario==='missing-script'){
+   if(scenario.startsWith('missing-')){
     await page.waitForFunction(()=>document.getElementById('night-startup')?.dataset.state==='error');
     assert.equal(await page.locator('#night-retry').isVisible(),true);
-    assert.match(await page.locator('#night-hint').textContent(),/本地存储组件/);
+    assert.match(await page.locator('#night-hint').textContent(),scenario==='missing-script'?/本地存储组件/:/module|import|加载/i);
     assert.equal(await page.evaluate(()=>typeof globalThis.__night),'undefined');
     assert.equal(requests,0,'no metadata, identity or run requests without the storage adapter');
    }else{
     await page.waitForFunction(()=>globalThis.__night&&!document.getElementById('night-startup'));
-    const state=await page.evaluate(async()=>{const {sys}=await System.import('cc');return {engineStorageIsBrowser:sys.localStorage===window.localStorage,source:localStorage.source,developer:SmallGamesDev.isEnabled(),muted:__night.snapshot().ui.muted};});
+    const state=await page.evaluate(async()=>{const {sys}=await System.import('cc');return {engineStorageIsBrowser:sys.localStorage===globalThis.__nightStorage&&window.localStorage===globalThis.__nightStorage,source:localStorage.source,developer:SmallGamesDev.isEnabled(),muted:__night.snapshot().ui.muted};});
     assert.deepEqual(state,{engineStorageIsBrowser:true,source:'indexedDB',developer:scenario==='developer',muted:true});
     if(scenario==='ordinary'){
      for(const id of ['settings','sound']){await press(page,id,false,false);await settleVisuals(page);}

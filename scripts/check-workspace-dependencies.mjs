@@ -23,6 +23,12 @@ const DEPENDENCY_FIELDS = [
 // rules on the authoritative server, or exercise those rules from repository tests.
 // Runtime game code must still never import service implementations.
 const REPOSITORY_IMPORTS = new Set([
+  'games/local/night-overwatch/scripts/artifact.mjs -> platforms/competition/night-storage/manifest.mjs',
+  'games/local/night-overwatch/tests/artifact.test.ts -> platforms/competition/night-storage/manifest.mjs',
+  'apps/shell-minigame/scripts/night-native-project.mjs -> platforms/competition/night-storage/manifest.mjs',
+  'apps/shell-minigame/scripts/night-native-project.test.mjs -> platforms/competition/night-storage/manifest.mjs',
+  'games/local/night-overwatch/tests/indexeddb-browser.mjs -> scripts/h5-taptap-runtime.mjs',
+  'games/local/night-overwatch/tests/settlement-live-browser.mjs -> scripts/h5-taptap-runtime.mjs',
   'services/runtime-api/rules/night.mjs -> games/local/night-overwatch/assets/scripts/core/Replay.ts',
   'services/runtime-api/rules/night.mjs -> games/local/night-overwatch/assets/scripts/core/Progression.ts',
   'services/runtime-api/rules/night-ranked.mjs -> games/local/night-overwatch/assets/scripts/core/Progression.ts',

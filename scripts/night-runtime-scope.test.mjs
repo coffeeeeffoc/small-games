@@ -101,7 +101,29 @@ test('Night scope test changes execute validation tooling rather than becoming u
 });
 
 test('Night service cache inputs retain the game consumer and reject unrelated Turbo changes', () => {
-  const after = JSON.parse(readFileSync(new URL('../turbo.json', import.meta.url), 'utf8'));
+  const current = JSON.parse(readFileSync(new URL('../turbo.json', import.meta.url), 'utf8'));
+  // The service-only proof predates the separately reviewed storage inputs.
+  const after = structuredClone(current);
+  after.tasks['@coffeeeeffoc/night-overwatch#build'] = {
+    dependsOn: ['^build'],
+    outputs: ['dist/**'],
+    env: [
+      'COCOS_CREATOR',
+      'NIGHT_OVERWATCH_PREBUILT_DIR',
+      'COMPETITION_SERVICE_ENABLED',
+      'COMPETITION_PUBLIC_API_URL',
+      'COMPETITION_LOCAL_BACKEND',
+    ],
+    inputs: [
+      '$TURBO_DEFAULT$',
+      '$TURBO_ROOT$/games/local/night-overwatch/.prebuilt/**',
+      '$TURBO_ROOT$/scripts/h5-game-services.mjs',
+      '$TURBO_ROOT$/scripts/competition-service-config.mjs',
+      '$TURBO_ROOT$/platforms/competition/client.js',
+      '$TURBO_ROOT$/platforms/competition/game-services.js',
+      '$TURBO_ROOT$/platforms/competition/game-bootstrap.js',
+    ],
+  };
   const before = structuredClone(after);
   const task = before.tasks['@coffeeeeffoc/night-overwatch#build'];
   task.env = ['COCOS_CREATOR', 'NIGHT_OVERWATCH_PREBUILT_DIR'];
@@ -119,9 +141,32 @@ test('Night service cache inputs retain the game consumer and reject unrelated T
     games: [{ id: 'night-overwatch', source }],
     packages: [{ dir: source }, { dir: 'services/runtime-api' }],
     readBase: () => JSON.stringify(before),
-    readHead: (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8'),
+    readHead: (file) =>
+      file === 'turbo.json'
+        ? JSON.stringify(after)
+        : readFileSync(new URL('../' + file, import.meta.url), 'utf8'),
   };
   assert.deepEqual(reviewedSharedFileScopes(options).get('turbo.json'), [source]);
+  // The current storage addition has its own bounded proof and the same sole consumer.
+  assert.deepEqual(
+    reviewedSharedFileScopes({
+      ...options,
+      readBase: () => JSON.stringify(after),
+      readHead: (file) =>
+        file === 'turbo.json' ? JSON.stringify(current) : options.readHead(file),
+    }).get('turbo.json'),
+    [source],
+  );
+  const unknownInput = structuredClone(current);
+  unknownInput.tasks['@coffeeeeffoc/night-overwatch#build'].inputs.push('$TURBO_ROOT$/unknown/**');
+  assert(
+    !reviewedSharedFileScopes({
+      ...options,
+      readBase: () => JSON.stringify(after),
+      readHead: (file) =>
+        file === 'turbo.json' ? JSON.stringify(unknownInput) : options.readHead(file),
+    }).has('turbo.json'),
+  );
 });
 
 test('Night pure cores select their authoritative Runtime consumer and fail closed without it', () => {

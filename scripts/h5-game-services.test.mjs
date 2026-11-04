@@ -1,3 +1,4 @@
+import { nightStorageFiles } from '../platforms/competition/night-storage/manifest.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises';
@@ -89,10 +90,11 @@ test('Night storage and deferred developer initialization remain unique and prec
     assert(html.indexOf('night-storage.js') < html.indexOf('game-service-config.js'));
     assert(html.indexOf('__nightDevModeReady') < html.indexOf('entry.js'));
     assert.doesNotMatch(html, /<script src="\.\/dev-mode\.js"/);
-    assert.equal(
-      await readFile(path.join(dir, 'game-services/night-storage.js'), 'utf8'),
-      await readFile(new URL('../platforms/competition/night-storage.js', import.meta.url), 'utf8'),
-    );
+    for (const file of nightStorageFiles)
+      assert.equal(
+        await readFile(path.join(dir, 'game-services', file), 'utf8'),
+        await readFile(new URL('../platforms/competition/' + file, import.meta.url), 'utf8'),
+      );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -1,3 +1,4 @@
+import { nightStorageFiles } from '../night-storage/manifest.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -7,7 +8,7 @@ import { chromium } from '@playwright/test';
 async function withStorage(run, before) {
   const files = new Map(
     await Promise.all(
-      ['night-storage.js', 'game-services.js', 'client.js'].map(async (name) => [
+      [...nightStorageFiles, 'game-services.js', 'client.js'].map(async (name) => [
         '/' + name,
         await readFile(new URL('../' + name, import.meta.url), 'utf8'),
       ]),
@@ -87,10 +88,23 @@ async function recorderFixture() {
 }
 
 test('Night IndexedDB keeps legacy storage read-only, persists across reloads and masks deleted legacy values', async () => {
-  const source = await readFile(new URL('../night-storage.js', import.meta.url), 'utf8');
-  const server = createServer((request, response) =>
-    response.end('<!doctype html><title>Storage test</title>'),
+  const files = new Map(
+    await Promise.all(
+      nightStorageFiles.map(async (name) => [
+        '/' + name,
+        await readFile(new URL('../' + name, import.meta.url), 'utf8'),
+      ]),
+    ),
   );
+  let activate = false;
+  const server = createServer((request, response) => {
+    response.setHeader('Content-Type', files.has(request.url) ? 'text/javascript' : 'text/html');
+    response.end(
+      files.get(request.url) ||
+        '<!doctype html><title>Storage test</title>' +
+          (activate ? '<script src="/night-storage.js"></script>' : ''),
+    );
+  });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   let browser;
   try {
@@ -113,7 +127,8 @@ test('Night IndexedDB keeps legacy storage read-only, persists across reloads an
           throw new DOMException('Legacy storage is read-only', 'QuotaExceededError');
         };
     };
-    await page.addInitScript({ content: `(${denyLegacyWrites})();\n${source}` });
+    await page.addInitScript(denyLegacyWrites);
+    activate = true;
     await page.reload();
     assert.deepEqual(
       await page.evaluate(async () => {

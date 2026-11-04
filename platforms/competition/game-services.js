@@ -4,7 +4,7 @@ const nativeNames = { wechat: 'wx', bilibili: 'bl', douyin: 'tt', kuaishou: 'ks'
 const failure = (code, message = '排行榜暂不可用，本地挑战仍可继续。') =>
   Object.assign(new Error(message), { code });
 
-export function createGameServices({ gameId, ruleVersion }) {
+export function createGameServices({ gameId, ruleVersion, storage: suppliedStorage }) {
   if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/.test(gameId)) throw failure('INVALID_GAME');
   const config = { ...globalThis.__COMPETITION_CONFIG__, game: gameId };
   if (globalThis.__COMPETITION_CONFIG__?.game && globalThis.__COMPETITION_CONFIG__.game !== gameId)
@@ -17,11 +17,17 @@ export function createGameServices({ gameId, ruleVersion }) {
     roomLeases = new Map(),
     connectionEpochs = new Map();
   let matchOwner;
-  let storage;
-  try {
-    storage = sdk || globalThis.localStorage;
-  } catch {
-    /* Memory-only identity. */
+  let storage = suppliedStorage;
+  if (!storage && gameId === 'night-overwatch' && !Object.hasOwn(nativeNames, config.platform)) {
+    storage = globalThis.__nightStorage;
+    if (!storage) throw failure('STORAGE_UNAVAILABLE', 'Night storage is not initialized');
+  }
+  if (!storage) {
+    try {
+      storage = sdk || globalThis.localStorage;
+    } catch {
+      /* Existing non-Night/native memory-only identity behavior. */
+    }
   }
   const auth = globalThis.__createCompetitionIdentity({
     config,
@@ -304,18 +310,9 @@ export function createGameServices({ gameId, ruleVersion }) {
 
 // Each attempt has its own key; finished journals are immutable except for acknowledgements.
 function createDurableRecorder(services, { storage, source = 'provided' }, onStatus) {
-  let selectionError,
-    storageDiagnostic = '';
-  if (services.config.platform === 'h5' && typeof globalThis.window !== 'undefined') {
-    try {
-      const browserStorage = globalThis.window.localStorage;
-      if (!browserStorage) throw Error('window.localStorage is unavailable');
-      storage = browserStorage;
-      source = storage.source === 'indexedDB' ? 'indexedDB' : 'window.localStorage';
-    } catch (error) {
-      selectionError = error;
-    }
-  }
+  let storageDiagnostic = '';
+  if (!storage && services.config.platform === 'h5') storage = globalThis.__nightStorage;
+  if (storage?.source) source = storage.source;
   const safeMessage = (value) =>
     String(value ?? '')
       .replace(/[\r\n\t]/g, ' ')
@@ -362,7 +359,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     } catch {
       length = 'throws';
     }
-    storageDiagnostic = `stage=${stage}\nsource=${['indexedDB', 'window.localStorage', 'cocos.localStorage', 'provided'].includes(source) ? source : 'provided'}\n${describeError(error)}\n${methods}\nlength=${length}${details ? '\n' + details : ''}${selectionError ? '\nwindow.localStorage selection failed\n' + describeError(selectionError) : ''}`;
+    storageDiagnostic = `stage=${stage}\nsource=${['indexedDB', 'window.localStorage', 'cocos.localStorage', 'provided'].includes(source) ? source : 'provided'}\n${describeError(error)}\n${methods}\nlength=${length}${details ? '\n' + details : ''}`;
   }
   function access(stage, operation, details = '') {
     try {

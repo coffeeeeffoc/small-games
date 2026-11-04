@@ -1,3 +1,4 @@
+import { nightStorageSourceFiles } from '../platforms/competition/night-storage/manifest.mjs';
 import assert from 'node:assert/strict';
 import { gameRenameFileScopes } from './game-rename-scope.mjs';
 import { isDeepStrictEqual } from 'node:util';
@@ -1631,7 +1632,8 @@ export const gameServiceScopePaths = Object.freeze([
   'scripts/competition-gateway.test.mjs',
 ]);
 const nightStoragePaths = [
-  'platforms/competition/night-storage.js',
+  ...nightStorageSourceFiles,
+  'platforms/competition/tests/night-storage.test.mjs',
   'platforms/competition/tests/night-storage.browser.test.mjs',
 ];
 function nightStorageTurboOnly(before, after) {
@@ -1639,10 +1641,18 @@ function nightStorageTurboOnly(before, after) {
     const base = JSON.parse(before),
       head = JSON.parse(after);
     const key = '@coffeeeeffoc/night-overwatch#build';
-    const input = '$TURBO_ROOT$/platforms/competition/night-storage.js';
-    assert(!base.tasks[key].inputs.includes(input));
-    assert.equal(head.tasks[key].inputs.filter((value) => value === input).length, 1);
-    head.tasks[key].inputs = head.tasks[key].inputs.filter((value) => value !== input);
+    let added = false;
+    for (const input of [
+      '$TURBO_ROOT$/platforms/competition/night-storage.js',
+      '$TURBO_ROOT$/platforms/competition/night-storage/**',
+    ]) {
+      assert.equal(head.tasks[key].inputs.filter((value) => value === input).length, 1);
+      if (!base.tasks[key].inputs.includes(input)) {
+        added = true;
+        head.tasks[key].inputs = head.tasks[key].inputs.filter((value) => value !== input);
+      }
+    }
+    assert(added);
     return isDeepStrictEqual(base, head);
   } catch {
     return false;
@@ -1663,15 +1673,18 @@ function assertNightStorageConsumer(games, packages, readHead) {
   );
   assert(
     readHead('scripts/h5-game-services.mjs').includes(
-      "new URL('../platforms/competition/night-storage.js', import.meta.url)",
+      "from '../platforms/competition/night-storage/manifest.mjs'",
     ),
   );
-  assert(
-    readHead(source + '/scripts/artifact.mjs').includes("'platforms/competition/night-storage.js'"),
-  );
+  assert(readHead(source + '/scripts/artifact.mjs').includes('...nightStorageSourceFiles'));
   assert(
     JSON.parse(readHead('turbo.json')).tasks['@coffeeeeffoc/night-overwatch#build'].inputs.includes(
       '$TURBO_ROOT$/platforms/competition/night-storage.js',
+    ),
+  );
+  assert(
+    JSON.parse(readHead('turbo.json')).tasks['@coffeeeeffoc/night-overwatch#build'].inputs.includes(
+      '$TURBO_ROOT$/platforms/competition/night-storage/**',
     ),
   );
 }

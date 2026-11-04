@@ -821,7 +821,11 @@ export function runIncrementalToolChecks({
   if (plan.browser && plan.browser_ids?.includes('night-overwatch'))
     execute(
       process.execPath,
-      ['--test', 'platforms/competition/tests/night-storage.browser.test.mjs'],
+      [
+        '--test',
+        'platforms/competition/tests/night-storage.test.mjs',
+        'platforms/competition/tests/night-storage.browser.test.mjs',
+      ],
       root,
       env,
       'logged',

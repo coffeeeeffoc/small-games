@@ -1,3 +1,6 @@
+import { C, col } from './HudTheme';
+import { OnlineLobbyView } from './OnlineLobbyView';
+import { SettingsGuideView } from './SettingsGuideView';
 import { safeArea, watchSafeArea, fitName, type CapsuleRect } from './core/SafeArea';
 import { playerId, playerLabel, type Online } from './Online';
 import {
@@ -54,21 +57,12 @@ import { CATALOG, SKILLS, attackPreview } from './core/Progression';
 import { effectEnglish } from './Quartermaster';
 import type { Quartermaster } from './Quartermaster';
 
-const C = {
-  ink: '#081725f5',
-  line: '#456780',
-  white: '#e5edf3',
-  dim: '#9bb4c8',
-  mint: '#82c9ed',
-  amber: '#e5b65c',
-  action: '#ffe3a4',
-  red: '#ff525b',
-};
-const col = (hex: string) => new Color().fromHEX(hex);
 const movableControls = ['weapon0', 'weapon1', 'weapon2', 'weapon3', 'homing', 'weapon4', 'skillUse', 'weapon5'];
 type ControlPosition = { x: number; y: number };
 export type ButtonRect = { id: string; x: number; y: number; w: number; h: number; label: Label; visual?: { x: number; y: number; w: number; h: number }; disabled?: boolean; clip?:{x:number;y:number;w:number;h:number} };
 export class HUD {
+  private readonly onlineView = new OnlineLobbyView(this, () => this.missionArtwork);
+  private readonly settingsView = new SettingsGuideView(this);
   listAreas:Array<{key:string;x:number;y:number;w:number;h:number;max:number;axis:'x'|'y'}> = [];
   listScroll:Record<string,number>={};
   missionFocus:number|undefined;
@@ -956,478 +950,12 @@ export class HUD {
     if (header) this.rect(g, x + w / 2 - 30, y + 47, 60, 2, accent);
     this.rect(g, x + 44, y + h - 5, w - 88, 1, '#c6ac7080');
   }
-  renderSettings(n: Node, g: Graphics, s: Simulation, world: World, key: string) {
-    const flight = this.toolsOpen, zoom = this.zoomOpen, controls = this.controlsOpen, subpage = flight || zoom || controls, playing = s.phase === 'playing';
-    const pw = Math.min(subpage ? Math.max(344, Math.min(420, this.w * .5)) : 640,
-      this.w - this.safe.left - this.safe.right - 32);
-    const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2;
-    const safeTop = Math.max(this.safe.top, this.capsuleRect && px + pw > this.capsuleRect.left ? this.capsuleRect.bottom : 0);
-    const short = this.h - safeTop - this.safe.bottom < 360;
-    const ph = Math.min(zoom || controls ? 248 : short ? 288 : flight ? 304 : 360, this.h - safeTop - this.safe.bottom - 32);
-    const py = safeTop + (this.h - safeTop - this.safe.bottom - ph) / 2;
-    this.panelFrame(g, px, py, pw, ph, C.mint, flight || zoom ? '#050f1d18' : '#050f1d45');
-    const title = flight ? this.t('飞行 / 视野', 'FLIGHT / VIEW') : zoom ? this.t('画面 / 倍率', 'DISPLAY / ZOOM') : controls ? this.t('按钮 / 布局', 'CONTROLS / LAYOUT')
-      : this.t(playing ? '战斗设置' : '设置', playing ? 'BATTLE SETTINGS' : 'SETTINGS');
-    const heading = this.label(n, title, px + 16 + (pw - 112) / 2, py + 20, 19, pw - 112, 30);
-    heading.horizontalAlign = Label.HorizontalAlign.LEFT; heading.isBold = true;
-    const control = (id: string, caption: string, x: number, y: number, w: number, active = false, disabled = false) => {
-      const label = this.menuButton(n,g,id,caption,x,y,w,'secondary','',44,disabled);
-      if(active)this.rect(g,x+12,y+39,w-24,2,C.mint);
-      label.fontSize = w < 100 ? 11 : 13; label.lineHeight = 17;
-      label.color = col(disabled ? C.dim : active ? C.mint : C.white); label.isBold = active;
-      return label;
-    };
-    if (flight) control('locate', this.t('定位', 'LOCATE'), px + pw - 80, py - 5, 64);
-    else this.label(n, s.duelMode ? this.t('对战继续', 'BATTLE LIVE') : this.t('已暂停', 'PAUSED'), px + pw - 48, py + 20, 10, 64, 24, C.mint);
-    if ((flight || zoom) && px - this.safe.left > 160) {
-      const x = this.safe.left + 16, w = Math.min(190, px - x - 16);
-      this.plate(g, x, py, w, 28, '#111d21dc', undefined, 6);
-      this.label(n, s.duelMode ? this.t('对战继续 · 操作已松开', 'BATTLE LIVE · FIRE RELEASED') : this.t('实时画面 · 战斗暂停', 'LIVE VIEW · BATTLE PAUSED'), x + w / 2, py + 14, 10, w - 8, 20, C.mint);
-    }
-    if (controls) {
-      const inner = pw - 32;
-      for (const [i, [id, caption, value]] of ([['fireScale', this.t('开火按钮', 'FIRE SIZE'), this.fireScale], ['controlScale', this.t('武器 / 技能', 'WEAPONS / SKILLS'), this.controlScale]] as const).entries()) {
-        const y = py + 36 + i * 44;
-        control(id + ':down', '−', px + 16, y, 44, false, value <= .8);
-        control(id + ':up', '+', px + pw - 60, y, 44, false, value >= 1.5);
-        this.label(n, `${caption}  ${Math.round(value * 100)}%`, px + pw / 2, y + 22, 13, inner - 96, 38);
-      }
-      const half = (inner - 8) / 2;
-      control('layoutEdit', this.t('调整按钮位置', 'MOVE BUTTONS'), px + 16, py + 124, half, false, !playing || !!this.online?.spectator);
-      control('layoutReset', this.t('恢复默认位置', 'RESET POSITIONS'), px + 24 + half, py + 124, half);
-    } else if (flight) {
-      const a = s.aircraft, cell = (pw - 40) / 2, row = short ? 64 : 86, top = py + (short ? 44 : 54);
-      const groups = [
-        [this.t('飞行高度 / m', 'ALTITUDE / m'), 'altitudeDown', 'altitudeUp', String(Math.round(a.altitude * FLIGHT.metersPerUnit)), a.altitude <= FLIGHT.minAltitude, a.altitude >= FLIGHT.maxAltitude],
-        [this.t('盘旋半径 / m', 'ORBIT RADIUS / m'), 'radiusIn', 'radiusOut', String(Math.round(a.radius * FLIGHT.metersPerUnit)), a.radius <= FLIGHT.minRadius, a.radius >= FLIGHT.maxRadius],
-        [this.t('观察角度', 'VIEW ANGLE'), 'rotateLeft', 'rotateRight', `${Math.round(world.cameraSnapshot?.sensorRotation || 0)}°`, false, false],
-      ] as const;
-      groups.forEach(([caption, down, up, value, min, max], i) => {
-        const x = px + 16 + i % 2 * (cell + 8), y = top + Math.floor(i / 2) * row;
-        this.label(n, caption, x + cell / 2, y + 8, 10, cell, 16, C.dim);
-        control(down, '−', x, y + 18, 44, false, min);
-        control(up, '+', x + cell - 44, y + 18, 44, false, max);
-        this.label(n, value, x + cell / 2, y + 40, 16, cell - 92, 30, C.white).isBold = true;
-      });
-      const x = px + 24 + cell, y = top + row, half = (cell - 6) / 2;
-      this.label(n, this.t('盘旋方向', 'ORBIT DIRECTION'), x + cell / 2, y + 8, 10, cell, 16, C.dim);
-      control('orbitLeft', this.t('逆时针', 'CCW'), x, y + 18, half, a.direction === -1);
-      control('orbitRight', this.t('顺时针', 'CW'), x + half + 6, y + 18, half, a.direction === 1);
-      if (!short) this.label(n, s.duelMode ? this.t('服务器持续计时，关闭菜单后继续操作', 'SERVER CLOCK CONTINUES WHILE IN MENU') : this.t('调整立即生效，战斗计时保持暂停', 'CHANGES APPLY NOW · BATTLE STAYS PAUSED'), px + pw / 2, py + ph - 73, 10, pw - 32, 20, C.mint);
-    } else if (zoom) {
-      const y = py + (short ? 36 : 44), step = short ? 46 : 48, inner = pw - 32, half = (inner - 8) / 2;
-      control('lensOut', '−', px + 16, y, 44, false, world.zoom <= .65);
-      control('lensIn', '+', px + pw - 60, y, 44, false, world.zoom >= this.zoomLimit);
-      this.label(n, `${world.zoom.toFixed(1)}×`, px + pw / 2, y + 22, 26, inner - 104, 40, C.white).isBold = true;
-      const viewW = (inner - 12) / 3;
-      for (const [i, mode] of (['night','enhanced','thermal'] as const).entries())
-        control('view:'+mode, this.t(({night:'夜景',enhanced:'增强',thermal:'热像'})[mode], mode.toUpperCase()), px+16+i*(viewW+6), y+step, viewW, (world.viewMode || 'night')===mode);
-      control('effects', this.reducedEffects ? this.t('特效 · 精简', 'FX · REDUCED') : this.t('特效 · 完整', 'FX · FULL'), px+16, y+step*2, half, !this.reducedEffects);
-      const limit = nextZoomLimit(this.zoomLimit);
-      if (this.rewardsAvailable && limit) control('zoomUpgrade', s.buff ? this.t('支援生效中','SUPPORT ACTIVE') : this.pendingSupply ? this.t('先领取补给','CLAIM SUPPLY') : this.t(`解锁 ${limit}× · 广告`,`UNLOCK ${limit}× · AD`),px+24+half,y+step*2,half,false,!!s.buff||this.pendingSupply);
-      else this.label(n,this.t(`上限 ${this.zoomLimit}×`,`LIMIT ${this.zoomLimit}×`),px+24+half+half/2,y+step*2+22,11,half,28,C.dim);
-    } else {
-      const x = px + 16, inner = pw - 32, top = py + (short ? 34 : 44), step = short ? 44 : 48;
-      if (playing) {
-        const width = (inner - 16) / 3;
-        control('flightControls', this.t('飞行 / 视野  ›', 'FLIGHT / VIEW  ›'), x, top, width);
-        control('zoomControls', this.t('画面 / 倍率  ›', 'DISPLAY / ZOOM  ›'), x + width + 8, top, width);
-        control('buttonControls', this.t('按钮 / 布局  ›', 'CONTROLS  ›'), x + (width + 8) * 2, top, width);
-      }
-      const items = [
-        ['sound', this.muted ? this.t('游戏声音 关', 'SOUND OFF') : this.t('游戏声音 开', 'SOUND ON')],
-        ['voicePrompts', this.voicePrompts ? this.t('语音提示 开', 'VOICE ON') : this.t('语音提示 关', 'VOICE OFF')],
-        ['autoPriority', this.autoPriority ? this.t('优先标注 开', 'AUTO MARK ON') : this.t('优先标注 关', 'AUTO MARK OFF')],
-        ['language', this.lang === 'zh' ? '语言 · 中文' : 'LANGUAGE · EN'],
-        ['help', this.t('飞行手册', 'FIELD GUIDE')],
-        ...(playing ? [
-          ['convoy', s.convoy === 'moving' ? this.t('车队等待', 'HOLD CONVOY') : s.convoy === 'holdRequested' ? this.t('取消等待', 'CANCEL HOLD') : this.t('车队继续', 'CONVOY GO')],
-          ['mission', this.t('任务详情', 'MISSION BRIEF')],
-          ['supply', this.supplyLabel(s)],
-        ] : [['online:profile', this.t('玩家昵称', 'PLAYER NAME')], ['effects', this.reducedEffects ? this.t('特效 · 精简', 'FX · REDUCED') : this.t('特效 · 完整', 'FX · FULL')], ['buttonControls', this.t('按钮 / 布局', 'CONTROLS / LAYOUT')]]),
-      ].filter(([id]) => !(s.duelMode && ['convoy', 'mission', 'supply'].includes(id)) && !(id === 'convoy' && s.mission.mode === 'training') && !(id === 'supply' && !this.rewardsAvailable && !this.pendingSupply));
-      const cols = short ? 3 : 2, cw = (inner - (cols - 1) * 16) / cols;
-      const listTop=top+(playing?step:0),listHeight=py+ph-52-listTop,total=(Math.ceil(items.length/cols)-1)*step+44;
-      const list=total>listHeight?this.listViewport(n,'settings:main',{x,y:listTop,w:inner,h:listHeight},total):undefined;
-      const itemNode=list?.n||n,itemGraphics=list?.g||g;
-      items.forEach(([id, caption], i) => {
-        const bx=x+i%cols*(cw+16),by=listTop+Math.floor(i/cols)*step-(list?.offset||0);
-        const glyph = ({sound:this.muted?'muted':'sound',voicePrompts:this.voicePrompts?'sound':'muted',autoPriority:'mission',language:'language',help:'guide','online:profile':'profile',effects:'effects',mission:'mission',convoy:'next',supply:'plus'} as Record<string,string>)[id];
-        const label=this.menuButton(itemNode,itemGraphics,id,caption,bx,by,cw,'quiet',glyph);
-        label.fontSize=cw<160?11:13; label.horizontalAlign=Label.HorizontalAlign.LEFT;
-        this.rect(itemGraphics,bx+8,by+43,cw-16,1,'#8ba0ab28');
-        if(['sound','voicePrompts','autoPriority'].includes(id)){
-          const enabled=id==='sound'?!this.muted:id==='voicePrompts'?this.voicePrompts:this.autoPriority;
-          const sw=cw>220?34:20,sx=bx+cw-sw-10,sy=by+16;
-          this.rect(itemGraphics,sx,sy,sw,12,enabled?'#34766f':'#283b45',enabled?C.mint:C.line,6);
-          itemGraphics.fillColor=col(enabled?C.mint:C.dim);itemGraphics.circle(sx+(enabled?sw-6:6)-this.w/2,this.h/2-sy-6,4);itemGraphics.fill();
-          label.node.getComponent(UITransform)!.setContentSize(cw-42-sw,40);
-          label.node.setPosition(bx+30+(cw-42-sw)/2-this.w/2,this.h/2-by-22);
-          label.fontSize=cw<180?10:12;
-        } else if(cw>220)this.controlIcon(itemGraphics,'next',bx+cw-22,by+22,16);
-        if(id==='supply'&&s.buff){this.buttons[this.buttons.length-1].disabled=true;label.color=col(C.dim);}
-      });
-      list?.finish();
-    }
-    const by = py + ph - 52, bw = (pw - 40) / 2;
-    if (!short) this.rect(g, px + 16, by - 7, pw - 32, 1, '#4c605e77');
-    if (playing || controls) this.menuButton(n,g,subpage?'close':'home',subpage?this.t('返回设置','BACK'):this.t('返回基地','BASE'),px+16,by,bw,'quiet','back');
-    const width=Math.min(playing?bw:160,200),bx=px+pw-16-width;
-    const primary = playing && (subpage || key === 'pause') ? 'resume' : 'close';
-    const label = this.menuButton(n,g,primary,playing?this.t('继续战斗','RESUME BATTLE'):this.t('返回','BACK'),bx,by,width,playing?'primary':'secondary',playing?'next':'back');
-    label.color = col(C.action); label.isBold = true;
-  }
-  renderGuide(n: Node, g: Graphics) {
-    const pw = Math.min(760, this.w - this.safe.left - this.safe.right - 32),
-      ph = Math.min(450, this.h - this.safe.top - this.safe.bottom - 74),
-      px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2,
-      py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
-    this.panelFrame(g, px, py, pw, ph);
-    const title = this.label(n, this.t('飞行手册', 'FIELD GUIDE'), px + 100, py + 20, 20, 168, 30);
-    title.horizontalAlign = Label.HorizontalAlign.LEFT; title.isBold = true;
-    if (pw >= 420) this.label(n, 'NIGHT 07 / ' + this.t('操作指引', 'FLIGHT NOTES'), px + pw - 110, py + 20, 10, 188, 22, C.dim);
-    const tabW = (pw - 122) / 3, tabY = py + 44;
-    for (const [i, [id, caption]] of [[ 'basic', this.t('基础操作', 'BASICS') ], [ 'advanced', this.t('飞行视野', 'FLIGHT') ], [ 'rules', this.t('任务规则', 'MISSION') ]].entries()) {
-      const x = px + 16 + i * (tabW + 4), active = this.helpGroup === id;
-      this.plate(g, x, tabY, tabW, 44, active ? '#29423c' : '#1c2a2e', undefined, 6);
-      const label = this.button('tab:' + id, caption, x, tabY, tabW, 44, n);
-      label.color = col(active ? C.mint : C.dim); label.isBold = active;
-      if (active) this.rect(g, x + 12, tabY + 41, tabW - 24, 2, C.mint);
-    }
-    this.plate(g, px + pw - 94, tabY, 78, 44, '#1c2a2e', C.line, 6);
-    this.button('input', this.helpTouch ? this.t('触控', 'TOUCH') : this.t('键鼠', 'KEYS'), px + pw - 94, tabY, 78, 44, n);
-    const vh = ph - 154, vw = pw - 44, mask = this.node('HelpViewport', n);
-    mask.setPosition(px + pw / 2 - this.w / 2, this.h / 2 - (py + 94 + vh / 2));
-    mask.getComponent(UITransform)!.setContentSize(vw, vh);
-    mask.addComponent(Mask).type = Mask.Type.GRAPHICS_RECT;
-    this.scrollArea = { x: px + 22, y: py + 94, w: vw, h: vh };
-    const content = this.node('Instructions', mask); this.scrollNode = content;
-    const lines = content.addComponent(Graphics), rows = ACTIONS.filter(a => a.group === this.helpGroup &&
-      !(this.helpTouch && ['previous', 'next', 'focus'].includes(a.id)));
-    let offset = 0;
-    rows.forEach((a, i) => {
-      const description = text(a.description, this.lang), font = pw < 600 ? 12 : 14,
-        width = vw - 46, units = [...description].reduce((sum, c) => sum + (c.charCodeAt(0) > 255 ? 1 : .6), 0),
-        bodyH = Math.max(2, Math.ceil(units * font / width) + 1) * (font * 1.45), rowH = bodyH + 38;
-      const entry = (str: string, x: number, yy: number, size: number, w: number, h: number, color: string) => {
-        const label = this.label(content, str, this.w / 2, 0, size, w, h, color);
-        label.node.setPosition(x, vh / 2 - offset - yy); label.horizontalAlign = Label.HorizontalAlign.LEFT; return label;
-      };
-      entry(String(i + 1).padStart(2, '0'), -vw / 2 + 16, 17, 10, 28, 22, C.mint);
-      entry(text(a.name, this.lang), -vw / 2 + 42 + width * .22, 17, 14, width * .44, 26, C.white).isBold = true;
-      const binding = entry(this.helpTouch ? text(a.touch, this.lang) : bindingLabel(a.id, this.lang),
-        -vw / 2 + 42 + width * .73, 17, 10, width * .5, 26, C.mint);
-      binding.horizontalAlign = Label.HorizontalAlign.RIGHT;
-      entry(description, -vw / 2 + 42 + width / 2, 32 + bodyH / 2, font, width, bodyH, C.dim);
-      lines.fillColor = col('#36566e66'); lines.rect(-vw / 2 + 42, vh / 2 - offset - rowH + 1, width, 1); lines.fill();
-      offset += rowH;
-    });
-    this.scrollMax = Math.max(0, offset - vh);
-    this.lastHelpLine = text(rows.at(-1)!.description, this.lang);
-    const bottom = py + ph - 52;
-    for (const [id, caption, x, width, primary] of [
-      ['tutorial', this.t('重玩教学', 'COACH'), px + 16, pw < 400 ? 80 : 100, false],
-      ['language', this.lang === 'zh' ? 'EN' : '中文', px + (pw < 400 ? 100 : 124), 44, false],
-      ['close', this.t('返回', 'BACK'), px + pw - (pw < 400 ? 96 : 116), pw < 400 ? 80 : 100, true],
-    ] as const) {
-      this.plate(g, x, bottom, width, 44, primary ? C.amber : '#1c2a2e', primary ? undefined : C.line, 6);
-      const label = this.button(id, caption, x, bottom, width, 44, n);
-      label.color = col(primary ? C.action : C.white); label.isBold = primary;
-    }
-    if (pw >= 420) this.label(n, this.t('上下滑动查看更多', 'SCROLL FOR MORE'), px + 176 + (pw - 300) / 2, bottom + 22, 10, pw - 308, 26, C.dim);
-  }
-  inputField(n: Node, g: Graphics, key: 'draftName' | 'draftCode' | 'draftPassword', caption: string, x: number, y: number, width: number) {
-    this.label(n, caption, x + 46, y + 22, 12, 92, 40, C.dim);
-    this.inset(g, x + 102, y, width - 102, 44);
-    const field = this.node(key, n);
-    // Configure before preload creates the native input and default labels.
-    field.active = false;
-    field.setPosition(x + 102 + (width - 102) / 2 - this.w / 2, this.h / 2 - y - 22);
-    field.getComponent(UITransform)!.setContentSize(width - 122, 44);
-    const edit = field.addComponent(EditBox);
-    edit.textLabel = this.label(field, '', this.w / 2, this.h / 2, 14, width - 122, 42);
-    const placeholder = key === 'draftCode' ? this.t('6位房间号', 'ROOM NUMBER') : key === 'draftPassword' ? this.t('公开房无需密码', 'OPTIONAL FOR PUBLIC ROOM') : '';
-    edit.placeholderLabel = this.label(field, placeholder, this.w / 2, this.h / 2, 12, width - 122, 42, C.dim);
-    edit.inputMode = EditBox.InputMode.SINGLE_LINE;
-    for (const label of [edit.textLabel, edit.placeholderLabel]) {
-      label.node.getComponent(UITransform)!.setAnchorPoint(0, 1);
-      label.horizontalAlign = Label.HorizontalAlign.LEFT;
-      // Label setters use the initial multiline mode; restore single-line alignment.
-      label.verticalAlign = Label.VerticalAlign.CENTER;
-    }
-    edit.maxLength = key === 'draftName' ? 16 : key === 'draftCode' ? 12 : 64;
-    edit.inputFlag = key === 'draftPassword' ? EditBox.InputFlag.PASSWORD : EditBox.InputFlag.DEFAULT;
-    edit.string = this.online![key];
-    field.on(EditBox.EventType.TEXT_CHANGED, () => { this.online![key] = edit.string; });
-    field.active = true;
-  }
-  private lobbyBody?:Node;
-  private lobbyComposer?:EditBox;
-  private lobbyStamp='';
-  private chatLayout:Array<{id:string;y:number;h:number}>=[];
-  private chatUnread=false;private lobbyOwner='';
-  private lobbySkin(parent:Node,key:string,x:number,y:number,w:number,h:number){const frame=this.progressionArt.get(key);if(!frame)return;const n=this.node('LobbySkin',parent),sp=n.addComponent(Sprite);n.setPosition(x+w/2-this.w/2,this.h/2-y-h/2);n.setScale(.24,.24,1);n.getComponent(UITransform)!.setContentSize(w/.24,h/.24);sp.sizeMode=Sprite.SizeMode.CUSTOM;sp.type=Sprite.Type.SLICED;sp.spriteFrame=frame;}
-  private renderLobby(n:Node,initial=false){
-    const o=this.online!,roomy=this.w>=1000,l=this.safe.left+12,r=this.w-this.safe.right-12,top=this.safe.top+56,b=this.h-this.safe.bottom-12,gap=14,lw=(r-l-gap)*.44,rx=l+lw+gap,rw=r-rx,inputY=b-48;
-    if(initial){
-      this.lobbySkin(n,'panel',l,top,lw,b-top);this.lobbySkin(n,'panel',rx,top,rw,b-top);
-      this.button('online:back','‹',l,this.safe.top+5,44,44,n).fontSize=31;this.label(n,this.t('全局大厅','GLOBAL LOBBY'),l+145,this.safe.top+27,25,190,40,C.white).isBold=true;
-      this.label(n,this.t('大厅交流','LOBBY CHAT'),rx+rw*.32,top+21,19,rw*.61,32,C.white).isBold=true;
-      const field=this.node('LobbyComposer',n),fw=Math.max(90,rw-142);field.active=false;field.setPosition(rx+10+fw/2-this.w/2,this.h/2-inputY-22);field.getComponent(UITransform)!.setContentSize(fw,44);
-      this.lobbySkin(n,'panel',rx+8,inputY,fw+4,44);
-      field.setSiblingIndex(n.children.length-1);
-      const edit=this.lobbyComposer=field.addComponent(EditBox);edit.textLabel=this.label(field,'',this.w/2,this.h/2,roomy?18:13,fw-12,40,C.white);edit.placeholderLabel=this.label(field,this.t('说点什么…','Say something…'),this.w/2,this.h/2,roomy?17:12,fw-12,40,C.dim);edit.inputMode=EditBox.InputMode.SINGLE_LINE;edit.inputFlag=EditBox.InputFlag.DEFAULT;edit.maxLength=240;edit.string=o.chatDraft;
-      for(const label of [edit.textLabel,edit.placeholderLabel]){label.node.getComponent(UITransform)!.setAnchorPoint(0,1);label.horizontalAlign=Label.HorizontalAlign.LEFT;label.verticalAlign=Label.VerticalAlign.CENTER;}
-      field.on(EditBox.EventType.TEXT_CHANGED,()=>{o.chatDraft=edit.string;});
-      field.active=true;
-      this.lobbySkin(n,'blue',r-122,inputY,54,44);this.button('online:chatInvite',this.t('邀请','INVITE'),r-122,inputY,54,44,n).fontSize=12;
-      this.lobbySkin(n,'gold',r-64,inputY,56,44);this.button('online:chatSend',this.t('发送','SEND'),r-64,inputY,56,44,n).fontSize=14;
-      if(this.lobbyOwner!==o.authenticatedId){this.lobbyOwner=o.authenticatedId;this.chatLayout=[];this.chatUnread=false;this.listScroll.chat=0;}
-    }
-    if(this.lobbyBody&&isValid(this.lobbyBody)){const old=this.lobbyBody;this.buttons=this.buttons.filter(b=>{let node:Node|null=b.label.node;while(node){if(node===old)return false;node=node.parent;}return true;});old.destroy();}
-    this.listAreas=this.listAreas.filter(a=>!['rooms','chat'].includes(a.key));
-    const body=this.lobbyBody=this.node('LobbyLiveContent',n),g=this.node('Ink',body).addComponent(Graphics);
-    const btn=(id:string,caption:string,x:number,y:number,w:number,kind='blue',disabled=false,parent=body)=>{this.lobbySkin(parent,kind,x,y,w,44);const label=this.button('online:'+id,caption,x,y,w,44,parent);label.fontSize=Math.min(14,Math.max(11,w/6));label.isBold=true;this.buttons.at(-1)!.disabled=disabled;};
-    const roomTop=top+8,roomBottom=b-98,rowH=this.h<420?112:136,rooms=o.rooms;
-    const roomList=this.listViewport(body,'rooms',{x:l+7,y:roomTop,w:lw-14,h:Math.max(44,roomBottom-roomTop)},rooms.length*(rowH+8));
-    rooms.forEach((room,i)=>{const y=roomTop+i*(rowH+8)-roomList.offset;if(y+rowH<roomTop||y>roomBottom)return;this.lobbySkin(roomList.n,'panel',l+9,y,lw-24,rowH);const frame=this.progressionArt.get('duel'),iw=roomy?Math.min(154,lw*.29):Math.min(92,lw*.34),ih=roomy?96:70;if(frame)this.coverImage(roomList.n,'RoomArt',frame,l+16,y+10,iw,ih);const tx=l+iw+26,tw=lw-iw-(roomy?148:44);
-      const title=this.label(roomList.n,this.t('房间 ','ROOM ')+room.code,tx+tw/2,y+(roomy?29:20),roomy?24:13,tw,32,C.white);title.isBold=true;title.horizontalAlign=Label.HorizontalAlign.LEFT;
-      this.label(roomList.n,room.players.map(p=>p.nickname||p.name||'飞行员').join(' / '),tx+tw/2,y+(roomy?64:42),roomy?17:12,tw,26,C.dim).horizontalAlign=Label.HorizontalAlign.LEFT;
-      this.label(roomList.n,`${room.playerCount}/2 · `+this.t(room.status==='waiting'?(room.canJoin?'等待加入':'等待开战'):'进行中',room.status==='waiting'?'WAITING':'PLAYING'),tx+tw/2,y+(roomy?97:63),roomy?18:12,tw,26,room.canJoin?C.mint:C.amber).horizontalAlign=Label.HorizontalAlign.LEFT;
-      const bw=roomy?94:Math.min(82,lw*.37);btn((room.canJoin?'joinCode:':'watchCode:')+room.code,this.t(room.canJoin?'加入':'观战',room.canJoin?'JOIN':'WATCH'),l+lw-bw-18,y+(roomy?(rowH-44)/2:rowH-45),bw,room.canJoin?'gold':'blue',!room.canJoin&&!room.canSpectate,roomList.n);
-    });roomList.finish();
-    if(!rooms.length)this.label(body,o.message||this.t('暂无公开房间','No public rooms'),l+lw/2,roomTop+42,14,lw-25,70,C.dim);
-    const ww=(lw-24)/2;btn(o.room?'roomReturn':'friend',this.t(o.room?'返回房间':'创建房间',o.room?'MY ROOM':'CREATE'),l+8,b-92,ww,'gold',o.busy);btn('join',this.t('房号加入','JOIN CODE'),l+16+ww,b-92,ww,'blue',o.busy);
-    btn('match',this.t('快速匹配','MATCH'),l+8,b-46,ww,'blue',o.busy);btn('bot',this.t('人机练习','PRACTICE'),l+16+ww,b-46,ww,'panel',o.busy);
-    const area={x:rx+8,y:top+43,w:rw-16,h:Math.max(44,inputY-top-68)},messages=o.visibleChat;
-    const old=this.chatLayout,oldOffset=this.listScroll.chat||0,oldTotal=old.length?old.at(-1)!.y+old.at(-1)!.h+8:0,atBottom=old.length===0||oldOffset>=oldTotal-area.h-3;
-    const anchor=old.find(row=>row.y+row.h>oldOffset),relative=anchor?oldOffset-anchor.y:0;
-    const messageFont=roomy?18:13,avatar=roomy?38:28,textX=rx+avatar+20,maxBubble=rw-avatar-66;
-    let total=0;this.chatLayout=messages.map(m=>{const lines=Math.max(1,Math.ceil(Array.from(m.text).length/Math.max(6,Math.floor((maxBubble-20)/messageFont)))),h=(m.room?(roomy?170:174):(roomy?80:68))+(lines-1)*messageFont*1.4;const row={id:m.id,y:total,h};total+=h+8;return row;});
-    const changed=old.map(r=>r.id).join()!==this.chatLayout.map(r=>r.id).join();
-    if(changed&&atBottom)this.listScroll.chat=Math.max(0,total-area.h);else if(changed){const row=this.chatLayout.find(r=>r.id===anchor?.id);if(row)this.listScroll.chat=row.y+relative;this.chatUnread=true;}
-    if(this.listScroll.chat>=total-area.h-3)this.chatUnread=false;
-    const chat=this.listViewport(body,'chat',area,total);
-    messages.forEach((m,i)=>{const row=this.chatLayout[i],y=area.y+row.y-chat.offset;if(y+row.h<area.y||y>area.y+area.h)return;const own=m.playerId===o.authenticatedId,date=new Date(m.at),stamp=`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-      this.rect(chat.g,rx+10,y+4,avatar,avatar,own?'#1c4559':'#203347','#8a7959',6);this.label(chat.n,Array.from(m.nickname)[0]||'航',rx+10+avatar/2,y+4+avatar/2,roomy?22:17,avatar,avatar,own?C.mint:C.amber).isBold=true;
-      this.label(chat.n,(own?this.t('你 · ','YOU · '):'')+m.nickname+'  '+stamp,textX+maxBubble/2,y+14,roomy?15:11,maxBubble,25,own?C.mint:C.white).horizontalAlign=Label.HorizontalAlign.LEFT;
-      const bubbleW=m.room?maxBubble:Math.min(maxBubble,Math.max(82,Array.from(m.text).length*messageFont+24)),bubbleY=y+32,textH=row.h-(m.room?(roomy?133:142):38);
-      this.rect(chat.g,textX,bubbleY,bubbleW,row.h-36,own?'#174358ee':'#142b3bee','#456477',7);const label=this.label(chat.n,m.text,textX+bubbleW/2,bubbleY+textH/2+3,messageFont,bubbleW-20,textH,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;
-      this.button('online:chatMenu:'+m.id,'⋮',r-46,y+20,44,44,chat.n).fontSize=24;
-      if(m.room){const cardY=bubbleY+textH+8,iw=roomy?90:44,ih=roomy?62:42,scene=this.progressionArt.get('duel');if(scene)this.coverImage(chat.n,'ChatInvitationArt',scene,textX+8,cardY,iw,ih);const tx=textX+iw+17,tw=Math.max(50,bubbleW-iw-28);this.label(chat.n,this.t('房间 ','ROOM ')+m.room.code,tx+tw/2,cardY+12,roomy?20:12,tw,24,m.room.canJoin?C.mint:C.dim).horizontalAlign=Label.HorizontalAlign.LEFT;this.label(chat.n,this.t(m.room.canJoin?'公开房间 · 等待加入':'已满或已关闭',m.room.canJoin?'PUBLIC · OPEN':'FULL OR CLOSED'),tx+tw/2,cardY+35,roomy?14:10,tw,22,C.dim).horizontalAlign=Label.HorizontalAlign.LEFT;btn('chatJoin:'+m.id,this.t(m.room.canJoin?'加入':'已失效',m.room.canJoin?'JOIN':'CLOSED'),textX+bubbleW-(roomy?104:72),y+row.h-48,roomy?96:68,'blue',!m.room.canJoin,chat.n);}
-      if(o.chatMenu===m.id){const menuY=y+24;this.lobbySkin(chat.n,'panel',r-146,menuY,100,92);btn('chatBlock:'+m.playerId,this.t('屏蔽','BLOCK'),r-144,menuY,96,'panel',own,chat.n);btn('chatReport:'+m.id,this.t('举报','REPORT'),r-144,menuY+46,96,'panel',own,chat.n);}
-    });chat.finish();
-    if(!o.chatAvailable||!messages.length)this.label(body,!o.chatAvailable?this.t('大厅交流暂不可用','CHAT UNAVAILABLE'):this.t('和大厅飞行员打个招呼','Say hello to other pilots'),rx+rw/2,area.y+42,13,rw-30,70,C.dim);
-    if(this.chatUnread)btn('chatLatest',this.t('新消息 ↓','NEW ↓'),r-108,top+1,98,'blue');
-    this.label(body,o.chatStatus||this.t('文字交流 · 120字 · 发言间隔3秒','TEXT · 120 CHARS · 3s INTERVAL'),rx+rw/2,inputY-12,10,rw-18,21,C.dim);
-    if(o.blockedPlayers.size)btn('chatBlocks',this.t(`屏蔽(${o.blockedPlayers.size})`,`BLOCKS (${o.blockedPlayers.size})`),rx+rw-105,area.y+area.h-45,96,'panel');
-    if(o.chatMenu==='blocks'){this.lobbySkin(body,'panel',rx+8,area.y,rw-16,Math.min(area.h,52*o.blockedPlayers.size+12));Array.from(o.blockedPlayers).slice(0,5).forEach((id,i)=>btn('chatBlock:'+id,this.t('恢复 ','UNBLOCK ')+id.slice(-6),rx+14,area.y+6+i*50,rw-28,'blue'));}
-    if(this.lobbyComposer&&this.lobbyComposer.string!==o.chatDraft)this.lobbyComposer.string=o.chatDraft;
-    const send=this.buttons.find(b=>b.id==='online:chatSend');if(send){send.disabled=!o.chatAvailable||o.chatSending;send.label.string=o.chatSending?this.t('发送中','SENDING'):this.t('发送','SEND');}
-    this.lobbyStamp=`${o.revision}:${o.chatRevision}`;
-  }
-  renderOnline(n: Node, g: Graphics, s: Simulation, result: boolean) {
-    const online = this.online!;
-    if(online.panel==='menu'&&!result){this.renderLobby(n,true);return;}
-    const pw = Math.min(result ? 560 : 760, this.w - this.safe.left - this.safe.right - 32),
-      ph = Math.min(result ? 360 : online.panel === 'ranking' ? 620 : 440, this.h - this.safe.top - this.safe.bottom - 28), px = (this.w - pw) / 2, py = (this.h - ph) / 2;
-    this.panelFrame(g,px,py,pw,ph,result?C.amber:C.mint,result?'#050f1d66':'#050f1d55',!result&&!(online.panel==='ranking'&&ph<280));
-    const label = (str: string, y: number, size = 14, color = C.white) => this.label(n, str, px + pw / 2, py + y, size, pw - 40, 26, color);
-    const button = (id: string, caption: string, x: number, y: number, width: number, primary = false, quiet = false, glyph = '', disabled = false) => {
-      disabled ||= online.busy&&['saveName','createConfirm','joinConfirm','match','friend','ready'].includes(id);
-      const selected=primary&&(id==='public'||id==='private'||id.startsWith('board:')||id.startsWith('category:'));
-      const text=this.menuButton(n,g,'online:'+id,caption,px+x,py+y,width,primary&&!selected?'primary':quiet?'quiet':'secondary',glyph,44,disabled);
-      if(selected){text.color=col(C.mint);text.isBold=true;this.rect(g,px+x+12,py+y+39,width-24,2,C.mint);}
-      text.fontSize=pw<600?11:13;
-      return this.buttons[this.buttons.length-1];
-    };
-    const bottom = ph - 54, half = (pw - 44) / 2,
-      count = online.panel === 'menu' ? Math.max(1,Math.min(4,Math.floor((bottom-141)/52)))
-        : ph < 340 ? 2 : 3;
-    online.pageSize = count;
-    if (online.panel === 'menu') online.roomPage = Math.min(online.roomPage, Math.max(0, Math.ceil(online.rooms.length / count) - 1));
-    if (online.panel === 'history') online.historyPage = Math.min(online.historyPage, Math.max(0, Math.ceil((online.history?.matches.length || 0) / count) - 1));
-    const titles = { menu: ['对战大厅', 'BATTLE LOBBY'], ranking: ['排行榜', 'RANKINGS'], room: ['作战准备室', 'READY ROOM'],
-      profile: ['玩家昵称', 'PLAYER NAME'], create: ['创建房间', 'CREATE ROOM'], join: ['加入房间', 'JOIN ROOM'], history: ['对战记录', 'BATTLE RECORDS'], '': ['', ''] };
-    if(!result){
-      const headingW = online.panel === 'ranking' ? pw - 294 : pw - 130;
-      const heading=this.label(n,text(titles[online.panel],this.lang),px+54+headingW/2,py+26,21,headingW,32);
-      heading.horizontalAlign=Label.HorizontalAlign.LEFT;heading.isBold=true;
-      this.controlIcon(g,online.panel==='menu'?'lobby':online.panel==='ranking'?'ranking':online.panel==='history'?'history':'profile',px+31,py+25,22,C.amber);
-    }
-    if (result || !['ranking', 'menu', 'history'].includes(online.panel)) button('dismiss','',pw-58,4,44,false,true,'close');
-    if (result) {
-      const short=ph<320,cramped=ph<280,mid=Math.min(short?165:205,bottom-66);
-      const ownSeat = online.spectator ? -1 : online.room?.you ?? 0;
-      const outcome = (seat: number) => online.room?.players[seat]?.settlement?.outcome
-        || (seat === ownSeat ? online.room?.settlement?.outcome : undefined)
-        || (online.view?.winner === null ? 'draw' : online.view?.winner === seat ? 'win' : online.view?.winner !== undefined ? 'loss' : '');
-      const outcomeText = (value: string) => value === 'win' ? this.t('胜利','WIN') : value === 'loss' ? this.t('失败','LOSS') : value === 'draw' ? this.t('平局','DRAW') : this.t('结算中','PENDING');
-      const outcomeColor = (value: string) => value === 'win' ? '#75db9e' : value === 'loss' ? C.red : C.amber;
-      const ownOutcome = outcome(ownSeat);
-      if(!cramped)this.artwork('insignia',px+pw/2-(short?50:65),py+12,short?100:130,short?37:48);
-      label(online.spectator ? this.t('观战结束','MATCH ENDED') : this.t('战斗','BATTLE ') + outcomeText(ownOutcome),cramped?44:short?70:88,short?28:34,online.spectator?C.amber:outcomeColor(ownOutcome)).isBold=true;
-      for (let seat = 0; seat < 2; seat++) {
-        const player = online.room?.players[seat] || (seat === 0 ? online.identity : online.opponent), result = outcome(seat);
-        label((seat === 0 ? this.t('A方','SIDE A') : this.t('B方','SIDE B')) + (seat === ownSeat ? this.t(' · 你',' · YOU') : '')
-          + ' · ' + playerLabel(player) + ' · ' + outcomeText(result), (cramped?70:short?99:120)+seat*(cramped?22:23),11,outcomeColor(result));
-      }
-      const settlement = online.room?.settlement;
-      const cw=(pw-56)/2;
-      for (let i = 0; i < 2; i++) this.inset(g, px + 20 + i * (pw / 2 - 10), py + mid - 28, pw / 2 - 30, 86, i ? '#ac8e4d99' : '#5b859d99');
-      for (let i = 0; i < 2; i++) {
-        const cx=px+28+cw*(i+.5);
-        this.controlIcon(g,i?'star':'time',cx-cw*.32,py+mid+8,26,i?C.amber:C.dim);
-        this.label(n,i?this.t('本局积分','POINTS EARNED'):this.t('作战用时','OPERATION TIME'),cx+14,py+mid-14,11,cw-40,22,C.dim);
-        this.label(n,i?settlement?'+'+settlement.points:'—':formatTime(s.time*1000),cx+14,py+mid+13,
-          short?24:30,cw-40,40,i?C.action:C.white).isBold=true;
-        if (i) this.label(n, settlement?.totalPoints !== undefined ? this.t('总积分 ', 'TOTAL ') + settlement.totalPoints : online.spectator ? this.t('观战不计分', 'SPECTATING · NO POINTS')
-          : online.room ? this.t('积分暂不可用', 'POINTS UNAVAILABLE') : this.t('本地练习', 'LOCAL PRACTICE'),cx+14,py+mid+43,11,cw-20,22,C.dim);
-      }
-      this.rect(g,px+32,py+bottom-7,pw-64,1,'#8ba0ab44');
-      const bw=Math.min(210,pw-64);
-      button('backLobby',this.t('返回大厅','BACK TO LOBBY'),(pw-bw)/2,bottom,bw,true,false,'back');return;
-    }
-    if (['profile', 'create', 'join'].includes(online.panel)) {
-      if (online.panel === 'profile') {
-        this.inputField(n, g, 'draftName', this.t('玩家昵称', 'PLAYER NAME'), px + 18, py + 83, pw - 36);
-        label(this.t('2–16个字符，昵称会显示在房间和战绩中', '2–16 CHARACTERS · SHOWN IN ROOMS AND RECORDS'), 151, 11, C.dim);
-      } else if (online.panel === 'create') {
-        button('public', this.t('公开房间', 'PUBLIC'), 18, 65, half, !online.privateRoom);
-        button('private', this.t('好友私密房', 'PRIVATE'), 26 + half, 65, half, online.privateRoom);
-        if (online.privateRoom) this.inputField(n, g, 'draftPassword', this.t('房间密码', 'PASSWORD'), px + 18, py + 127, pw - 36);
-        else label(this.t('房间将显示在大厅，其他玩家可加入', 'OTHER PILOTS CAN FIND AND JOIN THIS ROOM'), 151, 13, C.dim);
-      } else {
-        this.inputField(n, g, 'draftCode', this.t('房间号', 'ROOM'), px + 18, py + 73, pw - 36);
-        this.inputField(n, g, 'draftPassword', this.t('房间密码', 'PASSWORD'), px + 18, py + 129, pw - 36);
-      }
-      label(online.message || (online.busy ? this.t('正在处理…', 'PLEASE WAIT…') : online.panel === 'create' && online.privateRoom ? this.t('设置4–64位密码，分享时另行告知好友', 'SET A 4–64 CHARACTER PASSWORD') : ''), bottom - 24, 11, C.amber);
-      button('back', this.t('返回', 'BACK'), 18, bottom,100,false,true,'back');
-      button(online.panel === 'profile' ? 'saveName' : online.panel === 'create' ? 'createConfirm' : 'joinConfirm',
-        online.busy ? this.t('请稍候', 'PLEASE WAIT') : this.t('确定', 'CONFIRM'),pw-198,bottom,180,online.panel !== 'profile'); return;
-    }
-    if (online.panel === 'ranking') {
-      const solo = online.board === 'clears' || online.board === 'level', level = online.board === 'level';
-      button('category:solo', this.t('单人模式', 'SOLO'), pw - 234, 4, 104, solo);
-      button('category:duel', this.t('对战模式', 'VERSUS'), pw - 122, 4, 104, !solo);
-      const tabW = Math.min(140, (pw - 64) / 4);
-      const boards = solo ? [['clears', this.t('通关榜', 'CLEARS')], ['level', this.t('关卡榜', 'LEVEL')]]
-        : [['points', this.t('积分榜', 'POINTS')], ['win-rate', this.t('胜率榜', 'WIN RATE')]];
-      boards.forEach(([id, name], i) => button('board:' + id, name, 18 + i * (tabW + 8), 52, tabW, online.board === id));
-      const detailX = 34 + 2 * tabW, detailW = pw - detailX - 18;
-      if (level) {
-        button('previous', '', detailX, 52, 44, false, true, 'back', online.level === 0);
-        button('next', '', pw - 62, 52, 44, false, true, 'next', online.level === MISSIONS.length - 1);
-      }
-      const descriptions = { clears: this.t('最高通关', 'HIGHEST CLEAR'), level: this.t(`第 ${online.level + 1} 关`, `LEVEL ${online.level + 1}`), points: this.t('累计积分', 'TOTAL POINTS'), 'win-rate': this.t('真人对战胜率', 'HUMAN WIN RATE') };
-      this.label(n, descriptions[online.board], px + detailX + detailW / 2, py + 74, 11, detailW - (level ? 88 : 0), 26, C.dim);
-      const value = (row: NonNullable<Online['ranking']>['top'][number]) => level ? formatTime(row.secondary) : online.board === 'win-rate'
-        ? Math.round((row.games ? (row.wins || 0) / row.games : row.score) * 1000) / 10 + '%' : online.board === 'clears' ? this.t('第','') + row.score + this.t('关','') : row.score + this.t('分','');
-      const metric = (row: NonNullable<Online['ranking']>['top'][number]) => (level ? this.t('最快 ','BEST ') : online.board==='clears' ? this.t('最高通关 ','LEVEL ') : online.board==='points' ? this.t('积分 ','POINTS ') : this.t('胜率 ','WIN RATE ')) + value(row);
-      const rows = online.ranking?.top || [], rowH = 36, vw = pw - 36, vh = bottom - 144;
-      const mask = this.node('RankingViewport', n);
-      mask.setPosition(px + pw / 2 - this.w / 2, this.h / 2 - (py + 104 + vh / 2));
-      mask.getComponent(UITransform)!.setContentSize(vw, vh);
-      mask.addComponent(Mask).type = Mask.Type.GRAPHICS_RECT;
-      this.scrollArea = { x: px + 18, y: py + 104, w: vw, h: vh };
-      const content = this.node('RankingRows', mask); this.scrollNode = content;
-      const ink = content.addComponent(Graphics), originX = this.w / 2 - vw / 2, originY = this.h / 2 - vh / 2;
-      rows.forEach((row, i) => {
-        const own = playerId(row) === playerId(online.identity), y = originY + rowH * (i + .5);
-        if (own) this.plate(ink, originX, y - 16, vw, 32, '#29423c', C.mint, 4);
-        else this.rect(ink, originX, y + 17, vw, 1, '#8ba0ab22');
-        if (row.rank >= 1 && row.rank <= 3) {
-          const medal = this.node('RankMedal:' + row.rank, content), medalInk = medal.addComponent(Graphics);
-          medal.setPosition(-vw / 2 + 12, vh / 2 - rowH * (i + .5));
-          medalInk.strokeColor = col('#6b8499'); medalInk.lineWidth = 5;
-          for (const x of [-4, 4]) { medalInk.moveTo(x, -3); medalInk.lineTo(x * 1.5, -13); medalInk.stroke(); }
-          medalInk.fillColor = col(['#e5b65c', '#c4d5e2', '#ca926c'][row.rank - 1]);
-          medalInk.circle(0, 1, 9); medalInk.fill();
-          medalInk.strokeColor = col('#fff0cf'); medalInk.lineWidth = 1; medalInk.circle(0, 1, 6); medalInk.stroke();
-        }
-        const nameW=vw-244, maxName=Math.max(2,Math.floor((nameW-95)/12)), name=Array.from(row.nickname||row.name||'飞行员');
-        const caption=playerLabel({...row,nickname:name.length>maxName?name.slice(0,maxName).join('')+'…':name.join('')});
-        for (const [captionText,x,width] of [[this.t('第','RANK ')+row.rank+this.t('名',''),26,60],[caption,92,nameW],[metric(row),vw-146,142]] as const) {
-          this.label(content,captionText,originX+x+width/2,y,12,width,30,own?C.mint:C.white).horizontalAlign=Label.HorizontalAlign.LEFT;
-        }
-      });
-      this.scrollMax = Math.max(0, rows.length * rowH - vh);
-      if (!rows.length) label(online.message || (online.ranking ? this.t('暂无成绩，等你创造纪录', 'SET THE FIRST RECORD') : this.t('正在读取…', 'LOADING…')), 104 + vh / 2, 12, C.dim);
-      const me = online.ranking?.me;
-      label(me ? this.t('我的排名 第','MY RANK ') + me.rank + this.t('名 · ',' · ') + metric(me) : this.t('你 · 尚无上榜成绩', 'YOU · NOT YET RANKED'), bottom - 24, 11, C.mint);
-      button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
-      button('refresh',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
-      if(level)button('ruleVersion',online.rankingVersion==='night-campaign-v2'?this.t('当前梯度版 ▾','CURRENT ▾'):online.rankingVersion==='night-growth-v1'?this.t('旧成长版 ▾','OLD GROWTH ▾'):this.t('原始历史版 ▾','ORIGINAL ▾'),pw-160,bottom,142);
-      else this.label(n, this.t(`已加载 ${rows.length} 名 · 上下滑动`, `${rows.length} LOADED · SCROLL`), px + 216 + (pw - 234) / 2, py + bottom + 22, 11, pw - 234, 26, C.dim);
-      return;
-    }
-    if (online.panel === 'history') {
-      const summary = online.history?.summary;
-      label(summary ? this.t('真人对战 ', 'MATCHES ') + summary.games + this.t(' · 胜 ', ' · W ') + summary.wins + this.t('  负 ', '  L ') + summary.losses
-        + this.t('  平 ', '  D ') + summary.draws + ' · ' + Math.round(summary.winRate * 1000) / 10 + '%'
-        : this.t('仅记录开局双方都是真人的对局', 'HUMAN MATCHES ONLY'), 63, 12, C.mint);
-      const rows=online.history?.matches||[],parent=n,oldG=g,list=this.listViewport(n,'history',{x:px+18,y:py+85,w:pw-36,h:bottom-91},rows.length*66);n=list.n;g=list.g;
-      rows.forEach((match, i) => {
-        const y = 86 + i * 66-list.offset, outcome = match.outcome === 'win' ? this.t('胜利', 'WIN') : match.outcome === 'loss' ? this.t('失败', 'LOSS') : this.t('平局', 'DRAW');
-        this.plate(g, px + 18, py + y, pw - 36, 52, '#1c2a2e', C.line, 5);
-        this.label(n, outcome + ' · ' + (match.opponent.nickname || match.opponent.name || '飞行员') + '  +' + match.points,
-          px + pw / 2, py + y + 15, 13, pw - 60, 26, match.outcome === 'win' ? '#75db9e' : match.outcome === 'loss' ? C.red : C.amber);
-        const date = new Date(match.finishedAt).toLocaleString(this.lang === 'zh' ? 'zh-CN' : 'en-GB', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-        this.label(n, date + ' · ' + formatTime(match.durationMs) + (match.reason === 'disconnect' ? this.t(' · 掉线结算', ' · DISCONNECT') : match.reason === 'abandoned' ? this.t(' · 双方离开', ' · ABANDONED') : ''),
-          px + pw / 2, py + y + 36, 10, pw - 60, 22, C.dim);
-      });
-      list.finish();n=parent;g=oldG;
-      if (!rows.length) label(online.message || (online.busy ? this.t('正在读取…', 'LOADING…') : this.t('暂无真人对战记录', 'NO HUMAN MATCHES YET')), 144, 13, C.dim);
-      button('back',this.t('返回','BACK'),18,bottom,90,false,true,'back');
-      button('history',this.t('刷新','REFRESH'),114,bottom,94,false,true,'refresh');
-      if(online.history?.nextCursor)button('historyMore',this.t('加载更多','LOAD MORE'),pw-150,bottom,132,false,true,'next');
-      return;
-    }
-    if (online.panel === 'menu') {
-      const waiting = online.rooms.filter(room => room.status === 'waiting').length;
-      label(online.message || this.t('等待中 ', 'WAITING ') + waiting + this.t(' · 对战中 ', ' · PLAYING ') + (online.rooms.length - waiting), 61, 12, C.amber);
-      const rows = online.rooms.slice(online.roomPage * count, (online.roomPage + 1) * count);
-      rows.forEach((room, i) => {
-        const y=81+i*52;
-        this.rect(g,px+20,py+y,pw-40,48,'#1a2d3944');
-        if (this.missionArtwork[0]) this.coverImage(n, 'RoomTerrain-' + room.code, this.missionArtwork[0], px + 24, py + y + 5, 38, 38);
-        else this.controlIcon(g,room.canJoin?'lobby':'mission',px+43,py+y+23,22,room.canJoin?C.amber:C.mint);
-        const names=room.players.map(player=>player.nickname||player.name||'飞行员').join(' / '),textW=pw-176;
-        const name=this.label(n,names,px+70+textW/2,py+y+14,13,textW,24,C.white);name.horizontalAlign=Label.HorizontalAlign.LEFT;
-        const detail=this.label(n,'#'+room.code+'  ·  '+room.playerCount+'/2  ·  '+(room.status === 'waiting' ? room.canJoin ? this.t('等待加入','WAITING') : this.t('等待开战','READY ROOM') : this.t('对战中','IN BATTLE')),px+70+textW/2,py+y+35,10,textW,20,C.dim);detail.horizontalAlign=Label.HorizontalAlign.LEFT;
-        button((room.canJoin?'joinCode:':'watchCode:')+room.code,room.canJoin?this.t('加入','JOIN'):this.t('观战','WATCH'),pw-102,y+2,82);
-      });
-      if(!rows.length){const yy=ph<280?78:ph<340?108:144;if(ph>=280)this.controlIcon(g,'lobby',px+pw/2,py+yy,34,C.line);label(this.t('空域待命，等你出发','THE SKIES ARE QUIET'),yy+32,16,C.white);if(ph>=340)label(this.t('创建房间邀请好友，或先进行人机练习','CREATE A ROOM FOR FRIENDS OR PRACTICE WITH A BOT'),yy+58,11,C.dim);}
-      const cw = (pw - 60) / 4;
-      for (const [i,[id,name]] of [['friend',this.t('创建房间','CREATE')],['join',this.t('加入房间','JOIN ROOM')],['match',this.t('随机匹配','RANDOM')],['bot',this.t('人机对战','BOT')]].entries())button(id,name,18+i*(cw+8),bottom-52,cw,true,false,pw>=660?['plus','join','match','bot'][i]:'');
-      this.rect(g,px+20,py+bottom-4,pw-40,1,'#8ba0ab33');
-      button('back',this.t('返回','BACK'),18,bottom,82,false,true,'back');
-      button('history',this.t('对战记录','RECORDS'),106,bottom,108,false,true,'history');
-      button(online.resumeCode?'resumeRoom':'roomsRefresh',online.resumeCode?this.t('重连','REJOIN'):pw<500?'':this.t('刷新','REFRESH'),224,bottom,Math.min(online.resumeCode?110:80,pw-382),false,true,online.resumeCode?'':'refresh');
-      button('roomPrev','',pw-150,bottom,44,false,false,'back',online.roomPage===0);
-      button('roomNext','',pw-62,bottom,44,false,false,'next',online.rooms.length<=(online.roomPage+1)*count);
-      this.label(n,`${online.roomPage+1}/${Math.max(1,Math.ceil(online.rooms.length/count))}`,px+pw-84,py+bottom+22,11,44,24,C.dim);
-      return;
-    }
-    const room = online.room;
-    label(room ? this.t('房间号 ', 'ROOM ') + room.code + (room.visibility === 'private' ? this.t(' · 私密', ' · PRIVATE') : '') : online.busy ? this.t('正在连接…', 'CONNECTING…') : '', 78, 20, C.amber);
-    for (let i = 0; i < 2; i++) {
-      const player = room?.players[i], own = player && playerId(player) === playerId(online.identity), y = 117 + i * 34;
-      if (own) this.plate(g, px + 18, py + y - 14, pw - 36, 30, '#29423c', C.mint, 5);
-      label(player ? playerLabel(player) + (own ? this.t(' · 你', ' · YOU') : '') + ' · ' + (player.ready ? this.t('已准备', 'READY') : this.t('未准备', 'NOT READY'))
-        : this.t('等待另一位飞行员', 'WAITING FOR ANOTHER PILOT'), y, 13, own ? C.mint : C.white);
-    }
-    label(online.message || this.t('把房间号告诉好友，双方准备后开始', 'TELL YOUR FRIEND THE ROOM NUMBER · BOTH READY TO START'), bottom - 25, 11, C.dim);
-    const cw = Math.min(180,(pw - 52) / 3);
-    button('backLobby', this.t('离开房间', 'LEAVE'), 18, bottom, cw,false,false,'back');
-    if (room?.status === 'waiting' && !online.spectator) {
-      button('chatInvite', this.t('大厅邀请', 'INVITE'), 26 + cw, bottom, cw);
-      button('ready', room.players[room.you]?.ready ? this.t('取消准备', 'CANCEL READY') : this.t('准备', 'READY UP'), pw-18-cw, bottom, cw);
-    }
-  }
   renderModal(key: string, s: Simulation, world: World) {
     const family = key.startsWith('online:') ? key.split(':').slice(0, 2).join(':') : key.split(':')[0];
-    if(family==='online:menu'&&this.modalFamily===family&&this.modal&&this.lobbyComposer&&isValid(this.lobbyComposer.node)){if(key!==this.modalKey||this.lobbyStamp!==`${this.online!.revision}:${this.online!.chatRevision}`){this.renderLobby(this.modal);this.modalKey=key;}return;}
+    if (family === 'online:menu' && this.modalFamily === family && this.modal && this.onlineView.refreshLobby(this.modal, key !== this.modalKey)) {
+      this.modalKey = key;
+      return;
+    }
     if (family === this.modalFamily && this.editing) return;
     if (s.phase !== 'playing' && this.online && this.onlineRevision !== this.online.revision) {
       this.onlineRevision = this.online.revision; this.modalKey = '';
@@ -1494,7 +1022,7 @@ export class HUD {
       this.label(n, this.t('火控系统就绪 · 祝行动顺利', 'FIRE CONTROL READY · GOOD HUNTING'), this.w / 2, py + 105, 13, pw - 30, 32, C.mint);
       return;
     }
-    if (key.startsWith('online:') || key === 'duelResult') { this.renderOnline(n, g, s, key === 'duelResult'); return; }
+    if (key.startsWith('online:') || key === 'duelResult') { this.onlineView.renderOnline(n, g, s, key === 'duelResult'); return; }
     if (key === 'home' || key === 'missions') { this.renderHome(n, g, s); return; }
     if(key.startsWith('report:')){
       const pw=Math.min(1060,this.w-this.safe.left-this.safe.right-24),ph=Math.min(590,this.h-this.safe.top-this.safe.bottom-20),px=this.safe.left+(this.w-this.safe.left-this.safe.right-pw)/2,py=this.safe.top+(this.h-this.safe.top-this.safe.bottom-ph)/2;
@@ -1551,7 +1079,7 @@ export class HUD {
         const label=this.label(n,lines.join('\n'),x+cw/2,py+100+bodyH/2,font,cw-20,bodyH-12,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;label.verticalAlign=Label.VerticalAlign.TOP;label.lineHeight=font*1.45;label.overflow=Label.Overflow.SHRINK;
       });return;
     }
-    if (key.startsWith('help')) { this.renderGuide(n, g); return; }
+    if (key.startsWith('help')) { this.settingsView.renderGuide(n, g); return; }
     if (key.startsWith('countdown:')) {
       const x = this.safe.left + (this.w - this.safe.left - this.safe.right) / 2,
         y = this.safe.top + (this.h - this.safe.top - this.safe.bottom) / 2,
@@ -1625,7 +1153,7 @@ export class HUD {
       }
       return;
     }
-    if (key === 'pause' || key.startsWith('settings')) { this.renderSettings(n, g, s, world, key); return; }
+    if (key === 'pause' || key.startsWith('settings')) { this.settingsView.renderSettings(n, g, s, world, key); return; }
     if (key.startsWith('advert:')) {
       const pw = Math.min(420, this.w - this.safe.left - this.safe.right - 32);
       const ph = Math.min(244, this.h - this.safe.top - this.safe.bottom - 74);

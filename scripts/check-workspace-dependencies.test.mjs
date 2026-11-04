@@ -315,13 +315,65 @@ test('allows only exact shared competition rule edges, never game runtime servic
   assert.ok(violations.some((entry) => entry.message.includes('main.js')));
 });
 
-test('Night chat acceptance imports only its exact Runtime fixture tool', async (t) => {
+test('Night storage manifest is restricted to four artifact and staging callers', async (t) => {
+  const manifest = 'platforms/competition/night-storage/manifest.mjs';
+  const root = await createWorkspace([
+    {
+      path: 'games/local/night-overwatch',
+      manifest: { name: '@coffeeeeffoc/night-overwatch' },
+      files: Object.fromEntries(
+        ['scripts/artifact.mjs', 'tests/artifact.test.ts'].map((file) => [
+          file,
+          `import '../../../../${manifest}';`,
+        ]),
+      ),
+    },
+    {
+      path: 'apps/shell-minigame',
+      manifest: { name: '@coffeeeeffoc/shell-minigame' },
+      files: Object.fromEntries(
+        ['scripts/night-native-project.mjs', 'scripts/night-native-project.test.mjs'].map(
+          (file) => [file, `import '../../../${manifest}';`],
+        ),
+      ),
+    },
+  ]);
+  t.after(() => rm(root, { recursive: true, force: true }));
+  assert.deepEqual(await validateWorkspace(root), []);
+  const rejected = {
+    'games/local/night-overwatch/scripts/other.mjs': `import '../../../../${manifest}';`,
+    'games/local/night-overwatch/assets/scripts/main.ts': `import '../../../../../${manifest}';`,
+    'apps/shell-minigame/scripts/other.mjs': `import '../../../${manifest}';`,
+    'games/local/night-overwatch/scripts/artifact.mjs':
+      "import '../../../../platforms/competition/night-storage/runtime.mjs';",
+    'apps/shell-minigame/scripts/night-native-project.mjs':
+      "import '../../../platforms/competition/night-storage/runtime.mjs';",
+  };
+  for (const [relative, source] of Object.entries(rejected)) {
+    const file = path.join(root, relative);
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, source);
+  }
+  const violations = await validateWorkspace(root);
+  assert(violations.every((entry) => entry.code === 'cross-package-relative'));
+  assert.deepEqual(
+    violations.map((entry) => entry.message.replaceAll('\\', '/').split(' imports ')[0]).sort(),
+    Object.keys(rejected).sort(),
+  );
+});
+
+test('Night browser acceptance imports only its exact Runtime fixture tool', async (t) => {
   const fixtureImport = "import '../../../../scripts/h5-taptap-runtime.mjs';\n";
   const root = await createWorkspace([
     {
       path: 'games/local/night-overwatch',
       manifest: { name: '@coffeeeeffoc/night-overwatch' },
-      files: { 'tests/chat-live-browser.mjs': fixtureImport },
+      files: Object.fromEntries(
+        ['chat-live-browser', 'indexeddb-browser', 'settlement-live-browser'].map((name) => [
+          `tests/${name}.mjs`,
+          fixtureImport,
+        ]),
+      ),
     },
     {
       path: 'games/local/other-game',

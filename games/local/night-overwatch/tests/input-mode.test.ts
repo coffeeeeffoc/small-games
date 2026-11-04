@@ -44,20 +44,26 @@ const hooks = registerHooks({
     return result;
   },
 });
-let Overwatch: any, Platform: any;
+let Overwatch: any, Platform: any, getNightStorage: any;
 try {
   ({ Overwatch } = await import(sourceURL.href));
   ({ Platform } = await import(new URL('Platform.ts', folder).href));
+  ({ getNightStorage } = await import(new URL('Storage.ts', folder).href));
 } finally { hooks.deregister(); delete (globalThis as any).__nightInputCC; }
 const touch = (id: number, x = 950, y = 100, simulate = false) => ({ simulate,
   getTouches: () => [{ getID: () => id, getUILocation: () => ({ x, y }), getLocation: () => ({ x, y }) }] });
+// Explicit test adapter: existing fault cases replace the channel store during the scenario.
+const testStorage = { getItem:(key:string)=>cc.sys.localStorage.getItem(key),
+  setItem:(key:string,value:string)=>(cc.sys.localStorage as any).setItem(key,value),
+  removeItem:(key:string)=>(cc.sys.localStorage as any).removeItem(key),
+  key:(index:number)=>(cc.sys.localStorage as any).key(index),get length(){return (cc.sys.localStorage as any).length||0;} };
 function mission() {
   const g = new Overwatch();
   g.hud = { t: (value: string) => value, supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire',x:900,y:450,w:68,h:68 } : undefined,
     controlPositions:{},controlBounds:()=>({x:0,y:0,w:932,h:532}),placeControl(){},
     controlAt: () => undefined, listAt: () => undefined, minimapPoint: () => undefined, blocksBattlefield: () => false };
   g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, viewMode: 'night', updateCamera() {}, reset() {}, setView(mode) { this.viewMode=mode;this.thermal=mode==='thermal'; }, sensor() { this.setView(this.viewMode==='night'?'enhanced':this.viewMode==='enhanced'?'thermal':'night'); } };
-  g.platform = new Platform(new Node(), g.pause, g.clear);
+  g.platform = new Platform(new Node(), g.pause, g.clear, testStorage);
   g.sim.start(); g.sim.choose(0);
   return g;
 }
@@ -511,7 +517,7 @@ test('completed entitlement survives close, home, reload and background; repeate
     restored.hide(); assert(restored.sim.paused); restored.show(); assert(!restored.sim.paused);
     assert.equal(restored.sim.resumeCountdown, 0);
     assert(!restored.sim.paused);
-    const consumed = new Platform(new Node(), () => {}, () => {});
+    const consumed = new Platform(new Node(), () => {}, () => {}, testStorage);
     assert.equal(consumed.rewards.pendingSupply, false); assert.equal(consumed.rewards.ammo, 2);
     restored.platform.dispose(); consumed.dispose();
   } finally { cc.sys.localStorage = original; g.platform.dispose(); }
@@ -548,13 +554,13 @@ test('practice rewards stay in their startup namespace when developer mode chang
   cc.sys.localStorage = { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } as any;
   let practice: any, normal: any;
   try {
-    practice = new Platform(new Node(), () => {}, () => {});
+    practice = new Platform(new Node(), () => {}, () => {}, testStorage);
     assert.equal(await practice.offerReward('supply'), 'mock');
     developer = false;
     practice.grantReward('supply');
     assert(saved.has('night-overwatch-rewards-dev-v1'));
     assert(!saved.has('night-overwatch-rewards-v1'));
-    normal = new Platform(new Node(), () => {}, () => {});
+    normal = new Platform(new Node(), () => {}, () => {}, testStorage);
     assert.equal(normal.rewards.pendingSupply, false);
     developer = true;
     assert.equal(await normal.offerReward('supply'), 'unavailable', 'runtime dev switch cannot grant practice rewards into a normal session');
@@ -1012,3 +1018,12 @@ test('refinement: horizontal wheel moves right and vertical wheel remains a forw
  g.wheel({getScrollX:()=>0,getScrollY:()=>-20});assert.equal(offset,10);
  g.wheel({getScrollX:()=>-50,getScrollY:()=>0});assert.equal(offset,0);g.platform.dispose();
 });
+
+ test('unified Night storage is explicit on H5 and retains the exact native channel instance',()=>{
+  const globals=globalThis as any,previous=globals.__nightStorage,browser=cc.sys.isBrowser;
+  try {
+   cc.sys.isBrowser=false;assert.equal(getNightStorage(),cc.sys.localStorage);
+   cc.sys.isBrowser=true;delete globals.__nightStorage;assert.throws(()=>getNightStorage(),{code:'STORAGE_UNAVAILABLE'});
+   globals.__nightStorage={getItem:()=> 'backend'};assert.equal(getNightStorage(),globals.__nightStorage);
+  }finally{cc.sys.isBrowser=browser;if(previous===undefined)delete globals.__nightStorage;else globals.__nightStorage=previous;}
+ });

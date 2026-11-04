@@ -1,3 +1,4 @@
+import { nightStorageSourceFiles } from '../../../platforms/competition/night-storage/manifest.mjs';
 import { cp, mkdir, mkdtemp, lstat, readdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -9,12 +10,12 @@ const normalize = (text) => text.replaceAll('\r\n', '\n');
 const recipe = [
   {
     file: 'assets/scripts/HUD.ts',
-    originalSha256: 'bbad4e8bd9e63c16de6ec251df05f0f2dfd5c9cec48ffa446ea3d048a7614f4d',
+    originalSha256: '8e8a15e6224c0133f5a182c6db67db78964187ec632e69258ab475faafff7d6d',
     changes: [],
   },
   {
     file: 'assets/scripts/Platform.ts',
-    originalSha256: '81ce9520e57be7ea42ef818641c1f213efc8a807fe3cdb2e7699905fec73750b',
+    originalSha256: '3be14daf27ed63a9706d22ca35cdcd1b22a8a4bd66a695f23ac297348359de97',
     changes: [],
   },
 ];
@@ -126,6 +127,7 @@ export async function prepareNativeProject(gameRoot, { stageBase } = {}) {
       'platforms/competition/client.js',
       'platforms/competition/game-services.js',
       'platforms/competition/game-bootstrap.js',
+      ...nightStorageSourceFiles,
       'platforms/taptap/competition-identity.mjs',
       'platforms/taptap/calls.mjs',
     ])

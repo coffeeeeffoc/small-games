@@ -174,7 +174,7 @@ export class Online {
     const generation = this.generation;
     this.bridge = bridge;
     if (bridge) {
-      const recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage, source: 'cocos.localStorage' }, startTimeoutMs: 8000, onStatus: status => {
+      const recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage, source: (this.storage as {source?:string}).source || 'cocos.localStorage' }, startTimeoutMs: 8000, onStatus: status => {
         if (this.destroyed || this.bridge !== bridge || this.recorder !== recorder) return;
         this.rankStatus = status === 'expired' ? 'unavailable' : status;
         if (status === 'expired') this.message = '本次行动已结束或超过 24 小时，请重新开始';

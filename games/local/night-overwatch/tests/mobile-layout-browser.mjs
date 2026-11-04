@@ -32,6 +32,12 @@ try{
   if(host==='tap'){assert.equal(s.safe.top,24);assert(s.buttons.find(b=>b.id==='settings').x+44<=width-96);}
   await start();const initial=await shot('battle');
   await click('settings');await shot('settings');
+  await click('help');s=await snapshot(page);assert(s.modal.startsWith('help:')&&s.scrollMax>0&&s.lastHelpLine);
+  const guideArea=await page.evaluate(async()=>{const {director}=await System.import('cc');return director.getScene().getComponentsInChildren('Overwatch')[0].hud.scrollArea;});
+  await page.mouse.move(guideArea.x+guideArea.w*.5,guideArea.y+guideArea.h*.5);await page.mouse.wheel(0,10000);await settleVisuals(page);
+  s=await shot('guide-scrolled');assert(s.scroll>0&&s.scroll<=s.scrollMax,'guide content scrolls while footer remains reachable');
+  for(const group of ['advanced','rules','basic']){await click('tab:'+group);s=await snapshot(page);assert(s.modal.startsWith('help:'+group)&&s.lastHelpLine);}
+  await click('close');assert((await snapshot(page)).modal.startsWith('settings'));
   for(const id of ['flightControls','zoomControls','buttonControls'])assert(!(await snapshot(page)).buttons.find(b=>b.id===id).bold,'navigation is not simultaneously selected');
   await click('zoomControls');s=await shot('zoom-settings');
   const resume=s.buttons.find(b=>b.id==='resume');assert(s.buttons.filter(b=>b.id!=='resume'&&b.id!=='close').every(b=>!overlap(b,resume)),'zoom rows stay above footer');
@@ -119,7 +125,7 @@ try{
    await shot('marker-zoom');const probe=await page.evaluate(()=>globalThis.__markerProbe);
    assert(probe.frames>50&&probe.contacts>100&&probe.covered>0,JSON.stringify(probe));assert(probe.maxZoom/probe.minZoom>3,JSON.stringify(probe));assert.deepEqual(probe.missing,[]);evidence.markers=probe;
   }
-  evidence.checks.push({width,height,host,homeClear:true,sizeLimits:true,sizePersisted:true,dragFire:true,directFireDrag:true,circularFireFeedback:true,aimAndFire:true,cancelRestores:true,layoutPaused:true,resume:true,touchCancel:true});
+  evidence.checks.push({width,height,host,homeClear:true,guideScrollAndTabs:true,sizeLimits:true,sizePersisted:true,dragFire:true,directFireDrag:true,circularFireFeedback:true,aimAndFire:true,cancelRestores:true,layoutPaused:true,resume:true,touchCancel:true});
   await context.close();
  }
  assert.deepEqual(evidence.errors,[]);await acceptanceBuild(base);await writeFile(`${out}/evidence.json`,JSON.stringify(evidence,null,2));console.log(JSON.stringify(evidence,null,2));

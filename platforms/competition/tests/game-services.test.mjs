@@ -192,44 +192,47 @@ test('Night storage diagnostics identify no-op readback and sanitize thrown stor
   }
 });
 
-test('Night H5 uses real browser storage while native retains its supplied storage and getter failures are visible', async () => {
+test('Night durable records honor the explicit shared instance and never consult raw browser storage', async () => {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'window');
   try {
-    for (const mode of ['h5', 'wechat', 'getter']) {
-      const f = durableFixture(),
-        noop = { length: 0, key() {}, getItem() {}, setItem() {}, removeItem() {} };
-      if (mode === 'wechat') f.services.config.platform = 'wechat';
-      const browser = {};
-      Object.defineProperty(browser, 'localStorage', {
-        get() {
-          if (mode === 'getter')
-            throw Object.assign(Error('Browser storage blocked'), { name: 'SecurityError' });
-          return f.storage;
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: {
+        get localStorage() {
+          throw Error('Raw storage must not be read');
         },
-      });
-      Object.defineProperty(globalThis, 'window', { configurable: true, value: browser });
-      const recorder = createRunRecorder(f.services, {
-        durable: { storage: noop, source: 'cocos.localStorage' },
-      });
+      },
+    });
+    for (const platform of ['h5', 'wechat']) {
+      const f = durableFixture();
+      f.services.config.platform = platform;
+      const recorder = createRunRecorder(f.services, { durable: { storage: f.storage } });
       await recorder.start({ mode: 'campaign', levelId: 'first' });
-      if (mode === 'h5') {
-        assert.equal(recorder.status, 'recording');
-        assert.equal(f.runs.size, 1);
-        assert.equal(recorder.storageDiagnostic, '');
-      } else {
-        assert.equal(recorder.status, 'storage-unavailable');
-        assert.equal(f.runs.size, 0);
-        assert(recorder.storageDiagnostic.includes('cocos.localStorage'));
-        if (mode === 'getter')
-          assert(
-            recorder.storageDiagnostic.includes('window.localStorage') &&
-              recorder.storageDiagnostic.includes('SecurityError'),
-          );
-      }
+      assert.equal(recorder.status, 'recording');
+      assert.equal(f.runs.size, 1);
     }
   } finally {
     if (previous) Object.defineProperty(globalThis, 'window', previous);
     else delete globalThis.window;
+  }
+});
+
+test('direct Night H5 service creation requires the unified instance and accepts explicit adapters', (t) => {
+  const previous = globalThis.__COMPETITION_CONFIG__,
+    storage = globalThis.__nightStorage;
+  t.after(() => {
+    globalThis.__COMPETITION_CONFIG__ = previous;
+    globalThis.__nightStorage = storage;
+  });
+  delete globalThis.__nightStorage;
+  for (const platform of ['h5', 'web-preview', undefined]) {
+    globalThis.__COMPETITION_CONFIG__ = { game: 'night-overwatch', platform };
+    assert.throws(() => createGameServices({ gameId: 'night-overwatch' }), {
+      code: 'STORAGE_UNAVAILABLE',
+    });
+    assert.doesNotThrow(() =>
+      createGameServices({ gameId: 'night-overwatch', storage: durableFixture().storage }),
+    );
   }
 });
 
@@ -1252,7 +1255,11 @@ test('Night expired cached identity remains recoverable when refresh is temporar
   f.respond = async () => {
     throw Error('offline');
   };
-  const services = createGameServices({ gameId: 'night-overwatch', ruleVersion: 'v8' });
+  const services = createGameServices({
+    storage: globalThis.localStorage,
+    gameId: 'night-overwatch',
+    ruleVersion: 'v8',
+  });
   const storage = durableFixture().storage;
   const recorder = createRunRecorder(services, { durable: { storage } });
   await recorder.start({ mode: 'campaign', levelId: 'first' });
@@ -1279,7 +1286,7 @@ test('Night cached account A cannot read or mutate assets using a newly selected
   const f = authFixture(t, {
     initial: JSON.stringify(credential('a', Date.now() + 900000, 'night-overwatch')),
   });
-  const api = createGameServices({ gameId: 'night-overwatch' });
+  const api = createGameServices({ storage: globalThis.localStorage, gameId: 'night-overwatch' });
   await api.session();
   f.setStorage(JSON.stringify(credential('b', Date.now() + 900000, 'night-overwatch')));
   const before = f.calls.length;
@@ -1293,7 +1300,7 @@ test('Night chat uses scoped credentials, bounded polling, stable intents and in
   const f = authFixture(t, {
     initial: JSON.stringify(credential('a', Date.now() + 900000, 'night-overwatch')),
   });
-  const api = createGameServices({ gameId: 'night-overwatch' }),
+  const api = createGameServices({ storage: globalThis.localStorage, gameId: 'night-overwatch' }),
     cursor = 'a'.repeat(64);
   await api.nightChat({ cursor, waitMs: 5000 }, 'a');
   assert.equal(
@@ -1327,7 +1334,7 @@ test('Night chat rejects late account A responses after selecting account B', as
   const f = authFixture(t, {
     initial: JSON.stringify(credential('a', Date.now() + 900000, 'night-overwatch')),
   });
-  const api = createGameServices({ gameId: 'night-overwatch' });
+  const api = createGameServices({ storage: globalThis.localStorage, gameId: 'night-overwatch' });
   f.respond = async () => {
     f.setStorage(JSON.stringify(credential('b', Date.now() + 900000, 'night-overwatch')));
     return { messages: [{ playerId: 'a', text: '迟到' }] };
@@ -1346,7 +1353,7 @@ test('shared development assets use each game scope and Night forwards its exist
     await original(url, init);
     return { playerId: 'a', coins: 25 };
   };
-  const api = createGameServices({ gameId: 'night-overwatch' });
+  const api = createGameServices({ storage: globalThis.localStorage, gameId: 'night-overwatch' });
   await api.nightAssetCommand(
     { kind: 'dev-adjust', requestId: 'same-id', coinsDelta: -7, xpDelta: 20 },
     'a',
@@ -1469,7 +1476,11 @@ function authFixture(t, { initial = JSON.stringify(credential()), config = {} } 
 test('Night authenticated retired old-version reads are allowed without allowing active or other-game roots', async (t) => {
   const owner = credential('a', Date.now() + 900000, 'night-overwatch');
   const f = authFixture(t, { initial: JSON.stringify(owner) }),
-    api = createGameServices({ gameId: 'night-overwatch', ruleVersion: 'v12' });
+    api = createGameServices({
+      storage: globalThis.localStorage,
+      gameId: 'night-overwatch',
+      ruleVersion: 'v12',
+    });
   let remote = {
     id: 'retired-run',
     game: 'night-overwatch',

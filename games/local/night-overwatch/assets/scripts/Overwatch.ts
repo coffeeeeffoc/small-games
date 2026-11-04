@@ -1,3 +1,4 @@
+import { captureOverwatchSnapshot } from './OverwatchSnapshot';
 import {
   _decorator,
   Component,
@@ -11,7 +12,6 @@ import {
   view,
   sys,
   macro,
-  director,
 } from 'cc';
 import { Simulation, type PauseReason } from './core/Simulation';
 import { ACTIONS, TUTORIAL } from './core/Actions';
@@ -82,7 +82,7 @@ export class Overwatch extends Component {
     this.world.camera.visibility = 1 << 30;
     this.platform = new Platform(this.node, this.pause, this.clear);
     this.prepareMission(sys.isBrowser ? location.search : '');
-    this.online = new Online(sys.localStorage, (state, start) => {
+    this.online = new Online(this.platform.storage, (state, start) => {
       const previous = this.sim, pauses = new Set(previous.pauses);
       this.sim = Simulation.restore(state.simulation);
       this.sim.pauses = pauses;
@@ -105,7 +105,7 @@ export class Overwatch extends Component {
       this.hud.modalKey = state.finished ? 'rebuild' : this.hud.modalKey;
     });
     this.hud.online = this.online;
-    this.quartermaster=new Quartermaster(this.online,sys.localStorage);
+    this.quartermaster=new Quartermaster(this.online,this.platform.storage);
     this.hud.quartermaster=this.quartermaster;
     this.stopDeveloperTools=installDeveloperTools(this);
     this.servicesReady = this.connectServices();
@@ -1436,162 +1436,7 @@ export class Overwatch extends Component {
     }
   }
   snapshot() {
-    return {
-      progression:this.quartermaster&&{draft:this.quartermaster.loadout,slot:this.quartermaster.slot,dirty:this.quartermaster.dirty,scroll:this.quartermaster.loadoutScroll,gift:this.quartermaster.gift,leaveTo:this.quartermaster.leaveTo,drag:this.quartermaster.drag,page:this.quartermaster.page,mode:this.quartermaster.mode,actionMode:this.quartermaster.actionMode,busy:this.quartermaster.busy,assets:this.online?.assets,message:this.quartermaster.message,pending:!!this.quartermaster.pending},
-      skill:{kind:this.sim.skillKind,remaining:this.sim.skillRemaining,cooldown:this.sim.skillCooldown},
-      online: this.online && { identity: this.online.identity, panel: this.online.panel, room: this.online.room,
-        active: this.online.active, message: this.online.message, rankStatus: this.online.rankStatus,
-        rooms: this.online.rooms, history: this.online.history, ranking: this.online.ranking, board: this.online.board },
-      fireZones: this.sim.fireZones,
-      battleReport: this.hud.reportOpen,
-      equipmentOpen:this.hud.equipmentOpen,loadout:this.sim.loadout,attackCount:this.sim.attackCount,enemyEquipment:this.online?.view?.enemyEquipment,
-      timeComparison: this.hud.timeComparison,
-      homingAmmo: this.sim.homingAmmo,
-      homingSelected: this.sim.homingSelected,
-      homingTarget: this.sim.homingSelected ? this.sim.homingTarget?.id : undefined,
-      zoomLimit: this.world.zoomLimit,
-      advert: this.hud.advert,
-      pendingSupply: this.platform.rewards.pendingSupply,
-      supplySelection: this.hud.supplySelection,
-      supplyMessage: this.hud.supplyMessage,
-      extractionRemaining: this.sim.extractionRemaining,
-      extractionRadioPending: this.sim.extractionRadioPending,
-      buff: this.sim.buff ? { ...this.sim.buff } : null,
-      resumeCountdown: this.sim.resumeCountdown,
-      locks: this.hud.lockedTargets,
-      phase: this.sim.phase,
-      mission: { id: this.sim.mission.id, mode: this.sim.mission.mode, map: this.sim.mission.map, name: this.sim.mission.name, spawned: this.sim.spawned.size, total: this.sim.mission.events.length },
-      trainingBest: this.hud.trainingBest,
-      operationProgress: this.hud.missionProgress,
-      operationPractice: this.operationPractice,
-      missionPage: this.hud.missionPage,
-      scrollLists:this.hud.listAreas.map(a=>({...a,offset:a.key.startsWith('qm:')?this.quartermaster?.scrolls[a.key]||0:this.hud.listScroll[a.key]||0})),
-      chat:this.online?{messages:this.online.visibleChat,draft:this.online.chatDraft,status:this.online.chatStatus,blocked:Array.from(this.online.blockedPlayers),sending:this.online.chatSending}:undefined,
-      time: this.sim.time,
-      presentedTime: this.presentedTime,
-      completionTime: this.sim.completionTime,
-      remaining: this.sim.remaining,
-      pauses: Array.from(this.sim.pauses),
-      convoy: this.sim.convoy,
-      progress: this.sim.ratio,
-      aim: this.sim.aim,
-      aircraft: { ...this.sim.aircraft },
-      aircraftModel: {
-        status: this.world.aircraftModel.status,
-        error: this.world.aircraftModel.error,
-        triangles: this.world.aircraftModel.triangleCount,
-        muzzle: this.world.aircraftModel.worldMuzzle,
-      },
-      flightTime: this.sim.flightTime(),
-      threatsRemaining: this.sim.threatsRemaining,
-      camera: {
-        position: { x: this.world.cameraNode.position.x, y: this.world.cameraNode.position.y, z: this.world.cameraNode.position.z },
-        rotation: { x: this.world.cameraNode.eulerAngles.x, y: this.world.cameraNode.eulerAngles.y, z: this.world.cameraNode.eulerAngles.z },
-        center: { ...this.world.center },
-        fov: this.world.camera.fov,
-        projection: this.world.camera.projection,
-      },
-      shotPositions: this.sim.shots.map((shot) => ({ id: shot.id, ...this.sim.shotPosition(shot) })),
-      unitLabels: Array.from(this.hud.unitLabels, ([id, label]) => ({
-        id, text: label.string, active: label.node.activeInHierarchy,
-        x: label.node.position.x, y: label.node.position.y,
-      })),
-      effects: this.hud.effects,
-      recoil: this.world.recoil,
-      lastSound: this.platform.lastSound,
-      mousePointer: this.hud.mousePointer,
-      selected: this.sim.selected,
-      weaponReadiness: this.sim.guns.map((_,i)=>this.sim.weaponReadiness(i)),
-      lasers:this.sim.lasers,
-      drones:this.sim.drones,
-      guns: this.sim.guns.map((g) => ({ ...g, ammo: g.ammo === Infinity ? 'infinite' : g.ammo })),
-      shots: this.sim.shots,
-      units: this.sim.units.map((u) => ({ ...u })),
-      kills: this.sim.kills,
-      friendlyKills: this.sim.friendlyKills,
-      groundAttacks: this.sim.events.filter((e) => e.type === 'attack').slice(-12),
-      fired: this.sim.fired,
-      ammoSpent: this.sim.ammoSpent,
-      hits: this.sim.hits,
-      friendlyDamage: this.sim.friendlyDamage,
-      rescueDamage: this.sim.rescueDamage,
-      damageByThreat: this.sim.damageByThreat,
-      failureCause: this.sim.failureCause,
-      impacts: this.sim.events.filter((e) => e.type === 'impact').slice(-5),
-      rating: this.sim.rating,
-      failure: this.sim.failure,
-      failedGroup: this.sim.failedGroup,
-      reason: this.sim.reason(),
-      friendlyRisk: this.sim.friendlyRisk,
-      aimedUnit: this.sim.aimedUnit?.id,
-      ui: {
-        homeArtworkReady: !!this.hud.homeArtwork.spriteFrame,
-        interfaceArtworkReady: this.hud.interfaceArtworkReady,
-        artwork: { loading:this.hud.progressionArt.loadingAssets, failed:Array.from(this.hud.progressionArt.failed), ready:Array.from(this.hud.progressionArt.frames.keys()) },
-        pressedButton: this.hud.pressedButton,
-        worldVisible: this.world.root.active,
-        width: this.hud.w,
-        height: this.hud.h,
-        minimap: this.hud.minimapLayout,
-        notice: this.hud.labels.get('notice')?.string,
-        warning: this.hud.labels.get('friendWarning')?.string,
-        warningColor: this.hud.labels.get('friendWarning')?.color.toHEX(),
-        fire: this.hud.buttons.find((b) => b.id === 'fire')?.label.string,
-        radio: this.hud.radioText,
-        tutorial: this.hud.labels.get('tutorial')?.string,
-        feedback: this.hud.labels.get('target')?.string,
-        muted: this.platform.muted,
-        voicePrompts: this.platform.voicePrompts,
-        autoPriority: this.platform.autoPriority,
-        viewMode: this.world.viewMode,
-        battleStatus: this.hud.labels.get('health')?.string,
-        combatantNames:[0,1].map(side=>{const label=this.hud.labels.get('spectator:'+side);return {text:label?.string,active:label?.node.activeInHierarchy,fontSize:label?.fontSize,wrap:label?.enableWrapText};}),
-        reducedEffects: this.platform.reducedEffects,
-      },
-      held: Array.from(this.sim.held),
-      completed: Array.from(this.sim.completed),
-      modal: this.hud.modalKey,
-      scroll: this.hud.scroll,
-      scrollMax: this.hud.scrollMax,
-      lastHelpLine: this.hud.lastHelpLine,
-      buttons: this.hud.buttons
-        .filter(
-          (b) =>
-            b.label.node.activeInHierarchy &&
-            (!this.hud.modal || this.hud.inModal(b.label.node) || this.hud.isGlobalAction(b.id)),
-        )
-        .map(({ id, x, y, w, h, label, visual, disabled, clip }) => {
-          const right=clip?Math.min(x+w,clip.x+clip.w):x+w,bottom=clip?Math.min(y+h,clip.y+clip.h):y+h;
-          if(clip){x=Math.max(x,clip.x);y=Math.max(y,clip.y);}w=Math.max(0,right-x);h=Math.max(0,bottom-y);
-          return {id,x,y,w,h,visual,clip,disabled:!!disabled,text:label.string,bold:label.isBold,color:label.color.toHEX()};
-        }).filter(b=>b.w>0&&b.h>0),
-      zoom: this.world.zoom,
-      follow: this.world.follow,
-      safe: this.hud.safe,
-      temporary: this.world.temporary,
-      thermal: this.world.thermal,
-      viewMode: this.world.viewMode,
-      modelImport: this.world.modelImport,
-      visualMaterialStatus: this.world.visualMaterialStatus,
-      visualMaterialError: this.world.visualMaterialError,
-      audio: this.platform.audioStatus,
-      enginePlaying: this.platform.engine.playing,
-      radioPlaying: this.platform.radio.playing,
-      radioPending: this.platform.radioPending,
-      radioTime: this.platform.radio.currentTime,
-      radioDuration: this.platform.radio.duration,
-      light: this.sim.mission.light,
-      priority: this.sim.priorityThreat && { id: this.sim.priorityThreat.unit.id, targetId: this.sim.priorityThreat.target.id,
-        dueIn: this.sim.priorityThreat.dueIn, critical: this.sim.priorityThreat.critical },
-      assets: Array.from(this.world.assets),
-      renderNodes: this.world.views.size,
-      wrecks: Array.from(this.world.views, ([id, v]) => ({ id, wreck: v.wreck, scale: v.node.scale.x })),
-      markerLabels: this.hud.unitLabels.size,
-      frameRate: this.measuredFps,
-      drawCalls: (director.root as any)?.device?.numDrawCalls,
-      triangles: (director.root as any)?.device?.numTris,
-      visibleEffects: this.sim.events.filter((e) => this.sim.time - e.time < 0.7).length,
-    };
+    return captureOverwatchSnapshot(this, this.presentedTime);
   }
   onDestroy() {
     this.disposed = true;
