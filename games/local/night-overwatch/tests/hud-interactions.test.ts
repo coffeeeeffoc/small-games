@@ -160,6 +160,76 @@ test('equipped supports dock after normal weapons and every control reaches each
   } finally {delete (cc.sys as any).localStorage;inset=0;}
 });
 
+test('control sizes keep touch targets reachable and paused layout mode exposes fire without firing',()=>{
+ for(const [width,height]of [[568,320],[844,390],[1280,720]])for(const scale of [.8,1,1.5]){
+  Object.assign(frame,{width,height});inset=12;
+  const hud=new HUD(new SceneNode()),sim=new Simulation('training-60');hud.touch=true;hud.fireScale=scale;hud.controlScale=scale;
+  sim.applyLoadout({version:'night-growth-v1',level:10,effects:['emp','drone'],skipped:[]});sim.homingAmmo=5;sim.start();hud.update(sim,world);
+  const controls=hud.buttons.filter((b:any)=>['weapon0','weapon1','weapon2','weapon3','homing','weapon4','skillUse','fire'].includes(b.id)&&b.label.node.activeInHierarchy);
+  for(const b of controls){
+   assert(b.w>=44&&b.h>=44&&b.x>=inset&&b.y>=inset&&b.x+b.w<=width-inset&&b.y+b.h<=height-inset,`${width}/${scale}/${b.id} in safe bounds`);
+   assert(!controls.some((other:any)=>other!==b&&overlaps(b,other)),`${width}/${scale}/${b.id} separated`);
+  }
+  assert.equal(hud.buttons.find((b:any)=>b.id==='fire').w,68*scale);
+  sim.pause('settings',true);hud.controlsOpen=true;hud.update(sim,world);
+  const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
+  assert.equal(buttons.find((b:any)=>b.id==='resume')?.label.string,'继续战斗');
+  for(const b of buttons)assert(!buttons.some((other:any)=>other!==b&&overlaps(b,other)));
+  hud.layoutEditing=true;hud.update(sim,world);
+  assert(!hud.modal);assert(hud.buttons.find((b:any)=>b.id==='layoutDone').label.node.activeInHierarchy);
+  const fire=hud.buttons.find((b:any)=>b.id==='fire');assert.equal(hud.controlAt(fire.x+fire.w/2,fire.y+fire.h/2)?.id,'fire');
+  for(const position of [{x:0,y:.5},{x:1,y:.5},{x:.5,y:0},{x:.5,y:1}]){
+   hud.placeControl('fire',position);hud.update(sim,world);
+   const label=hud.labels.get('weaponState'),size=label.node.getComponent(Transform).contentSize;
+   assert(!overlaps(fire,{x:label.node.position.x+width/2-size.width/2,y:height/2-label.node.position.y-size.height/2,w:size.width,h:size.height}),'fire telemetry stays outside its touch target');
+  }
+  assert.equal(sim.fired,0);assert(sim.paused);
+  sim.pause('background',true);hud.update(sim,world);assert(hud.modal,'system pauses cover editing');
+ }
+ inset=0;
+});
+
+test('high physical top insets and full capsules cannot push home actions into cards or cover layout controls',()=>{
+ const getSafe=cc.sys.getSafeAreaRect;
+ try{
+  for(const [width,height]of [[568,320],[844,390],[1280,720]])for(const fullCapsule of [false,true]){
+   Object.assign(frame,{width,height});inset=0;
+   cc.sys.getSafeAreaRect=()=>({x:12,y:12,width:width-24,height:height-12-52});
+   const capsule={left:width-110,right:width-12,top:20,bottom:76};
+   if(fullCapsule)(globalThis as any).tap={getWindowInfo:()=>({windowWidth:width,windowHeight:height,statusBarHeight:24}),getMenuButtonBoundingClientRect:()=>capsule};
+   const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.touch=true;
+   online.assets=assetFixture();hud.online=online;hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.update(sim,world);
+   if(width===568){const title=hud.modal.getComponentsInChildren(cc.Sprite).find((sprite:any)=>sprite.node.name==='Illustration:title');assert(title.node.getComponent(Transform).contentSize.width>=100,'the title stays readable beside the controls on a short safe viewport');}
+   const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
+   for(const b of buttons){assert(b.y>=52&&b.y+b.h<=height-12,`${width}/${fullCapsule}/${b.id} bounded`);assert(!buttons.some((other:any)=>other!==b&&overlaps(b,other)),`${width}/${fullCapsule}/${b.id} separated`);}
+   const gear=buttons.find((b:any)=>b.id==='settings');if(fullCapsule)assert(gear.x+gear.w<capsule.left);
+   sim.start();sim.pause('settings',true);
+   for(const page of ['controlsOpen','zoomOpen']){
+    hud.controlsOpen=page==='controlsOpen';hud.zoomOpen=page==='zoomOpen';hud.update(sim,world);
+    const settings=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
+    for(const b of settings)assert(!settings.some((other:any)=>other!==b&&overlaps(b,other)),`${width}/${fullCapsule}/${page}/${b.id} settings separated`);
+   }
+   hud.layoutEditing=true;hud.update(sim,world);
+   for(const id of ['fire','weapon0']){hud.placeControl(id,{x:1,y:0});const b=hud.buttons.find((b:any)=>b.id===id);if(fullCapsule)assert(!overlaps(b,{x:capsule.left,y:capsule.top,w:capsule.right-capsule.left,h:capsule.bottom-capsule.top}));}
+   delete (globalThis as any).tap;
+  }
+ }finally{cc.sys.getSafeAreaRect=getSafe;delete (globalThis as any).tap;inset=0;}
+});
+
+test('zoomed enemy diamonds stay visible across transparent controls and footer gaps',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;
+ const hud=new HUD(new SceneNode()),sim=new Simulation();hud.touch=true;sim.start();hud.update(sim,world);
+ const enemy=sim.units.find(u=>!u.friendly)!;sim.units=[enemy];hud.autoPriority=false;hud.touch=false;
+ hud.placeControl('weapon0',{x:.4,y:.5});const button=hud.buttons.find((b:any)=>b.id==='weapon0');
+ const points=[{x:button.x-12,y:button.y+22},{x:button.x+button.w/2,y:button.y+22},{x:button.x+button.w+12,y:button.y+22},{x:550,y:360},{x:810,y:310}];
+ for(const p of points){
+  const projected={...world,project:()=>({x:p.x,y:390-p.y,z:.5})};hud.marks.clear();hud.drawWorld(sim,projected);
+  const x=p.x-422,y=195-p.y,r=enemy.kind==='heavy'?7:5,path=[['moveTo',x,y+r],['lineTo',x+r,y],['lineTo',x,y-r],['lineTo',x-r,y],['close'],['stroke']];
+  assert(hud.marks.calls.some((_:any,i:number)=>path.every(([op,...args],j)=>{const c=hud.marks.calls[i+j];return c?.op===op&&c.color==='#ff525b'&&args.every((v,k)=>Math.abs(c.args[k]-Number(v))<.001);})),JSON.stringify(p));
+ }
+ assert.equal(hud.hit(button.x+button.w/2,button.y+22)?.id,'weapon0','interaction still respects the control hit area');
+});
+
 test('temporary layout ignores all old storage and keeps settings reachable',()=>{
   const accessed:string[]=[];
   (cc.sys as any).localStorage={getItem(key:string){accessed.push(key);return JSON.stringify({weapon4:{x:.5,y:.4},skillUse:{x:.6,y:.4},weapon5:{x:.7,y:.4}});},setItem(key:string){accessed.push(key);}};
@@ -526,7 +596,7 @@ test('HUD: global actions hide behind panels, with safe modal layout, focus mark
           assert(back && back.label.string === (lang === 'zh' ? '返回' : 'BACK'));
           assert.equal(back.y, Math.max(...controls.map((b: any) => b.y)), 'return stays in the footer');
         }
-        if (reason === 'manual' || reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'flightControls,zoomControls,sound,voicePrompts,autoPriority,language,help,convoy,mission,supply,home,' + (reason === 'settings' ? 'close' : 'resume'));
+        if (reason === 'manual' || reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'flightControls,zoomControls,buttonControls,sound,voicePrompts,autoPriority,language,help,convoy,mission,supply,home,' + (reason === 'settings' ? 'close' : 'resume'));
       }
       sim.pause('settings', true); hud.toolsOpen = true; hud.update(sim, world);
       assert.equal(hud.modalKey, 'settings:flight');
@@ -975,7 +1045,7 @@ test('HUD: independent title cover precedes mission previews and compact setting
       }
       hud.supplyOpen = false; hud.pendingSupply = false; hud.rewardsAvailable = false; hud.modalKey = 'rebuild'; hud.update(sim, world);
       assertPanelTargets(hud);
-      assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).map((b: any) => b.id), ['flightControls', 'zoomControls', 'sound', 'voicePrompts', 'autoPriority', 'language', 'help', 'convoy', 'mission', 'home', 'resume'], 'offline settings omit only ads');
+      assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).map((b: any) => b.id), ['flightControls', 'zoomControls', 'buttonControls', 'sound', 'voicePrompts', 'autoPriority', 'language', 'help', 'convoy', 'mission', 'home', 'resume'], 'offline settings omit only ads');
     }
   inset = 0;
 });
@@ -1349,14 +1419,49 @@ test('growth settlement keeps rewards, next mission and base actions separate; l
     const hud=new HUD(new SceneNode()),sim=new Simulation('corridor-01'),online=new Online({getItem:()=>null,setItem(){}},()=>{});
     online.authenticatedId='qa-pilot';online.assets=assetFixture();online.rankStatus='finished';online.battleReward={status:'credited',points:100,coins:180,xp:120};hud.online=online;
     hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});sim.phase='success';hud.update(sim,world);
+    const solo=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);
+    assert(solo.includes('本局积分')&&solo.includes('+100'),'formal solo displays the authoritative point receipt');
+    assert(solo.includes('+180')&&solo.includes('+120')&&solo.some((s:string)=>s.includes('收益已到账')));
+    const saved=online.battleReward;online.battleReward=undefined;online.recorder={record(){}} as any;
+    for(const status of ['needs-attention','update-required','identity-changed','storage-unavailable','unavailable']){
+      online.rankStatus=status;hud.modalKey='rebuild';hud.update(sim,world);
+      const labels=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);assert(!labels.some((s:string)=>s.includes('请保持联网')));assert(labels.includes('未确认'));
+    }
+    online.rankStatus='practice';hud.modalKey='rebuild';hud.update(sim,world);
+    const practice=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);assert(practice.includes('本局积分')&&practice.includes('不计分'),'solo practice retains its score card without a fabricated score');
+    online.rankStatus='local';online.recorder=undefined;hud.modalKey='rebuild';hud.update(sim,world);
+    const offline=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);assert(offline.includes('本局积分')&&offline.includes('不计分'));
+    online.battleReward=saved;online.rankStatus='finished';hud.modalKey='rebuild';hud.update(sim,world);
     const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
     for(const b of buttons)assert(!buttons.some((other:any)=>other!==b&&overlaps(b,other)),`${width} settlement ${b.id} overlap`);
     sim.duelMode=true;online.bot={} as any;hud.modalKey='rebuild';hud.update(sim,world);
     const captions=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);
     assert(!captions.includes('+100'),'local bot cannot inherit previous ranked points');
+    assert(!captions.includes('本局积分'),'local practice has no score card');
     assert(captions.some((s:string)=>s.includes('训练不消耗库存')));
+    online.bot=undefined;online.room={you:0,players:[{id:'qa-pilot'},{id:'opponent'}],settlement:{status:'credited',points:50,coins:200,xp:140}} as any;hud.modalKey='rebuild';hud.update(sim,world);
+    const duel=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);assert(duel.includes('本局积分')&&duel.includes('+50'));
   }
   inset=0;
+});
+
+test('direct and recovered solo receipts refresh authoritative task progress in the open task page',async()=>{
+  Object.assign(frame,{width:1280,height:720});inset=0;
+  for(const delayed of [false,true]){
+    const store={getItem:()=>null,setItem(){},removeItem(){}},online=new Online(store,()=>{}),hud=new HUD(new SceneNode()),sim=new Simulation('corridor-01');
+    const before=assetFixture('task-pilot'),after=structuredClone(before);before.tasks.find(t=>t.event==='solo')!.progress=0;after.tasks.find(t=>t.event==='solo')!.progress=1;
+    const receipt={accepted:true,status:'credited',points:100,coins:180,xp:120};let callback:(status:string)=>void=()=>{},fetches=0;
+    const recorder:any={settlement:undefined,start:async()=>null,record(){},finish:async()=>delayed?null:receipt,invalidate(){}};
+    const bridge:any={ready:Promise.resolve({identity:{id:'task-pilot'},capabilities:{leaderboards:true,multiplayer:true}}),createRecorder:(_v:string,options:any)=>{callback=options.onStatus;return recorder;},services:{nightAssets:async(owner:string)=>{assert.equal(owner,'task-pilot');fetches++;return after;}}};
+    await online.connect(bridge);online.assets=before;hud.online=online;const q=new Quartermaster(online,store);hud.quartermaster=q;q.page='tasks';sim.phase='success';hud.update(sim,world);
+    assert(panelLabels(hud).some((l:any)=>l.string==='0/2'));
+    await online.finishRanking();
+    if(delayed){assert.equal(fetches,0);recorder.settlement={playerId:'task-pilot',runId:'current-run',result:receipt};callback('finished');}
+    await new Promise(resolve=>setImmediate(resolve));hud.update(sim,world);
+    assert.equal(fetches,1);assert.equal(q.assets,after,'task values use the complete server snapshot');
+    assert(panelLabels(hud).some((l:any)=>l.string==='1/2'),'the already-open task page redraws after settlement');
+    assert.equal(before.tasks.find(t=>t.event==='solo')!.progress,0,'the client does not increment its old task snapshot');online.dispose();
+  }
 });
 
 test('stable tab identities animate ranking and settings changes without polling fades',()=>{

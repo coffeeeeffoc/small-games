@@ -142,6 +142,72 @@ test('Night durable completion survives lost append response and reload, queryin
   assert.ok([...f.values.keys()].some((k) => k.endsWith(':synced')));
 });
 
+test('Night recovery exposes only the active owner-bound receipt before reporting completion', async () => {
+  for (const nextRun of [false, true]) {
+    const f = durableFixture(),
+      clock = Date.now;
+    const receipts = [];
+    let recorder;
+    recorder = createRunRecorder(f.services, {
+      durable: { storage: f.storage },
+      onStatus() {
+        if (recorder?.settlement) receipts.push(structuredClone(recorder.settlement));
+      },
+    });
+    const first = await recorder.start({ mode: 'campaign', levelId: 'first' });
+    const reward = { accepted: false, status: 'credited', coins: 40, xp: 35 };
+    f.runs.get(first.id).settlement = reward;
+    recorder.record({}, 120);
+    f.offline(true);
+    await recorder.finish();
+    f.offline(false);
+    assert.equal(recorder.settlement, undefined);
+    if (nextRun) await recorder.start({ mode: 'campaign', levelId: 'second' });
+    try {
+      Date.now = () => clock() + 120000;
+      await recorder.recover();
+    } finally {
+      Date.now = clock;
+    }
+    if (nextRun) {
+      assert.equal(recorder.settlement, undefined);
+      assert.deepEqual(receipts, [], 'an older finished journal cannot become the active reward');
+    } else {
+      assert.deepEqual(recorder.settlement, {
+        playerId: 'pilot-a',
+        runId: first.id,
+        result: reward,
+      });
+      assert.deepEqual(receipts.at(-1), recorder.settlement);
+    }
+    const restored = f.recorder();
+    await restored.recover();
+    assert.equal(
+      restored.settlement,
+      undefined,
+      'a reload without an active run never presents old receipts as a new result',
+    );
+  }
+});
+
+test('Night durable starts retain protocol and identity failure reasons', async () => {
+  for (const [code, status] of [
+    ['RULE_VERSION_CHANGED', 'update-required'],
+    ['IDENTITY_CHANGED', 'identity-changed'],
+  ]) {
+    const f = durableFixture();
+    f.services.startRun = async () => {
+      throw Object.assign(Error(code), { code });
+    };
+    const recorder = f.recorder(),
+      run = await recorder.start({ mode: 'campaign', levelId: 'first' });
+    assert(run && !run.loadout);
+    assert.equal(recorder.status, status);
+    assert.equal(recorder.settlement, undefined);
+    assert.equal(f.values.size, 1);
+  }
+});
+
 test('Night acknowledged journals are reclaimed after failed deletion without another request', async () => {
   for (const [silent, sameInstance] of [
     [false, false],
@@ -713,7 +779,7 @@ test('Night pending data stays with its owner and survives quota failure or malf
   f.owner('pilot-b');
   const restored = f.recorder();
   await restored.recover();
-  assert.equal(restored.status, 'needs-attention');
+  assert.equal(restored.status, 'identity-changed');
   assert.equal(f.values.size, 1);
   assert.equal([...f.runs.values()][0].seq, 0);
   f.owner('pilot-a');

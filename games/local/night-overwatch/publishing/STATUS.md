@@ -1,5 +1,7 @@
 # 夜航守望 · 交付状态
 
+2026-11-05 手机与单人结算修复，Game ID `night-overwatch`，目标TapTap H5。Creator源码摘要 `a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d`。修正顶部安全区、首页按钮遮挡、缩放红标，新增开火暂停拖动与按钮大小设置，去掉设置导航蓝色下划线。正式开局失败保留重试，不再静默进入本地局；结算回执恢复后同步奖励和任务，积分栏始终保留。真实普通游客首关完成并恢复丢失响应，获得100积分、180金币、120 EXP，单人任务0/2→1/2，重复恢复不重复计数。193项定向测试、9项消费者及三尺寸浏览器通过。[验证与截图](../docs/verification-2026-11-04-refinement.md#手机布局与正式结算修复)。本轮未改后端规则或数据库，无需重复部署；未上传TapTap，线上入口需要后续换包，未完成K90实体机验收。下方旧版本和平台状态保留当时记录，不能代表本轮已上线。
+
 2026-11-04 软著资料：已按源码提交 `cd8a65363887c4ae14d7ccf88d6e283bf15627c5` 生成[本次资料包](copyright/2026-11-04/先读我.md)：程序鉴别材料60页、图文说明书14页、申请信息与材料清单7页，三份均提供Word与PDF。32份专有源码原件、排版副本、逐文件哈希、前后页映射、截图来源、语法树及PDF逐行核验另存核验附件。登记名称与V1.0暂沿用旧归档拟值；主体、旧申请状态、完成及发表日期等仍待据实确认。未提交版权登记，未作外部查重或AI检测通过承诺；本轮没有修改游戏运行逻辑或重新采集上架媒体。
 
 2026-11-04 最终试玩修订：所有武器/技能默认底部同线，可逐个拖到安全区四边；布局只在本局临时生效，新局/重开恢复默认。每次打开默认夜景，无人机3架/12秒后坠毁，电磁干扰固定名称/12秒。当前Creator源码摘要`91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e`；93项输入/HUD、类型检查、原生源码适配及正式ZIP七场景检查通过。服务器Runtime已部署v14/v7并核对健康/认证边界。[验证与部署回执](../docs/verification-2026-11-04-refinement.md#最终按钮布局与交付)。TapTap应用987511，广告1054323已生效、方向横屏；正式包已通过TapTap MCP上传并提审，待审版本`V-20261103-1`、新包`428665`，实时刷新为审核中、横屏。原线上包仍为`423016`；提审不代表已上线。[平台回执](taptap-h5-review-2026-11-04.json)。
@@ -34,10 +36,10 @@
 | 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png)，复核沿用 |
 | 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png)，仅标题，复核沿用 |
 | 宣传视频 | 已提供 | [新版UI 20秒静音预览](promo/videos/support-2026-11-04-1280x720-silent.mp4)，1280×720 / H.264 / 约2.18 MB，独立分镜与7秒实录；原有配乐版保留： [原生1080p多武器宣传片](promo/videos/night-overwatch-ignite-native1080-2026-11-04.mp4)，30秒 / 1920×1080 / 16:9 / H.264 MP4 / AAC立体声 / 约25.93 MB；22秒真实多武器战斗，来源角标已移除，上一版燃向配乐完整保留。[源码与验证](promo/videos/native1080-2026-11-04-source/README.md)；旧燃向版、战术版及静音版保留归档 |
-| 游戏截图 | 已提供 | 10张1280×720 PNG：[夜景](gameplay/screenshots/2026-11-04-support/night-1280.png)、[增强](gameplay/screenshots/2026-11-04-support/enhanced-1280.png)、[热像](gameplay/screenshots/2026-11-04-support/thermal-1280.png)、[设置](gameplay/screenshots/2026-11-04-support/settings-1280.png)、[战况](gameplay/screenshots/2026-11-04-support/tactics-1280.png)、[装配](gameplay/screenshots/2026-11-04-support/equipment-1280.png)、[首页](gameplay/screenshots/2026-11-04-refinement/home-1280.png)、[等级成长](gameplay/screenshots/2026-11-04-refinement/growth-1280.png)、[开始行动](gameplay/screenshots/2026-11-04-refinement/modes-1280.png)、[横向选关](gameplay/screenshots/2026-11-04-refinement/missions-1280.png) |
+| 游戏截图 | 已提供 | 10张1280×720 PNG：[夜景](gameplay/screenshots/2026-11-04-support/night-1280.png)、[增强](gameplay/screenshots/2026-11-04-support/enhanced-1280.png)、[热像](gameplay/screenshots/2026-11-04-support/thermal-1280.png)、[设置](gameplay/screenshots/2026-11-05-mobile/settings-1280.png)、[正式结算](gameplay/screenshots/2026-11-05-mobile/settlement-1280.png)、[装配](gameplay/screenshots/2026-11-04-support/equipment-1280.png)、[首页](gameplay/screenshots/2026-11-05-mobile/home-1280.png)、[等级成长](gameplay/screenshots/2026-11-04-refinement/growth-1280.png)、[开始行动](gameplay/screenshots/2026-11-04-refinement/modes-1280.png)、[横向选关](gameplay/screenshots/2026-11-04-refinement/missions-1280.png) |
 | 实机录屏 | 已提供 | [约18秒连续战斗MP4](gameplay/videos/support-2026-11-04-1280x720-silent.mp4)，H.264无音轨，浏览器实录，非实体手机 |
 
-[媒体清单](manifest.json)记录大小、尺寸、摘要及采集身份。6张战斗图和约18秒录屏来自本次构建的普通离线首关；4张菜单图来自隔离真实PostgreSQL/HTTP的普通新游客，无测试资产和开发余额，专属服务已清理。QA激光/技能与长昵称图片单独放在验证文档，不作正式媒体。视频完整解码并检查逐秒画面，实录取连续18秒，排除后续菜单；[最新剪辑记录](promo/videos/support-2026-11-04-edit.json)保留来源与区间。
+[媒体清单](manifest.json)记录大小、尺寸、摘要及采集身份，2026-11-05逐项复核23个文件。首页、设置、结算3张从当前构建的隔离真实PostgreSQL/HTTP普通新游客重采，无测试资产和开发余额，专属服务已清理；其他截图和视频复用原始采集版本，不冒称本轮重录。QA安全区、拖动与小屏图片单独放在验证文档，不作正式媒体。既有视频完整解码、逐秒画面与连续18秒实录证据保留在[剪辑记录](promo/videos/support-2026-11-04-edit.json)。
 
 静态图标、宣传图和推荐语保留原采集身份；历史截图与视频继续归档保留。素材许可见[素材清单](../docs/ASSET_MANIFEST.json)，本轮内置imagegen提示词、效果图和实际对照见[设计目录](../docs/design/refinement-2026-11-04/README.md)。
 

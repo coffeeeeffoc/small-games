@@ -20,6 +20,8 @@ export class Platform {
   reducedEffects = false;
   voicePrompts = true;
   autoPriority = true;
+  fireScale = 1;
+  controlScale = 1;
   viewMode: ViewMode = 'night';
   activated = false;
   voices = new Map<string, AudioSource>();
@@ -51,6 +53,10 @@ export class Platform {
       this.muted = sys.localStorage.getItem('night-overwatch-muted') === 'true';
       this.voicePrompts = sys.localStorage.getItem('night-overwatch-voice-prompts') !== 'false';
       this.autoPriority = sys.localStorage.getItem('night-overwatch-auto-priority') !== 'false';
+      for (const key of ['fireScale', 'controlScale'] as const) {
+        const value = Number(sys.localStorage.getItem('night-overwatch-' + key));
+        if (Number.isFinite(value) && value >= .8 && value <= 1.5) this[key] = Math.round(value * 10) / 10;
+      }
       const preference = sys.localStorage.getItem('night-overwatch-reduced-effects');
       this.reducedEffects =
         preference === 'true' ||
@@ -166,6 +172,8 @@ export class Platform {
       sys.localStorage.setItem('night-overwatch-voice-prompts', String(this.voicePrompts));
       sys.localStorage.setItem('night-overwatch-auto-priority', String(this.autoPriority));
       sys.localStorage.setItem('night-overwatch-reduced-effects', String(this.reducedEffects));
+      sys.localStorage.setItem('night-overwatch-fireScale', String(this.fireScale));
+      sys.localStorage.setItem('night-overwatch-controlScale', String(this.controlScale));
     } catch {
       /* Optional local preferences. */
     }

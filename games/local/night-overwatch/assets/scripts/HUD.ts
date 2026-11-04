@@ -1,4 +1,4 @@
-import { safeArea, watchSafeArea, fitName } from './core/SafeArea';
+import { safeArea, watchSafeArea, fitName, type CapsuleRect } from './core/SafeArea';
 import { playerId, playerLabel, type Online } from './Online';
 import {
   Camera,
@@ -75,6 +75,11 @@ export class HUD {
   safeRevision=0;
   private nameFits=new Map<string,string>();
   nativeCapsule=false;
+  capsuleRect?:CapsuleRect;
+  topRight(y:number,height:number,padding=12){
+    const right=this.w-this.safe.right-padding,capsule=this.capsuleRect;
+    return capsule&&y<capsule.bottom+4&&y+height>capsule.top-4?Math.min(right,capsule.left-8):right;
+  }
   private semanticKey='';
   listAt(x:number,y:number){return [...this.listAreas].reverse().find(a=>x>=a.x&&x<=a.x+a.w&&y>=a.y&&y<=a.y+a.h);}
   moveList(key:string,amount:number){const a=this.listAreas.find(a=>a.key===key);if(!a)return;const states=key.startsWith('qm:')?this.quartermaster!.scrolls:this.listScroll;states[key]=Math.max(0,Math.min(a.max,(states[key]||0)+amount));this.modalKey='rebuild';}
@@ -150,6 +155,11 @@ export class HUD {
   reducedEffects = false;
   toolsOpen = false;
   zoomOpen = false;
+  controlsOpen = false;
+  layoutEditing = false;
+  fireScale = 1;
+  controlScale = 1;
+  private controlTop = 0;
   zoomLimit = 10;
   rewardsAvailable = false;
   supplyOpen = false;
@@ -186,12 +196,14 @@ export class HUD {
   }
   controlAt(x: number, y: number) {
     const button = this.hit(x, y, true);
-    return button && movableControls.includes(button.id) ? button : undefined;
+    return button && (movableControls.includes(button.id) || this.layoutEditing && button.id === 'fire') ? button : undefined;
   }
   private avoidFixedControls(id: string) {
     const b = this.buttons.find(b => b.id === id)!, bounds = this.controlBounds(id);
     if (!b.label.node.activeInHierarchy) return;
-    for (const fixed of this.buttons.filter(b => !movableControls.includes(b.id) && !b.disabled && b.label.node.activeInHierarchy).sort((a, b) => b.x - a.x)) {
+    const fixedControls = this.buttons.filter(b => b.id !== id && !movableControls.includes(b.id) && !b.disabled && b.label.node.activeInHierarchy).map(({x,y,w,h})=>({x,y,w,h}));
+    if(this.capsuleRect){const c=this.capsuleRect;fixedControls.push({x:c.left-4,y:c.top-4,w:c.right-c.left+8,h:c.bottom-c.top+8});}
+    for (const fixed of fixedControls.sort((a, b) => b.x - a.x)) {
       if (b.x >= fixed.x + fixed.w || b.x + b.w <= fixed.x || b.y >= fixed.y + fixed.h || b.y + b.h <= fixed.y) continue;
       const above = fixed.y > this.h / 2 && fixed.y - b.h - 4 >= bounds.y;
       const x = !above && fixed.x - b.w - 4 >= bounds.x ? fixed.x - b.w - 4 : b.x;
@@ -205,6 +217,8 @@ export class HUD {
     const normal = this.buttons.filter(b => movableControls.slice(0, 5).includes(b.id));
     const support = ['weapon4', 'skillUse', 'weapon5'].map(id => this.buttons.find(b => b.id === id)!).filter(b => b.label.node.activeInHierarchy);
     const visible = normal.filter(b => b.label.node.activeInHierarchy), fire = this.buttons.find(b => b.id === 'fire')!;
+    fire.h = 68 * this.fireScale;
+    this.positionControl(fire, right - fire.h, this.h - this.safe.bottom - fire.h - 10, fire.h);
     const cardW = Math.min(this.compact ? 64 : 78, (right - left - 146) / 5 - 6);
     let regularW = cardW, supportW = 100;
     if (support.length) {
@@ -216,16 +230,34 @@ export class HUD {
     if (support.length) visible.forEach((b, index) => this.positionControl(b, left + index * (regularW + 6), by + 8, regularW));
     const dockX = left + visible.length * (regularW + 6) + 2;
     support.forEach((b, index) => this.positionControl(b, dockX + index * (supportW + 6), by + 8, supportW));
+    const controls = [...visible, ...support], controlH = Math.max(44, 44 * this.controlScale);
+    let nextX = left, rowY = this.h - this.safe.bottom - 8 - controlH;
+    for (const b of controls) {
+      const width = Math.max(44, b.w * this.controlScale);
+      if (nextX > left && nextX + width > fire.x - 12) { nextX = left; rowY -= controlH + 6; }
+      b.h = controlH;
+      this.positionControl(b, nextX, rowY, width);
+      nextX += width + (b.id === 'homing' ? 8 : 6);
+    }
+    this.controlTop = rowY;
     const state = this.labels.get('weaponState')!, stateW = Math.max(60, Math.min(132, right - 68 - (left + 5 * (cardW + 6)) - 12));
     const crowded = support.length > 0 && dockX + support.length * (supportW + 6) - 6 > fire.x - stateW - 16;
     state.node.setPosition((crowded ? right - stateW / 2 : fire.x - 8 - stateW / 2) - this.w / 2,
       this.h / 2 - (crowded ? fire.y - 8 - (this.footer - 14) / 2 : fire.y + fire.h / 2));
     state.node.getComponent(UITransform)!.setContentSize(stateW, this.footer - 14);
-    for (const id of movableControls) {
+    for (const id of [...movableControls, 'fire']) {
       const position = this.controlPositions[id]; if (!position) continue;
       const bounds = this.controlBounds(id), b = this.buttons.find(b => b.id === id)!;
       this.positionControl(b, bounds.x + bounds.w * position.x, bounds.y + bounds.h * position.y);
       this.avoidFixedControls(id);
+    }
+    if (this.controlPositions.fire || this.fireScale !== 1 || this.controlScale !== 1) {
+      const sh = this.footer - 14, cy = Math.max(this.safe.top,Math.min(this.h-this.safe.bottom-sh,fire.y+(fire.h-sh)/2));
+      const cx = Math.max(left,Math.min(right-stateW,fire.x+(fire.w-stateW)/2));
+      const candidates = [{x:fire.x-8-stateW,y:cy},{x:fire.x+fire.w+8,y:cy},{x:cx,y:fire.y-sh-8},{x:cx,y:fire.y+fire.h+8}]
+        .filter(p=>p.x>=left&&p.x+stateW<=right&&p.y>=this.safe.top&&p.y+sh<=this.h-this.safe.bottom);
+      const p = candidates.find(p=>controls.every(b=>p.x>=b.x+b.w||p.x+stateW<=b.x||p.y>=b.y+b.h||p.y+sh<=b.y)) || candidates[0];
+      if(p)state.node.setPosition(p.x+stateW/2-this.w/2,this.h/2-p.y-sh/2);
     }
   }
   get compact() {
@@ -338,7 +370,7 @@ export class HUD {
       bottom: Math.max(0, rect.y),
       top: Math.max(0, this.h - rect.y - rect.height),
     });
-    this.nativeCapsule=merged.capsule;this.safe={left:merged.left,right:merged.right,top:merged.top,bottom:merged.bottom};
+    this.nativeCapsule=merged.capsule;this.capsuleRect=merged.capsuleRect;this.safe={left:merged.left,right:merged.right,top:merged.top,bottom:merged.bottom};
     this.root.getComponent(UITransform)!.setContentSize(this.w, this.h);
     this.root.setPosition(this.w / 2, this.h / 2, 0);
     this.camera.node.setPosition(this.w / 2, this.h / 2, 1000);
@@ -476,7 +508,7 @@ export class HUD {
   buildControls() {
     const w = this.w, h = this.h, left = 12 + this.safe.left,
       right = w - 12 - this.safe.right, top = this.safe.top;
-    const small = this.mouseDesktop, settingsX = right - 44 - (!sys.isBrowser && this.touch && !this.nativeCapsule ? 88 : 0) - (this.screenControl ? 52 : 0);
+    const small = this.mouseDesktop, settingsX = this.topRight(top + 2,44) - 44 - (!sys.isBrowser && this.touch && !this.nativeCapsule ? 88 : 0) - (this.screenControl ? 52 : 0);
     const sensorX = settingsX - 56, statusX = sensorX - 86, statsX = left + 64;
     this.live('health', (statsX + statusX - 6) / 2, top + 24, this.compact ? 11 : 13, Math.max(80, statusX - statsX - 6), 28);
     this.labels.get('health')!.enableWrapText = false;
@@ -487,6 +519,7 @@ export class HUD {
     this.live('status', statusX + 40, top + 24, 11, 80, 28, C.white);
     this.button('sensor', '', sensorX, top + 2, 50, 44).fontSize = 11;
     this.button('settings', '', settingsX, top + 2, 44, 44, this.globalControls);
+    this.button('layoutDone', this.t('完成布局', 'DONE'), w / 2 - 70, top + 2, 140, 44);
     if (this.screenControl) this.button('screen', '', settingsX + 52, top + 2, 44, 44, this.globalControls);
     this.live('connectionNotice', left + 150, top + 68, 12, Math.min(300, right - left - 140), 28, C.red).node.parent = this.globalControls;
     this.live('buff', w / 2, top + 61, 11, Math.min(180, w - 200), 24, C.mint).node.parent = this.globalControls;
@@ -919,15 +952,16 @@ export class HUD {
     this.rect(g, x + 44, y + h - 5, w - 88, 1, '#c6ac7080');
   }
   renderSettings(n: Node, g: Graphics, s: Simulation, world: World, key: string) {
-    const flight = this.toolsOpen, zoom = this.zoomOpen, playing = s.phase === 'playing';
-    const short = this.h - this.safe.top - this.safe.bottom < 360;
-    const pw = Math.min(flight || zoom ? Math.max(344, Math.min(420, this.w * .5)) : 640,
+    const flight = this.toolsOpen, zoom = this.zoomOpen, controls = this.controlsOpen, subpage = flight || zoom || controls, playing = s.phase === 'playing';
+    const pw = Math.min(subpage ? Math.max(344, Math.min(420, this.w * .5)) : 640,
       this.w - this.safe.left - this.safe.right - 32);
-    const ph = Math.min(zoom ? 248 : short ? 288 : flight ? 304 : 360, this.h - this.safe.top - this.safe.bottom - 32);
-    const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2,
-      py = this.safe.top + (this.h - this.safe.top - this.safe.bottom - ph) / 2;
+    const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2;
+    const safeTop = Math.max(this.safe.top, this.capsuleRect && px + pw > this.capsuleRect.left ? this.capsuleRect.bottom : 0);
+    const short = this.h - safeTop - this.safe.bottom < 360;
+    const ph = Math.min(zoom || controls ? 248 : short ? 288 : flight ? 304 : 360, this.h - safeTop - this.safe.bottom - 32);
+    const py = safeTop + (this.h - safeTop - this.safe.bottom - ph) / 2;
     this.panelFrame(g, px, py, pw, ph, C.mint, flight || zoom ? '#050f1d18' : '#050f1d45');
-    const title = flight ? this.t('飞行 / 视野', 'FLIGHT / VIEW') : zoom ? this.t('画面 / 倍率', 'DISPLAY / ZOOM')
+    const title = flight ? this.t('飞行 / 视野', 'FLIGHT / VIEW') : zoom ? this.t('画面 / 倍率', 'DISPLAY / ZOOM') : controls ? this.t('按钮 / 布局', 'CONTROLS / LAYOUT')
       : this.t(playing ? '战斗设置' : '设置', playing ? 'BATTLE SETTINGS' : 'SETTINGS');
     const heading = this.label(n, title, px + 16 + (pw - 112) / 2, py + 20, 19, pw - 112, 30);
     heading.horizontalAlign = Label.HorizontalAlign.LEFT; heading.isBold = true;
@@ -945,7 +979,18 @@ export class HUD {
       this.plate(g, x, py, w, 28, '#111d21dc', undefined, 6);
       this.label(n, s.duelMode ? this.t('对战继续 · 操作已松开', 'BATTLE LIVE · FIRE RELEASED') : this.t('实时画面 · 战斗暂停', 'LIVE VIEW · BATTLE PAUSED'), x + w / 2, py + 14, 10, w - 8, 20, C.mint);
     }
-    if (flight) {
+    if (controls) {
+      const inner = pw - 32;
+      for (const [i, [id, caption, value]] of ([['fireScale', this.t('开火按钮', 'FIRE SIZE'), this.fireScale], ['controlScale', this.t('武器 / 技能', 'WEAPONS / SKILLS'), this.controlScale]] as const).entries()) {
+        const y = py + 36 + i * 44;
+        control(id + ':down', '−', px + 16, y, 44, false, value <= .8);
+        control(id + ':up', '+', px + pw - 60, y, 44, false, value >= 1.5);
+        this.label(n, `${caption}  ${Math.round(value * 100)}%`, px + pw / 2, y + 22, 13, inner - 96, 38);
+      }
+      const half = (inner - 8) / 2;
+      control('layoutEdit', this.t('调整按钮位置', 'MOVE BUTTONS'), px + 16, py + 124, half, false, !playing || !!this.online?.spectator);
+      control('layoutReset', this.t('恢复默认位置', 'RESET POSITIONS'), px + 24 + half, py + 124, half);
+    } else if (flight) {
       const a = s.aircraft, cell = (pw - 40) / 2, row = short ? 64 : 86, top = py + (short ? 44 : 54);
       const groups = [
         [this.t('飞行高度 / m', 'ALTITUDE / m'), 'altitudeDown', 'altitudeUp', String(Math.round(a.altitude * FLIGHT.metersPerUnit)), a.altitude <= FLIGHT.minAltitude, a.altitude >= FLIGHT.maxAltitude],
@@ -965,7 +1010,7 @@ export class HUD {
       control('orbitRight', this.t('顺时针', 'CW'), x + half + 6, y + 18, half, a.direction === 1);
       if (!short) this.label(n, s.duelMode ? this.t('服务器持续计时，关闭菜单后继续操作', 'SERVER CLOCK CONTINUES WHILE IN MENU') : this.t('调整立即生效，战斗计时保持暂停', 'CHANGES APPLY NOW · BATTLE STAYS PAUSED'), px + pw / 2, py + ph - 73, 10, pw - 32, 20, C.mint);
     } else if (zoom) {
-      const y = py + 44, step = short ? 46 : 48, inner = pw - 32, half = (inner - 8) / 2;
+      const y = py + (short ? 36 : 44), step = short ? 46 : 48, inner = pw - 32, half = (inner - 8) / 2;
       control('lensOut', '−', px + 16, y, 44, false, world.zoom <= .65);
       control('lensIn', '+', px + pw - 60, y, 44, false, world.zoom >= this.zoomLimit);
       this.label(n, `${world.zoom.toFixed(1)}×`, px + pw / 2, y + 22, 26, inner - 104, 40, C.white).isBold = true;
@@ -979,9 +1024,10 @@ export class HUD {
     } else {
       const x = px + 16, inner = pw - 32, top = py + (short ? 34 : 44), step = short ? 44 : 48;
       if (playing) {
-        const half = (inner - 8) / 2;
-        control('flightControls', this.t('飞行 / 视野  ›', 'FLIGHT / VIEW  ›'), x, top, half, true);
-        control('zoomControls', this.t('画面 / 倍率  ›', 'DISPLAY / ZOOM  ›'), x + half + 8, top, half, true);
+        const width = (inner - 16) / 3;
+        control('flightControls', this.t('飞行 / 视野  ›', 'FLIGHT / VIEW  ›'), x, top, width);
+        control('zoomControls', this.t('画面 / 倍率  ›', 'DISPLAY / ZOOM  ›'), x + width + 8, top, width);
+        control('buttonControls', this.t('按钮 / 布局  ›', 'CONTROLS  ›'), x + (width + 8) * 2, top, width);
       }
       const items = [
         ['sound', this.muted ? this.t('游戏声音 关', 'SOUND OFF') : this.t('游戏声音 开', 'SOUND ON')],
@@ -993,32 +1039,36 @@ export class HUD {
           ['convoy', s.convoy === 'moving' ? this.t('车队等待', 'HOLD CONVOY') : s.convoy === 'holdRequested' ? this.t('取消等待', 'CANCEL HOLD') : this.t('车队继续', 'CONVOY GO')],
           ['mission', this.t('任务详情', 'MISSION BRIEF')],
           ['supply', this.supplyLabel(s)],
-        ] : [['online:profile', this.t('玩家昵称', 'PLAYER NAME')], ['effects', this.reducedEffects ? this.t('特效 · 精简', 'FX · REDUCED') : this.t('特效 · 完整', 'FX · FULL')]]),
+        ] : [['online:profile', this.t('玩家昵称', 'PLAYER NAME')], ['effects', this.reducedEffects ? this.t('特效 · 精简', 'FX · REDUCED') : this.t('特效 · 完整', 'FX · FULL')], ['buttonControls', this.t('按钮 / 布局', 'CONTROLS / LAYOUT')]]),
       ].filter(([id]) => !(s.duelMode && ['convoy', 'mission', 'supply'].includes(id)) && !(id === 'convoy' && s.mission.mode === 'training') && !(id === 'supply' && !this.rewardsAvailable && !this.pendingSupply));
       const cols = short ? 3 : 2, cw = (inner - (cols - 1) * 16) / cols;
+      const listTop=top+(playing?step:0),listHeight=py+ph-52-listTop,total=(Math.ceil(items.length/cols)-1)*step+44;
+      const list=total>listHeight?this.listViewport(n,'settings:main',{x,y:listTop,w:inner,h:listHeight},total):undefined;
+      const itemNode=list?.n||n,itemGraphics=list?.g||g;
       items.forEach(([id, caption], i) => {
-        const bx=x+i%cols*(cw+16),by=top+(playing?step:0)+Math.floor(i/cols)*step;
+        const bx=x+i%cols*(cw+16),by=listTop+Math.floor(i/cols)*step-(list?.offset||0);
         const glyph = ({sound:this.muted?'muted':'sound',voicePrompts:this.voicePrompts?'sound':'muted',autoPriority:'mission',language:'language',help:'guide','online:profile':'profile',effects:'effects',mission:'mission',convoy:'next',supply:'plus'} as Record<string,string>)[id];
-        const label=this.menuButton(n,g,id,caption,bx,by,cw,'quiet',glyph);
+        const label=this.menuButton(itemNode,itemGraphics,id,caption,bx,by,cw,'quiet',glyph);
         label.fontSize=cw<160?11:13; label.horizontalAlign=Label.HorizontalAlign.LEFT;
-        this.rect(g,bx+8,by+43,cw-16,1,'#8ba0ab28');
+        this.rect(itemGraphics,bx+8,by+43,cw-16,1,'#8ba0ab28');
         if(['sound','voicePrompts','autoPriority'].includes(id)){
           const enabled=id==='sound'?!this.muted:id==='voicePrompts'?this.voicePrompts:this.autoPriority;
           const sw=cw>220?34:20,sx=bx+cw-sw-10,sy=by+16;
-          this.rect(g,sx,sy,sw,12,enabled?'#34766f':'#283b45',enabled?C.mint:C.line,6);
-          g.fillColor=col(enabled?C.mint:C.dim);g.circle(sx+(enabled?sw-6:6)-this.w/2,this.h/2-sy-6,4);g.fill();
+          this.rect(itemGraphics,sx,sy,sw,12,enabled?'#34766f':'#283b45',enabled?C.mint:C.line,6);
+          itemGraphics.fillColor=col(enabled?C.mint:C.dim);itemGraphics.circle(sx+(enabled?sw-6:6)-this.w/2,this.h/2-sy-6,4);itemGraphics.fill();
           label.node.getComponent(UITransform)!.setContentSize(cw-42-sw,40);
           label.node.setPosition(bx+30+(cw-42-sw)/2-this.w/2,this.h/2-by-22);
           label.fontSize=cw<180?10:12;
-        } else if(cw>220)this.controlIcon(g,'next',bx+cw-22,by+22,16);
+        } else if(cw>220)this.controlIcon(itemGraphics,'next',bx+cw-22,by+22,16);
         if(id==='supply'&&s.buff){this.buttons[this.buttons.length-1].disabled=true;label.color=col(C.dim);}
       });
+      list?.finish();
     }
     const by = py + ph - 52, bw = (pw - 40) / 2;
     if (!short) this.rect(g, px + 16, by - 7, pw - 32, 1, '#4c605e77');
-    if (playing) this.menuButton(n,g,flight||zoom?'close':'home',flight||zoom?this.t('返回设置','BACK'):this.t('返回基地','BASE'),px+16,by,bw,'quiet','back');
+    if (playing || controls) this.menuButton(n,g,subpage?'close':'home',subpage?this.t('返回设置','BACK'):this.t('返回基地','BASE'),px+16,by,bw,'quiet','back');
     const width=Math.min(playing?bw:160,200),bx=px+pw-16-width;
-    const primary = playing && (flight || zoom || key === 'pause') ? 'resume' : 'close';
+    const primary = playing && (subpage || key === 'pause') ? 'resume' : 'close';
     const label = this.menuButton(n,g,primary,playing?this.t('继续战斗','RESUME BATTLE'):this.t('返回','BACK'),bx,by,width,playing?'primary':'secondary',playing?'next':'back');
     label.color = col(C.action); label.isBold = true;
   }
@@ -1882,12 +1932,14 @@ export class HUD {
     else if (this.exitConfirm) key = 'exit';
     else if (s.pauses.has('help')) key = 'help:' + this.helpGroup + this.helpTouch + this.lang;
     else if (s.pauses.has('mission')) key = 'mission';
-    else if (s.pauses.has('settings')) key = this.toolsOpen ? 'settings:flight' : this.zoomOpen ? 'settings:zoom' : 'settings';
+    else if (s.pauses.has('settings')) key = this.toolsOpen ? 'settings:flight' : this.zoomOpen ? 'settings:zoom' : this.controlsOpen ? 'settings:controls' : 'settings';
     else if (s.pauses.has('orientation')) key = 'orientation';
     else if (this.supplyOpen) key = this.pendingSupply ? 'supply:choice' : 'supply:offer';
     else if (this.reportOpen && s.phase === 'playing') key = `report:${this.equipmentOpen?'equipment':'overview'}:${Math.floor(s.time * 2)}`;
     else if (s.resumeCountdown > 0) key = `countdown:${Math.ceil(s.resumeCountdown)}`;
     else if (s.paused && s.phase !== 'briefing') key = 'pause';
+    const editingLayout = this.layoutEditing && s.phase === 'playing' && Array.from(s.pauses).every(reason => reason === 'settings' || reason === 'manual');
+    if (editingLayout) key = '';
     this.renderModal(key, s, world);
     g.clear();
     this.marks.clear();
@@ -1910,7 +1962,13 @@ export class HUD {
         continue;
       }
       if (b.label.node.parent === this.root)
-        b.label.node.active = !key && b.id !== 'priority' && (b.id !== 'fire' || this.touch || s.homingSelected);
+        b.label.node.active = !key && b.id !== 'priority' && (b.id !== 'fire' || this.touch || s.homingSelected || editingLayout);
+      if(editingLayout && ['battleReport','sensor'].includes(b.id)) b.label.node.active=false;
+      if (b.id === 'layoutDone') {
+        b.label.node.active = editingLayout;
+        if (editingLayout) this.styleButton(g, b, 'secondary');
+        continue;
+      }
       if (this.isGlobalAction(b.id)) {
         b.label.node.active = !key || key === 'home';
         if (!b.label.node.active) continue;
@@ -2007,6 +2065,10 @@ export class HUD {
     if (s.duelMode) notice = this.online?.message || this.t('消灭对方全部地面单位 · 菜单不暂停对战', 'ELIMINATE ALL GROUND UNITS · MENUS DO NOT PAUSE');
     if (s.extractionRemaining === undefined && Date.now() < this.toastUntil) notice = this.toast;
     this.set('notice', notice || this.radioText);
+    if (editingLayout) {
+      this.set('notice', this.t('拖动按钮调整位置 · 仅本局生效', 'DRAG BUTTONS · THIS MATCH ONLY'));
+      this.labels.get('health')!.node.active = this.labels.get('status')!.node.active = false;
+    }
     this.set('friendWarning', danger && s.extractionRemaining === undefined ? s.time - s.friendHitAt < 2
       ? this.t('！正在误伤友方 · 停止射击', '! FRIENDLY HIT · CEASE FIRE')
       : this.t('！范围内有友方 · 当心误伤', '! FRIENDLY IN BLAST RADIUS') : '');
@@ -2024,7 +2086,7 @@ export class HUD {
     for (const id of ['notice', 'friendWarning', 'tutorial']) {
       const label = this.labels.get(id)!;
       const state = this.labels.get('weaponState')!, stateSize = state.node.getComponent(UITransform)!.contentSize;
-      const stateY = h / 2 - state.node.position.y, messageY = by - 24;
+      const stateY = h / 2 - state.node.position.y, messageY = Math.min(by - 24, this.controlTop - 22);
       const messageRight = Math.abs(stateY - messageY) < stateSize.height / 2 + 14 ? Math.min(right - 76, state.node.position.x + w / 2 - stateSize.width / 2 - 8) : right - 76;
       label.node.setPosition((left + messageRight) / 2 - w / 2, h / 2 - messageY);
       label.node.getComponent(UITransform)!.setContentSize(Math.min(messageRight - left, Math.max(180, label.string.length * label.fontSize + 24)), 28);
@@ -2034,7 +2096,7 @@ export class HUD {
       this.rect(g, p.x + w / 2 - size.width / 2, h / 2 - p.y - size.height / 2, size.width, size.height, id === 'friendWarning' ? '#381c26dd' : '#0c171da0');
     }
     for (const b of this.buttons.filter((b) => b.label.node.parent === this.root && b.label.node.active)) {
-      if (b.id === 'priority') continue;
+      if (b.id === 'priority' || b.id === 'layoutDone') continue;
       if (b.id === 'battleReport' || b.id === 'sensor') {
         if (b.id === 'sensor') b.label.string = this.t(({night:'夜景',enhanced:'增强',thermal:'热像'})[world.viewMode || 'night'], ({night:'NIGHT',enhanced:'ENH',thermal:'IR'})[world.viewMode || 'night']);
         b.visual = { x: b.x + 2, y: b.y + 8, w: b.w - 4, h: 28 };
@@ -2063,7 +2125,7 @@ export class HUD {
       if(fire&&!s.homingSelected&&!s.weaponReadiness().empty&&s.weaponReadiness().remaining>0)b.label.string+='\n'+s.weaponReadiness().displaySeconds.toFixed(1)+'s';
       b.visual = { x: b.x + 2, y: b.y + 5, w: b.w - 4, h: b.h - 10 };
       if (fire) {
-        const radius = 29, x = b.x + b.w / 2 - w / 2, y = h / 2 - b.y - b.h / 2;
+        const radius = b.w / 2 - 5, x = b.x + b.w / 2 - w / 2, y = h / 2 - b.y - b.h / 2;
         b.visual = { x: b.x + b.w/2-radius, y: b.y+b.h/2-radius, w:radius*2,h:radius*2 };
         g.fillColor=col(danger?'#48283266':'#0b192944');g.strokeColor=col(danger?C.red:C.mint);g.lineWidth=2;
         g.circle(x,y,radius);g.fill();g.stroke();g.lineWidth=1;
@@ -2075,8 +2137,8 @@ export class HUD {
       if(fire&&!s.homingSelected)this.cooldownBorder(g,b,s.weaponReadiness().ratio,true);
       if(b.id==='skillUse'&&s.skillKind)this.cooldownBorder(g,b,Math.min(1,s.skillRemaining>0?s.skillRemaining/SKILLS[s.skillKind].duration:s.skillCooldown/SKILLS[s.skillKind].cooldown),false,s.skillRemaining>0?C.mint:C.amber);
       b.label.color = col(fire && danger ? C.red : selected ? C.mint : C.white);
-      b.label.fontSize = fire ? 14 : b.id==='skillUse'||b.w<60 ? 11 : this.compact ? 12 : 13;
-      b.label.lineHeight = 15;
+      b.label.fontSize = fire ? 14 * this.fireScale : (b.id==='skillUse'||b.w<60 ? 11 : this.compact ? 12 : 13) * this.controlScale;
+      b.label.lineHeight = 15 * (fire ? this.fireScale : this.controlScale);
       if(b.id==='skillUse')b.label.color=col(s.skillRemaining>0?C.mint:s.skillCooldown>0?C.dim:C.white);
       if (b.id === 'homing' && tracking && s.buff!.remaining <= 5) b.label.color = col(C.amber);
       b.label.isBold = selected || fire;
@@ -2242,9 +2304,10 @@ export class HUD {
       const q = project(u, 0.8);
       // Behind-camera projections mirror direction; those contacts remain on the north-up minimap.
       if (!q.visible) continue;
-      // The minimap covers off-screen contacts without crowding the battlefield edges.
-      if (q.x < -this.w / 2 + 16 + this.safe.left || q.x > this.w / 2 - 16 - this.safe.right || q.y > top || q.y < bottom - 30) continue;
-      if (this.blocksBattlefield(q.x + this.w / 2, this.h / 2 - q.y, true)) continue;
+      if (!onScreen(q, 6)) continue;
+      const map = this.minimapLayout, x = q.x + this.w / 2, y = this.h / 2 - q.y;
+      // Transparent control hit areas must not punch holes in visible enemy markers.
+      if (x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h) continue;
       const contact = { unit: u, point: q };
       contacts.push(contact);
       if (!pointer) continue;

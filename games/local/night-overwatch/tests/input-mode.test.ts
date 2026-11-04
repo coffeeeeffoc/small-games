@@ -98,6 +98,43 @@ test('new missions and retries reset temporary controls while settings resume pr
   g.platform.dispose();
 });
 
+test('fire layout editing stays paused, never fires, and cancelling restores its last position',()=>{
+ for(const mouse of [false,true]){
+  const g=mission();g.platform.touchInput=!mouse;
+  const button={id:'fire',x:100,y:100,w:68,h:68};
+  const hit=(x:number,y:number)=>x>=button.x&&x<=button.x+button.w&&y>=button.y&&y<=button.y+button.h?button:undefined;
+  Object.assign(g.hud,{controlPositions:{},controlBounds:()=>({x:0,y:0,w:400,h:200}),controlAt:hit,hit,
+   placeControl(key:string,p:any){if(p)this.controlPositions[key]={...p};else delete this.controlPositions[key];button.x=p?p.x*400:100;button.y=p?p.y*200:100;}});
+  const event=(x:number,y:number)=>mouse?{getButton:()=>0,getUILocation:()=>({x,y:600-y})}:touch(1,x,600-y);
+  const down=(x:number,y:number)=>mouse?g.mouseDown(event(x,y)):g.touchStart(event(x,y));
+  const move=(x:number,y:number)=>mouse?g.mouseMove(event(x,y)):g.touchMove(event(x,y));
+  const up=(x:number,y:number)=>mouse?g.mouseUp(event(x,y)):g.touchEnd(event(x,y));
+  g.action('buttonControls');g.action('layoutEdit');assert(g.hud.layoutEditing&&g.sim.paused);
+  g.action('battleReport');assert(!g.hud.reportOpen,'layout editing never opens a hidden battle report');
+  down(120,120);move(160,100);up(160,100);assert.deepEqual(g.hud.controlPositions.fire,{x:.35,y:.4});
+  assert.equal(g.sim.fired,0);assert.equal(g.sim.held.size,0);
+  down(160,100);move(200,130);g.clear();up(200,130);assert.deepEqual(g.hud.controlPositions.fire,{x:.35,y:.4});
+  down(160,100);move(200,130);g.pause('background',true);up(200,130);assert.deepEqual(g.hud.controlPositions.fire,{x:.35,y:.4});
+  g.pause('background',false);g.action('layoutDone');assert(!g.hud.layoutEditing&&g.hud.controlsOpen&&g.sim.paused);
+  g.action('resume');assert(!g.sim.paused&&!g.hud.controlsOpen);assert.equal(g.sim.fired,0);
+  g.platform.dispose();
+ }
+});
+
+test('control size preferences clamp, survive reload, and ignore invalid saved values',()=>{
+ const storage=cc.sys.localStorage,values=new Map<string,string>();
+ cc.sys.localStorage={getItem:(key:string)=>values.get(key)??null,setItem:(key:string,value:string)=>values.set(key,value)} as any;
+ try{
+  const g=mission();g.hud.fireScale=g.platform.fireScale;g.hud.controlScale=g.platform.controlScale;
+  for(let i=0;i<20;i++)g.action('fireScale:up');
+  for(let i=0;i<20;i++)g.action('controlScale:down');
+  assert.equal(g.hud.fireScale,1.5);assert.equal(g.hud.controlScale,.8);
+  const restored=new Platform(new Node(),()=>{},()=>{});assert.equal(restored.fireScale,1.5);assert.equal(restored.controlScale,.8);restored.dispose();
+  for(const invalid of ['NaN','Infinity','0','2','-1']){values.set('night-overwatch-fireScale',invalid);const p=new Platform(new Node(),()=>{},()=>{});assert.equal(p.fireScale,1);p.dispose();}
+  g.platform.dispose();
+ }finally{cc.sys.localStorage=storage;}
+});
+
 test('rankings scroll with wheel and touch only inside the list, and cancellation releases the gesture', () => {
   const g=mission();let offset=0;
   Object.assign(g.hud,{modal:{},scrollNode:{},scrollArea:{x:50,y:100,w:400,h:200},scrollBy:(n:number)=>{offset+=n;}});
@@ -128,7 +165,7 @@ test('quartermaster Escape respects the foreground settings and suppresses held-
 
 test('a new campaign can start while the previous recorder handshake is pending', async () => {
   const g = mission(), requests: (() => void)[] = []; g.hud.t = (text: string) => text;
-  g.online = { leave() {}, startRanking: () => new Promise<void>(resolve => requests.push(resolve)), recorder: { record() {}, invalidate() {} } };
+  g.online = { leave() {}, startRanking: () => new Promise(resolve => requests.push(()=>resolve({loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}}))), recorder: { record() {}, invalidate() {} } };
   g.sim.phase = 'briefing'; const first = g.sim; g.beginCampaign();
   await new Promise(resolve=>setImmediate(resolve));
   g.retry(); await new Promise(resolve=>setImmediate(resolve)); const second = g.sim; assert.notEqual(first, second); assert.equal(requests.length, 2);
@@ -142,13 +179,36 @@ test('campaign start waits for the delayed services bootstrap instead of silentl
   const g=mission(),globals=globalThis as any;g.hud.t=(value:string)=>value;g.sim.phase='briefing';let started=0;
   const originalConfig=globals.__COMPETITION_CONFIG__, originalBridge=globals.SmallGamesServices;
   globals.__COMPETITION_CONFIG__={competitionEnabled:true};delete globals.SmallGamesServices;
-  g.online={rankStatus:'local',leave(){},async connect(bridge:any){assert.equal(bridge,globals.SmallGamesServices);this.recorder={record(){}};},async startRanking(){started++;this.rankStatus='recording';}};
+  g.online={rankStatus:'local',leave(){},async connect(bridge:any){assert.equal(bridge,globals.SmallGamesServices);this.recorder={record(){}};},async startRanking(){started++;this.rankStatus='recording';return {loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}};}};
   try {
     g.servicesReady=g.connectServices();g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
     assert.equal(g.sim.phase,'briefing');assert.equal(started,0);
     globals.SmallGamesServices={ready:Promise.resolve()};await g.servicesReady;await new Promise(resolve=>setImmediate(resolve));
     assert.equal(started,1);assert.equal(g.sim.phase,'playing');assert(!g.hud.toast.includes('仅保存'));
   } finally {globals.__COMPETITION_CONFIG__=originalConfig;globals.SmallGamesServices=originalBridge;g.platform.dispose();}
+});
+
+test('formal campaign start preserves failure reasons and retries before gameplay; offline and practice remain playable',async()=>{
+ const config=(globalThis as any).__COMPETITION_CONFIG__;
+ try{
+  (globalThis as any).__COMPETITION_CONFIG__={competitionEnabled:true};
+  for(const status of ['update-required','identity-changed','storage-unavailable','pending-sync','needs-attention','unavailable']){
+   const g=mission();g.sim.phase='briefing';let invalidated=0;
+   g.online={rankStatus:status,leave(){},startRanking:async()=>({}),recorder:{record(){},invalidate(){invalidated++;}}};
+   g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
+   assert.equal(g.sim.phase,'briefing');assert.equal(g.online.rankStatus,status);assert.equal(invalidated,0);
+   assert(g.hud.missionsOpen);assert(g.hud.toast&&!g.hud.toast.includes('仅保存'));
+   const copy=g.hud.toast;g.online.startRanking=async()=>{g.online.rankStatus='recording';return {loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}};};
+   g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(g.sim.phase,'playing');assert.equal(g.hud.toastUntil,0);assert(copy.length>0);g.platform.dispose();
+  }
+  const missing=mission();missing.sim.phase='briefing';missing.online={rankStatus:'unavailable',leave(){},startRanking:async()=>undefined};
+  missing.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(missing.sim.phase,'briefing');missing.platform.dispose();
+  delete (globalThis as any).__COMPETITION_CONFIG__;
+  const offline=mission();offline.sim.phase='briefing';offline.online={rankStatus:'local',leave(){},startRanking:async()=>undefined};
+  offline.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(offline.sim.phase,'playing');offline.platform.dispose();
+  const practice=mission();practice.operationPractice=true;practice.sim.phase='briefing';practice.online={rankStatus:'practice',assetsReceivedAt:0,leave(){},startRanking:async()=>null,recorder:{record(){},invalidate(){}}};
+  practice.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(practice.sim.phase,'playing');practice.platform.dispose();
+ }finally{if(config===undefined)delete (globalThis as any).__COMPETITION_CONFIG__;else(globalThis as any).__COMPETITION_CONFIG__=config;}
 });
 
 test('offset aim survives slow microdrags, release-only displacement, taps and cancelled gestures', () => {

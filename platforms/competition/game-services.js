@@ -344,13 +344,23 @@ function createDurableRecorder(services, { storage }, onStatus) {
       typeof done.result?.accepted !== 'boolean'
     )
       throw failure('INVALID_JOURNAL');
+    if (
+      active &&
+      key(active) === name &&
+      (done.playerId !== active.playerId || (active.id && done.id !== active.id))
+    )
+      throw failure('INVALID_JOURNAL');
     // Keep the small acknowledgement: stale tabs must never upload this journal again.
     storage.removeItem(name);
     if (storage.getItem(name) != null) throw failure('STORAGE_UNAVAILABLE');
     retries.delete(name);
     services.discardRun?.(done.id);
     if (!active || key(active) === name) {
-      if (active) active.synced = true;
+      if (active) {
+        active.id = done.id;
+        active.synced = true;
+        active.result = done.result;
+      }
       report(
         done.result.accepted
           ? done.result.fastestEligible === false
@@ -444,9 +454,13 @@ function createDurableRecorder(services, { storage }, onStatus) {
       report(
         error?.code === 'STORAGE_UNAVAILABLE'
           ? 'storage-unavailable'
-          : transient
-            ? 'pending-sync'
-            : 'needs-attention',
+          : error?.code === 'RULE_VERSION_CHANGED'
+            ? 'update-required'
+            : error?.code === 'IDENTITY_CHANGED'
+              ? 'identity-changed'
+              : transient
+                ? 'pending-sync'
+                : 'needs-attention',
       );
   }
   function acknowledge(run, result) {
@@ -667,6 +681,11 @@ function createDurableRecorder(services, { storage }, onStatus) {
     get pending() {
       return pending;
     },
+    get settlement() {
+      return active?.synced && active.result
+        ? { playerId: active.playerId, runId: active.id, result: active.result }
+        : undefined;
+    },
     async start({ mode, levelId, practice = false }) {
       invalidate(practice ? 'practice' : 'local');
       if (practice) return null;
@@ -716,8 +735,15 @@ function createDurableRecorder(services, { storage }, onStatus) {
         if (deferred) failed(run, deferred);
         else await synchronize(run);
         return generation === ownGeneration ? run : null;
-      } catch {
-        if (generation === ownGeneration) report('unavailable');
+      } catch (error) {
+        if (generation === ownGeneration)
+          report(
+            error?.code === 'RULE_VERSION_CHANGED'
+              ? 'update-required'
+              : error?.code === 'IDENTITY_CHANGED'
+                ? 'identity-changed'
+                : 'unavailable',
+          );
         return null;
       }
     },

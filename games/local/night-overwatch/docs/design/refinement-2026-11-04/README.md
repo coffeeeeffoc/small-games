@@ -20,3 +20,11 @@
 复用现有场景和控件，按用户指定局部调整；范围追加无人机模拟/表现、电磁时间、回放/对战协议与Runtime消费者。参数、边界、实际画面和验证见[试玩反馈修订](../../verification-2026-11-04-refinement.md#试玩反馈修订)。
 
 最终界面：[手机默认电磁](controls/only-emp-default-844.png)、[激光同线](controls/laser-default-844.png)、[568小屏](controls/drone-default-568.png)、[重炮单独拖到左边缘](controls/drone-independent-edge-1280.png)。均为实际引擎截图，装备与SDK可用性为QA fixture，不是正式资产或真实广告验收。
+
+## 手机与结算反馈补充
+
+2026-11-05。依据本轮用户截图局部修订：保留金属材质与原插画，分离物理安全区和右上胶囊；高度紧张时将首页标题移至主按钮右侧空位，主操作仍保留44px热区。设置的三个入口是导航，不作同时选中；开火/武器与技能大小为80–150%，布局编辑期间松开输入、单人暂停，拖动取消回滚，位置只保留本局。正式对战继续遵循服务器计时，不伪称全局暂停。
+
+单人结果始终保留积分栏：服务器确认的0分显示0，未确认显示待确认，离线/训练显示不计分。不能把登记失败静默转成本地正式行动；重试和错误原因必须可见。恢复结算刷新服务器资产及任务快照，不在客户端加余额或任务次数。
+
+实际对照：[高安全区小屏首页](mobile/home-568.png)、[胶囊避让首页](mobile/home-844.png)、[设置导航](mobile/settings-844.png)、[按钮设置](mobile/button-settings-568.png)、[开火左移](mobile/fire-left-844.png)、[正式结算](mobile/settlement-1280.png)、[任务更新](mobile/tasks-updated.png)。安全区图是CSS/Tap几何模拟；结算和任务来自隔离真实PostgreSQL/HTTP、普通游客首关，不是真机截图。[验收记录](../../verification-2026-11-04-refinement.md#手机布局与正式结算修复)。

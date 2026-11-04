@@ -24,6 +24,8 @@
 # 2026-11-04 support controls / drones: selected evidence is in docs/design/refinement-2026-11-04/support.
 /support-*
 /control-layout*
+/mobile-layout/
+/settlement-live/
 
 # Local promo render/cache/raw media; final media and reproducible source are in publishing.
 /night-promo-studio/

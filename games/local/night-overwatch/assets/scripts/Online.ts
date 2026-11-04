@@ -18,7 +18,8 @@ type RankingRow = Player & { rank: number; score: number; secondary: number; win
 type Ranking = { top: RankingRow[]; me: RankingRow | null };
 type Recorder = { start(options: { mode: string; levelId: string; practice: boolean }): Promise<{loadout?:BattleLoadout}|null|undefined>;
   record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<Settlement & { accepted?: boolean; fastestEligible?: boolean } | null | undefined>; invalidate(reason?: string): void;
-  persist?(): void; recover?(): Promise<void>; pending?: number };
+  persist?(): void; recover?(): Promise<void>; pending?: number;
+  settlement?: { playerId: string; runId: string; result: Settlement } };
 export type ChatMessage={id:string;playerId:string;nickname:string;text:string;at:number;room?:{code:string;createdAt:number;canJoin:boolean}};
 export type ChatSnapshot={messages:ChatMessage[];cursor:string;reset:boolean;serverNow:number};
 type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean;chat?:boolean } };
@@ -109,6 +110,8 @@ export class Online {
   rankStatus = 'local';
   assets?:AssetSnapshot;
   battleReward?:Settlement;
+  private battleReceipt = '';
+  private rankingAttempt = 0;
   rankingVersion='night-campaign-v2';
   authenticatedId='';
   level = 0;
@@ -171,7 +174,15 @@ export class Online {
     const generation = this.generation;
     this.bridge = bridge;
     if (bridge) {
-      this.recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage }, startTimeoutMs: 8000, onStatus: status => { this.rankStatus = status === 'expired' ? 'unavailable' : status; if (status === 'expired') this.message = '本次行动已结束或超过 24 小时，请重新开始'; this.revision++; } });
+      const recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage }, startTimeoutMs: 8000, onStatus: status => {
+        if (this.destroyed || this.bridge !== bridge || this.recorder !== recorder) return;
+        this.rankStatus = status === 'expired' ? 'unavailable' : status;
+        if (status === 'expired') this.message = '本次行动已结束或超过 24 小时，请重新开始';
+        const settled = this.recorder?.settlement;
+        if (settled?.playerId === this.authenticatedId) this.receiveBattleReward(settled.result, settled.runId);
+        this.revision++;
+      } });
+      this.recorder = recorder;
       const metadata = await bridge.ready;
       this.acceptMetadata(metadata);
       void this.recorder.recover?.();
@@ -187,6 +198,7 @@ export class Online {
     else if (this.resumeCode) await this.open('resume', this.resumeCode);
   }
   async startRanking(options: Parameters<Recorder['start']>[0]) {
+    this.battleReward = undefined; this.battleReceipt = ''; this.rankingAttempt++;
     const generation = this.generation;
     if (!this.ranked) {
       try {
@@ -200,6 +212,24 @@ export class Online {
       return;
     }
     return this.recorder?.start(options);
+  }
+  cancelRanking() {
+    this.rankingAttempt++; this.battleReward = undefined; this.battleReceipt = '';
+    this.recorder?.invalidate();
+  }
+  private receiveBattleReward(result: Settlement | null | undefined, receipt: string) {
+    if (result?.status !== 'credited' || !Number.isSafeInteger(result.coins) || !Number.isSafeInteger(result.xp) || result.coins! < 0 || result.xp! < 0 || this.battleReceipt === receipt) return;
+    this.battleReward = result; this.battleReceipt = receipt; this.revision++;
+    void this.refreshAssets().catch(() => {});
+  }
+  async finishRanking() {
+    const recorder = this.recorder, owner = this.authenticatedId, attempt = this.rankingAttempt;
+    try {
+      const result = await recorder?.finish();
+      if (this.destroyed || recorder !== this.recorder || owner !== this.authenticatedId || attempt !== this.rankingAttempt) return;
+      this.receiveBattleReward(result, recorder?.settlement?.runId || 'attempt:' + attempt);
+      if (result?.accepted && result.fastestEligible === false) { this.rankStatus = 'assisted'; this.revision++; }
+    } catch { this.revision++; }
   }
   private acceptMetadata(metadata: Metadata | undefined) {
     if (!metadata) return;

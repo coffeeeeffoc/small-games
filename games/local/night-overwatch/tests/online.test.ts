@@ -23,6 +23,31 @@ test('server-confirmed ranked retirement displays a new-run notice instead of pe
   status('recording'); assert.equal(online.rankStatus,'recording'); online.dispose();
 });
 
+test('recovered battle receipts refresh authoritative assets once and reject other owners and replaced bridges',async()=>{
+ const f=fixture(),online=new Online(storage(),()=>{}),callbacks:Array<(status:string)=>void>=[];
+ const recorders:any[]=[];let refreshes=0;
+ Object.assign(f.bridge,{createRecorder:(_v:string,options:any)=>{callbacks.push(options.onStatus);const recorder={settlement:undefined,start:async()=>null,record(){},finish:async()=>null,invalidate(){}};recorders.push(recorder);return recorder;}});
+ await online.connect(f.bridge);online.refreshAssets=async()=>{refreshes++;return online.assets!;};
+ recorders[0].settlement={playerId:'a',runId:'run-a',result:{accepted:false,status:'credited',points:0,coins:40,xp:35}};
+ callbacks[0]('local');assert.equal(online.battleReward?.coins,40);assert.equal(refreshes,1,'credited failure is an asset reward even when not ranked');
+ callbacks[0]('local');assert.equal(refreshes,1);
+ online.authenticatedId='b';online.battleReward=undefined;callbacks[0]('finished');assert.equal(online.battleReward,undefined);assert.equal(refreshes,1);
+ await online.connect({...f.bridge});online.battleReward=undefined;callbacks[0]('finished');assert.equal(online.battleReward,undefined);assert.equal(refreshes,1,'replaced bridge cannot deliver a late receipt');
+ online.dispose();recorders[1].settlement={playerId:online.authenticatedId,runId:'new',result:{status:'credited',coins:180,xp:120}};callbacks[1]('finished');assert.equal(refreshes,1);
+});
+
+test('late finish cannot replace a new run or new identity settlement',async()=>{
+ for(const replacement of ['run','owner','training']){
+  const f=fixture(),online=new Online(storage(),()=>{});let finish!:(value:any)=>void,refreshes=0;
+  Object.assign(f.bridge,{createRecorder:()=>({start:async()=>({loadout:{}}),record(){},finish:()=>new Promise(resolve=>{finish=resolve;}),invalidate(){}})});
+  await online.connect(f.bridge);online.refreshAssets=async()=>{refreshes++;return online.assets!;};
+  await online.startRanking({mode:'campaign',levelId:'first',practice:false});const pending=online.finishRanking();
+  if(replacement==='run')await online.startRanking({mode:'campaign',levelId:'second',practice:false});else if(replacement==='training')online.cancelRanking();else online.authenticatedId='b';
+  finish({accepted:true,status:'credited',coins:180,xp:120});await pending;
+  assert.equal(online.battleReward,undefined);assert.equal(refreshes,0);online.dispose();
+ }
+});
+
 test('rankings retain the complete top 100 and the current player outside that list', async () => {
   const f=fixture(), online=new Online(storage(),()=>{}), requests:string[]=[];
   const rows=Array.from({length:100},(_,i)=>({id:String(i),rank:i+1,score:100-i,secondary:1200}));

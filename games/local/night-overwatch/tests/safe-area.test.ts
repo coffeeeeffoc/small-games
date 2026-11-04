@@ -15,3 +15,9 @@ test('native same-size resize invalidates once and is removable; names retain wh
  const stop=watchSafeArea(()=>count++,[sdk]);callback();assert.equal(count,1);stop();callback();assert.equal(count,1);
  assert.equal(fitName('夜航',80,14),'夜航');assert(fitName('W'.repeat(16),140,12).endsWith('…'));assert.equal(fitName('夜航守望长昵称😀',70,14),'夜航守望…');assert(!fitName('😀'.repeat(20),70,14).includes('�'));
 });
+test('a complete capsule only reserves its rectangle while physical top insets stay authoritative',()=>{
+ const capsule={left:740,right:832,top:16,bottom:52};
+ const sdk={getWindowInfo:()=>({windowWidth:844,windowHeight:390,pixelRatio:3,statusBarHeight:24}),getMenuButtonBoundingClientRect:()=>capsule};
+ assert.deepEqual(safeArea(844,390,zero,[sdk]),{...zero,top:24,capsule:true,capsuleRect:capsule});
+ assert.deepEqual(safeArea(844,390,{...zero,top:60},[sdk]),{...zero,top:60,capsule:true,capsuleRect:capsule});
+});

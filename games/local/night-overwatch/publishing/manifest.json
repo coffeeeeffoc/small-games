@@ -1,7 +1,7 @@
 {
-  "sourceHash": "91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e",
-  "verified": "2026-11-04",
-  "environment": "Chromium; offline ordinary first mission; no developer or asset fixture; menu stills: Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; no asset fixture or developer grant",
+  "sourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
+  "verified": "2026-11-05",
+  "environment": "Current home, settings and settlement: Chromium 1280x720; isolated real PostgreSQL/HTTP, ordinary guest and real play. Other images/video are reused with their original capture identities; no device capture or new video recording.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",
@@ -9,7 +9,7 @@
       "sha256": "267a21b3fe14fc3a94886d76f7f1f914821f915d25d9ef771c32710f5a4db7b9",
       "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720
     },
@@ -19,7 +19,7 @@
       "sha256": "2e9f5468115d9a649cc5c36d59730ee7d0f67f6a189dc0ec2b36911867b597a0",
       "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720
     },
@@ -29,29 +29,31 @@
       "sha256": "3cd18104d5a7ca2acff8b5e33d2c1a6616b628dee4ad10f329c90503d82b554d",
       "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-11-04-support/settings-1280.png",
-      "bytes": 611958,
-      "sha256": "59b97392d359d07b762840404ec5b14089cb858ee7afb6484fe14eb81f1bc6a2",
-      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
-      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "path": "gameplay/screenshots/2026-11-05-mobile/settings-1280.png",
+      "bytes": 617173,
+      "sha256": "1c8c91433ab0580e4355db90b51cafa2b30f48d0b1c559ec2e7e5e8aa3252fd9",
+      "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
+      "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
       "reusedUnchanged": false,
       "width": 1280,
-      "height": 720
+      "height": 720,
+      "environment": "Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; ordinary first mission; no developer assets or balance fixture"
     },
     {
-      "path": "gameplay/screenshots/2026-11-04-support/tactics-1280.png",
-      "bytes": 584600,
-      "sha256": "68e740f5e1da6aca5685f2b18b9f64bf870ecfa5ced94b1c2afc055c745545d8",
-      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
-      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "path": "gameplay/screenshots/2026-11-05-mobile/settlement-1280.png",
+      "bytes": 880648,
+      "sha256": "81b050e23fc36d5e1a55e7d9104935b8911574581d262d6472ccc59e278286a7",
+      "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
+      "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
       "reusedUnchanged": false,
       "width": 1280,
-      "height": 720
+      "height": 720,
+      "environment": "Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; ordinary first mission; no developer assets or balance fixture"
     },
     {
       "path": "gameplay/screenshots/2026-11-04-support/equipment-1280.png",
@@ -59,19 +61,20 @@
       "sha256": "1a8dfdb25a4bd8422ce12b22fc418275581224643263bc7d3c3a34da5582d5b7",
       "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720
     },
     {
-      "path": "gameplay/screenshots/2026-11-04-refinement/home-1280.png",
-      "bytes": 1427418,
-      "sha256": "88b92b0ec5114d64f0e95ef9fbbe48a611d4b5927d4ac4c147ff3c476084ac76",
-      "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
-      "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "reusedUnchanged": true,
+      "path": "gameplay/screenshots/2026-11-05-mobile/home-1280.png",
+      "bytes": 1427471,
+      "sha256": "8b248fda5cc73e72919a77bd2f1ede0d38429fa9c6327df7fa8313fcdc2ade5b",
+      "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
+      "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
+      "reusedUnchanged": false,
       "width": 1280,
-      "height": 720
+      "height": 720,
+      "environment": "Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; ordinary first mission; no developer assets or balance fixture"
     },
     {
       "path": "gameplay/screenshots/2026-11-04-refinement/growth-1280.png",
@@ -109,7 +112,7 @@
       "sha256": "82921f825b8c3bb260936d318dc5723e4ddd37db0ff300e75f607bc1adfd25c5",
       "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -137,7 +140,7 @@
       "sha256": "b87cbe130c4f960525106887503c89e394f08150cda28fc1969929389d2465db",
       "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
       "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "probe": {
         "programs": [],
         "stream_groups": [],
@@ -162,22 +165,22 @@
       "sha256": "5e8705969533960112052daddf307d5a331e39b73ad3c51ddfcacb4532b64a9c",
       "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
       "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "reusedUnchanged": false
+      "reusedUnchanged": true
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 2920,
-      "sha256": "42155a03e13bf48640f9bd72824668c8bebc9ba07e54f4813fe88370bba54e33",
-      "verifiedForSourceHash": "91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e",
-      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "bytes": 3179,
+      "sha256": "23166d69ad29bd68737931879e22a4fc3d1b85c915e89eabc6734d14f3f1701f",
+      "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
+      "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
       "reusedUnchanged": false
     },
     {
       "path": "copy/developer-note.md",
-      "bytes": 2051,
-      "sha256": "389e5d23563e75e1e38540a31bb2d4fd0731dadaaf23598a9ee836715469c337",
-      "verifiedForSourceHash": "91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e",
-      "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
+      "bytes": 2343,
+      "sha256": "8a798fcf66e232626281a20fcf4dba61da81b04eca9cf4ba4d4786b5204e7fa9",
+      "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
+      "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
       "reusedUnchanged": false
     },
     {
@@ -229,7 +232,7 @@
       "audioCodec": "aac",
       "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
       "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "environment": "Edited promotional composition; browser gameplay 1280x720 scaled in 1920x1080 canvas; original synthesized underscore",
       "evidence": "promo/videos/night-overwatch-tactical-2026-11-04-evidence.json"
     },
@@ -244,7 +247,7 @@
       "audioCodec": "aac",
       "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
       "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "environment": "Promotional edit; original 120 BPM stereo electronic score; H264 video reused without recompression; gameplay source 1280x720",
       "evidence": "promo/videos/night-overwatch-ignite-2026-11-04-evidence.json"
     },
@@ -259,7 +262,7 @@
       "audioCodec": "aac",
       "capturedSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
       "verifiedForSourceHash": "c3f32a92a83b06f6421f1f95a4f747e8b8cec02f0270f116dc4aadc7e16fd74a",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "environment": "Five native 1920x1080 WebGL canvas takes from pinned stable browser build; 22s multi-weapon edit; original ignite AAC copied bit-exact",
       "evidence": "promo/videos/night-overwatch-ignite-native1080-2026-11-04-evidence.json"
     },
@@ -269,7 +272,7 @@
       "sha256": "4f040926c75c54f27b9b5af2cbac8d75c1759b7af828173c09cb6e2f75fab99f",
       "verifiedForSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
       "capturedSourceHash": "acd6cb99abb176602c8c4dd3d3d1f013b7cc06a06aeb594a387d79c4ee7e363c",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720,
       "duration": 20,
