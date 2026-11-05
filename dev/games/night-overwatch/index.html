@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head><script src="./game-service-config.js"></script><script type="module" src="./game-services/game-bootstrap.js"></script><link rel="icon" href="data:,">
+<head><script src="./game-services/night-storage.js"></script><script src="./game-service-config.js"></script><script type="module" src="./game-services/game-bootstrap.js"></script><link rel="icon" href="data:,">
   <meta charset="utf-8">
 
   <title>夜航守望 · Night Overwatch</title>
@@ -36,7 +36,7 @@
 
   <link rel="stylesheet" type="text/css" href="style.f76d1.css"/>
 
-<style>canvas{touch-action:none;outline:none}</style><script src="./dev-mode.js"></script><!-- night-startup:head --><style>#night-startup {
+<style>canvas{touch-action:none;outline:none}</style><script>globalThis.__nightDevModeReady = globalThis.__nightStorageReady?.then(() => import("./dev-mode.js")); void globalThis.__nightDevModeReady?.catch(() => {});</script><!-- night-startup:head --><style>#night-startup {
   --night-gold: #e4be78;
   position: fixed;
   inset: 0;
@@ -261,6 +261,10 @@
   window.NightStartup = {
     async boot(applicationPath, target) {
       try {
+        stage('正在准备本地行动记录…');
+        if (!window.__nightStorageReady) throw new Error('本地存储组件加载失败，请重新加载。');
+        await window.__nightStorageReady;
+        await window.__nightDevModeReady;
         const canvas = document.getElementById('GameCanvas');
         document.getElementById('GameDiv').setAttribute('inert', '');
         listen(canvas, 'webglcontextlost', () => fail(new Error('图形连接已中断，请重试。')));
@@ -323,7 +327,7 @@
 <!-- Import map -->
 <script src="src/import-map.81e26.json" type="systemjs-importmap" charset="utf-8"> </script>
 
-<script data-night-entry="./index.f09c3.js">window.NightStartup.boot("./application.c07dd.js", "web-mobile");</script>
+<script data-night-entry="./index.c3643.js">window.NightStartup.boot("./application.19654.js", "web-mobile");</script>
 
 </body>
 </html>

@@ -28,7 +28,8 @@ globalThis.__COMPETITION_CONFIG__ = Object.assign({"game":"carding-car","platfor
       seen = false,
       volatile = false,
       revision = 0,
-      pending;
+      pending,
+      writePending;
     const sameSession = (a, b) =>
       a?.sessionId && a.sessionId === b?.sessionId && ownerId(a) === ownerId(b);
     const shape = (value) =>
@@ -69,13 +70,40 @@ globalThis.__COMPETITION_CONFIG__ = Object.assign({"game":"carding-car","platfor
       } catch {}
       return { credential: memory, revision };
     }
-    function persist(value) {
+    function persist(value, committed = false) {
+      const expected = lastRaw;
       if (!sameSession(memory, value) && (memory || value)) revision++;
       memory = value ? { ...value, apiAuthority: authority } : null;
       lastRaw = memory ? JSON.stringify(memory) : null;
       seen = true;
+      if (storage?.compareAndSet && !committed) {
+        const next = memory;
+        volatile = true;
+        const operation = storage
+          .compareAndSet(key, expected, lastRaw)
+          .then((accepted) => {
+            if (!accepted) throw error('SESSION_CHANGED');
+            if (memory === next) volatile = false;
+            return next;
+          })
+          .catch((cause) => {
+            if (memory === next) {
+              volatile = false;
+              seen = false;
+              read();
+            }
+            throw cause;
+          });
+        writePending = operation;
+        void operation
+          .finally(() => {
+            if (writePending === operation) writePending = undefined;
+          })
+          .catch(() => {});
+        return operation;
+      }
       try {
-        set(lastRaw || '');
+        if (!committed) set(lastRaw || '');
         volatile = !storage && !sdk;
       } catch {
         volatile = true;
@@ -92,7 +120,8 @@ globalThis.__COMPETITION_CONFIG__ = Object.assign({"game":"carding-car","platfor
         .catch(() => {});
       return running;
     }
-    function accept(initial, credential, refreshing = false) {
+    async function accept(initial, credential, refreshing = false) {
+      if (storage?.refresh) await storage.refresh();
       if (read().revision !== initial.revision) throw error('SESSION_CHANGED');
       if (!valid(credential)) throw error('SESSION_EXPIRED');
       if (refreshing && !sameSession(initial.credential, credential))
@@ -103,6 +132,19 @@ globalThis.__COMPETITION_CONFIG__ = Object.assign({"game":"carding-car","platfor
       }
       if (refreshing && (memory.profileUpdatedAt || 0) > (credential.profileUpdatedAt || 0))
         for (const field of profileFields) credential[field] = memory[field];
+      if (storage?.compareAndSet) {
+        const expected = read().revision;
+        if (
+          !(await storage.compareAndSet(
+            key,
+            lastRaw,
+            JSON.stringify({ ...credential, apiAuthority: authority }),
+          ))
+        )
+          throw error('SESSION_CHANGED');
+        if (revision !== expected) throw error('SESSION_CHANGED');
+        return persist(credential, true);
+      }
       return persist(credential);
     }
     const profileFields = [
@@ -137,7 +179,10 @@ globalThis.__COMPETITION_CONFIG__ = Object.assign({"game":"carding-car","platfor
         for (const field of profileFields) if (field in profile) next[field] = profile[field];
         return persist(next);
       },
-      current(expectedOwner) {
+      async current(expectedOwner) {
+        if (writePending) await writePending;
+        if (storage?.flush && !storage.compareAndSet) await storage.flush();
+        if (storage?.refresh) await storage.refresh();
         if (unsupported || (provider !== 'h5' && !sdk?.request))
           return Promise.reject(error('PLATFORM_LOGIN_UNAVAILABLE'));
         const initial = read(),
@@ -168,9 +213,11 @@ globalThis.__COMPETITION_CONFIG__ = Object.assign({"game":"carding-car","platfor
       },
       async logout() {
         const saved = read().credential;
-        persist(null);
+        const committed = persist(null);
         revision++;
         pending = null;
+        await committed;
+        if (storage?.flush && !storage.compareAndSet) await storage.flush();
         if (saved) await request('/sessions/logout', {}, saved);
       },
       async forOwner(credential) {
@@ -251,7 +298,7 @@ globalThis.__COMPETITION_CONFIG__ = Object.assign({"game":"carding-car","platfor
           credential,
         );
         if (read().revision !== initial.revision) throw error('SESSION_CHANGED');
-        result.acceptProfile(profile, credential);
+        await result.acceptProfile(profile, credential);
         return profile;
       },
     };
@@ -504,7 +551,7 @@ globalThis.__installCompetition = (options, nativeSdk) => {
       }
       if (code && path.endsWith('/leave')) roomOwners.delete(code);
       if (path === '/me' && data.userId) {
-        const accepted = auth.acceptProfile(data, owner);
+        const accepted = await auth.acceptProfile(data, owner);
         for (const field of [
           'nickname',
           'name',

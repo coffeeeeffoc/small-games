@@ -3,7 +3,8 @@ import { createGameServices, createRunRecorder } from './game-services.js';
 export function connectGameServices() {
   const config = globalThis.__COMPETITION_CONFIG__;
   if (!config?.competitionEnabled || !config.apiUrl) return undefined;
-  const services = createGameServices({ gameId: config.game });
+  const storage = config.game === 'night-overwatch' ? globalThis.__nightStorage : undefined;
+  const services = createGameServices({ gameId: config.game, storage });
   let status = 'connecting',
     metadata,
     error;
@@ -25,7 +26,7 @@ export function connectGameServices() {
   return Object.freeze({
     services,
     createRecorder: (ruleVersion, options) =>
-      createRunRecorder(createGameServices({ gameId: config.game, ruleVersion }), options),
+      createRunRecorder(createGameServices({ gameId: config.game, ruleVersion, storage }), options),
     ready,
     refresh,
     get status() {
@@ -41,5 +42,11 @@ export function connectGameServices() {
 }
 
 if (typeof window !== 'undefined') {
-  globalThis.SmallGamesServices = connectGameServices();
+  const connect = () => {
+    globalThis.SmallGamesServices = connectGameServices();
+  };
+  if (globalThis.__COMPETITION_CONFIG__?.game === 'night-overwatch') {
+    if (globalThis.__nightStorageReady)
+      void globalThis.__nightStorageReady.then(connect).catch(() => {});
+  } else connect();
 }
