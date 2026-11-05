@@ -27,7 +27,7 @@ test('developer controls send real intents, report failures, and retain safe mis
   s.run('night-mission',MISSIONS.length);assert(s.calls.some(c=>Array.isArray(c)&&c[1]===MISSIONS.at(-1)!.id));
   assert.equal(s.q.page,'');assert.equal(s.game.hud.missionPage,39);assert.equal(s.game.hud.missionsOpen,true);
   s.run('night-training');assert.equal(s.game.hud.missionsOpen,false);
-  assert.throws(()=>s.run('night-mission',0),/任务序号/);
+  assert.throws(()=>s.run('night-mission',0),/关卡序号/);
   for(const patch of [{room:{}},{active:true},{busy:true}]){
     Object.assign(s.game.online,patch);assert.throws(()=>s.run('night-training'),/正常结束/);Object.assign(s.game.online,{room:undefined,active:false,busy:false});
   }

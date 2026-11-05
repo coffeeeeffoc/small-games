@@ -1,5 +1,7 @@
 # 夜航守望 · 交付状态
 
+2026-11-05 按审核反馈重做素材并整理HUD：连续首关录屏与30秒宣传片均从战斗画面开始，完整画布采集无录屏软件悬浮控件；宣传片前27秒为五组真实武器/成像镜头，最后3秒品牌收尾。使用最终Creator源码摘要 `04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6`，web-mobile 59,276,767字节。HUD主类字节减少72.9%，按职责拆分并改善命名/排版/注释；关卡用语及中英文电台同步更新，每日任务保留原意。同步后的同键缓存覆盖内存、IndexedDB和旧localStorage清理，防重复回执保留7天。[代码与验证](../docs/verification-2026-11-04-refinement.md#hud可读性跨库清理与战斗素材)、[素材来源与证据](promo/videos/review-2026-11-05-source/README.md)。本轮未上传TapTap或重新提审；桌面WebGL录屏不是实体手机采集。下方旧日期记录保留历史身份。
+
 2026-11-05 统一存储与视图整理：最终Creator源码摘要 `6ba6bfd5db3ebb40387c8957240d7e39edf87a6efe7de25a0e8aa4acc61a8721`，web-mobile 59,258,397字节。显式共享存储实例、可替换后端及可靠持久化边界保留；HUD大厅/设置/指南和Overwatch只读快照分离，主类字节分别减少26.1%/10.0%。180项最终存储/共享/Night/原生、105项HUD输入及新增入口1项、8项消费者范围、25项包边界与类型检查通过。同一制品通过7场启动、真实首关故障结算、三尺寸设置/指南/触控和真实聊天8项，旧库写0；正式到账100/180/120且重载不重复。[架构与缓存决定](../docs/architecture/storage-and-view-modules.md)、[验证及6张QA](../docs/verification-2026-11-04-refinement.md#统一存储与视图模块整理)。八类23项资料沿用原核验身份；无视觉规则变更，不重录宣传媒体。由主会话完成最终提交推送；未上传新渠道包或部署生产，实体机及TapTap宿主待验收。
 
 2026-11-05 H5 IndexedDB迁移检查点（已随 `d36cf1f3` 推送dev）：Creator源码摘要 `54733b744cee33fdd1733504aee89b1687c556331436d88f9df99d58660a0f4e`，web-mobile 59,251,115字节。旧localStorage仅兼容读，新数据写IndexedDB；Cocos探测、身份、偏好和玩法均实测旧库写入0次。该历史制品通过真实PostgreSQL首关、战中事务abort/回执失败/丢失响应/重载，正式到账100积分/180金币/120 EXP且任务不重复；组件404和无IDB训练等4个启动场景通过。115项共享/存储/启动与101项Night/原生定向测试、类型及消费者检查通过。[验证与QA](../docs/verification-2026-11-04-refinement.md#h5-indexeddb存储迁移)。八类23项上架资料沿用已核验的原采集身份；本次仅存储逻辑，不重录宣传媒体。未部署或上传，真机/TapTap宿主仍待验收，下方记录保留其历史版本身份。
@@ -43,11 +45,11 @@
 | 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，同步战况与持续反馈 |
 | 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png)，复核沿用 |
 | 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png)，仅标题，复核沿用 |
-| 宣传视频 | 已提供 | [新版UI 20秒静音预览](promo/videos/support-2026-11-04-1280x720-silent.mp4)，1280×720 / H.264 / 约2.18 MB，独立分镜与7秒实录；原有配乐版保留： [原生1080p多武器宣传片](promo/videos/night-overwatch-ignite-native1080-2026-11-04.mp4)，30秒 / 1920×1080 / 16:9 / H.264 MP4 / AAC立体声 / 约25.93 MB；22秒真实多武器战斗，来源角标已移除，上一版燃向配乐完整保留。[源码与验证](promo/videos/native1080-2026-11-04-source/README.md)；旧燃向版、战术版及静音版保留归档 |
+| 宣传视频 | 已提供 | [战斗开场新版](promo/videos/night-overwatch-action-2026-11-05-1920x1080.mp4)，30秒 / 1920×1080 / 30fps / H.264 MP4 / AAC；前27秒五组真实战斗，最后3秒品牌收尾，沿用原创电子配乐。[源码与验证](promo/videos/review-2026-11-05-source/README.md)；旧版保留归档 |
 | 游戏截图 | 已提供 | 10张1280×720 PNG：[夜景](gameplay/screenshots/2026-11-04-support/night-1280.png)、[增强](gameplay/screenshots/2026-11-04-support/enhanced-1280.png)、[热像](gameplay/screenshots/2026-11-04-support/thermal-1280.png)、[设置](gameplay/screenshots/2026-11-05-mobile/settings-1280.png)、[正式结算](gameplay/screenshots/2026-11-05-mobile/settlement-1280.png)、[装配](gameplay/screenshots/2026-11-04-support/equipment-1280.png)、[首页](gameplay/screenshots/2026-11-05-mobile/home-1280.png)、[等级成长](gameplay/screenshots/2026-11-04-refinement/growth-1280.png)、[开始行动](gameplay/screenshots/2026-11-04-refinement/modes-1280.png)、[横向选关](gameplay/screenshots/2026-11-04-refinement/missions-1280.png) |
-| 实机录屏 | 已提供 | [约18秒连续战斗MP4](gameplay/videos/support-2026-11-04-1280x720-silent.mp4)，H.264无音轨，浏览器实录，非实体手机 |
+| 实机录屏 | 已提供 | [约56秒连续首关录屏](gameplay/videos/night-overwatch-combat-2026-11-05-1920x1080.mp4)，1920×1080 / 30fps / H.264 / AAC，保留游戏音效及电台；第一帧即战斗，0.737秒首次开火，连续录至真实服务结算，无遮挡控件。桌面浏览器实录，非实体手机 |
 
-[媒体清单](manifest.json)记录大小、尺寸、摘要及采集身份，2026-11-05逐项复核23个文件。首页、设置、结算3张从当前构建的隔离真实PostgreSQL/HTTP普通新游客重采，无测试资产和开发余额，专属服务已清理；其他截图和视频复用原始采集版本，不冒称本轮重录。QA安全区、拖动与小屏图片单独放在验证文档，不作正式媒体。既有视频完整解码、逐秒画面与连续18秒实录证据保留在[剪辑记录](promo/videos/support-2026-11-04-edit.json)。
+[媒体清单](manifest.json)记录大小、尺寸、摘要及采集身份。2026-11-05本轮新增两支视频，共25个文件；简介和开发者说明同步关卡用语，其余图像及历史视频保留原采集身份。新视频由隔离真实PostgreSQL/HTTP普通游客和实际输入采集，无开发资产或模拟结果；完整解码、逐秒画面及1倍速播放见[成片证据](promo/videos/review-2026-11-05-source/evidence.json)。QA安全区、拖动与小屏图片单独放在验证文档，不作正式媒体。历史截图可能保留旧关卡用语，不冒称本轮重拍。
 
 静态图标、宣传图和推荐语保留原采集身份；历史截图与视频继续归档保留。素材许可见[素材清单](../docs/ASSET_MANIFEST.json)，本轮内置imagegen提示词、效果图和实际对照见[设计目录](../docs/design/refinement-2026-11-04/README.md)。
 

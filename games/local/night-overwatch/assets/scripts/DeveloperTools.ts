@@ -34,8 +34,8 @@ export function installDeveloperTools(game: Overwatch) {
   const stopActions = dev.registerActions([
     { id: 'night-coins', label: '调整测试金币', input: { label: '金币增减（负数扣减）', min: -1e9, max: 1e9, step: 1, value: 1000 }, run: value => adjust('coinsDelta', value) },
     { id: 'night-xp', label: '调整测试经验', input: { label: '经验增减（负数扣减）', min: -1e9, max: 1e9, step: 1, value: 200 }, run: value => adjust('xpDelta', value) },
-    { id: 'night-mission', label: '选择试玩任务', input: { label: `任务序号（1–${MISSIONS.length}）`, min: 1, max: MISSIONS.length, step: 1, value: 1 }, run(value) {
-      if (!Number.isInteger(value) || value! < 1 || value! > MISSIONS.length) throw Error('任务序号超出范围');
+    { id: 'night-mission', label: '选择试玩关卡', input: { label: `关卡序号（1–${MISSIONS.length}）`, min: 1, max: MISSIONS.length, step: 1, value: 1 }, run(value) {
+      if (!Number.isInteger(value) || value! < 1 || value! > MISSIONS.length) throw Error('关卡序号超出范围');
       select(MISSIONS[value! - 1].id, value! - 1);
     } },
     { id: 'night-training', label: '选择火控热身', run: () => select('training-60', 0) },

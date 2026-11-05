@@ -176,7 +176,7 @@ export class ProgressionView {
   }
   private modes(){
     const q=this.q,l=this.left,r=this.right,y=this.top+Math.max(12,this.height*.04),bottom=this.bottom-58,gap=Math.max(8,this.w*.016),cw=(r-l-gap*2)/3,ch=bottom-y-12;
-    for(const [i,[id,zh,en,desc,edesc]]of [['solo','单人任务','SOLO','护送车队 · 推进关卡','Escort · Campaign'],['duel','双人对战','DUEL','好友房间 · 在线匹配','Friends · Matchmaking'],['training','火控训练','TRAINING','试用军需 · 熟悉操作','Try gear · Practice']].entries()){
+    for(const [i,[id,zh,en,desc,edesc]]of [['solo','单人关卡','SOLO','护送车队 · 推进关卡','Escort · Campaign'],['duel','双人对战','DUEL','好友房间 · 在线匹配','Friends · Matchmaking'],['training','火控训练','TRAINING','试用军需 · 熟悉操作','Try gear · Practice']].entries()){
       const x=l+i*(cw+gap),selected=q.actionMode===id;this.panel(x,y,cw,ch,selected);this.picture(id,x+5,y+5,cw-10,ch*.73);
       this.h.gradient(this.g,x+5,y+ch*.65,cw-10,ch*.33,'#06111b88','#06111bf5');
       const b=this.h.button('mode:'+id,'',x,y,cw,ch,this.n);b.string=this.t(zh,en);b.fontSize=this.font(52,19);b.isBold=true;
@@ -187,7 +187,7 @@ export class ProgressionView {
     const summary=q.assets?.loadouts[q.actionMode==='duel'?'duel':'solo'];const equipped=summary?[...summary.mods,summary.weapon,summary.skill].filter(Boolean).map(id=>this.catalogName(id!)).join(' · '):this.t('基础方案','Basic loadout');
     const bw=Math.max(168,(r-l)*.27);this.button('qm:loadout',this.t('作战配置','Combat loadout')+'  ›',l,this.bottom-48,this.narrow?144:190,44);
     if(!this.narrow)this.label(equipped,l+198,this.bottom-48,r-l-bw-210,44,22,dim);
-    this.button('mode:enter',this.t(q.actionMode==='solo'?'进入选关':q.actionMode==='duel'?'进入大厅':'开始训练',q.actionMode==='solo'?'MISSION MAP':q.actionMode==='duel'?'ENTER LOBBY':'START TRAINING'),r-bw,this.bottom-48,bw,48,'gold');
+    this.button('mode:enter',this.t(q.actionMode==='solo'?'进入选关':q.actionMode==='duel'?'进入大厅':'开始训练',q.actionMode==='solo'?'LEVEL MAP':q.actionMode==='duel'?'ENTER LOBBY':'START TRAINING'),r-bw,this.bottom-48,bw,48,'gold');
   }
   private catalogName(id:string){const p=this.q.catalog.find(p=>p.id===id);return p?this.productName(p):id;}
   private productDetail(p:Product,x:number,y:number,w:number,h:number,shop:boolean){
@@ -350,7 +350,7 @@ export class ProgressionView {
       if(iw)this.picture(art,l+5,yy+5,iw,rowH-17);
       const alternate=!achievements&&task.event==='duel'&&!task.claimed&&task.progress<task.target;
       const tx=l+iw+12,buttonW=this.narrow?66:Math.min(180,(r-l)*.15),bx=r-buttonW-12,contentW=bx-tx-12-(alternate?buttonW+6:0);
-      const title=this.h.lang==='zh'?task.name:task.event==='checkin'?'Check in today':task.event==='open'?'Open a supply crate':task.event==='solo'?`Complete ${task.target} solo operations`:task.event==='duel'?`Complete ${task.target} duels`:task.event==='win'?`Win ${task.target} operations`:`Complete ${task.target} operations`;
+      const title=this.h.lang==='zh'?task.name.replace('单人任务','单人关卡'):task.event==='checkin'?'Check in today':task.event==='open'?'Open a supply crate':task.event==='solo'?`Complete ${task.target} solo levels`:task.event==='duel'?`Complete ${task.target} duels`:task.event==='win'?`Win ${task.target} operations`:`Complete ${task.target} operations`;
       this.label(title,tx,yy+5,contentW,rowH*.32,32,ivory,true,true);
       const barW=contentW*.65;this.bar(tx,yy+rowH*.45,barW,Math.max(7,rowH*.09),task.progress/task.target);
       this.label(`${task.progress}/${task.target}`,tx+barW+6,yy+rowH*.34,contentW-barW-6,25,24,dim);
@@ -495,7 +495,7 @@ export class ProgressionView {
   private settlement(s:Simulation){
     const q=this.q,online=this.h.online,reward=s.duelMode?online?.room?.settlement:online?.battleReward,training=s.mission.mode==='training',success=s.phase==='success';
     const duel=s.duelMode,outcome=reward?.outcome||(online?.view?.winner===null?'draw':online?.view?.winner===(online?.room?.you??0)?'win':'loss');
-    const title=duel?online?.spectator?this.t('观战结束','MATCH ENDED'):this.t(outcome==='win'?'战斗胜利':outcome==='draw'?'战斗平局':'战斗失败',outcome==='win'?'VICTORY':outcome==='draw'?'DRAW':'DEFEAT'):training?this.t(success?'训练完成':'训练结束',success?'TRAINING COMPLETE':'TRAINING ENDED'):this.t(success?'任务完成':'行动结束',success?'MISSION COMPLETE':'OPERATION ENDED');
+    const title=duel?online?.spectator?this.t('观战结束','MATCH ENDED'):this.t(outcome==='win'?'战斗胜利':outcome==='draw'?'战斗平局':'战斗失败',outcome==='win'?'VICTORY':outcome==='draw'?'DRAW':'DEFEAT'):training?this.t(success?'训练完成':'训练结束',success?'TRAINING COMPLETE':'TRAINING ENDED'):this.t(success?'关卡完成':'行动结束',success?'LEVEL COMPLETE':'OPERATION ENDED');
     const reason=success?this.t(`评价 ${s.rating} · 友伤 ${Math.round(s.friendlyDamage)}`,`RATING ${s.rating} · FRIENDLY DAMAGE ${Math.round(s.friendlyDamage)}`):s.failedGroup?this.t(`第 ${s.failedGroup} 据点全灭`,`OUTPOST ${s.failedGroup} LOST`):s.failure==='vehicle'?this.t('救援车被毁','RESCUE VEHICLE LOST'):this.t('整备后再战','REGROUP AND RETRY');
     const subtitle=duel?this.t('对手：','OPPONENT: ')+playerLabel(online?.opponent||{}):text(s.mission.name,this.h.lang)+' · '+reason;
     const pw=Math.min(this.w-this.h.safe.left-this.h.safe.right-24,this.low?this.w*.79+80:this.w*.78),ph=Math.min(this.height-this.h.safe.top-this.h.safe.bottom-24,this.height*.84+(this.low?20:0)),x=(this.w-pw)/2,y=(this.height-ph)/2;
@@ -516,7 +516,7 @@ export class ProgressionView {
     this.label(`Lv.${q.assets?.level??1}`,x+20,py+(this.low?0:16*this.scale),this.low?75:150*this.scale,this.low?28:42*this.scale,this.low?29:39,gold,true);
     this.bar(x+(this.low?98:184*this.scale),py+(this.low?8:29*this.scale),pw-(this.low?220:380*this.scale),this.low?11:18*this.scale,(q.assets?.current??0)/(q.assets?.required||200));this.label(`EXP ${q.assets?.current??0}/${q.assets?.required??200}`,x+pw-(this.low?117:185*this.scale),py+(this.low?0:16*this.scale),this.low?98:160*this.scale,this.low?28:42*this.scale,26,dim);
     const next=!duel&&!training&&success&&s.mission.id!==MISSIONS.at(-1)!.id;
-    if(!this.low){const task=q.assets?.tasks.find(t=>t.event===(duel?'duel':'solo')||t.event==='complete'),ty=py+90*this.scale;this.panel(x+20,ty,pw-40,72*this.scale);this.label(task?`${this.t('每日任务','DAILY TASK')}  ${task.progress}/${task.target}`:this.t('查看每日任务与奖励','VIEW DAILY TASKS & REWARDS'),x+30,ty+7,pw*(next?.46:.59),44,31,ivory,false,true);this.button('qm:tasks',this.t('查看奖励','REWARDS'),x+pw*(next?.51:.69),ty+7,pw*(next?.22:.27),44);if(next)this.button('missionNext',this.t('下一任务 ›','NEXT ›'),x+pw*.75,ty+7,pw*.21,44);}
+    if(!this.low){const task=q.assets?.tasks.find(t=>t.event===(duel?'duel':'solo')||t.event==='complete'),ty=py+90*this.scale;this.panel(x+20,ty,pw-40,72*this.scale);this.label(task?`${this.t('每日任务','DAILY TASK')}  ${task.progress}/${task.target}`:this.t('查看每日任务与奖励','VIEW DAILY TASKS & REWARDS'),x+30,ty+7,pw*(next?.46:.59),44,31,ivory,false,true);this.button('qm:tasks',this.t('查看奖励','REWARDS'),x+pw*(next?.51:.69),ty+7,pw*(next?.22:.27),44);if(next)this.button('missionNext',this.t('下一关卡 ›','NEXT ›'),x+pw*.75,ty+7,pw*.21,44);}
     const pending=['pending-sync','syncing','recording','connecting'].includes(online?.rankStatus||'');
     const issues:Record<string,[string,string]>={
       'update-required':['版本已更新，请退出游戏后重新打开','UPDATE REQUIRED · REOPEN THE GAME'],
@@ -532,6 +532,6 @@ export class ProgressionView {
     const bw=this.low?(pw-(next?88:76))/(next?3:2):pw*.36,by=y+ph-(this.low?58:105*this.scale),bh=this.low?48:80*this.scale;
     this.button('home',this.t('返回基地','RETURN TO BASE'),this.low?x+24:x+pw*.07,by,bw,bh,'blue');
     this.button(s.duelMode?'online:backLobby':'retry',this.t(s.duelMode?'返回大厅':'再次出动',s.duelMode?'BACK TO LOBBY':'DEPLOY AGAIN'),this.low?x+52+bw:x+pw*.57,by,bw,bh,'gold');
-    if(this.low&&next)this.button('missionNext',this.t('下一任务','NEXT'),x+64+bw*2,y+ph-58,bw,48,'gold');
+    if(this.low&&next)this.button('missionNext',this.t('下一关卡','NEXT'),x+64+bw*2,y+ph-58,bw,48,'gold');
   }
 }

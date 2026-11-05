@@ -1,0 +1,782 @@
+{
+  "date": "2026-11-05",
+  "sourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
+  "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+  "captures": [
+    {
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-mobile",
+        "sourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6"
+      },
+      "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+      "name": "continuous",
+      "seconds": 55.854,
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080,
+        "dpr": 1,
+        "audioTracks": 1
+      },
+      "before": {
+        "phase": "playing",
+        "time": 1.4666666666666663,
+        "fired": 0,
+        "kills": 0,
+        "threats": 4,
+        "viewMode": "enhanced",
+        "selected": 1,
+        "rankStatus": "recording"
+      },
+      "after": {
+        "phase": "success",
+        "time": 54.01666666666488,
+        "fired": 6,
+        "kills": 4,
+        "threats": 0,
+        "viewMode": "enhanced",
+        "selected": 2,
+        "rankStatus": "finished"
+      },
+      "events": [
+        {
+          "seconds": 0.737,
+          "fired": 1,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 5.509,
+          "fired": 2,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 9.55,
+          "fired": 3,
+          "weapon": 2,
+          "target": 15
+        },
+        {
+          "seconds": 17.897,
+          "fired": 4,
+          "weapon": 2,
+          "target": 17
+        },
+        {
+          "seconds": 26.17,
+          "fired": 5,
+          "weapon": 2,
+          "target": 19
+        },
+        {
+          "seconds": 37.508,
+          "fired": 6,
+          "weapon": 2,
+          "target": 19
+        }
+      ],
+      "storageAfter": {
+        "legacyRuns": 0,
+        "journals": 0,
+        "receipts": 1
+      }
+    },
+    {
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-mobile",
+        "sourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6"
+      },
+      "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+      "name": "rapid",
+      "seconds": 12.211,
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080,
+        "dpr": 1,
+        "audioTracks": 1
+      },
+      "before": {
+        "phase": "playing",
+        "time": 1.2833333333333337,
+        "fired": 0,
+        "kills": 0,
+        "threats": 4,
+        "viewMode": "enhanced",
+        "selected": 0,
+        "rankStatus": "recording"
+      },
+      "after": {
+        "phase": "playing",
+        "time": 13.483333333333583,
+        "fired": 44,
+        "kills": 1,
+        "threats": 3,
+        "viewMode": "enhanced",
+        "selected": 0,
+        "rankStatus": "recording"
+      },
+      "events": [
+        {
+          "seconds": 0.063,
+          "fired": 3,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 0.687,
+          "fired": 6,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 1.266,
+          "fired": 9,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 1.828,
+          "fired": 12,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 2.386,
+          "fired": 15,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 2.991,
+          "fired": 18,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 3.584,
+          "fired": 21,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 4.179,
+          "fired": 24,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 4.953,
+          "fired": 27,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 5.557,
+          "fired": 30,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 6.116,
+          "fired": 33,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 6.822,
+          "fired": 36,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 7.413,
+          "fired": 39,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 8.005,
+          "fired": 41,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 8.585,
+          "fired": 41,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 9.219,
+          "fired": 41,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 9.822,
+          "fired": 41,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 10.411,
+          "fired": 41,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 10.987,
+          "fired": 41,
+          "weapon": 0,
+          "target": 15
+        },
+        {
+          "seconds": 11.686,
+          "fired": 44,
+          "weapon": 0,
+          "target": 15
+        }
+      ]
+    },
+    {
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-mobile",
+        "sourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6"
+      },
+      "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+      "name": "blast",
+      "seconds": 12.033,
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080,
+        "dpr": 1,
+        "audioTracks": 1
+      },
+      "before": {
+        "phase": "playing",
+        "time": 1.016666666666668,
+        "fired": 0,
+        "kills": 0,
+        "threats": 4,
+        "viewMode": "enhanced",
+        "selected": 1,
+        "rankStatus": "recording"
+      },
+      "after": {
+        "phase": "playing",
+        "time": 13.050000000000228,
+        "fired": 18,
+        "kills": 1,
+        "threats": 3,
+        "viewMode": "enhanced",
+        "selected": 1,
+        "rankStatus": "recording"
+      },
+      "events": [
+        {
+          "seconds": 0.063,
+          "fired": 1,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 0.641,
+          "fired": 2,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 1.238,
+          "fired": 3,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 1.86,
+          "fired": 4,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 2.451,
+          "fired": 5,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 3.088,
+          "fired": 6,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 3.674,
+          "fired": 7,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 4.267,
+          "fired": 8,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 4.987,
+          "fired": 9,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 5.546,
+          "fired": 10,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 6.231,
+          "fired": 11,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 6.826,
+          "fired": 11,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 7.417,
+          "fired": 12,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 7.981,
+          "fired": 13,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 8.557,
+          "fired": 14,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 9.128,
+          "fired": 15,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 9.693,
+          "fired": 16,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 10.269,
+          "fired": 17,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 10.92,
+          "fired": 17,
+          "weapon": 1,
+          "target": 13
+        },
+        {
+          "seconds": 11.496,
+          "fired": 18,
+          "weapon": 1,
+          "target": 13
+        }
+      ]
+    },
+    {
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-mobile",
+        "sourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6"
+      },
+      "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+      "name": "heavy",
+      "seconds": 12.06,
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080,
+        "dpr": 1,
+        "audioTracks": 1
+      },
+      "before": {
+        "phase": "playing",
+        "time": 1.3000000000000003,
+        "fired": 0,
+        "kills": 0,
+        "threats": 4,
+        "viewMode": "night",
+        "selected": 2,
+        "rankStatus": "recording"
+      },
+      "after": {
+        "phase": "playing",
+        "time": 13.36666666666691,
+        "fired": 5,
+        "kills": 1,
+        "threats": 3,
+        "viewMode": "night",
+        "selected": 2,
+        "rankStatus": "recording"
+      },
+      "events": [
+        {
+          "seconds": 0.084,
+          "fired": 1,
+          "weapon": 2,
+          "target": 17
+        },
+        {
+          "seconds": 2.652,
+          "fired": 2,
+          "weapon": 2,
+          "target": 17
+        },
+        {
+          "seconds": 5.279,
+          "fired": 3,
+          "weapon": 2,
+          "target": 17
+        },
+        {
+          "seconds": 7.939,
+          "fired": 4,
+          "weapon": 2,
+          "target": 17
+        },
+        {
+          "seconds": 10.473,
+          "fired": 5,
+          "weapon": 2,
+          "target": 17
+        }
+      ]
+    },
+    {
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-mobile",
+        "sourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6"
+      },
+      "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+      "name": "incendiary",
+      "seconds": 12.033,
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080,
+        "dpr": 1,
+        "audioTracks": 1
+      },
+      "before": {
+        "phase": "playing",
+        "time": 1.3833333333333333,
+        "fired": 0,
+        "kills": 0,
+        "threats": 4,
+        "viewMode": "enhanced",
+        "selected": 3,
+        "rankStatus": "recording"
+      },
+      "after": {
+        "phase": "playing",
+        "time": 13.416666666666913,
+        "fired": 3,
+        "kills": 0,
+        "threats": 4,
+        "viewMode": "enhanced",
+        "selected": 3,
+        "rankStatus": "recording"
+      },
+      "events": [
+        {
+          "seconds": 0.049,
+          "fired": 1,
+          "weapon": 3,
+          "target": 13
+        },
+        {
+          "seconds": 5.266,
+          "fired": 2,
+          "weapon": 3,
+          "target": 13
+        },
+        {
+          "seconds": 10.377,
+          "fired": 3,
+          "weapon": 3,
+          "target": 13
+        }
+      ]
+    },
+    {
+      "build": {
+        "creator": "3.8.8",
+        "target": "web-mobile",
+        "sourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6"
+      },
+      "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+      "name": "thermal",
+      "seconds": 12.151,
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "drawingBufferWidth": 1920,
+        "drawingBufferHeight": 1080,
+        "dpr": 1,
+        "audioTracks": 1
+      },
+      "before": {
+        "phase": "playing",
+        "time": 1.1333333333333342,
+        "fired": 0,
+        "kills": 0,
+        "threats": 4,
+        "viewMode": "thermal",
+        "selected": 1,
+        "rankStatus": "recording"
+      },
+      "after": {
+        "phase": "playing",
+        "time": 13.266666666666906,
+        "fired": 19,
+        "kills": 1,
+        "threats": 3,
+        "viewMode": "thermal",
+        "selected": 1,
+        "rankStatus": "recording"
+      },
+      "events": [
+        {
+          "seconds": 0.063,
+          "fired": 1,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 0.699,
+          "fired": 2,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 1.263,
+          "fired": 3,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 1.975,
+          "fired": 4,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 2.692,
+          "fired": 5,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 3.28,
+          "fired": 6,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 4.007,
+          "fired": 7,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 4.566,
+          "fired": 8,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 5.282,
+          "fired": 9,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 5.921,
+          "fired": 10,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 6.499,
+          "fired": 11,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 7.073,
+          "fired": 12,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 7.79,
+          "fired": 13,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 8.504,
+          "fired": 14,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 9.087,
+          "fired": 15,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 9.779,
+          "fired": 16,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 10.355,
+          "fired": 17,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 11.056,
+          "fired": 18,
+          "weapon": 1,
+          "target": 19
+        },
+        {
+          "seconds": 11.615,
+          "fired": 19,
+          "weapon": 1,
+          "target": 19
+        }
+      ]
+    }
+  ],
+  "timeline": [
+    [
+      "rapid",
+      2,
+      4
+    ],
+    [
+      "blast",
+      2,
+      5
+    ],
+    [
+      "heavy",
+      4,
+      5
+    ],
+    [
+      "incendiary",
+      4,
+      6
+    ],
+    [
+      "thermal",
+      3,
+      7
+    ]
+  ],
+  "files": [
+    {
+      "name": "gameplay",
+      "path": "gameplay/videos/night-overwatch-combat-2026-11-05-1920x1080.mp4",
+      "bytes": 49810941,
+      "sha256": "b2687419f9e4578cf85d2630e13fdba19bf2aae80175f610ac3a2f3b2154b288",
+      "width": 1920,
+      "height": 1080,
+      "duration": 55.8915,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "decoded": true,
+      "playback": {
+        "ended": true,
+        "seconds": 55.8915,
+        "rate": 1,
+        "frames": 1675,
+        "dropped": 132,
+        "error": null
+      },
+      "softwarePlayback": {
+        "environment": "Installed Chrome, headless, --disable-gpu, no simultaneous capture/render",
+        "ended": true,
+        "seconds": 55.8915,
+        "rate": 1,
+        "frames": 1675,
+        "dropped": 0,
+        "error": null
+      }
+    },
+    {
+      "name": "promo",
+      "path": "promo/videos/night-overwatch-action-2026-11-05-1920x1080.mp4",
+      "bytes": 18384822,
+      "sha256": "ae48cc696d4d3f8d72f737a6200feae13b99b13606faab39664a49b94f02c86d",
+      "width": 1920,
+      "height": 1080,
+      "duration": 30,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "decoded": true,
+      "playback": {
+        "ended": true,
+        "seconds": 30,
+        "rate": 1,
+        "frames": 900,
+        "dropped": 67,
+        "error": null
+      },
+      "softwarePlayback": {
+        "environment": "Installed Chrome, headless, --disable-gpu, no simultaneous capture/render",
+        "ended": true,
+        "seconds": 30,
+        "rate": 1,
+        "frames": 900,
+        "dropped": 0,
+        "error": null
+      }
+    }
+  ],
+  "limits": [
+    "Browser WebGL recording, not a physical phone",
+    "No platform upload or review in this task",
+    "Playback was automated and muted; no human device audio review"
+  ]
+}

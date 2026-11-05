@@ -1,99 +1,203 @@
-import { C, col } from './HudTheme';
-import { OnlineLobbyView } from './OnlineLobbyView';
-import { SettingsGuideView } from './SettingsGuideView';
-import { safeArea, watchSafeArea, fitName, type CapsuleRect } from './core/SafeArea';
-import { playerId, playerLabel, type Online } from './Online';
 import {
   Camera,
   Canvas,
-  Color,
+  EditBox,
   Graphics,
   Label,
   Layers,
   Mask,
   Node,
-  UITransform,
-  view,
+  Rect,
   ResolutionPolicy,
-  sys,
   Sprite,
   SpriteFrame,
   Texture2D,
-  Rect,
-  resources,
-  isValid,
-  EditBox,
-  UIOpacity,
-  tween,
   Tween,
+  UIOpacity,
+  UITransform,
+  isValid,
+  resources,
+  sys,
+  tween,
+  view,
 } from 'cc';
-import { ACTIONS, actionLabel, bindingLabel, TUTORIAL, tutorialText } from './core/Actions';
-import { drawEffects, type EffectsFrame } from './Effects';
-import {
-  WEAPONS,
-  MAP,
-  FLIGHT,
-  terrainHeight,
-  ROUTE,
-  HOLD_POINTS,
-  FRIENDLY_POSTS,
-  routePoint,
-  PROTECTED,
-  text,
-  type Language,
-  type Point,
-} from './core/Data';
+import { BattleReportView } from './BattleReportView';
+import { BattleStatusView } from './BattleStatusView';
+import { CombatControlsView } from './CombatControlsView';
+import { type TimeComparison } from './core/BattleRecords';
+import { MAP, type BattlefieldId, type Language, type Point } from './core/Data';
+import { type MissionLight } from './core/MissionCatalog';
+import { newMissionProgress, type MissionProgress } from './core/MissionProgress';
+import { type RewardKind, type SupplyReward } from './core/Rewards';
+import { safeArea, watchSafeArea, type CapsuleRect } from './core/SafeArea';
 import type { Simulation } from './core/Simulation';
-import type { World } from './World';
-import { missionUnlocked, newMissionProgress, type MissionProgress } from './core/MissionProgress';
-import { MISSIONS, TRAINING, type MissionLight } from './core/MissionCatalog';
-import { mapRoute, routeLength, riverX, type BattlefieldId } from './core/Data';
-import { trainingNextGoal, type TrainingRecord } from './core/TrainingRecords';
-import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
-import { battleCounts, formatTime, type TimeComparison } from './core/BattleRecords';
+import { type TrainingRecord } from './core/TrainingRecords';
+import { type EffectsFrame } from './Effects';
+import { HomeView } from './HomeView';
+import { HudDrawing } from './HudDrawing';
+import { C, col } from './HudTheme';
+import { MissionPanelView } from './MissionPanelView';
+import { type Online } from './Online';
+import { OnlineLobbyView } from './OnlineLobbyView';
 import { ProgressionArt } from './ProgressionArt';
 import { ProgressionView } from './ProgressionView';
-import { CATALOG, SKILLS, attackPreview } from './core/Progression';
-import { effectEnglish } from './Quartermaster';
 import type { Quartermaster } from './Quartermaster';
+import { SettingsGuideView } from './SettingsGuideView';
+import { SupportPanelView } from './SupportPanelView';
+import type { World } from './World';
+import { WorldOverlayView } from './WorldOverlayView';
 
-const movableControls = ['weapon0', 'weapon1', 'weapon2', 'weapon3', 'homing', 'weapon4', 'skillUse', 'weapon5'];
 type ControlPosition = { x: number; y: number };
-export type ButtonRect = { id: string; x: number; y: number; w: number; h: number; label: Label; visual?: { x: number; y: number; w: number; h: number }; disabled?: boolean; clip?:{x:number;y:number;w:number;h:number} };
+export type ButtonRect = {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label: Label;
+  visual?: { x: number; y: number; w: number; h: number };
+  disabled?: boolean;
+  clip?: { x: number; y: number; w: number; h: number };
+};
+// 保留控制器使用的状态与入口；具体页面、战斗标记和绘图由各视图负责。
 export class HUD {
+  private readonly controlsView = new CombatControlsView(this);
+  private readonly drawing = new HudDrawing(this);
+  private readonly homeView = new HomeView(
+    this,
+    () => this.titleArtwork,
+    () => this.missionArtwork,
+  );
+  private readonly worldView = new WorldOverlayView(this);
+  private readonly battleView = new BattleStatusView(
+    this,
+    () => this.controlsView.layoutCombatControls(),
+    () => this.controlsView.controlTop,
+  );
+  private readonly supportView = new SupportPanelView(this);
+  private readonly reportView = new BattleReportView(this);
+  private readonly missionView = new MissionPanelView(this);
   private readonly onlineView = new OnlineLobbyView(this, () => this.missionArtwork);
   private readonly settingsView = new SettingsGuideView(this);
-  listAreas:Array<{key:string;x:number;y:number;w:number;h:number;max:number;axis:'x'|'y'}> = [];
-  listScroll:Record<string,number>={};
-  missionFocus:number|undefined;
-  safeRevision=0;
-  private nameFits=new Map<string,string>();
-  nativeCapsule=false;
-  capsuleRect?:CapsuleRect;
-  topRight(y:number,height:number,padding=12){
-    const right=this.w-this.safe.right-padding,capsule=this.capsuleRect;
-    return capsule&&y<capsule.bottom+4&&y+height>capsule.top-4?Math.min(right,capsule.left-8):right;
+  listAreas: Array<{
+    key: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    max: number;
+    axis: 'x' | 'y';
+  }> = [];
+  listScroll: Record<string, number> = {};
+  missionFocus: number | undefined;
+  safeRevision = 0;
+
+  nativeCapsule = false;
+  capsuleRect?: CapsuleRect;
+  topRight(y: number, height: number, padding = 12) {
+    const right = this.w - this.safe.right - padding;
+    const capsule = this.capsuleRect;
+    return capsule && y < capsule.bottom + 4 && y + height > capsule.top - 4
+      ? Math.min(right, capsule.left - 8)
+      : right;
   }
-  private semanticKey='';
-  listAt(x:number,y:number){return [...this.listAreas].reverse().find(a=>x>=a.x&&x<=a.x+a.w&&y>=a.y&&y<=a.y+a.h);}
-  moveList(key:string,amount:number){const a=this.listAreas.find(a=>a.key===key);if(!a)return;const states=key.startsWith('qm:')?this.quartermaster!.scrolls:this.listScroll;states[key]=Math.max(0,Math.min(a.max,(states[key]||0)+amount));this.modalKey='rebuild';}
-  listViewport(parent:Node,key:string,area:{x:number;y:number;w:number;h:number},total:number,axis:'x'|'y'='y'){
-    const max=Math.max(0,total-(axis==='x'?area.w:area.h)),states=key.startsWith('qm:')?this.quartermaster!.scrolls:this.listScroll;
-    const offset=states[key]=Math.max(0,Math.min(max,states[key]||0));this.listAreas.push({...area,key,max,axis});
-    const viewport=this.node('Scroll:'+key,parent),mx=area.x+area.w/2-this.w/2,my=this.h/2-area.y-area.h/2;
-    viewport.setPosition(mx,my);viewport.getComponent(UITransform)!.setContentSize(area.w,area.h);viewport.addComponent(Mask).type=Mask.Type.GRAPHICS_RECT;
-    const n=this.node('ScrollContent',viewport);n.setPosition(-mx,-my);const surfaces=this.node('Surfaces',n),g=this.node('Ink',n).addComponent(Graphics),start=this.buttons.length;
-    return {n,surfaces,g,offset,finish:()=>{for(const b of this.buttons.slice(start))b.clip=area;
-      if(max&&axis==='x'){const ink=this.node('ScrollIndicator',parent).addComponent(Graphics),track=area.w-32,thumb=Math.max(20,track*area.w/total),y=area.y+area.h-5;this.rect(ink,area.x+16,y,track,3,'#253e50');this.rect(ink,area.x+16+(track-thumb)*offset/max,y-1,thumb,5,C.amber);if(offset>1)this.label(parent,'‹',area.x+5,area.y+area.h/2,25,14,32,C.white);if(offset<max-1)this.label(parent,'›',area.x+area.w-5,area.y+area.h/2,25,14,32,C.white);}
-      if(max&&axis==='y'){const ink=this.node('ScrollIndicator',parent).addComponent(Graphics),x=area.x+area.w-5,track=Math.max(4,area.h-32),thumb=Math.max(20,track*area.h/total);
-        this.rect(ink,x,area.y+16,3,track,'#253e50');this.rect(ink,x-1,area.y+16+(track-thumb)*offset/max,5,thumb,C.amber);
-        const arrow=(y:number,down:boolean)=>{ink.strokeColor=col(C.white);ink.lineWidth=2;const xx=x-this.w/2,yy=this.h/2-y,d=down?-1:1;ink.moveTo(xx-4,yy-d*2);ink.lineTo(xx,yy+d*2);ink.lineTo(xx+4,yy-d*2);ink.stroke();};if(offset>1)arrow(area.y+6,false);if(offset<max-1)arrow(area.y+area.h-7,true);
-      }
-    }};
+  private semanticKey = '';
+  listAt(x: number, y: number) {
+    return [...this.listAreas]
+      .reverse()
+      .find((area) => x >= area.x && x <= area.x + area.w && y >= area.y && y <= area.y + area.h);
   }
-  quartermaster?:Quartermaster;
-  progressionArt:ProgressionArt;
-  private progressionRevision='';
+  moveList(key: string, amount: number) {
+    const area = this.listAreas.find((area) => area.key === key);
+    if (!area) return;
+    const scrollOffsets = key.startsWith('qm:') ? this.quartermaster!.scrolls : this.listScroll;
+    scrollOffsets[key] = Math.max(0, Math.min(area.max, (scrollOffsets[key] || 0) + amount));
+    this.modalKey = 'rebuild';
+  }
+  listViewport(
+    parent: Node,
+    key: string,
+    area: { x: number; y: number; w: number; h: number },
+    total: number,
+    axis: 'x' | 'y' = 'y',
+  ) {
+    const maxOffset = Math.max(0, total - (axis === 'x' ? area.w : area.h));
+    const scrollOffsets = key.startsWith('qm:') ? this.quartermaster!.scrolls : this.listScroll;
+    const offset = (scrollOffsets[key] = Math.max(0, Math.min(maxOffset, scrollOffsets[key] || 0)));
+    this.listAreas.push({ ...area, key, max: maxOffset, axis });
+    const viewport = this.node('Scroll:' + key, parent);
+    const centerX = area.x + area.w / 2 - this.w / 2;
+    const centerY = this.h / 2 - area.y - area.h / 2;
+    viewport.setPosition(centerX, centerY);
+    viewport.getComponent(UITransform)!.setContentSize(area.w, area.h);
+    viewport.addComponent(Mask).type = Mask.Type.GRAPHICS_RECT;
+    // 抵消裁剪节点的位移，让列表内容与按钮热区继续使用同一套屏幕坐标。
+    const contentNode = this.node('ScrollContent', viewport);
+    contentNode.setPosition(-centerX, -centerY);
+    const surfaces = this.node('Surfaces', contentNode);
+    const graphics = this.node('Ink', contentNode).addComponent(Graphics);
+    const firstButtonIndex = this.buttons.length;
+    return {
+      n: contentNode,
+      surfaces,
+      g: graphics,
+      offset,
+      finish: () => {
+        // 只给本次列表新增的按钮加裁剪范围，避免滚出视口后仍能点击。
+        for (const button of this.buttons.slice(firstButtonIndex)) button.clip = area;
+        if (maxOffset && axis === 'x') {
+          const ink = this.node('ScrollIndicator', parent).addComponent(Graphics);
+          const trackLength = area.w - 32;
+          const thumbLength = Math.max(20, (trackLength * area.w) / total);
+          const y = area.y + area.h - 5;
+          this.rect(ink, area.x + 16, y, trackLength, 3, '#253e50');
+          this.rect(
+            ink,
+            area.x + 16 + ((trackLength - thumbLength) * offset) / maxOffset,
+            y - 1,
+            thumbLength,
+            5,
+            C.amber,
+          );
+          if (offset > 1)
+            this.label(parent, '‹', area.x + 5, area.y + area.h / 2, 25, 14, 32, C.white);
+          if (offset < maxOffset - 1)
+            this.label(parent, '›', area.x + area.w - 5, area.y + area.h / 2, 25, 14, 32, C.white);
+        }
+        if (maxOffset && axis === 'y') {
+          const ink = this.node('ScrollIndicator', parent).addComponent(Graphics);
+          const x = area.x + area.w - 5;
+          const trackLength = Math.max(4, area.h - 32);
+          const thumbLength = Math.max(20, (trackLength * area.h) / total);
+          this.rect(ink, x, area.y + 16, 3, trackLength, '#253e50');
+          this.rect(
+            ink,
+            x - 1,
+            area.y + 16 + ((trackLength - thumbLength) * offset) / maxOffset,
+            5,
+            thumbLength,
+            C.amber,
+          );
+          const arrow = (y: number, down: boolean) => {
+            ink.strokeColor = col(C.white);
+            ink.lineWidth = 2;
+            const arrowX = x - this.w / 2;
+            const arrowY = this.h / 2 - y;
+            const direction = down ? -1 : 1;
+            ink.moveTo(arrowX - 4, arrowY - direction * 2);
+            ink.lineTo(arrowX, arrowY + direction * 2);
+            ink.lineTo(arrowX + 4, arrowY - direction * 2);
+            ink.stroke();
+          };
+          if (offset > 1) arrow(area.y + 6, false);
+          if (offset < maxOffset - 1) arrow(area.y + area.h - 7, true);
+        }
+      },
+    };
+  }
+  quartermaster?: Quartermaster;
+  progressionArt: ProgressionArt;
+
   root: Node;
   camera: Camera;
   g: Graphics;
@@ -115,10 +219,24 @@ export class HUD {
   mousePointer?: { x: number; y: number };
   pressedButton = '';
   private uiFrames = new Map<string, SpriteFrame>();
-  private artworkRetries = new Map<string,()=>void>();
+  private artworkRetries = new Map<string, () => void>();
   private surfaces?: Node;
-  retryArtwork(){this.progressionArt.retry();for(const [name,retry] of Array.from(this.artworkRetries)){this.artworkRetries.delete(name);retry();}this.modalKey='rebuild';}
-  get interfaceArtworkReady() { return this.quartermaster ? this.progressionArt.homeReady : this.uiFrames.size === 3 && !!this.titleArtwork && this.missionArtwork.length === 3 && this.dayArtwork.length === 3; }
+  retryArtwork() {
+    this.progressionArt.retry();
+    for (const [name, retry] of Array.from(this.artworkRetries)) {
+      this.artworkRetries.delete(name);
+      retry();
+    }
+    this.modalKey = 'rebuild';
+  }
+  get interfaceArtworkReady() {
+    return this.quartermaster
+      ? this.progressionArt.homeReady
+      : this.uiFrames.size === 3 &&
+          !!this.titleArtwork &&
+          this.missionArtwork.length === 3 &&
+          this.dayArtwork.length === 3;
+  }
   effects: EffectsFrame = { impacts: [], projectiles: [] };
   buttons: ButtonRect[] = [];
   labels = new Map<string, Label>();
@@ -154,7 +272,7 @@ export class HUD {
   layoutEditing = false;
   fireScale = 1;
   controlScale = 1;
-  private controlTop = 0;
+
   zoomLimit = 10;
   rewardsAvailable = false;
   supplyOpen = false;
@@ -172,89 +290,16 @@ export class HUD {
   safe = { left: 0, right: 0, top: 0, bottom: 0 };
   controlPositions: Record<string, ControlPosition> = {};
   controlBounds(id: string) {
-    const b = this.buttons.find(b => b.id === id)!;
-    return { x: this.safe.left, y: this.safe.top,
-      w: Math.max(0, this.w - this.safe.left - this.safe.right - b.w),
-      h: Math.max(0, this.h - this.safe.top - this.safe.bottom - b.h) };
+    return this.controlsView.controlBounds(id);
   }
-  private positionControl(b: ButtonRect, x: number, y: number, width = b.w) {
-    b.x = x; b.y = y; b.w = width;
-    b.visual = { x: x + 2, y: y + 2, w: width - 4, h: b.h - 4 };
-    b.label.node.setPosition(x + width / 2 - this.w / 2, this.h / 2 - y - b.h / 2);
-    b.label.node.getComponent(UITransform)!.setContentSize(width - 8, b.h - 2);
-    b.label.overflow = Label.Overflow.SHRINK;
-  }
+
   placeControl(id: string, position?: ControlPosition) {
-    if (position) this.controlPositions[id] = { x: Math.max(0, Math.min(1, position.x)), y: Math.max(0, Math.min(1, position.y)) };
-    else delete this.controlPositions[id];
-    this.layoutCombatControls();
+    return this.controlsView.placeControl(id, position);
   }
   controlAt(x: number, y: number) {
-    const button = this.hit(x, y, true);
-    return button && (movableControls.includes(button.id) || button.id === 'fire') ? button : undefined;
+    return this.controlsView.controlAt(x, y);
   }
-  private avoidFixedControls(id: string) {
-    const b = this.buttons.find(b => b.id === id)!, bounds = this.controlBounds(id);
-    if (!b.label.node.activeInHierarchy) return;
-    const fixedControls = this.buttons.filter(b => b.id !== id && !movableControls.includes(b.id) && !b.disabled && b.label.node.activeInHierarchy).map(({x,y,w,h})=>({x,y,w,h}));
-    if(this.capsuleRect){const c=this.capsuleRect;fixedControls.push({x:c.left-4,y:c.top-4,w:c.right-c.left+8,h:c.bottom-c.top+8});}
-    for (const fixed of fixedControls.sort((a, b) => b.x - a.x)) {
-      if (b.x >= fixed.x + fixed.w || b.x + b.w <= fixed.x || b.y >= fixed.y + fixed.h || b.y + b.h <= fixed.y) continue;
-      const above = fixed.y > this.h / 2 && fixed.y - b.h - 4 >= bounds.y;
-      const x = !above && fixed.x - b.w - 4 >= bounds.x ? fixed.x - b.w - 4 : b.x;
-      const y = above ? fixed.y - b.h - 4 : x !== b.x ? b.y : Math.min(bounds.y + bounds.h, fixed.y + fixed.h + 4);
-      this.positionControl(b, x, y);
-      this.controlPositions[id] = { x: (x - bounds.x) / Math.max(1, bounds.w), y: (y - bounds.y) / Math.max(1, bounds.h) };
-    }
-  }
-  private layoutCombatControls() {
-    const left = 12 + this.safe.left, right = this.w - 12 - this.safe.right, by = this.h - this.footer - this.safe.bottom;
-    const normal = this.buttons.filter(b => movableControls.slice(0, 5).includes(b.id));
-    const support = ['weapon4', 'skillUse', 'weapon5'].map(id => this.buttons.find(b => b.id === id)!).filter(b => b.label.node.activeInHierarchy);
-    const visible = normal.filter(b => b.label.node.activeInHierarchy), fire = this.buttons.find(b => b.id === 'fire')!;
-    fire.h = 68 * this.fireScale;
-    this.positionControl(fire, right - fire.h, this.h - this.safe.bottom - fire.h - 10, fire.h);
-    const cardW = Math.min(this.compact ? 64 : 78, (right - left - 146) / 5 - 6);
-    let regularW = cardW, supportW = 100;
-    if (support.length) {
-      const room = fire.x - left - 12, gaps = Math.max(0, visible.length - 1) * 6 + 8 + (support.length - 1) * 6;
-      supportW = Math.min(100, Math.max(72, (room - visible.length * cardW - gaps) / support.length));
-      regularW = Math.max(44, Math.min(cardW, (room - support.length * supportW - gaps) / Math.max(1, visible.length)));
-    }
-    normal.forEach((b, index) => this.positionControl(b, left + index * (cardW + 6), by + 8, cardW));
-    if (support.length) visible.forEach((b, index) => this.positionControl(b, left + index * (regularW + 6), by + 8, regularW));
-    const dockX = left + visible.length * (regularW + 6) + 2;
-    support.forEach((b, index) => this.positionControl(b, dockX + index * (supportW + 6), by + 8, supportW));
-    const controls = [...visible, ...support], controlH = Math.max(44, 44 * this.controlScale);
-    let nextX = left, rowY = this.h - this.safe.bottom - 8 - controlH;
-    for (const b of controls) {
-      const width = Math.max(44, b.w * this.controlScale);
-      if (nextX > left && nextX + width > fire.x - 12) { nextX = left; rowY -= controlH + 6; }
-      b.h = controlH;
-      this.positionControl(b, nextX, rowY, width);
-      nextX += width + (b.id === 'homing' ? 8 : 6);
-    }
-    this.controlTop = rowY;
-    const state = this.labels.get('weaponState')!, stateW = Math.max(60, Math.min(132, right - 68 - (left + 5 * (cardW + 6)) - 12));
-    const crowded = support.length > 0 && dockX + support.length * (supportW + 6) - 6 > fire.x - stateW - 16;
-    state.node.setPosition((crowded ? right - stateW / 2 : fire.x - 8 - stateW / 2) - this.w / 2,
-      this.h / 2 - (crowded ? fire.y - 8 - (this.footer - 14) / 2 : fire.y + fire.h / 2));
-    state.node.getComponent(UITransform)!.setContentSize(stateW, this.footer - 14);
-    for (const id of [...movableControls, 'fire']) {
-      const position = this.controlPositions[id]; if (!position) continue;
-      const bounds = this.controlBounds(id), b = this.buttons.find(b => b.id === id)!;
-      this.positionControl(b, bounds.x + bounds.w * position.x, bounds.y + bounds.h * position.y);
-      this.avoidFixedControls(id);
-    }
-    if (this.controlPositions.fire || this.fireScale !== 1 || this.controlScale !== 1) {
-      const sh = this.footer - 14, cy = Math.max(this.safe.top,Math.min(this.h-this.safe.bottom-sh,fire.y+(fire.h-sh)/2));
-      const cx = Math.max(left,Math.min(right-stateW,fire.x+(fire.w-stateW)/2));
-      const candidates = [{x:fire.x-8-stateW,y:cy},{x:fire.x+fire.w+8,y:cy},{x:cx,y:fire.y-sh-8},{x:cx,y:fire.y+fire.h+8}]
-        .filter(p=>p.x>=left&&p.x+stateW<=right&&p.y>=this.safe.top&&p.y+sh<=this.h-this.safe.bottom);
-      const p = candidates.find(p=>controls.every(b=>p.x>=b.x+b.w||p.x+stateW<=b.x||p.y>=b.y+b.h||p.y+sh<=b.y)) || candidates[0];
-      if(p)state.node.setPosition(p.x+stateW/2-this.w/2,this.h/2-p.y-sh/2);
-    }
-  }
+
   get compact() {
     return this.h < 500;
   }
@@ -268,33 +313,46 @@ export class HUD {
     return this.desktop && !this.touch;
   }
   get editing() {
-    return this.modal?.getComponentsInChildren(EditBox).some(field => field.isFocused()) ?? false;
+    return this.modal?.getComponentsInChildren(EditBox).some((field) => field.isFocused()) ?? false;
   }
   get minimapLayout() {
-    const w = this.compact ? 112 : 156;
-    return { x: this.w - 12 - this.safe.right - w, y: this.safe.top + 64, w, h: this.compact ? 84 : 108 };
+    const width = this.compact ? 112 : 156;
+    return {
+      x: this.w - 12 - this.safe.right - width,
+      y: this.safe.top + 64,
+      w: width,
+      h: this.compact ? 84 : 108,
+    };
   }
   minimapPoint(x: number, y: number): Point | undefined {
     if (this.modal || ![x, y].every(Number.isFinite)) return;
-    const map = this.minimapLayout, left = map.x + 8, top = map.y + 25,
-      width = map.w - 16, height = map.h - 33;
+    const map = this.minimapLayout;
+    const left = map.x + 8;
+    const top = map.y + 25;
+    const width = map.w - 16;
+    const height = map.h - 33;
     if (x < left || x > left + width || y < top || y > top + height) return;
-    return { x: (x - left) / width * MAP.halfWidth * 2 - MAP.halfWidth,
-      z: (y - top) / height * MAP.halfDepth * 2 - MAP.halfDepth };
+    return {
+      x: ((x - left) / width) * MAP.halfWidth * 2 - MAP.halfWidth,
+      z: ((y - top) / height) * MAP.halfDepth * 2 - MAP.halfDepth,
+    };
   }
   constructor(parent: Node) {
     this.root = new Node('OverwatchHUD');
     parent.addChild(this.root);
     this.root.layer = Layers.Enum.UI_2D;
-    this.progressionArt=new ProgressionArt(this);
-    const unwatch=watchSafeArea(()=>this.safeRevision++);this.root.once(Node.EventType.NODE_DESTROYED,unwatch);
-    this.root.once(Node.EventType.NODE_DESTROYED,()=>this.progressionArt.destroy());
-    this.root.once(Node.EventType.NODE_DESTROYED, () => { for (const frame of this.artworkFrames) frame.destroy(); });
+    this.progressionArt = new ProgressionArt(this);
+    const stopWatchingSafeArea = watchSafeArea(() => this.safeRevision++);
+    this.root.once(Node.EventType.NODE_DESTROYED, stopWatchingSafeArea);
+    this.root.once(Node.EventType.NODE_DESTROYED, () => this.progressionArt.destroy());
+    this.root.once(Node.EventType.NODE_DESTROYED, () => {
+      for (const frame of this.artworkFrames) frame.destroy();
+    });
     this.root.addComponent(UITransform);
-    const canvas = this.root.addComponent(Canvas),
-      cn = new Node('UICamera');
-    parent.addChild(cn);
-    this.camera = cn.addComponent(Camera);
+    const canvas = this.root.addComponent(Canvas);
+    const cameraNode = new Node('UICamera');
+    parent.addChild(cameraNode);
+    this.camera = cameraNode.addComponent(Camera);
     this.camera.projection = Camera.ProjectionType.ORTHO;
     this.camera.near = 0.1;
     this.camera.far = 2000;
@@ -309,31 +367,54 @@ export class HUD {
     // These are original unlettered illustrations and a separate transparent wordmark.
     // All mission data, interaction and status text remain live Cocos UI.
     for (const asset of ['title-metal', 'mission-atlas', 'mission-day-atlas']) {
-      const load=()=>resources.load('ui/' + asset + '/texture', Texture2D, (error, texture) => {
-      if (!isValid(this.root)) return;
-      if(error){this.artworkRetries.set(asset,load);if(!this.editing)this.modalKey='rebuild';return;}
-      const count = asset === 'title-metal' ? 1 : 3;
-      for (let index = 0; index < count; index++) {
-        const frame = new SpriteFrame(); frame.texture = texture;
-        if (count === 3) frame.rect = new Rect(index * texture.width / 3, 0, texture.width / 3, texture.height);
-        this.artworkFrames.push(frame);
-        if (asset === 'mission-day-atlas') this.dayArtwork.push(frame);
-        else if (count === 3) this.missionArtwork.push(frame); else this.titleArtwork = frame;
-      }
-      if (!this.editing) this.modalKey = 'rebuild';
-      });load();
+      const load = () =>
+        resources.load('ui/' + asset + '/texture', Texture2D, (error, texture) => {
+          if (!isValid(this.root)) return;
+          if (error) {
+            this.artworkRetries.set(asset, load);
+            if (!this.editing) this.modalKey = 'rebuild';
+            return;
+          }
+          const count = asset === 'title-metal' ? 1 : 3;
+          for (let index = 0; index < count; index++) {
+            const frame = new SpriteFrame();
+            frame.texture = texture;
+            if (count === 3)
+              frame.rect = new Rect(
+                (index * texture.width) / 3,
+                0,
+                texture.width / 3,
+                texture.height,
+              );
+            this.artworkFrames.push(frame);
+            if (asset === 'mission-day-atlas') this.dayArtwork.push(frame);
+            else if (count === 3) this.missionArtwork.push(frame);
+            else this.titleArtwork = frame;
+          }
+          if (!this.editing) this.modalKey = 'rebuild';
+        });
+      load();
     }
     for (const name of ['panel', 'button', 'insignia']) {
-      const load=()=>resources.load(`ui/${name}/texture`, Texture2D, (error, texture) => {
-      if (!isValid(this.root)) return;
-      if(error){this.artworkRetries.set(name,load);if(!this.editing)this.modalKey='rebuild';return;}
-      const frame = new SpriteFrame(); frame.texture = texture;
-      if (name !== 'insignia') {
-        const edge = Math.round(Math.min(texture.width, texture.height) * .065);
-        frame.insetLeft = frame.insetRight = frame.insetTop = frame.insetBottom = edge;
-      }
-      this.uiFrames.set(name, frame); this.artworkFrames.push(frame); if (!this.editing) this.modalKey = 'rebuild';
-      });load();
+      const load = () =>
+        resources.load(`ui/${name}/texture`, Texture2D, (error, texture) => {
+          if (!isValid(this.root)) return;
+          if (error) {
+            this.artworkRetries.set(name, load);
+            if (!this.editing) this.modalKey = 'rebuild';
+            return;
+          }
+          const frame = new SpriteFrame();
+          frame.texture = texture;
+          if (name !== 'insignia') {
+            const edge = Math.round(Math.min(texture.width, texture.height) * 0.065);
+            frame.insetLeft = frame.insetRight = frame.insetTop = frame.insetBottom = edge;
+          }
+          this.uiFrames.set(name, frame);
+          this.artworkFrames.push(frame);
+          if (!this.editing) this.modalKey = 'rebuild';
+        });
+      load();
     }
     this.g = this.node('Backdrop', this.root).addComponent(Graphics);
     this.marks = this.node('Telemetry', this.root).addComponent(Graphics);
@@ -345,11 +426,11 @@ export class HUD {
     return this.lang === 'zh' ? zh : en;
   }
   node(name: string, parent: Node) {
-    const n = new Node(name);
-    n.layer = Layers.Enum.UI_2D;
-    parent.addChild(n);
-    n.addComponent(UITransform);
-    return n;
+    const node = new Node(name);
+    node.layer = Layers.Enum.UI_2D;
+    parent.addChild(node);
+    node.addComponent(UITransform);
+    return node;
   }
   resize() {
     this.mousePointer = undefined;
@@ -359,22 +440,24 @@ export class HUD {
     this.h = size.height;
     view.setDesignResolutionSize(this.w, this.h, ResolutionPolicy.EXACT_FIT);
     const rect = sys.getSafeAreaRect(false);
-    const merged = safeArea(this.w,this.h,{
+    const merged = safeArea(this.w, this.h, {
       left: Math.max(0, rect.x),
       right: Math.max(0, this.w - rect.x - rect.width),
       bottom: Math.max(0, rect.y),
       top: Math.max(0, this.h - rect.y - rect.height),
     });
-    this.nativeCapsule=merged.capsule;this.capsuleRect=merged.capsuleRect;this.safe={left:merged.left,right:merged.right,top:merged.top,bottom:merged.bottom};
+    this.nativeCapsule = merged.capsule;
+    this.capsuleRect = merged.capsuleRect;
+    this.safe = { left: merged.left, right: merged.right, top: merged.top, bottom: merged.bottom };
     this.root.getComponent(UITransform)!.setContentSize(this.w, this.h);
     this.root.setPosition(this.w / 2, this.h / 2, 0);
     this.camera.node.setPosition(this.w / 2, this.h / 2, 1000);
     this.camera.orthoHeight = this.h / 2;
-    for (const b of this.buttons) b.label.node.destroy();
+    for (const button of this.buttons) button.label.node.destroy();
     this.buttons = [];
-    for (const l of Array.from(this.labels.values())) l.node.destroy();
+    for (const label of Array.from(this.labels.values())) label.node.destroy();
     this.labels.clear();
-    for (const l of Array.from(this.unitLabels.values())) l.node.destroy();
+    for (const label of Array.from(this.unitLabels.values())) label.node.destroy();
     this.unitLabels.clear();
     this.modal?.destroy();
     this.modal = undefined;
@@ -383,7 +466,7 @@ export class HUD {
   }
   label(
     parent: Node,
-    str: string,
+    caption: string,
     x: number,
     y: number,
     size: number,
@@ -391,592 +474,436 @@ export class HUD {
     height: number,
     hex = C.white,
   ) {
-    const n = this.node(str.slice(0, 20), parent);
-    n.setPosition(x - this.w / 2, this.h / 2 - y);
-    n.getComponent(UITransform)!.setContentSize(width, height);
-    const l = n.addComponent(Label);
-    l.string = str;
-    l.fontFamily = 'Microsoft YaHei';
-    l.fontSize = size;
-    l.lineHeight = size * 1.45;
-    l.color = col(hex);
-    l.overflow = Label.Overflow.CLAMP;
-    l.horizontalAlign = Label.HorizontalAlign.CENTER;
-    l.verticalAlign = Label.VerticalAlign.CENTER;
-    return l;
+    const labelNode = this.node(caption.slice(0, 20), parent);
+    labelNode.setPosition(x - this.w / 2, this.h / 2 - y);
+    labelNode.getComponent(UITransform)!.setContentSize(width, height);
+    const label = labelNode.addComponent(Label);
+    label.string = caption;
+    label.fontFamily = 'Microsoft YaHei';
+    label.fontSize = size;
+    label.lineHeight = size * 1.45;
+    label.color = col(hex);
+    label.overflow = Label.Overflow.CLAMP;
+    label.horizontalAlign = Label.HorizontalAlign.CENTER;
+    label.verticalAlign = Label.VerticalAlign.CENTER;
+    return label;
   }
-  button(id: string, str: string, x: number, y: number, w: number, h = 44, parent = this.root) {
-    const l = this.label(parent, str, x + w / 2, y + h / 2, this.compact ? 13 : 14, w - 8, h - 2);
-    this.buttons.push({ id, x, y, w, h, label: l, visual: { x: x + 2, y: y + 2, w: w - 4, h: h - 4 } });
-    return l;
+  button(
+    id: string,
+    caption: string,
+    x: number,
+    y: number,
+    width: number,
+    height = 44,
+    parent = this.root,
+  ) {
+    const label = this.label(
+      parent,
+      caption,
+      x + width / 2,
+      y + height / 2,
+      this.compact ? 13 : 14,
+      width - 8,
+      height - 2,
+    );
+    this.buttons.push({
+      id,
+      x,
+      y,
+      w: width,
+      h: height,
+      label: label,
+      visual: { x: x + 2, y: y + 2, w: width - 4, h: height - 4 },
+    });
+    return label;
   }
-  artwork(name: string, x: number, y: number, w: number, h: number, tone?: string) {
+  artwork(name: string, x: number, y: number, width: number, height: number, tone?: string) {
     const frame = this.uiFrames.get(name);
     if (!frame || !this.surfaces) return false;
     let parent = this.surfaces;
     if (name === 'button') {
       const crop = this.node('ButtonSilhouette', parent);
-      crop.setPosition(x + w / 2 - this.w / 2, this.h / 2 - y - h / 2);
-      crop.getComponent(UITransform)!.setContentSize(w, h);
-      const mask = crop.addComponent(Mask); mask.type = Mask.Type.GRAPHICS_STENCIL;
-      const silhouette = mask.subComp as Graphics || crop.getComponent(Graphics) || crop.addComponent(Graphics);
-      const cut = Math.min(8, h * .18), l = -w / 2, r = w / 2, t = h / 2, b = -h / 2;
-      silhouette.clear(); silhouette.fillColor = col('#ffffff');
-      silhouette.moveTo(l + cut, t); silhouette.lineTo(r - cut, t); silhouette.lineTo(r, t - cut);
-      silhouette.lineTo(r, b + cut); silhouette.lineTo(r - cut, b); silhouette.lineTo(l + cut, b);
-      silhouette.lineTo(l, b + cut); silhouette.lineTo(l, t - cut); silhouette.close(); silhouette.fill();
+      crop.setPosition(x + width / 2 - this.w / 2, this.h / 2 - y - height / 2);
+      crop.getComponent(UITransform)!.setContentSize(width, height);
+      const mask = crop.addComponent(Mask);
+      mask.type = Mask.Type.GRAPHICS_STENCIL;
+      const silhouette =
+        (mask.subComp as Graphics) || crop.getComponent(Graphics) || crop.addComponent(Graphics);
+      const cut = Math.min(8, height * 0.18);
+      const left = -width / 2;
+      const right = width / 2;
+      const top = height / 2;
+      const bottom = -height / 2;
+      silhouette.clear();
+      silhouette.fillColor = col('#ffffff');
+      silhouette.moveTo(left + cut, top);
+      silhouette.lineTo(right - cut, top);
+      silhouette.lineTo(right, top - cut);
+      silhouette.lineTo(right, bottom + cut);
+      silhouette.lineTo(right - cut, bottom);
+      silhouette.lineTo(left + cut, bottom);
+      silhouette.lineTo(left, bottom + cut);
+      silhouette.lineTo(left, top - cut);
+      silhouette.close();
+      silhouette.fill();
       parent = crop;
     }
-    const n = this.node('Skin:' + name, parent), sprite = n.addComponent(Sprite);
-    const scale = name === 'button' ? .18 : name === 'panel' ? .2 : 1;
-    n.setPosition(name === 'button' ? 0 : x + w / 2 - this.w / 2, name === 'button' ? 0 : this.h / 2 - y - h / 2);
-    n.setScale(scale, scale, 1);
+    const spriteNode = this.node('Skin:' + name, parent);
+    const sprite = spriteNode.addComponent(Sprite);
+    const scale = name === 'button' ? 0.18 : name === 'panel' ? 0.2 : 1;
+    spriteNode.setPosition(
+      name === 'button' ? 0 : x + width / 2 - this.w / 2,
+      name === 'button' ? 0 : this.h / 2 - y - height / 2,
+    );
+    spriteNode.setScale(scale, scale, 1);
     sprite.sizeMode = Sprite.SizeMode.CUSTOM;
     sprite.type = name === 'insignia' ? Sprite.Type.SIMPLE : Sprite.Type.SLICED;
     sprite.spriteFrame = frame;
-    n.getComponent(UITransform)!.setContentSize(w / scale, h / scale);
+    spriteNode.getComponent(UITransform)!.setContentSize(width / scale, height / scale);
     sprite.color = col(tone || (name === 'panel' ? '#b6c6d4' : '#ffffff'));
     return true;
   }
-  controlIcon(g: Graphics, kind: string, x: number, y: number, size = 18, color = C.dim) {
-    const cx = x - this.w / 2, cy = this.h / 2 - y, k = size / 20;
-    const line = (points: number[][], close = false) => {
-      points.forEach(([xx, yy], i) => i ? g.lineTo(cx + xx * k, cy - yy * k) : g.moveTo(cx + xx * k, cy - yy * k));
-      if (close) g.close(); g.stroke();
-    };
-    g.strokeColor = col(color); g.lineWidth = 1.5;
-    if (kind === 'close') { line([[-5,-5],[5,5]]); line([[5,-5],[-5,5]]); }
-    else if (kind === 'back' || kind === 'next') line(kind === 'back' ? [[3,-6],[-3,0],[3,6]] : [[-3,-6],[3,0],[-3,6]]);
-    else if (kind === 'plus') { line([[-7,0],[7,0]]); line([[0,-7],[0,7]]); }
-    else if (kind === 'time' || kind === 'history') { g.circle(cx,cy,8*k); g.stroke(); line([[0,-5],[0,0],[4,2]]); if(kind === 'time') line([[-3,-11],[3,-11]]); }
-    else if (kind === 'star') { const points = Array.from({length:10},(_,i)=>{const a=-Math.PI/2+i*Math.PI/5,r=i%2?4:9;return [Math.cos(a)*r,Math.sin(a)*r];}); line(points,true); }
-    else if (kind === 'guide') { line([[0,7],[0,-7],[-8,-9],[-8,5],[0,7],[8,5],[8,-9],[0,-7]]); }
-    else if (kind === 'profile') { g.circle(cx,cy+4*k,4*k); g.stroke(); line([[-8,8],[-7,3],[-3,0],[3,0],[7,3],[8,8]]); }
-    else if (kind === 'ranking') { line([[-7,8],[-7,0],[-3,0],[-3,8]]); line([[-2,8],[-2,-7],[2,-7],[2,8]]); line([[3,8],[3,-3],[7,-3],[7,8]]); }
-    else if (kind === 'mission') line([[-9,-6],[-3,-9],[3,-6],[9,-9],[9,6],[3,9],[-3,6],[-9,9],[-9,-6],[-3,-9],[-3,6],[3,9],[3,-6]]);
-    else if (kind === 'lobby') { line([[-7,8],[6,-8],[8,-3],[3,-2]]); line([[7,8],[-6,-8],[-8,-3],[-3,-2]]); }
-    else if (kind === 'sound' || kind === 'muted') { line([[-8,-3],[-4,-3],[1,-7],[1,7],[-4,3],[-8,3]],true); if(kind==='sound')line([[5,-5],[8,0],[5,5]]);else{line([[4,-4],[10,4]]);line([[10,-4],[4,4]]);} }
-    else if (kind === 'language') { g.circle(cx,cy,8*k); g.stroke(); line([[-8,0],[8,0]]); line([[0,-8],[-3,-3],[-3,3],[0,8],[3,3],[3,-3],[0,-8]]); }
-    else if (kind === 'effects') { line([[-9,-7],[9,-7],[9,5],[-9,5]],true); line([[0,5],[0,9],[-5,9],[5,9]]); }
-    else if (kind === 'refresh') { line([[-7,1],[-7,-4],[-3,-7],[3,-7],[7,-3],[7,0]]); line([[3,-2],[7,0],[9,-4]]); line([[7,3],[4,7],[-3,7],[-7,4]]); }
-    else if (kind === 'join') { line([[-2,-8],[8,-8],[8,8],[-2,8]]); line([[-9,0],[3,0],[-1,-4]]); line([[3,0],[-1,4]]); }
-    else if (kind === 'bot') { line([[-8,-5],[8,-5],[8,7],[-8,7]],true); line([[0,-5],[0,-9]]); g.circle(cx-3*k,cy,1.5*k); g.circle(cx+3*k,cy,1.5*k); g.stroke(); }
-    else if (kind === 'match') { line([[-8,-5],[-4,-5],[5,5],[9,5],[6,2]]); line([[-8,5],[-4,5],[5,-5],[9,-5],[6,-8]]); }
+  controlIcon(graphics: Graphics, kind: string, x: number, y: number, size = 18, color = C.dim) {
+    return this.drawing.controlIcon(graphics, kind, x, y, size, color);
   }
-  styleButton(g: Graphics, b: ButtonRect, kind: 'primary' | 'secondary' | 'quiet' = 'secondary', icon = '') {
-    const v = b.visual = { x: b.x + 2, y: b.y + 4, w: b.w - 4, h: b.h - 8 };
-    if (kind === 'primary') {
-      if (!this.artwork('button',v.x,v.y,v.w,v.h,b.disabled?'#75808c99':undefined)) this.rect(g,v.x,v.y,v.w,v.h,b.disabled?'#242d35':'#4a3d24',C.amber,3);
-    } else if (kind === 'secondary') this.rect(g,v.x,v.y,v.w,v.h,b.disabled?'#14233188':'#263e50ed',b.disabled?'#72899655':'#8ba9ba',3);
-    b.label.color = col(b.disabled ? '#72818a' : kind === 'primary' ? '#fff0d0' : C.white);
-    b.label.isBold = kind === 'primary';
-    if (icon) {
-      this.controlIcon(g,icon,b.x + (b.w <= 54 ? b.w/2 : 20),b.y+b.h/2,18,b.disabled?'#72818a':kind==='primary'?C.action:C.dim);
-      if (b.w > 54) {
-        b.label.node.setPosition(b.x+32+(b.w-38)/2-this.w/2,this.h/2-b.y-b.h/2);
-        b.label.node.getComponent(UITransform)!.setContentSize(b.w-40,b.h-4);
-      }
-    }
+  styleButton(
+    graphics: Graphics,
+    button: ButtonRect,
+    kind: 'primary' | 'secondary' | 'quiet' = 'secondary',
+    icon = '',
+  ) {
+    return this.drawing.styleButton(graphics, button, kind, icon);
   }
-  menuButton(n: Node, g: Graphics, id: string, caption: string, x: number, y: number, w: number,
-    kind: 'primary' | 'secondary' | 'quiet' = 'secondary', icon = '', h = 44, disabled = false) {
-    const label = this.button(id,caption,x,y,w,h,n);
-    this.buttons[this.buttons.length-1].disabled = disabled;
-    this.styleButton(g,this.buttons[this.buttons.length-1],kind,icon); return label;
+  menuButton(
+    parentNode: Node,
+    graphics: Graphics,
+    id: string,
+    caption: string,
+    x: number,
+    y: number,
+    width: number,
+    kind: 'primary' | 'secondary' | 'quiet' = 'secondary',
+    icon = '',
+    height = 44,
+    disabled = false,
+  ) {
+    return this.drawing.menuButton(
+      parentNode,
+      graphics,
+      id,
+      caption,
+      x,
+      y,
+      width,
+      kind,
+      icon,
+      height,
+      disabled,
+    );
   }
   buttonFeedback() {
-    const b = this.pressedButton ? this.buttons.find(b => b.id === this.pressedButton)
-      : this.mousePointer ? this.hit(this.mousePointer.x,this.mousePointer.y) : undefined;
-    if (!b || b.disabled || !b.label.node.activeInHierarchy || (this.modal && b.label.node.parent !== this.modal && !this.isGlobalAction(b.id))) return;
-    if(b.id==='fire'){
-      const g=this.globalGraphics;g.fillColor=col(this.pressedButton?'#e5d5b433':'#e0efff14');g.strokeColor=col(this.pressedButton?C.amber:'#bdcfd6aa');g.lineWidth=3;
-      g.circle(b.x+b.w/2-this.w/2,this.h/2-b.y-b.h/2,Math.min(b.w,b.h)/2-3);g.fill();g.stroke();return;
+    const button = this.pressedButton
+      ? this.buttons.find((button) => button.id === this.pressedButton)
+      : this.mousePointer
+        ? this.hit(this.mousePointer.x, this.mousePointer.y)
+        : undefined;
+    if (
+      !button ||
+      button.disabled ||
+      !button.label.node.activeInHierarchy ||
+      (this.modal && button.label.node.parent !== this.modal && !this.isGlobalAction(button.id))
+    )
+      return;
+    if (button.id === 'fire') {
+      const graphics = this.globalGraphics;
+      graphics.fillColor = col(this.pressedButton ? '#e5d5b433' : '#e0efff14');
+      graphics.strokeColor = col(this.pressedButton ? C.amber : '#bdcfd6aa');
+      graphics.lineWidth = 3;
+      graphics.circle(
+        button.x + button.w / 2 - this.w / 2,
+        this.h / 2 - button.y - button.h / 2,
+        Math.min(button.w, button.h) / 2 - 3,
+      );
+      graphics.fill();
+      graphics.stroke();
+      return;
     }
-    const v = b.visual || { x:b.x+3,y:b.y+4,w:b.w-6,h:b.h-8 };
-    this.rect(this.globalGraphics,v.x,v.y,v.w,v.h,this.pressedButton?'#e5d5b433':'#e0efff14',this.pressedButton?C.amber:'#bdcfd6aa',3);
+    const visualBounds = button.visual || {
+      x: button.x + 3,
+      y: button.y + 4,
+      w: button.w - 6,
+      h: button.h - 8,
+    };
+    this.rect(
+      this.globalGraphics,
+      visualBounds.x,
+      visualBounds.y,
+      visualBounds.w,
+      visualBounds.h,
+      this.pressedButton ? '#e5d5b433' : '#e0efff14',
+      this.pressedButton ? C.amber : '#bdcfd6aa',
+      3,
+    );
   }
-  live(id: string, x: number, y: number, size: number, w: number, h: number, hex = C.white) {
-    const l = this.label(this.root, '', x, y, size, w, h, hex);
-    this.labels.set(id, l);
-    return l;
+  live(
+    id: string,
+    x: number,
+    y: number,
+    size: number,
+    width: number,
+    height: number,
+    hex = C.white,
+  ) {
+    const label = this.label(this.root, '', x, y, size, width, height, hex);
+    this.labels.set(id, label);
+    return label;
   }
-  set(id: string, str: string) {
-    const l = this.labels.get(id);
-    if (l && l.string !== str) l.string = str;
+  set(id: string, caption: string) {
+    const label = this.labels.get(id);
+    if (label && label.string !== caption) label.string = caption;
   }
   buildControls() {
-    const w = this.w, h = this.h, left = 12 + this.safe.left,
-      right = w - 12 - this.safe.right, top = this.safe.top;
-    const small = this.mouseDesktop, settingsX = this.topRight(top + 2,44) - 44 - (!sys.isBrowser && this.touch && !this.nativeCapsule ? 88 : 0) - (this.screenControl ? 52 : 0);
-    const sensorX = settingsX - 56, statusX = sensorX - 86, statsX = left + 64;
-    this.live('health', (statsX + statusX - 6) / 2, top + 24, this.compact ? 11 : 13, Math.max(80, statusX - statsX - 6), 28);
-    this.labels.get('health')!.enableWrapText = false;
-    this.labels.get('health')!.horizontalAlign = Label.HorizontalAlign.LEFT;
-    this.labels.get('health')!.overflow = Label.Overflow.SHRINK;
-    for(const side of [0,1])this.live('spectator:'+side,left+100+side*198,top+64,14,182,36,C.white);
-    this.live('progress', left + 120, top + 58, 11, 240, 20, C.dim);
-    this.live('status', statusX + 40, top + 24, 11, 80, 28, C.white);
-    this.button('sensor', '', sensorX, top + 2, 50, 44).fontSize = 11;
-    this.button('settings', '', settingsX, top + 2, 44, 44, this.globalControls);
-    this.button('layoutDone', this.t('完成布局', 'DONE'), w / 2 - 70, top + 2, 140, 44);
-    if (this.screenControl) this.button('screen', '', settingsX + 52, top + 2, 44, 44, this.globalControls);
-    this.live('connectionNotice', left + 150, top + 68, 12, Math.min(300, right - left - 140), 28, C.red).node.parent = this.globalControls;
-    this.live('buff', w / 2, top + 61, 11, Math.min(180, w - 200), 24, C.mint).node.parent = this.globalControls;
-    const toastWidth = Math.min(420, settingsX - left - 12);
-    this.live('globalToast', left + toastWidth / 2, top + 26, 12, toastWidth, 36, C.amber).node.parent = this.globalControls;
-    const by = h - this.footer - this.safe.bottom;
-    const cardW = Math.min(this.compact ? 64 : 78, (right - left - 146) / 5 - 6);
-    const fireW = 68;
-    const cardsLeft = left;
-    for (let i = 0; i < 4; i++) {
-      const label = this.button('weapon' + i, '', cardsLeft + i * (cardW + 6), by + 8, cardW, 44);
-      if (small) { label.fontSize = 12; label.lineHeight = 17; }
-    }
-    this.button('homing', '', cardsLeft + 4 * (cardW + 6), by + 8, cardW, 44);
-    for (const id of ['weapon4', 'skillUse', 'weapon5']) this.button(id, '', left, by + 8, 100, 44);
-    this.button('fire', '', right - fireW, h - this.safe.bottom - fireW - 10, fireW, fireW);
-    const stateW = Math.min(132, right - fireW - (left + 5 * (cardW + 6)) - 12);
-    this.live('weaponState', right - fireW - 8 - stateW / 2, h - this.safe.bottom - fireW / 2 - 10, small ? 12 : this.compact ? 12 : 14, Math.max(60, stateW), this.footer - 14, C.dim);
-    this.live('notice', w / 2, by - 17, this.compact ? 12 : 15, this.compact ? w - 40 : Math.min(w - 260, 560), this.compact ? 28 : 36, C.amber);
-    this.live('friendWarning', w / 2, by - 17, this.compact ? 13 : 16, this.compact ? w - 40 : Math.min(w - 260, 560), 28, C.red).isBold = true;
-    this.live('tutorial', w / 2, by - 17, this.compact ? 11 : 13, w - 40, 28, C.mint);
-    this.live('target', w / 2, by - 45, 12, 156, 24, C.amber);
-    this.live('flight', w / 2, h / 2, 12, 130, 24, C.white);
-    const priority = this.button('priority', '', 0, 0, 96, 68);
-    priority.fontSize = 12;
-    priority.color = col(C.red);
-    priority.isBold = true;
-    this.labels.set('priorityMarker', priority);
-    const map = this.minimapLayout;
-    this.button('battleReport',this.t('战况','REPORT'),left,top+2,56,44).fontSize=11;
-    this.live('mapLegend', map.x + map.w / 2, map.y + 11, 10, map.w - 4, 20, C.dim);
+    return this.controlsView.buildControls();
   }
-  rect(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke?: string, radius = 0) {
-    if (w <= 0 || h <= 0) return;
-    const path = () => radius > 0
-      ? g.roundRect(x - this.w / 2, this.h / 2 - y - h, w, h, Math.min(radius, w / 2, h / 2))
-      : g.rect(x - this.w / 2, this.h / 2 - y - h, w, h);
-    g.fillColor = col(fill);
-    path();
-    g.fill();
-    if (stroke) {
-      g.lineWidth = 1;
-      g.strokeColor = col(stroke);
-      path();
-      g.stroke();
-    }
+  rect(
+    graphics: Graphics,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    fill: string,
+    stroke?: string,
+    radius = 0,
+  ) {
+    return this.drawing.rect(graphics, x, y, width, height, fill, stroke, radius);
   }
-  image(parent: Node, name: string, frame: SpriteFrame | undefined, x: number, y: number, w: number, h: number) {
-    if (!frame || w <= 0 || h <= 0) return;
-    const node = this.node(name, parent), sprite = node.addComponent(Sprite);
-    sprite.sizeMode = Sprite.SizeMode.CUSTOM; sprite.spriteFrame = frame;
-    node.getComponent(UITransform)!.setContentSize(w, h);
-    node.setPosition(x + w / 2 - this.w / 2, this.h / 2 - y - h / 2);
-    return sprite;
+  image(
+    parent: Node,
+    name: string,
+    frame: SpriteFrame | undefined,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) {
+    return this.drawing.image(parent, name, frame, x, y, width, height);
   }
   // A separate overlay after a Sprite preserves the border/text layer ordering.
-  coverImage(parent: Node, name: string, frame: SpriteFrame, x: number, y: number, w: number, h: number) {
-    const crop = this.node(name, parent);
-    crop.setPosition(x + w / 2 - this.w / 2, this.h / 2 - y - h / 2);
-    crop.getComponent(UITransform)!.setContentSize(w, h);
-    crop.addComponent(Mask).type = Mask.Type.GRAPHICS_RECT;
-    const picture = this.node(name + '-Art', crop), sprite = picture.addComponent(Sprite);
-    sprite.sizeMode = Sprite.SizeMode.CUSTOM; sprite.spriteFrame = frame;
-    const rect=frame.rect,fw=rect?.width||frame.originalSize.width,fh=rect?.height||frame.originalSize.height;
-    const scale=Math.max(w/fw,h/fh);picture.getComponent(UITransform)!.setContentSize(fw*scale,fh*scale);
-    return crop;
+  coverImage(
+    parent: Node,
+    name: string,
+    frame: SpriteFrame,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+  ) {
+    return this.drawing.coverImage(parent, name, frame, x, y, width, height);
   }
-  artOverlay(parent: Node, name: string) { return this.node(name, parent).addComponent(Graphics); }
+  artOverlay(parent: Node, name: string) {
+    return this.drawing.artOverlay(parent, name);
+  }
   mix(a: string, b: string, t: number) {
-    const channels = (value: string) => [1, 3, 5, 7].map((offset) => parseInt(value.slice(offset, offset + 2) || 'ff', 16));
-    return '#' + channels(a).map((value, index) => Math.round(value + (channels(b)[index] - value) * t).toString(16).padStart(2, '0')).join('');
+    return this.drawing.mix(a, b, t);
   }
-  gradient(g: Graphics, x: number, y: number, w: number, h: number, top: string, bottom: string, cut = 0, steps = 12) {
-    for (let i = 0; i < steps; i++) {
-      const ya = h * i / steps, yb = h * (i + 1) / steps;
-      const inset = (v: number) => Math.max(0, cut - v, cut - (h - v));
-      g.fillColor = col(this.mix(top, bottom, (i + .5) / steps));
-      g.moveTo(x + inset(ya) - this.w / 2, this.h / 2 - y - ya);
-      g.lineTo(x + w - inset(ya) - this.w / 2, this.h / 2 - y - ya);
-      g.lineTo(x + w - inset(yb) - this.w / 2, this.h / 2 - y - yb);
-      g.lineTo(x + inset(yb) - this.w / 2, this.h / 2 - y - yb); g.close(); g.fill();
-    }
+  gradient(
+    graphics: Graphics,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    top: string,
+    bottom: string,
+    cut = 0,
+    steps = 12,
+  ) {
+    return this.drawing.gradient(graphics, x, y, width, height, top, bottom, cut, steps);
   }
-  plate(g: Graphics, x: number, y: number, w: number, h: number, fill: string, stroke = C.line, cut = 7) {
-    if (w <= 0 || h <= 0) return;
-    const gold = fill === C.amber, active = fill === C.mint || stroke === C.mint, emphasis = gold || fill === C.mint;
-    if (emphasis) stroke = gold ? C.amber : C.mint;
-    cut = Math.min(cut, w / 5, h / 4);
-    const path = (inset = 0, dy = 0) => {
-      const l = x - this.w / 2 + inset, r = x + w - this.w / 2 - inset,
-        t = this.h / 2 - y - inset + dy, b = this.h / 2 - y - h + inset + dy, c = Math.max(2, cut - inset);
-      g.moveTo(l + c, t); g.lineTo(r - c, t); g.lineTo(r, t - c); g.lineTo(r, b + c);
-      g.lineTo(r - c, b); g.lineTo(l + c, b); g.lineTo(l, b + c); g.lineTo(l, t - c); g.close();
-    };
-    const skinned = gold && g.node.parent === this.modal && this.artwork('button', x + 2, y + 2, w - 4, h - 4);
-    if (!skinned) { g.fillColor = col('#01070cb0'); path(0, -3); g.fill(); }
-    if (!skinned) this.gradient(g, x, y, w, h, gold ? '#b88c3cf2' : fill === '#382730' ? '#492c37' : active ? '#244b65ed' : '#20384aed', gold ? '#443018fa' : fill === '#382730' ? '#21111d' : '#07121ff2', cut, h > 90 ? 16 : 8);
-    if (gold) {
-      g.lineWidth = 5; g.strokeColor = col('#f3c36624'); path(); g.stroke();
-      g.lineWidth = 3; g.strokeColor = col('#ffe2a04d'); path(); g.stroke();
-    }
-    g.lineWidth = gold ? 1.5 : 1; g.strokeColor = col(stroke); path(); g.stroke();
-    g.strokeColor = col(gold ? '#ffe8ada0' : '#a5cbe229'); path(2); g.stroke();
-    this.rect(g, x + cut + 3, y + 3, w - cut * 2 - 6, 1, gold ? '#ffe2a0a0' : '#d3e9f34d');
-    this.rect(g, x + cut + 3, y + h - 3, w - cut * 2 - 6, 1, '#010812a0');
-    if (gold) {
-      for (const side of [-1, 1]) {
-        const cx = x + (side < 0 ? 9 : w - 9) - this.w / 2, cy = this.h / 2 - y - h / 2;
-        g.strokeColor = col('#efd39388'); g.lineWidth = 1;
-        g.moveTo(cx - side * 2, cy + 3); g.lineTo(cx, cy); g.lineTo(cx - side * 2, cy - 3); g.stroke();
-      }
-    }
+  plate(
+    graphics: Graphics,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    fill: string,
+    stroke = C.line,
+    cut = 7,
+  ) {
+    return this.drawing.plate(graphics, x, y, width, height, fill, stroke, cut);
   }
-  inset(g: Graphics, x: number, y: number, w: number, h: number, accent = C.line) {
-    this.gradient(g, x, y, w, h, '#030c17f2', '#1a3041ed', 3, 12);
-    g.strokeColor = col('#02070de6'); g.lineWidth = 2; g.rect(x - this.w / 2, this.h / 2 - y - h, w, h); g.stroke();
-    g.strokeColor = col(accent); g.lineWidth = 1; g.rect(x + 2 - this.w / 2, this.h / 2 - y - h + 2, w - 4, h - 4); g.stroke();
-    this.rect(g, x + 7, y + h - 1, w - 14, 1, '#aec8d047');
-    this.rect(g, x + 8, y + 6, 18, 2, accent);
+  inset(graphics: Graphics, x: number, y: number, width: number, height: number, accent = C.line) {
+    return this.drawing.inset(graphics, x, y, width, height, accent);
   }
-  emblem(g: Graphics, x: number, y: number, radius: number, color = C.amber) {
-    const cx = x - this.w / 2, cy = this.h / 2 - y;
-    g.strokeColor = col(color); g.lineWidth = 1.5;
-    g.circle(cx, cy, radius * .8); g.stroke();
-    for (const side of [-1, 1]) for (let i = 0; i < 3; i++) {
-      g.fillColor = col(this.mix(color, '#142231', .15 + i * .16));
-      g.moveTo(cx + side * radius * .7, cy + radius * .15 - i * 5);
-      g.lineTo(cx + side * (radius * 1.6 - i * 5), cy + radius * .15 - i * 5);
-      g.lineTo(cx + side * (radius * 1.4 - i * 5), cy - radius * .02 - i * 5);
-      g.lineTo(cx + side * radius * .65, cy - radius * .02 - i * 5); g.close(); g.fill();
-    }
-    g.fillColor = col(color);
-    for (let i = 0; i < 8; i++) {
-      const angle = Math.PI / 2 + i * Math.PI / 4, r = i % 2 ? radius * .25 : radius;
-      const px = cx + Math.cos(angle) * r, py = cy + Math.sin(angle) * r;
-      if (i) g.lineTo(px, py); else g.moveTo(px, py);
-    }
-    g.close(); g.fill();
-    g.fillColor = col('#fff1ca'); g.moveTo(cx, cy + radius); g.lineTo(cx, cy); g.lineTo(cx - radius * .25, cy + radius * .25); g.close(); g.fill();
+  emblem(graphics: Graphics, x: number, y: number, radius: number, color = C.amber) {
+    return this.drawing.emblem(graphics, x, y, radius, color);
   }
-  icon(g: Graphics, kind: string, x: number, y: number, size = 16, color = C.mint) {
-    const cx = x - this.w / 2, cy = this.h / 2 - y, r = size / 2;
-    g.strokeColor = col(color); g.fillColor = col(color); g.lineWidth = 1.8;
-    if (kind === 'mountain') {
-      g.moveTo(cx - r, cy - r * .65); g.lineTo(cx - r * .1, cy + r); g.lineTo(cx + r * .35, cy + r * .1); g.lineTo(cx + r * .7, cy + r * .65); g.lineTo(cx + r * 1.3, cy - r * .65); g.close(); g.fill();
-    } else if (kind === 'ranking') {
-      for (const [i, h] of [r, r * 1.7, r * 1.3].entries()) { g.rect(cx - r + i * r * .7, cy - r, r * .45, h); g.fill(); }
-    } else if (kind === 'book') {
-      for (const side of [-1, 1]) {
-        g.moveTo(cx + side * 1.5, cy - r * .8); g.lineTo(cx + side * r, cy - r * .5);
-        g.lineTo(cx + side * r, cy + r); g.lineTo(cx + side * 1.5, cy + r * .7); g.close(); g.fill();
-        g.strokeColor = col('#173147'); g.lineWidth = 1;
-        for (const row of [0, .4]) { g.moveTo(cx + side * 3, cy + r * row); g.lineTo(cx + side * (r - 2), cy + r * (row + .15)); g.stroke(); }
-      }
-    } else if (kind === 'battle') {
-      for (const side of [-1, 1]) {
-        g.moveTo(cx - side * r * .5, cy - r * .7); g.lineTo(cx + side * r * .8, cy + r * .65);
-        g.lineTo(cx + side * r, cy + r); g.lineTo(cx + side * r * .6, cy + r * .8);
-        g.lineTo(cx - side * r * .7, cy - r * .5); g.close(); g.fill();
-        g.lineWidth = 2.6; g.strokeColor = col(color);
-        g.moveTo(cx - side * r * .9, cy - r * .25); g.lineTo(cx - side * r * .25, cy - r * .9);
-        g.moveTo(cx - side * r * .6, cy - r * .6); g.lineTo(cx - side * r, cy - r); g.stroke();
-      }
-    } else if (kind === 'clock') {
-      g.circle(cx, cy, r); g.stroke(); g.moveTo(cx, cy + r * .65); g.lineTo(cx, cy); g.lineTo(cx + r * .45, cy - r * .2); g.stroke();
-    } else {
-      g.circle(cx, cy, r); g.stroke(); g.moveTo(cx - r * 1.35, cy); g.lineTo(cx + r * 1.35, cy); g.moveTo(cx, cy - r * 1.35); g.lineTo(cx, cy + r * 1.35); g.stroke();
-    }
+  icon(graphics: Graphics, kind: string, x: number, y: number, size = 16, color = C.mint) {
+    return this.drawing.icon(graphics, kind, x, y, size, color);
   }
   isGlobalAction(id: string) {
     return id === 'settings' || id === 'screen';
   }
-  inModal(node:Node){for(let current:Node|null=node;current;current=current.parent)if(current===this.modal)return true;return false;}
+  inModal(node: Node) {
+    for (let current: Node | null = node; current; current = current.parent)
+      if (current === this.modal) return true;
+    return false;
+  }
   hit(x: number, y: number, includeDisabled = false) {
     const buttons = [...this.buttons].reverse();
-    return [...buttons.filter(b => this.isGlobalAction(b.id)), ...buttons.filter(b => !this.isGlobalAction(b.id))]
-      .find(
-        (b) =>
-          (includeDisabled || !b.disabled) &&
-          (!b.clip||x>=b.clip.x&&x<=b.clip.x+b.clip.w&&y>=b.clip.y&&y<=b.clip.y+b.clip.h) &&
-          x >= b.x &&
-          x <= b.x + b.w &&
-          y >= b.y &&
-          y <= b.y + b.h &&
-          b.label.node.activeInHierarchy &&
-          (!this.modal || this.inModal(b.label.node) || this.isGlobalAction(b.id)),
-      );
+    return [
+      ...buttons.filter((button) => this.isGlobalAction(button.id)),
+      ...buttons.filter((button) => !this.isGlobalAction(button.id)),
+    ].find(
+      (button) =>
+        (includeDisabled || !button.disabled) &&
+        (!button.clip ||
+          (x >= button.clip.x &&
+            x <= button.clip.x + button.clip.w &&
+            y >= button.clip.y &&
+            y <= button.clip.y + button.clip.h)) &&
+        x >= button.x &&
+        x <= button.x + button.w &&
+        y >= button.y &&
+        y <= button.y + button.h &&
+        button.label.node.activeInHierarchy &&
+        (!this.modal || this.inModal(button.label.node) || this.isGlobalAction(button.id)),
+    );
   }
   blocksBattlefield(x: number, y: number, ignorePriority = false) {
-    const map = this.minimapLayout, control = this.buttons.some(b =>
-      !(ignorePriority && b.id === 'priority') && b.label.node.activeInHierarchy &&
-      (!this.modal || this.inModal(b.label.node) || this.isGlobalAction(b.id)) &&
-      x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
-    return control || y < 46 + this.safe.top ||
-      (x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h);
+    const map = this.minimapLayout;
+    const control = this.buttons.some(
+      (button) =>
+        !(ignorePriority && button.id === 'priority') &&
+        button.label.node.activeInHierarchy &&
+        (!this.modal || this.inModal(button.label.node) || this.isGlobalAction(button.id)) &&
+        x >= button.x &&
+        x <= button.x + button.w &&
+        y >= button.y &&
+        y <= button.y + button.h,
+    );
+    return (
+      control ||
+      y < 46 + this.safe.top ||
+      (x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h)
+    );
   }
   scrollBy(amount: number) {
     this.scroll = Math.max(0, Math.min(this.scrollMax, this.scroll + amount));
     if (this.scrollNode) this.scrollNode.setPosition(0, this.scroll, 0);
   }
-  routeGraphic(g: Graphics, x: number, y: number, w: number, h: number, progress = 0, map: BattlefieldId = 'valley', light: MissionLight = 'day', enemies: readonly Point[] = []) {
-    if (w <= 0 || h <= 0) return;
-    const route = mapRoute(map), point = (p: Point) => ({
-      x: x + (p.x / MAP.halfWidth + 1) * w / 2 - this.w / 2,
-      y: this.h / 2 - y - (p.z / MAP.halfDepth + 1) * h / 2,
-    });
-    const colors = light === 'night' ? [[17, 39, 53], [70, 100, 117]]
-      : light === 'dusk' ? [[67, 61, 48], [165, 125, 80]] : map === 'highland' ? [[78, 91, 70], [187, 181, 147]] : [[43, 76, 58], [156, 177, 117]];
-    // Sample the same height field as the battlefield so ridges and roads stay in place.
-    const cols = 32, rows = 20, dx = MAP.halfWidth * 2 / cols, dz = MAP.halfDepth * 2 / rows;
-    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
-      const wx = -MAP.halfWidth + i * dx, wz = -MAP.halfDepth + j * dz;
-      const corners = [{ x: wx, z: wz }, { x: wx + dx, z: wz }, { x: wx + dx, z: wz + dz }, { x: wx, z: wz + dz }];
-      for (const indices of [[0, 1, 2], [0, 2, 3]]) {
-        const tri = indices.map(k => corners[k]), cx = tri.reduce((sum, p) => sum + p.x, 0) / 3, cz = tri.reduce((sum, p) => sum + p.z, 0) / 3;
-        const elevation = terrainHeight(cx, cz, map);
-        const shade = Math.max(0, Math.min(1, elevation / (map === 'highland' ? 22 : 10) * .75
-          + (elevation - terrainHeight(cx - 4, cz - 4, map)) * .18 + .12));
-        g.fillColor = col('#' + colors[0].map((v, k) => Math.round(v + (colors[1][k] - v) * shade).toString(16).padStart(2, '0')).join(''));
-        tri.forEach((p, k) => { const q = point(p); if (k) g.lineTo(q.x, q.y); else g.moveTo(q.x, q.y); });
-        g.close(); g.fill();
-      }
-    }
-    if (map === 'valley') {
-      for (const [width, color] of [[Math.max(7, w * .032), light === 'night' ? '#254656' : '#7c9c87'], [Math.max(3, w * .017), light === 'night' ? '#396785' : '#4e9eac']] as const) {
-        g.lineWidth = width; g.strokeColor = col(color);
-        for (let j = 0; j <= 24; j++) {
-          const z = -MAP.halfDepth + j / 24 * MAP.halfDepth * 2, q = point({ x: riverX(z), z });
-          if (j) g.lineTo(q.x, q.y); else g.moveTo(q.x, q.y);
-        }
-        g.stroke();
-      }
-    }
-    if (h >= 60) for (let j = 1; j < 7; j++) for (let i = 1; i < 11; i++) {
-      const p = { x: (i / 11 * 2 - 1) * MAP.halfWidth + Math.sin(i * 7 + j) * 7, z: (j / 7 * 2 - 1) * MAP.halfDepth };
-      if ((i + j * 3) % 4 === 0 || map === 'valley' && Math.abs(p.x - riverX(p.z)) < 10
-        || route.some(q => Math.hypot(q.x - p.x, q.z - p.z) < 12)) continue;
-      const q = point(p), r = Math.max(2, Math.min(4, w / 90));
-      g.fillColor = col(light === 'night' ? '#132d36' : light === 'dusk' ? '#474936' : '#254f3b');
-      g.circle(q.x + 1, q.y - 1, r + 1); g.fill();
-      g.fillColor = col(light === 'night' ? '#254351' : light === 'dusk' ? '#717148' : '#55794a');
-      g.circle(q.x, q.y + 1, r); g.fill();
-    }
-    for (const [width, color] of [[6, '#17262b'], [3, '#c2b58c'], [1.5, C.amber]] as const) {
-      g.lineWidth = width; g.strokeColor = col(color);
-      route.forEach((p, i) => { const q = point(p); if (i) g.lineTo(q.x, q.y); else g.moveTo(q.x, q.y); }); g.stroke();
-    }
-    for (const post of FRIENDLY_POSTS) {
-      const q = point(post);
-      for (let i = 0; i < 3; i++) {
-        g.fillColor = col('#172c37'); g.rect(q.x - 7 + i * 5, q.y - 4, 5, 8); g.fill();
-        g.fillColor = col(light === 'night' ? '#d0ad69' : '#adad91'); g.rect(q.x - 8 + i * 5, q.y - 2, 4, 6); g.fill();
-      }
-      g.strokeColor = col(C.mint); g.lineWidth = 1; g.rect(q.x - 10, q.y - 6, 19, 13); g.stroke();
-    }
-    for (const enemy of enemies) {
-      const q = point(enemy), r = h < 70 ? 2.5 : 4;
-      g.fillColor = col('#14242b'); g.strokeColor = col(C.red); g.lineWidth = 1.5;
-      g.moveTo(q.x, q.y + r); g.lineTo(q.x + r, q.y); g.lineTo(q.x, q.y - r); g.lineTo(q.x - r, q.y); g.close(); g.fill(); g.stroke();
-    }
-    for (const p of [route[0], route.at(-1)!]) {
-      const q = point(p); g.fillColor = col('#1c2a2e'); g.circle(q.x, q.y, 5); g.fill();
-      g.strokeColor = col(C.mint); g.lineWidth = 2; g.circle(q.x, q.y, 5); g.stroke();
-    }
-    const q = point(routePoint(progress, map));
-    g.fillColor = col(C.amber); g.rect(q.x - 3, q.y - 2, 6, 4); g.fill();
+  routeGraphic(
+    graphics: Graphics,
+    x: number,
+    y: number,
+    previewWidth: number,
+    height: number,
+    progress = 0,
+    map: BattlefieldId = 'valley',
+    light: MissionLight = 'day',
+    enemies: readonly Point[] = [],
+  ) {
+    return this.worldView.routeGraphic(
+      graphics,
+      x,
+      y,
+      previewWidth,
+      height,
+      progress,
+      map,
+      light,
+      enemies,
+    );
   }
-  supplyIcon(g: Graphics, kind: string, x: number, y: number) {
-    x -= this.w / 2; y = this.h / 2 - y;
-    g.strokeColor = col(kind === 'rate' ? C.amber : C.mint); g.lineWidth = 2;
-    if (kind === 'tracking') {
-      g.circle(x, y, 9); g.stroke();
-      for (const sign of [-1, 1]) {
-        g.moveTo(x + sign * 5, y); g.lineTo(x + sign * 14, y);
-        g.moveTo(x, y + sign * 5); g.lineTo(x, y + sign * 14);
-      }
-    } else if (kind === 'ammo') {
-      g.moveTo(x - 12, y - 7); g.lineTo(x + 13, y + 9); g.lineTo(x + 4, y - 5);
-      g.lineTo(x - 10, y - 10); g.close();
-      g.moveTo(x - 4, y - 4); g.lineTo(x - 10, y + 4);
-    } else {
-      for (const dy of [-5, 5]) {
-        g.moveTo(x - 13, y + dy - 3); g.lineTo(x + 7, y + dy - 3);
-        g.lineTo(x + 13, y + dy); g.lineTo(x + 7, y + dy + 3);
-        g.lineTo(x - 13, y + dy + 3); g.close();
-      }
-    }
-    g.stroke();
+  supplyIcon(graphics: Graphics, kind: string, x: number, y: number) {
+    return this.drawing.supplyIcon(graphics, kind, x, y);
   }
-  renderHome(n: Node, g: Graphics, s: Simulation) {
-    const w = this.w, h = this.h, left = this.safe.left + 24, right = w - this.safe.right - 24;
-    const light = (_number: number) => this.t('夜航', 'NIGHT OPS');
-    const number = Math.max(0, MISSIONS.findIndex(mission => mission.id === s.mission.id)) + 1;
-    this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#07121c28');
-    if (!this.missionsOpen) {
-      const compact = h < 420, wide = right - left >= 680,
-        menuY = h - this.safe.bottom - (wide ? 76 : 114),
-        titleW = Math.min(wide ? 500 : 390, (right - left) * .62),
-        titleH = titleW / 3,
-        titleY = Math.min(this.safe.top + (compact ? 70 : 112), menuY - titleH - 46);
-      // The title is an authored transparent metal wordmark, not a font approximation.
-      if (this.titleArtwork && this.lang === 'zh') this.image(n, 'MetalWordmark', this.titleArtwork, left - 8, titleY, titleW, titleH);
-      else {
-        const title = this.label(n, this.t('夜航守望', 'OVERWATCH'), left + titleW / 2, titleY + titleH / 2, compact ? 42 : 62, titleW, Math.min(titleH - 20, 76), C.white);
-        title.horizontalAlign = Label.HorizontalAlign.LEFT; title.isBold = true;
-      }
-      const strap = this.label(n, 'N I G H T   O V E R W A T C H', left + titleW / 2, titleY + titleH + 2, compact ? 10 : 12, titleW, 24, C.action);
-      strap.horizontalAlign = Label.HorizontalAlign.LEFT;
-      const subtitle = this.label(n, this.t('长夜之上，守住归途。', 'ABOVE THE NIGHT. BRING THEM HOME.'), left + titleW / 2, titleY + titleH + 28, 12, titleW, 24, '#b8cbd8');
-      subtitle.horizontalAlign = Label.HorizontalAlign.LEFT;
-      const menuW = wide ? (right - left - 36) / 4 : Math.min(248, (right - left - 12) / 2);
-      const entries = [
-        ['missions', this.t('单人模式', 'SINGLE PLAYER'), 'mountain'],
-        ['online:menu', this.t('对战大厅', 'BATTLE LOBBY'), 'battle'],
-        ['online:ranking', this.t('排行榜', 'LEADERBOARDS'), 'ranking'],
-        ['help', this.t('飞行手册', 'FIELD GUIDE'), 'book'],
-      ];
-      for (const [i, [id, caption, symbol]] of entries.entries()) {
-        const x = left + (wide ? i : i % 2) * (menuW + 12), y = menuY + (wide ? 0 : Math.floor(i / 2) * 54), primary = i === 0;
-        this.plate(g, x, y, menuW, 48, primary ? C.amber : '#111d21dc', primary ? C.amber : '#8ba9ba', 5);
-        if (!primary) {
-          this.rect(g, x + 6, y + 5, menuW - 12, 38, '#59778b33');
-          this.rect(g, x + 6, y + 12, 2, 24, C.mint);
-        }
-        this.icon(g, symbol, x + 23, y + 24, 18, primary ? C.action : C.mint);
-        const button = this.button(id, caption + '  ›', x, y, menuW, 48, n);
-        button.node.setPosition(x + menuW / 2 + 11 - w / 2, h / 2 - y - 24);
-        button.node.getComponent(UITransform)!.setContentSize(menuW - 42, 44);
-        this.buttons[this.buttons.length - 1].visual = { x: x + 2, y: y + 2, w: menuW - 4, h: 44 };
-        button.fontSize = menuW < 170 ? 13 : 15; button.color = col(primary ? C.action : C.white); button.isBold = true;
-      }
-      if (this.online) {
-        const settingsLeft = this.buttons.find(button => button.id === 'settings')!.x;
-        const profileW = Math.min(264, settingsLeft - left - 118);
-        this.plate(g, left, this.safe.top + 8, profileW, 44, '#111d21ed', C.line, 6);
-        this.button('online:profile', playerLabel(this.online.identity) + '  ✎', left, this.safe.top + 8,
-          profileW, 44, n).fontSize = 12;
-        this.plate(g, left + profileW + 10, this.safe.top + 8, 92, 44, '#111d21ed', C.line, 6);
-        this.button('online:history', this.t('对战记录', 'RECORDS'), left + profileW + 10, this.safe.top + 8, 92, 44, n).fontSize = 11;
-      }
-      return;
-    }
-    this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#071a2d55');
-    this.label(n, this.t('任务地图', 'MISSION MAP'), left + 78, this.safe.top + 80, 22, 156, 42).isBold = true;
-    const top=this.safe.top+104,bottom=h-this.safe.bottom-58,gap=12,cw=Math.min(300,Math.max(160,(right-left)/3.2)),ch=Math.max(100,bottom-top-22);
-    if(this.missionFocus!==undefined){this.listScroll.missions=this.missionFocus*(cw+gap);this.missionFocus=undefined;}
-    const parent=n,originalG=g,list=this.listViewport(n,'missions',{x:left,y:top,w:right-left,h:bottom-top-8},MISSIONS.length*(cw+gap)-gap,'x');n=list.n;g=list.g;
-    for (const [i, mission] of MISSIONS.entries()) {
-      const x=left+i*(cw+gap)-list.offset,y=top,selected=mission.id===s.mission.id,number=i+1;
-      if(x+cw<left||x>right)continue;
-      const unlocked = this.developer || missionUnlocked(this.missionProgress, mission.id), smallCard = ch < 180;
-      this.plate(g, x, y, cw, ch, '#101e2c', selected ? C.mint : C.line, 3);
-      const artTop = y + 4, artH = ch - 8;
-      const artIndex = mission.map === 'highland' ? 1 : 2;
-      const artwork = this.missionArtwork[artIndex];
-      if (artwork) this.coverImage(n, 'MissionIllustration-' + mission.id, artwork, x + 4, artTop, cw - 8, artH);
-      else this.routeGraphic(g, x + 4, artTop, cw - 8, artH, 0, mission.map, 'night', mission.events);
-      const overlay = this.artOverlay(n, 'MissionSurface-' + mission.id);
-      this.gradient(overlay, x + 4, artTop, cw - 8, Math.min(40, artH), '#04131bca', '#04131b00');
-      this.gradient(overlay, x + 4, artTop + artH * .25, cw - 8, artH * .75, '#04131b00', '#04131bf2', 0, 24);
-      this.gradient(overlay, x + 4, y + ch - (smallCard ? 66 : 90), cw - 8, smallCard ? 62 : 86, '#07131f00', '#07131fc9', 0, 18);
-      if (selected) {
-        overlay.strokeColor = col('#6ad4ff55'); overlay.lineWidth = 5;
-        overlay.rect(x - w / 2 + 2, h / 2 - y - ch + 2, cw - 4, ch - 4); overlay.stroke();
-      }
-      overlay.strokeColor = col(selected ? '#b9edff' : '#58788d'); overlay.lineWidth = selected ? 2 : 1;
-      overlay.rect(x - w / 2 + 2, h / 2 - y - ch + 2, cw - 4, ch - 4); overlay.stroke();
-      this.rect(overlay, x + 14, y + ch - 3, cw - 28, 2, selected ? C.mint : '#45678055');
-      if (selected) {
-        const bx = x + cw - 16 - w / 2, by = h / 2 - y - 17;
-        overlay.fillColor = col(C.mint); overlay.circle(bx, by, 8); overlay.fill();
-        overlay.strokeColor = col('#092032'); overlay.lineWidth = 2;
-        overlay.moveTo(bx - 4, by); overlay.lineTo(bx - 1, by - 3); overlay.lineTo(bx + 4, by + 3); overlay.stroke();
-      }
-      this.label(n, String(number).padStart(3, '0'), x + 29, y + 18, 15, 42, 25, C.action).isBold = true;
-      this.label(n, selected ? this.t('当前', 'SELECTED') : unlocked ? light(number) : this.t('锁定', 'LOCKED'), x + cw - (selected ? 62 : 48), y + 18, 10, selected ? 66 : 80, 22, selected ? C.mint : C.white);
-      const label = this.button('mission:' + mission.id, text(mission.name, this.lang), x, y, cw, ch, n);
-      this.buttons[this.buttons.length - 1].disabled = !unlocked;
-      label.node.setPosition(x + cw / 2 - w / 2, h / 2 - y - ch + (smallCard ? 48 : 61));
-      label.node.getComponent(UITransform)!.setContentSize(cw - 20, smallCard ? 24 : 26);
-      label.fontSize = cw < 180 ? 12 : smallCard ? 15 : 19; label.color = col(unlocked ? C.white : C.dim); label.isBold = true;
-      const tier = number <= 3 ? this.t('入门', 'INTRO') : number <= 60 ? this.t('进阶', 'ADVANCED') : this.t('挑战', 'EXPERT');
-      this.label(n, `${light(number)} · ${tier} · ` + this.t(`敌方 ${mission.events.length}`, `${mission.events.length} HOSTILES`),
-        x + cw / 2, y + ch - (smallCard ? 27 : 36), cw < 180 ? 9 : 11, cw - 16, smallCard ? 16 : 20, '#bdd0dd');
-      const status = this.missionProgress.cleared.includes(mission.id) ? this.t('已完成', 'CLEARED')
-        : unlocked ? this.developer ? this.t('试玩 · 不计进度', 'PRACTICE') : this.t('可出动', 'AVAILABLE')
-          : this.t('完成上一关解锁', 'COMPLETE PREVIOUS');
-      this.label(n, status, x + cw / 2, y + ch - (smallCard ? 10 : 15), smallCard ? 9 : 11, cw - 12, smallCard ? 16 : 19, unlocked ? C.mint : C.dim);
-    }
-    list.finish();n=parent;g=originalG;
-    const bw = (right - left - 24) / 3;
-    for (const [i, id] of ['homeMenu', 'training', 'start'].entries()) {
-      const x = left + i * (bw + 12), primary = id === 'start', selected = id === 'training' && s.mission.mode === 'training';
-      this.plate(g, x, bottom, bw, 44, primary ? C.amber : '#1c2a2e', selected ? C.mint : C.line, 3);
-      const label = this.button(id, [this.t('返回', 'BACK'), this.t('火控热身', 'FIRE CONTROL'), s.mission.mode === 'training'
-        ? this.t('开始热身 →', 'START WARMUP →') : this.t(`出发 ${String(number).padStart(3, '0')} →`, `DEPLOY ${String(number).padStart(3, '0')} →`)][i], x, bottom, bw, 44, n);
-      this.buttons[this.buttons.length - 1].disabled = primary && s.mission.mode !== 'training' && !this.developer && !missionUnlocked(this.missionProgress, s.mission.id);
-      label.color = col(primary ? C.action : selected ? C.mint : C.white); label.isBold = primary;
-    }
+  renderHome(parentNode: Node, graphics: Graphics, simulation: Simulation) {
+    return this.homeView.renderHome(parentNode, graphics, simulation);
   }
-  panelFrame(g: Graphics, x: number, y: number, w: number, h: number, accent = C.mint, dim = '#050f1d55', header = true) {
-    const backdrop = this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g;
-    this.rect(backdrop, 0, 0, this.w, this.h, dim);
-    const skinned = this.artwork('panel', x, y, w, h);
-    // Separate load-bearing frame, recessed display and machined corner hardware.
-    if (!skinned) this.plate(g, x - 4, y + 3, w + 8, h + 2, '#162838', '#020b12', 18);
-    if (!skinned) this.gradient(g, x, y, w, h, '#35454b', '#101a21', 15, 22);
-    this.gradient(g, x + 5, y + 5, w - 10, h - 10, skinned ? '#17282f33' : '#17282f', skinned ? '#070f1644' : '#070f16', 11, 22);
-    if (header) this.gradient(g, x + 9, y + 9, w - 18, 36, '#55656725', '#17282f00', 7, 10);
-    if (header) this.rect(g, x + 14, y + 47, w - 28, 1, '#b7b09488');
-    this.rect(g, x + 14, y + h - 66, w - 28, 1, '#45677c66');
-    // Quiet instrument grid and a wing planform live behind the readable controls.
-    for (let xx = x + 22; xx < x + w - 20; xx += 24) this.rect(g, xx, y + 51, 1, Math.max(0, h - 120), '#a3c6df07');
-    for (let yy = y + 58; yy < y + h - 68; yy += 24) this.rect(g, x + 18, yy, w - 36, 1, '#a3c6df07');
-    const cx = x + w / 2 - this.w / 2, cy = this.h / 2 - y - h * .54;
-    g.strokeColor = col('#8eafc414'); g.lineWidth = 1;
-    g.moveTo(cx, cy + h * .21); g.lineTo(cx + 8, cy + 5); g.lineTo(cx + w * .30, cy - h * .06);
-    g.lineTo(cx + w * .30, cy - h * .10); g.lineTo(cx + 7, cy - 12); g.lineTo(cx + 5, cy - h * .20);
-    g.lineTo(cx + w * .09, cy - h * .24); g.lineTo(cx - w * .09, cy - h * .24); g.lineTo(cx - 5, cy - h * .20);
-    g.lineTo(cx - 7, cy - 12); g.lineTo(cx - w * .30, cy - h * .10); g.lineTo(cx - w * .30, cy - h * .06); g.lineTo(cx - 8, cy + 5); g.close(); g.stroke();
-    for (const side of [-1, 1]) for (const end of [-1, 1]) {
-      const xx = side < 0 ? x + 4 : x + w - 35, yy = end < 0 ? y + 4 : y + h - 24;
-      this.gradient(g, xx, yy, 31, 20, skinned ? '#4b5a6070' : '#4b5a60', skinned ? '#1b2c3444' : '#1b2c34', 5, 6);
-      this.rect(g, xx + 5, yy + 3, 21, 1, '#c5d5d363');
-      g.fillColor = col('#07131b'); g.circle(xx + 8 - this.w / 2, this.h / 2 - yy - 10, 2.5); g.fill();
-      g.strokeColor = col('#d8ba6c80'); g.lineWidth = 1; g.circle(xx + 8 - this.w / 2, this.h / 2 - yy - 10, 2.5); g.stroke();
-    }
-    this.rect(g, x + 45, y + 3, w - 90, 1, '#e4d19995');
-    if (header) this.rect(g, x + w / 2 - 30, y + 47, 60, 2, accent);
-    this.rect(g, x + 44, y + h - 5, w - 88, 1, '#c6ac7080');
+  panelFrame(
+    graphics: Graphics,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    accent = C.mint,
+    dim = '#050f1d55',
+    header = true,
+  ) {
+    return this.drawing.panelFrame(graphics, x, y, width, height, accent, dim, header);
   }
-  renderModal(key: string, s: Simulation, world: World) {
-    const family = key.startsWith('online:') ? key.split(':').slice(0, 2).join(':') : key.split(':')[0];
-    if (family === 'online:menu' && this.modalFamily === family && this.modal && this.onlineView.refreshLobby(this.modal, key !== this.modalKey)) {
+  renderModal(key: string, simulation: Simulation, world: World) {
+    const family = key.startsWith('online:')
+      ? key.split(':').slice(0, 2).join(':')
+      : key.split(':')[0];
+    if (
+      family === 'online:menu' &&
+      this.modalFamily === family &&
+      this.modal &&
+      this.onlineView.refreshLobby(this.modal, key !== this.modalKey)
+    ) {
       this.modalKey = key;
       return;
     }
+    // 同一面板内输入时保留节点，避免异步刷新打断输入框焦点。
     if (family === this.modalFamily && this.editing) return;
-    if (s.phase !== 'playing' && this.online && this.onlineRevision !== this.online.revision) {
-      this.onlineRevision = this.online.revision; this.modalKey = '';
+    if (
+      simulation.phase !== 'playing' &&
+      this.online &&
+      this.onlineRevision !== this.online.revision
+    ) {
+      this.onlineRevision = this.online.revision;
+      this.modalKey = '';
     }
     if (key === this.modalKey) return;
-    this.buttons = this.buttons.filter((b) => {
-      if (b.label.node.parent !== this.root && !this.isGlobalAction(b.id)) {
+    this.buttons = this.buttons.filter((button) => {
+      if (button.label.node.parent !== this.root && !this.isGlobalAction(button.id)) {
         return false;
       }
       return true;
     });
-    const q=this.quartermaster,semantic=[['settings','help','supply','advert'].includes(family)?key:family,this.lang,family==='online:ranking'?[this.online?.board,this.online?.level,this.online?.rankingVersion].join(':'):'',family==='online:create'?this.online?.privateRoom:'',key.startsWith('progression:')?q?.page:'',q?.section,q?.term,q?.mode,q?.selectedSkill,q?.detail,q?.info,!!q?.confirmation,q?.leaveTo!==undefined,q?.gift?(q.gift.started?'opening':q.gift.opened?'rewards':'received'):''].join('|');
-    const animate = !this.reducedEffects && semantic !== this.semanticKey;this.semanticKey=semantic;
-    this.listAreas=[];
+    const quartermaster = this.quartermaster;
+    const semantic = [
+      ['settings', 'help', 'supply', 'advert'].includes(family) ? key : family,
+      this.lang,
+      family === 'online:ranking'
+        ? [this.online?.board, this.online?.level, this.online?.rankingVersion].join(':')
+        : '',
+      family === 'online:create' ? this.online?.privateRoom : '',
+      key.startsWith('progression:') ? quartermaster?.page : '',
+      quartermaster?.section,
+      quartermaster?.term,
+      quartermaster?.mode,
+      quartermaster?.selectedSkill,
+      quartermaster?.detail,
+      quartermaster?.info,
+      !!quartermaster?.confirmation,
+      quartermaster?.leaveTo !== undefined,
+      quartermaster?.gift
+        ? quartermaster.gift.started
+          ? 'opening'
+          : quartermaster.gift.opened
+            ? 'rewards'
+            : 'received'
+        : '',
+    ].join('|');
+    // 轮询数据变化只刷新内容；真正切换页面或页签时才播放淡入淡出。
+    const animate = !this.reducedEffects && semantic !== this.semanticKey;
+    this.semanticKey = semantic;
+    this.listAreas = [];
     const previous = this.modal;
     if (previous) {
+      // 淡出节点尚未销毁时先停用输入，避免旧面板继续接收文本。
       for (const field of previous.getComponentsInChildren(EditBox)) field.enabled = false;
       const opacity = previous.getComponent(UIOpacity);
       if (animate && opacity) {
         Tween.stopAllByTarget(opacity);
-        tween(opacity).to(.12, { opacity: 0 }).call(() => { if (isValid(previous)) previous.destroy(); }).start();
+        tween(opacity)
+          .to(0.12, { opacity: 0 })
+          .call(() => {
+            if (isValid(previous)) previous.destroy();
+          })
+          .start();
       } else previous.destroy();
     }
     this.pressedButton = '';
@@ -988,1111 +915,118 @@ export class HUD {
     this.scrollMax = 0;
     this.modalKey = key;
     if (!key) return;
-    const n = this.node('Panel', this.root);
-    this.modal = n;
-    const opacity = n.addComponent(UIOpacity);
-    if (animate) { opacity.opacity = 0; tween(opacity).to(.16, { opacity: 255 }, { easing: 'quadOut' }).start(); }
-    this.node('Backdrop', n).addComponent(Graphics);
-    this.surfaces = this.node('Surfaces', n);
-    const g = this.node('Ink', n).addComponent(Graphics);
-    if(key.startsWith('storageError:')){
-      const pw=Math.min(720,this.w-this.safe.left-this.safe.right-24),ph=Math.min(420,this.h-this.safe.top-this.safe.bottom-24),px=this.safe.left+(this.w-this.safe.left-this.safe.right-pw)/2,py=this.safe.top+(this.h-this.safe.top-this.safe.bottom-ph)/2;
-      this.panelFrame(g,px,py,pw,ph,C.amber,'#071724fa');
-      this.label(n,this.t('行动记录保存失败 · 错误详情','RUN STORAGE FAILED · DETAILS'),px+pw/2,py+23,17,pw-28,32,C.amber).isBold=true;
-      const vw=pw-32,vh=ph-112,mask=this.node('StorageErrorViewport',n);
-      mask.setPosition(px+pw/2-this.w/2,this.h/2-(py+48+vh/2));mask.getComponent(UITransform)!.setContentSize(vw,vh);mask.addComponent(Mask).type=Mask.Type.GRAPHICS_RECT;
-      const content=this.node('StorageErrorDetails',mask);this.scrollNode=content;this.scrollArea={x:px+16,y:py+48,w:vw,h:vh};
-      const rows:string[]=[];for(const line of this.storageError.split('\n')){let row='',units=0;for(const c of line){const unit=c.charCodeAt(0)>255?2:1;if(units+unit>Math.floor(vw/8.5)){rows.push(row);row='';units=0;}row+=c;units+=unit;}rows.push(row);}
-      rows.forEach((line,i)=>{const l=this.label(content,line,this.w/2,this.h/2,14,vw,22,C.white);l.horizontalAlign=Label.HorizontalAlign.LEFT;l.enableWrapText=false;l.node.setPosition(0,vh/2-11-i*22);});
-      this.scrollMax=Math.max(0,rows.length*22-vh);
-      this.button('close',this.t('关闭 · 返回重试','CLOSE · RETRY'),px+pw/2-92,py+ph-54,184,44,n);
+    const parentNode = this.node('Panel', this.root);
+    this.modal = parentNode;
+    const opacity = parentNode.addComponent(UIOpacity);
+    if (animate) {
+      opacity.opacity = 0;
+      tween(opacity).to(0.16, { opacity: 255 }, { easing: 'quadOut' }).start();
+    }
+    this.node('Backdrop', parentNode).addComponent(Graphics);
+    this.surfaces = this.node('Surfaces', parentNode);
+    const graphics = this.node('Ink', parentNode).addComponent(Graphics);
+    if (key.startsWith('storageError:')) {
+      this.supportView.renderStorageError(parentNode, graphics, simulation, key);
       return;
     }
-    if(this.quartermaster&&(key==='home'||key.startsWith('progression:')||key==='success'||key==='failure'||key==='duelResult')){
-      new ProgressionView(this,this.quartermaster,this.progressionArt,n,g,this.surfaces).render(s,['success','failure','duelResult'].includes(key));return;
+    if (
+      this.quartermaster &&
+      (key === 'home' ||
+        key.startsWith('progression:') ||
+        key === 'success' ||
+        key === 'failure' ||
+        key === 'duelResult')
+    ) {
+      new ProgressionView(
+        this,
+        this.quartermaster,
+        this.progressionArt,
+        parentNode,
+        graphics,
+        this.surfaces,
+      ).render(simulation, ['success', 'failure', 'duelResult'].includes(key));
+      return;
     }
-    if(this.quartermaster&&(key==='missions'||key.startsWith('online:'))){
-      const missions=key==='missions',required=key.startsWith('online:menu')?['skins','night-ui-serif','03-mode-selection']:[];
-      if(new ProgressionView(this,this.quartermaster,this.progressionArt,n,g,this.surfaces).loading(required,missions?'homeMenu':'online:back',missions&&(this.missionArtwork.length!==3||this.dayArtwork.length!==3),missions&&['mission-atlas','mission-day-atlas'].some(name=>this.artworkRetries.has(name))))return;
+    if (this.quartermaster && (key === 'missions' || key.startsWith('online:'))) {
+      const missions = key === 'missions';
+      const required = key.startsWith('online:menu')
+        ? ['skins', 'night-ui-serif', '03-mode-selection']
+        : [];
+      if (
+        new ProgressionView(
+          this,
+          this.quartermaster,
+          this.progressionArt,
+          parentNode,
+          graphics,
+          this.surfaces,
+        ).loading(
+          required,
+          missions ? 'homeMenu' : 'online:back',
+          missions && (this.missionArtwork.length !== 3 || this.dayArtwork.length !== 3),
+          missions &&
+            ['mission-atlas', 'mission-day-atlas'].some((name) => this.artworkRetries.has(name)),
+        )
+      )
+        return;
     }
     if (key === 'entering') {
-      const pw = Math.min(480, this.w - 48), px = (this.w - pw) / 2, py = this.h / 2 - 75;
-      this.panelFrame(g, px, py, pw, 150, C.amber, '#050f1d38');
-      this.label(n, this.t('正在进入战区', 'ENTERING THE BATTLEFIELD'), this.w / 2, py + 54, 25, pw - 30, 46, C.amber).isBold = true;
-      this.label(n, this.t('火控系统就绪 · 祝行动顺利', 'FIRE CONTROL READY · GOOD HUNTING'), this.w / 2, py + 105, 13, pw - 30, 32, C.mint);
+      this.supportView.renderEntering(parentNode, graphics, simulation, key);
       return;
     }
-    if (key.startsWith('online:') || key === 'duelResult') { this.onlineView.renderOnline(n, g, s, key === 'duelResult'); return; }
-    if (key === 'home' || key === 'missions') { this.renderHome(n, g, s); return; }
-    if(key.startsWith('report:')){
-      const pw=Math.min(1060,this.w-this.safe.left-this.safe.right-24),ph=Math.min(590,this.h-this.safe.top-this.safe.bottom-20),px=this.safe.left+(this.w-this.safe.left-this.safe.right-pw)/2,py=this.safe.top+(this.h-this.safe.top-this.safe.bottom-ph)/2;
-      this.panelFrame(g,px,py,pw,ph,C.mint,'#071724f5');
-      this.label(n,this.t('战况','BATTLE REPORT'),px+(pw-96)/2,py+24,20,pw-120,32,C.mint).isBold=true;
-      this.button('close',this.t('关闭','CLOSE'),px+pw-82,py+4,70,44,n).fontSize=12;
-      for(const [i,id] of ['reportOverview','equipment'].entries()){
-        const x=px+12+i*110,selected=this.equipmentOpen===(i===1);
-        this.plate(g,x,py+49,104,44,selected?'#23404b':'#0b1d2a',selected?C.mint:C.line,3);
-        this.button(id,i?this.t('装配','LOADOUT'):this.t('概况','OVERVIEW'),x,py+49,104,44,n).fontSize=13;
-      }
-      if(!this.equipmentOpen){
-        if(s.duelMode&&this.online){this.online.combatants.forEach((player,i)=>{
-          const cw=(pw-36)/2,x=px+12+i*(cw+12),units=s.units.filter(u=>i===0?u.friendly:!u.friendly),alive=units.filter(u=>u.hp>0).length;
-          this.plate(g,x,py+102,cw,ph-116,'#071725',i?C.amber:C.mint,4);
-          this.label(n,playerLabel(player).split(' #')[0],x+cw/2,py+137,16,cw-24,58,i?C.amber:C.mint);
-          this.label(n,this.t(`已损失 ${units.length-alive} · 剩余 ${alive}`,`LOST ${units.length-alive} · REMAINING ${alive}`),x+cw/2,py+189,14,cw-24,44,C.white);
-        });return;}
-        const columns=[.17,.41,.57,.73,.9],headings=this.lang==='zh'?['类型','总数','存活','消灭','未出场']:['TYPE','TOTAL','ALIVE','LOST','PENDING'];
-        headings.forEach((v,i)=>this.label(n,v,px+pw*columns[i],py+113,12,pw*.18,22,C.dim));
-        const names={light:['轻车','LIGHT'],turret:['炮台','TURRET'],heavy:['重甲','ARMOR'],rescue:['救援车','RESCUE'],escort:['护卫','ESCORT']};
-        battleCounts(s,false,s.duelMode).forEach((row,i)=>[text(names[row.kind],this.lang),row.total,row.alive,row.destroyed,row.pending].forEach((v,j)=>this.label(n,String(v),px+pw*columns[j],py+140+i*23,13,pw*.18,23,j===3?C.mint:C.white)));
-        this.label(n,this.t('查看时战斗继续','BATTLE CONTINUES'),px+pw/2,py+ph-17,11,pw-24,22,C.amber);return;
-      }
-      const gap=12,cw=(pw-36)/2,bodyH=ph-110,font=ph<380?11:14;
-      const sides=[s.pilotState(),this.online?.view?.enemyEquipment];
-      sides.forEach((pilot,side)=>{
-        const x=px+12+side*(cw+gap),title=s.duelMode&&this.online?playerLabel(this.online.combatants[side]).split(' #')[0]:side?this.t('对方','OPPONENT'):this.t('我方','YOU');
-        this.plate(g,x,py+100,cw,bodyH,'#0b1d2ae8',C.line,4);
-        let lines:string[]=[title];
-        if(!pilot){lines.push(this.t(s.duelMode?'对方尚未提供装配信息':'地面敌军 · 无军需插槽',s.duelMode?'Opponent equipment is not available':'Ground forces · no loadout slots'));}
-        else {
-          const load=pilot.loadout,effects=load.effects,w=WEAPONS[pilot.selected],ordinary=pilot.selected<4,preview=attackPreview(ordinary?effects:[]),shots=preview.shots;
-          const names=effects.map(effect=>this.lang==='zh'?CATALOG.find(p=>p.effect===effect)!.name:effectEnglish[effect]);
-          const damage=ordinary?w.damage*(1+(load.level>=3?.05:0)+(effects.includes('power')?.15:0)):w.damage;
-          const interval=ordinary?w.interval*(effects.includes('rate')?.88:1)*(load.level>=15?.95:1)/(pilot.buff?.kind==='rate'?1.3:1):w.interval;
-          const radius=pilot.selected>=1&&pilot.selected<=3&&effects.includes('radius')?w.radius*1.15:w.radius;
-          const heat=w.heat*preview.heatMultiplier;
-          const fmt=(v:number)=>Number(v.toFixed(2)).toString(),skill=effects.includes('tracking')?'tracking':effects.includes('emp')?'emp':undefined;
-          const remaining=Math.max(0,pilot.skill.activeUntil-s.time),cooldown=Math.max(0,pilot.skill.readyAt-s.time);
-          const gun=pilot.guns[pilot.selected];
-          lines=[title+` · Lv.${load.level}`,this.t('装配：','Equipped: ')+(names.join(' / ')||this.t('默认配置','Default')),
-            this.t('装配武器：','Equipped weapon: ')+text(w.name,this.lang),
-            this.t('默认 → 当前：','Default → current: ')+this.t(`每轮 1 → ${shots} 弹 · 耗弹 1`,`Projectiles 1 → ${shots} · ammo 1`),
-            pilot.selected===5?this.t('持续3秒 · 每秒80 · 总240 · 重甲×0.85','3s beam · 80/s · total 240 · armor ×0.85'):pilot.selected===4?this.t('3架无人机 · 12秒后坠毁 · 每架最多144伤害','3 drones · crash after 12s · up to 144 damage each'):shots>1?this.t(`主弹 ${fmt(damage)} ＋ ${shots-1}枚副弹各 ${fmt(damage*preview.secondaryStrength)}`,`Primary ${fmt(damage)} + ${shots-1} secondary × ${fmt(damage*preview.secondaryStrength)}`):this.t(`基础伤害 ${fmt(w.damage)} → ${fmt(damage)} / 发`,`Base damage ${fmt(w.damage)} → ${fmt(damage)} / shot`),
-            this.t(`间隔 ${fmt(w.interval)} → ${fmt(interval)} 秒`,`Interval ${fmt(w.interval)} → ${fmt(interval)} s`),
-            this.t(`热量 ${fmt(w.heat)} → ${fmt(heat)} / 次 · 范围 ${fmt(w.radius)} → ${fmt(radius)}`,`Heat ${fmt(w.heat)} → ${fmt(heat)} / attack · radius ${fmt(w.radius)} → ${fmt(radius)}`),
-            this.t(`实时热量 ${Math.round(gun.heat)} · 武器冷却 ${fmt(gun.cooldown)} 秒`,`Heat ${Math.round(gun.heat)} · weapon cooldown ${fmt(gun.cooldown)} s`),
-            this.t('武器 / 剩余弹药：','Weapons / ammo: ')+WEAPONS.filter((_,i)=>i<4||effects.includes(i===4?'drone':'laser')).map(weapon=>{const i=WEAPONS.indexOf(weapon);return text(weapon.name,this.lang)+' '+(weapon.ammo===Infinity?'∞':pilot.guns[i].ammo);}).join(' / '),
-            this.t('技能：','Skill: ')+(skill?(this.lang==='zh'?CATALOG.find(p=>p.effect===skill)!.name:effectEnglish[skill])+this.t(remaining?` · 生效 ${Math.ceil(remaining)} 秒`:cooldown?` · 冷却 ${Math.ceil(cooldown)} 秒`:' · 就绪',remaining?` · active ${Math.ceil(remaining)}s`:cooldown?` · cooldown ${Math.ceil(cooldown)}s`:' · ready'):this.t('未装配','None')),
-            this.t('临时增益：','Temporary buff: ')+(pilot.buff?this.t(pilot.buff.kind==='rate'?'射速 +30%':'追踪',pilot.buff.kind==='rate'?'Fire rate +30%':'Tracking')+` ${Math.ceil(pilot.buff.remaining)}s`:this.t('无','None'))];
-          if(load.skipped.length)lines.push(this.t('未生效：','Unavailable: ')+load.skipped.map(id=>this.lang==='zh'?CATALOG.find(p=>p.id===id)?.name||id:id).join(' / '));
-        }
-        const label=this.label(n,lines.join('\n'),x+cw/2,py+100+bodyH/2,font,cw-20,bodyH-12,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;label.verticalAlign=Label.VerticalAlign.TOP;label.lineHeight=font*1.45;label.overflow=Label.Overflow.SHRINK;
-      });return;
+    if (key.startsWith('online:') || key === 'duelResult') {
+      this.onlineView.renderOnline(parentNode, graphics, simulation, key === 'duelResult');
+      return;
     }
-    if (key.startsWith('help')) { this.settingsView.renderGuide(n, g); return; }
+    if (key === 'home' || key === 'missions') {
+      this.renderHome(parentNode, graphics, simulation);
+      return;
+    }
+    if (key.startsWith('report:')) {
+      this.reportView.render(parentNode, graphics, simulation);
+      return;
+    }
+    if (key.startsWith('help')) {
+      this.settingsView.renderGuide(parentNode, graphics);
+      return;
+    }
     if (key.startsWith('countdown:')) {
-      const x = this.safe.left + (this.w - this.safe.left - this.safe.right) / 2,
-        y = this.safe.top + (this.h - this.safe.top - this.safe.bottom) / 2,
-        r = Math.min(88, (this.h - this.safe.top - this.safe.bottom - 100) / 2);
-      this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#05090c55');
-      g.strokeColor = col('#91e6cb66'); g.lineWidth = 2;
-      g.circle(x - this.w / 2, this.h / 2 - y, r); g.stroke();
-      this.label(n, key.slice(10), x, y - 14, 72, r * 2, 104, C.mint).isBold = true;
-      this.label(n, this.t('准备继续', 'GET READY'), x, y + 45, 18, r * 2, 32, C.mint);
+      this.supportView.renderCountdown(parentNode, graphics, simulation, key);
       return;
     }
     if (key.startsWith('supply:')) {
-      const choice = this.pendingSupply,
-        pw = Math.min(760, this.w - this.safe.left - this.safe.right - 32),
-        ph = Math.min(320, this.h - this.safe.top - this.safe.bottom - 74),
-        px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2,
-        py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
-      this.panelFrame(g, px, py, pw, ph, C.amber);
-      const offers = [
-        ['tracking', this.t('自动追踪', 'AUTO TRACKING'), this.t('普通炮弹自动追踪敌人\n持续 60 秒', 'Regular rounds track foes\n60 seconds')],
-        ['ammo', this.t('追踪弹 +2', 'HOMING +2'), this.t('点选敌人，再按开火\n立即补充 2 发', 'Tap an enemy, then FIRE\nAdds 2 rounds')],
-        ['rate', this.t('射速提升', 'FIRE RATE'), this.t('普通炮射速提升 30%\n持续 60 秒', 'Fire rate +30%\n60 seconds')],
-        ['restock', this.t('弹药补给', 'RESTOCK'), this.t('榴弹 +60 · 重炮 +24\n燃烧弹 +6', 'HE +60 · HEAVY +24\nFIRE +6')],
-      ];
-      const selected = offers.find(([id]) => id === this.supplySelection)!;
-      this.label(n, this.t('选择战斗支援', 'CHOOSE COMBAT SUPPORT'), px + pw / 2, py + 19, 20, pw - 32, 28, C.white).isBold = true;
-      this.label(n, s.buff ? this.t('支援已生效，结束后可再次领取', 'SUPPORT ACTIVE · WAIT UNTIL IT ENDS')
-        : choice ? this.t('支援已获得 · 选择后直接启用', 'SUPPORT EARNED · SELECT AND ACTIVATE')
-        : this.t('可选支援 · 完整观看广告后生效', 'OPTIONAL · WATCH A FULL AD TO ACTIVATE'),
-        px + pw / 2, py + 43, 11, pw - 32, 18, choice ? C.mint : C.dim);
-      const cw = (pw - 56) / 4, cy = py + 58, ch = ph - 138, icons = ch >= 136;
-      for (const [i, [id, title, detail]] of offers.entries()) {
-        const x = px + 16 + i * (cw + 8), active = id === this.supplySelection;
-        this.plate(g, x, cy, cw, ch, active ? '#393528' : '#1c2a2e', active ? C.amber : C.line, 3);
-        if (icons) this.supplyIcon(g, id, x + cw / 2, cy + 22);
-        const label = this.button('reward:' + id, (active ? '✓ ' : '') + title, x, cy, cw, ch, n);
-        label.node.setPosition(x + cw / 2 - this.w / 2, this.h / 2 - cy - (icons ? 50 : 15));
-        label.node.getComponent(UITransform)!.setContentSize(cw - 8, 22);
-        label.fontSize = pw < 600 ? 12 : 15; label.color = col(active ? C.amber : C.white); label.isBold = true;
-        this.label(n, detail, x + cw / 2, cy + (icons ? 84 : 43), icons ? 14 : 11, cw - 10, icons ? 42 : 32, C.white);
-        if (icons) this.label(n, active ? this.t('已选择', 'SELECTED') : this.t('点击选择', 'TAP TO SELECT'),
-          x + cw / 2, cy + ch - 15, 11, cw - 12, 20, active ? C.amber : C.dim);
-      }
-      this.label(n, this.supplyMessage || this.t(`已选：${selected[1]} · 启用后立即返回战斗`, `${selected[1]} · RESUME IMMEDIATELY`),
-        px + pw / 2, py + ph - 66, 11, pw - 32, 18, this.supplyMessage ? C.red : C.dim);
-      const bw = (pw - 40) * .42, y = py + ph - 52;
-      this.plate(g, px + 16, y, bw, 44, '#1c2a2e', C.line, 3);
-      const skip = this.button('supplyLater', choice ? this.t('留到下次，继续战斗', 'SAVE FOR LATER · RESUME') : this.t('不使用，继续战斗', 'SKIP · RESUME BATTLE'), px + 16, y, bw, 44, n);
-      skip.fontSize = pw < 600 ? 11 : 13;
-      const bx = px + 24 + bw, ww = pw - 40 - bw;
-      this.plate(g, bx, y, ww, 44, s.buff ? '#1c2a2e' : C.amber, s.buff ? C.line : undefined, 3);
-      const watch = this.button('supplyWatch', s.buff ? this.t('支援生效中', 'SUPPORT ACTIVE')
-        : choice ? this.t('启用并返回战斗', 'ACTIVATE & RESUME') : this.t('看广告并启用', 'WATCH AD & ACTIVATE'), bx, y, ww, 44, n);
-      watch.fontSize = pw < 600 ? 13 : 16;
-      watch.color = col(s.buff ? C.dim : C.action); watch.isBold = !s.buff;
+      this.supportView.renderSupply(parentNode, graphics, simulation, key);
       return;
     }
     if (key === 'exit') {
-      const pw = Math.min(440, this.w - this.safe.left - this.safe.right - 32), ph = 178;
-      const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2;
-      const py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
-      this.panelFrame(g, px, py, pw, ph, C.red);
-      this.label(n, this.t('返回基地？', 'RETURN TO BASE?'), px + pw / 2, py + 30, 22, pw - 32, 34).isBold = true;
-      this.label(n, s.duelMode ? this.t('离开后30秒内可重回，超时将按失败结算。', 'REJOIN WITHIN 30 SECONDS OR THE MATCH COUNTS AS A LOSS.')
-        : this.t('将会中断本次游戏并退出。', 'This will end the current battle and exit.'), px + pw / 2, py + 76, 14, pw - 32, 40, C.dim);
-      const bw = (pw - 40) / 2;
-      for (const [i, id] of ['exitCancel', 'exitConfirm'].entries()) {
-        const x = px + 16 + i * (bw + 8), y = py + ph - 56;
-        this.plate(g, x, y, bw, 44, i ? '#382730' : C.amber, i ? '#8f4853' : undefined, 6);
-        this.button(id, i ? this.t('确认退出', 'CONFIRM EXIT') : this.t('继续战斗', 'CONTINUE'), x, y, bw, 44, n).color = col(i ? '#ff9b9f' : C.action);
-      }
+      this.supportView.renderExit(parentNode, graphics, simulation, key);
       return;
     }
-    if (key === 'pause' || key.startsWith('settings')) { this.settingsView.renderSettings(n, g, s, world, key); return; }
+    if (key === 'pause' || key.startsWith('settings')) {
+      this.settingsView.renderSettings(parentNode, graphics, simulation, world, key);
+      return;
+    }
     if (key.startsWith('advert:')) {
-      const pw = Math.min(420, this.w - this.safe.left - this.safe.right - 32);
-      const ph = Math.min(244, this.h - this.safe.top - this.safe.bottom - 74);
-      const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2;
-      const py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
-      this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#05090cb8');
-      this.plate(g, px, py, pw, ph, C.ink, C.mint, 10);
-      this.label(n, this.advert?.mock ? this.t('模拟广告', 'SIMULATED AD') : this.t('广告加载中', 'LOADING AD'),
-        px + pw / 2, py + 34, 24, pw - 32, 42, C.white).isBold = true;
-      this.label(n, this.advert?.kind === 'supply' ? this.t('完整观看后启用所选支援，并返回战斗', 'COMPLETE TO ACTIVATE SUPPORT AND RESUME')
-        : this.t(`完成后解锁 ${nextZoomLimit(this.zoomLimit)}× 放大上限`, `COMPLETE TO UNLOCK ${nextZoomLimit(this.zoomLimit)}× ZOOM`),
-        px + pw / 2, py + 80, 14, pw - 32, 36, C.mint);
-      if (this.advert?.mock) {
-        const bw = (pw - 56) / 2, y = py + ph - 76;
-        const b = this.button('adClose', this.t('完成模拟广告', 'COMPLETE MOCK AD'), px + 24, y, bw, 44, n);
-        this.plate(g, px + 24, y, bw, 44, C.mint, undefined, 5);
-        b.color = col(C.action); b.isBold = true;
-        this.plate(g, px + 32 + bw, y, bw, 44, '#1b3038', C.line, 5);
-        this.button('adCancel', this.t('取消 · 返回选择', 'CANCEL · GO BACK'), px + 32 + bw, y, bw, 44, n);
-      } else this.button('adCancel', this.t('取消领取', 'CANCEL'), px + 24, py + ph - 76, pw - 48, 44, n);
-      this.label(n, this.advert?.mock ? this.t('本次为网页模拟 · 无需等待', 'WEB SIMULATION · NO WAIT') : this.t('完成广告后领取奖励', 'COMPLETE THE AD TO CLAIM'),
-        px + pw / 2, py + ph - 17, 11, pw - 32, 22, C.dim);
+      this.supportView.renderAdvert(parentNode, graphics, simulation, key);
       return;
     }
-    const allies = s.units.filter((u) => u.friendly).length;
-    const training = s.mission.mode === 'training';
-    this.rect(this.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || g, 0, 0, this.w, this.h, '#06111655');
-    const result = key === 'success' || key === 'failure';
-    const pw = Math.min(result ? 720 : 880, this.w - this.safe.left - this.safe.right - 32),
-      ph = Math.min(result ? 340 : 540, this.h - this.safe.top - this.safe.bottom - 72);
-    const px = this.safe.left + (this.w - this.safe.left - this.safe.right - pw) / 2,
-      py = this.safe.top + 58 + (this.h - this.safe.top - this.safe.bottom - 58 - ph) / 2;
-    this.panelFrame(g, px, py, pw, ph, key === 'failure' ? C.red : C.mint, '#050f1d00');
-    const small = result || this.compact || this.w < 600,
-      low = ph < 280;
-    const heading =
-      key === 'briefing'
-        ? training ? this.t('火控热身', 'FIRE CONTROL') : this.t('夜航守望', 'NIGHT OVERWATCH')
-        : key === 'success'
-          ? training ? this.t('三靶清除，热身完成', 'THREE TARGETS CLEARED') : this.t('车队安全抵达', 'CONVOY EXTRACTED')
-          : key === 'failure'
-            ? training ? this.t('热身结束，再试一次', 'WARMUP ENDED · TRY AGAIN') : this.t('护送中断', 'ESCORT INTERRUPTED')
-            : key === 'orientation'
-              ? this.t('横屏，进入火控席', 'ROTATE TO LANDSCAPE')
-              : key === 'mission'
-                  ? this.t('山谷公路撤离', 'VALLEY EVACUATION')
-                  : this.t('暂停', 'PAUSED');
-    const headingLabel = this.label(
-      n,
-      heading,
-      px + pw / 2,
-      py + (small ? 29 : 48),
-      small ? 23 : 36,
-      pw - 56,
-      small ? 46 : 60,
-      C.white,
-    );
-    headingLabel.isBold = true;
-    if (result) this.button('resultClose', '×', px + pw - 52, py + 4, 44, 44, n);
-    const bottom = py + ph - 58;
-    if (key === 'briefing' || key === 'mission') {
-      const split = !small,
-        contentTop = py + (low ? 52 : small ? 65 : 118);
-      if (split) {
-        this.label(n, 'NIGHT 07  /  ' + text(s.mission.name, this.lang), px + pw / 2, py + 86, 12, pw - 48, 24, C.mint);
-        if (training) {
-          for (const [i, target] of [this.t('◇ 静止目标 → 榴弹炮', '◇ STATIC → HE'),
-            this.t('◇ 巡逻目标 → 弹着提前量', '◇ ROVER → LEAD THE SHOT'),
-            this.t('◇ 重甲目标 → 重型榴弹炮', '◇ ARMOR → HEAVY')].entries())
-            this.label(n, target, px + pw * .72, contentTop + 52 + i * 56, 17, pw * .43, 44, C.amber);
-        } else {
-          this.routeGraphic(g, px + pw * 0.48, contentTop + 28, pw * 0.46, ph - 235, s.progress, s.mission.map, 'night', s.mission.events);
-          this.label(
-          n,
-          this.t('西岭 → 河谷桥 → 东岭营地', 'WEST RIDGE → RIVER → EXTRACTION'),
-          px + pw * 0.71,
-          py + ph - 104,
-          13,
-          pw * 0.5,
-          32,
-          C.dim,
-        );
-        }
-      }
-      const cx = split ? px + pw * 0.25 : px + pw / 2,
-        cw = split ? pw * 0.42 : pw - 36;
-      this.label(
-        n,
-        training ? this.t('60 秒内清除 3 种目标', 'CLEAR THREE TARGET TYPES IN 60s')
-          : text(s.mission.name, this.lang) + ' · ' + this.t('护送清敌', 'ESCORT & CLEAR'),
-        cx,
-        contentTop + 14,
-        small ? 16 : 21,
-        cw,
-        42,
-        C.white,
-      ).isBold = true;
-      for (const [i, message] of [
-        training ? this.t('练瞄准，友军仍不能误伤', 'Practice aiming; do not hit allies')
-          : this.t(`□  保护救援车与 ${FRIENDLY_POSTS.length} 处分散据点`, `□  Protect rescue & all ${FRIENDLY_POSTS.length} outposts`),
-        text(s.mission.description, this.lang).replace(/^(白天|DAY) · /, this.t('夜航 · ', 'NIGHT OPS · ')),
-      ].entries())
-        this.label(
-          n,
-          message,
-          cx,
-          contentTop + (low ? 52 : small ? 61 : 90) + (i - 0.5) * 24,
-          small ? 14 : 17,
-          cw,
-          30,
-          i === 0 ? C.mint : C.amber,
-        );
-      this.label(
-        n,
-        this.touch
-          ? this.t('左手拖动瞄准 · 右手按住开火', 'Drag to aim · Hold FIRE with other thumb')
-          : this.t(
-              '鼠标瞄准 · 按住左键开火 · 1 / 2 / 3 切枪',
-              'Mouse aims · Hold left button · 1 / 2 / 3 weapons',
-            ),
-        cx,
-        contentTop + (low ? 95 : small ? 116 : 159),
-        small ? 12 : 14,
-        cw,
-        low ? 28 : 44,
-        C.dim,
-      );
-      const primaryW = key === 'briefing' ? (pw - (training ? 56 : 64)) / (training ? 2 : 3) : Math.min(260, pw - 48);
-      if (key === 'briefing') {
-        this.button(training ? 'missionReturn' : 'missionNext', training ? this.t('返回护送', 'BACK TO ESCORT')
-          : this.t('切换任务 ↻', 'CHANGE TASK ↻'), px + 24, bottom, primaryW, 44, n);
-        if (!training) this.button('training', this.t('火控热身', 'FIRE CONTROL'), px + 32 + primaryW, bottom, primaryW, 44, n);
-      }
-      this.button(
-        key === 'briefing' ? 'start' : 'resume',
-        key === 'briefing'
-          ? training ? this.t('开始60秒 →', 'START 60s →') : this.t('护送开跑 →', 'BEGIN ESCORT →')
-          : this.t('返回任务', 'RESUME'),
-        key === 'briefing' ? px + (training ? 32 + primaryW : 40 + 2 * primaryW) : px + pw / 2 - primaryW / 2,
-        bottom,
-        primaryW,
-        44,
-        n,
-      );
-    } else if (key === 'success' || key === 'failure') {
-      const success = key === 'success';
-      this.emblem(g, px + 66, py + (low ? 73 : 78), low ? 15 : 19, success ? C.amber : '#c99580');
-      const lostOutpost = s.failedGroup !== undefined && s.failedGroup > 0;
-      const mainThreat = Object.entries(s.damageByThreat).sort((a, b) => b[1] - a[1])[0];
-      const threatAdvice =
-        mainThreat &&
-        {
-          light: [
-            `轻车造成 ${Math.round(mainThreat[1])} 伤害。下次用速射追踪，并瞄准前方。`,
-            `Light patrol: ${Math.round(mainThreat[1])} damage. Track with Rapid; lead its movement.`,
-          ],
-          turret: [
-            `炮台造成 ${Math.round(mainThreat[1])} 伤害。下次优先用榴弹炮清除固定威胁。`,
-            `Turrets: ${Math.round(mainThreat[1])} damage. Clear fixed threats with Burst first.`,
-          ],
-          heavy: [
-            `重甲造成 ${Math.round(mainThreat[1])} 伤害。下次用重炮，预留弹着提前量。`,
-            `Armor: ${Math.round(mainThreat[1])} damage. Use Heavy and allow for flight time.`,
-          ],
-        }[mainThreat[0]];
-      this.label(
-        n,
-        success
-          ? this.t(`${training ? '热身' : '护送'}评价  ${s.rating}`, `${training ? 'WARMUP' : 'ESCORT'} RATING  ${s.rating}`)
-          : this.t(
-              training ? '热身中断，请整备后再战' : s.failure === 'vehicle' ? lostOutpost ? `第 ${s.failedGroup} 据点全灭` : '救援车被毁' : '行动结束',
-              training ? 'WARMUP ENDED · REGROUP' : s.failure === 'vehicle' ? lostOutpost ? `OUTPOST ${s.failedGroup} LOST` : 'Rescue vehicle lost' : 'Operation ended',
-            ),
-        px + pw / 2,
-        py + (low ? 73 : small ? 75 : 120),
-        small ? 24 : 44,
-        pw - 40,
-        low ? 36 : 60,
-        success ? C.mint : C.red,
-      ).isBold = true;
-      const rankState: Record<string, [string, string]> = { finished: ['已同步', 'SYNCED'], assisted: ['辅助通关', 'ASSISTED'], unavailable: ['未同步', 'NOT SYNCED'], syncing: ['上传中', 'SYNCING'], recording: ['计时中', 'RECORDING'], practice: ['练习', 'PRACTICE'], 'update-required': ['需更新', 'UPDATE'], 'pending-sync': ['待同步', 'PENDING SYNC'], 'needs-attention': ['待核对', 'CHECK REQUIRED'], 'storage-unavailable': ['缓存失败', 'CACHE FAILED'] };
-      const rank = rankState[this.online?.rankStatus || 'local'] || ['仅本地', 'LOCAL'];
-      const statY = py + (low ? 110 : small ? 123 : 212),
-        statW = (pw - 48) / 3,
-        cleared = s.kills + s.friendlyKills;
-      for (const [i, [value, caption]] of [
-        [training ? `${s.time.toFixed(1)}s` : formatTime(Math.round((s.completionTime ?? s.time) * 1000)), training
-          ? this.trainingBest ? this.t(`用时 · 最佳${this.trainingBest.time.toFixed(1)}s`, `TIME · BEST ${this.trainingBest.time.toFixed(1)}s`)
-            : this.t('热身用时', 'WARMUP TIME') : this.t(`本次用时 · ${rank[0]}`, `TIME · ${rank[1]}`)],
-        [training ? `${s.hitShots} / ${s.fired}` : `${cleared} / ${cleared + s.threatsRemaining}`, training ? this.t(`命中弹 / 发射弹 · 耗弹${s.ammoSpent}`, `HIT / FIRED · AMMO ${s.ammoSpent}`) : this.t('清除威胁', 'THREATS')],
-        [`${Math.round(s.friendlyDamage)}`, this.t('友方损伤', 'FRIENDLY DAMAGE')],
-      ].entries()) {
-        const x = px + 24 + statW * (i + 0.5);
-        this.inset(g, x - statW / 2 + 4, statY - 20, statW - 8, low ? 63 : 68, i === 0 ? '#a98c4a80' : '#49657b99');
-        if (statW >= 170) this.icon(g, i === 0 ? 'clock' : i === 1 ? 'target' : 'battle', x - statW / 2 + 24, statY + 1, 17, i === 0 ? C.amber : C.mint);
-        this.label(n, value, x, statY, small ? 21 : 32, statW - 8, low ? 36 : 44, C.white);
-        this.label(n, caption, x, statY + 29, 12, statW - 8, 22, C.dim);
-      }
-      if (ph >= 310) this.label(n,
-        training ? this.t(`清靶 ${s.kills} / 3${this.trainingBest ? ` · 零友伤最佳 ${this.trainingBest.time.toFixed(1)}s / 耗弹${this.trainingBest.ammoSpent}` : ''}`,
-          `CLEARED ${s.kills}/3${this.trainingBest ? ` · CLEAN BEST ${this.trainingBest.time.toFixed(1)}s / AMMO ${this.trainingBest.ammoSpent}` : ''}`)
-          : this.t(`空中 ${s.kills} · 地面 ${s.friendlyKills}`, `AIR ${s.kills} · GROUND ${s.friendlyKills}`),
-        px + pw / 2, statY + 51, 11, training ? pw - 48 : statW - 8, 20, C.dim);
-      const comparison = !training && success ? this.timeComparison : undefined;
-      const advice = !training && success && this.online?.rankStatus === 'assisted' ? this.t('辅助通关已同步，不计入关卡最快榜', 'ASSISTED CLEAR SYNCED · EXCLUDED FROM FASTEST TIMES') : comparison ? this.t(
-        `${comparison.newRecord ? comparison.previousMs === undefined ? '首次完成 · 个人最佳' : '新纪录 · 个人最佳' : '个人最佳'} ${formatTime(comparison.bestMs)}${comparison.previousMs === undefined ? '' : ` · ${comparison.currentMs < comparison.previousMs ? '快' : comparison.currentMs > comparison.previousMs ? '慢' : '持平'}${comparison.currentMs === comparison.previousMs ? '' : ' ' + (Math.abs(comparison.currentMs - comparison.previousMs) / 1000).toFixed(2) + '秒'}`}`,
-        `${comparison.newRecord ? 'NEW PERSONAL BEST' : 'PERSONAL BEST'} ${formatTime(comparison.bestMs)}${comparison.previousMs === undefined ? '' : ` · ${(comparison.currentMs - comparison.previousMs) / 1000}s VS PREVIOUS`}`)
-        : training ? text(trainingNextGoal(s), this.lang) : success
-        ? s.rating === 'S'
-          ? this.t(
-              `${text(s.mission.name, this.lang)} · ${Math.floor(s.time)}s · 耗弹${s.ammoSpent}发。再战，减少耗弹。`,
-              `${text(s.mission.name, this.lang)} · ${Math.floor(s.time)}s · ${s.ammoSpent} rounds used. Try fewer rounds.`,
-            )
-          : this.t(
-              '下次目标：保护救援车，零友伤、零友军损失，争取 S。',
-              'Next: protect rescue, avoid friendly damage and losses to aim for S.',
-            )
-        : s.failure === 'timeout'
-          ? this.t(
-              s.threatsRemaining > 0 ? `仍有 ${s.threatsRemaining} 个威胁未清除。巡视小地图，保护各组友军并清除全部敌人。` : '待命期间倒计时继续。清路后尽快点击「车队继续」。',
-              s.threatsRemaining > 0 ? `${s.threatsRemaining} threats remain. Scan the minimap, protect every group and clear all enemies.` : 'HOLD does not stop the clock. Clear the road and GO.',
-            )
-          : lostOutpost
-            ? this.t(
-                s.failureCause === 'friendly' ? `第 ${s.failedGroup} 据点因己方火力全灭。开火前检查友军与爆炸范围。` : `第 ${s.failedGroup} 据点遭敌袭全灭。每组友军至少保住一辆，救援车存活也不能遗漏据点。`,
-                s.failureCause === 'friendly' ? `Friendly fire eliminated outpost ${s.failedGroup}. Check allies and blast radius before firing.` : `Enemy fire eliminated outpost ${s.failedGroup}. Keep a survivor in every group; rescue survival alone is not enough.`,
-              )
-            : s.failureCause === 'friendly'
-            ? this.t(
-                '致命伤来自己方火力。下次开炮前检查范围圈。',
-                'Lost to friendly fire. Check the blast circle before shooting.',
-              )
-            : threatAdvice
-              ? text(threatAdvice, this.lang)
-              : this.t(
-                  '敌袭摧毁救援车。清除沿线威胁，必要时让车队待命。',
-                  'Lost to hostile fire. Clear nearby threats; HOLD if needed.',
-                );
-      this.label(
-        n,
-        advice,
-        px + pw / 2,
-        py + ph - (low ? 74 : small ? 86 : 126),
-        small ? 13 : 16,
-        pw - 42,
-        low ? 24 : small ? 44 : 62,
-        C.dim,
-      );
-      const resultW = (pw - (training ? 56 : 64)) / (training ? 2 : 3);
-      this.button('home', this.t('返回首页', 'HOME'), px + 24, bottom, resultW, 44, n);
-      if (!training) this.button('retry', this.t('再次出动 ↻', 'RETRY ↻'), px + 32 + resultW, bottom, resultW, 44, n);
-      this.button(
-        training ? 'retry' : success && s.mission.id !== MISSIONS.at(-1)!.id ? 'missionNext' : 'training',
-        training ? this.t('再练一轮 ↻', 'TRY AGAIN ↻') : success && s.mission.id !== MISSIONS.at(-1)!.id
-          ? this.t('下一任务 →', 'NEXT OPERATION →') : this.t('火控热身', 'FIRE CONTROL'),
-        px + (training ? 32 + resultW : 40 + 2 * resultW),
-        bottom,
-        resultW,
-        44,
-        n,
-      );
-    } else if (key === 'orientation') {
-      this.label(n, '↻', px + pw / 2, py + ph * 0.32, 60, pw - 30, 90, C.mint);
-      this.label(
-        n,
-        this.t(
-          '双手操作，更容易看清前路。\n任务已暂停，横屏后继续。',
-          'Two thumbs. A clear view of the road.\nMission paused until landscape.',
-        ),
-        px + pw / 2,
-        py + ph * 0.53,
-        15,
-        pw - 30,
-        110,
-        C.white,
-      );
-    }
-    for (const b of this.buttons.filter((b) => b.label.node.parent === n)) {
-      const primary = ['start', 'retry', 'resume'].includes(b.id);
-      this.plate(g, b.x, b.y, b.w, b.h, primary ? C.amber : '#1c2a2e', primary ? C.amber : C.line, 3);
-      b.label.color = col(b.id === 'supply' && s.buff && !this.pendingSupply ? C.dim : primary ? C.action : C.white);
-      b.label.isBold = primary;
-    }
+    this.missionView.render(parentNode, graphics, simulation, key);
   }
-  supplyLabel(s: Simulation) {
-    return this.pendingSupply ? this.t('战斗补给 · 待领取', 'SUPPLY · CLAIM')
-      : s.buff ? this.t('战斗补给\n增益生效中', 'COMBAT SUPPLY\nBUFF ACTIVE')
-      : this.t('战斗补给', 'COMBAT SUPPLY');
+  supplyLabel(simulation: Simulation) {
+    return this.pendingSupply
+      ? this.t('战斗补给 · 待领取', 'SUPPLY · CLAIM')
+      : simulation.buff
+        ? this.t('战斗补给\n增益生效中', 'COMBAT SUPPLY\nBUFF ACTIVE')
+        : this.t('战斗补给', 'COMBAT SUPPLY');
   }
-  update(s: Simulation, world: World) {
-    if(this.quartermaster&&this.progressionArt.homeReady)this.progressionArt.warm();
-    this.quartermaster?.tickPresentation(this.reducedEffects);
-    if(this.quartermaster){
-      this.quartermaster.syncIdentity();
-      const revision=`${this.quartermaster.revision}:${this.online?.revision}:${this.lang}`;
-      if(revision!==this.progressionRevision&&!this.editing){this.progressionRevision=revision;this.modalKey='rebuild';}
-      const page=this.quartermaster.page;
-      const frame=this.progressionArt.get(page==='loadout'||page==='warehouse'||page==='checkin'||page==='tasks'?'hangar':page?'base':'home');
-      if(frame)this.homeArtwork.spriteFrame=frame;
-    }
-    else if(!this.homeArtwork.spriteFrame)this.homeArtwork.spriteFrame=this.progressionArt.get('home')||null;
-    this.lockedTargets = [];
-    this.effects = { impacts: [], projectiles: [] };
-    const w = this.w, h = this.h, g = this.g, top = this.safe.top,
-      left = 12 + this.safe.left, right = w - this.safe.right - 12, by = h - this.footer - this.safe.bottom;
-    this.homeBackground.active = s.phase === 'briefing'||!!this.quartermaster?.page;
-    if (this.homeBackground.active) {
-      const background = this.homeBackground.getComponent(Graphics)!;
-      background.clear(); this.rect(background, 0, 0, w, h, '#071522');
-      const frame = this.homeArtwork.spriteFrame;
-      if (frame) {
-        const size = frame.originalSize, scale = Math.max(w / size.width, h / size.height);
-        this.homeArtwork.node.getComponent(UITransform)!.setContentSize(size.width * scale, size.height * scale);
-      }
-    }
-    let key = s.phase === 'briefing' ? this.missionsOpen ? 'missions' : 'home' : s.phase === 'playing' ? '' : s.phase;
-    if(this.quartermaster?.page)key='progression:'+this.quartermaster.page;
-    if (this.online?.panel) key = `online:${this.online.panel}:${this.online.revision}:${this.lang}`;
-    else if (s.duelMode && this.online?.view?.finished&&!this.quartermaster?.page) key = 'duelResult';
-    else if (this.online?.entering) key = 'entering';
-    if (this.advert) key = `advert:${this.advert.kind}:${this.advert.mock}:${this.lang}`;
-    else if (this.exitConfirm) key = 'exit';
-    else if (s.pauses.has('help')) key = 'help:' + this.helpGroup + this.helpTouch + this.lang;
-    else if (s.pauses.has('mission')) key = 'mission';
-    else if (s.pauses.has('settings')) key = this.toolsOpen ? 'settings:flight' : this.zoomOpen ? 'settings:zoom' : this.controlsOpen ? 'settings:controls' : 'settings';
-    else if (s.pauses.has('orientation')) key = 'orientation';
-    else if (this.supplyOpen) key = this.pendingSupply ? 'supply:choice' : 'supply:offer';
-    else if (this.reportOpen && s.phase === 'playing') key = `report:${this.equipmentOpen?'equipment':'overview'}:${Math.floor(s.time * 2)}`;
-    else if (s.resumeCountdown > 0) key = `countdown:${Math.ceil(s.resumeCountdown)}`;
-    else if (s.paused && s.phase !== 'briefing') key = 'pause';
-    const editingLayout = this.layoutEditing && s.phase === 'playing' && Array.from(s.pauses).every(reason => reason === 'settings' || reason === 'manual');
-    if (editingLayout) key = '';
-    if(this.storageError)key='storageError:'+this.storageError;
-    this.renderModal(key, s, world);
-    g.clear();
-    this.marks.clear();
-    this.globalGraphics.clear();
-    this.globalControls.setSiblingIndex(this.root.children.length - 1);
-    const tracking = s.buff?.kind === 'tracking' && s.buff.remaining > 0;
-    for (const l of this.labels.values()) l.node.active = !key;
-    for (const l of this.unitLabels.values()) l.node.active = false;
-    for (const b of this.buttons) {
-      if (this.online?.spectator && (b.id === 'fire' || b.id.startsWith('weapon') || b.id === 'homing' || b.id === 'skillUse')) { b.label.node.active = false; continue; }
-      if (b.id.startsWith('weapon') && !s.hasWeapon(Number(b.id.slice(6))) || b.id==='skillUse' && !s.skillKind) { b.label.node.active=false; continue; }
-      if (s.duelMode && ['homing', 'convoy', 'supply', 'mission'].includes(b.id)) { b.label.node.active = false; continue; }
-      if (b.id === 'homing' && !tracking && !s.homingAmmo && !this.rewardsAvailable && !this.pendingSupply) {
-        b.label.node.active = false;
-        continue;
-      }
-      if (['supply', 'homingReward', 'supplyWatch', 'zoomUpgrade'].includes(b.id) &&
-          !this.rewardsAvailable && !(this.pendingSupply && ['supply', 'supplyWatch'].includes(b.id))) {
-        b.label.node.active = false;
-        continue;
-      }
-      if (b.label.node.parent === this.root)
-        b.label.node.active = !key && b.id !== 'priority' && (b.id !== 'fire' || this.touch || s.homingSelected || editingLayout);
-      if(editingLayout && ['battleReport','sensor'].includes(b.id)) b.label.node.active=false;
-      if (b.id === 'layoutDone') {
-        b.label.node.active = editingLayout;
-        if (editingLayout) this.styleButton(g, b, 'secondary');
-        continue;
-      }
-      if (this.isGlobalAction(b.id)) {
-        b.label.node.active = !key || key === 'home';
-        if (!b.label.node.active) continue;
-        const gx = b.x + b.w / 2 - w / 2, gy = h / 2 - b.y - b.h / 2, gear = this.globalGraphics;
-        gear.strokeColor = col(!key && world.viewMode === 'enhanced' ? '#123844' : C.white); gear.lineWidth = 2;
-        if (b.id === 'screen') {
-          for (const dx of [-1, 1]) for (const dy of [-1, 1]) {
-            const r = this.screenActive ? 5 : 12, direction = this.screenActive ? 1 : -1;
-            gear.moveTo(gx + dx * (r + direction * 7), gy + dy * r);
-            gear.lineTo(gx + dx * r, gy + dy * r);
-            gear.lineTo(gx + dx * r, gy + dy * (r + direction * 7));
-          }
-          gear.stroke(); continue;
-        }
-        for (let i = 0; i < 32; i++) {
-          const angle = (i + .5) * Math.PI / 16, radius = i % 4 === 1 || i % 4 === 2 ? 14 : 10.5;
-          const x = gx + Math.cos(angle) * radius, y = gy + Math.sin(angle) * radius;
-          if (i) gear.lineTo(x, y); else gear.moveTo(x, y);
-        }
-        gear.close(); gear.fillColor = gear.strokeColor; gear.fill();
-        gear.fillColor = col(!key && world.viewMode === 'enhanced' ? '#b9d7dd' : '#122433');
-        gear.circle(gx, gy, 5.5); gear.fill();
-      }
-    }
-    if (!key) this.layoutCombatControls();
-    this.buttonFeedback();
-    const connection = this.labels.get('connectionNotice')!;
-    connection.string = this.online?.connectionLost ? this.t('网络异常 · 正在重连', 'NETWORK LOST · RECONNECTING') : this.online?.offlineNotice || '';
-    connection.node.active = s.duelMode && !!connection.string;
-    if (connection.node.active) this.plate(this.globalGraphics, left, top + 54, Math.min(300, right - left - 140), 28, '#2f1118ee', C.red, 4);
-    const toast = this.labels.get('globalToast')!;
-    toast.node.active = ['missions', 'settings:zoom'].includes(key) && !!this.toast && Date.now() < this.toastUntil;
-    toast.string = this.toast;
-    if (toast.node.active) {
-      const tw = toast.node.getComponent(UITransform)!.contentSize.width;
-      this.rect(this.globalGraphics, toast.node.position.x + w / 2 - tw / 2, top + 8, tw, 36, C.ink);
-    }
-    const buff = this.labels.get('buff')!;
-    buff.node.active = !key && s.phase === 'playing' && s.buff?.kind === 'rate';
-    if (s.buff && buff.node.active) {
-      const size = buff.node.getComponent(UITransform)!.contentSize, p = buff.node.position,
-        name = s.buff.kind === 'tracking' ? this.t('追踪模式', 'TRACKING') : this.t('射速提升', 'RATE ×1.3'),
-        remaining = Math.ceil(s.buff.remaining), tint = s.buff.remaining <= 5 ? C.amber : C.mint;
-      buff.string = name + (size.width < 170 ? '\n' : ' · ') + this.t(`${remaining}秒`, `${remaining}s`);
-      buff.color = col(tint);
-    }
-    if (key) {
-      if (['playing', 'success', 'failure'].includes(s.phase)) this.effects = drawEffects(this.marks, s, world, this.w, this.h, this.reducedEffects);
-      return;
-    }
-    const gun = s.guns[s.selected], weapon = WEAPONS[s.selected], reason = s.reason(),
-      danger = s.friendlyRisk || s.time - s.friendHitAt < 2;
-    const plane = s.aircraft;
-    const flightTime = s.flightTime(), flightText = Number.isFinite(flightTime) ? flightTime.toFixed(1) + 's' : '—';
-    const allies = s.units.filter((u) => u.friendly).length;
-    const bright = world.viewMode === 'enhanced';
-    const counts = s.duelMode ? this.t(`友军 ${allies-s.friendlyLosses} · 敌军 ${s.units.filter(u=>!u.friendly&&u.hp>0).length}`, `ALLY ${allies-s.friendlyLosses} · HOST ${s.units.filter(u=>!u.friendly&&u.hp>0).length}`)
-      : this.t(`友军 ${allies-s.friendlyLosses}/${allies} · 撤离 ${Math.floor(s.ratio*100)}% · 威胁 ${s.threatsRemaining}`, `ALLY ${allies-s.friendlyLosses}/${allies} · EXIT ${Math.floor(s.ratio*100)}% · HOST ${s.threatsRemaining}`);
-    this.set('health', counts);
-    this.labels.get('health')!.color = col(!s.duelMode && s.rescue.hp / s.rescue.maxHp < .3 ? bright ? '#982536' : C.red : bright ? '#123844' : C.white);
-    this.labels.get('progress')!.color = col(bright ? '#243c42' : C.dim);
-    this.labels.get('status')!.color = col(bright ? '#123844' : C.white);
-    this.set('progress', s.mission.mode === 'training' ? this.t(`热身清靶 ${s.kills}/3 · 友伤 ${Math.round(s.friendlyDamage)}`, `WARMUP ${s.kills}/3 · FRIENDLY ${Math.round(s.friendlyDamage)}`) : '');
-    for(const side of [0,1]){
-      const label=this.labels.get('spectator:'+side)!;label.node.active=s.duelMode&&!!this.online;
-      if(label.node.active){const cw=Math.min(220,(right-left-this.minimapLayout.w-24)/2),x=left+side*(cw+8),tint=side?'#efb366':'#7cd4f1',name=playerLabel(this.online!.combatants[side]).split(' #')[0];
-        this.rect(g,x,top+49,cw,28,'#07182788',tint,4);label.node.setPosition(x+cw/2-w/2,h/2-top-63);label.node.getComponent(UITransform)!.setContentSize(cw-14,24);
-        label.fontSize=this.w<900?12:14;label.lineHeight=18;label.enableWrapText=false;label.overflow=Label.Overflow.CLAMP;label.isBold=true;label.color=col(tint);label.string=this.fitBattleName(label,name,cw-20);label.node.getComponent(UITransform)!.setContentSize(cw-14,24);
-      }
-    }
-    if(this.online?.spectator)this.labels.get('progress')!.node.active=false;
-    const clock = Math.floor(s.time);
-    const level = s.duelMode || s.mission.mode === 'training' ? 0 : MISSIONS.findIndex(m => m.id === s.mission.id) + 1;
-    this.set('status', `${level ? this.t(`${level}关`, `L${level}`) + ' · ' : ''}${Math.floor(clock / 60)}:${String(clock % 60).padStart(2, '0')}`);
-    this.set('weaponState', this.t(
-      `${flightText} 弹着\n${gun.overheated ? '过热 · 冷却至40' : '热量 ' + Math.round(gun.heat) + '%'}`,
-      `${flightText} IMPACT\n${gun.overheated ? 'OVERHEATED' : 'HEAT ' + Math.round(gun.heat) + '%'}`));
-    if (s.homingSelected) this.set('weaponState', s.homingAmmo <= 0 ? this.t('点战斗补给', 'OPEN SUPPLY')
-      : s.homingTarget ? this.t('已锁定', 'LOCKED') : this.t('点选敌人', 'TAP AN ENEMY'));
-    const reasons: Record<string, string[]> = {
-      extracting: [s.extractionRemaining ? `停止开火 · 快速撤离 ${Math.ceil(s.extractionRemaining)}秒` : s.shots.length ? '车队已抵达 · 正在确认炮弹落点' : '车队已抵达 · 等待电台播报结束', s.extractionRemaining ? `CEASE FIRE · EXTRACTING ${Math.ceil(s.extractionRemaining)}s` : s.shots.length ? 'CONVOY ARRIVED · RESOLVING SHOTS' : 'CONVOY ARRIVED · RADIO REPORT'],
-      target: ['点选敌人，再按发射', 'TAP AN ENEMY, THEN LAUNCH'],
-      protected: ['保护区 · 禁止开火', 'PROTECTED · FIRE BLOCKED'],
-      overheated: ['武器过热 · 等待降温或切枪', 'OVERHEATED · COOL OR SWITCH'],
-      empty: ['弹药耗尽 · 切换武器', 'EMPTY · SWITCH WEAPON'],
-      outside: ['准星超出任务区域', 'OUTSIDE MISSION AREA'],
-    };
-    let notice = reasons[reason] ? text(reasons[reason], this.lang)
-      : s.rescue.hp / s.rescue.maxHp < 0.3 ? this.t('救援车危急 · 清除附近威胁', 'RESCUE CRITICAL · CLEAR THREATS')
-      : s.time - s.waveAt < 4 ? text(s.mission.events[s.lastWave]?.direction || ['', ''], this.lang)
-      : s.convoy === 'holding' ? this.t('清路后，点击「车队继续」', 'CLEAR THE ROAD, THEN GO')
-      : s.warning === 'armor' ? this.t('重甲抗速射 · 切换重炮', 'ARMOR · SWITCH TO HEAVY')
-      : s.warning === 'lead' ? this.t('预留弹着提前量', 'LEAD THE TARGET') : '';
-    if (s.duelMode) notice = this.online?.message || this.t('消灭对方全部地面单位 · 菜单不暂停对战', 'ELIMINATE ALL GROUND UNITS · MENUS DO NOT PAUSE');
-    if (s.extractionRemaining === undefined && Date.now() < this.toastUntil) notice = this.toast;
-    this.set('notice', notice || this.radioText);
-    if (editingLayout) {
-      this.set('notice', this.t('拖动按钮调整位置 · 仅本局生效', 'DRAG BUTTONS · THIS MATCH ONLY'));
-      this.labels.get('health')!.node.active = this.labels.get('status')!.node.active = false;
-    }
-    this.set('friendWarning', danger && s.extractionRemaining === undefined ? s.time - s.friendHitAt < 2
-      ? this.t('！正在误伤友方 · 停止射击', '! FRIENDLY HIT · CEASE FIRE')
-      : this.t('！范围内有友方 · 当心误伤', '! FRIENDLY IN BLAST RADIUS') : '');
-    const step = TUTORIAL.find((e) => !s.completed.has(e));
-    this.set('tutorial', s.duelMode || s.extractionRemaining !== undefined ? '' : s.mission.mode === 'training'
-      ? this.t('清除 3 个目标', 'CLEAR 3 TARGETS')
-      : this.tutorial && step && s.time < 12
-      ? `${TUTORIAL.indexOf(step) + 1}/${TUTORIAL.length}  ${tutorialText(step, this.lang, this.touch)}`
-      : '');
-    {
-      const messages = ['friendWarning', 'notice', 'tutorial'];
-      const active = messages.find((id) => this.labels.get(id)!.string);
-      for (const id of messages) this.labels.get(id)!.node.active = id === active;
-    }
-    for (const id of ['notice', 'friendWarning', 'tutorial']) {
-      const label = this.labels.get(id)!;
-      const state = this.labels.get('weaponState')!, stateSize = state.node.getComponent(UITransform)!.contentSize;
-      const stateY = h / 2 - state.node.position.y, messageY = Math.min(by - 24, this.controlTop - 22);
-      const messageRight = Math.abs(stateY - messageY) < stateSize.height / 2 + 14 ? Math.min(right - 76, state.node.position.x + w / 2 - stateSize.width / 2 - 8) : right - 76;
-      label.node.setPosition((left + messageRight) / 2 - w / 2, h / 2 - messageY);
-      label.node.getComponent(UITransform)!.setContentSize(Math.min(messageRight - left, Math.max(180, label.string.length * label.fontSize + 24)), 28);
-      label.overflow = Label.Overflow.SHRINK;
-      if (!label.node.active || !label.string) continue;
-      const size = label.node.getComponent(UITransform)!.contentSize, p = label.node.position;
-      this.rect(g, p.x + w / 2 - size.width / 2, h / 2 - p.y - size.height / 2, size.width, size.height, id === 'friendWarning' ? '#381c26dd' : '#0c171da0');
-    }
-    for (const b of this.buttons.filter((b) => b.label.node.parent === this.root && b.label.node.active)) {
-      if (b.id === 'priority' || b.id === 'layoutDone') continue;
-      if (b.id === 'battleReport' || b.id === 'sensor') {
-        if (b.id === 'sensor') b.label.string = this.t(({night:'夜景',enhanced:'增强',thermal:'热像'})[world.viewMode || 'night'], ({night:'NIGHT',enhanced:'ENH',thermal:'IR'})[world.viewMode || 'night']);
-        b.visual = { x: b.x + 2, y: b.y + 8, w: b.w - 4, h: 28 };
-        this.rect(g, b.visual.x, b.visual.y, b.visual.w, b.visual.h, '#0b192950', '#b4e5dd99', 4);
-        b.label.color = col(C.white);
-        continue;
-      }
-      if (b.id === 'homing') b.label.string = this.t('追踪', 'LOCK') + ' ' + (tracking
-        ? this.t(`${Math.ceil(s.buff!.remaining)}秒`, `${Math.ceil(s.buff!.remaining)}s`) : s.homingAmmo || '+');
-      const selected = (!s.homingSelected && b.id === 'weapon' + s.selected) || ((s.homingSelected || tracking) && b.id === 'homing') || b.id === (plane.direction < 0 ? 'orbitLeft' : 'orbitRight');
-      if (b.id.startsWith('weapon')) {
-        const i = Number(b.id.slice(-1)), a = s.guns[i],ready=s.weaponReadiness(i);
-        const compactNames=[['速射','AUTO'],['榴弹','HE'],['重炮','HVY'],['燃烧','FIRE']];
-        const name=b.w<100&&i<4?this.t(...compactNames[i] as [string,string]):text(WEAPONS[i].name,this.lang), ammo=a.ammo===Infinity?'∞':String(a.ammo), status=ready.empty?this.t('弹尽','EMPTY'):ready.remaining>0?ready.displaySeconds.toFixed(1)+'s':'';
-        b.label.string=i>=4||b.w<60?name+'\n'+ammo+(status?'·'+status:''):name+' '+ammo+(status?'\n'+status:'');
-      }
-      if(b.id==='skillUse') {
-        b.label.string=(s.skillKind==='tracking'?this.t('追踪','TRACK'):this.t('电磁干扰','EMP'))+'\n'+(s.skillRemaining>0?this.t('生效 ','ACTIVE ')+Math.ceil(s.skillRemaining)+'s':s.skillCooldown>0?this.t('冷却 ','COOLDOWN ')+Math.ceil(s.skillCooldown)+'s':this.t('就绪','READY'));
-        b.disabled=s.skillCooldown>0||s.paused||s.extractionRemaining!==undefined;
-      }
-      if (b.id === 'fire') b.label.string = reason === 'extracting' ? this.t('停火', 'CEASE FIRE') : s.homingSelected
-        ? s.homingAmmo <= 0 ? this.t('无弹药', 'EMPTY') : s.homingTarget ? this.t('发射', 'LAUNCH') : this.t('待锁定', 'LOCK')
-        : s.weaponReadiness().empty ? this.t('弹尽','EMPTY') : reason === 'protected' ? this.t('禁射', 'BLOCKED') : reason === 'overheated' ? this.t('冷却', 'COOL')
-        : reason === 'empty' ? this.t('无弹药', 'EMPTY') : this.t('开火', 'FIRE');
-      const fire = b.id === 'fire';
-      if(fire&&!s.homingSelected&&!s.weaponReadiness().empty&&s.weaponReadiness().remaining>0)b.label.string+='\n'+s.weaponReadiness().displaySeconds.toFixed(1)+'s';
-      b.visual = { x: b.x + 2, y: b.y + 5, w: b.w - 4, h: b.h - 10 };
-      if (fire) {
-        const radius = b.w / 2 - 5, x = b.x + b.w / 2 - w / 2, y = h / 2 - b.y - b.h / 2;
-        b.visual = { x: b.x + b.w/2-radius, y: b.y+b.h/2-radius, w:radius*2,h:radius*2 };
-        g.fillColor=col(danger?'#48283266':'#0b192944');g.strokeColor=col(danger?C.red:C.mint);g.lineWidth=2;
-        g.circle(x,y,radius);g.fill();g.stroke();g.lineWidth=1;
-      } else {
-        const v=b.visual;this.rect(g,v.x,v.y,v.w,v.h,selected?'#173b3b70':'#0b192950',selected?C.mint:'#b4c9cd77',4);
-        if(selected)this.rect(g,v.x+8,v.y+v.h-2,v.w-16,2,C.mint);
-      }
-      if(b.id.startsWith('weapon'))this.cooldownBorder(g,b,s.weaponReadiness(Number(b.id.slice(-1))).ratio);
-      if(fire&&!s.homingSelected)this.cooldownBorder(g,b,s.weaponReadiness().ratio,true);
-      if(b.id==='skillUse'&&s.skillKind)this.cooldownBorder(g,b,Math.min(1,s.skillRemaining>0?s.skillRemaining/SKILLS[s.skillKind].duration:s.skillCooldown/SKILLS[s.skillKind].cooldown),false,s.skillRemaining>0?C.mint:C.amber);
-      b.label.color = col(fire && danger ? C.red : selected ? C.mint : C.white);
-      b.label.fontSize = fire ? 14 * this.fireScale : (b.id==='skillUse'||b.w<60 ? 11 : this.compact ? 12 : 13) * this.controlScale;
-      b.label.lineHeight = 15 * (fire ? this.fireScale : this.controlScale);
-      if(b.id==='skillUse')b.label.color=col(s.skillRemaining>0?C.mint:s.skillCooldown>0?C.dim:C.white);
-      if (b.id === 'homing' && tracking && s.buff!.remaining <= 5) b.label.color = col(C.amber);
-      b.label.isBold = selected || fire;
-      if (b.id.startsWith('weapon')) {
-        const a = s.guns[Number(b.id.slice(-1))];
-        this.rect(g, b.x + 5, b.y + b.h - 5, (b.w - 10) * a.heat / 100, 2, a.overheated ? C.red : C.amber);
-      }
-    }
-    this.labels.get('priorityMarker')!.node.active = false;
-    this.drawWorld(s, world);
-    this.drawMinimap(s);
+  update(simulation: Simulation, world: World) {
+    return this.battleView.update(simulation, world);
   }
-  private fitBattleName(label:Label,name:string,width:number) {
-    const key=`${name}:${width}:${label.fontSize}`;let fitted=this.nameFits.get(key);if(fitted!==undefined)return fitted;
-    const measure=typeof label.updateRenderData==='function'?(value:string)=>{
-      label.overflow=Label.Overflow.NONE;label.string=value;label.updateRenderData(true);
-      return label.node.getComponent(UITransform)!.contentSize.width;
-    }:undefined;
-    fitted=fitName(name,width,label.fontSize,measure);label.overflow=Label.Overflow.CLAMP;
-    this.nameFits.set(key,fitted);return fitted;
-  }
-  private cooldownBorder(g:Graphics,b:ButtonRect,ratio:number,circle=false,tint=C.amber) {
-    if(ratio<=0)return;
-    const v=b.visual||b,steps=48;g.strokeColor=col(tint);g.lineWidth=2.5;
-    for(let i=0;i<=Math.ceil(steps*ratio);i++){
-      const t=Math.min(ratio,i/steps);let x:number,y:number;
-      if(circle){const angle=-Math.PI/2+t*Math.PI*2;x=v.x+v.w/2+Math.cos(angle)*v.w/2;y=v.y+v.h/2+Math.sin(angle)*v.h/2;}
-      else {const d=t*(v.w+v.h)*2;if(d<=v.w){x=v.x+d;y=v.y;}else if(d<=v.w+v.h){x=v.x+v.w;y=v.y+d-v.w;}else if(d<=v.w*2+v.h){x=v.x+v.w-(d-v.w-v.h);y=v.y+v.h;}else{x=v.x;y=v.y+v.h-(d-v.w*2-v.h);}}
-      if(i)g.lineTo(x-this.w/2,this.h/2-y);else g.moveTo(x-this.w/2,this.h/2-y);
-    }g.stroke();g.lineWidth=1;
-  }
-  drawMinimap(s: Simulation) {
-    const g = this.marks, map = this.minimapLayout, priorityId = this.autoPriority ? s.priorityThreat?.unit.id : undefined;
-    this.rect(g, map.x, map.y, map.w, map.h, '#0c171d66', '#91e6cb55');
-    this.set('mapLegend', this.t('北 ↑', 'N ↑'));
-    const point = (p: Point) => ({
-      x: map.x + 8 + (p.x + MAP.halfWidth) / (2 * MAP.halfWidth) * (map.w - 16) - this.w / 2,
-      y: this.h / 2 - map.y - 25 - (p.z + MAP.halfDepth) / (2 * MAP.halfDepth) * (map.h - 33),
-    });
-    g.strokeColor = col(C.line);
-    g.lineWidth = 1;
-    mapRoute(s.mission.map).forEach((p, i) => {
-      const q = point(p);
-      if (i) g.lineTo(q.x, q.y);
-      else g.moveTo(q.x, q.y);
-    });
-    g.stroke();
-    for (const u of s.units) {
-      if (u.hp <= 0) continue;
-      const q = point(u);
-      if (priorityId === u.id) { g.strokeColor = col(C.white); g.lineWidth = 2; g.circle(q.x, q.y, 6); g.stroke(); g.lineWidth = 1; }
-      g.strokeColor = col(u.friendly ? C.mint : C.red);
-      g.fillColor = col(u.friendly ? C.mint : C.red);
-      if (u.friendly) {
-        g.rect(q.x - 3, q.y - 3, 6, 6);
-        g.stroke();
-      } else {
-        g.moveTo(q.x, q.y + 2.5);
-        g.lineTo(q.x + 2.5, q.y);
-        g.lineTo(q.x, q.y - 2.5);
-        g.lineTo(q.x - 2.5, q.y);
-        g.close();
-        g.fill();
-      }
-    }
-    const aim = point(s.aim);
-    if (Math.abs(s.aim.x) <= MAP.halfWidth && Math.abs(s.aim.z) <= MAP.halfDepth) {
-      g.strokeColor = col(C.white);
-      g.circle(aim.x, aim.y, 4);
-      g.stroke();
-    }
-  }
-  drawWorld(s: Simulation, world: World) {
-    const g = this.marks;
-    this.effects = drawEffects(g, s, world, this.w, this.h, this.reducedEffects);
-    const project = (p: Point, y = 0) => {
-      const q = world.project(p, y);
-      return {
-        x: q.x / view.getScaleX() - this.w / 2,
-        y: q.y / view.getScaleY() - this.h / 2,
-        visible: [q.x, q.y, q.z].every(Number.isFinite) && q.z >= 0 && q.z <= 1,
-      };
-    };
-    const onScreen = (p: ReturnType<typeof project>, pad = 0) => p.visible &&
-      Math.abs(p.x) <= this.w / 2 - pad && Math.abs(p.y) <= this.h / 2 - pad;
-    const priorityLabel = this.labels.get('priorityMarker')!;
-    priorityLabel.node.active = false;
-    const threat = s.priorityThreat;
-    if (threat && this.autoPriority) {
-      const p = project(threat.unit, 1.5);
-      if (p.visible) {
-        let x = Math.max(-this.w / 2 + this.safe.left + 48, Math.min(this.w / 2 - this.safe.right - 48, p.x));
-        const y = Math.max(-this.h / 2 + this.safe.bottom + this.footer + 52, Math.min(this.h / 2 - this.safe.top - 82, p.y));
-        const map = this.minimapLayout;
-        if (x + this.w / 2 + 48 > map.x && this.h / 2 - y - 24 < map.y + map.h) x = map.x - 56 - this.w / 2;
-        const marker = this.buttons.find(b => b.id === 'priority')!;
-        marker.x = x + this.w / 2 - 48; marker.y = this.h / 2 - y - 24;
 
-        const clipped = x !== p.x || y !== p.y;
-        g.strokeColor = col(C.red); g.lineWidth = 2;
-        for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
-          g.moveTo(x + sx * 10, y + sy * 19); g.lineTo(x + sx * 19, y + sy * 19); g.lineTo(x + sx * 19, y + sy * 10);
-        }
-        g.stroke();
-        if (clipped) { const angle = Math.atan2(p.y - y, p.x - x); g.moveTo(x, y); g.lineTo(x + Math.cos(angle) * 28, y + Math.sin(angle) * 28); g.stroke(); }
-        priorityLabel.string = this.t(`优先 ${Math.ceil(threat.dueIn)}s${clipped ? ' ↗' : ''}`, `PRIORITY ${Math.ceil(threat.dueIn)}s${clipped ? ' ↗' : ''}`);
-        priorityLabel.node.setPosition(x, y - 33);
-        priorityLabel.node.getComponent(UITransform)!.setContentSize(96, 24);
-        priorityLabel.node.active = true;
-      }
-    }
-    const groundRing = (p: Point, radius: number) => {
-      const points = Array.from({ length: 24 }, (_, i) => project({
-        x: p.x + Math.cos(i * Math.PI / 12) * radius,
-        z: p.z + Math.sin(i * Math.PI / 12) * radius,
-      }));
-      if (!points.every((p) => onScreen(p, -64))) return;
-      points.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y));
-      g.close();
-      g.stroke();
-    };
-    for (const [id, l] of Array.from(this.unitLabels.entries()))
-      if (!s.units.some((u) => u.id === id)) {
-        l.node.destroy();
-        this.unitLabels.delete(id);
-      }
-    for (const p of s.duelMode ? [] : PROTECTED) {
-      g.strokeColor = col('#729e9180');
-      g.lineWidth = 1;
-      groundRing(p, p.radius);
-    }
-    for (const d of s.duelMode ? [] : s.holdPoints) {
-      const q = project(s.routePoint(d));
-      if (!onScreen(q, 6)) continue;
-      g.strokeColor = col(C.amber);
-      g.lineWidth = 1;
-      g.circle(q.x, q.y, 6);
-      g.stroke();
-    }
-    const placed: { x: number; y: number }[] = [],
-      bottom = -this.h / 2 + this.footer + this.safe.bottom + 44,
-      top = this.h / 2 - 64 - this.safe.top;
-    const banners = ['notice', 'friendWarning', 'tutorial']
-      .map((id) => this.labels.get(id)!)
-      .filter((l) => l.node.active && l.string);
-    const overBanner = (x: number, y: number, halfWidth: number) =>
-      banners.some((l) => {
-        const p = l.node.position,
-          size = l.node.getComponent(UITransform)!.contentSize;
-        return (
-          Math.abs(x - p.x) < size.width / 2 + halfWidth && Math.abs(y - p.y) < size.height / 2 + 12
-        );
-      });
-    const aim = project(s.aim);
-    const focus = this.touch
-      ? onScreen(aim) ? { x: aim.x + this.w / 2, y: this.h / 2 - aim.y } : undefined
-      : this.mousePointer;
-    const pointer = focus && !this.blocksBattlefield(focus.x, focus.y) ? focus : undefined;
-    const contacts: { unit: Simulation['units'][number]; point: ReturnType<typeof project> }[] = [];
-    let hovered: (typeof contacts)[number] | undefined, hoverDistance = Infinity;
-    for (const u of s.units) {
-      if (u.hp <= 0) continue;
-      const q = project(u, 0.8);
-      // Behind-camera projections mirror direction; those contacts remain on the north-up minimap.
-      if (!q.visible) continue;
-      if (!onScreen(q, 6)) continue;
-      const map = this.minimapLayout, x = q.x + this.w / 2, y = this.h / 2 - q.y;
-      // Transparent control hit areas must not punch holes in visible enemy markers.
-      if (x >= map.x && x <= map.x + map.w && y >= map.y && y <= map.y + map.h) continue;
-      const contact = { unit: u, point: q };
-      contacts.push(contact);
-      if (!pointer) continue;
-      // Keep the forgiving body-to-marker hover region even when distant markers shrink.
-      const body = project(u);
-      const dx = body.visible ? body.x - q.x : 0, dy = body.visible ? body.y - q.y : 0;
-      const px = pointer.x - this.w / 2 - q.x, py = this.h / 2 - pointer.y - q.y;
-      const t = Math.max(0, Math.min(1, (px * dx + py * dy) / (dx * dx + dy * dy || 1)));
-      const distance = Math.hypot(px - t * dx, py - t * dy);
-      if (distance <= (u.kind === 'heavy' ? 15 : 12) && distance < hoverDistance) {
-        hovered = contact;
-        hoverDistance = distance;
-      }
-    }
-    const unitLabel = (id: number, width: number, height: number) => {
-      let l = this.unitLabels.get(id);
-      if (!l) {
-        l = this.label(this.root, '', 0, 0, 12, width, height);
-        l.node.setSiblingIndex(this.root.children.length - 2);
-        this.unitLabels.set(id, l);
-      }
-      l.node.getComponent(UITransform)!.setContentSize(width, height);
-      l.fontSize = this.compact ? 12 : 13;
-      l.lineHeight = 18;
-      l.isBold = true;
-      return l;
-    };
-    const groups = new Map<number, typeof contacts>();
-    for (const contact of contacts) {
-      const u = contact.unit;
-      if (!u.friendly || u.group === undefined) continue;
-      const group = groups.get(u.group) || [];
-      group.push(contact);
-      groups.set(u.group, group);
-    }
-    const counts = new Map<number, number>(), hidden = new Set<number>();
-    for (const [id, members] of groups) {
-      if (members.length < 2 || hovered?.unit.friendly && hovered.unit.group === id) continue;
-      // ponytail: pairwise checks suit the current three-unit groups; use spatial bins for large formations.
-      if (!members.every((a) => members.every((b) => Math.hypot(a.point.x - b.point.x, a.point.y - b.point.y) < 12))) continue;
-      const q = members[0].point;
-      if (q.x + 36 > this.w / 2 - this.safe.right || overBanner(q.x + 22, q.y, 14) ||
-        Math.hypot(Math.max(0, Math.abs(q.x + 22 - aim.x) - 14), Math.max(0, Math.abs(q.y - aim.y) - 9)) < 40 ||
-        [8, 36].some((dx) => this.blocksBattlefield(q.x + dx + this.w / 2, this.h / 2 - q.y))) continue;
-      counts.set(members[0].unit.id, members.length);
-      for (const member of members.slice(1)) hidden.add(member.unit.id);
-    }
-    const ordered = hovered ? [...contacts.filter((c) => c !== hovered), hovered] : contacts;
-    for (const contact of ordered) {
-      const { unit: u, point: q } = contact;
-      if (hidden.has(u.id)) continue;
-      const r = contact === hovered ? 9 : u.kind === 'heavy' ? 7 : 5;
-      // Dark outline keeps team colors and shapes legible against bright thermal contacts.
-      for (const outline of [true, false]) {
-        g.lineWidth = outline ? contact === hovered ? 4 : 3 : 2;
-        g.strokeColor = col(outline ? '#061116' : u.friendly ? C.mint : C.red);
-        if (u.friendly) g.rect(q.x - r, q.y - r, r * 2, r * 2);
-        else {
-          g.moveTo(q.x, q.y + r);
-          g.lineTo(q.x + r, q.y);
-          g.lineTo(q.x, q.y - r);
-          g.lineTo(q.x - r, q.y);
-          g.close();
-        }
-        g.stroke();
-      }
-      const count = counts.get(u.id);
-      if (count) {
-        const l = unitLabel(u.id, 28, 18);
-        l.string = `×${count}`;
-        l.color = col(C.mint);
-        l.node.setPosition(q.x + 22, q.y);
-        l.node.active = true;
-        placed.push({ x: q.x + 22, y: q.y });
-        this.rect(g, q.x + this.w / 2 + 8, this.h / 2 - q.y - 9, 28, 18, '#0c191fe8');
-      }
-    }
-    for (const id of new Set([...s.shots.filter(shot => shot.guidance).map(shot => shot.guidance!.target), ...(s.homingSelected && s.homingTarget ? [s.homingTarget.id] : [])])) {
-      const unit = s.units.find(u => u.id === id && u.hp > 0);
-      if (!unit) continue;
-      const q = project(unit, .3);
-      if (!onScreen(q, 24)) continue;
-      const r = 18;
-      for (const outline of [true, false]) {
-        g.lineWidth = outline ? 6 : 3;
-        g.strokeColor = col(outline ? '#061116' : C.amber);
-        for (const x of [-1, 1]) for (const y of [-1, 1]) {
-          g.moveTo(q.x + x * (r - 9), q.y + y * r);
-          g.lineTo(q.x + x * r, q.y + y * r);
-          g.lineTo(q.x + x * r, q.y + y * (r - 9));
-        }
-        g.stroke();
-      }
-      const l = unitLabel(unit.id, 110, 24);
-      l.string = s.shots.some(shot => shot.guidance?.target === id)
-        ? this.t('追踪中', 'TRACKING') : this.t('已锁定', 'LOCKED'); l.color = col(C.amber);
-      l.node.setPosition(q.x, q.y + 36); l.node.active = true;
-      this.lockedTargets.push({ id, x: q.x + this.w / 2, y: this.h / 2 - q.y });
-    }
-    if (hovered && !this.lockedTargets.some(lock => lock.id === hovered.unit.id)) {
-      const { unit: u, point: q } = hovered;
-      const width = this.compact ? 120 : 176, half = width / 2;
-      const l = unitLabel(u.id, width, 24);
-      l.color = col(u.friendly ? C.mint : C.red);
-      l.string = u.friendly
-        ? u.kind === 'escort' ? this.t('护卫', 'ESCORT') : this.t('救援车', 'RESCUE')
-        : this.t(
-            u.kind === 'heavy' ? '重甲' : u.kind === 'turret' ? '炮台' : '轻车',
-            u.kind.toUpperCase(),
-          );
-      if (u.hp < u.maxHp) l.string += u.hp <= u.maxHp * 0.3
-        ? this.t(' · 重创', ' · CRITICAL') : this.t(' · 受损', ' · DAMAGED');
-      const tag = [[0, 56], [0, -56], [half + 44, 0], [-half - 44, 0], [half + 44, -24], [-half - 44, -24]]
-        .map(([dx, dy]) => ({ x: q.x + dx, y: q.y + dy })).find((p) =>
-        p.y <= top - 12 && p.y >= bottom &&
-        p.x >= -this.w / 2 + this.safe.left + half && p.x <= this.w / 2 - this.safe.right - half &&
-        Math.hypot(Math.max(0, Math.abs(p.x - aim.x) - half), Math.max(0, Math.abs(p.y - aim.y) - 12)) >= 40 &&
-        !overBanner(p.x, p.y, half) &&
-        [-half, 0, half].every((dx) => [-12, 12].every((dy) =>
-          !this.blocksBattlefield(p.x + dx + this.w / 2, this.h / 2 - p.y + dy))));
-      l.node.active = !!tag;
-      if (tag) {
-        l.node.setPosition(tag.x, tag.y);
-        placed.push(tag);
-        this.rect(g, tag.x + this.w / 2 - half, this.h / 2 - tag.y - 12, width, 24, '#0c191fe8');
-      }
-    }
-    const q = project(s.aim);
-    if (!onScreen(q, 18)) {
-      this.labels.get('target')!.node.active = false;
-      this.labels.get('flight')!.node.active = false;
-      return;
-    }
-    g.strokeColor = col(s.reason() === 'protected' || s.friendlyRisk ? C.red : C.mint);
-    g.lineWidth = 1.5;
-    groundRing(s.aim, s.effectiveRadius);
-    for (const outline of [true, false]) {
-      g.strokeColor = col(outline ? '#061116' : s.reason() === 'protected' || s.friendlyRisk ? C.red : C.white);
-      g.lineWidth = outline ? 6 : 3;
-      for (const sign of [-1, 1]) {
-        g.moveTo(q.x + sign * 11, q.y);
-        g.lineTo(q.x + sign * 32, q.y);
-        g.moveTo(q.x, q.y + sign * 11);
-        g.lineTo(q.x, q.y + sign * 32);
-      }
-      g.stroke();
-      g.circle(q.x, q.y, 3);
-      g.stroke();
-    }
-    const target = s.aimedUnit;
-    const recentImpacts = [...s.events]
-      .reverse()
-      .filter((e) => e.type === 'impact' && (!s.duelMode || e.side === s.pilotSide) && s.time - e.time < 1.1);
-    // A following round landing on a wreck must not erase the destruction confirmation.
-    const impact =
-      recentImpacts.find((e) => e.outcome === 'friendly') ||
-      recentImpacts.find((e) => e.outcome === 'destroyed') ||
-      recentImpacts[0];
-    const outcome = impact?.outcome;
-    const feedback =
-      outcome === 'destroyed'
-        ? this.t('◆ 威胁已清除', '◆ THREAT ELIMINATED')
-        : outcome === 'friendly'
-          ? this.t('！误伤友军', '! FRIENDLY HIT')
-          : outcome === 'armor'
-            ? this.t('装甲低伤 · 换重炮', 'ARMOR · USE HEAVY')
-            : outcome === 'hit'
-              ? this.t('命中目标', 'TARGET HIT')
-              : outcome === 'miss'
-                ? this.t('未命中', 'MISS')
-                : '';
-    this.set(
-      'target',
-      target?.friendly ? this.t('友方目标 · 请勿射击', 'FRIENDLY · DO NOT FIRE') : feedback,
-    );
-    this.labels.get('target')!.color = col(
-      outcome === 'friendly' || target?.friendly ? C.red : outcome === 'miss' ? C.dim : C.amber,
-    );
-    // Both transient labels use the same avoidance rule; never clamp text onto the reticle.
-    const placeFeedback = (label: Label, p: Point) => {
-      const cursor = project(s.aim);
-      for (const [dx, dy] of [
-        [100, 0],
-        [-100, 0],
-        [0, -48],
-        [0, 48],
-        [100, -44],
-        [-100, 44],
-      ]) {
-        const x = p.x + dx,
-          y = p.z + dy;
-        if (x < -this.w / 2 + 84 || x > this.w / 2 - 84 || y < bottom + 12 || y > top - 24)
-          continue;
-        if (Math.abs(x - cursor.x) < 100 && Math.abs(y - cursor.y) < 34) continue;
-        if (overBanner(x, y, 78)) continue;
-        if (placed.some((q) => Math.abs(x - q.x) < 122 && Math.abs(y - q.y) < 26)) continue;
-        if (
-          s.units.some((u) => {
-            const q = project(u, 0.8);
-            return u.hp > 0 && q.visible && Math.abs(x - q.x) < 96 && Math.abs(y - q.y) < 30;
-          })
-        )
-          continue;
-        if (this.blocksBattlefield(x + this.w / 2, this.h / 2 - y)) continue;
-        label.node.setPosition(x, y);
-        placed.push({ x, y });
-        return true;
-      }
-      return false;
-    };
-    if (impact || target?.friendly) {
-      const p = project(target?.friendly ? s.aim : impact!);
-      const label = this.labels.get('target')!;
-      label.node.active = onScreen(p) && placeFeedback(label, { x: p.x, z: p.y });
-    }
-    if (impact && outcome !== 'miss' && s.time - impact.time < 0.22) {
-      const p = project(impact);
-      if (!onScreen(p, 12)) return;
-      g.strokeColor = col(outcome === 'friendly' ? C.red : C.white);
-      g.lineWidth = 2;
-      for (const x of [-1, 1])
-        for (const y of [-1, 1]) {
-          g.moveTo(p.x + x * 5, p.y + y * 5);
-          g.lineTo(p.x + x * 10, p.y + y * 10);
-        }
-      g.stroke();
-    }
-    const next = s.selected > 0 ? s.shots.find((a) => a.weapon > 0) : undefined,
-      flight = this.labels.get('flight')!;
-    flight.string = next
-      ? this.t(
-          `弹着 ${(next.due - s.time).toFixed(1)}s`,
-          `IMPACT ${(next.due - s.time).toFixed(1)}s`,
-        )
-      : '';
-    if (next) {
-      const p = project(next);
-      flight.node.active = onScreen(p) && placeFeedback(flight, { x: p.x, z: p.y });
-    }
+  drawMinimap(simulation: Simulation) {
+    return this.worldView.drawMinimap(simulation);
+  }
+  drawWorld(simulation: Simulation, world: World) {
+    return this.worldView.drawWorld(simulation, world);
   }
 }

@@ -1481,6 +1481,9 @@ test('direct and recovered solo receipts refresh authoritative task progress in 
     const bridge:any={ready:Promise.resolve({identity:{id:'task-pilot'},capabilities:{leaderboards:true,multiplayer:true}}),createRecorder:(_v:string,options:any)=>{callback=options.onStatus;return recorder;},services:{nightAssets:async(owner:string)=>{assert.equal(owner,'task-pilot');fetches++;return after;}}};
     await online.connect(bridge);online.assets=before;hud.online=online;const q=new Quartermaster(online,store);hud.quartermaster=q;q.page='tasks';sim.phase='success';hud.update(sim,world);
     assert(panelLabels(hud).some((l:any)=>l.string==='0/2'));
+    assert(panelLabels(hud).some((l:any)=>l.string==='完成2次单人关卡'));
+    assert(panelLabels(hud).some((l:any)=>l.string==='每日任务'));
+    assert.equal(before.tasks.find(t=>t.event==='solo')!.name,'完成2次单人任务','old server names are adapted only for display');
     await online.finishRanking();
     if(delayed){assert.equal(fetches,0);recorder.settlement={playerId:'task-pilot',runId:'current-run',result:receipt};callback('finished');}
     await new Promise(resolve=>setImmediate(resolve));hud.update(sim,world);

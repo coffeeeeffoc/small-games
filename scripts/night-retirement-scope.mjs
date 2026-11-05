@@ -146,11 +146,18 @@ const reviews = Object.freeze(
         to: 'games/local/night-overwatch/assets/scripts/ProgressionArt.ts.meta',
         after:
           '100644 blob d805aa61208bf025d19d399a37bba12ab577a021\tgames/local/night-overwatch/assets/scripts/ProgressionArt.ts.meta\n',
-        alternate: {
-          to: 'games/local/night-overwatch/assets/scripts/DeveloperTools.ts.meta',
-          after:
-            '100644 blob a0c9e09c09a6a1f0f9500a9b78d554a3c1cf2efc\tgames/local/night-overwatch/assets/scripts/DeveloperTools.ts.meta\n',
-        },
+        alternates: [
+          {
+            to: 'games/local/night-overwatch/assets/scripts/DeveloperTools.ts.meta',
+            after:
+              '100644 blob a0c9e09c09a6a1f0f9500a9b78d554a3c1cf2efc\tgames/local/night-overwatch/assets/scripts/DeveloperTools.ts.meta\n',
+          },
+          {
+            to: 'games/local/night-overwatch/assets/scripts/BattleReportView.ts.meta',
+            after:
+              '100644 blob 6794179b27a7499c13b73410c63d99ad99607981\tgames/local/night-overwatch/assets/scripts/BattleReportView.ts.meta\n',
+          },
+        ],
       },
       'games/local/night-overwatch/assets/scripts/core/Armory.ts.meta': {
         status: 'R070',
@@ -159,11 +166,23 @@ const reviews = Object.freeze(
         to: 'games/local/night-overwatch/assets/scripts/ProgressionView.ts.meta',
         after:
           '100644 blob d4c719d6f404121c2868ab0f7a70d240dd5ffb1d\tgames/local/night-overwatch/assets/scripts/ProgressionView.ts.meta\n',
-        alternate: {
-          to: 'games/local/night-overwatch/assets/scripts/ProgressionArt.ts.meta',
-          after:
-            '100644 blob d805aa61208bf025d19d399a37bba12ab577a021\tgames/local/night-overwatch/assets/scripts/ProgressionArt.ts.meta\n',
-        },
+        alternates: [
+          {
+            to: 'games/local/night-overwatch/assets/scripts/ProgressionArt.ts.meta',
+            after:
+              '100644 blob d805aa61208bf025d19d399a37bba12ab577a021\tgames/local/night-overwatch/assets/scripts/ProgressionArt.ts.meta\n',
+          },
+          {
+            to: 'games/local/night-overwatch/assets/scripts/HudTheme.ts.meta',
+            after:
+              '100644 blob 1ba4f79616a5656fe95619a5cb2ab1c7ec05d78d\tgames/local/night-overwatch/assets/scripts/HudTheme.ts.meta\n',
+          },
+          {
+            to: 'games/local/night-overwatch/assets/scripts/BattleStatusView.ts.meta',
+            after:
+              '100644 blob 916491f00756f31af2529e56016be4318f01df54\tgames/local/night-overwatch/assets/scripts/BattleStatusView.ts.meta\n',
+          },
+        ],
       },
       'games/local/night-overwatch/publishing/manifest-2026-10-30-rankings.json': {
         status: 'R100',
@@ -182,7 +201,7 @@ export function nightRetirementHeadQueryPaths() {
     ...new Set([
       ...Object.keys(reviews),
       ...Object.values(reviews).flatMap((review) =>
-        review.to ? [review.to, ...(review.alternate ? [review.alternate.to] : [])] : [],
+        review.to ? [review.to, ...(review.alternates || []).map((pair) => pair.to)] : [],
       ),
     ]),
   ];
@@ -201,11 +220,9 @@ export function isReviewedNightRetirement({
   if (!Array.isArray(change?.paths)) return false;
   const [from, to] = change.paths,
     original = Object.hasOwn(reviews, from) ? reviews[from] : undefined,
-    // DeveloperTools changes Git's similarity pairing; both exact pairs were reviewed.
-    review =
-      original?.alternate && original.alternate.to === to
-        ? { ...original, ...original.alternate }
-        : original;
+    // New view metadata changes Git's similarity pairing; accept only exact reviewed blobs.
+    alternate = original?.alternates?.find((pair) => pair.to === to),
+    review = alternate ? { ...original, ...alternate } : original;
   if (
     base !== baseCommit ||
     !review ||

@@ -69,12 +69,12 @@ test('actual native guards preserve canonical source and independently compute t
     assert.equal(result.adaptation.creatorBuildVerified, false);
     assert.deepEqual(await readFile(path.join(gameRoot, 'assets/scripts/HUD.ts')), hud);
     assert.deepEqual(await readFile(path.join(gameRoot, 'assets/scripts/Platform.ts')), platform);
-    for (const file of ['HUD.ts', 'Platform.ts'])
+    for (const file of ['HUD.ts', 'BattleStatusView.ts', 'CombatControlsView.ts', 'Platform.ts'])
       assert.doesNotMatch(
         await readFile(path.join(result.projectRoot, 'assets/scripts', file), 'utf8'),
         /fullscreen/i,
       );
-    assert.equal(result.adaptation.inputs.length, 2);
+    assert.equal(result.adaptation.inputs.length, 4);
     for (const file of ['build-native.mjs', 'artifact.mjs'])
       assert.deepEqual(
         await readFile(path.join(result.projectRoot, 'scripts', file)),
@@ -124,23 +124,24 @@ test('fresh persistent stages exclude caches, release secrets, and old outputs',
   }));
 test('unreviewed or already adapted canonical files fail closed before staging', () =>
   runFixture(async ({ gameRoot, stageBase }) => {
-    const hudPath = path.join(gameRoot, 'assets/scripts/HUD.ts');
-    const original = await readFile(hudPath, 'utf8');
-    for (const candidate of [
-      original + '\n',
-      original.replace('isGlobalAction', 'changedGlobalAction'),
-    ]) {
-      await writeFile(hudPath, candidate);
-      await assert.rejects(
-        prepareNativeProject(gameRoot, { stageBase }),
-        /Unreviewed canonical Night source/,
-      );
+    for (const file of ['HUD.ts', 'BattleStatusView.ts', 'CombatControlsView.ts']) {
+      const sourcePath = path.join(gameRoot, 'assets/scripts', file);
+      const original = await readFile(sourcePath, 'utf8');
+      const action = file === 'CombatControlsView.ts' ? 'screenControl' : 'isGlobalAction';
+      for (const candidate of [original + '\n', original.replace(action, 'changedGlobalAction')]) {
+        await writeFile(sourcePath, candidate);
+        await assert.rejects(
+          prepareNativeProject(gameRoot, { stageBase }),
+          /Unreviewed canonical Night source/,
+        );
+      }
+      await writeFile(sourcePath, original);
     }
   }));
 test('normalized CRLF input has an honest raw receipt and unchanged source hash', () =>
   runFixture(async ({ gameRoot, artifact, stageBase }) => {
     const before = await artifact.sourceHash(gameRoot);
-    for (const file of ['HUD.ts', 'Platform.ts']) {
+    for (const file of ['HUD.ts', 'BattleStatusView.ts', 'CombatControlsView.ts', 'Platform.ts']) {
       const name = path.join(gameRoot, 'assets/scripts', file);
       await writeFile(
         name,

@@ -82,8 +82,12 @@ export async function openIndexedDB(factory = globalThis.indexedDB) {
         request.onsuccess = () => {
           try {
             const current = request.result === undefined ? absent() : request.result;
-            matches = (current || null) === expected;
-            if (matches) store.put(value, key);
+            // Only a real tombstone can be reclaimed; an empty string may be a newer value.
+            matches = value === undefined ? current === expected : (current || null) === expected;
+            if (matches) {
+              if (value === undefined) store.delete(key);
+              else store.put(value, key);
+            }
           } catch {
             store.transaction.abort();
           }

@@ -451,9 +451,9 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     // Keep absolute sequence numbers and every unconfirmed batch for idempotent retries.
     for (let i = 0; i < run.acked; i++) run.batches[i] = null;
   }
-  function cleanAcknowledged(name) {
+  function readAcknowledgement(name) {
     const serialized = getStored(name + ':synced');
-    if (!serialized) return false;
+    if (!serialized) return;
     const done = JSON.parse(serialized);
     if (
       done?.schema !== 1 ||
@@ -465,6 +465,12 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       typeof done.result?.accepted !== 'boolean'
     )
       throw failure('INVALID_JOURNAL');
+    return { serialized, done };
+  }
+  function cleanAcknowledged(name) {
+    const acknowledgement = readAcknowledgement(name);
+    if (!acknowledgement) return false;
+    const { done } = acknowledgement;
     if (
       active &&
       key(active) === name &&
@@ -487,6 +493,30 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       /* Retry cleanup on recovery. */
     }
     return true;
+  }
+  async function reclaimAcknowledgement(name) {
+    if ((active && key(active) === name) || working.has(name)) return;
+    try {
+      // A null mirror is not proof that the journal deletion has committed.
+      if (storage.flush) await storage.flush();
+      if ((active && key(active) === name) || working.has(name)) return;
+      const acknowledgement = readAcknowledgement(name);
+      if (!acknowledgement || getStored(name)) return;
+      const { serialized, done } = acknowledgement;
+      const now = Date.now();
+      if (!Number.isFinite(done.at) || done.at < 0 || done.at > now || now - done.at < 7 * 86400000)
+        return;
+      const receiptKey = name + ':synced';
+      // Recent receipts stop stale tabs immediately; older runs remain terminal on the server.
+      if (storage.compareAndSet) await storage.compareAndSet(receiptKey, serialized, null);
+      else if (getStored(receiptKey) === serialized) {
+        // Native Storage is synchronous; keep the comparison and removal in the same turn.
+        removeStored(receiptKey);
+        if (getStored(receiptKey)) return;
+      }
+    } catch {
+      /* Cache cleanup is optional; preserve the receipt when storage cannot confirm removal. */
+    }
   }
   function save(run, online = false) {
     try {
@@ -982,12 +1012,11 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
             Array.from({ length: storage.length }, (_, i) => storage.key(i)),
           );
           for (const name of names) {
-            if (
-              !name ||
-              ![...scopes].some((value) => name.startsWith(prefix(value))) ||
-              name.endsWith(':synced')
-            )
+            if (!name || ![...scopes].some((value) => name.startsWith(prefix(value)))) continue;
+            if (name.endsWith(':synced')) {
+              await reclaimAcknowledgement(name.slice(0, -':synced'.length));
               continue;
+            }
             let run;
             try {
               run = read(name);

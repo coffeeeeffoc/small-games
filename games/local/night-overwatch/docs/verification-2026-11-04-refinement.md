@@ -1,5 +1,27 @@
 # 夜航守望 · 操作细化验证
 
+## HUD可读性跨库清理与战斗素材
+
+2026-11-05。相对`9e5413fb176668ddd25268cfbd38b35fa924f09f`，HUD由2098行/132,294字节降至1032行/35,821字节（统一LF），主类字节减少72.9%。八个视图/绘图模块按职责拆分，变量语义、分行及坐标/裁剪/缓存注释改善，保留按钮ID、回调、节点、绘制顺序和玩法。独立只读AST核对176项通过；该核对在本轮有意修改关卡文案前完成。关卡流程及中英文结算电台统一用“关卡”，每日任务保持原意，旧服务端“单人任务”只转换显示，不修改持久化数据或事件ID。
+
+清理同键时先提交IndexedDB墓碑，再删除旧localStorage副本并读回核对，最后CAS物理删除墓碑和内存副本。失败时保留遮蔽旧值的墓碑并重试，避免已删数据从旧格式复活或误删另一页面的新写入。已确认行动日志在回执提交后回收；防重复回执保留7天，仅清理当前服务域、非当前局/工作中且日志删除已flush的确认回执。未确认记录、非法/未来时间、身份、偏好、进度和未领资格保留。[完整边界](architecture/storage-and-view-modules.md)。
+
+最终Creator 3.8.8 web-mobile源码摘要 `04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6`，59,276,767字节。HUD/输入/原生边界/开发工具110项、存储与共享日志89项、真实Chrome IndexedDB12项、身份16项及Night类型检查通过。覆盖旧格式副本、空字符串、事务失败、旧页日志恢复及并发CAS；新游客录屏中的旧库日志0仅证明本轮无残留，不替代旧数据迁移测试。
+
+[移动端浏览器证据](design/refinement-2026-11-04/hud-refactor/mobile-evidence.json)：568×320、844×390、1280×720通过首页、安全区、指南滚动、大小持久化、开火拖动/取消/双指瞄准；627帧、1421个有效敌方投影、40次经过操作区无缺失。页面异常0。已打开核对[小屏首页](design/refinement-2026-11-04/hud-refactor/home-568.png)、[指南末尾](design/refinement-2026-11-04/hud-refactor/guide-scrolled-568.png)、[开火拖动](design/refinement-2026-11-04/hud-refactor/fire-direct-drag-844.png)。原生fresh staging和共享client/gateway契约10项通过。
+
+[装备布局7场](design/refinement-2026-11-04/hud-refactor/controls-evidence.json)覆盖三尺寸、无人机/激光/仅EMP、独立拖动、安全区四边、取消、设置返回、resize和新局重置，页面异常0、广告调用0；[小屏完整控件](design/refinement-2026-11-04/hud-refactor/controls-568.png)。首次执行暴露旧测试只模拟Tap SDK、未模拟渠道奖励桥；普通Creator预览不注入该桥。对照基线确认homing隐藏条件不变后，仅补测试fixture的奖励可用接口，保留可见性及禁止广告调用断言，7场复测通过。
+
+本轮按审核截图重做连续首关和30秒宣传片，第一帧直接展示战斗，画布采集不包含浏览器与录屏软件UI。两支素材分别交付，保留原始采集身份、脚本、剪辑时间线及字节摘要，见[素材来源与复现](../publishing/promo/videos/review-2026-11-05-source/README.md)。录制使用隔离真实PostgreSQL/HTTP普通游客和实际输入，非开发资产或模拟结算；专属资源退出时清理。
+
+[真实采集证据](design/refinement-2026-11-04/hud-refactor/capture-evidence.json)：六段均为上述构建、1920×1080 Canvas/WebGL及一条游戏音轨，首关55.854秒、首次开火0.737秒、6发/4击杀，服务端finished。[结算画面](design/refinement-2026-11-04/hud-refactor/settlement-1920.png)显示“下一关卡”、100积分/180金币/120经验、每日任务1/2；flush后旧库日志0、IndexedDB日志0、近期回执1。无页面异常，专属资源清理列表为空。
+
+最终连续录屏55.8915秒/49,810,941字节，宣传片30秒/18,384,822字节；H.264 / AAC / 1920×1080 / 30fps，全片解码及覆盖每秒的六张联系表检查通过。安装版Chrome初次GPU播放正常结束但显示丢帧132/67；相同文件在`--disable-gpu`下正常速度复验1675/900帧、丢帧均0、错误均null，两次结果均保留在成片证据中。未把本机显示掉帧归为文件损坏，也未将自动静音播放当成人工听感验收。上架清单25个文件的大小与SHA均核验，历史图片/视频保留原身份。
+
+前次CI失败的两个临时仓库fixture补齐实际依赖的storage manifest；历史meta相似度重命名证明增加精确目标路径/blob，保留基线与状态限制，不放宽未知改动门禁。共享game-services的真实消费者仍由原增量范围选择。
+
+本轮未部署Runtime、上传TapTap或执行全仓候选检查；桌面浏览器测试不替代实体手机、TapTap真宿主、真实广告与目标设备人工听感验收。dev推送不自动替换TapTap线上包，CI/Pages以最终提交的独立流水线为准。
+
 ## 统一存储与视图模块整理
 
 2026-11-05。基于已推送dev的迁移检查点 `d36cf1f370468e333fa4c4c8a638fbb095c8d5dc`，完成[模块设计](architecture/storage-and-view-modules.md)。最终真实Creator 3.8.8 web-mobile源码摘要 `6ba6bfd5db3ebb40387c8957240d7e39edf87a6efe7de25a0e8aa4acc61a8721`，59,258,397字节。下列四组真实浏览器回执均来自这个制品。

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 import { createGameServices, createRunRecorder } from '../game-services.js';
+import { createStorage } from '../night-storage/store.mjs';
 import { installTapCompetitionIdentity } from '../../taptap/competition-identity.mjs';
 const defer = () => {
   let resolve;
@@ -12,7 +13,7 @@ const defer = () => {
   return { promise, resolve };
 };
 const turn = () => new Promise((resolve) => setImmediate(resolve));
-function durableFixture() {
+function durableFixture({ atomic = false } = {}) {
   const values = new Map(),
     runs = new Map(),
     requests = [],
@@ -26,6 +27,13 @@ function durableFixture() {
     setItem: (k, v) => values.set(k, v),
     removeItem: (k) => values.delete(k),
   };
+  if (atomic)
+    storage.compareAndSet = async (key, expected, value) => {
+      if ((values.get(key) ?? null) !== expected) return false;
+      if (value === null) values.delete(key);
+      else values.set(key, value);
+      return true;
+    };
   let owner = 'pilot-a',
     offline = false,
     loseAppend = false,
@@ -585,6 +593,204 @@ test('Night acknowledged journals are reclaimed after failed deletion without an
     assert.equal(first.status, 'finished');
     assert.deepEqual(f.calls, []);
   }
+});
+
+test('Night only reclaims old confirmed receipts without active work, retaining recent and malformed entries', async () => {
+  for (const atomic of [true, false]) {
+    const f = durableFixture({ atomic });
+    const first = f.recorder();
+    await first.start({ mode: 'campaign', levelId: 'first' });
+    first.record({}, 120);
+    await first.finish();
+    const receiptKey = [...f.values.keys()].find((key) => key.endsWith(':synced'));
+    const original = JSON.parse(f.values.get(receiptKey));
+    const old = { ...original, at: Date.now() - 8 * 86400000 };
+    f.values.set(receiptKey, JSON.stringify(old));
+    await first.recover();
+    assert(
+      f.values.has(receiptKey),
+      'the active run retains its receipt even beyond the cache window',
+    );
+    const preserved = new Map();
+    for (const [suffix, changes] of [
+      ['recent', { at: Date.now() }],
+      ['future', { at: Date.now() + 86400000 }],
+      ['invalid-time', { at: 'yesterday' }],
+      ['missing-time', { at: undefined }],
+      ['invalid-result', { result: {} }],
+      ['unconfirmed', { synced: false }],
+    ]) {
+      const requestId = original.requestId + '-' + suffix;
+      const name = receiptKey.replace(original.requestId, requestId);
+      preserved.set(name, JSON.stringify({ ...old, requestId, ...changes }));
+    }
+    preserved.set('night-pending-run-v1:other-authority:run:synced', JSON.stringify(old));
+    for (const [key, value] of preserved) f.values.set(key, value);
+    f.calls.length = 0;
+    const restored = f.recorder();
+    await restored.recover();
+    assert.equal(
+      f.values.has(receiptKey),
+      false,
+      atomic ? 'atomic storage' : 'native synchronous storage',
+    );
+    for (const [key, value] of preserved) assert.equal(f.values.get(key), value);
+    assert.deepEqual(f.calls, []);
+    assert.equal(restored.status, 'local');
+  }
+});
+
+test('Night receipt cleanup cannot delete a newer receipt or one whose journal remains', async () => {
+  for (const atomic of [true, false]) {
+    const f = durableFixture({ atomic });
+    const first = f.recorder();
+    await first.start({ mode: 'campaign', levelId: 'first' });
+    first.record({}, 120);
+    const journalKey = [...f.values.keys()][0];
+    const stale = f.values.get(journalKey);
+    await first.finish();
+    const receiptKey = journalKey + ':synced';
+    const newer = f.values.get(receiptKey);
+    const old = JSON.stringify({ ...JSON.parse(newer), at: Date.now() - 8 * 86400000 });
+    f.values.set(receiptKey, old);
+    f.values.set(journalKey, stale);
+    const remove = f.storage.removeItem;
+    f.storage.removeItem = () => {};
+    await f.recorder().recover();
+    assert.equal(
+      f.values.get(receiptKey),
+      old,
+      'a journal with failed deletion retains its acknowledgement',
+    );
+    f.storage.removeItem = remove;
+    f.values.delete(journalKey);
+    if (atomic) {
+      const compare = f.storage.compareAndSet;
+      f.storage.compareAndSet = async (...args) => {
+        f.values.set(receiptKey, newer);
+        return compare(...args);
+      };
+    } else {
+      const get = f.storage.getItem;
+      let reads = 0;
+      f.storage.getItem = (key) => {
+        if (key === receiptKey && ++reads === 2) f.values.set(receiptKey, newer);
+        return get(key);
+      };
+    }
+    await f.recorder().recover();
+    assert.equal(f.values.get(receiptKey), newer);
+  }
+});
+
+test('Night a stale journal returning after receipt expiry recovers the server result without repeating rewards', async () => {
+  for (const atomic of [true, false]) {
+    const f = durableFixture({ atomic });
+    const first = f.recorder();
+    await first.start({ mode: 'campaign', levelId: 'first' });
+    first.record({}, 120);
+    f.offline(true);
+    await first.finish();
+    const journalKey = [...f.values.keys()][0];
+    const stale = f.values.get(journalKey);
+    f.offline(false);
+    await f.recorder().recover();
+    assert.equal(f.calls.filter((call) => call === 'finish').length, 1);
+    const receiptKey = journalKey + ':synced';
+    const result = JSON.parse(f.values.get(receiptKey)).result;
+    f.values.set(
+      receiptKey,
+      JSON.stringify({
+        ...JSON.parse(f.values.get(receiptKey)),
+        at: Date.now() - 8 * 86400000,
+      }),
+    );
+    await f.recorder().recover();
+    assert.equal(f.values.has(receiptKey), false);
+    f.values.set(journalKey, stale);
+    f.calls.length = 0;
+    const restored = f.recorder();
+    await restored.recover();
+    assert.equal(restored.status, 'finished');
+    assert.deepEqual(f.calls, ['get']);
+    assert.equal(f.values.has(journalKey), false);
+    assert.deepEqual(JSON.parse(f.values.get(receiptKey)).result, result);
+  }
+});
+
+test('Night cleanup failures preserve confirmed receipts without changing recovery status', async () => {
+  for (const atomic of [true, false]) {
+    const f = durableFixture({ atomic });
+    const first = f.recorder();
+    await first.start({ mode: 'campaign', levelId: 'first' });
+    first.record({}, 120);
+    await first.finish();
+    const key = [...f.values.keys()][0];
+    const value = JSON.stringify({
+      ...JSON.parse(f.values.get(key)),
+      at: Date.now() - 8 * 86400000,
+    });
+    f.values.set(key, value);
+    if (atomic)
+      f.storage.compareAndSet = async () => {
+        throw Error('commit failed');
+      };
+    else f.storage.removeItem = () => {};
+    const restored = f.recorder();
+    await restored.recover();
+    assert.equal(restored.status, 'local');
+    assert.equal(f.values.get(key), value);
+  }
+});
+
+test('Night retains an expired receipt until its mirrored journal deletion really commits', async () => {
+  const f = durableFixture();
+  const first = f.recorder();
+  await first.start({ mode: 'campaign', levelId: 'first' });
+  first.record({}, 120);
+  const journalKey = [...f.values.keys()][0];
+  const journal = f.values.get(journalKey);
+  await first.finish();
+  const receiptKey = journalKey + ':synced';
+  const receipt = JSON.stringify({
+    ...JSON.parse(f.values.get(receiptKey)),
+    at: Date.now() - 8 * 86400000,
+  });
+  f.values.delete(receiptKey);
+  f.values.set(journalKey, journal);
+  f.values.set(receiptKey, receipt);
+  let blocked = true;
+  const storage = await createStorage({
+    backend: {
+      source: 'memory-test',
+      readAll: async () => new Map(f.values),
+      writeBatch: async (writes) => {
+        if (blocked && writes.get(journalKey) === null) throw Error('journal deletion aborted');
+        for (const [key, value] of writes) f.values.set(key, value);
+      },
+      compareAndSet: async (key, expected, value, absent) => {
+        if ((f.values.has(key) ? f.values.get(key) : absent()) !== expected) return false;
+        if (value === undefined) f.values.delete(key);
+        else f.values.set(key, value);
+        return true;
+      },
+      close() {},
+    },
+  });
+  const restored = createRunRecorder(f.services, { durable: { storage } });
+  await restored.recover();
+  assert.equal(
+    storage.getItem(journalKey),
+    null,
+    'the mirror is hidden before persistence succeeds',
+  );
+  assert.equal(f.values.get(journalKey), journal);
+  assert.equal(f.values.get(receiptKey), receipt);
+  blocked = false;
+  await storage.flush();
+  await restored.recover();
+  assert.equal(f.values.has(journalKey), false);
+  assert.equal(f.values.has(receiptKey), false);
 });
 
 test('Night cleaning an older confirmed journal preserves the active mission status', async () => {

@@ -21,10 +21,12 @@ const tree = (ref) =>
       .map((entry) => [entry.split('\t')[1], entry + '\n']),
   );
 const before = tree(base);
-for (const head of [
+for (const head of new Set([
   '0f95d5ab192213c146600b8af77e3ea5d2a1db7a',
   '312e39a39b9871cfa4ec0723c258ca13612c20f0',
-]) {
+  '9e5413fb176668ddd25268cfbd38b35fa924f09f',
+  process.env.NIGHT_RETIREMENT_HEAD || git('rev-parse', 'HEAD').trim(),
+])) {
   const test = (name, fn) => nodeTest(head.slice(0, 8) + ': ' + name, fn);
   const after = tree(head);
   const queries = new Set(nightRetirementHeadQueryPaths());
@@ -61,7 +63,7 @@ for (const head of [
     assert.equal(changes.length, 26);
     assert.equal(changes.filter((change) => change.status === 'D').length, 19);
     assert.equal(changes.filter((change) => change.status.startsWith('R')).length, 7);
-    assert.equal(queries.size, 34);
+    assert.equal(queries.size, 37);
     for (const change of changes) {
       assert(accepts(change), change.paths[0]);
       for (const file of change.paths) assert(queries.has(file), file);

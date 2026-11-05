@@ -7,9 +7,12 @@ import { buildPlatform } from '../platforms/build.mjs';
 test('native HUD creates no browser fullscreen action and platform guards calls', async () => {
   const configuration = await buildPlatform('wechat', { configOnly: true, env: {} });
   const projectRoot = path.dirname(path.dirname(configuration.configuration));
-  const hud = await readFile(path.join(projectRoot, 'assets/scripts/HUD.ts'), 'utf8');
-  const platform = await readFile(path.join(projectRoot, 'assets/scripts/Platform.ts'), 'utf8');
-  assert.doesNotMatch(hud, /fullscreen/i);
-  assert.doesNotMatch(platform, /fullscreen/i);
-  await assert.rejects(buildPlatform('alipay', { mode: 'release', env: { ALIPAY_APP_ID: '' } }), /ALIPAY_APP_ID/);
+  for (const file of ['HUD.ts', 'BattleStatusView.ts', 'CombatControlsView.ts', 'Platform.ts']) {
+    const source = await readFile(path.join(projectRoot, 'assets/scripts', file), 'utf8');
+    assert.doesNotMatch(source, /fullscreen/i);
+  }
+  await assert.rejects(
+    buildPlatform('alipay', { mode: 'release', env: { ALIPAY_APP_ID: '' } }),
+    /ALIPAY_APP_ID/,
+  );
 });

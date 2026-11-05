@@ -21,6 +21,8 @@ try {
     await context.addInitScript(() => {
       globalThis.SmallGamesPublishingConfig={adsEnabled:true,adMode:'host',platform:'taptap-h5',adUnitId:'browser-fixture-slot'};
       globalThis.__layoutAdShows=0;
+      // Raw Creator previews omit the channel reward bridge; this fixture tests its available layout only.
+      globalThis.SmallGamesRewardAds={available:true,offer:async()=>{globalThis.__layoutAdShows++;throw Error('No ads expected in layout checks');}};
       globalThis.tap={createRewardedVideoAd:()=>({onClose(){},offClose(){},onError(){},offError(){},load:async()=>{},show:async()=>{globalThis.__layoutAdShows++;throw Error('No ads expected in layout checks');},destroy(){}})};
       localStorage.setItem('night-overwatch-coach-v2', 'done'); localStorage.setItem('night-overwatch-view', 'enhanced');
       for(const key of ['night-overwatch-support-position-v1','night-overwatch-control-positions-v2','night-overwatch-control-positions-v3'])

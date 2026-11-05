@@ -27,6 +27,12 @@ test('manual candidate validation checks exact-SHA snapshots and rejects invalid
     git(root, ['config', 'core.autocrlf', 'false']);
     git(root, ['config', 'core.hooksPath', '.git/disabled-hooks']);
     await mkdir(path.join(root, 'scripts'));
+    const storageManifest = 'platforms/competition/night-storage/manifest.mjs';
+    await mkdir(path.dirname(path.join(root, storageManifest)), { recursive: true });
+    await writeFile(
+      path.join(root, storageManifest),
+      await readFile(new URL('../' + storageManifest, import.meta.url)),
+    );
     for (const file of [
       'validate-push.mjs',
       'validate-candidate.mjs',

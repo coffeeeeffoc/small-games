@@ -352,7 +352,7 @@ export const ACTIONS = [
     binding: 'R',
     touch: ['点击定位', 'Tap LOCATE'],
     description: [
-      '把视野与准星移回救援车附近，不会重开任务。',
+      '把视野与准星移回救援车附近，不会重开关卡。',
       'Center the view near the rescue vehicle. Does not restart.',
     ],
     event: 'locate',
@@ -360,10 +360,10 @@ export const ACTIONS = [
   {
     id: 'mission',
     group: 'basic',
-    name: ['任务', 'Mission'],
+    name: ['关卡', 'Level'],
     keys: [77],
     binding: 'M',
-    touch: ['点击任务', 'Tap MISSION'],
+    touch: ['点击关卡', 'Tap LEVEL'],
     description: [
       `护送并清除全部威胁：12 辆友军分守车队与 3 处据点，装甲可抵御 80% 敌方地面火力，护卫会弱火力反击。每处至少一辆存活；救援车被毁或任一据点全灭则失败；作战计时显示已用时间，不设超时判负。`,
       `Escort and clear every threat. 12 allies guard the convoy and 3 outposts; armor resists 80% of ground fire and escorts return light fire. Keep a survivor at each post. Losing rescue or a post fails. The clock tracks elapsed time without a time limit.`,
@@ -377,8 +377,8 @@ export const ACTIONS = [
     binding: '',
     touch: ['点击顶部设置', 'Tap top Settings'],
     description: [
-      '声音、效果与帮助集中在设置中；打开时暂停任务。',
-      'Sound, effects and help live here. Settings pauses the mission.',
+      '声音、效果与帮助集中在设置中；打开时暂停关卡。',
+      'Sound, effects and help live here. Settings pauses the level.',
     ],
   },
   {
@@ -389,8 +389,8 @@ export const ACTIONS = [
     binding: 'H / ?',
     touch: ['设置 → 帮助', 'Settings → Help'],
     description: [
-      '打开指南暂停任务，正文可滚动。从设置进入时，关闭指南返回设置。',
-      'Guide pauses the mission; scroll to read. When opened from Settings, closing returns there.',
+      '打开指南暂停关卡，正文可滚动。从设置进入时，关闭指南返回设置。',
+      'Guide pauses the level; scroll to read. When opened from Settings, closing returns there.',
     ],
   },
   {

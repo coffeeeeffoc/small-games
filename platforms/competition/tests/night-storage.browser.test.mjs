@@ -87,7 +87,7 @@ async function recorderFixture() {
   };
 }
 
-test('Night IndexedDB keeps legacy storage read-only, persists across reloads and masks deleted legacy values', async () => {
+test('Night IndexedDB persists across reloads and masks legacy values when exact-key removal is denied', async () => {
   const files = new Map(
     await Promise.all(
       nightStorageFiles.map(async (name) => [
@@ -121,11 +121,17 @@ test('Night IndexedDB keeps legacy storage read-only, persists across reloads an
     });
     const denyLegacyWrites = () => {
       globalThis.nativeWrites = 0;
-      for (const name of ['setItem', 'removeItem', 'clear'])
+      globalThis.legacyRemovalAttempts = 0;
+      for (const name of ['setItem', 'clear'])
         Storage.prototype[name] = function () {
           globalThis.nativeWrites++;
           throw new DOMException('Legacy storage is read-only', 'QuotaExceededError');
         };
+      Storage.prototype.removeItem = function (key) {
+        if (key !== 'night-overwatch-room-v1') globalThis.nativeWrites++;
+        globalThis.legacyRemovalAttempts++;
+        throw new DOMException('Legacy removal is denied', 'QuotaExceededError');
+      };
     };
     await page.addInitScript(denyLegacyWrites);
     activate = true;
@@ -142,9 +148,10 @@ test('Night IndexedDB keeps legacy storage read-only, persists across reloads an
           legacy,
           value: localStorage.getItem('night-overwatch-muted'),
           writes: globalThis.nativeWrites,
+          removalAttempted: globalThis.legacyRemovalAttempts > 0,
         };
       }),
-      { legacy: 'true', value: 'false', writes: 0 },
+      { legacy: 'true', value: 'false', writes: 0, removalAttempted: true },
     );
     await page.reload();
     assert.deepEqual(
@@ -154,15 +161,192 @@ test('Night IndexedDB keeps legacy storage read-only, persists across reloads an
           value: localStorage.getItem('night-overwatch-muted'),
           removed: localStorage.getItem('night-overwatch-room-v1'),
           writes: globalThis.nativeWrites,
+          removalAttempted: globalThis.legacyRemovalAttempts > 0,
         };
       }),
-      { value: 'false', removed: null, writes: 0 },
+      { value: 'false', removed: null, writes: 0, removalAttempted: true },
     );
     await context.close();
   } finally {
     await browser?.close();
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+test('confirmed removals reclaim both legacy and IndexedDB copies, retrying an aborted physical delete', async () => {
+  for (const abortDelete of [false, true])
+    await withStorage(
+      async ({ page }) => {
+        const result = await page.evaluate(async (abortDelete) => {
+          const { openIndexedDB } = await import('/night-storage/indexeddb.mjs');
+          const backend = await openIndexedDB();
+          const deletedKeys = [];
+          const remove = Storage.prototype.removeItem;
+          Storage.prototype.removeItem = function (key) {
+            deletedKeys.push(key);
+            return remove.call(this, key);
+          };
+          for (const method of ['setItem', 'clear'])
+            Storage.prototype[method] = () => {
+              throw Error('Legacy writes remain forbidden');
+            };
+          const deleteKey = IDBObjectStore.prototype.delete;
+          let abort = abortDelete;
+          IDBObjectStore.prototype.delete = function (key) {
+            const request = deleteKey.call(this, key);
+            if (key === 'cache-to-remove' && abort) {
+              abort = false;
+              request.addEventListener('success', () => this.transaction.abort());
+            }
+            return request;
+          };
+          localStorage.setItem('cache-to-remove', 'current-cache');
+          await localStorage.flush();
+          localStorage.removeItem('cache-to-remove');
+          await localStorage.flush();
+          const afterCommit = await backend.readAll();
+          await localStorage.refresh();
+          const afterRetry = await backend.readAll();
+          IDBObjectStore.prototype.delete = deleteKey;
+          backend.close();
+          return {
+            deletedKeys,
+            legacy: legacyStore.getItem('cache-to-remove'),
+            mirrored: localStorage.getItem('cache-to-remove'),
+            tombstoneAfterAbort:
+              afterCommit.has('cache-to-remove') && afterCommit.get('cache-to-remove') === null,
+            reclaimed: !afterRetry.has('cache-to-remove'),
+            preference: legacyStore.getItem('night-overwatch-muted'),
+          };
+        }, abortDelete);
+        assert.deepEqual(result, {
+          deletedKeys: ['cache-to-remove'],
+          legacy: null,
+          mirrored: null,
+          tombstoneAfterAbort: abortDelete,
+          reclaimed: true,
+          preference: 'true',
+        });
+      },
+      (page) =>
+        page.evaluate(() => {
+          globalThis.legacyStore = localStorage;
+          localStorage.setItem('cache-to-remove', 'legacy-cache');
+          localStorage.setItem('night-overwatch-muted', 'true');
+        }),
+    );
+});
+
+test('physical IndexedDB reclamation distinguishes a tombstone from a newer empty string', async () => {
+  await withStorage(async ({ page }) => {
+    assert.deepEqual(
+      await page.evaluate(async () => {
+        const { openIndexedDB } = await import('/night-storage/indexeddb.mjs');
+        const backend = await openIndexedDB();
+        await backend.writeBatch(
+          new Map([
+            ['new-empty', ''],
+            ['removed', null],
+          ]),
+        );
+        const emptyRemoved = await backend.compareAndSet('new-empty', null, undefined, () => null);
+        const tombstoneRemoved = await backend.compareAndSet(
+          'removed',
+          null,
+          undefined,
+          () => null,
+        );
+        const stored = await backend.readAll();
+        backend.close();
+        return {
+          emptyRemoved,
+          tombstoneRemoved,
+          emptyValue: stored.get('new-empty'),
+          removedExists: stored.has('removed'),
+        };
+      }),
+      { emptyRemoved: false, tombstoneRemoved: true, emptyValue: '', removedExists: false },
+    );
+  });
+});
+
+test('expired IndexedDB receipts and their legacy copies are reclaimed while stale journals recover one server settlement', async () => {
+  await withStorage(
+    async ({ page }) => {
+      await page.evaluate(recorderFixture);
+      assert.deepEqual(
+        await page.evaluate(async () => {
+          const { createRunRecorder } = await import('/game-services.js');
+          const { openIndexedDB } = await import('/night-storage/indexeddb.mjs');
+          const finish = fixture.services.finishRun;
+          fixture.services.finishRun = async (input) => {
+            const result = await finish(input);
+            fixture.runs.get(input.runId).settlement = result;
+            return result;
+          };
+          let staleJournal;
+          const set = localStorage.setItem;
+          localStorage.setItem = (key, value) => {
+            if (
+              key.startsWith('night-pending-run-v1:') &&
+              !key.endsWith(':synced') &&
+              JSON.parse(value).finishing
+            )
+              staleJournal = { key, value };
+            set(key, value);
+          };
+          await fixture.recorder.start({ mode: 'campaign', levelId: 'first' });
+          fixture.recorder.record({ aim: 1 }, 120);
+          await fixture.recorder.finish();
+          localStorage.setItem = set;
+          const receiptKey = staleJournal.key + ':synced';
+          const original = JSON.parse(localStorage.getItem(receiptKey));
+          const old = JSON.stringify({ ...original, at: Date.now() - 8 * 86400000 });
+          legacyStore.setItem(receiptKey, old);
+          localStorage.setItem(receiptKey, old);
+          await localStorage.flush();
+          const restored = createRunRecorder(fixture.services, {
+            durable: { storage: localStorage },
+          });
+          await restored.recover();
+          const backend = await openIndexedDB();
+          const reclaimed = await backend.readAll();
+          const legacyReceipt = legacyStore.getItem(receiptKey);
+          fixture.calls.length = 0;
+          localStorage.setItem(staleJournal.key, staleJournal.value);
+          await localStorage.flush();
+          await restored.recover();
+          const current = await backend.readAll();
+          backend.close();
+          return {
+            oldJournalReclaimed: !reclaimed.has(staleJournal.key),
+            oldReceiptReclaimed: !reclaimed.has(receiptKey),
+            legacyReceipt,
+            calls: fixture.calls,
+            restored: restored.status,
+            journalReclaimedAgain: !current.has(staleJournal.key),
+            result: JSON.parse(current.get(receiptKey)).result,
+            preference: legacyStore.getItem('night-overwatch-muted'),
+          };
+        }),
+        {
+          oldJournalReclaimed: true,
+          oldReceiptReclaimed: true,
+          legacyReceipt: null,
+          calls: ['get'],
+          restored: 'finished',
+          journalReclaimedAgain: true,
+          result: { accepted: true, status: 'credited', points: 100, coins: 180, xp: 120 },
+          preference: 'true',
+        },
+      );
+    },
+    (page) =>
+      page.evaluate(() => {
+        globalThis.legacyStore = localStorage;
+        localStorage.setItem('night-overwatch-muted', 'true');
+      }),
+  );
 });
 
 test('full and write-disabled legacy storage cannot prevent an IndexedDB-backed run or settlement', async () => {
@@ -505,7 +689,7 @@ test('failed run writes cannot block an already durable identity or its rotating
   });
 });
 
-test('an unfinished legacy journal is recovered into IndexedDB without mutating its original data', async () => {
+test('an unfinished legacy journal remains masked after recovery when legacy removal is denied', async () => {
   await withStorage(
     async ({ page }) => {
       assert.deepEqual(
@@ -523,9 +707,17 @@ test('an unfinished legacy journal is recovered into IndexedDB without mutating 
             hidden: localStorage.getItem(legacyJournal.name),
             original: legacyStore.getItem(legacyJournal.name) === legacyJournal.value,
             nativeWrites,
+            removalAttempted: legacyRemovalAttempts > 0,
           };
         }),
-        { status: 'finished', finishes: 1, hidden: null, original: true, nativeWrites: 0 },
+        {
+          status: 'finished',
+          finishes: 1,
+          hidden: null,
+          original: true,
+          nativeWrites: 0,
+          removalAttempted: true,
+        },
       );
     },
     async (page) => {
@@ -545,11 +737,17 @@ test('an unfinished legacy journal is recovered into IndexedDB without mutating 
         globalThis.legacyJournal = { name, value: localStorage.getItem(name) };
         globalThis.legacyStore = localStorage;
         globalThis.nativeWrites = 0;
-        for (const method of ['setItem', 'removeItem', 'clear'])
+        globalThis.legacyRemovalAttempts = 0;
+        for (const method of ['setItem', 'clear'])
           Storage.prototype[method] = () => {
             nativeWrites++;
             throw Error('Legacy read-only');
           };
+        Storage.prototype.removeItem = (key) => {
+          if (key !== legacyJournal.name) nativeWrites++;
+          legacyRemovalAttempts++;
+          throw Error('Legacy removal denied');
+        };
       });
     },
   );

@@ -1,7 +1,7 @@
 {
-  "sourceHash": "bc9df2df1ad3085c61ef643e4880964e4e578f654067de60be3bb43d926dc48c",
+  "sourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
   "verified": "2026-11-05",
-  "environment": "All 23 existing media files verified and reused with original capture identities. Start-storage diagnostics and engine-initialization fault captures are QA evidence under docs/design/refinement-2026-11-04/k90-start, not device capture.",
+  "environment": "25 files verified: two new combat-first browser recordings, two revised copy documents; unchanged images and archived videos retain their original capture identities. Desktop WebGL is not physical-device capture; no TapTap upload in this task.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",
@@ -170,18 +170,18 @@
     {
       "path": "copy/introduction.md",
       "bytes": 3275,
-      "sha256": "fac26d86ecb32ca868c1e14a4578db553d181f4b9159d166582e1d9cb5a71be9",
-      "verifiedForSourceHash": "2e058f55dd557c293128542a2326ff51638411f6cd6c5c008acd67a665e87776",
-      "capturedSourceHash": "2e058f55dd557c293128542a2326ff51638411f6cd6c5c008acd67a665e87776",
+      "sha256": "0acd5eada84266ba34f122401415b09af25f5bfcd5aa225ba50375908ecddf1b",
+      "verifiedForSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
+      "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
       "reusedUnchanged": false
     },
     {
       "path": "copy/developer-note.md",
       "bytes": 2343,
-      "sha256": "8a798fcf66e232626281a20fcf4dba61da81b04eca9cf4ba4d4786b5204e7fa9",
-      "verifiedForSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
-      "capturedSourceHash": "a431dc5f0ee09126e72d8fe9e25d39121a6be6792f6ff6f59882decf0d2e7c8d",
-      "reusedUnchanged": true
+      "sha256": "39fac142d5454baf66b5bda7e6e98b0fd6d3eec5958a6b1a9a61e280a35a4eeb",
+      "verifiedForSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
+      "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
+      "reusedUnchanged": false
     },
     {
       "path": "copy/tagline.md",
@@ -296,6 +296,38 @@
       },
       "decoded": true,
       "playedToEnd": true
+    },
+    {
+      "path": "gameplay/videos/night-overwatch-combat-2026-11-05-1920x1080.mp4",
+      "bytes": 49810941,
+      "sha256": "b2687419f9e4578cf85d2630e13fdba19bf2aae80175f610ac3a2f3b2154b288",
+      "width": 1920,
+      "height": 1080,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "decoded": true,
+      "durationSeconds": 55.8915,
+      "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
+      "verifiedForSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
+      "reusedUnchanged": false,
+      "environment": "Continuous desktop Chromium WebGL capture; native 1920x1080; isolated real PostgreSQL/HTTP; ordinary guest with actual input; game audio",
+      "evidence": "promo/videos/review-2026-11-05-source/evidence.json"
+    },
+    {
+      "path": "promo/videos/night-overwatch-action-2026-11-05-1920x1080.mp4",
+      "bytes": 18384822,
+      "sha256": "ae48cc696d4d3f8d72f737a6200feae13b99b13606faab39664a49b94f02c86d",
+      "width": 1920,
+      "height": 1080,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "decoded": true,
+      "durationSeconds": 30,
+      "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
+      "verifiedForSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
+      "reusedUnchanged": false,
+      "environment": "27 seconds of five native 1920x1080 WebGL battle takes plus 3 seconds original title; original ignite AAC copied",
+      "evidence": "promo/videos/review-2026-11-05-source/evidence.json"
     }
   ]
 }

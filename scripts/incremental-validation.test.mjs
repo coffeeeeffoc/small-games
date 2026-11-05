@@ -1360,6 +1360,12 @@ test('fullscreen registration planning works in a checkout without installed for
   try {
     const scripts = path.join(directory, 'scripts');
     await mkdir(scripts);
+    const storageManifest = 'platforms/competition/night-storage/manifest.mjs';
+    await mkdir(path.dirname(path.join(directory, storageManifest)), { recursive: true });
+    await copyFile(
+      new URL('../' + storageManifest, import.meta.url),
+      path.join(directory, storageManifest),
+    );
     for (const file of await readdir(new URL('./', import.meta.url))) {
       if (file.endsWith('.mjs') && !file.endsWith('.test.mjs'))
         await copyFile(new URL(file, import.meta.url), path.join(scripts, file));

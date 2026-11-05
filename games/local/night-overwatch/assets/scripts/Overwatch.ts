@@ -223,7 +223,7 @@ export class Overwatch extends Component {
     this.online?.cancelRanking?.();
     this.hud.developer = this.platform.developer;
     if (id !== 'training-60' && !this.hud.developer && !missionUnlocked(this.hud.missionProgress || this.platform.missions, id)) {
-      this.hud.toast = this.hud.t('完成上一任务后解锁', 'COMPLETE THE PREVIOUS OPERATION TO UNLOCK');
+      this.hud.toast = this.hud.t('完成上一关卡后解锁', 'COMPLETE THE PREVIOUS LEVEL TO UNLOCK');
       this.hud.toastUntil = Date.now() + 3000;
       return;
     }

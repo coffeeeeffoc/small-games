@@ -357,7 +357,7 @@ export class SettingsGuideView {
                     ? this.h.t('取消等待', 'CANCEL HOLD')
                     : this.h.t('车队继续', 'CONVOY GO'),
               ],
-              ['mission', this.h.t('任务详情', 'MISSION BRIEF')],
+              ['mission', this.h.t('关卡详情', 'LEVEL BRIEF')],
               ['supply', this.h.supplyLabel(s)],
             ]
           : [
@@ -525,7 +525,7 @@ export class SettingsGuideView {
     for (const [i, [id, caption]] of [
       ['basic', this.h.t('基础操作', 'BASICS')],
       ['advanced', this.h.t('飞行视野', 'FLIGHT')],
-      ['rules', this.h.t('任务规则', 'MISSION')],
+      ['rules', this.h.t('关卡规则', 'LEVEL')],
     ].entries()) {
       const x = px + 16 + i * (tabW + 4),
         active = this.h.helpGroup === id;

@@ -1,5 +1,7 @@
 # 夜航守望 / Night Overwatch
 
+2026-11-05 HUD继续拆分与缓存回收：主类降至1032行，视图按职责拆分、展开排版并补充关键注释；关卡流程统一“单人关卡 / 关卡地图 / 下一关卡”，每日任务保持原意。同键删除覆盖内存、IndexedDB和旧localStorage，已确认行动日志及时清理、防重复回执保留7天。重新制作战斗开场的连续录屏和30秒宣传片，见[上架资料](publishing/STATUS.md)及[本轮验证](docs/verification-2026-11-04-refinement.md#hud可读性跨库清理与战斗素材)。
+
 2026-11-05 模块整理：统一存储入口与可替换后端、设置/指南和在线大厅视图、只读遥测快照分离，保留既有持久化与交互契约。最终Creator源码摘要`6ba6bfd5…`，7场启动、真实首关故障结算、三尺寸交互与真实聊天均通过，[验证与QA](docs/verification-2026-11-04-refinement.md#统一存储与视图模块整理)。上一轮存储迁移检查点已推送dev（`d36cf1f3`）。接口、降级语义和暂不接入Cache Storage的依据见[架构说明](docs/architecture/storage-and-view-modules.md)。
 
 2026-11-05 H5存储迁移：普通H5与TapTap H5默认使用IndexedDB，原localStorage只兼容读取，偏好、身份、军需意图和行动记录后续均写入新库。首次开局、交易编号与结算确认等待事务完成；旧日志恢复、跨页换号和重复结算保护保留。无IndexedDB时仍可本地训练，正式保存明确失败，不回写旧库。[实现与验证](docs/verification-2026-11-04-refinement.md#h5-indexeddb存储迁移)。本轮未上传TapTap，实体宿主待验证。
