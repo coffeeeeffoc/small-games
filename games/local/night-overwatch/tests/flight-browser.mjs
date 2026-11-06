@@ -7,7 +7,7 @@ import { sourceHash } from '../scripts/artifact.mjs';
 import {
   FLIGHT,
   MAP,
-  MISSION,
+  routeLength,
   WEAPONS,
   UNITS,
   HOLD_POINTS,
@@ -18,6 +18,8 @@ import {
   terrainHeight,
   impactDamage,
 } from '../assets/scripts/core/Data.ts';
+import { MISSIONS, TRAINING } from '../assets/scripts/core/MissionCatalog.ts';
+const observedMission = (s) => { const mission=[...MISSIONS,TRAINING].find(m=>m.id===s.mission?.id);assert(mission, 'Snapshot identifies a configured mission');return mission; };
 
 // Only read telemetry. Every change to the running game uses browser input.
 export const snapshot = (page) => page.evaluate(() => globalThis.__night.snapshot());
@@ -175,17 +177,18 @@ export async function enemyLabelCheck(page, touch, capture) {
 
 // Forecast from a read-only observation; no calls into the running simulation.
 export function predictUnit(s, u, seconds) {
+  const mission=observedMission(s),length=routeLength(mission.map);
   let point = u;
-  if (u.kind === 'light') point = patrolPoint(u.origin, s.time - u.born + seconds);
+  if (u.kind === 'light') point = patrolPoint(u.origin, s.time - u.born + seconds, mission.map, u.id);
   else if (u.friendly && u.routeOffset !== undefined) {
-    const current = s.progress * ROUTE_LENGTH;
+    const current = s.progress * length;
     let progress =
-      current + (s.convoy === 'holding' || s.convoy === 'arrived' ? 0 : MISSION.speed * seconds);
+      current + (s.convoy === 'holding' || s.convoy === 'arrived' ? 0 : mission.speed * seconds);
     if (s.convoy === 'holdRequested') {
-      const stop = HOLD_POINTS.find((p) => p >= current - 0.001);
+      const stop = [length*.28,length*.64].find((p) => p >= current - 0.001);
       if (stop !== undefined) progress = Math.min(progress, stop);
     }
-    point = routePoint(progress + u.routeOffset);
+    point = routePoint(progress + u.routeOffset,mission.map);
   } else if (u.kind === 'heavy') {
     const friend = s.units
       .filter((v) => v.friendly && v.hp > 0)
@@ -200,7 +203,7 @@ export function predictUnit(s, u, seconds) {
         };
     }
   }
-  return { x: point.x, y: terrainHeight(point.x, point.z), z: point.z };
+  return { x: point.x, y: terrainHeight(point.x, point.z,mission.map), z: point.z };
 }
 
 export function pendingDamage(s, unit) {
@@ -233,7 +236,7 @@ export function assertKillAccounting(s) {
   );
   assert.equal(
     s.threatsRemaining,
-    MISSION.events.length - deadEnemies,
+    observedMission(s).events.length - deadEnemies,
     'Victory threat count includes every scheduled enemy not yet dead',
   );
   return deadEnemies;
@@ -419,6 +422,7 @@ function clearPoint(s, width, height) {
 }
 
 export async function aimAt(page, target, touch = false, cdp) {
+  const tolerance=target.kind==='infantry'?.1:1;
   if ((await snapshot(page)).homingSelected) {
     const q = await project(page, target);
     if (touch) await page.touchscreen.tap(q.x, q.y);
@@ -449,7 +453,7 @@ export async function aimAt(page, target, touch = false, cdp) {
       }),
       { target, aim: s.aim },
     );
-    if (pixelDistance(points.to, points.from) < 1.5 && distance(s.aim, target) < 1) return;
+    if (pixelDistance(points.to, points.from) < 1.5 && distance(s.aim, target) < tolerance) return;
     const map = s.ui.minimap;
     if (
       points.from.x < 12 ||
@@ -486,7 +490,7 @@ export async function aimAt(page, target, touch = false, cdp) {
   }
   const s = await snapshot(page);
   assert(
-    distance(s.aim, target) < 1,
+    distance(s.aim, target) < tolerance,
     `Touch drag did not reach target: ${JSON.stringify({ aim: s.aim, target })}`,
   );
 }
@@ -497,10 +501,10 @@ export async function waitForImpact(page, shot) {
   });
   const s = await snapshot(page);
   const impact = s.impacts.find((e) => e.shot === shot.id);
-  assert(impact, 'Projectile ends in a real terrain impact event');
+  assert(impact, 'Projectile ends in a real impact event');
   assert(
     s.time >= shot.due - 1 / 60 || impact.intercepted,
-    'Early impact must be a terrain interception, not an instant hit',
+    'Early impact must be an authoritative terrain or body interception',
   );
   return impact;
 }
@@ -543,12 +547,12 @@ export async function missionReplay(
   page,
   { touch = false, omitLast = false, forgiving = false, capture } = {},
 ) {
-  assert(MISSION.events.length > 0, 'Mission contains scheduled enemy threats');
   assert(
     !(forgiving && omitLast),
     'Forgiving success and omitted-threat failure are separate replays',
   );
-  const initial = await snapshot(page);
+  const initial = await snapshot(page),mission=observedMission(initial),length=routeLength(mission.map);
+  assert(mission.events.length>0, 'Mission contains scheduled enemy threats');
   const friendlyIds = initial.units.filter((u) => u.friendly).map((u) => u.id);
   const deliberateMisses = [],
     missChecks = [];
@@ -605,14 +609,14 @@ export async function missionReplay(
     peakDraws = 0,
     peakEffects = 0,
     mapNavigations = 0;
-  while (Date.now() - started < (MISSION.duration + 60) * 3000) {
+  while (Date.now() - started < (mission.duration + 60) * 3000) {
     if (missFailure) throw missFailure;
     let s = await snapshot(page);
     assertKillAccounting(s);
     peakDraws = Math.max(peakDraws, s.drawCalls || 0);
     peakEffects = Math.max(peakEffects, s.visibleEffects || 0);
     for (const u of s.units.filter((u) => !u.friendly)) seen.add(u.id);
-    if (omitLast && !omitted && seen.size >= MISSION.events.length) {
+    if (omitLast && !omitted && seen.size >= mission.events.length) {
       const friends = s.units.filter((u) => u.friendly);
       omitted = s.units
         .filter((u) => !u.friendly && u.kind === 'turret' && u.hp > 0)
@@ -625,7 +629,7 @@ export async function missionReplay(
     if (s.phase !== 'playing') {
       await Promise.all(missChecks);
       if (missFailure) throw missFailure;
-      assert.equal(seen.size, MISSION.events.length, 'All scheduled threats were encountered');
+      assert.equal(seen.size, mission.events.length, 'All scheduled threats were encountered');
       if (omitLast) {
         assert(omitted, 'Omission run actually leaves one live threat');
         assert.equal(s.phase, 'failure', 'Leaving a threat must never produce success');
@@ -634,7 +638,7 @@ export async function missionReplay(
           [omitted],
           'Only the intentionally omitted threat remains',
         );
-        assert.equal(s.kills + s.friendlyKills, MISSION.events.length - 1);
+        assert.equal(s.kills + s.friendlyKills, mission.events.length - 1);
         assert.equal(s.threatsRemaining, 1);
         assert(
           s.units.filter((u) => u.friendly).every((u) => u.hp > 0),
@@ -646,7 +650,7 @@ export async function missionReplay(
         );
       } else {
         assert.equal(s.phase, 'success', JSON.stringify(s));
-        assert.equal(s.kills + s.friendlyKills, MISSION.events.length);
+        assert.equal(s.kills + s.friendlyKills, mission.events.length);
         assert.equal(s.threatsRemaining, 0);
         assert(
           s.units.filter((u) => u.friendly).every((u) => u.hp > 0),
@@ -655,7 +659,7 @@ export async function missionReplay(
         assert.equal(s.friendlyDamage, 0, 'Replay must avoid friendly fire');
         assert.equal(s.convoy, 'arrived', 'Threat clearance alone cannot finish the escort');
         assert(
-          s.progress >= 1 - 1e-6 && s.time >= ROUTE_LENGTH / MISSION.speed - 1 / 60,
+          s.progress >= 1 - 1e-6 && s.time >= length / mission.speed - 1 / 60,
           'Success requires completing the configured convoy journey',
         );
       }
@@ -687,8 +691,8 @@ export async function missionReplay(
         peakEffects,
         mapNavigations,
         initialFriendlyCount: friendlyIds.length,
-        convoySeconds: ROUTE_LENGTH / MISSION.speed,
-        missionSeconds: MISSION.duration,
+        convoySeconds: length / mission.speed,
+        missionSeconds: mission.duration,
         forgiving,
         delayedStart,
         deliberateMisses: deliberateMisses.sort((a, b) => a.ordinal - b.ordinal),
@@ -911,7 +915,7 @@ async function run() {
         );
       assert.equal(
         s.threatsRemaining,
-        MISSION.events.length,
+        observedMission(s).events.length,
         'Every configured threat remains at mission start',
       );
       const friends = s.units.filter((u) => u.friendly);
@@ -1338,7 +1342,7 @@ async function run() {
         result.heavyAmmo.afterRetry = retry.guns[2].ammo;
         await capture(`${replay}-retry-ammo`);
         check(
-          `complete ${replay}: all ${MISSION.events.length} threats cleared (${result[replay].kills} player + ` +
+          `complete ${replay}: all ${result[replay].encountered} threats cleared (${result[replay].kills} player + ` +
             `${result[replay].friendlyKills} defenders), every friendly survives, zero friendly fire; ` +
             `retry restores ${WEAPONS[2].ammo} heavy rounds`,
         );
@@ -1405,7 +1409,7 @@ async function run() {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (process.argv.includes('--prediction-check')) {
-    const s = { time: 11, progress: 0, convoy: 'moving', units: [] };
+    const s = { mission:{id:'corridor-01'},time: 11, progress: 0, convoy: 'moving', units: [] };
     const origin = { x: -78, z: 16 };
     const expected = patrolPoint(origin, 10);
     assert.deepEqual(predictUnit(s, { kind: 'light', origin, born: 4 }, 3), {
@@ -1455,9 +1459,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       'Pending splash uses 3D distance, not a flat blast disk',
     );
     const accounted = {
+      mission:{id:'corridor-01'},
       kills: 1,
       friendlyKills: 1,
-      threatsRemaining: MISSION.events.length - 2,
+      threatsRemaining: MISSIONS[0].events.length - 2,
       units: [
         { friendly: false, hp: 0 },
         { friendly: false, hp: 0 },

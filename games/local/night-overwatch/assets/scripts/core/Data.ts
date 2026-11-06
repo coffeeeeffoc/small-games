@@ -1,7 +1,7 @@
 export type BattlefieldId = 'valley' | 'highland';
 export type Point = { x: number; z: number };
 export type Point3 = Point & { y: number };
-export type Kind = 'light' | 'heavy' | 'turret' | 'rescue' | 'escort';
+export type Kind = 'light' | 'heavy' | 'turret' | 'rescue' | 'escort' | 'infantry';
 export type Language = 'zh' | 'en';
 export const ZOOM_LEVELS = [5, 10, 20, 40, 80, 160] as const;
 export const HOMING = { speed: 70, damage: 120 } as const;
@@ -78,7 +78,7 @@ export const WEAPONS = [
     muzzle: AIRFRAME.muzzles[0],
     name: ['速射炮', 'Rapid'],
     interval: 0.12,
-    speed: 60,
+    speed: 180,
     calibre: 0.0025, // 25 mm at ten metres per world unit; tracer is a visibility cue.
     length: 0.012,
     tracerTime: 0.035,
@@ -149,6 +149,7 @@ export const WEAPONS = [
   },
 ] as const;
 export const UNITS = {
+  infantry: { hp:16, radius:.16, speed:0, damage:2, range:14, heat:.65, assetId:'soldier.infantry' },
   light: {
     hp: 32,
     radius: 0.225, // Matches World's 0.25-scale hulls; blast radii remain in world units.
@@ -269,6 +270,15 @@ export const MISSION = {
       `SECTOR ${Math.floor(i / 4) + 1}: contacts near friendly positions`],
   })),
 };
+// Raw authoritative deployment coordinates shared by simulation and scenery clearance.
+export function garrisonPoints(count: number, side?: number): Point[] {
+  return Array.from({length:count},(_,i)=>{
+    const sector=i%4,rank=Math.floor(i/4);
+    if(side!==undefined){const sign=side===0?-1:1;return {x:(48+(sector%2)*44+(rank%3-1)*2.2)*sign,z:(-45+Math.floor(sector/2)*90+Math.floor(rank/3)*2.2)*sign};}
+    const anchor=MISSION.events[[0,5,13,17][sector]];
+    return {x:anchor.x+(rank%3-1)*2.2,z:anchor.z+4+Math.floor(rank/3)*2.2};
+  });
+}
 export const HIGHLAND_ROUTE: Point[] = [
   { x: -129, z: 67 }, { x: -95, z: 59 }, { x: -70, z: 30 }, { x: -40, z: 45 },
   { x: -12, z: 20 }, { x: 22, z: 38 }, { x: 55, z: 3 }, { x: 85, z: 12 },

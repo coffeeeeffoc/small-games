@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {chromium} from '@playwright/test';
 import {createOwnedRuntime,ownedChild,cleanupOwnedSteps} from '../../../../scripts/h5-taptap-runtime.mjs';
 import {acceptanceBuild,snapshot,press,settleVisuals,navigateMap,aimAt,waitForImpact} from './flight-browser.mjs';
+import {scrollToButton} from './scroll-helpers.mjs';
 
 const workspace=fileURLToPath(new URL('../../../../',import.meta.url)),out=new URL('../reports/settlement-live/',import.meta.url);
 await mkdir(out,{recursive:true});
@@ -64,7 +65,11 @@ try{
  });
  page=await context.newPage();page.setDefaultTimeout(45000);page.on('pageerror',e=>evidence.errors.push(e.message));
  await page.route('**/game-service-config.js',r=>r.fulfill({contentType:'text/javascript',body:`globalThis.__COMPETITION_CONFIG__=Object.freeze(${JSON.stringify({game:'night-overwatch',platform:'h5',competitionEnabled:true,apiUrl:api})});`}));
- let blockStart=true,dropSettlement=true,finishResponses=0;
+ let blockStart=true,dropSettlement=true,finishResponses=0,assetRefreshFailures=0;
+ await page.route('**/games/night-overwatch/assets',async route=>{
+  if(finishResponses&&!dropSettlement&&route.request().method()==='GET'&&!assetRefreshFailures){assetRefreshFailures++;return route.abort('connectionfailed');}
+  return route.continue();
+ });
  await page.route(/\/games\/night-overwatch\/runs(?:\/|$)/,async route=>{
   const request=route.request(),url=new URL(request.url());
   if(blockStart&&request.method()==='POST'&&url.pathname.endsWith('/runs'))return route.abort('connectionfailed');
@@ -100,14 +105,17 @@ try{
  dropSettlement=false;await page.evaluate(()=>window.dispatchEvent(new Event('online')));
  await page.waitForFunction(()=>__night.snapshot().online.rankStatus==='finished'&&__night.snapshot().progression.assets.coins>0,null,{timeout:45000});
  await page.waitForFunction(value=>__night.snapshot().progression.assets.coins>value,before.coins);
+ assert.equal(assetRefreshFailures,1,'the first post-credit asset refresh failed and recovered without opening another page');
+ evidence.checks.push('A lost post-credit asset refresh retries automatically and updates coins, EXP and tasks on the result screen');
  s=await snapshot(page);const after=s.progression.assets;
- assert.equal(after.coins-before.coins,180);assert.equal(after.xp-before.xp,120);
- text=await captions();for(const value of ['本局积分','+100','+180','+120'])assert(text.includes(value),value+' shown from authoritative receipt');
+ assert.equal(after.coins-before.coins,360);assert.equal(after.xp-before.xp,240);
+ assert.equal(after.inventory['fragment:weapon'],6);assert(after.clearedLevels.includes('corridor-01'));
+ text=await captions();for(const value of ['本局积分','+100','+360','+240'])assert(text.includes(value),value+' shown from authoritative receipt');
  const tasks=after.tasks.filter(t=>['complete','solo','win'].includes(t.event)).map(t=>({id:t.id,event:t.event,before:before.tasks.find(b=>b.id===t.id)?.progress,after:t.progress,target:t.target}));
  assert(tasks.length&&tasks.every(t=>t.after===Math.min(t.target,t.before+1)),JSON.stringify(tasks));
  evidence.result={points:100,coins:after.coins-before.coins,xp:after.xp-before.xp,shots:s.ammoSpent,tasks};
  for(const [width,height]of [[1280,720],[844,390],[568,320]]){await page.setViewportSize({width,height});await shot('settlement-'+width);}
- await page.setViewportSize({width:1280,height:720});await click('home');await click('qm:tasks');await shot('tasks-updated');
+ await page.setViewportSize({width:1280,height:720});await settleVisuals(page);await click('home');assert.equal((await snapshot(page)).phase,'briefing');await click('qm:tasks');await shot('tasks-updated');
  for(let i=0;i<2;i++){await page.evaluate(()=>window.dispatchEvent(new Event('online')));await page.waitForTimeout(1000);}
  await click('qm:back');await click('qm:tasks');await page.waitForFunction(()=>!__night.snapshot().progression.busy);
  const repeated=(await snapshot(page)).progression.assets;assert.equal(repeated.coins,after.coins);assert.equal(repeated.xp,after.xp);
@@ -120,8 +128,35 @@ try{
   assert.equal(reloaded.coins,after.coins);assert.equal(reloaded.xp,after.xp);for(const task of tasks)assert.equal(reloaded.tasks.find(t=>t.id===task.id).progress,task.after);
   evidence.checks.push('Reload after failed receipt storage preserves credited assets and exactly-once task progress');
  }
- evidence.checks.push('Real completed first mission credits 100 points, 180 coins, 120 EXP and each applicable task once after a lost finish response');
+ evidence.checks.push('Real completed first mission credits 100 points, 360 coins, 240 EXP and each applicable task once after a lost finish response');
  evidence.checks.push('Opening the task page and repeated online recovery preserve exactly-once rewards and progress');
+ await click('qm:back');if((await snapshot(page)).phase==='success')await click('home');await click('qm:checkin');await click('qm:checkinClaim');
+ await page.waitForFunction(()=>__night.snapshot().progression.assets.signedToday&&__night.snapshot().progression.gift);
+ const signed=(await snapshot(page)).progression.assets,weapon=['drone-match','laser-match'].find(id=>signed.inventory[id]===1);
+ assert(weapon,'real daily check-in grants one random weapon');assert.equal(signed.coins,after.coins+100);assert.equal(signed.xp,after.xp+40);
+ await shot('checkin-weapon');await click('qm:giftClose');assert((await snapshot(page)).buttons.find(b=>b.id==='qm:checkinClaim').disabled);
+ await page.reload();await page.waitForFunction(()=>globalThis.__night?.snapshot().progression.assets?.signedToday&&!document.getElementById('night-startup'));
+ const restored=(await snapshot(page)).progression.assets;assert.equal(restored.coins,signed.coins);assert.equal(restored.inventory[weapon],1);assert.equal(restored.inventory['fragment:weapon'],6);
+ evidence.checks.push('Real check-in grants one random weapon, disables another claim, and persists through reload without duplication');
+ for(let run=0;run<2;run++){
+  for(const id of ['qm:modes','mode:solo','mode:enter','start'])await click(id);
+  await page.waitForFunction(()=>__night.snapshot().phase==='playing'&&__night.snapshot().online.rankStatus==='recording');
+  await click('weapon2');
+  for(let attempt=0;attempt<25;attempt++){
+   const state=await snapshot(page);if(!state.threatsRemaining||state.phase!=='playing')break;
+   const enemy=state.units.find(u=>!u.friendly&&u.hp>0);assert(enemy);await navigateMap(page,enemy);await aimAt(page,enemy);
+   await page.waitForFunction(()=>__night.snapshot().guns[2].cooldown===0);await page.keyboard.press('Space');await waitForImpact(page,(await snapshot(page)).shots.at(-1));
+  }
+  await page.waitForFunction(n=>__night.snapshot().phase==='success'&&__night.snapshot().online.rankStatus==='finished'&&__night.snapshot().progression.assets.inventory['fragment:weapon']===8+n*2,run,{timeout:90000});
+  const repeated=(await snapshot(page)).progression.assets;assert.equal(repeated.coins,signed.coins+180*(run+1));assert.equal(repeated.xp,signed.xp+120*(run+1));
+  await shot('repeat-'+(run+1));await click('home');
+ }
+ await click('qm:warehouse');await click('qm:craft');await scrollToButton(page,'qm:craftItem:drone-match');await click('qm:craftItem:drone-match');await click('qm:confirm');
+ await page.waitForFunction(()=>__night.snapshot().progression.assets.inventory['fragment:weapon']===0&&__night.snapshot().progression.gift);
+ assert.equal((await snapshot(page)).progression.assets.inventory['drone-match'],1+(weapon==='drone-match'?1:0));await shot('crafted-real');await click('qm:giftClose');
+ await click('qm:back');await click('qm:back');await click('qm:loadout');await click('slot:weapon');await scrollToButton(page,'equip:drone-match');await click('equip:drone-match');await click('qm:save');
+ await page.waitForFunction(()=>__night.snapshot().progression.assets.loadouts.solo.weapon==='drone-match');await shot('crafted-equipped-real');
+ evidence.checks.push('Two real repeat clears award 180 coins/120 EXP/2 fragments each; naturally earned 10 fragments craft a drone and save it in the loadout');
  assert.equal(await page.evaluate(()=>globalThis.__nightNativeWrites),0,'all game writes, including engine probes and identity, stay off legacy localStorage');assert.deepEqual(evidence.errors,[]);await acceptanceBuild(origin);
 }catch(error){evidence.failure=String(error);if(page){const state=await snapshot(page).catch(()=>null);evidence.lastState=state&&{phase:state.phase,rankStatus:state.online?.rankStatus,coins:state.progression?.assets?.coins,xp:state.progression?.assets?.xp};}await page?.screenshot({path:fileURLToPath(new URL('failure.png',out))}).catch(()=>{});throw error;}
 finally{

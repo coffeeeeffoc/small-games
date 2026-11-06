@@ -1,9 +1,9 @@
 import { Simulation } from './Simulation.ts';
-import { WEAPONS, patrolPoint, type Point } from './Data.ts';
+import { WEAPONS, garrisonPoints, patrolPoint, type Point } from './Data.ts';
 import { MISSIONS } from './MissionCatalog.ts';
 import type { BattleLoadout } from './Progression.ts';
 
-export const DUEL_VERSION = 'night-duel-v7';
+export const DUEL_VERSION = 'night-duel-v8';
 // Retained for older presentation callers; authority has no match time limit.
 export const DUEL_SECONDS = 0;
 type Pilot = ReturnType<Simulation['pilotState']> & { leaseUntil: number };
@@ -26,6 +26,9 @@ export function createDuel(seed: number, bot = false): DuelState {
     const sign = side === 0 ? -1 : 1;
     const unit = sim.addUnit(i < 4 ? 'light' : i < 6 ? 'turret' : 'heavy', { x: formation[i].x * sign, z: formation[i].z * sign }, side === 0);
     unit.group = side;
+  }
+  for(const side of [0,1])for(const point of garrisonPoints(24,side)){
+    const unit=sim.addUnit('infantry',point,side===0);unit.group=side;
   }
   const first = copy({ ...sim.pilotState(), leaseUntil: 0 }), second = copy(first);
   second.flight.aircraft.x *= -1; second.flight.aircraft.z *= -1;
@@ -92,7 +95,7 @@ function botControl(state: DuelState, sim: Simulation, side: number) {
   const flight = sim.flightTime(sim.selected, enemy);
   const aim = enemy.kind === 'light' && Number.isFinite(flight)
     ? patrolPoint(enemy.origin, (enemy.patrolElapsed ?? 0) + flight * .7, sim.mission.map) : enemy;
-  const spread = 4;
+  const spread = targets.length<=4?1.5:4; // Finish sparse survivors without making the opening accurate.
   sim.setAim({ x: aim.x + Math.sin(sim.time * 2 + state.seed) * spread,
     z: aim.z + Math.cos(sim.time * 1.7 + side) * spread });
   if (!sim.friendlyRisk) sim.fire();

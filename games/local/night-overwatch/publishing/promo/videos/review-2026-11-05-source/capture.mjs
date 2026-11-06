@@ -19,7 +19,7 @@ import {
 
 const workspace = fileURLToPath(new URL('../../../../../../../', import.meta.url));
 const output = fileURLToPath(
-  new URL('../../../../reports/review-video-2026-11-05/', import.meta.url),
+  new URL('../../../../reports/review-video-2026-11-07/', import.meta.url),
 );
 await mkdir(output, { recursive: true });
 const evidence = {
@@ -157,6 +157,11 @@ try {
       for (const id of ['qm:modes', 'mode:solo', 'mode:enter', 'start']) {
         await press(page, id, false, false);
         await settleVisuals(page);
+        if(name==='continuous'&&id==='mode:enter'){
+          await page.setViewportSize({width:1280,height:720});await settleVisuals(page);
+          await page.screenshot({path:output+'missions-1280.png'});
+          await page.setViewportSize({width:1920,height:1080});await settleVisuals(page);
+        }
       }
       await page.waitForFunction(
         () =>
@@ -189,11 +194,11 @@ try {
       const started = Date.now();
       const events = [];
       if (name === 'continuous') {
-        for (let attempt = 0; attempt < 18; attempt++) {
+        for (let attempt = 0; attempt < 48; attempt++) {
           state = await snapshot(page);
           if (!state.threatsRemaining || state.phase !== 'playing') break;
           target = state.units.find((unit) => !unit.friendly && unit.hp > 0);
-          const selectedWeapon = attempt < 2 ? 1 : 2;
+          const selectedWeapon = target.kind === 'infantry' ? 0 : 2;
           await press(page, 'weapon' + selectedWeapon, false, false);
           await navigateMap(page, target);
           await aimAt(page, target);
@@ -201,17 +206,26 @@ try {
             (weapon) => __night.snapshot().guns[weapon].cooldown === 0,
             selectedWeapon,
           );
-          await page.keyboard.press('Space');
+          await page.keyboard.down('Space');
+          await page.waitForTimeout(selectedWeapon === 0 ? 260 : 50);
+          await page.keyboard.up('Space');
           const firing = await snapshot(page);
           const shell = firing.shots.at(-1);
-          assert(shell && firing.fired > state.fired);
+          assert(firing.fired > state.fired);
           events.push({
             seconds: (Date.now() - started) / 1000,
             fired: firing.fired,
             weapon: selectedWeapon,
             target: target.id,
           });
-          await waitForImpact(page, shell);
+          if (shell) await waitForImpact(page, shell);
+          if (target.kind === 'infantry') {
+            await page.waitForFunction(id => __night.snapshot().units.find(u => u.id === id).hp <= 0, target.id);
+            if (!events.some(event => event.screenshot)) {
+              await page.screenshot({path:output+'infantry-combat-1920.png'});
+              events.at(-1).screenshot = true;
+            }
+          }
         }
         await page.waitForFunction(
           () =>

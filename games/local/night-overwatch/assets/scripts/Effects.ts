@@ -156,7 +156,7 @@ export function drawEffects(
         return project({ x: u.x + .3 + Math.cos(a) * r, z: u.z + .25 + Math.sin(a) * r * 1.6 }, .012 + layer * .004);
       }), new Color(3, 8, 12, world.thermal ? 12 : 28));
     }
-    if (u.hp <= 0 || u.kind === 'turret' || world.thermal || world.light === 'day') continue;
+    if (u.hp <= 0 || u.kind === 'turret' || u.kind==='infantry' || world.thermal || world.light === 'day') continue;
     const c = Math.cos(u.heading), sn = Math.sin(u.heading);
     const point = (side: number, forward: number, y = .025) => project({
       x: u.x + c * side + sn * forward, z: u.z - sn * side + c * forward,

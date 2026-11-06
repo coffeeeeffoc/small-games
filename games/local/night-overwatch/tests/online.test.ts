@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { Online, playerId, playerLabel, invitation, roomLink } from '../assets/scripts/Online.ts';
 import { createDuel, viewDuel } from '../assets/scripts/core/Duel.ts';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
+import { assetFixture } from './progression-fixture.ts';
 const storage = () => { const map = new Map<string, string>(); return { getItem: (key: string) => map.get(key) || null, setItem: (key: string, value: string) => { map.set(key, value); } }; };
 const room = () => ({ code: 'A12BCD456789', status: 'waiting', mode: 'match', you: 0, seq: 0, players: [], state: null as ReturnType<typeof viewDuel> | null });
 function fixture() {
@@ -46,6 +47,81 @@ test('late finish cannot replace a new run or new identity settlement',async()=>
   finish({accepted:true,status:'credited',coins:180,xp:120});await pending;
   assert.equal(online.battleReward,undefined);assert.equal(refreshes,0);online.dispose();
  }
+});
+
+test('late asset reads and commands cannot roll back balances or tasks, but keep their own receipts', async () => {
+  for (const source of ['read', 'command'] as const) {
+    const f = fixture(), online = new Online(storage(), () => {});
+    const old = assetFixture('a'), latest = structuredClone(old);
+    latest.revision++; latest.coins += 180; latest.xp += 120; latest.tasks[1].progress++;
+    old.lastReceipt = { requestId: 'old-opening', drops: [{ coins: 20 }] };
+    let deliver!: (value: typeof old) => void;
+    Object.assign(f.bridge.services, {
+      nightAssets: async () => latest,
+      nightAssetCommand: () => new Promise(resolve => { deliver = resolve; }),
+    });
+    await online.connect(f.bridge);
+    if (source === 'read') Object.assign(f.bridge.services, { nightAssets: () => new Promise(resolve => { deliver = resolve; }) });
+    const pending = source === 'read' ? online.refreshAssets() : online.assetCommand({ kind: 'checkin', requestId: 'old-opening' });
+    await new Promise(resolve => setImmediate(resolve));
+    Object.assign(f.bridge.services, { nightAssets: async () => latest });
+    await online.refreshAssets();
+    const acceptedAt = online.assetsReceivedAt, revision = online.revision;
+    deliver(old);
+    assert.equal(await pending, old, 'the caller still receives its exact transaction receipt');
+    assert.equal(online.assets, latest);
+    assert.equal(online.assetsReceivedAt, acceptedAt);
+    assert.equal(online.revision, revision);
+    const olderTime = { ...latest, serverNow: latest.serverNow - 1 };
+    Object.assign(f.bridge.services, { nightAssets: async () => olderTime });
+    await online.refreshAssets(); assert.equal(online.assets, latest);
+    const newTime = { ...latest, serverNow: latest.serverNow + 1 };
+    Object.assign(f.bridge.services, { nightAssetCommand: async () => newTime });
+    await online.assetCommand({ kind: 'checkin', requestId: 'new' });
+    assert.equal(online.assets, newTime, 'same revision may refresh time-sensitive eligibility');
+    online.dispose();
+  }
+});
+
+test('credited rewards retry failed asset refresh without another receipt, respecting lifecycle and owner', async () => {
+  for (const stop of ['none', 'background', 'owner', 'dispose'] as const) {
+    const f = fixture(), online = new Online(storage(), () => {});
+    const latest = assetFixture('a'); let calls = 0, status!: (value: string) => void;
+    const recorder = { settlement: undefined as any, start: async () => null, record() {}, finish: async () => null, invalidate() {} };
+    Object.assign(f.bridge, { createRecorder: (_v: string, options: any) => { status = options.onStatus; return recorder; } });
+    Object.assign(f.bridge.services, { nightAssets: async () => { if (++calls === 1) throw Error('offline'); return latest; } });
+    await online.connect(f.bridge);
+    recorder.settlement = { playerId: 'a', runId: 'credited', result: { status: 'credited', coins: 180, xp: 120 } };
+    status('finished'); await new Promise(resolve => setImmediate(resolve));
+    assert.equal(calls, 1); assert.equal(online.battleReward?.coins, 180);
+    status('finished'); await online.pump(performance.now()); assert.equal(calls, 1, 'no duplicate or frame-by-frame retry');
+    if (stop === 'background') online.setForeground(false);
+    if (stop === 'owner') online.authenticatedId = 'b';
+    if (stop === 'dispose') online.dispose();
+    await online.pump(performance.now() + 6000); await new Promise(resolve => setImmediate(resolve));
+    assert.equal(calls, stop === 'none' ? 2 : 1);
+    if (stop === 'background') {
+      online.setForeground(true); await online.pump(performance.now() + 6000);
+      await new Promise(resolve => setImmediate(resolve)); assert.equal(calls, 2);
+    }
+    if (stop === 'none' || stop === 'background') assert.equal(online.assets, latest);
+    await online.pump(performance.now() + 12000); assert.equal(calls, stop === 'none' || stop === 'background' ? 2 : 1);
+    online.dispose();
+  }
+});
+
+test('asset responses from a previous owner or disposed game do not replace visible assets', async () => {
+  for (const stop of ['owner', 'dispose']) {
+    const f = fixture(), online = new Online(storage(), () => {});
+    let deliver!: (value: ReturnType<typeof assetFixture>) => void;
+    Object.assign(f.bridge.services, { nightAssets: () => new Promise(resolve => { deliver = resolve; }) });
+    await online.connect(f.bridge); const pending = online.refreshAssets();
+    await new Promise(resolve => setImmediate(resolve));
+    if (stop === 'owner') online.authenticatedId = 'b'; else online.dispose();
+    deliver(assetFixture('a'));
+    if (stop === 'owner') await assert.rejects(pending, { code: 'IDENTITY_CHANGED' }); else await pending;
+    assert.equal(online.assets, undefined); online.dispose();
+  }
 });
 
 test('rankings retain the complete top 100 and the current player outside that list', async () => {
@@ -340,5 +416,5 @@ test('a late poll cannot replace a newer acknowledged chat message or move the c
 });
 
 test('level rankings cycle all current and historical rule versions with matching query parameters',async()=>{
- const f=fixture(),online=new Online(storage(),()=>{}),requests:any[]=[];f.bridge.services.leaderboard=async(input:any)=>{requests.push(input);return{top:[],me:null};};await online.connect(f.bridge);await online.loadRanking(0,'level');for(let i=0;i<3;i++)await online.cycleRankingVersion();assert.deepEqual(requests.map(r=>r.ruleVersion),['night-campaign-v2','night-growth-v1','night-records-v1','night-campaign-v2']);assert(requests.every(r=>r.boardId==='level-corridor-01'));
+ const f=fixture(),online=new Online(storage(),()=>{}),requests:any[]=[];f.bridge.services.leaderboard=async(input:any)=>{requests.push(input);return{top:[],me:null};};await online.connect(f.bridge);await online.loadRanking(0,'level');for(let i=0;i<4;i++)await online.cycleRankingVersion();assert.deepEqual(requests.map(r=>r.ruleVersion),['night-campaign-v3','night-campaign-v2','night-growth-v1','night-records-v1','night-campaign-v3']);assert(requests.every(r=>r.boardId==='level-corridor-01'));
 });

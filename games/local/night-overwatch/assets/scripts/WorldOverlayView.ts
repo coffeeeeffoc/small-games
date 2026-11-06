@@ -599,7 +599,7 @@ export class WorldOverlayView {
       const half = width / 2;
       const l = unitLabel(u.id, width, 24);
       l.color = col(u.friendly ? C.mint : C.red);
-      l.string = u.friendly
+      l.string = u.kind==='infantry'?this.hud.t('步兵','INFANTRY'):u.friendly
         ? u.kind === 'escort'
           ? this.hud.t('护卫', 'ESCORT')
           : this.hud.t('救援车', 'RESCUE')

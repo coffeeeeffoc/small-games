@@ -312,7 +312,7 @@ export class Simulation {
       friendly,
       heading: Math.PI / 2,
       born: this.time,
-      attack: this.mission.warmup,
+      attack: this.mission.warmup+(kind==='infantry'?(this.serial%12)*.7:0),
       hit: 0,
       deadAt: -1,
       origin: { x: p.x, z: p.z, patrolId: this.serial },
@@ -667,10 +667,11 @@ export class Simulation {
     return event;
   }
   private spawn() {
-    let active=this.units.filter(unit=>!unit.friendly&&unit.hp>0).length;
+    let infantry=this.units.filter(unit=>!unit.friendly&&unit.hp>0&&unit.kind==='infantry').length,armor=this.units.filter(unit=>!unit.friendly&&unit.hp>0&&unit.kind!=='infantry').length;
+    let active=infantry+armor;
     this.mission.events.forEach((e, i) => {
-      if (active<24&&!this.spawned.has(i) && (this.time >= e.time || this.ratio >= e.progress)) {
-        active++;
+      if (active<72&&(e.kind==='infantry'?infantry<48:armor<24)&&!this.spawned.has(i) && (this.time >= e.time || this.ratio >= e.progress)) {
+        active++;if(e.kind==='infantry')infantry++;else armor++;
         this.spawned.add(i);
         this.addUnit(e.kind, landPoint(e, this.mission.map));
         this.lastWave = i;
@@ -679,7 +680,27 @@ export class Simulation {
       }
     });
   }
-  private impact(s: Shot, point: Point3, time: number, previous: Point3[], dt: number) {
+  private rapidContact(shot:Shot, previous:Point3[],dt:number):{point:Point3;time:number;targetId:number}|undefined {
+    if(shot.weapon!==0)return;
+    const from=Math.max(shot.born,this.time-dt),terrain=terrainContact(shot,from,this.time,this.height),to=Math.min(this.time,shot.due,terrain?.time??Infinity);
+    if(to<from)return;
+    const a=shotPosition(shot,from),b=shotPosition(shot,to);
+    let first:{point:Point3;time:number;targetId:number}|undefined;
+    for(const [index,unit] of this.units.entries()){
+      if(unit.hp<=0||unit.friendly&&this.training)continue;
+      const old=previous[index]??unit,r=UNITS[unit.kind].radius,halfHeight=unit.kind==='infantry'?.27:unit.kind==='rescue'?.29:.25,vertical=r/halfHeight;
+      const f0=(from-(this.time-dt))/dt,f1=(to-(this.time-dt))/dt;
+      const cx=old.x+(unit.x-old.x)*f0,cz=old.z+(unit.z-old.z)*f0;
+      const dx=b.x-a.x-(unit.x-old.x)*(f1-f0),dy=(b.y-a.y-(unit.y-old.y)*(f1-f0))*vertical,dz=b.z-a.z-(unit.z-old.z)*(f1-f0);
+      const ox=a.x-cx,oy=(a.y-(old.y+(unit.y-old.y)*f0+halfHeight))*vertical,oz=a.z-cz,A=dx*dx+dy*dy+dz*dz,B=2*(ox*dx+oy*dy+oz*dz),C=ox*ox+oy*oy+oz*oz-r*r;
+      if(A===0)continue;const discriminant=B*B-4*A*C;if(discriminant<0)continue;
+      const fraction=C<=0?0:(-B-Math.sqrt(discriminant))/(2*A);if(fraction<0||fraction>1)continue;
+      const time=from+(to-from)*fraction;if(first&&first.time<=time)continue;
+      first={point:shotPosition(shot,time),time,targetId:unit.id};
+    }
+    return first;
+  }
+  private impact(s: Shot, point: Point3, time: number, previous: Point3[], dt: number, directTarget?:number) {
     if (s.weapon === 3 && !isWater(point, this.mission.map) &&
         Math.abs(point.x) <= MAP.halfWidth && Math.abs(point.z) <= MAP.halfDepth &&
         (this.duelMode || !PROTECTED.some(zone => distance(zone, point) <= zone.radius + WEAPONS[3].radius*(s.radiusScale??1)))) {
@@ -699,7 +720,7 @@ export class Simulation {
       if (u.hp <= 0) continue;
       if (u.friendly && this.training) continue;
       const damage = s.guidance?.kind === 'consumable' ? u.id === s.guidance.target && !u.friendly ? HOMING.damage : 0
-        : impactDamage(s.weapon, u.kind, UNITS[u.kind].radius + Math.max(0,Math.hypot(x - point.x, y - point.y, z - point.z)-UNITS[u.kind].radius)/(s.radiusScale??1))*(s.damageMultiplier??1);
+        : impactDamage(s.weapon, u.kind, directTarget===u.id?UNITS[u.kind].radius:UNITS[u.kind].radius + Math.max(0,Math.hypot(x - point.x, y - point.y, z - point.z)-UNITS[u.kind].radius)/(s.radiusScale??1))*(s.damageMultiplier??1);
       if (damage <= 0) continue;
       const actual = Math.min(u.hp, damage);
       u.hp = Math.max(0, u.hp - damage);
@@ -967,20 +988,29 @@ export class Simulation {
         if (shot.guidance.trail.length > 32) shot.guidance.trail.shift();
         return [];
       }
-      const contact = terrainContact(shot, this.time - dt, this.time, this.height);
+      const contact = this.rapidContact(shot, previous, dt) ?? terrainContact(shot, this.time - dt, this.time, this.height);
       return contact ? [{ shot, ...contact, cancelled: false }] : [];
     }).sort((a, b) => a.time - b.time);
-    for (const contact of contacts) if (!contact.cancelled) {
+    const pendingContacts=[...contacts],resolved=new Set<number>();
+    while(pendingContacts.length){
+      const contact=pendingContacts.shift()!;
+      if(contact.cancelled){resolved.add(contact.shot.id);continue;}
+      if('targetId' in contact&&this.units.find(u=>u.id===contact.targetId)?.hp===0){
+        const next=this.rapidContact(contact.shot,previous,dt)??terrainContact(contact.shot,this.time-dt,this.time,this.height);
+        if(next){pendingContacts.push({shot:contact.shot,...next,cancelled:false});pendingContacts.sort((a,b)=>a.time-b.time);}
+        continue;
+      }
+      resolved.add(contact.shot.id);
       if (contact.shot.guidance) {
         Object.assign(contact.shot.guidance.position, contact.point);
         contact.shot.guidance.trail.push({ ...contact.point, time: contact.time });
       }
       const side = this.pilotSide;
       if (this.duelMode) this.useSide(contact.shot.side ?? side);
-      this.impact(contact.shot, contact.point, contact.time, previous, dt);
+      this.impact(contact.shot, contact.point, contact.time, previous, dt,'targetId' in contact&&typeof contact.targetId==='number'?contact.targetId:undefined);
       if (this.duelMode) this.useSide(side);
     }
-    this.shots = this.shots.filter((shot) => !contacts.some((c) => c.shot === shot));
+    this.shots = this.shots.filter(shot=>!resolved.has(shot.id));
     this.stepLasers(dt);
     this.stepDrones(dt);
     this.burn(dt);
@@ -1015,7 +1045,7 @@ export class Simulation {
           const killed = this.emit('kill', target, 0, target.id); killed.friendly = u.friendly;
           if (this.duelMode) killed.side = u.group;
         }
-        u.attack = !this.duelMode && u.friendly ? this.mission.friendlyAttackInterval : this.mission.attackInterval;
+        u.attack = (!this.duelMode && u.friendly ? this.mission.friendlyAttackInterval : this.mission.attackInterval) * (u.kind==='infantry'?3:1);
       }
     }
     if (!this.duelMode) this.spawn();

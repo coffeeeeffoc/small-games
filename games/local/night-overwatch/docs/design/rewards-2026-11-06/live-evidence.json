@@ -1,0 +1,62 @@
+{
+  "environment": "Isolated real PostgreSQL/HTTP; fresh guest; ordinary first mission and real mouse input; network failures are injected",
+  "checks": [
+    "A failed official start stays in briefing instead of silently becoming a local run",
+    "A lost post-credit asset refresh retries automatically and updates coins, EXP and tasks on the result screen",
+    "Real completed first mission credits 100 points, 360 coins, 240 EXP and each applicable task once after a lost finish response",
+    "Opening the task page and repeated online recovery preserve exactly-once rewards and progress",
+    "Real check-in grants one random weapon, disables another claim, and persists through reload without duplication",
+    "Two real repeat clears award 180 coins/120 EXP/2 fragments each; naturally earned 10 fragments craft a drone and save it in the loadout"
+  ],
+  "errors": [],
+  "screens": [
+    "home-1280.png",
+    "start-retry.png",
+    "settings-1280.png",
+    "controls-1280.png",
+    "settlement-pending.png",
+    "settlement-1280.png",
+    "settlement-844.png",
+    "settlement-568.png",
+    "tasks-updated.png",
+    "checkin-weapon.png",
+    "repeat-1.png",
+    "repeat-2.png",
+    "crafted-real.png",
+    "crafted-equipped-real.png"
+  ],
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53"
+  },
+  "engineStorage": {
+    "nativeWrites": 0,
+    "source": "indexedDB",
+    "engineStorageIsBrowser": true
+  },
+  "result": {
+    "points": 100,
+    "coins": 360,
+    "xp": 240,
+    "shots": 6,
+    "tasks": [
+      {
+        "id": "2026-11-06:solo",
+        "event": "solo",
+        "before": 0,
+        "after": 1,
+        "target": 2
+      },
+      {
+        "id": "2026-11-06:complete",
+        "event": "complete",
+        "before": 0,
+        "after": 1,
+        "target": 3
+      }
+    ]
+  },
+  "cleanupFailures": [],
+  "cleaned": true
+}

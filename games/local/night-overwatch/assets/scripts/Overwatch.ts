@@ -479,7 +479,7 @@ export class Overwatch extends Component {
     this.clear();this.hud.modalKey='rebuild';const [group,...rest]=id.split(':'),value=rest.join(':');
     if(group==='qm'){
       if(value==='artRetry'){this.hud.retryArtwork();return true;}
-      const pages=['modes','loadout','shop','supply','growth','tasks','inbox','warehouse','receipts','checkin','probability'];
+      const pages=['modes','loadout','shop','supply','growth','tasks','inbox','warehouse','craft','receipts','checkin','probability'];
       if(pages.includes(value)){if(value==='loadout'&&q.page==='modes')q.mode=q.actionMode==='duel'?'duel':'solo';if(value==='loadout'&&q.page==='warehouse')q.selectInventorySlot();this.online?.show('');this.hud.missionsOpen=false;q.requestLeave(value as ProgressionPage);return true;}
       if(value==='home'){q.requestLeave('');return true;}
       if(value==='back'){
@@ -515,6 +515,9 @@ export class Overwatch extends Component {
       if(value==='giftWarehouse'){q.gift=undefined;q.show('warehouse');}
       if(value==='buyPacks')void q.execute({kind:'buy-packs',quantity:q.quantity,pool:'general'});
       if(value==='watch')void q.watch(()=>this.platform.offerSupplyVideo());
+      if(value.startsWith('shopCategory:')){const category=value.slice(13);if(['mod','weapon','skill'].includes(category)){q.shopCategory=category as typeof q.shopCategory;q.detail=false;q.index=0;}}
+      if(value.startsWith('craftTerm:'))q.craftTerm=value.endsWith('permanent')?'permanent':'match';
+      if(value.startsWith('craftItem:')&&q.assets?.economy)q.confirmation={kind:'craft',item:value.slice(10)};
       if(value==='checkinClaim')void q.execute({kind:'checkin'});
       if(value==='claimAll')void q.execute({kind:'claim-all'});
       if(value==='claimMail'&&q.selectedMail)void q.execute({kind:'claim-mail',mailId:q.selectedMail});

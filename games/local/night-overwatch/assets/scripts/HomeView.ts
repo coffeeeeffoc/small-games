@@ -216,7 +216,10 @@ export class HomeView {
       this.hud.h,
       '#071a2d55',
     );
-    this.hud.label(
+    const assets=this.hud.online?.assets;
+    const preview=assets?.economy?.campaign.find(level=>level.levelId===simulation.mission.id);
+    const compactRewards=!!preview&&height<420;
+    if(!compactRewards)this.hud.label(
       parentNode,
       this.hud.t('关卡地图', 'LEVEL MAP'),
       left + 78,
@@ -225,11 +228,12 @@ export class HomeView {
       156,
       42,
     ).isBold = true;
-    const top = this.hud.safe.top + 104;
+    const top = this.hud.safe.top + (compactRewards?64:104);
     const bottom = height - this.hud.safe.bottom - 58;
     const cardGap = 12;
     const cardWidth = Math.min(300, Math.max(160, (right - left) / 3.2));
-    const cardHeight = Math.max(100, bottom - top - 22);
+    const previewHeight=preview?48:0;
+    const cardHeight = Math.max(100, bottom - top - 22-previewHeight);
     if (this.hud.missionFocus !== undefined) {
       this.hud.listScroll.missions = this.hud.missionFocus * (cardWidth + cardGap);
       this.hud.missionFocus = undefined;
@@ -239,7 +243,7 @@ export class HomeView {
     const missionList = this.hud.listViewport(
       parentNode,
       'missions',
-      { x: left, y: top, w: right - left, h: bottom - top - 8 },
+      { x: left, y: top, w: right - left, h: bottom - top - 8-previewHeight },
       MISSIONS.length * (cardWidth + cardGap) - cardGap,
       'x',
     );
@@ -443,6 +447,11 @@ export class HomeView {
     missionList.finish();
     parentNode = originalParent;
     graphics = originalGraphics;
+    if(preview){
+      const claimed=assets?.clearedLevels?.includes(simulation.mission.id),fragment=preview.repeat.fragment==='fragment:skill'&&!['tracking','emp'].every(effect=>assets?.permanent.includes(effect as 'tracking'|'emp'))?this.hud.t('技能碎片','skill fragments'):this.hud.t('武器碎片','weapon fragments');
+      this.hud.label(parentNode,this.hud.t(`每次通关：${preview.repeat.coins}金币 / ${preview.repeat.xp}EXP / ${preview.repeat.fragments}${fragment}`,`Each clear: ${preview.repeat.coins} coins / ${preview.repeat.xp} EXP / ${preview.repeat.fragments} ${fragment}`), (left+right)/2,bottom-38,12,right-left,20,C.white);
+      this.hud.label(parentNode,claimed?this.hud.t('首通奖励已领取','First-clear bonus claimed'):this.hud.t(`首通额外：${preview.first.coins-preview.repeat.coins}金币 / ${preview.first.xp-preview.repeat.xp}EXP / +4片（资格以结算校验为准）`,`First bonus: ${preview.first.coins-preview.repeat.coins} coins / ${preview.first.xp-preview.repeat.xp} EXP / +4 fragments; verified at settlement`),(left+right)/2,bottom-17,11,right-left,22,C.mint);
+    }
     const buttonWidth = (right - left - 24) / 3;
     for (const [index, id] of ['homeMenu', 'training', 'start'].entries()) {
       const x = left + index * (buttonWidth + 12);

@@ -1,7 +1,7 @@
 import type { Simulation } from './core/Simulation';
 import { text } from './core/Data';
 import { formatTime } from './core/BattleRecords';
-import { MISSIONS } from './core/MissionCatalog';
+import { MISSIONS, CAMPAIGN_BOARD_VERSION } from './core/MissionCatalog';
 import type { HUD } from './HUD';
 import { C, col } from './HudTheme';
 import {
@@ -1085,8 +1085,10 @@ export class OnlineLobbyView {
       if (level)
         button(
           'ruleVersion',
-          online.rankingVersion === 'night-campaign-v2'
-            ? this.h.t('当前梯度版 ▾', 'CURRENT ▾')
+          online.rankingVersion === CAMPAIGN_BOARD_VERSION
+            ? this.h.t('当前驻守版 ▾', 'CURRENT ▾')
+            : online.rankingVersion === 'night-campaign-v2'
+              ? this.h.t('旧梯度版 ▾', 'OLD CAMPAIGN ▾')
             : online.rankingVersion === 'night-growth-v1'
               ? this.h.t('旧成长版 ▾', 'OLD GROWTH ▾')
               : this.h.t('原始历史版 ▾', 'ORIGINAL ▾'),

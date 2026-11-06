@@ -8,7 +8,7 @@ export const ACTIONS = [
     keys: [],
     binding: 'Mouse',
     touch: ['战场内相对拖动', 'Drag battlefield'],
-    description: ['移动准星，提前瞄准移动目标前方。', 'Aim ahead of moving targets.'],
+    description: ['先放大看清目标：固定炮台瞄中心，车辆瞄行进方向前方；根据开火键旁的弹着秒数调整提前量。', 'Zoom in first. Aim at the centre of stationary turrets; lead moving vehicles using the flight time beside FIRE.'],
     event: 'aim',
   },
   {
@@ -29,6 +29,18 @@ export const ACTIONS = [
     event: 'fire',
   },
   {
+    id: 'buttonControls',
+    group: 'basic',
+    name: ['按钮大小与位置', 'Button size & position'],
+    keys: [],
+    binding: '',
+    touch: ['设置 → 按钮 / 布局', 'Settings → Controls'],
+    description: [
+      '在设置的「按钮 / 布局」分别调整开火、武器/技能大小（80–150%）。战斗中可直接拖动各按钮，也可暂停后调整；大小会保存，位置仅本局有效。',
+      'Settings → Controls adjusts FIRE and weapon/skill sizes (80–150%). Drag buttons in battle or move them while paused. Sizes are saved; positions last for this battle only.',
+    ],
+  },
+  {
     id: 'weapon0',
     group: 'basic',
     name: ['速射炮', 'Rapid'],
@@ -36,8 +48,8 @@ export const ACTIONS = [
     binding: '1',
     touch: ['点击速射炮', 'Tap Rapid'],
     description: [
-      '快速轻车：小范围、短延迟；持续开火会积热。',
-      'Light rovers: small radius, short flight, builds heat.',
+      '适合轻车，但命中范围小：瞄车辆前方短点射，观察弹着再修正。先在火控热身练固定炮台；持续开火会过热。',
+      'Best against light vehicles, with a small hit radius. Lead with short bursts and correct after impact. Practise on fixed turrets in Fire Control first; sustained fire overheats.',
     ],
     event: 'weapon',
   },

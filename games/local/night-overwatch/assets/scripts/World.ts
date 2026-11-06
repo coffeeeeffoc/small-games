@@ -30,6 +30,8 @@ import {
   HOLD_POINTS,
   PROTECTED,
   MISSION,
+  garrisonPoints,
+  landPoint,
   routePoint,
   UNITS,
   TERRAIN,
@@ -505,8 +507,10 @@ export class World {
     const terrainHeight = this.height, surfaceHeight = this.surfaceHeight, roadDistance = this.roadDistance;
     const ROUTE = mapRoute(map), ROUTE_LENGTH = routeLength(map), HOLD_POINTS = [ROUTE_LENGTH * .28, ROUTE_LENGTH * .64];
     const mapPoint = (d: number) => routePoint(d, map);
+    const garrisons=[...garrisonPoints(48).map(p=>landPoint(p,map)),...garrisonPoints(24,0),...garrisonPoints(24,1)];
     const combatDistance = (x: number, z: number) => Math.min(roadDistance(x, z),
-      ...MISSION.events.map(e => Math.hypot(x - e.x, z - e.z) - (e.kind === 'light' ? 2 : 0)));
+      ...MISSION.events.map(e => Math.hypot(x - e.x, z - e.z) - (e.kind === 'light' ? 2 : 0)),
+      ...garrisons.map(p=>Math.hypot(x-p.x,z-p.z)));
     const terrainHeights = this.elevations = terrainXs.map(x => terrainZs.map(z => sceneryHeight(x, z, map) - (map === 'valley' ? Math.max(0, 1 - Math.abs(x - riverX(z)) / 6) * 1.3 : 0)));
     this.root = new Node('Battlefield');
     parent.addChild(this.root);
@@ -764,7 +768,7 @@ export class World {
         continue;
       trees.push({ x, z, y: surfaceHeight(x, z), h: 2.2 + noise(i * 3 + 2) * 2.8, seed: i });
     }
-    const clearGround = (x: number, z: number) => roadDistance(x, z) > 4 &&
+    const clearGround = (x: number, z: number) => roadDistance(x, z) > 4 && combatDistance(x,z)>3 &&
       !(map === 'valley' && Math.abs(x - riverX(z)) < 7) &&
       !houses.some(([hx, hz, w, d]) => Math.abs(x - hx) < w / 2 + 2 && Math.abs(z - hz) < d / 2 + 2) &&
       !fields.some(([fx, fz, w, d]) => Math.abs(x - fx) < w / 2 + 1 && Math.abs(z - fz) < d / 2 + 1);
@@ -987,7 +991,14 @@ export class World {
       const g = geometry(),
         heavy = kind === 'heavy',
         rescue = kind === 'rescue';
-      if (kind === 'turret') {
+      if (kind === 'infantry') {
+        // Authored low-poly soldier: boots, separated legs, vest, helmet, arms and rifle.
+        for(const sign of [-1,1]){addBox(g,sign*.22,.16,.08,.3,.24,.55,.35);addBox(g,sign*.22,.6,0,.25,.75,.28,.62);}
+        addBox(g,0,1.23,0,.85,.65,.48,.7);addBox(g,0,1.25,-.29,.65,.55,.22,.4);
+        addShape(g,cylinder,0,1.82,0,.46,.45,.46,.88);addShape(g,cylinder,0,2.05,0,.62,.2,.62,.5);
+        for(const sign of [-1,1])addShape(g,box,sign*.5,1.3,.2,.22,.6,.22,.65,0,sign*.3);
+        addBox(g,.35,1.15,.48,.14,.16,1.15,.25);addBox(g,.35,1.05,.3,.16,.27,.18,.3);
+      } else if (kind === 'turret') {
         addShape(g, cylinder, 0, 0.2, 0, 2.6, 0.4, 2.6, 0.5);
         addShape(g, cylinder, 0, 0.7, 0, 0.8, 0.8, 0.8, 0.65);
         addShape(g, cylinder, 0, 1.2, 0, 1.7, 0.7, 1.7);
@@ -1037,6 +1048,11 @@ export class World {
       }
       this.meshes.set(kind, this.mesh(g));
       const wreck = geometry();
+      if(kind==='infantry'){
+        addBox(wreck,0,.12,0,.65,.22,1.3,.45);addShape(wreck,cylinder,0,.14,.82,.48,.24,.48,.55);
+        for(const sign of [-1,1])addBox(wreck,sign*.22,.1,-.9,.22,.18,.65,.4);
+        this.wreckMeshes.set(kind,this.mesh(wreck));continue;
+      }
       const w = heavy ? 2.65 : rescue ? 2.1 : 1.8;
       const d = kind === 'turret' ? 2.6 : heavy || rescue ? 4.2 : 3.2;
       addBox(wreck, 0, 0.35, 0, w, 0.4, d, 0.5);
@@ -1387,8 +1403,8 @@ export class World {
       }
       const axes = groundAxes(this.height, u.x, u.z, u.heading);
       const orientation = Quat.fromAxes(new Quat(), axes.right, axes.up, axes.forward);
-      const lift = this.roadDistance(u.x, u.z) < 0.8 ? TERRAIN.roadLift : 0;
-      v.node.setPosition(u.x, this.height(u.x, u.z) + lift, u.z);
+      const lift = u.kind!=='infantry'&&this.roadDistance(u.x, u.z) < 0.8 ? TERRAIN.roadLift : 0;
+      v.node.setPosition(u.x, u.kind==='infantry'?u.y:this.height(u.x, u.z) + lift, u.z);
       v.node.setRotation(orientation);
       if (u.hp <= 0 && !v.wreck) {
         v.node.getComponent(MeshRenderer)!.mesh = this.wreckMeshes.get(u.kind)!;

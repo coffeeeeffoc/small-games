@@ -156,6 +156,7 @@ export function createRankedStore(
                     settlement.participated === true &&
                     run.loadoutStarted === true,
                   levelId: run.levelId,
+                  firstClear: settlement.firstClear,
                 }),
               );
           },
@@ -174,6 +175,10 @@ export function createRankedStore(
             if (run.game === 'night-overwatch') {
               await backfillNightClears(tx, now());
               await nightLedgerLock(tx);
+              const prior = await tx.execute(
+                sql`select 1 from runtime.competition_results where player_id=${run.playerId} and board=${nightBoard(`clear-${run.levelId}`)} union all select 1 from runtime.competition_best where player_id=${run.playerId} and board=${nightBoard(`level-${run.levelId}`)} limit 1`,
+              );
+              settlement.firstClear = prior.length === 0;
             }
             const matchId = `ranked-result:${id}:${run.board}`;
             const eventBoard =

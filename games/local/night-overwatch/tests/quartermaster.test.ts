@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Quartermaster, wheelLandingAngle } from '../assets/scripts/Quartermaster.ts';
+import { ECONOMY } from '../assets/scripts/core/Progression.ts';
 import { assetFixture } from './progression-fixture.ts';
 
 function setup(){
@@ -167,4 +168,16 @@ test('unknown completion is never cancelled, while dispose journals release of a
  const {q,online,calls,storage}=setup();online.assets.videoOrders[0].attempt={id:'active',startedAt:online.assets.serverNow};online.assetCommand=async(command:any)=>{calls.push({...command});throw Error('lost');};
  await q.watch(async()=> 'completed');assert.equal(q.pending?.kind,'ad-complete');assert.equal(calls.length,1);q.dispose();assert.equal(calls.length,1);
  const next=setup();next.online.assetCommand=async(command:any)=>{next.calls.push({...command});return {...next.online.assets,lastReceipt:{attemptId:'ready'}};};await next.q.execute({kind:'ad-start',orderId:'video-order'});next.q.dispose();assert.equal(next.calls.at(-1).kind,'ad-cancel');await Promise.resolve();const restored=new Quartermaster(next.online,next.storage);restored.syncIdentity();assert.equal(restored.pending?.kind,'ad-cancel');
+});
+
+
+test('old service blocks crafting and actual check-in / craft grants reach the gift dialog',async()=>{
+  const {q,online,calls}=setup();
+  await q.execute({kind:'craft',item:'drone-match'});assert.equal(calls.length,0);
+  online.assets={...online.assets,economy:ECONOMY};q.syncIdentity();
+  for(const [kind,item,count] of [['checkin','laser-match',1],['craft','tracking-permanent',1],['checkin','fragment:weapon',12]] as const){
+    online.assetCommand=async(command:any)=>({...online.assets,lastReceipt:{kind,requestId:command.requestId,items:{[item]:count}}});
+    await q.execute(kind==='craft'?{kind,item}:{kind});
+    assert.equal(q.gift?.opened,true);assert.equal(q.gift?.drops.length,count);assert.equal(q.gift?.drops[0].item,item);assert.equal(q.pending,undefined);
+  }
 });

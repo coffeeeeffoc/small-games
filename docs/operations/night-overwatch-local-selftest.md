@@ -64,6 +64,12 @@ GROUP BY 1, 2, 3 ORDER BY 1 DESC, 2, 3;
 
 ## 验证边界
 
+2026-11-06 当前本地Runtime为 `small-games-bundle:night-20261106-rewards-2c8a3d80`，镜像 `sha256:40ded0a5f148f776ebb0939846a3b3d80147834937042a6c6397d814df902de9`。435项制品摘要及7份Night核心源码与本次工作区一致；基点 `dcc5d0ed24e1c2558e584d92f82ae8812e6afd85`、`sourceDirty=true`，包含未提交的奖励及平衡修复。数据库迁移文件与上次制品相同，本轮只重建Runtime；原PostgreSQL、数据卷及网关容器保持不变，网关仅平滑重载以刷新Runtime地址。切换前备份 `backup-1793979433935` 已独立恢复并核对35张表，原库切换前指纹不变；旧钱包预演只在恢复副本执行，未对原库执行SQL或钱包迁移。旧镜像和配置保留，启动继续组合 `current.json` 中的 `composeFile` 与 `composeOverride`。
+
+现有Sakura FRP公网API为 `https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1`，本地API为 `http://127.0.0.1:43003/api/competition/v1`；两端健康200、匿名401、其他游戏/内部路由404，Tap H5及localhost:4318 CORS通过，未列入来源无允许头。新QA游客实测随机武器签到、首通360金币/240XP/6片、两次复刷各180金币/120XP/2片、自然10片合成无人机并保存装配；签到、结算及合成跨入口重试均不重复入账。没有操作既有玩家资产或发送公共聊天。`http://localhost:4318` 预览已启动并实际连接FRP API进入大厅，读取 `night-rewards-v2`，页面异常0，前端源码摘要为 `59a4cf8b9a18324a59cd4ecf26a74c46fe6a7cbc54adaca3f46cf03e5b5ce48e`。详见[脱敏联调回执](../../games/local/night-overwatch/docs/design/rewards-2026-11-06/review/local-deployment.json)。此服务继续启用测试资产调整，TapTap登录配置原样保留；未验证真实宿主登录、广告或实体机，未上传新渠道包或部署生产。
+
+以下记录保留历史版本身份，以本段最新记录及 `current.json` 为准。
+
 2026-11-02 当前本地Runtime为 `small-games-bundle:night-20261102-chat-0227fe76`，镜像 `sha256:f71536ce527f4802b55f561fabd6e30e267e6ffabb16f5655634fb6ac38e43bf`；433项制品对应干净提交 `0227fe76b72ff6d11b0b30e3ef3db5085b0f91d6`。完整start脚本被自动审批返回`blocked by policy`后，采用更小的本地升级：只预先构建镜像、停止旧Runtime、验证备份恢复、应用新增016聊天表、重建Runtime；不在原库重跑旧钱包迁移、不重启PostgreSQL或网关、不通过公网写测试数据。备份`backup-1793570595681`恢复32张原表摘要一致；应用016前后32张原表未变，新增3张空聊天表。本地与FRP健康200、匿名401、Tap CORS 204、本人聊天读取200。当前启动需组合`current.json`内的`composeFile`与`composeOverride`，后者仅覆盖Runtime镜像和构建目录；原配置和旧镜像保留。详情见[本轮验证](../../games/local/night-overwatch/docs/verification-2026-11-02-revision.md)和[脱敏Docker回执](../../games/local/night-overwatch/docs/verification-2026-11-02/docker-evidence.json)。没有发送公共测试聊天、没有修改已有玩家资产。
 
 以下保留历史记录：

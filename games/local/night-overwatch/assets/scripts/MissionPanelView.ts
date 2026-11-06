@@ -281,6 +281,7 @@ export class MissionPanelView {
       const threatAdvice =
         mainThreat &&
         {
+          infantry: [`步兵造成 ${Math.round(mainThreat[1])} 伤害。用机枪点射驻守目标。`,`Infantry: ${Math.round(mainThreat[1])} damage. Use Rapid against the garrison.`],
           light: [
             `轻车造成 ${Math.round(mainThreat[1])} 伤害。下次用速射追踪，并瞄准前方。`,
             `Light patrol: ${Math.round(mainThreat[1])} damage. Track with Rapid; lead its movement.`,

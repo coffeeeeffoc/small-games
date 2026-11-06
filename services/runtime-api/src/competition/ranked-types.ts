@@ -31,6 +31,8 @@ export type RankedRule = {
   result(state: unknown): RankedResult;
 };
 export type Settlement = RankedResult & {
+  firstClear?: boolean;
+  fragments?: Record<string, number>;
   coins?: number;
   xp?: number;
   totalCoins?: number;

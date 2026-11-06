@@ -8,7 +8,7 @@ import { openDatabase } from '@coffeeeeffoc/service-kit';
 import { createCompetitionStore } from '../src/competition/store.js';
 import { createRankedStore } from '../src/competition/ranked-store.js';
 import type { RankedRule } from '../src/competition/ranked-types.js';
-import { nightLedgerLock } from '../src/competition/night-ledger.js';
+import { nightLedgerLock, settleNightRoom } from '../src/competition/night-ledger.js';
 import {
   nightAssets,
   previewNightMigration,
@@ -19,7 +19,7 @@ import {
   type ProgressionRules,
   type AssetCommand,
 } from '../src/competition/night-assets.js';
-import type { Rule } from '../src/competition/types.js';
+import type { Rule, Room } from '../src/competition/types.js';
 import { gateFixture } from './control-fixture.js';
 const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
 (databaseUrl ? describe : describe.skip)('Night asset transactions in isolated PostgreSQL', () => {
@@ -50,6 +50,403 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       sql`update runtime.competition_matches set data=data || ${JSON.stringify(patch)}::jsonb where id=${`night-assets:${id}`}`,
     );
   };
+  it('daily equipment receipts are idempotent, usable at level one and convert fully permanent collections', async () => {
+    const id = await owner(),
+      cmd: AssetCommand = { kind: 'checkin', requestId: randomUUID() };
+    const [a, b] = await Promise.all([command(id, cmd), command(id, cmd)]);
+    expect(a.lastReceipt).toEqual(b.lastReceipt);
+    const items = (a.lastReceipt as { items: Record<string, number> }).items,
+      item = Object.keys(items)[0]!;
+    const product = rules.catalog.find((p) => p.id === item)!;
+    expect(product.term).toBe('match');
+    expect(items[item]).toBe(1);
+    expect(a.coins).toBe(100);
+    expect(a.xp).toBe(40);
+    await command(id, {
+      kind: 'loadout',
+      requestId: randomUUID(),
+      mode: 'solo',
+      loadout: {
+        mods: product.category === 'mod' ? [item] : [],
+        weapon: product.category === 'weapon' ? item : null,
+        skill: product.category === 'skill' ? item : null,
+      },
+    });
+    const reserved = await database.db.transaction((tx) =>
+      reserveNightLoadout(tx, id, at, 'newcomer', 'solo', rules),
+    );
+    expect(reserved.effects).toContain(item.replace('-match', ''));
+    await expect(command(id, { ...cmd, requestId: randomUUID() })).rejects.toMatchObject({
+      code: 'ALREADY_CLAIMED',
+    });
+    const duplicate = await owner();
+    await seed(duplicate, { permanent: [...new Set(rules.catalog.map((p) => p.effect))] });
+    const result = await command(duplicate, { ...cmd, requestId: randomUUID() });
+    expect(result.inventory['fragment:weapon']).toBe(10);
+    expect(result.inventory['drone-match'] ?? 0).toBe(0);
+  });
+  it('check-in prefers the only missing effect across categories and includes reserved stock as owned', async () => {
+    for (const effect of ['power', 'drone', 'tracking']) {
+      const id = await owner();
+      await seed(id, {
+        inventory: Object.fromEntries(
+          rules.catalog
+            .filter((p) => p.term === 'match' && p.effect !== effect)
+            .map((p) => [p.id, 1]),
+        ),
+      });
+      const result = await command(id, { kind: 'checkin', requestId: randomUUID() });
+      expect((result.lastReceipt as { items: Record<string, number> }).items).toEqual({
+        [effect + '-match']: 1,
+      });
+    }
+  });
+  it('combination packs award all components atomically once and prepare newly earned level skills before drawing', async () => {
+    const id = await owner();
+    await seed(id, {
+      xp: 2980,
+      inventory: { 'pack:general:1': 2 },
+      permanent: rules.catalog
+        .filter((p) => p.rarity === 1 && p.effect !== 'tracking')
+        .map((p) => p.effect),
+    });
+    const cmd: AssetCommand = {
+      kind: 'open',
+      item: 'pack:general:1',
+      quantity: 2,
+      requestId: randomUUID(),
+    };
+    const [a, b] = await Promise.all([command(id, cmd), command(id, cmd)]);
+    expect(a.lastReceipt).toEqual(b.lastReceipt);
+    const drops = (
+      a.lastReceipt as { drops: Array<{ item?: string; coins?: number; xp?: number }> }
+    ).drops;
+    expect(drops.reduce((n, d) => n + (d.xp ?? 0), 0)).toBe(40);
+    expect(drops.reduce((n, d) => n + (d.coins ?? 0), 0)).toBe(240);
+    expect(drops.filter((d) => d.item?.startsWith('fragment:'))).toHaveLength(4);
+    expect(drops.some((d) => d.item === 'tracking-match')).toBe(false);
+    const state = await get(id);
+    expect(state.xp).toBe(3020);
+    expect(state.permanent).toContain('tracking');
+    expect(state.inventory['pack:general:1'] ?? 0).toBe(0);
+  });
+  it('long achievements recover uncapped authoritative historical receipts once and claim only once', async () => {
+    const id = await owner();
+    await get(id);
+    await database.db.execute(
+      sql`update runtime.competition_matches set data=(data-'achievementHistoryVersion')||${JSON.stringify({ signedDays: ['2026-10-01', '2026-10-01', '2026-10-02'] })}::jsonb where id=${'night-assets:' + id}`,
+    );
+    await database.db.execute(
+      sql`insert into runtime.competition_matches(id,board,data,created_at) select ${'night-assets-event:' + id + ':battle:history-'}||n,'night-overwatch:private-assets-v3',jsonb_build_object('input',jsonb_build_object('valid',n<=251,'durationMs',case when n=251 then 9999 else 10000 end,'outcome','win')),${at} from generate_series(1,252) n`,
+    );
+    const state = await get(id);
+    expect(state.achievements.find((a) => a.id === 'sorties-250')).toMatchObject({
+      progress: 250,
+      claimed: false,
+    });
+    expect(state.achievements.find((a) => a.id === 'victories-250')).toMatchObject({
+      progress: 250,
+    });
+    expect(state.achievements.find((a) => a.id === 'checkins-7')).toMatchObject({ progress: 2 });
+    const cmd: AssetCommand = {
+      kind: 'claim-achievement',
+      achievementId: 'sorties-250',
+      requestId: randomUUID(),
+    };
+    const a = await command(id, cmd),
+      b = await command(id, cmd);
+    expect(a.lastReceipt).toEqual(b.lastReceipt);
+    await expect(command(id, { ...cmd, requestId: randomUUID() })).rejects.toMatchObject({
+      code: 'NOT_CLAIMABLE',
+    });
+  });
+  it('crafting validates recipes, rolls back failures, serializes spending and retains permanent grants', async () => {
+    const id = await owner();
+    await seed(id, { inventory: { 'fragment:weapon': 10, 'fragment:skill': 60 } });
+    for (const item of ['unknown', 'burst-match', 'laser-24h'])
+      await expect(
+        command(id, { kind: 'craft', item, requestId: randomUUID() }),
+      ).rejects.toMatchObject({ code: 'ITEM_UNAVAILABLE' });
+    await expect(
+      command(id, { kind: 'craft', item: 'laser-match', requestId: randomUUID() }),
+    ).rejects.toMatchObject({ code: 'INSUFFICIENT_FRAGMENTS' });
+    expect((await get(id)).inventory['fragment:weapon']).toBe(10);
+    const cmd: AssetCommand = { kind: 'craft', item: 'drone-match', requestId: randomUUID() };
+    const results = await Promise.all([command(id, cmd), command(id, cmd)]);
+    expect(results[0].lastReceipt).toEqual(results[1].lastReceipt);
+    expect((await get(id)).inventory['drone-match']).toBe(1);
+    expect((await get(id)).inventory['fragment:weapon'] ?? 0).toBe(0);
+    await expect(command(id, { ...cmd, item: 'laser-match' })).rejects.toMatchObject({
+      code: 'REQUEST_ID_CONFLICT',
+    });
+    await seed(id, { inventory: { 'fragment:weapon': 10, 'fragment:skill': 60 } });
+    const race = await Promise.allSettled([
+      command(id, { ...cmd, requestId: randomUUID() }),
+      command(id, { ...cmd, requestId: randomUUID() }),
+    ]);
+    expect(race.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    for (const item of ['tracking-permanent', 'emp-permanent'])
+      await command(id, { kind: 'craft', item, requestId: randomUUID() });
+    expect((await get(id)).permanent).toEqual(expect.arrayContaining(['tracking', 'emp']));
+    await expect(
+      command(id, { kind: 'craft', item: 'emp-permanent', requestId: randomUUID() }),
+    ).rejects.toMatchObject({ code: 'ALREADY_OWNED' });
+    await seed(id, { inventory: { 'fragment:weapon': 3 } });
+    const sold = await command(id, {
+      kind: 'sell',
+      item: 'fragment:weapon',
+      quantity: 2,
+      requestId: randomUUID(),
+    });
+    expect(sold.coins).toBe(20);
+    expect(sold.inventory['fragment:weapon']).toBe(1);
+  });
+  it('permanent ownership rejects redundant purchases and crafting without spending or deleting stock', async () => {
+    const id = await owner();
+    await seed(id, {
+      coins: 100000,
+      xp: 3000,
+      permanent: ['drone'],
+      inventory: {
+        'fragment:weapon': 300,
+        'fragment:skill': 100,
+        'drone-match': 2,
+        'drone-24h': 1,
+      },
+    });
+    const before = await get(id);
+    expect(before.permanent).toContain('tracking');
+    for (const effect of ['drone', 'tracking']) {
+      for (const term of ['match', '24h', 'permanent'])
+        await expect(
+          command(id, {
+            kind: 'buy',
+            item: `${effect}-${term}`,
+            quantity: 1,
+            requestId: randomUUID(),
+          }),
+        ).rejects.toMatchObject({ code: 'ALREADY_OWNED' });
+      for (const term of ['match', 'permanent'])
+        await expect(
+          command(id, { kind: 'craft', item: `${effect}-${term}`, requestId: randomUUID() }),
+        ).rejects.toMatchObject({ code: 'ALREADY_OWNED' });
+    }
+    const after = await get(id);
+    expect(after.coins).toBe(before.coins);
+    expect(after.inventory).toEqual(before.inventory);
+    expect(
+      (
+        await command(id, {
+          kind: 'sell',
+          item: 'drone-match',
+          quantity: 1,
+          requestId: randomUUID(),
+        })
+      ).inventory['drone-match'],
+    ).toBe(1);
+  });
+  it('campaign and qualified duel fragments use authoritative level rewards and daily caps', async () => {
+    const id = await owner();
+    const award = (battle: string, input: Parameters<typeof rewardNightBattle>[5], time = at) =>
+      database.db.transaction((tx) => rewardNightBattle(tx, id, time, battle, rules, input));
+    const first = {
+      mode: 'solo' as const,
+      outcome: 'win' as const,
+      durationMs: 60000,
+      valid: true,
+      levelId: 'corridor-01',
+      firstClear: true,
+    };
+    expect(await award('first', first)).toMatchObject({
+      coins: 360,
+      xp: 240,
+      firstClear: true,
+      fragments: { 'fragment:weapon': 6 },
+    });
+    expect(await award('repeat', { ...first, firstClear: false })).toMatchObject({
+      coins: 180,
+      xp: 120,
+      firstClear: false,
+      fragments: { 'fragment:weapon': 2 },
+    });
+    expect(await award('second', { ...first, levelId: 'ambush-02' })).toMatchObject({
+      coins: 375,
+      xp: 246,
+      fragments: { 'fragment:skill': 6 },
+    });
+    await seed(id, { permanent: ['tracking', 'emp'] });
+    expect(
+      await award('redirect', { ...first, levelId: 'ambush-02', firstClear: false }),
+    ).toMatchObject({ fragments: { 'fragment:weapon': 2 } });
+    for (const [name, patch] of [
+      ['short', { durationMs: 59999 }],
+      ['invalid', { valid: false }],
+      ['bot', { mode: 'bot' }],
+    ] as const) {
+      const result = await award(name, { ...first, mode: 'duel', ...patch });
+      expect(result.fragments).toBeUndefined();
+    }
+    for (let i = 0; i < 11; i++) {
+      const result = await award(`duel-${i}`, {
+        ...first,
+        mode: 'duel',
+        outcome: i % 2 ? 'loss' : 'win',
+      });
+      if (i < 10) expect(result.fragments).toEqual({ 'fragment:weapon': i % 2 ? 1 : 2 });
+      else expect(result.fragments).toBeUndefined();
+    }
+    expect((await get(id)).duelFragmentBattlesToday).toBe(10);
+    expect((await award('new-day', { ...first, mode: 'duel' }, at + 86400000)).fragments).toEqual({
+      'fragment:weapon': 2,
+    });
+  });
+  it('room settlement only gives fragments for natural, participating, non-takeover human matches', async () => {
+    for (const scenario of [
+      'eligible',
+      'disconnect',
+      'abandoned',
+      'takeover',
+      'idle',
+      'short',
+      'delayed-short',
+    ]) {
+      const a = await owner(),
+        b = await owner(),
+        created = await store.create(a, 'night-overwatch', { mode: 'friend' });
+      await store.roomAction(b, created.code, 'join', {});
+      const rows = await database.db.execute(
+          sql`select data from runtime.competition_rooms where code=${created.code}`,
+        ),
+        room = rows[0]!.data as Room;
+      room.startedAt = at - (scenario === 'short' ? 59999 : 60100);
+      const secondary = scenario === 'delayed-short' ? 59999 : 60000;
+      room.players[0]!.result = {
+        finished: true,
+        eligible: true,
+        score: 100,
+        secondary,
+        outcome: 'win',
+        participated: scenario !== 'idle',
+      };
+      room.players[1]!.result = {
+        finished: true,
+        eligible: true,
+        score: 0,
+        secondary,
+        outcome: 'loss',
+        participated: true,
+      };
+      if (scenario === 'takeover') room.players[0]!.takenOver = true;
+      const reason =
+        scenario === 'disconnect'
+          ? 'disconnect'
+          : scenario === 'abandoned'
+            ? 'abandoned'
+            : 'elimination';
+      await database.db.transaction(async (tx) => {
+        await settleNightRoom(tx, room, at, reason, rules);
+        await settleNightRoom(tx, room, at, reason, rules);
+      });
+      expect((await get(a)).inventory['fragment:weapon'] ?? 0).toBe(
+        scenario === 'eligible' ? 2 : 0,
+      );
+      expect((await get(b)).inventory['fragment:weapon'] ?? 0).toBe(
+        ['disconnect', 'abandoned', 'short', 'delayed-short'].includes(scenario) ? 0 : 1,
+      );
+    }
+  });
+  it('reward previews include old verified replay clears before backfill and exclude unrelated boards', async () => {
+    const id = await owner();
+    for (const [level, score] of [
+      ['corridor-01', 100],
+      ['ambush-02', 0],
+      ['forged-999', 100],
+    ] as const)
+      await database.db.execute(
+        sql`insert into runtime.competition_results(match_id,board,player_id,score,secondary,created_at) values(${randomUUID()},${`night-overwatch:level-${level}:night-input-replay-v1`},${id},${score},60000,${at})`,
+      );
+    expect((await get(id)).clearedLevels).toEqual(['corridor-01']);
+  });
+  it('ranked settlement grants first clear once across concurrent runs and honors exact historical levels', async () => {
+    let time = at;
+    const original = (await import(new URL('../rules/night-ranked.mjs', import.meta.url).href))
+      .default as RankedRule;
+    const rule: RankedRule = {
+      ...original,
+      create: () => ({}),
+      configure: (state) => state,
+      apply: (state) => state,
+      result: () => ({
+        complete: true,
+        eligible: true,
+        participated: true,
+        cleared: true,
+        fastestEligible: true,
+        score: 100,
+        secondary: 60000,
+      }),
+    };
+    const ranked = createRankedStore(
+      database.db,
+      new Map([[rule.id, rule]]),
+      store.identityDetails,
+      () => time,
+    );
+    const start = async (id: string, level = 'corridor-01') => {
+      const run = await ranked.create(
+        id,
+        rule.id,
+        `level-${level}`,
+        level,
+        rule.version,
+        randomUUID(),
+      );
+      await ranked.actions(id, rule.id, run.id, { seq: 1, frames: [{ ticks: 1, input: {} }] });
+      return run;
+    };
+    const id = await owner(),
+      a = await start(id),
+      b = await start(id);
+    time += 60000;
+    const results = await Promise.all([
+      ranked.finish(id, rule.id, a.id, 1),
+      ranked.finish(id, rule.id, b.id, 1),
+    ]);
+    expect(results.map((result) => result.coins).sort()).toEqual([180, 360]);
+    expect(results.filter((result) => result.firstClear)).toHaveLength(1);
+    expect((await get(id, time)).inventory['fragment:weapon']).toBe(8);
+    expect(await ranked.finish(id, rule.id, a.id, 1)).toEqual(results[0]);
+    const next = await start(id, 'ambush-02');
+    time += 60000;
+    expect(await ranked.finish(id, rule.id, next.id, 1)).toMatchObject({
+      firstClear: true,
+      coins: 375,
+      xp: 246,
+    });
+    const old = await owner();
+    await database.db.execute(
+      sql`insert into runtime.competition_best(board,player_id,score,secondary,match_id,updated_at) values('night-overwatch:level-corridor-01:night-records-v1',${old},1,60000,${randomUUID()},${time})`,
+    );
+    const repeat = await start(old);
+    time += 60000;
+    expect(await ranked.finish(old, rule.id, repeat.id, 1)).toMatchObject({
+      firstClear: false,
+      coins: 180,
+    });
+    const raw = await owner();
+    await database.db.execute(
+      sql`update runtime.competition_matches set data='{}'::jsonb where id='night-migration:highest-clear-v2'`,
+    );
+    await database.db.execute(
+      sql`insert into runtime.competition_results(match_id,board,player_id,score,secondary,created_at) values(${randomUUID()},'night-overwatch:level-corridor-01:night-input-replay-v1',${raw},100,60000,${time})`,
+    );
+    const migrated = await start(raw);
+    time += 60000;
+    expect(await ranked.finish(raw, rule.id, migrated.id, 1)).toMatchObject({
+      firstClear: false,
+      coins: 180,
+    });
+  });
   it('development adjustments require server capability and retain atomic idempotent receipts', async () => {
     const id = await owner();
     const cmd: AssetCommand = {
@@ -404,15 +801,27 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
         requestId: randomUUID(),
       });
       if (!('lastReceipt' in result)) throw Error('Missing drop receipt');
-      const drops = (result.lastReceipt as { drops: Array<{ item?: string; coins?: number }> })
-        .drops;
+      const drops = (
+        result.lastReceipt as { drops: Array<{ item?: string; coins?: number; xp?: number }> }
+      ).drops;
       for (const drop of drops) {
+        if (drop.item?.startsWith('fragment:')) {
+          expect(['fragment:weapon', 'fragment:skill']).toContain(drop.item);
+          continue;
+        }
+        if (drop.xp) {
+          expect(drop.xp).toBe(rules.economy!.bundleTiers![Number(item.at(-1))]!.xp);
+          continue;
+        }
         if (drop.item) {
           const p = rules.catalog.find((p) => p.id === drop.item)!;
           expect(p.rarity).toBe(Number(item.at(-1)));
           if (item.includes('general')) expect(p.goldOnly).toBe(false);
         } else
-          expect(drop.coins).toBe(rules.pools[item.split(':')[1]!]!.coinDrops[Number(item.at(-1))]);
+          expect([
+            rules.pools[item.split(':')[1]!]!.coinDrops[Number(item.at(-1))],
+            rules.economy!.bundleTiers![Number(item.at(-1))]!.coins,
+          ]).toContain(drop.coins);
       }
     }
     const floor = Math.min(...rules.packages.map((p) => p.coins / p.quantity));
@@ -479,7 +888,9 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       requestId: randomUUID(),
     };
     const low = await command(id, old);
-    expect(low.lastReceipt).toMatchObject({ drops: [{ coins: 800 }] });
+    expect(low.lastReceipt).toMatchObject({
+      drops: expect.arrayContaining([{ coins: 800 }, { xp: 80 }]),
+    });
     expect((await command(id, old)).coins).toBe(low.coins);
     await seed(id, { xp: 13200 });
     const unlocked = await command(id, {
@@ -488,7 +899,9 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       quantity: 1,
       requestId: randomUUID(),
     });
-    expect(unlocked.lastReceipt).toMatchObject({ drops: [{ item: 'burst-match' }] });
+    expect(unlocked.lastReceipt).toMatchObject({
+      drops: expect.arrayContaining([{ item: 'burst-match' }, { coins: 200 }, { xp: 80 }]),
+    });
     await seed(id, { permanent: ['burst'] });
     expect(
       (
@@ -499,7 +912,7 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
           requestId: randomUUID(),
         })
       ).lastReceipt,
-    ).toMatchObject({ drops: [{ coins: 800 }] });
+    ).toMatchObject({ drops: expect.arrayContaining([{ coins: 800 }, { xp: 80 }]) });
     expect((await get(id)).inventory['pack:general:3']).toBe(0);
   });
   it('wheel orders coexist with five legacy orders, serialize ad playback, retain tickets and settle once', async () => {

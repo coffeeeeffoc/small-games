@@ -1,0 +1,81 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53"
+  },
+  "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+  "name": "continuous",
+  "seconds": 57.304,
+  "canvas": {
+    "width": 1920,
+    "height": 1080,
+    "drawingBufferWidth": 1920,
+    "drawingBufferHeight": 1080,
+    "dpr": 1,
+    "audioTracks": 1
+  },
+  "before": {
+    "phase": "playing",
+    "time": 1.35,
+    "fired": 0,
+    "kills": 0,
+    "threats": 4,
+    "viewMode": "enhanced",
+    "selected": 1,
+    "rankStatus": "recording"
+  },
+  "after": {
+    "phase": "success",
+    "time": 55.449999999998134,
+    "fired": 6,
+    "kills": 4,
+    "threats": 0,
+    "viewMode": "enhanced",
+    "selected": 2,
+    "rankStatus": "finished"
+  },
+  "events": [
+    {
+      "seconds": 0.949,
+      "fired": 1,
+      "weapon": 1,
+      "target": 13
+    },
+    {
+      "seconds": 6.137,
+      "fired": 2,
+      "weapon": 1,
+      "target": 13
+    },
+    {
+      "seconds": 10.468,
+      "fired": 3,
+      "weapon": 2,
+      "target": 15
+    },
+    {
+      "seconds": 19.728,
+      "fired": 4,
+      "weapon": 2,
+      "target": 17
+    },
+    {
+      "seconds": 28.312,
+      "fired": 5,
+      "weapon": 2,
+      "target": 19
+    },
+    {
+      "seconds": 39.545,
+      "fired": 6,
+      "weapon": 2,
+      "target": 19
+    }
+  ],
+  "storageAfter": {
+    "legacyRuns": 0,
+    "journals": 0,
+    "receipts": 1
+  }
+}

@@ -133,7 +133,7 @@ export function registerGameRoutes(
       const query = z
         .object({
           ruleVersion: z
-            .enum(['night-records-v1', 'night-growth-v1', 'night-campaign-v2'])
+            .enum(['night-records-v1', 'night-growth-v1', 'night-campaign-v2', 'night-campaign-v3'])
             .optional(),
         })
         .strict()
@@ -149,7 +149,7 @@ export function registerGameRoutes(
         ...(game === 'night-overwatch' && board.startsWith('level-')
           ? {
               ruleVersion: boardKey.split(':').at(-1),
-              historyVersions: ['night-records-v1', 'night-growth-v1'],
+              historyVersions: ['night-records-v1', 'night-growth-v1', 'night-campaign-v2'],
             }
           : {}),
         ...boardDefinition,

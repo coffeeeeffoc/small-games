@@ -621,7 +621,7 @@ test('changing missions requires a briefing or result; retry preserves the chose
   g.retry();
   assert.equal(g.sim.mission.id, 'ambush-02');
   assert.equal(g.sim.phase, 'playing');
-  assert.equal(g.sim.spawned.size, 6);
+  assert.equal(g.sim.spawned.size, 24);
   assert.equal(g.sim.held.size, 0);
   assert.equal(g.sim.time, 0);
 });
@@ -717,7 +717,7 @@ test('returning home aborts a live mission, clears input and starts the next map
   g.action('mission:ambush-02');
   assert.equal(g.sim.mission.map, 'highland'); assert.equal(g.world.map, 'highland');
   assert.equal(g.sim.phase, 'briefing');
-  g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 6);
+  g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 24);
   g.action('home'); g.action('exitConfirm'); assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.fired, 0);
 });
 
@@ -1027,3 +1027,14 @@ test('refinement: horizontal wheel moves right and vertical wheel remains a forw
    globals.__nightStorage={getItem:()=> 'backend'};assert.equal(getNightStorage(),globals.__nightStorage);
   }finally{cc.sys.isBrowser=browser;if(previous===undefined)delete globals.__nightStorage;else globals.__nightStorage=previous;}
  });
+
+
+test('campaign best-time keys preserve old records without treating them as current physics',()=>{
+  const old=JSON.stringify({'corridor-01':{bestMs:12000,attempts:4}}),values=new Map([['night-overwatch-times-v1',old]]);
+  const storage={getItem:(key:string)=>values.get(key)??null,setItem:(key:string,value:string)=>{values.set(key,value);},removeItem:(key:string)=>{values.delete(key);}};
+  const first=new Platform(new Node(),()=>{},()=>{},storage);
+  assert.deepEqual(first.times,{});first.times={'corridor-01':{bestMs:26000,attempts:1}};first.saveTimes();first.dispose();
+  assert.equal(values.get('night-overwatch-times-v1'),old);
+  assert(values.has('night-overwatch-times:night-campaign-v3'));
+  const restored=new Platform(new Node(),()=>{},()=>{},storage);assert.deepEqual(restored.times,{'corridor-01':{bestMs:26000,attempts:1}});restored.dispose();
+});

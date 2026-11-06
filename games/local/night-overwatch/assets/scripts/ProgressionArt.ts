@@ -26,8 +26,9 @@ const pageAssets: Record<ProgressionPage,string[]> = {
   shop: ['base',...equipmentAssets], loadout: ['hangar',...equipmentAssets],
   supply: ['base','reward-atlas'], growth: ['base','06-growth-skills','gear-atlas-v2'],
   tasks: ['hangar','07-tasks'], inbox: ['base','08-inbox'],
+  craft: ['hangar',...equipmentAssets],
   warehouse: ['hangar','reward-atlas',...equipmentAssets,'01-home'],
-  receipts: ['base','reward-atlas'], checkin: ['hangar','05-supply','08-inbox'], probability: ['base'],
+  receipts: ['base','reward-atlas'], checkin: ['hangar','05-supply','08-inbox',...equipmentAssets], probability: ['base'],
 };
 const warmAssets = ['base','hangar','03-mode-selection',...equipmentAssets,'reward-atlas','07-tasks','08-inbox','05-supply','resultBadge'];
 

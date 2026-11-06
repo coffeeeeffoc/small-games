@@ -2,6 +2,12 @@
 
 2026-11-06 二级页安全区背景：补给、商店、成长等共用工具栏背景延伸至屏幕顶部，按钮/文字仍避让原安全区，背景下边缘与主体布局不变。Creator 3.8.8 源码摘要 `b2f6a86f537bf87fb0a80d900bf4eaee913d31f0daa92f02add8a489876b0378`，web-mobile 59,277,141字节；58项HUD/安全区、类型检查及三尺寸12个浏览器场景通过。[修复、截图与边界](../docs/design/safe-area-2026-11-06/README.md)。既有上架媒体保留原采集身份，QA图不作为正式素材；这是背景覆盖修复，不改变K90实际安全区上报。未上传TapTap、未部署Runtime，实体机/真宿主待换包验收。
 
+2026-11-06 本地联调部署：Runtime已更新为 `night-20261106-rewards-2c8a3d80`，435项制品校验通过，包含本工作区未提交奖励和平衡修复。35表备份恢复一致，只切换Runtime，原数据库、网关及Sakura FRP配置保留。公网/本地健康、CORS及访问限制、真实签到/首通/复刷/合成/装配与跨入口幂等通过；`http://localhost:4318` 前端已实际连接FRP进入大厅、读取新奖励配置，异常0。[脱敏联调回执](../docs/design/rewards-2026-11-06/review/local-deployment.json)。这是启用资产调整的测试服务器；未上传新渠道包、部署生产、提交或推送，真实TapTap宿主及实体机仍待验收。
+
+2026-11-06 后续合理性/平衡审查：修复永久拥有后仍能购买/合成无用临时装备，以及对战延迟结算导致时长门槛误判；商城和合成同步禁用，技能合成提示Lv6/Lv10免费保底，旧库存可出售且旧回执幂等保留。四条碎片回收及礼包期望核算无正收益循环，未任意削减正常奖励。105项客户端、233项Runtime非数据库、50项真实PostgreSQL和三尺寸中英60图通过；Creator摘要 `59a4cf8b9a18324a59cd4ecf26a74c46fe6a7cbc54adaca3f46cf03e5b5ce48e`，59,287,209字节。[审查结论与剩余边界](../docs/design/rewards-2026-11-06/README.md#后续代码与平衡审查)。八类28项媒体核验沿用原采集身份；未提交、推送、部署或上传。真机、长期经济、服务端关卡进度迁移及广告凭据仍未验收，整体lint既存超限保持如实记录。
+
+2026-11-06 评价与奖励成长：读取应用987511全部7条评价，修复结算后资产刷新失败与乱序覆盖，增加签到随机单场武器、逐关差异、一次性首通奖励、单场/永久碎片合成及有效真人对战碎片上限。保留旧库存、永久资格与等级技能保底。Creator源码摘要 `43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53`，web-mobile 59,287,014字节；136项客户端、233项Runtime非数据库规则、49项真实PostgreSQL专项通过。普通游客实测首通→两次重刷→自然10片合成→配装保存，弱网恢复、签到重载、三尺寸中英文与触控回归通过。[方案、评价与验证](../docs/design/rewards-2026-11-06/README.md)。新增约57秒1080p连续首关视频及两张正式截图，简介/开发者说明同步奖励，其余媒体保留原采集身份。Runtime整体lint有既存354行测试文件超限，本次修改文件lint通过；未部署、上传、提交或推送，后续须配套更新Runtime与H5包。桌面WebGL不代表实体手机或TapTap宿主验收。
+
 2026-11-05 按审核反馈重做素材并整理HUD：连续首关录屏与30秒宣传片均从战斗画面开始，完整画布采集无录屏软件悬浮控件；宣传片前27秒为五组真实武器/成像镜头，最后3秒品牌收尾。使用最终Creator源码摘要 `04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6`，web-mobile 59,276,767字节。HUD主类字节减少72.9%，按职责拆分并改善命名/排版/注释；关卡用语及中英文电台同步更新，每日任务保留原意。同步后的同键缓存覆盖内存、IndexedDB和旧localStorage清理，防重复回执保留7天。[代码与验证](../docs/verification-2026-11-04-refinement.md#hud可读性跨库清理与战斗素材)、[素材来源与证据](promo/videos/review-2026-11-05-source/README.md)。本轮未上传TapTap或重新提审；桌面WebGL录屏不是实体手机采集。下方旧日期记录保留历史身份。
 
 2026-11-05 统一存储与视图整理：最终Creator源码摘要 `6ba6bfd5db3ebb40387c8957240d7e39edf87a6efe7de25a0e8aa4acc61a8721`，web-mobile 59,258,397字节。显式共享存储实例、可替换后端及可靠持久化边界保留；HUD大厅/设置/指南和Overwatch只读快照分离，主类字节分别减少26.1%/10.0%。180项最终存储/共享/Night/原生、105项HUD输入及新增入口1项、8项消费者范围、25项包边界与类型检查通过。同一制品通过7场启动、真实首关故障结算、三尺寸设置/指南/触控和真实聊天8项，旧库写0；正式到账100/180/120且重载不重复。[架构与缓存决定](../docs/architecture/storage-and-view-modules.md)、[验证及6张QA](../docs/verification-2026-11-04-refinement.md#统一存储与视图模块整理)。八类23项资料沿用原核验身份；无视觉规则变更，不重录宣传媒体。由主会话完成最终提交推送；未上传新渠道包或部署生产，实体机及TapTap宿主待验收。
@@ -48,18 +54,18 @@
 | 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png)，复核沿用 |
 | 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png)，仅标题，复核沿用 |
 | 宣传视频 | 已提供 | [战斗开场新版](promo/videos/night-overwatch-action-2026-11-05-1920x1080.mp4)，30秒 / 1920×1080 / 30fps / H.264 MP4 / AAC；前27秒五组真实战斗，最后3秒品牌收尾，沿用原创电子配乐。[源码与验证](promo/videos/review-2026-11-05-source/README.md)；旧版保留归档 |
-| 游戏截图 | 已提供 | 10张1280×720 PNG：[夜景](gameplay/screenshots/2026-11-04-support/night-1280.png)、[增强](gameplay/screenshots/2026-11-04-support/enhanced-1280.png)、[热像](gameplay/screenshots/2026-11-04-support/thermal-1280.png)、[设置](gameplay/screenshots/2026-11-05-mobile/settings-1280.png)、[正式结算](gameplay/screenshots/2026-11-05-mobile/settlement-1280.png)、[装配](gameplay/screenshots/2026-11-04-support/equipment-1280.png)、[首页](gameplay/screenshots/2026-11-05-mobile/home-1280.png)、[等级成长](gameplay/screenshots/2026-11-04-refinement/growth-1280.png)、[开始行动](gameplay/screenshots/2026-11-04-refinement/modes-1280.png)、[横向选关](gameplay/screenshots/2026-11-04-refinement/missions-1280.png) |
-| 实机录屏 | 已提供 | [约56秒连续首关录屏](gameplay/videos/night-overwatch-combat-2026-11-05-1920x1080.mp4)，1920×1080 / 30fps / H.264 / AAC，保留游戏音效及电台；第一帧即战斗，0.737秒首次开火，连续录至真实服务结算，无遮挡控件。桌面浏览器实录，非实体手机 |
+| 游戏截图 | 已提供 | 10张1280×720 PNG：[夜景](gameplay/screenshots/2026-11-04-support/night-1280.png)、[增强](gameplay/screenshots/2026-11-04-support/enhanced-1280.png)、[热像](gameplay/screenshots/2026-11-04-support/thermal-1280.png)、[设置](gameplay/screenshots/2026-11-05-mobile/settings-1280.png)、[正式结算](gameplay/screenshots/2026-11-06-rewards/settlement-1280.png)、[装配](gameplay/screenshots/2026-11-04-support/equipment-1280.png)、[首页](gameplay/screenshots/2026-11-05-mobile/home-1280.png)、[等级成长](gameplay/screenshots/2026-11-04-refinement/growth-1280.png)、[开始行动](gameplay/screenshots/2026-11-04-refinement/modes-1280.png)、[横向选关](gameplay/screenshots/2026-11-06-rewards/missions-1280.png) |
+| 实机录屏 | 已提供 | [约57秒连续首关录屏](gameplay/videos/night-overwatch-combat-2026-11-06-1920x1080.mp4)，1920×1080 / 30fps / H.264 / AAC，保留游戏音效及电台；第一帧即战斗，约0.95秒首次开火，连续录至真实服务结算，无遮挡控件。桌面浏览器实录，非实体手机 |
 
-[媒体清单](manifest.json)记录大小、尺寸、摘要及采集身份。2026-11-05本轮新增两支视频，共25个文件；简介和开发者说明同步关卡用语，其余图像及历史视频保留原采集身份。新视频由隔离真实PostgreSQL/HTTP普通游客和实际输入采集，无开发资产或模拟结果；完整解码、逐秒画面及1倍速播放见[成片证据](promo/videos/review-2026-11-05-source/evidence.json)。QA安全区、拖动与小屏图片单独放在验证文档，不作正式媒体。历史截图可能保留旧关卡用语，不冒称本轮重拍。
+[媒体清单](manifest.json)记录大小、尺寸、摘要及采集身份。2026-11-06共28文件核验：新增连续首关视频、正式结算及选关两图，简介和开发者说明同步奖励。其余图像及视频保留原采集身份，30秒宣传片沿用；新素材由隔离真实PostgreSQL/HTTP普通游客实际操作采集。QA合成与小屏图片单独放在[方案与验证](../docs/design/rewards-2026-11-06/README.md)，不作正式媒体。
 
 静态图标、宣传图和推荐语保留原采集身份；历史截图与视频继续归档保留。素材许可见[素材清单](../docs/ASSET_MANIFEST.json)，本轮内置imagegen提示词、效果图和实际对照见[设计目录](../docs/design/refinement-2026-11-04/README.md)。
 
 ## 本地联调与验证
 
-本地Runtime已更新为 `small-games-bundle:night-20261102-chat-0227fe76`，对应干净源码提交 `0227fe76b72ff6d11b0b30e3ef3db5085b0f91d6`。升级前备份恢复32张表一致；只追加016聊天迁移，32张既有表指纹保持一致，仅重建Runtime，原PostgreSQL与网关保留。后续最终提交只调整前端单项奖励布局、测试和资料，不改变后端运行源码。
+本地Runtime为 `small-games-bundle:night-20261106-rewards-2c8a3d80`，镜像摘要 `40ded0a5f148f776ebb0939846a3b3d80147834937042a6c6397d814df902de9`；源码基点 `dcc5d0ed24e1c2558e584d92f82ae8812e6afd85`、`sourceDirty=true`，包括本次未提交的奖励和平衡修复。435项制品及7份Night核心源码匹配；升级前备份恢复35张表一致，仅重建Runtime，原PostgreSQL和网关容器保留，原库未执行SQL或钱包迁移。
 
-本地API为 `http://127.0.0.1:43003/api/competition/v1`，FRP API为 `https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1`。本地与FRP健康检查200、未认证游戏请求401、TapTap CORS预检204、认证聊天只读200；[部署证据](../docs/verification-2026-11-02/docker-evidence.json)与[启动说明](../../../../docs/operations/night-overwatch-local-selftest.md)。
+本地API为 `http://127.0.0.1:43003/api/competition/v1`，FRP API为 `https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1`。本地与FRP健康200、未认证资产401、其他游戏/内部路径404、TapTap及本机预览CORS通过；新QA真实签到、首通、复刷、合成及跨入口重试通过。本机预览 `http://localhost:4318` 已连接公网API进入大厅；[本轮部署证据](../docs/design/rewards-2026-11-06/review/local-deployment.json)与[启动说明](../../../../docs/operations/night-overwatch-local-selftest.md)。
 
 最终三尺寸42张界面图与单奖励无多余滚动断言通过；逻辑定稿三尺寸74项交互、隔离真实服务8项聊天/邀请/观战及末关后段渲染通过。规则、资产、聊天、原生工具、迁移消费者和增量发布工具的具体范围、摘要及复用边界见[完整验证记录](../docs/verification-2026-11-02-revision.md)。过程reports已忽略；准确base/head、推送和CI/Pages结果以最终交付回执为准，不声明本地全仓候选门禁通过。
 

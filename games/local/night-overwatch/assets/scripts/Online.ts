@@ -2,14 +2,14 @@ import { practiceLoadout } from './core/Progression.ts';
 import { Simulation } from './core/Simulation.ts';
 import { createDuel, configureDuel, commandDuel, advanceDuel, viewDuel, type DuelCommand, type DuelState } from './core/Duel.ts';
 import { RANKED_RULE_VERSION, observeNightInputs } from './core/Replay.ts';
-import { MISSIONS } from './core/MissionCatalog.ts';
+import { MISSIONS, CAMPAIGN_BOARD_VERSION } from './core/MissionCatalog.ts';
 import type { AssetCommand, AssetSnapshot, BattleLoadout } from './core/Progression.ts';
 
 export type Player = { id?: string; userId?: string; playerId?: string; name?: string; nickname?: string; ready?: boolean; disconnected?: boolean; reconnectUntil?: number; takenOver?: boolean; settlement?: Settlement };
 export const playerId = (player: Player) => player.playerId || player.userId || player.id || '';
 export const playerLabel = (player: Player) => `${player.nickname || player.name || '飞行员'} #${playerId(player).replace(/-/g, '').slice(-8).toUpperCase()}`;
 type DuelView = Omit<ReturnType<typeof viewDuel>,'enemyEquipment'>&Partial<Pick<ReturnType<typeof viewDuel>,'enemyEquipment'>>;
-export type Settlement = { points: number; totalPoints?: number; wins?: number; games?: number; outcome?: string; coins?:number; xp?:number; totalXp?:number; status?:string };
+export type Settlement = { points: number; totalPoints?: number; wins?: number; games?: number; outcome?: string; coins?:number; xp?:number; totalXp?:number; status?:string; firstClear?:boolean; fragments?:Record<string,number> };
 export type RoomSummary = { code: string; status: string; mode: string; players: Player[]; playerCount: number; canJoin: boolean; canSpectate: boolean };
 export type BattleHistory = { summary: { wins: number; losses: number; draws: number; games: number; winRate: number };
   matches: { id: string; code: string; opponent: Player; outcome: string; reason: string; startedAt: number; finishedAt: number; durationMs: number; points: number }[]; nextCursor?: string };
@@ -82,7 +82,7 @@ export class Online {
   toggleBlock(id:string){if(id===this.authenticatedId)return;this.blockedPlayers.has(id)?this.blockedPlayers.delete(id):this.blockedPlayers.add(id);try{this.storage.setItem('night-chat-blocks:'+this.authenticatedId,JSON.stringify(Array.from(this.blockedPlayers)));}catch{}this.chatMenu='';this.chatRevision++;}
   async reportChat(id:string){const owner=this.authenticatedId;try{await this.bridge?.services.reportNightChat?.({id,reason:'玩家举报：不适当或骚扰内容'},owner);if(owner===this.authenticatedId)this.chatStatus='举报已提交';}catch{if(owner===this.authenticatedId)this.chatStatus='举报失败，请稍后重试';}if(owner===this.authenticatedId){this.chatMenu='';this.chatRevision++;}}
   back(){this.show(this.panelHistory.pop()||'',false);}
-  dispose(){this.destroyed=true;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';}
+  dispose(){this.destroyed=true;this.rewardRefresh=undefined;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';}
   identity: Player;
   panel: '' | 'menu' | 'room' | 'ranking' | 'profile' | 'create' | 'join' | 'history' = '';
   rooms: RoomSummary[] = [];
@@ -111,8 +111,9 @@ export class Online {
   assets?:AssetSnapshot;
   battleReward?:Settlement;
   private battleReceipt = '';
+  private rewardRefresh?: { owner: string; inflight: boolean; retryAt: number };
   private rankingAttempt = 0;
-  rankingVersion='night-campaign-v2';
+  rankingVersion=CAMPAIGN_BOARD_VERSION;
   authenticatedId='';
   level = 0;
   ranking?: Ranking;
@@ -221,7 +222,20 @@ export class Online {
   private receiveBattleReward(result: Settlement | null | undefined, receipt: string) {
     if (result?.status !== 'credited' || !Number.isSafeInteger(result.coins) || !Number.isSafeInteger(result.xp) || result.coins! < 0 || result.xp! < 0 || this.battleReceipt === receipt) return;
     this.battleReward = result; this.battleReceipt = receipt; this.revision++;
-    void this.refreshAssets().catch(() => {});
+    this.rewardRefresh = { owner: this.authenticatedId, inflight: false, retryAt: 0 };
+    void this.refreshBattleAssets(performance.now());
+  }
+  private async refreshBattleAssets(now: number) {
+    const pending = this.rewardRefresh;
+    if (!pending || pending.inflight || now < pending.retryAt || !this.foreground || this.destroyed) return;
+    if (pending.owner !== this.authenticatedId) { this.rewardRefresh = undefined; return; }
+    pending.inflight = true;
+    try {
+      await this.refreshAssets();
+      if (this.rewardRefresh === pending) this.rewardRefresh = undefined;
+    } catch {
+      pending.retryAt = performance.now() + 5000;
+    } finally { pending.inflight = false; }
   }
   async finishRanking() {
     const recorder = this.recorder, owner = this.authenticatedId, attempt = this.rankingAttempt;
@@ -235,6 +249,7 @@ export class Online {
   private acceptMetadata(metadata: Metadata | undefined) {
     if (!metadata) return;
     const owner=playerId(metadata.identity);
+    if (owner !== this.authenticatedId) this.rewardRefresh = undefined;
     if(owner!==this.authenticatedId){this.assets=undefined;this.battleReward=undefined;this.authenticatedId=owner;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.chatIntent=undefined;this.chatSending=false;this.chatMenu='';this.chatCursor='';this.chatAcceptedAt=0;this.chatStatus='';this.chatOwner=owner;this.chatRevision++;this.blockedPlayers=new Set();try{this.blockedPlayers=new Set(JSON.parse(this.storage.getItem('night-chat-blocks:'+owner)||'[]'));}catch{}}
     this.identity = metadata.identity;
     this.draftName = this.identity.nickname || this.identity.name || '';
@@ -244,18 +259,25 @@ export class Online {
     this.revision++;
   }
   assetsReceivedAt=0;
+  private acceptAssets(result: AssetSnapshot) {
+    const current = this.assets;
+    // 迟到的读取不能撤销已到账的资产；命令仍向调用方返回自己的交易回执。
+    if (current?.playerId === result.playerId && (result.revision < current.revision ||
+      result.revision === current.revision && result.serverNow < current.serverNow)) return;
+    this.assets=result;this.assetsReceivedAt=performance.now();this.revision++;
+  }
   async refreshAssets(){
     if(!this.bridge?.services.nightAssets)throw Error('Assets unavailable');
     this.acceptMetadata(await (this.bridge.refresh?.()??this.bridge.ready));
     const owner=this.authenticatedId,result=await this.bridge.services.nightAssets(owner);
     if(owner!==this.authenticatedId||result.playerId!==owner)throw Object.assign(Error('Identity changed'),{code:'IDENTITY_CHANGED'});
-    this.assets=result;this.assetsReceivedAt=performance.now();this.revision++;return result;
+    if (!this.destroyed) this.acceptAssets(result);return result;
   }
   async assetCommand(command:AssetCommand){
     if(!this.bridge?.services.nightAssetCommand)throw Error('Assets unavailable');
     const owner=this.authenticatedId,result=await this.bridge.services.nightAssetCommand(command,owner);
     if(owner!==this.authenticatedId||result.playerId!==owner)throw Object.assign(Error('Identity changed'),{code:'IDENTITY_CHANGED'});
-    this.assets=result;this.assetsReceivedAt=performance.now();this.revision++;return result;
+    if (!this.destroyed) this.acceptAssets(result);return result;
   }
   get active() { return !!this.view; }
   get spectator() { return !!this.room?.spectator || this.room?.you === -1; }
@@ -416,6 +438,7 @@ export class Online {
     });
   }
   async pump(now: number) {
+    void this.refreshBattleAssets(now);
     void this.pollChat(now);
     if (now >= this.syncAt) { this.syncAt = now + 10000; void this.recorder?.recover?.(); }
     if (this.replaced) return;
@@ -491,7 +514,7 @@ export class Online {
     this.view = view; if (start) this.panel = '';
     this.changed(view, start);
   }
-  async cycleRankingVersion() { this.rankingVersion=this.rankingVersion==='night-campaign-v2'?'night-growth-v1':this.rankingVersion==='night-growth-v1'?'night-records-v1':'night-campaign-v2';await this.loadRanking(); }
+  async cycleRankingVersion() { this.rankingVersion=this.rankingVersion===CAMPAIGN_BOARD_VERSION?'night-campaign-v2':this.rankingVersion==='night-campaign-v2'?'night-growth-v1':this.rankingVersion==='night-growth-v1'?'night-records-v1':CAMPAIGN_BOARD_VERSION;await this.loadRanking(); }
   async loadRanking(level = this.level, board = this.board) {
     const request = ++this.rankingRequest;
     this.board = board;

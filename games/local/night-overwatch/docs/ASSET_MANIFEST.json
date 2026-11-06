@@ -2,6 +2,24 @@
   "schemaVersion": 1,
   "assets": [
     {
+      "assetId": "soldier.infantry",
+      "status": "original-procedural",
+      "sourceFile": "assets/scripts/World.ts",
+      "runtimeAsset": "generated-in-Cocos",
+      "license": {
+        "source": "Original project procedural low-poly standing infantry and fallen remains",
+        "authorOrService": "project procedural generators",
+        "acquiredAt": "2026-11-07",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "textureCount": 0,
+        "externalModelDependencies": 0,
+        "runtimeUsage": "Solo and duel stationary infantry; authoritative position and body collision"
+      }
+    },
+    {
       "assetId": "terrain.ground",
       "status": "original-procedural",
       "sourceFile": "assets/scripts/World.ts",

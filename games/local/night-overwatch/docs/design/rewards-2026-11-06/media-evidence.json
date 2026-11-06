@@ -1,0 +1,48 @@
+{
+  "sourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p"
+      },
+      {
+        "codec_name": "aac"
+      }
+    ],
+    "format": {
+      "duration": "57.330500",
+      "size": "49565100"
+    }
+  },
+  "playback": {
+    "ended": true,
+    "error": null,
+    "currentTime": 57.3305,
+    "duration": 57.3305,
+    "rate": 1
+  },
+  "decoded": true,
+  "filesVerified": 28,
+  "video": {
+    "path": "gameplay/videos/night-overwatch-combat-2026-11-06-1920x1080.mp4",
+    "bytes": 49565100,
+    "sha256": "2047a4a56eb7f0b19dc0f15a3056927a2c5c9fd1fd8a5a6786ba26e3ec6dab89",
+    "capturedSourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
+    "verifiedForSourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
+    "reusedUnchanged": false,
+    "width": 1920,
+    "height": 1080,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "durationSeconds": 57.3305,
+    "decoded": true,
+    "playedToEnd": true,
+    "environment": "Continuous desktop WebGL recording; isolated real PostgreSQL/HTTP; ordinary guest and pointer input; game audio",
+    "evidence": "../docs/design/rewards-2026-11-06/media-evidence.json"
+  }
+}

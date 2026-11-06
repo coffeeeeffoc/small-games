@@ -28,6 +28,20 @@ type Product = {
   unlockLevel?: number;
 };
 export type ProgressionRules = {
+  economy?: {
+    version: string;
+    checkinCategories?: string[];
+    bundleTiers?: { coins: number; xp: number; fragments: number }[];
+    recipes: readonly { effect: string; fragment: string; match: number; permanent: number }[];
+    fragmentSell: number;
+    duelFragmentLimit: number;
+    duelFragmentMinMs: number;
+    campaign: {
+      levelId: string;
+      repeat: { coins: number; xp: number; fragment: string; fragments: number };
+      first: { coins: number; xp: number; fragment: string; fragments: number };
+    }[];
+  };
   version: string;
   catalog: Product[];
   packages: { quantity: number; coins: number; videos: number }[];
@@ -42,6 +56,8 @@ export type ProgressionRules = {
 };
 type Reward = { coins: number; xp: number; packs?: number; permanent?: string };
 type BattleReward = Reward & {
+  firstClear?: boolean;
+  fragments?: Record<string, number>;
   totalCoins: number;
   totalXp: number;
   level: number;
@@ -103,6 +119,8 @@ export type NightAssets = {
   videoDays: Record<string, number>;
   wheelTickets?: number;
   wheelVideoDays?: Record<string, number>;
+  fragmentDays?: Record<string, number>;
+  achievementHistoryVersion?: 1;
   reservations: Record<string, Reservation>;
   legacy?: Record<string, unknown>;
   migratedAt: number;
@@ -121,6 +139,7 @@ export const nightAssetCommandSchema = z.discriminatedUnion('kind', [
     .strict(),
   z.object({ kind: z.literal('buy'), requestId, item, quantity: quantity.default(1) }).strict(),
   z.object({ kind: z.literal('checkin'), requestId }).strict(),
+  z.object({ kind: z.literal('craft'), requestId, item }).strict(),
   z
     .object({
       kind: z.literal('buy-packs'),
@@ -214,6 +233,30 @@ const ACHIEVEMENTS = [
     reward: { coins: 1000, xp: 500, permanent: 'emp' },
   },
 ];
+const LONG_ACHIEVEMENTS = [
+  ...[250, 500, 1000].map((target, i) => ({
+    id: `sorties-${target}`,
+    name: `累计行动 ${target} 次`,
+    event: 'complete',
+    target,
+    reward: { coins: [1200, 2000, 3200][i]!, xp: [600, 1000, 1800][i]!, packs: [3, 5, 8][i]! },
+  })),
+  ...[100, 250, 500].map((target, i) => ({
+    id: `victories-${target}`,
+    name: `累计胜利 ${target} 次`,
+    event: 'win',
+    target,
+    reward: { coins: [1200, 2200, 3600][i]!, xp: [600, 1200, 2000][i]!, packs: [3, 5, 8][i]! },
+  })),
+  ...[7, 30, 90].map((target, i) => ({
+    id: `checkins-${target}`,
+    name: `累计签到 ${target} 天`,
+    event: 'checkin',
+    target,
+    reward: { coins: [300, 1000, 2400][i]!, xp: [150, 500, 1200][i]!, packs: [1, 3, 6][i]! },
+  })),
+];
+ACHIEVEMENTS.push(...LONG_ACHIEVEMENTS);
 const templates = [
   {
     id: 'checkin',
@@ -250,6 +293,10 @@ function prepare(w: NightAssets, owner: string, at: number, rules: ProgressionRu
   const day = nightDay(at),
     oldest = nightDay(at - 7 * 86400000);
   w.tasks = w.tasks.filter((t) => t.day >= oldest);
+  if (w.fragmentDays)
+    w.fragmentDays = Object.fromEntries(
+      Object.entries(w.fragmentDays).filter(([key]) => key >= oldest),
+    );
   if (!w.tasks.some((t) => t.day === day)) {
     const seed = createHash('sha256').update(`${owner}:${day}`).digest().readUInt32LE();
     const selected = [
@@ -449,6 +496,24 @@ async function locked(tx: Tx, owner: string, at: number, rules: ProgressionRules
   prepare(w, owner, at, rules);
   return w;
 }
+async function backfillLongAchievements(tx: Tx, w: NightAssets, owner: string) {
+  if (w.achievementHistoryVersion === 1) return;
+  const history = await tx.execute(
+    sql`select count(*)::int as complete,count(*) filter(where data->'input'->>'outcome'='win')::int as wins from runtime.competition_matches where board=${board} and id like ${eventId(owner, 'battle:%')} and data->'input'->>'valid'='true' and (data->'input'->>'durationMs')::numeric>=10000`,
+  );
+  for (const a of LONG_ACHIEVEMENTS) {
+    const previous = w.achievements[a.id],
+      count =
+        a.event === 'checkin'
+          ? new Set(w.signedDays).size
+          : Number(history[0]?.[a.event === 'win' ? 'wins' : 'complete'] ?? 0);
+    w.achievements[a.id] = {
+      progress: Math.min(a.target, Math.max(previous?.progress ?? 0, count)),
+      claimed: previous?.claimed ?? false,
+    };
+  }
+  w.achievementHistoryVersion = 1;
+}
 async function save(tx: Tx, owner: string, w: NightAssets) {
   w.revision++;
   await tx.execute(
@@ -510,6 +575,9 @@ function snapshot(w: NightAssets, owner: string, at: number, rules: ProgressionR
     quoteVersion: rules.version,
     adVerification: 'limited-client-callback',
     legacyPreserved: !!w.legacy,
+    ...(rules.economy
+      ? { economy: rules.economy, duelFragmentBattlesToday: w.fragmentDays?.[nightDay(at)] ?? 0 }
+      : {}),
   };
 }
 function drawPacks(rules: ProgressionRules, pool: string, quantity: number) {
@@ -545,6 +613,22 @@ export async function nightAssets(
   const w = await locked(tx, owner, at, rules),
     day = nightDay(at);
   const response = async (lastReceipt?: unknown) => {
+    const cleared = rules.economy
+      ? await tx.execute(
+          sql`select board from runtime.competition_results where player_id=${owner} and score>0 and (board like 'night-overwatch:clear-%:night-records-v1' or board ~ '^night-overwatch:level-[a-z0-9-]+:night-input-replay-v[0-9]+$') union select board from runtime.competition_best where player_id=${owner} and score>0 and board like 'night-overwatch:level-%:night-records-v1'`,
+        )
+      : [];
+    const clearedLevels = [
+      ...new Set(
+        cleared
+          .map((row) =>
+            String(row.board)
+              .replace(/^night-overwatch:(clear|level)-/, '')
+              .replace(/:(night-records-v1|night-input-replay-v[0-9]+)$/, ''),
+          )
+          .filter((id) => rules.economy?.campaign.some((level) => level.levelId === id)),
+      ),
+    ];
     const rows = await tx.execute(
       sql`select data,created_at from runtime.competition_matches where board=${board} and id like ${eventId(owner, 'request:%')} and data->'result'->>'kind'='open' order by created_at desc,id desc limit 20`,
     );
@@ -555,7 +639,7 @@ export async function nightAssets(
             requestId: string;
             item?: string;
             quantity?: number;
-            drops: Array<{ item?: string; coins?: number }>;
+            drops: Array<{ item?: string; coins?: number; xp?: number }>;
           };
         }
       ).result;
@@ -569,6 +653,7 @@ export async function nightAssets(
     });
     return {
       ...snapshot(w, owner, at, rules),
+      ...(rules.economy ? { clearedLevels } : {}),
       devToolsEnabled: development,
       openReceipts,
       wheelTickets: w.wheelTickets ?? 0,
@@ -579,6 +664,7 @@ export async function nightAssets(
     };
   };
   if (!command) {
+    await backfillLongAchievements(tx, w, owner);
     await save(tx, owner, w);
     return response();
   }
@@ -608,6 +694,7 @@ export async function nightAssets(
       return response(result);
     }
   }
+  await backfillLongAchievements(tx, w, owner);
   let result: Record<string, unknown> = { kind: cmd.kind, requestId: cmd.requestId };
   if (cmd.kind === 'dev-adjust') {
     const before = { coins: w.coins, xp: w.xp };
@@ -619,10 +706,10 @@ export async function nightAssets(
     result = { ...result, before, after, coinsDelta: cmd.coinsDelta, xpDelta: cmd.xpDelta };
   } else if (cmd.kind === 'buy') {
     const p = rules.catalog.find((p) => p.id === cmd.item) ?? fail('ITEM_UNAVAILABLE');
+    if (w.permanent.includes(p.effect) || (p.term === 'permanent' && cmd.quantity !== 1))
+      fail('ALREADY_OWNED');
     if (rules.levelProgress(w.xp).level < (p.unlockLevel ?? rules.skills[p.effect]?.level ?? 1))
       fail('LEVEL_LOCKED');
-    if (p.term === 'permanent' && (w.permanent.includes(p.effect) || cmd.quantity !== 1))
-      fail('ALREADY_OWNED');
     spend(w, p.price * cmd.quantity);
     if (p.term === 'permanent') w.permanent.push(p.effect);
     else stock(w, p.id, cmd.quantity);
@@ -630,10 +717,48 @@ export async function nightAssets(
   } else if (cmd.kind === 'checkin') {
     if (w.signedDays.includes(day)) fail('ALREADY_CLAIMED');
     w.signedDays.push(day);
-    const reward = { coins: 100 + (w.signedDays.length % 7 === 0 ? 100 : 0), xp: 40, packs: 1 };
+    const reward = {
+      coins: 100 + (w.signedDays.length % 7 === 0 ? 100 : 0),
+      xp: 40,
+      ...(rules.economy ? {} : { packs: 1 }),
+    };
     add(w, reward);
     progress(w, day, ['checkin']);
     result = { ...result, reward };
+    if (rules.economy) {
+      prepare(w, owner, at, rules);
+      const availableGear = rules.catalog.filter(
+        (p) => p.term === 'match' && !w.permanent.includes(p.effect),
+      );
+      const missing = availableGear.filter(
+        (p) =>
+          (w.active[p.effect] ?? 0) <= at &&
+          !rules.catalog.some(
+            (other) => other.effect === p.effect && (w.inventory[other.id] ?? 0) > 0,
+          ),
+      );
+      const pool = missing.length ? missing : availableGear;
+      const categories = [...new Set(pool.map((p) => p.category))];
+      const category = categories.length ? categories[randomInt(categories.length)] : undefined;
+      const choices = pool.filter((p) => p.category === category),
+        prize = choices.length ? choices[randomInt(choices.length)] : undefined;
+      const item = prize?.id ?? 'fragment:weapon',
+        count = prize ? 1 : 10;
+      stock(w, item, count);
+      result.items = { [item]: count };
+    }
+  } else if (cmd.kind === 'craft') {
+    const product = rules.catalog.find((p) => p.id === cmd.item) ?? fail('ITEM_UNAVAILABLE');
+    const recipe =
+      rules.economy?.recipes.find((r) => r.effect === product.effect) ?? fail('ITEM_UNAVAILABLE');
+    if (product.term !== 'match' && product.term !== 'permanent') fail('ITEM_UNAVAILABLE');
+    if (w.permanent.includes(product.effect)) fail('ALREADY_OWNED');
+    const cost = product.term === 'permanent' ? recipe.permanent : recipe.match;
+    if (available(w, recipe.fragment) < cost) fail('INSUFFICIENT_FRAGMENTS');
+    stock(w, recipe.fragment, -cost);
+    if (product.term === 'permanent') w.permanent.push(product.effect);
+    else stock(w, product.id, 1);
+    result = { ...result, items: { [product.id]: 1 }, spent: { [recipe.fragment]: cost } };
   } else if (cmd.kind === 'buy-packs' || cmd.kind === 'ad-order') {
     const quote =
       rules.packages.find((p) => p.quantity === cmd.quantity) ?? fail('INVALID_PACKAGE');
@@ -747,7 +872,12 @@ export async function nightAssets(
     if (cmd.kind === 'sell') {
       const unit = pack
         ? rules.pools[pack[1]!]!.packSell
-        : (p?.sell ?? (cmd.item.startsWith('legacy') ? 20 : 0));
+        : (p?.sell ??
+          (['fragment:weapon', 'fragment:skill'].includes(cmd.item)
+            ? (rules.economy?.fragmentSell ?? 0)
+            : cmd.item.startsWith('legacy')
+              ? 20
+              : 0));
       if (!unit) fail('ITEM_NOT_SELLABLE');
       consume();
       w.coins += unit * cmd.quantity;
@@ -757,23 +887,40 @@ export async function nightAssets(
       consume();
       const pool = rules.pools[pack[1]!]!,
         tier = Number(pack[2]);
-      const drops: Array<{ item?: string; coins?: number }> = [];
-      const choices = rules.catalog.filter(
-        (p) =>
-          p.term === 'match' &&
-          p.rarity === tier &&
-          p.category !== 'skill' &&
-          pool.effects.includes(p.effect) &&
-          (p.unlockLevel ?? 1) <= rules.levelProgress(w.xp).level &&
-          !w.permanent.includes(p.effect),
-      );
+      const drops: Array<{ item?: string; coins?: number; xp?: number }> = [];
+      const bundle = rules.economy?.bundleTiers?.[tier];
       for (let n = 0; n < cmd.quantity; n++) {
-        if (!choices.length) {
+        if (bundle) add(w, { coins: 0, xp: bundle.xp });
+        prepare(w, owner, at, rules);
+        const choices = rules.catalog.filter(
+          (p) =>
+            p.term === 'match' &&
+            !p.goldOnly &&
+            p.rarity === tier &&
+            pool.effects.includes(p.effect) &&
+            (p.category === 'skill'
+              ? !!bundle
+              : (p.unlockLevel ?? 1) <= rules.levelProgress(w.xp).level) &&
+            !w.permanent.includes(p.effect),
+        );
+        const prize = choices.length ? choices[randomInt(choices.length)] : undefined;
+        if (bundle) {
+          const coins = prize ? bundle.coins : pool.coinDrops[tier]!;
+          add(w, { coins, xp: 0 });
+          drops.push({ coins }, { xp: bundle.xp });
+          const fragment =
+            ['tracking', 'emp'].every((effect) => w.permanent.includes(effect)) ||
+            randomInt(2) === 0
+              ? 'fragment:weapon'
+              : 'fragment:skill';
+          stock(w, fragment, bundle.fragments);
+          for (let i = 0; i < bundle.fragments; i++) drops.push({ item: fragment });
+        } else if (!prize) {
           const coins = pool.coinDrops[tier]!;
-          w.coins += coins;
+          add(w, { coins, xp: 0 });
           drops.push({ coins });
-        } else {
-          const prize = choices[randomInt(choices.length)]!;
+        }
+        if (prize) {
           stock(w, prize.id, 1);
           drops.push({ item: prize.id });
         }
@@ -1004,12 +1151,14 @@ export async function rewardNightBattle(
     durationMs: number;
     valid: boolean;
     levelId?: string;
+    firstClear?: boolean;
   },
 ) {
   const w = await locked(tx, owner, at, rules),
     id = eventId(owner, `battle:${battle}`);
   const prior = await tx.execute(sql`select data from runtime.competition_matches where id=${id}`);
   if (prior[0]) return (prior[0].data as { receipt: BattleReward }).receipt;
+  await backfillLongAchievements(tx, w, owner);
   const valid = input.valid && input.durationMs >= 10000;
   const reward: Reward = valid
     ? input.mode === 'solo'
@@ -1021,6 +1170,35 @@ export async function rewardNightBattle(
           }
         : { coins: input.outcome === 'win' ? 100 : 30, xp: input.outcome === 'win' ? 80 : 25 }
     : { coins: 0, xp: 0 };
+  const fragments: Record<string, number> = {};
+  const campaign = rules.economy?.campaign.find((level) => level.levelId === input.levelId);
+  if (valid && input.mode === 'solo' && input.outcome === 'win' && campaign) {
+    const grant = input.firstClear ? campaign.first : campaign.repeat;
+    reward.coins = grant.coins;
+    reward.xp = grant.xp;
+    const fragment =
+      grant.fragment === 'fragment:skill' &&
+      ['tracking', 'emp'].every((effect) => w.permanent.includes(effect))
+        ? 'fragment:weapon'
+        : grant.fragment;
+    fragments[fragment] = grant.fragments;
+  }
+  if (
+    valid &&
+    input.mode === 'duel' &&
+    rules.economy &&
+    input.durationMs >= rules.economy.duelFragmentMinMs
+  ) {
+    const day = nightDay(at),
+      count = w.fragmentDays?.[day] ?? 0;
+    if (count < rules.economy.duelFragmentLimit) {
+      const skillsOwned = ['tracking', 'emp'].every((effect) => w.permanent.includes(effect));
+      fragments[count % 2 && !skillsOwned ? 'fragment:skill' : 'fragment:weapon'] =
+        input.outcome === 'win' ? 2 : 1;
+      (w.fragmentDays ??= {})[day] = count + 1;
+    }
+  }
+  for (const [item, count] of Object.entries(fragments)) stock(w, item, count);
   add(w, reward);
   if (valid)
     progress(w, nightDay(at), [
@@ -1032,6 +1210,10 @@ export async function rewardNightBattle(
   await save(tx, owner, w);
   const receipt: BattleReward = {
     ...reward,
+    ...(campaign && valid && input.outcome === 'win'
+      ? { firstClear: input.firstClear === true }
+      : {}),
+    ...(Object.keys(fragments).length ? { fragments } : {}),
     totalCoins: w.coins,
     totalXp: w.xp,
     level: rules.levelProgress(w.xp).level,

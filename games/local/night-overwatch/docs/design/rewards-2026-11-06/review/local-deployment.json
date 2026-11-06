@@ -1,0 +1,106 @@
+{
+  "verifiedAt": "2026-11-06T15:40:57.471Z",
+  "release": "night-20261106-rewards-2c8a3d80",
+  "image": "small-games-bundle:night-20261106-rewards-2c8a3d80",
+  "imageId": "sha256:40ded0a5f148f776ebb0939846a3b3d80147834937042a6c6397d814df902de9",
+  "sourceCommit": "dcc5d0ed24e1c2558e584d92f82ae8812e6afd85",
+  "sourceDirty": true,
+  "verifiedFiles": 435,
+  "frontendSourceHash": "59a4cf8b9a18324a59cd4ecf26a74c46fe6a7cbc54adaca3f46cf03e5b5ce48e",
+  "apiUrl": "https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1",
+  "localApi": "http://127.0.0.1:43003/api/competition/v1",
+  "preview": "http://localhost:4318",
+  "backup": {
+    "directory": "F:\\playground\\playground-ai\\small-games\\.scratch\\night-overwatch-selftest\\backup-1793979433935",
+    "archiveSha256": "ad83323ad9df523df22624170b28ca2cd24d9d141f4c08492c3d03f7d0b5dbfa",
+    "tables": 35,
+    "restoreDigestsMatch": true,
+    "originalUnchangedBeforeSwitch": true,
+    "legacyRehearsal": {
+      "wallets": 5,
+      "preservedCoins": 80,
+      "conversionCoins": 3300,
+      "signDays": 2,
+      "legacyRowsUnchanged": true,
+      "idempotent": true
+    }
+  },
+  "runtimeOnly": true,
+  "originalDatabaseMigration": false,
+  "postgresAndGatewayContainersPreserved": true,
+  "tapTapConfigurationPreserved": true,
+  "testAssetAdjustmentEnabled": true,
+  "acceptance": {
+    "at": "2026-11-06T15:38:10.497Z",
+    "network": [
+      {
+        "origin": "http://127.0.0.1:43003",
+        "health": 200,
+        "anonymous": 401,
+        "otherGame": 404,
+        "internal": 404,
+        "allowedCors": true,
+        "unlistedCorsDenied": true
+      },
+      {
+        "origin": "https://nas.hc2a5c9f0.nyat.app:29549",
+        "health": 200,
+        "anonymous": 401,
+        "otherGame": 404,
+        "internal": 404,
+        "allowedCors": true,
+        "unlistedCorsDenied": true
+      }
+    ],
+    "rewards": [
+      {
+        "firstClear": true,
+        "coins": 360,
+        "xp": 240,
+        "fragments": 6,
+        "finishIdempotent": true
+      },
+      {
+        "firstClear": false,
+        "coins": 180,
+        "xp": 120,
+        "fragments": 2,
+        "finishIdempotent": true
+      },
+      {
+        "firstClear": false,
+        "coins": 180,
+        "xp": 120,
+        "fragments": 2,
+        "finishIdempotent": true
+      }
+    ],
+    "errors": [],
+    "checkin": {
+      "coins": 100,
+      "xp": 40,
+      "weapon": "laser-match",
+      "crossOriginIdempotent": true,
+      "secondClaimRejected": true
+    },
+    "crafting": {
+      "naturallyEarnedFragments": 10,
+      "remainingFragments": 0,
+      "item": "drone-match",
+      "crossOriginIdempotent": true,
+      "equipped": true
+    },
+    "release": "night-20261106-rewards-2c8a3d80",
+    "imageId": "sha256:40ded0a5f148f776ebb0939846a3b3d80147834937042a6c6397d814df902de9",
+    "passed": true
+  },
+  "browser": {
+    "origin": "http://localhost:4318",
+    "errors": [],
+    "apiRequests": 4,
+    "phase": "briefing",
+    "economy": "night-rewards-v2",
+    "apiUrl": "https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1",
+    "passed": true
+  }
+}

@@ -25,7 +25,7 @@ const recipe = [
   },
   {
     file: 'assets/scripts/Platform.ts',
-    originalSha256: 'd7458752984e0b5c810be35bbfb53fe8b27e9f9b3b6c24c4a491a1df174288cb',
+    originalSha256: 'adcc883c06a33407d51b8fcab5b5c4ee4fd96804268ef8c37ba93c014f322fa5',
     changes: [],
   },
 ];

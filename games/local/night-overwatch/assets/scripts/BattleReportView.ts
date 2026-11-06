@@ -148,6 +148,7 @@ export class BattleReportView {
         ),
       );
       const names = {
+        infantry: ['步兵', 'INFANTRY'],
         light: ['轻车', 'LIGHT'],
         turret: ['炮台', 'TURRET'],
         heavy: ['重甲', 'ARMOR'],

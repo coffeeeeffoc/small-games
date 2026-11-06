@@ -1,4 +1,21 @@
+import { MISSIONS } from './MissionCatalog.ts';
 export const GROWTH_VERSION = 'night-growth-v1';
+export type Fragment = 'fragment:weapon' | 'fragment:skill';
+export const FRAGMENTS: Record<Fragment, readonly [string, string]> = { 'fragment:weapon': ['武器碎片', 'Weapon fragments'], 'fragment:skill': ['技能碎片', 'Skill fragments'] };
+export const RECIPES = [
+  { effect: 'drone', fragment: 'fragment:weapon', match: 10, permanent: 120 },
+  { effect: 'laser', fragment: 'fragment:weapon', match: 12, permanent: 160 },
+  { effect: 'tracking', fragment: 'fragment:skill', match: 4, permanent: 20 },
+  { effect: 'emp', fragment: 'fragment:skill', match: 6, permanent: 40 },
+] as const;
+export function campaignReward(level: number, firstClear = false) {
+  if (!Number.isInteger(level) || level < 1 || level > 120) throw Error('Invalid campaign level');
+  return { coins: 180 + 5 * (level - 1) + (firstClear ? 180 + 10 * (level - 1) : 0),
+    xp: 120 + 2 * (level - 1) + (firstClear ? 120 + 4 * (level - 1) : 0),
+    fragment: (level % 2 ? 'fragment:weapon' : 'fragment:skill') as Fragment, fragments: firstClear ? 6 : 2 };
+}
+export const ECONOMY = { version: 'night-rewards-v3', checkinCategories: ['mod','weapon','skill'], bundleTiers: [{coins:40,xp:10,fragments:1},{coins:60,xp:20,fragments:2},{coins:100,xp:40,fragments:3},{coins:200,xp:80,fragments:5}], recipes: RECIPES, fragmentSell: 10, duelFragmentLimit: 10, duelFragmentMinMs: 60000,
+  campaign: MISSIONS.map((mission, index) => ({ levelId: mission.id, repeat: campaignReward(index + 1), first: campaignReward(index + 1, true) })) };
 export type Effect = 'power' | 'rate' | 'burst' | 'twin' | 'radius' | 'cooling' | 'drone' | 'laser' | 'tracking' | 'emp';
 export type Loadout = { mods: string[]; weapon: string | null; skill: string | null };
 export type BattleLoadout = { version: string; level: number; effects: Effect[]; skipped: string[] };
@@ -7,7 +24,7 @@ export type AssetReward = { coins:number; xp:number; packs?:number; permanent?:s
 export type AssetTask = {id:string;day:string;name:string;event:string;target:number;progress:number;reward:AssetReward;claimed:boolean;alternate?:boolean};
 export type AssetMail = {id:string;title:string;body:string;createdAt:number;read:boolean;claimed:boolean;reward:AssetReward};
 export type VideoOrder = {id:string;quantity:number;required:number;completed:number;delivered:boolean;version:string;createdAt:number;purpose?:'packs'|'wheel';attempt?:{id:string;startedAt:number}};
-export type OpenReceipt = {requestId:string;at:number;item:string;quantity:number;drops:Array<{item?:string;coins?:number}>};
+export type OpenReceipt = {requestId:string;at:number;item:string;quantity:number;drops:Array<{item?:string;coins?:number;xp?:number}>};
 export type AssetSnapshot = {
   playerId:string;version:number;coins:number;xp:number;level:number;current:number;required:number;revision:number;
   inventory:Record<string,number>;available:Record<string,number>;permanent:string[];active:Record<string,number>;
@@ -20,10 +37,11 @@ export type AssetSnapshot = {
   openReceipts?:OpenReceipt[];
   devToolsEnabled?:boolean;
   wheelTickets?:number;wheelVideosToday?:number;wheelDailyLimit?:number;wheelPrizes?:typeof WHEEL_PRIZES;
+  economy?:typeof ECONOMY;clearedLevels?:string[];duelFragmentBattlesToday?:number;
 };
 export type AssetCommand = {requestId:string}&(
   {kind:'dev-adjust';coinsDelta?:number;xpDelta?:number}|
-  {kind:'buy';item:string;quantity?:number}|{kind:'checkin'}|{kind:'buy-packs';quantity:number;pool?:'general'|'gold'}|
+  {kind:'buy';item:string;quantity?:number}|{kind:'craft';item:string}|{kind:'checkin'}|{kind:'buy-packs';quantity:number;pool?:'general'|'gold'}|
   {kind:'ad-order';quantity:number;purpose?:'packs'|'wheel'}|{kind:'ad-start';orderId:string}|{kind:'ad-complete'|'ad-cancel';orderId:string;attemptId:string}|{kind:'wheel-spin'}|
   {kind:'open'|'sell';item:string;quantity:number}|{kind:'activate';item:string}|
   {kind:'loadout';mode:'solo'|'duel';loadout:Loadout}|{kind:'claim-task'|'alternate-task';taskId:string}|
@@ -51,11 +69,11 @@ export const PACKAGES = [
   { quantity: 20, coins: 3200, videos: 12 },
 ];
 export const SKILLS = { tracking: { duration: 60, cooldown: 90, level: 6 }, emp: { duration: 12, cooldown: 45, immunity: 8, level: 10 } };
-const unifiedPool={name:'补给箱',packSell:40,weights:[60,25,12,3],coinDrops:[40,120,300,800],minimumRecycle:[40,12,17,96],effects:['power','rate','radius','cooling','drone','laser','burst','twin']};
+const unifiedPool={name:'补给箱',packSell:40,weights:[60,25,12,3],coinDrops:[40,120,300,800],minimumRecycle:[40,12,17,96],effects:['power','rate','radius','cooling','drone','laser','burst','twin','tracking','emp']};
 // Old inventory keys remain valid, but their source no longer changes the contents.
 export const POOLS = {general:unifiedPool,gold:unifiedPool};
 export const WHEEL_PRIZES=[{coins:40,tier:-1,weight:35},{coins:80,tier:-1,weight:25},{coins:160,tier:-1,weight:15},{coins:0,tier:0,weight:15},{coins:0,tier:2,weight:8},{coins:0,tier:3,weight:2}];
-export function eligibleDrops(catalog:Product[],tier:number,level:number,permanent:readonly string[]){return catalog.filter(p=>p.term==='match'&&p.category!=='skill'&&p.rarity===tier&&p.unlockLevel<=level&&!permanent.includes(p.effect));}
+export function eligibleDrops(catalog:Product[],tier:number,level:number,permanent:readonly string[]){return catalog.filter(p=>p.term==='match'&&!p.goldOnly&&p.rarity===tier&&(p.category==='skill'||p.unlockLevel<=level)&&!permanent.includes(p.effect)&&!(p.category==='skill'&&level>=SKILLS[p.effect as keyof typeof SKILLS].level));}
 export function levelProgress(xp: number) {
   const total = Math.max(0, Math.floor(xp)); let level = 1, floor = 0;
   while (level < 50 && total >= floor + level * 200) { floor += level * 200; level++; }
@@ -88,7 +106,7 @@ export const attackPreview = (effects: readonly string[]) => {
   return { shots, secondaryStrength: shots > 1 ? .6 : 0,
     heatMultiplier: effects.includes('cooling') ? .85 : 1 };
 };
-export const PROGRESSION = { version: GROWTH_VERSION, catalog: CATALOG, packages: PACKAGES, pools: POOLS, skills: SKILLS, wheelPrizes:WHEEL_PRIZES, levelProgress, validLoadout };
+export const PROGRESSION = { version: GROWTH_VERSION, economy: ECONOMY, catalog: CATALOG, packages: PACKAGES, pools: POOLS, skills: SKILLS, wheelPrizes:WHEEL_PRIZES, levelProgress, validLoadout };
 
 /** Practice uses a server snapshot only; ranked matches still require the authoritative reservation. */
 export function practiceLoadout(assets:AssetSnapshot|undefined,mode:'solo'|'duel',elapsedMs=0):BattleLoadout {

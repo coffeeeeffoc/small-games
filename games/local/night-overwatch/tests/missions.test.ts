@@ -8,13 +8,13 @@ const tick = (s: Simulation, seconds: number) => {
 };
 
 test('introductory missions use fewer stationary targets in daylight before dusk and night', () => {
-  assert.deepEqual(MISSIONS.slice(0, 6).map(m => m.events.length), [4, 6, 8, 12, 16, 20]);
+  assert.deepEqual(MISSIONS.slice(0, 6).map(m => m.events.length), [16, 24, 32, 36, 40, 44]);
   assert.deepEqual(MISSIONS.slice(0, 7).map(m => m.light), ['day', 'day', 'day', 'dusk', 'dusk', 'night', 'day']);
   for (const mission of MISSIONS.slice(0, 3)) {
     const sim = new Simulation(mission.id); sim.start();
     assert.equal(sim.selected, 1);
     assert.equal(sim.spawned.size, mission.events.length);
-    assert(mission.events.every(e => e.kind === 'turret'));
+    assert(mission.events.every(e => e.kind === 'turret'||e.kind==='infantry'));
     const before = sim.units.filter(u => !u.friendly).map(u => [u.x, u.z]); tick(sim, 1);
     assert.deepEqual(sim.units.filter(u => !u.friendly).map(u => [u.x, u.z]), before);
     assert.equal(sim.rescue.maxHp, UNITS.rescue.hp);
@@ -31,17 +31,17 @@ test('introductory missions use fewer stationary targets in daylight before dusk
   assert.equal(missionDefinition('old-preference').id, 'corridor-01');
 });
 test('campaign grows monotonically with bounded waves and active contacts',()=>{
-  assert.equal(MISSIONS.at(-1)!.events.length,96);
-  MISSIONS.forEach((m,i)=>{if(i)assert(m.events.length>=MISSIONS[i-1].events.length);const waves=new Map<number,number>();for(const e of m.events)waves.set(e.time,(waves.get(e.time)||0)+1);if(i>=5)assert([...waves.values()].every(n=>n<=18));});
+  assert.equal(MISSIONS.at(-1)!.events.length,144);
+  MISSIONS.forEach((m,i)=>{if(i)assert(m.events.length>=MISSIONS[i-1].events.length);const waves=new Map<number,number>();for(const e of m.events.filter(e=>e.kind!=='infantry'))waves.set(e.time,(waves.get(e.time)||0)+1);if(i>=5)assert([...waves.values()].every(n=>n<=18));});
   const active=(s:Simulation)=>s.units.filter(u=>!u.friendly&&u.hp>0);
   for(const trigger of ['time','progress']){
     const s=new Simulation(MISSIONS.at(-1)!.id);s.start();s.convoy='holding';
     if(trigger==='time')s.time=250;else s.progress=1e5;
-    s.step(1/60);assert.equal(active(s).length,24);assert.equal(s.mission.events.length-s.spawned.size,72);
+    s.step(1/60);assert.equal(active(s).length,72);assert.equal(s.mission.events.length-s.spawned.size,72);
     const spawned=s.spawned.size;s.step(1/60);assert.equal(s.spawned.size,spawned);
-    active(s)[0].hp=0;s.step(1/60);assert.equal(s.spawned.size,spawned+1);assert.equal(active(s).length,24);
-    s.pause('manual',true);active(s)[0].hp=0;s.step(1/60);assert.equal(s.spawned.size,spawned+1);
-    s.pause('manual',false);s.step(1/60);assert.equal(s.spawned.size,spawned+2);assert.equal(active(s).length,24);
+    active(s).find(u=>u.kind!=='infantry')!.hp=0;s.step(1/60);assert.equal(s.spawned.size,spawned+1);assert.equal(active(s).length,72);
+    s.pause('manual',true);active(s).find(u=>u.kind!=='infantry')!.hp=0;s.step(1/60);assert.equal(s.spawned.size,spawned+1);
+    s.pause('manual',false);s.step(1/60);assert.equal(s.spawned.size,spawned+2);assert.equal(active(s).length,72);
   }
 });
 
@@ -56,7 +56,7 @@ for (const mission of MISSIONS) test(`${mission.name[0]} can be completed with b
     for (const enemy of enemies) {
       const inbound = [...pending.values()].filter((p) => p.unit === enemy.id).reduce((sum, p) => sum + p.damage, 0);
       if (inbound >= enemy.hp - 1e-6) continue;
-      const gun = enemy.kind === 'heavy' && s.guns[2].ammo > 0 ? 2 : enemy.kind === 'light' ? 0 : 1;
+      const gun = enemy.kind === 'heavy' && s.guns[2].ammo > 0 ? 2 : enemy.kind === 'light'||enemy.kind==='infantry' ? 0 : 1;
       s.choose(gun);
       let aim = { x: enemy.x, z: enemy.z };
       const target = friends.reduce((a, b) => distance(enemy, a) < distance(enemy, b) ? a : b);
@@ -78,7 +78,7 @@ for (const mission of MISSIONS) test(`${mission.name[0]} can be completed with b
       break;
     }
     s.step(1 / 60);
-    assert(s.units.filter(u=>!u.friendly&&u.hp>0).length<=24);
+    assert(s.units.filter(u=>!u.friendly&&u.hp>0).length<=72);assert(s.units.filter(u=>!u.friendly&&u.hp>0&&u.kind!=='infantry').length<=24);
   }
   t.diagnostic(JSON.stringify({ mission: mission.id, phase: s.phase, time: s.time, kills: s.kills,
     fired: s.fired, friendlyDamage: s.friendlyDamage, ammo: s.guns.map((g) => g.ammo) }));

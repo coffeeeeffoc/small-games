@@ -1,9 +1,9 @@
-import { CATALOG, PACKAGES, POOLS, emptyLoadout, type AssetCommand, type AssetSnapshot, type Effect, type Loadout, type Product } from './core/Progression.ts';
+import { CATALOG, PACKAGES, POOLS, FRAGMENTS, emptyLoadout, type Fragment, type AssetCommand, type AssetSnapshot, type Effect, type Loadout, type Product } from './core/Progression.ts';
 import type { Online } from './Online';
 export type AssetIntent = AssetCommand extends infer T ? T extends AssetCommand ? Omit<T,'requestId'> : never : never;
 export type LoadoutSlot = 'mod:0'|'mod:1'|'weapon'|'skill';
-export type ProgressionPage = ''|'modes'|'loadout'|'shop'|'supply'|'growth'|'tasks'|'inbox'|'warehouse'|'receipts'|'checkin'|'probability';
-type NavigationState = Pick<Quartermaster,'page'|'section'|'index'|'detail'|'selected'|'item'|'amount'|'term'|'mode'|'slot'|'loadoutScroll'|'scrolls'|'selectedMail'|'selectedSkill'>;
+export type ProgressionPage = ''|'modes'|'loadout'|'shop'|'supply'|'growth'|'tasks'|'inbox'|'warehouse'|'craft'|'receipts'|'checkin'|'probability';
+type NavigationState = Pick<Quartermaster,'page'|'section'|'index'|'detail'|'selected'|'item'|'amount'|'term'|'shopCategory'|'mode'|'slot'|'loadoutScroll'|'scrolls'|'selectedMail'|'selectedSkill'>;
 type IntentStorage = Pick<Storage,'getItem'|'setItem'|'removeItem'> & {flush?:()=>Promise<void>};
 /** Wheel artwork has boundaries at 12 o'clock. A clockwise sector centre is 30 + i*60 degrees. */
 export const wheelLandingAngle=(index:number,start=0)=>start+360*5+((30+index*60-start%360+360)%360);
@@ -13,6 +13,7 @@ const errors:Record<string,[string,string]>={
   INVALID_DEV_BALANCE:['调整后的金币或经验必须是非负安全整数','Adjusted coins and XP must be non-negative safe integers.'],
   INSUFFICIENT_COINS:['金币不足，完成行动或任务可获得金币','Not enough coins. Complete operations or tasks.'],
   INSUFFICIENT_INVENTORY:['库存不足或已被对局预留','Not enough available stock. Some items may be reserved.'],
+  INSUFFICIENT_FRAGMENTS:['碎片不足，通关或完成有效对战可获得','Not enough fragments. Complete levels or eligible duels.'],
   ALREADY_OWNED:['已永久拥有此资格','Already permanently owned.'],ALREADY_CLAIMED:['已经领取，请刷新查看','Already claimed. Refresh to see the result.'],
   DAILY_VIDEO_LIMIT:['今日视频额度已用完，明日可继续原订单','Daily video limit reached. Continue this order tomorrow.'],
   INVALID_AD_ATTEMPT:['观看确认已过期，请重新观看本段','Video confirmation expired. Please watch this segment again.'],
@@ -28,13 +29,15 @@ export class Quartermaster {
   page:ProgressionPage=''; mode:'solo'|'duel'='solo'; actionMode:'solo'|'duel'|'training'='solo';
   term:Product['term']='match'; selected='burst-match'; item=''; amount=1; quantity=5; pool:'general'|'gold'='general';
   section=''; index=0; detail=false; confirmation?:AssetIntent; selectedMail=''; selectedSkill:Effect='tracking';
+  shopCategory:Product['category']='mod';
+  craftTerm:'match'|'permanent'='match';
   scrolls:Record<string,number>={}; info=''; navigation:NavigationState[]=[]; externalReturn:''|'modes'|'result'='';
   private leavingBack=false;
   wheel?:{index:number;startAngle:number;started:number;duration:number;shown:boolean;coins:number;packs:Record<string,number>};
   slot:LoadoutSlot='mod:0'; loadoutScroll=0; loadoutScrollMax=0;
   loadoutArea={x:0,y:0,w:0,h:0};
   drafts:Partial<Record<'solo'|'duel',Loadout>>={}; private modDrafts:Partial<Record<'solo'|'duel',Array<string|null>>>={}; leaveTo?:ProgressionPage;
-  gift?:{packs:Record<string,number>;drops:Array<{item?:string;coins?:number}>;opened:boolean;started?:number;duration?:number;illuminated?:boolean};
+  gift?:{packs:Record<string,number>;drops:Array<{item?:string;coins?:number;xp?:number}>;opened:boolean;started?:number;duration?:number;illuminated?:boolean};
   drag?:{item:string;x:number;y:number;target?:LoadoutSlot};
   private openingGift=false;private adReady?:{orderId:string;attemptId:string;startedAt:number};
   busy=false; viewing=false; revision=0; message:[string,string]=['','']; pending?:AssetCommand;
@@ -44,7 +47,7 @@ export class Quartermaster {
   get catalog(){return this.assets?.catalog||CATALOG;}
   get packages(){return this.assets?.packages||PACKAGES;}
   get pools(){return this.assets?.pools||POOLS;}
-  sellPrice(id:string){const pack=/^pack:(general|gold):[0-3]$/.exec(id);return pack?this.pools[pack[1] as 'general'|'gold'].packSell:this.catalog.find(p=>p.id===id)?.sell??(id.startsWith('legacy')?20:0);}
+  sellPrice(id:string){if(id in FRAGMENTS)return this.assets?.economy?.fragmentSell??0;const pack=/^pack:(general|gold):[0-3]$/.exec(id);return pack?this.pools[pack[1] as 'general'|'gold'].packSell:this.catalog.find(p=>p.id===id)?.sell??(id.startsWith('legacy')?20:0);}
   get loadout(){return this.drafts[this.mode]||this.assets?.loadouts[this.mode]||emptyLoadout();}
   get dirty(){return this.dirtyModes.includes(this.mode);}
   get dirtyModes(){return (['solo','duel'] as const).filter(mode=>{
@@ -76,7 +79,7 @@ export class Quartermaster {
     this.leavingBack=false;
     if(this.page==='loadout'&&(this.anyDirty||this.pending?.kind==='loadout')){this.leaveTo=page;this.revision++;return;}this.show(page);
   }
-  private capture():NavigationState {return {page:this.page,section:this.section,index:this.index,detail:this.detail,selected:this.selected,item:this.item,amount:this.amount,term:this.term,mode:this.mode,slot:this.slot,loadoutScroll:this.loadoutScroll,scrolls:{...this.scrolls},selectedMail:this.selectedMail,selectedSkill:this.selectedSkill};}
+  private capture():NavigationState {return {page:this.page,section:this.section,index:this.index,detail:this.detail,selected:this.selected,item:this.item,amount:this.amount,term:this.term,shopCategory:this.shopCategory,mode:this.mode,slot:this.slot,loadoutScroll:this.loadoutScroll,scrolls:{...this.scrolls},selectedMail:this.selectedMail,selectedSkill:this.selectedSkill};}
   back(){
     if(this.info){this.info='';this.revision++;return;}
     if(this.detail&&this.page==='shop'){this.detail=false;this.revision++;return;}
@@ -98,7 +101,7 @@ export class Quartermaster {
         const result=await this.execute(this.pending?undefined:{kind:'open',item,quantity});
         if(this.owner!==owner||this.disposed)return;
         if(!result){this.gift=gift;return;}
-        gift.drops.push(...(result.lastReceipt?.drops as Array<{item?:string;coins?:number}>||[]));delete gift.packs[item];
+        gift.drops.push(...(result.lastReceipt?.drops as Array<{item?:string;coins?:number;xp?:number}>||[]));delete gift.packs[item];
       }
       gift.opened=true;gift.started=Date.now();gift.duration=gift.drops.length>1?2200:1600;this.gift=gift;
     }finally{this.openingGift=false;this.revision++;}
@@ -142,6 +145,7 @@ export class Quartermaster {
   async execute(intent?:AssetIntent):Promise<AssetSnapshot|undefined>{
     this.syncIdentity();if(this.busy||this.disposed)return;
     if(!this.allowDeveloperIntent()&&intent?.kind==='dev-adjust'){this.message=['只有开发测试包可调整资产','Asset adjustment requires a development package.'];this.revision++;return;}
+    if(intent?.kind==='craft'&&!this.assets?.economy){this.message=['合成需要新版军需服务','Crafting requires the updated service.'];this.revision++;return;}
     if(!this.owner||!this.assets){this.message=['请先连接军需服务','Connect to the quartermaster first.'];this.revision++;return;}
     if(this.wheel&&!this.wheel.shown&&intent&&intent.kind!=='read-mail'){this.message=['抽奖揭晓后可继续操作','Wait for the wheel to finish.'];this.revision++;return;}
     if(this.pending&&intent){this.message=['上一操作等待确认，请先重试，避免重复扣款','Confirm the pending operation before making another purchase.'];this.revision++;return;}
@@ -178,13 +182,20 @@ export class Quartermaster {
       if(command.kind==='ad-complete'||command.kind==='ad-cancel')this.adReady=undefined;
       const reward=receipt?.reward as {packs?:number}|undefined;
       const packs=receipt?.packs as Record<string,number>|undefined;
+      const items=receipt?.items as Record<string,number>|undefined;
+      if(items){
+        const grants=Object.entries(items).map(([id,count])=>`${(id in FRAGMENTS?FRAGMENTS[id as Fragment][0]:this.catalog.find(p=>p.id===id)?.name||id)} ×${count}`).join('、');
+        const grantsEn=Object.entries(items).map(([id,count])=>`${(id in FRAGMENTS?FRAGMENTS[id as Fragment][1]:effectEnglish[this.catalog.find(p=>p.id===id)?.effect as Effect]||id)} ×${count}`).join(', ');
+        this.message=[`已获得：${grants}（装备可在配装使用，碎片存入仓库）`,`Received: ${grantsEn} (Gear: loadout; fragments: warehouse)`];
+        this.gift={packs:{},drops:Object.entries(items).flatMap(([item,count])=>Array.from({length:count},()=>({item}))),opened:true};
+      }
       if(packs&&Object.keys(packs).length)this.gift={packs:{...packs},drops:[],opened:false};
       else if(reward?.packs)this.gift={packs:{'pack:general:0':reward.packs},drops:[],opened:false};
       if(command.kind==='open'){
-        const drops=snapshot.lastReceipt?.drops as Array<{item?:string;coins?:number}>|undefined;
+        const drops=snapshot.lastReceipt?.drops as Array<{item?:string;coins?:number;xp?:number}>|undefined;
         if(!this.openingGift)this.gift={packs:{},drops:drops||[],opened:true,started:Date.now(),duration:command.quantity>1?2200:1600};
-        const coins=(drops||[]).reduce((n,d)=>n+(d.coins||0),0),items=(drops||[]).filter(d=>d.item);
-        this.message=[`已开 ${command.quantity} 个：金币 +${coins}，军需 ${items.length} 件（见仓库）`,`Opened ${command.quantity}: +${coins} coins, ${items.length} gear items in warehouse`];
+        const coins=(drops||[]).reduce((n,d)=>n+(d.coins||0),0),xp=(drops||[]).reduce((n,d)=>n+(d.xp||0),0),items=(drops||[]).filter(d=>d.item);
+        this.message=[`已开 ${command.quantity} 个：金币 +${coins}，EXP +${xp}，物资 ${items.length} 件（见仓库）`,`Opened ${command.quantity}: +${coins} coins, +${xp} EXP, ${items.length} gear items in warehouse`];
       }
       if(command.kind==='wheel-spin'){
         const startAngle=this.wheel?wheelLandingAngle(this.wheel.index,this.wheel.startAngle):0;this.gift=undefined;this.wheel={startAngle,index:Number(receipt?.prizeIndex)||0,started:Date.now(),duration:2800,shown:false,coins:Number(receipt?.coins)||0,packs:packs||{}};

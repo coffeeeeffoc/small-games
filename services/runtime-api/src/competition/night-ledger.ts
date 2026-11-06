@@ -154,7 +154,8 @@ export async function settleNightRoom(
           {
             mode: human ? 'duel' : 'bot',
             outcome,
-            durationMs: at - room.startedAt,
+            // Delayed polling must not turn a short simulated match into a reward-eligible one.
+            durationMs: Math.min(at - room.startedAt, member.result?.secondary ?? 0),
             valid:
               reason === 'elimination' && member.result?.participated === true && !member.takenOver,
           },

@@ -4,7 +4,7 @@ import test from 'node:test';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { createDuel, configureDuel, commandDuel, advanceDuel, viewDuel } from '../assets/scripts/core/Duel.ts';
 import { createNightReplay, applyNightReplay, nightReplayResult } from '../assets/scripts/core/Replay.ts';
-import { CATALOG, PACKAGES, POOLS, WHEEL_PRIZES, eligibleDrops, GROWTH_VERSION, practiceLoadout, validLoadout, levelProgress, attackPreview, type Effect } from '../assets/scripts/core/Progression.ts';
+import { ECONOMY, RECIPES, campaignReward, CATALOG, PACKAGES, POOLS, WHEEL_PRIZES, eligibleDrops, GROWTH_VERSION, practiceLoadout, validLoadout, levelProgress, attackPreview, type Effect } from '../assets/scripts/core/Progression.ts';
 import { FIRE_ZONE, MAP, PROTECTED, UNITS, WEAPONS } from '../assets/scripts/core/Data.ts';
 import { muzzlePosition, shotPosition } from '../assets/scripts/core/Flight.ts';
 import { bestTrainingRecord, readTrainingRecord } from '../assets/scripts/core/TrainingRecords.ts';
@@ -21,18 +21,18 @@ test('slot limits deduplicate effects and all sources share level-gated contents
   assert(eligibleDrops(CATALOG,3,11,[]).length===0);
   assert.deepEqual(eligibleDrops(CATALOG,3,12,[]).map(p=>p.effect),['burst']);
   assert.deepEqual(eligibleDrops(CATALOG,3,15,['burst']).map(p=>p.effect),['twin']);
-  assert(eligibleDrops(CATALOG,1,50,[]).every(p=>p.category!=='skill'));
+  assert(eligibleDrops(CATALOG,1,1,[]).some(p=>p.effect==='tracking'));assert(eligibleDrops(CATALOG,2,1,[]).some(p=>p.effect==='emp'));assert(!eligibleDrops(CATALOG,1,50,['tracking']).some(p=>p.category==='skill'));
   assert.deepEqual(PACKAGES.map(p=>p.quantity),[1,3,5,10,20]);
   const minCost=Math.min(...PACKAGES.map(p=>p.coins/p.quantity));
   assert(CATALOG.filter(p=>p.term==='match').every(p=>p.sell<minCost));
   assert(levelProgress(1000).level>levelProgress(0).level);
 });
 test('all level and permanent ownership combinations stay below package cost, including currency substitutes',()=>{
-  const gear=CATALOG.filter(p=>p.term==='match'&&p.category!=='skill');
+  const gear=CATALOG.filter(p=>p.term==='match');
   for(let level=1;level<=50;level++)for(let mask=0;mask<1<<gear.length;mask++){
     const owned=gear.filter((_,i)=>mask&(1<<i)).map(p=>p.effect);
-    const value=POOLS.general.weights.reduce((sum,weight,tier)=>{const items=eligibleDrops(CATALOG,tier,level,owned);const recycle=items.length?items.reduce((n,p)=>n+p.sell,0)/items.length:POOLS.general.coinDrops[tier];return sum+weight*Math.max(40,recycle)/100;},0);
-    assert(value<=114+1e-9);assert(value<160);
+    const value=POOLS.general.weights.reduce((sum,weight,tier)=>{const items=eligibleDrops(CATALOG,tier,level,owned);const bundle=ECONOMY.bundleTiers[tier],recycle=(items.length?bundle.coins+items.reduce((n,p)=>n+p.sell,0)/items.length:POOLS.general.coinDrops[tier])+bundle.fragments*ECONOMY.fragmentSell;return sum+weight*recycle/100;},0);
+    assert(value<=130.1+1e-9);assert(value<160);
   }
   assert.equal(WHEEL_PRIZES.reduce((sum,p)=>sum+p.weight,0),100);
 });
@@ -362,4 +362,29 @@ test('high-altitude drones without legal targets finish crashing before the next
   sim.aircraft.y=230;sim.choose(4);assert(sim.fire());
   for(let i=0;i<200;i++)sim.step(.1);
   assert.equal(sim.drones.length,0);assert.equal(sim.guns[4].cooldown,0);assert(sim.fire());assert.equal(sim.drones.length,3);
+});
+
+
+test('reward curves keep first-clear bonuses finite and milestones balanced',()=>{
+  assert.equal(ECONOMY.campaign.length,120);
+  assert.deepEqual(RECIPES.map(r=>[r.effect,r.match,r.permanent]),[['drone',10,120],['laser',12,160],['tracking',4,20],['emp',6,40]]);
+  assert.throws(()=>campaignReward(0));assert.throws(()=>campaignReward(121));
+  let coins=0,xp=0,weapon=0,skill=0;
+  for(let level=1;level<=120;level++){
+    const first=campaignReward(level,true),repeat=campaignReward(level);
+    assert.equal(first.fragments-repeat.fragments,4);
+    if(first.fragment==='fragment:weapon'||levelProgress(xp).level>=10)weapon+=first.fragments;else skill+=first.fragments;
+    coins+=first.coins;xp+=first.xp;
+    if(level===10)assert.deepEqual([coins,xp,weapon,skill],[4275,2670,30,30]);
+    if(level===30)assert.deepEqual([coins,xp,weapon,skill],[17325,9810,96,84]);
+  }
+  assert.deepEqual([coins,xp,weapon,skill],[150300,71640,636,84]);
+});
+
+test('crafting then selling never beats selling the materials directly',()=>{
+  for(const recipe of RECIPES){
+    const product=CATALOG.find(p=>p.effect===recipe.effect&&p.term==='match');assert(product);
+    assert(product.sell<=recipe.match*ECONOMY.fragmentSell,recipe.effect+' must not create a recycling arbitrage');
+    assert(recipe.permanent>recipe.match,'permanent unlock remains a longer-term collection target');
+  }
 });

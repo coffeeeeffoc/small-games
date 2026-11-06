@@ -11,6 +11,7 @@ import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { MISSIONS } from '../assets/scripts/core/MissionCatalog.ts';
 import { Online } from '../assets/scripts/Online.ts';
 import { Quartermaster, type ProgressionPage } from '../assets/scripts/Quartermaster.ts';
+import { ECONOMY } from '../assets/scripts/core/Progression.ts';
 import { assetFixture } from './progression-fixture.ts';
 
 // Exercise the real HUD layout/drawing logic without building or launching Creator.
@@ -1316,11 +1317,11 @@ test('failed loadout artwork preserves the pending transaction leave confirmatio
 });
 
 test('progression pages keep every live action reachable on short and wide screens',()=>{
-  const pages:ProgressionPage[]=['','modes','loadout','shop','supply','growth','tasks','inbox','warehouse','receipts','checkin','probability'];
+  const pages:ProgressionPage[]=['','modes','loadout','shop','supply','growth','tasks','inbox','warehouse','craft','receipts','checkin','probability'];
   for(const [width,height]of [[568,320],[844,390],[1280,720],[1672,941]])for(const safe of [0,12])for(const lang of ['zh','en']){
     Object.assign(frame,{width,height});inset=safe;
     const hud=new HUD(new SceneNode()),sim=new Simulation();hud.lang=lang;hud.touch=true;
-    const online=new Online({getItem:()=>null,setItem(){}},()=>{});online.authenticatedId='qa-pilot';online.assets=assetFixture();hud.online=online;
+    const online=new Online({getItem:()=>null,setItem(){}},()=>{});online.authenticatedId='qa-pilot';online.assets={...assetFixture(),economy:ECONOMY};hud.online=online;
     const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
     for(const page of pages)for(const detail of page==='shop'?[false,true]:[false]){
       q.page=page;q.detail=detail;q.index=0;q.message=['',''];q.revision++;hud.update(sim,world);
@@ -1344,11 +1345,38 @@ test('progression pages keep every live action reachable on short and wide scree
   inset=0;
 });
 
+test('crafting shows material costs and owned states; stage bonuses use server history',async(t)=>{
+  artworkAvailable=true;t.after(()=>{artworkAvailable=false;inset=0;});
+  for(const [width,height]of [[568,320],[1280,720]]){
+    Object.assign(frame,{width,height});inset=12;
+    const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+    online.authenticatedId='qa-pilot';online.assets={...assetFixture(),economy:ECONOMY,available:{'fragment:weapon':11,'fragment:skill':6},clearedLevels:['corridor-01']};hud.online=online;
+    const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;online.refreshAssets=async()=>online.assets;q.syncIdentity();q.show('warehouse');q.show('craft');await new Promise<void>(resolve=>setImmediate(resolve));hud.update(sim,world);
+    assert.equal(hud.buttons.find((b:any)=>b.id==='qm:craftItem:drone-match')?.disabled,false);
+    assert.equal(hud.buttons.find((b:any)=>b.id==='qm:craftItem:laser-match')?.disabled,true);
+    q.craftTerm='permanent';online.assets.permanent.push('drone');q.revision++;hud.update(sim,world);
+    assert.equal(hud.buttons.find((b:any)=>b.id==='qm:craftItem:drone-permanent')?.label.string,'已永久拥有');
+    assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('Lv.6自动永久解锁')));
+    q.craftTerm='match';q.revision++;hud.update(sim,world);
+    assert.equal(hud.buttons.find((b:any)=>b.id==='qm:craftItem:drone-match')?.disabled,true);
+    q.show('shop');await new Promise<void>(resolve=>setImmediate(resolve));
+    for(const term of ['match','24h','permanent'] as const){q.term=term;q.selected='drone-'+term;q.detail=true;q.revision++;hud.update(sim,world);assert.equal(hud.buttons.find((b:any)=>b.id==='qm:buy')?.disabled,true);}
+    q.detail=false;q.back();assert.equal(q.page,'craft');
+    q.back();assert.equal(q.page,'warehouse');online.assets.inventory['fragment:weapon']=11;q.item='fragment:weapon';q.revision++;hud.update(sim,world);assert.equal(hud.buttons.filter((b:any)=>b.id==='qm:craft').length,1);q.page='';hud.missionsOpen=true;hud.resize();hud.modalKey='rebuild';hud.update(sim,world);
+    const labels=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);
+    assert(labels.includes('首通奖励已领取'),labels.join('|'));assert(labels.some((s:string)=>s.includes('每次通关：180金币 / 120EXP / 2武器碎片')));
+    const area=hud.listAreas.find((a:any)=>a.key==='missions');assert(area.h>=100,'reward preview leaves complete small-screen cards');
+    online.assets.clearedLevels=[];hud.missionProgress.cleared=['corridor-01'];hud.modalKey='rebuild';hud.update(sim,world);
+    assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.includes('资格以结算校验为准')));
+  }
+  inset=0;
+});
+
 test('check-in highlights today before and after claiming, retaining day seven until the next day',()=>{
   for(const [width,height]of [[568,320],[1280,720]]){
     Object.assign(frame,{width,height});inset=0;
     const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
-    online.assets=assetFixture();hud.online=online;
+    online.assets={...assetFixture(),economy:ECONOMY};hud.online=online;
     const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
     hud.update(sim,world);
     assert.equal(hud.buttons.find((b:any)=>b.id==='qm:loadout')?.label.string,'作战配置  ›');
@@ -1391,7 +1419,7 @@ test('warehouse sale includes the total, current crates have valid tiers, and sy
   for(const [width,height]of [[568,320],[844,390],[1280,720]])for(const lang of ['zh','en']){
     Object.assign(frame,{width,height});inset=12;
     const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.lang=lang;
-    online.assets=assetFixture();hud.online=online;
+    online.assets={...assetFixture(),economy:ECONOMY};hud.online=online;
     const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;q.page='warehouse';q.item='tracking-match';
     for(const amount of [1,3,5]){
       q.amount=amount;q.revision++;hud.update(sim,world);
@@ -1495,7 +1523,7 @@ test('direct and recovered solo receipts refresh authoritative task progress in 
 
 test('stable tab identities animate ranking and settings changes without polling fades',()=>{
  Object.assign(frame,{width:1280,height:720});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.panel='ranking';online.board='level';
- const labels=['当前梯度版 ▾','旧成长版 ▾','原始历史版 ▾'];let previous='';for(const [i,version]of ['night-campaign-v2','night-growth-v1','night-records-v1'].entries()){online.rankingVersion=version;online.revision++;hud.update(sim,world);assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string===labels[i]));assert.notEqual(hud.semanticKey,previous);previous=hud.semanticKey;online.revision++;hud.update(sim,world);assert.equal(hud.semanticKey,previous);}
+ const labels=['当前驻守版 ▾','旧梯度版 ▾','旧成长版 ▾','原始历史版 ▾'];let previous='';for(const [i,version]of ['night-campaign-v3','night-campaign-v2','night-growth-v1','night-records-v1'].entries()){online.rankingVersion=version;online.revision++;hud.update(sim,world);assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string===labels[i]));assert.notEqual(hud.semanticKey,previous);previous=hud.semanticKey;online.revision++;hud.update(sim,world);assert.equal(hud.semanticKey,previous);}
  hud.renderModal('settings',sim,world);previous=hud.semanticKey;hud.renderModal('settings:zoom',sim,world);assert.notEqual(hud.semanticKey,previous);previous=hud.semanticKey;hud.renderModal('settings:flight',sim,world);assert.notEqual(hud.semanticKey,previous);
 });
 
@@ -1531,4 +1559,16 @@ test('refinement: player-facing experience labels use EXP and combat configurati
  const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;hud.update(sim,world);
  let labels=panelLabels(hud).map((l:any)=>l.string);assert(labels.some((s:string)=>s.includes('EXP')));assert(!labels.some((s:string)=>/\bXP\b/.test(s)));
  q.show('modes');hud.update(sim,world);assert(hud.buttons.find((b:any)=>b.id==='qm:loadout').label.string.includes('作战配置'));
+});
+
+
+test('new shop categories filter cards and the home lobby respects capability and compact safe headers',()=>{
+ for(const [width,height]of [[568,320],[844,390],[1280,720]])for(const lang of ['zh','en']){
+  Object.assign(frame,{width,height});inset=12;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+  online.assets={...assetFixture(),economy:ECONOMY};online.authenticatedId='qa-pilot';online.available=true;hud.online=online;hud.lang=lang;const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
+  hud.update(sim,world);const lobby=hud.buttons.find((b:any)=>b.id==='online:menu');assert(lobby);assert(lobby.w>=44&&lobby.h>=44);
+  for(const b of hud.buttons.filter((b:any)=>b!==lobby&&b.label.node.activeInHierarchy))assert(!overlaps(lobby,b),`${width}/${lang} lobby overlaps ${b.id}`);
+  online.available=false;online.revision++;hud.modalKey='rebuild';hud.update(sim,world);assert(!hud.buttons.some((b:any)=>b.id==='online:menu'));
+  q.show('shop');for(const category of ['mod','weapon','skill'] as const){q.shopCategory=category;q.revision++;hud.update(sim,world);const cards=hud.buttons.filter((b:any)=>b.id.startsWith('product:'));assert(cards.length>0);for(const b of cards)assert.equal(q.catalog.find(p=>p.id===b.id.slice(8))!.category,category);assert(hud.buttons.some((b:any)=>b.id==='qm:shopCategory:'+category));}
+ }inset=0;
 });

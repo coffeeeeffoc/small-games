@@ -129,7 +129,14 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(started.state.you).toBe(1);
     expect(
       started.state.simulation.units.filter((u: { friendly: boolean }) => u.friendly),
-    ).toHaveLength(8);
+    ).toHaveLength(32);
+    for (const friendly of [false, true])
+      expect(
+        started.state.simulation.units.filter(
+          (unit: { friendly: boolean; kind: string }) =>
+            unit.friendly === friendly && unit.kind === 'infantry',
+        ),
+      ).toHaveLength(24);
     await request(roomPath(room.code), outsider, undefined, 403);
     await request(roomPath(room.code), wrongGame, undefined, 403);
     expect(started.startsAt).toBe(time + 1200);

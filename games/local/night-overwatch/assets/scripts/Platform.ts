@@ -1,3 +1,4 @@
+import { CAMPAIGN_BOARD_VERSION } from './core/MissionCatalog';
 import { getNightStorage, type NightStorage } from './Storage';
 import { AudioClip, AudioSource, Node, resources, sys } from 'cc';
 import type { ViewMode } from './World';
@@ -52,7 +53,7 @@ export class Platform {
     this.pause = pause;
     try {
       this.rewards = readRewards(this.storage.getItem(this.rewardStorageKey));
-      this.times = readMissionTimes(this.storage.getItem('night-overwatch-times-v1'));
+      this.times = readMissionTimes(this.storage.getItem('night-overwatch-times:'+CAMPAIGN_BOARD_VERSION));
       this.muted = this.storage.getItem('night-overwatch-muted') === 'true';
       this.voicePrompts = this.storage.getItem('night-overwatch-voice-prompts') !== 'false';
       this.autoPriority = this.storage.getItem('night-overwatch-auto-priority') !== 'false';
@@ -320,7 +321,7 @@ export class Platform {
     catch { /* All remaining operations can still unlock in the current session. */ }
   }
   saveTimes() {
-    try { this.storage.setItem('night-overwatch-times-v1', JSON.stringify(this.times)); }
+    try { this.storage.setItem('night-overwatch-times:'+CAMPAIGN_BOARD_VERSION, JSON.stringify(this.times)); }
     catch { /* Keep this session's personal best when optional storage is denied. */ }
   }
   readMission(): MissionId {

@@ -24,7 +24,7 @@ export function recordMissionTime(records: MissionTimes, sim: Pick<Simulation, '
   return { currentMs, bestMs, previousMs: previous?.bestMs, newRecord: !previous || currentMs < previous.bestMs };
 }
 export function battleCounts(sim: Pick<Simulation, 'units' | 'mission' | 'spawned'>, friendly = false, duel = false) {
-  return (['light', 'turret', 'heavy', 'rescue', 'escort'] as Kind[]).map(kind => {
+  return (['infantry', 'light', 'turret', 'heavy', 'rescue', 'escort'] as Kind[]).map(kind => {
     const units = sim.units.filter(unit => unit.kind === kind && unit.friendly === friendly);
     const pending = friendly || duel ? 0 : sim.mission.events.filter((event, index) => event.kind === kind && !sim.spawned.has(index)).length;
     const alive = units.filter(unit => unit.hp > 0).length;
