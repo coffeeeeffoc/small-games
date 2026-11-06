@@ -1,0 +1,508 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "b2f6a86f537bf87fb0a80d900bf4eaee913d31f0daa92f02add8a489876b0378"
+  },
+  "environment": "Chromium desktop WebGL, injected CSS/Tap safe-area fixtures; not K90 or TapTap device validation",
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "dpr": 1,
+      "host": "none",
+      "cssTop": 0,
+      "page": "supply",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 568,
+        "top": 0,
+        "bottom": 46
+      },
+      "back": {
+        "x": 12,
+        "y": 3,
+        "w": 48,
+        "h": 44
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 568,
+        "height": 320,
+        "top": 0,
+        "right": 568,
+        "bottom": 320,
+        "left": 0
+      },
+      "ui": {
+        "width": 568,
+        "height": 320
+      },
+      "returnedHome": true
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "dpr": 1,
+      "host": "none",
+      "cssTop": 0,
+      "page": "growth",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 568,
+        "top": 0,
+        "bottom": 46
+      },
+      "back": {
+        "x": 12,
+        "y": 3,
+        "w": 48,
+        "h": 44
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 568,
+        "height": 320,
+        "top": 0,
+        "right": 568,
+        "bottom": 320,
+        "left": 0
+      },
+      "ui": {
+        "width": 568,
+        "height": 320
+      },
+      "returnedHome": true
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "dpr": 1,
+      "host": "none",
+      "cssTop": 52,
+      "page": "supply",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 52,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 568,
+        "top": 0,
+        "bottom": 98
+      },
+      "back": {
+        "x": 12,
+        "y": 55,
+        "w": 48,
+        "h": 44
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 568,
+        "height": 320,
+        "top": 0,
+        "right": 568,
+        "bottom": 320,
+        "left": 0
+      },
+      "ui": {
+        "width": 568,
+        "height": 320
+      },
+      "returnedHome": true,
+      "screenshot": "supply-568-safe52-dpr1.png"
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "dpr": 1,
+      "host": "none",
+      "cssTop": 52,
+      "page": "growth",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 52,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 568,
+        "top": 0,
+        "bottom": 98
+      },
+      "back": {
+        "x": 12,
+        "y": 55,
+        "w": 48,
+        "h": 44
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 568,
+        "height": 320,
+        "top": 0,
+        "right": 568,
+        "bottom": 320,
+        "left": 0
+      },
+      "ui": {
+        "width": 568,
+        "height": 320
+      },
+      "returnedHome": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "dpr": 3,
+      "host": "tap",
+      "cssTop": 0,
+      "page": "supply",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 24,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 844,
+        "top": 0,
+        "bottom": 70
+      },
+      "back": {
+        "x": 13.504,
+        "y": 27,
+        "w": 48,
+        "h": 44
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "top": 0,
+        "right": 844,
+        "bottom": 390,
+        "left": 0
+      },
+      "ui": {
+        "width": 844,
+        "height": 390
+      },
+      "returnedHome": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "dpr": 3,
+      "host": "tap",
+      "cssTop": 0,
+      "page": "growth",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 24,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 844,
+        "top": 0,
+        "bottom": 70
+      },
+      "back": {
+        "x": 13.504,
+        "y": 27,
+        "w": 48,
+        "h": 44
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "top": 0,
+        "right": 844,
+        "bottom": 390,
+        "left": 0
+      },
+      "ui": {
+        "width": 844,
+        "height": 390
+      },
+      "returnedHome": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "dpr": 3,
+      "host": "tap",
+      "cssTop": 52,
+      "page": "supply",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 52,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 844,
+        "top": 0,
+        "bottom": 98
+      },
+      "back": {
+        "x": 13.504,
+        "y": 55,
+        "w": 48,
+        "h": 44
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "top": 0,
+        "right": 844,
+        "bottom": 390,
+        "left": 0
+      },
+      "ui": {
+        "width": 844,
+        "height": 390
+      },
+      "returnedHome": true,
+      "screenshot": "supply-844-safe52-dpr3.png"
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "dpr": 3,
+      "host": "tap",
+      "cssTop": 52,
+      "page": "growth",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 52,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 844,
+        "top": 0,
+        "bottom": 98
+      },
+      "back": {
+        "x": 13.504,
+        "y": 55,
+        "w": 48,
+        "h": 44
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 844,
+        "height": 390,
+        "top": 0,
+        "right": 844,
+        "bottom": 390,
+        "left": 0
+      },
+      "ui": {
+        "width": 844,
+        "height": 390
+      },
+      "returnedHome": true,
+      "screenshot": "growth-844-safe52-dpr3.png"
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "dpr": 1,
+      "host": "none",
+      "cssTop": 0,
+      "page": "supply",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 1280,
+        "top": 0,
+        "bottom": 66
+      },
+      "back": {
+        "x": 20.48,
+        "y": 3,
+        "w": 48,
+        "h": 60
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 720,
+        "top": 0,
+        "right": 1280,
+        "bottom": 720,
+        "left": 0
+      },
+      "ui": {
+        "width": 1280,
+        "height": 720
+      },
+      "returnedHome": true,
+      "screenshot": "supply-1280-safe0-dpr1.png"
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "dpr": 1,
+      "host": "none",
+      "cssTop": 0,
+      "page": "growth",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 0,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 1280,
+        "top": 0,
+        "bottom": 66
+      },
+      "back": {
+        "x": 20.48,
+        "y": 3,
+        "w": 48,
+        "h": 60
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 720,
+        "top": 0,
+        "right": 1280,
+        "bottom": 720,
+        "left": 0
+      },
+      "ui": {
+        "width": 1280,
+        "height": 720
+      },
+      "returnedHome": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "dpr": 1,
+      "host": "none",
+      "cssTop": 52,
+      "page": "supply",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 52,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 1280,
+        "top": 0,
+        "bottom": 118
+      },
+      "back": {
+        "x": 20.48,
+        "y": 55,
+        "w": 48,
+        "h": 60
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 720,
+        "top": 0,
+        "right": 1280,
+        "bottom": 720,
+        "left": 0
+      },
+      "ui": {
+        "width": 1280,
+        "height": 720
+      },
+      "returnedHome": true,
+      "screenshot": "supply-1280-safe52-dpr1.png"
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "dpr": 1,
+      "host": "none",
+      "cssTop": 52,
+      "page": "growth",
+      "safe": {
+        "left": 0,
+        "right": 0,
+        "top": 52,
+        "bottom": 0
+      },
+      "background": {
+        "left": 0,
+        "right": 1280,
+        "top": 0,
+        "bottom": 118
+      },
+      "back": {
+        "x": 20.48,
+        "y": 55,
+        "w": 48,
+        "h": 60
+      },
+      "canvas": {
+        "x": 0,
+        "y": 0,
+        "width": 1280,
+        "height": 720,
+        "top": 0,
+        "right": 1280,
+        "bottom": 720,
+        "left": 0
+      },
+      "ui": {
+        "width": 1280,
+        "height": 720
+      },
+      "returnedHome": true
+    }
+  ],
+  "errors": []
+}

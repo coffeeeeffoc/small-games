@@ -77,7 +77,9 @@ export class ProgressionView {
   private term(term:Product['term']){return this.t(term==='match'?'单场':term==='24h'?'24小时':'永久',term==='match'?'One match':term==='24h'?'24 hours':'Permanent');}
   private reward(r:AssetReward){return `${this.t('金币','Coins')} +${r.coins}   EXP +${r.xp}${r.packs?`   ${this.t('礼包','Crates')} ×${r.packs}`:''}`;}
   private header(title:string){
-    const y=this.h.safe.top,h=this.top-y-6,right=Math.min(this.right,this.h.topRight(y,h));this.h.rect(this.g,0,y,this.w,h,'#03101dda','#566872');
+    const y=this.h.safe.top,h=this.top-y-6,right=Math.min(this.right,this.h.topRight(y,h));
+    // Extend the backdrop through the safe area; controls still avoid system overlays.
+    this.h.rect(this.g,0,0,this.w,y+h,'#03101dda','#566872');
     this.button('qm:back','‹',this.left,y+3,48,Math.max(44,h-6));
     const q=this.q,status=q.page==='loadout'&&!this.low||q.busy?'':q.message[this.h.lang==='zh'?0:1];
     this.label(status||title,this.left+60,y+4,q.page==='loadout'&&!this.low&&!status?this.w*.15:right-this.left-(q.pending?160:200),h-8,status?23:52,status?cyan:ivory,!status,true);
