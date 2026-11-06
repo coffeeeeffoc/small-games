@@ -1,0 +1,196 @@
+{
+  "sourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+  "source": {
+    "build": {
+      "creator": "3.8.8",
+      "target": "web-mobile",
+      "sourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3"
+    },
+    "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+    "name": "continuous",
+    "seconds": 71.095,
+    "canvas": {
+      "width": 1920,
+      "height": 1080,
+      "drawingBufferWidth": 1920,
+      "drawingBufferHeight": 1080,
+      "dpr": 1,
+      "audioTracks": 1
+    },
+    "before": {
+      "phase": "playing",
+      "time": 1.0666666666666678,
+      "fired": 0,
+      "kills": 0,
+      "threats": 16,
+      "viewMode": "enhanced",
+      "selected": 1,
+      "rankStatus": "recording"
+    },
+    "after": {
+      "phase": "success",
+      "time": 69.766666666664,
+      "fired": 40,
+      "kills": 16,
+      "threats": 0,
+      "viewMode": "enhanced",
+      "selected": 2,
+      "rankStatus": "finished"
+    },
+    "events": [
+      {
+        "seconds": 0.737,
+        "fired": 3,
+        "weapon": 0,
+        "target": 13,
+        "screenshot": true
+      },
+      {
+        "seconds": 3.135,
+        "fired": 6,
+        "weapon": 0,
+        "target": 15
+      },
+      {
+        "seconds": 5.327,
+        "fired": 8,
+        "weapon": 0,
+        "target": 17
+      },
+      {
+        "seconds": 7.146,
+        "fired": 11,
+        "weapon": 0,
+        "target": 19
+      },
+      {
+        "seconds": 9.607,
+        "fired": 14,
+        "weapon": 0,
+        "target": 21
+      },
+      {
+        "seconds": 11.292,
+        "fired": 17,
+        "weapon": 0,
+        "target": 23
+      },
+      {
+        "seconds": 13.414,
+        "fired": 20,
+        "weapon": 0,
+        "target": 25
+      },
+      {
+        "seconds": 15.479,
+        "fired": 23,
+        "weapon": 0,
+        "target": 27
+      },
+      {
+        "seconds": 18.062,
+        "fired": 26,
+        "weapon": 0,
+        "target": 29
+      },
+      {
+        "seconds": 19.591,
+        "fired": 29,
+        "weapon": 0,
+        "target": 31
+      },
+      {
+        "seconds": 21.529,
+        "fired": 32,
+        "weapon": 0,
+        "target": 33
+      },
+      {
+        "seconds": 23.66,
+        "fired": 35,
+        "weapon": 0,
+        "target": 35
+      },
+      {
+        "seconds": 26.144,
+        "fired": 36,
+        "weapon": 2,
+        "target": 37
+      },
+      {
+        "seconds": 30.658,
+        "fired": 37,
+        "weapon": 2,
+        "target": 39
+      },
+      {
+        "seconds": 36.576,
+        "fired": 38,
+        "weapon": 2,
+        "target": 41
+      },
+      {
+        "seconds": 45.115,
+        "fired": 39,
+        "weapon": 2,
+        "target": 43
+      },
+      {
+        "seconds": 55.441,
+        "fired": 40,
+        "weapon": 2,
+        "target": 43
+      }
+    ],
+    "storageAfter": {
+      "legacyRuns": 0,
+      "journals": 0,
+      "receipts": 1
+    }
+  },
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p"
+      },
+      {
+        "codec_name": "aac"
+      }
+    ],
+    "format": {
+      "duration": "71.125500",
+      "size": "49313883"
+    }
+  },
+  "playback": {
+    "ended": true,
+    "error": null,
+    "currentTime": 71.1255,
+    "duration": 71.1255,
+    "rate": 1
+  },
+  "decoded": true,
+  "filesVerified": 32,
+  "video": {
+    "path": "gameplay/videos/night-overwatch-combat-2026-11-07-1920x1080.mp4",
+    "bytes": 49313883,
+    "sha256": "e6994f0a58b413e05e8ea13560c57921c7d134ac05bd1103ae4eb5d7ecc89ccd",
+    "capturedSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+    "verifiedForSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+    "reusedUnchanged": false,
+    "width": 1920,
+    "height": 1080,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "durationSeconds": 71.1255,
+    "decoded": true,
+    "playedToEnd": true,
+    "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+    "evidence": "../docs/design/2026-11-07-garrison-supplies/media-evidence.json"
+  }
+}

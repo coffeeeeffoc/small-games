@@ -1404,7 +1404,7 @@ export class Overwatch extends Component {
     const presented = this.sim.duelMode ? this.presentation.sample(this.sim, performance.now()) : this.sim;
     this.presentedTime = presented.time;
     this.world.update(presented, this.platform.reducedEffects);
-    if (presented !== this.sim && !this.online?.spectator) this.sim.aim = { ...presented.aim };
+    if (presented !== this.sim && !this.online?.spectator && Math.hypot(this.sim.aim.x-presented.aim.x,this.sim.aim.z-presented.aim.z)>1e-6) this.sim.setAim(presented.aim);
     if (!this.sim.duelMode && this.platform.rewards.ammo !== this.sim.homingAmmo) {
       this.platform.rewards.ammo = this.sim.homingAmmo;
       this.platform.saveRewards();

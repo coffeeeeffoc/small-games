@@ -1,5 +1,7 @@
 # 夜航守望 · 交付状态
 
+2026-11-07 驻守步兵与军需扩展：先同步dev至 `6dfea874`，保留此前奖励改动与独立ICP资料。商店期限下新增分类和卡片标签，签到三类装备随机且缺少优先、完整显示图片，首页顶部直达大厅；新增九项长期成就、组合礼包与单/双人驻守步兵，机枪弹速180。回放v15/对战v8/榜单v3，首通、资产及永久资格保留。最终Creator摘要 `1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3`，59,293,858字节；规则/120关通关、53项真实PostgreSQL、8个中英文/安全区UI场景、真实Sakura单/双人桌面触屏射击均通过。补修双人飞行准星未上传的问题，86项输入/在线/呈现回归及类型检查通过。新Runtime `night-20261107-garrison-bd1223e7` 已运行，35表备份恢复一致，公网及本地API验证通过。新增当前驻守步兵的约71秒1080p连续首关录屏、三张正式截图并同步文案；旧媒体保留历史采集身份。[设计与验证](../docs/design/2026-11-07-garrison-supplies/README.md)、[本地部署回执](../docs/design/2026-11-07-garrison-supplies/local-deployment.json)。测试资产调整继续启用；未部署生产、上传渠道包或完成实体手机/TapTap宿主验收。以下日期条目保留当时状态。
+
 2026-11-06 二级页安全区背景：补给、商店、成长等共用工具栏背景延伸至屏幕顶部，按钮/文字仍避让原安全区，背景下边缘与主体布局不变。Creator 3.8.8 源码摘要 `b2f6a86f537bf87fb0a80d900bf4eaee913d31f0daa92f02add8a489876b0378`，web-mobile 59,277,141字节；58项HUD/安全区、类型检查及三尺寸12个浏览器场景通过。[修复、截图与边界](../docs/design/safe-area-2026-11-06/README.md)。既有上架媒体保留原采集身份，QA图不作为正式素材；这是背景覆盖修复，不改变K90实际安全区上报。未上传TapTap、未部署Runtime，实体机/真宿主待换包验收。
 
 2026-11-06 本地联调部署：Runtime已更新为 `night-20261106-rewards-2c8a3d80`，435项制品校验通过，包含本工作区未提交奖励和平衡修复。35表备份恢复一致，只切换Runtime，原数据库、网关及Sakura FRP配置保留。公网/本地健康、CORS及访问限制、真实签到/首通/复刷/合成/装配与跨入口幂等通过；`http://localhost:4318` 前端已实际连接FRP进入大厅、读取新奖励配置，异常0。[脱敏联调回执](../docs/design/rewards-2026-11-06/review/local-deployment.json)。这是启用资产调整的测试服务器；未上传新渠道包、部署生产、提交或推送，真实TapTap宿主及实体机仍待验收。
@@ -48,16 +50,16 @@
 
 | 类别 | 状态 | 当前文件 |
 | --- | --- | --- |
-| 游戏简介 | 已提供 | [introduction.md](copy/introduction.md)，同步战况、横向选关、EXP、冷却与激光 |
+| 游戏简介 | 已提供 | [introduction.md](copy/introduction.md)，同步驻守步兵、分类签到、组合礼包及长期成就 |
 | 推荐语 | 已提供 | [tagline.md](copy/tagline.md)，复核沿用 |
-| 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，同步战况与持续反馈 |
+| 开发者的话 | 已提供 | [developer-note.md](copy/developer-note.md)，同步奖励策略与步兵火力设计 |
 | 图标 | 已提供 | [1024×1024 PNG](icon/icon-1024.png)，复核沿用 |
 | 宣传图 | 已提供 | [1920×1080](promo/images/title-1920x1080.png)、[1440×1440](promo/images/title-1440x1440.png)，仅标题，复核沿用 |
 | 宣传视频 | 已提供 | [战斗开场新版](promo/videos/night-overwatch-action-2026-11-05-1920x1080.mp4)，30秒 / 1920×1080 / 30fps / H.264 MP4 / AAC；前27秒五组真实战斗，最后3秒品牌收尾，沿用原创电子配乐。[源码与验证](promo/videos/review-2026-11-05-source/README.md)；旧版保留归档 |
-| 游戏截图 | 已提供 | 10张1280×720 PNG：[夜景](gameplay/screenshots/2026-11-04-support/night-1280.png)、[增强](gameplay/screenshots/2026-11-04-support/enhanced-1280.png)、[热像](gameplay/screenshots/2026-11-04-support/thermal-1280.png)、[设置](gameplay/screenshots/2026-11-05-mobile/settings-1280.png)、[正式结算](gameplay/screenshots/2026-11-06-rewards/settlement-1280.png)、[装配](gameplay/screenshots/2026-11-04-support/equipment-1280.png)、[首页](gameplay/screenshots/2026-11-05-mobile/home-1280.png)、[等级成长](gameplay/screenshots/2026-11-04-refinement/growth-1280.png)、[开始行动](gameplay/screenshots/2026-11-04-refinement/modes-1280.png)、[横向选关](gameplay/screenshots/2026-11-06-rewards/missions-1280.png) |
-| 实机录屏 | 已提供 | [约57秒连续首关录屏](gameplay/videos/night-overwatch-combat-2026-11-06-1920x1080.mp4)，1920×1080 / 30fps / H.264 / AAC，保留游戏音效及电台；第一帧即战斗，约0.95秒首次开火，连续录至真实服务结算，无遮挡控件。桌面浏览器实录，非实体手机 |
+| 游戏截图 | 已提供 | 当前新增[步兵战斗1920×1080](gameplay/screenshots/2026-11-07-garrison/infantry-1920.png)、[正式结算1920×1080](gameplay/screenshots/2026-11-07-garrison/settlement-1920.png)、[横向选关1280×720](gameplay/screenshots/2026-11-07-garrison/missions-1280.png)；其余成像、设置、装配及首页截图按清单保留原采集身份 |
+| 实机录屏 | 已提供 | [约71秒连续首关录屏](gameplay/videos/night-overwatch-combat-2026-11-07-1920x1080.mp4)，1920×1080 / 30fps / H.264 / AAC，保留游戏音效及电台；第一帧即战斗，机枪清除步兵、重炮清除炮位，连续录至真实服务结算。桌面浏览器实录，非实体手机 |
 
-[媒体清单](manifest.json)记录大小、尺寸、摘要及采集身份。2026-11-06共28文件核验：新增连续首关视频、正式结算及选关两图，简介和开发者说明同步奖励。其余图像及视频保留原采集身份，30秒宣传片沿用；新素材由隔离真实PostgreSQL/HTTP普通游客实际操作采集。QA合成与小屏图片单独放在[方案与验证](../docs/design/rewards-2026-11-06/README.md)，不作正式媒体。
+[媒体清单](manifest.json)记录大小、尺寸、摘要及采集身份。2026-11-07共32文件核验：新增连续首关视频及三张战斗/结算/选关图，简介和开发者说明同步更新。其余图像及视频保留原采集身份，30秒宣传片作为历史素材沿用；新素材由隔离真实PostgreSQL/HTTP普通游客实际操作采集。QA合成与小屏图片单独放在[方案与验证](../docs/design/2026-11-07-garrison-supplies/README.md)，不作正式媒体。
 
 静态图标、宣传图和推荐语保留原采集身份；历史截图与视频继续归档保留。素材许可见[素材清单](../docs/ASSET_MANIFEST.json)，本轮内置imagegen提示词、效果图和实际对照见[设计目录](../docs/design/refinement-2026-11-04/README.md)。
 

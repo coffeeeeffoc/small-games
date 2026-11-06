@@ -1,0 +1,108 @@
+{
+  "verifiedAt": "2026-11-06T17:28:41.525Z",
+  "release": "night-20261107-garrison-bd1223e7",
+  "image": "small-games-bundle:night-20261107-garrison-bd1223e7",
+  "imageId": "sha256:70f6d9500f57b4efec22088c7f02dd43ad5f59c023623a1dd51de81b732f6058",
+  "sourceCommit": "53abf6686dc7d794c26a2a83091ee19714800d86",
+  "sourceDirty": true,
+  "verifiedFiles": 435,
+  "frontendSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+  "apiUrl": "https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1",
+  "localApi": "http://127.0.0.1:43003/api/competition/v1",
+  "preview": "http://localhost:4318",
+  "backup": {
+    "directory": "F:\\playground\\playground-ai\\small-games\\.scratch\\night-overwatch-selftest\\backup-1793985209890",
+    "tables": 35,
+    "restoreDigestsMatch": true,
+    "originalUnchangedBeforeSwitch": true
+  },
+  "preservedPostgresAndGateway": true,
+  "sqlMigrationApplied": false,
+  "acceptance": {
+    "at": "2026-11-06T17:14:26.051Z",
+    "network": [
+      {
+        "origin": "http://127.0.0.1:43003",
+        "health": 200,
+        "anonymous": 401,
+        "otherGame": 404,
+        "internal": 404,
+        "cors": true
+      },
+      {
+        "origin": "https://nas.hc2a5c9f0.nyat.app:29549",
+        "health": 200,
+        "anonymous": 401,
+        "otherGame": 404,
+        "internal": 404,
+        "cors": true
+      }
+    ],
+    "bundles": [
+      {
+        "tier": 0,
+        "quantity": 10,
+        "coins": 400,
+        "xp": 100,
+        "items": {
+          "fragment:skill": 5,
+          "fragment:weapon": 5
+        },
+        "idempotent": true
+      },
+      {
+        "tier": 1,
+        "quantity": 5,
+        "coins": 300,
+        "xp": 100,
+        "items": {
+          "fragment:weapon": 6,
+          "rate-match": 2,
+          "fragment:skill": 4,
+          "cooling-match": 2,
+          "power-match": 1
+        },
+        "idempotent": true
+      },
+      {
+        "tier": 2,
+        "quantity": 5,
+        "coins": 500,
+        "xp": 200,
+        "items": {
+          "fragment:weapon": 12,
+          "emp-match": 5,
+          "fragment:skill": 3
+        },
+        "idempotent": true
+      }
+    ],
+    "errors": [],
+    "checkin": {
+      "coins": 100,
+      "xp": 40,
+      "item": "drone-match",
+      "category": "weapon",
+      "idempotent": true
+    },
+    "achievements": {
+      "count": 12,
+      "checkinProgress": 1,
+      "unearnedRejected": true
+    },
+    "developmentCredit": {
+      "newQAGuestOnly": true,
+      "coins": 4000,
+      "xp": 0
+    },
+    "release": "night-20261107-garrison-bd1223e7",
+    "imageId": "sha256:70f6d9500f57b4efec22088c7f02dd43ad5f59c023623a1dd51de81b732f6058",
+    "passed": true
+  },
+  "limits": [
+    "Local development asset adjustment remains enabled",
+    "No existing player assets or public chat modified",
+    "Physical device, TapTap host and real ad fill not tested",
+    "No production deployment or platform upload"
+  ]
+}

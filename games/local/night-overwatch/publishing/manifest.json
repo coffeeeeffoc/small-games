@@ -1,7 +1,7 @@
 {
-  "sourceHash": "59a4cf8b9a18324a59cd4ecf26a74c46fe6a7cbc54adaca3f46cf03e5b5ce48e",
-  "verified": "2026-11-06",
-  "environment": "28 files reverified after reward audit; formal media are unaffected by owned-item guards and crafting help text, and retain original capture identities. Desktop WebGL is not physical-device capture; no upload.",
+  "sourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+  "verified": "2026-11-07",
+  "environment": "New garrison combat, mission map and settlement captures; continuous 1080p first mission with actual game audio, real isolated PostgreSQL/HTTP and input. Reward copy updated. Existing media retain original capture identities as historical assets. No platform upload; no physical-device capture.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",
@@ -169,17 +169,17 @@
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 3771,
-      "sha256": "e3dd000dc42ca35de6626999edc614979508febd74b7ff8107cff66be26bef06",
-      "verifiedForSourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
+      "bytes": 4252,
+      "sha256": "61a479bf2fbe89cc0ac8bc523312cc956a5f073f0418d21d69b6eb2330b89fba",
+      "verifiedForSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
       "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
       "reusedUnchanged": false
     },
     {
       "path": "copy/developer-note.md",
-      "bytes": 2827,
-      "sha256": "111e4598d2c2724551c37c1b96be0895ca58ba13b19a813016a7c647b8ed89d7",
-      "verifiedForSourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
+      "bytes": 2916,
+      "sha256": "836e1e4fefdba4fb3d97534cd9f4b116e15b13ebcaec0ffeb7ffa8354d9ffd48",
+      "verifiedForSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
       "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
       "reusedUnchanged": false
     },
@@ -335,7 +335,7 @@
       "sha256": "78425c8544b94c437ed29604e7b274eae6fae6f3840db6055dc19231d4b103dd",
       "capturedSourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
       "verifiedForSourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720
     },
@@ -345,7 +345,7 @@
       "sha256": "c80f4c9d749a7a967a967dd0e1453847a0060c3b37fb403b7f316aea7e985cea",
       "capturedSourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
       "verifiedForSourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1280,
       "height": 720
     },
@@ -355,7 +355,7 @@
       "sha256": "2047a4a56eb7f0b19dc0f15a3056927a2c5c9fd1fd8a5a6786ba26e3ec6dab89",
       "capturedSourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
       "verifiedForSourceHash": "43b71e390730307278eb081cdb2f37207d1129bdbf7f7df587be9009093fde53",
-      "reusedUnchanged": false,
+      "reusedUnchanged": true,
       "width": 1920,
       "height": 1080,
       "videoCodec": "h264",
@@ -365,6 +365,53 @@
       "playedToEnd": true,
       "environment": "Continuous desktop WebGL recording; isolated real PostgreSQL/HTTP; ordinary guest and pointer input; game audio",
       "evidence": "../docs/design/rewards-2026-11-06/media-evidence.json"
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-07-garrison/missions-1280.png",
+      "bytes": 838277,
+      "sha256": "cbaf6fa96fdc4e8ce31016acce804668e9ae3be8aa0a646d7bc316e643f07253",
+      "capturedSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+      "verifiedForSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-07-garrison/settlement-1920.png",
+      "bytes": 1891826,
+      "sha256": "421a69a050a3b8b759b780e4d5d93c6af195fa32aa8aef5a336ba0704cf0c265",
+      "capturedSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+      "verifiedForSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+      "reusedUnchanged": false,
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-07-garrison/infantry-1920.png",
+      "bytes": 1368839,
+      "sha256": "e1af48c5d016ac67dada9c19ce8a80fdc9f837cc2732c306d2e8279c64a69a1d",
+      "capturedSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+      "verifiedForSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+      "reusedUnchanged": false,
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "gameplay/videos/night-overwatch-combat-2026-11-07-1920x1080.mp4",
+      "bytes": 49313883,
+      "sha256": "e6994f0a58b413e05e8ea13560c57921c7d134ac05bd1103ae4eb5d7ecc89ccd",
+      "capturedSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+      "verifiedForSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+      "reusedUnchanged": false,
+      "width": 1920,
+      "height": 1080,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "durationSeconds": 71.1255,
+      "decoded": true,
+      "playedToEnd": true,
+      "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+      "evidence": "../docs/design/2026-11-07-garrison-supplies/media-evidence.json"
     }
   ]
 }

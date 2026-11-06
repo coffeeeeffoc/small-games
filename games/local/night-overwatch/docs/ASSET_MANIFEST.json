@@ -17,6 +17,14 @@
         "textureCount": 0,
         "externalModelDependencies": 0,
         "runtimeUsage": "Solo and duel stationary infantry; authoritative position and body collision"
+      },
+      "validation": {
+        "engine": "Cocos Creator 3.8.8",
+        "sourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+        "web": "passed desktop and touch UI, real solo and two-client duel infantry hits",
+        "evidence": "design/2026-11-07-garrison-supplies/qa/live-evidence.json",
+        "mobileDevice": "not-tested",
+        "taptapHost": "not-tested"
       }
     },
     {

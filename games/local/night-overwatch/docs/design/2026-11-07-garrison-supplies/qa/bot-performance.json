@@ -1,0 +1,11 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3"
+  },
+  "environment": "Explicit offline identity fixture; real local bot simulation and UI input",
+  "errors": [],
+  "fpsP10": 59.98800239934139,
+  "fpsMedian": 59.99700015017133
+}
