@@ -2,6 +2,7 @@ import { CAMPAIGN_BOARD_VERSION } from './core/MissionCatalog';
 import { getNightStorage, type NightStorage } from './Storage';
 import { AudioClip, AudioSource, Node, resources, sys } from 'cc';
 import type { ViewMode } from './World';
+import type { Quartermaster } from './Quartermaster';
 import type { PauseReason } from './core/Simulation';
 import { missionDefinition, type MissionId } from './core/MissionCatalog';
 import { newMissionProgress, readMissionProgress, type MissionProgress } from './core/MissionProgress';
@@ -35,6 +36,8 @@ export class Platform {
   private radioStartWait = 0;
   private radioLastTime = 0;
   private disposed = false;
+  private wheelSound=0;
+  private wheelRevealed=0;
   clips = new Map<string, AudioClip>();
   audioStatus = 'loading';
   cleanup: (() => void)[] = [];
@@ -82,7 +85,7 @@ export class Platform {
     this.radio.playOnAwake = false;
     this.radio.volume = .85;
     radioNode.on(AudioSource.EventType.ENDED, () => { this.radioPending = false; this.radioPaused = false; });
-    const names = ['rapid', 'blast', 'heavy', 'hit', 'alert', 'impact1', 'impact2', 'engine',
+    const names = ['rapid', 'blast', 'heavy', 'hit', 'alert', 'impact1', 'impact2', 'engine', 'wheel-click', 'wheel-spin', 'wheel-win',
       ...Object.keys(RADIO).flatMap(id => ['zh', 'en'].map(lang => `radio-${id}-${lang}`))];
     let pending = names.length;
     for (const name of names) {
@@ -193,6 +196,15 @@ export class Platform {
       source.stop();
       source.play();
     }
+  }
+  wheelAudio(wheel:Quartermaster['wheel'],visible:boolean){
+    const spin=this.voices.get('wheel-spin');
+    if(!wheel||!visible||!this.focused||this.muted||this.disposed){spin?.stop();this.wheelSound=0;return;}
+    if(wheel.started!==this.wheelSound){
+      this.wheelSound=wheel.started;
+      if(!wheel.shown&&!this.reducedEffects){this.play('wheel-spin');if(spin)spin.currentTime=Math.min(spin.duration||4.8,Math.max(0,(Date.now()-wheel.started)/1000));}
+    }
+    if(wheel.shown){spin?.stop();if(this.wheelRevealed!==wheel.started){this.wheelRevealed=wheel.started;this.play('wheel-win');}}
   }
   stop(preserveRadio = false) {
     if (preserveRadio && this.radioPending) {

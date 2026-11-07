@@ -10,22 +10,22 @@ const normalize = (text) => text.replaceAll('\r\n', '\n');
 const recipe = [
   {
     file: 'assets/scripts/HUD.ts',
-    originalSha256: 'af63c00e008114dfdf1fba65f94efef2f65f8da6c05405e703e8a553eeff4871',
+    originalSha256: '3d46e5fae19b2b18ebea5ffdc34a7cee444717a682693798b044ab9da2e7e1cf',
     changes: [],
   },
   {
     file: 'assets/scripts/BattleStatusView.ts',
-    originalSha256: '38569b4ab51db9dcc1dbd2970f9e0640104fca364ad6e821d844a27c718a2979',
+    originalSha256: 'ec2f5e8348dfb9ddddca5e7dd1eb59c588717509a29d14644528751b3e2e6520',
     changes: [],
   },
   {
     file: 'assets/scripts/CombatControlsView.ts',
-    originalSha256: '57b83b4ebba29feb07f2da94567ab715cdf756502f03de5a9328a2bc0031b017',
+    originalSha256: '4c9376f25fe146ffc0548b628dd5c2cf45af8fd5f8dd821781f11fa5924f3975',
     changes: [],
   },
   {
     file: 'assets/scripts/Platform.ts',
-    originalSha256: 'adcc883c06a33407d51b8fcab5b5c4ee4fd96804268ef8c37ba93c014f322fa5',
+    originalSha256: '7334c411260983477f6b8d4b4ae8ae31db08ef103d6eb848dfcd0f226b53f1c3',
     changes: [],
   },
 ];

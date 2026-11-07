@@ -15,9 +15,9 @@ export function lateWaveFixture(){
    s.setAim(aim);const flight=s.flightTime(gun,aim);if(friends.some(f=>distance(aim,f.routeOffset===undefined?f:s.routePoint(s.progress+f.routeOffset+s.mission.speed*flight))<=WEAPONS[gun].radius+UNITS[f.kind].radius+.1))continue;if(s.friendlyRisk||!s.fire())continue;
    pending.set(s.shots.at(-1)!.id,{unit:enemy.id,damage:WEAPONS[gun].damage*(enemy.kind==='heavy'?WEAPONS[gun].armor:1)});break;
   }
-  inputs.push([s.selected,s.aim.x,s.aim.z,s.fired>fired]);s.step(1/60);assert(s.units.filter(u=>!u.friendly&&u.hp>0).length<=72);
-  if(!checkpoint&&s.spawned.size===144&&s.units.filter(u=>!u.friendly&&u.hp<=0).length>=70)checkpoint={ticks:inputs.length,time:s.time,spawned:s.spawned.size,dead:s.units.filter(u=>!u.friendly&&u.hp<=0).length,units:s.units.map(u=>({id:u.id,hp:u.hp,x:u.x,z:u.z}))};
+  inputs.push([s.selected,s.aim.x,s.aim.z,s.fired>fired]);s.step(1/60);assert(s.units.filter(u=>!u.friendly&&u.hp>0).length<=120);
+  if(!checkpoint&&s.spawned.size===192&&s.units.filter(u=>!u.friendly&&u.hp<=0).length>=70)checkpoint={ticks:inputs.length,time:s.time,spawned:s.spawned.size,dead:s.units.filter(u=>!u.friendly&&u.hp<=0).length,units:s.units.map(u=>({id:u.id,hp:u.hp,x:u.x,z:u.z}))};
  }
- assert.equal(s.phase,'success');assert.equal(s.friendlyDamage,0);assert.equal(s.friendlyLosses,0);assert.equal(s.spawned.size,144);assert(checkpoint);
+ assert.equal(s.phase,'success');assert.equal(s.friendlyDamage,0);assert.equal(s.friendlyLosses,0);assert.equal(s.spawned.size,192);assert(checkpoint);
  return {inputs:inputs.slice(0,checkpoint.ticks),checkpoint,complete:{phase:s.phase,time:s.time,kills:s.kills,friendlyDamage:s.friendlyDamage,friendlyLosses:s.friendlyLosses,spawned:s.spawned.size}};
 }

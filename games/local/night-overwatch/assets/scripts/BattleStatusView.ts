@@ -37,6 +37,7 @@ type BattleStatusViewHost = Pick<
   | 'homeBackground'
   | 'isGlobalAction'
   | 'labels'
+  | 'label'
   | 'lang'
   | 'layoutEditing'
   | 'lockedTargets'
@@ -567,7 +568,7 @@ export class BattleStatusView {
       if (button.id === 'homing')
         button.label.string =
           this.hud.t('追踪', 'LOCK') +
-          ' ' +
+          (tracking?'\n':' ') +
           (tracking
             ? this.hud.t(
                 `${Math.ceil(simulation.buff!.remaining)}秒`,
@@ -598,10 +599,7 @@ export class BattleStatusView {
           : ready.remaining > 0
             ? ready.displaySeconds.toFixed(1) + 's'
             : '';
-        button.label.string =
-          weaponIndex >= 4 || button.w < 60
-            ? name + '\n' + ammo + (status ? '·' + status : '')
-            : name + ' ' + ammo + (status ? '\n' + status : '');
+        button.label.string = name + ' ' + ammo + (status ? '\n' + status : '');
       }
       if (button.id === 'skillUse') {
         button.label.string =
@@ -713,13 +711,24 @@ export class BattleStatusView {
         : (button.id === 'skillUse' || button.w < 60 ? 11 : this.hud.compact ? 12 : 13) *
           this.hud.controlScale;
       button.label.lineHeight = 15 * (fire ? this.hud.fireScale : this.hud.controlScale);
-      if (button.id === 'skillUse')
-        button.label.color = col(
-          simulation.skillRemaining > 0 ? C.mint : simulation.skillCooldown > 0 ? C.dim : C.white,
-        );
-      if (button.id === 'homing' && tracking && simulation.buff!.remaining <= 5)
-        button.label.color = col(C.amber);
       button.label.isBold = selected || fire;
+      const [title,...statusLines]=button.label.string.split('\n'),detail=statusLines.join('\n');
+      if(detail&&!button.detail)button.detail=this.hud.label(button.label.node,'',width/2,height/2,11,button.w-8,18,C.amber);
+      button.label.string=title;
+      const line=button.label.lineHeight,hasDetail=!!detail;
+      button.label.node.setPosition(button.x+button.w/2-width/2,height/2-button.y-button.h/2+(hasDetail?line*.45:0));
+      button.label.node.getComponent(UITransform)!.setContentSize(button.w-8,hasDetail?line:button.h-2);
+      if(button.detail){
+        button.detail.node.active=hasDetail;button.detail.string=detail;
+        button.detail.node.setPosition(0,-line*.95);
+        button.detail.fontSize=(fire?12:10)*Math.min(1.3,fire?this.hud.fireScale:this.hud.controlScale);
+        button.detail.lineHeight=line;button.detail.overflow=Label.Overflow.SHRINK;
+        button.detail.node.getComponent(UITransform)!.setContentSize(button.w-8,line);
+        const empty=button.id.startsWith('weapon')&&simulation.weaponReadiness(Number(button.id.slice(-1))).empty;
+        const tone=button.id==='skillUse'?(simulation.skillRemaining>0?'#83f5a8':simulation.skillCooldown>0?C.amber:'#78ddff')
+          :button.id==='homing'&&tracking?(simulation.buff!.remaining<=5?C.amber:C.mint):empty?C.red:C.amber;
+        button.detail.color=col(tone);button.detail.isBold=true;
+      }
       if (button.id.startsWith('weapon')) {
         const gunState = simulation.guns[Number(button.id.slice(-1))];
         this.hud.rect(

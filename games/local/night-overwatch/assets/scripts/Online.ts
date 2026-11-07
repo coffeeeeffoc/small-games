@@ -514,7 +514,7 @@ export class Online {
     this.view = view; if (start) this.panel = '';
     this.changed(view, start);
   }
-  async cycleRankingVersion() { this.rankingVersion=this.rankingVersion===CAMPAIGN_BOARD_VERSION?'night-campaign-v2':this.rankingVersion==='night-campaign-v2'?'night-growth-v1':this.rankingVersion==='night-growth-v1'?'night-records-v1':CAMPAIGN_BOARD_VERSION;await this.loadRanking(); }
+  async cycleRankingVersion() { this.rankingVersion=this.rankingVersion===CAMPAIGN_BOARD_VERSION?'night-campaign-v3':this.rankingVersion==='night-campaign-v3'?'night-campaign-v2':this.rankingVersion==='night-campaign-v2'?'night-growth-v1':this.rankingVersion==='night-growth-v1'?'night-records-v1':CAMPAIGN_BOARD_VERSION;await this.loadRanking(); }
   async loadRanking(level = this.level, board = this.board) {
     const request = ++this.rankingRequest;
     this.board = board;

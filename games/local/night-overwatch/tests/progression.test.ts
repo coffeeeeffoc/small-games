@@ -29,12 +29,20 @@ test('slot limits deduplicate effects and all sources share level-gated contents
 });
 test('all level and permanent ownership combinations stay below package cost, including currency substitutes',()=>{
   const gear=CATALOG.filter(p=>p.term==='match');
+  const recycle=(p:typeof gear[number])=>(p.sell*ECONOMY.termOdds.match+CATALOG.find(other=>other.effect===p.effect&&other.term==='24h')!.sell*ECONOMY.termOdds['24h'])/100;
+  let maximum=0;
   for(let level=1;level<=50;level++)for(let mask=0;mask<1<<gear.length;mask++){
     const owned=gear.filter((_,i)=>mask&(1<<i)).map(p=>p.effect);
-    const value=POOLS.general.weights.reduce((sum,weight,tier)=>{const items=eligibleDrops(CATALOG,tier,level,owned);const bundle=ECONOMY.bundleTiers[tier],recycle=(items.length?bundle.coins+items.reduce((n,p)=>n+p.sell,0)/items.length:POOLS.general.coinDrops[tier])+bundle.fragments*ECONOMY.fragmentSell;return sum+weight*recycle/100;},0);
+    const value=POOLS.general.weights.reduce((sum,weight,tier)=>{const items=eligibleDrops(CATALOG,tier,level,owned);const bundle=ECONOMY.bundleTiers[tier],value=(items.length?bundle.coins+items.reduce((n,p)=>n+recycle(p),0)/items.length:POOLS.general.coinDrops[tier])+bundle.fragments*ECONOMY.fragmentSell;return sum+weight*value/100;},0);
+    maximum=Math.max(maximum,value);
     assert(value<=130.1+1e-9);assert(value<160);
   }
   assert.equal(WHEEL_PRIZES.reduce((sum,p)=>sum+p.weight,0),100);
+  assert(Math.abs(maximum-130.1)<1e-9);
+  assert.deepEqual(ECONOMY.termOdds,{match:90,'24h':10});
+  assert.deepEqual(POOLS.general.weights,[60,25,12,3]);
+  assert.equal(GROWTH_VERSION,'night-growth-v1');
+  assert.equal(ECONOMY.version,'night-rewards-v4');
 });
 test('two bursts and twin trajectories pay one round and heat charge, cannot fire for free, preserve snapshot',()=>{
   const sim=setup(['burst','twin']);sim.choose(1);sim.setAim({x:-80,z:-40});

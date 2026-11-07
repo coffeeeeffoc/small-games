@@ -1,0 +1,149 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0"
+  },
+  "environment": "Real local test Runtime via Sakura HTTPS; fresh guests; normal input; no simulation or asset injection",
+  "checks": [
+    {
+      "mode": "solo",
+      "width": 1280,
+      "touch": false,
+      "torso": true,
+      "target": 13,
+      "hpBefore": 16,
+      "hpAfter": 0,
+      "fired": 5
+    },
+    {
+      "mode": "solo",
+      "width": 568,
+      "touch": true,
+      "torso": false,
+      "target": 13,
+      "hpBefore": 16,
+      "hpAfter": 0,
+      "fired": 4
+    },
+    {
+      "mode": "duel",
+      "width": 1280,
+      "touch": false,
+      "torso": true,
+      "target": 77,
+      "hpBefore": 16,
+      "hpAfter": 0,
+      "fired": 5
+    },
+    {
+      "mode": "duel",
+      "width": 568,
+      "touch": true,
+      "torso": false,
+      "target": 29,
+      "hpBefore": 16,
+      "hpAfter": 0,
+      "fired": 4
+    }
+  ],
+  "samples": [
+    {
+      "label": "solo-1280",
+      "width": 1280,
+      "height": 720,
+      "fpsP10": 59.99700015017133,
+      "fpsMedian": 60.00198353682319,
+      "aimErrorP90": 0,
+      "first": {
+        "fps": 60.01388751062737,
+        "drawCalls": 78,
+        "triangles": 474915,
+        "time": 2.799999999999995,
+        "units": 40,
+        "aimError": 0
+      },
+      "last": {
+        "fps": 59.99700015017133,
+        "drawCalls": 77,
+        "triangles": 474846,
+        "time": 7.799999999999978,
+        "units": 40,
+        "aimError": 0
+      }
+    },
+    {
+      "label": "solo-568",
+      "width": 568,
+      "height": 320,
+      "fpsP10": 59.97600959669756,
+      "fpsMedian": 60.00793493336757,
+      "aimErrorP90": 0,
+      "first": {
+        "fps": 59.97600959669756,
+        "drawCalls": 79,
+        "triangles": 475091,
+        "time": 2.716666666666662,
+        "units": 40,
+        "aimError": 0
+      },
+      "last": {
+        "fps": 60.00793493336757,
+        "drawCalls": 78,
+        "triangles": 475099,
+        "time": 7.716666666666645,
+        "units": 40,
+        "aimError": 0
+      }
+    },
+    {
+      "label": "duel-1280",
+      "width": 1280,
+      "height": 720,
+      "fpsP10": 59.53857603572319,
+      "fpsMedian": 59.972244250771986,
+      "aimErrorP90": 0.008165728001921098,
+      "first": {
+        "fps": 59.987110207901246,
+        "drawCalls": 152,
+        "triangles": 492452,
+        "time": 4.633333333333322,
+        "units": 112,
+        "aimError": 0.006432209241729042
+      },
+      "last": {
+        "fps": 59.972244250771986,
+        "drawCalls": 153,
+        "triangles": 492186,
+        "time": 9.633333333333391,
+        "units": 112,
+        "aimError": 0.006129296233108087
+      }
+    },
+    {
+      "label": "duel-568",
+      "width": 568,
+      "height": 320,
+      "fpsP10": 59.99100135033387,
+      "fpsMedian": 60.0138875106274,
+      "aimErrorP90": 0.000005493776065329678,
+      "first": {
+        "fps": 60.022818592014644,
+        "drawCalls": 153,
+        "triangles": 491797,
+        "time": 14.150000000000283,
+        "units": 112,
+        "aimError": 2.3889168124020324e-7
+      },
+      "last": {
+        "fps": 60.0138875106274,
+        "drawCalls": 153,
+        "triangles": 491682,
+        "time": 19.100000000000197,
+        "units": 112,
+        "aimError": 9.836088976106648e-7
+      }
+    }
+  ],
+  "errors": []
+}

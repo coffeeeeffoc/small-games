@@ -1,6 +1,6 @@
-import { MISSION, MAP, UNITS, garrisonPoints, routeLength, type BattlefieldId, type Kind } from './Data.ts';
+import { MISSION, MAP, UNITS, GARRISON, garrisonPoints, routeLength, type BattlefieldId, type Kind } from './Data.ts';
 export type MissionId = 'corridor-01' | 'ambush-02' | 'patrol-03' | `operation-${string}` | 'training-60';
-export const CAMPAIGN_BOARD_VERSION='night-campaign-v3';
+export const CAMPAIGN_BOARD_VERSION='night-campaign-v4';
 export type MissionEvent = { time: number; progress: number; kind: Kind; x: number; z: number; direction: readonly string[] };
 export type MissionLight = 'day' | 'dusk' | 'night';
 export type MissionDefinition = Omit<typeof MISSION, 'id' | 'events'> & {
@@ -51,15 +51,15 @@ for (let number = 4; number <= 120; number++) {
     description: [`${waveCount} 批威胁 · ${map === 'valley' ? '河谷' : '高地'}${style === 2 ? '机动目标' : '火力部署'} · 保护四组友军`,
       `${waveCount} waves · ${map.toUpperCase()} ${style === 2 ? 'ROVERS' : 'DEPLOYMENT'} · Protect four groups`], events });
 }
-// Stationary squads reinforce four sectors without replacing the armored contacts.
+// Eight separated infantry positions support the existing armored waves.
 for(const [index,profile] of profiles.entries()){
-  const count=index<3?[12,18,24][index]:24+Math.floor((index-3)*24/116);
-  const infantry=garrisonPoints(count).map((point):MissionEvent=>({
+  const count=index<3?[24,36,48][index]:48+Math.floor((index-3)*(GARRISON.soloMax-48)/116);
+  const infantry=garrisonPoints(count).map((point,i):MissionEvent=>({
     time:0,progress:0,kind:'infantry',...point,
-    direction:['驻守步兵出现 · 机枪点射清除','GARRISON CONTACT · Use rapid fire'],
+    direction:[`第${i%GARRISON.sectors+1}片区步兵阵地 · 压制火力，支援友军`,`SECTOR ${i%GARRISON.sectors+1} · Suppress infantry, support allies`],
   }));
   profile.events=[...infantry,...profile.events];
-  profile.description=[profile.description[0]+` · ${count}名驻守步兵`,profile.description[1]+` · ${count} garrison infantry`];
+  profile.description=[profile.description[0]+` · 8处步兵阵地 / ${count}名步兵`,profile.description[1]+` · 8 positions / ${count} infantry`];
 }
 export const TRAINING: MissionDefinition = {
   light: 'day', initialWeapon: 1,
@@ -79,7 +79,7 @@ if (new Set([...profiles, TRAINING].map(mission => mission.id)).size !== profile
 for (const profile of [...profiles, TRAINING]) {
   if (profile.duration <= (profile.speed ? routeLength(profile.map) / profile.speed : 0) || profile.attackInterval <= 0 || profile.warmup < 0) throw new Error('Invalid mission timing.');
   if (!['day', 'dusk', 'night'].includes(profile.light) || ![0, 1, 2].includes(profile.initialWeapon) ||
-    profile.events.length < 3 || profile.events.length > 144 || profile.events.some((event) =>
+    profile.events.length < 3 || profile.events.length > 192 || profile.events.some((event) =>
     !UNITS[event.kind] || ![event.time, event.progress, event.x, event.z].every(Number.isFinite) ||
     event.time < 0 || event.time >= profile.duration || event.progress < 0 || event.progress > 1 ||
     Math.abs(event.x) > MAP.halfWidth || Math.abs(event.z) > MAP.halfDepth)) throw new Error('Invalid mission profile.');

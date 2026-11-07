@@ -14,12 +14,13 @@ export function campaignReward(level: number, firstClear = false) {
     xp: 120 + 2 * (level - 1) + (firstClear ? 120 + 4 * (level - 1) : 0),
     fragment: (level % 2 ? 'fragment:weapon' : 'fragment:skill') as Fragment, fragments: firstClear ? 6 : 2 };
 }
-export const ECONOMY = { version: 'night-rewards-v3', checkinCategories: ['mod','weapon','skill'], bundleTiers: [{coins:40,xp:10,fragments:1},{coins:60,xp:20,fragments:2},{coins:100,xp:40,fragments:3},{coins:200,xp:80,fragments:5}], recipes: RECIPES, fragmentSell: 10, duelFragmentLimit: 10, duelFragmentMinMs: 60000,
+export const ECONOMY = { version: 'night-rewards-v4', termOdds: {match:90,'24h':10}, checkinCategories: ['mod','weapon','skill'], bundleTiers: [{coins:40,xp:10,fragments:1},{coins:60,xp:20,fragments:2},{coins:100,xp:40,fragments:3},{coins:200,xp:80,fragments:5}], recipes: RECIPES, fragmentSell: 10, duelFragmentLimit: 10, duelFragmentMinMs: 60000,
   campaign: MISSIONS.map((mission, index) => ({ levelId: mission.id, repeat: campaignReward(index + 1), first: campaignReward(index + 1, true) })) };
 export type Effect = 'power' | 'rate' | 'burst' | 'twin' | 'radius' | 'cooling' | 'drone' | 'laser' | 'tracking' | 'emp';
 export type Loadout = { mods: string[]; weapon: string | null; skill: string | null };
 export type BattleLoadout = { version: string; level: number; effects: Effect[]; skipped: string[] };
 export type Product = { id: string; effect: Effect; category: 'mod' | 'weapon' | 'skill'; term: 'match' | '24h' | 'permanent'; price: number; sell: number; rarity: number; name: string; description: string; goldOnly: boolean; unlockLevel:number };
+export type WheelPrize = { coins:number; tier:number; weight:number; xp?:number; quantity?:number; category?:Product['category']|'all'; term?:'match'|'24h'|'random'; fragments?:Partial<Record<Fragment,number>> };
 export type AssetReward = { coins:number; xp:number; packs?:number; permanent?:string };
 export type AssetTask = {id:string;day:string;name:string;event:string;target:number;progress:number;reward:AssetReward;claimed:boolean;alternate?:boolean};
 export type AssetMail = {id:string;title:string;body:string;createdAt:number;read:boolean;claimed:boolean;reward:AssetReward};
@@ -53,7 +54,7 @@ const effects: Array<[Effect, Product['category'], string, string, number, numbe
   ['twin', 'mod', '双弹道', '一轮1发；主弹100%＋侧弹60%；搭配连发为3枚60%副弹，总强度280%。燃烧副弹15秒。', 1500, 3, true],
   ['radius', 'mod', '范围增益', '榴弹与燃烧弹有效半径提高 15%。', 220, 2, false],
   ['cooling', 'mod', '冷却改装', '普通武器热量降低 15%，不改变技能冷却。', 180, 1, false],
-  ['drone', 'weapon', '无人机集群', '释放3架无人机，持续攻击与减速，12秒后自动坠毁。', 600, 2, false],
+  ['drone', 'weapon', '无人机', '释放3架无人机，持续攻击与减速，12秒后自动坠毁。', 600, 2, false],
   ['laser', 'weapon', '激光武器', '持续3秒，每秒80伤害（总240）；重甲伤害85%，冷却8秒，6发。', 800, 2, false],
   ['tracking', 'skill', '追踪资格', '普通武器追踪 60 秒，结束后冷却 90 秒。', 300, 1, false],
   ['emp', 'skill', '电磁干扰', '敌方地面单位定身 12 秒，结束后冷却 45 秒。', 400, 2, false],
@@ -72,7 +73,14 @@ export const SKILLS = { tracking: { duration: 60, cooldown: 90, level: 6 }, emp:
 const unifiedPool={name:'补给箱',packSell:40,weights:[60,25,12,3],coinDrops:[40,120,300,800],minimumRecycle:[40,12,17,96],effects:['power','rate','radius','cooling','drone','laser','burst','twin','tracking','emp']};
 // Old inventory keys remain valid, but their source no longer changes the contents.
 export const POOLS = {general:unifiedPool,gold:unifiedPool};
-export const WHEEL_PRIZES=[{coins:40,tier:-1,weight:35},{coins:80,tier:-1,weight:25},{coins:160,tier:-1,weight:15},{coins:0,tier:0,weight:15},{coins:0,tier:2,weight:8},{coins:0,tier:3,weight:2}];
+export const WHEEL_PRIZES:WheelPrize[]=[
+  {coins:120,xp:40,tier:-1,weight:28},
+  {coins:0,tier:0,quantity:2,fragments:{'fragment:weapon':2},weight:22},
+  {coins:40,tier:-1,category:'mod',term:'random',weight:20},
+  {coins:60,tier:-1,category:'weapon',term:'random',weight:14},
+  {coins:60,tier:-1,category:'skill',term:'random',weight:12},
+  {coins:0,tier:3,quantity:1,category:'all',term:'24h',weight:4},
+];
 export function eligibleDrops(catalog:Product[],tier:number,level:number,permanent:readonly string[]){return catalog.filter(p=>p.term==='match'&&!p.goldOnly&&p.rarity===tier&&(p.category==='skill'||p.unlockLevel<=level)&&!permanent.includes(p.effect)&&!(p.category==='skill'&&level>=SKILLS[p.effect as keyof typeof SKILLS].level));}
 export function levelProgress(xp: number) {
   const total = Math.max(0, Math.floor(xp)); let level = 1, floor = 0;

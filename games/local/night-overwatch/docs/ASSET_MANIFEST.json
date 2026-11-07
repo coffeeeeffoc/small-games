@@ -1639,6 +1639,63 @@
         "sha256": "60a96ea404a598104505cc37ca52e6a24b212445e026d278559ac6d3a67416bf",
         "runtimeUsage": "Individual transparent item sprites, live labels and values"
       }
+    },
+    {
+      "assetId": "audio.wheel-click",
+      "status": "project-generated",
+      "sourceFile": "scripts/generate-wheel-audio.mjs",
+      "runtimeAsset": "assets/resources/audio/wheel-click.wav",
+      "license": {
+        "source": "Original synthesized pentatonic tones, rhythm and percussion; no third-party samples",
+        "authorOrService": "Project procedural audio",
+        "acquiredAt": "2026-11-07",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "bytes": 7100,
+        "sha256": "1078d80188d1219343494c2c2a3efba087ca47c471a9bf45f19b5f35b9107f6f",
+        "sampleRate": 22050,
+        "channels": 1
+      }
+    },
+    {
+      "assetId": "audio.wheel-spin",
+      "status": "project-generated",
+      "sourceFile": "scripts/generate-wheel-audio.mjs",
+      "runtimeAsset": "assets/resources/audio/wheel-spin.wav",
+      "license": {
+        "source": "Original synthesized pentatonic tones, rhythm and percussion; no third-party samples",
+        "authorOrService": "Project procedural audio",
+        "acquiredAt": "2026-11-07",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "bytes": 211724,
+        "sha256": "70b50defca1d09f8dbb38f8e7523ba16427cb90bc197a84499a15950ebb61209",
+        "sampleRate": 22050,
+        "channels": 1
+      }
+    },
+    {
+      "assetId": "audio.wheel-win",
+      "status": "project-generated",
+      "sourceFile": "scripts/generate-wheel-audio.mjs",
+      "runtimeAsset": "assets/resources/audio/wheel-win.wav",
+      "license": {
+        "source": "Original synthesized pentatonic tones, rhythm and percussion; no third-party samples",
+        "authorOrService": "Project procedural audio",
+        "acquiredAt": "2026-11-07",
+        "thirdParty": false,
+        "attributionRequired": false
+      },
+      "metadata": {
+        "bytes": 37530,
+        "sha256": "6ce90a184578aa95a06a3fbb8cc432748d27438e6aa74e0c48ab8ab2021eb243",
+        "sampleRate": 22050,
+        "channels": 1
+      }
     }
   ]
 }

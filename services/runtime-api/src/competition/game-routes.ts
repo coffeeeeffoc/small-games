@@ -133,7 +133,13 @@ export function registerGameRoutes(
       const query = z
         .object({
           ruleVersion: z
-            .enum(['night-records-v1', 'night-growth-v1', 'night-campaign-v2', 'night-campaign-v3'])
+            .enum([
+              'night-records-v1',
+              'night-growth-v1',
+              'night-campaign-v2',
+              'night-campaign-v3',
+              'night-campaign-v4',
+            ])
             .optional(),
         })
         .strict()

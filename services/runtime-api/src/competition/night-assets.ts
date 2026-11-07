@@ -27,10 +27,21 @@ type Product = {
   goldOnly: boolean;
   unlockLevel?: number;
 };
+export type WheelPrize = {
+  coins: number;
+  tier: number;
+  weight: number;
+  xp?: number;
+  quantity?: number;
+  category?: 'mod' | 'weapon' | 'skill' | 'all';
+  term?: 'match' | '24h' | 'random';
+  fragments?: Partial<Record<'fragment:weapon' | 'fragment:skill', number>>;
+};
 export type ProgressionRules = {
   economy?: {
     version: string;
     checkinCategories?: string[];
+    termOdds?: { match: number; '24h': number };
     bundleTiers?: { coins: number; xp: number; fragments: number }[];
     recipes: readonly { effect: string; fragment: string; match: number; permanent: number }[];
     fragmentSell: number;
@@ -50,7 +61,7 @@ export type ProgressionRules = {
     { name: string; packSell: number; coinDrops: number[]; weights: number[]; effects: string[] }
   >;
   skills: Record<string, { duration: number; cooldown: number; level: number }>;
-  wheelPrizes?: Array<{ coins: number; tier: number; weight: number }>;
+  wheelPrizes?: WheelPrize[];
   levelProgress(xp: number): { level: number; current: number; required: number };
   validLoadout(value: unknown): boolean;
 };
@@ -279,7 +290,7 @@ const templates = [
     target: 2,
     reward: { coins: 120, xp: 80 },
   },
-  { id: 'open', name: '打开 1 个礼包', event: 'open', target: 1, reward: { coins: 40, xp: 30 } },
+  { id: 'open', name: '打开 1 个补给箱', event: 'open', target: 1, reward: { coins: 40, xp: 30 } },
   {
     id: 'complete',
     name: '完成 3 次有效行动',
@@ -600,6 +611,21 @@ function spend(w: NightAssets, coins: number) {
   if (w.coins < coins) fail('INSUFFICIENT_COINS');
   w.coins -= coins;
 }
+function rewardTerm(
+  rules: ProgressionRules,
+  product: Product,
+  term: WheelPrize['term'] = 'random',
+) {
+  const odds = rules.economy?.termOdds;
+  const selected =
+    term === 'random'
+      ? odds && randomInt(odds.match + odds['24h']) >= odds.match
+        ? '24h'
+        : 'match'
+      : term;
+  // Select an effect once; old rules without term odds keep their match rewards.
+  return rules.catalog.find((p) => p.effect === product.effect && p.term === selected) ?? product;
+}
 export async function nightAssets(
   tx: Tx,
   owner: string,
@@ -742,7 +768,7 @@ export async function nightAssets(
       const category = categories.length ? categories[randomInt(categories.length)] : undefined;
       const choices = pool.filter((p) => p.category === category),
         prize = choices.length ? choices[randomInt(choices.length)] : undefined;
-      const item = prize?.id ?? 'fragment:weapon',
+      const item = prize ? rewardTerm(rules, prize).id : 'fragment:weapon',
         count = prize ? 1 : 10;
       stock(w, item, count);
       result.items = { [item]: count };
@@ -851,10 +877,31 @@ export async function nightAssets(
     const prizeIndex = prizes!.findIndex((p) => (cumulative += p.weight) > roll),
       prize = prizes![prizeIndex]!;
     w.wheelTickets = (w.wheelTickets ?? 0) - 1;
-    if (prize.coins) w.coins += prize.coins;
+    const xp = prize.xp ?? 0;
+    add(w, { coins: prize.coins, xp });
+    prepare(w, owner, at, rules);
     const packs =
-      prize.tier >= 0 ? deliverPacks(w, { [`pack:general:${prize.tier}`]: 1 }) : undefined;
-    result = { ...result, prizeIndex, coins: prize.coins, ...(packs ? { packs } : {}) };
+      prize.tier >= 0
+        ? deliverPacks(w, { [`pack:general:${prize.tier}`]: prize.quantity ?? 1 })
+        : {};
+    const items: Record<string, number> = { ...prize.fragments };
+    if (prize.category) {
+      const choices = rules.catalog.filter(
+        (p) =>
+          p.term === 'match' &&
+          (prize.category === 'all' || p.category === prize.category) &&
+          !w.permanent.includes(p.effect),
+      );
+      const gear = choices.length
+        ? rewardTerm(rules, choices[randomInt(choices.length)]!, prize.term)
+        : undefined;
+      const item = gear?.id ?? 'fragment:weapon';
+      items[item] =
+        (items[item] ?? 0) +
+        (gear ? 1 : prize.category === 'mod' ? 4 : prize.category === 'skill' ? 6 : 10);
+    }
+    for (const [item, count] of Object.entries(items)) stock(w, item, count);
+    result = { ...result, prizeIndex, coins: prize.coins, xp, packs, items };
   } else if (cmd.kind === 'open' || cmd.kind === 'sell') {
     const p = rules.catalog.find((p) => p.id === cmd.item),
       pack = /^pack:(general|gold):([0-3])$/.exec(cmd.item);
@@ -903,7 +950,9 @@ export async function nightAssets(
               : (p.unlockLevel ?? 1) <= rules.levelProgress(w.xp).level) &&
             !w.permanent.includes(p.effect),
         );
-        const prize = choices.length ? choices[randomInt(choices.length)] : undefined;
+        const prize = choices.length
+          ? rewardTerm(rules, choices[randomInt(choices.length)]!)
+          : undefined;
         if (bundle) {
           const coins = prize ? bundle.coins : pool.coinDrops[tier]!;
           add(w, { coins, xp: 0 });

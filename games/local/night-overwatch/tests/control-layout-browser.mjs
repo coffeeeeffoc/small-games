@@ -54,8 +54,11 @@ try {
     const initial = await capture('default'), buttons = row(initial);
     assert(initial.buttons.some(b=>b.id==='homing'),'the complete bottom row includes tracking');
     const regular=geometry(initial).filter(b=>/^weapon[0-3]$/.test(b.id)||b.id==='homing').sort((a,b)=>a.x-b.x),support=[...buttons].sort((a,b)=>a.x-b.x),fire=initial.buttons.find(b=>b.id==='fire');
-    assert.equal(buttons.length,weapon==='only-emp'?1:2);assert(buttons.every(b => b.h >= 44&&b.y===regular[0].y));
-    assert.equal(support[0].x,regular.at(-1).x+regular.at(-1).w+8,'support follows the last visible normal weapon without empty slots');
+    assert.equal(buttons.length,weapon==='only-emp'?1:2);assert(buttons.every(b => b.h >= 44&&b.y<=regular[0].y));
+    if(fire){assert.equal(fire.w,136);assert.equal(fire.h,136);}else assert(!touch);
+    if(weapon==='drone')assert.match(buttons.find(b=>b.id==='weapon4').text.split('\n')[0],/^无人机\s+\d/);
+    const readyColor=buttons.find(b=>b.id==='skillUse').statusColor;
+    if(support[0].y===regular[0].y)assert.equal(support[0].x,regular.at(-1).x+regular.at(-1).w+8,'support follows the last visible normal weapon without empty slots');
     assert(geometry(initial).every(b=>geometry(initial).every(other=>other.id===b.id||!overlaps(b,other))&&(!fire||!overlaps(b,fire))));
     const telemetry=await page.evaluate(async()=>{const {director,Label,UITransform}=await System.import('cc'),s=__night.snapshot(),l=director.getScene().getComponentsInChildren(Label).find(l=>l.node.activeInHierarchy&&l.string.includes('弹着\n热量'));const p=l.node.worldPosition,size=l.node.getComponent(UITransform).contentSize;return{x:p.x-size.width/2,y:s.ui.height-p.y-size.height/2,w:size.width,h:size.height};});
     assert(geometry(initial).every(b=>!overlaps(b,telemetry)));
@@ -66,12 +69,19 @@ try {
     await drag('skillUse',-35,-15,true); s = await snapshot(page); assert.deepEqual(geometry(s), moved); assert.equal(s.skill.remaining, 0);
     await click('skillUse'); assert((await snapshot(page)).skill.remaining > 0); await drag('skillUse',-25,10); s = await capture('active-moved');
     assert(s.skill.remaining > 0);
+    assert.notDeepEqual(s.buttons.find(b=>b.id==='skillUse').statusColor,readyColor);
     await click('weapon2');assert.equal((await snapshot(page)).selected,2,'a normal weapon still selects on tap');
     const initialHeavy=initial.buttons.find(b=>b.id==='weapon2');
+    if(weapon==='drone'){
+      const skill=(await snapshot(page)).buttons.find(b=>b.id==='skillUse');
+      await drag('skillUse',width*.65-skill.x,height*.32-skill.y);
+    }
     if(weapon==='drone')for(const [x,y]of [[0,.5],[1,.5],[.5,0],[initialHeavy.x/(width-initialHeavy.w),1]]){
       const before=await snapshot(page),b=before.buttons.find(b=>b.id==='weapon2');
       await drag('weapon2',(width-b.w)*x-b.x,(height-b.h)*y-b.y);s=await snapshot(page);const after=s.buttons.find(b=>b.id==='weapon2');
-      assert(Math.abs(after.x-(width-after.w)*x)<1&&Math.abs(after.y-(height-after.h)*y)<1,'all four safe edges remain reachable');
+      const destination={...after,x:(width-after.w)*x,y:(height-after.h)*y};
+      if(fire&&overlaps(destination,fire))assert(!overlaps(after,fire),'drag avoids the enlarged fire button');
+      else assert(Math.abs(after.x-destination.x)<1&&Math.abs(after.y-destination.y)<1,'unobstructed safe edges remain reachable');
       assert.deepEqual(geometry(s).filter(b=>b.id!=='weapon2'),geometry(before).filter(b=>b.id!=='weapon2'));assert.equal(s.fired,initial.fired);
     }
     if(weapon==='drone'){

@@ -1,8 +1,8 @@
-import { Color, Label, Node, Graphics, Sprite, UITransform, Mask, UIOpacity, tween } from 'cc';
+import { Color, Label, Node, Graphics, Sprite, UITransform, Mask, UIOpacity, Tween, tween } from 'cc';
 import type { HUD } from './HUD';
 import { playerLabel } from './Online';
 import { ProgressionArt } from './ProgressionArt';
-import { Quartermaster, effectEnglish, wheelLandingAngle } from './Quartermaster';
+import { Quartermaster, effectEnglish, wheelLandingAngle, wheelTravel } from './Quartermaster';
 import { FRAGMENTS, type Fragment, CATALOG, PACKAGES, POOLS, SKILLS, WHEEL_PRIZES, eligibleDrops, levelProgress, attackPreview, type Product, type Effect, type AssetReward } from './core/Progression';
 import { formatTime } from './core/BattleRecords';
 import { text } from './core/Data';
@@ -11,7 +11,7 @@ import { MISSIONS } from './core/MissionCatalog';
 
 const ivory='#f4e9d1',dim='#a7bcc9',cyan='#78e3ff',gold='#e5bd71';
 const color=(hex:string)=>new Color().fromHEX(hex);
-const names:Record<string,[string,string]>={modes:['开始行动','DEPLOY'],loadout:['作战配置','LOADOUT'],shop:['军需商店','ARMORY'],supply:['礼包·抽奖','SUPPLY & WHEEL'],growth:['等级成长','GROWTH & SKILLS'],tasks:['任务','TASKS'],inbox:['消息中心','MESSAGES'],warehouse:['我的仓库','WAREHOUSE'],craft:['碎片合成','FRAGMENT WORKSHOP'],receipts:['开包记录','OPENING HISTORY'],checkin:['每日签到','DAILY CHECK-IN'],probability:['概率与内容','CONTENTS & ODDS']};
+const names:Record<string,[string,string]>={modes:['开始行动','DEPLOY'],loadout:['作战配置','LOADOUT'],shop:['军需商店','ARMORY'],supply:['补给','SUPPLY & WHEEL'],growth:['等级成长','GROWTH & SKILLS'],tasks:['任务','TASKS'],inbox:['消息中心','MESSAGES'],warehouse:['我的仓库','WAREHOUSE'],craft:['碎片合成','FRAGMENT WORKSHOP'],receipts:['开箱记录','OPENING HISTORY'],checkin:['每日签到','DAILY CHECK-IN'],probability:['概率与内容','CONTENTS & ODDS']};
 const rarity=['普通','精良','稀有','史诗'],rarityEn=['Common','Fine','Rare','Epic'],rarityColor=['#b8c0c7','#74cf9c','#69b7ff','#d08aff'];
 
 /** One responsive Cocos presentation for the approved nine screens, with live text and touch targets. */
@@ -75,8 +75,9 @@ export class ProgressionView {
   private productName(p:Product){return this.t(p.name,effectEnglish[p.effect]);}
   private productArt(effect:Effect){return ({rate:'rateGear',radius:'radiusGear',power:'powerGear',drone:'droneGear',burst:'burst',cooling:'coolingGear',twin:'twin'} as Partial<Record<Effect,string>>)[effect]||effect;}
   private category(value:Product['category']){return this.t(({mod:'增益',weapon:'武器',skill:'技能'})[value],({mod:'MOD',weapon:'WEAPON',skill:'SKILL'})[value]);}
+  private rewardTerm(){const odds=this.q.assets?.economy?.termOdds;return odds?this.t(`单场${odds.match}% / 24小时${odds['24h']}%`,`One match ${odds.match}% / 24h ${odds['24h']}%`):this.t('仅单场','One match only');}
   private term(term:Product['term']){return this.t(term==='match'?'单场':term==='24h'?'24小时':'永久',term==='match'?'One match':term==='24h'?'24 hours':'Permanent');}
-  private reward(r:AssetReward){return `${this.t('金币','Coins')} +${r.coins}   EXP +${r.xp}${r.packs?`   ${this.t('礼包','Crates')} ×${r.packs}`:''}`;}
+  private reward(r:AssetReward){return `${this.t('金币','Coins')} +${r.coins}   EXP +${r.xp}${r.packs?`   ${this.t('补给箱','Crates')} ×${r.packs}`:''}`;}
   private header(title:string){
     const y=this.h.safe.top,h=this.top-y-6,right=Math.min(this.right,this.h.topRight(y,h));
     // Extend the backdrop through the safe area; controls still avoid system overlays.
@@ -169,7 +170,7 @@ export class ProgressionView {
     }
     const fh=Math.max(44,h*.11),fy=Math.min(Math.max(top+bar+8,h*.452),cy-2*fh-14);
     this.panel(r-fw,fy,fw,fh*2+6);this.button('qm:checkin',this.t('每日签到','CHECK IN'),r-fw+5,fy+3,fw-10,fh);
-    this.button('qm:supply',this.t('礼包·抽奖','SUPPLY & WHEEL'),r-fw+5,fy+fh+3,fw-10,fh);
+    this.button('qm:supply',this.t('补给','SUPPLY & WHEEL'),r-fw+5,fy+fh+3,fw-10,fh);
     for(const [i,[id,key,zh,en]]of [['shop','homeShop','军需商店','ARMORY'],['growth','homeGrowth','等级成长','GROWTH'],['tasks','homeTasks','任务','TASKS'],['warehouse','homeWarehouse','我的仓库','WAREHOUSE']].entries()){
       const x=l+i*(cw+gap);this.panel(x,cy,cw,ch);this.picture(key,x+4,cy+4,cw-8,Math.max(12,ch-24));
       this.h.gradient(this.g,x+4,cy+ch*.55,cw-8,ch*.42,'#020a1200','#020a12ef');
@@ -279,7 +280,7 @@ export class ProgressionView {
       const card=this.h.button('gear:'+p.id,'',rx,py,rw-78,rowH,this.n);const hit=this.h.buttons.at(-1)!;hit.disabled=equipped||q.busy||!!q.pending;hit.clip=q.loadoutArea;
     });
     this.n=parent;this.surfaces=surfaces;this.g=g;
-    if(!q.availableGear.length)this.label(this.t('此插槽暂无可用装配\n可前往商店或领取礼包','No compatible gear\nVisit the armory or claim a crate'),rx+8,listTop+8,rw-16,listH-16,25,dim);
+    if(!q.availableGear.length)this.label(this.t('此插槽暂无可用装配\n可前往商店或领取补给箱','No compatible gear\nVisit the armory or claim a crate'),rx+8,listTop+8,rw-16,listH-16,25,dim);
     if(q.loadoutScrollMax){this.h.rect(this.g,r-4,listTop,3,listH,'#162a38');this.h.rect(this.g,r-4,listTop+(listH-28)*q.loadoutScroll/q.loadoutScrollMax,3,28,cyan);}
     const fy=this.bottom-48,unloadW=Math.min(132,lw*.42);
     this.button('qm:unequip',this.t('卸载所选','UNEQUIP'),l,fy,unloadW,44,'panel',!q.slotItem||q.busy||!!q.pending);
@@ -290,7 +291,7 @@ export class ProgressionView {
   private supply(){
     const q=this.q,l=this.left,r=this.right,y=this.top,b=this.bottom,gap=12,lw=(r-l-gap)*.53,rx=l+lw+gap,rw=r-rx,h=b-y;
     this.panel(l,y,lw,h);this.panel(rx,y,rw,h);
-    this.label(this.t('统一补给箱','SUPPLY CRATE'),l+12,y+3,lw-65,32,45,ivory,true,true);this.infoButton('pool',l+lw-50,y);
+    this.label(this.t('补给箱','SUPPLY CRATE'),l+12,y+3,lw-65,32,45,ivory,true,true);this.infoButton('pool',l+lw-50,y);
     this.label(this.t('幸运转盘','LUCKY WHEEL'),rx+12,y+3,rw-62,32,42,ivory,true,true);this.infoButton('wheel',r-50,y);
     const by=b-54,packY=by-(this.low?80:138),heroY=y+35,heroH=Math.max(52,packY-heroY-6);
     this.picture('closedCrate',l+lw*.08,heroY,lw*.84,heroH,false);
@@ -299,26 +300,51 @@ export class ProgressionView {
     if(!this.low){this.panel(l+8,cy,cw,b-cy-8);this.panel(l+20+cw,cy,cw,b-cy-8);}
     this.label(`● ${quote.coins}`,l+12,cy,cw-4,this.low?24:34,37,gold,true);
     this.label(this.t(`视频 ${order?.completed??0}/${order?.required??quote.videos}`,`VIDEO ${order?.completed??0}/${order?.required??quote.videos}`),l+20+cw,cy,cw,this.low?24:34,30,ivory,true);
-    if(!this.low){this.label(this.t('单场物资 · 随等级解锁','ONE MATCH · LEVEL UNLOCKS'),l+12,cy+35,lw-24,24,23,dim);}
+    if(!this.low){this.label(this.rewardTerm(),l+12,cy+35,lw-24,24,23,dim);}
     this.button('qm:buyPacks',this.t(`购买${quote.quantity}个`,`BUY ${quote.quantity}`),l+10,by,cw,44,'gold',q.busy||!q.assets||!!q.pending||!!q.wheel&&!q.wheel.shown);
     this.button('qm:watch',q.viewing?this.t('观看中','WATCHING'):this.t(order?'继续观看':'观看视频',order?'CONTINUE':'WATCH'),l+20+cw,by,cw,44,'blue',q.busy||q.viewing||!q.assets||!!q.pending||!!q.wheel&&!q.wheel.shown);
-    const diameter=Math.min(rw-20,by-37-(y+35)),cx=rx+rw/2,cyWheel=y+35+diameter/2;
-    const wheel=this.h.node('LuckyWheel',this.n);wheel.setPosition(cx-this.w/2,this.height/2-cyWheel);
-    const frame=this.a.get('wheel');if(frame){const sprite=wheel.addComponent(Sprite);sprite.spriteFrame=frame;sprite.sizeMode=Sprite.SizeMode.CUSTOM;wheel.getComponent(UITransform)!.setContentSize(diameter,diameter);}
-    const motion=q.wheel,end=motion?wheelLandingAngle(motion.index,motion.startAngle):0,elapsed=motion?Math.min(1,(Date.now()-motion.started)/motion.duration):1;
-    wheel.angle=motion?motion.startAngle+(end-motion.startAngle)*(1-Math.pow(1-elapsed,4)):0;
-    const prizes=q.assets?.wheelPrizes||WHEEL_PRIZES;
-    prizes.forEach((p,i)=>{const angle=(30+i*60)*Math.PI/180,rr=diameter*.32,xx=Math.sin(angle)*rr,yy=Math.cos(angle)*rr;
-      const name=p.coins?this.t(`${p.coins}币`,`${p.coins}`):this.t(rarity[p.tier]+'箱',rarityEn[p.tier]);
-      const label=this.h.label(wheel,`${name}\n${p.weight}%`,this.w/2+xx,this.height/2-yy,Math.max(10,diameter*.052),diameter*.26,diameter*.16,p.tier>=0?rarityColor[p.tier]:gold);
-      label.node.name='WheelPrize:'+i;label.node.angle=-wheel.angle;label.isBold=true;label.lineHeight=label.fontSize*1.08;label.overflow=Label.Overflow.SHRINK;
-      if(motion&&elapsed<1&&!this.h.reducedEffects)tween(label.node).to((motion.duration/1000)*(1-elapsed),{angle:-end},{easing:'quartOut'}).start();
-    });
-    if(motion&&elapsed<1&&!this.h.reducedEffects)tween(wheel).to((motion.duration/1000)*(1-elapsed),{angle:end},{easing:'quartOut'}).start();
-    this.label('▼',cx-16,cyWheel-diameter/2-7,32,32,42,gold,true);
+    const diameter=Math.min(rw-34,by-42-(y+48)),cx=rx+rw/2,cyWheel=y+48+diameter/2;
+    const motion=q.wheel,spinning=!!motion&&!motion.shown;
+    const halo=this.h.node('WheelHalo',this.n);halo.setPosition(cx-this.w/2,this.height/2-cyWheel);
+    const glow=halo.addComponent(Graphics);
+    for(const [width,tint]of [[11,'#edba5c12'],[6,'#edba5c28'],[2,'#e5bd71']] as const){glow.strokeColor=color(tint);glow.lineWidth=width;glow.circle(0,0,diameter*.505);glow.stroke();}
+    for(let i=0;i<24;i++){const a=i*Math.PI/12;glow.fillColor=color(i%2===0?'#ffedb0':'#a8793e');glow.circle(Math.sin(a)*diameter*.505,Math.cos(a)*diameter*.505,Math.max(1.5,diameter*.007));glow.fill();}
+    const shine=halo.addComponent(UIOpacity);shine.opacity=170;
+    if(!this.h.reducedEffects){
+      tween(shine).to(spinning?.3:.85,{opacity:255}).to(spinning?.3:.85,{opacity:120}).union().repeatForever().start();
+      if(spinning)tween(halo).by(2,{angle:-360}).repeatForever().start();
+      halo.once(Node.EventType.NODE_DESTROYED,()=>Tween.stopAllByTarget(shine));
+    }
+    const wheel=this.h.node('LuckyWheel',this.n);wheel.setPosition(cx-this.w/2,this.height/2-cyWheel);wheel.getComponent(UITransform)!.setContentSize(diameter,diameter);
+    const frame=this.a.get('wheel');if(frame){const rim=this.h.node('WheelMetalRim',wheel),sprite=rim.addComponent(Sprite);sprite.spriteFrame=frame;sprite.sizeMode=Sprite.SizeMode.CUSTOM;rim.getComponent(UITransform)!.setContentSize(diameter,diameter);}
+    const disk=this.h.node('WheelPlate',wheel).addComponent(Graphics);disk.fillColor=color('#a47c48');disk.circle(0,0,diameter*.463);disk.fill();
+    const palette=[[48,114,181],[125,66,166],[30,144,148],[199,112,49]];
+    for(let i=0;i<12;i++){
+      const sector=this.h.node('WheelSector:'+i,wheel).addComponent(Graphics),start=i*Math.PI/6+.008,end=(i+1)*Math.PI/6-.008;
+      const band=(inner:number,outer:number,tint:Color)=>{sector.fillColor=tint;sector.moveTo(Math.sin(start)*inner,Math.cos(start)*inner);for(let j=0;j<=8;j++){const a=start+(end-start)*j/8;sector.lineTo(Math.sin(a)*outer,Math.cos(a)*outer);}for(let j=8;j>=0;j--){const a=start+(end-start)*j/8;sector.lineTo(Math.sin(a)*inner,Math.cos(a)*inner);}sector.close();sector.fill();};
+      for(let j=0;j<16;j++){const shade=.74+.3*Math.sin((j+2)/18*Math.PI),rgb=palette[i%4];band(diameter*(.1+j*.0226),diameter*(.1+(j+1)*.0226),new Color(Math.round(rgb[0]*shade),Math.round(rgb[1]*shade),Math.round(rgb[2]*shade),255));}
+      band(diameter*.456,diameter*.461,color('#ffe6ae55'));
+      const a=(start+end)/2,sx=Math.sin(a)*diameter*.325,sy=Math.cos(a)*diameter*.325,radius=diameter*.029;
+      sector.fillColor=color('#ffe3a4');sector.strokeColor=color('#6b4a36');sector.lineWidth=Math.max(.7,diameter*.002);
+      for(let j=0;j<10;j++){const angle=a+j*Math.PI/5,r=j%2?radius*.44:radius,x=sx+Math.sin(angle)*r,y=sy+Math.cos(angle)*r;if(j===0)sector.moveTo(x,y);else sector.lineTo(x,y);}sector.close();sector.fill();sector.stroke();
+    }
+    const hub=this.h.node('WheelHub',this.n);hub.setPosition(cx-this.w/2,this.height/2-cyWheel);const core=hub.addComponent(Graphics);
+    for(const [radius,tint]of [[.15,'#72522b'],[.14,'#eed090'],[.126,'#b27d39'],[.113,'#163b55']] as const){core.fillColor=color(tint);core.circle(0,0,diameter*radius);core.fill();}
+    core.strokeColor=color('#ffedbe');core.lineWidth=Math.max(1.5,diameter*.008);for(let j=0;j<=20;j++){const a=-Math.PI*.3+j*Math.PI*1.6/20,x=Math.sin(a)*diameter*.058,y=Math.cos(a)*diameter*.058;if(j===0)core.moveTo(x,y);else core.lineTo(x,y);}core.stroke();
+    core.fillColor=color('#ffedbe');core.moveTo(-diameter*.075,-diameter*.012);core.lineTo(-diameter*.032,-diameter*.029);core.lineTo(-diameter*.058,-diameter*.06);core.close();core.fill();
+    const end=motion?wheelLandingAngle(motion.index,motion.startAngle):0,elapsed=motion&&!motion.shown?Math.max(0,Math.min(1,(Date.now()-motion.started)/motion.duration)):1;
+    const traveled=wheelTravel(elapsed);wheel.angle=motion?motion.startAngle+(end-motion.startAngle)*traveled:0;
+    if(motion&&!motion.shown&&elapsed<1&&!this.h.reducedEffects)tween(wheel).to((motion.duration/1000)*(1-elapsed),{angle:end},{easing:t=>(wheelTravel(elapsed+t*(1-elapsed))-traveled)/Math.max(1e-9,1-traveled)}).start();
+    const pointer=this.h.node('WheelPointer',this.n).addComponent(Graphics),px=cx-this.w/2,py=this.height/2-cyWheel+diameter*.51;
+    pointer.fillColor=color('#fff1c2');pointer.strokeColor=color('#c18a3c');pointer.lineWidth=2;pointer.moveTo(px-7,py+7);pointer.lineTo(px+7,py+7);pointer.lineTo(px+5,py-3);pointer.lineTo(px,py-12);pointer.lineTo(px-5,py-3);pointer.close();pointer.fill();pointer.stroke();
+    if(!spinning){const tap=this.h.button('qm:wheelTap','',cx-diameter/2,cyWheel-diameter/2,diameter,diameter,this.n);this.h.buttons.at(-1)!.disabled=q.busy||q.viewing||!!q.pending;tap.node.name='WheelTouchTarget';}
+    if(Date.now()-q.wheelPressAt<450){
+      const pulse=this.h.node('WheelPressPulse',this.n).addComponent(Graphics);pulse.strokeColor=color('#ffe5a2');pulse.lineWidth=7;pulse.circle(px,this.height/2-cyWheel,diameter*.47);pulse.stroke();
+      const opacity=pulse.node.addComponent(UIOpacity);if(!this.h.reducedEffects)tween(opacity).to(.4,{opacity:0}).start();
+    }
     this.label(this.t(`剩余次数 ${q.assets?.wheelTickets??0} · 今日视频 ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`,`SPINS ${q.assets?.wheelTickets??0} · VIDEOS ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`),rx+8,by-34,rw-16,30,26,gold,true);
-    const spinning=!!motion&&!motion.shown,bw=(rw-26)/2;
-    this.button(spinning?'qm:wheelSkip':'qm:wheelSpin',this.t(spinning?'跳过动画':'抽一次',spinning?'SKIP':'SPIN'),rx+9,by,bw,44,'gold',q.busy||(!spinning&&!(q.assets?.wheelTickets))||!!q.pending);
+    const bw=(rw-26)/2;
+    this.button(spinning?'qm:wheelSkip':'qm:wheelSpin',this.t(spinning?'跳过动画':'抽一次',spinning?'SKIP':'SPIN'),rx+9,by,bw,44,'gold',q.busy||q.viewing||!!q.pending);
     this.button('qm:wheelWatch',this.t('视频+1次','VIDEO +1'),rx+17+bw,by,bw,44,'blue',q.busy||q.viewing||spinning||!q.assets||!!q.pending||(q.assets.wheelVideosToday??0)>=(q.assets.wheelDailyLimit??5)||q.assets.videosToday>=q.assets.videoDailyLimit);
   }
   private growth(){
@@ -391,9 +417,9 @@ export class ProgressionView {
     const bodyLabel=this.label(body,rx+18,top+(this.low?38:(bottom-top)*.33),rw-36,this.low?bottom-top-90:(bottom-top)*.19,25,ivory,false,true);
     if(this.low)bodyLabel.overflow=Label.Overflow.SHRINK;
     const mail=!news?q.assets?.mail.find(m=>m.id===selected.id):undefined;
-    if(mail&&this.low){this.button('qm:claimMail',this.t(mail.claimed?'附件已领取':`领取 · ${mail.reward.coins}金币 / ${mail.reward.packs||0}礼包`,mail.claimed?'CLAIMED':`CLAIM · ${mail.reward.coins} COINS / ${mail.reward.packs||0} CRATES`),rx+8,bottom-48,rw-16,44,'gold',mail.claimed||q.busy);}
+    if(mail&&this.low){this.button('qm:claimMail',this.t(mail.claimed?'附件已领取':`领取 · ${mail.reward.coins}金币 / ${mail.reward.packs||0}补给箱`,mail.claimed?'CLAIMED':`CLAIM · ${mail.reward.coins} COINS / ${mail.reward.packs||0} CRATES`),rx+8,bottom-48,rw-16,44,'gold',mail.claimed||q.busy);}
     else if(mail){const cy=top+(bottom-top)*.53,cw=(rw-40)/2,ch=(bottom-top)*.26;this.picture('coins',rx+14,cy,cw,ch);this.picture('rewardSupply',rx+26+cw,cy,cw,ch);
-      this.label(`● ${mail.reward.coins}   EXP ${mail.reward.xp}`,rx+14,cy+ch-26,cw,24,25,gold);this.label(this.t(`礼包 ×${mail.reward.packs||0}`,`CRATES ×${mail.reward.packs||0}`),rx+26+cw,cy+ch-26,cw,24,25,ivory);
+      this.label(`● ${mail.reward.coins}   EXP ${mail.reward.xp}`,rx+14,cy+ch-26,cw,24,25,gold);this.label(this.t(`补给箱 ×${mail.reward.packs||0}`,`CRATES ×${mail.reward.packs||0}`),rx+26+cw,cy+ch-26,cw,24,25,ivory);
       this.button('qm:claimMail',this.t(mail.claimed?'已领取':'领取附件',mail.claimed?'CLAIMED':'CLAIM ATTACHMENT'),rx+rw*.28,bottom-54,rw*.66,44,'gold',mail.claimed||q.busy);
       if(!this.narrow)this.label(this.t(mail.read?'已读':'未读',mail.read?'Read':'Unread'),rx+14,bottom-52,rw*.22,40,21,dim);
     }
@@ -401,7 +427,7 @@ export class ProgressionView {
   private inventoryName(id:string){
     const p=this.q.catalog.find(p=>p.id===id),pack=/^pack:(general|gold):([0-3])$/.exec(id);
     if(id in FRAGMENTS)return this.catalogName(id);
-    if(pack)return this.t('补给箱 · '+rarity[Number(pack[2])],'Crate · '+rarityEn[Number(pack[2])]);
+    if(pack)return this.t(rarity[Number(pack[2])]+'补给箱','Crate · '+rarityEn[Number(pack[2])]);
     return p?this.productName(p)+' · '+this.term(p.term):this.t('旧版物资','Legacy item');
   }
   private warehouse(){
@@ -410,21 +436,21 @@ export class ProgressionView {
     const cols=this.narrow?2:3,cw=(lw-26-(cols-1)*8)/cols,ch=this.low?126:Math.max(170,(bottom-top-12)/2),rowH=ch+8;
     this.panel(l,top,lw,bottom-top);this.list('warehouse',l+6,top+6,lw-12,bottom-top-12,Math.ceil(items.length/cols)*rowH,offset=>items.forEach(([id,count],i)=>{const x=l+6+(i%cols)*(cw+8),y=top+6+Math.floor(i/cols)*rowH-offset;if(y+ch<top||y>bottom)return;
       const p=q.catalog.find(p=>p.id===id),pack=id.startsWith('pack:'),tier=pack?Number(id.split(':')[2]):p?.rarity??0;this.panel(x,y,cw,ch,id===q.item);this.picture(pack?'closedCrate':p?this.productArt(p.effect):id==='fragment:weapon'?'droneGear':id==='fragment:skill'?'tracking':'homeWarehouse',x+5,y+5,cw-10,ch*.58,pack?false:true);
-      const label=this.h.button('inventory:'+id,'',x,y,cw,ch,this.n);label.string=(p?this.productName(p):id in FRAGMENTS?this.catalogName(id):this.t('补给箱','CRATE'))+` ×${count}`;label.fontSize=this.font(29,13);label.node.setPosition(x+cw/2-this.w/2,this.height/2-y-ch*.65);label.node.getComponent(UITransform)!.setContentSize(cw-10,26);
+      const label=this.h.button('inventory:'+id,'',x,y,cw,ch,this.n);label.string=(p?this.productName(p):id in FRAGMENTS?this.catalogName(id):this.t(rarity[tier]+'补给箱',rarityEn[tier]+' CRATE'))+` ×${count}`;label.fontSize=this.font(29,13);label.node.setPosition(x+cw/2-this.w/2,this.height/2-y-ch*.65);label.node.getComponent(UITransform)!.setContentSize(cw-10,26);
       this.label(p?this.brief(p):id in FRAGMENTS?this.t('合成单场或永久装备','Craft match or permanent gear'):this.t('打开获得金币或物资','Coins or supplies'),x+6,y+ch*.75,cw-12,ch*.13,20,dim);this.label((id in FRAGMENTS?this.t('合成材料','MATERIAL'):this.t(rarity[tier],rarityEn[tier]))+(p?' · '+this.term(p.term):''),x+6,y+ch*.88,cw-12,ch*.1,20,rarityColor[tier]);
     }));
     this.panel(rx,top,rw,bottom-top);
     if(q.item){const id=q.item,p=q.catalog.find(p=>p.id===id),pack=id.startsWith('pack:'),available=q.assets?.available[id]??0;q.amount=Math.max(1,Math.min(q.amount,available||1));
       this.label(p?this.productName(p):id in FRAGMENTS?this.catalogName(id):this.t('补给箱','CRATE'),rx+8,top+5,rw-50,26,34,ivory,true,true);this.infoButton(id,r-48,top);
       const bodyH=bottom-top,artH=Math.max(0,bodyH-224);if(artH>30)this.picture(pack?'closedCrate':p?this.productArt(p.effect):id==='fragment:weapon'?'droneGear':id==='fragment:skill'?'tracking':'homeWarehouse',rx+10,top+34,rw-20,artH,false);
-      const yy=bottom-154;this.label(p?this.brief(p):id in FRAGMENTS?this.t('合成材料 · 每片可售10金币','Crafting material · 10 coins each'):this.t('金币或单场物资','Coins or one-match supplies'),rx+8,yy-32,rw-16,28,22,dim);
+      const yy=bottom-154;this.label(p?this.brief(p):id in FRAGMENTS?this.t('合成材料 · 每片可售10金币','Crafting material · 10 coins each'):this.t('金币、经验、碎片与装备','Coins, EXP, fragments and gear'),rx+8,yy-32,rw-16,28,22,dim);
       this.label((p?this.term(p.term)+' · ':(id in FRAGMENTS?this.t('材料','MATERIAL'):this.t(rarity[Number(id.split(':')[2])],rarityEn[Number(id.split(':')[2])]))+' · ')+this.t(`可用 ${available}`,`${available} available`),rx+8,yy-9,rw-16,22,21,dim);
       this.button('qm:minus','−',rx+8,yy+15,44,44,'panel',q.amount<=1);this.label(String(q.amount),rx+52,yy+15,rw-104,44,32,ivory);this.button('qm:plus','+',r-52,yy+15,44,44,'panel',q.amount>=Math.min(100,available));
       const bw=Math.max(44,(rw-24)*.32),owned=!!(p?.term==='24h'&&q.assets?.permanent.includes(p.effect));this.button(id in FRAGMENTS?'qm:craft':pack?'qm:open':p?.term==='24h'?'qm:activate':'qm:loadout',this.t(id in FRAGMENTS?'合成':pack?'打开':p?.term==='24h'?'激活':'配装',id in FRAGMENTS?'CRAFT':pack?'OPEN':p?.term==='24h'?'USE':'EQUIP'),rx+8,bottom-49,bw,44,'gold',q.busy||available<1||owned||(id in FRAGMENTS&&!q.assets?.economy));
       const proceeds=q.sellPrice(id)*q.amount;this.button('qm:sell',this.t(`出售可得${proceeds}`,`SELL FOR ${proceeds}`),rx+16+bw,bottom-49,rw-24-bw,44,'blue',q.busy||available<1||q.sellPrice(id)===0);
     }else this.label(this.t('仓库暂无物资','No supplies yet'),rx+8,top+30,rw-16,65,28,dim);
     if(!(q.item in FRAGMENTS))this.button('qm:craft',this.t('碎片合成','CRAFT'),l,this.bottom-46,Math.min(160,r-l-250),44,'blue',!q.assets?.economy);
-    this.button('qm:receipts',this.t('开包记录','HISTORY'),r-240,this.bottom-46,112,44);this.button('qm:supply',this.t('获取礼包','SUPPLIES'),r-120,this.bottom-46,120,44,'gold');
+    this.button('qm:receipts',this.t('开箱记录','HISTORY'),r-240,this.bottom-46,112,44);this.button('qm:supply',this.t('获取补给箱','SUPPLIES'),r-120,this.bottom-46,120,44,'gold');
   }
   private craft(){
     const q=this.q,l=this.left,r=this.right,top=this.top,economy=q.assets?.economy;
@@ -454,18 +480,18 @@ export class ProgressionView {
       this.label(stamp+' · '+this.t(rarity[tier]||'补给',rarityEn[tier]||'Supply')+` ×${entry.quantity}`,l+94,yy+6,r-l-124,27,29,rarityColor[tier]||gold,true,true);
       const counts=new Map<string,number>();let coins=0,xp=0;for(const d of entry.drops){if(d.item)counts.set(d.item,(counts.get(d.item)||0)+1);else {coins+=d.coins||0;xp+=d.xp||0;}}
       this.label([...(coins?[this.t(`金币 +${coins}`,`Coins +${coins}`)]:[]),...(xp?[`EXP +${xp}`]:[]),...Array.from(counts,([id,n])=>`${this.catalogName(id)} ×${n}`)].join(' · '),l+94,yy+37,r-l-124,rowH-42,25,ivory,false,true);
-    }));if(!entries.length)this.label(this.t('暂无开包记录','No opening history'),l+20,y+40,r-l-40,60,32,dim);
+    }));if(!entries.length)this.label(this.t('暂无开箱记录','No opening history'),l+20,y+40,r-l-40,60,32,dim);
   }
   private checkin(){
     const q=this.q,l=this.left,r=this.right,top=this.top+8,bottom=this.bottom-58;this.panel(l,top,r-l,bottom-top);
     const dayH=this.low?40:60,cy=bottom-dayH-10,gap=6,cw=(r-l-32-6*gap)/7,count=q.assets?.signedDays.length??0;
-    const examples=q.assets?.economy?.checkinCategories?[['powerGear','增益','MOD'],['droneGear','武器','WEAPON'],['tracking','技能','SKILL']]:q.assets?.economy?[['droneGear','无人机群','DRONES'],['laser','激光武器','LASER']]:[['rewardSupply','普通礼包','COMMON CRATE']];
+    const examples=q.assets?.economy?.checkinCategories?[['powerGear','增益','MOD'],['droneGear','武器','WEAPON'],['tracking','技能','SKILL']]:q.assets?.economy?[['droneGear','无人机','DRONES'],['laser','激光武器','LASER']]:[['rewardSupply','普通补给箱','COMMON CRATE']];
     const iw=(r-l-32)/examples.length,artH=cy-top-16;
     examples.forEach(([key,zh,en],i)=>{const x=l+16+i*iw;this.picture(key,x+4,top+7,iw-8,Math.max(16,artH-20),false);this.label(this.t(zh,en),x+4,cy-24,iw-8,18,24,gold,true,true);});
     const currentDay=Math.max(1,count+(q.assets?.signedToday?0:1)),groupStart=Math.floor((currentDay-1)/7)*7;
     for(let i=0;i<7;i++){const x=l+16+i*(cw+gap),day=groupStart+i+1,done=day<=count;this.panel(x,cy,cw,dayH,day===currentDay);this.label(this.t(`第 ${day} 天`,`DAY ${day}`),x+3,cy+2,cw-6,18,23,done?dim:gold,true,true);this.label(done?'✓':`● ${i===6?200:100}`,x+3,cy+dayH-20,cw-6,18,23,done?dim:ivory);}
     this.button('qm:checkinClaim',this.t(q.assets?.signedToday?'今日已签到':'今日签到',q.assets?.signedToday?'CHECKED IN':'CHECK IN TODAY'),r-220,this.bottom-48,220,48,'gold',q.busy||!q.assets||q.assets.signedToday);
-    this.label(q.assets?.economy?.checkinCategories?this.t('每日金币＋40EXP＋随机装备×1\n优先缺少 · 全永久转10武器碎片','Daily coins + 40 EXP + random gear\nMissing first; all permanent: 10 weapon fragments'):q.assets?.economy?this.t('金币＋40EXP＋随机武器×1\n无人机/激光各50%；永久重复转碎片','Coins + 40 EXP + random weapon\nDrone / laser: 50%; permanent duplicates: fragments'):this.t('每日金币＋40EXP＋普通礼包×1','Coins + 40 EXP + a common crate daily'),l,this.bottom-48,r-l-240,44,22,dim,false,true);
+    this.label(q.assets?.economy?.checkinCategories?this.t('每日金币＋40EXP＋随机装备×1\n','Coins + 40 EXP + random gear\n')+this.rewardTerm()+this.t(' · 优先缺少',' · Missing first'):q.assets?.economy?this.t('金币＋40EXP＋随机武器×1\n无人机/激光各50%；永久重复转碎片','Coins + 40 EXP + random weapon\nDrone / laser: 50%; permanent duplicates: fragments'):this.t('每日金币＋40EXP＋普通补给箱×1','Coins + 40 EXP + a common crate daily'),l,this.bottom-48,r-l-240,44,22,dim,false,true);
   }
   private probability(){this.q.info='pool';}
   private infoDialog(){
@@ -473,8 +499,27 @@ export class ProgressionView {
     let lines:string[]=[];
     if(q.info in FRAGMENTS)lines=[this.catalogName(q.info),this.t('通关和合格对战获得。可合成单场或永久装备；每片可售10金币。','Earn from levels and eligible duels. Craft one-match or permanent gear; sell for 10 coins each.')];
     else if(p)lines=[p.description,this.t(`使用期限：${this.term(p.term)} · 商店Lv.${p.unlockLevel}开放；已获资格可配装`,`TERM: ${this.term(p.term)} · SHOP Lv.${p.unlockLevel}; owned gear can be equipped`),this.t('同效果不可重复装配。单场资格在正式出动时消耗；训练不消耗。','Duplicate effects cannot stack. One-match gear is consumed on deployment, not in training.')];
-    else if(q.info==='wheel')lines=(q.assets?.wheelPrizes||WHEEL_PRIZES).map(p=>(p.coins?`${p.coins} ${this.t('金币','coins')}`:this.t(rarity[p.tier]+'礼包',rarityEn[p.tier]+' crate'))+`：${p.weight}%`).concat(this.t('扇区面积相同，中奖概率以标注数值为准。','Sectors are equal in size; the displayed percentages are the actual odds.'),this.t('完整观看1段视频获得1次；每日最多5段，与礼包共用每日12段。次数跨天保留。','One completed video grants one saved spin. 5 wheel videos/day, sharing 12 total videos/day.'));
-    else {const pool=q.pools.general,pack=/^pack:(general|gold):([0-3])$/.exec(q.info),tier=pack?Number(pack[2]):-1;lines=[this.t(pack?'此箱档位已确定，开启不重新抽取档位。':'以下是获取随机礼包时的档位概率。已持有的箱子档位已确定，开启不重新抽档。',pack?'This crate’s tier is fixed. Opening does not reroll its tier.':'These are random crate acquisition odds. Owned crates keep their existing tier.')];lines.push(...pool.weights.flatMap((weight,i)=>{if(tier>=0&&tier!==i)return [];const bundle=q.assets?.economy?.bundleTiers?.[i],eligible=eligibleDrops(q.catalog,i,bundle?levelProgress((q.assets?.xp||0)+bundle.xp).level:q.assets?.level||1,q.assets?.permanent||[]).filter(p=>pool.effects.includes(p.effect)&&(!!bundle||p.category!=='skill')),content=i===0?this.t('获得40金币','Receive 40 coins'):eligible.length?eligible.map(p=>this.productName(p)).join(' / ')+this.t(`（每种${(100/eligible.length).toFixed(1)}%，档内等概率）`,` (equal odds within tier)`):this.t(`本档当前无可用装备，获得${pool.coinDrops[i]}金币`,`No eligible item: ${pool.coinDrops[i]} coins`);return [this.t(rarity[i],rarityEn[i])+(tier<0?` ${weight}%`:'')+'\n'+(bundle?this.t(`${eligible.length?bundle.coins:pool.coinDrops[i]}金币 + ${bundle.xp}EXP + ${bundle.fragments}碎片${eligible.length?' + 随机单场装备：':''}`,`${eligible.length?bundle.coins:pool.coinDrops[i]} coins + ${bundle.xp} EXP + ${bundle.fragments} fragments${eligible.length?' + one-match gear: ':''}`)+(eligible.length?eligible.map(p=>this.productName(p)).join(' / '):''):content)];}));lines.push(q.assets?.economy?.bundleTiers?this.t('组合礼包含金币、EXP和碎片；精良及以上另送单场装备。增益/武器按等级，技能可提前获得；排除已永久拥有。无可用装备时金币替代。各套餐概率相同。','Bundles contain coins, EXP and fragments; Fine+ adds one-match gear. Mods/weapons require shop level; skills may drop early. Permanent-owned gear converts to the tier coin fallback. Package odds are identical.'):this.t('仅抽取已解锁且未永久拥有的单场增益或武器；无候选时获得本档金币。','Only unlocked, unowned one-match mods or weapons; no eligible gear yields tier coins.'));const locked=q.catalog.filter(p=>p.term==='match'&&p.category!=='skill'&&p.unlockLevel>(q.assets?.level||1));if(locked.length){lines.push(this.t('尚未进入当前奖池（达到等级后解锁）：','NOT IN THE CURRENT POOL (unlock by level):'));lines.push(...locked.map(p=>`${this.productName(p)} · Lv.${p.unlockLevel}`));}}
+    else if(q.info==='wheel'){
+      const prizes=q.assets?.wheelPrizes?.length?q.assets.wheelPrizes:WHEEL_PRIZES;
+      lines=prizes.map(p=>{
+        const parts:string[]=[];
+        if(p.coins)parts.push(this.t(`${p.coins}金币`,`${p.coins} coins`));
+        if(p.xp)parts.push(`${p.xp} EXP`);
+        if(p.tier>=0)parts.push(this.t(`${rarity[p.tier]}补给箱 ×${p.quantity||1}`,`${rarityEn[p.tier]} crate ×${p.quantity||1}`));
+        for(const [id,count]of Object.entries(p.fragments||{}))parts.push(`${this.catalogName(id)} ×${count}`);
+        if(p.category){
+          const category=p.category==='all'?this.t('装备','gear'):this.category(p.category);
+          parts.push(this.t(`随机${category} ×1`,`Random ${category} ×1`)+` (${p.term==='24h'||p.term==='match'?this.term(p.term):this.rewardTerm()})`);
+        }
+        return `${p.weight}% · ${parts.join(' + ')}`;
+      });
+      lines.push(this.t('盘面仅展示动效；中奖概率以此处数值为准。','The wheel is decorative; the odds listed here determine rewards.'),
+        this.t('装备按对应类别内未永久拥有的效果等概率抽取，不受商店等级限制。单场装备开局消耗；24小时装备存入仓库，激活后计时。','Gear is equally likely among non-permanent effects in its category, regardless of shop level. Match gear is consumed at deployment; 24h begins on activation.'),
+        this.t('增益：威力、高速供弹、冷却、范围、两连发、双弹道；武器：无人机、激光；技能：追踪、电磁干扰。史诗组合从以上全部装备等概率抽取。','Mods: power, rapid feed, cooling, blast radius, double burst, twin trajectory. Weapons: drones, laser. Skills: tracking, EMP. The epic bundle draws equally from all gear.'),
+        this.t('对应类别已全永久：增益转4、武器转10、技能转6武器碎片；史诗装备全永久转10武器碎片。组合内其他奖励仍照常发放。','If the category is fully permanent: mods convert to 4, weapons to 10, skills to 6 weapon fragments; epic gear converts to 10. Other bundle rewards are retained.'),
+        this.t('完整观看1段视频获得1次；每日最多5段，与补给箱共用每日12段。次数跨天保留。','One completed video grants one saved spin. 5 wheel videos/day, sharing 12 total videos/day with supply crates.'));
+    }
+    else {const pool=q.pools.general,pack=/^pack:(general|gold):([0-3])$/.exec(q.info),tier=pack?Number(pack[2]):-1;lines=[this.t(pack?'此箱档位已确定，开启不重新抽取档位。':'以下是获取随机补给箱时的档位概率。已持有的箱子档位已确定，开启不重新抽档。',pack?'This crate’s tier is fixed. Opening does not reroll its tier.':'These are random crate acquisition odds. Owned crates keep their existing tier.')];lines.push(...pool.weights.flatMap((weight,i)=>{if(tier>=0&&tier!==i)return [];const bundle=q.assets?.economy?.bundleTiers?.[i],eligible=eligibleDrops(q.catalog,i,bundle?levelProgress((q.assets?.xp||0)+bundle.xp).level:q.assets?.level||1,q.assets?.permanent||[]).filter(p=>pool.effects.includes(p.effect)&&(!!bundle||p.category!=='skill')),content=i===0?this.t('获得40金币','Receive 40 coins'):eligible.length?eligible.map(p=>this.productName(p)).join(' / ')+this.t(`（每种${(100/eligible.length).toFixed(1)}%，档内等概率）`,` (equal odds within tier)`):this.t(`本档当前无可用装备，获得${pool.coinDrops[i]}金币`,`No eligible item: ${pool.coinDrops[i]} coins`);return [this.t(rarity[i],rarityEn[i])+(tier<0?` ${weight}%`:'')+'\n'+(bundle?this.t(`${eligible.length?bundle.coins:pool.coinDrops[i]}金币 + ${bundle.xp}EXP + ${bundle.fragments}碎片${eligible.length?' + 随机装备：':''}`,`${eligible.length?bundle.coins:pool.coinDrops[i]} coins + ${bundle.xp} EXP + ${bundle.fragments} fragments${eligible.length?' + gear: ':''}`)+(eligible.length?eligible.map(p=>this.productName(p)).join(' / '):''):content)];}));lines.push(q.assets?.economy?.bundleTiers?this.t('补给箱含金币、EXP和碎片；精良及以上另送装备，效果档内等概率，期限见下方说明；24小时入库后手动激活计时。增益/武器按等级，技能可提前获得；排除已永久拥有，无候选时金币替代。各套餐概率相同。','Bundles contain coins, EXP and fragments; Fine+ adds gear with equal effect odds; see term odds below. Activate 24h gear from inventory to start its timer. Mods/weapons require shop level; skills may drop early. Permanent-owned gear converts to the tier coin fallback. Package odds are identical.'):this.t('仅抽取已解锁且未永久拥有的单场增益或武器；无候选时获得本档金币。','Only unlocked, unowned one-match mods or weapons; no eligible gear yields tier coins.'));lines.push(this.rewardTerm());const locked=q.catalog.filter(p=>p.term==='match'&&p.category!=='skill'&&p.unlockLevel>(q.assets?.level||1));if(locked.length){lines.push(this.t('尚未进入当前奖池（达到等级后解锁）：','NOT IN THE CURRENT POOL (unlock by level):'));lines.push(...locked.map(p=>`${this.productName(p)} · Lv.${p.unlockLevel}`));}}
     const pw=Math.min(650,this.right-this.left),font=this.font(27),width=pw-52;
     const heights=lines.map(line=>Math.max(30,line.split('\n').reduce((n,part)=>n+Math.max(1,Math.ceil(Array.from(part).reduce((sum,c)=>sum+(/[^\x00-\x7f]/.test(c)?1:.6),0)*font/width)),0)*font*1.23+8));
     const content=heights.reduce((a,b)=>a+b,0),title=p?this.productName(p):this.t(q.info==='wheel'?'转盘概率':'补给箱概率与内容',q.info==='wheel'?'WHEEL ODDS':'CRATE CONTENTS & ODDS');
@@ -503,7 +548,7 @@ export class ProgressionView {
     const q=this.q,gift=q.gift!,opening=!!gift.started;
     for(const b of this.h.buttons)if(this.h.inModal(b.label.node))b.disabled=true;this.h.listAreas=[];
     const overlay=this.h.node('GiftPresentation',this.n);this.n=overlay;const background=this.a.get('base');if(background)this.h.coverImage(overlay,'GiftAirfield',background,0,0,this.w,this.height);const shade=this.h.node('GiftShade',overlay).addComponent(Graphics);this.h.rect(shade,0,0,this.w,this.height,'#03101b55');this.surfaces=this.h.node('GiftArt',overlay);this.g=this.h.node('GiftInk',overlay).addComponent(Graphics);
-    const l=this.left,r=this.right,top=this.h.safe.top+8,b=this.bottom;this.label(this.t(opening?'礼包开启':gift.opened?'获得物资':'获得礼包',opening?'OPENING':gift.opened?'REWARDS':'SUPPLIES RECEIVED'),l+12,top,r-l-140,42,53,gold,true,true);
+    const l=this.left,r=this.right,top=this.h.safe.top+8,b=this.bottom;this.label(this.t(opening?'补给箱开启':gift.opened?'获得物资':'获得补给箱',opening?'OPENING':gift.opened?'REWARDS':'SUPPLIES RECEIVED'),l+12,top,r-l-140,42,53,gold,true,true);
     if(opening){
       const elapsed=(Date.now()-gift.started!)/(gift.duration||1600),key=elapsed<.3?'closedCrate':'openCrate',size=Math.min(this.w*.6,this.height*.9);this.picture(key,(this.w-size)/2,top+43,size,b-top-50,false);
       const glow=this.h.node('CrateGlow',overlay).addComponent(Graphics);glow.fillColor=color('#ffc35a22');glow.circle(0,0,size*.27);glow.fill();const opacity=glow.node.addComponent(UIOpacity);if(!this.h.reducedEffects)tween(opacity).to(.35,{opacity:80}).to(.35,{opacity:230}).union().repeatForever().start();const chest=this.surfaces.children.find(n=>n.name.includes(key));if(chest&&!this.h.reducedEffects){const fade=chest.addComponent(UIOpacity);fade.opacity=elapsed<.3?180:80;tween(fade).to(.22,{opacity:255}).start();}
@@ -511,10 +556,10 @@ export class ProgressionView {
     }
     const heroW=(r-l)*.29,rx=l+heroW+14,rw=r-rx,cy=top+52,bottom=b-54;this.picture(gift.opened?'openCrate':'closedCrate',l,cy,heroW,bottom-cy,false);this.panel(rx,cy,rw,bottom-cy);
     const counts=new Map<string,number>();let coins=0,xp=0;for(const d of gift.drops){if(d.item)counts.set(d.item,(counts.get(d.item)||0)+1);else {coins+=d.coins||0;xp+=d.xp||0;}}
-    const entries:Array<{id:string;n:number}>=gift.opened?[...(coins?[{id:'coins',n:coins}]:[]),...(xp?[{id:'xp',n:xp}]:[]),...Array.from(counts,([id,n])=>({id,n}))]:Object.entries(gift.packs).map(([id,n])=>({id,n}));
+    const entries:Array<{id:string;n:number}>=[...Object.entries(gift.packs).map(([id,n])=>({id,n})),...(coins?[{id:'coins',n:coins}]:[]),...(xp?[{id:'xp',n:xp}]:[]),...Array.from(counts,([id,n])=>({id,n}))];
     const cols=Math.min(this.narrow?2:3,Math.max(1,entries.length)),cw=(rw-26-(cols-1)*9)/cols,ch=this.low?150:Math.max(220,bottom-cy-22);
     this.list('gifts',rx+8,cy+8,rw-16,bottom-cy-16,Math.max(0,Math.ceil(entries.length/cols)*(ch+9)-9),offset=>entries.forEach(({id,n},i)=>{const x=rx+10+i%cols*(cw+9),y=cy+10+Math.floor(i/cols)*(ch+9)-offset,p=q.catalog.find(p=>p.id===id),money=id==='coins',experience=id==='xp',tier=p?.rarity??(id.startsWith('pack:')?Number(id.split(':')[2]):0);this.panel(x,y,cw,ch);this.h.rect(this.g,x+2,y+2,cw-4,ch-4,'#00000000',money?gold:rarityColor[tier],3);this.picture(money?'coinPile':experience?'emblem':p?this.productArt(p.effect):id==='fragment:weapon'?'droneGear':id==='fragment:skill'?'tracking':'closedCrate',x+5,y+25,cw-10,ch*.54,false);this.label(money?this.t('金币','COINS'):experience?'EXP':id in FRAGMENTS?this.t('合成材料','MATERIAL'):this.t(rarity[tier],rarityEn[tier])+(p?' · '+this.term(p.term):''),x+8,y+4,cw-16,24,25,money?gold:rarityColor[tier],true,true);if(p)this.infoButton(id,x+cw-44,y+1);
-      this.label((money?this.t('金币 +','COINS +'):experience?'EXP +':p?this.productName(p)+' ×':id in FRAGMENTS?this.catalogName(id)+' ×':this.t('补给箱 ×','CRATES ×'))+n,x+8,y+ch*.66,cw-16,36,32,money?gold:ivory,true);this.label(p?this.brief(p):experience?this.t('已计入成长经验','Added to growth EXP'):money?this.t('已存入金币余额','Added to your balance'):id in FRAGMENTS?this.t('已存入仓库 · 可用于合成','Stored in inventory · ready for crafting'):this.t('点击一键打开查看物资','Open to reveal supplies'),x+8,y+ch*.84,cw-16,ch*.13,22,dim);
+      this.label((money?this.t('金币 +','COINS +'):experience?'EXP +':p?this.productName(p)+' ×':id in FRAGMENTS?this.catalogName(id)+' ×':this.t(rarity[tier]+'补给箱 ×',rarityEn[tier]+' CRATES ×'))+n,x+8,y+ch*.66,cw-16,36,32,money?gold:ivory,true);this.label(p?(p.term==='24h'?this.t('存入仓库 · 激活后计时24小时','In inventory · 24h starts on activation'):this.brief(p)):experience?this.t('已计入成长经验','Added to growth EXP'):money?this.t('已存入金币余额','Added to your balance'):id in FRAGMENTS?this.t('已存入仓库 · 可用于合成','Stored in inventory · ready for crafting'):this.t('点击一键打开查看物资','Open to reveal supplies'),x+8,y+ch*.84,cw-16,ch*.13,22,dim);
     }));
     const bw=(rw-12)/2;this.button('qm:giftClose',this.t(gift.opened?'完成':'稍后打开',gift.opened?'DONE':'LATER'),rx,b-48,bw,44,'gold',q.busy);this.button(gift.opened?'qm:giftWarehouse':'qm:giftOpen',this.t(gift.opened?'查看仓库':q.pending?'重试打开':'一键打开',gift.opened?'INVENTORY':q.pending?'RETRY':'OPEN ALL'),rx+bw+12,b-48,bw,44,'blue',q.busy);
   }

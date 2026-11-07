@@ -509,8 +509,8 @@ export class Overwatch extends Component {
       if(value==='giftClose')q.gift=undefined;
       if(value==='giftSkip'&&q.gift)q.gift.started=undefined;
       if(value==='infoClose')q.info='';
-      if(value==='wheelSkip'&&q.wheel){q.wheel.started=0;q.tickPresentation(true);}
-      if(value==='wheelSpin'&&(!q.wheel||q.wheel.shown))void q.execute({kind:'wheel-spin'});
+      if(value==='wheelSkip'&&q.wheel)q.tickPresentation(true);
+      if(value==='wheelSpin'||value==='wheelTap'){this.platform.play('wheel-click');void q.spin();}
       if(value==='wheelWatch')void q.watch(()=>this.platform.offerSupplyVideo(),'wheel');
       if(value==='giftWarehouse'){q.gift=undefined;q.show('warehouse');}
       if(value==='buyPacks')void q.execute({kind:'buy-packs',quantity:q.quantity,pool:'general'});
@@ -1412,6 +1412,7 @@ export class Overwatch extends Component {
     this.updateRadio(Math.min(dt, .1));
     this.hud.pressedButton=this.controlGesture&&!this.controlGesture.moved?this.controlGesture.button:this.mouseButton || Array.from(this.touches.values()).find(t=>t.role==='button'||t.role==='fire')?.button || '';
     this.hud.update(presented, this.world);
+    this.platform.wheelAudio(this.quartermaster?.wheel,this.quartermaster?.page==='supply');
     if (this.pauseControl) {
       this.pauseControl.hidden = !this.hud.buttons.find(button => button.id === 'settings')?.label.node.activeInHierarchy;
       this.pauseControl.disabled = !!this.rewardRequest || this.hud.supplyOpen || this.sim.resumeCountdown > 0 || this.hud.exitConfirm;

@@ -8,7 +8,7 @@ const tick = (s: Simulation, seconds: number) => {
 };
 
 test('introductory missions use fewer stationary targets in daylight before dusk and night', () => {
-  assert.deepEqual(MISSIONS.slice(0, 6).map(m => m.events.length), [16, 24, 32, 36, 40, 44]);
+  assert.deepEqual(MISSIONS.slice(0, 6).map(m => m.events.length), [28, 42, 56, 60, 64, 68]);
   assert.deepEqual(MISSIONS.slice(0, 7).map(m => m.light), ['day', 'day', 'day', 'dusk', 'dusk', 'night', 'day']);
   for (const mission of MISSIONS.slice(0, 3)) {
     const sim = new Simulation(mission.id); sim.start();
@@ -31,17 +31,17 @@ test('introductory missions use fewer stationary targets in daylight before dusk
   assert.equal(missionDefinition('old-preference').id, 'corridor-01');
 });
 test('campaign grows monotonically with bounded waves and active contacts',()=>{
-  assert.equal(MISSIONS.at(-1)!.events.length,144);
+  assert.equal(MISSIONS.at(-1)!.events.length,192);
   MISSIONS.forEach((m,i)=>{if(i)assert(m.events.length>=MISSIONS[i-1].events.length);const waves=new Map<number,number>();for(const e of m.events.filter(e=>e.kind!=='infantry'))waves.set(e.time,(waves.get(e.time)||0)+1);if(i>=5)assert([...waves.values()].every(n=>n<=18));});
   const active=(s:Simulation)=>s.units.filter(u=>!u.friendly&&u.hp>0);
   for(const trigger of ['time','progress']){
     const s=new Simulation(MISSIONS.at(-1)!.id);s.start();s.convoy='holding';
     if(trigger==='time')s.time=250;else s.progress=1e5;
-    s.step(1/60);assert.equal(active(s).length,72);assert.equal(s.mission.events.length-s.spawned.size,72);
+    s.step(1/60);assert.equal(active(s).length,120);assert.equal(s.mission.events.length-s.spawned.size,72);
     const spawned=s.spawned.size;s.step(1/60);assert.equal(s.spawned.size,spawned);
-    active(s).find(u=>u.kind!=='infantry')!.hp=0;s.step(1/60);assert.equal(s.spawned.size,spawned+1);assert.equal(active(s).length,72);
+    active(s).find(u=>u.kind!=='infantry')!.hp=0;s.step(1/60);assert.equal(s.spawned.size,spawned+1);assert.equal(active(s).length,120);
     s.pause('manual',true);active(s).find(u=>u.kind!=='infantry')!.hp=0;s.step(1/60);assert.equal(s.spawned.size,spawned+1);
-    s.pause('manual',false);s.step(1/60);assert.equal(s.spawned.size,spawned+2);assert.equal(active(s).length,72);
+    s.pause('manual',false);s.step(1/60);assert.equal(s.spawned.size,spawned+2);assert.equal(active(s).length,120);
   }
 });
 
@@ -78,7 +78,7 @@ for (const mission of MISSIONS) test(`${mission.name[0]} can be completed with b
       break;
     }
     s.step(1 / 60);
-    assert(s.units.filter(u=>!u.friendly&&u.hp>0).length<=72);assert(s.units.filter(u=>!u.friendly&&u.hp>0&&u.kind!=='infantry').length<=24);
+    assert(s.units.filter(u=>!u.friendly&&u.hp>0).length<=120);assert(s.units.filter(u=>!u.friendly&&u.hp>0&&u.kind!=='infantry').length<=24);
   }
   t.diagnostic(JSON.stringify({ mission: mission.id, phase: s.phase, time: s.time, kills: s.kills,
     fired: s.fired, friendlyDamage: s.friendlyDamage, ammo: s.guns.map((g) => g.ammo) }));

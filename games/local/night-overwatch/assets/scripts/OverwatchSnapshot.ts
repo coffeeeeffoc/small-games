@@ -213,7 +213,7 @@ export function captureOverwatchSnapshot(game: SnapshotSource, presentedTime: nu
           b.label.node.activeInHierarchy &&
           (!game.hud.modal || game.hud.inModal(b.label.node) || game.hud.isGlobalAction(b.id)),
       )
-      .map(({ id, x, y, w, h, label, visual, disabled, clip }) => {
+      .map(({ id, x, y, w, h, label, detail, visual, disabled, clip }) => {
         const right = clip ? Math.min(x + w, clip.x + clip.w) : x + w,
           bottom = clip ? Math.min(y + h, clip.y + clip.h) : y + h;
         if (clip) {
@@ -231,7 +231,9 @@ export function captureOverwatchSnapshot(game: SnapshotSource, presentedTime: nu
           visual,
           clip,
           disabled: !!disabled,
-          text: label.string,
+          text: label.string+(detail?.node.active&&detail.string?"\n"+detail.string:""),
+          status:detail?.node.active?detail.string:undefined,
+          statusColor:detail?.node.active?detail.color.toHEX():undefined,
           bold: label.isBold,
           color: label.color.toHEX(),
         };

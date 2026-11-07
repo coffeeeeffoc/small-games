@@ -55,6 +55,7 @@ export type ButtonRect = {
   w: number;
   h: number;
   label: Label;
+  detail?: Label;
   visual?: { x: number; y: number; w: number; h: number };
   disabled?: boolean;
   clip?: { x: number; y: number; w: number; h: number };

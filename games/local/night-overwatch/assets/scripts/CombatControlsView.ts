@@ -138,7 +138,7 @@ export class CombatControlsView {
       .filter((button) => button.label.node.activeInHierarchy);
     const visible = normal.filter((button) => button.label.node.activeInHierarchy);
     const fire = this.hud.buttons.find((button) => button.id === 'fire')!;
-    fire.h = 68 * this.hud.fireScale;
+    fire.h = 136 * this.hud.fireScale;
     this.positionControl(
       fire,
       right - fire.h,
@@ -216,7 +216,7 @@ export class CombatControlsView {
       );
       this.avoidFixedControls(id);
     }
-    if (this.hud.controlPositions.fire || this.hud.fireScale !== 1 || this.hud.controlScale !== 1) {
+    {
       const stateHeight = this.hud.footer - 14;
       const stateCenterY = Math.max(
         this.hud.safe.top,
@@ -323,7 +323,7 @@ export class CombatControlsView {
     ).node.parent = this.hud.globalControls;
     const footerTop = height - this.hud.footer - this.hud.safe.bottom;
     const cardWidth = Math.min(this.hud.compact ? 64 : 78, (right - left - 146) / 5 - 6);
-    const fireWidth = 68;
+    const fireWidth = 136;
     const cardsLeft = left;
     for (let i = 0; i < 4; i++) {
       const label = this.hud.button(

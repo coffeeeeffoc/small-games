@@ -79,7 +79,7 @@ let artworkAvailable = false;
 const cc = {
   EditBox: class { static InputMode = { SINGLE_LINE: 0 }; static InputFlag = { PASSWORD: 0, DEFAULT: 1 }; static EventType = { TEXT_CHANGED: 'change' }; isFocused() { return false; } },
   UIOpacity: class { opacity = 255; }, Tween: { stopAllByTarget() {} },
-  tween: (target: any) => ({ to(_time: number, values: object) { Object.assign(target, values); return this; }, call(callback: () => void) { callback(); return this; }, start() {} }),
+  tween: (target: any) => ({ to(_time: number, values: object) { Object.assign(target, values); return this; }, call(callback: () => void) { callback(); return this; }, by(){return this;},union(){return this;},repeatForever(){return this;},start() {} }),
   Node: SceneNode, UITransform: Transform, Graphics, Color,
   Camera: class { static ProjectionType = { ORTHO: 0 }; static ClearFlag = { DEPTH_ONLY: 0 }; },
   Canvas: class {}, Mask: class { static Type = { GRAPHICS_RECT: 0 }; },
@@ -133,8 +133,8 @@ test('equipped supports dock after normal weapons and every control reaches each
       const controls=()=>hud.buttons.filter((b:any)=>ids.includes(b.id)&&b.label.node.activeInHierarchy);
       const rectangle=(l:any)=>{const size=l.node.getComponent(Transform).contentSize;return{x:l.node.position.x+frame.width/2-size.width/2,y:frame.height/2-l.node.position.y-size.height/2,w:size.width,h:size.height};};
       const support=controls().filter((b:any)=>['weapon4','skillUse','weapon5'].includes(b.id)).sort((a:any,b:any)=>a.x-b.x),homing=hud.buttons.find((b:any)=>b.id==='homing'),fire=hud.buttons.find((b:any)=>b.id==='fire');
-      assert.equal(support.length,effects.length);assert(controls().every((b:any)=>b.y===homing.y&&b.w>=44&&b.h===44));
-      if(support.length){assert.equal(support[0].x,homing.x+homing.w+8);for(let i=1;i<support.length;i++)assert(Math.abs(support[i].x-support[i-1].x-support[i-1].w-6)<1e-9);}
+      assert.equal(support.length,effects.length);assert(controls().every((b:any)=>b.y<=homing.y&&b.w>=44&&b.h===44));
+      if(support.length){if(support[0].y===homing.y)assert.equal(support[0].x,homing.x+homing.w+8);for(let i=1;i<support.length;i++)if(support[i].y===support[i-1].y)assert(Math.abs(support[i].x-support[i-1].x-support[i-1].w-6)<1e-9);}
       for(const b of controls()) {
         assert(!overlaps(b,fire));assert(!overlaps(b,rectangle(hud.labels.get('weaponState'))));
         assert(controls().every((other:any)=>other===b||!overlaps(b,other)));
@@ -147,7 +147,9 @@ test('equipped supports dock after normal weapons and every control reaches each
         const others=geometry().filter((r:any)=>r.id!==b.id);
         for(const position of [{x:0,y:.5},{x:1,y:.5},{x:.5,y:0},{x:.5,y:1}]) {
           hud.placeControl(b.id,position);const bounds=hud.controlBounds(b.id);
-          assert.equal(b.x,bounds.x+bounds.w*position.x);assert.equal(b.y,bounds.y+bounds.h*position.y);
+          const placed=hud.controlPositions[b.id];
+          assert.equal(b.x,bounds.x+bounds.w*placed.x);assert.equal(b.y,bounds.y+bounds.h*placed.y);
+          assert(!overlaps(b,fire),'dragged controls avoid the enlarged fire button');
           assert.equal(b.label.node.position.x,b.x+b.w/2-width/2);assert.deepEqual(geometry().filter((r:any)=>r.id!==b.id),others);
         }
         hud.placeControl(b.id);assert.equal(hud.controlPositions[b.id],undefined);
@@ -171,7 +173,7 @@ test('control sizes keep touch targets reachable and paused layout mode exposes 
    assert(b.w>=44&&b.h>=44&&b.x>=inset&&b.y>=inset&&b.x+b.w<=width-inset&&b.y+b.h<=height-inset,`${width}/${scale}/${b.id} in safe bounds`);
    assert(!controls.some((other:any)=>other!==b&&overlaps(b,other)),`${width}/${scale}/${b.id} separated`);
   }
-  assert.equal(hud.buttons.find((b:any)=>b.id==='fire').w,68*scale);
+  assert.equal(hud.buttons.find((b:any)=>b.id==='fire').w,136*scale);
   sim.pause('settings',true);hud.controlsOpen=true;hud.update(sim,world);
   const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
   assert.equal(buttons.find((b:any)=>b.id==='resume')?.label.string,'继续战斗');
@@ -822,7 +824,7 @@ test('HUD: desktop controls stay compact, touch keeps FIRE, cooldown stays on th
     }
     const visibleText = [...hud.labels.values(), ...hud.buttons.map((b: any) => b.label)]
       .filter((l: any) => l.node.activeInHierarchy).map((l: any) => l.string).join('\n');
-    assert(!visibleText.includes('装填'));assert(hud.buttons.find((b:any)=>b.id==='weapon2').label.string.includes('2.0s'));if(touch)assert(fire.label.string.includes('2.0s'));
+    assert(!visibleText.includes('装填'));assert(hud.buttons.find((b:any)=>b.id==='weapon2').detail.string.includes('2.0s'));if(touch)assert(fire.detail.string.includes('2.0s'));
     if (!touch) assert.equal(hud.footer, 60);
   }
 });
@@ -940,13 +942,13 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert(!hud.labels.get('buff').node.activeInHierarchy, 'tracking countdown moved into its button');
         assert.equal(control('homing').label.color.hex, control('weapon' + sim.selected).label.color.hex);
         assert(control('homing').label.isBold);
-        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪 60秒' : 'LOCK 60s');
+        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪' : 'LOCK');
         hud.rewardsAvailable = false; hud.update(sim, world);
         assert(control('homing'), 'active tracking remains visible without ad availability or homing ammo');
         hud.rewardsAvailable = true;
         sim.buff.remaining = 4.2; hud.update(sim, world); checkLayout();
-        assert.equal(control('homing').label.color.hex, '#e5b65c');
-        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪 5秒' : 'LOCK 5s');
+        assert.equal(control('homing').detail.color.hex, '#e5b65c');
+        assert.equal(control('homing').label.string, lang === 'zh' ? '追踪' : 'LOCK');
         sim.pause('settings', true); hud.zoomOpen = true; hud.update(sim, world); checkLayout();
         assert.equal(control('zoomUpgrade').label.color.hex, '#9bb4c8');
         assert.match(control('zoomUpgrade').label.string, lang === 'zh' ? /支援生效中/ : /SUPPORT ACTIVE/);
@@ -1460,11 +1462,24 @@ test('disabled active and cooling skills block battlefield input while special w
     sim.applyLoadout({version:'night-growth-v1',level:10,effects:['emp','drone'],skipped:[]});sim.start();sim.useSkill();sim.time=time;hud.update(sim,world);
     const skill=hud.buttons.find((b:any)=>b.id==='skillUse'),weapon=hud.buttons.find((b:any)=>b.id==='weapon4');
     assert(skill?.disabled);assert(weapon);assert(!overlaps(skill,weapon));
-    assert(skill.label.string.startsWith('电磁干扰\n'));assert.equal(hud.controlAt(skill.x+20,skill.y+20),skill);
+    assert(skill.label.string==='电磁干扰');assert.equal(hud.controlAt(skill.x+20,skill.y+20),skill);
     assert.equal(hud.hit(skill.x+20,skill.y+20),undefined);
     assert(hud.blocksBattlefield(skill.x+20,skill.y+20),'a disabled control must consume touch/mouse input');
   }
   inset=0;
+});
+
+test('skill status has distinct ready, active and cooldown colors without recoloring its name',()=>{
+  Object.assign(frame,{width:568,height:320});inset=0;
+  const hud=new HUD(new SceneNode()),sim=new Simulation('training-60');hud.touch=true;
+  sim.applyLoadout({version:'night-growth-v1',level:10,effects:['emp','drone'],skipped:[]});sim.start();
+  const colors=[];
+  for(const [remaining,cooldown,text]of [[0,0,'就绪'],[12,0,'生效'],[0,20,'冷却']] as const){
+    sim.skill.activeUntil=sim.time+remaining;sim.skill.readyAt=sim.time+cooldown;hud.update(sim,world);
+    const skill=hud.buttons.find((b:any)=>b.id==='skillUse');assert.equal(skill.label.string,'电磁干扰');assert.match(skill.detail.string,new RegExp(text));colors.push(skill.detail.color.hex);
+    assert.match(hud.buttons.find((b:any)=>b.id==='weapon4').label.string,/^无人机\s+3$/);
+  }
+  assert.equal(new Set(colors).size,3);
 });
 
 test('growth settlement keeps rewards, next mission and base actions separate; local bots never inherit solo points',()=>{
@@ -1523,7 +1538,7 @@ test('direct and recovered solo receipts refresh authoritative task progress in 
 
 test('stable tab identities animate ranking and settings changes without polling fades',()=>{
  Object.assign(frame,{width:1280,height:720});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.panel='ranking';online.board='level';
- const labels=['当前驻守版 ▾','旧梯度版 ▾','旧成长版 ▾','原始历史版 ▾'];let previous='';for(const [i,version]of ['night-campaign-v3','night-campaign-v2','night-growth-v1','night-records-v1'].entries()){online.rankingVersion=version;online.revision++;hud.update(sim,world);assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string===labels[i]));assert.notEqual(hud.semanticKey,previous);previous=hud.semanticKey;online.revision++;hud.update(sim,world);assert.equal(hud.semanticKey,previous);}
+ const labels=['当前战区版 ▾','旧驻守版 ▾','旧梯度版 ▾','旧成长版 ▾','原始历史版 ▾'];let previous='';for(const [i,version]of ['night-campaign-v4','night-campaign-v3','night-campaign-v2','night-growth-v1','night-records-v1'].entries()){online.rankingVersion=version;online.revision++;hud.update(sim,world);assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string===labels[i]));assert.notEqual(hud.semanticKey,previous);previous=hud.semanticKey;online.revision++;hud.update(sim,world);assert.equal(hud.semanticKey,previous);}
  hud.renderModal('settings',sim,world);previous=hud.semanticKey;hud.renderModal('settings:zoom',sim,world);assert.notEqual(hud.semanticKey,previous);previous=hud.semanticKey;hud.renderModal('settings:flight',sim,world);assert.notEqual(hud.semanticKey,previous);
 });
 
@@ -1549,9 +1564,9 @@ test('refinement: selected mission is positioned in the horizontal viewport and 
  Object.assign(frame,{width:568,height:320});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(MISSIONS[79].id);hud.missionsOpen=true;hud.missionFocus=79;hud.update(sim,world);
  const area=hud.listAreas.find((a:any)=>a.key==='missions');assert.equal(area.axis,'x');const selected=hud.buttons.find((b:any)=>b.id==='mission:'+MISSIONS[79].id);assert(selected.x>=area.x&&selected.x+selected.w<=area.x+area.w);
  hud.missionsOpen=false;sim.start();hud.touch=true;hud.resize();Object.assign(sim.guns[2],{cooldown:2.3,cooldownTotal:4});sim.choose(2);hud.update(sim,world);
- const fire=()=>hud.buttons.find((b:any)=>b.id==='fire').label.string;assert(fire().includes('2.3s'));assert(hud.buttons.find((b:any)=>b.id==='weapon2').label.string.includes('2.3s'));
+ const fire=()=>{const b=hud.buttons.find((b:any)=>b.id==='fire');return b.label.string+(b.detail?.node.active?b.detail.string:'');};assert(fire().includes('2.3s'));assert(hud.buttons.find((b:any)=>b.id==='weapon2').detail.string.includes('2.3s'));
  sim.choose(0);hud.update(sim,world);assert(!fire().includes('2.3s'));Object.assign(sim.guns[0],{heat:94,overheated:true,cooldown:.1,cooldownTotal:.2});hud.update(sim,world);assert(fire().includes('3.0s'));
- sim.guns[0].ammo=0;hud.update(sim,world);assert(!fire().includes('s'));assert(hud.buttons.find((b:any)=>b.id==='weapon0').label.string.includes('弹尽'));
+ sim.guns[0].ammo=0;hud.update(sim,world);assert(!fire().includes('s'));assert(hud.buttons.find((b:any)=>b.id==='weapon0').detail.string.includes('弹尽'));
 });
 
 test('refinement: player-facing experience labels use EXP and combat configuration is named explicitly',()=>{

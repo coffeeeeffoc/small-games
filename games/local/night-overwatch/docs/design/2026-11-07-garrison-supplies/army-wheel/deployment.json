@@ -1,0 +1,52 @@
+{
+  "release": "night-20261107-army-wheel",
+  "imageId": "sha256:fc407beb95fd1c25a017519367146382f4b83ac1424c7bcfb212ceaee288da78",
+  "manifestSha256": "6208e1aee4b380fef5a7026a3cc8eb59778ea5c5b91cb0e4b10c037903a0158b",
+  "backup": {
+    "tables": 35,
+    "restoreDigestsMatch": true
+  },
+  "previousImage": "small-games-bundle:night-20261107-garrison-bd1223e7",
+  "health": "local and Sakura passed",
+  "updatedAt": "2026-11-07T04:05:55.591Z",
+  "frontendSourceHash": "47a4df1b01f0a6d57d41efb303fde4de18612778017504a6f2214751ebba7c33",
+  "verifiedFiles": 435,
+  "sourceCommit": "a1662071e65f634d6111aef72e08fcb8f5269576",
+  "sourceDirty": true,
+  "matchedCurrentSources": [
+    "games/local/night-overwatch/assets/scripts/core/Data.ts",
+    "games/local/night-overwatch/assets/scripts/core/Duel.ts",
+    "games/local/night-overwatch/assets/scripts/core/Flight.ts",
+    "games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts",
+    "games/local/night-overwatch/assets/scripts/core/Progression.ts",
+    "games/local/night-overwatch/assets/scripts/core/Replay.ts",
+    "games/local/night-overwatch/assets/scripts/core/Simulation.ts"
+  ],
+  "network": [
+    {
+      "host": "http://127.0.0.1:43003",
+      "runtime": 200,
+      "gateway": 200,
+      "anonymous": 401,
+      "otherGame": 404,
+      "internal": 404,
+      "http://localhost:4318": 204,
+      "https://untrusted.invalid": 403
+    },
+    {
+      "host": "https://nas.hc2a5c9f0.nyat.app:29549",
+      "runtime": 200,
+      "gateway": 200,
+      "anonymous": 401,
+      "otherGame": 404,
+      "internal": 404,
+      "http://localhost:4318": 204,
+      "https://untrusted.invalid": 403
+    }
+  ],
+  "sqlMigrationApplied": false,
+  "existingPostgresPreserved": true,
+  "runtimeDistFilesMatched": 86,
+  "previousFrontendSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
+  "frontendOnlyFollowup": "12 colorful sectors with metal rim; runtime rules and bundle unchanged"
+}

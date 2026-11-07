@@ -1,9 +1,9 @@
 import { Simulation } from './Simulation.ts';
-import { WEAPONS, garrisonPoints, patrolPoint, type Point } from './Data.ts';
+import { WEAPONS, GARRISON, garrisonPoints, patrolPoint, type Point } from './Data.ts';
 import { MISSIONS } from './MissionCatalog.ts';
 import type { BattleLoadout } from './Progression.ts';
 
-export const DUEL_VERSION = 'night-duel-v8';
+export const DUEL_VERSION = 'night-duel-v9';
 // Retained for older presentation callers; authority has no match time limit.
 export const DUEL_SECONDS = 0;
 type Pilot = ReturnType<Simulation['pilotState']> & { leaseUntil: number };
@@ -27,7 +27,7 @@ export function createDuel(seed: number, bot = false): DuelState {
     const unit = sim.addUnit(i < 4 ? 'light' : i < 6 ? 'turret' : 'heavy', { x: formation[i].x * sign, z: formation[i].z * sign }, side === 0);
     unit.group = side;
   }
-  for(const side of [0,1])for(const point of garrisonPoints(24,side)){
+  for(const side of [0,1])for(const point of garrisonPoints(GARRISON.duelPerSide,side)){
     const unit=sim.addUnit('infantry',point,side===0);unit.group=side;
   }
   const first = copy({ ...sim.pilotState(), leaseUntil: 0 }), second = copy(first);

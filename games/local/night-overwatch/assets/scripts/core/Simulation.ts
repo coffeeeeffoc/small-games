@@ -1,5 +1,6 @@
 import {
   WEAPONS,
+  GARRISON,
   LASER,
   DRONE,
   MAP,
@@ -670,7 +671,7 @@ export class Simulation {
     let infantry=this.units.filter(unit=>!unit.friendly&&unit.hp>0&&unit.kind==='infantry').length,armor=this.units.filter(unit=>!unit.friendly&&unit.hp>0&&unit.kind!=='infantry').length;
     let active=infantry+armor;
     this.mission.events.forEach((e, i) => {
-      if (active<72&&(e.kind==='infantry'?infantry<48:armor<24)&&!this.spawned.has(i) && (this.time >= e.time || this.ratio >= e.progress)) {
+      if (active<GARRISON.soloMax+GARRISON.armorMax&&(e.kind==='infantry'?infantry<GARRISON.soloMax:armor<GARRISON.armorMax)&&!this.spawned.has(i) && (this.time >= e.time || this.ratio >= e.progress)) {
         active++;if(e.kind==='infantry')infantry++;else armor++;
         this.spawned.add(i);
         this.addUnit(e.kind, landPoint(e, this.mission.map));

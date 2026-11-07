@@ -1,0 +1,23 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "47a4df1b01f0a6d57d41efb303fde4de18612778017504a6f2214751ebba7c33"
+  },
+  "environment": "Ordinary new guest via actual Sakura API; no asset fixture or fake result",
+  "coins": 0,
+  "tickets": 0,
+  "weights": [
+    28,
+    22,
+    20,
+    14,
+    12,
+    4
+  ],
+  "termOdds": {
+    "match": 90,
+    "24h": 10
+  },
+  "errors": []
+}

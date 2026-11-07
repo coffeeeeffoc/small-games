@@ -416,5 +416,5 @@ test('a late poll cannot replace a newer acknowledged chat message or move the c
 });
 
 test('level rankings cycle all current and historical rule versions with matching query parameters',async()=>{
- const f=fixture(),online=new Online(storage(),()=>{}),requests:any[]=[];f.bridge.services.leaderboard=async(input:any)=>{requests.push(input);return{top:[],me:null};};await online.connect(f.bridge);await online.loadRanking(0,'level');for(let i=0;i<4;i++)await online.cycleRankingVersion();assert.deepEqual(requests.map(r=>r.ruleVersion),['night-campaign-v3','night-campaign-v2','night-growth-v1','night-records-v1','night-campaign-v3']);assert(requests.every(r=>r.boardId==='level-corridor-01'));
+ const f=fixture(),online=new Online(storage(),()=>{}),requests:any[]=[];f.bridge.services.leaderboard=async(input:any)=>{requests.push(input);return{top:[],me:null};};await online.connect(f.bridge);await online.loadRanking(0,'level');for(let i=0;i<5;i++)await online.cycleRankingVersion();assert.deepEqual(requests.map(r=>r.ruleVersion),['night-campaign-v4','night-campaign-v3','night-campaign-v2','night-growth-v1','night-records-v1','night-campaign-v4']);assert(requests.every(r=>r.boardId==='level-corridor-01'));
 });

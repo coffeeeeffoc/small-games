@@ -30,6 +30,7 @@ import {
   HOLD_POINTS,
   PROTECTED,
   MISSION,
+  GARRISON,
   garrisonPoints,
   landPoint,
   routePoint,
@@ -507,7 +508,7 @@ export class World {
     const terrainHeight = this.height, surfaceHeight = this.surfaceHeight, roadDistance = this.roadDistance;
     const ROUTE = mapRoute(map), ROUTE_LENGTH = routeLength(map), HOLD_POINTS = [ROUTE_LENGTH * .28, ROUTE_LENGTH * .64];
     const mapPoint = (d: number) => routePoint(d, map);
-    const garrisons=[...garrisonPoints(48).map(p=>landPoint(p,map)),...garrisonPoints(24,0),...garrisonPoints(24,1)];
+    const garrisons=[...garrisonPoints(GARRISON.soloMax).map(p=>landPoint(p,map)),...garrisonPoints(GARRISON.duelPerSide,0),...garrisonPoints(GARRISON.duelPerSide,1)];
     const combatDistance = (x: number, z: number) => Math.min(roadDistance(x, z),
       ...MISSION.events.map(e => Math.hypot(x - e.x, z - e.z) - (e.kind === 'light' ? 2 : 0)),
       ...garrisons.map(p=>Math.hypot(x-p.x,z-p.z)));
@@ -921,6 +922,18 @@ export class World {
             true,
           );
         }
+      }
+    });
+    this.terrainBatch('terrain.infantryPositions', '#8f8569', '#34414a', g => {
+      // Low revetments mark deployment lines without concealing bodies or changing ballistics.
+      for(const point of [...garrisonPoints(GARRISON.sectors),...garrisonPoints(GARRISON.sectors,0),...garrisonPoints(GARRISON.sectors,1)]){
+        const anchor=landPoint(point,map);
+        for(let row=0;row<2;row++)for(let bag=0;bag<8;bag++){
+          const x=anchor.x-1.2+bag*.7+(row?.24:0),z=anchor.z-1.5;
+          if(roadDistance(x,z)<2||garrisons.some(p=>Math.hypot(x-p.x,z-p.z)<.8))continue;
+          addBox(g,x,.09+row*.11,z,.66,.13,.34,.7+noise(bag+row*8)*.3);
+        }
+        for(const side of [-1,1])addBox(g,anchor.x+side*3.7,.06,anchor.z+.6,.3,.12,4,.8);
       }
     });
     this.terrainBatch('terrain.details', '#343e37', '#19262c', (g) => {

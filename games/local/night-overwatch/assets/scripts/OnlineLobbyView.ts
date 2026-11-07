@@ -1086,7 +1086,9 @@ export class OnlineLobbyView {
         button(
           'ruleVersion',
           online.rankingVersion === CAMPAIGN_BOARD_VERSION
-            ? this.h.t('当前驻守版 ▾', 'CURRENT ▾')
+            ? this.h.t('当前战区版 ▾', 'CURRENT ▾')
+            : online.rankingVersion === 'night-campaign-v3'
+              ? this.h.t('旧驻守版 ▾', 'OLD GARRISON ▾')
             : online.rankingVersion === 'night-campaign-v2'
               ? this.h.t('旧梯度版 ▾', 'OLD CAMPAIGN ▾')
             : online.rankingVersion === 'night-growth-v1'

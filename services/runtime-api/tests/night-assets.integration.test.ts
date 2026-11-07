@@ -50,6 +50,58 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       sql`update runtime.competition_matches set data=data || ${JSON.stringify(patch)}::jsonb where id=${`night-assets:${id}`}`,
     );
   };
+  it('each reward entry grants all three gear categories for both terms and retries only once', async () => {
+    for (const category of ['mod', 'weapon', 'skill'] as const)
+      for (const term of ['match', '24h'] as const) {
+        const selected: ProgressionRules = {
+          ...rules,
+          catalog: rules.catalog
+            .filter((p) => p.category === category)
+            .map((p) => ({ ...p, rarity: 3, unlockLevel: 1 })),
+          economy: {
+            ...rules.economy!,
+            termOdds: { match: term === 'match' ? 100 : 0, '24h': term === '24h' ? 100 : 0 },
+          },
+          wheelPrizes: [
+            {
+              weight: 100,
+              coins: 60,
+              xp: 40,
+              tier: 3,
+              category,
+              term: 'random',
+              fragments: { 'fragment:weapon': 2 },
+            },
+          ],
+        };
+        for (const kind of ['checkin', 'open', 'wheel-spin'] as const) {
+          const id = await owner();
+          await seed(id, { wheelTickets: 1, inventory: { 'pack:general:3': 1 } });
+          const cmd: AssetCommand =
+            kind === 'open'
+              ? { kind, requestId: randomUUID(), item: 'pack:general:3', quantity: 1 }
+              : { kind, requestId: randomUUID() };
+          const run = () => database.db.transaction((tx) => nightAssets(tx, id, at, selected, cmd));
+          const [a, b] = await Promise.all([run(), run()]);
+          expect(a.lastReceipt).toEqual(b.lastReceipt);
+          const gear = selected.catalog.find((p) => p.term === term && a.inventory[p.id] === 1);
+          expect(gear, `${kind} ${category} ${term}`).toBeDefined();
+          expect(a.active[gear!.effect] ?? 0).toBe(0);
+          if (kind === 'wheel-spin') {
+            expect(a.wheelTickets).toBe(0);
+            expect(a.coins).toBe(60);
+            expect(a.xp).toBe(40);
+            expect(a.inventory['pack:general:3']).toBe(2);
+            expect(a.inventory['fragment:weapon']).toBe(2);
+            await expect(
+              database.db.transaction((tx) =>
+                nightAssets(tx, id, at, selected, { kind, requestId: randomUUID() }),
+              ),
+            ).rejects.toMatchObject({ code: 'NO_WHEEL_TICKETS' });
+          }
+        }
+      }
+  });
   it('daily equipment receipts are idempotent, usable at level one and convert fully permanent collections', async () => {
     const id = await owner(),
       cmd: AssetCommand = { kind: 'checkin', requestId: randomUUID() };
@@ -58,10 +110,13 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
     const items = (a.lastReceipt as { items: Record<string, number> }).items,
       item = Object.keys(items)[0]!;
     const product = rules.catalog.find((p) => p.id === item)!;
-    expect(product.term).toBe('match');
+    expect(['match', '24h']).toContain(product.term);
     expect(items[item]).toBe(1);
     expect(a.coins).toBe(100);
     expect(a.xp).toBe(40);
+    expect(a.active[product.effect] ?? 0).toBe(0);
+    if (product.term === '24h')
+      await command(id, { kind: 'activate', item, requestId: randomUUID() });
     await command(id, {
       kind: 'loadout',
       requestId: randomUUID(),
@@ -75,7 +130,7 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
     const reserved = await database.db.transaction((tx) =>
       reserveNightLoadout(tx, id, at, 'newcomer', 'solo', rules),
     );
-    expect(reserved.effects).toContain(item.replace('-match', ''));
+    expect(reserved.effects).toContain(product.effect);
     await expect(command(id, { ...cmd, requestId: randomUUID() })).rejects.toMatchObject({
       code: 'ALREADY_CLAIMED',
     });
@@ -96,9 +151,9 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
         ),
       });
       const result = await command(id, { kind: 'checkin', requestId: randomUUID() });
-      expect((result.lastReceipt as { items: Record<string, number> }).items).toEqual({
-        [effect + '-match']: 1,
-      });
+      const items = (result.lastReceipt as { items: Record<string, number> }).items;
+      expect(Object.values(items)).toEqual([1]);
+      expect([effect + '-match', effect + '-24h']).toContain(Object.keys(items)[0]);
     }
   });
   it('combination packs award all components atomically once and prepare newly earned level skills before drawing', async () => {
@@ -124,7 +179,7 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
     expect(drops.reduce((n, d) => n + (d.xp ?? 0), 0)).toBe(40);
     expect(drops.reduce((n, d) => n + (d.coins ?? 0), 0)).toBe(240);
     expect(drops.filter((d) => d.item?.startsWith('fragment:'))).toHaveLength(4);
-    expect(drops.some((d) => d.item === 'tracking-match')).toBe(false);
+    expect(drops.some((d) => d.item?.startsWith('tracking-'))).toBe(false);
     const state = await get(id);
     expect(state.xp).toBe(3020);
     expect(state.permanent).toContain('tracking');
@@ -900,7 +955,11 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       requestId: randomUUID(),
     });
     expect(unlocked.lastReceipt).toMatchObject({
-      drops: expect.arrayContaining([{ item: 'burst-match' }, { coins: 200 }, { xp: 80 }]),
+      drops: expect.arrayContaining([
+        { item: expect.stringMatching(/^burst-(match|24h)$/) },
+        { coins: 200 },
+        { xp: 80 },
+      ]),
     });
     await seed(id, { permanent: ['burst'] });
     expect(

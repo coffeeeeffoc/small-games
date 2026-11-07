@@ -1,0 +1,79 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0"
+  },
+  "fixture": "explicit rendering fixture: legal pure-rule input replay, not a browser-playthrough or real-service proof",
+  "samples": [
+    {
+      "width": 1280,
+      "height": 720,
+      "frames": 241,
+      "fpsMedian": 59.99700014927735,
+      "fpsP10": 59.8006644527154,
+      "first": {
+        "fps": 59.99700015017133,
+        "drawCalls": 247,
+        "triangles": 498882,
+        "nodes": 204,
+        "dead": 176,
+        "alive": 16,
+        "spawned": 192,
+        "time": 180.20000000003554
+      },
+      "last": {
+        "fps": 59.99700014927735,
+        "drawCalls": 247,
+        "triangles": 498831,
+        "nodes": 204,
+        "dead": 176,
+        "alive": 16,
+        "spawned": 192,
+        "time": 184.20000000003873
+      }
+    },
+    {
+      "width": 568,
+      "height": 320,
+      "frames": 241,
+      "fpsMedian": 59.96332821232106,
+      "fpsP10": 59.96332821232106,
+      "first": {
+        "fps": 59.98800240023508,
+        "drawCalls": 247,
+        "triangles": 498845,
+        "nodes": 204,
+        "dead": 176,
+        "alive": 16,
+        "spawned": 192,
+        "time": 184.50000000003897
+      },
+      "last": {
+        "fps": 60.055588643678846,
+        "drawCalls": 247,
+        "triangles": 498841,
+        "nodes": 204,
+        "dead": 176,
+        "alive": 16,
+        "spawned": 192,
+        "time": 188.50000000004215
+      }
+    }
+  ],
+  "errors": [],
+  "coreCompletion": {
+    "phase": "success",
+    "time": 199.36666666671746,
+    "kills": 192,
+    "friendlyDamage": 0,
+    "friendlyLosses": 0,
+    "spawned": 192
+  },
+  "replayTicks": 10800,
+  "checkpoint": {
+    "time": 180.00000000003539,
+    "spawned": 192,
+    "dead": 176
+  }
+}

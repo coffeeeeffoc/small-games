@@ -7,7 +7,7 @@ test('duel has equal forces and ammunition, reproducible maps and player-relativ
   for (const kind of ['light', 'turret', 'heavy']) for (const side of [0, 1])
     assert.equal(state.simulation.units.filter(unit => unit.group === side && unit.kind === kind).length, kind === 'light' ? 4 : 2);
   assert.deepEqual(state.pilots[0].guns, state.pilots[1].guns);
-  assert.equal(viewDuel(state, 1).simulation.units.filter(unit => unit.friendly).length, 32);
+  assert.equal(viewDuel(state, 1).simulation.units.filter(unit => unit.friendly).length, 56);
   assert.notDeepEqual(createDuel(42).simulation.units, state.simulation.units);
   advanceDuel(state, 1000); advanceDuel(second, 500); advanceDuel(second, 1000);
   assert.deepEqual(state, second);

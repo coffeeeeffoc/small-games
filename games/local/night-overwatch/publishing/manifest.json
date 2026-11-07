@@ -1,7 +1,7 @@
 {
-  "sourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+  "sourceHash": "47a4df1b01f0a6d57d41efb303fde4de18612778017504a6f2214751ebba7c33",
   "verified": "2026-11-07",
-  "environment": "New garrison combat, mission map and settlement captures; continuous 1080p first mission with actual game audio, real isolated PostgreSQL/HTTP and input. Reward copy updated. Existing media retain original capture identities as historical assets. No platform upload; no physical-device capture.",
+  "environment": "Eight infantry sectors and text-free wheel; current 1080p ordinary-guest continuous combat capture via isolated real PostgreSQL/HTTP, three new screenshots and revised copy. Prior media retain their original capture identities. No platform upload or physical-device capture. Final 12-sector wheel is a frontend-only follow-up; combat media keep the prior capture hash.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",
@@ -169,17 +169,17 @@
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 4252,
-      "sha256": "61a479bf2fbe89cc0ac8bc523312cc956a5f073f0418d21d69b6eb2330b89fba",
-      "verifiedForSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+      "bytes": 4791,
+      "sha256": "02494fa37c730bc5453015b5f64f3eb06fbeb0228141855f52d2a7eb97f26de1",
+      "verifiedForSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
       "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
       "reusedUnchanged": false
     },
     {
       "path": "copy/developer-note.md",
-      "bytes": 2916,
-      "sha256": "836e1e4fefdba4fb3d97534cd9f4b116e15b13ebcaec0ffeb7ffa8354d9ffd48",
-      "verifiedForSourceHash": "1828248a67d0178cd37bd6306eb7486e410289e336cf13b48ae635f9233349d3",
+      "bytes": 3361,
+      "sha256": "0bc3d89a1f59da249afebef0fde0dd6b697734fd612a6547091306884f58db63",
+      "verifiedForSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
       "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
       "reusedUnchanged": false
     },
@@ -187,7 +187,7 @@
       "path": "copy/tagline.md",
       "bytes": 68,
       "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
-      "verifiedForSourceHash": "91760bb8b77735e857ea1193dc2f943dbf66b37d5e289735bf5494fb855cce5e",
+      "verifiedForSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
       "capturedSourceHash": "c0c5e04eed985671980192c132dfb307a811039bc5a79fc436ed794fd1b5bd70",
       "reusedUnchanged": true
     },
@@ -412,6 +412,64 @@
       "playedToEnd": true,
       "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
       "evidence": "../docs/design/2026-11-07-garrison-supplies/media-evidence.json"
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-07-army/missions-1280.png",
+      "bytes": 837147,
+      "sha256": "7bf132fb5769dc2a613f77d7aa95b8bdcebe5994910d29a86960b1e134338efd",
+      "capturedSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
+      "verifiedForSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-07-army/settlement-1920.png",
+      "bytes": 2013916,
+      "sha256": "474600e60178a46dbd29162f562e1d50945003e6138061ffe51d063a495ebd57",
+      "capturedSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
+      "verifiedForSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
+      "reusedUnchanged": false,
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-07-army/infantry-1920.png",
+      "bytes": 1346433,
+      "sha256": "9756a201948277ab92f3bd8059f75ce094b8da6603fe430c8a3fe66803856df1",
+      "capturedSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
+      "verifiedForSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
+      "reusedUnchanged": false,
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "path": "gameplay/videos/night-overwatch-army-2026-11-07-1920x1080.mp4",
+      "bytes": 42596857,
+      "sha256": "a17d00a07c6653048535db80652d4b35fe01b6667ccbfeb90f589b482fdeea69",
+      "capturedSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
+      "verifiedForSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
+      "reusedUnchanged": false,
+      "width": 1920,
+      "height": 1080,
+      "durationSeconds": 89.9055,
+      "videoCodec": "h264",
+      "audioCodec": "aac",
+      "decoded": true,
+      "evidence": "../docs/design/2026-11-07-garrison-supplies/army-wheel/media-source.json",
+      "playedToEnd": true,
+      "playbackEvidence": "../docs/design/2026-11-07-garrison-supplies/army-wheel/media-playback.json"
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-07-army/supplies-1280.png",
+      "bytes": 1219414,
+      "sha256": "4d6eca5fbae27e560652a7670d896a9df4ebcb97206c1297357765104dca0226",
+      "capturedSourceHash": "47a4df1b01f0a6d57d41efb303fde4de18612778017504a6f2214751ebba7c33",
+      "verifiedForSourceHash": "47a4df1b01f0a6d57d41efb303fde4de18612778017504a6f2214751ebba7c33",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720,
+      "environment": "Actual Sakura API, ordinary new guest, no assets fixture"
     }
   ]
 }

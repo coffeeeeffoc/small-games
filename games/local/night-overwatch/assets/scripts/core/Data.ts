@@ -138,7 +138,7 @@ export const WEAPONS = [
     automatic: false,
   },
   {
-    id: 'drone', muzzle: AIRFRAME.muzzles[1], name: ['无人机集群', 'Drone swarm'], interval: 20,
+    id: 'drone', muzzle: AIRFRAME.muzzles[1], name: ['无人机', 'Drones'], interval: 20,
     speed: 35, calibre: 0.004, length: 0.021, tracerTime: 0.055, damage: 8, radius: .6,
     ammo: 3, heat: 0, armor: .75, automatic: false,
   },
@@ -270,13 +270,14 @@ export const MISSION = {
       `SECTOR ${Math.floor(i / 4) + 1}: contacts near friendly positions`],
   })),
 };
-// Raw authoritative deployment coordinates shared by simulation and scenery clearance.
+export const GARRISON = { sectors: 8, soloMax: 96, duelPerSide: 48, armorMax: 24 };
+// Two infantry lines per friendly sector; scenery uses these same authoritative positions.
 export function garrisonPoints(count: number, side?: number): Point[] {
   return Array.from({length:count},(_,i)=>{
-    const sector=i%4,rank=Math.floor(i/4);
-    if(side!==undefined){const sign=side===0?-1:1;return {x:(48+(sector%2)*44+(rank%3-1)*2.2)*sign,z:(-45+Math.floor(sector/2)*90+Math.floor(rank/3)*2.2)*sign};}
-    const anchor=MISSION.events[[0,5,13,17][sector]];
-    return {x:anchor.x+(rank%3-1)*2.2,z:anchor.z+4+Math.floor(rank/3)*2.2};
+    const sector=i%GARRISON.sectors,rank=Math.floor(i/GARRISON.sectors);
+    if(side!==undefined){const sign=side===0?-1:1;return {x:(42+(sector%4)*26+(rank%3-1)*2.4)*sign,z:(-45+Math.floor(sector/4)*90+Math.floor(rank/3)*2.4)*sign};}
+    const anchor=MISSION.events[[0,2,5,9,13,17,21,23][sector]];
+    return {x:anchor.x+(rank%4-1.5)*2.4,z:anchor.z+5+Math.floor(rank/4)*2.4};
   });
 }
 export const HIGHLAND_ROUTE: Point[] = [

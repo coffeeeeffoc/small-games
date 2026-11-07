@@ -5,9 +5,15 @@ export type LoadoutSlot = 'mod:0'|'mod:1'|'weapon'|'skill';
 export type ProgressionPage = ''|'modes'|'loadout'|'shop'|'supply'|'growth'|'tasks'|'inbox'|'warehouse'|'craft'|'receipts'|'checkin'|'probability';
 type NavigationState = Pick<Quartermaster,'page'|'section'|'index'|'detail'|'selected'|'item'|'amount'|'term'|'shopCategory'|'mode'|'slot'|'loadoutScroll'|'scrolls'|'selectedMail'|'selectedSkill'>;
 type IntentStorage = Pick<Storage,'getItem'|'setItem'|'removeItem'> & {flush?:()=>Promise<void>};
-/** Wheel artwork has boundaries at 12 o'clock. A clockwise sector centre is 30 + i*60 degrees. */
-export const wheelLandingAngle=(index:number,start=0)=>start+360*5+((30+index*60-start%360+360)%360);
-export const effectEnglish:Record<Effect,string>={power:'Power upgrade',rate:'Rapid feed',burst:'Double burst',twin:'Twin trajectory',radius:'Blast radius',cooling:'Cooling system',drone:'Drone swarm',laser:'Laser weapon',tracking:'Tracking',emp:'Electromagnetic pulse'};
+/** Twelve visual sectors; each of the six reward groups lands in an alternating sector. */
+export const wheelLandingAngle=(index:number,start=0)=>start+360*5+((15+index*60-start%360+360)%360);
+export const WHEEL_DURATION=4800;
+/** Integrate speed: 0.6s acceleration, 1.6s cruise, 2.6s gradual braking. */
+export function wheelTravel(progress:number){
+  const t=Math.max(0,Math.min(1,progress))*4.8,area=.3+1.6+2.6/3;
+  return (t<.6?t*t/1.2:t<2.2?.3+t-.6:1.9+2.6/3*(1-Math.pow(1-(t-2.2)/2.6,3)))/area;
+}
+export const effectEnglish:Record<Effect,string>={power:'Power upgrade',rate:'Rapid feed',burst:'Double burst',twin:'Twin trajectory',radius:'Blast radius',cooling:'Cooling system',drone:'Drones',laser:'Laser weapon',tracking:'Tracking',emp:'Electromagnetic pulse'};
 const errors:Record<string,[string,string]>={
   DEV_TOOLS_DISABLED:['服务器未启用开发调试，请连接已启用开发能力的测试服','Developer tools are disabled on this server.'],
   INVALID_DEV_BALANCE:['调整后的金币或经验必须是非负安全整数','Adjusted coins and XP must be non-negative safe integers.'],
@@ -33,7 +39,8 @@ export class Quartermaster {
   craftTerm:'match'|'permanent'='match';
   scrolls:Record<string,number>={}; info=''; navigation:NavigationState[]=[]; externalReturn:''|'modes'|'result'='';
   private leavingBack=false;
-  wheel?:{index:number;startAngle:number;started:number;duration:number;shown:boolean;coins:number;packs:Record<string,number>};
+  wheel?:{index:number;startAngle:number;started:number;duration:number;shown:boolean;coins:number;xp?:number;items?:Record<string,number>;packs:Record<string,number>};
+  wheelPressAt=0;
   slot:LoadoutSlot='mod:0'; loadoutScroll=0; loadoutScrollMax=0;
   loadoutArea={x:0,y:0,w:0,h:0};
   drafts:Partial<Record<'solo'|'duel',Loadout>>={}; private modDrafts:Partial<Record<'solo'|'duel',Array<string|null>>>={}; leaveTo?:ProgressionPage;
@@ -133,7 +140,15 @@ export class Quartermaster {
     const now=Date.now();
     if(this.gift?.started&&!this.gift.illuminated&&now-this.gift.started>(this.gift.duration||1600)*.3){this.gift.illuminated=true;this.revision++;}
     if(this.gift?.started&&(reduced||now-this.gift.started>=(this.gift.duration||1600))){this.gift.started=undefined;this.revision++;}
-    if(this.wheel&&!this.wheel.shown&&this.page==='supply'&&!this.gift&&(reduced||now-this.wheel.started>=this.wheel.duration)){this.wheel.shown=true;this.gift={packs:this.wheel.packs,drops:this.wheel.coins?[{coins:this.wheel.coins}]:[],opened:!Object.keys(this.wheel.packs).length};this.revision++;}
+    if(this.wheel&&!this.wheel.shown&&this.page==='supply'&&!this.gift&&(reduced||now-this.wheel.started>=this.wheel.duration)){
+      const w=this.wheel;w.shown=true;this.gift={packs:{...w.packs},drops:[...(w.coins?[{coins:w.coins}]:[]),...(w.xp?[{xp:w.xp}]:[]),...Object.entries(w.items||{}).flatMap(([item,count])=>Array.from({length:count},()=>({item})))],opened:!Object.keys(w.packs).length};this.revision++;
+    }
+  }
+  spin(){
+    if(this.busy||this.viewing||this.pending||this.wheel&&!this.wheel.shown)return;
+    this.wheelPressAt=Date.now();this.revision++;
+    if(!this.assets?.wheelTickets){this.message=['看视频获得1次抽奖次数','Watch a video to get 1 spin.'];return;}
+    return this.execute({kind:'wheel-spin'});
   }
   async refresh(){
     if(this.busy)return;
@@ -180,14 +195,14 @@ export class Quartermaster {
       const receipt=snapshot.lastReceipt;
       if(command.kind==='ad-start'&&typeof receipt?.attemptId==='string')this.adReady={orderId:command.orderId,attemptId:receipt.attemptId,startedAt:snapshot.videoOrders.find(o=>o.id===command.orderId)?.attempt?.startedAt??snapshot.serverNow};
       if(command.kind==='ad-complete'||command.kind==='ad-cancel')this.adReady=undefined;
-      const reward=receipt?.reward as {packs?:number}|undefined;
+      const reward=receipt?.reward as {packs?:number;coins?:number;xp?:number}|undefined;
       const packs=receipt?.packs as Record<string,number>|undefined;
       const items=receipt?.items as Record<string,number>|undefined;
-      if(items){
+      if(items&&command.kind!=='wheel-spin'){
         const grants=Object.entries(items).map(([id,count])=>`${(id in FRAGMENTS?FRAGMENTS[id as Fragment][0]:this.catalog.find(p=>p.id===id)?.name||id)} ×${count}`).join('、');
         const grantsEn=Object.entries(items).map(([id,count])=>`${(id in FRAGMENTS?FRAGMENTS[id as Fragment][1]:effectEnglish[this.catalog.find(p=>p.id===id)?.effect as Effect]||id)} ×${count}`).join(', ');
         this.message=[`已获得：${grants}（装备可在配装使用，碎片存入仓库）`,`Received: ${grantsEn} (Gear: loadout; fragments: warehouse)`];
-        this.gift={packs:{},drops:Object.entries(items).flatMap(([item,count])=>Array.from({length:count},()=>({item}))),opened:true};
+        this.gift={packs:{},drops:[...(reward?.coins?[{coins:reward.coins}]:[]),...(reward?.xp?[{xp:reward.xp}]:[]),...Object.entries(items).flatMap(([item,count])=>Array.from({length:count},()=>({item})))],opened:true};
       }
       if(packs&&Object.keys(packs).length)this.gift={packs:{...packs},drops:[],opened:false};
       else if(reward?.packs)this.gift={packs:{'pack:general:0':reward.packs},drops:[],opened:false};
@@ -198,7 +213,7 @@ export class Quartermaster {
         this.message=[`已开 ${command.quantity} 个：金币 +${coins}，EXP +${xp}，物资 ${items.length} 件（见仓库）`,`Opened ${command.quantity}: +${coins} coins, +${xp} EXP, ${items.length} gear items in warehouse`];
       }
       if(command.kind==='wheel-spin'){
-        const startAngle=this.wheel?wheelLandingAngle(this.wheel.index,this.wheel.startAngle):0;this.gift=undefined;this.wheel={startAngle,index:Number(receipt?.prizeIndex)||0,started:Date.now(),duration:2800,shown:false,coins:Number(receipt?.coins)||0,packs:packs||{}};
+        const startAngle=this.wheel?wheelLandingAngle(this.wheel.index,this.wheel.startAngle):0;this.gift=undefined;this.wheel={startAngle,index:Number(receipt?.prizeIndex)||0,started:Date.now(),duration:WHEEL_DURATION,shown:false,coins:Number(receipt?.coins)||0,xp:Number(receipt?.xp)||0,items:items||{},packs:packs||{}};
       }
       return snapshot;
     }catch(error){

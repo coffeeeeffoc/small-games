@@ -1,0 +1,220 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0"
+  },
+  "environment": "Desktop Chromium, 1920x1080 WebGL, real isolated PostgreSQL/HTTP, ordinary new guests, real input; no asset or result injection",
+  "name": "continuous",
+  "seconds": 89.881,
+  "canvas": {
+    "width": 1920,
+    "height": 1080,
+    "drawingBufferWidth": 1920,
+    "drawingBufferHeight": 1080,
+    "dpr": 1,
+    "audioTracks": 1
+  },
+  "before": {
+    "phase": "playing",
+    "time": 1.0500000000000012,
+    "fired": 0,
+    "kills": 0,
+    "threats": 28,
+    "viewMode": "enhanced",
+    "selected": 1,
+    "rankStatus": "recording"
+  },
+  "after": {
+    "phase": "success",
+    "time": 88.21666666666295,
+    "fired": 72,
+    "kills": 28,
+    "threats": 0,
+    "viewMode": "enhanced",
+    "selected": 2,
+    "rankStatus": "finished"
+  },
+  "events": [
+    {
+      "seconds": 0.744,
+      "fired": 3,
+      "weapon": 0,
+      "target": 13,
+      "screenshot": true
+    },
+    {
+      "seconds": 3.194,
+      "fired": 6,
+      "weapon": 0,
+      "target": 15
+    },
+    {
+      "seconds": 4.942,
+      "fired": 9,
+      "weapon": 0,
+      "target": 17
+    },
+    {
+      "seconds": 7.19,
+      "fired": 12,
+      "weapon": 0,
+      "target": 19
+    },
+    {
+      "seconds": 9.047,
+      "fired": 15,
+      "weapon": 0,
+      "target": 21
+    },
+    {
+      "seconds": 11.141,
+      "fired": 18,
+      "weapon": 0,
+      "target": 23
+    },
+    {
+      "seconds": 13.681,
+      "fired": 21,
+      "weapon": 0,
+      "target": 25
+    },
+    {
+      "seconds": 16.169,
+      "fired": 24,
+      "weapon": 0,
+      "target": 27
+    },
+    {
+      "seconds": 18.258,
+      "fired": 27,
+      "weapon": 0,
+      "target": 29
+    },
+    {
+      "seconds": 19.808,
+      "fired": 30,
+      "weapon": 0,
+      "target": 31
+    },
+    {
+      "seconds": 21.297,
+      "fired": 32,
+      "weapon": 0,
+      "target": 33
+    },
+    {
+      "seconds": 23.077,
+      "fired": 35,
+      "weapon": 0,
+      "target": 35
+    },
+    {
+      "seconds": 24.908,
+      "fired": 38,
+      "weapon": 0,
+      "target": 37
+    },
+    {
+      "seconds": 27.109,
+      "fired": 41,
+      "weapon": 0,
+      "target": 39
+    },
+    {
+      "seconds": 29.813,
+      "fired": 44,
+      "weapon": 0,
+      "target": 41
+    },
+    {
+      "seconds": 32.483,
+      "fired": 46,
+      "weapon": 0,
+      "target": 43
+    },
+    {
+      "seconds": 34.768,
+      "fired": 48,
+      "weapon": 0,
+      "target": 45
+    },
+    {
+      "seconds": 36.142,
+      "fired": 50,
+      "weapon": 0,
+      "target": 47
+    },
+    {
+      "seconds": 37.661,
+      "fired": 53,
+      "weapon": 0,
+      "target": 49
+    },
+    {
+      "seconds": 39.304,
+      "fired": 56,
+      "weapon": 0,
+      "target": 51
+    },
+    {
+      "seconds": 41.175,
+      "fired": 59,
+      "weapon": 0,
+      "target": 53
+    },
+    {
+      "seconds": 43.462,
+      "fired": 61,
+      "weapon": 0,
+      "target": 55
+    },
+    {
+      "seconds": 45.971,
+      "fired": 64,
+      "weapon": 0,
+      "target": 57
+    },
+    {
+      "seconds": 48.652,
+      "fired": 67,
+      "weapon": 0,
+      "target": 59
+    },
+    {
+      "seconds": 50.952,
+      "fired": 68,
+      "weapon": 2,
+      "target": 61
+    },
+    {
+      "seconds": 57.122,
+      "fired": 69,
+      "weapon": 2,
+      "target": 63
+    },
+    {
+      "seconds": 62.092,
+      "fired": 70,
+      "weapon": 2,
+      "target": 65
+    },
+    {
+      "seconds": 70.171,
+      "fired": 71,
+      "weapon": 2,
+      "target": 67
+    },
+    {
+      "seconds": 77.385,
+      "fired": 72,
+      "weapon": 2,
+      "target": 67
+    }
+  ],
+  "storageAfter": {
+    "legacyRuns": 0,
+    "journals": 0,
+    "receipts": 1
+  }
+}

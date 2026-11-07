@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Simulation, type Shot } from '../assets/scripts/core/Simulation.ts';
 import { MISSIONS } from '../assets/scripts/core/MissionCatalog.ts';
-import { UNITS, WEAPONS, MISSION, garrisonPoints, landPoint } from '../assets/scripts/core/Data.ts';
+import { UNITS, WEAPONS, MISSION, GARRISON, MAP, garrisonPoints, landPoint } from '../assets/scripts/core/Data.ts';
 import { createDuel, viewDuel } from '../assets/scripts/core/Duel.ts';
 
 function scene(height=(x:number,_z:number)=>0){
@@ -10,12 +10,12 @@ function scene(height=(x:number,_z:number)=>0){
 }
 function shot(id=1,y=.42):Shot{return {id,weapon:0,born:0,due:1,origin:{x:0,y,z:0},velocity:{x:180,y:0,z:0},x:180,z:0,targetY:0,side:0};}
 test('garrisons retain armor, stand still and expose symmetric duel formations',()=>{
-  assert.deepEqual(MISSIONS.slice(0,3).map(m=>m.events.filter(e=>e.kind==='infantry').length),[12,18,24]);
-  assert.equal(MISSIONS.at(-1)!.events.filter(e=>e.kind==='infantry').length,48);
+  assert.deepEqual(MISSIONS.slice(0,3).map(m=>m.events.filter(e=>e.kind==='infantry').length),[24,36,48]);
+  assert.equal(MISSIONS.at(-1)!.events.filter(e=>e.kind==='infantry').length,96);
   assert.equal(MISSIONS.at(-1)!.events.filter(e=>e.kind!=='infantry').length,96);
   assert.equal(UNITS.infantry.speed,0);assert.equal(WEAPONS[0].speed,180);assert.equal(WEAPONS[0].damage,8);assert.equal(WEAPONS[0].radius,.5);
   const duel=createDuel(7),view=viewDuel(duel,0).simulation;
-  for(const group of [0,1]){const units=view.units.filter(u=>u.group===group);assert.equal(units.length,32);assert.equal(units.filter(u=>u.kind==='infantry').length,24);}
+  for(const group of [0,1]){const units=view.units.filter(u=>u.group===group);assert.equal(units.length,56);assert.equal(units.filter(u=>u.kind==='infantry').length,48);}
 });
 test('rapid sweeps hit upper torso before the aim point, preserve terrain and nearest-body ordering',()=>{
   for(const mode of ['torso','friendly','hill','two']){
@@ -36,13 +36,19 @@ test('a later round in the same tick passes a body already killed by the first r
 });
 
 
-test('shared garrison deployment preserves every solo and duel coordinate used for scenery clearance',()=>{
- const points=garrisonPoints(48);
- for(const [i,p]of points.entries()){const anchor=MISSION.events[[0,5,13,17][i%4]],rank=Math.floor(i/4);assert.deepEqual(p,{x:anchor.x+(rank%3-1)*2.2,z:anchor.z+4+Math.floor(rank/3)*2.2});}
+test('eight infantry positions stay separated, in bounds and symmetric in both maps',()=>{
+ const points=garrisonPoints(GARRISON.soloMax);
+ assert.equal(new Set(points.map(p=>`${p.x}:${p.z}`)).size,96);
+ for(const [i,p]of points.entries()){
+  assert(Math.abs(p.x)<MAP.halfWidth&&Math.abs(p.z)<MAP.halfDepth);
+  for(const q of points.slice(i+1))assert(Math.hypot(p.x-q.x,p.z-q.z)>2);
+ }
+ const anchors=points.slice(0,8);for(const [i,p]of anchors.entries())for(const q of anchors.slice(i+1))assert(Math.hypot(p.x-q.x,p.z-q.z)>24);
  for(const mission of MISSIONS){const events=mission.events.filter(e=>e.kind==='infantry');assert.deepEqual(events.map(({x,z})=>({x,z})),points.slice(0,events.length));}
  for(const map of ['valley','highland'] as const){
   const mission=MISSIONS.find(m=>m.map===map)!,sim=new Simulation(mission.id);sim.start();assert.deepEqual(sim.units.filter(u=>u.kind==='infantry').map(({x,z})=>({x,z})),points.slice(0,mission.events.filter(e=>e.kind==='infantry').length).map(p=>landPoint(p,map)));
   const duel=viewDuel(createDuel(map==='valley'?2:1),0).simulation;
-  for(const side of [0,1]){const expected=Array.from({length:24},(_,i)=>{const sign=side===0?-1:1,sector=i%4,rank=Math.floor(i/4);return {x:(48+(sector%2)*44+(rank%3-1)*2.2)*sign,z:(-45+Math.floor(sector/2)*90+Math.floor(rank/3)*2.2)*sign};});assert.deepEqual(garrisonPoints(24,side),expected);assert.deepEqual(duel.units.filter(u=>u.kind==='infantry'&&u.group===side).map(({x,z})=>({x,z})),expected);}
+  for(const side of [0,1])assert.deepEqual(duel.units.filter(u=>u.kind==='infantry'&&u.group===side).map(({x,z})=>({x,z})),garrisonPoints(48,side));
  }
+ assert.deepEqual(garrisonPoints(48,0).map(p=>({x:-p.x,z:-p.z})),garrisonPoints(48,1));
 });

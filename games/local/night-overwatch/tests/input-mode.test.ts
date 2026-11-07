@@ -621,7 +621,7 @@ test('changing missions requires a briefing or result; retry preserves the chose
   g.retry();
   assert.equal(g.sim.mission.id, 'ambush-02');
   assert.equal(g.sim.phase, 'playing');
-  assert.equal(g.sim.spawned.size, 24);
+  assert.equal(g.sim.spawned.size, 42);
   assert.equal(g.sim.held.size, 0);
   assert.equal(g.sim.time, 0);
 });
@@ -717,7 +717,7 @@ test('returning home aborts a live mission, clears input and starts the next map
   g.action('mission:ambush-02');
   assert.equal(g.sim.mission.map, 'highland'); assert.equal(g.world.map, 'highland');
   assert.equal(g.sim.phase, 'briefing');
-  g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 24);
+  g.action('start'); assert.equal(g.sim.phase, 'playing'); assert.equal(g.sim.spawned.size, 42);
   g.action('home'); g.action('exitConfirm'); assert.equal(g.sim.phase, 'briefing'); assert.equal(g.sim.fired, 0);
 });
 
@@ -890,6 +890,17 @@ test('settings controls stay paused, subpages return to settings, and system pau
   g.show(); assert(!g.sim.paused); g.platform.dispose();
 });
 
+test('wheel audio resumes at elapsed time after focus, stops on skip and respects mute',()=>{
+  const p=mission().platform;p.activate();let focused=true;Object.defineProperty(p,'focused',{get:()=>focused});
+  const wheel={index:1,startAngle:0,started:Date.now()-500,duration:4800,shown:false,coins:0,packs:{}};
+  p.wheelAudio(wheel,true);const spin=p.voices.get('wheel-spin');assert(spin.playing);assert(spin.currentTime>=.5);
+  focused=false;p.wheelAudio(wheel,true);assert(!spin.playing);
+  focused=true;p.wheelAudio(wheel,true);assert(spin.playing);assert(spin.currentTime>=.5);
+  wheel.shown=true;p.wheelAudio(wheel,true);assert(!spin.playing);const win=p.voices.get('wheel-win');assert(win.playing);
+  win.stop();p.wheelAudio(wheel,true);assert(!win.playing,'reveal audio plays only once');
+  p.muted=true;wheel.started++;wheel.shown=false;p.wheelAudio(wheel,true);assert(!spin.playing);p.dispose();
+});
+
 test('muting through settings stops every voice, persists the choice and blocks new sound', () => {
   const g = mission(), p = g.platform, saved = new Map<string, string>(), previous = cc.sys.localStorage;
   cc.sys.localStorage = { getItem: key => saved.get(key) ?? null, setItem: (key, value) => saved.set(key, value) } as any;
@@ -1035,6 +1046,6 @@ test('campaign best-time keys preserve old records without treating them as curr
   const first=new Platform(new Node(),()=>{},()=>{},storage);
   assert.deepEqual(first.times,{});first.times={'corridor-01':{bestMs:26000,attempts:1}};first.saveTimes();first.dispose();
   assert.equal(values.get('night-overwatch-times-v1'),old);
-  assert(values.has('night-overwatch-times:night-campaign-v3'));
+  assert(values.has('night-overwatch-times:night-campaign-v4'));
   const restored=new Platform(new Node(),()=>{},()=>{},storage);assert.deepEqual(restored.times,{'corridor-01':{bestMs:26000,attempts:1}});restored.dispose();
 });
