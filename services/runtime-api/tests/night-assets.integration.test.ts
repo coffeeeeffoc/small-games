@@ -50,57 +50,58 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       sql`update runtime.competition_matches set data=data || ${JSON.stringify(patch)}::jsonb where id=${`night-assets:${id}`}`,
     );
   };
-  it('each reward entry grants all three gear categories for both terms and retries only once', async () => {
-    for (const category of ['mod', 'weapon', 'skill'] as const)
-      for (const term of ['match', '24h'] as const) {
-        const selected: ProgressionRules = {
-          ...rules,
-          catalog: rules.catalog
-            .filter((p) => p.category === category)
-            .map((p) => ({ ...p, rarity: 3, unlockLevel: 1 })),
-          economy: {
-            ...rules.economy!,
-            termOdds: { match: term === 'match' ? 100 : 0, '24h': term === '24h' ? 100 : 0 },
-          },
-          wheelPrizes: [
-            {
-              weight: 100,
-              coins: 60,
-              xp: 40,
-              tier: 3,
-              category,
-              term: 'random',
-              fragments: { 'fragment:weapon': 2 },
-            },
-          ],
-        };
-        for (const kind of ['checkin', 'open', 'wheel-spin'] as const) {
-          const id = await owner();
-          await seed(id, { wheelTickets: 1, inventory: { 'pack:general:3': 1 } });
-          const cmd: AssetCommand =
-            kind === 'open'
-              ? { kind, requestId: randomUUID(), item: 'pack:general:3', quantity: 1 }
-              : { kind, requestId: randomUUID() };
-          const run = () => database.db.transaction((tx) => nightAssets(tx, id, at, selected, cmd));
-          const [a, b] = await Promise.all([run(), run()]);
-          expect(a.lastReceipt).toEqual(b.lastReceipt);
-          const gear = selected.catalog.find((p) => p.term === term && a.inventory[p.id] === 1);
-          expect(gear, `${kind} ${category} ${term}`).toBeDefined();
-          expect(a.active[gear!.effect] ?? 0).toBe(0);
-          if (kind === 'wheel-spin') {
-            expect(a.wheelTickets).toBe(0);
-            expect(a.coins).toBe(60);
-            expect(a.xp).toBe(40);
-            expect(a.inventory['pack:general:3']).toBe(2);
-            expect(a.inventory['fragment:weapon']).toBe(2);
-            await expect(
-              database.db.transaction((tx) =>
-                nightAssets(tx, id, at, selected, { kind, requestId: randomUUID() }),
-              ),
-            ).rejects.toMatchObject({ code: 'NO_WHEEL_TICKETS' });
-          }
-        }
-      }
+  it.each(
+    (['mod', 'weapon', 'skill'] as const).flatMap((category) =>
+      (['match', '24h'] as const).flatMap((term) =>
+        (['checkin', 'open', 'wheel-spin'] as const).map((kind) => ({ category, term, kind })),
+      ),
+    ),
+  )('$kind grants $category for $term and retries only once', async ({ category, term, kind }) => {
+    const selected: ProgressionRules = {
+      ...rules,
+      catalog: rules.catalog
+        .filter((p) => p.category === category)
+        .map((p) => ({ ...p, rarity: 3, unlockLevel: 1 })),
+      economy: {
+        ...rules.economy!,
+        termOdds: { match: term === 'match' ? 100 : 0, '24h': term === '24h' ? 100 : 0 },
+      },
+      wheelPrizes: [
+        {
+          weight: 100,
+          coins: 60,
+          xp: 40,
+          tier: 3,
+          category,
+          term: 'random',
+          fragments: { 'fragment:weapon': 2 },
+        },
+      ],
+    };
+    const id = await owner();
+    await seed(id, { wheelTickets: 1, inventory: { 'pack:general:3': 1 } });
+    const cmd: AssetCommand =
+      kind === 'open'
+        ? { kind, requestId: randomUUID(), item: 'pack:general:3', quantity: 1 }
+        : { kind, requestId: randomUUID() };
+    const run = () => database.db.transaction((tx) => nightAssets(tx, id, at, selected, cmd));
+    const [a, b] = await Promise.all([run(), run()]);
+    expect(a.lastReceipt).toEqual(b.lastReceipt);
+    const gear = selected.catalog.find((p) => p.term === term && a.inventory[p.id] === 1);
+    expect(gear, `${kind} ${category} ${term}`).toBeDefined();
+    expect(a.active[gear!.effect] ?? 0).toBe(0);
+    if (kind === 'wheel-spin') {
+      expect(a.wheelTickets).toBe(0);
+      expect(a.coins).toBe(60);
+      expect(a.xp).toBe(40);
+      expect(a.inventory['pack:general:3']).toBe(2);
+      expect(a.inventory['fragment:weapon']).toBe(2);
+      await expect(
+        database.db.transaction((tx) =>
+          nightAssets(tx, id, at, selected, { kind, requestId: randomUUID() }),
+        ),
+      ).rejects.toMatchObject({ code: 'NO_WHEEL_TICKETS' });
+    }
   });
   it('daily equipment receipts are idempotent, usable at level one and convert fully permanent collections', async () => {
     const id = await owner(),

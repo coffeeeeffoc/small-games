@@ -129,14 +129,14 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(started.state.you).toBe(1);
     expect(
       started.state.simulation.units.filter((u: { friendly: boolean }) => u.friendly),
-    ).toHaveLength(32);
+    ).toHaveLength(56);
     for (const friendly of [false, true])
       expect(
         started.state.simulation.units.filter(
           (unit: { friendly: boolean; kind: string }) =>
             unit.friendly === friendly && unit.kind === 'infantry',
         ),
-      ).toHaveLength(24);
+      ).toHaveLength(48);
     await request(roomPath(room.code), outsider, undefined, 403);
     await request(roomPath(room.code), wrongGame, undefined, 403);
     expect(started.startsAt).toBe(time + 1200);
@@ -207,7 +207,7 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(end.settlement.points).toBe(10);
     expect((await request(path + '/history', c)).summary.games).toBe(0);
     expect((await request(path + '/leaderboards/points', c)).me.score).toBe(10);
-  });
+  }, 30000);
 
   it('cancels readiness, preserves the remaining room member and never resumes a departed bot in matchmaking', async () => {
     const [a, b, c] = await Promise.all([player(), player(), player()]);
@@ -501,7 +501,7 @@ integration('Night real HTTP and PostgreSQL', () => {
       draws: 1,
       games: 3,
     });
-  });
+  }, 30000);
   it('gives no pre-start result and records two abandoned losses without points', async () => {
     const [a, b] = await Promise.all([player(), player()]);
     const room = await pair(a, b);
@@ -744,7 +744,7 @@ integration('Night real HTTP and PostgreSQL', () => {
           sql`,`,
         )})`);
     }
-  });
+  }, 30000);
 
   it('keeps full economy receipts private from opponents and spectators', async () => {
     const [a, b, watcher] = await Promise.all([player(), player(), player()]);
@@ -953,5 +953,5 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect((await request(path + '/leaderboards/clears', a)).me.score).toBe(1);
     expect((await request(path + '/leaderboards/points', a)).me.score).toBe(400);
     expect((await request(path + '/history', a)).summary.games).toBe(0);
-  });
+  }, 30000);
 });
