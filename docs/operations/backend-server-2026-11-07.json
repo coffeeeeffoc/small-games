@@ -1,0 +1,202 @@
+{
+  "recordedAt": "2026-11-07T15:45:49.839Z",
+  "timeZone": "Asia/Shanghai",
+  "requestedStartInclusive": "53abf6686dc7d794c26a2a83091ee19714800d86",
+  "baseSHA": "6dfea874ca08978e65dce6edec43b0f5b581e95d",
+  "requestedLatestSHA": "7a009c4a660cb64953b71029953f9415f6934968",
+  "deployedSHA": "8378e757fcd14792e846a6a22ac8ca510dee4b22",
+  "migration": {
+    "ok": true,
+    "sourceSHA": "7a009c4a660cb64953b71029953f9415f6934968",
+    "release": "presence-7a009c4a660c-1794065479640",
+    "sqlSHA256": "d7aea546ed58d2a6ca0e9ef31dd70d7438ab4dc16038821ee72b3a8e77bcc477",
+    "backupSHA256": "ad3e06223ad0f1aa643c4e148b8e0177ecdfc71b50fff71699ab49dc58ceb4db",
+    "isolatedRestoreVerified": true,
+    "migrationIdempotent": true,
+    "restoredExistingRelationsPreserved": 33,
+    "newTables": ["night_presence"],
+    "servicesStopped": false,
+    "databaseReplaced": false,
+    "productionTableSchemaVerified": true
+  },
+  "runtime": {
+    "ok": true,
+    "mode": "execute",
+    "sourceSHA": "8378e757fcd14792e846a6a22ac8ca510dee4b22",
+    "release": "8378e757fcd1-1794065798263-d5e6af",
+    "services": ["runtime"],
+    "recreateCompanions": ["kart"],
+    "healthVerified": true,
+    "databaseReplaced": false,
+    "schemaChanged": false,
+    "backupCreated": true,
+    "backupSHA256": "4d6559b1c18f564cdb8dbcdd406021b4261b52cdfe04402e15c1db4aef45b758",
+    "isolatedRestoreVerified": false,
+    "activeImages": {
+      "runtime": "sha256:7e833ce54a4c40279f17718d94e24a03e539e31527142273503a3230388d9b32",
+      "kart": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8"
+    },
+    "imageCapabilities": {
+      "runtime": {
+        "image": "sha256:7e833ce54a4c40279f17718d94e24a03e539e31527142273503a3230388d9b32",
+        "control": 1,
+        "authenticatedGameScope": 1,
+        "controlCatalog": 4
+      },
+      "kart": {
+        "image": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+        "control": 1,
+        "identityRecheck": 1,
+        "authenticatedGameScope": 1
+      }
+    }
+  },
+  "public": {
+    "ok": true,
+    "checkedAt": "2026-11-07T15:44:30.000Z",
+    "sourceSHA": "8378e757fcd14792e846a6a22ac8ca510dee4b22",
+    "checks": [
+      "public-live-health",
+      "/small-games/v1:metadata,presence,401,422,private-paths,origin-403,CORS",
+      "/api/competition/v1:metadata,presence,401,422,private-paths,origin-403,CORS",
+      "same-player-deduplicated-and-second-player-counted",
+      "real-checkin-reward-and-cross-prefix-idempotency",
+      "old-version-rejected-new-version-started-and-cancelled"
+    ],
+    "postedChatMessages": false,
+    "realAdsTested": false,
+    "physicalDeviceTested": false
+  },
+  "server": {
+    "ok": true,
+    "containers": {
+      "runtime": {
+        "id": "6c27786de0fd6674f0bad510ab713bd272c38a31210d09e6a871b9b348f4b84e",
+        "image": "sha256:7e833ce54a4c40279f17718d94e24a03e539e31527142273503a3230388d9b32",
+        "running": true,
+        "ports": {},
+        "mounts": []
+      },
+      "kart": {
+        "id": "c4b08605ec9164c707977058afb33b12adad557359c2cd96ab85c4ff8990ffde",
+        "image": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+        "running": true,
+        "ports": {},
+        "mounts": [
+          {
+            "name": "small-games_kart-outbox",
+            "destination": "/app/outbox"
+          }
+        ]
+      },
+      "management": {
+        "id": "4f4f416385909a8e46593ed785dbf9684ec5682adcec542d81ba9fe0a9799c1b",
+        "image": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+        "running": true,
+        "ports": {},
+        "mounts": []
+      },
+      "postgres": {
+        "id": "fb6f941c30af4788a29ad48b6c3a6a5e0eb831927c8df72c602511c8322cd229",
+        "image": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+        "running": true,
+        "ports": {},
+        "mounts": [
+          {
+            "name": "small-games_postgres-data",
+            "destination": "/var/lib/postgresql/data"
+          }
+        ]
+      },
+      "nginx": {
+        "id": "4c16117b1753980acd545139f042f855f441bcc22620e46cdad6a3c53284b1ef",
+        "image": "sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5",
+        "running": true,
+        "ports": {
+          "80/tcp": [
+            {
+              "HostIp": "127.0.0.1",
+              "HostPort": "8080"
+            }
+          ]
+        },
+        "mounts": [
+          {
+            "name": null,
+            "destination": "/srv/site"
+          },
+          {
+            "name": null,
+            "destination": "/etc/nginx/conf.d"
+          },
+          {
+            "name": null,
+            "destination": "/etc/nginx/legacy"
+          }
+        ]
+      }
+    },
+    "companyReleasePreserved": "/opt/small-games/company/releases/20261018174117-6cc69521c7ad-7deb08",
+    "caddyRelease": "20261107153918-8378e757fcd1-d4d9eb",
+    "timers": {
+      "small-games-ranked-retention.timer": "active",
+      "company-caddy-backup.timer": "active"
+    },
+    "rollbackImagesAvailable": true,
+    "runtimeBackupPresent": true,
+    "ingressStatus": "active",
+    "ingressAcceptance": {
+      "adminUiAndAssets": "passed",
+      "gamePrefixes": ["/small-games/v1", "/api/competition/v1"],
+      "management": "anonymous-session-only",
+      "realGithubLoginVerified": false
+    },
+    "ingressBackup": {
+      "archive": "caddy-20261107T153925Z-f2b38f.tar.gz",
+      "sha256": "b48a39b5430ad0d1352667f825aca45d1fc2e42a549a6751359e883111861bde"
+    },
+    "internalHealth": {
+      "runtime": {
+        "ok": true,
+        "status": "ok"
+      },
+      "kart": {
+        "ok": true,
+        "status": null
+      },
+      "management": {
+        "ok": true,
+        "status": "ok"
+      }
+    },
+    "spoofedHeaderBurst": {
+      "requests": 500,
+      "seconds": 1.89,
+      "statuses": {
+        "401": 225,
+        "429": 275
+      },
+      "bothPrefixes": true
+    }
+  },
+  "tests": {
+    "runtime": 80,
+    "nightRules": 225,
+    "deploymentContracts": 119,
+    "fullCandidateCheck": false
+  },
+  "knownLimits": {
+    "oldClientDeploymentAuthorized": true,
+    "newClientReviewReportedByUser": true,
+    "channelReleaseVerified": false,
+    "highConcurrency": {
+      "parallelRequests": 48,
+      "controlQueue503Observed": true,
+      "reason": "Existing control database concurrency boundary: one active and five queued transactions",
+      "controlSourceChanged": false
+    },
+    "realDevices": false,
+    "realAds": false,
+    "ciPages": "in_progress_at_recording"
+  }
+}

@@ -1,0 +1,500 @@
+
+ RUN  v5.0.0 F:/playground/playground-ai/backend-server-20261107/services/runtime-api
+
+
+ Test Files  6 passed (6)
+      Tests  80 passed (80)
+   Start at  23:33:29
+   Duration  97.42s (tests 95%, import 4%, transform 1%)
+
+
+✔ larger battlefield disperses mission actors, preserves journey time and uses vehicle-sized hit hulls (1.1776ms)
+✔ defenders survive the observation window and the old duration does not end an uncleared mission (6983.9231ms)
+ℹ {"at180":{"allyHp":[491.99999999999983,358.4,335.59999999999985,350.39999999999986,263.99999999999955,251.99999999999937,360,339.1999999999997,360,273.99999999999943,360,292.3999999999995],"threats":67},"end":569.9999999998103,"allyHp":[482.39999999999975,351.99999999999994,325.9999999999999,347.1999999999998,60.39999999999913,10.799999999999653,360,299.19999999999914,360,26.399999999999615,360,49.199999999999584],"threats":63,"groundKills":7}
+✔ late air support with inaccurate aim and deliberate misses can still finish (3000.1125ms)
+ℹ {"phase":"success","time":404.2833333332943,"attempts":405,"deliberateMisses":102,"kills":69,"groundKills":1,"ammo":[null,55,34,12,0,0],"allies":[485.9999999999998,355.59999999999997,337.19999999999993,353.5999999999999,167.59999999999917,316.7999999999997,360,342.39999999999975,360,327.9999999999998,360,340.79999999999984],"remaining":[]}
+✔ defender armor, return-fire ownership and pause obey the same simulation clock (9.2386ms)
+✔ duel has equal forces and ammunition, reproducible maps and player-relative views (79.6009ms)
+✔ server commands reject untrusted scores, ammo, targets and seats; firing leases expire (55.045ms)
+✔ eliminating the opposing ground team decides victory; elapsed time does not decide victory (3.9829ms)
+✔ rejected command batches and views cannot mutate the authoritative state (3.6381ms)
+✔ outside-map aiming is valid input but cannot shoot, and fire sources release independently (3.8744ms)
+✔ ground attack colors and sounds use the observing player side (182.3111ms)
+✔ weak bots survive one minute and finish fixed seeds within 180–600 seconds (23524.2457ms)
+✔ no time limit and either pilot can be taken over without changing the initial mode (7220.8487ms)
+✔ garrisons retain armor, stand still and expose symmetric duel formations (6.6042ms)
+✔ rapid sweeps hit upper torso before the aim point, preserve terrain and nearest-body ordering (2.9704ms)
+✔ a later round in the same tick passes a body already killed by the first round (0.8924ms)
+✔ eight infantry positions stay separated, in bounds and symmetric in both maps (15.4471ms)
+✔ introductory missions use fewer stationary targets in daylight before dusk and night (485.7725ms)
+✔ campaign grows monotonically with bounded waves and active contacts (9.8535ms)
+✔ 晨光护送 can be completed with basic weapons without resupply and every friendly group surviving (182.4955ms)
+ℹ {"mission":"corridor-01","phase":"success","time":17.433333333333625,"kills":28,"fired":56,"friendlyDamage":0,"ammo":[null,112,45,12,0,0]}
+✔ 高地警戒 can be completed with basic weapons without resupply and every friendly group surviving (321.0222ms)
+ℹ {"mission":"ambush-02","phase":"success","time":23.983333333333253,"kills":42,"fired":84,"friendlyDamage":0,"ammo":[null,108,45,12,0,0]}
+✔ 谷地支援 can be completed with basic weapons without resupply and every friendly group surviving (566.8773ms)
+ℹ {"mission":"patrol-03","phase":"success","time":30.483333333332883,"kills":56,"fired":112,"friendlyDamage":0,"ammo":[null,104,45,12,0,0]}
+✔ 谷地晨哨 4 can be completed with basic weapons without resupply and every friendly group surviving (852.0709ms)
+ℹ {"mission":"operation-004","phase":"success","time":40.48333333333232,"kills":60,"fired":136,"friendlyDamage":0,"ammo":[null,114,43,12,0,0]}
+✔ 谷地晨哨 5 can be completed with basic weapons without resupply and every friendly group surviving (1047.1935ms)
+ℹ {"mission":"operation-005","phase":"success","time":45.016666666665394,"kills":64,"fired":148,"friendlyDamage":0,"ammo":[null,112,41,12,0,0]}
+✔ 谷地晨哨 6 can be completed with basic weapons without resupply and every friendly group surviving (969.2489ms)
+ℹ {"mission":"operation-006","phase":"success","time":54.11666666666488,"kills":68,"fired":170,"friendlyDamage":0,"ammo":[null,120,39,12,0,0]}
+✔ 谷地晨哨 7 can be completed with basic weapons without resupply and every friendly group surviving (954.5431ms)
+ℹ {"mission":"operation-007","phase":"success","time":54.26666666666487,"kills":70,"fired":166,"friendlyDamage":0,"ammo":[null,110,39,12,0,0]}
+✔ 谷地晨哨 8 can be completed with basic weapons without resupply and every friendly group surviving (876.9276ms)
+ℹ {"mission":"operation-008","phase":"success","time":54.199999999998205,"kills":71,"fired":168,"friendlyDamage":0,"ammo":[null,108,39,12,0,0]}
+✔ 谷地晨哨 9 can be completed with basic weapons without resupply and every friendly group surviving (1283.4543ms)
+ℹ {"mission":"operation-009","phase":"success","time":57.76666666666467,"kills":73,"fired":186,"friendlyDamage":0,"ammo":[null,120,39,12,0,0]}
+✔ 谷地晨哨 10 can be completed with basic weapons without resupply and every friendly group surviving (1013.785ms)
+ℹ {"mission":"operation-010","phase":"success","time":54.14999999999821,"kills":74,"fired":176,"friendlyDamage":0,"ammo":[null,106,39,12,0,0]}
+✔ 谷地晨哨 11 can be completed with basic weapons without resupply and every friendly group surviving (1139.8215ms)
+ℹ {"mission":"operation-011","phase":"success","time":54.283333333331534,"kills":75,"fired":180,"friendlyDamage":0,"ammo":[null,106,39,12,0,0]}
+✔ 谷地晨哨 12 can be completed with basic weapons without resupply and every friendly group surviving (1361.6029ms)
+ℹ {"mission":"operation-012","phase":"success","time":62.78333333333105,"kills":77,"fired":200,"friendlyDamage":0,"ammo":[null,120,39,12,0,0]}
+✔ 高地警戒 1 can be completed with basic weapons without resupply and every friendly group surviving (1080.2747ms)
+ℹ {"mission":"operation-013","phase":"success","time":56.499999999998074,"kills":79,"fired":192,"friendlyDamage":0,"ammo":[null,104,39,12,0,0]}
+✔ 高地警戒 2 can be completed with basic weapons without resupply and every friendly group surviving (1265.6906ms)
+ℹ {"mission":"operation-014","phase":"success","time":57.083333333331375,"kills":81,"fired":198,"friendlyDamage":0,"ammo":[null,104,39,12,0,0]}
+✔ 高地警戒 3 can be completed with basic weapons without resupply and every friendly group surviving (1619.2467ms)
+ℹ {"mission":"operation-015","phase":"success","time":82.79999999999659,"kills":81,"fired":261,"friendlyDamage":0,"ammo":[null,120,39,12,0,0]}
+✔ 高地警戒 4 can be completed with basic weapons without resupply and every friendly group surviving (1313.8514ms)
+ℹ {"mission":"operation-016","phase":"success","time":57.28333333333136,"kills":82,"fired":200,"friendlyDamage":0,"ammo":[null,102,39,12,0,0]}
+✔ 高地警戒 5 can be completed with basic weapons without resupply and every friendly group surviving (1247.3332ms)
+ℹ {"mission":"operation-017","phase":"success","time":61.18333333333114,"kills":84,"fired":206,"friendlyDamage":0,"ammo":[null,102,39,12,0,0]}
+✔ 高地警戒 6 can be completed with basic weapons without resupply and every friendly group surviving (1819.9761ms)
+ℹ {"mission":"operation-018","phase":"success","time":72.19999999999719,"kills":85,"fired":226,"friendlyDamage":0,"ammo":[null,120,37,12,0,0]}
+✔ 高地警戒 7 can be completed with basic weapons without resupply and every friendly group surviving (1319.6188ms)
+ℹ {"mission":"operation-019","phase":"success","time":61.31666666666447,"kills":86,"fired":210,"friendlyDamage":0,"ammo":[null,102,37,12,0,0]}
+✔ 高地警戒 8 can be completed with basic weapons without resupply and every friendly group surviving (1454.9703ms)
+ℹ {"mission":"operation-020","phase":"success","time":61.91666666666443,"kills":87,"fired":214,"friendlyDamage":0,"ammo":[null,102,37,12,0,0]}
+✔ 高地警戒 9 can be completed with basic weapons without resupply and every friendly group surviving (1990.2102ms)
+ℹ {"mission":"operation-021","phase":"success","time":83.34999999999656,"kills":89,"fired":266,"friendlyDamage":0,"ammo":[null,120,37,12,0,0]}
+✔ 高地警戒 10 can be completed with basic weapons without resupply and every friendly group surviving (1542.7936ms)
+ℹ {"mission":"operation-022","phase":"success","time":62.71666666666439,"kills":90,"fired":222,"friendlyDamage":0,"ammo":[null,100,37,12,0,0]}
+✔ 高地警戒 11 can be completed with basic weapons without resupply and every friendly group surviving (1416.3258ms)
+ℹ {"mission":"operation-023","phase":"success","time":62.649999999997725,"kills":90,"fired":221,"friendlyDamage":0,"ammo":[null,100,37,12,0,0]}
+✔ 高地警戒 12 can be completed with basic weapons without resupply and every friendly group surviving (2333.6689ms)
+ℹ {"mission":"operation-024","phase":"success","time":78.19999999999685,"kills":92,"fired":248,"friendlyDamage":0,"ammo":[null,120,37,12,0,0]}
+✔ 河岸巡航 1 can be completed with basic weapons without resupply and every friendly group surviving (1486.6301ms)
+ℹ {"mission":"operation-025","phase":"success","time":84.81666666666314,"kills":94,"fired":234,"friendlyDamage":0,"ammo":[null,98,37,12,0,0]}
+✔ 河岸巡航 2 can be completed with basic weapons without resupply and every friendly group surviving (1324.9623ms)
+ℹ {"mission":"operation-026","phase":"success","time":84.81666666666314,"kills":96,"fired":240,"friendlyDamage":0,"ammo":[null,98,37,12,0,0]}
+✔ 河岸巡航 3 can be completed with basic weapons without resupply and every friendly group surviving (1767.0525ms)
+ℹ {"mission":"operation-027","phase":"success","time":89.48333333332954,"kills":96,"fired":262,"friendlyDamage":0,"ammo":[null,120,37,12,0,0]}
+✔ 河岸巡航 4 can be completed with basic weapons without resupply and every friendly group surviving (1346.7419ms)
+ℹ {"mission":"operation-028","phase":"success","time":87.41666666666299,"kills":97,"fired":241,"friendlyDamage":0,"ammo":[null,98,35,12,0,0]}
+✔ 河岸巡航 5 can be completed with basic weapons without resupply and every friendly group surviving (1576.213ms)
+ℹ {"mission":"operation-029","phase":"success","time":87.64999999999631,"kills":99,"fired":248,"friendlyDamage":0,"ammo":[null,98,35,12,0,0]}
+✔ 河岸巡航 6 can be completed with basic weapons without resupply and every friendly group surviving (1839.1408ms)
+ℹ {"mission":"operation-030","phase":"success","time":87.44999999999632,"kills":99,"fired":271,"friendlyDamage":0,"ammo":[null,120,35,12,0,0]}
+✔ 河岸巡航 7 can be completed with basic weapons without resupply and every friendly group surviving (1614.7191ms)
+ℹ {"mission":"operation-031","phase":"success","time":87.59999999999631,"kills":101,"fired":252,"friendlyDamage":0,"ammo":[null,96,35,12,0,0]}
+✔ 河岸巡航 8 can be completed with basic weapons without resupply and every friendly group surviving (1573.1214ms)
+ℹ {"mission":"operation-032","phase":"success","time":87.44999999999632,"kills":102,"fired":256,"friendlyDamage":0,"ammo":[null,96,35,12,0,0]}
+✔ 河岸巡航 9 can be completed with basic weapons without resupply and every friendly group surviving (2287.7668ms)
+ℹ {"mission":"operation-033","phase":"success","time":92.16666666666272,"kills":104,"fired":285,"friendlyDamage":0,"ammo":[null,120,33,12,0,0]}
+✔ 河岸巡航 10 can be completed with basic weapons without resupply and every friendly group surviving (1570.1447ms)
+ℹ {"mission":"operation-034","phase":"success","time":91.9333333333294,"kills":104,"fired":259,"friendlyDamage":0,"ammo":[null,96,33,12,0,0]}
+✔ 河岸巡航 11 can be completed with basic weapons without resupply and every friendly group surviving (1765.3143ms)
+ℹ {"mission":"operation-035","phase":"success","time":92.18333333332939,"kills":105,"fired":264,"friendlyDamage":0,"ammo":[null,96,33,12,0,0]}
+✔ 河岸巡航 12 can be completed with basic weapons without resupply and every friendly group surviving (2361.4028ms)
+ℹ {"mission":"operation-036","phase":"success","time":98.89999999999567,"kills":107,"fired":313,"friendlyDamage":0,"ammo":[null,120,33,12,0,0]}
+✔ 山路截击 1 can be completed with basic weapons without resupply and every friendly group surviving (1668.4646ms)
+ℹ {"mission":"operation-037","phase":"success","time":91.91666666666273,"kills":107,"fired":268,"friendlyDamage":0,"ammo":[null,94,33,12,0,0]}
+✔ 山路截击 2 can be completed with basic weapons without resupply and every friendly group surviving (1826.1855ms)
+ℹ {"mission":"operation-038","phase":"success","time":87.63333333332965,"kills":109,"fired":274,"friendlyDamage":0,"ammo":[null,94,33,12,0,0]}
+✔ 山路截击 3 can be completed with basic weapons without resupply and every friendly group surviving (2567.072ms)
+ℹ {"mission":"operation-039","phase":"success","time":105.4499999999953,"kills":110,"fired":338,"friendlyDamage":0,"ammo":[null,120,33,12,0,0]}
+✔ 山路截击 4 can be completed with basic weapons without resupply and every friendly group surviving (1858.8676ms)
+ℹ {"mission":"operation-040","phase":"success","time":87.61666666666298,"kills":110,"fired":276,"friendlyDamage":0,"ammo":[null,92,33,12,0,0]}
+✔ 山路截击 5 can be completed with basic weapons without resupply and every friendly group surviving (1865.9491ms)
+ℹ {"mission":"operation-041","phase":"success","time":87.44999999999632,"kills":112,"fired":282,"friendlyDamage":0,"ammo":[null,92,33,12,0,0]}
+✔ 山路截击 6 can be completed with basic weapons without resupply and every friendly group surviving (2683.71ms)
+ℹ {"mission":"operation-042","phase":"success","time":99.76666666666229,"kills":113,"fired":314,"friendlyDamage":0,"ammo":[null,120,33,12,0,0]}
+✔ 山路截击 7 can be completed with basic weapons without resupply and every friendly group surviving (1886.7057ms)
+ℹ {"mission":"operation-043","phase":"success","time":87.43333333332966,"kills":115,"fired":290,"friendlyDamage":0,"ammo":[null,90,33,12,0,0]}
+✔ 山路截击 8 can be completed with basic weapons without resupply and every friendly group surviving (2033.084ms)
+ℹ {"mission":"operation-044","phase":"success","time":87.64999999999631,"kills":115,"fired":290,"friendlyDamage":0,"ammo":[null,90,33,12,0,0]}
+✔ 山路截击 9 can be completed with basic weapons without resupply and every friendly group surviving (3098.1388ms)
+ℹ {"mission":"operation-045","phase":"success","time":107.26666666666186,"kills":116,"fired":346,"friendlyDamage":0,"ammo":[null,120,33,12,0,0]}
+✔ 山路截击 10 can be completed with basic weapons without resupply and every friendly group surviving (2190.3434ms)
+ℹ {"mission":"operation-046","phase":"success","time":87.63333333332965,"kills":118,"fired":300,"friendlyDamage":0,"ammo":[null,90,33,12,0,0]}
+✔ 山路截击 11 can be completed with basic weapons without resupply and every friendly group surviving (2013.4401ms)
+ℹ {"mission":"operation-047","phase":"success","time":87.46666666666299,"kills":118,"fired":300,"friendlyDamage":0,"ammo":[null,90,33,12,0,0]}
+✔ 山路截击 12 can be completed with basic weapons without resupply and every friendly group surviving (3151.9787ms)
+ℹ {"mission":"operation-048","phase":"success","time":105.26666666666198,"kills":120,"fired":336,"friendlyDamage":0,"ammo":[null,120,33,12,0,0]}
+✔ 车队守护 1 can be completed with basic weapons without resupply and every friendly group surviving (2107.4595ms)
+ℹ {"mission":"operation-049","phase":"success","time":123.91666666666092,"kills":122,"fired":310,"friendlyDamage":0,"ammo":[null,88,31,12,0,0]}
+✔ 车队守护 2 can be completed with basic weapons without resupply and every friendly group surviving (2017.6592ms)
+ℹ {"mission":"operation-050","phase":"success","time":123.74999999999426,"kills":124,"fired":316,"friendlyDamage":0,"ammo":[null,88,31,12,0,0]}
+✔ 车队守护 3 can be completed with basic weapons without resupply and every friendly group surviving (2775.6517ms)
+ℹ {"mission":"operation-051","phase":"success","time":125.26666666666084,"kills":124,"fired":348,"friendlyDamage":0,"ammo":[null,120,31,12,0,0]}
+✔ 车队守护 4 can be completed with basic weapons without resupply and every friendly group surviving (1976.0245ms)
+ℹ {"mission":"operation-052","phase":"success","time":122.93333333332764,"kills":125,"fired":318,"friendlyDamage":0,"ammo":[null,86,31,12,0,0]}
+✔ 车队守护 5 can be completed with basic weapons without resupply and every friendly group surviving (2248.0303ms)
+ℹ {"mission":"operation-053","phase":"success","time":123.03333333332763,"kills":126,"fired":320,"friendlyDamage":0,"ammo":[null,86,31,12,0,0]}
+✔ 车队守护 6 can be completed with basic weapons without resupply and every friendly group surviving (2807.8994ms)
+ℹ {"mission":"operation-054","phase":"success","time":125.78333333332748,"kills":127,"fired":370,"friendlyDamage":0,"ammo":[null,120,31,12,0,0]}
+✔ 车队守护 7 can be completed with basic weapons without resupply and every friendly group surviving (2314.6511ms)
+ℹ {"mission":"operation-055","phase":"success","time":122.9999999999943,"kills":129,"fired":330,"friendlyDamage":0,"ammo":[null,86,31,12,0,0]}
+✔ 车队守护 8 can be completed with basic weapons without resupply and every friendly group surviving (2166.2194ms)
+ℹ {"mission":"operation-056","phase":"success","time":122.93333333332764,"kills":129,"fired":330,"friendlyDamage":0,"ammo":[null,86,31,12,0,0]}
+✔ 车队守护 9 can be completed with basic weapons without resupply and every friendly group surviving (3164.1474ms)
+ℹ {"mission":"operation-057","phase":"success","time":126.51666666666077,"kills":130,"fired":368,"friendlyDamage":0,"ammo":[null,120,31,12,0,0]}
+✔ 车队守护 10 can be completed with basic weapons without resupply and every friendly group surviving (2348.3535ms)
+ℹ {"mission":"operation-058","phase":"success","time":122.96666666666097,"kills":131,"fired":336,"friendlyDamage":0,"ammo":[null,86,31,12,0,0]}
+✔ 车队守护 11 can be completed with basic weapons without resupply and every friendly group surviving (2511.4764ms)
+ℹ {"mission":"operation-059","phase":"success","time":122.96666666666097,"kills":132,"fired":338,"friendlyDamage":0,"ammo":[null,84,31,12,0,0]}
+✔ 车队守护 12 can be completed with basic weapons without resupply and every friendly group surviving (3231.3189ms)
+ℹ {"mission":"operation-060","phase":"success","time":126.29999999999411,"kills":134,"fired":393,"friendlyDamage":0,"ammo":[null,120,31,12,0,0]}
+✔ 据点支援 1 can be completed with basic weapons without resupply and every friendly group surviving (2338.232ms)
+ℹ {"mission":"operation-061","phase":"success","time":122.96666666666097,"kills":134,"fired":340,"friendlyDamage":0,"ammo":[null,86,29,12,0,0]}
+✔ 据点支援 2 can be completed with basic weapons without resupply and every friendly group surviving (2553.3017ms)
+ℹ {"mission":"operation-062","phase":"success","time":124.24999999999423,"kills":136,"fired":340,"friendlyDamage":0,"ammo":[null,86,27,12,0,0]}
+✔ 据点支援 3 can be completed with basic weapons without resupply and every friendly group surviving (3861.5568ms)
+ℹ {"mission":"operation-063","phase":"success","time":150.0833333333449,"kills":137,"fired":472,"friendlyDamage":0,"ammo":[null,120,29,12,0,0]}
+✔ 据点支援 4 can be completed with basic weapons without resupply and every friendly group surviving (2674.5817ms)
+ℹ {"mission":"operation-064","phase":"success","time":124.3166666666609,"kills":137,"fired":349,"friendlyDamage":0,"ammo":[null,86,27,12,0,0]}
+✔ 据点支援 5 can be completed with basic weapons without resupply and every friendly group surviving (2566.9116ms)
+ℹ {"mission":"operation-065","phase":"success","time":124.09999999999424,"kills":139,"fired":354,"friendlyDamage":0,"ammo":[null,84,27,12,0,0]}
+✔ 据点支援 6 can be completed with basic weapons without resupply and every friendly group surviving (3621.939ms)
+ℹ {"mission":"operation-066","phase":"success","time":126.24999999999412,"kills":139,"fired":394,"friendlyDamage":0,"ammo":[null,120,29,12,0,0]}
+✔ 据点支援 7 can be completed with basic weapons without resupply and every friendly group surviving (2636.9697ms)
+ℹ {"mission":"operation-067","phase":"success","time":124.06666666666091,"kills":141,"fired":357,"friendlyDamage":0,"ammo":[null,84,27,12,0,0]}
+✔ 据点支援 8 can be completed with basic weapons without resupply and every friendly group surviving (2936.5013ms)
+ℹ {"mission":"operation-068","phase":"success","time":129.36666666666176,"kills":142,"fired":360,"friendlyDamage":0,"ammo":[null,84,25,12,0,0]}
+✔ 据点支援 9 can be completed with basic weapons without resupply and every friendly group surviving (4348.649ms)
+ℹ {"mission":"operation-069","phase":"success","time":138.65000000000248,"kills":142,"fired":448,"friendlyDamage":0,"ammo":[null,120,27,12,0,0]}
+✔ 据点支援 10 can be completed with basic weapons without resupply and every friendly group surviving (2877.6532ms)
+ℹ {"mission":"operation-070","phase":"success","time":129.34999999999508,"kills":144,"fired":364,"friendlyDamage":0,"ammo":[null,84,25,12,0,0]}
+✔ 据点支援 11 can be completed with basic weapons without resupply and every friendly group surviving (2664.3729ms)
+ℹ {"mission":"operation-071","phase":"success","time":129.21666666666164,"kills":144,"fired":366,"friendlyDamage":0,"ammo":[null,84,25,12,0,0]}
+✔ 据点支援 12 can be completed with basic weapons without resupply and every friendly group surviving (4243.208ms)
+ℹ {"mission":"operation-072","phase":"success","time":129.666666666662,"kills":146,"fired":414,"friendlyDamage":0,"ammo":[null,120,27,12,0,0]}
+✔ 夜色伏击 1 can be completed with basic weapons without resupply and every friendly group surviving (3233.3935ms)
+ℹ {"mission":"operation-073","phase":"success","time":129.34999999999508,"kills":148,"fired":378,"friendlyDamage":0,"ammo":[null,78,25,12,0,0]}
+✔ 夜色伏击 2 can be completed with basic weapons without resupply and every friendly group surviving (2988.4614ms)
+ℹ {"mission":"operation-074","phase":"success","time":162.1333333333545,"kills":149,"fired":382,"friendlyDamage":0,"ammo":[null,78,25,12,0,0]}
+✔ 夜色伏击 3 can be completed with basic weapons without resupply and every friendly group surviving (3836.1861ms)
+ℹ {"mission":"operation-075","phase":"success","time":164.01666666668933,"kills":150,"fired":426,"friendlyDamage":0,"ammo":[null,120,25,12,0,0]}
+✔ 夜色伏击 4 can be completed with basic weapons without resupply and every friendly group surviving (2704.0197ms)
+ℹ {"mission":"operation-076","phase":"success","time":162.1333333333545,"kills":151,"fired":388,"friendlyDamage":0,"ammo":[null,78,25,12,0,0]}
+✔ 夜色伏击 5 can be completed with basic weapons without resupply and every friendly group surviving (3024.5923ms)
+ℹ {"mission":"operation-077","phase":"success","time":164.08333333335605,"kills":152,"fired":390,"friendlyDamage":0,"ammo":[null,78,25,12,0,0]}
+✔ 夜色伏击 6 can be completed with basic weapons without resupply and every friendly group surviving (3884.6058ms)
+ℹ {"mission":"operation-078","phase":"success","time":162.11666666668782,"kills":153,"fired":466,"friendlyDamage":0,"ammo":[null,120,25,12,0,0]}
+✔ 夜色伏击 7 can be completed with basic weapons without resupply and every friendly group surviving (3071.5668ms)
+ℹ {"mission":"operation-079","phase":"success","time":164.0500000000227,"kills":154,"fired":394,"friendlyDamage":0,"ammo":[null,76,25,12,0,0]}
+✔ 夜色伏击 8 can be completed with basic weapons without resupply and every friendly group surviving (2923.1679ms)
+ℹ {"mission":"operation-080","phase":"success","time":162.10000000002114,"kills":155,"fired":398,"friendlyDamage":0,"ammo":[null,76,25,12,0,0]}
+✔ 夜色伏击 9 can be completed with basic weapons without resupply and every friendly group surviving (4103.3242ms)
+ℹ {"mission":"operation-081","phase":"success","time":164.1166666666894,"kills":155,"fired":442,"friendlyDamage":0,"ammo":[null,120,25,12,0,0]}
+✔ 夜色伏击 10 can be completed with basic weapons without resupply and every friendly group surviving (2957.0072ms)
+ℹ {"mission":"operation-082","phase":"success","time":162.11666666668782,"kills":157,"fired":404,"friendlyDamage":0,"ammo":[null,76,25,12,0,0]}
+✔ 夜色伏击 11 can be completed with basic weapons without resupply and every friendly group surviving (3246.4847ms)
+ℹ {"mission":"operation-083","phase":"success","time":164.033333333356,"kills":157,"fired":404,"friendlyDamage":0,"ammo":[null,76,25,12,0,0]}
+✔ 夜色伏击 12 can be completed with basic weapons without resupply and every friendly group surviving (4253.3975ms)
+ℹ {"mission":"operation-084","phase":"success","time":162.11666666668782,"kills":159,"fired":517,"friendlyDamage":0,"ammo":[null,120,25,12,0,0]}
+✔ 机动围剿 1 can be completed with basic weapons without resupply and every friendly group surviving (3060.5669ms)
+ℹ {"mission":"operation-085","phase":"success","time":162.10000000002114,"kills":159,"fired":417,"friendlyDamage":0,"ammo":[null,74,25,12,0,0]}
+✔ 机动围剿 2 can be completed with basic weapons without resupply and every friendly group surviving (3433.9353ms)
+ℹ {"mission":"operation-086","phase":"success","time":159.00000000001867,"kills":160,"fired":412,"friendlyDamage":0,"ammo":[null,74,25,12,0,0]}
+✔ 机动围剿 3 can be completed with basic weapons without resupply and every friendly group surviving (4683.7879ms)
+ℹ {"mission":"operation-087","phase":"success","time":161.58333333335406,"kills":161,"fired":498,"friendlyDamage":0,"ammo":[null,120,25,12,0,0]}
+✔ 机动围剿 4 can be completed with basic weapons without resupply and every friendly group surviving (3374.0087ms)
+ℹ {"mission":"operation-088","phase":"success","time":164.10000000002273,"kills":162,"fired":416,"friendlyDamage":0,"ammo":[null,74,23,12,0,0]}
+✔ 机动围剿 5 can be completed with basic weapons without resupply and every friendly group surviving (3149.3921ms)
+ℹ {"mission":"operation-089","phase":"success","time":163.98333333335597,"kills":163,"fired":427,"friendlyDamage":0,"ammo":[null,74,23,12,0,0]}
+✔ 机动围剿 6 can be completed with basic weapons without resupply and every friendly group surviving (4560.7259ms)
+ℹ {"mission":"operation-090","phase":"success","time":164.08333333335605,"kills":164,"fired":468,"friendlyDamage":0,"ammo":[null,120,23,12,0,0]}
+✔ 机动围剿 7 can be completed with basic weapons without resupply and every friendly group surviving (3284.1747ms)
+ℹ {"mission":"operation-091","phase":"success","time":164.033333333356,"kills":165,"fired":427,"friendlyDamage":0,"ammo":[null,74,23,12,0,0]}
+✔ 机动围剿 8 can be completed with basic weapons without resupply and every friendly group surviving (3563.2159ms)
+ℹ {"mission":"operation-092","phase":"success","time":164.10000000002273,"kills":166,"fired":426,"friendlyDamage":0,"ammo":[null,72,23,12,0,0]}
+✔ 机动围剿 9 can be completed with basic weapons without resupply and every friendly group surviving (4799.8982ms)
+ℹ {"mission":"operation-093","phase":"success","time":165.83333333335744,"kills":166,"fired":537,"friendlyDamage":0,"ammo":[null,120,23,12,0,0]}
+✔ 机动围剿 10 can be completed with basic weapons without resupply and every friendly group surviving (3771.919ms)
+ℹ {"mission":"operation-094","phase":"success","time":164.06666666668937,"kills":168,"fired":432,"friendlyDamage":0,"ammo":[null,72,23,12,0,0]}
+✔ 机动围剿 11 can be completed with basic weapons without resupply and every friendly group surviving (3442.4767ms)
+ℹ {"mission":"operation-095","phase":"success","time":164.08333333335605,"kills":168,"fired":432,"friendlyDamage":0,"ammo":[null,72,23,12,0,0]}
+✔ 机动围剿 12 can be completed with basic weapons without resupply and every friendly group surviving (5006.4464ms)
+ℹ {"mission":"operation-096","phase":"success","time":162.56666666668818,"kills":170,"fired":486,"friendlyDamage":0,"ammo":[null,120,23,12,0,0]}
+✔ 长夜突围 1 can be completed with basic weapons without resupply and every friendly group surviving (3919.6765ms)
+ℹ {"mission":"operation-097","phase":"success","time":156.96666666668372,"kills":172,"fired":444,"friendlyDamage":0,"ammo":[null,70,23,12,0,0]}
+✔ 长夜突围 2 can be completed with basic weapons without resupply and every friendly group surviving (3542.9324ms)
+ℹ {"mission":"operation-098","phase":"success","time":158.0666666666846,"kills":172,"fired":444,"friendlyDamage":0,"ammo":[null,70,23,12,0,0]}
+✔ 长夜突围 3 can be completed with basic weapons without resupply and every friendly group surviving (5436.3892ms)
+ℹ {"mission":"operation-099","phase":"success","time":165.73333333335736,"kills":174,"fired":500,"friendlyDamage":0,"ammo":[null,120,23,12,0,0]}
+✔ 长夜突围 4 can be completed with basic weapons without resupply and every friendly group surviving (3752.4689ms)
+ℹ {"mission":"operation-100","phase":"success","time":161.78333333335422,"kills":174,"fired":460,"friendlyDamage":0,"ammo":[null,70,23,12,0,0]}
+✔ 长夜突围 5 can be completed with basic weapons without resupply and every friendly group surviving (4160.2014ms)
+ℹ {"mission":"operation-101","phase":"success","time":160.93333333335354,"kills":176,"fired":454,"friendlyDamage":0,"ammo":[null,70,21,12,0,0]}
+✔ 长夜突围 6 can be completed with basic weapons without resupply and every friendly group surviving (5788.5056ms)
+ℹ {"mission":"operation-102","phase":"success","time":170.08333333336083,"kills":176,"fired":549,"friendlyDamage":0,"ammo":[null,120,21,12,0,0]}
+✔ 长夜突围 7 can be completed with basic weapons without resupply and every friendly group surviving (4139.0546ms)
+ℹ {"mission":"operation-103","phase":"success","time":160.9666666666869,"kills":177,"fired":458,"friendlyDamage":0,"ammo":[null,70,21,12,0,0]}
+✔ 长夜突围 8 can be completed with basic weapons without resupply and every friendly group surviving (3971.1639ms)
+ℹ {"mission":"operation-104","phase":"success","time":162.11666666668782,"kills":178,"fired":479,"friendlyDamage":0,"ammo":[null,70,21,12,0,0]}
+✔ 长夜突围 9 can be completed with basic weapons without resupply and every friendly group surviving (5792.4866ms)
+ℹ {"mission":"operation-105","phase":"success","time":162.28333333335462,"kills":178,"fired":510,"friendlyDamage":0,"ammo":[null,120,21,12,0,0]}
+✔ 长夜突围 10 can be completed with basic weapons without resupply and every friendly group surviving (3998.8496ms)
+ℹ {"mission":"operation-106","phase":"success","time":162.16666666668786,"kills":180,"fired":473,"friendlyDamage":0,"ammo":[null,68,21,12,0,0]}
+✔ 长夜突围 11 can be completed with basic weapons without resupply and every friendly group surviving (4336.5739ms)
+ℹ {"mission":"operation-107","phase":"success","time":160.93333333335354,"kills":180,"fired":464,"friendlyDamage":0,"ammo":[null,68,21,12,0,0]}
+✔ 长夜突围 12 can be completed with basic weapons without resupply and every friendly group surviving (5582.3354ms)
+ℹ {"mission":"operation-108","phase":"success","time":197.86666666671627,"kills":182,"fired":573,"friendlyDamage":0,"ammo":[null,120,21,12,0,0]}
+✔ 终夜守望 1 can be completed with basic weapons without resupply and every friendly group surviving (3685.0727ms)
+ℹ {"mission":"operation-109","phase":"success","time":197.88333333338295,"kills":182,"fired":462,"friendlyDamage":0,"ammo":[null,70,21,12,0,0]}
+✔ 终夜守望 2 can be completed with basic weapons without resupply and every friendly group surviving (4306.6257ms)
+ℹ {"mission":"operation-110","phase":"success","time":203.6666666667209,"kills":183,"fired":470,"friendlyDamage":0,"ammo":[null,70,19,12,0,0]}
+✔ 终夜守望 3 can be completed with basic weapons without resupply and every friendly group surviving (5997.8075ms)
+ℹ {"mission":"operation-111","phase":"success","time":202.43333333338657,"kills":184,"fired":563,"friendlyDamage":0,"ammo":[null,120,21,12,0,0]}
+✔ 终夜守望 4 can be completed with basic weapons without resupply and every friendly group surviving (4427.106ms)
+ℹ {"mission":"operation-112","phase":"success","time":203.6500000000542,"kills":185,"fired":470,"friendlyDamage":0,"ammo":[null,70,19,12,0,0]}
+✔ 终夜守望 5 can be completed with basic weapons without resupply and every friendly group surviving (3967.5265ms)
+ℹ {"mission":"operation-113","phase":"success","time":202.4833333333866,"kills":186,"fired":483,"friendlyDamage":0,"ammo":[null,70,19,12,0,0]}
+✔ 终夜守望 6 can be completed with basic weapons without resupply and every friendly group surviving (5826.8644ms)
+ℹ {"mission":"operation-114","phase":"success","time":203.70000000005425,"kills":186,"fired":534,"friendlyDamage":0,"ammo":[null,120,21,12,0,0]}
+✔ 终夜守望 7 can be completed with basic weapons without resupply and every friendly group surviving (4008.2559ms)
+ℹ {"mission":"operation-115","phase":"success","time":202.43333333338657,"kills":187,"fired":487,"friendlyDamage":0,"ammo":[null,68,19,12,0,0]}
+✔ 终夜守望 8 can be completed with basic weapons without resupply and every friendly group surviving (4344.8104ms)
+ℹ {"mission":"operation-116","phase":"success","time":203.6666666667209,"kills":188,"fired":475,"friendlyDamage":0,"ammo":[null,68,19,12,0,0]}
+✔ 终夜守望 9 can be completed with basic weapons without resupply and every friendly group surviving (5681.0663ms)
+ℹ {"mission":"operation-117","phase":"success","time":197.90000000004963,"kills":189,"fired":556,"friendlyDamage":0,"ammo":[null,120,21,12,0,0]}
+✔ 终夜守望 10 can be completed with basic weapons without resupply and every friendly group surviving (4508.2937ms)
+ℹ {"mission":"operation-118","phase":"success","time":199.31666666671742,"kills":190,"fired":485,"friendlyDamage":0,"ammo":[null,68,19,12,0,0]}
+✔ 终夜守望 11 can be completed with basic weapons without resupply and every friendly group surviving (4025.569ms)
+ℹ {"mission":"operation-119","phase":"success","time":197.90000000004963,"kills":191,"fired":497,"friendlyDamage":0,"ammo":[null,66,19,12,0,0]}
+✔ 终夜守望 12 can be completed with basic weapons without resupply and every friendly group surviving (6273.2051ms)
+ℹ {"mission":"operation-120","phase":"success","time":199.36666666671746,"kills":192,"fired":552,"friendlyDamage":0,"ammo":[null,120,21,12,0,0]}
+✔ server-confirmed ranked retirement displays a new-run notice instead of pending sync (4.4409ms)
+✔ recovered battle receipts refresh authoritative assets once and reject other owners and replaced bridges (1.0529ms)
+✔ late finish cannot replace a new run or new identity settlement (0.5498ms)
+✔ late asset reads and commands cannot roll back balances or tasks, but keep their own receipts (8.4843ms)
+✔ credited rewards retry failed asset refresh without another receipt, respecting lifecycle and owner (2.6889ms)
+✔ asset responses from a previous owner or disposed game do not replace visible assets (4.284ms)
+✔ rankings retain the complete top 100 and the current player outside that list (1.0718ms)
+✔ persistent local pilots have UUIDs, distinct display suffixes and sanitized room links (0.831ms)
+✔ late connection and ready failure cannot rejoin or alter a cancelled room (2.1171ms)
+✔ leaderboard refresh recovers metadata after an initial network failure (0.5238ms)
+✔ nickname edits keep the same user and adopt the saved server profile (2.4405ms)
+✔ nickname confirmation closes only after success and retains the draft on failure (0.7638ms)
+✔ ranking recovery refreshes the server identity before recording and leaves failure explicitly local (0.4948ms)
+✔ a departed room is hidden immediately and for two seconds despite stale list responses (2.2544ms)
+✔ paused and modal controls cannot fire, while release always reaches the duel (8.1242ms)
+✔ match waiting keeps its room and never triggers an automatic bot (2.0153ms)
+✔ retry sends the exact same input sequence and leaving discards queued firing (2.2477ms)
+✔ cancelled room creation cannot reopen the room after its response arrives (1.918ms)
+✔ an opponent leaving or server finishing resolves the terminal snapshot instead of retrying actions (3.0534ms)
+✔ a room abandoned before readiness stops polling and refuses another ready action (0.1801ms)
+✔ lobby, nickname and history use the shared bridge and private room input is validated (0.4612ms)
+✔ 10Hz transport is serial, preserves opponent disconnect play and ends only the taken-over player view (1.1753ms)
+✔ newer connection ownership stops retries and entry animation rejects firing (3.3868ms)
+✔ ready and cancel-ready wait for the preceding poll and send explicit idempotent states (1.3317ms)
+✔ leaving a network bot completes on the server before immediate human matchmaking (2.4568ms)
+✔ expired room cleanup cannot block future matches, while failed cleanup is retried before entry (1.2926ms)
+✔ queued readiness is discarded when the preceding poll ends the room (0.5518ms)
+✔ changing ranking tabs ignores an older response (0.3409ms)
+✔ chat replaces bounded snapshots, preserves draft and ignores polling after leave (0.7199ms)
+✔ successful retry of an unknown chat result preserves a newer draft and block controls key by player identity (0.7788ms)
+✔ a late poll cannot replace a newer acknowledged chat message or move the cursor backwards (0.7307ms)
+✔ level rankings cycle all current and historical rule versions with matching query parameters (0.4471ms)
+✔ presence covers every screen, throttles, hides unavailable counts and recovers (10.4221ms)
+✔ presence rejects responses after background, disposal, identity or bridge replacement (1.5284ms)
+✔ old servers and absent services do not poll or invent zero players (1.1395ms)
+✔ slot limits deduplicate effects and all sources share level-gated contents (2.1698ms)
+✔ all level and permanent ownership combinations stay below package cost, including currency substitutes (71.161ms)
+✔ two bursts and twin trajectories pay one round and heat charge, cannot fire for free, preserve snapshot (4.6158ms)
+✔ ordinary volleys spread real trajectories in two dimensions without leaving a hole at the reticle (1.9141ms)
+✔ spread damages a displaced target outside the original blast coverage (17.6888ms)
+✔ spread checks protected areas, map bounds and friendly warnings before paying for a volley (1.6766ms)
+✔ spread survives checkpoint, ranked input replay and both duel pilots deterministically (7.0963ms)
+✔ rate advertisement expiry preserves personal tracking and a delayed guided round only moves after birth (1.1714ms)
+✔ special weapons and EMP reject friendly/protected targets and terrain blocks drone or laser damage (0.8916ms)
+✔ skills repeat after effect and cooldown, pause freezes and advertisements never refill cooldown (0.4739ms)
+✔ EMP holds movement while allowing attacks and leaves projectiles intact; immunity prevents chaining (0.3249ms)
+✔ duel ownership isolates tracking and EMP and survives checkpoints (37.0356ms)
+✔ special weapons require entitlement; laser is continuous and bounded, drones expire without budget renewal (0.998ms)
+✔ server replay accepts skill input only through server-fixed entitlement (1.7803ms)
+✔ a drone volley records one hit shot across repeated damage, checkpoints and duel ownership (205.6415ms)
+✔ practice resolves saved loadouts without consuming stock and rejects inactive or elapsed time entitlements (0.7037ms)
+✔ duel views expose only public opponent equipment and preserve each side effects (1.652ms)
+✔ ordinary weapon upgrades and level growth change the actual fired round and gun resources (0.5282ms)
+✔ all regular weapons retain their primary trajectory and one-charge cadence with a bounded secondary budget (1.2508ms)
+✔ tracking never multiplies one ammo into four full-damage hits (8.7612ms)
+✔ accelerated bursts stay within their cycle, preserve heat rate and resume delayed events once (6.6806ms)
+✔ incendiary secondaries widen short-lived coverage within 160/280 percent fuel and never stack burn damage (84.5481ms)
+✔ ammo counters migrate old checkpoints per pilot and ranked participation counts attacks, not projectiles (4.8662ms)
+✔ drone formation attacks distinct targets beyond the old budget, then crashes without damage (4.8422ms)
+✔ EMP lasts twelve seconds and pauses without shortening the effect (0.6762ms)
+✔ high-altitude drones without legal targets finish crashing before the next launch is ready (5.3655ms)
+✔ reward curves keep first-clear bonuses finite and milestones balanced (0.3726ms)
+✔ crafting then selling never beats selling the materials directly (0.2542ms)
+✔ wheel accelerates, cruises and spends 2.6 seconds slowing to the exact result (1.1874ms)
+✔ wheel click without tickets gives feedback; a combined reward appears once after spinning (5.1676ms)
+✔ wheel rim feedback never spends tickets and only an explicit skip reveals early (0.4123ms)
+✔ asset retry retains one request ID across reload; confirmed rejection releases it (0.6269ms)
+✔ late asset response cannot clear another account intent or replace its UI state (0.4453ms)
+✔ video cancellation preserves confirmed progress and never calls completion (1.3255ms)
+✔ failed local intent persistence prevents any purchase; removing accepted journal may fail safely (0.4983ms)
+✔ IndexedDB intent commit failure, double tap and account change cannot send a purchase (1.0521ms)
+✔ developer journal retries one ID, clears definite failures, and cannot replay in normal packages (1.1525ms)
+✔ loadout edits select compatible slots, keep empty slot positions and save only on confirmation (2.1678ms)
+✔ available equipment excludes inactive time vouchers and already-equipped effects stay identifiable (0.3206ms)
+✔ moving mods swaps or fills slots without purchases; confirmed retry normalizes empty positions (0.7858ms)
+✔ warehouse loadout entry selects the matching equipment or next empty compatible slot (0.3681ms)
+✔ multi-crate opening retries the same failed transaction and never reopens the completed group (0.5222ms)
+✔ gift receipts survive idempotent responses without relying on inventory deltas (0.2975ms)
+✔ switching accounts before opening a gift never spends the new account inventory (0.1088ms)
+✔ identity changes discard draft intentions and cannot resurrect an old account gift (0.4149ms)
+✔ navigation restores source filters, selected item and scroll after nested pages (0.2351ms)
+✔ all six wheel results land their sector centre at the fixed top pointer (0.101ms)
+✔ retrying a lost ad-start receipt resumes that attempt and cancellation releases it (0.3474ms)
+✔ daily wheel rejection releases the journal and cancelled back does not hijack the next destination (0.2687ms)
+✔ video attempts recover from refreshed snapshots, expire by server time and release on confirmed completion failure (0.4273ms)
+✔ unknown completion is never cancelled, while dispose journals release of an accepted idle attempt (0.3242ms)
+✔ old service blocks crafting and actual check-in / craft grants reach the gift dialog (0.3781ms)
+ℹ tests 225
+ℹ suites 0
+ℹ pass 225
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 341945.6786
+
+(node:62024) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///F:/playground/playground-ai/small-games/platforms/competition/game-services.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\F:\playground\playground-ai\small-games\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ Night durable completion survives lost append response and reload, querying before replay (6.0262ms)
+✔ Night storage diagnostics identify no-op readback and sanitize thrown storage messages (1.1736ms)
+✔ Night durable records honor the explicit shared instance and never consult raw browser storage (0.5919ms)
+✔ direct Night H5 service creation requires the unified instance and accepts explicit adapters (1.4918ms)
+✔ Night empty-string missing keys do not hide a server-confirmed settlement (1.1327ms)
+✔ Night confirmed rewards survive marker quota errors and unrelated corrupt recovery data (0.7456ms)
+✔ Night ACK compaction keeps long runs below a 16 KiB per-key limit without dropping unconfirmed frames (12.6806ms)
+✔ Night an already-started in-memory run can finish online when further journal writes fail (0.77ms)
+✔ Night legacy ACK payloads are compacted on reload and null unconfirmed batches are rejected (0.9354ms)
+✔ Night first start-attempt persistence and unreadable live storage never bypass the journal guard (0.5734ms)
+✔ Night cancelled initial IndexedDB commit cannot replace the newer practice status (1.0464ms)
+✔ Night identity storage initialization failure is reported as storage, not network failure (0.2923ms)
+✔ Night recovered tails and cancellation metadata remain strict even during quota failures (1.0433ms)
+✔ Night another tab acknowledgement wins when the stale journal write itself fails (0.3162ms)
+✔ Night recovery exposes only the active owner-bound receipt before reporting completion (1.1555ms)
+✔ Night durable starts retain protocol and identity failure reasons (0.3092ms)
+✔ Night acknowledged journals are reclaimed after failed deletion without another request (1.7563ms)
+✔ Night only reclaims old confirmed receipts without active work, retaining recent and malformed entries (0.9373ms)
+✔ Night receipt cleanup cannot delete a newer receipt or one whose journal remains (0.7865ms)
+✔ Night a stale journal returning after receipt expiry recovers the server result without repeating rewards (1.4413ms)
+✔ Night cleanup failures preserve confirmed receipts without changing recovery status (0.6833ms)
+✔ Night retains an expired receipt until its mirrored journal deletion really commits (1.3951ms)
+✔ Night cleaning an older confirmed journal preserves the active mission status (0.7205ms)
+✔ Night acknowledgement during a request stops subsequent uploads and preserves completion (0.7043ms)
+✔ Night acknowledgement wins over a rejected request without resuming or lowering completion (2.8212ms)
+✔ Night rejected-request recovery preserves unreadable acknowledgements and journals (1.031ms)
+✔ Night acknowledgement write and readback faults preserve confirmed rewards and cleanup retry material (2.2898ms)
+✔ Night a stale tab writing across acknowledgement cannot resurrect a journal (0.5702ms)
+✔ Night unreadable or invalid acknowledgements never delete pending input (0.6623ms)
+✔ Night Tap binding recovers only its matching guest journal in place, with no account or API crossover (11.0589ms)
+✔ a Tap app cannot recover another app journal even for the same player, and pending guest tails are not submitted (0.8024ms)
+✔ Night lost finish response, expired session and duplicate recovery preserve one settlement (1.8298ms)
+✔ Night retired roots persist a terminal acknowledgement and stale tabs cannot upload again (0.5763ms)
+✔ Night authoritative settlement wins over a stale shorter unfinished journal and terminal errors (0.5864ms)
+✔ Night terminal acknowledgement storage failures retain the journal until a durable retry (0.8886ms)
+✔ Night unavailable start is persisted before transport and retries the same request without bypassing time (0.5881ms)
+✔ Night pending data stays with its owner and survives quota failure or malformed cache (0.573ms)
+✔ Night unfinished mission is never submitted as a completion on reload (0.2383ms)
+✔ Night rejects the Cocos no-op storage fallback instead of claiming progress is cached (0.1471ms)
+✔ Night retries do not retain abandoned journals or drop completed pending missions (3.3071ms)
+✔ Night lost start response retains its request until reload confirms cancellation (0.394ms)
+✔ Night invalidation during start cancels the late run before replay, including a stale tab (1.9543ms)
+✔ Night cancellation failures remain owner-bound and completed journals settle alongside them (1.7041ms)
+✔ Night expired cached identity remains recoverable when refresh is temporarily offline (1.4604ms)
+✔ profile reads and updates reuse the same game-scoped owner (0.6017ms)
+✔ Night cached account A cannot read or mutate assets using a newly selected account B (0.4111ms)
+✔ Night chat uses scoped credentials, bounded polling, stable intents and invitation generation (0.8969ms)
+✔ Night chat rejects late account A responses after selecting account B (0.338ms)
+✔ shared development assets use each game scope and Night forwards its existing journal ID (0.4306ms)
+✔ shared development mutations reject ownership changes and mismatched response owners (0.3161ms)
+✔ Night authenticated retired old-version reads are allowed without allowing active or other-game roots (0.3724ms)
+✔ first guest reads and writes automatically share one scoped credential (0.5952ms)
+✔ switching accounts rejects old runs and rooms before sending any mutation (0.4238ms)
+✔ match retries retain the queue owner and a matched room can be cancelled (0.4107ms)
+✔ late room and run responses cannot populate caches after logout (1.9697ms)
+✔ journal preserves zero-tick actions, compresses held input and finishes once (0.7425ms)
+✔ finishing result survives immediate next run without overwriting its status (0.2502ms)
+✔ timeout and cancellation discard late runs; practice creates no run (17.9688ms)
+✔ temporary network retry preserves sequence and payload; expired identity is never retried (0.6439ms)
+✔ a blocked network has a bounded journal and cannot retain an endless history (1.8016ms)
+✔ cached credentials cannot bypass missing native configuration (0.4301ms)
+▶ ranked start binds the artifact version and rejects incompatible or missing server versions before uploads
+  ✔ v1/v1 (0.5544ms)
+  ✔ v1/v2 (0.4055ms)
+  ✔ v2/v1 (0.4768ms)
+  ✔ v1/undefined (0.2097ms)
+  ✔ v1/ (0.1837ms)
+  ✔ v1/null (0.185ms)
+✔ ranked start binds the artifact version and rejects incompatible or missing server versions before uploads (2.6164ms)
+▶ missing artifact versions cannot start ranked runs while authenticated reads and local practice remain available
+  ✔ undefined (0.264ms)
+  ✔ null (0.2398ms)
+  ✔ <anonymous> (0.2078ms)
+  ✔ 1 (0.1697ms)
+✔ missing artifact versions cannot start ranked runs while authenticated reads and local practice remain available (1.1815ms)
+▶ new client handles pre-handshake strict servers and explicit version rejection without retry or upload
+  ✔ INVALID_INPUT (0.3046ms)
+  ✔ RULE_VERSION_CHANGED (0.1616ms)
+✔ new client handles pre-handshake strict servers and explicit version rejection without retry or upload (0.643ms)
+✔ late version rejection cannot overwrite a newer recording or a timed out local run (23.9346ms)
+✔ lobby SDK preserves passwords in POST bodies, renews leases, rotates connections and reads history (0.9062ms)
+✔ updateProfile returns /me and updates the scoped identity cache (0.402ms)
+✔ game gateway exposes registered public route shapes without exposing internal services (0.9458ms)
+✔ proxy-only retains backup installation while preserving preparation and topology guards (1.7495ms)
+✔ Caddy source guard rejects dirty nonce implementation or declarations at both boundaries (2212.8532ms)
+✔ both generic Runtime producers start with trust disabled, keep other services unchanged and satisfy validation (526.4274ms)
+✔ ingress preserves only the approved explicit topology and is sticky across ordinary deployments (7.6101ms)
+✔ public paths cover registered game, identity, TCT and carrom endpoints and reject internal or non-API routes (0.9057ms)
+✔ Caddy and Nginx keep host ports, isolate trust, sanitize forwarding and limit by the resolved client (1.3999ms)
+✔ immutable package includes both proxy configs, a first-migration rollback and every checksum (87.587ms)
+✔ management stays on its sole origin with finite APIs and no SPA API fallback (0.7694ms)
+✔ legacy deployment guards run before mutation and recheck after acquiring the game lock (1.1318ms)
+✔ proxy transaction exercises preflight, activation, idempotence and both-layer rollback without Docker (538.7939ms)
+✔ backend progress accepts only finite stages and redacts unknown remote errors (1.5424ms)
+✔ backend selection is explicit and excludes admin, empty entries and unrelated targets (1.5427ms)
+✔ private platform credentials are a bounded file input for Runtime execution only (31.9019ms)
+✔ selected backend image is readable by node and has a runnable default without installing other services (0.3289ms)
+✔ selected backend bundle seals the reviewed shared helper alongside the runner (110.0336ms)
+✔ backend receipt accepts only finite source and image evidence, without fake isolated restore (3.0551ms)
+✔ backend failure and rollback contracts use isolated mocks only (4078.9019ms)
+✔ current runner carries reviewed helper and passes historical release only as data (158.3041ms)
+✔ safe ownership diagnostics survive failure without forwarding arbitrary stderr (95.738ms)
+✔ the deployment staging loop copies every migration including generic drafts with exact bytes (64.1584ms)
+✔ deployment rejects missing secrets, command/config injection and traversal before remote actions (1.169ms)
+✔ internal deployment isolates ports, serves local files, and needs no COS/domain/TLS (5.1152ms)
+✔ Nginx keeps runtime variables and public/internal route boundaries; only Nginx publishes ports (1.5713ms)
+✔ every HTML entry gets current same-origin endpoints without changing source or other assets (41.077ms)
+✔ Runtime diagnostics bind the owned child, bound samples and exclude raw stderr and credentials (2.2915ms)
+✔ candidate backend builds are selected, serial, bounded and source-checked before fresh PG (1.6902ms)
+✔ foreign health and a failed bind cannot cause any HTTP request or write (0.4727ms)
+✔ owned bind is followed by read-only fixture proof before health or any caller preflight (1.1614ms)
+✔ fresh UUID ownership binds exact container, loopback port, volume and network before mutation (1.0116ms)
+✔ bootstrap and Runtime child environment use only owned credentials and required markers (3.6732ms)
+✔ spawn error settles without waiting for a nonexistent close event and never kills another child (0.4127ms)
+✔ owned child close and overall browser wait have final deadlines (39.9803ms)
+✔ cleanup attempts every owned step and evidence after an earlier failure (0.5066ms)
+✔ restart drain waits for its operation and disconnected IPC never sends or leaks a rejection (0.3869ms)
+✔ restart failures retain only a safe diagnostic and still fail closed (0.505ms)
+✔ partial fresh fixture creation cleans only its verified UUID volume on network creation failure (1.1171ms)
+✔ lost create responses recover only exact named and labelled UUID resources (0.7502ms)
+✔ restart IPC accepts exactly six completed local variants owned by this fixture (0.6347ms)
+✔ Runtime HTTP preflight drives real request contracts without returning any bearer in evidence (1.1322ms)
+ℹ tests 119
+ℹ suites 0
+ℹ pass 119
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8754.496
