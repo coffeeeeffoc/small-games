@@ -1,0 +1,293 @@
+{
+  "recordedAt": "2026-11-07T16:35:22.507Z",
+  "timeZone": "Asia/Shanghai",
+  "baseSHA": "ae2c8be08298e631ec64e225696a3206cc8ab80c",
+  "deployedSHA": "45e818b1e81b630eeda252a0d6812d0edf4902d3",
+  "runtime": {
+    "ok": true,
+    "mode": "execute",
+    "sourceSHA": "45e818b1e81b630eeda252a0d6812d0edf4902d3",
+    "release": "45e818b1e81b-1794068869504-94dbc2",
+    "services": ["runtime"],
+    "recreateCompanions": ["kart"],
+    "healthVerified": true,
+    "databaseReplaced": false,
+    "schemaChanged": false,
+    "backupCreated": true,
+    "backupSHA256": "fb15c0ce3e3eb2285e0dd9a6f1d92735f0c7127373e110b7087c06bfa833fa38",
+    "isolatedRestoreVerified": false,
+    "activeImages": {
+      "runtime": "sha256:dd1b785ba5c3b97c8dbb983f6f4e44428bec7cc29df13213af1e164e3ffc329d",
+      "kart": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8"
+    },
+    "imageCapabilities": {
+      "runtime": {
+        "image": "sha256:dd1b785ba5c3b97c8dbb983f6f4e44428bec7cc29df13213af1e164e3ffc329d",
+        "control": 1,
+        "authenticatedGameScope": 1,
+        "controlCatalog": 4
+      },
+      "kart": {
+        "image": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+        "control": 1,
+        "identityRecheck": 1,
+        "authenticatedGameScope": 1
+      }
+    }
+  },
+  "publicBaseline": {
+    "checkedAt": "2026-11-07T16:12:10.905Z",
+    "requests": 480,
+    "concurrency": 48,
+    "seconds": 2.367,
+    "statuses": {
+      "401": 56,
+      "429": 268,
+      "503": 156
+    },
+    "errors": {
+      "SESSION_EXPIRED": 56,
+      "CONTROL_UNAVAILABLE": 156
+    },
+    "latencyMs": {
+      "p50": 48.5,
+      "p95": 348.4,
+      "max": 916.1
+    }
+  },
+  "publicAfter": {
+    "checkedAt": "2026-11-07T16:31:11.286Z",
+    "requests": 480,
+    "concurrency": 48,
+    "seconds": 2.208,
+    "statuses": {
+      "401": 162,
+      "429": 318
+    },
+    "errors": {
+      "SESSION_EXPIRED": 162
+    },
+    "latencyMs": {
+      "p50": 35.7,
+      "p95": 476.4,
+      "max": 1091.7
+    }
+  },
+  "authenticatedAfter": {
+    "checkedAt": "2026-11-07T16:31:34.368Z",
+    "requests": 240,
+    "concurrency": 48,
+    "seconds": 22.444,
+    "statuses": {
+      "200": 240
+    },
+    "latencyMs": {
+      "p50": 667.5,
+      "p95": 6474,
+      "max": 20092.6
+    },
+    "metadataVerified": true,
+    "guestLoggedOut": true
+  },
+  "authenticatedPublicLatency": {
+    "checkedAt": "2026-11-07T16:33:35.913Z",
+    "requests": 48,
+    "concurrency": 48,
+    "seconds": 4.668,
+    "statuses": {
+      "200": 48
+    },
+    "latencyMs": {
+      "p50": 1868.8,
+      "p95": 2570.4,
+      "max": 3375.4
+    },
+    "headersP95Ms": 1538.2,
+    "responseBytes": [28429],
+    "metadataVerified": true,
+    "guestLoggedOut": true
+  },
+  "authenticatedLoopbackLatency": {
+    "checkedAt": "2026-11-07T16:34:03.655Z",
+    "requests": 48,
+    "concurrency": 48,
+    "seconds": 0.365,
+    "statuses": {
+      "200": 48
+    },
+    "latencyMs": {
+      "p50": 178.8,
+      "p95": 299.1,
+      "max": 309.5
+    },
+    "headersP95Ms": 298.5,
+    "responseBytes": [28428],
+    "metadataVerified": true,
+    "guestLoggedOut": true
+  },
+  "publicBusiness": {
+    "ok": true,
+    "checkedAt": "2026-11-07T16:31:07.599Z",
+    "sourceSHA": "45e818b1e81b630eeda252a0d6812d0edf4902d3",
+    "checks": [
+      "public-live-health",
+      "/small-games/v1:metadata,presence,401,422,private-paths,origin-403,CORS",
+      "/api/competition/v1:metadata,presence,401,422,private-paths,origin-403,CORS",
+      "same-player-deduplicated-and-second-player-counted",
+      "real-checkin-reward-and-cross-prefix-idempotency",
+      "old-version-rejected-new-version-started-and-cancelled"
+    ],
+    "postedChatMessages": false,
+    "realAdsTested": false,
+    "physicalDeviceTested": false
+  },
+  "server": {
+    "ok": true,
+    "containers": {
+      "runtime": {
+        "id": "5c7a3e85c1ca2b0fce7a07c48fbe8d432f6d778804edee7d082a5c3463bc30d2",
+        "image": "sha256:dd1b785ba5c3b97c8dbb983f6f4e44428bec7cc29df13213af1e164e3ffc329d",
+        "running": true,
+        "ports": {},
+        "mounts": []
+      },
+      "kart": {
+        "id": "7e04286c2ee2907bbf19e24742ed27297a5d3a0727253e5948ecaae492793a2b",
+        "image": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+        "running": true,
+        "ports": {},
+        "mounts": [
+          {
+            "name": "small-games_kart-outbox",
+            "destination": "/app/outbox"
+          }
+        ]
+      },
+      "management": {
+        "id": "4f4f416385909a8e46593ed785dbf9684ec5682adcec542d81ba9fe0a9799c1b",
+        "image": "sha256:72afa027cdf3af5b02829b1353767e39800fada280fe9c7b240d6a9c343f8ad8",
+        "running": true,
+        "ports": {},
+        "mounts": []
+      },
+      "postgres": {
+        "id": "fb6f941c30af4788a29ad48b6c3a6a5e0eb831927c8df72c602511c8322cd229",
+        "image": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+        "running": true,
+        "ports": {},
+        "mounts": [
+          {
+            "name": "small-games_postgres-data",
+            "destination": "/var/lib/postgresql/data"
+          }
+        ]
+      },
+      "nginx": {
+        "id": "4c16117b1753980acd545139f042f855f441bcc22620e46cdad6a3c53284b1ef",
+        "image": "sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5",
+        "running": true,
+        "ports": {
+          "80/tcp": [
+            {
+              "HostIp": "127.0.0.1",
+              "HostPort": "8080"
+            }
+          ]
+        },
+        "mounts": [
+          {
+            "name": null,
+            "destination": "/srv/site"
+          },
+          {
+            "name": null,
+            "destination": "/etc/nginx/conf.d"
+          },
+          {
+            "name": null,
+            "destination": "/etc/nginx/legacy"
+          }
+        ]
+      }
+    },
+    "companyReleasePreserved": "/opt/small-games/company/releases/20261018174117-6cc69521c7ad-7deb08",
+    "caddyRelease": "20261107153918-8378e757fcd1-d4d9eb",
+    "timers": {
+      "small-games-ranked-retention.timer": "active",
+      "company-caddy-backup.timer": "active"
+    },
+    "rollbackImagesAvailable": true,
+    "runtimeBackupPresent": true,
+    "ingressStatus": "active",
+    "ingressAcceptance": {
+      "adminUiAndAssets": "passed",
+      "gamePrefixes": ["/small-games/v1", "/api/competition/v1"],
+      "management": "anonymous-session-only",
+      "realGithubLoginVerified": false
+    },
+    "ingressBackup": {
+      "archive": "caddy-20261107T153925Z-f2b38f.tar.gz",
+      "sha256": "b48a39b5430ad0d1352667f825aca45d1fc2e42a549a6751359e883111861bde"
+    },
+    "internalHealth": {
+      "runtime": {
+        "ok": true,
+        "status": "ok"
+      },
+      "kart": {
+        "ok": true,
+        "status": null
+      },
+      "management": {
+        "ok": true,
+        "status": "ok"
+      }
+    },
+    "spoofedHeaderBurst": {
+      "requests": 500,
+      "seconds": 1.1,
+      "statuses": {
+        "401": 179,
+        "429": 321
+      },
+      "bothPrefixes": true
+    }
+  },
+  "validation": {
+    "runtimeSuite": {
+      "passed": 236,
+      "skipped": 97,
+      "note": "before merging one duplicate new test into existing coverage"
+    },
+    "finalChangedUnitFile": {
+      "passed": 8
+    },
+    "serviceKit": {
+      "passed": 10
+    },
+    "isolatedPostgres": {
+      "passed": 26,
+      "receipt": "../admin-console/qa/control-postgres-current.json"
+    },
+    "build": true,
+    "typecheck": true,
+    "changedTypescriptLint": true,
+    "fullRuntimeLint": "pre-existing ranked-runs.test.ts max-lines warning",
+    "fullCandidateRun": false,
+    "longDurationLoadTest": false,
+    "rollbackExecuted": false,
+    "isolatedRestoreVerified": false
+  },
+  "workflows": [
+    {
+      "name": "CI",
+      "status": "in_progress",
+      "url": "https://github.com/coffeeeeffoc/small-games/actions/runs/42391337182"
+    },
+    {
+      "name": "Pages",
+      "status": "in_progress",
+      "url": "https://github.com/coffeeeeffoc/small-games/actions/runs/42391337144"
+    }
+  ]
+}
