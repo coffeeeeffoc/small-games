@@ -41,6 +41,7 @@ export class Quartermaster {
   private leavingBack=false;
   wheel?:{index:number;startAngle:number;started:number;duration:number;shown:boolean;coins:number;xp?:number;items?:Record<string,number>;packs:Record<string,number>};
   wheelPressAt=0;
+  wheelNudgeAt=0;
   slot:LoadoutSlot='mod:0'; loadoutScroll=0; loadoutScrollMax=0;
   loadoutArea={x:0,y:0,w:0,h:0};
   drafts:Partial<Record<'solo'|'duel',Loadout>>={}; private modDrafts:Partial<Record<'solo'|'duel',Array<string|null>>>={}; leaveTo?:ProgressionPage;
@@ -140,9 +141,16 @@ export class Quartermaster {
     const now=Date.now();
     if(this.gift?.started&&!this.gift.illuminated&&now-this.gift.started>(this.gift.duration||1600)*.3){this.gift.illuminated=true;this.revision++;}
     if(this.gift?.started&&(reduced||now-this.gift.started>=(this.gift.duration||1600))){this.gift.started=undefined;this.revision++;}
-    if(this.wheel&&!this.wheel.shown&&this.page==='supply'&&!this.gift&&(reduced||now-this.wheel.started>=this.wheel.duration)){
+    if(this.wheel&&now-this.wheel.started>=this.wheel.duration)this.finishWheel();
+  }
+  finishWheel(){
+    if(this.wheel&&!this.wheel.shown&&this.page==='supply'&&!this.gift){
       const w=this.wheel;w.shown=true;this.gift={packs:{...w.packs},drops:[...(w.coins?[{coins:w.coins}]:[]),...(w.xp?[{xp:w.xp}]:[]),...Object.entries(w.items||{}).flatMap(([item,count])=>Array.from({length:count},()=>({item})))],opened:!Object.keys(w.packs).length};this.revision++;
     }
+  }
+  nudgeWheel(){
+    if(this.busy||this.viewing||this.pending||this.wheel&&!this.wheel.shown)return;
+    this.wheelNudgeAt=this.wheelPressAt=Date.now();this.revision++;
   }
   spin(){
     if(this.busy||this.viewing||this.pending||this.wheel&&!this.wheel.shown)return;

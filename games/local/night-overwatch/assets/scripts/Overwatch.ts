@@ -509,7 +509,8 @@ export class Overwatch extends Component {
       if(value==='giftClose')q.gift=undefined;
       if(value==='giftSkip'&&q.gift)q.gift.started=undefined;
       if(value==='infoClose')q.info='';
-      if(value==='wheelSkip'&&q.wheel)q.tickPresentation(true);
+      if(value==='wheelSkip')q.finishWheel();
+      if(value==='wheelNudge')q.nudgeWheel();
       if(value==='wheelSpin'||value==='wheelTap'){this.platform.play('wheel-click');void q.spin();}
       if(value==='wheelWatch')void q.watch(()=>this.platform.offerSupplyVideo(),'wheel');
       if(value==='giftWarehouse'){q.gift=undefined;q.show('warehouse');}

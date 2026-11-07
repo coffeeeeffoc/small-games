@@ -310,11 +310,10 @@ export class ProgressionView {
     for(const [width,tint]of [[11,'#edba5c12'],[6,'#edba5c28'],[2,'#e5bd71']] as const){glow.strokeColor=color(tint);glow.lineWidth=width;glow.circle(0,0,diameter*.505);glow.stroke();}
     for(let i=0;i<24;i++){const a=i*Math.PI/12;glow.fillColor=color(i%2===0?'#ffedb0':'#a8793e');glow.circle(Math.sin(a)*diameter*.505,Math.cos(a)*diameter*.505,Math.max(1.5,diameter*.007));glow.fill();}
     const shine=halo.addComponent(UIOpacity);shine.opacity=170;
-    if(!this.h.reducedEffects){
-      tween(shine).to(spinning?.3:.85,{opacity:255}).to(spinning?.3:.85,{opacity:120}).union().repeatForever().start();
-      if(spinning)tween(halo).by(2,{angle:-360}).repeatForever().start();
-      halo.once(Node.EventType.NODE_DESTROYED,()=>Tween.stopAllByTarget(shine));
-    }
+    const pulseTime=this.h.reducedEffects?1.2:spinning?.3:.85;
+    tween(shine).to(pulseTime,{opacity:this.h.reducedEffects?220:255}).to(pulseTime,{opacity:this.h.reducedEffects?160:100}).union().repeatForever().start();
+    if(spinning&&!this.h.reducedEffects)tween(halo).by(2,{angle:-360}).repeatForever().start();
+    halo.once(Node.EventType.NODE_DESTROYED,()=>Tween.stopAllByTarget(shine));
     const wheel=this.h.node('LuckyWheel',this.n);wheel.setPosition(cx-this.w/2,this.height/2-cyWheel);wheel.getComponent(UITransform)!.setContentSize(diameter,diameter);
     const frame=this.a.get('wheel');if(frame){const rim=this.h.node('WheelMetalRim',wheel),sprite=rim.addComponent(Sprite);sprite.spriteFrame=frame;sprite.sizeMode=Sprite.SizeMode.CUSTOM;rim.getComponent(UITransform)!.setContentSize(diameter,diameter);}
     const disk=this.h.node('WheelPlate',wheel).addComponent(Graphics);disk.fillColor=color('#a47c48');disk.circle(0,0,diameter*.463);disk.fill();
@@ -332,15 +331,16 @@ export class ProgressionView {
     for(const [radius,tint]of [[.15,'#72522b'],[.14,'#eed090'],[.126,'#b27d39'],[.113,'#163b55']] as const){core.fillColor=color(tint);core.circle(0,0,diameter*radius);core.fill();}
     core.strokeColor=color('#ffedbe');core.lineWidth=Math.max(1.5,diameter*.008);for(let j=0;j<=20;j++){const a=-Math.PI*.3+j*Math.PI*1.6/20,x=Math.sin(a)*diameter*.058,y=Math.cos(a)*diameter*.058;if(j===0)core.moveTo(x,y);else core.lineTo(x,y);}core.stroke();
     core.fillColor=color('#ffedbe');core.moveTo(-diameter*.075,-diameter*.012);core.lineTo(-diameter*.032,-diameter*.029);core.lineTo(-diameter*.058,-diameter*.06);core.close();core.fill();
-    const end=motion?wheelLandingAngle(motion.index,motion.startAngle):0,elapsed=motion&&!motion.shown?Math.max(0,Math.min(1,(Date.now()-motion.started)/motion.duration)):1;
+    const end=motion?wheelLandingAngle(motion.index,motion.startAngle)-(this.h.reducedEffects?1440:0):0,elapsed=motion&&!motion.shown?Math.max(0,Math.min(1,(Date.now()-motion.started)/motion.duration)):1;
     const traveled=wheelTravel(elapsed);wheel.angle=motion?motion.startAngle+(end-motion.startAngle)*traveled:0;
-    if(motion&&!motion.shown&&elapsed<1&&!this.h.reducedEffects)tween(wheel).to((motion.duration/1000)*(1-elapsed),{angle:end},{easing:t=>(wheelTravel(elapsed+t*(1-elapsed))-traveled)/Math.max(1e-9,1-traveled)}).start();
+    if(motion&&!motion.shown&&elapsed<1)tween(wheel).to((motion.duration/1000)*(1-elapsed),{angle:end},{easing:t=>(wheelTravel(elapsed+t*(1-elapsed))-traveled)/Math.max(1e-9,1-traveled)}).start();
+    if(!spinning&&Date.now()-q.wheelNudgeAt<400){const rest=wheel.angle,amount=this.h.reducedEffects?1:4;tween(wheel).to(.08,{angle:rest+amount}).to(.1,{angle:rest-amount*.7}).to(.1,{angle:rest+amount*.35}).to(.12,{angle:rest}).start();}
     const pointer=this.h.node('WheelPointer',this.n).addComponent(Graphics),px=cx-this.w/2,py=this.height/2-cyWheel+diameter*.51;
     pointer.fillColor=color('#fff1c2');pointer.strokeColor=color('#c18a3c');pointer.lineWidth=2;pointer.moveTo(px-7,py+7);pointer.lineTo(px+7,py+7);pointer.lineTo(px+5,py-3);pointer.lineTo(px,py-12);pointer.lineTo(px-5,py-3);pointer.close();pointer.fill();pointer.stroke();
     if(!spinning){const tap=this.h.button('qm:wheelTap','',cx-diameter/2,cyWheel-diameter/2,diameter,diameter,this.n);this.h.buttons.at(-1)!.disabled=q.busy||q.viewing||!!q.pending;tap.node.name='WheelTouchTarget';}
     if(Date.now()-q.wheelPressAt<450){
       const pulse=this.h.node('WheelPressPulse',this.n).addComponent(Graphics);pulse.strokeColor=color('#ffe5a2');pulse.lineWidth=7;pulse.circle(px,this.height/2-cyWheel,diameter*.47);pulse.stroke();
-      const opacity=pulse.node.addComponent(UIOpacity);if(!this.h.reducedEffects)tween(opacity).to(.4,{opacity:0}).start();
+      const opacity=pulse.node.addComponent(UIOpacity);opacity.opacity=this.h.reducedEffects?120:255;tween(opacity).to(.4,{opacity:0}).start();
     }
     this.label(this.t(`剩余次数 ${q.assets?.wheelTickets??0} · 今日视频 ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`,`SPINS ${q.assets?.wheelTickets??0} · VIDEOS ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`),rx+8,by-34,rw-16,30,26,gold,true);
     const bw=(rw-26)/2;

@@ -2,7 +2,7 @@
   "build": {
     "creator": "3.8.8",
     "target": "web-mobile",
-    "sourceHash": "47a4df1b01f0a6d57d41efb303fde4de18612778017504a6f2214751ebba7c33"
+    "sourceHash": "9867cdc426ae9dc2ca33d28f8de04afdaef7739fdb61ab784e5b67b4d9a453c2"
   },
   "environment": "Ordinary new guest via actual Sakura API; no asset fixture or fake result",
   "coins": 0,

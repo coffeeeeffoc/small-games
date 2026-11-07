@@ -25,8 +25,16 @@ test('wheel click without tickets gives feedback; a combined reward appears once
   online.assets.wheelTickets=1;
   online.assetCommand=async(command:any)=>{calls.push(command);online.assets.wheelTickets--;return {...online.assets,lastReceipt:{kind:'wheel-spin',prizeIndex:5,coins:60,xp:40,packs:{'pack:general:3':1},items:{'drone-24h':1}}};};
   await q.spin();await q.spin();assert.equal(calls.length,1);assert.equal(q.gift,undefined);
-  q.tickPresentation(true);assert.equal(q.gift?.packs['pack:general:3'],1);assert.deepEqual(q.gift?.drops,[{coins:60},{xp:40},{item:'drone-24h'}]);
+  q.tickPresentation(true);assert.equal(q.gift,undefined,'Reduced effects must not skip the spin');
+  q.wheel!.started-=WHEEL_DURATION;q.tickPresentation(true);assert.equal(q.gift?.packs['pack:general:3'],1);assert.deepEqual(q.gift?.drops,[{coins:60},{xp:40},{item:'drone-24h'}]);
   const gift=q.gift;q.tickPresentation(true);assert.equal(q.gift,gift);
+});
+test('wheel rim feedback never spends tickets and only an explicit skip reveals early',async()=>{
+  const {q,online,calls}=setup();q.syncIdentity();q.page='supply';const tickets=online.assets.wheelTickets;
+  q.nudgeWheel();assert(q.wheelNudgeAt>0);assert.equal(online.assets.wheelTickets,tickets);assert.equal(calls.length,0);
+  q.wheel={index:0,startAngle:0,started:Date.now(),duration:WHEEL_DURATION,shown:false,coins:120,packs:{}};
+  const revision=q.revision;q.nudgeWheel();assert.equal(q.revision,revision);q.tickPresentation();assert.equal(q.gift,undefined);
+  q.finishWheel();assert.deepEqual(q.gift?.drops,[{coins:120}]);assert.equal(q.wheel.shown,true);
 });
 test('asset retry retains one request ID across reload; confirmed rejection releases it',async()=>{
   const {q,online,storage,values,calls}=setup();

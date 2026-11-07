@@ -1,7 +1,7 @@
 {
-  "sourceHash": "47a4df1b01f0a6d57d41efb303fde4de18612778017504a6f2214751ebba7c33",
+  "sourceHash": "9867cdc426ae9dc2ca33d28f8de04afdaef7739fdb61ab784e5b67b4d9a453c2",
   "verified": "2026-11-07",
-  "environment": "Eight infantry sectors and text-free wheel; current 1080p ordinary-guest continuous combat capture via isolated real PostgreSQL/HTTP, three new screenshots and revised copy. Prior media retain their original capture identities. No platform upload or physical-device capture. Final 12-sector wheel is a frontend-only follow-up; combat media keep the prior capture hash.",
+  "environment": "Eight infantry sectors and text-free wheel; current 1080p ordinary-guest continuous combat capture via isolated real PostgreSQL/HTTP, three new screenshots and revised copy. Prior media retain their original capture identities. No platform upload or physical-device capture. Final 12-sector wheel is a frontend-only follow-up; combat media keep the prior capture hash. Wheel motion follow-up verifies normal and reduced-motion rendering; prior combat footage retains its capture identity.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",
@@ -464,8 +464,8 @@
       "path": "gameplay/screenshots/2026-11-07-army/supplies-1280.png",
       "bytes": 1219414,
       "sha256": "4d6eca5fbae27e560652a7670d896a9df4ebcb97206c1297357765104dca0226",
-      "capturedSourceHash": "47a4df1b01f0a6d57d41efb303fde4de18612778017504a6f2214751ebba7c33",
-      "verifiedForSourceHash": "47a4df1b01f0a6d57d41efb303fde4de18612778017504a6f2214751ebba7c33",
+      "capturedSourceHash": "9867cdc426ae9dc2ca33d28f8de04afdaef7739fdb61ab784e5b67b4d9a453c2",
+      "verifiedForSourceHash": "9867cdc426ae9dc2ca33d28f8de04afdaef7739fdb61ab784e5b67b4d9a453c2",
       "reusedUnchanged": false,
       "width": 1280,
       "height": 720,

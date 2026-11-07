@@ -309,6 +309,18 @@ test('fire press and hover feedback follow the circular trigger at every configu
  }
 });
 
+test('wheel face spins, rim nudges, and neither receives a rectangular hover or press outline',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;
+ const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+ online.authenticatedId='qa-pilot';online.assets=assetFixture();hud.online=online;hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster.page='supply';hud.update(sim,world);
+ const wheel=hud.buttons.find((b:any)=>b.id==='qm:wheelTap');assert(wheel);
+ for(const [dx,dy,id]of [[.5,.5,'qm:wheelTap'],[.96,.5,'qm:wheelNudge'],[.02,.02,'qm:wheelNudge']] as const){
+  const x=wheel.x+wheel.w*dx,y=wheel.y+wheel.h*dy;assert.equal(hud.hit(x,y)?.id,id);
+  for(const pressed of [false,true]){hud.pressedButton=pressed?id:'';hud.mousePointer={x,y};hud.globalGraphics.clear();hud.buttonFeedback();assert.equal(hud.globalGraphics.calls.length,0);}
+ }
+ wheel.disabled=true;assert.equal(hud.hit(wheel.x+wheel.w*.96,wheel.y+wheel.h*.5),undefined);
+});
+
 test('storage diagnostics remain readable and scrollable above a reachable close action on phones',()=>{
  for(const [width,height]of [[568,320],[844,390],[1280,720]]){
   Object.assign(frame,{width,height});inset=12;const hud=new HUD(new SceneNode()),sim=new Simulation();hud.missionsOpen=true;

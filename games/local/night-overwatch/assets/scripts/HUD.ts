@@ -610,6 +610,8 @@ export class HUD {
         : undefined;
     if (
       !button ||
+      button.id === 'qm:wheelTap' ||
+      button.id === 'qm:wheelNudge' ||
       button.disabled ||
       !button.label.node.activeInHierarchy ||
       (this.modal && button.label.node.parent !== this.modal && !this.isGlobalAction(button.id))
@@ -751,7 +753,7 @@ export class HUD {
   }
   hit(x: number, y: number, includeDisabled = false) {
     const buttons = [...this.buttons].reverse();
-    return [
+    const hit = [
       ...buttons.filter((button) => this.isGlobalAction(button.id)),
       ...buttons.filter((button) => !this.isGlobalAction(button.id)),
     ].find(
@@ -769,6 +771,9 @@ export class HUD {
         button.label.node.activeInHierarchy &&
         (!this.modal || this.inModal(button.label.node) || this.isGlobalAction(button.id)),
     );
+    if (hit?.id === 'qm:wheelTap' && Math.hypot(x - hit.x - hit.w / 2, y - hit.y - hit.h / 2) > hit.w * .43)
+      return { ...hit, id: 'qm:wheelNudge' };
+    return hit;
   }
   blocksBattlefield(x: number, y: number, ignorePriority = false) {
     const map = this.minimapLayout;
