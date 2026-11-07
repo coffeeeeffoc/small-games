@@ -334,7 +334,7 @@ export class ProgressionView {
     const end=motion?wheelLandingAngle(motion.index,motion.startAngle)-(this.h.reducedEffects?1440:0):0,elapsed=motion&&!motion.shown?Math.max(0,Math.min(1,(Date.now()-motion.started)/motion.duration)):1;
     const traveled=wheelTravel(elapsed);wheel.angle=motion?motion.startAngle+(end-motion.startAngle)*traveled:0;
     if(motion&&!motion.shown&&elapsed<1)tween(wheel).to((motion.duration/1000)*(1-elapsed),{angle:end},{easing:t=>(wheelTravel(elapsed+t*(1-elapsed))-traveled)/Math.max(1e-9,1-traveled)}).start();
-    if(!spinning&&Date.now()-q.wheelNudgeAt<400){const rest=wheel.angle,amount=this.h.reducedEffects?1:4;tween(wheel).to(.08,{angle:rest+amount}).to(.1,{angle:rest-amount*.7}).to(.1,{angle:rest+amount*.35}).to(.12,{angle:rest}).start();}
+    if(!spinning&&Date.now()-q.wheelNudgeAt<660){const rest=wheel.angle,amount=this.h.reducedEffects?4:10;tween(wheel).to(.14,{angle:rest+amount},{easing:'quadOut'}).to(.18,{angle:rest-amount*.6},{easing:'sineInOut'}).to(.16,{angle:rest+amount*.25},{easing:'sineInOut'}).to(.18,{angle:rest},{easing:'sineOut'}).start();}
     const pointer=this.h.node('WheelPointer',this.n).addComponent(Graphics),px=cx-this.w/2,py=this.height/2-cyWheel+diameter*.51;
     pointer.fillColor=color('#fff1c2');pointer.strokeColor=color('#c18a3c');pointer.lineWidth=2;pointer.moveTo(px-7,py+7);pointer.lineTo(px+7,py+7);pointer.lineTo(px+5,py-3);pointer.lineTo(px,py-12);pointer.lineTo(px-5,py-3);pointer.close();pointer.fill();pointer.stroke();
     if(!spinning){const tap=this.h.button('qm:wheelTap','',cx-diameter/2,cyWheel-diameter/2,diameter,diameter,this.n);this.h.buttons.at(-1)!.disabled=q.busy||q.viewing||!!q.pending;tap.node.name='WheelTouchTarget';}

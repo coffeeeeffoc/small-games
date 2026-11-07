@@ -1,7 +1,7 @@
 {
-  "sourceHash": "9867cdc426ae9dc2ca33d28f8de04afdaef7739fdb61ab784e5b67b4d9a453c2",
+  "sourceHash": "9e8a9d3a6f4e264e33ab6f6e8e4324ba140028e91c192e2401cb8bb5c9378851",
   "verified": "2026-11-07",
-  "environment": "Eight infantry sectors and text-free wheel; current 1080p ordinary-guest continuous combat capture via isolated real PostgreSQL/HTTP, three new screenshots and revised copy. Prior media retain their original capture identities. No platform upload or physical-device capture. Final 12-sector wheel is a frontend-only follow-up; combat media keep the prior capture hash. Wheel motion follow-up verifies normal and reduced-motion rendering; prior combat footage retains its capture identity.",
+  "environment": "Eight infantry sectors and text-free wheel; current 1080p ordinary-guest continuous combat capture via isolated real PostgreSQL/HTTP, three new screenshots and revised copy. Prior media retain their original capture identities. No platform upload or physical-device capture. Final 12-sector wheel is a frontend-only follow-up; combat media keep the prior capture hash. Wheel motion follow-up verifies normal and reduced-motion rendering; prior combat footage retains its capture identity. Zero-ticket click feedback was verified through actual Sakura guest touch input and a separate QA recording.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",

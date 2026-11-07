@@ -26,7 +26,7 @@ try{
   const rim=await page.evaluate(()=>{const s=__night.snapshot(),b=s.buttons.find(b=>b.id==='qm:wheelTap'),r=document.querySelector('canvas').getBoundingClientRect();return{x:r.left+(b.x+b.w*.96)/s.ui.width*r.width,y:r.top+(b.y+b.h*.5)/s.ui.height*r.height};});
   if(touch)await page.touchscreen.tap(rim.x,rim.y);else await page.mouse.click(rim.x,rim.y);
   await page.waitForTimeout(65);const nudge=await wheel();assert(Math.abs(nudge.angle)>.1,'rim click rocks the wheel');await shot('nudge');
-  await page.waitForTimeout(450);assert(Math.abs((await wheel()).angle)<.01);assert.equal((await snapshot(page)).progression.assets.wheelTickets,2);assert.equal((await snapshot(page)).progression.gift,undefined);
+  await page.waitForTimeout(700);assert(Math.abs((await wheel()).angle)<.01);assert.equal((await snapshot(page)).progression.assets.wheelTickets,2);assert.equal((await snapshot(page)).progression.gift,undefined);
   const idle=[];for(let i=0;i<5;i++){idle.push((await wheel()).halo);await page.waitForTimeout(600);}assert(Math.max(...idle)-Math.min(...idle)>30,'halo keeps pulsing across cycles');
   const spins=[];
   for(const index of [1,5]){
@@ -35,8 +35,17 @@ try{
    await page.waitForFunction(()=>__night.snapshot().progression.gift,null,{timeout:10000});const duration=Date.now()-started;if(index===1)assert(duration>=4800,'natural reveal waits for the full animation');spins.push({index,angles,duration,skipped:index===5});const gift=(await snapshot(page)).progression.gift;assert(gift.drops.some(d=>d.item=== (index===1?'fragment:weapon':'drone-24h')));await shot('reward-'+index);
    await click('qm:giftClose');state=await wheel();assert(Math.abs(((15+index*60-state.angle)%360+360)%360)<.1);await shot('landed-'+index);
   }
-  await click('qm:wheelTap');assert.match((await snapshot(page)).progression.message[0],/视频/);assert.equal((await snapshot(page)).progression.assets.wheelTickets,0);await shot('no-ticket');
-  await click('info:wheel');const texts=await page.evaluate(async()=>{const{director,Label}=await System.import('cc');return director.getScene().getComponentsInChildren(Label).filter(l=>l.node.activeInHierarchy).map(l=>l.string);});assert(texts.some(t=>t.includes('28%')));assert(texts.some(t=>t.includes('24小时')));await click('qm:infoClose');assert.deepEqual(errors,[]);evidence.push({width,height,reducedMotion,nudgeAngle:nudge.angle,idle,spins,errors});await context.close();
+  const emptyClicks=[];
+  for(const id of ['qm:wheelTap','qm:wheelSpin']){
+   const rest=(await wheel()).angle,point=await page.evaluate(id=>{const s=__night.snapshot(),b=s.buttons.find(b=>b.id===id),r=document.querySelector('canvas').getBoundingClientRect();return{x:r.left+(b.x+b.w*.5)/s.ui.width*r.width,y:r.top+(b.y+b.h*.5)/s.ui.height*r.height};},id);
+   if(touch)await page.touchscreen.tap(point.x,point.y);else await page.mouse.click(point.x,point.y);
+   const angles=[];
+   for(let i=0;i<8;i++){angles.push((await wheel()).angle-rest);await page.waitForTimeout(80);}
+   assert(Math.max(...angles)>1&&Math.min(...angles)<-1,`empty-ticket click rotates and swings back: ${width} ${reducedMotion} ${id} ${angles}`);await page.waitForTimeout(150);assert(Math.abs((await wheel()).angle-rest)<.01,'empty-ticket click restores the original angle');
+   const s=await snapshot(page);assert.match(s.progression.message[0],/视频/);assert.equal(s.progression.assets.wheelTickets,0);assert.equal(s.progression.gift,undefined);emptyClicks.push({id,angles});
+  }
+  await shot('no-ticket');
+  await click('info:wheel');const texts=await page.evaluate(async()=>{const{director,Label}=await System.import('cc');return director.getScene().getComponentsInChildren(Label).filter(l=>l.node.activeInHierarchy).map(l=>l.string);});assert(texts.some(t=>t.includes('28%')));assert(texts.some(t=>t.includes('24小时')));await click('qm:infoClose');assert.deepEqual(errors,[]);evidence.push({width,height,reducedMotion,nudgeAngle:nudge.angle,idle,spins,emptyClicks,errors});await context.close();
  }
 }finally{await browser.close();}
 await writeFile(new URL('motion.json',out),JSON.stringify({sourceHash:process.env.NIGHT_EXPECTED_SOURCE_HASH,scenarios:evidence},null,2)+'\n');

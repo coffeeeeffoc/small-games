@@ -21,7 +21,7 @@ test('wheel accelerates, cruises and spends 2.6 seconds slowing to the exact res
 
 test('wheel click without tickets gives feedback; a combined reward appears once after spinning',async()=>{
   const {q,online,calls}=setup();q.syncIdentity();q.page='supply';online.assets.wheelTickets=0;
-  await q.spin();assert(q.wheelPressAt>0);assert.match(q.message[0],/视频/);assert.equal(calls.length,0);
+  await q.spin();assert(q.wheelNudgeAt>0);assert.equal(q.wheelPressAt,q.wheelNudgeAt);assert.match(q.message[0],/视频/);assert.equal(calls.length,0);
   online.assets.wheelTickets=1;
   online.assetCommand=async(command:any)=>{calls.push(command);online.assets.wheelTickets--;return {...online.assets,lastReceipt:{kind:'wheel-spin',prizeIndex:5,coins:60,xp:40,packs:{'pack:general:3':1},items:{'drone-24h':1}}};};
   await q.spin();await q.spin();assert.equal(calls.length,1);assert.equal(q.gift,undefined);

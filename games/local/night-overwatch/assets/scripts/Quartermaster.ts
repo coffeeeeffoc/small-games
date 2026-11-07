@@ -154,7 +154,7 @@ export class Quartermaster {
   }
   spin(){
     if(this.busy||this.viewing||this.pending||this.wheel&&!this.wheel.shown)return;
-    this.wheelPressAt=Date.now();this.revision++;
+    this.nudgeWheel();
     if(!this.assets?.wheelTickets){this.message=['看视频获得1次抽奖次数','Watch a video to get 1 spin.'];return;}
     return this.execute({kind:'wheel-spin'});
   }
