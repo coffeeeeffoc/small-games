@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import {
   CONTROL_GAME_IDS,
   controlSnapshotDigest,
@@ -134,6 +134,58 @@ it('uses env only at version zero, applies a precise version, and heartbeats aft
     false,
   );
 });
+it('batches concurrent CORS requests before their transaction and reads again after publication', async () => {
+  const f = fixture();
+  f.publish();
+  const transaction = vi.spyOn(f.database, 'transaction');
+  const policies = await Promise.all(Array.from({ length: 48 }, () => f.control.publicCors()));
+  expect(policies.every((policy) => policy.origins[0] === 'https://published.example')).toBe(true);
+  expect(transaction).toHaveBeenCalledTimes(1);
+  f.publish(2);
+  f.origins([]);
+  expect((await f.control.publicCors()).origins).toEqual([]);
+  expect(transaction).toHaveBeenCalledTimes(2);
+});
+
+it('never joins a CORS snapshot after its transaction has started or lets old completion clear the next batch', async () => {
+  const f = fixture();
+  f.publish();
+  let entered!: () => void, finish!: () => void, startNext!: () => void;
+  const committed = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+  const finishOld = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  const nextReady = new Promise<void>((resolve) => {
+    startNext = resolve;
+  });
+  const original = f.database.transaction.bind(f.database);
+  const transaction = vi.spyOn(f.database, 'transaction');
+  transaction.mockImplementationOnce(async (work) => {
+    const result = await original(work);
+    entered();
+    await finishOld;
+    return result;
+  });
+  transaction.mockImplementationOnce(async (work) => {
+    await nextReady;
+    return original(work);
+  });
+  const old = f.control.publicCors();
+  await committed;
+  f.publish(2);
+  f.origins([]);
+  const next = f.control.publicCors();
+  expect(next).not.toBe(old);
+  finish();
+  expect((await old).origins).toEqual(['https://published.example']);
+  expect(f.control.publicCors()).toBe(next);
+  startNext();
+  expect((await next).origins).toEqual([]);
+  expect(transaction).toHaveBeenCalledTimes(2);
+});
+
 it('restores the caller timeout settings only after successful bounded control reads', async () => {
   for (const [statement, lock] of [
     ['5s', '750ms'],
@@ -159,12 +211,17 @@ it('restores the caller timeout settings only after successful bounded control r
   ).rejects.toMatchObject({ code: 'CONTROL_UNAVAILABLE' });
   expect(late.queries.some((q) => q.params[0] === '5s')).toBe(false);
 });
-it('shrinks each SQL budget and memoizes observations only after successful commit', async () => {
+it('shrinks each SQL budget, rejects the failed batch and memoizes observations only after successful commit', async () => {
   const f = fixture();
   f.publish();
   f.queryDelay(50);
   f.failCommit(true);
-  await expect(f.control.publicCors()).rejects.toMatchObject({ code: 'CONTROL_UNAVAILABLE' });
+  const failed = await Promise.allSettled(Array.from({ length: 48 }, () => f.control.publicCors()));
+  expect(
+    failed.every(
+      (result) => result.status === 'rejected' && result.reason.code === 'CONTROL_UNAVAILABLE',
+    ),
+  ).toBe(true);
   f.failCommit(false);
   await f.control.publicCors();
   const observations = f.queries.filter((q) =>
@@ -196,6 +253,8 @@ it('counts lock wait in its two-second budget and never falls back after errors 
   ).toBe(true);
   const broken = fixture();
   broken.publish();
+  await broken.control.publicCors();
+  broken.queries.length = 0;
   broken.breakDigest();
   await expect(broken.control.publicCors()).rejects.toMatchObject({ code: 'CONTROL_UNAVAILABLE' });
   expect(broken.queries.some((q) => q.sql.includes('insert into'))).toBe(false);

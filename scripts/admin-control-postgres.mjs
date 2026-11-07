@@ -516,6 +516,21 @@ try {
     owner,
     runtime,
     checked,
+    async publishOrigins(apiOrigins) {
+      const current = await service.state(active);
+      const draft = await service.draft(active, {
+        expectedVersion: current.version,
+        snapshot: {
+          apiOrigins,
+          games: Object.fromEntries(
+            current.policies.map((policy) => [policy.gameId, policy.state]),
+          ),
+        },
+        reason: 'isolated concurrent CORS revocation regression',
+      });
+      await service.publish(active, draft.id, current.version);
+      state = await service.state(active);
+    },
   });
   step('competition-identity-FK-board-lock-order');
   receipt.identityLocks = await verifyCompetitionIdentityLocks({ owner, checked });
@@ -535,7 +550,7 @@ try {
     createControlStore(management.db),
     'https://admin.example.test',
   );
-  assert.equal((await restarted.state(active)).version, 5);
+  assert.equal((await restarted.state(active)).version, state.version);
   assert.equal((await restarted.members(active)).filter((member) => member.active).length, 1);
   assert.equal(sentinel(), beforeSentinel);
   psql(tetracubeMigration);

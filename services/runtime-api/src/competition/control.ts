@@ -38,6 +38,7 @@ export function createCompetitionControl(
   if (!instanceId || instanceId.length > 128 || /[\p{Cc}]/u.test(instanceId)) throw unavailable();
   let reported: string | undefined;
   let reportedAt = 0;
+  let queuedCors: Promise<CorsPolicy> | undefined;
   function budget(started = now()) {
     return () => {
       const remaining = Math.floor(started + 2000 - now());
@@ -220,18 +221,27 @@ export function createCompetitionControl(
       };
     });
   }
-  async function publicCors() {
-    try {
-      const applied = await database.transaction(async (tx, remaining) => {
-        const publication = await projection(tx, remaining);
-        const committed = await appendObservation(tx, remaining, publication);
-        return { policy: publication.policy, committed };
-      });
-      applied.committed?.();
-      return applied.policy;
-    } catch {
-      throw unavailable();
-    }
+  function publicCors() {
+    if (queuedCors) return queuedCors;
+    const batch: Promise<CorsPolicy> = Promise.resolve().then(async () => {
+      try {
+        const applied = await database.transaction(async (tx, remaining) => {
+          // Seal this batch before reading: later requests must observe subsequent publications.
+          if (queuedCors === batch) queuedCors = undefined;
+          const publication = await projection(tx, remaining);
+          const committed = await appendObservation(tx, remaining, publication);
+          return { policy: publication.policy, committed };
+        });
+        applied.committed?.();
+        return applied.policy;
+      } catch {
+        throw unavailable();
+      } finally {
+        if (queuedCors === batch) queuedCors = undefined;
+      }
+    });
+    queuedCors = batch;
+    return batch;
   }
   async function observeKart(input: { version: number; digest: string; instanceId: string }) {
     return database.transaction(async (tx, remaining) => {

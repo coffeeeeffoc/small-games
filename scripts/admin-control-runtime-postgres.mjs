@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { randomUUID, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
-import { CONTROL_GAME_IDS, openControlDatabase } from '@coffeeeeffoc/service-kit';
+import {
+  CONTROL_GAME_IDS,
+  createService,
+  openControlDatabase,
+  registerCors,
+} from '@coffeeeeffoc/service-kit';
 import { createCompetitionControl } from '../services/runtime-api/dist/competition/control.js';
 import { assertStoredPlayerGame } from '../services/runtime-api/dist/competition/auth.js';
 
@@ -184,7 +189,10 @@ export async function verifyCompetitionIdentityLocks({ owner, checked }) {
   };
 }
 /** Runs only inside the caller's fresh labelled fixture, with its existing Runtime role. */
-export async function verifyRuntimeControl({ url, owner, runtime, checked }) {
+export async function verifyRuntimeControl({ url, owner, runtime, checked, publishOrigins }) {
+  const concurrentCors = await verifyConcurrentCors(url, publishOrigins);
+  checked('runtime-control-48-concurrent-http-cors-requests-without-503');
+  checked('runtime-control-cors-revocation-after-commit-before-result-delivery');
   const database = openControlDatabase(url);
   const instanceId = `bounded-${randomUUID()}`;
   const control = createCompetitionControl(
@@ -270,7 +278,11 @@ export async function verifyRuntimeControl({ url, owner, runtime, checked }) {
     let elapsed;
     try {
       const start = performance.now();
-      const rejected = assert.rejects(control.publicCors(), { code: 'CONTROL_UNAVAILABLE' });
+      const rejected = Promise.all(
+        Array.from({ length: 48 }, () =>
+          assert.rejects(control.publicCors(), { code: 'CONTROL_UNAVAILABLE' }),
+        ),
+      );
       let readerPid;
       while (!readerPid && performance.now() - start < 1200) {
         const rows = await owner.db.execute(sql`select pid from pg_stat_activity
@@ -374,15 +386,19 @@ export async function verifyRuntimeControl({ url, owner, runtime, checked }) {
     });
     const activeRejected = assert.rejects(active);
     await queueEntered.promise;
-    const waiting = Array.from({ length: 5 }, () =>
+    const waiting = Array.from({ length: 4 }, () =>
       assert.rejects(database.transaction((tx) => tx.execute(sql`select 1`))),
     );
+    const corsWaiting = Array.from({ length: 48 }, () =>
+      assert.rejects(control.publicCors(), { code: 'CONTROL_UNAVAILABLE' }),
+    );
+    await Promise.resolve();
     await assert.rejects(
       database.transaction((tx) => tx.execute(sql`select 1`)),
       /CONTROL_UNAVAILABLE/,
     );
     database.close();
-    await Promise.all([activeRejected, ...waiting]);
+    await Promise.all([activeRejected, ...waiting, ...corsWaiting]);
     queueRelease.resolve();
     await queueDone.promise;
     await assert.rejects(
@@ -407,12 +423,101 @@ export async function verifyRuntimeControl({ url, owner, runtime, checked }) {
         .update(await readFile(new URL(path, import.meta.url)))
         .digest('hex');
     return {
+      concurrentCors,
       observationLockMs: Math.round(elapsed),
       commitInFlight: 'unknown-no-rollback-guarantee',
       sourceSha256,
       executedModuleSha256,
     };
   } finally {
+    control.close();
+  }
+}
+
+async function verifyConcurrentCors(url, publishOrigins) {
+  const database = openControlDatabase(url);
+  const control = createCompetitionControl(database, {
+    origins: [],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    headers: ['authorization', 'content-type'],
+    credentials: false,
+    maxAge: 600,
+  });
+  const app = createService('runtime', {}, false);
+  registerCors(app, () => control.publicCors(), undefined, 'preValidation');
+  app.get('/probe', async () => ({ ok: true }));
+  const latencies = [],
+    statuses = {};
+  try {
+    await app.listen({ host: '127.0.0.1', port: 0 });
+    const address = app.server.address();
+    const endpoint = `http://127.0.0.1:${address.port}/probe`;
+    for (let batch = 0; batch < 3; batch++) {
+      const responses = await Promise.all(
+        Array.from({ length: 48 }, async (_, index) => {
+          const started = performance.now();
+          const response = await fetch(endpoint, {
+            headers: {
+              origin: 'http://localhost:8080',
+              ...(index % 2 ? { authorization: 'Bearer cors-probe-only' } : {}),
+            },
+            signal: AbortSignal.timeout(5000),
+          });
+          const body = await response.json();
+          latencies.push(performance.now() - started);
+          statuses[response.status] = (statuses[response.status] ?? 0) + 1;
+          return { status: response.status, body };
+        }),
+      );
+      assert(
+        responses.every(({ status, body }) => status === 200 && body.ok === true),
+        `healthy control reads must admit every concurrent CORS probe: ${JSON.stringify(statuses)}`,
+      );
+    }
+    const entered = barrier(),
+      release = barrier();
+    const transaction = database.transaction.bind(database);
+    database.transaction = async (work) => {
+      database.transaction = transaction;
+      const result = await transaction(work);
+      entered.resolve();
+      await release.promise;
+      return result;
+    };
+    const oldRequest = fetch(endpoint, {
+      headers: { origin: 'http://localhost:8080' },
+      signal: AbortSignal.timeout(5000),
+    });
+    try {
+      await Promise.race([
+        entered.promise,
+        oldRequest.then(() => assert.fail('old request finished before its commit barrier')),
+      ]);
+      await publishOrigins([]);
+      const response = await fetch(endpoint, {
+        headers: { origin: 'http://localhost:8080' },
+        signal: AbortSignal.timeout(5000),
+      });
+      assert.equal(response.status, 403, 'later HTTP must observe committed origin revocation');
+      assert.equal(response.headers.get('access-control-allow-origin'), null);
+      await response.arrayBuffer();
+    } finally {
+      release.resolve();
+      const response = await oldRequest;
+      assert.equal(response.status, 200);
+      await response.arrayBuffer();
+      await publishOrigins(['http://localhost:8080']);
+    }
+    latencies.sort((a, b) => a - b);
+    return {
+      requests: latencies.length,
+      concurrency: 48,
+      statuses,
+      p95Ms: Math.round(latencies[Math.floor(latencies.length * 0.95)]),
+      committedRevocation: '403-before-old-response-delivery',
+    };
+  } finally {
+    await app.close();
     control.close();
   }
 }
