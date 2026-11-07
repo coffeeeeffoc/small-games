@@ -1,7 +1,7 @@
 {
-  "sourceHash": "9e8a9d3a6f4e264e33ab6f6e8e4324ba140028e91c192e2401cb8bb5c9378851",
+  "sourceHash": "925572c14809cf36c777a971ee87bd9ad60b0cb45bae9991ba0b8e124c1da638",
   "verified": "2026-11-07",
-  "environment": "Eight infantry sectors and text-free wheel; current 1080p ordinary-guest continuous combat capture via isolated real PostgreSQL/HTTP, three new screenshots and revised copy. Prior media retain their original capture identities. No platform upload or physical-device capture. Final 12-sector wheel is a frontend-only follow-up; combat media keep the prior capture hash. Wheel motion follow-up verifies normal and reduced-motion rendering; prior combat footage retains its capture identity. Zero-ticket click feedback was verified through actual Sakura guest touch input and a separate QA recording.",
+  "environment": "Eight infantry sectors and text-free wheel; current 1080p ordinary-guest continuous combat capture via isolated real PostgreSQL/HTTP, three new screenshots and revised copy. Prior media retain their original capture identities. No platform upload or physical-device capture. Final 12-sector wheel is a frontend-only follow-up; combat media keep the prior capture hash. Wheel motion follow-up verifies normal and reduced-motion rendering; prior combat footage retains its capture identity. Zero-ticket click feedback was verified through actual Sakura guest touch input and a separate QA recording. High-speed spin and ad wording follow-up: current supply screenshot and introduction updated; prior recordings retain capture identities.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",
@@ -169,10 +169,10 @@
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 4791,
-      "sha256": "02494fa37c730bc5453015b5f64f3eb06fbeb0228141855f52d2a7eb97f26de1",
-      "verifiedForSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
-      "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
+      "bytes": 4793,
+      "sha256": "16e3d55b5ebf0b4d30863ae45e68ef9ffbb650a8a3638afa836addb5505c4be7",
+      "verifiedForSourceHash": "925572c14809cf36c777a971ee87bd9ad60b0cb45bae9991ba0b8e124c1da638",
+      "capturedSourceHash": "925572c14809cf36c777a971ee87bd9ad60b0cb45bae9991ba0b8e124c1da638",
       "reusedUnchanged": false
     },
     {
@@ -462,10 +462,10 @@
     },
     {
       "path": "gameplay/screenshots/2026-11-07-army/supplies-1280.png",
-      "bytes": 1219414,
-      "sha256": "4d6eca5fbae27e560652a7670d896a9df4ebcb97206c1297357765104dca0226",
-      "capturedSourceHash": "9867cdc426ae9dc2ca33d28f8de04afdaef7739fdb61ab784e5b67b4d9a453c2",
-      "verifiedForSourceHash": "9867cdc426ae9dc2ca33d28f8de04afdaef7739fdb61ab784e5b67b4d9a453c2",
+      "bytes": 1217067,
+      "sha256": "31171782ba9ee4d934b4e5a494644ec9b18fd3b7583fad2adaa30525511987ea",
+      "capturedSourceHash": "925572c14809cf36c777a971ee87bd9ad60b0cb45bae9991ba0b8e124c1da638",
+      "verifiedForSourceHash": "925572c14809cf36c777a971ee87bd9ad60b0cb45bae9991ba0b8e124c1da638",
       "reusedUnchanged": false,
       "width": 1280,
       "height": 720,

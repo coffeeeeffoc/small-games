@@ -6,8 +6,9 @@ export type ProgressionPage = ''|'modes'|'loadout'|'shop'|'supply'|'growth'|'tas
 type NavigationState = Pick<Quartermaster,'page'|'section'|'index'|'detail'|'selected'|'item'|'amount'|'term'|'shopCategory'|'mode'|'slot'|'loadoutScroll'|'scrolls'|'selectedMail'|'selectedSkill'>;
 type IntentStorage = Pick<Storage,'getItem'|'setItem'|'removeItem'> & {flush?:()=>Promise<void>};
 /** Twelve visual sectors; each of the six reward groups lands in an alternating sector. */
-export const wheelLandingAngle=(index:number,start=0)=>start+360*5+((15+index*60-start%360+360)%360);
+export const wheelLandingAngle=(index:number,start=0,turns=18)=>start+360*turns+((15+index*60-start%360+360)%360);
 export const WHEEL_DURATION=4800;
+export const WHEEL_PREVIEW_DURATION=2000;
 /** Integrate speed: 0.6s acceleration, 1.6s cruise, 2.6s gradual braking. */
 export function wheelTravel(progress:number){
   const t=Math.max(0,Math.min(1,progress))*4.8,area=.3+1.6+2.6/3;
@@ -21,11 +22,11 @@ const errors:Record<string,[string,string]>={
   INSUFFICIENT_INVENTORY:['库存不足或已被对局预留','Not enough available stock. Some items may be reserved.'],
   INSUFFICIENT_FRAGMENTS:['碎片不足，通关或完成有效对战可获得','Not enough fragments. Complete levels or eligible duels.'],
   ALREADY_OWNED:['已永久拥有此资格','Already permanently owned.'],ALREADY_CLAIMED:['已经领取，请刷新查看','Already claimed. Refresh to see the result.'],
-  DAILY_VIDEO_LIMIT:['今日视频额度已用完，明日可继续原订单','Daily video limit reached. Continue this order tomorrow.'],
+  DAILY_VIDEO_LIMIT:['今日广告额度已用完，明日可继续原订单','Daily ad limit reached. Continue this order tomorrow.'],
   INVALID_AD_ATTEMPT:['观看确认已过期，请重新观看本段','Video confirmation expired. Please watch this segment again.'],
-  AD_IN_PROGRESS:['已有视频正在播放，请结束后再继续观看','A video is already playing. Finish or close it before continuing.'],
-  DAILY_WHEEL_LIMIT:['今日转盘视频已达上限，明日可继续；已有次数仍可使用','Today’s wheel video limit is reached. Saved spins remain available.'],
-  NO_WHEEL_TICKETS:['先完整观看一次视频，即可获得一次抽奖','Complete one video to earn a spin.'],
+  AD_IN_PROGRESS:['已有广告正在播放，请结束后再继续观看','An ad is already playing. Finish or close it before continuing.'],
+  DAILY_WHEEL_LIMIT:['今日转盘广告已达上限，明日可继续；已有次数仍可使用','Today’s wheel ad limit is reached. Saved spins remain available.'],
+  NO_WHEEL_TICKETS:['先完整观看一次广告，即可获得一次抽奖','Complete one ad to earn a spin.'],
   LEVEL_LOCKED:['等级尚未解锁这件物资','Reach the required level to unlock this item.'],
   NOT_CLAIMABLE:['条件尚未完成或奖励已领取','Not complete or already claimed.'],
   INVALID_LOADOUT:['方案最多2个改装、1个武器、1个技能，同效果不能重复','Use at most 2 mods, 1 weapon and 1 skill, with no duplicate effects.'],
@@ -42,6 +43,7 @@ export class Quartermaster {
   wheel?:{index:number;startAngle:number;started:number;duration:number;shown:boolean;coins:number;xp?:number;items?:Record<string,number>;packs:Record<string,number>};
   wheelPressAt=0;
   wheelNudgeAt=0;
+  wheelPreviewAt=0;
   slot:LoadoutSlot='mod:0'; loadoutScroll=0; loadoutScrollMax=0;
   loadoutArea={x:0,y:0,w:0,h:0};
   drafts:Partial<Record<'solo'|'duel',Loadout>>={}; private modDrafts:Partial<Record<'solo'|'duel',Array<string|null>>>={}; leaveTo?:ProgressionPage;
@@ -131,7 +133,7 @@ export class Quartermaster {
   syncIdentity(){
     const id=this.online.authenticatedId;
     if(id===this.owner)return;
-    this.owner=id;this.adReady=undefined;this.pending=undefined;this.drafts={};this.modDrafts={};this.gift=undefined;this.wheel=undefined;this.leaveTo=undefined;this.message=['',''];this.confirmation=undefined;this.selectedMail='';this.info='';this.navigation=[];this.scrolls={};this.externalReturn='';this.revision++;
+    this.owner=id;this.adReady=undefined;this.pending=undefined;this.drafts={};this.modDrafts={};this.gift=undefined;this.wheel=undefined;this.wheelPreviewAt=0;this.leaveTo=undefined;this.message=['',''];this.confirmation=undefined;this.selectedMail='';this.info='';this.navigation=[];this.scrolls={};this.externalReturn='';this.revision++;
     if(!id)return;
     try{const value=JSON.parse(this.storage.getItem(this.key())||'null');if(value?.requestId&&value?.kind)this.pending=value;}catch{/* Corrupt local intent cannot alter server assets. */}
     this.allowDeveloperIntent();
@@ -139,6 +141,7 @@ export class Quartermaster {
   show(page:ProgressionPage,push=true){if(page!=='supply'&&this.wheel&&!this.wheel.shown){this.wheel.shown=true;this.wheel.started=0;}if(push&&page!==this.page)this.navigation.push(this.capture());this.page=page;this.leaveTo=undefined;this.leavingBack=false;this.drag=undefined;this.section=page==='growth'?'base':'';this.index=0;this.detail=false;this.info='';this.scrolls={};this.confirmation=undefined;this.message=['',''];this.revision++;if(page&&page!=='modes')void this.refresh().then(()=>{if(this.page==='inbox'&&this.section!=='news'){const mail=this.assets?.mail.find(m=>m.id===this.selectedMail)||this.assets?.mail[0];if(mail){this.selectedMail=mail.id;this.revision++;if(!mail.read)void this.execute({kind:'read-mail',mailId:mail.id});}}});}
   tickPresentation(reduced=false){
     const now=Date.now();
+    if(this.wheelPreviewAt&&now-this.wheelPreviewAt>=WHEEL_PREVIEW_DURATION){this.wheelPreviewAt=0;this.revision++;}
     if(this.gift?.started&&!this.gift.illuminated&&now-this.gift.started>(this.gift.duration||1600)*.3){this.gift.illuminated=true;this.revision++;}
     if(this.gift?.started&&(reduced||now-this.gift.started>=(this.gift.duration||1600))){this.gift.started=undefined;this.revision++;}
     if(this.wheel&&now-this.wheel.started>=this.wheel.duration)this.finishWheel();
@@ -149,13 +152,13 @@ export class Quartermaster {
     }
   }
   nudgeWheel(){
-    if(this.busy||this.viewing||this.pending||this.wheel&&!this.wheel.shown)return;
+    if(this.busy||this.viewing||this.pending||this.wheelPreviewAt||this.wheel&&!this.wheel.shown)return;
     this.wheelNudgeAt=this.wheelPressAt=Date.now();this.revision++;
   }
   spin(){
-    if(this.busy||this.viewing||this.pending||this.wheel&&!this.wheel.shown)return;
-    this.nudgeWheel();
-    if(!this.assets?.wheelTickets){this.message=['看视频获得1次抽奖次数','Watch a video to get 1 spin.'];return;}
+    if(this.busy||this.viewing||this.pending||this.wheelPreviewAt||this.wheel&&!this.wheel.shown)return;
+    this.wheelPressAt=Date.now();this.revision++;
+    if(!this.assets?.wheelTickets){this.wheelPreviewAt=this.wheelPressAt;this.message=['看广告获得1次抽奖次数','Watch an ad to get 1 spin.'];return;}
     return this.execute({kind:'wheel-spin'});
   }
   async refresh(){
@@ -266,7 +269,7 @@ export class Quartermaster {
       let result='failed';try{result=await offer();}catch{/* Provider failure releases its account-wide playback slot below. */}
       if(this.disposed||owner!==this.online.authenticatedId)return;
       if(result==='completed'){const completed=await this.execute({kind:'ad-complete',orderId:order.id,attemptId});if(!completed&&!this.pending&&!this.disposed&&owner===this.online.authenticatedId){const message=this.message;await this.execute({kind:'ad-cancel',orderId:order.id,attemptId});this.message=message;}}
-      else {await this.execute({kind:'ad-cancel',orderId:order.id,attemptId});this.message=result==='dismissed'?['未完整观看，本次未计入；已确认进度保留','Video not completed. Confirmed progress is kept.']:['视频暂不可用，已确认进度保留，可稍后继续','Video unavailable. Confirmed progress is kept. Try later.'];}
+      else {await this.execute({kind:'ad-cancel',orderId:order.id,attemptId});this.message=result==='dismissed'?['未完整观看，本次未计入；已确认进度保留','Ad not completed. Confirmed progress is kept.']:['广告暂不可用，已确认进度保留，可稍后继续','Ad unavailable. Confirmed progress is kept. Try later.'];}
     }finally{this.viewing=false;this.revision++;}
   }
   dispose(){if(!this.disposed&&this.owner===this.online.authenticatedId&&this.adReady&&!this.busy&&!this.pending)void this.execute({kind:'ad-cancel',orderId:this.adReady.orderId,attemptId:this.adReady.attemptId});this.disposed=true;}

@@ -2,7 +2,7 @@ import { Color, Label, Node, Graphics, Sprite, UITransform, Mask, UIOpacity, Twe
 import type { HUD } from './HUD';
 import { playerLabel } from './Online';
 import { ProgressionArt } from './ProgressionArt';
-import { Quartermaster, effectEnglish, wheelLandingAngle, wheelTravel } from './Quartermaster';
+import { Quartermaster, effectEnglish, wheelLandingAngle, wheelTravel, WHEEL_PREVIEW_DURATION } from './Quartermaster';
 import { FRAGMENTS, type Fragment, CATALOG, PACKAGES, POOLS, SKILLS, WHEEL_PRIZES, eligibleDrops, levelProgress, attackPreview, type Product, type Effect, type AssetReward } from './core/Progression';
 import { formatTime } from './core/BattleRecords';
 import { text } from './core/Data';
@@ -170,7 +170,7 @@ export class ProgressionView {
     }
     const fh=Math.max(44,h*.11),fy=Math.min(Math.max(top+bar+8,h*.452),cy-2*fh-14);
     this.panel(r-fw,fy,fw,fh*2+6);this.button('qm:checkin',this.t('每日签到','CHECK IN'),r-fw+5,fy+3,fw-10,fh);
-    this.button('qm:supply',this.t('补给','SUPPLY & WHEEL'),r-fw+5,fy+fh+3,fw-10,fh);
+    this.button('qm:supply',this.t('补给·抽奖','SUPPLY & WHEEL'),r-fw+5,fy+fh+3,fw-10,fh);
     for(const [i,[id,key,zh,en]]of [['shop','homeShop','军需商店','ARMORY'],['growth','homeGrowth','等级成长','GROWTH'],['tasks','homeTasks','任务','TASKS'],['warehouse','homeWarehouse','我的仓库','WAREHOUSE']].entries()){
       const x=l+i*(cw+gap);this.panel(x,cy,cw,ch);this.picture(key,x+4,cy+4,cw-8,Math.max(12,ch-24));
       this.h.gradient(this.g,x+4,cy+ch*.55,cw-8,ch*.42,'#020a1200','#020a12ef');
@@ -299,20 +299,20 @@ export class ProgressionView {
     const quote=q.packages.find(p=>p.quantity===q.quantity)!,order=q.pendingOrder,cw=(lw-28)/2,cy=packY+48;
     if(!this.low){this.panel(l+8,cy,cw,b-cy-8);this.panel(l+20+cw,cy,cw,b-cy-8);}
     this.label(`● ${quote.coins}`,l+12,cy,cw-4,this.low?24:34,37,gold,true);
-    this.label(this.t(`视频 ${order?.completed??0}/${order?.required??quote.videos}`,`VIDEO ${order?.completed??0}/${order?.required??quote.videos}`),l+20+cw,cy,cw,this.low?24:34,30,ivory,true);
+    this.label(this.t(`广告 ${order?.completed??0}/${order?.required??quote.videos}`,`ADS ${order?.completed??0}/${order?.required??quote.videos}`),l+20+cw,cy,cw,this.low?24:34,30,ivory,true);
     if(!this.low){this.label(this.rewardTerm(),l+12,cy+35,lw-24,24,23,dim);}
     this.button('qm:buyPacks',this.t(`购买${quote.quantity}个`,`BUY ${quote.quantity}`),l+10,by,cw,44,'gold',q.busy||!q.assets||!!q.pending||!!q.wheel&&!q.wheel.shown);
-    this.button('qm:watch',q.viewing?this.t('观看中','WATCHING'):this.t(order?'继续观看':'观看视频',order?'CONTINUE':'WATCH'),l+20+cw,by,cw,44,'blue',q.busy||q.viewing||!q.assets||!!q.pending||!!q.wheel&&!q.wheel.shown);
+    this.button('qm:watch',q.viewing?this.t('观看中','WATCHING'):this.t(order?'继续观看':'观看广告',order?'CONTINUE':'WATCH'),l+20+cw,by,cw,44,'blue',q.busy||q.viewing||!q.assets||!!q.pending||!!q.wheel&&!q.wheel.shown);
     const diameter=Math.min(rw-34,by-42-(y+48)),cx=rx+rw/2,cyWheel=y+48+diameter/2;
-    const motion=q.wheel,spinning=!!motion&&!motion.shown;
+    const motion=q.wheel,spinning=!!motion&&!motion.shown,previewing=!!q.wheelPreviewAt,turning=spinning||previewing;
     const halo=this.h.node('WheelHalo',this.n);halo.setPosition(cx-this.w/2,this.height/2-cyWheel);
     const glow=halo.addComponent(Graphics);
     for(const [width,tint]of [[11,'#edba5c12'],[6,'#edba5c28'],[2,'#e5bd71']] as const){glow.strokeColor=color(tint);glow.lineWidth=width;glow.circle(0,0,diameter*.505);glow.stroke();}
     for(let i=0;i<24;i++){const a=i*Math.PI/12;glow.fillColor=color(i%2===0?'#ffedb0':'#a8793e');glow.circle(Math.sin(a)*diameter*.505,Math.cos(a)*diameter*.505,Math.max(1.5,diameter*.007));glow.fill();}
     const shine=halo.addComponent(UIOpacity);shine.opacity=170;
-    const pulseTime=this.h.reducedEffects?1.2:spinning?.3:.85;
+    const pulseTime=this.h.reducedEffects?1.2:turning?.3:.85;
     tween(shine).to(pulseTime,{opacity:this.h.reducedEffects?220:255}).to(pulseTime,{opacity:this.h.reducedEffects?160:100}).union().repeatForever().start();
-    if(spinning&&!this.h.reducedEffects)tween(halo).by(2,{angle:-360}).repeatForever().start();
+    if(turning&&!this.h.reducedEffects)tween(halo).by(2,{angle:-360}).repeatForever().start();
     halo.once(Node.EventType.NODE_DESTROYED,()=>Tween.stopAllByTarget(shine));
     const wheel=this.h.node('LuckyWheel',this.n);wheel.setPosition(cx-this.w/2,this.height/2-cyWheel);wheel.getComponent(UITransform)!.setContentSize(diameter,diameter);
     const frame=this.a.get('wheel');if(frame){const rim=this.h.node('WheelMetalRim',wheel),sprite=rim.addComponent(Sprite);sprite.spriteFrame=frame;sprite.sizeMode=Sprite.SizeMode.CUSTOM;rim.getComponent(UITransform)!.setContentSize(diameter,diameter);}
@@ -331,21 +331,23 @@ export class ProgressionView {
     for(const [radius,tint]of [[.15,'#72522b'],[.14,'#eed090'],[.126,'#b27d39'],[.113,'#163b55']] as const){core.fillColor=color(tint);core.circle(0,0,diameter*radius);core.fill();}
     core.strokeColor=color('#ffedbe');core.lineWidth=Math.max(1.5,diameter*.008);for(let j=0;j<=20;j++){const a=-Math.PI*.3+j*Math.PI*1.6/20,x=Math.sin(a)*diameter*.058,y=Math.cos(a)*diameter*.058;if(j===0)core.moveTo(x,y);else core.lineTo(x,y);}core.stroke();
     core.fillColor=color('#ffedbe');core.moveTo(-diameter*.075,-diameter*.012);core.lineTo(-diameter*.032,-diameter*.029);core.lineTo(-diameter*.058,-diameter*.06);core.close();core.fill();
-    const end=motion?wheelLandingAngle(motion.index,motion.startAngle)-(this.h.reducedEffects?1440:0):0,elapsed=motion&&!motion.shown?Math.max(0,Math.min(1,(Date.now()-motion.started)/motion.duration)):1;
-    const traveled=wheelTravel(elapsed);wheel.angle=motion?motion.startAngle+(end-motion.startAngle)*traveled:0;
-    if(motion&&!motion.shown&&elapsed<1)tween(wheel).to((motion.duration/1000)*(1-elapsed),{angle:end},{easing:t=>(wheelTravel(elapsed+t*(1-elapsed))-traveled)/Math.max(1e-9,1-traveled)}).start();
-    if(!spinning&&Date.now()-q.wheelNudgeAt<660){const rest=wheel.angle,amount=this.h.reducedEffects?4:10;tween(wheel).to(.14,{angle:rest+amount},{easing:'quadOut'}).to(.18,{angle:rest-amount*.6},{easing:'sineInOut'}).to(.16,{angle:rest+amount*.25},{easing:'sineInOut'}).to(.18,{angle:rest},{easing:'sineOut'}).start();}
+    const landing=motion?wheelLandingAngle(motion.index,motion.startAngle,this.h.reducedEffects?12:18):0;
+    const start=previewing?landing:motion?.startAngle??0,end=previewing?landing+360*(this.h.reducedEffects?4:6):landing;
+    const duration=previewing?WHEEL_PREVIEW_DURATION:motion?.duration||1,started=previewing?q.wheelPreviewAt:motion?.started||0;
+    const elapsed=turning?Math.max(0,Math.min(1,(Date.now()-started)/duration)):1,traveled=wheelTravel(elapsed);wheel.angle=start+(end-start)*traveled;
+    if(turning&&elapsed<1)tween(wheel).to((duration/1000)*(1-elapsed),{angle:end},{easing:t=>(wheelTravel(elapsed+t*(1-elapsed))-traveled)/Math.max(1e-9,1-traveled)}).start();
+    if(!turning&&Date.now()-q.wheelNudgeAt<660){const rest=wheel.angle,amount=this.h.reducedEffects?4:10;tween(wheel).to(.14,{angle:rest+amount},{easing:'quadOut'}).to(.18,{angle:rest-amount*.6},{easing:'sineInOut'}).to(.16,{angle:rest+amount*.25},{easing:'sineInOut'}).to(.18,{angle:rest},{easing:'sineOut'}).start();}
     const pointer=this.h.node('WheelPointer',this.n).addComponent(Graphics),px=cx-this.w/2,py=this.height/2-cyWheel+diameter*.51;
     pointer.fillColor=color('#fff1c2');pointer.strokeColor=color('#c18a3c');pointer.lineWidth=2;pointer.moveTo(px-7,py+7);pointer.lineTo(px+7,py+7);pointer.lineTo(px+5,py-3);pointer.lineTo(px,py-12);pointer.lineTo(px-5,py-3);pointer.close();pointer.fill();pointer.stroke();
-    if(!spinning){const tap=this.h.button('qm:wheelTap','',cx-diameter/2,cyWheel-diameter/2,diameter,diameter,this.n);this.h.buttons.at(-1)!.disabled=q.busy||q.viewing||!!q.pending;tap.node.name='WheelTouchTarget';}
+    if(!spinning){const tap=this.h.button('qm:wheelTap','',cx-diameter/2,cyWheel-diameter/2,diameter,diameter,this.n);this.h.buttons.at(-1)!.disabled=q.busy||q.viewing||!!q.pending||previewing;tap.node.name='WheelTouchTarget';}
     if(Date.now()-q.wheelPressAt<450){
       const pulse=this.h.node('WheelPressPulse',this.n).addComponent(Graphics);pulse.strokeColor=color('#ffe5a2');pulse.lineWidth=7;pulse.circle(px,this.height/2-cyWheel,diameter*.47);pulse.stroke();
       const opacity=pulse.node.addComponent(UIOpacity);opacity.opacity=this.h.reducedEffects?120:255;tween(opacity).to(.4,{opacity:0}).start();
     }
-    this.label(this.t(`剩余次数 ${q.assets?.wheelTickets??0} · 今日视频 ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`,`SPINS ${q.assets?.wheelTickets??0} · VIDEOS ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`),rx+8,by-34,rw-16,30,26,gold,true);
+    this.label(this.t(`剩余次数 ${q.assets?.wheelTickets??0} · 今日广告 ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`,`SPINS ${q.assets?.wheelTickets??0} · ADS ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`),rx+8,by-34,rw-16,30,26,gold,true);
     const bw=(rw-26)/2;
-    this.button(spinning?'qm:wheelSkip':'qm:wheelSpin',this.t(spinning?'跳过动画':'抽一次',spinning?'SKIP':'SPIN'),rx+9,by,bw,44,'gold',q.busy||q.viewing||!!q.pending);
-    this.button('qm:wheelWatch',this.t('视频+1次','VIDEO +1'),rx+17+bw,by,bw,44,'blue',q.busy||q.viewing||spinning||!q.assets||!!q.pending||(q.assets.wheelVideosToday??0)>=(q.assets.wheelDailyLimit??5)||q.assets.videosToday>=q.assets.videoDailyLimit);
+    this.button(spinning?'qm:wheelSkip':'qm:wheelSpin',this.t(spinning?'跳过动画':'抽一次',spinning?'SKIP':'SPIN'),rx+9,by,bw,44,'gold',q.busy||q.viewing||!!q.pending||previewing);
+    this.button('qm:wheelWatch',this.t('广告+1次','AD +1'),rx+17+bw,by,bw,44,'blue',q.busy||q.viewing||spinning||!q.assets||!!q.pending||(q.assets.wheelVideosToday??0)>=(q.assets.wheelDailyLimit??5)||q.assets.videosToday>=q.assets.videoDailyLimit);
   }
   private growth(){
     const q=this.q,l=this.left,r=this.right,y=this.top,b=this.bottom,lw=(r-l)*.27,rx=l+lw+14,rw=r-rx,h=b-y;
@@ -517,7 +519,7 @@ export class ProgressionView {
         this.t('装备按对应类别内未永久拥有的效果等概率抽取，不受商店等级限制。单场装备开局消耗；24小时装备存入仓库，激活后计时。','Gear is equally likely among non-permanent effects in its category, regardless of shop level. Match gear is consumed at deployment; 24h begins on activation.'),
         this.t('增益：威力、高速供弹、冷却、范围、两连发、双弹道；武器：无人机、激光；技能：追踪、电磁干扰。史诗组合从以上全部装备等概率抽取。','Mods: power, rapid feed, cooling, blast radius, double burst, twin trajectory. Weapons: drones, laser. Skills: tracking, EMP. The epic bundle draws equally from all gear.'),
         this.t('对应类别已全永久：增益转4、武器转10、技能转6武器碎片；史诗装备全永久转10武器碎片。组合内其他奖励仍照常发放。','If the category is fully permanent: mods convert to 4, weapons to 10, skills to 6 weapon fragments; epic gear converts to 10. Other bundle rewards are retained.'),
-        this.t('完整观看1段视频获得1次；每日最多5段，与补给箱共用每日12段。次数跨天保留。','One completed video grants one saved spin. 5 wheel videos/day, sharing 12 total videos/day with supply crates.'));
+        this.t('完整观看1段广告获得1次；每日最多5段，与补给箱共用每日12段。次数跨天保留。','One completed ad grants one saved spin. 5 wheel ads/day, sharing 12 total ads/day with supply crates.'));
     }
     else {const pool=q.pools.general,pack=/^pack:(general|gold):([0-3])$/.exec(q.info),tier=pack?Number(pack[2]):-1;lines=[this.t(pack?'此箱档位已确定，开启不重新抽取档位。':'以下是获取随机补给箱时的档位概率。已持有的箱子档位已确定，开启不重新抽档。',pack?'This crate’s tier is fixed. Opening does not reroll its tier.':'These are random crate acquisition odds. Owned crates keep their existing tier.')];lines.push(...pool.weights.flatMap((weight,i)=>{if(tier>=0&&tier!==i)return [];const bundle=q.assets?.economy?.bundleTiers?.[i],eligible=eligibleDrops(q.catalog,i,bundle?levelProgress((q.assets?.xp||0)+bundle.xp).level:q.assets?.level||1,q.assets?.permanent||[]).filter(p=>pool.effects.includes(p.effect)&&(!!bundle||p.category!=='skill')),content=i===0?this.t('获得40金币','Receive 40 coins'):eligible.length?eligible.map(p=>this.productName(p)).join(' / ')+this.t(`（每种${(100/eligible.length).toFixed(1)}%，档内等概率）`,` (equal odds within tier)`):this.t(`本档当前无可用装备，获得${pool.coinDrops[i]}金币`,`No eligible item: ${pool.coinDrops[i]} coins`);return [this.t(rarity[i],rarityEn[i])+(tier<0?` ${weight}%`:'')+'\n'+(bundle?this.t(`${eligible.length?bundle.coins:pool.coinDrops[i]}金币 + ${bundle.xp}EXP + ${bundle.fragments}碎片${eligible.length?' + 随机装备：':''}`,`${eligible.length?bundle.coins:pool.coinDrops[i]} coins + ${bundle.xp} EXP + ${bundle.fragments} fragments${eligible.length?' + gear: ':''}`)+(eligible.length?eligible.map(p=>this.productName(p)).join(' / '):''):content)];}));lines.push(q.assets?.economy?.bundleTiers?this.t('补给箱含金币、EXP和碎片；精良及以上另送装备，效果档内等概率，期限见下方说明；24小时入库后手动激活计时。增益/武器按等级，技能可提前获得；排除已永久拥有，无候选时金币替代。各套餐概率相同。','Bundles contain coins, EXP and fragments; Fine+ adds gear with equal effect odds; see term odds below. Activate 24h gear from inventory to start its timer. Mods/weapons require shop level; skills may drop early. Permanent-owned gear converts to the tier coin fallback. Package odds are identical.'):this.t('仅抽取已解锁且未永久拥有的单场增益或武器；无候选时获得本档金币。','Only unlocked, unowned one-match mods or weapons; no eligible gear yields tier coins.'));lines.push(this.rewardTerm());const locked=q.catalog.filter(p=>p.term==='match'&&p.category!=='skill'&&p.unlockLevel>(q.assets?.level||1));if(locked.length){lines.push(this.t('尚未进入当前奖池（达到等级后解锁）：','NOT IN THE CURRENT POOL (unlock by level):'));lines.push(...locked.map(p=>`${this.productName(p)} · Lv.${p.unlockLevel}`));}}
     const pw=Math.min(650,this.right-this.left),font=this.font(27),width=pw-52;

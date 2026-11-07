@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Quartermaster, wheelLandingAngle, wheelTravel, WHEEL_DURATION } from '../assets/scripts/Quartermaster.ts';
+import { Quartermaster, wheelLandingAngle, wheelTravel, WHEEL_DURATION, WHEEL_PREVIEW_DURATION } from '../assets/scripts/Quartermaster.ts';
 import { ECONOMY } from '../assets/scripts/core/Progression.ts';
 import { assetFixture } from './progression-fixture.ts';
 
@@ -16,12 +16,17 @@ test('wheel accelerates, cruises and spends 2.6 seconds slowing to the exact res
   assert.equal(WHEEL_DURATION,4800);assert.equal(wheelTravel(-1),0);assert.equal(wheelTravel(2),1);
   assert(speed(.1)<speed(.5));assert(Math.abs(speed(1)-speed(2))<1e-8);
   assert(speed(2.3)>speed(3.5));assert(speed(3.5)>speed(4.5));assert(speed(4.79)<.001);
+  assert(speed(1)*wheelLandingAngle(0)/360>6,'normal spin exceeds six turns per second');
+  assert(speed(1)*wheelLandingAngle(0,0,12)/360>4,'reduced motion still visibly spins fast');
   for(let p=0;p<1;p+=.01)assert(wheelTravel(p+.01)>=wheelTravel(p));
 });
 
 test('wheel click without tickets gives feedback; a combined reward appears once after spinning',async()=>{
   const {q,online,calls}=setup();q.syncIdentity();q.page='supply';online.assets.wheelTickets=0;
-  await q.spin();assert(q.wheelNudgeAt>0);assert.equal(q.wheelPressAt,q.wheelNudgeAt);assert.match(q.message[0],/视频/);assert.equal(calls.length,0);
+  await q.spin();assert(q.wheelPreviewAt>0);assert.equal(q.wheelPressAt,q.wheelPreviewAt);assert.match(q.message[0],/广告/);assert.equal(calls.length,0);
+  const revision=q.revision;await q.spin();q.nudgeWheel();assert.equal(q.revision,revision,'repeated taps cannot restart the preview');
+  q.tickPresentation(true);assert(q.wheelPreviewAt);assert.equal(q.gift,undefined);
+  q.wheelPreviewAt-=WHEEL_PREVIEW_DURATION;q.tickPresentation(true);assert.equal(q.wheelPreviewAt,0);assert.equal(q.gift,undefined);
   online.assets.wheelTickets=1;
   online.assetCommand=async(command:any)=>{calls.push(command);online.assets.wheelTickets--;return {...online.assets,lastReceipt:{kind:'wheel-spin',prizeIndex:5,coins:60,xp:40,packs:{'pack:general:3':1},items:{'drone-24h':1}}};};
   await q.spin();await q.spin();assert.equal(calls.length,1);assert.equal(q.gift,undefined);
@@ -170,7 +175,7 @@ test('navigation restores source filters, selected item and scroll after nested 
  const {q}=setup();q.syncIdentity();q.show('warehouse');await Promise.resolve();q.item='power-match';q.scrolls['qm:warehouse']=208;q.show('receipts');await Promise.resolve();q.back();assert.equal(q.page,'warehouse');assert.equal(q.item,'power-match');assert.equal(q.scrolls['qm:warehouse'],208);q.back();assert.equal(q.page,'');
 });
 test('all six wheel results land their sector centre at the fixed top pointer',()=>{
- for(const start of [0,1830,2010,3960])for(let i=0;i<6;i++){const clockwiseCentre=15+i*60,end=wheelLandingAngle(i,start);assert.equal(Math.abs((clockwiseCentre-end)%360),0);assert(end>=start+1800);}
+ for(const turns of [12,18])for(const start of [0,1830,2010,3960])for(let i=0;i<6;i++){const clockwiseCentre=15+i*60,end=wheelLandingAngle(i,start,turns);assert.equal(Math.abs((clockwiseCentre-end)%360),0);assert(end>=start+360*turns);}
 });
 test('retrying a lost ad-start receipt resumes that attempt and cancellation releases it',async()=>{
  const {q,online,calls}=setup();let lost=true,plays=0;

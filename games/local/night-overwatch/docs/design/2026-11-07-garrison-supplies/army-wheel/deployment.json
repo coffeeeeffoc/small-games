@@ -9,7 +9,7 @@
   "previousImage": "small-games-bundle:night-20261107-garrison-bd1223e7",
   "health": "local and Sakura passed",
   "updatedAt": "2026-11-07T04:05:55.591Z",
-  "frontendSourceHash": "9e8a9d3a6f4e264e33ab6f6e8e4324ba140028e91c192e2401cb8bb5c9378851",
+  "frontendSourceHash": "925572c14809cf36c777a971ee87bd9ad60b0cb45bae9991ba0b8e124c1da638",
   "verifiedFiles": 435,
   "sourceCommit": "a1662071e65f634d6111aef72e08fcb8f5269576",
   "sourceDirty": true,
@@ -47,9 +47,9 @@
   "sqlMigrationApplied": false,
   "existingPostgresPreserved": true,
   "runtimeDistFilesMatched": 86,
-  "previousFrontendSourceHash": "9867cdc426ae9dc2ca33d28f8de04afdaef7739fdb61ab784e5b67b4d9a453c2",
-  "frontendOnlyFollowup": "Zero-ticket face and spin-button clicks now rock the wheel and restore over 0.66 seconds; normal/reduced motion, repeated touch and actual Sakura guest verified. Runtime and PostgreSQL unchanged.",
-  "frontendVerifiedAt": "2026-11-07T05:25:08.363Z",
+  "previousFrontendSourceHash": "9e8a9d3a6f4e264e33ab6f6e8e4324ba140028e91c192e2401cb8bb5c9378851",
+  "frontendOnlyFollowup": "High-speed draw: 18 turns (12 reduced), 4.8 seconds, 2.6-second braking. Zero-ticket preview: 6 turns (4 reduced), 2 seconds, no spend/reward. Ad wording and Supply & Wheel home entry updated. Runtime and PostgreSQL unchanged.",
+  "frontendVerifiedAt": "2026-11-07T09:53:16.033Z",
   "frontendFollowupHealth": [
     {
       "host": "http://127.0.0.1:43003",
