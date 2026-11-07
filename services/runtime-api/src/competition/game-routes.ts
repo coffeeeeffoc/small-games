@@ -38,6 +38,11 @@ export function registerGameRoutes(
   routes.get('/games/night-overwatch/assets', async (request) =>
     store.nightAssets(await player(request.headers.authorization)),
   );
+  routes.post('/games/night-overwatch/presence', { bodyLimit: 128 }, async (request) => {
+    z.object({}).strict().parse(request.body);
+    definition('night-overwatch');
+    return store.nightPresence(await player(request.headers.authorization));
+  });
   routes.get('/games/night-overwatch/chat', async (request, reply) => {
     const input = z
       .object({
@@ -104,7 +109,7 @@ export function registerGameRoutes(
         leaderboards: boards.length > 0,
         multiplayer: !!multiplayer,
         ...(multiplayer?.lobby ? { lobby: true, history: true } : {}),
-        ...(game === 'night-overwatch' && multiplayer ? { chat: true } : {}),
+        ...(game === 'night-overwatch' && multiplayer ? { chat: true, presence: true } : {}),
       },
       boards,
       developmentAssets: store.developmentAssetCapabilities?.(game) ?? {

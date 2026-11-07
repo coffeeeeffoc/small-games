@@ -165,6 +165,7 @@ export class HomeView {
         button.isBold = true;
       }
       if (this.hud.online) {
+        this.hud.label(parentNode, this.hud.online.onlineLabel(this.hud.lang), right - 95, this.hud.safe.top + 68, 13, 190, 24, C.dim);
         const settingsLeft = this.hud.buttons.find((button) => button.id === 'settings')!.x;
         const profileWidth = Math.min(264, settingsLeft - left - 118);
         this.hud.plate(

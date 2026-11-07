@@ -1,0 +1,18 @@
+{
+  "fixture": "isolated-real-postgresql-http",
+  "checks": [
+    "Two browser identities count as two; two tabs sharing one identity count as one",
+    "Home and lobby live count, layout and touch navigation 568x320",
+    "Home and lobby live count, layout and touch navigation 844x390",
+    "Home and lobby live count, layout and touch navigation 1280x720",
+    "Closed identity expires automatically within the 20-second lease plus refresh",
+    "Offline hides stale count; reconnect restores it",
+    "Legacy server advertises no presence; UI stays unavailable without polling nonexistent endpoint"
+  ],
+  "errors": [],
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "994f7251da9520773717337bb64f086f179d54a403a9cb84657a3714ef18b700"
+  }
+}

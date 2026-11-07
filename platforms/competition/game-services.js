@@ -207,6 +207,13 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
       return roomRequest(code, operation, body);
     },
     identity: async () => (await request(path)).identity,
+    async nightPresence(expectedPlayerId) {
+      if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');
+      const credential = await auth.current();
+      if (expectedPlayerId && credential.playerId !== expectedPlayerId)
+        throw failure('IDENTITY_CHANGED');
+      return request(path + '/presence', {}, credential);
+    },
     nightChat: ({ cursor, waitMs = 0 } = {}, expectedPlayerId) =>
       nightChatRequest(
         '?' + new URLSearchParams({ ...(cursor ? { cursor } : {}), waitMs: String(waitMs) }),

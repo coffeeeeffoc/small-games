@@ -22,7 +22,7 @@ type Recorder = { start(options: { mode: string; levelId: string; practice: bool
   settlement?: { playerId: string; runId: string; result: Settlement } };
 export type ChatMessage={id:string;playerId:string;nickname:string;text:string;at:number;room?:{code:string;createdAt:number;canJoin:boolean}};
 export type ChatSnapshot={messages:ChatMessage[];cursor:string;reset:boolean;serverNow:number};
-type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean;chat?:boolean } };
+type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean;chat?:boolean;presence?:boolean } };
 type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Metadata | undefined>;
   services: { createRoom(input: { mode: string; visibility?: string; password?: string }): Promise<Room>; match(): Promise<Room>; joinRoom(input: { code: string; password?: string }): Promise<Room>;
     listRooms?(): Promise<{ rooms: RoomSummary[] }>; history?(input: { cursor?: string }): Promise<BattleHistory>;
@@ -31,6 +31,7 @@ type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Me
     getRoom(input: { code: string }): Promise<Room>; roomAction(input: { code: string; operation: string; body?: object }): Promise<Room>;
     nightAssets?(expectedPlayerId?:string):Promise<AssetSnapshot>;nightAssetCommand?(input:AssetCommand,expectedPlayerId?:string):Promise<AssetSnapshot>;
     nightChat?(input:{cursor?:string;waitMs?:number},expectedPlayerId?:string):Promise<ChatSnapshot>;
+    nightPresence?(expectedPlayerId?:string):Promise<{onlineCount:number}>;
     sendNightChat?(input:{requestId:string;text:string;roomCode?:string},expectedPlayerId?:string):Promise<ChatSnapshot>;
     reportNightChat?(input:{id:string;reason:string},expectedPlayerId?:string):Promise<unknown>;
     leaderboard(input: { boardId: string;ruleVersion?:string }): Promise<Ranking> };
@@ -52,12 +53,48 @@ export function roomLink(href: string, code: string) {
 
 /** Transport stays in the shared services bridge; this owns only Night's screen and input state. */
 export class Online {
+  onlineCount: number | null = null;
+  private presenceAvailable = false;
+  private presenceEpoch = 0;
+  private presenceNext = 0;
+  private presencePolling = false;
+  onlineLabel(lang: string) {
+    return this.onlineCount === null
+      ? (lang === 'zh' ? '在线人数暂不可用' : 'Online unavailable')
+      : (lang === 'zh' ? `当前在线 ${this.onlineCount} 人` : `${this.onlineCount} online`);
+  }
+  private setOnlineCount(count: number | null) {
+    if (this.onlineCount === count) return;
+    this.onlineCount = count;
+    this.revision++;
+  }
+  private resetPresence() {
+    this.presenceEpoch++;
+    this.presenceNext = 0;
+    this.setOnlineCount(null);
+  }
+  private async pollPresence(now: number) {
+    if (this.destroyed || !this.foreground || !this.presenceAvailable || this.presencePolling || now < this.presenceNext || !this.bridge?.services.nightPresence) return;
+    const epoch = this.presenceEpoch, owner = this.authenticatedId;
+    this.presencePolling = true;
+    try {
+      const result = await this.bridge.services.nightPresence(owner);
+      if (epoch !== this.presenceEpoch || owner !== this.authenticatedId || this.destroyed) return;
+      if (!Number.isSafeInteger(result.onlineCount) || result.onlineCount < 0) throw Error('Invalid presence');
+      this.setOnlineCount(result.onlineCount);
+    } catch {
+      if (epoch === this.presenceEpoch) this.setOnlineCount(null);
+    } finally {
+      this.presencePolling = false;
+      if (epoch === this.presenceEpoch) this.presenceNext = performance.now() + 5000;
+    }
+  }
   chatMessages:ChatMessage[]=[];chatDraft='';chatStatus='';chatRevision=0;chatSending=false;chatAvailable=false;chatMenu='';
   blockedPlayers=new Set<string>();private chatOwner='';private chatEpoch=0;private chatPoll=false;private chatNext=0;private chatCursor='';private foreground=true;private destroyed=false;
   private chatIntent?:{requestId:string;text:string;roomCode?:string};
   panelHistory:Online['panel'][]=[];
   get visibleChat(){return this.chatMessages.filter(m=>!this.blockedPlayers.has(m.playerId));}
-  setForeground(value:boolean){if(this.foreground===value)return;this.foreground=value;this.chatEpoch++;this.chatNext=0;}
+  setForeground(value:boolean){if(this.foreground===value)return;this.foreground=value;this.chatEpoch++;this.chatNext=0;this.resetPresence();}
   private chatAcceptedAt=0;
   private acceptChat(result:ChatSnapshot){if(result.serverNow<this.chatAcceptedAt)return;this.chatAcceptedAt=result.serverNow;if(JSON.stringify(this.chatMessages)!==JSON.stringify(result.messages)){this.chatMessages=result.messages;this.chatRevision++;}this.chatCursor=result.cursor;}
   private async pollChat(now:number){
@@ -82,7 +119,7 @@ export class Online {
   toggleBlock(id:string){if(id===this.authenticatedId)return;this.blockedPlayers.has(id)?this.blockedPlayers.delete(id):this.blockedPlayers.add(id);try{this.storage.setItem('night-chat-blocks:'+this.authenticatedId,JSON.stringify(Array.from(this.blockedPlayers)));}catch{}this.chatMenu='';this.chatRevision++;}
   async reportChat(id:string){const owner=this.authenticatedId;try{await this.bridge?.services.reportNightChat?.({id,reason:'玩家举报：不适当或骚扰内容'},owner);if(owner===this.authenticatedId)this.chatStatus='举报已提交';}catch{if(owner===this.authenticatedId)this.chatStatus='举报失败，请稍后重试';}if(owner===this.authenticatedId){this.chatMenu='';this.chatRevision++;}}
   back(){this.show(this.panelHistory.pop()||'',false);}
-  dispose(){this.destroyed=true;this.rewardRefresh=undefined;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';}
+  dispose(){this.destroyed=true;this.rewardRefresh=undefined;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.resetPresence();}
   identity: Player;
   panel: '' | 'menu' | 'room' | 'ranking' | 'profile' | 'create' | 'join' | 'history' = '';
   rooms: RoomSummary[] = [];
@@ -174,6 +211,8 @@ export class Online {
     if (!bridge || this.bridge === bridge) return;
     const generation = this.generation;
     this.bridge = bridge;
+    this.presenceAvailable = false;
+    this.resetPresence();
     if (bridge) {
       const recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage, source: (this.storage as {source?:string}).source || 'cocos.localStorage' }, startTimeoutMs: 8000, onStatus: status => {
         if (this.destroyed || this.bridge !== bridge || this.recorder !== recorder) return;
@@ -185,6 +224,7 @@ export class Online {
       } });
       this.recorder = recorder;
       const metadata = await bridge.ready;
+      if (this.destroyed || this.bridge !== bridge) return;
       this.acceptMetadata(metadata);
       void this.recorder.recover?.();
     }
@@ -249,6 +289,7 @@ export class Online {
   private acceptMetadata(metadata: Metadata | undefined) {
     if (!metadata) return;
     const owner=playerId(metadata.identity);
+    if (owner !== this.authenticatedId) this.resetPresence();
     if (owner !== this.authenticatedId) this.rewardRefresh = undefined;
     if(owner!==this.authenticatedId){this.assets=undefined;this.battleReward=undefined;this.authenticatedId=owner;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.chatIntent=undefined;this.chatSending=false;this.chatMenu='';this.chatCursor='';this.chatAcceptedAt=0;this.chatStatus='';this.chatOwner=owner;this.chatRevision++;this.blockedPlayers=new Set();try{this.blockedPlayers=new Set(JSON.parse(this.storage.getItem('night-chat-blocks:'+owner)||'[]'));}catch{}}
     this.identity = metadata.identity;
@@ -256,6 +297,8 @@ export class Online {
     this.available = metadata.capabilities.multiplayer;
     this.ranked = metadata.capabilities.leaderboards;
     this.chatAvailable=!!metadata.capabilities.chat&&!!this.bridge?.services.nightChat;
+    this.presenceAvailable=!!metadata.capabilities.presence&&!!this.bridge?.services.nightPresence;
+    if (!this.presenceAvailable) this.resetPresence();
     this.revision++;
   }
   assetsReceivedAt=0;
@@ -438,6 +481,7 @@ export class Online {
     });
   }
   async pump(now: number) {
+    void this.pollPresence(now);
     void this.refreshBattleAssets(now);
     void this.pollChat(now);
     if (now >= this.syncAt) { this.syncAt = now + 10000; void this.recorder?.recover?.(); }

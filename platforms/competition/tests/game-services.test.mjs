@@ -1508,6 +1508,9 @@ test('Night chat uses scoped credentials, bounded polling, stable intents and in
   });
   const api = createGameServices({ storage: globalThis.localStorage, gameId: 'night-overwatch' }),
     cursor = 'a'.repeat(64);
+  await api.nightPresence('a');
+  assert.equal(f.calls.at(-1).url, '/api/competition/v1/games/night-overwatch/presence');
+  assert.deepEqual(f.calls.at(-1).body, {});
   await api.nightChat({ cursor, waitMs: 5000 }, 'a');
   assert.equal(
     f.calls.at(-1).url,
@@ -1530,8 +1533,12 @@ test('Night chat uses scoped credentials, bounded polling, stable intents and in
     code: 'IDENTITY_CHANGED',
   });
   await assert.rejects(api.nightChat({}, 'a'), { code: 'IDENTITY_CHANGED' });
+  await assert.rejects(api.nightPresence('a'), { code: 'IDENTITY_CHANGED' });
   assert.equal(f.calls.length, count);
   await assert.rejects(createGameServices({ gameId: 'wulong-city' }).nightChat(), {
+    code: 'GAME_UNAVAILABLE',
+  });
+  await assert.rejects(createGameServices({ gameId: 'wulong-city' }).nightPresence(), {
     code: 'GAME_UNAVAILABLE',
   });
 });

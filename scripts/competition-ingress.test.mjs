@@ -205,6 +205,7 @@ test('public paths cover registered game, identity, TCT and carrom endpoints and
     'games/night-overwatch/rooms',
     'games/night-overwatch/history',
     'games/night-overwatch/chat',
+    'games/night-overwatch/presence',
     'games/night-overwatch/chat/report',
     'games/night-overwatch/runs/12345678-1234-1234-1234-123456789abc/resume',
     'games/night-overwatch/rooms/123456/spectate',

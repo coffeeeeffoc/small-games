@@ -224,6 +224,7 @@ test('bootstrap and Runtime child environment use only owned credentials and req
       '013-competition-identities.sql',
       '014-player-sessions.sql',
       '016-night-chat.sql',
+      '017-night-presence.sql',
       '001-admin-auth.sql',
       '002-control-center.sql',
       '003-night-overwatch-control.sql',

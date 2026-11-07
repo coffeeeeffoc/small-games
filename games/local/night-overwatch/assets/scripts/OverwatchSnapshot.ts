@@ -39,6 +39,7 @@ export function captureOverwatchSnapshot(game: SnapshotSource, presentedTime: nu
     },
     online: game.online && {
       identity: game.online.identity,
+      onlineCount: game.online.onlineCount,
       panel: game.online.panel,
       room: game.online.room,
       active: game.online.active,

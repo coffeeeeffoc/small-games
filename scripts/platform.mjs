@@ -30,6 +30,7 @@ if (mode === 'stop') {
     '014-player-sessions.sql',
     '015-generic-content-drafts.sql',
     '016-night-chat.sql',
+    '017-night-presence.sql',
   ])
     await run(
       'docker',

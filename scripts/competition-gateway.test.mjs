@@ -20,6 +20,7 @@ test('game gateway exposes registered public route shapes without exposing inter
     'games/cage-rescue/runs',
     'games/night-overwatch/assets',
     'games/night-overwatch/chat',
+    'games/night-overwatch/presence',
     'games/night-overwatch/chat/report',
     'games/night-overwatch/history',
     'games/night-overwatch/rooms/123456',
@@ -35,6 +36,8 @@ test('game gateway exposes registered public route shapes without exposing inter
     assert(isPublicCompetitionPath(base + route), route);
   for (const route of [
     'internal/verify',
+    'games/wulong-city/presence',
+    'games/night-overwatch/presence/players',
     'sessions/upgrade/internal',
     'sessions/refresh/anything',
     'runs/cops-robbers-realtime/internal',

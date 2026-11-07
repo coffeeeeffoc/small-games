@@ -66,6 +66,52 @@ test('Night IndexedDB files and its sole Turbo input select only Night and rejec
   );
 });
 
+test('Night presence additions retain exact immediate and cumulative consumers', async () => {
+  const { nightPresencePrevious } = await import('./publication-scopes.mjs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const packages = await workspacePackages(root);
+  const changedPaths = [
+    'infra/migrations/017-night-presence.sql',
+    'scripts/competition.mjs',
+    'scripts/platform.mjs',
+    'scripts/deploy-tencent.mjs',
+    'scripts/deploy-tencent.test.mjs',
+    'scripts/h5-taptap-runtime.mjs',
+    'scripts/h5-taptap-runtime.test.mjs',
+    'scripts/competition-gateway.mjs',
+    'scripts/competition-gateway.test.mjs',
+    'scripts/competition-ingress.mjs',
+    'scripts/competition-ingress.test.mjs',
+    'scripts/check-workspace-dependencies.mjs',
+    'platforms/competition/game-services.js',
+    'platforms/competition/tests/game-services.test.mjs',
+  ];
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const file of changedPaths) {
+    assert.notEqual(nightPresencePrevious(file, readHead(file)), undefined, file);
+    assert.equal(nightPresencePrevious(file, readHead(file) + '\n// extra delta'), undefined, file);
+    assert.equal(nightPresencePrevious(file + '.other', readHead(file)), undefined, file);
+  }
+  for (const base of [
+    '27dee21b80eedd013e4d5ac2a0cee8d6a424333f',
+    'baaae8d717559610df529aff43a0cb2a31961393',
+  ]) {
+    const readBase = (file) =>
+      file === 'infra/migrations/017-night-presence.sql'
+        ? null
+        : execFileSync('git', ['show', base + ':' + file], { encoding: 'utf8' });
+    const scopes = reviewedSharedFileScopes({ changedPaths, readHead, readBase, games, packages });
+    for (const file of changedPaths) {
+      assert(scopes.get(file)?.includes('games/local/night-overwatch'), base + ':' + file);
+      assert(scopes.get(file)?.includes('services/runtime-api'), base + ':' + file);
+    }
+  }
+});
+
 test('Night chat migration and exact consumers classify from both immediate and last successful CI bases', async () => {
   const { nightChatBackendFileScope } = await import('./publication-scopes.mjs');
   const { workspacePackages } = await import('./validation-plan.mjs');
@@ -82,7 +128,10 @@ test('Night chat migration and exact consumers classify from both immediate and 
     'scripts/h5-taptap-runtime.mjs',
     'scripts/competition-gateway.mjs',
   ];
-  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const readHead = (file) =>
+    execFileSync('git', ['show', '27dee21b80eedd013e4d5ac2a0cee8d6a424333f:' + file], {
+      encoding: 'utf8',
+    });
   for (const base of [
     'ea6e65230eba002eb1f093e1bdee285ea49a868d',
     'baaae8d717559610df529aff43a0cb2a31961393',

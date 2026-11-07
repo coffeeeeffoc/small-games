@@ -55,6 +55,7 @@ export function validateIngress(value) {
 // Keep the public surface finite; arbitrary future /api routes are not published.
 // Methods are also enforced: no DELETE/PUT, no catalog/projection/internal endpoints.
 const internalCompetitionPaths = [
+  '/api/competition/v1/games/night-overwatch/presence',
   '/api/competition/v1/games/night-overwatch/(?:assets|chat(?:/report)?|runs/[a-f0-9-]{36}/cancel)',
   '/api/competition/v1/sessions/(?:guest|platform|refresh|upgrade|logout)',
   '/api/competition/v1/me',

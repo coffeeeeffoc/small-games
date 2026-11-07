@@ -6,6 +6,7 @@ import path from 'node:path';
 import { competitionService, serviceGames } from './competition-service-config.mjs';
 import { h5ServiceConfig, serviceHtml, prepareH5Service } from './competition-h5-service.mjs';
 export function isPublicCompetitionPath(pathname) {
+  if (pathname === '/api/competition/v1/games/night-overwatch/presence') return true;
   if (/^\/api\/competition\/v1\/games\/night-overwatch\/chat(?:\/report)?$/.test(pathname))
     return true;
   if (

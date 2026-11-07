@@ -21,6 +21,7 @@ import {
 import { createCompetitionIdentities } from './identity-store.js';
 import { createDevelopmentAssets, type DevelopmentAssetAdapter } from './development-assets.js';
 import { createNightChat } from './night-chat.js';
+import { createNightPresence } from './night-presence.js';
 import {
   nightAssets,
   reserveNightLoadout,
@@ -1108,6 +1109,7 @@ export function createCompetitionStore(
     ...createDevelopmentAssets(development, adapters),
     nightAssets: nightAssetsFor,
     nightChat: createNightChat(db, now, control, rules.get('night-overwatch')?.version),
+    nightPresence: createNightPresence(db, now, control),
     ...createCompetitionIdentities(db, now),
     gameDefinitions: () => [...rules.values()],
     ranking,
@@ -1115,6 +1117,10 @@ export function createCompetitionStore(
     roomAction,
     match,
     async sweepRooms() {
+      if (rules.has('night-overwatch'))
+        await db.execute(sql`delete from runtime.night_presence where player_id in
+          (select player_id from runtime.night_presence where seen_at<=${now() - 20000}
+           order by seen_at limit 500 for update skip locked)`);
       for (const rule of rules.values()) {
         if (!rule.lobby) continue;
         await db.transaction(async (tx) => {

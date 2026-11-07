@@ -369,10 +369,12 @@ test('Night browser acceptance imports only its exact Runtime fixture tool', asy
       path: 'games/local/night-overwatch',
       manifest: { name: '@coffeeeeffoc/night-overwatch' },
       files: Object.fromEntries(
-        ['chat-live-browser', 'indexeddb-browser', 'settlement-live-browser'].map((name) => [
-          `tests/${name}.mjs`,
-          fixtureImport,
-        ]),
+        [
+          'chat-live-browser',
+          'indexeddb-browser',
+          'settlement-live-browser',
+          'presence-browser',
+        ].map((name) => [`tests/${name}.mjs`, fixtureImport]),
       ),
     },
     {

@@ -1472,6 +1472,107 @@ export function threeChooseTwoBackendFileScope(file, before, after) {
   return expected === after;
 }
 
+// Exact additive Night heartbeat wiring; earlier deltas retain their existing consumers.
+const nightPresenceReviews = {
+  'infra/migrations/017-night-presence.sql': [
+    null,
+    'd7aea546ed58d2a6ca0e9ef31dd70d7438ab4dc16038821ee72b3a8e77bcc477',
+    [],
+  ],
+  'scripts/competition.mjs': [
+    '0aa4e9234275afc0a1264054338094ca775a09a23f8f8f184bf8492ca0179293',
+    '84d7044bdc77a6eab56d87620c12119bb0c50daa9b02473fb812f443048df402',
+    [
+      "  await psql(\n    await readFile(new URL('../infra/migrations/017-night-presence.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n",
+    ],
+  ],
+  'scripts/platform.mjs': [
+    '624df1f47215c31145c926015f99eaabf32aa850c25770111e47e7d3502c12d7',
+    '24c2fdf62dc1ec2cb51ad6f646b17fd7099dfbdceb2d3be9d2c91e0aedcf2281',
+    ["    '017-night-presence.sql',\n"],
+  ],
+  'scripts/deploy-tencent.mjs': [
+    '4ccf193ae438e98aa4bd271108e0a69824eb575dec9f5f6163c969e3403ec1b4',
+    '06f647c8015b067942e16535025acddc9dc83b7420f436d92785b8861eb2db0f',
+    ["    '017-night-presence.sql',\n"],
+  ],
+  'scripts/deploy-tencent.test.mjs': [
+    'baad45ae7c9213b0468ac2628a3c09d1f614ed86fdefa2b645c812165e21369a',
+    '5327c755ad481b538ca892b06b51a1d81bac4f0a236dd2ff77a1e52b29448625',
+    ["      '017-night-presence.sql',\n"],
+  ],
+  'scripts/h5-taptap-runtime.mjs': [
+    '4d2eb59fccbf71a85aa825a2668c23e120a82e18309bbe8d8143e2eeb6659074',
+    '9fd34e5eecf1224970bd551f0d0d6b6a170217e4f11dfd159a1d85e59730662f',
+    ["  'infra/migrations/017-night-presence.sql',\n"],
+  ],
+  'scripts/h5-taptap-runtime.test.mjs': [
+    '99441aee3da0593695e1573ee2492ab7f24976a1d7725803f3d93fac12cfbed5',
+    'b4e45d66088b6955df0ed1c8ce5e11ae7c7bdb0eb6bfb9161fee3dc6ec21a3e1',
+    ["      '017-night-presence.sql',\n"],
+  ],
+  'scripts/competition-gateway.mjs': [
+    '19d74d2d5523f7c106e09a71905f621b21a2db01f9b75e6e85c1ed2bb09ac587',
+    'efef95e2b0ff81b73cc8510fae77bfbf31137d8ba275ae97329a979b8607a609',
+    ["  if (pathname === '/api/competition/v1/games/night-overwatch/presence') return true;\n"],
+  ],
+  'scripts/competition-gateway.test.mjs': [
+    'ce5509adc223339f22d2e4037e32dc1fa8f4c23b2600bf067464341780cb348c',
+    '5bf118c3310e2cd890528c7c9e75fdc470a3681439106e03ed7270e2d2f649ea',
+    [
+      "    'games/night-overwatch/presence',\n",
+      "    'games/wulong-city/presence',\n    'games/night-overwatch/presence/players',\n",
+    ],
+  ],
+  'scripts/check-workspace-dependencies.mjs': [
+    'e62c2727eeb1022464baf8de8a925fccac4cfe557a7c132066fd7293ea4eccfc',
+    'f7569e2f82b0bca3adc1a908dd69f9e5ca749541e9c6eb05ad33778e7359d557',
+    [
+      "  'games/local/night-overwatch/tests/presence-browser.mjs -> scripts/h5-taptap-runtime.mjs',\n  'games/local/night-overwatch/publishing/promo/videos/review-2026-11-05-source/capture.mjs -> scripts/h5-taptap-runtime.mjs',\n",
+    ],
+  ],
+  'platforms/competition/game-services.js': [
+    'ec191a38c37e5d69f9731ef6cca85abebd430bdb56cc4b4d4404da6ba01844b8',
+    '57cb33bb78d064176c98193c28f6ac72df51a0c6819bab8c91b254ca7cb12f07',
+    [
+      "    async nightPresence(expectedPlayerId) {\n      if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');\n      const credential = await auth.current();\n      if (expectedPlayerId && credential.playerId !== expectedPlayerId)\n        throw failure('IDENTITY_CHANGED');\n      return request(path + '/presence', {}, credential);\n    },\n",
+    ],
+  ],
+  'platforms/competition/tests/game-services.test.mjs': [
+    '913ed491eab0a39ee4fecef3162325edcd126885bb2e62be1b733cb6c32fb9e0',
+    'ef03ba00cd31a2264281d25da8dbeae8d6a9c67fcd23055b0178d204210cdfe4',
+    [
+      "  await api.nightPresence('a');\n  assert.equal(f.calls.at(-1).url, '/api/competition/v1/games/night-overwatch/presence');\n  assert.deepEqual(f.calls.at(-1).body, {});\n",
+      "  await assert.rejects(api.nightPresence('a'), { code: 'IDENTITY_CHANGED' });\n",
+      "    code: 'GAME_UNAVAILABLE',\n  });\n  await assert.rejects(createGameServices({ gameId: 'wulong-city' }).nightPresence(), {\n",
+    ],
+  ],
+  'scripts/competition-ingress.mjs': [
+    '71e98afe1132cb9f2783c7c68279c60f8bef91b7108c2ccc709f0a728783be3e',
+    'd6aa84f0e8f4c58e641509734f80a7133058a5985fb7032c8bc6bded7cdaabdf',
+    ["  '/api/competition/v1/games/night-overwatch/presence',\n"],
+  ],
+  'scripts/competition-ingress.test.mjs': [
+    'c8dce2784ae505a27fa10d64903c13203d7a0ed77b09328cfe9cdd14e6e26464',
+    'a0b2bd0dc16520a8fc665d29abc9d3d4e319abe037bebdf937ef123666e33a18',
+    ["    'games/night-overwatch/presence',\n"],
+  ],
+};
+export function nightPresencePrevious(file, after) {
+  const review = nightPresenceReviews[file];
+  if (!review || typeof after !== 'string') return undefined;
+  const digest = (value) => createHash('sha256').update(value).digest('hex');
+  after = after.replaceAll('\r\n', '\n');
+  const [baseHash, headHash, additions] = review;
+  if (digest(after) !== headHash) return undefined;
+  if (baseHash === null) return null;
+  for (const addition of additions) {
+    if (after.split(addition).length !== 2) return undefined;
+    after = after.replace(addition, '');
+  }
+  return digest(after) === baseHash ? after : undefined;
+}
+
 const nightChatMigration = 'infra/migrations/016-night-chat.sql';
 const nightChatBackendChanges = {
   'scripts/competition-gateway.mjs': [
@@ -4685,6 +4786,55 @@ export function reviewedSharedFileScopes({
     packages,
   });
   for (const file of changedPaths) {
+    try {
+      if (Object.hasOwn(nightPresenceReviews, file)) {
+        let before = null;
+        try {
+          before = readBase(file)?.replaceAll('\r\n', '\n') ?? null;
+        } catch {}
+        const previous = nightPresencePrevious(file, readHead(file));
+        if (previous !== undefined) {
+          let inherited = [];
+          if (before !== previous) {
+            assert(previous !== null, 'Presence migration must be new');
+            const prior = reviewedSharedFileScopes({
+              changedPaths: [file],
+              readBase,
+              readHead: (path) => (path === file ? previous : readHead(path)),
+              games,
+              packages,
+            });
+            // Cumulative Night storage, progression and QA imports retain the native consumer.
+            const knownNightImports =
+              file === 'scripts/check-workspace-dependencies.mjs' &&
+              typeof before === 'string' &&
+              createHash('sha256').update(before).digest('hex') ===
+                '811c92e432aa07b086ac6d3192810117929c5962e4ce0d05471734f52790e00a';
+            assert(
+              prior.has(file) || knownNightImports,
+              'Earlier delta needs its own reviewed consumers',
+            );
+            inherited = prior.get(file) || ['apps/shell-minigame'];
+          }
+          assertNightRuntimeConsumer(games, packages, readHead);
+          scopes.set(file, [
+            ...new Set([
+              ...inherited,
+              'games/local/night-overwatch',
+              'services/runtime-api',
+              ...(file.includes('competition-gateway')
+                ? ['apps/shell-web']
+                : file.includes('competition-ingress')
+                  ? ['apps/company-web']
+                  : []),
+            ]),
+          ]);
+          continue;
+        }
+      }
+    } catch {
+      /* Unproven earlier changes retain the normal classification below. */
+    }
     if (file === 'scripts/check-game-config.mjs') {
       try {
         const digest = (text) =>

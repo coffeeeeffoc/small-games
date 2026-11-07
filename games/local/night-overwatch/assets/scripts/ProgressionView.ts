@@ -169,6 +169,7 @@ export class ProgressionView {
       if(!this.narrow){this.picture(i?'homeCompass':'homeCrate',l+bw*.07,yy+bh*.18,bw*.22,bh*.64,false);label.fontSize=this.font(49,16);label.node.setPosition(l+8+bw*.64-w/2,h/2-yy-bh/2);label.node.getComponent(UITransform)!.setContentSize(bw*.65,bh-10);}
     }
     const fh=Math.max(44,h*.11),fy=Math.min(Math.max(top+bar+8,h*.452),cy-2*fh-14);
+    if(this.h.online){this.h.rect(this.g,r-fw,fy-28,fw,24,'#07121cdd');this.label(this.h.online.onlineLabel(this.h.lang),r-fw,fy-28,fw,24,24,ivory);}
     this.panel(r-fw,fy,fw,fh*2+6);this.button('qm:checkin',this.t('每日签到','CHECK IN'),r-fw+5,fy+3,fw-10,fh);
     this.button('qm:supply',this.t('补给·抽奖','SUPPLY & WHEEL'),r-fw+5,fy+fh+3,fw-10,fh);
     for(const [i,[id,key,zh,en]]of [['shop','homeShop','军需商店','ARMORY'],['growth','homeGrowth','等级成长','GROWTH'],['tasks','homeTasks','任务','TASKS'],['warehouse','homeWarehouse','我的仓库','WAREHOUSE']].entries()){

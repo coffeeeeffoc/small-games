@@ -64,6 +64,7 @@ test('the deployment staging loop copies every migration including generic draft
       '014-player-sessions.sql',
       '015-generic-content-drafts.sql',
       '016-night-chat.sql',
+      '017-night-presence.sql',
     ];
     assert.deepEqual((await readdir(path.join(directory, 'migrations'))).sort(), expected);
     for (const file of expected)

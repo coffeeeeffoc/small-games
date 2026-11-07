@@ -400,6 +400,7 @@ async function main() {
     '014-player-sessions.sql',
     '015-generic-content-drafts.sql',
     '016-night-chat.sql',
+    '017-night-presence.sql',
   ])
     await cp(path.join(root, 'infra/migrations', file), path.join(bundle, 'migrations', file));
   await writeFile(
