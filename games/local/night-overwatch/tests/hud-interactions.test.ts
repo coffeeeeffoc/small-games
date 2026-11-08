@@ -224,7 +224,7 @@ test('high physical top insets and full capsules cannot push home actions into c
 test('zoomed enemy diamonds stay visible across transparent controls and footer gaps',()=>{
  Object.assign(frame,{width:844,height:390});inset=0;
  const hud=new HUD(new SceneNode()),sim=new Simulation();hud.touch=true;sim.start();hud.update(sim,world);
- const enemy=sim.units.find(u=>!u.friendly)!;sim.units=[enemy];hud.autoPriority=false;hud.touch=false;
+ const enemy=sim.addUnit('light',{x:0,z:0},false);sim.units=[enemy];hud.autoPriority=false;hud.touch=false;
  hud.placeControl('weapon0',{x:.4,y:.5});const button=hud.buttons.find((b:any)=>b.id==='weapon0');
  const points=[{x:button.x-12,y:button.y+22},{x:button.x+button.w/2,y:button.y+22},{x:button.x+button.w+12,y:button.y+22},{x:550,y:360},{x:810,y:310}];
  for(const p of points){
@@ -1293,13 +1293,51 @@ test('priority touch target never hides nearby ordinary enemy diamonds',()=>{
  Object.assign(frame,{width:844,height:390});inset=0;
  const hud=new HUD(new SceneNode()),sim=new Simulation();sim.start();
  const enemy=sim.units.find(u=>!u.friendly)!;Object.assign(enemy,{x:sim.rescue.x+5,z:sim.rescue.z,born:-30,attack:3});
- const neighbour={...enemy,id:9876,x:enemy.x+12,attack:20};sim.units.push(neighbour);hud.update(sim,world);
+ const neighbour={...enemy,id:9876,kind:'light' as const,x:enemy.x+12,attack:20};sim.units.push(neighbour);hud.update(sim,world);
  const point=world.project(neighbour,.8),x=point.x-frame.width/2,y=point.y-frame.height/2,r=neighbour.kind==='heavy'?7:5;
  assert.equal(hud.hit(point.x,frame.height-point.y)?.id,'priority');
  const path=[['moveTo',x,y+r],['lineTo',x+r,y],['lineTo',x,y-r],['lineTo',x-r,y],['close'],['stroke']];
  assert(hud.marks.calls.some((_:any,i:number)=>path.every(([op,...args],j)=>{
   const c=hud.marks.calls[i+j];return c?.op===op&&c.color==='#ff525b'&&args.every((v,k)=>Math.abs(c.args[k]-Number(v))<.001);
  })),'the neighbouring red diamond is fully drawn inside the priority target');
+});
+
+test('enemy infantry use small solid red dots while vehicles keep diamonds', () => {
+  Object.assign(frame, { width: 844, height: 390 }); inset = 0;
+  const hud = new HUD(new SceneNode()), sim = new Simulation(); sim.start();
+  const infantry = sim.addUnit('infantry', { x: -75, z: 0 }, false);
+  const ally = sim.addUnit('infantry', { x: 0, z: 35 }, true);
+  const vehicles = (['light', 'turret', 'heavy'] as const).map((kind, i) =>
+    sim.addUnit(kind, { x: 45 + i * 22, z: 0 }, false));
+  sim.units = [sim.rescue, infantry, ally, ...vehicles];
+  Object.assign(sim.rescue, { x: -110, z: 0 });
+  sim.setAim({ x: 125, z: 50 });
+  hud.update(sim, world);
+  const calls = hud.marks.calls;
+  const projected = world.project(infantry, 0.8);
+  const x = projected.x - frame.width / 2, y = projected.y - frame.height / 2;
+  assert(calls.some((call: any, i: number) => call.op === 'circle' &&
+    call.args[0] === x && call.args[1] === y && call.args[2] === 2.5 &&
+    calls[i + 1]?.op === 'fill' && calls[i + 1].fill === '#ff525b'), 'battlefield infantry marker is a filled red dot');
+  assert(!calls.some((call: any) => call.op === 'moveTo' && call.args[0] === x && call.args[1] === y + 5),
+    'infantry do not retain the vehicle diamond');
+  for (const vehicle of vehicles) {
+    const point = world.project(vehicle, 0.8);
+    const radius = vehicle.kind === 'heavy' ? 7 : 5;
+    assert(calls.some((call: any) => call.op === 'moveTo' && call.args[0] === point.x - frame.width / 2 &&
+      call.args[1] === point.y - frame.height / 2 + radius && call.color === '#ff525b'),
+    `${vehicle.kind} keeps its red diamond`);
+  }
+  const friendly = world.project(ally, 0.8);
+  assert(calls.some((call: any) => call.op === 'rect' && call.args[0] === friendly.x - frame.width / 2 - 5 &&
+    call.args[1] === friendly.y - frame.height / 2 - 5 && call.color === '#82c9ed'),
+  'friendly infantry keep their blue square');
+  const map = hud.minimapLayout;
+  const mapX = map.x + 8 + ((infantry.x + data.MAP.halfWidth) / (2 * data.MAP.halfWidth)) * (map.w - 16) - hud.w / 2;
+  const mapY = hud.h / 2 - map.y - 25 - ((infantry.z + data.MAP.halfDepth) / (2 * data.MAP.halfDepth)) * (map.h - 33);
+  assert(calls.some((call: any, i: number) => call.op === 'circle' && call.args[0] === mapX &&
+    call.args[1] === mapY && call.args[2] === 2 && calls[i + 1]?.op === 'fill' &&
+    calls[i + 1].fill === '#ff525b'), 'minimap infantry marker is a filled red dot');
 });
 
 test('combined phone safe areas keep lobby reconnect targets separate and ranking text readable',()=>{

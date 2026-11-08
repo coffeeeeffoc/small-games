@@ -280,6 +280,9 @@ export class WorldOverlayView {
       if (unit.friendly) {
         graphics.rect(mapPoint.x - 3, mapPoint.y - 3, 6, 6);
         graphics.stroke();
+      } else if (unit.kind === 'infantry') {
+        graphics.circle(mapPoint.x, mapPoint.y, 2);
+        graphics.fill();
       } else {
         graphics.moveTo(mapPoint.x, mapPoint.y + 2.5);
         graphics.lineTo(mapPoint.x + 2.5, mapPoint.y);
@@ -512,6 +515,16 @@ export class WorldOverlayView {
     for (const contact of ordered) {
       const { unit: u, point: projectedPoint } = contact;
       if (hidden.has(u.id)) continue;
+      if (!u.friendly && u.kind === 'infantry') {
+        const radius = contact === hovered ? 3.5 : 2.5;
+        graphics.fillColor = col('#061116');
+        graphics.circle(projectedPoint.x, projectedPoint.y, radius + 1.5);
+        graphics.fill();
+        graphics.fillColor = col(C.red);
+        graphics.circle(projectedPoint.x, projectedPoint.y, radius);
+        graphics.fill();
+        continue;
+      }
       const markerRadius = contact === hovered ? 9 : u.kind === 'heavy' ? 7 : 5;
       // Dark outline keeps team colors and shapes legible against bright thermal contacts.
       for (const outline of [true, false]) {
