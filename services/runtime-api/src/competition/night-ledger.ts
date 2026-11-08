@@ -91,6 +91,7 @@ export async function settleNightRoom(
   at: number,
   reason: 'elimination' | 'disconnect' | 'abandoned',
   progression?: ProgressionRules,
+  accountRules = progression,
 ) {
   if (room.settledAt !== undefined || !room.startedAt || at < room.startedAt) return;
   await nightLedgerLock(tx);
@@ -159,6 +160,7 @@ export async function settleNightRoom(
             valid:
               reason === 'elimination' && member.result?.participated === true && !member.takenOver,
           },
+          accountRules,
         ),
       );
   }

@@ -32,6 +32,7 @@ services:
       TRUST_PROXY: '0'
       RUNTIME_DATABASE_URL: postgres://runtime_app:${RUNTIME_DB_PASSWORD:?required}@postgres:5432/small_games
       COMPETITION_ENABLED: 'true'
+      NIGHT_RELEASE_CONFIG: ${NIGHT_RELEASE_CONFIG:-}
       COMPETITION_ORIGINS: https://${GAME_DOMAIN:?required}
       COMPETITION_INTERNAL_KEY: ${COMPETITION_INTERNAL_KEY:?required}
     depends_on:

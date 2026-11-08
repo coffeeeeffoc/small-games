@@ -361,6 +361,7 @@ export class SettingsGuideView {
               ['supply', this.h.supplyLabel(s)],
             ]
           : [
+              ['online:version', this.h.t('版本 / 更新', 'VERSION / UPDATE')],
               ['online:profile', this.h.t('玩家昵称', 'PLAYER NAME')],
               [
                 'effects',

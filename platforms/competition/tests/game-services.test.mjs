@@ -150,6 +150,58 @@ test('Night durable completion survives lost append response and reload, queryin
   assert.ok([...f.values.keys()].some((k) => k.endsWith(':synced')));
 });
 
+test('Night newer clients replay old finishing journals with original versions and request IDs', async () => {
+  for (const lost of ['append', 'create', 'finish']) {
+    const f = durableFixture(),
+      first = f.recorder();
+    await first.start({ mode: 'campaign', levelId: 'first' });
+    first.record({}, 120);
+    if (lost === 'finish') f.loseFinish();
+    else f.loseAppend();
+    await first.finish();
+    const name = [...f.values.keys()].find((k) => !k.endsWith(':synced'));
+    const journal = JSON.parse(f.values.get(name));
+    if (lost === 'create') {
+      delete journal.id;
+      f.values.set(name, JSON.stringify(journal));
+    }
+    const start = f.services.startRun,
+      get = f.services.getRun;
+    f.services.startRun = (input) => {
+      assert.equal(input.version, 'v8');
+      assert.equal(input.requestId, journal.requestId);
+      return start(input);
+    };
+    f.services.getRun = (input) => {
+      assert.equal(input.version, 'v8');
+      return get(input);
+    };
+    f.services.ruleVersion = 'v9';
+    const restored = f.recorder();
+    await restored.recover();
+    await restored.recover();
+    assert.equal(restored.status, 'finished');
+    assert.equal(f.runs.size, 1);
+    assert.deepEqual([...f.runs.values()][0].batches, [[{ input: {}, ticks: 120 }]]);
+    assert.equal(f.calls.filter((c) => c === 'finish').length, 1);
+  }
+});
+
+test('Night safe reentry waits for durable commit and refuses lost in-memory records', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  await recorder.start({ mode: 'campaign', levelId: 'first' });
+  recorder.record({}, 20);
+  let blocked = true;
+  f.storage.flush = async () => {
+    if (blocked) throw Error('disk');
+  };
+  assert.equal(await recorder.saveForReentry(), false);
+  blocked = false;
+  assert.equal(await recorder.saveForReentry(), true);
+  assert([...f.values.values()].some((value) => JSON.parse(value).tail?.[0]?.ticks === 20));
+});
+
 test('Night storage diagnostics identify no-op readback and sanitize thrown storage messages', async () => {
   for (const fault of ['noop', 'write', 'read', 'length']) {
     const f = durableFixture();
@@ -1707,8 +1759,45 @@ test('Night authenticated retired old-version reads are allowed without allowing
   await assert.rejects(api.getRun({ runId: remote.id, playerId: owner.playerId }), {
     code: 'RULE_VERSION_CHANGED',
   });
+  assert.deepEqual(
+    await api.getRun({ runId: remote.id, playerId: owner.playerId, version: 'v8' }),
+    remote,
+  );
   remote = { ...remote, status: 'finished', game: 'tower-brake' };
   await assert.rejects(api.getRun({ runId: remote.id, playerId: owner.playerId }), {
+    code: 'RULE_VERSION_CHANGED',
+  });
+});
+
+test('Night carries the stamped build on requests without weakening owner or version validation', async (t) => {
+  const owner = credential('a', Date.now() + 900000, 'night-overwatch');
+  const f = authFixture(t, {
+    initial: JSON.stringify(owner),
+    config: { platform: 'h5', release: { buildId: 'night-fixture' } },
+  });
+  const api = createGameServices({
+    gameId: 'night-overwatch',
+    ruleVersion: 'v9',
+    storage: globalThis.localStorage,
+  });
+  const seen = [];
+  f.respond = async (_url, input) => {
+    seen.push(input);
+    return input.body ? { id: 'old-run', version: JSON.parse(input.body).version } : {};
+  };
+  await api.metadata();
+  await api.startRun({
+    mode: 'campaign',
+    requestId: 'original',
+    playerId: owner.playerId,
+    version: 'v8',
+  });
+  assert(seen.every((input) => input.headers['X-Game-Build'] === 'night-fixture'));
+  assert.equal(JSON.parse(seen[1].body).version, 'v8');
+  await assert.rejects(api.startRun({ mode: 'campaign', playerId: 'other', version: 'v8' }), {
+    code: 'IDENTITY_CHANGED',
+  });
+  await assert.rejects(api.startRun({ mode: 'campaign', version: '../rule' }), {
     code: 'RULE_VERSION_CHANGED',
   });
 });

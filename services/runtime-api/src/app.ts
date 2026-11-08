@@ -1,3 +1,4 @@
+import { loadNightRelease } from './competition/night-release.js';
 import {
   createService,
   openDatabase,
@@ -128,21 +129,30 @@ export function createRuntimeService(
       const carromEngine = (await import(carromUrl)) as CarromEngine;
       const { FRIEND_LEVELS } = (await import(levelsUrl)) as { FRIEND_LEVELS: CarromLevel[] };
       const carrom = createCarromStore(database.db, carromEngine, FRIEND_LEVELS, Date.now, control);
+      const rankedUrl = new URL('../rules/ranked-games.mjs', import.meta.url).href;
+      const { rankedRules } = (await import(rankedUrl)) as { rankedRules: RankedRule[] };
+      const nightRelease = await loadNightRelease(
+        rankedRules.find((rule) => rule.id === 'night-overwatch')!,
+        rules.get('night-overwatch')!,
+        env,
+      );
       const competition = createCompetitionStore(
         database.db,
         rules,
         Date.now,
         control,
         env.COMPETITION_DEVELOPMENT_ENABLED === '1',
+        undefined,
+        nightRelease,
       );
-      const rankedUrl = new URL('../rules/ranked-games.mjs', import.meta.url).href;
-      const { rankedRules } = (await import(rankedUrl)) as { rankedRules: RankedRule[] };
+
       const gameRuns = createRankedStore(
         database.db,
         new Map(rankedRules.map((rule) => [rule.id, rule])),
         competition.identityDetails,
         Date.now,
         control,
+        nightRelease,
       );
       await registerCompetition(instance, competition, env, ranked, carrom, gameRuns, control);
     }

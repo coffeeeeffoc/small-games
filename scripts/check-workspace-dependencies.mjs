@@ -143,6 +143,7 @@ const REPOSITORY_IMPORTS = new Set([
   'games/local/night-overwatch/tests/smoke.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',
   'games/local/night-overwatch/tests/chat-live-browser.mjs -> scripts/h5-taptap-runtime.mjs',
   'games/local/night-overwatch/tests/presence-browser.mjs -> scripts/h5-taptap-runtime.mjs',
+  'games/local/night-overwatch/tests/release-browser.mjs -> scripts/h5-taptap-runtime.mjs',
   'games/local/night-overwatch/publishing/promo/videos/review-2026-11-05-source/capture.mjs -> scripts/h5-taptap-runtime.mjs',
   'apps/shell-web/scripts/prepare-standalone-games.mjs -> scripts/competition-build.mjs',
   // TapTap artifact acceptance reuses the existing pure native SDK/actions and

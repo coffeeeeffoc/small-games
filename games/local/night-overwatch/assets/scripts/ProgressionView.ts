@@ -159,6 +159,7 @@ export class ProgressionView {
     const cy=Math.min(h*.755,this.bottom-44),ch=Math.min(h*.19,this.bottom-cy),gap=Math.max(6,w*.009),cw=(r-l-gap*3)/4;
     const buttonGap=Math.max(5,h*.014),bh=Math.max(44,Math.min(Math.max(46,h*.133),(cy-top-bar-28-buttonGap)/2));
     const titleY=top+bar+Math.min(12,h*.045),desiredTitleW=w*(this.low?.29:.33),bw=w*.30,fw=Math.max(128,w*.175);
+    if(this.h.online?.updateNotice)this.button('online:version',this.t('版本 / 重进提示','VERSION / REOPEN'),r-fw,top+bar+4,fw,44,'panel');
     let titleX=l+8,titleW=Math.min(desiredTitleW,Math.max(0,cy-titleY-2*bh-buttonGap-16)*3);
     const titleBeside=titleW<desiredTitleW*.65;
     if(titleBeside){titleX=l+8+bw+16;titleW=Math.min(desiredTitleW,r-fw-titleX-12);}

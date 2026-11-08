@@ -29,7 +29,7 @@ const url = process.env.COMPETITION_TEST_DATABASE_URL;
     else process.env.COMPETITION_CONTROL_ENABLED = previous.control;
     await database?.close();
   });
-  it('loads the actual registry, retires obsolete rules immediately and retains unknown boards untouched', async () => {
+  it('loads the actual registry and preserves unknown Night rules and boards untouched', async () => {
     const at = Date.now();
     const duel = (await import(new URL('../rules/night.mjs', import.meta.url).href))
       .default as Rule;
@@ -79,8 +79,8 @@ const url = process.env.COMPETITION_TEST_DATABASE_URL;
     });
     const selected = [obsolete, unknown].map(({ id, game, playerId }) => ({ id, game, playerId }));
     const first = await retireRankedRuns(selected);
-    expect(first).toEqual({ ready: [run.id], skipped: 1 });
-    expect((await read(run.id)).status).toBe('finished');
+    expect(first).toEqual({ ready: [], skipped: 2 });
+    expect(await read(run.id)).toEqual(obsolete);
     expect(await read(unknown.id)).toEqual(unknown);
     expect(await retireRankedRuns(selected)).toEqual(first);
     const wallet = (
@@ -88,6 +88,6 @@ const url = process.env.COMPETITION_TEST_DATABASE_URL;
         sql`select data from runtime.competition_matches where id=${`night-assets:${owner}`}`,
       )
     )[0]!.data as { reservations: Record<string, { status: string }> };
-    expect(wallet.reservations[`run:${run.id}`]!.status).toBe('refunded');
+    expect(wallet.reservations[`run:${run.id}`]!.status).toBe('reserved');
   });
 });

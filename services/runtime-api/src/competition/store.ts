@@ -1,4 +1,5 @@
 /* eslint-disable max-lines -- Room transactions and settlement share lock ordering; keep them visible in one store. */
+import { retainedRule, type NightRelease } from './night-release.js';
 import {
   createHash,
   randomBytes,
@@ -44,6 +45,7 @@ import {
 type Database = ReturnType<typeof openDatabase>['db'];
 type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
 type RoomOptions = {
+  buildId?: string;
   mode?: string;
   role?: string;
   initiative?: string;
@@ -86,11 +88,29 @@ export function createCompetitionStore(
   control?: CompetitionControl,
   development = false,
   developmentAdapters: ReadonlyMap<string, DevelopmentAssetAdapter> = new Map(),
+  release?: NightRelease,
 ) {
-  function ruleFor(game: string) {
-    const rule = rules.get(game);
+  function ruleFor(game: string, version?: string) {
+    const rule = retainedRule(
+      rules,
+      game,
+      version ?? rules.get(game)?.version,
+      release?.multiplayer,
+    );
+    if (!rule && version !== undefined) throw new CompetitionError('RULE_VERSION_CHANGED');
     if (!rule) throw new CompetitionError('GAME_UNAVAILABLE', 404);
     return rule;
+  }
+  function clientRule(game: string, buildId?: string) {
+    if (game !== 'night-overwatch' || !release) return ruleFor(game);
+    const version = release.client(buildId)?.multiplayer;
+    if (!version) throw new CompetitionError('RULE_VERSION_CHANGED');
+    return ruleFor(game, version);
+  }
+  const canStart = (room: Pick<Room, 'game' | 'version'>) =>
+    room.game !== 'night-overwatch' || !release || release.canStart('multiplayer', room.version);
+  function assertStart(room: Pick<Room, 'game' | 'version'>) {
+    if (!canStart(room)) throw new CompetitionError('RULE_NEW_GAMES_DISABLED');
   }
   async function ranking(
     board: string,
@@ -186,7 +206,7 @@ export function createCompetitionStore(
     executor: Database | Tx = db,
   ) {
     const playerId = playerIdOf(auth);
-    const rule = ruleFor(game);
+    const rule = clientRule(game, options.buildId);
     const policy = await gamePolicy(control, executor, game);
     assertGameControl(policy, policy?.killEpoch, true);
     if (rule.lobby) await lockMatch(executor, game);
@@ -204,10 +224,11 @@ export function createCompetitionStore(
       await lockMatch(executor, game);
       const own = await activeRoom(executor, game, playerId);
       if (own) {
-        if (own.version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
+        if (own.version !== rule.version) throw new CompetitionError('ACTIVE_ROOM');
         return own;
       }
     }
+    assertStart({ game, version: rule.version });
     if (
       options.visibility === 'private' &&
       (!options.password || options.password.length < 4 || options.password.length > 64)
@@ -266,8 +287,17 @@ export function createCompetitionStore(
     playerId: string,
     executor: Database | Tx = db,
     leaseId?: string,
+    receiptOnly = false,
   ) {
-    const rule = ruleFor(room.game);
+    const rule = retainedRule(rules, room.game, room.version, release?.multiplayer);
+    if (
+      !rule &&
+      !(
+        room.game === 'night-overwatch' &&
+        (receiptOnly || ['finished', 'abandoned', 'expired'].includes(room.status))
+      )
+    )
+      throw new CompetitionError('RULE_VERSION_CHANGED');
     const seat = room.players.findIndex((p) => p.id === playerId);
     if (seat < 0 && !room.spectators?.includes(playerId))
       throw new CompetitionError('NOT_A_MEMBER', 403);
@@ -286,8 +316,8 @@ export function createCompetitionStore(
       version: room.version,
       status: room.status,
       mode: room.mode,
-      capacity: rule.roomSize?.(room.mode) ?? 2,
-      roles: rule.roles,
+      capacity: rule?.roomSize?.(room.mode) ?? 2,
+      roles: rule?.roles,
       initiative: room.initiative,
       firstRole: room.firstRole,
       you: seat,
@@ -322,9 +352,9 @@ export function createCompetitionStore(
       startsAt: room.startedAt,
       deadline: room.deadline,
       serverNow: now(),
-      pollMs: rule.pollMs ?? 1200,
+      pollMs: rule?.pollMs ?? 1200,
       state:
-        room.players[0]!.state === null
+        !rule || room.players[0]!.state === null
           ? null
           : rule.view(
               rule.duel ? room.players[0]!.state : (member ?? room.players[0]!).state,
@@ -340,7 +370,7 @@ export function createCompetitionStore(
   }
   async function finish(room: Room, tx: Tx, timedOut = false) {
     if (room.status !== 'playing') return;
-    const rule = ruleFor(room.game);
+    const rule = ruleFor(room.game, room.version);
     for (const [seat, member] of room.players.entries()) {
       member.result = rule.result(
         rule.duel ? room.players[0]!.state : member.state,
@@ -350,7 +380,14 @@ export function createCompetitionStore(
     if (!timedOut && !room.players.every((p) => p.result?.finished)) return;
     room.status = 'finished';
     if (room.game === 'night-overwatch') {
-      await settleNightRoom(tx, room, now(), 'elimination', rule.progression);
+      await settleNightRoom(
+        tx,
+        room,
+        now(),
+        'elimination',
+        rule.progression,
+        rules.get(room.game)?.progression,
+      );
       return;
     }
     if (rule.unrated) {
@@ -413,13 +450,14 @@ export function createCompetitionStore(
     );
   }
   async function start(room: Room, tx: Tx) {
-    const rule = ruleFor(room.game);
+    const rule = ruleFor(room.game, room.version);
     if (
       room.status !== 'waiting' ||
       room.players.length !== (rule.roomSize?.(room.mode) ?? 2) ||
       !room.players.every((p) => p.ready)
     )
       return;
+    assertStart(room);
     room.status = 'playing';
     room.startedAt = now() + (rule.lobby ? 1200 : 0);
     room.deadline = rule.noTimeLimit ? Number.MAX_SAFE_INTEGER : room.startedAt + rule.durationMs;
@@ -438,6 +476,7 @@ export function createCompetitionStore(
             room.loadoutBattle,
             'duel',
             rule.progression,
+            rules.get(room.game)?.progression,
           ),
         );
       room.loadouts = room.players.map((p) => snapshots.get(p.id)!);
@@ -462,7 +501,7 @@ export function createCompetitionStore(
   async function activeRoom(tx: Database | Tx, game: string, playerId: string) {
     const rows = await tx.execute(sql`select data from runtime.competition_rooms
       where data->>'game'=${game} and data->>'status' in ('waiting','playing') and expires_at>${now()}
-      and data->>'version'=${ruleFor(game).version}
+      ${game === 'night-overwatch' ? sql`` : sql`and data->>'version'=${ruleFor(game).version}`}
       and exists(select 1 from jsonb_array_elements(data->'players') p where p->>'id'=${playerId} and coalesce((p->>'takenOver')::boolean,false)=false)
       order by data->>'createdAt' desc limit 1 for update`);
     return rows[0]?.data as Room | undefined;
@@ -489,12 +528,20 @@ export function createCompetitionStore(
   async function advanceLobby(room: Room, tx: Tx) {
     pruneSpectators(room);
     if (room.status !== 'playing') return;
-    const rule = ruleFor(room.game);
+    const rule = ruleFor(room.game, room.version);
     if (room.game === 'night-overwatch') await nightLedgerLock(tx);
     const elapsed = Math.max(0, now() - room.startedAt!);
     if (now() >= room.startedAt! && room.loadoutBattle && rule.progression)
       for (const player of [...room.players].sort((a, b) => a.id.localeCompare(b.id)))
-        await consumeNightLoadout(tx, player.id, now(), room.loadoutBattle, rule.progression);
+        await consumeNightLoadout(
+          tx,
+          player.id,
+          now(),
+          room.loadoutBattle,
+          rule.progression,
+          false,
+          rules.get(room.game)?.progression,
+        );
     const expired = room.players.filter(
       (member) => !member.takenOver && now() >= (member.reconnectUntil ?? member.seenAt! + 30000),
     );
@@ -533,6 +580,7 @@ export function createCompetitionStore(
         now(),
         abandoned ? 'abandoned' : 'disconnect',
         rule.progression,
+        rules.get(room.game)?.progression,
       );
       if (abandoned) {
         room.status = 'abandoned';
@@ -543,9 +591,9 @@ export function createCompetitionStore(
     await finish(room, tx);
     room.deadline = Number.MAX_SAFE_INTEGER;
   }
-  async function match(auth: PlayerAuth, game: string) {
+  async function match(auth: PlayerAuth, game: string, buildId?: string) {
     const playerId = playerIdOf(auth);
-    const rule = ruleFor(game);
+    const rule = clientRule(game, buildId);
     if (!rule.modes?.some((mode) => mode.id === 'match'))
       throw new CompetitionError('MATCH_UNAVAILABLE', 404);
     return db.transaction(async (tx) => {
@@ -556,7 +604,7 @@ export function createCompetitionStore(
         assertGameControl(policy, policy?.killEpoch, true);
         let room = await activeRoom(tx, game, playerId);
         if (room) {
-          if (room.version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
+          if (room.version !== rule.version) throw new CompetitionError('ACTIVE_ROOM');
           assertGameControl(policy, room.killEpoch ?? 0);
           await advanceLobby(room, tx);
           await tx.execute(
@@ -570,6 +618,7 @@ export function createCompetitionStore(
         )
           room = undefined;
         if (!room) {
+          assertStart({ game, version: rule.version });
           const waiting =
             await tx.execute(sql`select data from runtime.competition_rooms where data->>'game'=${game}
             and data->>'version'=${rule.version} and data->>'visibility'='public' and data->>'mode'<>'bot'
@@ -586,7 +635,8 @@ export function createCompetitionStore(
               leaseId: randomUUID(),
               seenAt: now(),
             });
-          else room = await create(auth, game, { mode: 'match', visibility: 'public' }, tx);
+          else
+            room = await create(auth, game, { mode: 'match', visibility: 'public', buildId }, tx);
         }
         await tx.execute(
           sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${room.code}`,
@@ -649,11 +699,18 @@ export function createCompetitionStore(
     room: Room,
     playerId: string,
     operation: string,
-    input: { seq?: number; action?: unknown; password?: string; leaseId?: string; ready?: boolean },
+    input: {
+      seq?: number;
+      action?: unknown;
+      password?: string;
+      leaseId?: string;
+      ready?: boolean;
+      buildId?: string;
+    },
     tx: Tx,
     policy: Awaited<ReturnType<typeof gamePolicy>>,
   ) {
-    const rule = ruleFor(room.game);
+    const rule = ruleFor(room.game, room.version);
     let member = room.players.find((p) => p.id === playerId);
     const wasSpectator = room.spectators?.includes(playerId);
     pruneSpectators(room);
@@ -695,6 +752,8 @@ export function createCompetitionStore(
       room.killEpoch ?? 0,
       ['join', 'ready', 'rematch'].includes(operation),
     );
+    if ((operation === 'join' && !member) || (operation === 'ready' && room.status === 'waiting'))
+      assertStart(room);
     await advanceLobby(room, tx);
     if (room.status === 'waiting' && now() >= room.deadline) room.status = 'expired';
     let exposeLease: string | undefined;
@@ -752,6 +811,7 @@ export function createCompetitionStore(
               room.loadoutBattle,
               rule.progression,
               true,
+              rules.get(room.game)?.progression,
             );
           delete room.loadoutBattle;
           delete room.loadouts;
@@ -774,7 +834,14 @@ export function createCompetitionStore(
       }
       if (room.status === 'playing' && room.mode === 'bot') {
         room.status = 'abandoned';
-        await settleNightRoom(tx, room, now(), 'abandoned', rule.progression);
+        await settleNightRoom(
+          tx,
+          room,
+          now(),
+          'abandoned',
+          rule.progression,
+          rules.get(room.game)?.progression,
+        );
       } else if (room.status === 'playing' && !member.takenOver) {
         member.disconnected = true;
         member.reconnectUntil = now() + 30000;
@@ -824,7 +891,7 @@ export function createCompetitionStore(
         const next = await create(
           playerId,
           room.game,
-          { mode: room.mode === 'bot' ? 'bot' : 'friend' },
+          { mode: room.mode === 'bot' ? 'bot' : 'friend', buildId: input.buildId },
           tx,
         );
         next.visibility = room.visibility;
@@ -855,6 +922,7 @@ export function createCompetitionStore(
       leaseId?: string;
       ready?: boolean;
       createdAt?: number;
+      buildId?: string;
     } = {},
   ) {
     const playerId = playerIdOf(auth);
@@ -864,15 +932,14 @@ export function createCompetitionStore(
       );
       if (!preview[0]) throw new CompetitionError('INVITATION_NOT_FOUND', 404);
       const previewRoom = preview[0].data as Room;
+      const lobby =
+        previewRoom.game === 'night-overwatch' ||
+        ruleFor(previewRoom.game, previewRoom.version).lobby;
       const policy =
-        operation !== 'leave' || ruleFor(previewRoom.game).lobby
+        operation !== 'leave' || lobby
           ? await gamePolicy(control, tx, previewRoom.game)
           : undefined;
-      if (
-        ruleFor(previewRoom.game).lobby ||
-        previewRoom.mode === 'match' ||
-        previewRoom.mode === 'bot'
-      )
+      if (lobby || previewRoom.mode === 'match' || previewRoom.mode === 'bot')
         await lockMatch(tx, previewRoom.game);
       const rows = await tx.execute(
         sql`select data from runtime.competition_rooms where code=${code} for update`,
@@ -884,7 +951,28 @@ export function createCompetitionStore(
       if (input.game && room.game !== input.game) throw new CompetitionError('WRONG_GAME', 409);
       if (input.createdAt !== undefined && room.createdAt !== input.createdAt)
         throw new CompetitionError('INVITATION_NOT_FOUND', 404);
-      const rule = ruleFor(room.game);
+      if (room.game === 'night-overwatch') {
+        const member = room.players.find((p) => p.id === playerId);
+        if (operation === 'get' && ['finished', 'abandoned', 'expired'].includes(room.status))
+          return view(room, playerId, tx);
+        if (operation === 'actions' && member) {
+          if (input.leaseId !== member.leaseId) throw new CompetitionError('STALE_LEASE');
+          const receipts = await tx.execute(
+            sql`select action_hash from runtime.competition_actions where room_code=${code} and player_id=${playerId} and seq=${input.seq}`,
+          );
+          if (receipts[0]) {
+            if (receipts[0].action_hash !== hash(json(input.action)))
+              throw new CompetitionError('SEQUENCE_CONFLICT');
+            return view(room, playerId, tx, undefined, true);
+          }
+        }
+        if (
+          ((!member && ['join', 'spectate'].includes(operation)) || operation === 'connect') &&
+          clientRule(room.game, input.buildId).version !== room.version
+        )
+          throw new CompetitionError('RULE_VERSION_CHANGED');
+      }
+      const rule = ruleFor(room.game, room.version);
       const invalid =
         room.version !== rule.version
           ? 'RULE_VERSION_CHANGED'
@@ -1076,10 +1164,31 @@ export function createCompetitionStore(
             playerIdOf(auth),
             now(),
             progression,
-            { solo: rule.rankedVersion, duel: rule.version },
+            {
+              solo: [...(release?.ranked.keys() ?? [rule.rankedVersion])],
+              duel: [...(release?.multiplayer.keys() ?? [rule.version])],
+            },
             policy,
+            release
+              ? (kind, version) =>
+                  (kind === 'solo'
+                    ? release?.ranked.get(version)
+                    : release?.multiplayer.get(version)
+                  )?.progression
+              : undefined,
           );
-        return nightAssets(tx, playerIdOf(auth), now(), progression, command, development);
+        return nightAssets(
+          tx,
+          playerIdOf(auth),
+          now(),
+          progression,
+          command,
+          development,
+          (version) =>
+            [...(release?.ranked.values() ?? []), ...(release?.multiplayer.values() ?? [])].find(
+              (r) => r.progression?.version === version,
+            )?.progression,
+        );
       });
     } catch (error) {
       if (authorized && command && error instanceof CompetitionError)
@@ -1107,8 +1216,9 @@ export function createCompetitionStore(
   }
   return {
     ...createDevelopmentAssets(development, adapters),
+    release,
     nightAssets: nightAssetsFor,
-    nightChat: createNightChat(db, now, control, rules.get('night-overwatch')?.version),
+    nightChat: createNightChat(db, now, control, rules.get('night-overwatch')?.version, release),
     nightPresence: createNightPresence(db, now, control),
     ...createCompetitionIdentities(db, now),
     gameDefinitions: () => [...rules.values()],
@@ -1121,7 +1231,13 @@ export function createCompetitionStore(
         await db.execute(sql`delete from runtime.night_presence where player_id in
           (select player_id from runtime.night_presence where seen_at<=${now() - 20000}
            order by seen_at limit 500 for update skip locked)`);
-      for (const rule of rules.values()) {
+      const sweepRules = new Map(
+        [...rules.values(), ...(release?.multiplayer.values() ?? [])].map((rule) => [
+          `${rule.id}:${rule.version}`,
+          rule,
+        ]),
+      );
+      for (const rule of sweepRules.values()) {
         if (!rule.lobby) continue;
         await db.transaction(async (tx) => {
           const policy = await gamePolicy(control, tx, rule.id);
@@ -1154,9 +1270,9 @@ export function createCompetitionStore(
         });
       }
     },
-    async listRooms(auth: PlayerAuth, game: string) {
+    async listRooms(auth: PlayerAuth, game: string, buildId?: string) {
       return db.transaction(async (tx) => {
-        const rule = ruleFor(game);
+        const rule = clientRule(game, buildId);
         const policy = await gamePolicy(control, tx, game);
         assertGameControl(policy, policy?.killEpoch, true);
         await lockMatch(tx, game);
@@ -1191,7 +1307,8 @@ export function createCompetitionStore(
             mode: room.mode,
             capacity,
             playerCount: room.players.length,
-            canJoin: room.status === 'waiting' && room.players.length < capacity,
+            version: room.version,
+            canJoin: canStart(room) && room.status === 'waiting' && room.players.length < capacity,
             canSpectate: !!rule.lobby,
             players: room.players.map((p) => ({
               id: p.id,
@@ -1213,7 +1330,7 @@ export function createCompetitionStore(
         await lockMatch(tx, game);
         await assertResourceAuth(tx, auth, game, now());
         const own = await activeRoom(tx, game, playerIdOf(auth));
-        if (own) {
+        if (own && retainedRule(rules, game, own.version, release?.multiplayer)) {
           assertGameControl(policy, own.killEpoch ?? 0);
           await advanceLobby(own, tx);
           await tx.execute(
@@ -1343,7 +1460,7 @@ export function createCompetitionStore(
       };
     },
     async create(auth: PlayerAuth, game: string, options: RoomOptions = {}) {
-      if (options.mode === 'match') return match(auth, game);
+      if (options.mode === 'match') return match(auth, game, options.buildId);
       return db.transaction(async (tx) => {
         const room = await create(auth, game, options, tx);
         return view(

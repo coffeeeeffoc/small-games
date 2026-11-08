@@ -20,7 +20,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 import { h5AdGames, h5PackageGames, additionalH5Games, prepareH5Ads } from './h5-ad-config.mjs';
 import { prepareH5Service } from './competition-h5-service.mjs';
-import { h5BasicServiceGames, prepareGameServices } from './h5-game-services.mjs';
+import { h5BasicServiceGames, prepareGameServices, stampNightBuild } from './h5-game-services.mjs';
 import { buildTypes, prepareBuildType } from './h5-build-type.mjs';
 import { competitionService } from './competition-service-config.mjs';
 import {
@@ -512,6 +512,8 @@ export async function buildH5Packages(
                 })
               : { apiUrl: '' };
         if (settings) await prepareBuildType(dist, settings.buildType);
+        const release =
+          game === 'night-overwatch' ? await stampNightBuild(dist, 'taptap-h5') : undefined;
         const files = await inventory(dist);
         assert(
           files.some((file) => file.path === 'index.html'),
@@ -532,6 +534,7 @@ export async function buildH5Packages(
           identityMode: 'persistent',
           name,
           game,
+          ...(release ? { release } : {}),
           ...(settings
             ? { buildType: settings.buildType, devMode: settings.buildType === 'development' }
             : {}),

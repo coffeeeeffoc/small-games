@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs';
 import {
   nightProgressionFileScope,
   nightLocalScopePaths,
+  nightReleaseRuleScopePaths,
+  nightReleaseImportsScope,
   reviewedSharedFileScopes,
 } from './publication-scopes.mjs';
 import { incrementalPlan } from './incremental-validation.mjs';
@@ -19,6 +21,64 @@ const source = 'games/local/night-overwatch',
     dir,
     ...JSON.parse(read(dir + '/package.json')),
   }));
+
+test('frozen rule tooling selects Runtime and rejects unknown paths or missing consumer identities', () => {
+  const options = {
+    games,
+    packages,
+    changedPaths: nightReleaseRuleScopePaths,
+    readBase: () => '',
+    readHead: read,
+  };
+  const scopes = reviewedSharedFileScopes(options);
+  for (const file of nightReleaseRuleScopePaths)
+    assert.deepEqual(scopes.get(file), ['services/runtime-api']);
+  const plan = incrementalPlan({ ...options, fileScopes: scopes, readSource: read });
+  assert(plan.service_rule_sources.includes('services/runtime-api'));
+  assert(!plan.game_sources.includes(source));
+  assert.throws(
+    () =>
+      incrementalPlan({
+        ...options,
+        changedPaths: ['scripts/night-release-rules-extra.mjs'],
+        fileScopes: scopes,
+        readSource: read,
+      }),
+    /scope undefined/,
+  );
+  for (const input of [
+    { ...options, games: [] },
+    { ...options, packages: packages.filter((p) => p.dir !== 'services/runtime-api') },
+  ])
+    for (const file of nightReleaseRuleScopePaths)
+      assert(!reviewedSharedFileScopes(input).has(file));
+  assert(
+    JSON.parse(read('services/runtime-api/package.json')).scripts.test.includes(
+      'night-release-rules.test.mjs',
+    ),
+  );
+});
+
+test('release browser import accepts only its precise additive dependency edge', () => {
+  const file = 'scripts/check-workspace-dependencies.mjs';
+  const before = execFileSync('git', ['show', 'b2a9dc3e581dc79fd60bede8c1606b7d583ad71a:' + file], {
+      encoding: 'utf8',
+    }),
+    after = read(file);
+  assert(nightReleaseImportsScope(before, after));
+  assert(!nightReleaseImportsScope(before, after + '\nunsafe();'));
+  assert(!nightReleaseImportsScope(before, after.replace('release-browser.mjs', 'other.mjs')));
+  assert.deepEqual(
+    reviewedSharedFileScopes({
+      games,
+      packages,
+      changedPaths: [file],
+      readBase: () => before,
+      readHead: read,
+    }).get(file),
+    [source, 'services/runtime-api'],
+  );
+});
 test('growth producer additions are byte-bound and select their actual Night/Runtime consumers', () => {
   for (const file of [
     'scripts/deploy-tencent.mjs',

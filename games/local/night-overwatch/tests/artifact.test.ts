@@ -14,6 +14,9 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     const prebuilt = path.join(temp, 'prebuilt');
     for (const dir of ['assets', 'scripts', 'settings/v2/packages', 'dist'])
       await mkdir(path.join(game, dir), { recursive: true });
+    await mkdir(path.join(game, 'assets/scripts/core'), { recursive: true });
+    for (const name of ['Replay', 'Duel'])
+      await cp(new URL(`../assets/scripts/core/${name}.ts`, import.meta.url), path.join(game, `assets/scripts/core/${name}.ts`));
     await mkdir(path.join(temp, 'games/local/carding-car/scripts'), { recursive: true });
     for (const name of ['build.mjs', 'artifact.mjs', 'write-report.mjs'])
       await cp(new URL(`../scripts/${name}`, import.meta.url), path.join(game, 'scripts', name));

@@ -683,6 +683,7 @@ export class OnlineLobbyView {
       create: ['创建房间', 'CREATE ROOM'],
       join: ['加入房间', 'JOIN ROOM'],
       history: ['对战记录', 'BATTLE RECORDS'],
+      version: ['版本与重进', 'VERSION / REOPEN'],
       '': ['', ''],
     };
     if (!result) {
@@ -715,6 +716,32 @@ export class OnlineLobbyView {
     }
     if (result || !['ranking', 'menu', 'history'].includes(online.panel))
       button('dismiss', '', pw - 58, 4, 44, false, true, 'close');
+    if (!result && online.panel === 'version') {
+      const release = online.release;
+      const status = online.checkingRelease ? this.h.t('正在检查版本…', 'Checking version…')
+        : online.releaseCheckFailed ? this.h.t('检查失败，可稍后重试', 'Check failed. Try again later.')
+        : !release ? this.h.t('服务暂未提供版本信息', 'Version information is unavailable.')
+        : !release.canStartNewGames ? this.h.t('部分新对局暂不可用', 'Some new matches are unavailable.')
+        : release.update !== 'none' ? this.h.t('有可用的新版本', 'A newer version is available.')
+        : release.latestBuildId ? this.h.t('已是当前发布版本', 'You have the current release.')
+        : this.h.t('当前版本可继续使用', 'This version remains supported.');
+      label(status, 64, 16, C.amber);
+      const current = release?.currentBuildId || (globalThis as any).__COMPETITION_CONFIG__?.release?.buildId;
+      label(this.h.t('当前构建：', 'Build: ') + (current ? current.slice(0, 22) : '—'), 92, 11, C.dim);
+      const messages = {
+        '': this.h.t('游戏不会中途刷新。\n完成本局后，可先保存记录再退出重进。', 'The game will not reload during a match.\nFinish playing, then save before reopening.'),
+        saving: this.h.t('正在保存本机记录…', 'Saving local records…'),
+        saved: this.h.t('本机记录已保存；未到账结算将在联网后继续同步。\n请完全退出游戏，再从原入口进入。\n若仍是旧版，请稍后再试。', 'Local records saved; pending results sync when online.\nExit the game, then reopen from the same entry.\nIf the old version remains, try again later.'),
+        failed: this.h.t('记录尚未保存成功，请留在游戏内重试。', 'Records could not be saved. Stay in the game and retry.'),
+        unsafe: this.h.t('请先完成本局和当前操作，再返回首页。', 'Finish the match and current action, then return home.'),
+      };
+      this.h.label(n, messages[online.reentryStatus], px + pw / 2, py + 148, pw < 600 ? 12 : 14, pw - 48, 80, online.reentryStatus === 'failed' ? C.red : C.white);
+      const third = (pw - 56) / 3;
+      button('back', this.h.t('返回', 'BACK'), 16, bottom, third, false, true);
+      button('releaseCheck', this.h.t('检查版本', 'CHECK'), 28 + third, bottom, third, false, false, '', online.checkingRelease);
+      button('releaseSave', this.h.t('保存与重进说明', 'SAVE / REOPEN'), 40 + third * 2, bottom, third, true, false, '', online.reentryStatus === 'saving');
+      return;
+    }
     if (result) {
       const short = ph < 320,
         cramped = ph < 280,

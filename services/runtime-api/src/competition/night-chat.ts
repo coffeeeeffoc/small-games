@@ -1,3 +1,4 @@
+import type { NightRelease } from './night-release.js';
 import { createHash } from 'node:crypto';
 import { setTimeout } from 'node:timers/promises';
 import { sql } from 'drizzle-orm';
@@ -50,6 +51,7 @@ export function createNightChat(
   now: () => number,
   control?: CompetitionControl,
   version?: string,
+  release?: NightRelease,
 ) {
   const access = async (auth: PlayerAuth) =>
     db.transaction(async (tx) => {
@@ -58,7 +60,10 @@ export function createNightChat(
       assertGameControl(policy, policy?.killEpoch, true);
       return policy;
     });
-  const snapshot = async (epoch?: number) => {
+  const compatible = (roomVersion: string, buildId?: string) =>
+    roomVersion === (release ? release.client(buildId)?.multiplayer : version) &&
+    (!release || release.canStart('multiplayer', roomVersion));
+  const snapshot = async (epoch?: number, buildId?: string) => {
     const rows =
       await db.execute(sql`select m.seq,m.body,m.room,m.created_at,p.id,p.display_name,p.profile,r.data as current_room
       from runtime.night_chat_messages m join runtime.competition_players p on p.id=m.player_id
@@ -74,7 +79,7 @@ export function createNightChat(
           canJoin:
             !!data &&
             data.game === 'night-overwatch' &&
-            data.version === version &&
+            compatible(data.version, buildId) &&
             (epoch === undefined || (data.killEpoch ?? 0) === epoch) &&
             data.createdAt === ref.createdAt &&
             data.visibility !== 'private' &&
@@ -96,18 +101,26 @@ export function createNightChat(
     return { messages, cursor: hash(messages), reset: true, serverNow: now() };
   };
   return {
-    async list(auth: PlayerAuth, cursor?: string, waitMs = 0, cancelled = () => false) {
+    async list(
+      auth: PlayerAuth,
+      cursor?: string,
+      waitMs = 0,
+      cancelled = () => false,
+      buildId?: string,
+    ) {
       const policy = await access(auth),
         until = Date.now() + Math.min(5000, Math.max(0, waitMs));
-      let result = await snapshot(policy?.killEpoch);
+      let result = await snapshot(policy?.killEpoch, buildId);
       while (cursor === result.cursor && Date.now() < until && !cancelled()) {
         await setTimeout(Math.min(500, until - Date.now()));
-        result = await snapshot(policy?.killEpoch);
+        result = await snapshot(policy?.killEpoch, buildId);
       }
       const latest = await access(auth);
-      return latest?.killEpoch === policy?.killEpoch ? result : snapshot(latest?.killEpoch);
+      return latest?.killEpoch === policy?.killEpoch
+        ? result
+        : snapshot(latest?.killEpoch, buildId);
     },
-    async send(auth: PlayerAuth, value: unknown) {
+    async send(auth: PlayerAuth, value: unknown, buildId?: string) {
       const input = chatSendSchema.parse(value),
         owner = playerIdOf(auth),
         signature = hash(input);
@@ -144,7 +157,7 @@ export function createNightChat(
           if (
             !current ||
             current.game !== 'night-overwatch' ||
-            current.version !== version ||
+            !compatible(current.version, buildId) ||
             (policy && (current.killEpoch ?? 0) !== policy.killEpoch) ||
             current.visibility === 'private' ||
             current.status !== 'waiting' ||
@@ -164,7 +177,7 @@ export function createNightChat(
         await tx.execute(sql`update runtime.night_chat_messages set removed=true,body='',room=null where not removed and
           (created_at<=${now() - 86400000} or seq<(select min(seq) from (select seq from runtime.night_chat_messages order by seq desc limit 100) recent))`);
       });
-      return snapshot((await access(auth))?.killEpoch);
+      return snapshot((await access(auth))?.killEpoch, buildId);
     },
     async report(auth: PlayerAuth, value: unknown) {
       const input = chatReportSchema.parse(value);

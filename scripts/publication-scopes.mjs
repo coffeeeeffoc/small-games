@@ -1799,6 +1799,23 @@ export const nightLocalScopePaths = Object.freeze([
   'scripts/night-overwatch-selftest.test.mjs',
   'scripts/night-overwatch-backup.mjs',
 ]);
+export const nightReleaseRuleScopePaths = Object.freeze([
+  'scripts/night-release-rules.mjs',
+  'scripts/night-release-rules.test.mjs',
+]);
+export function nightReleaseImportsScope(before, after) {
+  if (typeof before !== 'string' || typeof after !== 'string') return false;
+  before = before.replaceAll('\r\n', '\n');
+  after = after.replaceAll('\r\n', '\n');
+  const addition =
+    "  'games/local/night-overwatch/tests/release-browser.mjs -> scripts/h5-taptap-runtime.mjs',\n";
+  return (
+    createHash('sha256').update(before).digest('hex') ===
+      'f7569e2f82b0bca3adc1a908dd69f9e5ca749541e9c6eb05ad33778e7359d557' &&
+    after.split(addition).length === 2 &&
+    after.replace(addition, '') === before
+  );
+}
 const nightProgressionImports = [
   'services/runtime-api/rules/night.mjs -> games/local/night-overwatch/assets/scripts/core/Replay.ts',
   'services/runtime-api/rules/night.mjs -> games/local/night-overwatch/assets/scripts/core/Progression.ts',
@@ -5622,6 +5639,20 @@ export function reviewedSharedFileScopes({
           ]);
           continue;
         }
+      }
+      if (
+        file === 'scripts/check-workspace-dependencies.mjs' &&
+        typeof readBase === 'function' &&
+        nightReleaseImportsScope(readBase(file), readHead(file))
+      ) {
+        assertNightRuntimeConsumer(games, packages, readHead);
+        scopes.set(file, ['games/local/night-overwatch', 'services/runtime-api']);
+        continue;
+      }
+      if (nightReleaseRuleScopePaths.includes(file)) {
+        assertNightRuntimeConsumer(games, packages, readHead);
+        scopes.set(file, ['services/runtime-api']);
+        continue;
       }
       if (
         nightLocalScopePaths.includes(file) ||

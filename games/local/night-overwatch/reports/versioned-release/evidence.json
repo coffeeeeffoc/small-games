@@ -1,0 +1,23 @@
+{
+  "fixture": "real-runtime-postgresql-with-fixture-release-policy-and-local-api-override",
+  "passed": true,
+  "checks": [
+    "Manual version and committed reentry notice at 568x320",
+    "Manual version and committed reentry notice at 844x390",
+    "Manual version and committed reentry notice at 1280x720",
+    "New-version policy preserves the active real single-player run without reload or forced modal",
+    "Explicitly leaving the battle permits a committed reentry notice"
+  ],
+  "errors": [],
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "ea9618f2ecae78b0b0bb7ceea126b2af4e9c07d5e197d9c840c6ccc21f1b3ced"
+  },
+  "release": {
+    "channel": "web-h5",
+    "ranked": "night-input-replay-v16",
+    "multiplayer": "night-duel-v9",
+    "buildId": "night-47573cb8ef65134e395bcb2a840983aaf410304bb857587478db1c4163cba6ad"
+  }
+}

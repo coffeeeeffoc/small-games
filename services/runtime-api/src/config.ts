@@ -1,3 +1,4 @@
+import { readNightReleaseConfig } from './competition/night-release.js';
 import { z } from 'zod';
 import { BlockList, isIP } from 'node:net';
 import { readCorsPolicy } from '@coffeeeeffoc/service-kit';
@@ -12,7 +13,7 @@ export function readCompetitionCors(env: Record<string, string | undefined>) {
     {
       origins: [],
       methods: ['GET', 'POST', 'OPTIONS'],
-      headers: ['authorization', 'content-type'],
+      headers: ['authorization', 'content-type', 'x-game-build'],
       credentials: false,
     },
   );
@@ -26,6 +27,7 @@ const database = z.url().refine((value) => /^postgres(?:ql)?:$/.test(new URL(val
 
 /** Validate before opening resources; errors name fields without echoing credentials. */
 export function validateRuntimeEnvironment(env: Record<string, string | undefined>) {
+  readNightReleaseConfig(env);
   const schema = z.object({
     RUNTIME_DATABASE_URL: database,
     COMPETITION_ENABLED: z.enum(['true', 'false']).optional(),

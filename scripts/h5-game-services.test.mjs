@@ -8,9 +8,37 @@ import {
   prepareGameServices,
   reconfigureGameServices,
   h5BasicServiceGames,
+  stampNightBuild,
 } from './h5-game-services.mjs';
 import preset from '../infra/builds/five-taptap-h5.mjs';
 import { parseGameBuildConfig, gameBuildPlan } from './build-games.mjs';
+
+test('Night build identity covers final files, API and channel and survives deterministic restamping', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'night-build-'));
+  const config = async () => await readFile(path.join(directory, 'game-service-config.js'), 'utf8');
+  try {
+    await writeFile(path.join(directory, 'index.html'), '<html><head></head></html>');
+    await prepareGameServices('night-overwatch', directory, { env: {} });
+    const first = await stampNightBuild(directory);
+    assert.match(first.buildId, /^night-[a-f0-9]{64}$/);
+    assert.equal((await stampNightBuild(directory)).buildId, first.buildId);
+    assert.notEqual((await stampNightBuild(directory, 'taptap-h5')).buildId, first.buildId);
+    await writeFile(path.join(directory, 'entry.js'), 'changed compiled game');
+    assert.notEqual((await stampNightBuild(directory)).buildId, first.buildId);
+    await stampNightBuild(directory, 'taptap-h5');
+    const before = await config();
+    await reconfigureGameServices(path.join(directory, 'index.html'), {
+      COMPETITION_SERVICE_ENABLED: '1',
+      COMPETITION_PUBLIC_API_URL: 'https://example.test/v1',
+    });
+    assert.notEqual(await config(), before);
+    assert.match(await config(), /"channel":"taptap-h5"/);
+    assert.match(await config(), /"ranked":"night-input-replay-v16"/);
+    await assert.rejects(stampNightBuild(directory, 'native'), /channel/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 test('basic reconfiguration rejects executable and unknown external configuration', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'service-boundary-'));

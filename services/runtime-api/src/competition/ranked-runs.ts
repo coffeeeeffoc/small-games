@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- Ranked lifecycle keeps owner, receipt, and rule gates together. */
+import { retainedRule, type NightRelease } from './night-release.js';
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { CompetitionError } from './types.js';
 import { assertGameScope, playerIdOf, type PlayerAuth } from './auth.js';
@@ -9,7 +11,6 @@ import type {
   RunView,
   Settlement,
 } from './ranked-types.js';
-
 const lifetime = 24 * 60 * 60 * 1000;
 export function rankedRunDeadline(run: Pick<RankedRun, 'createdAt' | 'expiresAt'>) {
   return Number.isSafeInteger(run.createdAt) && Number.isSafeInteger(run.expiresAt)
@@ -40,20 +41,22 @@ const canonical = (value: unknown): unknown =>
             .map(([key, item]) => [key, canonical(item)]),
         )
       : value;
-
 export function createRankedRuns(
   repository: RunRepository,
   rules: Map<string, RankedRule>,
   identity: (playerId: string) => Promise<{ authenticated: boolean }>,
   now = Date.now,
+  release?: NightRelease,
 ) {
-  const ruleFor = (game: string) => {
-    const rule = rules.get(game);
+  const ruleFor = (game: string, version?: string) => {
+    const rule = retainedRule(rules, game, version, release?.ranked);
+    if (!rules.has(game)) throw new CompetitionError('GAME_UNAVAILABLE', 404);
+    if (!rule && version !== undefined) throw new CompetitionError('RULE_VERSION_CHANGED');
     if (!rule) throw new CompetitionError('GAME_UNAVAILABLE', 404);
     return rule;
   };
-  const boardFor = (game: string, board: string) => {
-    const rule = ruleFor(game);
+  const boardFor = (game: string, board: string, version?: string) => {
+    const rule = ruleFor(game, version);
     const definition = rule.boards.find((item) => item.id === board);
     if (!definition) throw new CompetitionError('BOARD_UNAVAILABLE', 404);
     return {
@@ -69,11 +72,11 @@ export function createRankedRuns(
   function assertActive(run: RankedRun) {
     if (run.status !== 'active') throw new CompetitionError('RUN_FINISHED');
     if (rankedRunDeadline(run) <= now()) throw new CompetitionError('RUN_EXPIRED');
-    if (ruleFor(run.game).version !== run.version)
-      throw new CompetitionError('RULE_VERSION_CHANGED');
+    ruleFor(run.game, run.version);
   }
   return {
     rules,
+    release,
     boardFor,
     async create(
       auth: PlayerAuth,
@@ -82,6 +85,7 @@ export function createRankedRuns(
       levelId?: string,
       version?: string,
       requestId?: string,
+      buildId?: string,
     ) {
       assertGameScope(auth, game);
       const playerId = playerIdOf(auth);
@@ -91,17 +95,7 @@ export function createRankedRuns(
           !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(requestId))
       )
         throw new CompetitionError('INVALID_INPUT', 422);
-      const { rule, definition, key } = boardFor(game, board);
-      if (!version || version !== rule.version) throw new CompetitionError('RULE_VERSION_CHANGED');
-      if (!definition.guestAllowed && !(await identity(playerId)).authenticated)
-        throw new CompetitionError('LOGIN_REQUIRED', 403);
       const seed = randomInt(0x7fffffff);
-      let state: unknown;
-      try {
-        state = rule.create(board, seed, levelId);
-      } catch {
-        throw new CompetitionError('INVALID_LEVEL', 422);
-      }
       let id: string = randomUUID();
       if (requestId) {
         const bytes = createHash('sha256')
@@ -120,18 +114,31 @@ export function createRankedRuns(
         playerId,
         game,
         board,
-        boardKey: key,
+        boardKey: '',
         levelId,
         seed,
-        version: rule.version,
+        version: version ?? '',
         seq: 0,
         ticks: 0,
-        state,
+        state: null,
         createdAt,
         expiresAt: createdAt + lifetime,
         status: 'active',
       };
-      const stored = await repository.create(run, auth);
+      const stored = await repository.create(run, auth, async () => {
+        if (!rules.has(game)) throw new CompetitionError('GAME_UNAVAILABLE', 404);
+        if (!version) throw new CompetitionError('RULE_VERSION_CHANGED');
+        const { rule, definition, key } = boardFor(game, board, version);
+        if (game === 'night-overwatch') release?.assertStart('ranked', version, buildId);
+        if (!definition.guestAllowed && !(await identity(playerId)).authenticated)
+          throw new CompetitionError('LOGIN_REQUIRED', 403);
+        try {
+          run.state = rule.create(board, seed, levelId);
+        } catch {
+          throw new CompetitionError('INVALID_LEVEL', 422);
+        }
+        run.boardKey = key;
+      });
       if (
         stored.kind !== run.kind ||
         stored.id !== run.id ||
@@ -151,7 +158,7 @@ export function createRankedRuns(
         id,
         async ({ run, assertControl }) => {
           assertOwner(run, playerId, game);
-          if (!run.settlement) assertControl?.();
+          if (!run.settlement && run.status === 'active') await assertControl?.();
           return { ...view(run), settlement: run.settlement ?? null };
         },
         auth,
@@ -165,10 +172,8 @@ export function createRankedRuns(
         id,
         async ({ run, assertControl }) => {
           assertOwner(run, playerId, game);
-          assertControl?.();
-          if (ruleFor(game).version !== run.version)
-            throw new CompetitionError('RULE_VERSION_CHANGED');
-          if (!run.settlement) {
+          if (!run.settlement && run.status === 'active') {
+            await assertControl?.();
             assertActive(run);
           }
           return { ...view(run), settlement: run.settlement ?? null };
@@ -192,7 +197,7 @@ export function createRankedRuns(
             if (existing.hash !== hash) throw new CompetitionError('SEQUENCE_CONFLICT');
             return existing.response;
           }
-          tx.assertControl?.();
+          await tx.assertControl?.();
           assertActive(run);
           if (input.seq !== run.seq + 1) throw new CompetitionError('SEQUENCE_CONFLICT');
           const ticks = input.frames.reduce((sum, frame) => sum + frame.ticks, 0);
@@ -206,7 +211,7 @@ export function createRankedRuns(
           if (((run.ticks + ticks) * 1000) / 120 > now() - run.createdAt + 2000)
             throw new CompetitionError('RUN_AHEAD_OF_TIME', 422);
           try {
-            run.state = ruleFor(game).apply(run.state, input.frames);
+            run.state = ruleFor(game, run.version).apply(run.state, input.frames);
           } catch {
             throw new CompetitionError('ILLEGAL_ACTION', 422);
           }
@@ -230,9 +235,9 @@ export function createRankedRuns(
           assertOwner(run, playerId, game);
           if (seq !== run.seq) throw new CompetitionError('SEQUENCE_CONFLICT');
           if (run.settlement) return run.settlement;
-          tx.assertControl?.();
+          await tx.assertControl?.();
           assertActive(run);
-          const result = ruleFor(game).result(run.state);
+          const result = ruleFor(game, run.version).result(run.state);
           if (
             !Number.isSafeInteger(result.score) ||
             result.score < 0 ||
@@ -264,6 +269,7 @@ export function createRankedRuns(
         async (tx) => {
           assertOwner(tx.run, playerIdOf(auth), game);
           if (tx.run.settlement) return tx.run.settlement;
+          if (game === 'night-overwatch') ruleFor(game, tx.run.version);
           await tx.releaseLoadout?.();
           tx.run.status = 'finished';
           return view(tx.run);
@@ -277,12 +283,21 @@ export function createRankedRuns(
         id,
         async (tx) => {
           assertOwner(tx.run, owner, game);
+          if (tx.run.status !== 'active' || tx.run.settlement)
+            return { ...view(tx.run), settlement: tx.run.settlement ?? null };
+          await tx.assertControl?.();
           const current = rules.get(game);
           if (!current) throw new CompetitionError('WRONG_GAME');
           if (
+            game === 'night-overwatch' &&
+            !retainedRule(rules, game, tx.run.version, release?.ranked)
+          )
+            throw new CompetitionError('RULE_VERSION_CHANGED');
+          if (
             tx.run.status === 'active' &&
             !tx.run.settlement &&
-            (rankedRunDeadline(tx.run) <= now() || tx.run.version !== current.version)
+            (rankedRunDeadline(tx.run) <= now() ||
+              !retainedRule(rules, game, tx.run.version, release?.ranked))
           ) {
             if (!tx.run.loadoutStarted) await tx.releaseLoadout?.();
             tx.run.expiresAt = rankedRunDeadline(tx.run);

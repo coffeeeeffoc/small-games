@@ -166,6 +166,10 @@ export class HomeView {
       }
       if (this.hud.online) {
         this.hud.label(parentNode, this.hud.online.onlineLabel(this.hud.lang), right - 95, this.hud.safe.top + 68, 13, 190, 24, C.dim);
+        if (this.hud.online.updateNotice) {
+          this.hud.plate(graphics, right - 170, this.hud.safe.top + 88, 170, 44, '#111d21ed', C.amber, 6);
+          this.hud.button('online:version', this.hud.t('版本 / 重进提示', 'VERSION / REOPEN'), right - 170, this.hud.safe.top + 88, 170, 44, parentNode).fontSize = 12;
+        }
         const settingsLeft = this.hud.buttons.find((button) => button.id === 'settings')!.x;
         const profileWidth = Math.min(264, settingsLeft - left - 118);
         this.hud.plate(

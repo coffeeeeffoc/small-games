@@ -18,3 +18,6 @@ apps/shell-ios/build/
 *.tsbuildinfo
 # Archived browser evidence retains its original bytes and recorded hashes.
 /reports/polish-review/
+
+# Frozen rule artifacts retain their verified bytes and manifest hashes.
+/services/runtime-api/rules/frozen/

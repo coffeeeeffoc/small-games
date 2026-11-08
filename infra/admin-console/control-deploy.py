@@ -29,7 +29,7 @@ COMMANDS = {'runtime': ['node', 'services/runtime-api/dist/main.js'],
 PUBLIC_ENV = {'runtime': {'COMPETITION_CONTROL_ENABLED': 'true', 'COMPETITION_CONTROL_INSTANCE_ID': 'small-games-runtime',
                           'COMPETITION_CORS_ORIGINS': 'http://localhost:8080,https://ma-h5-al.tapimg.com,https://coffeeeeffoc.github.io',
                           'COMPETITION_CORS_METHODS': 'GET,POST,OPTIONS',
-                          'COMPETITION_CORS_HEADERS': 'authorization,content-type',
+                          'COMPETITION_CORS_HEADERS': 'authorization,content-type,x-game-build',
                           'COMPETITION_CORS_CREDENTIALS': 'false'},
               'kart': {'COMPETITION_CONTROL_ENABLED': 'true', 'COMPETITION_CONTROL_INSTANCE_ID': 'small-games-kart'},
               'management': {'ADMIN_CONTROL_ENABLED': 'true'}}

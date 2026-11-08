@@ -160,7 +160,7 @@ class ControlContracts(unittest.TestCase):
             'COMPETITION_CONTROL_INSTANCE_ID': 'small-games-runtime',
             'COMPETITION_CORS_ORIGINS': 'http://localhost:8080,https://ma-h5-al.tapimg.com,https://coffeeeeffoc.github.io',
             'COMPETITION_CORS_METHODS': 'GET,POST,OPTIONS',
-            'COMPETITION_CORS_HEADERS': 'authorization,content-type',
+            'COMPETITION_CORS_HEADERS': 'authorization,content-type,x-game-build',
             'COMPETITION_CORS_CREDENTIALS': 'false'})
         self.assertEqual(control.PUBLIC_ENV['management'], {'ADMIN_CONTROL_ENABLED': 'true'})
         self.assertNotIn('COMPETITION_CORS_ORIGINS', control.PUBLIC_ENV['kart'])
