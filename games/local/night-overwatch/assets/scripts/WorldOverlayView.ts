@@ -277,12 +277,12 @@ export class WorldOverlayView {
       }
       graphics.strokeColor = col(unit.friendly ? C.mint : C.red);
       graphics.fillColor = col(unit.friendly ? C.mint : C.red);
-      if (unit.friendly) {
-        graphics.rect(mapPoint.x - 3, mapPoint.y - 3, 6, 6);
-        graphics.stroke();
-      } else if (unit.kind === 'infantry') {
+      if (unit.kind === 'infantry') {
         graphics.circle(mapPoint.x, mapPoint.y, 2);
         graphics.fill();
+      } else if (unit.friendly) {
+        graphics.rect(mapPoint.x - 3, mapPoint.y - 3, 6, 6);
+        graphics.stroke();
       } else {
         graphics.moveTo(mapPoint.x, mapPoint.y + 2.5);
         graphics.lineTo(mapPoint.x + 2.5, mapPoint.y);
@@ -515,36 +515,36 @@ export class WorldOverlayView {
     for (const contact of ordered) {
       const { unit: u, point: projectedPoint } = contact;
       if (hidden.has(u.id)) continue;
-      if (!u.friendly && u.kind === 'infantry') {
+      if (u.kind === 'infantry') {
         const radius = contact === hovered ? 3.5 : 2.5;
         graphics.fillColor = col('#061116');
         graphics.circle(projectedPoint.x, projectedPoint.y, radius + 1.5);
         graphics.fill();
-        graphics.fillColor = col(C.red);
+        graphics.fillColor = col(u.friendly ? C.mint : C.red);
         graphics.circle(projectedPoint.x, projectedPoint.y, radius);
         graphics.fill();
-        continue;
-      }
-      const markerRadius = contact === hovered ? 9 : u.kind === 'heavy' ? 7 : 5;
-      // Dark outline keeps team colors and shapes legible against bright thermal contacts.
-      for (const outline of [true, false]) {
-        graphics.lineWidth = outline ? (contact === hovered ? 4 : 3) : 2;
-        graphics.strokeColor = col(outline ? '#061116' : u.friendly ? C.mint : C.red);
-        if (u.friendly)
-          graphics.rect(
-            projectedPoint.x - markerRadius,
-            projectedPoint.y - markerRadius,
-            markerRadius * 2,
-            markerRadius * 2,
-          );
-        else {
-          graphics.moveTo(projectedPoint.x, projectedPoint.y + markerRadius);
-          graphics.lineTo(projectedPoint.x + markerRadius, projectedPoint.y);
-          graphics.lineTo(projectedPoint.x, projectedPoint.y - markerRadius);
-          graphics.lineTo(projectedPoint.x - markerRadius, projectedPoint.y);
-          graphics.close();
+      } else {
+        const markerRadius = contact === hovered ? 9 : u.kind === 'heavy' ? 7 : 5;
+        // Dark outline keeps team colors and shapes legible against bright thermal contacts.
+        for (const outline of [true, false]) {
+          graphics.lineWidth = outline ? (contact === hovered ? 4 : 3) : 2;
+          graphics.strokeColor = col(outline ? '#061116' : u.friendly ? C.mint : C.red);
+          if (u.friendly)
+            graphics.rect(
+              projectedPoint.x - markerRadius,
+              projectedPoint.y - markerRadius,
+              markerRadius * 2,
+              markerRadius * 2,
+            );
+          else {
+            graphics.moveTo(projectedPoint.x, projectedPoint.y + markerRadius);
+            graphics.lineTo(projectedPoint.x + markerRadius, projectedPoint.y);
+            graphics.lineTo(projectedPoint.x, projectedPoint.y - markerRadius);
+            graphics.lineTo(projectedPoint.x - markerRadius, projectedPoint.y);
+            graphics.close();
+          }
+          graphics.stroke();
         }
-        graphics.stroke();
       }
       const count = counts.get(u.id);
       if (count) {

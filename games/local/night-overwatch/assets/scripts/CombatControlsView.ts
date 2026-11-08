@@ -1,6 +1,7 @@
 import { Label, UITransform, sys } from 'cc';
 import type { ButtonRect, HUD } from './HUD';
 import { C, col } from './HudTheme';
+const FIRE_BASE_SIZE = 128;
 const movableControls = [
   'weapon0',
   'weapon1',
@@ -138,7 +139,7 @@ export class CombatControlsView {
       .filter((button) => button.label.node.activeInHierarchy);
     const visible = normal.filter((button) => button.label.node.activeInHierarchy);
     const fire = this.hud.buttons.find((button) => button.id === 'fire')!;
-    fire.h = 136 * this.hud.fireScale;
+    fire.h = FIRE_BASE_SIZE * this.hud.fireScale;
     this.positionControl(
       fire,
       right - fire.h,
@@ -323,7 +324,7 @@ export class CombatControlsView {
     ).node.parent = this.hud.globalControls;
     const footerTop = height - this.hud.footer - this.hud.safe.bottom;
     const cardWidth = Math.min(this.hud.compact ? 64 : 78, (right - left - 146) / 5 - 6);
-    const fireWidth = 136;
+    const fireWidth = FIRE_BASE_SIZE;
     const cardsLeft = left;
     for (let i = 0; i < 4; i++) {
       const label = this.hud.button(

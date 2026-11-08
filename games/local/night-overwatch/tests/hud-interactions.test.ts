@@ -173,7 +173,7 @@ test('control sizes keep touch targets reachable and paused layout mode exposes 
    assert(b.w>=44&&b.h>=44&&b.x>=inset&&b.y>=inset&&b.x+b.w<=width-inset&&b.y+b.h<=height-inset,`${width}/${scale}/${b.id} in safe bounds`);
    assert(!controls.some((other:any)=>other!==b&&overlaps(b,other)),`${width}/${scale}/${b.id} separated`);
   }
-  assert.equal(hud.buttons.find((b:any)=>b.id==='fire').w,136*scale);
+  assert.equal(hud.buttons.find((b:any)=>b.id==='fire').w,128*scale);
   sim.pause('settings',true);hud.controlsOpen=true;hud.update(sim,world);
   const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
   assert.equal(buttons.find((b:any)=>b.id==='resume')?.label.string,'继续战斗');
@@ -1302,7 +1302,7 @@ test('priority touch target never hides nearby ordinary enemy diamonds',()=>{
  })),'the neighbouring red diamond is fully drawn inside the priority target');
 });
 
-test('enemy infantry use small solid red dots while vehicles keep diamonds', () => {
+test('infantry use small solid team-color dots while vehicles keep their markers', () => {
   Object.assign(frame, { width: 844, height: 390 }); inset = 0;
   const hud = new HUD(new SceneNode()), sim = new Simulation(); sim.start();
   const infantry = sim.addUnit('infantry', { x: -75, z: 0 }, false);
@@ -1329,15 +1329,21 @@ test('enemy infantry use small solid red dots while vehicles keep diamonds', () 
     `${vehicle.kind} keeps its red diamond`);
   }
   const friendly = world.project(ally, 0.8);
-  assert(calls.some((call: any) => call.op === 'rect' && call.args[0] === friendly.x - frame.width / 2 - 5 &&
-    call.args[1] === friendly.y - frame.height / 2 - 5 && call.color === '#82c9ed'),
-  'friendly infantry keep their blue square');
+  assert(calls.some((call: any, i: number) => call.op === 'circle' &&
+    call.args[0] === friendly.x - frame.width / 2 && call.args[1] === friendly.y - frame.height / 2 &&
+    call.args[2] === 2.5 && calls[i + 1]?.op === 'fill' && calls[i + 1].fill === '#82c9ed'),
+  'friendly infantry use a filled blue dot');
   const map = hud.minimapLayout;
   const mapX = map.x + 8 + ((infantry.x + data.MAP.halfWidth) / (2 * data.MAP.halfWidth)) * (map.w - 16) - hud.w / 2;
   const mapY = hud.h / 2 - map.y - 25 - ((infantry.z + data.MAP.halfDepth) / (2 * data.MAP.halfDepth)) * (map.h - 33);
   assert(calls.some((call: any, i: number) => call.op === 'circle' && call.args[0] === mapX &&
     call.args[1] === mapY && call.args[2] === 2 && calls[i + 1]?.op === 'fill' &&
     calls[i + 1].fill === '#ff525b'), 'minimap infantry marker is a filled red dot');
+  const allyMapX = map.x + 8 + ((ally.x + data.MAP.halfWidth) / (2 * data.MAP.halfWidth)) * (map.w - 16) - hud.w / 2;
+  const allyMapY = hud.h / 2 - map.y - 25 - ((ally.z + data.MAP.halfDepth) / (2 * data.MAP.halfDepth)) * (map.h - 33);
+  assert(calls.some((call: any, i: number) => call.op === 'circle' && call.args[0] === allyMapX &&
+    call.args[1] === allyMapY && call.args[2] === 2 && calls[i + 1]?.op === 'fill' &&
+    calls[i + 1].fill === '#82c9ed'), 'minimap friendly infantry marker is a filled blue dot');
 });
 
 test('combined phone safe areas keep lobby reconnect targets separate and ranking text readable',()=>{

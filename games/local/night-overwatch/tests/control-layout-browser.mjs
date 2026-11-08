@@ -55,7 +55,7 @@ try {
     assert(initial.buttons.some(b=>b.id==='homing'),'the complete bottom row includes tracking');
     const regular=geometry(initial).filter(b=>/^weapon[0-3]$/.test(b.id)||b.id==='homing').sort((a,b)=>a.x-b.x),support=[...buttons].sort((a,b)=>a.x-b.x),fire=initial.buttons.find(b=>b.id==='fire');
     assert.equal(buttons.length,weapon==='only-emp'?1:2);assert(buttons.every(b => b.h >= 44&&b.y<=regular[0].y));
-    if(fire){assert.equal(fire.w,136);assert.equal(fire.h,136);}else assert(!touch);
+    if(fire){assert.equal(fire.w,128);assert.equal(fire.h,128);}else assert(!touch);
     if(weapon==='drone')assert.match(buttons.find(b=>b.id==='weapon4').text.split('\n')[0],/^无人机\s+\d/);
     const readyColor=buttons.find(b=>b.id==='skillUse').statusColor;
     if(support[0].y===regular[0].y)assert.equal(support[0].x,regular.at(-1).x+regular.at(-1).w+8,'support follows the last visible normal weapon without empty slots');

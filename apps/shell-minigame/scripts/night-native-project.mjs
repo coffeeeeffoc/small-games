@@ -20,7 +20,7 @@ const recipe = [
   },
   {
     file: 'assets/scripts/CombatControlsView.ts',
-    originalSha256: '4c9376f25fe146ffc0548b628dd5c2cf45af8fd5f8dd821781f11fa5924f3975',
+    originalSha256: '441918c92bd44ec7c694f6fe3afd0c4889b2f0e81db2c060928339ef85dab731',
     changes: [],
   },
   {
