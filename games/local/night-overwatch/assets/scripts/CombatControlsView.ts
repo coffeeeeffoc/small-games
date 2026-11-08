@@ -1,7 +1,7 @@
 import { Label, UITransform, sys } from 'cc';
 import type { ButtonRect, HUD } from './HUD';
 import { C, col } from './HudTheme';
-const FIRE_BASE_SIZE = 128;
+const FIRE_BASE_SIZE = 100;
 const movableControls = [
   'weapon0',
   'weapon1',
