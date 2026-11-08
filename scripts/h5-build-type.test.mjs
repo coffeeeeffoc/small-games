@@ -92,6 +92,11 @@ test('CLI changes the default, preserves explicit game override, and delivers mi
   try {
     for (const game of config.games)
       await mkdir(path.join(folder, 'games/local', game), { recursive: true });
+    await mkdir(path.join(folder, 'games/local/night-overwatch/publishing'));
+    await writeFile(
+      path.join(folder, 'games/local/night-overwatch/publishing/versions.json'),
+      JSON.stringify({ nextVersion: '1.0.0', backendVersion: '1.0.0' }),
+    );
     const actualEnvs = [];
     const result = await main(['--config', 'profiles.json', '--build-type', 'test'], {
       workspace: folder,

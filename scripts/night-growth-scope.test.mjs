@@ -7,6 +7,9 @@ import {
   nightLocalScopePaths,
   nightReleaseRuleScopePaths,
   nightReleaseImportsScope,
+  nightBuildVersionScopePaths,
+  nightVersionBuildScope,
+  selectedBackendConsumers,
   reviewedSharedFileScopes,
 } from './publication-scopes.mjs';
 import { incrementalPlan } from './incremental-validation.mjs';
@@ -162,4 +165,59 @@ test('local selftest is finite and schedules only its side-effect-free contract 
       }),
     /scope undefined/,
   );
+});
+
+test('version counter tools and exact build wiring select their real consumers', () => {
+  const allPackages = [
+    ...packages,
+    ...['services/kart-server', 'services/tianxia-server'].map((dir) => ({
+      dir,
+      ...JSON.parse(read(dir + '/package.json')),
+    })),
+  ];
+  const options = {
+    games,
+    packages: allPackages,
+    changedPaths: nightBuildVersionScopePaths,
+    readBase: () => '',
+    readHead: read,
+  };
+  const scopes = reviewedSharedFileScopes(options);
+  for (const file of nightBuildVersionScopePaths)
+    assert.deepEqual(scopes.get(file), [source, ...selectedBackendConsumers]);
+  for (const bad of [
+    { ...options, games: [] },
+    { ...options, packages },
+  ])
+    for (const file of nightBuildVersionScopePaths)
+      assert(!reviewedSharedFileScopes(bad).has(file));
+  assert(
+    !reviewedSharedFileScopes({
+      ...options,
+      changedPaths: ['scripts/night-build-version-extra.mjs'],
+    }).has('scripts/night-build-version-extra.mjs'),
+  );
+  for (const file of ['.gitignore', 'turbo.json', 'scripts/check-workspace-dependencies.mjs']) {
+    const before = execFileSync(
+        'git',
+        ['show', '9c9c3797a7a85d3b5cd2f18dbc8d39cd6fd1f001:' + file],
+        { encoding: 'utf8' },
+      ),
+      after = read(file);
+    assert(nightVersionBuildScope(file, before, after));
+    assert(!nightVersionBuildScope(file, before, after + '\nunsafe();'));
+    const changed =
+      file === '.gitignore'
+        ? after.replace('versions.json.lock', '*.json')
+        : file === 'turbo.json'
+          ? after.replace('"cache": false', '"cache": true')
+          : after.replace('night-build-version.mjs', 'unknown.mjs');
+    assert(!nightVersionBuildScope(file, before, changed));
+    assert.deepEqual(
+      reviewedSharedFileScopes({ ...options, changedPaths: [file], readBase: () => before }).get(
+        file,
+      ),
+      [source],
+    );
+  }
 });

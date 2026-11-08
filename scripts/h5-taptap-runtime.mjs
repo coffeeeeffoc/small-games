@@ -34,6 +34,7 @@ export const fixtureMigrations = Object.freeze([
   'infra/admin-console/migrations/002-control-center.sql',
   'infra/admin-console/migrations/003-night-overwatch-control.sql',
   'infra/admin-console/migrations/004-tetracube-control.sql',
+  'infra/admin-console/migrations/005-night-operations.sql',
 ]);
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 export function ownedNames(runId) {

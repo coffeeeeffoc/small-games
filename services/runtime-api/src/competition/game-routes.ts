@@ -132,7 +132,9 @@ export function registerGameRoutes(
     assertGameScope(auth, game);
     return {
       ...definition(game),
-      ...(game === 'night-overwatch' ? store.release?.metadata(build(game, request.headers)) : {}),
+      ...(game === 'night-overwatch'
+        ? await store.nightReleaseMetadata(auth, build(game, request.headers))
+        : {}),
       identity: await store.identityDetails(auth),
     };
   });
@@ -390,7 +392,10 @@ export function registerGameRoutes(
         return store.roomAction(await player(request.headers.authorization), code, operation, {
           ...input,
           game,
-          ...(operation === 'spectate' || operation === 'rematch' || operation === 'connect'
+          ...(operation === 'spectate' ||
+          operation === 'rematch' ||
+          operation === 'connect' ||
+          operation === 'ready'
             ? { buildId: build(game, request.headers) }
             : {}),
         });

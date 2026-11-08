@@ -21,3 +21,18 @@ export {
   type StoredControlSnapshot,
   type GameControlPolicy,
 } from './control-config.js';
+
+export {
+  gameBuildId,
+  nightChannelSchema,
+  nightReleaseSchema,
+  nightAnnouncementSchema,
+  nightCompensationSchema,
+  nightOperationsSchema,
+  normalizeNightOperations,
+  type NightReleaseConfig,
+  type NightAnnouncement,
+  type NightCompensation,
+  type NightOperations,
+} from './night-operations.js';
+export { backendDeploymentSchema, type BackendDeployment } from './backend-deployment.js';

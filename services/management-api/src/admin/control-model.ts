@@ -144,10 +144,12 @@ export interface ControlTransaction {
   policies(): Promise<GamePolicy[]>;
   published(id: string): Promise<boolean>;
   revisions(): Promise<ListedRevision[]>;
+  publishedRevisions(): Promise<Revision[]>;
   revision(id: string): Promise<Revision | undefined>;
   insertRevision(revision: Revision): Promise<void>;
   observations(): Promise<Observation[]>;
   audits(): Promise<Audit[]>;
+  deployments(): Promise<Audit[]>;
   audit(entry: Audit): Promise<void>;
 }
 export interface ControlStore {

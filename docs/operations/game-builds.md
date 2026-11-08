@@ -110,3 +110,13 @@ MiniApp Secret 只配置到 Runtime 的 `COMPETITION_PLATFORM_CONFIG`，通过�
 先执行 pnpm build:games --dry-run 检查选择、广告有效开关与后端关闭状态，再执行 pnpm build:games。需要只编译一款时缩减配置中的 games；每款 ID 必须由该应用的 MCP 返回。此次新增游戏不支持 backend:true。原有六款/五款预设成员保持原样。
 
 灰烬防线`ashfall-front`新增Creator 3.8.8 Web Mobile H5编译，横屏。它接受统一配置中的单游戏选择和广告开关，不支持`backend:true`；缺广告位时默认关闭。当前应用为1000862，2026-10-27已核实广告生效，但MCP方向读取失败，尚未取得正式广告位；旧998795映射不再使用。五款当前映射与阻塞见[广告核对记录](taptap-rewarded-ads.md#五款应用核对与-mcp-阻塞2026-10-27)。源码匹配预构建变量为`ASHFALL_FRONT_PREBUILT_DIR`，实际交付和素材见游戏README与publishing/STATUS.md。
+
+## 夜航的前后端发布版本号
+
+夜航每次实际前端编译/打包先从 `games/local/night-overwatch/publishing/versions.json` 预留 `nextVersion`，再将补丁位加一；必须显式维护 `major.minor.patch` 格式的起始版本和 `backendVersion` 兼容绑定。每个广告/后端变体分别分配编号，失败的构建也消耗编号，避免重用已生成过的包身份。普通 Creator 构建和统一 H5 入口共用这项规则；Turbo 不缓存该游戏构建。
+
+H5 配套 JSON 清单的 `release` 与包内 `game-service-config.js` 同时保留人类可读的前端版本、后端兼容版本、内容构建 ID 和两个规则版本。重盖章或更换 API 配置保留已分配版本，内容变化仍重新计算构建 ID；旧包重打标不虚构历史版本号。编译器内的版本环境变量由统一打包入口传递，不作为人工跳过自增的工作流。
+
+版本配置随源码提交。工作区内并发分配使用独占锁与原子替换；多个分支或多台机器打包前应先同步这份配置并分配互不冲突的编号。本地锁不提供跨机器全局编号。编号分配不等于发布，后管登记和渠道上传仍是独立动作。
+
+后端定向发布必须显式传入版本，例如 `pnpm deploy:backend --services=runtime --version=1.0.0 --prepare`。预备包和镜像标签记录版本、源码和规则；实际成功部署后才追加上线回执。后管的运行状态、兼容开关与快速回退语义见[配置中心说明](../admin-console/control-center.md#夜航公告补偿与游戏版本)。

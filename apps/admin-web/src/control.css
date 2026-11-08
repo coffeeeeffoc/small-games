@@ -179,3 +179,32 @@ main.control-main {
     padding: 16px;
   }
 }
+.operation-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+.operation-fields > div {
+  min-width: 0;
+}
+.operation-fields .ant-input-number {
+  width: 100%;
+}
+.control-center input[type='file'] {
+  display: block;
+  max-width: 100%;
+  min-height: 44px;
+}
+.control-check {
+  margin: 20px 0;
+}
+.operation-preview {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #b9cbd3;
+  border-radius: 8px;
+  background: #f4f8fa;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -55,6 +55,7 @@ export async function installControlFixture(page, granted = permissions) {
     sessionStatus: 200,
     requests: [],
     writes: [],
+    deployments: { current: null, history: [] },
     nextError: undefined,
     state: {
       version: 2,
@@ -159,6 +160,7 @@ export async function installControlFixture(page, granted = permissions) {
         members: fixture.members,
         roles: fixture.directory,
         audit: fixture.audit,
+        deployments: fixture.deployments,
       }[path.split('/').at(-1)];
       return respond(result ?? { error: 'NOT_FOUND' }, result ? 200 : 404);
     }
@@ -181,6 +183,18 @@ export async function installControlFixture(page, granted = permissions) {
       fixture.revisions.unshift(row);
       return respond(row);
     }
+    if (path === '/api/control/night-release/rollback') {
+      if (body.expectedVersion !== fixture.state.version)
+        return respond({ error: 'VERSION_CONFLICT' }, 409);
+      const next = clone(fixture.state.snapshot);
+      next.nightOperations.release.channels.find((c) => c.channel === body.channel).latestBuildId =
+        body.buildId;
+      const row = { ...revision(sequence++, ++fixture.state.version, next), reason: body.reason };
+      fixture.revisions.unshift(row);
+      fixture.state.snapshot = next;
+      fixture.state.revisionId = row.id;
+      return respond({ version: fixture.state.version, revisionId: row.id, status: 'desired' });
+    }
     if (path.endsWith('/publish') || path === '/api/control/rollback') {
       if (body.expectedVersion !== fixture.state.version)
         return respond({ error: 'VERSION_CONFLICT' }, 409);
@@ -190,7 +204,10 @@ export async function installControlFixture(page, granted = permissions) {
       assert(row);
       if (path.endsWith('/rollback')) {
         row = {
-          ...revision(sequence++, null, row.snapshot),
+          ...revision(sequence++, null, {
+            ...row.snapshot,
+            nightOperations: fixture.state.snapshot.nightOperations,
+          }),
           reason: body.reason,
           parentVersion: fixture.state.version,
           rollbackOf: row.id,

@@ -1,0 +1,53 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "7752944d1f98efb3d0fe5b930c9ac4693b0bc08f1f32a8839a34baf4187ac835"
+  },
+  "fixture": true,
+  "realDevice": false,
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "originalMessageText": true,
+      "claimAttachment": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "originalMessageText": true,
+      "claimAttachment": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "originalMessageText": true,
+      "claimAttachment": true
+    }
+  ],
+  "errors": [],
+  "release": {
+    "channel": "web-h5",
+    "ranked": "night-input-replay-v16",
+    "multiplayer": "night-duel-v9",
+    "version": "1.0.3",
+    "backendVersion": "1.0.0",
+    "buildId": "night-b17d73f21fe85849e746d15865b42c7b89ffe2b3e2def009141815d6950fda42"
+  },
+  "baseCommit": "9c9c3797a7a85d3b5cd2f18dbc8d39cd6fd1f001",
+  "branch": "codex/night-overwatch-versioned-release",
+  "deployed": false
+}

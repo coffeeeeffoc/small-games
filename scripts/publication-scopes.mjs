@@ -1803,10 +1803,48 @@ export const nightReleaseRuleScopePaths = Object.freeze([
   'scripts/night-release-rules.mjs',
   'scripts/night-release-rules.test.mjs',
 ]);
+export const nightBuildVersionScopePaths = Object.freeze([
+  'scripts/night-build-version.mjs',
+  'scripts/night-build-version.test.mjs',
+]);
+export function nightVersionBuildScope(file, before, after) {
+  if (typeof before !== 'string' || typeof after !== 'string') return false;
+  before = before.replaceAll('\r\n', '\n');
+  after = after.replaceAll('\r\n', '\n');
+  if (file === '.gitignore') {
+    const addition =
+      'games/local/night-overwatch/publishing/versions.json.lock\ngames/local/night-overwatch/publishing/versions.json.pending\n';
+    return after === before + addition;
+  }
+  if (file === 'scripts/check-workspace-dependencies.mjs') {
+    const edge =
+      "  'games/local/night-overwatch/scripts/build.mjs -> scripts/night-build-version.mjs',\n";
+    return after.split(edge).length === 2 && after.replace(edge, '') === before;
+  }
+  if (file !== 'turbo.json') return false;
+  try {
+    const old = JSON.parse(before),
+      next = JSON.parse(after),
+      key = '@coffeeeeffoc/night-overwatch#build';
+    assert.equal(next.tasks[key].cache, false);
+    assert.equal(old.tasks[key].cache, undefined);
+    delete next.tasks[key].cache;
+    const input = '$TURBO_ROOT$/scripts/night-build-version.mjs';
+    assert.equal(next.tasks[key].inputs.filter((v) => v === input).length, 1);
+    next.tasks[key].inputs = next.tasks[key].inputs.filter((v) => v !== input);
+    return isDeepStrictEqual(old, next);
+  } catch {
+    return false;
+  }
+}
 export function nightReleaseImportsScope(before, after) {
   if (typeof before !== 'string' || typeof after !== 'string') return false;
   before = before.replaceAll('\r\n', '\n');
   after = after.replaceAll('\r\n', '\n');
+  after = after.replace(
+    "  'games/local/night-overwatch/scripts/build.mjs -> scripts/night-build-version.mjs',\n",
+    '',
+  );
   const addition =
     "  'games/local/night-overwatch/tests/release-browser.mjs -> scripts/h5-taptap-runtime.mjs',\n";
   return (
@@ -2406,7 +2444,7 @@ function assertCompetitionRegistry(readHead, games) {
 
 function exactCopsOfflineBuild(before, after) {
   const anchor =
-    "  'cops-robbers': {\n    directory: 'games/local/cops-robbers',\n    renderer: 'src/competition-renderer.js',\n    title: '围捕小队',\n";
+    "  'cops-robbers': {\n    directory: 'games/local/cops-robbers',\n    renderer: 'src/competition-renderer.js',\n    title: '鍥存崟灏忛槦',\n";
   return (
     before.split(anchor).length === 2 &&
     after === before.replace(anchor, anchor + '    online: false,\n')
@@ -2844,14 +2882,14 @@ const copsAdBefore = `    await click(frame.getByTestId('hint'));
 const copsAdAfter = `    await click(frame.getByTestId('hint'));
     await click(
       frame
-        .getByRole('dialog', { name: '模拟广告' })
-        .getByRole('button', { name: '领取奖励', exact: true }),
+        .getByRole('dialog', { name: '妯℃嫙骞垮憡' })
+        .getByRole('button', { name: '棰嗗彇濂栧姳', exact: true }),
     );
     const destination = frame.locator('.node-target.chosen');
 `;
-const copsFreeHintAfter = `    await expect(frame.getByTestId('hint')).toHaveAttribute('aria-label', '获取提示');
+const copsFreeHintAfter = `    await expect(frame.getByTestId('hint')).toHaveAttribute('aria-label', '鑾峰彇鎻愮ず');
     await click(frame.getByTestId('hint'));
-    await expect(frame.getByRole('dialog', { name: '模拟广告' })).toHaveCount(0);
+    await expect(frame.getByRole('dialog', { name: '妯℃嫙骞垮憡' })).toHaveCount(0);
     const destination = frame.locator('.node-target.chosen');
 `;
 function exactCopsStartGuard(before, after) {
@@ -3295,6 +3333,7 @@ export const adminControlDeploymentScopePaths = [
   'infra/admin-console/migrations/002-control-center.sql',
   'infra/admin-console/migrations/003-night-overwatch-control.sql',
   'infra/admin-console/migrations/004-tetracube-control.sql',
+  'infra/admin-console/migrations/005-night-operations.sql',
 ];
 export const adminDeploymentScopePaths = [
   ...adminControlDeploymentScopePaths,
@@ -3351,6 +3390,7 @@ export const selectedBackendConsumers = [
   'services/tianxia-server',
 ];
 export const backendDeploymentScopePaths = [
+  ...nightBuildVersionScopePaths,
   'scripts/deploy-backend.mjs',
   'scripts/deploy-backend.test.mjs',
   'infra/backend-update/deploy.py',
@@ -5513,6 +5553,23 @@ export function reviewedSharedFileScopes({
       if (imageAuthorityScopePaths.includes(file)) {
         for (const dir of imageAuthorityConsumers) assert(packages.some((pkg) => pkg.dir === dir));
         scopes.set(file, imageAuthorityConsumers);
+        continue;
+      }
+      if (nightBuildVersionScopePaths.includes(file)) {
+        assertNightRuntimeConsumer(games, packages, readHead);
+        for (const source of selectedBackendConsumers)
+          assert(packages.some((pkg) => pkg.dir === source));
+        scopes.set(file, ['games/local/night-overwatch', ...selectedBackendConsumers]);
+        continue;
+      }
+      if (
+        typeof readBase === 'function' &&
+        typeof readHead === 'function' &&
+        ['.gitignore', 'turbo.json', 'scripts/check-workspace-dependencies.mjs'].includes(file) &&
+        nightVersionBuildScope(file, readBase(file), readHead(file))
+      ) {
+        assertNightRuntimeConsumer(games, packages, readHead);
+        scopes.set(file, ['games/local/night-overwatch']);
         continue;
       }
       if (backendDeploymentScopePaths.includes(file)) {

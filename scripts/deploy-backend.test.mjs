@@ -16,6 +16,7 @@ import {
   writeBackendBundle,
 } from './deploy-backend.mjs';
 import { remoteDiagnostic, deploymentCommand } from './deployment-progress.mjs';
+const imageMetadata = { backendVersion: '1.0.0', head: 'a'.repeat(40) };
 
 test('backend progress accepts only finite stages and redacts unknown remote errors', () => {
   assert.deepEqual(remoteDiagnostic('BACKEND_REMOTE_STAGE context_guard'), {
@@ -55,16 +56,22 @@ test('backend progress accepts only finite stages and redacts unknown remote err
 });
 
 test('backend selection is explicit and excludes admin, empty entries and unrelated targets', () => {
-  assert.deepEqual(backendInput(['--services=runtime', '--prepare']), {
+  assert.deepEqual(backendInput(['--services=runtime', '--prepare', '--version=1.0.0']), {
     mode: 'prepare',
     services: ['runtime'],
     release: undefined,
+    backendVersion: '1.0.0',
   });
   assert.deepEqual(backendInput(['--services=kart,tianxia', '--check']).services, [
     'kart',
     'tianxia',
   ]);
   for (const args of [
+    ['--services=runtime'],
+    ['--services=runtime', '--prepare'],
+    ['--services=runtime', '--version=1.0'],
+    ['--services=runtime', '--version=1.0.0\nLABEL injected=true'],
+    ['--services=runtime', '--check', '--version=1.0.0'],
     [],
     ['--services=all'],
     ['--services=management'],
@@ -84,7 +91,11 @@ test('private platform credentials are a bounded file input for Runtime executio
   };
   const text = JSON.stringify(config);
   assert.deepEqual(platformConfiguration(text), config);
-  const input = backendInput(['--services=runtime', '--platform-config-file=private.json']);
+  const input = backendInput([
+    '--services=runtime',
+    '--version=1.0.0',
+    '--platform-config-file=private.json',
+  ]);
   assert.equal(input.platformConfigFile, 'private.json');
   for (const file of ['', '  '])
     assert.throws(() => backendInput(['--services=runtime', '--platform-config-file=' + file]));
@@ -140,14 +151,22 @@ test('private platform credentials are a bounded file input for Runtime executio
 });
 
 test('selected backend image is readable by node and has a runnable default without installing other services', () => {
-  const runtime = backendDockerfile(['runtime']);
+  const runtime = backendDockerfile(['runtime'], imageMetadata);
+  assert(runtime.includes('io.small-games.backend-version="1.0.0"'));
+  assert(runtime.includes('org.opencontainers.image.revision="' + imageMetadata.head + '"'));
   assert(runtime.includes('COPY --chown=node:node'));
   assert(runtime.includes('CMD ["node","services/runtime-api/dist/main.js"]'));
   assert(runtime.includes('--filter @coffeeeeffoc/runtime-api...'));
   assert(!/management-api|kart-server|bootstrap|COPY \.env/.test(runtime));
-  assert(backendDockerfile(['kart']).includes('CMD ["node","services/kart-server/src/main.ts"]'));
   assert(
-    backendDockerfile(['tianxia']).includes('CMD ["node","services/tianxia-server/src/main.mjs"]'),
+    backendDockerfile(['kart'], imageMetadata).includes(
+      'CMD ["node","services/kart-server/src/main.ts"]',
+    ),
+  );
+  assert(
+    backendDockerfile(['tianxia'], imageMetadata).includes(
+      'CMD ["node","services/tianxia-server/src/main.mjs"]',
+    ),
   );
 });
 
@@ -178,6 +197,7 @@ test('selected backend bundle seals the reviewed shared helper alongside the run
       head: 'a'.repeat(40),
       release: 'candidate',
       services: ['kart'],
+      backendVersion: '1.0.0',
     },
     workspace,
   );
@@ -189,6 +209,7 @@ test('selected backend bundle seals the reviewed shared helper alongside the run
     assert.equal(manifest.files[file], createHash('sha256').update(expected).digest('hex'));
   }
   assert.deepEqual(manifest.services, ['kart']);
+  assert.equal(manifest.backendVersion, '1.0.0');
   assert.equal(manifest.databaseMigrations, false);
   assert.equal(manifest.qualityChecks, 'not-run');
 });
@@ -207,6 +228,15 @@ test('backend receipt accepts only finite source and image evidence, without fak
     backupSHA256: 'b'.repeat(64),
     isolatedRestoreVerified: false,
     activeImages: { runtime: 'sha256:' + 'c'.repeat(64), kart: 'sha256:' + 'd'.repeat(64) },
+    deployment: {
+      version: '1.0.0',
+      sourceSHA: 'a'.repeat(40),
+      release: 'candidate',
+      mode: 'execute',
+      services: ['runtime'],
+      activeImages: { runtime: 'sha256:' + 'c'.repeat(64), kart: 'sha256:' + 'd'.repeat(64) },
+      verifiedAt: 1,
+    },
     imageCapabilities: {
       runtime: {
         image: 'sha256:' + 'c'.repeat(64),
@@ -223,6 +253,13 @@ test('backend receipt accepts only finite source and image evidence, without fak
     },
   };
   assert.deepEqual(backendReceipt(JSON.stringify(receipt), ['runtime']), receipt);
+  const schema5 = structuredClone(receipt);
+  schema5.imageCapabilities.runtime.nightOperations = 1;
+  assert.deepEqual(backendReceipt(JSON.stringify(schema5), ['runtime']), schema5);
+  for (const invalid of [0, 2, true, '1', null]) {
+    schema5.imageCapabilities.runtime.nightOperations = invalid;
+    assert.throws(() => backendReceipt(JSON.stringify(schema5), ['runtime']));
+  }
   for (const controlCatalog of [undefined, 3, 5, true, '4']) {
     const changed = structuredClone(receipt);
     changed.imageCapabilities.runtime.controlCatalog = controlCatalog;

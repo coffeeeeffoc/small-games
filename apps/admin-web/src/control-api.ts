@@ -1,3 +1,5 @@
+import type { NightOperations } from './night-operations-model';
+
 export const permissions = [
   'control.read',
   'control.write',
@@ -10,7 +12,11 @@ export const permissions = [
 ] as const;
 export type Permission = (typeof permissions)[number];
 export type GameState = 'enabled' | 'draining' | 'disabled';
-export type Snapshot = { apiOrigins: string[]; games: Record<string, GameState> };
+export type Snapshot = {
+  apiOrigins: string[];
+  games: Record<string, GameState>;
+  nightOperations?: NightOperations;
+};
 export type Session = {
   login: string;
   csrfToken: string;
@@ -73,6 +79,17 @@ export type Audit = {
   createdAt: number;
 };
 const errors: Record<string, string> = {
+  NIGHT_COMPENSATION_IMMUTABLE: '已发布补偿的内容、奖励和资格不能修改。请新建补偿。',
+  NIGHT_COMPENSATION_FUTURE_ELIGIBILITY: '补偿账号截止时间不能在未来。',
+  NIGHT_BUILD_IMMUTABLE: '已发布的构建标识不能绑定其他版本或规则。请登记新构建。',
+  NIGHT_BUILD_REMOVAL_REQUIRED: '已发布构建须使用移除开关，不能删除历史登记。',
+  NIGHT_RELEASE_NOT_CONFIGURED: '尚未发布游戏版本配置。',
+  NIGHT_BUILD_NOT_FOUND: '该渠道版本不存在，请重新读取。',
+  NIGHT_BUILD_REMOVED: '该版本已移除，请先恢复登记并发布。',
+  NIGHT_BUILD_DISABLED: '该版本已关闭，请先恢复并发布。',
+  NIGHT_BACKEND_DISABLED: '该版本绑定的后端服务已关闭，请先恢复并发布。',
+  NIGHT_RULE_RETIRED: '该版本规则已退役，不能回退。',
+  NIGHT_RULE_DISABLED: '该版本规则未开放新局，不能回退。',
   FORBIDDEN: '访问权限已变化，正在重新确认登录状态。',
   forbidden: '成员权限已撤销，请重新登录。',
   authentication_required: '登录已过期，请重新登录。',
@@ -131,14 +148,21 @@ export function createControlApi(session: Session, accessLost: () => Promise<voi
     return result as T;
   }
   return {
-    read: <T>(path: 'catalog' | 'state' | 'revisions' | 'members' | 'roles' | 'audit') =>
-      request<T>(path),
+    read: <T>(
+      path: 'catalog' | 'state' | 'revisions' | 'members' | 'roles' | 'audit' | 'deployments',
+    ) => request<T>(path),
     draft: (body: { expectedVersion: number; snapshot: Snapshot; reason: string }) =>
       request<RevisionData>('revisions', body),
     publish: (id: string, expectedVersion: number) =>
       request(`revisions/${encodeURIComponent(id)}/publish`, { expectedVersion }),
     rollback: (revisionId: string, expectedVersion: number, reason: string) =>
       request('rollback', { revisionId, expectedVersion, reason }),
+    rollbackNightRelease: (
+      channel: string,
+      buildId: string,
+      expectedVersion: number,
+      reason: string,
+    ) => request('night-release/rollback', { channel, buildId, expectedVersion, reason }),
     member: (id: string | undefined, body: unknown) =>
       request(`members${id ? `/${encodeURIComponent(id)}` : ''}`, body),
     deleteMember: (id: string, reason: string) =>

@@ -1,4 +1,4 @@
-import { retainedRule, type NightRelease } from './night-release.js';
+import { publishedNightRelease, retainedRule, type NightRelease } from './night-release.js';
 import {
   backfillNightClears,
   nightBoard,
@@ -49,7 +49,11 @@ export function createRankedStore(
           return stored;
         }
         assertGameControl(policy, policy?.killEpoch, true);
-        await initialize?.();
+        await initialize?.(
+          run.game === 'night-overwatch'
+            ? publishedNightRelease(release, policy?.nightOperations)
+            : undefined,
+        );
         run.killEpoch = policy?.killEpoch ?? 0;
         const rule = retainedRule(rules, run.game, run.version, release?.ranked)!;
         if (run.game === 'night-overwatch' && rule.progression && rule.configure) {

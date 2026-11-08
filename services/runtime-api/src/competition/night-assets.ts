@@ -2,7 +2,8 @@
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
-import type { openDatabase } from '@coffeeeeffoc/service-kit';
+import { deliverNightCompensations, nightAnnouncements } from './night-operations.js';
+import type { NightOperations, openDatabase } from '@coffeeeeffoc/service-kit';
 import { CompetitionError, type Room } from './types.js';
 import type { RankedRun } from './ranked-types.js';
 type Database = ReturnType<typeof openDatabase>['db'];
@@ -552,7 +553,13 @@ const publicOrder = (order: VideoOrder) => ({
   createdAt: order.createdAt,
   ...(order.attempt ? { attempt: order.attempt } : {}),
 });
-function snapshot(w: NightAssets, owner: string, at: number, rules: ProgressionRules) {
+function snapshot(
+  w: NightAssets,
+  owner: string,
+  at: number,
+  rules: ProgressionRules,
+  operations?: NightOperations,
+) {
   const inventory: Record<string, number> = {},
     free: Record<string, number> = {};
   for (const [id, n] of Object.entries(w.inventory)) {
@@ -575,14 +582,7 @@ function snapshot(w: NightAssets, owner: string, at: number, rules: ProgressionR
     tasks: w.tasks,
     achievements: ACHIEVEMENTS.map((a) => ({ ...a, ...w.achievements[a.id] })),
     mail: w.mail,
-    announcements: [
-      {
-        id: 'growth-v1',
-        title: '成长与军需上线',
-        body: '积分保持原规则。金币、经验独立记录；单人和双人分别配装。技能按冷却重复使用。',
-        createdAt: cutoff,
-      },
-    ],
+    announcements: nightAnnouncements(at, operations),
     videoOrders: w.videoOrders.map(publicOrder),
     signedDays: w.signedDays,
     signedToday: w.signedDays.includes(nightDay(at)),
@@ -644,11 +644,22 @@ export async function nightAssets(
   command?: AssetCommand,
   development = false,
   progressionFor?: (version: string) => ProgressionRules | undefined,
+  operations?: NightOperations,
 ) {
   if (command?.kind === 'dev-adjust' && !development)
     throw new CompetitionError('DEV_TOOLS_DISABLED', 403);
   const w = await locked(tx, owner, at, rules),
     day = nightDay(at);
+  const players = operations?.compensations.length
+    ? await tx.execute(sql`select created_at from runtime.competition_players where id=${owner}`)
+    : [];
+  const delivered = deliverNightCompensations(
+    w,
+    owner,
+    Number(players[0]?.created_at),
+    at,
+    operations,
+  );
   const response = async (lastReceipt?: unknown) => {
     const cleared = rules.economy
       ? await tx.execute(
@@ -689,7 +700,7 @@ export async function nightAssets(
       };
     });
     return {
-      ...snapshot(w, owner, at, rules),
+      ...snapshot(w, owner, at, rules, operations),
       ...(rules.economy ? { clearedLevels } : {}),
       devToolsEnabled: development,
       openReceipts,
@@ -714,6 +725,7 @@ export async function nightAssets(
   if (previous[0]) {
     const receipt = previous[0].data as { hash: string; result: unknown };
     if (receipt.hash !== hash) throw new CompetitionError('REQUEST_ID_CONFLICT');
+    if (delivered) await save(tx, owner, w);
     return response(receipt.result);
   }
   if (cmd.kind === 'ad-complete') {

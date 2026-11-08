@@ -483,7 +483,7 @@ export class Online {
     } catch (error) {
       if (generation === this.generation) {
         const code = (error as { code?: string }).code || '';
-        this.message = /RULE_VERSION_CHANGED|RULE_NEW_GAMES_DISABLED/.test(code) ? '版本暂不支持此对战，请返回首页查看版本提示'
+        this.message = /RULE_VERSION_CHANGED|RULE_NEW_GAMES_DISABLED|BUILD_DISABLED|BUILD_REMOVED|BACKEND_VERSION_DISABLED|NIGHT_RELEASE_UNAVAILABLE/.test(code) ? '版本暂不支持此对战，请返回首页查看版本提示'
           : /PASSWORD/.test(code) ? '房间密码不正确，请重新输入'
           : /FULL|STARTED/.test(code) ? '房间已满或已经开战，请选择其他房间'
           : /STALE_LEASE/.test(code) ? '此对局已在另一个页面恢复'

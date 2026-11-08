@@ -52,3 +52,5 @@ AGENTS.md.backup.*
 # Legacy/custom local configurations; game-build.local.mjs is version-controlled
 /game-build.local.json
 /game-build.local.js
+games/local/night-overwatch/publishing/versions.json.lock
+games/local/night-overwatch/publishing/versions.json.pending

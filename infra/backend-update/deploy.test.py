@@ -20,6 +20,45 @@ def item(name, image='a', revision='candidate'):
 
 
 class BackendContracts(unittest.TestCase):
+    def test_deployment_version_is_the_running_image_including_rollback_and_unknown_legacy(self):
+        active = {'runtime': item('runtime', 'a')}
+        manifest = {'release': 'candidate', 'services': ['runtime'], 'backendVersion': '2.0.0', 'sourceSHA': 'c' * 40}
+        labels = {'version': '1.0.0', 'sourceSHA': 'b' * 40, 'ranked': 'solo-a', 'multiplayer': 'duel-a'}
+        with patch.object(backend, 'command', return_value=json.dumps(labels).encode()) as command:
+            record = backend.deployment_record(manifest, 'rollback', active)
+            self.assertEqual(record['version'], '1.0.0')
+            self.assertEqual(record['sourceSHA'], 'b' * 40)
+            self.assertEqual(record['activeImages']['runtime'], active['runtime']['image'])
+            self.assertEqual(record['nightRules'], {'ranked': 'solo-a', 'multiplayer': 'duel-a'})
+            self.assertNotIn('.Config.Env', command.call_args.args[-1])
+            with self.assertRaisesRegex(backend.Stopped, 'DEPLOYMENT_VERSION'):
+                backend.deployment_record(manifest, 'execute', active)
+        with patch.object(backend, 'command', return_value=b'{"version":"","sourceSHA":"","ranked":"","multiplayer":""}'):
+            record = backend.deployment_record(manifest, 'rollback', active)
+            self.assertEqual(record['version'], 'unknown')
+            self.assertIsNone(record['sourceSHA'])
+        with patch.object(backend, 'command', return_value=json.dumps({**labels, 'version': "1.0.0'; DROP TABLE audit;"}).encode()):
+            with self.assertRaisesRegex(backend.Stopped, 'DEPLOYMENT_VERSION'):
+                backend.deployment_record(manifest, 'rollback', active)
+
+    def test_successful_deployment_record_uses_private_database_channel_and_bounded_public_detail(self):
+        record = {'version': '1.0.0', 'sourceSHA': 'a' * 40, 'release': 'candidate', 'mode': 'execute',
+                  'services': ['runtime'], 'activeImages': {'runtime': item('runtime')['image']}, 'verifiedAt': 12345}
+        with patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'command') as command:
+            backend.record_deployment(record)
+            args = command.call_args.args
+            self.assertEqual(args[:6], ('docker', 'exec', '-i', 'pg', 'psql', '-X'))
+            self.assertIn('ON_ERROR_STOP=1', args)
+            statement = command.call_args.kwargs['input'].decode()
+            self.assertIn("'deployments.backend','runtime'", statement)
+            self.assertIn(json.dumps(record, separators=(',', ':')).encode().hex(), statement)
+        with patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'command', side_effect=backend.Stopped('COMMAND_TIMEOUT')):
+            with self.assertRaisesRegex(backend.Stopped, 'DEPLOYMENT_RECORD_UNKNOWN') as error:
+                backend.record_deployment(record)
+            self.assertTrue(error.exception.preserveHealthy)
+        with patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'command', side_effect=[backend.Stopped('COMMAND_TIMEOUT'), json.dumps(record).encode()]):
+            backend.record_deployment(record)
+
     def test_platform_config_merge_preserves_other_apps_and_existing_games(self):
         incoming = {'platform': 'taptap', 'appId': 'night-app', 'secret': 'NEW_PRIVATE_${CANARY}', 'games': ['night-overwatch']}
         other = {'platform': 'wechat', 'appId': 'other-app', 'secret': 'OLD_OTHER_PRIVATE', 'games': ['vibeJam-myself-history-guess']}
@@ -99,7 +138,7 @@ class BackendContracts(unittest.TestCase):
     def test_platform_update_restores_original_config_on_failure_and_never_stops_active_games(self):
         incoming = {'platform': 'taptap', 'appId': 'night-app', 'secret': 'PRIVATE_CANARY_123', 'games': ['night-overwatch']}
         previous = [{'platform': 'wechat', 'appId': 'other', 'secret': 'OTHER_PRIVATE_123'}]
-        for fail_at in ['before_backup', 'after_backup', 'start', 'verify', None]:
+        for fail_at in ['before_backup', 'after_backup', 'start', 'verify', 'record', 'record_signal', None]:
             with self.subTest(fail_at=fail_at), tempfile.TemporaryDirectory() as directory, contextlib.ExitStack() as stack:
                 selected = {'runtime': item('runtime', 'a'), 'kart': item('kart', 'b')}
                 contexts = {name: {'files': ['/original.yaml'], 'envfile': '/private/env', 'working': '/original'} for name in selected}
@@ -109,11 +148,14 @@ class BackendContracts(unittest.TestCase):
                 patches = {
                     'PRIVATE': Path(directory) / 'private', 'guard_authority_state': None,
                     'guard_control_schema': None, 'command': None, 'compose': None,
+                    'deployment_record': {'version': '1.0.0'}, 'record_deployment': None,
                     'schema_hash': 'schema', 'backup': 'e' * 64, 'assert_protected': None,
                 }
                 for name, value in patches.items():
                     mocks[name] = stack.enter_context(patch.object(backend, name, value) if name == 'PRIVATE'
                                                      else patch.object(backend, name, return_value=value))
+                if fail_at in ('record', 'record_signal'):
+                    mocks['record_deployment'].side_effect = backend.Stopped('SIGNAL_INTERRUPTED' if fail_at == 'record_signal' else 'DEPLOYMENT_RECORD_UNKNOWN')
                 stack.enter_context(patch.object(backend, 'require_authority', side_effect=lambda images, *args:
                     {name: {'image': image, 'control': 1, 'authenticatedGameScope': 1,
                             **({'identityRecheck': 1} if name == 'kart' else {})} for name, image in images.items()}))
@@ -137,9 +179,13 @@ class BackendContracts(unittest.TestCase):
                 if fail_at in ('before_backup', 'after_backup'):
                     recreate.assert_not_called()
                     self.assertFalse(any(call.args[:2] == ('docker', 'stop') for call in mocks['command'].call_args_list))
+                if fail_at in ('before_backup', 'after_backup', 'start', 'verify'):
+                    mocks['record_deployment'].assert_not_called()
                 else:
                     self.assertTrue(recreate.call_args_list[0].args[0]['runtime']['files'][-1].endswith('/platform-login.json'))
-                    if fail_at:
+                    if fail_at in ('record', 'record_signal'):
+                        self.assertEqual(recreate.call_count, 1, 'A committed audit may exist: retain the verified image even on interruption')
+                    elif fail_at:
                         self.assertEqual(recreate.call_args_list[1].args[0], contexts)
                     saved = backend.private_json(Path(directory) / 'private/candidate/journal.json')
                     self.assertIn('platformConfigSHA256', saved)
@@ -265,14 +311,17 @@ class BackendContracts(unittest.TestCase):
         rollback = {'services': {name: {'image': image, 'pull_policy': 'never',
                      'labels': {'io.small-games.backend-update': 'previous'}}
                     for name, image in journal['oldImages'].items()}}
-        for failure, cleanup_failure in [('COMMAND_FAILED', False), ('SIGNAL_INTERRUPTED', False), ('COMMAND_FAILED', True)]:
+        for failure, cleanup_failure, during_record in [('COMMAND_FAILED', False, False), ('SIGNAL_INTERRUPTED', False, False), ('COMMAND_FAILED', True, False), ('SIGNAL_INTERRUPTED', False, True)]:
             cleanup = backend.Stopped('AUTHORITY_PROBE_COMMAND_CLEANUP_FAILED')
             cleanup.probeProcessId = 1234
-            with patch.object(backend, 'guard_authority_state'), patch.object(backend, 'require_authority', return_value={}), patch.object(backend, 'private_json', side_effect=lambda file: journal if file.name == 'journal.json' else rollback), patch.object(backend, 'inventory', return_value={'id': 'postgres-id'}), patch.object(backend, 'schema_hash', return_value='schema'), patch.object(backend, 'text', side_effect=lambda *args: args[3]), patch.object(backend, 'compose'), patch.object(backend, 'guard_games'), patch.object(backend, 'override') as override, patch.object(backend, 'restore', side_effect=[backend.Stopped(failure), cleanup if cleanup_failure else selected]) as restore, patch.object(backend, 'assert_protected'):
-                with self.assertRaisesRegex(backend.Stopped, str(cleanup) if cleanup_failure else failure) as caught:
+            with patch.object(backend, 'guard_authority_state'), patch.object(backend, 'require_authority', return_value={}), patch.object(backend, 'private_json', side_effect=lambda file: journal if file.name == 'journal.json' else rollback), patch.object(backend, 'inventory', return_value={'id': 'postgres-id'}), patch.object(backend, 'schema_hash', return_value='schema'), patch.object(backend, 'text', side_effect=lambda *args: args[3]), patch.object(backend, 'compose'), patch.object(backend, 'guard_games'), patch.object(backend, 'override') as override, patch.object(backend, 'restore', side_effect=[selected if during_record else backend.Stopped(failure), cleanup if cleanup_failure else selected]) as restore, patch.object(backend, 'assert_protected'), patch.object(backend, 'deployment_record', return_value={}), patch.object(backend, 'record_deployment', side_effect=backend.Stopped(failure)):
+                with self.assertRaisesRegex(backend.Stopped, 'DEPLOYMENT_RECORD_UNKNOWN' if during_record else str(cleanup) if cleanup_failure else failure) as caught:
                     backend.rollback_update(Path('/public/candidate'), manifest, selected, {'runtime': {'current': True}, 'kart': {}}, None)
                 if cleanup_failure:
                     self.assertEqual(caught.exception.probeProcessId, 1234)
+                if during_record:
+                    self.assertEqual(restore.call_count, 1, 'Do not undo a healthy rollback after its audit may have committed')
+                    continue
                 self.assertEqual(restore.call_count, 2)
                 self.assertEqual(restore.call_args_list[1].args[0]['oldImages']['runtime'], selected['runtime']['image'])
                 self.assertIn('failback-', override.call_args.args[0].name)
@@ -294,10 +343,10 @@ class BackendContracts(unittest.TestCase):
         capabilities = {'runtime': {'image': item('runtime')['image'], 'control': 1, 'authenticatedGameScope': 1},
                         'kart': {'image': item('kart')['image'], 'control': 1, 'identityRecheck': 1, 'authenticatedGameScope': 1}}
         with patch.object(backend, 'require_authority', side_effect=AssertionError('UNEXPECTED_PROBE')):
-            result = backend.receipt(manifest, 'execute', ['kart'], {'runtime': item('runtime'), 'kart': item('kart')}, capabilities, 'b' * 64)
-            empty = backend.receipt(manifest, 'rollback', ['kart'], {}, {})
+            result = backend.receipt(manifest, 'execute', ['kart'], {'runtime': item('runtime'), 'kart': item('kart')}, capabilities, {}, 'b' * 64)
+            empty = backend.receipt(manifest, 'rollback', ['kart'], {}, {}, {})
             with self.assertRaisesRegex(backend.Stopped, '^SERVICE_IMAGE$'):
-                backend.receipt(manifest, 'execute', [], {'runtime': item('runtime', 'd')}, {'runtime': capabilities['runtime']})
+                backend.receipt(manifest, 'execute', [], {'runtime': item('runtime', 'd')}, {'runtime': capabilities['runtime']}, {})
         self.assertFalse(result['isolatedRestoreVerified'])
         self.assertFalse(result['databaseReplaced'])
         self.assertFalse(result['schemaChanged'])
@@ -315,9 +364,9 @@ class BackendContracts(unittest.TestCase):
         def health(*args):
             events.append('health')
             return active
-        with tempfile.TemporaryDirectory() as directory, patch.object(backend, 'PRIVATE', Path(directory) / 'private'), patch.object(backend, 'guard_authority_state'), patch.object(backend, 'require_authority', side_effect=probe), patch.object(backend, 'text', side_effect=lambda *args: args[3] if args[3].startswith('sha256:') else active['runtime']['image']), patch.object(backend, 'command'), patch.object(backend, 'compose'), patch.object(backend, 'guard_games'), patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'schema_hash', return_value='schema'), patch.object(backend, 'backup', return_value='e' * 64), patch.object(backend, 'recreate'), patch.object(backend, 'health', side_effect=health), patch.object(backend, 'assert_protected'):
+        with tempfile.TemporaryDirectory() as directory, patch.object(backend, 'PRIVATE', Path(directory) / 'private'), patch.object(backend, 'guard_authority_state'), patch.object(backend, 'require_authority', side_effect=probe), patch.object(backend, 'text', side_effect=lambda *args: args[3] if args[3].startswith('sha256:') else active['runtime']['image']), patch.object(backend, 'command'), patch.object(backend, 'compose'), patch.object(backend, 'guard_games'), patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'schema_hash', return_value='schema'), patch.object(backend, 'backup', return_value='e' * 64), patch.object(backend, 'recreate'), patch.object(backend, 'health', side_effect=health), patch.object(backend, 'assert_protected'), patch.object(backend, 'deployment_record', return_value={'version': '1.0.0'}), patch.object(backend, 'record_deployment', side_effect=lambda record: events.append('record')):
             result = backend.execute(Path('/public/candidate'), manifest, {}, selected, [], {'runtime': {}}, None)
-        self.assertEqual(events, ['probe', 'probe', 'health'])
+        self.assertEqual(events, ['probe', 'probe', 'health', 'record'])
         self.assertEqual(result['imageCapabilities']['runtime']['image'], result['activeImages']['runtime'])
 
     def test_command_errors_never_render_server_stderr_or_credentials(self):
@@ -354,7 +403,7 @@ class BackendContracts(unittest.TestCase):
     def test_kart_only_probes_protected_runtime_without_selecting_it(self):
         authority = backend.authority_module()
         proof = {'kart': {'image': 'kart-image'}, 'runtime': {'image': 'runtime-image'}}
-        with patch.object(backend, 'inventory', return_value={'image': 'runtime-image'}) as inventory, patch.object(authority, 'require_images', return_value=proof) as probe:
+        with patch.object(backend, 'guard_control_schema', return_value=4), patch.object(backend, 'inventory', return_value={'image': 'runtime-image'}) as inventory, patch.object(authority, 'require_images', return_value=proof) as probe:
             self.assertEqual(backend.require_authority({'kart': 'kart-image'}), {'kart': proof['kart']})
             inventory.assert_called_once_with('small-games', 'runtime')
             self.assertEqual(probe.call_args.args[0], {'kart': 'kart-image', 'runtime': 'runtime-image'})
@@ -391,23 +440,28 @@ class BackendContracts(unittest.TestCase):
                                          '12345678-1234-4234-8234-123456789abc', 'public-name')
         error.probeProcessId = 1234
         error.originalCode = 'PRIVATE_CANARY'
-        with patch.object(authority, 'require_images', side_effect=error):
+        with patch.object(backend, 'guard_control_schema', return_value=5), patch.object(authority, 'require_images', side_effect=error):
             with self.assertRaisesRegex(backend.Stopped, '^AUTHORITY_PROBE_CLEANUP_FAILED$') as caught:
                 backend.require_authority({'runtime': 'sha256:' + 'b' * 64})
             self.assertEqual(caught.exception.ownedContainerId, 'a' * 64)
             self.assertEqual(caught.exception.probeProcessId, 1234)
             self.assertEqual(caught.exception.originalCode, 'UNEXPECTED_FAILURE')
 
-    def test_control_schema_requires_exact_version_four_and_read_only_query(self):
-        for output in [b'[]', b'[1]', b'[2]', b'[3]', b'[5]', b'[4,4]', b'[4.0]', b'[true]', b'null', b'PRIVATE_CANARY']:
+    def test_control_schema_distinguishes_four_and_five_with_read_only_query(self):
+        for output in [b'[]', b'[1]', b'[2]', b'[3]', b'[6]', b'[4,4]', b'[4.0]', b'[true]', b'null', b'PRIVATE_CANARY']:
             with patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'command', return_value=output) as command:
                 with self.assertRaisesRegex(backend.Stopped, '^AUTHORITY_FALLBACK_REQUIRED$'):
                     backend.guard_control_schema()
                 sql = command.call_args.args[-1]
                 self.assertIn('BEGIN TRANSACTION READ ONLY', sql)
                 self.assertNotIn('CREATE', sql)
-        with patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'command', return_value=b'[4]'):
-            backend.guard_control_schema()
+        for version in (4, 5):
+            with patch.object(backend, 'inventory', return_value={'id': 'pg'}), patch.object(backend, 'command', return_value=json.dumps([version]).encode()):
+                self.assertEqual(backend.guard_control_schema(), version)
+            authority = backend.authority_module()
+            with patch.object(backend, 'guard_control_schema', return_value=version), patch.object(authority, 'require_images', return_value={}) as probe:
+                backend.require_authority({'runtime': 'image'})
+                probe.assert_called_once_with({'runtime': 'image'}, 'AUTHORITY_IMAGE_REQUIRED', night_operations=version == 5)
 
     def test_existing_public_environment_must_already_match_before_mutation(self):
         selected = {'runtime': item('runtime')}

@@ -22,6 +22,7 @@ import { h5AdGames, h5PackageGames, additionalH5Games, prepareH5Ads } from './h5
 import { prepareH5Service } from './competition-h5-service.mjs';
 import { h5BasicServiceGames, prepareGameServices, stampNightBuild } from './h5-game-services.mjs';
 import { buildTypes, prepareBuildType } from './h5-build-type.mjs';
+import { reserveNightVersion } from './night-build-version.mjs';
 import { competitionService } from './competition-service-config.mjs';
 import {
   packageModes,
@@ -450,6 +451,8 @@ export async function buildH5Packages(
     const gameManifests = [];
     try {
       for (const [ads, service] of modes) {
+        const version =
+          game === 'night-overwatch' ? await reserveNightVersion(gameRoot) : undefined;
         const name = `${game}${buildOnly ? '-taptap-h5' : ''}${settings ? '-' + settings.buildType : ''}-ads-${ads ? 'on' : 'off'}-service-${service ? 'on' : 'off'}`;
         const directory = path.join(output, name),
           dist = path.join(directory, 'dist');
@@ -461,6 +464,11 @@ export async function buildH5Packages(
           ...(settings ? { COMPETITION_PUBLIC_API_URL: service ? settings.apiUrl : '' } : {}),
           ...(prebuilt ? { [prebuiltKey]: prebuilt } : {}),
         });
+        if (version)
+          Object.assign(buildEnv, {
+            NIGHT_BUILD_VERSION: version.version,
+            NIGHT_BACKEND_VERSION: version.backendVersion,
+          });
         const buildOutput = await cleanGeneratedOutput(gameRoot);
         if (compile) await compile({ game, gameRoot, buildOutput, env: buildEnv });
         else
@@ -513,7 +521,9 @@ export async function buildH5Packages(
               : { apiUrl: '' };
         if (settings) await prepareBuildType(dist, settings.buildType);
         const release =
-          game === 'night-overwatch' ? await stampNightBuild(dist, 'taptap-h5') : undefined;
+          game === 'night-overwatch'
+            ? await stampNightBuild(dist, 'taptap-h5', version)
+            : undefined;
         const files = await inventory(dist);
         assert(
           files.some((file) => file.path === 'index.html'),

@@ -53,7 +53,7 @@
 
 ## 现有后端的定向更新
 
-`pnpm deploy:backend --services=runtime` 仅更新明确选择的现有服务；多个可写 `--services=runtime,kart`。无默认全选；管理后台继续使用 `deploy:admin`。支持 `runtime`、`kart`、`tianxia`，未部署的服务会拒绝，不能用此命令首次创建。
+`pnpm deploy:backend --services=runtime --version=1.0.0` 仅更新明确选择的现有服务；多个可写 `--services=runtime,kart`。发布版本必须据实指定，无默认全选；管理后台继续使用 `deploy:admin`。支持 `runtime`、`kart`、`tianxia`，未部署的服务会拒绝，不能用此命令首次创建。
 
 - `--prepare`：仅构建所选服务及必要依赖，输出 `outputs/backend-deploy/<release>` 与 tar/摘要，不上传或激活。
 - `--check`：只读核对现有容器、原始 Compose 文件顺序、工作目录、原 env-file 引用及配置哈希，不读取/显示凭据。
@@ -72,3 +72,9 @@
 新管理镜像已在无网络、无凭据的临时容器中验证 node UID 1000 可读入口；未由代理激活 OAuth，用户保留原 `.env.admin.local` 自行运行 `pnpm deploy:admin`，并完成真实 GitHub 登录。目录内公开 JSON 记录网站后验、镜像可读性与后端只读上下文检查；不含凭据或用户终端日志。
 
 第二阶段实际运行了三个游戏的 12 个 H5 变体及紧接着的 Street 第二批 1 包；两处 ZIP 摘要、ZIP 文件清单和首批历史包保留均通过，见 `game-build-actual.json`。这些是未提交源码的构建演练，明确不是已验收发布包。相关 Node 范围/执行器测试 118 项通过；最后新增中断恢复与后台进度回归的串行测试 20 项通过，其中后端 Python 隔离 mock 8 项通过。实际新后端命令 `--check` 已只读通过现有 Runtime/Kart；新定向更新事务尚未在生产执行，不能将 mock 回退或 TOC 可读性称为生产回退/完整恢复验收。
+
+### 后端版本与上线回执
+
+执行或 `--prepare` 必须指定 `--version=major.minor.patch`；只读 `--check` 不需要版本，`--rollback` 从实际恢复的镜像标签读取版本，不能人为指定。新镜像记录版本、源码 SHA 和夜航规则标识；没有这些标签的旧镜像记录为 unknown，不使用本次命令的版本冒充旧版本。
+
+服务切换、健康及保护检查全部通过后，事务才向配置中心审计表追加有限的上线回执。管理页面显示最近五次 Runtime 成功上线或回退事件，配置发布不会产生虚假部署历史。记录写入响应丢失时，以同一审计事件 ID 回查；确认存在且内容一致才算成功。若仍不能确定 COMMIT 结果，工具报 `DEPLOYMENT_RECORD_UNKNOWN` 并保留已验证健康的镜像，必须只读核对事件与实际镜像后再处理，不能假定数据库写入失败而自动恢复旧镜像。

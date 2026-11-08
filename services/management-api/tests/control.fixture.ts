@@ -101,6 +101,11 @@ export function memoryControlStore() {
           async published(id) {
             return draft.publications.includes(id);
           },
+          async publishedRevisions() {
+            return structuredClone(
+              draft.revisions.filter((row) => draft.publications.includes(row.id)),
+            );
+          },
           async revisions() {
             return structuredClone(draft.revisions).map((row) => ({
               ...row,
@@ -120,6 +125,19 @@ export function memoryControlStore() {
           },
           async audits() {
             return structuredClone(draft.audits);
+          },
+          async deployments() {
+            return structuredClone(
+              draft.audits
+                .filter(
+                  (row) =>
+                    row.action === 'deployments.backend' &&
+                    Array.isArray(row.detail.services) &&
+                    row.detail.services.includes('runtime'),
+                )
+                .sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id))
+                .slice(0, 5),
+            );
           },
           async audit(row) {
             draft.audits.push(structuredClone(row));

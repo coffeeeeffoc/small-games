@@ -125,11 +125,11 @@ export function createRankedRuns(
         expiresAt: createdAt + lifetime,
         status: 'active',
       };
-      const stored = await repository.create(run, auth, async () => {
+      const stored = await repository.create(run, auth, async (currentRelease = release) => {
         if (!rules.has(game)) throw new CompetitionError('GAME_UNAVAILABLE', 404);
         if (!version) throw new CompetitionError('RULE_VERSION_CHANGED');
         const { rule, definition, key } = boardFor(game, board, version);
-        if (game === 'night-overwatch') release?.assertStart('ranked', version, buildId);
+        if (game === 'night-overwatch') currentRelease?.assertStart('ranked', version, buildId);
         if (!definition.guestAllowed && !(await identity(playerId)).authenticated)
           throw new CompetitionError('LOGIN_REQUIRED', 403);
         try {

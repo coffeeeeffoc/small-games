@@ -1,0 +1,72 @@
+{
+  "runId": "game-control-b91893f7-31cd-4a26-8734-5a05f337f171",
+  "isolated": true,
+  "loopbackOnly": true,
+  "productionAccess": false,
+  "checks": [
+    "reject-global-default-ACL-before-creating-schema",
+    "migration-twice-existing-data-and-ACL-preserved",
+    "runtime-read-only-policy-no-members-and-management-append-only-ledger",
+    "fail-closed-column",
+    "fail-closed-table",
+    "fail-closed-owner",
+    "fail-closed-runtime-update",
+    "fail-closed-public-read",
+    "fail-closed-foreign-key-namespace",
+    "one-time-bootstrap-db-disable-and-concurrent-last-administrator",
+    "night-schema-rejects-owner-ACL-view-constraint-shape-and-stale-policy",
+    "night-schema-rejects-owner-ACL-view-constraint-shape-and-stale-policy",
+    "control-enabled-management-health-rejects-schema2-3-4-and-accepts-schema5",
+    "v2-to-v3-to-v4-to-v5-idempotent-preserves-published-history-digest-policies-and-ACL",
+    "CAS-append-only-rollback-epoch-and-shared-advisory-order",
+    "historical-v2-rollback-creates-new-v4-revision-without-rewriting-history",
+    "runtime-control-48-concurrent-http-cors-requests-without-503",
+    "runtime-control-cors-revocation-after-commit-before-result-delivery",
+    "runtime-control-restores-caller-timeouts-with-shared-lock-held-through-business-sql",
+    "runtime-control-shared-lock-still-fails-closed-within-existing-budget",
+    "runtime-control-observation-lock-bounded-rollback-retry",
+    "runtime-control-concurrent-cors-and-private-lease",
+    "runtime-control-terminated-bound-connection-no-autocommit-reconnect",
+    "runtime-control-non-sql-deadline-late-write-rejected-and-slot-recovers",
+    "runtime-control-finite-fifo-and-close-cancel-all-callers",
+    "identity-player-no-key-update-prevents-real-result-FK-board-deadlock",
+    "identity-resource-guard-still-serializes-with-upgrade-and-refresh-player-lock",
+    "night-real-draft-publish-view-digest-and-runtime-reader",
+    "night-history-immutable-quick-and-control-rollback-preserve-operations",
+    "night-real-deployment-facts-latest-five-runtime-only",
+    "publication-members-audit-survive-database-restart"
+  ],
+  "migrationSha256": "d16a0a06e9da6531b8140fa196dc0fe2a3d91a74cc2fcf877685fe7346f74451",
+  "nightMigrationSha256": "4d34f4dd305387dc3e1c0554ed752f15e1277c03db6074d8914653862f929797",
+  "tetracubeMigrationSha256": "b114f40c7a0e7255dc2d0c97b166a5c23545297111065479eb002feaa8760f66",
+  "operationsMigrationSha256": "11653ac25a750ea10e4620ded710426a7f28b0a868bb0c4e8ebfae48514647d4",
+  "postgresVersion": "17.6",
+  "runtimeControl": {
+    "concurrentCors": {
+      "requests": 144,
+      "concurrency": 48,
+      "statuses": {
+        "200": 144
+      },
+      "p95Ms": 148,
+      "committedRevocation": "403-before-old-response-delivery"
+    },
+    "observationLockMs": 1553,
+    "commitInFlight": "unknown-no-rollback-guarantee",
+    "sourceSha256": {
+      "controlDatabase": "6d9e8ba315cfec14447b64a47f9833f038a77bbedd2f72676ef128ce8e4f21c5",
+      "runtimeControl": "940c3796e7fb642988fc7884986a3a1c5170b843c9c6d036a9d735549770e4d9"
+    },
+    "executedModuleSha256": {
+      "controlDatabase": "5e61c1ca49480997287331c189d87a19a612d1df71fc01718e679d6ffc522a57",
+      "runtimeControl": "cb05440d9f6ee1aaf6772d561889c8dd56485dac7d6bfff5c1cca6d0238427d7"
+    }
+  },
+  "identityLocks": {
+    "fixture": "real-010-tables-no-additional-grants-owner-only-lock-regression",
+    "oldLock": "40P01-reproduced",
+    "productionLock": "two-settlements-committed-upgrade-lock-serialized",
+    "sourceSha256": "d55aa6e1bb9a32fac64166f167d8b58e9f177e2d96345253c31cd43fa4c58f0c",
+    "executedModuleSha256": "b40dce53ac7bedf0b3ea414d365cf3019e014f699310dc7cea097297a4ca1425"
+  }
+}

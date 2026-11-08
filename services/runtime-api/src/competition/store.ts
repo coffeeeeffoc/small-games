@@ -1,5 +1,5 @@
 /* eslint-disable max-lines -- Room transactions and settlement share lock ordering; keep them visible in one store. */
-import { retainedRule, type NightRelease } from './night-release.js';
+import { publishedNightRelease, retainedRule, type NightRelease } from './night-release.js';
 import {
   createHash,
   randomBytes,
@@ -101,16 +101,27 @@ export function createCompetitionStore(
     if (!rule) throw new CompetitionError('GAME_UNAVAILABLE', 404);
     return rule;
   }
-  function clientRule(game: string, buildId?: string) {
-    if (game !== 'night-overwatch' || !release) return ruleFor(game);
-    const version = release.client(buildId)?.multiplayer;
+  function clientRule(game: string, buildId?: string, currentRelease = release) {
+    if (game !== 'night-overwatch' || !currentRelease) return ruleFor(game);
+    const version = currentRelease.client(buildId)?.multiplayer;
     if (!version) throw new CompetitionError('RULE_VERSION_CHANGED');
     return ruleFor(game, version);
   }
-  const canStart = (room: Pick<Room, 'game' | 'version'>) =>
-    room.game !== 'night-overwatch' || !release || release.canStart('multiplayer', room.version);
-  function assertStart(room: Pick<Room, 'game' | 'version'>) {
-    if (!canStart(room)) throw new CompetitionError('RULE_NEW_GAMES_DISABLED');
+  const canStart = (
+    room: Pick<Room, 'game' | 'version'>,
+    currentRelease = release,
+    buildId?: string,
+  ) =>
+    room.game !== 'night-overwatch' ||
+    !currentRelease ||
+    currentRelease.canStartClient('multiplayer', room.version, buildId);
+  function assertStart(
+    room: Pick<Room, 'game' | 'version'>,
+    currentRelease = release,
+    buildId?: string,
+  ) {
+    if (room.game === 'night-overwatch')
+      currentRelease?.assertStart('multiplayer', room.version, buildId);
   }
   async function ranking(
     board: string,
@@ -206,8 +217,12 @@ export function createCompetitionStore(
     executor: Database | Tx = db,
   ) {
     const playerId = playerIdOf(auth);
-    const rule = clientRule(game, options.buildId);
     const policy = await gamePolicy(control, executor, game);
+    const currentRelease =
+      game === 'night-overwatch'
+        ? publishedNightRelease(release, policy?.nightOperations)
+        : release;
+    const rule = clientRule(game, options.buildId, currentRelease);
     assertGameControl(policy, policy?.killEpoch, true);
     if (rule.lobby) await lockMatch(executor, game);
     await assertResourceAuth(executor, auth, game, now());
@@ -228,7 +243,7 @@ export function createCompetitionStore(
         return own;
       }
     }
-    assertStart({ game, version: rule.version });
+    assertStart({ game, version: rule.version }, currentRelease, options.buildId);
     if (
       options.visibility === 'private' &&
       (!options.password || options.password.length < 4 || options.password.length > 64)
@@ -261,6 +276,7 @@ export function createCompetitionStore(
       players: [
         {
           id: playerId,
+          ...(game === 'night-overwatch' && options.buildId ? { buildId: options.buildId } : {}),
           role: options.role ?? rule.roles?.[0],
           ready: false,
           seq: 0,
@@ -449,7 +465,7 @@ export function createCompetitionStore(
       })),
     );
   }
-  async function start(room: Room, tx: Tx) {
+  async function start(room: Room, tx: Tx, currentRelease = release) {
     const rule = ruleFor(room.game, room.version);
     if (
       room.status !== 'waiting' ||
@@ -457,7 +473,8 @@ export function createCompetitionStore(
       !room.players.every((p) => p.ready)
     )
       return;
-    assertStart(room);
+    if (room.game === 'night-overwatch')
+      for (const member of room.players) assertStart(room, currentRelease, member.buildId);
     room.status = 'playing';
     room.startedAt = now() + (rule.lobby ? 1200 : 0);
     room.deadline = rule.noTimeLimit ? Number.MAX_SAFE_INTEGER : room.startedAt + rule.durationMs;
@@ -593,13 +610,23 @@ export function createCompetitionStore(
   }
   async function match(auth: PlayerAuth, game: string, buildId?: string) {
     const playerId = playerIdOf(auth);
-    const rule = clientRule(game, buildId);
-    if (!rule.modes?.some((mode) => mode.id === 'match'))
-      throw new CompetitionError('MATCH_UNAVAILABLE', 404);
     return db.transaction(async (tx) => {
       const policy = await gamePolicy(control, tx, game);
+      const currentRelease =
+        game === 'night-overwatch'
+          ? publishedNightRelease(release, policy?.nightOperations)
+          : release;
+      const rule = clientRule(game, buildId, currentRelease);
+      if (!rule.modes?.some((mode) => mode.id === 'match'))
+        throw new CompetitionError('MATCH_UNAVAILABLE', 404);
       await lockMatch(tx, game);
       await assertResourceAuth(tx, auth, game, now());
+      const compatibleHosts = [
+        '',
+        ...(currentRelease?.config?.builds.map((b) => b.buildId) ?? []),
+      ].filter((id) =>
+        currentRelease?.canStartClient('multiplayer', rule.version, id || undefined),
+      );
       if (rule.lobby) {
         assertGameControl(policy, policy?.killEpoch, true);
         let room = await activeRoom(tx, game, playerId);
@@ -618,17 +645,19 @@ export function createCompetitionStore(
         )
           room = undefined;
         if (!room) {
-          assertStart({ game, version: rule.version });
+          assertStart({ game, version: rule.version }, currentRelease, buildId);
           const waiting =
             await tx.execute(sql`select data from runtime.competition_rooms where data->>'game'=${game}
             and data->>'version'=${rule.version} and data->>'visibility'='public' and data->>'mode'<>'bot'
             and data->>'status'='waiting' and expires_at>${now()} and jsonb_array_length(data->'players')=1
             and coalesce((data->>'killEpoch')::bigint,0)=${policy?.killEpoch ?? 0}
+            and (${game !== 'night-overwatch' || !currentRelease?.config} or ${json(compatibleHosts)}::jsonb ? coalesce(data->'players'->0->>'buildId',''))
             order by data->>'createdAt',code limit 1 for update`);
           room = waiting[0]?.data as Room | undefined;
           if (room)
             room.players.push({
               id: playerId,
+              ...(buildId ? { buildId } : {}),
               ready: false,
               seq: 0,
               state: null,
@@ -671,7 +700,7 @@ export function createCompetitionStore(
       if (room && now() - room.createdAt >= 8000) {
         room.mode = 'bot';
         room.players[0]!.ready = true;
-        await start(room, tx);
+        await start(room, tx, currentRelease);
       } else if (!room) {
         const waiting = await tx.execute(sql`select data from runtime.competition_rooms
           where data->>'game'=${game} and data->>'version'=${rule.version}
@@ -679,15 +708,22 @@ export function createCompetitionStore(
           and (data->>'createdAt')::bigint>${now() - 8000}
           and coalesce((data->>'killEpoch')::bigint,0)=${policy?.killEpoch ?? 0}
           and jsonb_array_length(data->'players')=1
+          and (${game !== 'night-overwatch' || !currentRelease?.config} or ${json(compatibleHosts)}::jsonb ? coalesce(data->'players'->0->>'buildId',''))
           and not (data->'players' @> ${json([{ id: playerId }])}::jsonb)
           order by data->>'createdAt',code limit 1 for update`);
         room = waiting[0]?.data as Room | undefined;
         if (room) {
           assertGameControl(policy, room.killEpoch ?? 0, true);
-          room.players.push({ id: playerId, ready: true, seq: 0, state: null });
+          room.players.push({
+            id: playerId,
+            ...(buildId ? { buildId } : {}),
+            ready: true,
+            seq: 0,
+            state: null,
+          });
           room.players[0]!.ready = true;
-          await start(room, tx);
-        } else room = await create(auth, game, { mode: 'match' }, tx);
+          await start(room, tx, currentRelease);
+        } else room = await create(auth, game, { mode: 'match', buildId }, tx);
       }
       await tx.execute(
         sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${room.code}`,
@@ -753,7 +789,11 @@ export function createCompetitionStore(
       ['join', 'ready', 'rematch'].includes(operation),
     );
     if ((operation === 'join' && !member) || (operation === 'ready' && room.status === 'waiting'))
-      assertStart(room);
+      assertStart(
+        room,
+        publishedNightRelease(release, policy?.nightOperations),
+        input.buildId ?? member?.buildId,
+      );
     await advanceLobby(room, tx);
     if (room.status === 'waiting' && now() >= room.deadline) room.status = 'expired';
     let exposeLease: string | undefined;
@@ -775,6 +815,7 @@ export function createCompetitionStore(
       if (active && active.code !== room.code) throw new CompetitionError('ACTIVE_ROOM');
       member = {
         id: playerId,
+        ...(input.buildId ? { buildId: input.buildId } : {}),
         ready: false,
         seq: 0,
         state: null,
@@ -849,7 +890,8 @@ export function createCompetitionStore(
     } else if (operation === 'ready' && member) {
       if (room.status === 'waiting') {
         member.ready = input.ready ?? true;
-        await start(room, tx);
+        if (input.buildId) member.buildId = input.buildId;
+        await start(room, tx, publishedNightRelease(release, policy?.nightOperations));
       } else if (room.status !== 'playing') throw new CompetitionError('MATCH_CLOSED');
       else if (input.ready === false) throw new CompetitionError('MATCH_STARTED');
     } else if (operation === 'actions' && member) {
@@ -968,7 +1010,11 @@ export function createCompetitionStore(
         }
         if (
           ((!member && ['join', 'spectate'].includes(operation)) || operation === 'connect') &&
-          clientRule(room.game, input.buildId).version !== room.version
+          clientRule(
+            room.game,
+            input.buildId,
+            publishedNightRelease(release, policy?.nightOperations),
+          ).version !== room.version
         )
           throw new CompetitionError('RULE_VERSION_CHANGED');
       }
@@ -1188,6 +1234,7 @@ export function createCompetitionStore(
             [...(release?.ranked.values() ?? []), ...(release?.multiplayer.values() ?? [])].find(
               (r) => r.progression?.version === version,
             )?.progression,
+          policy?.nightOperations,
         );
       });
     } catch (error) {
@@ -1217,6 +1264,13 @@ export function createCompetitionStore(
   return {
     ...createDevelopmentAssets(development, adapters),
     release,
+    async nightReleaseMetadata(auth: PlayerAuth, buildId?: string) {
+      return db.transaction(async (tx) => {
+        const policy = await gamePolicy(control, tx, 'night-overwatch');
+        await assertResourceAuth(tx, auth, 'night-overwatch', now());
+        return publishedNightRelease(release, policy?.nightOperations)?.metadata(buildId);
+      });
+    },
     nightAssets: nightAssetsFor,
     nightChat: createNightChat(db, now, control, rules.get('night-overwatch')?.version, release),
     nightPresence: createNightPresence(db, now, control),
@@ -1272,8 +1326,12 @@ export function createCompetitionStore(
     },
     async listRooms(auth: PlayerAuth, game: string, buildId?: string) {
       return db.transaction(async (tx) => {
-        const rule = clientRule(game, buildId);
         const policy = await gamePolicy(control, tx, game);
+        const currentRelease =
+          game === 'night-overwatch'
+            ? publishedNightRelease(release, policy?.nightOperations)
+            : release;
+        const rule = clientRule(game, buildId, currentRelease);
         assertGameControl(policy, policy?.killEpoch, true);
         await lockMatch(tx, game);
         await assertResourceAuth(tx, auth, game, now());
@@ -1308,7 +1366,11 @@ export function createCompetitionStore(
             capacity,
             playerCount: room.players.length,
             version: room.version,
-            canJoin: canStart(room) && room.status === 'waiting' && room.players.length < capacity,
+            canJoin:
+              canStart(room, currentRelease, buildId) &&
+              room.players.every((p) => canStart(room, currentRelease, p.buildId)) &&
+              room.status === 'waiting' &&
+              room.players.length < capacity,
             canSpectate: !!rule.lobby,
             players: room.players.map((p) => ({
               id: p.id,

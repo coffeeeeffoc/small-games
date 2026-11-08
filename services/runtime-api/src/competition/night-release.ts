@@ -1,54 +1,16 @@
-import { z } from 'zod';
+import {
+  nightReleaseSchema,
+  type NightReleaseConfig,
+  type NightOperations,
+} from '@coffeeeeffoc/service-kit';
+export {
+  gameBuildId,
+  nightReleaseSchema,
+  type NightReleaseConfig,
+} from '@coffeeeeffoc/service-kit';
 import { CompetitionError, type Rule } from './types.js';
 import type { RankedRule } from './ranked-types.js';
 
-export const gameBuildId = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/);
-const version = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/);
-const channel = z.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/);
-const rulePair = { ranked: version, multiplayer: version };
-export const nightReleaseSchema = z
-  .object({
-    schemaVersion: z.literal(1),
-    builds: z
-      .array(z.object({ buildId: gameBuildId, channel, ...rulePair }).strict())
-      .min(1)
-      .max(256),
-    channels: z
-      .array(z.object({ channel, latestBuildId: gameBuildId.nullable() }).strict())
-      .min(1)
-      .max(32),
-    allowNew: z
-      .object({ ranked: z.array(version).max(16), multiplayer: z.array(version).max(16) })
-      .strict(),
-    legacy: z.object({ channel, ...rulePair }).strict(),
-    retiredRules: z
-      .object({ ranked: z.array(version).max(32), multiplayer: z.array(version).max(32) })
-      .strict()
-      .optional(),
-  })
-  .strict()
-  .superRefine((config, ctx) => {
-    const invalid = () =>
-      ctx.addIssue({ code: 'custom', message: 'Invalid Night release references' });
-    for (const values of [
-      config.builds.map((b) => b.buildId),
-      config.channels.map((c) => c.channel),
-      config.allowNew.ranked,
-      config.allowNew.multiplayer,
-    ])
-      if (new Set(values).size !== values.length) invalid();
-    for (const build of [...config.builds, config.legacy])
-      if (!config.channels.some((c) => c.channel === build.channel)) invalid();
-    for (const target of config.channels)
-      if (
-        target.latestBuildId !== null &&
-        !config.builds.some(
-          (b) => b.buildId === target.latestBuildId && b.channel === target.channel,
-        )
-      )
-        invalid();
-  });
-export type NightReleaseConfig = z.infer<typeof nightReleaseSchema>;
 export function readNightReleaseConfig(env: Record<string, string | undefined>) {
   if (env.NIGHT_RELEASE_CONFIG === undefined || env.NIGHT_RELEASE_CONFIG === '') return undefined;
   try {
@@ -64,11 +26,12 @@ export function createNightRelease(
   rankedRules: RankedRule[],
   multiplayerRules: Rule[],
   input?: NightReleaseConfig,
+  validateLoadedRules = true,
 ) {
   const ranked = new Map(rankedRules.map((r) => [r.version, r]));
   const multiplayer = new Map(multiplayerRules.map((r) => [r.version, r]));
   const config = input ? nightReleaseSchema.parse(input) : undefined;
-  if (config) {
+  if (config && validateLoadedRules) {
     for (const pair of [...config.builds, config.legacy])
       for (const kind of ['ranked', 'multiplayer'] as const)
         if (
@@ -95,7 +58,19 @@ export function createNightRelease(
       }
     }
   }
-  const client = (buildId?: string) =>
+  const client = (
+    buildId?: string,
+  ):
+    | {
+        ranked: string | null;
+        multiplayer: string | null;
+        channel?: string;
+        version?: string;
+        backendVersion?: string;
+        disabled?: boolean;
+        removed?: true;
+      }
+    | undefined =>
     config
       ? buildId
         ? config.builds.find((b) => b.buildId === buildId)
@@ -108,12 +83,40 @@ export function createNightRelease(
     (kind === 'ranked' ? ranked : multiplayer).has(rule) &&
     (!config ||
       (config.allowNew[kind].includes(rule) && !config.retiredRules?.[kind].includes(rule)));
+  const clientDisabled = (buildId?: string) => {
+    const selected = client(buildId);
+    return (
+      !!selected &&
+      (selected.removed === true ||
+        ('disabled' in selected && selected.disabled === true) ||
+        ('backendVersion' in selected &&
+          !!selected.backendVersion &&
+          !!config?.disabledBackendVersions?.includes(selected.backendVersion)))
+    );
+  };
+  const canStartClient = (kind: 'ranked' | 'multiplayer', rule: string, buildId?: string) =>
+    (!config || client(buildId)?.[kind] === rule) &&
+    !clientDisabled(buildId) &&
+    canStart(kind, rule);
   return {
     ranked,
     multiplayer,
+    config,
     client,
     canStart,
+    canStartClient,
     assertStart(kind: 'ranked' | 'multiplayer', rule: string, buildId?: string) {
+      const selected = client(buildId);
+      if (selected?.removed) throw new CompetitionError('BUILD_REMOVED');
+      if (selected && 'disabled' in selected && selected.disabled)
+        throw new CompetitionError('BUILD_DISABLED');
+      if (
+        selected &&
+        'backendVersion' in selected &&
+        selected.backendVersion &&
+        config?.disabledBackendVersions?.includes(selected.backendVersion)
+      )
+        throw new CompetitionError('BACKEND_VERSION_DISABLED');
       if (config && client(buildId)?.[kind] !== rule)
         throw new CompetitionError('RULE_VERSION_CHANGED');
       if (!canStart(kind, rule)) throw new CompetitionError('RULE_NEW_GAMES_DISABLED');
@@ -124,14 +127,19 @@ export function createNightRelease(
         config && selected && 'channel' in selected
           ? (config.channels.find((c) => c.channel === selected.channel)?.latestBuildId ?? null)
           : null;
+      const disabled = clientDisabled(buildId);
       const admissions = {
-        ranked: !!selected?.ranked && canStart('ranked', selected.ranked),
-        multiplayer: !!selected?.multiplayer && canStart('multiplayer', selected.multiplayer),
+        ranked: !disabled && !!selected?.ranked && canStart('ranked', selected.ranked),
+        multiplayer:
+          !disabled && !!selected?.multiplayer && canStart('multiplayer', selected.multiplayer),
       };
       const canStartNewGames = admissions.ranked && admissions.multiplayer;
       return {
         release: {
           currentBuildId: buildId ?? null,
+          currentVersion: selected && 'version' in selected ? (selected.version ?? null) : null,
+          backendVersion:
+            selected && 'backendVersion' in selected ? (selected.backendVersion ?? null) : null,
           latestBuildId: target,
           update:
             target && target !== buildId ? (canStartNewGames ? 'optional' : 'required') : 'none',
@@ -178,4 +186,24 @@ export async function loadNightRelease(
     [multiplayer, duel.default],
     readNightReleaseConfig(env),
   );
+}
+
+/** Resolve only from the caller's locked snapshot; never mutate the process-wide registry. */
+export function publishedNightRelease(
+  release: NightRelease | undefined,
+  operations?: NightOperations,
+): NightRelease | undefined {
+  if (!operations?.release) return release;
+  if (!release) throw new CompetitionError('NIGHT_RELEASE_UNAVAILABLE', 503);
+  try {
+    return createNightRelease(
+      [...release.ranked.values()],
+      [...release.multiplayer.values()],
+      operations.release,
+      // A rolling publication may contain a future build; reject that build, not retained rooms.
+      false,
+    );
+  } catch {
+    throw new CompetitionError('NIGHT_RELEASE_UNAVAILABLE', 503);
+  }
 }

@@ -82,6 +82,7 @@ function generation(name: string, multiplier: number) {
     result(value) {
       return {
         finished: state(value).finished,
+        outcome: 'draw',
         eligible: false,
         score: state(value).value + multiplier,
         secondary: 1000,

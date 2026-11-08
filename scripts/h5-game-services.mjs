@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { nightStorageFiles } from '../platforms/competition/night-storage/manifest.mjs';
 import { competitionService } from './competition-service-config.mjs';
+import { nightVersionMetadata } from './night-build-version.mjs';
 
 export const h5BasicServiceGames = [
   'carding-car',
@@ -98,12 +99,13 @@ export async function reconfigureGameServices(filename, env, local = false) {
     local,
     tapAppId: identityProvider === 'taptap' ? appId : '',
   });
-  if (game === 'night-overwatch') await stampNightBuild(path.dirname(filename), release?.channel);
+  if (game === 'night-overwatch')
+    await stampNightBuild(path.dirname(filename), release?.channel, release);
   return true;
 }
 
 /** Stamp after all public channel/configuration edits; ZIP integrity remains a separate hash. */
-export async function stampNightBuild(directory, channel = 'web-h5') {
+export async function stampNightBuild(directory, channel = 'web-h5', metadata) {
   if (!['web-h5', 'taptap-h5'].includes(channel)) throw Error('Invalid Night build channel');
   const filename = path.join(directory, 'game-service-config.js');
   const source = await readFile(filename, 'utf8');
@@ -127,7 +129,12 @@ export async function stampNightBuild(directory, channel = 'web-h5') {
     if (!version) throw Error('Missing Night rule version');
     versions[kind] = version;
   }
-  config.release = { channel, ...versions };
+  const original = metadata ?? config.release;
+  const numbered =
+    original?.version !== undefined || original?.backendVersion !== undefined
+      ? nightVersionMetadata(original)
+      : {};
+  config.release = { channel, ...versions, ...numbered };
   const serialize = () =>
     `globalThis.__COMPETITION_CONFIG__ = Object.freeze(${JSON.stringify(config)});\n`;
   const files = [];

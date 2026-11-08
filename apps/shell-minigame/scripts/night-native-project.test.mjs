@@ -34,6 +34,7 @@ async function fixture() {
     );
   for (const file of [
     'scripts/h5-game-services.mjs',
+    'scripts/night-build-version.mjs',
     'scripts/competition-service-config.mjs',
     'platforms/competition/client.js',
     'platforms/competition/game-services.js',

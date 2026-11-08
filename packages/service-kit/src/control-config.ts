@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { nightOperationsSchema, normalizeNightOperations } from './night-operations.js';
 
 /** Public control contract only; membership, permissions and drafts never cross this boundary. */
 export const CONTROL_GAME_IDS = [
@@ -47,6 +48,7 @@ export const controlSnapshotSchema = z
       .max(32)
       .refine((values) => new Set(values).size === values.length),
     games: z.object(gameShape).strict(),
+    nightOperations: nightOperationsSchema.optional(),
   })
   .strict();
 export type ControlSnapshot = z.infer<typeof controlSnapshotSchema>;
@@ -70,6 +72,9 @@ export function normalizeControlSnapshot(value: unknown): ControlSnapshot {
   };
   return {
     apiOrigins: [...parsed.apiOrigins].sort(),
+    ...(parsed.nightOperations
+      ? { nightOperations: normalizeNightOperations(parsed.nightOperations) }
+      : {}),
     games: Object.fromEntries(
       CONTROL_GAME_IDS.map((id) => [id, games[id]]),
     ) as ControlSnapshot['games'],
@@ -79,6 +84,9 @@ export function controlSnapshotDigest(snapshot: unknown) {
   const parsed = storedControlSnapshotSchema.parse(snapshot);
   const canonical = {
     apiOrigins: [...parsed.apiOrigins].sort(),
+    ...(parsed.nightOperations
+      ? { nightOperations: normalizeNightOperations(parsed.nightOperations) }
+      : {}),
     games: Object.fromEntries(
       CONTROL_GAME_IDS.filter((id) => Object.hasOwn(parsed.games, id)).map((id) => [
         id,

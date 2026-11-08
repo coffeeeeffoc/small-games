@@ -7,6 +7,7 @@ import { sourceHash, verifyPrebuilt } from './artifact.mjs';
 import { brandCocos } from '../../carding-car/scripts/cocos-branding.mjs';
 import { writeReport } from './write-report.mjs';
 import { prepareGameServices, stampNightBuild } from '../../../../scripts/h5-game-services.mjs';
+import { nightCompilerVersion } from '../../../../scripts/night-build-version.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (['wechatgame', 'bilibili', 'douyin'].includes(target)) {
@@ -16,6 +17,7 @@ if (['wechatgame', 'bilibili', 'douyin'].includes(target)) {
 }
 if (!['web-mobile', 'web-desktop'].includes(target))
   throw Error('Supported targets: web-mobile, web-desktop, wechatgame, bilibili, douyin. Kuaishou requires a separately validated Creator adapter.');
+const version = await nightCompilerVersion(root);
 if (target === 'web-mobile' && process.env.NIGHT_OVERWATCH_PREBUILT_DIR) {
   const source = await verifyPrebuilt(process.env.NIGHT_OVERWATCH_PREBUILT_DIR);
   const dist = path.resolve(root, 'dist');
@@ -25,7 +27,7 @@ if (target === 'web-mobile' && process.env.NIGHT_OVERWATCH_PREBUILT_DIR) {
     await cp(source, dist, { recursive: true });
   }
   await prepareGameServices('night-overwatch', dist, { local: process.env.COMPETITION_LOCAL_BACKEND === '1' });
-  await stampNightBuild(dist);
+  await stampNightBuild(dist, 'web-h5', version);
   console.log('Restored verified Night Overwatch Creator artifact');
   process.exit(0);
 }
@@ -110,7 +112,7 @@ await writeFile(
   out + 'build-info.json',
   JSON.stringify({ creator: '3.8.8', target, sourceHash: await sourceHash() }),
 );
-await stampNightBuild(out);
+await stampNightBuild(out, 'web-h5', version);
 if (target === 'web-mobile') {
   const dist = path.resolve(root, 'dist');
   if (path.dirname(dist) !== path.resolve(root)) throw Error('Build output escaped project');

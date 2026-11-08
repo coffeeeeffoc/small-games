@@ -15,7 +15,15 @@ it('reuses canonical GitHub sessions and host/Origin/CSRF protection, exposes on
     expect(session.permissions).toEqual(CONTROL_PERMISSIONS);
     expect(session.roles).toEqual(['administrator']);
     const get = (url: string, headers = f.headers) => f.app.inject({ url, headers, cookies });
-    for (const route of ['catalog', 'state', 'revisions', 'members', 'roles', 'audit'])
+    for (const route of [
+      'catalog',
+      'state',
+      'revisions',
+      'members',
+      'roles',
+      'audit',
+      'deployments',
+    ])
       expect((await get(`/api/control/${route}`)).statusCode).toBe(200);
     expect((await get('/api/control/state', { host: 'api.nenggongzhiren.cn' })).statusCode).toBe(
       403,
@@ -56,6 +64,25 @@ it('reuses canonical GitHub sessions and host/Origin/CSRF protection, exposes on
       ).statusCode,
     ).toBe(403);
     const headers = { ...f.headers, origin, 'x-csrf-token': session.csrfToken };
+    const switchRequest = {
+      method: 'POST' as const,
+      url: '/api/control/night-release/rollback',
+      cookies,
+      payload: { channel: 'h5', buildId: 'previous', expectedVersion: 0, reason: 'switch' },
+    };
+    expect((await f.app.inject({ ...switchRequest, headers: f.headers })).statusCode).toBe(403);
+    expect((await f.app.inject({ ...switchRequest, headers })).json()).toMatchObject({
+      error: 'NIGHT_RELEASE_NOT_CONFIGURED',
+    });
+    expect(
+      (
+        await f.app.inject({
+          ...switchRequest,
+          headers,
+          payload: { ...switchRequest.payload, buildId: '../invalid' },
+        })
+      ).statusCode,
+    ).toBe(422);
     const draft = await f.app.inject({ ...mutation, headers });
     expect(draft.statusCode).toBe(200);
     expect(

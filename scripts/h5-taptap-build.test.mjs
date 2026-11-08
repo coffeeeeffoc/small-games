@@ -12,6 +12,11 @@ test('Night H5 online packages keep guest identity until platform login is expli
   const apiUrl = 'https://api.example.test/v1';
   try {
     await mkdir(path.join(workspace, 'games/local/night-overwatch'), { recursive: true });
+    await mkdir(path.join(workspace, 'games/local/night-overwatch/publishing'));
+    await writeFile(
+      path.join(workspace, 'games/local/night-overwatch/publishing/versions.json'),
+      JSON.stringify({ nextVersion: '2.0.0', backendVersion: '1.0.0' }),
+    );
     const result = await buildH5Packages(
       {
         games: ['night-overwatch'],
@@ -39,6 +44,17 @@ test('Night H5 online packages keep guest identity until platform login is expli
       dist = path.join(result.output, variant.name, 'dist');
     const config = await readFile(path.join(dist, 'game-service-config.js'), 'utf8');
     assert.equal(variant.serviceEnabled, true);
+    assert.equal(variant.release.version, '2.0.0');
+    assert.equal(variant.release.backendVersion, '1.0.0');
+    assert.equal(
+      JSON.parse(
+        await readFile(
+          path.join(workspace, 'games/local/night-overwatch/publishing/versions.json'),
+          'utf8',
+        ),
+      ).nextVersion,
+      '2.0.1',
+    );
     assert.equal(variant.effectiveAdsEnabled, true);
     assert.equal(variant.apiUrl, apiUrl);
     assert.match(config, /"competitionEnabled":true/);
@@ -74,6 +90,11 @@ test('Night Tap login packages install the real bridge only for the configured o
   try {
     for (const game of ['night-overwatch', 'carding-car'])
       await mkdir(path.join(workspace, 'games/local', game), { recursive: true });
+    await mkdir(path.join(workspace, 'games/local/night-overwatch/publishing'));
+    await writeFile(
+      path.join(workspace, 'games/local/night-overwatch/publishing/versions.json'),
+      JSON.stringify({ nextVersion: '3.0.0', backendVersion: '2.0.0' }),
+    );
     const result = await buildH5Packages(
       {
         games: ['night-overwatch', 'carding-car'],
