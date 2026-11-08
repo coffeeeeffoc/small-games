@@ -278,7 +278,7 @@ export class WorldOverlayView {
       graphics.strokeColor = col(unit.friendly ? C.mint : C.red);
       graphics.fillColor = col(unit.friendly ? C.mint : C.red);
       if (unit.kind === 'infantry') {
-        graphics.circle(mapPoint.x, mapPoint.y, 2);
+        graphics.circle(mapPoint.x, mapPoint.y, 1.5);
         graphics.fill();
       } else if (unit.friendly) {
         graphics.rect(mapPoint.x - 3, mapPoint.y - 3, 6, 6);
@@ -516,9 +516,9 @@ export class WorldOverlayView {
       const { unit: u, point: projectedPoint } = contact;
       if (hidden.has(u.id)) continue;
       if (u.kind === 'infantry') {
-        const radius = contact === hovered ? 3.5 : 2.5;
+        const radius = contact === hovered ? 3 : 1.5;
         graphics.fillColor = col('#061116');
-        graphics.circle(projectedPoint.x, projectedPoint.y, radius + 1.5);
+        graphics.circle(projectedPoint.x, projectedPoint.y, radius + 1);
         graphics.fill();
         graphics.fillColor = col(u.friendly ? C.mint : C.red);
         graphics.circle(projectedPoint.x, projectedPoint.y, radius);

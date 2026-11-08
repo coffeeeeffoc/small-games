@@ -1317,7 +1317,7 @@ test('infantry use small solid team-color dots while vehicles keep their markers
   const projected = world.project(infantry, 0.8);
   const x = projected.x - frame.width / 2, y = projected.y - frame.height / 2;
   assert(calls.some((call: any, i: number) => call.op === 'circle' &&
-    call.args[0] === x && call.args[1] === y && call.args[2] === 2.5 &&
+    call.args[0] === x && call.args[1] === y && call.args[2] === 1.5 &&
     calls[i + 1]?.op === 'fill' && calls[i + 1].fill === '#ff525b'), 'battlefield infantry marker is a filled red dot');
   assert(!calls.some((call: any) => call.op === 'moveTo' && call.args[0] === x && call.args[1] === y + 5),
     'infantry do not retain the vehicle diamond');
@@ -1331,18 +1331,18 @@ test('infantry use small solid team-color dots while vehicles keep their markers
   const friendly = world.project(ally, 0.8);
   assert(calls.some((call: any, i: number) => call.op === 'circle' &&
     call.args[0] === friendly.x - frame.width / 2 && call.args[1] === friendly.y - frame.height / 2 &&
-    call.args[2] === 2.5 && calls[i + 1]?.op === 'fill' && calls[i + 1].fill === '#82c9ed'),
+    call.args[2] === 1.5 && calls[i + 1]?.op === 'fill' && calls[i + 1].fill === '#82c9ed'),
   'friendly infantry use a filled blue dot');
   const map = hud.minimapLayout;
   const mapX = map.x + 8 + ((infantry.x + data.MAP.halfWidth) / (2 * data.MAP.halfWidth)) * (map.w - 16) - hud.w / 2;
   const mapY = hud.h / 2 - map.y - 25 - ((infantry.z + data.MAP.halfDepth) / (2 * data.MAP.halfDepth)) * (map.h - 33);
   assert(calls.some((call: any, i: number) => call.op === 'circle' && call.args[0] === mapX &&
-    call.args[1] === mapY && call.args[2] === 2 && calls[i + 1]?.op === 'fill' &&
+    call.args[1] === mapY && call.args[2] === 1.5 && calls[i + 1]?.op === 'fill' &&
     calls[i + 1].fill === '#ff525b'), 'minimap infantry marker is a filled red dot');
   const allyMapX = map.x + 8 + ((ally.x + data.MAP.halfWidth) / (2 * data.MAP.halfWidth)) * (map.w - 16) - hud.w / 2;
   const allyMapY = hud.h / 2 - map.y - 25 - ((ally.z + data.MAP.halfDepth) / (2 * data.MAP.halfDepth)) * (map.h - 33);
   assert(calls.some((call: any, i: number) => call.op === 'circle' && call.args[0] === allyMapX &&
-    call.args[1] === allyMapY && call.args[2] === 2 && calls[i + 1]?.op === 'fill' &&
+    call.args[1] === allyMapY && call.args[2] === 1.5 && calls[i + 1]?.op === 'fill' &&
     calls[i + 1].fill === '#82c9ed'), 'minimap friendly infantry marker is a filled blue dot');
 });
 
