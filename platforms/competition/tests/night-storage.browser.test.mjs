@@ -349,6 +349,55 @@ test('expired IndexedDB receipts and their legacy copies are reclaimed while sta
   );
 });
 
+test('stalled IndexedDB transactions fail within a deadline and reconnect for retry', async () => {
+  await withStorage(async ({ page }) => {
+    const results = await page.evaluate(async () => {
+      const { openIndexedDB } = await import('/night-storage/indexeddb.mjs');
+      const backend = await openIndexedDB();
+      await backend.writeBatch(new Map([['preserved', 'yes']]));
+      const timer = globalThis.setTimeout;
+      globalThis.setTimeout = (callback, ms, ...args) =>
+        timer(callback, ms === 8000 ? 50 : ms, ...args);
+      const results = [];
+      for (const [method, operation] of [
+        ['getAllKeys', () => backend.readAll()],
+        ['put', () => backend.writeBatch(new Map([['uncertain', 'write']]))],
+        ['get', () => backend.compareAndSet('cas', null, 'value', () => null)],
+      ]) {
+        const original = IDBObjectStore.prototype[method];
+        IDBObjectStore.prototype[method] = function (...args) {
+          const request = original.apply(this, args);
+          request.transaction.oncomplete = null;
+          return request;
+        };
+        const error = await Promise.race([
+          operation().then(
+            () => 'unexpected success',
+            (error) => error.code + ' ' + error.message,
+          ),
+          new Promise((resolve) => timer(() => resolve('did not settle'), 500)),
+        ]);
+        IDBObjectStore.prototype[method] = original;
+        await backend.writeBatch(new Map([['retry', method]]));
+        const values = await backend.readAll();
+        results.push({
+          method,
+          error,
+          preserved: values.get('preserved'),
+          retry: values.get('retry'),
+        });
+      }
+      backend.close();
+      return results;
+    });
+    for (const result of results) {
+      assert.match(result.error, /STORAGE_UNAVAILABLE.*transaction.*timed out/i);
+      assert.equal(result.preserved, 'yes');
+      assert.equal(result.retry, result.method);
+    }
+  });
+});
+
 test('full and write-disabled legacy storage cannot prevent an IndexedDB-backed run or settlement', async () => {
   await withStorage(
     async ({ page }) => {

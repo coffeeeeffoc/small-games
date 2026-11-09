@@ -239,15 +239,17 @@ export class Online {
     else if (this.resumeCode) await this.open('resume', this.resumeCode);
   }
   async startRanking(options: Parameters<Recorder['start']>[0]) {
-    this.battleReward = undefined; this.battleReceipt = ''; this.rankingAttempt++;
+    this.battleReward = undefined; this.battleReceipt = '';
+    const attempt = ++this.rankingAttempt;
     const generation = this.generation;
     if (!this.ranked) {
       try {
-        this.acceptMetadata(await this.bridge?.ready);
-        if (!this.ranked) this.acceptMetadata(await this.bridge?.refresh?.());
+        const metadata = await (this.bridge?.refresh ? this.bridge.refresh() : this.bridge?.ready);
+        if (generation !== this.generation || attempt !== this.rankingAttempt || this.destroyed) return;
+        this.acceptMetadata(metadata);
       } catch { /* A failed identity lookup must not start a run under an unconfirmed pilot. */ }
     }
-    if (generation !== this.generation) return;
+    if (generation !== this.generation || attempt !== this.rankingAttempt || this.destroyed) return;
     if (!this.ranked && !this.recorder?.recover) {
       this.rankStatus = options.practice ? 'practice' : 'unavailable'; this.revision++;
       return;

@@ -37,6 +37,26 @@ test('recovered battle receipts refresh authoritative assets once and reject oth
  online.dispose();recorders[1].settlement={playerId:online.authenticatedId,runId:'new',result:{status:'credited',coins:180,xp:120}};callbacks[1]('finished');assert.equal(refreshes,1);
 });
 
+test('cancelled metadata lookup cannot start a run after a retry',async()=>{
+ const f=fixture(),online=new Online(storage(),()=>{});await online.connect(f.bridge);
+ online.ranked=false;let deliver!:(value:any)=>void,starts=0;
+ const fresh=await f.bridge.ready;
+ Object.assign(f.bridge,{ready:new Promise(resolve=>{deliver=resolve;})});
+ online.recorder!.start=async()=>{starts++;return null;};
+ const pending=online.startRanking({mode:'campaign',levelId:'first'});
+ online.cancelRanking();deliver(fresh);await pending;
+ assert.equal(starts,0);assert.equal(online.ranked,false);online.dispose();
+});
+
+test('ranking retry refreshes metadata without waiting for an old stalled ready promise',async()=>{
+ const f=fixture(),online=new Online(storage(),()=>{}),fresh=await f.bridge.ready;
+ await online.connect(f.bridge);online.ranked=false;let starts=0;
+ Object.assign(f.bridge,{ready:new Promise(()=>{}),refresh:async()=>fresh});
+ online.recorder!.start=async()=>{starts++;return null;};
+ await online.startRanking({mode:'campaign',levelId:'first'});
+ assert.equal(starts,1);assert.equal(online.ranked,true);online.dispose();
+});
+
 test('late finish cannot replace a new run or new identity settlement',async()=>{
  for(const replacement of ['run','owner','training']){
   const f=fixture(),online=new Online(storage(),()=>{});let finish!:(value:any)=>void,refreshes=0;

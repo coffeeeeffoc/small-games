@@ -1,0 +1,74 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "48978684eea30cf5ab9a28b684be8a523b4156ceb7c92640d94471a12112f343"
+  },
+  "fixture": "Mock HTTP identity/assets/runs; native browser IndexedDB; real touch input; no production requests",
+  "cases": [
+    {
+      "scenario": "healthy",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "phase": "playing",
+      "rankStatus": "recording",
+      "posts": 1
+    },
+    {
+      "scenario": "legacy-blocked",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "phase": "playing",
+      "rankStatus": "recording",
+      "posts": 1
+    },
+    {
+      "scenario": "storage-568",
+      "viewport": {
+        "width": 568,
+        "height": 320
+      },
+      "phase": "playing",
+      "rankStatus": "recording",
+      "posts": 1,
+      "recoveredAfterMs": 8072
+    },
+    {
+      "scenario": "storage-844",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "phase": "playing",
+      "rankStatus": "recording",
+      "posts": 1,
+      "recoveredAfterMs": 8075
+    },
+    {
+      "scenario": "deadline",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "phase": "playing",
+      "rankStatus": "recording",
+      "posts": 1,
+      "recoveredAfterMs": 25040
+    },
+    {
+      "scenario": "training",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "phase": "playing",
+      "mode": "training",
+      "posts": 0
+    }
+  ],
+  "errors": []
+}

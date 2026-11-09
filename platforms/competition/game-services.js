@@ -531,7 +531,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       if (stored && JSON.parse(stored).cancelPending) run.cancelPending = true;
       if (run.abandoned && !run.cancelPending) {
         removeStored(key(run));
-        return true;
+        return false;
       }
       if (cleanAcknowledged(key(run))) {
         run.synced = true;
@@ -561,10 +561,10 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       if (!storage.flush) {
         persisted.add(run);
         volatile.delete(run);
-        storageDiagnostic = '';
+        if (currentRun(run)) storageDiagnostic = '';
       } else {
         void storage.flush().catch((error) => {
-          diagnose('commit', error);
+          if (currentRun(run)) diagnose('commit', error);
           volatile.add(run);
           if (currentRun(run) && !run.synced) report('storage-unavailable');
         });
@@ -585,7 +585,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     try {
       if (storage.refresh) await storage.refresh();
     } catch (error) {
-      diagnose('refresh', error);
+      if (currentRun(run)) diagnose('refresh', error);
       if (currentRun(run) && !run.synced) report('storage-unavailable');
       return false;
     }
@@ -593,14 +593,14 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     try {
       if (storage.flush) await storage.flush();
     } catch (error) {
-      diagnose('commit', error);
+      if (currentRun(run)) diagnose('commit', error);
       volatile.add(run);
       if (currentRun(run) && !run.synced) report('storage-unavailable');
       return online && persisted.has(run);
     }
     persisted.add(run);
     volatile.delete(run);
-    storageDiagnostic = '';
+    if (currentRun(run)) storageDiagnostic = '';
     return true;
   }
   function read(name) {
@@ -942,13 +942,14 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           savedAt: Date.now(),
         };
         attempts.set(run, ownGeneration);
-        if (!canPersist() || !(await saveCommitted(run))) {
-          if (generation === ownGeneration) report('storage-unavailable');
-          return null;
-        }
+        const saved = canPersist() && (await saveCommitted(run));
         if (generation !== ownGeneration) {
           run.abandoned = true;
           save(run);
+          return null;
+        }
+        if (!saved) {
+          report('storage-unavailable');
           return null;
         }
         active = run;

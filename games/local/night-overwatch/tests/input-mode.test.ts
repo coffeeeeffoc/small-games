@@ -59,6 +59,7 @@ const testStorage = { getItem:(key:string)=>cc.sys.localStorage.getItem(key),
   key:(index:number)=>(cc.sys.localStorage as any).key(index),get length(){return (cc.sys.localStorage as any).length||0;} };
 function mission() {
   const g = new Overwatch();
+  g.servicesReady = Promise.resolve();
   g.hud = { t: (value: string) => value, supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire',x:900,y:450,w:68,h:68 } : undefined,
     controlPositions:{},controlBounds:()=>({x:0,y:0,w:932,h:532}),placeControl(){},
     controlAt: () => undefined, listAt: () => undefined, minimapPoint: () => undefined, blocksBattlefield: () => false };
@@ -227,6 +228,18 @@ test('campaign start waits for the delayed services bootstrap instead of silentl
   } finally {globals.__COMPETITION_CONFIG__=originalConfig;globals.SmallGamesServices=originalBridge;g.platform.dispose();}
 });
 
+test('leaving a pending campaign clears its waiting message and ignores its late completion',async()=>{
+ for(const action of ['homeMenu','training']){
+  const g=mission();let finish!:(run:any)=>void,cancelled=0;
+  g.online={leave(){},cancelRanking(){cancelled++;},startRanking:()=>new Promise(resolve=>{finish=resolve;}),recorder:{record(){}}};
+  g.sim.phase='briefing';g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
+  g.action(action);assert.equal(g.hud.toastUntil,0);assert.equal(g.starting,undefined);assert.equal(cancelled,2);
+  if(action==='training'){g.beginCampaign();assert.equal(g.sim.phase,'playing');}
+  finish({loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}});await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(g.sim.phase,action==='training'?'playing':'briefing');assert.equal(g.hud.toastUntil,0);g.platform.dispose();
+ }
+});
+
 test('formal campaign start preserves failure reasons and retries before gameplay; offline and practice remain playable',async()=>{
  const config=(globalThis as any).__COMPETITION_CONFIG__;
  try{
@@ -248,6 +261,36 @@ test('formal campaign start preserves failure reasons and retries before gamepla
   const practice=mission();practice.operationPractice=true;practice.sim.phase='briefing';practice.online={rankStatus:'practice',assetsReceivedAt:0,leave(){},startRanking:async()=>null,recorder:{record(){},invalidate(){}}};
   practice.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(practice.sim.phase,'playing');practice.platform.dispose();
  }finally{if(config===undefined)delete (globalThis as any).__COMPETITION_CONFIG__;else(globalThis as any).__COMPETITION_CONFIG__=config;}
+});
+
+test('campaign timeout unlocks the same mission and ignores a late start response', async t => {
+ t.mock.timers.enable({apis:['setTimeout']});
+ const g=mission();g.sim.phase='briefing';g.hud.t=(text:string)=>text;
+ const requests:Array<(value:any)=>void>=[];let cancelled=0;
+ g.online={rankStatus:'connecting',leave(){},connect:async()=>{},cancelRanking(){cancelled++;},startRanking:()=>new Promise(resolve=>requests.push(resolve)),recorder:{record(){}}};
+ g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(requests.length,1);assert.equal(g.hud.toastUntil,Infinity);
+ t.mock.timers.tick(25000);await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(g.sim.phase,'briefing');assert.match(g.hud.toast,/超时/);assert.equal(cancelled,2);
+ g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(requests.length,2);
+ const run={loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}};
+ requests[0](run);await new Promise(resolve=>setImmediate(resolve));assert.equal(g.sim.phase,'briefing');
+ g.beginCampaign();assert.equal(requests.length,2,'late completion cannot unlock the replacement request');
+ g.online.rankStatus='recording';requests[1](run);await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(g.sim.phase,'playing');g.platform.dispose();
+});
+
+test('campaign services timeout permits retry and optional quartermaster refresh never blocks a start', async t => {
+ t.mock.timers.enable({apis:['setTimeout']});
+ const g=mission();g.sim.phase='briefing';g.hud.t=(text:string)=>text;let starts=0;
+ g.servicesReady=new Promise(()=>{});
+ g.online={rankStatus:'recording',leave(){},cancelRanking(){},connect:async()=>{},startRanking:async()=>{starts++;return{loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}};},recorder:{record(){}}};
+ g.quartermaster={refresh:()=>new Promise(()=>{})};
+ g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
+ t.mock.timers.tick(25000);await new Promise(resolve=>setImmediate(resolve));
+ assert.match(g.hud.toast,/连接.*超时/);assert.equal(starts,0);
+ g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(starts,1);assert.equal(g.sim.phase,'playing');g.platform.dispose();
 });
 
 test('storage failure details open in production, close back to retry and clear on successful start',async()=>{

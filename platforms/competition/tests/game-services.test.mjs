@@ -417,7 +417,35 @@ test('Night cancelled initial IndexedDB commit cannot replace the newer practice
   commit.resolve(Promise.reject(Object.assign(Error('aborted'), { code: 'STORAGE_UNAVAILABLE' })));
   await start;
   assert.equal(recorder.status, 'practice');
+  assert.equal(recorder.storageDiagnostic, '');
   assert.equal(f.requests.length, 0);
+});
+test('Night cancellation during initial or active storage waits cannot create an abandoned run', async () => {
+  for (const round of [1, 2, 3])
+    for (const fails of [false, true]) {
+      const f = durableFixture(),
+        recorder = f.recorder(),
+        gate = defer();
+      let reads = 0;
+      f.storage.refresh = () => (++reads === round ? gate.promise : Promise.resolve());
+      const old = recorder.start({ mode: 'campaign', levelId: 'old' });
+      await turn();
+      assert.equal(reads, round);
+      recorder.invalidate();
+      const current = await recorder.start({ mode: 'campaign', levelId: 'current' });
+      gate.resolve(fails ? Promise.reject(Error('old storage failure')) : undefined);
+      assert.equal(await old, null);
+      await recorder.recover();
+      assert.equal(f.requests.length, 1);
+      assert.equal(f.requests[0], current.requestId);
+      assert.equal(recorder.status, 'recording');
+      assert.equal(recorder.storageDiagnostic, '');
+      assert(
+        [...f.values.entries()]
+          .filter(([key]) => !key.endsWith(':synced'))
+          .every(([, value]) => JSON.parse(value).requestId === current.requestId),
+      );
+    }
 });
 test('Night identity storage initialization failure is reported as storage, not network failure', async () => {
   const f = durableFixture(),

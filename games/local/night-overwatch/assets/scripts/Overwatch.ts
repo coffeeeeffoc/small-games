@@ -42,7 +42,7 @@ export class Overwatch extends Component {
   online?: Online;
   quartermaster?:Quartermaster;
   private stopDeveloperTools?: () => void;
-  private starting?: Simulation;
+  private starting?: { sim: Simulation; cancel: () => void };
   private servicesReady?: Promise<void>;
   touches = new Map<number, TouchRole>();
   keys = new Set<number>();
@@ -227,6 +227,7 @@ export class Overwatch extends Component {
       this.hud.toastUntil = Date.now() + 3000;
       return;
     }
+    this.starting?.cancel(); this.starting = undefined; this.hud.toastUntil = 0;
     this.operationPractice = this.hud.developer;
     const pauses = new Set(this.sim.pauses);
     this.clear();
@@ -263,11 +264,13 @@ export class Overwatch extends Component {
       await new Promise(resolve => setTimeout(resolve, 50));
     if (this.disposed) return;
     await this.online?.connect(globals.SmallGamesServices, sys.isBrowser ? location.search : '');
-    if(!this.disposed)await this.quartermaster?.refresh();
+    if(!this.disposed)void this.quartermaster?.refresh();
     if (!this.disposed) this.hud.modalKey = 'rebuild';
   }
   beginCampaign() {
-    if (this.starting === this.sim) return;
+    if (this.starting?.sim === this.sim) return;
+    this.starting?.cancel(); this.starting = undefined;
+    this.hud.toastUntil = 0;
     this.hud.storageError = '';
     this.online?.cancelRanking?.();
     this.online?.leave();
@@ -290,21 +293,26 @@ export class Overwatch extends Component {
       if (recorder) for (const reason of sim.pauses) recorder.record({ command: 'pause', args: [reason, true] }, 0);
     };
     if (!online || sim.mission.mode !== 'escort') { if(!sim.loadout.effects.length)sim.applyLoadout(practiceLoadout(online?.assets,'solo',online?performance.now()-online.assetsReceivedAt:0));begin(); return; }
-    this.starting = sim;
-    this.hud.toast = this.hud.t('正在准备计时…', 'PREPARING TIMER…'); this.hud.toastUntil = Date.now() + 16000;
+    const attempt = { sim, cancel: () => {} };
+    this.starting = attempt;
+    const current = () => this.starting === attempt && this.sim === sim && !this.disposed;
+    let stage = 'services', timedOut = false;
+    this.hud.toast = this.hud.t('正在连接行动服务…', 'CONNECTING TO MISSION SERVICE…'); this.hud.toastUntil = Infinity;
     const start = async () => {
-      await this.servicesReady;
-      if (this.sim !== sim || this.disposed) return false;
+      await (this.servicesReady ??= this.connectServices());
+      if (!current() || timedOut) return false;
+      stage = 'run';
+      this.hud.toast = this.hud.t('正在保存并确认行动…', 'SAVING AND CONFIRMING MISSION…');
       const run=await online.startRanking({ mode: 'level-' + sim.mission.id, levelId: sim.mission.id,
         practice: this.operationPractice || this.platform.developer });
-      if(this.sim!==sim||this.disposed)return false;
+      if(!current() || timedOut)return false;
       if(run?.loadout){sim.applyLoadout(run.loadout);if(run.loadout.skipped.length){this.hud.toast=this.hud.t('部分军需不足或已过期，本场使用其余方案','Some gear is unavailable. Remaining loadout applied.');this.hud.toastUntil=Date.now()+5000;}}
       else if(this.operationPractice||this.platform.developer)sim.applyLoadout(practiceLoadout(online.assets,'solo',performance.now()-online.assetsReceivedAt));
       else if (online.recorder || (globalThis as any).__COMPETITION_CONFIG__?.competitionEnabled) return false;
       return true;
     };
     const failed = () => {
-      if (this.sim !== sim || this.disposed) return;
+      if (!current()) return;
       const message: Record<string, [string,string]> = {
         'update-required':['版本已更新，请退出游戏后重新打开','UPDATE REQUIRED · REOPEN THE GAME'],
         'identity-changed':['账号状态已变化，请重新开始行动','ACCOUNT CHANGED · START AGAIN'],
@@ -313,11 +321,30 @@ export class Overwatch extends Component {
         'needs-attention':['行动校验未通过，请重新开始行动','RUN COULD NOT BE VERIFIED · START AGAIN'],
       };
       this.hud.toast = this.hud.t(...(message[online.rankStatus] || ['行动服务暂不可用，请联网后重试','SERVICE UNAVAILABLE · CONNECT AND RETRY']));
+      if(timedOut)this.hud.toast = stage === 'services'
+        ? this.hud.t('连接行动服务超时，请再次点击出发', 'CONNECTION TIMED OUT · TAP START TO RETRY')
+        : this.hud.t('准备行动超时，请再次点击出发', 'PREPARATION TIMED OUT · TAP START TO RETRY');
       this.hud.toastUntil = Infinity;
-      if(online.rankStatus==='storage-unavailable'&&online.storageDiagnostic){this.hud.storageError=online.storageDiagnostic;this.hud.toastUntil=0;}
+      if(!timedOut&&online.rankStatus==='storage-unavailable'&&online.storageDiagnostic){this.hud.storageError=online.storageDiagnostic;this.hud.toastUntil=0;}
       this.hud.missionsOpen = true; this.hud.modalKey = 'rebuild';
     };
-    void start().then(ready => ready ? begin() : failed(), failed).finally(() => { if (this.starting === sim) this.starting = undefined; });
+    const deadline = new Promise<boolean>(resolve => {
+      const timer = setTimeout(() => {
+        if (current()) {
+          timedOut = true;
+          online.cancelRanking?.();
+          this.servicesReady = undefined;
+        }
+        resolve(false);
+      }, 25000);
+      attempt.cancel = () => { clearTimeout(timer); resolve(false); };
+    });
+    void Promise.race([start(), deadline]).then(ready => {
+      if (current()) { if (ready) begin(); else failed(); }
+    }, failed).finally(() => {
+      attempt.cancel();
+      if (this.starting === attempt) this.starting = undefined;
+    });
   }
   syncRewards() {
     if (this.sim.duelMode) { this.hud.rewardsAvailable = false; this.hud.pendingSupply = false; this.sim.homingAmmo = 0; return; }
@@ -701,6 +728,8 @@ export class Overwatch extends Component {
       return;
     }
     if (id === 'missions' || id === 'homeMenu') {
+      if(this.starting){this.starting.cancel();this.starting=undefined;this.online?.cancelRanking?.();}
+      this.hud.toastUntil = 0;
       if(this.quartermaster){this.quartermaster.page='';if(id==='homeMenu'&&this.quartermaster.externalReturn==='modes'){this.quartermaster.show('modes',false);this.quartermaster.externalReturn='';}}
       this.online?.leave();
       this.clear();
@@ -1445,6 +1474,7 @@ export class Overwatch extends Component {
   }
   onDestroy() {
     this.disposed = true;
+    this.starting?.cancel(); this.starting = undefined;
     this.stopDeveloperTools?.();
     this.quartermaster?.dispose();this.online?.dispose();
     this.online?.recorder?.persist?.();
