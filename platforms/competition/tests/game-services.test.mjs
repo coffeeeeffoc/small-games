@@ -1345,6 +1345,66 @@ test('Night unavailable start is persisted before transport and retries the same
   await f.recorder().recover();
   assert.equal([...f.runs.values()][0].settlement.accepted, true);
 });
+test('Night offline journal starts without a session, keeps its loadout and settles once after reconnecting', async () => {
+  const f = durableFixture(),
+    session = f.services.session,
+    startRun = f.services.startRun,
+    starts = [],
+    settled = [];
+  f.offline(true);
+  f.services.session = async () => {
+    throw Object.assign(Error(), { code: 'TAP_TIMEOUT' });
+  };
+  f.services.startRun = async (input) => {
+    starts.push(structuredClone(input));
+    return { ...(await startRun(input)), loadout: input.offline?.loadout };
+  };
+  f.services.finishRun = async () => ({
+    accepted: true,
+    offline: true,
+    fastestEligible: false,
+    status: 'credited',
+    coins: 5,
+    xp: 7,
+  });
+  const recorder = () =>
+    createRunRecorder(f.services, {
+      durable: { storage: f.storage },
+      onSettled: (value) => settled.push(value),
+    });
+  const first = recorder(),
+    loadout = { version: 'g', level: 3, effects: ['power'], skipped: ['x'] };
+  assert.ok(await first.startOffline({ mode: 'level-1', levelId: '1', loadout }));
+  assert.equal(first.status, 'offline');
+  first.record({}, 120);
+  await first.finish();
+  assert.equal(first.status, 'offline', 'a host login timeout keeps waiting instead of failing');
+  assert.deepEqual(starts, []);
+  const [name] = [...f.values.keys()],
+    journal = JSON.parse(f.values.get(name));
+  assert.equal(journal.playerId, '');
+  assert.deepEqual(journal.loadout, { ...loadout, skipped: [] });
+  f.offline(false);
+  f.services.session = session;
+  const restored = recorder();
+  await restored.recover();
+  assert.equal(starts.length, 1);
+  assert.equal(starts[0].playerId, 'pilot-a');
+  assert.deepEqual(starts[0].offline, { loadout: { ...loadout, skipped: [] } });
+  assert.equal(restored.status, 'offline-finished');
+  assert.deepEqual(
+    settled.map(({ playerId, active, result }) => [playerId, active, result.coins]),
+    [['pilot-a', false, 5]],
+  );
+  assert.deepEqual(
+    [...f.values.keys()].filter((key) => !key.endsWith(':synced')),
+    [],
+    'the pending journal is cleared once the server settles it',
+  );
+  await recorder().recover();
+  assert.equal(starts.length, 1);
+  assert.equal(settled.length, 1);
+});
 test('Night pending data stays with its owner and survives quota failure or malformed cache', async () => {
   const f = durableFixture(),
     first = f.recorder();

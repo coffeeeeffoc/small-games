@@ -37,6 +37,7 @@ export async function sourceHash(directory = root) {
     '../../../../platforms/competition/client.js',
     '../../../../platforms/competition/game-services.js',
     '../../../../platforms/competition/game-bootstrap.js',
+    '../../../../platforms/competition/legacy-polyfills.js',
     '../../bullet-garden/scripts/artifact-paths.mjs',
     '../../../../platforms/h5/game-rewards.js',
     '../../../../platforms/h5/platform-ads.js',

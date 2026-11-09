@@ -165,6 +165,7 @@
         "$TURBO_ROOT$/platforms/competition/client.js",
         "$TURBO_ROOT$/platforms/competition/game-services.js",
         "$TURBO_ROOT$/platforms/competition/game-bootstrap.js",
+        "$TURBO_ROOT$/platforms/competition/legacy-polyfills.js",
         "$TURBO_ROOT$/platforms/competition/night-storage.js",
         "$TURBO_ROOT$/platforms/competition/night-storage/**"
       ]
@@ -236,7 +237,8 @@
         "$TURBO_ROOT$/scripts/competition-service-config.mjs",
         "$TURBO_ROOT$/platforms/competition/client.js",
         "$TURBO_ROOT$/platforms/competition/game-services.js",
-        "$TURBO_ROOT$/platforms/competition/game-bootstrap.js"
+        "$TURBO_ROOT$/platforms/competition/game-bootstrap.js",
+        "$TURBO_ROOT$/platforms/competition/legacy-polyfills.js"
       ]
     },
     "@coffeeeeffoc/place-and-clear#build": {

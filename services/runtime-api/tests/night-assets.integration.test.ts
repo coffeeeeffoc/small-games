@@ -13,6 +13,7 @@ import {
   nightAssets,
   previewNightMigration,
   reserveNightLoadout,
+  verifyNightOfflineLoadout,
   consumeNightLoadout,
   rewardNightBattle,
   type NightAssets,
@@ -821,6 +822,26 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       consumeNightLoadout(tx, id, at + 86400003, 'upgraded', rules),
     );
     expect((await get(id)).inventory['power-match']).toBe(2);
+  });
+  it('offline runs may claim only owned permanent effects at or below the current level', async () => {
+    const id = await owner();
+    await seed(id, { permanent: ['power'], active: { tracking: at + 86400000 } });
+    const verify = (loadout: Parameters<typeof verifyNightOfflineLoadout>[3]) =>
+      database.db.transaction((tx) => verifyNightOfflineLoadout(tx, id, at, loadout, rules));
+    const base = { version: rules.version, level: 1, skipped: ['x'] };
+    expect(await verify({ ...base, effects: ['power'] })).toEqual({
+      ...base,
+      effects: ['power'],
+      skipped: [],
+    });
+    for (const loadout of [
+      { ...base, effects: ['tracking'] },
+      { ...base, effects: ['power', 'power'] },
+      { ...base, level: 2, effects: [] },
+      { ...base, version: 'old', effects: [] },
+      undefined,
+    ])
+      await expect(verify(loadout)).rejects.toMatchObject({ code: 'INVALID_LOADOUT' });
   });
   it('24-hour effects remain in an active snapshot but disappear from the next start', async () => {
     const id = await owner();

@@ -116,6 +116,17 @@ export const attackPreview = (effects: readonly string[]) => {
 };
 export const PROGRESSION = { version: GROWTH_VERSION, economy: ECONOMY, catalog: CATALOG, packages: PACKAGES, pools: POOLS, skills: SKILLS, wheelPrizes:WHEEL_PRIZES, levelProgress, validLoadout };
 
+/** Offline runs may only use gear that cannot be lost before a later sync: permanent effects and the known level. */
+export function offlineLoadout(assets:AssetSnapshot|undefined):BattleLoadout {
+  const loadout:BattleLoadout={version:GROWTH_VERSION,level:assets?.level||1,effects:[],skipped:[]};
+  if(!assets)return loadout;
+  const saved=assets.loadouts.solo;
+  for(const id of [...saved.mods,saved.weapon,saved.skill]){
+    const product=id?assets.catalog.find(p=>p.id===id):undefined;
+    if(product&&assets.permanent.includes(product.effect)&&!loadout.effects.includes(product.effect))loadout.effects.push(product.effect);
+  }
+  return loadout;
+}
 /** Practice uses a server snapshot only; ranked matches still require the authoritative reservation. */
 export function practiceLoadout(assets:AssetSnapshot|undefined,mode:'solo'|'duel',elapsedMs=0):BattleLoadout {
   const loadout:BattleLoadout={version:GROWTH_VERSION,level:assets?.level||1,effects:[],skipped:[]};

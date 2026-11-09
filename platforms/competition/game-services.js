@@ -261,7 +261,7 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
           encodeURIComponent(boardId) +
           (ruleVersion ? '?ruleVersion=' + encodeURIComponent(ruleVersion) : ''),
       ),
-    async startRun({ mode, levelId, requestId, playerId }) {
+    async startRun({ mode, levelId, requestId, playerId, offline }) {
       if (typeof ruleVersion !== 'string' || !ruleVersion) throw failure('RULE_VERSION_CHANGED');
       const credential = await auth.current();
       if (playerId && credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
@@ -272,6 +272,7 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
           version: ruleVersion,
           ...(levelId ? { levelId } : {}),
           ...(requestId ? { requestId } : {}),
+          ...(offline ? { offline } : {}),
         },
         credential,
       );
@@ -316,7 +317,7 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
 }
 
 // Each attempt has its own key; finished journals are immutable except for acknowledgements.
-function createDurableRecorder(services, { storage, source = 'provided' }, onStatus) {
+function createDurableRecorder(services, { storage, source = 'provided' }, onStatus, onSettled) {
   let storageDiagnostic = '';
   if (!storage && services.config.platform === 'h5') storage = globalThis.__nightStorage;
   if (storage?.source) source = storage.source;
@@ -442,9 +443,11 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     (!active || active === run) && (!attempts.has(run) || attempts.get(run) === generation);
   const resultStatus = (result) =>
     result.accepted
-      ? result.fastestEligible === false
-        ? 'assisted'
-        : 'finished'
+      ? result.offline
+        ? 'offline-finished'
+        : result.fastestEligible === false
+          ? 'assisted'
+          : 'finished'
       : ['RUN_EXPIRED', 'RUN_FINISHED'].includes(result.reason)
         ? 'expired'
         : 'local';
@@ -453,6 +456,13 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     run.result = result;
     retries.delete(key(run));
     if (currentRun(run)) report(resultStatus(result));
+    // A run finished offline is usually settled after the player has left its result screen.
+    if (run.offline)
+      try {
+        onSettled({ playerId: run.playerId, runId: run.id, result, active: active === run });
+      } catch {
+        /* Notification only. */
+      }
   }
   function compact(run) {
     // Keep absolute sequence numbers and every unconfirmed batch for idempotent retries.
@@ -622,7 +632,9 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       typeof run.requestId !== 'string' ||
       !run.requestId ||
       typeof run.playerId !== 'string' ||
-      !run.playerId ||
+      (!run.playerId && run.offline !== true) ||
+      (run.offline === true &&
+        (!run.loadout || typeof run.loadout !== 'object' || !Array.isArray(run.loadout.effects))) ||
       typeof run.version !== 'string' ||
       !run.version ||
       typeof run.mode !== 'string' ||
@@ -630,7 +642,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       (run.levelId !== undefined && typeof run.levelId !== 'string') ||
       (run.id !== undefined && typeof run.id !== 'string') ||
       typeof run.finishing !== 'boolean' ||
-      ['abandoned', 'cancelPending', 'startAttempted'].some(
+      ['abandoned', 'cancelPending', 'startAttempted', 'offline'].some(
         (field) => run[field] !== undefined && typeof run[field] !== 'boolean',
       ) ||
       !Array.isArray(run.batches) ||
@@ -663,13 +675,26 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
   }
   function failed(run, error) {
     if (run.synced) return;
-    const transient = [
-      'SERVICE_UNAVAILABLE',
-      'RATE_LIMITED',
-      'RUN_AHEAD_OF_TIME',
-      'RUN_EXPIRED',
-      'SESSION_EXPIRED',
-    ].includes(error?.code);
+    // Offline journals wait through any connectivity or host-login failure; only a
+    // definitive server or journal rejection needs the player's attention.
+    const transient = run.offline
+      ? ![
+          'INVALID_JOURNAL',
+          'INVALID_LOADOUT',
+          'INVALID_SETTLEMENT',
+          'INVALID_INPUT',
+          'INVALID_LEVEL',
+          'ILLEGAL_ACTION',
+          'SEQUENCE_CONFLICT',
+          'REQUEST_ID_CONFLICT',
+        ].includes(error?.code)
+      : [
+          'SERVICE_UNAVAILABLE',
+          'RATE_LIMITED',
+          'RUN_AHEAD_OF_TIME',
+          'RUN_EXPIRED',
+          'SESSION_EXPIRED',
+        ].includes(error?.code);
     const previous = retries.get(key(run));
     const delay = transient ? Math.min(60000, (previous?.delay || 1000) * 2) : 60000;
     retries.set(key(run), { delay, at: Date.now() + delay });
@@ -684,7 +709,9 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
               : volatile.has(run)
                 ? 'storage-unavailable'
                 : transient
-                  ? 'pending-sync'
+                  ? run.offline
+                    ? 'offline'
+                    : 'pending-sync'
                   : 'needs-attention',
       );
   }
@@ -726,12 +753,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
         return true;
       }
       if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
-      const created = await services.startRun({
-        mode: run.mode,
-        levelId: run.levelId,
-        requestId: run.requestId,
-        playerId: run.playerId,
-      });
+      const created = await services.startRun(startInput(run));
       run.id = created.id;
       if (!(await saveCommitted(run, true)) || run.synced) return true;
     }
@@ -742,6 +764,22 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     );
     return true;
   }
+  function uuid() {
+    const bytes = new Uint8Array(16);
+    if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+    else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    bytes[6] = (bytes[6] & 15) | 64;
+    bytes[8] = (bytes[8] & 63) | 128;
+    const hex = Array.from(bytes, (n) => n.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  const startInput = (run) => ({
+    mode: run.mode,
+    levelId: run.levelId,
+    requestId: run.requestId,
+    playerId: run.playerId,
+    ...(run.offline ? { offline: { loadout: run.loadout } } : {}),
+  });
   function synchronize(run) {
     if (working.has(key(run))) return working.get(key(run));
     if ((retries.get(key(run))?.at || 0) > Date.now()) return Promise.resolve(null);
@@ -750,6 +788,11 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
         if (run.synced) {
           if (run.result) await acknowledge(run, run.result);
           return null;
+        }
+        // An offline run started without a confirmed pilot belongs to the first one signed in here.
+        if (!run.playerId) {
+          run.playerId = (await services.session()).playerId;
+          if (!(await saveCommitted(run, true)) || run.synced) return null;
         }
         if (run.scope !== scope && (await services.session()).playerId !== run.playerId)
           throw failure('IDENTITY_CHANGED');
@@ -760,12 +803,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
           run.startAttempted = true;
           if (!(await saveCommitted(run)) || run.synced) return null;
-          const created = await services.startRun({
-            mode: run.mode,
-            levelId: run.levelId,
-            requestId: run.requestId,
-            playerId: run.playerId,
-          });
+          const created = await services.startRun(startInput(run));
           run.id = created.id;
           if (created.loadout) run.loadout = created.loadout;
           if (!(await saveCommitted(run, true)) || run.synced) return null;
@@ -921,18 +959,12 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           deferred = error;
         }
         if (generation !== ownGeneration) return null;
-        const bytes = new Uint8Array(16);
-        if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
-        else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
-        bytes[6] = (bytes[6] & 15) | 64;
-        bytes[8] = (bytes[8] & 63) | 128;
-        const hex = Array.from(bytes, (n) => n.toString(16).padStart(2, '0')).join('');
         const run = {
           schema: 1,
           scope,
           version: services.ruleVersion,
           playerId: credential.playerId,
-          requestId: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`,
+          requestId: uuid(),
           mode,
           levelId,
           batches: [],
@@ -971,6 +1003,47 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           );
         return null;
       }
+    },
+    /** Journal a run while the service is unreachable; it is created and settled on a later sync. */
+    async startOffline({ mode, levelId, loadout }) {
+      storageDiagnostic = '';
+      invalidate('local');
+      const ownGeneration = generation;
+      const run = {
+        schema: 1,
+        scope,
+        version: services.ruleVersion,
+        playerId: services.savedOwner?.()?.playerId || '',
+        requestId: uuid(),
+        mode,
+        levelId,
+        offline: true,
+        loadout: {
+          version: loadout.version,
+          level: loadout.level,
+          effects: [...loadout.effects],
+          skipped: [],
+        },
+        batches: [],
+        tail: [],
+        acked: 0,
+        finishing: false,
+        savedAt: Date.now(),
+      };
+      attempts.set(run, ownGeneration);
+      const saved = canPersist() && (await saveCommitted(run));
+      if (generation !== ownGeneration) {
+        run.abandoned = true;
+        save(run);
+        return null;
+      }
+      if (!saved) {
+        report('storage-unavailable');
+        return null;
+      }
+      active = run;
+      report('offline');
+      return run;
     },
     record(input, ticks = 1) {
       const run = active;
@@ -1068,10 +1141,10 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
 /** Bounded live journal: acknowledged input is discarded; each retry keeps its original sequence. */
 export function createRunRecorder(
   services,
-  { onStatus = () => {}, startTimeoutMs = 1500, durable } = {},
+  { onStatus = () => {}, onSettled = () => {}, startTimeoutMs = 1500, durable } = {},
 ) {
   if (durable && services.config?.game === 'night-overwatch')
-    return createDurableRecorder(services, durable, onStatus);
+    return createDurableRecorder(services, durable, onStatus, onSettled);
   let generation = 0,
     active = null,
     status = 'local';

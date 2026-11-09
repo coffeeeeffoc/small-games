@@ -1,5 +1,6 @@
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { nightStorageFiles } from '../platforms/competition/night-storage/manifest.mjs';
 import { competitionService } from './competition-service-config.mjs';
 
@@ -11,6 +12,21 @@ export const h5BasicServiceGames = [
   'letters-words2',
   'tetracube',
 ];
+
+// Shared service sources use modern syntax that older Android WebViews reject before any
+// fallback can run. Lower syntax here; runtime APIs come from legacy-polyfills.js.
+export const legacySyntaxTarget = 'es2018';
+async function copyLowered(source, target) {
+  const file = fileURLToPath(source);
+  const { transformWithOxc } = await import('vite');
+  const { code } = await transformWithOxc(await readFile(file, 'utf8'), file, {
+    target: legacySyntaxTarget,
+    lang: 'js',
+  });
+  if (code.includes('@oxc-project/runtime'))
+    throw Error(`Lowering ${path.basename(file)} needs runtime helpers; avoid that syntax`);
+  await writeFile(target, code);
+}
 
 export async function prepareGameServices(
   game,
@@ -28,22 +44,22 @@ export async function prepareGameServices(
   );
   const servicesDir = path.join(directory, 'game-services');
   await mkdir(servicesDir, { recursive: true });
-  for (const name of ['client.js', 'game-services.js', 'game-bootstrap.js'])
-    await copyFile(
+  for (const name of ['legacy-polyfills.js', 'client.js', 'game-services.js', 'game-bootstrap.js'])
+    await copyLowered(
       new URL(`../platforms/competition/${name}`, import.meta.url),
       path.join(servicesDir, name),
     );
   if (game === 'night-overwatch')
     for (const file of nightStorageFiles) {
       await mkdir(path.dirname(path.join(servicesDir, file)), { recursive: true });
-      await copyFile(
+      await copyLowered(
         new URL('../platforms/competition/' + file, import.meta.url),
         path.join(servicesDir, file),
       );
     }
   if (tapAppId) {
     for (const name of ['competition-identity.mjs', 'calls.mjs'])
-      await copyFile(
+      await copyLowered(
         new URL(`../platforms/taptap/${name}`, import.meta.url),
         path.join(servicesDir, name),
       );
@@ -57,7 +73,7 @@ export async function prepareGameServices(
   const index = path.join(directory, 'index.html');
   let html = await readFile(index, 'utf8');
   html = html.replace(
-    /<script[^>]*src="\.\/game-services\/night-storage\.js"[^>]*><\/script>/g,
+    /<script[^>]*src="\.\/game-services\/(?:night-storage|legacy-polyfills)\.js"[^>]*><\/script>/g,
     '',
   );
   html = html.replace(
@@ -67,7 +83,7 @@ export async function prepareGameServices(
   html = html.replace(
     /<head(?:\s[^>]*)?>/i,
     (head) =>
-      `${head}${game === 'night-overwatch' ? '<script src="./game-services/night-storage.js"></script>' : ''}<script src="./game-service-config.js"></script><script type="module" src="./game-services/game-bootstrap.js"></script>`,
+      `${head}<script src="./game-services/legacy-polyfills.js"></script>${game === 'night-overwatch' ? '<script src="./game-services/night-storage.js"></script>' : ''}<script src="./game-service-config.js"></script><script type="module" src="./game-services/game-bootstrap.js"></script>`,
   );
   if (game === 'night-overwatch')
     html = html.replace(

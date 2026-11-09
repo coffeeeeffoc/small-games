@@ -1142,6 +1142,33 @@ export async function reserveNightLoadout(
   await save(tx, owner, w);
   return snapshot;
 }
+/** An offline run may only claim gear that can never be lost: permanent effects and the current level. */
+export async function verifyNightOfflineLoadout(
+  tx: Tx,
+  owner: string,
+  at: number,
+  claimed: BattleLoadout | undefined,
+  rules: ProgressionRules,
+): Promise<BattleLoadout> {
+  const w = await locked(tx, owner, at, rules);
+  const category = (effect: string) => rules.catalog.find((p) => p.effect === effect)?.category;
+  const effects = claimed?.effects ?? [];
+  const count = (name: string) => effects.filter((effect) => category(effect) === name).length;
+  if (
+    !claimed ||
+    claimed.version !== rules.version ||
+    !Number.isInteger(claimed.level) ||
+    claimed.level < 1 ||
+    claimed.level > rules.levelProgress(w.xp).level ||
+    new Set(effects).size !== effects.length ||
+    effects.some((effect) => !w.permanent.includes(effect) || !category(effect)) ||
+    count('mod') > 2 ||
+    count('weapon') > 1 ||
+    count('skill') > 1
+  )
+    return fail('INVALID_LOADOUT');
+  return { version: claimed.version, level: claimed.level, effects: [...effects], skipped: [] };
+}
 export async function consumeNightLoadout(
   tx: Tx,
   owner: string,

@@ -151,6 +151,36 @@ describe('shared ranked run lifecycle', () => {
       fixture.service.create('member', night, 'endless', undefined, 'v2', 'not-a-uuid'),
     ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   });
+  it('offline Night runs replay late input once and never claim a fastest time', async () => {
+    const fixture = setup(night);
+    const requestId = '7b6a1e5e-0f44-4b8e-9a51-6b0d2f1f8c11';
+    const loadout = { version: 'g', level: 1, effects: [], skipped: [] };
+    const create = (offline?: { loadout: unknown }) =>
+      fixture.service.create('member', night, 'endless', undefined, 'v1', requestId, offline);
+    const run = await create({ loadout });
+    expect(run.loadout).toEqual(loadout);
+    expect(fixture.runs.get(run.id)).toMatchObject({ offline: true, loadoutStarted: true });
+    // Ten minutes of recorded play uploaded immediately after creation.
+    for (let seq = 1; seq <= 30; seq++)
+      await fixture.service.actions('member', night, run.id, {
+        seq,
+        frames: [{ ticks: 2400, input: {} }],
+      });
+    const settlement = await fixture.service.finish('member', night, run.id, 30);
+    expect(settlement).toMatchObject({ accepted: true, offline: true, fastestEligible: false });
+    expect((await create({ loadout })).id).toBe(run.id);
+    await expect(create()).rejects.toMatchObject({ code: 'REQUEST_ID_CONFLICT' });
+    await expect(
+      fixture.service.create('member', night, 'endless', undefined, 'v1', undefined, { loadout }),
+    ).rejects.toMatchObject({ code: 'INVALID_INPUT' });
+    const online = await fixture.service.create('member', night, 'endless', undefined, 'v1');
+    await expect(
+      fixture.service.actions('member', night, online.id, {
+        seq: 1,
+        frames: [{ ticks: 2400, input: {} }],
+      }),
+    ).rejects.toMatchObject({ code: 'RUN_AHEAD_OF_TIME' });
+  });
   it('Night resume keeps the creation deadline and settled results remain readable', async () => {
     const fixture = setup(night);
     const run = await fixture.service.create('member', night, 'endless', undefined, 'v1');

@@ -29,7 +29,7 @@ import { bestTrainingRecord } from './core/TrainingRecords';
 import { recordMissionTime } from './core/BattleRecords';
 import { nextZoomLimit, type RewardKind, type SupplyReward } from './core/Rewards';
 import { Quartermaster, type ProgressionPage, type LoadoutSlot } from './Quartermaster';
-import { trainingLoadout, practiceLoadout } from './core/Progression';
+import { trainingLoadout, practiceLoadout, offlineLoadout } from './core/Progression';
 import { installDeveloperTools } from './DeveloperTools';
 const { ccclass } = _decorator;
 type TouchRole = { role: string; x: number; y: number; originX?: number; originY?: number; button?: string; moved?: boolean };
@@ -44,6 +44,7 @@ export class Overwatch extends Component {
   private stopDeveloperTools?: () => void;
   private starting?: { sim: Simulation; cancel: () => void };
   private servicesReady?: Promise<void>;
+  private lateBridge?: unknown;
   touches = new Map<number, TouchRole>();
   keys = new Set<number>();
   mouseButton = '';
@@ -281,7 +282,9 @@ export class Overwatch extends Component {
       sim.start(); this.completionSpoken = false;
       const recorder = online?.recorder;
       if (online?.rankStatus === 'recording') this.hud.toastUntil = 0;
-      if (sim.mission.mode === 'escort' && online?.rankStatus === 'pending-sync') {
+      if (sim.mission.mode === 'escort' && online?.rankStatus === 'offline') {
+        this.hud.toast = this.hud.t('暂未连上行动服务 · 本局离线进行，联网后自动结算', 'OFFLINE RUN · REWARDS SETTLE WHEN ONLINE'); this.hud.toastUntil = Date.now() + 5000;
+      } else if (sim.mission.mode === 'escort' && online?.rankStatus === 'pending-sync') {
         this.hud.toast = this.hud.t('进度暂存本机，联网后自动同步', 'PROGRESS SAVED · SYNC WHEN ONLINE'); this.hud.toastUntil = Date.now() + 5000;
       } else if (sim.mission.mode === 'escort' && online?.rankStatus === 'storage-unavailable') {
         this.hud.toast = this.hud.t('行动记录暂未保存，请保持页面打开并联网', 'RUN NOT SAVED · KEEP THIS PAGE OPEN AND ONLINE'); this.hud.toastUntil = Date.now() + 5000;
@@ -296,9 +299,9 @@ export class Overwatch extends Component {
     const attempt = { sim, cancel: () => {} };
     this.starting = attempt;
     const current = () => this.starting === attempt && this.sim === sim && !this.disposed;
-    let stage = 'services', timedOut = false;
+    let stage = 'services', timedOut = false, offlineTried = false;
     this.hud.toast = this.hud.t('正在连接行动服务…', 'CONNECTING TO MISSION SERVICE…'); this.hud.toastUntil = Infinity;
-    const start = async () => {
+    const start = async (): Promise<boolean | 'offline'> => {
       await (this.servicesReady ??= this.connectServices());
       if (!current() || timedOut) return false;
       stage = 'run';
@@ -308,7 +311,18 @@ export class Overwatch extends Component {
       if(!current() || timedOut)return false;
       if(run?.loadout){sim.applyLoadout(run.loadout);if(run.loadout.skipped.length){this.hud.toast=this.hud.t('部分军需不足或已过期，本场使用其余方案','Some gear is unavailable. Remaining loadout applied.');this.hud.toastUntil=Date.now()+5000;}}
       else if(this.operationPractice||this.platform.developer)sim.applyLoadout(practiceLoadout(online.assets,'solo',performance.now()-online.assetsReceivedAt));
+      // Only an unreachable service falls back; version, account, storage and verification failures still stop here.
+      else if (['unavailable', 'pending-sync', 'connecting', 'local'].includes(online.rankStatus)) return 'offline';
       else if (online.recorder || (globalThis as any).__COMPETITION_CONFIG__?.competitionEnabled) return false;
+      return true;
+    };
+    // The service is down or too slow: play now and settle the journal on a later sync.
+    const offline = async () => {
+      offlineTried = true;
+      if (!online.recorder?.startOffline) { sim.applyLoadout(offlineLoadout(online.assets)); return true; }
+      const loadout = await online.startOffline(sim.mission.id);
+      if (!current() || !loadout) return false;
+      sim.applyLoadout(loadout);
       return true;
     };
     const failed = () => {
@@ -321,27 +335,28 @@ export class Overwatch extends Component {
         'needs-attention':['行动校验未通过，请重新开始行动','RUN COULD NOT BE VERIFIED · START AGAIN'],
       };
       this.hud.toast = this.hud.t(...(message[online.rankStatus] || ['行动服务暂不可用，请联网后重试','SERVICE UNAVAILABLE · CONNECT AND RETRY']));
-      if(timedOut)this.hud.toast = stage === 'services'
+      if(timedOut&&!offlineTried)this.hud.toast = stage === 'services'
         ? this.hud.t('连接行动服务超时，请再次点击出发', 'CONNECTION TIMED OUT · TAP START TO RETRY')
         : this.hud.t('准备行动超时，请再次点击出发', 'PREPARATION TIMED OUT · TAP START TO RETRY');
       this.hud.toastUntil = Infinity;
-      if(!timedOut&&online.rankStatus==='storage-unavailable'&&online.storageDiagnostic){this.hud.storageError=online.storageDiagnostic;this.hud.toastUntil=0;}
+      if((!timedOut||offlineTried)&&online.rankStatus==='storage-unavailable'&&online.storageDiagnostic){this.hud.storageError=online.storageDiagnostic;this.hud.toastUntil=0;}
       this.hud.missionsOpen = true; this.hud.modalKey = 'rebuild';
     };
-    const deadline = new Promise<boolean>(resolve => {
+    const deadline = new Promise<boolean | 'offline'>(resolve => {
       const timer = setTimeout(() => {
         if (current()) {
           timedOut = true;
           online.cancelRanking?.();
           this.servicesReady = undefined;
-        }
-        resolve(false);
-      }, 25000);
+          resolve('offline');
+        } else resolve(false);
+      }, 12000);
       attempt.cancel = () => { clearTimeout(timer); resolve(false); };
     });
-    void Promise.race([start(), deadline]).then(ready => {
+    void Promise.race([start(), deadline]).catch(() => 'offline' as const).then(async ready => {
+      if (ready === 'offline' && current()) ready = await offline();
       if (current()) { if (ready) begin(); else failed(); }
-    }, failed).finally(() => {
+    }).catch(failed).finally(() => {
       attempt.cancel();
       if (this.starting === attempt) this.starting = undefined;
     });
@@ -1346,10 +1361,20 @@ export class Overwatch extends Component {
   }
   update(dt: number) {
     if (!this.hud) return;
-    if (this.online && !this.online.recorder && (globalThis as any).SmallGamesServices)
+    // Connect once per late-arriving bridge; a failed recorder must not reconnect on every frame.
+    const bridge = (globalThis as any).SmallGamesServices;
+    if (this.online && !this.online.recorder && bridge && bridge !== this.lateBridge) {
+      this.lateBridge = bridge;
       this.servicesReady = this.connectServices();
     const frame = view.getFrameSize(),
       key = frame.width + 'x' + frame.height + ':' + this.hud.touch + ':' + this.hud.safeRevision;
+    }
+    const settled = this.starting ? undefined : this.online?.offlineSettled;
+    if (settled && this.online) {
+      this.online.offlineSettled = undefined;
+      this.hud.toast = this.hud.t(`离线行动已结算 · 金币 +${settled.coins ?? 0} · 经验 +${settled.xp ?? 0}`, `OFFLINE RUN SETTLED · +${settled.coins ?? 0} COINS · +${settled.xp ?? 0} EXP`);
+      this.hud.toastUntil = Date.now() + 5000;
+    }
     // Keyboard resize and input-mode changes must not destroy an active EditBox.
     if (key !== this.resizeKey && !this.hud.editing) {
       this.resizeKey = key;

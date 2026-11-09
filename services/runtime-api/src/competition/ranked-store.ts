@@ -15,6 +15,7 @@ import { assertGameControl, gamePolicy, type CompetitionControl } from './contro
 import { assertResourceAuth, playerIdOf } from './auth.js';
 import {
   reserveNightLoadout,
+  verifyNightOfflineLoadout,
   consumeNightLoadout,
   rewardNightBattle,
   refundNightLoadout,
@@ -49,14 +50,22 @@ export function createRankedStore(
         run.killEpoch = policy?.killEpoch ?? 0;
         const rule = rules.get(run.game)!;
         if (run.game === 'night-overwatch' && rule.progression && rule.configure) {
-          run.loadout = await reserveNightLoadout(
-            tx,
-            run.playerId,
-            now(),
-            `run:${run.id}`,
-            'solo',
-            rule.progression,
-          );
+          run.loadout = run.offline
+            ? await verifyNightOfflineLoadout(
+                tx,
+                run.playerId,
+                now(),
+                run.loadout,
+                rule.progression,
+              )
+            : await reserveNightLoadout(
+                tx,
+                run.playerId,
+                now(),
+                `run:${run.id}`,
+                'solo',
+                rule.progression,
+              );
           run.state = rule.configure(run.state, run.loadout);
         }
         await tx.execute(sql`insert into runtime.competition_matches(id,board,data,created_at)

@@ -1113,6 +1113,7 @@ export const sixH5ScopePaths = [
   'scripts/h5-game-services.mjs',
   'scripts/h5-game-services.test.mjs',
   'platforms/competition/game-bootstrap.js',
+  'platforms/competition/legacy-polyfills.js',
   'platforms/competition/tests/game-bootstrap.test.mjs',
   'platforms/h5/game-rewards.js',
   'platforms/h5/tests/game-rewards.test.mjs',
@@ -1747,6 +1748,27 @@ function nightStorageTurboOnly(before, after) {
       '$TURBO_ROOT$/platforms/competition/night-storage.js',
       '$TURBO_ROOT$/platforms/competition/night-storage/**',
     ]) {
+      assert.equal(head.tasks[key].inputs.filter((value) => value === input).length, 1);
+      if (!base.tasks[key].inputs.includes(input)) {
+        added = true;
+        head.tasks[key].inputs = head.tasks[key].inputs.filter((value) => value !== input);
+      }
+    }
+    assert(added);
+    return isDeepStrictEqual(base, head);
+  } catch {
+    return false;
+  }
+}
+// The polyfill ships with every basic H5 service package; Night and Tetracube hash root service inputs.
+const legacyPolyfillConsumers = ['games/local/night-overwatch', 'games/local/tetracube'];
+export function legacyPolyfillTurboOnly(before, after) {
+  try {
+    const base = JSON.parse(before),
+      head = JSON.parse(after);
+    const input = '$TURBO_ROOT$/platforms/competition/legacy-polyfills.js';
+    let added = false;
+    for (const key of ['@coffeeeeffoc/night-overwatch#build', '@coffeeeeffoc/tetracube#build']) {
       assert.equal(head.tasks[key].inputs.filter((value) => value === input).length, 1);
       if (!base.tasks[key].inputs.includes(input)) {
         added = true;
@@ -5960,6 +5982,13 @@ export function reviewedSharedFileScopes({
           ),
           ...(gateway ? ['services/runtime-api', 'apps/shell-web'] : []),
         ]);
+        continue;
+      }
+      if (file === 'turbo.json' && legacyPolyfillTurboOnly(readBase(file), readHead(file))) {
+        assertNightStorageConsumer(games, packages, readHead);
+        for (const source of legacyPolyfillConsumers)
+          assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);
+        scopes.set(file, legacyPolyfillConsumers);
         continue;
       }
       if (

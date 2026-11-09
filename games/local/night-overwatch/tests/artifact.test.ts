@@ -1,7 +1,8 @@
 import { nightStorageSourceFiles } from '../../../../platforms/competition/night-storage/manifest.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -22,11 +23,14 @@ test('restores matching web artifacts without Creator and rejects stale or incom
         path.join(temp, 'games/local/carding-car/scripts', name));
     for (const file of ['scripts/h5-game-services.mjs', 'scripts/competition-service-config.mjs',
       'platforms/competition/client.js', 'platforms/competition/game-services.js', 'platforms/competition/game-bootstrap.js',
+      'platforms/competition/legacy-polyfills.js',
       ...nightStorageSourceFiles,
       'platforms/taptap/competition-identity.mjs', 'platforms/taptap/calls.mjs']) {
       await mkdir(path.dirname(path.join(temp, file)), { recursive: true });
       await cp(new URL('../../../../' + file, import.meta.url), path.join(temp, file));
     }
+    // Service packaging lowers syntax with the workspace Vite, resolved as in a real checkout.
+    await symlink(fileURLToPath(new URL('../../../../node_modules', import.meta.url)), path.join(temp, 'node_modules'), 'junction');
     await writeFile(path.join(game, 'package.json'), '{"type":"module"}\n');
     for (const name of ['engine', 'project'])
       await writeFile(path.join(game, `settings/v2/packages/${name}.json`), '{}\n');

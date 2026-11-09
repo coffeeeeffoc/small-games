@@ -41,6 +41,8 @@ Runtime 必须显式配置 `COMPETITION_DEVELOPMENT_ENABLED=1`，默认及 `0` �
 
 单批最多 1200 frames / 2400 ticks，累计模拟时间不得超出服务器已经过时间加 2 秒容差。每个活跃批次续期 24 小时，没有总关数或总 ticks 上限。每次读取与写入都验证 token 主体和 URL 游戏；旧规则 run 的继续写入被拒绝。
 
+**夜航离线行动（2026-11-10）**：服务暂不可达时，客户端先在本机日志中记录单人关卡，联网后再以 `POST /games/night-overwatch/runs` 附带 `requestId` 与 `offline:{loadout:{version,level,effects,skipped}}` 补建。服务端不预留军需，只接受玩家**已永久拥有**的效果（每类数量上限与普通配装相同）以及不高于当前等级的 level，否则返回 `422 INVALID_LOADOUT`。同一 requestId 的离线／普通创建互相冲突。离线 run 跳过上述墙钟时间容差，仍需服务端完整重放；结算带 `offline:true` 与 `fastestEligible:false`，计入通关、积分和奖励，不写关卡最快榜。其他游戏不接受 `offline`。
+
 持久化复用 `competition_matches`：`ranked-run:<uuid>` 保存带类型标记的断点；`ranked-action:<uuid>:<seq>` 保存小型 hash/回执。服务器锁定 run 行，原子保存输入回执、模拟状态和最终 `competition_results`/`competition_best`。相同 seq 和内容幂等，冲突内容拒绝；旧序号重试也保留原回执。一个 run 只写入创建时绑定的榜。
 
 ## 客户端接入

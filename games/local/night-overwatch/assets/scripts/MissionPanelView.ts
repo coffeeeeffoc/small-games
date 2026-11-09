@@ -328,6 +328,8 @@ export class MissionPanelView {
       const rankState: Record<string, [string, string]> = {
         finished: ['已同步', 'SYNCED'],
         assisted: ['辅助通关', 'ASSISTED'],
+        offline: ['离线待结算', 'OFFLINE'],
+        'offline-finished': ['离线已结算', 'OFFLINE SYNCED'],
         unavailable: ['未同步', 'NOT SYNCED'],
         syncing: ['上传中', 'SYNCING'],
         recording: ['计时中', 'RECORDING'],
@@ -424,6 +426,16 @@ export class MissionPanelView {
               '辅助通关已同步，不计入关卡最快榜',
               'ASSISTED CLEAR SYNCED · EXCLUDED FROM FASTEST TIMES',
             )
+          : !training && this.hud.online?.rankStatus === 'offline'
+            ? this.hud.t(
+                '未联网 · 本局已暂存，联网后自动结算（不计入最快榜）',
+                'OFFLINE · SAVED HERE, SETTLES WHEN ONLINE (NOT A FASTEST TIME)',
+              )
+          : !training && success && this.hud.online?.rankStatus === 'offline-finished'
+            ? this.hud.t(
+                '离线行动已结算，不计入关卡最快榜',
+                'OFFLINE RUN SETTLED · EXCLUDED FROM FASTEST TIMES',
+              )
           : comparison
             ? this.hud.t(
                 `${comparison.newRecord ? (comparison.previousMs === undefined ? '首次完成 · 个人最佳' : '新纪录 · 个人最佳') : '个人最佳'} ${formatTime(comparison.bestMs)}${comparison.previousMs === undefined ? '' : ` · ${comparison.currentMs < comparison.previousMs ? '快' : comparison.currentMs > comparison.previousMs ? '慢' : '持平'}${comparison.currentMs === comparison.previousMs ? '' : ' ' + (Math.abs(comparison.currentMs - comparison.previousMs) / 1000).toFixed(2) + '秒'}`}`,

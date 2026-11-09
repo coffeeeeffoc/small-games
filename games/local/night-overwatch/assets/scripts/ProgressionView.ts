@@ -608,6 +608,7 @@ export class ProgressionView {
       unavailable:['收益确认失败，请重新连接','REWARD CONFIRMATION FAILED · RECONNECT'],
     };
     const issue=issues[online?.rankStatus||''];
+      offline:['未联网 · 本局已暂存，联网后自动结算收益','OFFLINE · REWARDS SETTLE AUTOMATICALLY WHEN ONLINE'],
     const status=practice?this.t('训练不消耗库存，不产出正式资产','Practice: no stock consumed or assets earned'):online?.spectator?this.t('观战不计收益','SPECTATING · NO REWARDS'):credited?this.t('✓ 收益已到账','✓ REWARDS CREDITED'):issue?this.t(...issue):duel||pending?this.t('收益待确认 · 请保持联网','REWARDS PENDING · STAY CONNECTED'):official?this.t('本局收益未通过确认','THIS RUN HAS NO CONFIRMED REWARD'):this.t('离线游玩 · 本局记录保存在本机','OFFLINE PLAY · RESULT SAVED LOCALLY');
     const comparison=this.h.timeComparison,record=duel?'':training?this.h.trainingBest?this.t(`最佳 ${this.h.trainingBest.time.toFixed(1)} 秒`,`BEST ${this.h.trainingBest.time.toFixed(1)}s`):'':comparison?this.t(`${comparison.newRecord?'新纪录 · ':''}个人最佳 ${formatTime(comparison.bestMs)}`,`${comparison.newRecord?'NEW RECORD · ':''}PERSONAL BEST ${formatTime(comparison.bestMs)}`):!success&&s.failureCause==='friendly'?this.t('致命伤来自己方火力，开火前检查友军','FRIENDLY FIRE · CHECK ALLIES BEFORE FIRING'):'';
     const earned=credited&&reward?.fragments?[(reward.firstClear===undefined?'':this.t(reward.firstClear?'首通奖励 · ':'重复通关 · ',reward.firstClear?'FIRST CLEAR · ':'REPEAT CLEAR · ')),Object.entries(reward.fragments).map(([id,n])=>`${this.catalogName(id)} +${n}`).join(' · ')].join(''):'';

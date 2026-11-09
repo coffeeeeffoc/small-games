@@ -4,6 +4,9 @@ import { mkdtemp, mkdir, readFile, writeFile, readdir, rm } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
+import { transformWithOxc } from 'vite';
+import { legacySyntaxTarget } from './h5-game-services.mjs';
 import { compilerEnvironment, buildH5Packages } from './h5-taptap-build.mjs';
 import { acceptanceSelection } from './h5-taptap-matrix.mjs';
 
@@ -113,12 +116,18 @@ test('Night Tap login packages install the real bridge only for the configured o
         enabled,
       );
       if (enabled) {
+        // The shipped bridge is the real source, only syntax-lowered for older WebViews.
+        const source = fileURLToPath(
+          new URL('../platforms/taptap/competition-identity.mjs', import.meta.url),
+        );
         assert.equal(
           await readFile(path.join(dist, 'game-services/competition-identity.mjs'), 'utf8'),
-          await readFile(
-            new URL('../platforms/taptap/competition-identity.mjs', import.meta.url),
-            'utf8',
-          ),
+          (
+            await transformWithOxc(await readFile(source, 'utf8'), source, {
+              target: legacySyntaxTarget,
+              lang: 'js',
+            })
+          ).code,
         );
         assert(
           bootstrap.indexOf('installTapCompetitionIdentity();') <

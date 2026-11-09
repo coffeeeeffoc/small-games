@@ -82,8 +82,11 @@ export function createRankedRuns(
       levelId?: string,
       version?: string,
       requestId?: string,
+      offline?: { loadout: unknown },
     ) {
       assertGameScope(auth, game);
+      if (offline && (game !== 'night-overwatch' || !requestId))
+        throw new CompetitionError('INVALID_INPUT', 422);
       const playerId = playerIdOf(auth);
       if (
         requestId !== undefined &&
@@ -130,6 +133,14 @@ export function createRankedRuns(
         createdAt,
         expiresAt: createdAt + lifetime,
         status: 'active',
+        // The repository replaces this claim with a snapshot verified against owned permanent gear.
+        ...(offline
+          ? {
+              offline: true,
+              loadoutStarted: true,
+              loadout: offline.loadout as RankedRun['loadout'],
+            }
+          : {}),
       };
       const stored = await repository.create(run, auth);
       if (
@@ -139,7 +150,8 @@ export function createRankedRuns(
         stored.game !== game ||
         stored.board !== board ||
         stored.levelId !== levelId ||
-        stored.version !== version
+        stored.version !== version ||
+        !!stored.offline !== !!offline
       )
         throw new CompetitionError('REQUEST_ID_CONFLICT');
       return view(stored);
@@ -203,7 +215,8 @@ export function createRankedRuns(
             input.frames.some((frame) => !Number.isSafeInteger(frame.ticks) || frame.ticks < 0)
           )
             throw new CompetitionError('INVALID_INPUT', 422);
-          if (((run.ticks + ticks) * 1000) / 120 > now() - run.createdAt + 2000)
+          // Offline input arrives after play; it is replay-verified but never a fastest time.
+          if (!run.offline && ((run.ticks + ticks) * 1000) / 120 > now() - run.createdAt + 2000)
             throw new CompetitionError('RUN_AHEAD_OF_TIME', 422);
           try {
             run.state = ruleFor(game).apply(run.state, input.frames);
@@ -233,6 +246,7 @@ export function createRankedRuns(
           tx.assertControl?.();
           assertActive(run);
           const result = ruleFor(game).result(run.state);
+          if (run.offline) result.fastestEligible = false;
           if (
             !Number.isSafeInteger(result.score) ||
             result.score < 0 ||
@@ -246,6 +260,7 @@ export function createRankedRuns(
             accepted,
             runId: id,
             reason: accepted ? null : 'INCOMPLETE_OR_PRACTICE',
+            ...(run.offline ? { offline: true } : {}),
           };
           if (accepted) await tx.record(settlement);
           await tx.reward?.(settlement);

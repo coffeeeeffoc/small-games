@@ -102,8 +102,13 @@ test('Night scope test changes execute validation tooling rather than becoming u
 
 test('Night service cache inputs retain the game consumer and reject unrelated Turbo changes', () => {
   const current = JSON.parse(readFileSync(new URL('../turbo.json', import.meta.url), 'utf8'));
+  // Each later turbo addition (storage, then the legacy polyfill) has its own bounded proof.
+  const polyfill = '$TURBO_ROOT$/platforms/competition/legacy-polyfills.js';
+  const storage = structuredClone(current);
+  for (const task of Object.values(storage.tasks))
+    if (task.inputs) task.inputs = task.inputs.filter((input) => input !== polyfill);
   // The service-only proof predates the separately reviewed storage inputs.
-  const after = structuredClone(current);
+  const after = structuredClone(storage);
   after.tasks['@coffeeeeffoc/night-overwatch#build'] = {
     dependsOn: ['^build'],
     outputs: ['dist/**'],
@@ -147,15 +152,26 @@ test('Night service cache inputs retain the game consumer and reject unrelated T
         : readFileSync(new URL('../' + file, import.meta.url), 'utf8'),
   };
   assert.deepEqual(reviewedSharedFileScopes(options).get('turbo.json'), [source]);
-  // The current storage addition has its own bounded proof and the same sole consumer.
+  // The storage addition has its own bounded proof and the same sole consumer.
   assert.deepEqual(
     reviewedSharedFileScopes({
       ...options,
       readBase: () => JSON.stringify(after),
       readHead: (file) =>
-        file === 'turbo.json' ? JSON.stringify(current) : options.readHead(file),
+        file === 'turbo.json' ? JSON.stringify(storage) : options.readHead(file),
     }).get('turbo.json'),
     [source],
+  );
+  // The legacy polyfill input reaches exactly the two builds that hash root service sources.
+  assert.deepEqual(
+    reviewedSharedFileScopes({
+      ...options,
+      packages: [...options.packages, { dir: 'games/local/tetracube' }],
+      readBase: () => JSON.stringify(storage),
+      readHead: (file) =>
+        file === 'turbo.json' ? JSON.stringify(current) : options.readHead(file),
+    }).get('turbo.json'),
+    [source, 'games/local/tetracube'],
   );
   const unknownInput = structuredClone(current);
   unknownInput.tasks['@coffeeeeffoc/night-overwatch#build'].inputs.push('$TURBO_ROOT$/unknown/**');

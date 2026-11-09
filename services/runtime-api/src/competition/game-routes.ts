@@ -176,12 +176,25 @@ export function registerGameRoutes(
     { bodyLimit: 2048, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
     async (request) => {
       const { game } = gameParams(request.params);
-      const { board, levelId, version, requestId } = z
+      const { board, levelId, version, requestId, offline } = z
         .object({
           board: gameId,
           levelId: z.string().max(100).optional(),
           version: z.string().max(100).optional(),
           requestId: z.uuid().optional(),
+          offline: z
+            .object({
+              loadout: z
+                .object({
+                  version: z.string().max(100),
+                  level: z.number().int().min(1).max(50),
+                  effects: z.array(z.string().max(40)).max(4),
+                  skipped: z.array(z.string().max(100)).max(8),
+                })
+                .strict(),
+            })
+            .strict()
+            .optional(),
         })
         .strict()
         .parse(request.body);
@@ -192,6 +205,7 @@ export function registerGameRoutes(
         levelId,
         version,
         requestId,
+        offline,
       );
     },
   );

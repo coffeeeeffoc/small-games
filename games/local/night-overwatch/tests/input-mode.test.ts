@@ -244,7 +244,7 @@ test('formal campaign start preserves failure reasons and retries before gamepla
  const config=(globalThis as any).__COMPETITION_CONFIG__;
  try{
   (globalThis as any).__COMPETITION_CONFIG__={competitionEnabled:true};
-  for(const status of ['update-required','identity-changed','storage-unavailable','pending-sync','needs-attention','unavailable']){
+  for(const status of ['update-required','identity-changed','storage-unavailable','needs-attention']){
    const g=mission();g.sim.phase='briefing';let invalidated=0;
    g.online={rankStatus:status,leave(){},startRanking:async()=>({}),recorder:{record(){},invalidate(){invalidated++;}}};
    g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
@@ -253,8 +253,25 @@ test('formal campaign start preserves failure reasons and retries before gamepla
    const copy=g.hud.toast;g.online.startRanking=async()=>{g.online.rankStatus='recording';return {loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}};};
    g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(g.sim.phase,'playing');assert.equal(g.hud.toastUntil,0);assert(copy.length>0);g.platform.dispose();
   }
+  // An unreachable service journals the run offline instead of blocking the mission.
+  for(const status of ['pending-sync','unavailable']){
+   const g=mission();g.sim.phase='briefing';g.hud.t=(text:string)=>text;const levels:string[]=[];
+   const loadout={version:'night-growth-v1',level:3,effects:['power'],skipped:[]};
+   g.online={rankStatus:status,leave(){},startRanking:async()=>({}),recorder:{record(){},invalidate(){},startOffline(){}},
+     async startOffline(levelId:string){levels.push(levelId);this.rankStatus='offline';return loadout;}};
+   g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));
+   assert.equal(g.sim.phase,'playing');assert.deepEqual(levels,[g.sim.mission.id]);assert.deepEqual(g.sim.loadout.effects,['power']);
+   assert.match(g.hud.toast,/离线进行/);g.platform.dispose();
+  }
+  const refused=mission();refused.sim.phase='briefing';
+  refused.online={rankStatus:'unavailable',storageDiagnostic:'stage=commit',leave(){},startRanking:async()=>undefined,recorder:{record(){},startOffline(){}},
+    async startOffline(){this.rankStatus='storage-unavailable';return undefined;}};
+  refused.beginCampaign();await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(refused.sim.phase,'briefing');assert.equal(refused.hud.storageError,'stage=commit');refused.platform.dispose();
+  // Services that never loaded cannot journal; the mission is still playable locally.
   const missing=mission();missing.sim.phase='briefing';missing.online={rankStatus:'unavailable',leave(){},startRanking:async()=>undefined};
-  missing.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(missing.sim.phase,'briefing');missing.platform.dispose();
+  missing.beginCampaign();await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(missing.sim.phase,'playing');missing.platform.dispose();
   delete (globalThis as any).__COMPETITION_CONFIG__;
   const offline=mission();offline.sim.phase='briefing';offline.online={rankStatus:'local',leave(){},startRanking:async()=>undefined};
   offline.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(offline.sim.phase,'playing');offline.platform.dispose();
@@ -263,34 +280,34 @@ test('formal campaign start preserves failure reasons and retries before gamepla
  }finally{if(config===undefined)delete (globalThis as any).__COMPETITION_CONFIG__;else(globalThis as any).__COMPETITION_CONFIG__=config;}
 });
 
-test('campaign timeout unlocks the same mission and ignores a late start response', async t => {
+test('campaign timeout switches to an offline run and ignores a late start response', async t => {
  t.mock.timers.enable({apis:['setTimeout']});
  const g=mission();g.sim.phase='briefing';g.hud.t=(text:string)=>text;
- const requests:Array<(value:any)=>void>=[];let cancelled=0;
- g.online={rankStatus:'connecting',leave(){},connect:async()=>{},cancelRanking(){cancelled++;},startRanking:()=>new Promise(resolve=>requests.push(resolve)),recorder:{record(){}}};
+ const requests:Array<(value:any)=>void>=[];let cancelled=0,offline=0;
+ g.online={rankStatus:'connecting',leave(){},connect:async()=>{},cancelRanking(){cancelled++;},startRanking:()=>new Promise(resolve=>requests.push(resolve)),recorder:{record(){},startOffline(){}},
+   async startOffline(){offline++;this.rankStatus='offline';return {version:'night-growth-v1',level:1,effects:[],skipped:[]};}};
  g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
  assert.equal(requests.length,1);assert.equal(g.hud.toastUntil,Infinity);
- t.mock.timers.tick(25000);await new Promise(resolve=>setImmediate(resolve));
- assert.equal(g.sim.phase,'briefing');assert.match(g.hud.toast,/超时/);assert.equal(cancelled,2);
- g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));assert.equal(requests.length,2);
- const run={loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}};
- requests[0](run);await new Promise(resolve=>setImmediate(resolve));assert.equal(g.sim.phase,'briefing');
- g.beginCampaign();assert.equal(requests.length,2,'late completion cannot unlock the replacement request');
- g.online.rankStatus='recording';requests[1](run);await new Promise(resolve=>setImmediate(resolve));
- assert.equal(g.sim.phase,'playing');g.platform.dispose();
+ t.mock.timers.tick(11999);await new Promise(resolve=>setImmediate(resolve));assert.equal(g.sim.phase,'briefing');
+ t.mock.timers.tick(1);await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(g.sim.phase,'playing');assert.equal(offline,1);assert.equal(cancelled,2);assert.match(g.hud.toast,/离线进行/);
+ const started=g.sim.time;
+ requests[0]({loadout:{version:'night-growth-v1',level:1,effects:['power'],skipped:[]}});await new Promise(resolve=>setImmediate(resolve));
+ assert.deepEqual(g.sim.loadout.effects,[],'late online completion cannot replace the offline loadout');
+ assert.equal(g.sim.time,started);assert.equal(g.starting,undefined);g.platform.dispose();
 });
 
-test('campaign services timeout permits retry and optional quartermaster refresh never blocks a start', async t => {
+test('a stuck services connection still starts an offline run and quartermaster refresh never blocks a start', async t => {
  t.mock.timers.enable({apis:['setTimeout']});
  const g=mission();g.sim.phase='briefing';g.hud.t=(text:string)=>text;let starts=0;
  g.servicesReady=new Promise(()=>{});
- g.online={rankStatus:'recording',leave(){},cancelRanking(){},connect:async()=>{},startRanking:async()=>{starts++;return{loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}};},recorder:{record(){}}};
+ g.online={rankStatus:'local',leave(){},cancelRanking(){},connect:async()=>{},startRanking:async()=>{starts++;return{loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}};},recorder:{record(){},startOffline(){}},
+   async startOffline(){this.rankStatus='offline';return {version:'night-growth-v1',level:1,effects:[],skipped:[]};}};
  g.quartermaster={refresh:()=>new Promise(()=>{})};
  g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
- t.mock.timers.tick(25000);await new Promise(resolve=>setImmediate(resolve));
- assert.match(g.hud.toast,/连接.*超时/);assert.equal(starts,0);
- g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
- assert.equal(starts,1);assert.equal(g.sim.phase,'playing');g.platform.dispose();
+ t.mock.timers.tick(12000);await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(starts,0);assert.equal(g.sim.phase,'playing');assert.equal(g.servicesReady,undefined,'the next start reconnects');
+ g.platform.dispose();
 });
 
 test('storage failure details open in production, close back to retry and clear on successful start',async()=>{

@@ -1,4 +1,4 @@
-import { practiceLoadout } from './core/Progression.ts';
+import { practiceLoadout, offlineLoadout } from './core/Progression.ts';
 import { Simulation } from './core/Simulation.ts';
 import { createDuel, configureDuel, commandDuel, advanceDuel, viewDuel, type DuelCommand, type DuelState } from './core/Duel.ts';
 import { RANKED_RULE_VERSION, observeNightInputs } from './core/Replay.ts';
@@ -19,6 +19,7 @@ type Ranking = { top: RankingRow[]; me: RankingRow | null };
 type Recorder = { start(options: { mode: string; levelId: string; practice: boolean }): Promise<{loadout?:BattleLoadout}|null|undefined>;
   record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<Settlement & { accepted?: boolean; fastestEligible?: boolean } | null | undefined>; invalidate(reason?: string): void;
   persist?(): void; recover?(): Promise<void>; pending?: number; storageDiagnostic?: string;
+  startOffline?(options: { mode: string; levelId: string; loadout: BattleLoadout }): Promise<object | null>;
   settlement?: { playerId: string; runId: string; result: Settlement } };
 export type ChatMessage={id:string;playerId:string;nickname:string;text:string;at:number;room?:{code:string;createdAt:number;canJoin:boolean}};
 export type ChatSnapshot={messages:ChatMessage[];cursor:string;reset:boolean;serverNow:number};
@@ -35,7 +36,7 @@ type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Me
     sendNightChat?(input:{requestId:string;text:string;roomCode?:string},expectedPlayerId?:string):Promise<ChatSnapshot>;
     reportNightChat?(input:{id:string;reason:string},expectedPlayerId?:string):Promise<unknown>;
     leaderboard(input: { boardId: string;ruleVersion?:string }): Promise<Ranking> };
-  createRecorder(version: string, options: { onStatus: (status: string) => void; startTimeoutMs?: number; durable?: { storage: Pick<Storage, 'getItem' | 'setItem'>; source?: string } }): Recorder };
+  createRecorder(version: string, options: { onStatus: (status: string) => void; onSettled?: (settled: { playerId: string; runId: string; result: Settlement; active: boolean }) => void; startTimeoutMs?: number; durable?: { storage: Pick<Storage, 'getItem' | 'setItem'>; source?: string } }): Recorder };
 const randomBytes = () => {
   const bytes = new Uint8Array(16);
   if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
@@ -153,6 +154,8 @@ export class Online {
   rankingVersion=CAMPAIGN_BOARD_VERSION;
   authenticatedId='';
   level = 0;
+  /** A run played offline earlier and credited after the player left its result screen. */
+  offlineSettled?:Settlement;
   ranking?: Ranking;
   room?: Room;
   view?: DuelView;
@@ -227,6 +230,10 @@ export class Online {
       if (this.destroyed || this.bridge !== bridge) return;
       this.acceptMetadata(metadata);
       void this.recorder.recover?.();
+      }, onSettled: settled => {
+        if (this.destroyed || this.bridge !== bridge || this.recorder !== recorder || settled.active || settled.playerId !== this.authenticatedId || settled.result?.status !== 'credited') return;
+        this.offlineSettled = settled.result; this.revision++;
+        this.rewardRefresh = { owner: this.authenticatedId, inflight: false, retryAt: 0 };
     }
     this.revision++;
     const code = search ? invitation(search) : undefined;
@@ -262,6 +269,16 @@ export class Online {
   }
   get storageDiagnostic() { return this.recorder?.storageDiagnostic || ''; }
   private receiveBattleReward(result: Settlement | null | undefined, receipt: string) {
+  /** Journal a solo run locally while the mission service is unreachable; settles on a later sync. */
+  async startOffline(levelId: string) {
+    const recorder = this.recorder, attempt = ++this.rankingAttempt;
+    this.battleReward = undefined; this.battleReceipt = '';
+    if (!recorder?.startOffline) return undefined;
+    const loadout = offlineLoadout(this.assets);
+    const run = await recorder.startOffline({ mode: 'level-' + levelId, levelId, loadout });
+    if (this.destroyed || recorder !== this.recorder || attempt !== this.rankingAttempt || !run) return undefined;
+    return loadout;
+  }
     if (result?.status !== 'credited' || !Number.isSafeInteger(result.coins) || !Number.isSafeInteger(result.xp) || result.coins! < 0 || result.xp! < 0 || this.battleReceipt === receipt) return;
     this.battleReward = result; this.battleReceipt = receipt; this.revision++;
     this.rewardRefresh = { owner: this.authenticatedId, inflight: false, retryAt: 0 };
@@ -285,7 +302,7 @@ export class Online {
       const result = await recorder?.finish();
       if (this.destroyed || recorder !== this.recorder || owner !== this.authenticatedId || attempt !== this.rankingAttempt) return;
       this.receiveBattleReward(result, recorder?.settlement?.runId || 'attempt:' + attempt);
-      if (result?.accepted && result.fastestEligible === false) { this.rankStatus = 'assisted'; this.revision++; }
+      if (result?.accepted && result.fastestEligible === false) { this.rankStatus = (result as {offline?:boolean}).offline ? 'offline-finished' : 'assisted'; this.revision++; }
     } catch { this.revision++; }
   }
   private acceptMetadata(metadata: Metadata | undefined) {

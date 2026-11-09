@@ -31,6 +31,7 @@ export type RankedRule = {
   result(state: unknown): RankedResult;
 };
 export type Settlement = RankedResult & {
+  offline?: boolean;
   firstClear?: boolean;
   fragments?: Record<string, number>;
   coins?: number;
@@ -51,6 +52,8 @@ export type Settlement = RankedResult & {
 export type RankedRun = {
   loadout?: import('./night-assets.js').BattleLoadout;
   loadoutStarted?: boolean;
+  /** Played while the service was unreachable: no wall-clock pacing, never a fastest time. */
+  offline?: boolean;
   killEpoch?: number;
   kind: 'ranked-run-v1';
   id: string;
