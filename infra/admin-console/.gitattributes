@@ -1,3 +1,4 @@
 migrations/002-control-center.sql text eol=lf
 migrations/003-night-overwatch-control.sql text eol=lf
 migrations/004-tetracube-control.sql text eol=lf
+migrations/005-night-operations.sql text eol=lf

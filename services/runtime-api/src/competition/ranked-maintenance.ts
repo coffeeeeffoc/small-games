@@ -1,3 +1,5 @@
+import { loadNightRelease, retainedRule } from './night-release.js';
+import type { Rule } from './types.js';
 /** Trusted in-container maintenance. Importing this module starts no HTTP server or timer. */
 import { openDatabase, openControlDatabase } from '@coffeeeeffoc/service-kit';
 import { z } from 'zod';
@@ -40,6 +42,14 @@ export async function retentionContract() {
 export async function retireRankedRuns(input: unknown) {
   const selected = batch.parse(input),
     registry = await rules();
+  const duel = (await import(new URL('../../rules/night.mjs', import.meta.url).href)) as {
+    default: Rule;
+  };
+  const release = await loadNightRelease(
+    registry.get('night-overwatch')!,
+    duel.default,
+    process.env,
+  );
   const url = z.url().parse(process.env.RUNTIME_DATABASE_URL);
   const database = openDatabase(url, 'runtime');
   let control: CompetitionControl | undefined;
@@ -58,6 +68,7 @@ export async function retireRankedRuns(input: unknown) {
       async () => ({ authenticated: false }),
       Date.now,
       control,
+      release,
     );
     const ready: string[] = [];
     for (const item of selected) {
@@ -66,7 +77,7 @@ export async function retireRankedRuns(input: unknown) {
           sql`select data from runtime.competition_matches where id=${`ranked-run:${item.id}`}`,
         )
       )[0]?.data as RankedRun | undefined;
-      const rule = registry.get(item.game);
+      const rule = row ? retainedRule(registry, item.game, row.version, release.ranked) : undefined;
       // Unknown historical boards are retained before invoking any asset invalidation.
       if (
         !row ||
@@ -85,7 +96,9 @@ export async function retireRankedRuns(input: unknown) {
         const result = await store.retireExpired(item.playerId, item.game, item.id);
         if (
           result.status === 'finished' &&
-          (result.expiresAt <= Date.now() || result.version !== registry.get(item.game)?.version)
+          (result.expiresAt <= Date.now() ||
+            (item.game !== 'night-overwatch' &&
+              result.version !== registry.get(item.game)?.version))
         )
           ready.push(item.id);
       } catch (error) {
@@ -104,7 +117,8 @@ export async function retireRankedRuns(input: unknown) {
           if (confirmed.status !== 'finished') throw Error('RETENTION_NOT_RETIRED');
           if (
             confirmed.expiresAt <= Date.now() ||
-            confirmed.version !== registry.get(item.game)?.version
+            (item.game !== 'night-overwatch' &&
+              confirmed.version !== registry.get(item.game)?.version)
           )
             ready.push(item.id);
         } catch (confirmation) {

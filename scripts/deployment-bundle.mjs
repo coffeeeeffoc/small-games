@@ -246,6 +246,7 @@ export function renderBundleCompose(config) {
         COMPETITION_ORIGINS: variable('APP_ORIGIN', 'http://localhost:8080'),
         COMPETITION_INTERNAL_KEY: variable('COMPETITION_INTERNAL_KEY'),
         COMPETITION_PLATFORM_CONFIG: variable('COMPETITION_PLATFORM_CONFIG', '[]'),
+        NIGHT_RELEASE_CONFIG: variable('NIGHT_RELEASE_CONFIG', ''),
       });
     }
     if (service === 'management') {

@@ -45,6 +45,7 @@ export async function setup(dual = false, conflict = false, scope = 'tower-brake
       provider: null,
       playerId: id,
     }),
+    nightReleaseMetadata: async () => undefined,
     gameDefinitions: () => [
       { id: 'duel', title: 'Duel', version: 'v1' },
       ...(dual ? [{ id: 'tower-brake', title: 'Tower', version: 'duel-v1' }] : []),

@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import time
+import uuid
 
 ROOT = Path('/opt/small-games')
 BASE = ROOT / 'backend-updates'
@@ -66,7 +67,7 @@ def require_authority(images, failure='AUTHORITY_IMAGE_REQUIRED'):
         targets['runtime'] = inventory('small-games', 'runtime')['image']
     authority = authority_module()
     try:
-        proof = authority.require_images(targets, failure)
+        proof = authority.require_images(targets, failure, night_operations=guard_control_schema() == 5)
     except authority.AuthorityError as error:
         stopped = Stopped(error.code)
         for key in ('ownedContainerId', 'probeUUID', 'probeName'):
@@ -273,7 +274,8 @@ def guard_control_schema():
         require(len(output) <= 64, 'AUTHORITY_FALLBACK_REQUIRED')
         versions = json.loads(output)
         require(isinstance(versions, list) and len(versions) == 1
-                and type(versions[0]) is int and versions[0] == 4, 'AUTHORITY_FALLBACK_REQUIRED')
+                and type(versions[0]) is int and versions[0] in (4, 5), 'AUTHORITY_FALLBACK_REQUIRED')
+        return versions[0]
     except Stopped as error:
         if str(error) == 'SIGNAL_INTERRUPTED':
             raise
@@ -482,7 +484,55 @@ def restore(journal, rollback_file):
     return health(journal['selected'], journal['oldImages'])
 
 
-def receipt(manifest, mode, companions, active, capabilities, backup_hash=None):
+def deployment_record(manifest, mode, active):
+    primary = 'runtime' if 'runtime' in manifest['services'] else manifest['services'][0]
+    projection = '{"version":{{json (index .Config.Labels "io.small-games.backend-version")}},"sourceSHA":{{json (index .Config.Labels "org.opencontainers.image.revision")}},"ranked":{{json (index .Config.Labels "io.small-games.night-ranked")}},"multiplayer":{{json (index .Config.Labels "io.small-games.night-multiplayer")}}}'
+    labels = json.loads(command('docker', 'image', 'inspect', active[primary]['image'], '--format', projection))
+    version, source = labels.get('version') or None, labels.get('sourceSHA') or None
+    require(version is None or isinstance(version, str) and len(version) <= 100 and re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)', version), 'DEPLOYMENT_VERSION')
+    require(source is None or isinstance(source, str) and re.fullmatch(r'[a-f0-9]{40}', source), 'DEPLOYMENT_VERSION')
+    if mode == 'execute':
+        require(version == manifest['backendVersion'] and source == manifest['sourceSHA'], 'DEPLOYMENT_VERSION')
+    record = {'version': version or 'unknown', 'sourceSHA': source, 'release': manifest['release'],
+              'mode': mode, 'services': manifest['services'],
+              'activeImages': {name: item['image'] for name, item in active.items()},
+              'verifiedAt': int(time.time() * 1000)}
+    rules = {key: labels.get(key) for key in ('ranked', 'multiplayer')}
+    if any(rules.values()):
+        require(all(isinstance(value, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,99}', value)
+                    for value in rules.values()), 'DEPLOYMENT_VERSION')
+        record['nightRules'] = rules
+    return record
+
+
+def record_deployment(record):
+    pg = inventory('small-games', 'postgres')['id']
+    identifier = str(uuid.uuid4())
+    encoded = json.dumps(record, separators=(',', ':')).encode().hex()
+    # Only finite, public deployment evidence is written; no container environment is inspected.
+    statement = ("SET statement_timeout='10s'; INSERT INTO game_control.audit(id,actor,action,target,detail,created_at) VALUES ('" + identifier
+                 + "','00000000-0000-4000-8000-000000000001','deployments.backend','"
+                 + ('runtime' if 'runtime' in record['services'] else record['services'][0])
+                 + "',convert_from(decode('" + encoded + "','hex'),'UTF8')::jsonb," + str(record['verifiedAt']) + ");")
+    try:
+        command('docker', 'exec', '-i', pg, 'psql', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1',
+                '-U', 'platform_owner', '-d', 'small_games', input=statement.encode(), timeout=30)
+    except Exception:
+        try:
+            persisted = text('docker', 'exec', pg, 'psql', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1',
+                             '-U', 'platform_owner', '-d', 'small_games', '-c',
+                             "SET statement_timeout='10s'; SELECT detail FROM game_control.audit WHERE id='" + identifier + "';", timeout=30)
+            if persisted and json.loads(persisted) == record:
+                return
+        except Exception:
+            pass
+        # A lost acknowledgement cannot authorize restoring an image behind a committed event.
+        error = Stopped('DEPLOYMENT_RECORD_UNKNOWN')
+        error.preserveHealthy = True
+        raise error from None
+
+
+def receipt(manifest, mode, companions, active, capabilities, deployment, backup_hash=None):
     images = {name: item['image'] for name, item in active.items()}
     require(set(capabilities) == set(images) & set(PUBLIC_ENV)
             and all(proof.get('image') == images[name] for name, proof in capabilities.items()), 'SERVICE_IMAGE')
@@ -490,7 +540,7 @@ def receipt(manifest, mode, companions, active, capabilities, backup_hash=None):
             'services': manifest['services'], 'recreateCompanions': companions, 'healthVerified': True,
             'databaseReplaced': False, 'schemaChanged': False, 'backupCreated': backup_hash is not None,
             'backupSHA256': backup_hash, 'isolatedRestoreVerified': False,
-            'activeImages': images, 'imageCapabilities': capabilities}
+            'activeImages': images, 'imageCapabilities': capabilities, 'deployment': deployment}
 
 
 def execute(release, manifest, config, selected, companions, contexts, protection):
@@ -541,6 +591,7 @@ def execute(release, manifest, config, selected, companions, contexts, protectio
     write_private(revision / 'journal.json', json.dumps(journal).encode())
     # The backup may take time; refuse an update if a game started meanwhile.
     guard_games(selected)
+    recording_deployment = False
     try:
         stage('service_stop')
         for name in ['kart', 'runtime', 'tianxia']:
@@ -557,7 +608,12 @@ def execute(release, manifest, config, selected, companions, contexts, protectio
         assert_boundaries(selected, active)
         require(not pg or schema_hash(pg) == old_schema, 'SCHEMA_CHANGED')
         assert_protected(protection)
-    except Exception:
+        deployed = deployment_record(manifest, 'execute', active)
+        recording_deployment = True
+        record_deployment(deployed)
+    except Exception as failure:
+        if recording_deployment:
+            raise Stopped('DEPLOYMENT_RECORD_UNKNOWN') from None
         try:
             restored = restore(journal, rollback_file)
             if previous_platform is not None:
@@ -570,7 +626,7 @@ def execute(release, manifest, config, selected, companions, contexts, protectio
                 raise
             raise Stopped('ROLLBACK_FAILED') from None
         raise
-    return receipt(manifest, 'execute', companions, active, capabilities, backup_hash)
+    return receipt(manifest, 'execute', companions, active, capabilities, deployed, backup_hash)
 
 
 def rollback_update(release, manifest, selected, contexts, protection):
@@ -608,12 +664,18 @@ def rollback_update(release, manifest, selected, contexts, protection):
     override(fallback, current_images, {name: item['update'] for name, item in selected.items()})
     current_journal = {'selected': list(selected), 'contexts': contexts, 'oldImages': current_images}
     guard_games(selected)
+    recording_deployment = False
     try:
         active = restore(journal, rollback_file)
         assert_boundaries(selected, active)
         require(not pg or schema_hash(pg) == journal['schemaHash'], 'SCHEMA_CHANGED')
         assert_protected(protection)
-    except Exception:
+        deployed = deployment_record(manifest, 'rollback', active)
+        recording_deployment = True
+        record_deployment(deployed)
+    except Exception as failure:
+        if recording_deployment:
+            raise Stopped('DEPLOYMENT_RECORD_UNKNOWN') from None
         try:
             restored = restore(current_journal, fallback)
             assert_boundaries(selected, restored)
@@ -624,7 +686,7 @@ def rollback_update(release, manifest, selected, contexts, protection):
                 raise
             raise Stopped('ROLLBACK_FAILED') from None
         raise
-    return receipt(manifest, 'rollback', journal['companions'], active, capabilities)
+    return receipt(manifest, 'rollback', journal['companions'], active, capabilities, deployed)
 
 
 def main(args=None, payload=None):
@@ -669,6 +731,7 @@ def main(args=None, payload=None):
         protection = protected_snapshot(selected, caddy)
         if args[0] == '--execute':
             require(payload.get('sourceSHA') == manifest['sourceSHA'], 'SOURCE_MISMATCH')
+            require(isinstance(manifest.get('backendVersion'), str) and re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)', manifest['backendVersion']), 'DEPLOYMENT_VERSION')
             result = execute(release, manifest, payload, selected, companions, contexts, protection)
         else:
             result = rollback_update(release, manifest, selected, contexts, protection)

@@ -1,0 +1,72 @@
+{
+  "checkedAt": "2026-11-09",
+  "purpose": "Eight categories reuse their original media identities; operations screenshots are QA only.",
+  "files": [
+    {
+      "file": "copy/introduction.md",
+      "bytes": 4913,
+      "sha256": "3afe6e93d8b075dde335d6a32e5fa452af6184bd01ea599c227d75c5587a97de",
+      "unchangedSincePriorCheck": true
+    },
+    {
+      "file": "copy/tagline.md",
+      "bytes": 68,
+      "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
+      "unchangedSincePriorCheck": true
+    },
+    {
+      "file": "copy/developer-note.md",
+      "bytes": 3361,
+      "sha256": "0bc3d89a1f59da249afebef0fde0dd6b697734fd612a6547091306884f58db63",
+      "unchangedSincePriorCheck": true
+    },
+    {
+      "file": "icon/icon-1024.png",
+      "bytes": 1168540,
+      "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
+      "unchangedSincePriorCheck": true
+    },
+    {
+      "file": "promo/images/title-1920x1080.png",
+      "bytes": 2392478,
+      "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
+      "unchangedSincePriorCheck": true
+    },
+    {
+      "file": "promo/images/title-1440x1440.png",
+      "bytes": 2285613,
+      "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
+      "unchangedSincePriorCheck": true
+    },
+    {
+      "file": "promo/videos/night-overwatch-action-2026-11-05-1920x1080.mp4",
+      "bytes": 18384822,
+      "sha256": "ae48cc696d4d3f8d72f737a6200feae13b99b13606faab39664a49b94f02c86d",
+      "unchangedSincePriorCheck": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-07-garrison/infantry-1920.png",
+      "bytes": 1368839,
+      "sha256": "e1af48c5d016ac67dada9c19ce8a80fdc9f837cc2732c306d2e8279c64a69a1d",
+      "unchangedSincePriorCheck": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-07-garrison/settlement-1920.png",
+      "bytes": 1891826,
+      "sha256": "421a69a050a3b8b759b780e4d5d93c6af195fa32aa8aef5a336ba0704cf0c265",
+      "unchangedSincePriorCheck": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-07-garrison/missions-1280.png",
+      "bytes": 838277,
+      "sha256": "cbaf6fa96fdc4e8ce31016acce804668e9ae3be8aa0a646d7bc316e643f07253",
+      "unchangedSincePriorCheck": true
+    },
+    {
+      "file": "gameplay/videos/night-overwatch-combat-2026-11-07-1920x1080.mp4",
+      "bytes": 49313883,
+      "sha256": "e6994f0a58b413e05e8ea13560c57921c7d134ac05bd1103ae4eb5d7ecc89ccd",
+      "unchangedSincePriorCheck": true
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import { gameBuildId } from './night-release.js';
 /* eslint-disable max-lines -- Game routes share the same identity, input and version boundary. */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -12,6 +13,8 @@ const gameId = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/);
 const roomCode = z.string().regex(/^(?:[0-9]{6}|[A-F0-9]{12})$/);
 const gameParams = (params: unknown) => z.object({ game: gameId }).parse(params);
 const runParams = (params: unknown) => z.object({ game: gameId, id: z.uuid() }).parse(params);
+const build = (game: string, headers: Record<string, unknown>) =>
+  game === 'night-overwatch' ? gameBuildId.optional().parse(headers['x-game-build']) : undefined;
 const frame = z
   .object({ ticks: z.number().int().min(0).max(2400), input: z.record(z.string(), z.unknown()) })
   .strict();
@@ -59,10 +62,15 @@ export function registerGameRoutes(
       input.cursor,
       input.waitMs,
       () => reply.raw.destroyed,
+      build('night-overwatch', request.headers),
     );
   });
   routes.post('/games/night-overwatch/chat', { bodyLimit: 2048 }, async (request) =>
-    store.nightChat.send(await player(request.headers.authorization), request.body),
+    store.nightChat.send(
+      await player(request.headers.authorization),
+      request.body,
+      build('night-overwatch', request.headers),
+    ),
   );
   routes.post('/games/night-overwatch/chat/report', { bodyLimit: 1024 }, async (request) =>
     store.nightChat.report(await player(request.headers.authorization), request.body),
@@ -124,6 +132,9 @@ export function registerGameRoutes(
     assertGameScope(auth, game);
     return {
       ...definition(game),
+      ...(game === 'night-overwatch'
+        ? await store.nightReleaseMetadata(auth, build(game, request.headers))
+        : {}),
       identity: await store.identityDetails(auth),
     };
   });
@@ -206,6 +217,7 @@ export function registerGameRoutes(
         version,
         requestId,
         offline,
+        build(game, request.headers),
       );
     },
   );
@@ -251,7 +263,11 @@ export function registerGameRoutes(
   };
   routes.get('/games/:game/rooms', async (request) => {
     const game = multiplayerGame(request.params);
-    return store.listRooms(await player(request.headers.authorization), game);
+    return store.listRooms(
+      await player(request.headers.authorization),
+      game,
+      build(game, request.headers),
+    );
   });
   routes.get('/games/:game/history', async (request) => {
     const game = multiplayerGame(request.params);
@@ -266,7 +282,11 @@ export function registerGameRoutes(
     z.object({})
       .strict()
       .parse(request.body ?? {});
-    return store.match(await player(request.headers.authorization), game);
+    return store.match(
+      await player(request.headers.authorization),
+      game,
+      build(game, request.headers),
+    );
   });
   routes.post(
     '/games/:game/rooms',
@@ -283,7 +303,10 @@ export function registerGameRoutes(
         })
         .strict()
         .parse(request.body ?? {});
-      return store.create(await player(request.headers.authorization), game, input);
+      return store.create(await player(request.headers.authorization), game, {
+        ...input,
+        buildId: build(game, request.headers),
+      });
     },
   );
   routes.post(
@@ -303,6 +326,7 @@ export function registerGameRoutes(
         game,
         password,
         createdAt,
+        buildId: build(game, request.headers),
       });
     },
   );
@@ -382,6 +406,12 @@ export function registerGameRoutes(
         return store.roomAction(await player(request.headers.authorization), code, operation, {
           ...input,
           game,
+          ...(operation === 'spectate' ||
+          operation === 'rematch' ||
+          operation === 'connect' ||
+          operation === 'ready'
+            ? { buildId: build(game, request.headers) }
+            : {}),
         });
       },
     );

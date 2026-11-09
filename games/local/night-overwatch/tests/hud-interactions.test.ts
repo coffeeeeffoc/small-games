@@ -88,7 +88,7 @@ const cc = {
   Rect: class { x: number; y: number; width: number; height: number; constructor(x: number, y: number, width: number, height: number) { Object.assign(this, { x, y, width, height }); } },
   resources: { load(name: string, _type: any, done: any) { if(name.startsWith('ui/progression/')||artworkAvailable&&!name.includes('home'))done(null,{width:1024,height:512});else done(new Error('unavailable art')); } },
   isValid: () => true,
-  Label: class { static Overflow = { CLAMP: 0, SHRINK: 1 }; static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0, TOP: 1 }; },
+  Label: class { static Overflow = { CLAMP: 0, SHRINK: 1, RESIZE_HEIGHT: 2 }; static HorizontalAlign = { CENTER: 0, LEFT: 1 }; static VerticalAlign = { CENTER: 0, TOP: 1 }; updateRenderData() {} },
   Layers: { Enum: { UI_2D: 1 } }, ResolutionPolicy: { EXACT_FIT: 0 },
   sys: { isMobile: false, isBrowser: false, getSafeAreaRect: () => ({ x: inset, y: inset, width: frame.width - inset * 2, height: frame.height - inset * 2 }) },
   view: { getFrameSize: () => frame, setDesignResolutionSize() {}, getScaleX: () => 1, getScaleY: () => 1 },

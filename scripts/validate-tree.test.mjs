@@ -2148,7 +2148,14 @@ test('backend contracts execute independently and failure blocks candidate valid
       execute: (command, args) => calls.push([command, ...args]),
     };
   runIncrementalToolChecks(options);
-  assert.deepEqual(calls, [[process.execPath, '--test', 'scripts/deploy-backend.test.mjs']]);
+  assert.deepEqual(calls, [
+    [
+      process.execPath,
+      '--test',
+      'scripts/deploy-backend.test.mjs',
+      'scripts/night-build-version.test.mjs',
+    ],
+  ]);
   assert.throws(
     () =>
       runIncrementalToolChecks({
@@ -2175,7 +2182,14 @@ test('shared authority helper contracts run once even alongside backend deployme
       execute: (program, args) => calls.push([program, ...args]),
     };
     runIncrementalToolChecks(options);
-    assert.deepEqual(calls, [[process.execPath, '--test', 'scripts/deploy-backend.test.mjs']]);
+    assert.deepEqual(calls, [
+      [
+        process.execPath,
+        '--test',
+        'scripts/deploy-backend.test.mjs',
+        'scripts/night-build-version.test.mjs',
+      ],
+    ]);
     assert.throws(
       () =>
         runIncrementalToolChecks({

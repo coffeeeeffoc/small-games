@@ -117,6 +117,7 @@ export function createCompetitionControl(
         digest: publication.digest,
         policy: { ...fallback, origins: publication.snapshot.apiOrigins },
         policies,
+        nightOperations: snapshot.nightOperations,
       };
     } catch {
       throw unavailable();
@@ -145,7 +146,12 @@ export function createCompetitionControl(
       await tx.execute(sql`select set_config('statement_timeout',${timeouts.statement},true),
         set_config('lock_timeout',${timeouts.lock},true)`);
       remaining();
-      return current.policies.find((p) => p.gameId === game)!;
+      return {
+        ...current.policies.find((p) => p.gameId === game)!,
+        ...(game === 'night-overwatch' && current.nightOperations
+          ? { nightOperations: current.nightOperations }
+          : {}),
+      };
     } catch {
       throw unavailable();
     }

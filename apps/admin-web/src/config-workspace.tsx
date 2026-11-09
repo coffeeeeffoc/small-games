@@ -22,6 +22,9 @@ import {
   useOperation,
 } from './control-common';
 
+import { NightOperationsEditor } from './night-operations-editor';
+import { nightChanges, nightOperationsError, type Deployments } from './night-operations-model';
+
 const stateNames = { enabled: '开放', draining: '停止新局', disabled: '停用并终止旧局结算' };
 const editableSnapshot = (snapshot: Snapshot): Snapshot => ({
   ...snapshot,
@@ -31,6 +34,7 @@ function Changes({ before, after }: { before: Snapshot | null; after: Snapshot }
   before = before && editableSnapshot(before);
   after = editableSnapshot(after);
   const rows = [
+    ...nightChanges(before?.nightOperations, after.nightOperations),
     ...after.apiOrigins
       .filter((origin) => !before?.apiOrigins.includes(origin))
       .map((origin) => `新增来源：${origin}`),
@@ -75,14 +79,17 @@ export function ConfigWorkspace({
   const [publishConfirm, setPublishConfirm] = useState(false);
   const [rollback, setRollback] = useState<Revision>();
   const [rollbackReason, setRollbackReason] = useState('');
+  const [nightTab, setNightTab] = useState(false);
+  const [deployments, setDeployments] = useState<Deployments>();
   const [conflict, setConflict] = useState<ControlState>();
   const canWrite = session.permissions.includes('control.write');
   const canPublish = session.permissions.includes('control.publish');
   async function load() {
-    const [nextState, nextCatalog, history] = await Promise.all([
+    const [nextState, nextCatalog, history, deployed] = await Promise.all([
       api.read<ControlState>('state'),
       api.read<Catalog>('catalog'),
       api.read<Revision[]>('revisions'),
+      gamesOnly ? api.read<Deployments>('deployments') : undefined,
     ]);
     if (
       !Array.isArray(history) ||
@@ -92,6 +99,7 @@ export function ConfigWorkspace({
     )
       throw new ApiError('UNAVAILABLE');
     setState(nextState);
+    setDeployments(deployed);
     setCatalog(nextCatalog);
     setRevisions(history);
     setBase(nextState.version);
@@ -141,6 +149,20 @@ export function ConfigWorkspace({
     originList.every(validOrigin) &&
     new Set(originList).size === originList.length;
   const draftSnapshot = { ...snapshot, apiOrigins: originList };
+  const operationsError = nightOperationsError(snapshot.nightOperations);
+  const dirty =
+    JSON.stringify(draftSnapshot) !==
+    JSON.stringify(
+      state?.snapshot
+        ? editableSnapshot(state.snapshot)
+        : { apiOrigins: [], games: snapshot.games },
+    );
+  const publishedIds = new Set([
+    ...revisions
+      .filter((r) => r.publishedVersion !== null)
+      .flatMap((r) => r.snapshot.nightOperations?.compensations.map((c) => c.id) ?? []),
+    ...(state?.snapshot?.nightOperations?.compensations.map((c) => c.id) ?? []),
+  ]);
   const stateLabel = {
     unpublished: '未发布 · 保留现有环境策略',
     desired: '待应用',
@@ -202,8 +224,44 @@ export function ConfigWorkspace({
               </Button>
             </Card>
           )}
-          <Card title={gamesOnly ? '游戏运行策略' : '公共 API 允许来源'}>
-            {gamesOnly ? (
+          {gamesOnly && (
+            <div className="control-actions">
+              <Button aria-pressed={!nightTab} onClick={() => setNightTab(false)}>
+                游戏开关
+              </Button>
+              <Button aria-pressed={nightTab} onClick={() => setNightTab(true)}>
+                夜航运营
+              </Button>
+            </div>
+          )}
+          <Card
+            title={gamesOnly ? (nightTab ? '夜航运营草稿' : '游戏运行策略') : '公共 API 允许来源'}
+          >
+            {gamesOnly && nightTab ? (
+              <NightOperationsEditor
+                value={snapshot.nightOperations}
+                published={state.snapshot?.nightOperations}
+                publishedIds={publishedIds}
+                deployments={deployments}
+                disabled={!canWrite || operation.busy}
+                canPublish={canPublish && !conflict}
+                busy={operation.busy}
+                dirty={dirty}
+                change={(nightOperations) => edited({ ...snapshot, nightOperations })}
+                rollback={async (build, note) => {
+                  let completed = false;
+                  await operation.run(() =>
+                    versioned(async () => {
+                      await api.rollbackNightRelease(build.channel, build.buildId, base, note);
+                      await load();
+                      completed = true;
+                      operation.success('渠道推荐版本已回退，公告与补偿已保留。');
+                    }),
+                  );
+                  return completed;
+                }}
+              />
+            ) : gamesOnly ? (
               <>
                 <div className="table-scroll">
                   <Table
@@ -283,6 +341,7 @@ export function ConfigWorkspace({
             {gamesOnly && (
               <p>草稿保留 {originList.length} 个公共 API 来源；可在“公共配置”页面核对。</p>
             )}
+            {operationsError && <Alert type="error" title={operationsError} />}
             <label htmlFor="draft-reason">变更理由</label>
             <Input.TextArea
               id="draft-reason"
@@ -300,7 +359,9 @@ export function ConfigWorkspace({
             <div className="control-actions">
               <Button
                 type="primary"
-                disabled={!canWrite || !reason.trim() || !originsValid || !!conflict}
+                disabled={
+                  !canWrite || !reason.trim() || !originsValid || !!operationsError || !!conflict
+                }
                 loading={operation.busy}
                 onClick={() =>
                   void operation.run(() =>
@@ -441,7 +502,11 @@ export function ConfigWorkspace({
           {rollback && (
             <Card title={`回退至已发布版本 ${rollback.publishedVersion}`} className="confirmation">
               <p>回退会从当前版本 {state.version} 创建新版本，历史不会删除。</p>
-              <Changes before={state.snapshot} after={rollback.snapshot} />
+              <p>公告、补偿和游戏版本策略保留当前配置。</p>
+              <Changes
+                before={state.snapshot}
+                after={{ ...rollback.snapshot, nightOperations: state.snapshot?.nightOperations }}
+              />
               <label htmlFor="rollback-reason">回退理由</label>
               <Input.TextArea
                 id="rollback-reason"

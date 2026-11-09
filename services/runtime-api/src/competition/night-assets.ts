@@ -2,7 +2,8 @@
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
-import type { openDatabase } from '@coffeeeeffoc/service-kit';
+import { deliverNightCompensations, nightAnnouncements } from './night-operations.js';
+import type { NightOperations, openDatabase } from '@coffeeeeffoc/service-kit';
 import { CompetitionError, type Room } from './types.js';
 import type { RankedRun } from './ranked-types.js';
 type Database = ReturnType<typeof openDatabase>['db'];
@@ -38,6 +39,10 @@ export type WheelPrize = {
   fragments?: Partial<Record<'fragment:weapon' | 'fragment:skill', number>>;
 };
 export type ProgressionRules = {
+  battleRewards?: Record<
+    'solo' | 'duel' | 'bot',
+    Record<'win' | 'loss' | 'draw', { coins: number; xp: number }>
+  >;
   economy?: {
     version: string;
     checkinCategories?: string[];
@@ -436,7 +441,13 @@ export async function previewNightMigration(tx: Tx | Database, owner: string) {
     },
   };
 }
-async function locked(tx: Tx, owner: string, at: number, rules: ProgressionRules) {
+async function locked(
+  tx: Tx,
+  owner: string,
+  at: number,
+  rules: ProgressionRules,
+  prepareWallet = true,
+) {
   // Asset lock never acquires another player's identity lock, including two-player settlement.
   await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${walletId(owner)},0))`);
   const existing = await tx.execute(
@@ -504,7 +515,7 @@ async function locked(tx: Tx, owner: string, at: number, rules: ProgressionRules
     );
   }
   if (w.version !== 3) fail('ASSET_VERSION');
-  prepare(w, owner, at, rules);
+  if (prepareWallet) prepare(w, owner, at, rules);
   return w;
 }
 async function backfillLongAchievements(tx: Tx, w: NightAssets, owner: string) {
@@ -542,7 +553,13 @@ const publicOrder = (order: VideoOrder) => ({
   createdAt: order.createdAt,
   ...(order.attempt ? { attempt: order.attempt } : {}),
 });
-function snapshot(w: NightAssets, owner: string, at: number, rules: ProgressionRules) {
+function snapshot(
+  w: NightAssets,
+  owner: string,
+  at: number,
+  rules: ProgressionRules,
+  operations?: NightOperations,
+) {
   const inventory: Record<string, number> = {},
     free: Record<string, number> = {};
   for (const [id, n] of Object.entries(w.inventory)) {
@@ -565,14 +582,7 @@ function snapshot(w: NightAssets, owner: string, at: number, rules: ProgressionR
     tasks: w.tasks,
     achievements: ACHIEVEMENTS.map((a) => ({ ...a, ...w.achievements[a.id] })),
     mail: w.mail,
-    announcements: [
-      {
-        id: 'growth-v1',
-        title: '成长与军需上线',
-        body: '积分保持原规则。金币、经验独立记录；单人和双人分别配装。技能按冷却重复使用。',
-        createdAt: cutoff,
-      },
-    ],
+    announcements: nightAnnouncements(at, operations),
     videoOrders: w.videoOrders.map(publicOrder),
     signedDays: w.signedDays,
     signedToday: w.signedDays.includes(nightDay(at)),
@@ -633,11 +643,23 @@ export async function nightAssets(
   rules: ProgressionRules,
   command?: AssetCommand,
   development = false,
+  progressionFor?: (version: string) => ProgressionRules | undefined,
+  operations?: NightOperations,
 ) {
   if (command?.kind === 'dev-adjust' && !development)
     throw new CompetitionError('DEV_TOOLS_DISABLED', 403);
   const w = await locked(tx, owner, at, rules),
     day = nightDay(at);
+  const players = operations?.compensations.length
+    ? await tx.execute(sql`select created_at from runtime.competition_players where id=${owner}`)
+    : [];
+  const delivered = deliverNightCompensations(
+    w,
+    owner,
+    Number(players[0]?.created_at),
+    at,
+    operations,
+  );
   const response = async (lastReceipt?: unknown) => {
     const cleared = rules.economy
       ? await tx.execute(
@@ -678,7 +700,7 @@ export async function nightAssets(
       };
     });
     return {
-      ...snapshot(w, owner, at, rules),
+      ...snapshot(w, owner, at, rules, operations),
       ...(rules.economy ? { clearedLevels } : {}),
       devToolsEnabled: development,
       openReceipts,
@@ -703,6 +725,7 @@ export async function nightAssets(
   if (previous[0]) {
     const receipt = previous[0].data as { hash: string; result: unknown };
     if (receipt.hash !== hash) throw new CompetitionError('REQUEST_ID_CONFLICT');
+    if (delivered) await save(tx, owner, w);
     return response(receipt.result);
   }
   if (cmd.kind === 'ad-complete') {
@@ -859,7 +882,13 @@ export async function nightAssets(
         } else
           result.packs = deliverPacks(
             w,
-            order.grants ?? drawPacks(rules, 'general', order.quantity),
+            order.grants ??
+              drawPacks(
+                (order.version === rules.version ? rules : progressionFor?.(order.version)) ??
+                  fail('RULE_VERSION_CHANGED'),
+                'general',
+                order.quantity,
+              ),
           );
         progress(w, day, ['exchange']);
       }
@@ -1078,25 +1107,42 @@ export async function reconcileNightLoadouts(
   owner: string,
   at: number,
   rules: ProgressionRules,
-  versions: { solo: string; duel: string },
+  versions: { solo: string | string[]; duel: string | string[] },
   policy?: { state: string; killEpoch: number },
+  progressionFor?: (kind: 'solo' | 'duel', version: string) => ProgressionRules | undefined,
 ) {
   const epoch = policy?.killEpoch ?? 0,
     disabled = policy?.state === 'disabled';
   const runs = await tx.execute(
-    sql`select id,data from runtime.competition_matches where data->>'kind'='ranked-run-v1' and data->>'game'='night-overwatch' and data->>'playerId'=${owner} and data->>'status'='active' and data->'loadout' is not null and data->'settlement' is null and (data->>'version'<>${versions.solo} or coalesce((data->>'killEpoch')::bigint,0)<>${epoch} or ${disabled}) order by id limit 20 for update skip locked`,
+    sql`select id,data from runtime.competition_matches where data->>'kind'='ranked-run-v1' and data->>'game'='night-overwatch' and data->>'playerId'=${owner} and data->>'status'='active' and data->'loadout' is not null and data->'settlement' is null and data->>'version' in (${sql.join(
+      [versions.solo].flat().map((v) => sql`${v}`),
+      sql`,`,
+    )}) and (coalesce((data->>'killEpoch')::bigint,0)<>${epoch} or ${disabled}) order by id limit 20 for update skip locked`,
   );
   const rooms = await tx.execute(
-    sql`select code,data from runtime.competition_rooms where data->>'game'='night-overwatch' and data->>'status'='playing' and data->>'loadoutBattle' is not null and data->'settledAt' is null and exists(select 1 from jsonb_array_elements(data->'players') p where p->>'id'=${owner}) and (data->>'version'<>${versions.duel} or coalesce((data->>'killEpoch')::bigint,0)<>${epoch} or ${disabled}) order by code limit 20 for update skip locked`,
+    sql`select code,data from runtime.competition_rooms where data->>'game'='night-overwatch' and data->>'status'='playing' and data->>'loadoutBattle' is not null and data->'settledAt' is null and exists(select 1 from jsonb_array_elements(data->'players') p where p->>'id'=${owner}) and data->>'version' in (${sql.join(
+      [versions.duel].flat().map((v) => sql`${v}`),
+      sql`,`,
+    )}) and (coalesce((data->>'killEpoch')::bigint,0)<>${epoch} or ${disabled}) order by code limit 20 for update skip locked`,
   );
   const refunds = [
-    ...runs.map((row) => ({ owner, battle: `run:${(row.data as RankedRun).id}` })),
+    ...runs.map((row) => ({
+      owner,
+      battle: `run:${(row.data as RankedRun).id}`,
+      rules: progressionFor ? progressionFor('solo', (row.data as RankedRun).version) : rules,
+    })),
     ...rooms.flatMap((row) => {
       const room = row.data as Room;
-      return room.players.map((p) => ({ owner: p.id, battle: room.loadoutBattle! }));
+      return room.players.map((p) => ({
+        owner: p.id,
+        battle: room.loadoutBattle!,
+        rules: progressionFor ? progressionFor('duel', room.version) : rules,
+      }));
     }),
   ].sort((a, b) => a.owner.localeCompare(b.owner) || a.battle.localeCompare(b.battle));
-  for (const item of refunds) await refundNightLoadout(tx, item.owner, at, item.battle, rules);
+  if (refunds.some((item) => !item.rules)) fail('RULE_VERSION_CHANGED');
+  for (const item of refunds)
+    await refundNightLoadout(tx, item.owner, at, item.battle, item.rules!);
   for (const row of runs)
     await tx.execute(
       sql`update runtime.competition_matches set data=jsonb_set(data,'{status}','"finished"'::jsonb) where id=${row.id}`,
@@ -1113,8 +1159,9 @@ export async function reserveNightLoadout(
   battle: string,
   mode: 'solo' | 'duel',
   rules: ProgressionRules,
+  accountRules = rules,
 ) {
-  const w = await locked(tx, owner, at, rules),
+  const w = await locked(tx, owner, at, accountRules),
     prior = w.reservations[battle];
   if (prior && ['reserved', 'consumed'].includes(prior.status)) return prior.snapshot;
   const loadout = w.loadouts[mode],
@@ -1125,7 +1172,11 @@ export async function reserveNightLoadout(
     ...loadout.mods,
     ...[loadout.weapon, loadout.skill].filter((x): x is string => !!x),
   ]) {
-    const p = rules.catalog.find((p) => p.id === id)!;
+    const p = rules.catalog.find((p) => p.id === id);
+    if (!p) {
+      skipped.push(id);
+      continue;
+    }
     if (w.permanent.includes(p.effect) || (w.active[p.effect] ?? 0) > at) effects.push(p.effect);
     else if (p.term === 'match' && available(w, id) > 0) {
       effects.push(p.effect);
@@ -1149,8 +1200,9 @@ export async function verifyNightOfflineLoadout(
   at: number,
   claimed: BattleLoadout | undefined,
   rules: ProgressionRules,
+  accountRules = rules,
 ): Promise<BattleLoadout> {
-  const w = await locked(tx, owner, at, rules);
+  const w = await locked(tx, owner, at, accountRules);
   const category = (effect: string) => rules.catalog.find((p) => p.effect === effect)?.category;
   const effects = claimed?.effects ?? [];
   const count = (name: string) => effects.filter((effect) => category(effect) === name).length;
@@ -1176,8 +1228,9 @@ export async function consumeNightLoadout(
   battle: string,
   rules: ProgressionRules,
   release = false,
+  accountRules = rules,
 ) {
-  const w = await locked(tx, owner, at, rules),
+  const w = await locked(tx, owner, at, accountRules),
     r = w.reservations[battle];
   if (!release && (!r || r.status === 'released' || r.status === 'refunded'))
     fail('LOADOUT_RESERVATION_EXPIRED');
@@ -1205,7 +1258,7 @@ export async function refundNightLoadout(
   battle: string,
   rules: ProgressionRules,
 ) {
-  const w = await locked(tx, owner, at, rules),
+  const w = await locked(tx, owner, at, rules, false),
     r = w.reservations[battle];
   if (!r || r.status === 'released' || r.status === 'refunded') {
     if (r?.status === 'released') await save(tx, owner, w);
@@ -1229,22 +1282,26 @@ export async function rewardNightBattle(
     levelId?: string;
     firstClear?: boolean;
   },
+  accountRules = rules,
 ) {
-  const w = await locked(tx, owner, at, rules),
+  const w = await locked(tx, owner, at, accountRules),
     id = eventId(owner, `battle:${battle}`);
   const prior = await tx.execute(sql`select data from runtime.competition_matches where id=${id}`);
   if (prior[0]) return (prior[0].data as { receipt: BattleReward }).receipt;
   await backfillLongAchievements(tx, w, owner);
   const valid = input.valid && input.durationMs >= 10000;
   const reward: Reward = valid
-    ? input.mode === 'solo'
-      ? { coins: input.outcome === 'win' ? 180 : 40, xp: input.outcome === 'win' ? 120 : 35 }
-      : input.mode === 'duel'
-        ? {
-            coins: input.outcome === 'win' ? 200 : input.outcome === 'draw' ? 100 : 60,
-            xp: input.outcome === 'win' ? 140 : 70,
-          }
-        : { coins: input.outcome === 'win' ? 100 : 30, xp: input.outcome === 'win' ? 80 : 25 }
+    ? rules.battleRewards?.[input.mode]?.[input.outcome]
+      ? { ...rules.battleRewards[input.mode][input.outcome] }
+      : // Frozen v16/v9 predates explicit battle rewards; these historical amounts must stay fixed.
+        input.mode === 'solo'
+        ? { coins: input.outcome === 'win' ? 180 : 40, xp: input.outcome === 'win' ? 120 : 35 }
+        : input.mode === 'duel'
+          ? {
+              coins: input.outcome === 'win' ? 200 : input.outcome === 'draw' ? 100 : 60,
+              xp: input.outcome === 'win' ? 140 : 70,
+            }
+          : { coins: input.outcome === 'win' ? 100 : 30, xp: input.outcome === 'win' ? 80 : 25 }
     : { coins: 0, xp: 0 };
   const fragments: Record<string, number> = {};
   const campaign = rules.economy?.campaign.find((level) => level.levelId === input.levelId);
@@ -1282,7 +1339,7 @@ export async function rewardNightBattle(
       input.mode === 'solo' ? 'solo' : 'duel',
       ...(input.outcome === 'win' ? ['win'] : []),
     ]);
-  prepare(w, owner, at, rules);
+  prepare(w, owner, at, accountRules);
   await save(tx, owner, w);
   const receipt: BattleReward = {
     ...reward,
@@ -1292,7 +1349,7 @@ export async function rewardNightBattle(
     ...(Object.keys(fragments).length ? { fragments } : {}),
     totalCoins: w.coins,
     totalXp: w.xp,
-    level: rules.levelProgress(w.xp).level,
+    level: accountRules.levelProgress(w.xp).level,
     status: 'credited',
   };
   await tx.execute(

@@ -37,6 +37,14 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
   });
   async function transport(url, body, owner) {
     const headers = { 'content-type': 'application/json' };
+    if (gameId === 'night-overwatch' && config.release?.buildId) {
+      if (
+        typeof config.release.buildId !== 'string' ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(config.release.buildId)
+      )
+        throw failure('INVALID_BUILD');
+      headers['X-Game-Build'] = config.release.buildId;
+    }
     if (owner?.token) headers.authorization = 'Bearer ' + owner.token;
     let response;
     try {
@@ -261,34 +269,41 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
           encodeURIComponent(boardId) +
           (ruleVersion ? '?ruleVersion=' + encodeURIComponent(ruleVersion) : ''),
       ),
-    async startRun({ mode, levelId, requestId, playerId, offline }) {
-      if (typeof ruleVersion !== 'string' || !ruleVersion) throw failure('RULE_VERSION_CHANGED');
+    async startRun({ mode, levelId, requestId, playerId, offline, version = ruleVersion }) {
+      if (
+        typeof version !== 'string' ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(version) ||
+        (gameId !== 'night-overwatch' && version !== ruleVersion)
+      )
+        throw failure('RULE_VERSION_CHANGED');
       const credential = await auth.current();
       if (playerId && credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
       const run = await request(
         path + '/runs',
         {
           board: mode,
-          version: ruleVersion,
+          version,
           ...(levelId ? { levelId } : {}),
           ...(requestId ? { requestId } : {}),
           ...(offline ? { offline } : {}),
         },
         credential,
       );
-      if (run?.version !== ruleVersion) throw failure('RULE_VERSION_CHANGED');
+      if (run?.version !== version) throw failure('RULE_VERSION_CHANGED');
       owners.set(run.id, { ...credential });
       while (owners.size > 4) owners.delete(owners.keys().next().value);
       return { ...run, playerId: credential.playerId };
     },
-    async getRun({ runId, playerId }) {
+    async getRun({ runId, playerId, version = ruleVersion }) {
+      if (gameId !== 'night-overwatch' && version !== ruleVersion)
+        throw failure('RULE_VERSION_CHANGED');
       const credential = await auth.current();
       if (credential.playerId !== playerId) throw failure('IDENTITY_CHANGED');
       const run = await request(`${path}/runs/${encodeURIComponent(runId)}`, undefined, credential);
       if (
         run.game !== gameId ||
         (!run.settlement &&
-          run.version !== ruleVersion &&
+          run.version !== version &&
           !(gameId === 'night-overwatch' && run.status === 'finished'))
       )
         throw failure('RULE_VERSION_CHANGED');
@@ -427,7 +442,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
   const working = new Map(),
     retries = new Map();
   const persisted = new WeakSet(),
-    volatile = new WeakSet(),
+    volatile = new Set(), // Keep unsaved records reachable until a committed save or receipt.
     attempts = new WeakMap();
   let active,
     status = 'local',
@@ -454,6 +469,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
   function confirmed(run, result) {
     run.synced = true;
     run.result = result;
+    volatile.delete(run);
     retries.delete(key(run));
     if (currentRun(run)) report(resultStatus(result));
     // A run finished offline is usually settled after the player has left its result screen.
@@ -702,7 +718,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       report(
         error?.code === 'STORAGE_UNAVAILABLE'
           ? 'storage-unavailable'
-          : error?.code === 'RULE_VERSION_CHANGED'
+          : ['RULE_VERSION_CHANGED', 'RULE_NEW_GAMES_DISABLED'].includes(error?.code)
             ? 'update-required'
             : error?.code === 'IDENTITY_CHANGED'
               ? 'identity-changed'
@@ -752,7 +768,6 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
         run.synced = true;
         return true;
       }
-      if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
       const created = await services.startRun(startInput(run));
       run.id = created.id;
       if (!(await saveCommitted(run, true)) || run.synced) return true;
@@ -774,6 +789,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   }
   const startInput = (run) => ({
+    version: run.version,
     mode: run.mode,
     levelId: run.levelId,
     requestId: run.requestId,
@@ -800,7 +816,6 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
         if (run.synced) return null;
         if (await cancelPending(run)) return null;
         if (!run.id) {
-          if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
           run.startAttempted = true;
           if (!(await saveCommitted(run)) || run.synced) return null;
           const created = await services.startRun(startInput(run));
@@ -809,7 +824,11 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           if (!(await saveCommitted(run, true)) || run.synced) return null;
           if (await cancelPending(run)) return null;
         }
-        let remote = await services.getRun({ runId: run.id, playerId: run.playerId });
+        let remote = await services.getRun({
+          runId: run.id,
+          playerId: run.playerId,
+          version: run.version,
+        });
         if (await cancelPending(run)) return null;
         if (
           run.loadout &&
@@ -834,7 +853,6 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           await acknowledge(run, remote.settlement);
           return remote.settlement;
         }
-        if (run.version !== services.ruleVersion) throw failure('RULE_VERSION_CHANGED');
         if (remote.seq < run.acked || remote.seq > run.batches.length)
           throw failure('SEQUENCE_CONFLICT');
         if (remote.status === 'active' && remote.expiresAt <= Date.now()) {
@@ -887,7 +905,11 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           try {
             // Server errors are authoritative; the local clock alone cannot discard input.
             // Re-read first so a concurrent successful finish always takes precedence.
-            const remote = await services.getRun({ runId: run.id, playerId: run.playerId });
+            const remote = await services.getRun({
+              runId: run.id,
+              playerId: run.playerId,
+              version: run.version,
+            });
             if (await stopRecovery()) return null;
             if (
               remote.id !== run.id ||
@@ -995,7 +1017,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           report(
             error?.code === 'STORAGE_UNAVAILABLE'
               ? 'storage-unavailable'
-              : error?.code === 'RULE_VERSION_CHANGED'
+              : ['RULE_VERSION_CHANGED', 'RULE_NEW_GAMES_DISABLED'].includes(error?.code)
                 ? 'update-required'
                 : error?.code === 'IDENTITY_CHANGED'
                   ? 'identity-changed'
@@ -1082,6 +1104,18 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
     },
     persist() {
       if (active && !active.synced) save(active);
+    },
+    async saveForReentry() {
+      if (status === 'needs-attention') return false;
+      // Commit every volatile journal, including an earlier finish still awaiting its receipt.
+      for (const run of new Set([...volatile, ...(active ? [active] : [])]))
+        if (!run.synced && !(await saveCommitted(run))) return false;
+      try {
+        await storage.flush?.();
+        return true;
+      } catch {
+        return false;
+      }
     },
     recover() {
       if (recovering) return recovering;

@@ -12,9 +12,19 @@ export function memoryRuns() {
   const results = new Map<string, Settlement>();
   const locks = new Map<string, Promise<unknown>>();
   const repository: RunRepository = {
-    async create(run) {
-      if (!runs.has(run.id)) runs.set(run.id, structuredClone(run));
-      return structuredClone(runs.get(run.id)!);
+    async create(run, _auth, initialize) {
+      const previous = locks.get(run.id) ?? Promise.resolve();
+      const operation = previous
+        .catch(() => {})
+        .then(async () => {
+          if (!runs.has(run.id)) {
+            await initialize?.();
+            runs.set(run.id, structuredClone(run));
+          }
+          return structuredClone(runs.get(run.id)!);
+        });
+      locks.set(run.id, operation);
+      return operation;
     },
     async mutate(id, change) {
       const previous = locks.get(id) ?? Promise.resolve();

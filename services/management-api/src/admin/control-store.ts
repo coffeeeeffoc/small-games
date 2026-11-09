@@ -156,6 +156,13 @@ export function createControlStore(db: Database): ControlStore {
               ).length === 1
             );
           },
+          async publishedRevisions() {
+            return (
+              await tx.execute(
+                sql`select r.* from game_control.revisions r join game_control.publications p on p.revision_id=r.id order by p.version`,
+              )
+            ).map(revision);
+          },
           async revisions() {
             return (
               await tx.execute(
@@ -195,6 +202,21 @@ export function createControlStore(db: Database): ControlStore {
           async audits() {
             const rows = await tx.execute(
               sql`select * from game_control.audit order by created_at desc,id desc limit 100`,
+            );
+            return rows.map(
+              (row): Audit => ({
+                id: String(row.id),
+                actor: String(row.actor),
+                action: String(row.action),
+                target: String(row.target),
+                detail: row.detail as Audit['detail'],
+                createdAt: Number(row.created_at),
+              }),
+            );
+          },
+          async deployments() {
+            const rows = await tx.execute(
+              sql`select * from game_control.audit where action='deployments.backend' and detail->'services' ? 'runtime' order by created_at desc,id desc limit 5`,
             );
             return rows.map(
               (row): Audit => ({

@@ -51,6 +51,56 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       sql`update runtime.competition_matches set data=data || ${JSON.stringify(patch)}::jsonb where id=${`night-assets:${id}`}`,
     );
   };
+  it('uses old battle prices and snapshots with current account unlocks and an idempotent shared ledger', async () => {
+    const id = await owner(),
+      item = rules.catalog.find((p) => p.category === 'mod' && p.term === 'match')!;
+    const old: ProgressionRules = {
+      ...rules,
+      version: 'historical-economy',
+      catalog: [],
+      skills: { retiredSkill: { level: 1, duration: 1, cooldown: 1 } },
+      battleRewards: {
+        ...rules.battleRewards!,
+        duel: { win: { coins: 7, xp: 3 }, loss: { coins: 1, xp: 1 }, draw: { coins: 2, xp: 2 } },
+      },
+    };
+    await seed(id, {
+      coins: 500,
+      xp: 0,
+      permanent: [],
+      inventory: { [item.id]: 2 },
+      loadouts: {
+        solo: { mods: [item.id], weapon: null, skill: null },
+        duel: { mods: [], weapon: null, skill: null },
+      },
+    });
+    const snapshot = await database.db.transaction((tx) =>
+      reserveNightLoadout(tx, id, at, 'historical', 'solo', old, rules),
+    );
+    expect(snapshot.skipped).toEqual([item.id]);
+    await database.db.transaction((tx) =>
+      consumeNightLoadout(tx, id, at, 'historical', old, false, rules),
+    );
+    const input = {
+      mode: 'duel' as const,
+      outcome: 'win' as const,
+      durationMs: 10000,
+      valid: true,
+    };
+    const receipt = await database.db.transaction((tx) =>
+      rewardNightBattle(tx, id, at, 'historical', old, input, rules),
+    );
+    expect(receipt).toMatchObject({ coins: 7, xp: 3, totalCoins: 507, totalXp: 3 });
+    expect(
+      await database.db.transaction((tx) =>
+        rewardNightBattle(tx, id, at, 'historical', rules, input, rules),
+      ),
+    ).toEqual(receipt);
+    const wallet = await get(id);
+    expect(wallet.permanent).not.toContain('retiredSkill');
+    expect(wallet.inventory[item.id]).toBe(2);
+    expect(wallet.coins).toBe(507);
+  });
   it.each(
     (['mod', 'weapon', 'skill'] as const).flatMap((category) =>
       (['match', '24h'] as const).flatMap((term) =>
@@ -394,6 +444,8 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
         participated: true,
       };
       if (scenario === 'takeover') room.players[0]!.takenOver = true;
+      // A timeout disconnect always marks the departed player as taken over.
+      if (scenario === 'disconnect') room.players[1]!.takenOver = true;
       const reason =
         scenario === 'disconnect'
           ? 'disconnect'
@@ -404,8 +456,9 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
         await settleNightRoom(tx, room, at, reason, rules);
         await settleNightRoom(tx, room, at, reason, rules);
       });
-      expect((await get(a)).inventory['fragment:weapon'] ?? 0).toBe(
-        scenario === 'eligible' ? 2 : 0,
+      // A winner who keeps fighting through the opponent's timeout disconnect is still rewarded.
+      expect((await get(a)).inventory['fragment:weapon'] ?? 0, scenario).toBe(
+        ['eligible', 'disconnect'].includes(scenario) ? 2 : 0,
       );
       expect((await get(b)).inventory['fragment:weapon'] ?? 0).toBe(
         ['disconnect', 'abandoned', 'short', 'delayed-short'].includes(scenario) ? 0 : 1,
@@ -1190,13 +1243,15 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
     );
     await ranked.actions(id, rule.id, run.id, { seq: 1, frames: [{ input: {}, ticks: 2 }] });
     expect((await get(id)).inventory['power-match']).toBe(1);
-    map.set(rule.id, { ...rule, version: rule.version + '-next' });
+    const gate = gateFixture();
+    gate.set('disabled', 1);
     const duel = (await import(new URL('../rules/night.mjs', import.meta.url).href))
       .default as Rule;
     const changed = createCompetitionStore(
       database.db,
-      new Map([[duel.id, { ...duel, rankedVersion: rule.version + '-next' }]]),
+      new Map([[duel.id, duel]]),
       () => at,
+      gate.control,
     );
     expect((await changed.nightAssets(id)).inventory['power-match']).toBe(2);
     expect((await changed.nightAssets(id)).inventory['power-match']).toBe(2);
@@ -1265,6 +1320,15 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
                 ? 'GAME_CANCELLED'
                 : 'RULE_VERSION_CHANGED',
         });
+      if (mode.startsWith('old-')) {
+        const retained = (
+          await database.db.execute(
+            sql`select data from runtime.competition_matches where id=${`ranked-run:${run.id}`}`,
+          )
+        )[0]!.data as { status: string };
+        expect(retained.status).toBe('active');
+        registry.set(rule.id, rule);
+      }
       const results = await Promise.all([
         ranked.retireExpired(id, rule.id, run.id),
         ranked.retireExpired(id, rule.id, run.id),
@@ -1276,9 +1340,15 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
           sql`select data from runtime.competition_matches where id=${`night-assets:${id}`}`,
         )
       )[0]!.data as NightAssets;
-      expect(wallet.inventory['power-match']).toBe(mode === 'consumed' ? 1 : 2);
+      expect(wallet.inventory['power-match']).toBe(
+        ['consumed', 'old-consumed'].includes(mode) ? 1 : 2,
+      );
       expect(wallet.reservations[`run:${run.id}`]!.status).toBe(
-        mode === 'consumed' ? 'consumed' : consumed ? 'refunded' : 'released',
+        ['consumed', 'old-consumed'].includes(mode)
+          ? 'consumed'
+          : consumed
+            ? 'refunded'
+            : 'released',
       );
       const before = structuredClone(wallet);
       await ranked.retireExpired(id, rule.id, run.id);
@@ -1374,11 +1444,14 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
     expect(found).toBe(true);
     expect((await get(a)).inventory['power-match']).toBe(1);
     expect((await get(a)).coins).toBe(40);
-    const changed = { ...duel, version: duel.version + '-next' };
+    const changed = duel,
+      invalidation = gateFixture();
+    invalidation.set('disabled', 1);
     const invalid = createCompetitionStore(
       database.db,
       new Map([[changed.id, changed]]),
       () => time,
+      invalidation.control,
     );
     expect((await invalid.nightAssets(b)).inventory['power-match']).toBe(2);
     expect((await invalid.nightAssets(a)).inventory['power-match']).toBe(2);

@@ -1,15 +1,16 @@
-import { normalizeControlSnapshot } from '@coffeeeeffoc/service-kit';
+import { backendDeploymentSchema, normalizeControlSnapshot } from '@coffeeeeffoc/service-kit';
 import { randomUUID } from 'node:crypto';
 import type { AdminSession } from './store.js';
 import { createControlAccess } from './control-access.js';
 import { controlApplicationState } from './control-observations.js';
+import { newControlRevision, publishControlRevision } from './control-publication.js';
+import { nightReleaseRollbackSnapshot } from './night-operations.js';
 import {
   ADMINISTRATOR,
   CONSUMERS,
   CONTROL_GAMES,
   CONTROL_PERMISSIONS,
   ControlError,
-  parseSnapshot,
   snapshotDigest,
   type ControlMember,
   type ControlRole,
@@ -17,7 +18,6 @@ import {
   type ControlTransaction,
   type Permission,
   type Principal,
-  type Revision,
 } from './control-model.js';
 
 export function createControlService(store: ControlStore, adminOrigin: string, now = Date.now) {
@@ -66,55 +66,6 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
     )
       throw new ControlError('LAST_ADMINISTRATOR');
   }
-  async function newRevision(
-    tx: ControlTransaction,
-    actor: Principal,
-    expected: number,
-    snapshot: unknown,
-    reason: string,
-    rollbackOf: string | null = null,
-  ) {
-    await checkVersion(tx, expected);
-    const parsed = parseSnapshot(snapshot, adminOrigin);
-    const revision: Revision = {
-      id: randomUUID(),
-      parentVersion: expected,
-      snapshot: parsed,
-      reason,
-      actor: actor.memberId,
-      rollbackOf,
-      digest: snapshotDigest(parsed),
-      createdAt: now(),
-    };
-    await tx.insertRevision(revision);
-    await audit(tx, actor, rollbackOf ? 'revisions.rollback' : 'revisions.create', revision.id, {
-      expectedVersion: expected,
-      digest: revision.digest,
-      reason,
-      rollbackOf,
-    });
-    return revision;
-  }
-  async function publish(
-    tx: ControlTransaction,
-    actor: Principal,
-    revision: Revision,
-    expected: number,
-  ) {
-    await checkVersion(tx, expected);
-    if (revision.parentVersion !== expected || (await tx.published(revision.id)))
-      throw new ControlError('VERSION_CONFLICT');
-    if (snapshotDigest(revision.snapshot) !== revision.digest)
-      throw new Error('Invalid revision digest');
-    const snapshot = parseSnapshot(normalizeControlSnapshot(revision.snapshot), adminOrigin);
-    if (!(await tx.setHead(expected, revision.id, actor.memberId, now(), snapshot)))
-      throw new ControlError('VERSION_CONFLICT');
-    await audit(tx, actor, 'revisions.publish', revision.id, {
-      version: expected + 1,
-      digest: revision.digest,
-    });
-    return { version: expected + 1, revisionId: revision.id, status: 'desired' as const };
-  }
   return {
     access,
     catalog(session: AdminSession) {
@@ -137,6 +88,13 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
           snapshot: revision?.snapshot ?? null,
           digest: revision?.digest ?? null,
           policies: await tx.policies(),
+          publishedNightCompensationIds: [
+            ...new Set(
+              (await tx.publishedRevisions()).flatMap(
+                (r) => r.snapshot.nightOperations?.compensations.map((c) => c.id) ?? [],
+              ),
+            ),
+          ],
           observations,
           ...controlApplicationState(head, revision, observations, now()),
         };
@@ -144,6 +102,13 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
     },
     revisions: (session: AdminSession) =>
       withPermission(session, 'control.read', (tx) => tx.revisions()),
+    deployments: (session: AdminSession) =>
+      withPermission(session, 'control.read', async (tx) => {
+        const history = (await tx.deployments()).map((row) =>
+          backendDeploymentSchema.parse(row.detail),
+        );
+        return { current: history[0] ?? null, history };
+      }),
     members: (session: AdminSession) =>
       withPermission(session, 'members.read', (tx) => tx.members()),
     roles: (session: AdminSession) => withPermission(session, 'roles.read', (tx) => tx.roles()),
@@ -153,14 +118,22 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
       input: { expectedVersion: number; snapshot: unknown; reason: string },
     ) {
       return withPermission(session, 'control.write', (tx, actor) =>
-        newRevision(tx, actor, input.expectedVersion, input.snapshot, input.reason),
+        newControlRevision(
+          tx,
+          actor,
+          input.expectedVersion,
+          input.snapshot,
+          input.reason,
+          adminOrigin,
+          now,
+        ),
       );
     },
     publish(session: AdminSession, id: string, expected: number) {
       return withPermission(session, 'control.publish', async (tx, actor) => {
         const revision = await tx.revision(id);
         if (!revision) throw new ControlError('NOT_FOUND', 404);
-        return publish(tx, actor, revision, expected);
+        return publishControlRevision(tx, actor, revision, expected, adminOrigin, now);
       });
     },
     rollback(
@@ -172,15 +145,48 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
         if (!target || !(await tx.published(target.id))) throw new ControlError('NOT_FOUND', 404);
         if (snapshotDigest(target.snapshot) !== target.digest)
           throw new Error('Invalid revision digest');
-        const revision = await newRevision(
+        const head = await tx.head();
+        const current = head.revisionId ? await tx.revision(head.revisionId) : undefined;
+        const snapshot = normalizeControlSnapshot(target.snapshot);
+        // Control rollback must not reissue old campaigns or reactivate disabled builds.
+        if (current?.snapshot.nightOperations)
+          snapshot.nightOperations = current.snapshot.nightOperations;
+        else delete snapshot.nightOperations;
+        const revision = await newControlRevision(
           tx,
           actor,
           input.expectedVersion,
-          normalizeControlSnapshot(target.snapshot),
+          snapshot,
           input.reason,
+          adminOrigin,
+          now,
           target.id,
         );
-        return publish(tx, actor, revision, input.expectedVersion);
+        return publishControlRevision(tx, actor, revision, input.expectedVersion, adminOrigin, now);
+      });
+    },
+    rollbackNightRelease(
+      session: AdminSession,
+      input: { channel: string; buildId: string; expectedVersion: number; reason: string },
+    ) {
+      return withPermission(session, 'control.publish', async (tx, actor) => {
+        await checkVersion(tx, input.expectedVersion);
+        const snapshot = await nightReleaseRollbackSnapshot(tx, input);
+        const revision = await newControlRevision(
+          tx,
+          actor,
+          input.expectedVersion,
+          snapshot,
+          input.reason,
+          adminOrigin,
+          now,
+        );
+        await audit(tx, actor, 'night-release.rollback', input.buildId, {
+          channel: input.channel,
+          expectedVersion: input.expectedVersion,
+          reason: input.reason,
+        });
+        return publishControlRevision(tx, actor, revision, input.expectedVersion, adminOrigin, now);
       });
     },
     saveMember(

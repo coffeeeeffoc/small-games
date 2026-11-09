@@ -90,14 +90,18 @@ export type RunTransaction = {
   consumeLoadout?(): Promise<void>;
   releaseLoadout?(): Promise<void>;
   reward?(result: Settlement): Promise<void>;
-  assertControl?(): void;
+  assertControl?(): void | Promise<void>;
   run: RankedRun;
   receipt(seq: number): Promise<Receipt | undefined>;
   saveReceipt(seq: number, receipt: Receipt): Promise<void>;
   record(result: Settlement): Promise<void>;
 };
 export type RunRepository = {
-  create(run: RankedRun, auth?: PlayerAuth): Promise<RankedRun>;
+  create(
+    run: RankedRun,
+    auth?: PlayerAuth,
+    initialize?: (release?: import('./night-release.js').NightRelease) => Promise<void>,
+  ): Promise<RankedRun>;
   mutate<T>(id: string, change: (tx: RunTransaction) => Promise<T>, auth?: PlayerAuth): Promise<T>;
 };
 import type { PlayerAuth } from './auth.js';

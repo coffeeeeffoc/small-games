@@ -1,7 +1,7 @@
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { createCompetitionStore } from '../src/competition/store.js';
 import type { CompetitionControl } from '../src/competition/control.js';
-import type { GameControlPolicy } from '@coffeeeeffoc/service-kit';
+import type { GameControlPolicy, NightOperations } from '@coffeeeeffoc/service-kit';
 
 export type TestDatabase = Parameters<typeof createCompetitionStore>[0];
 export function controlDatabase(
@@ -25,17 +25,29 @@ export function controlDatabase(
 }
 export function gateFixture() {
   const events: string[] = [];
+  let operations: NightOperations | undefined;
   let state: GameControlPolicy['state'] = 'enabled',
     epoch = 0;
   const control = {
     async lock(_tx: unknown, gameId: GameControlPolicy['gameId']) {
       events.push('control');
-      return { gameId, state, killEpoch: epoch, revision: 1 };
+      return {
+        gameId,
+        state,
+        killEpoch: epoch,
+        revision: 1,
+        ...(gameId === 'night-overwatch' && operations
+          ? { nightOperations: structuredClone(operations) }
+          : {}),
+      };
     },
   } as unknown as CompetitionControl;
   return {
     control,
     events,
+    operations(next?: NightOperations) {
+      operations = next;
+    },
     set(next: typeof state, nextEpoch = epoch) {
       state = next;
       epoch = nextEpoch;

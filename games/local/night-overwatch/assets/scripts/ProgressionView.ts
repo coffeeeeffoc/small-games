@@ -159,6 +159,7 @@ export class ProgressionView {
     const cy=Math.min(h*.755,this.bottom-44),ch=Math.min(h*.19,this.bottom-cy),gap=Math.max(6,w*.009),cw=(r-l-gap*3)/4;
     const buttonGap=Math.max(5,h*.014),bh=Math.max(44,Math.min(Math.max(46,h*.133),(cy-top-bar-28-buttonGap)/2));
     const titleY=top+bar+Math.min(12,h*.045),desiredTitleW=w*(this.low?.29:.33),bw=w*.30,fw=Math.max(128,w*.175);
+    if(this.h.online?.updateNotice)this.button('online:version',this.t('版本 / 重进提示','VERSION / REOPEN'),r-fw,top+bar+4,fw,44,'panel');
     let titleX=l+8,titleW=Math.min(desiredTitleW,Math.max(0,cy-titleY-2*bh-buttonGap-16)*3);
     const titleBeside=titleW<desiredTitleW*.65;
     if(titleBeside){titleX=l+8+bw+16;titleW=Math.min(desiredTitleW,r-fw-titleX-12);}
@@ -406,19 +407,27 @@ export class ProgressionView {
     const top=y+53,bottom=this.bottom-54,lw=this.narrow?(r-l)*.32:(r-l)*.35,rx=l+lw+14,rw=r-rx,size=this.low?2:3,rowH=Math.min(this.low?68:112,(bottom-top-(size-1)*8)/size);
     this.list('inbox:'+q.section,l,top,lw,bottom-top,entries.length*(rowH+8),offset=>entries.forEach((m,i)=>{
       const yy=top+i*(rowH+8)-offset;this.panel(l,yy,lw,rowH,m.id===q.selectedMail);if(!this.narrow)this.picture('envelope',l+6,yy+6,rowH-12,rowH-12);
-      const tx=l+(this.narrow?7:rowH),title=this.h.lang==='zh'?m.title:m.id.startsWith('night-return')?'Welcome / return compensation':'Night Overwatch update';
-      const b=this.h.button('mail:'+m.id,title,l,yy,lw,rowH,this.n);b.fontSize=this.font(29,13);b.node.setPosition(tx+(lw-(tx-l))/2-this.w/2,this.height/2-yy-rowH*.38);b.node.getComponent(UITransform)!.setContentSize(lw-(tx-l)-12,rowH*.55);
+      const tx=l+(this.narrow?7:rowH),title=this.messageTitle(m);
+      const preview=this.narrow&&title.length>12?title.slice(0,11)+'…':title;
+      const b=this.h.button('mail:'+m.id,preview,l,yy,lw,rowH,this.n);b.fontSize=this.font(29,13);b.node.setPosition(tx+(lw-(tx-l))/2-this.w/2,this.height/2-yy-rowH*.38);b.node.getComponent(UITransform)!.setContentSize(lw-(tx-l)-12,rowH*.55);
       const mail=!news?q.assets?.mail.find(x=>x.id===m.id):undefined;
       this.label(mail?this.t(mail.claimed?'已领取':mail.read?'附件待领取':'未读',mail.claimed?'Claimed':mail.read?'Attachment pending':'Unread'):this.t('公告','News'),tx,yy+rowH*.64,lw-(tx-l)-8,rowH*.28,19,mail?.claimed?dim:cyan);
     }));
     this.panel(rx,top,rw,bottom-top);
     if(!selected){this.label(this.t(entries.length?'请选择本页消息':'暂无消息',entries.length?'Select a message on this page':'No messages'),rx+12,top+30,rw-24,60,35,dim);return;}
-    const title=this.h.lang==='zh'?selected.title:news?'Growth & supplies update':'Welcome / return compensation';
+    const title=this.messageTitle(selected);
     this.picture('mailAircraft',rx+5,top+5,rw-10,(bottom-top)*.33);this.h.gradient(this.g,rx+5,top+5,rw-10,(bottom-top)*.33,'#03101c88','#03101cb0');
     this.label(title,rx+18,top+(this.low?6:15),rw-36,this.low?30:Math.max(34,(bottom-top)*.14),45,ivory,true,true);
-    const body=this.h.lang==='zh'?selected.body:news?'Points retain their original rules. Coins and EXP are separate. Save solo and duel loadouts independently. Skills can be reused after cooldown.':'Your previous points, progress and verified assets are preserved. The attachment can be claimed once.';
-    const bodyLabel=this.label(body,rx+18,top+(this.low?38:(bottom-top)*.33),rw-36,this.low?bottom-top-90:(bottom-top)*.19,25,ivory,false,true);
-    if(this.low)bodyLabel.overflow=Label.Overflow.SHRINK;
+    const builtInNews=selected.id==='growth-v1'&&selected.body==='积分保持原规则。金币、经验独立记录；单人和双人分别配装。技能按冷却重复使用。';
+    const body=this.h.lang==='zh'?selected.body:builtInNews?'Points retain their original rules. Coins and EXP are separate. Save solo and duel loadouts independently. Skills can be reused after cooldown.':selected.id.startsWith('night-return')?'Your previous points, progress and verified assets are preserved. The attachment can be claimed once.':selected.body;
+    const bodyY=top+(this.low?38:(bottom-top)*.33),bodyH=news?bottom-bodyY-10:this.low?bottom-top-90:(bottom-top)*.19;
+    const bodyLabel=this.label(body,rx+18,bodyY,rw-48,bodyH,25,ivory,false,true);
+    const transform=bodyLabel.node.getComponent(UITransform)!;
+    transform.setAnchorPoint(.5,1);bodyLabel.verticalAlign=Label.VerticalAlign.TOP;
+    bodyLabel.overflow=Label.Overflow.RESIZE_HEIGHT;bodyLabel.updateRenderData(true);
+    this.list('message:'+selected.id+':'+this.h.lang,rx+18,bodyY,rw-36,bodyH,transform.contentSize.height,offset=>{
+      bodyLabel.node.parent=this.n;bodyLabel.node.setPosition(rx+18+(rw-48)/2-this.w/2,this.height/2-bodyY+offset);
+    });
     const mail=!news?q.assets?.mail.find(m=>m.id===selected.id):undefined;
     if(mail&&this.low){this.button('qm:claimMail',this.t(mail.claimed?'附件已领取':`领取 · ${mail.reward.coins}金币 / ${mail.reward.packs||0}补给箱`,mail.claimed?'CLAIMED':`CLAIM · ${mail.reward.coins} COINS / ${mail.reward.packs||0} CRATES`),rx+8,bottom-48,rw-16,44,'gold',mail.claimed||q.busy);}
     else if(mail){const cy=top+(bottom-top)*.53,cw=(rw-40)/2,ch=(bottom-top)*.26;this.picture('coins',rx+14,cy,cw,ch);this.picture('rewardSupply',rx+26+cw,cy,cw,ch);
@@ -426,6 +435,9 @@ export class ProgressionView {
       this.button('qm:claimMail',this.t(mail.claimed?'已领取':'领取附件',mail.claimed?'CLAIMED':'CLAIM ATTACHMENT'),rx+rw*.28,bottom-54,rw*.66,44,'gold',mail.claimed||q.busy);
       if(!this.narrow)this.label(this.t(mail.read?'已读':'未读',mail.read?'Read':'Unread'),rx+14,bottom-52,rw*.22,40,21,dim);
     }
+  }
+  private messageTitle(message:{id:string;title:string}){
+    return this.h.lang==='zh'?message.title:message.id.startsWith('night-return')?'Welcome / return compensation':message.id==='growth-v1'&&message.title==='成长与军需上线'?'Growth & supplies update':message.title;
   }
   private inventoryName(id:string){
     const p=this.q.catalog.find(p=>p.id===id),pack=/^pack:(general|gold):([0-3])$/.exec(id);

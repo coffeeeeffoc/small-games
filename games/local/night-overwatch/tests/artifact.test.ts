@@ -15,13 +15,16 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     const prebuilt = path.join(temp, 'prebuilt');
     for (const dir of ['assets', 'scripts', 'settings/v2/packages', 'dist'])
       await mkdir(path.join(game, dir), { recursive: true });
+    await mkdir(path.join(game, 'assets/scripts/core'), { recursive: true });
+    for (const name of ['Replay', 'Duel'])
+      await cp(new URL(`../assets/scripts/core/${name}.ts`, import.meta.url), path.join(game, `assets/scripts/core/${name}.ts`));
     await mkdir(path.join(temp, 'games/local/carding-car/scripts'), { recursive: true });
     for (const name of ['build.mjs', 'artifact.mjs', 'write-report.mjs'])
       await cp(new URL(`../scripts/${name}`, import.meta.url), path.join(game, 'scripts', name));
     for (const name of ['toolchain.mjs', 'native-targets.mjs', 'clear-output.mjs', 'cocos-branding.mjs'])
       await cp(new URL('../../carding-car/scripts/' + name, import.meta.url),
         path.join(temp, 'games/local/carding-car/scripts', name));
-    for (const file of ['scripts/h5-game-services.mjs', 'scripts/competition-service-config.mjs',
+    for (const file of ['scripts/h5-game-services.mjs', 'scripts/night-build-version.mjs', 'scripts/competition-service-config.mjs',
       'platforms/competition/client.js', 'platforms/competition/game-services.js', 'platforms/competition/game-bootstrap.js',
       'platforms/competition/legacy-polyfills.js',
       ...nightStorageSourceFiles,
@@ -31,6 +34,9 @@ test('restores matching web artifacts without Creator and rejects stale or incom
     }
     // Service packaging lowers syntax with the workspace Vite, resolved as in a real checkout.
     await symlink(fileURLToPath(new URL('../../../../node_modules', import.meta.url)), path.join(temp, 'node_modules'), 'junction');
+    // The H5 service step allocates the next front-end build number from the game's register.
+    await mkdir(path.join(game, 'publishing'), { recursive: true });
+    await cp(new URL('../publishing/versions.json', import.meta.url), path.join(game, 'publishing/versions.json'));
     await writeFile(path.join(game, 'package.json'), '{"type":"module"}\n');
     for (const name of ['engine', 'project'])
       await writeFile(path.join(game, `settings/v2/packages/${name}.json`), '{}\n');

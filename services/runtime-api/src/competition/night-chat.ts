@@ -1,3 +1,4 @@
+import { publishedNightRelease, type NightRelease } from './night-release.js';
 import { createHash } from 'node:crypto';
 import { setTimeout } from 'node:timers/promises';
 import { sql } from 'drizzle-orm';
@@ -50,6 +51,7 @@ export function createNightChat(
   now: () => number,
   control?: CompetitionControl,
   version?: string,
+  release?: NightRelease,
 ) {
   const access = async (auth: PlayerAuth) =>
     db.transaction(async (tx) => {
@@ -58,56 +60,72 @@ export function createNightChat(
       assertGameControl(policy, policy?.killEpoch, true);
       return policy;
     });
-  const snapshot = async (epoch?: number) => {
-    const rows =
-      await db.execute(sql`select m.seq,m.body,m.room,m.created_at,p.id,p.display_name,p.profile,r.data as current_room
+  const compatible = (roomVersion: string, buildId?: string, currentRelease = release) =>
+    roomVersion === (currentRelease ? currentRelease.client(buildId)?.multiplayer : version) &&
+    (!currentRelease || currentRelease.canStartClient('multiplayer', roomVersion, buildId));
+  const snapshot = async (auth: PlayerAuth, buildId?: string) =>
+    db.transaction(async (tx) => {
+      const policy = await gamePolicy(control, tx, 'night-overwatch');
+      await assertResourceAuth(tx, auth, 'night-overwatch', now());
+      assertGameControl(policy, policy?.killEpoch, true);
+      const epoch = policy?.killEpoch;
+      const currentRelease = publishedNightRelease(release, policy?.nightOperations);
+      const rows =
+        await tx.execute(sql`select m.seq,m.body,m.room,m.created_at,p.id,p.display_name,p.profile,r.data as current_room
       from runtime.night_chat_messages m join runtime.competition_players p on p.id=m.player_id
       left join runtime.competition_rooms r on r.code=m.room->>'code'
       where not m.removed and m.created_at>${now() - 86400000} order by m.seq desc limit 100`);
-    const messages = [...rows].reverse().map((row) => {
-      const ref = row.room as { code: string; createdAt: number } | null;
-      let room: { code: string; createdAt: number; canJoin: boolean } | undefined;
-      if (ref) {
-        const data = row.current_room as Room | undefined;
-        room = {
-          ...ref,
-          canJoin:
-            !!data &&
-            data.game === 'night-overwatch' &&
-            data.version === version &&
-            (epoch === undefined || (data.killEpoch ?? 0) === epoch) &&
-            data.createdAt === ref.createdAt &&
-            data.visibility !== 'private' &&
-            data.status === 'waiting' &&
-            data.players.length < 2 &&
-            data.deadline > now(),
+      const messages = [...rows].reverse().map((row) => {
+        const ref = row.room as { code: string; createdAt: number } | null;
+        let room: { code: string; createdAt: number; canJoin: boolean } | undefined;
+        if (ref) {
+          const data = row.current_room as Room | undefined;
+          room = {
+            ...ref,
+            canJoin:
+              !!data &&
+              data.game === 'night-overwatch' &&
+              compatible(data.version, buildId, currentRelease) &&
+              data.players.every((member) =>
+                compatible(data.version, member.buildId, currentRelease),
+              ) &&
+              (epoch === undefined || (data.killEpoch ?? 0) === epoch) &&
+              data.createdAt === ref.createdAt &&
+              data.visibility !== 'private' &&
+              data.status === 'waiting' &&
+              data.players.length < 2 &&
+              data.deadline > now(),
+          };
+        }
+        const profile = publicProfile(row);
+        return {
+          id: String(row.seq),
+          playerId: String(row.id),
+          nickname: profile.nickname,
+          text: String(row.body),
+          at: Number(row.created_at),
+          ...(room ? { room } : {}),
         };
-      }
-      const profile = publicProfile(row);
-      return {
-        id: String(row.seq),
-        playerId: String(row.id),
-        nickname: profile.nickname,
-        text: String(row.body),
-        at: Number(row.created_at),
-        ...(room ? { room } : {}),
-      };
+      });
+      return { messages, cursor: hash(messages), reset: true, serverNow: now() };
     });
-    return { messages, cursor: hash(messages), reset: true, serverNow: now() };
-  };
   return {
-    async list(auth: PlayerAuth, cursor?: string, waitMs = 0, cancelled = () => false) {
-      const policy = await access(auth),
-        until = Date.now() + Math.min(5000, Math.max(0, waitMs));
-      let result = await snapshot(policy?.killEpoch);
+    async list(
+      auth: PlayerAuth,
+      cursor?: string,
+      waitMs = 0,
+      cancelled = () => false,
+      buildId?: string,
+    ) {
+      const until = Date.now() + Math.min(5000, Math.max(0, waitMs));
+      let result = await snapshot(auth, buildId);
       while (cursor === result.cursor && Date.now() < until && !cancelled()) {
         await setTimeout(Math.min(500, until - Date.now()));
-        result = await snapshot(policy?.killEpoch);
+        result = await snapshot(auth, buildId);
       }
-      const latest = await access(auth);
-      return latest?.killEpoch === policy?.killEpoch ? result : snapshot(latest?.killEpoch);
+      return result;
     },
-    async send(auth: PlayerAuth, value: unknown) {
+    async send(auth: PlayerAuth, value: unknown, buildId?: string) {
       const input = chatSendSchema.parse(value),
         owner = playerIdOf(auth),
         signature = hash(input);
@@ -144,7 +162,11 @@ export function createNightChat(
           if (
             !current ||
             current.game !== 'night-overwatch' ||
-            current.version !== version ||
+            !compatible(
+              current.version,
+              buildId,
+              publishedNightRelease(release, policy?.nightOperations),
+            ) ||
             (policy && (current.killEpoch ?? 0) !== policy.killEpoch) ||
             current.visibility === 'private' ||
             current.status !== 'waiting' ||
@@ -164,7 +186,7 @@ export function createNightChat(
         await tx.execute(sql`update runtime.night_chat_messages set removed=true,body='',room=null where not removed and
           (created_at<=${now() - 86400000} or seq<(select min(seq) from (select seq from runtime.night_chat_messages order by seq desc limit 100) recent))`);
       });
-      return snapshot((await access(auth))?.killEpoch);
+      return snapshot(auth, buildId);
     },
     async report(auth: PlayerAuth, value: unknown) {
       const input = chatReportSchema.parse(value);

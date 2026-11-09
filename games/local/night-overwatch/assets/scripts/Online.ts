@@ -1,6 +1,6 @@
 import { practiceLoadout, offlineLoadout } from './core/Progression.ts';
 import { Simulation } from './core/Simulation.ts';
-import { createDuel, configureDuel, commandDuel, advanceDuel, viewDuel, type DuelCommand, type DuelState } from './core/Duel.ts';
+import { DUEL_VERSION, createDuel, configureDuel, commandDuel, advanceDuel, viewDuel, type DuelCommand, type DuelState } from './core/Duel.ts';
 import { RANKED_RULE_VERSION, observeNightInputs } from './core/Replay.ts';
 import { MISSIONS, CAMPAIGN_BOARD_VERSION } from './core/MissionCatalog.ts';
 import type { AssetCommand, AssetSnapshot, BattleLoadout } from './core/Progression.ts';
@@ -13,17 +13,23 @@ export type Settlement = { points: number; totalPoints?: number; wins?: number; 
 export type RoomSummary = { code: string; status: string; mode: string; players: Player[]; playerCount: number; canJoin: boolean; canSpectate: boolean };
 export type BattleHistory = { summary: { wins: number; losses: number; draws: number; games: number; winRate: number };
   matches: { id: string; code: string; opponent: Player; outcome: string; reason: string; startedAt: number; finishedAt: number; durationMs: number; points: number }[]; nextCursor?: string };
-export type Room = { serverNow?: number; startsAt?: number; spectator?: boolean; visibility?: string; settlement?: Settlement; code: string; status: string; mode: string; you: number; seq: number; players: Player[]; state: DuelView | null };
+export type Room = { version?: string; serverNow?: number; startsAt?: number; spectator?: boolean; visibility?: string; settlement?: Settlement; code: string; status: string; mode: string; you: number; seq: number; players: Player[]; state: DuelView | null };
 type RankingRow = Player & { rank: number; score: number; secondary: number; wins?: number; games?: number };
 type Ranking = { top: RankingRow[]; me: RankingRow | null };
 type Recorder = { start(options: { mode: string; levelId: string; practice: boolean }): Promise<{loadout?:BattleLoadout}|null|undefined>;
   record(input: Record<string, unknown>, ticks: number): void; finish(): Promise<Settlement & { accepted?: boolean; fastestEligible?: boolean } | null | undefined>; invalidate(reason?: string): void;
-  persist?(): void; recover?(): Promise<void>; pending?: number; storageDiagnostic?: string;
+  persist?(): void; saveForReentry?(): Promise<boolean>; recover?(): Promise<void>; pending?: number; storageDiagnostic?: string;
   startOffline?(options: { mode: string; levelId: string; loadout: BattleLoadout }): Promise<object | null>;
   settlement?: { playerId: string; runId: string; result: Settlement } };
 export type ChatMessage={id:string;playerId:string;nickname:string;text:string;at:number;room?:{code:string;createdAt:number;canJoin:boolean}};
 export type ChatSnapshot={messages:ChatMessage[];cursor:string;reset:boolean;serverNow:number};
-type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean;chat?:boolean;presence?:boolean } };
+export type Release = { currentBuildId: string | null; latestBuildId: string | null; update: 'none' | 'optional' | 'required'; canStartNewGames: boolean; admissions: { ranked: boolean; multiplayer: boolean }; action: 'reopen' };
+type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean;chat?:boolean;presence?:boolean }; release?: Release };
+type OnlineStorage = Pick<Storage, 'getItem' | 'setItem'> & { flush?(): Promise<void> };
+function validRelease(value: Release) {
+  const build = (id: unknown) => id === null || typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(id);
+  return value && build(value.currentBuildId) && build(value.latestBuildId) && ['none', 'optional', 'required'].includes(value.update) && typeof value.canStartNewGames === 'boolean' && typeof value.admissions?.ranked === 'boolean' && typeof value.admissions?.multiplayer === 'boolean' && value.action === 'reopen';
+}
 type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Metadata | undefined>;
   services: { createRoom(input: { mode: string; visibility?: string; password?: string }): Promise<Room>; match(): Promise<Room>; joinRoom(input: { code: string; password?: string }): Promise<Room>;
     listRooms?(): Promise<{ rooms: RoomSummary[] }>; history?(input: { cursor?: string }): Promise<BattleHistory>;
@@ -54,6 +60,40 @@ export function roomLink(href: string, code: string) {
 
 /** Transport stays in the shared services bridge; this owns only Night's screen and input state. */
 export class Online {
+  release?: Release;
+  checkingRelease = false;
+  releaseCheckFailed = false;
+  reentryStatus: '' | 'saving' | 'saved' | 'failed' | 'unsafe' = '';
+  private reentryAttempt = 0;
+  get updateNotice() { return !!this.release && (this.release.update !== 'none' || !this.release.canStartNewGames); }
+  async checkRelease() {
+    const bridge = this.bridge;
+    if (this.destroyed || this.checkingRelease || !bridge) return;
+    this.checkingRelease = true; this.revision++;
+    try {
+      const metadata = await (bridge.refresh?.() ?? bridge.ready);
+      if (this.destroyed || this.bridge !== bridge) return;
+      if (!metadata || metadata.release !== undefined && !validRelease(metadata.release)) throw Error('Release unavailable');
+      this.release = metadata.release; this.releaseCheckFailed = false;
+    } catch { if (this.bridge === bridge) this.releaseCheckFailed = true; }
+    finally { this.checkingRelease = false; if (!this.destroyed) this.revision++; }
+  }
+  async prepareReentry(safe: () => boolean) {
+    const canLeave = () => !this.destroyed && this.panel === 'version' && !this.busy && !this.active && !this.room && !this.chatSending && safe();
+    if (this.reentryStatus === 'saving') return;
+    if (!canLeave()) { this.reentryStatus = 'unsafe'; this.revision++; return; }
+    const attempt = ++this.reentryAttempt, owner = this.authenticatedId;
+    this.reentryStatus = 'saving'; this.revision++;
+    try {
+      if (this.recorder?.saveForReentry) {
+        if (!(await this.recorder.saveForReentry())) throw Error('Journal not committed');
+      } else this.recorder?.persist?.();
+      await this.storage.flush?.();
+      if (attempt !== this.reentryAttempt || this.destroyed) return;
+      this.reentryStatus = canLeave() && owner === this.authenticatedId ? 'saved' : 'unsafe';
+    } catch { if (attempt === this.reentryAttempt && !this.destroyed) this.reentryStatus = 'failed'; }
+    finally { if (!this.destroyed) this.revision++; }
+  }
   onlineCount: number | null = null;
   private presenceAvailable = false;
   private presenceEpoch = 0;
@@ -95,7 +135,7 @@ export class Online {
   private chatIntent?:{requestId:string;text:string;roomCode?:string};
   panelHistory:Online['panel'][]=[];
   get visibleChat(){return this.chatMessages.filter(m=>!this.blockedPlayers.has(m.playerId));}
-  setForeground(value:boolean){if(this.foreground===value)return;this.foreground=value;this.chatEpoch++;this.chatNext=0;this.resetPresence();}
+  setForeground(value:boolean){if(this.foreground===value)return;this.foreground=value;this.chatEpoch++;this.chatNext=0;this.resetPresence();if(value)void this.checkRelease();}
   private chatAcceptedAt=0;
   private acceptChat(result:ChatSnapshot){if(result.serverNow<this.chatAcceptedAt)return;this.chatAcceptedAt=result.serverNow;if(JSON.stringify(this.chatMessages)!==JSON.stringify(result.messages)){this.chatMessages=result.messages;this.chatRevision++;}this.chatCursor=result.cursor;}
   private async pollChat(now:number){
@@ -122,7 +162,7 @@ export class Online {
   back(){this.show(this.panelHistory.pop()||'',false);}
   dispose(){this.destroyed=true;this.rewardRefresh=undefined;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.resetPresence();}
   identity: Player;
-  panel: '' | 'menu' | 'room' | 'ranking' | 'profile' | 'create' | 'join' | 'history' = '';
+  panel: '' | 'menu' | 'room' | 'ranking' | 'profile' | 'create' | 'join' | 'history' | 'version' = '';
   rooms: RoomSummary[] = [];
   roomPage = 0;
   pageSize = 3;
@@ -199,8 +239,8 @@ export class Online {
     this.revision++;
   }
   readonly changed: (view: DuelView, start: boolean) => void;
-  private readonly storage: Pick<Storage, 'getItem' | 'setItem'>;
-  constructor(storage: Pick<Storage, 'getItem' | 'setItem'>, changed: (view: DuelView, start: boolean) => void) {
+  private readonly storage: OnlineStorage;
+  constructor(storage: OnlineStorage, changed: (view: DuelView, start: boolean) => void) {
     this.storage = storage;
     this.changed = changed;
     let saved: Player | undefined;
@@ -263,6 +303,9 @@ export class Online {
       } catch { /* A failed identity lookup must not start a run under an unconfirmed pilot. */ }
     }
     if (generation !== this.generation || attempt !== this.rankingAttempt || this.destroyed) return;
+    if (!options.practice && this.release?.admissions.ranked === false) {
+      this.rankStatus = 'update-required'; this.revision++; return;
+    }
     if (!this.ranked && !this.recorder?.recover) {
       this.rankStatus = options.practice ? 'practice' : 'unavailable'; this.revision++;
       return;
@@ -313,6 +356,8 @@ export class Online {
   }
   private acceptMetadata(metadata: Metadata | undefined) {
     if (!metadata) return;
+    if (metadata.release === undefined || validRelease(metadata.release)) this.release = metadata.release;
+    else this.releaseCheckFailed = true;
     const owner=playerId(metadata.identity);
     if (owner !== this.authenticatedId) this.resetPresence();
     if (owner !== this.authenticatedId) this.rewardRefresh = undefined;
@@ -375,10 +420,12 @@ export class Online {
     });
   }
   show(panel: Online['panel'],push=true) {
+    this.reentryAttempt++; this.reentryStatus = '';
     if(push&&panel&&panel!==this.panel)this.panelHistory.push(this.panel);
     if(panel!==this.panel){this.chatEpoch++;this.chatNext=0;}
     if (panel === 'profile') this.draftName = this.identity.nickname || this.identity.name || '';
     this.panel = panel; this.message = ''; this.revision++;
+    if (['', 'menu', 'version'].includes(panel)) void this.checkRelease();
   }
   private rememberRoom(room?: Room) {
     try { this.storage.setItem('night-overwatch-room-v1', room && !room.spectator && room.you >= 0 && room.status === 'playing'
@@ -443,6 +490,9 @@ export class Online {
     try {
       if (!this.available) this.acceptMetadata(await this.bridge?.refresh?.());
       if (generation !== this.generation) return;
+      if (!['resume', 'watch'].includes(kind) && this.release?.admissions.multiplayer === false) {
+        this.message = '当前版本暂不能新开对战，请返回首页查看版本提示'; return;
+      }
       if (!this.available || !this.bridge) {
         if (kind === 'bot') { this.busy = false; this.startBot(performance.now()); return; }
         this.message = '联机服务暂不可用，可选择本地人机练习'; return;
@@ -452,6 +502,11 @@ export class Online {
         if (generation !== this.generation) return;
         if (this.releasing) await this.releaseRoom(this.releasing);
         if (generation !== this.generation) return;
+        if (kind === 'resume') {
+          const previous = await services.getRoom({ code: input.code });
+          this.assertRoomVersion(previous);
+          if (generation !== this.generation) return;
+        }
         const room = kind === 'friend' || kind === 'bot'
         ? await services.createRoom({ mode: kind, visibility: this.privateRoom && kind === 'friend' ? 'private' : 'public', ...(this.privateRoom && kind === 'friend' ? { password: this.draftPassword } : {}) })
         : kind === 'match' ? await services.match()
@@ -471,7 +526,8 @@ export class Online {
     } catch (error) {
       if (generation === this.generation) {
         const code = (error as { code?: string }).code || '';
-        this.message = /PASSWORD/.test(code) ? '房间密码不正确，请重新输入'
+        this.message = /RULE_VERSION_CHANGED|RULE_NEW_GAMES_DISABLED|BUILD_DISABLED|BUILD_REMOVED|BACKEND_VERSION_DISABLED|NIGHT_RELEASE_UNAVAILABLE/.test(code) ? '版本暂不支持此对战，请返回首页查看版本提示'
+          : /PASSWORD/.test(code) ? '房间密码不正确，请重新输入'
           : /FULL|STARTED/.test(code) ? '房间已满或已经开战，请选择其他房间'
           : /STALE_LEASE/.test(code) ? '此对局已在另一个页面恢复'
           : '暂时无法进入房间，请检查房号与网络后重试';
@@ -570,7 +626,12 @@ export class Online {
       }
     } finally { if (generation === this.generation) this.inflight = false; }
   }
+  private assertRoomVersion(room: Room) {
+    if (room.state && room.version && room.version !== DUEL_VERSION)
+      throw Object.assign(Error('This build cannot render the historical room'), { code: 'RULE_VERSION_CHANGED' });
+  }
   private accept(room: Room) {
+    this.assertRoomVersion(room);
     const start = !this.view && !!room.state;
     this.room = room; this.syncedAt = performance.now(); this.trackPeers(room);
     const key = JSON.stringify([room.code, room.status, room.players, room.settlement, room.you]);

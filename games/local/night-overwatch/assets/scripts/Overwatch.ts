@@ -328,7 +328,7 @@ export class Overwatch extends Component {
     const failed = () => {
       if (!current()) return;
       const message: Record<string, [string,string]> = {
-        'update-required':['版本已更新，请退出游戏后重新打开','UPDATE REQUIRED · REOPEN THE GAME'],
+        'update-required':['当前版本暂不能开新局，请返回首页查看版本提示','NEW RUNS UNAVAILABLE · CHECK VERSION ON HOME'],
         'identity-changed':['账号状态已变化，请重新开始行动','ACCOUNT CHANGED · START AGAIN'],
         'storage-unavailable':['行动记录暂时无法保存，请重试','CANNOT SAVE THE RUN · PLEASE RETRY'],
         'pending-sync':['暂时无法确认本局军需，请联网后重试','CANNOT CONFIRM LOADOUT · CONNECT AND RETRY'],
@@ -600,11 +600,16 @@ export class Overwatch extends Component {
     else if(group==='info'){q.info=value;}
     q.revision++;return true;
   }
+  private canReenter = () => !this.disposed && this.sim.phase !== 'playing' && !this.starting && !this.hud.advert && !this.quartermaster?.busy && !this.quartermaster?.viewing && !this.online?.active && !this.online?.room && !this.online?.busy;
   action(id: string) {
     if(this.hud.storageError){if(id==='close'){this.hud.storageError='';this.hud.modalKey='rebuild';}return;}
     if (this.hud.layoutEditing && !['layoutDone','settings','close','resume','pause'].includes(id)) return;
     if (id === 'resultClose') id = 'home';
     const online = this.online;
+    if (['online:version', 'online:releaseSave'].includes(id) && !this.canReenter()) {
+      this.hud.toast = this.hud.t('请完成本局和当前操作，返回首页后再重进', 'FINISH THE MATCH AND CURRENT ACTION FIRST');
+      this.hud.toastUntil = Date.now() + 4000; return;
+    }
     this.platform.activate();
     if(this.progressionAction(id))return;
     if (id === 'screen') {
@@ -618,6 +623,9 @@ export class Overwatch extends Component {
       const action = id.slice(7);
       if (action === 'dismiss') { this.action(online.room || online.active ? 'online:backLobby' : 'online:back'); return; }
       this.clear(); this.hud.modalKey = 'rebuild';
+      if (action === 'version') { this.pause('settings', false); online.show('version'); return; }
+      if (action === 'releaseCheck') { void online.checkRelease(); return; }
+      if (action === 'releaseSave') { void online.prepareReentry(this.canReenter); return; }
       if(action==='chatBlocks'){online.chatMenu=online.chatMenu==='blocks'?'':'blocks';online.chatRevision++;return;}
       if(action==='chatSend'){void online.sendChat();return;}
       if(action==='roomReturn'){online.show('room');return;}
@@ -742,6 +750,7 @@ export class Overwatch extends Component {
       this.sim.phase = 'briefing';
       this.selectMission(this.selectedMission);
       this.hud.missionsOpen = false;
+      void online?.checkRelease();
       return;
     }
     if (id === 'missions' || id === 'homeMenu') {

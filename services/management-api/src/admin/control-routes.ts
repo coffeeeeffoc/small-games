@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { gameBuildId, nightChannelSchema } from '@coffeeeeffoc/service-kit';
 import type { AdminSession } from './store.js';
 import type { ControlService } from './control-service.js';
 import {
@@ -28,7 +29,8 @@ export async function registerControlRoutes(
       routes.get('/members', (request) => control.members(session(request)));
       routes.get('/roles', (request) => control.roles(session(request)));
       routes.get('/audit', (request) => control.audits(session(request)));
-      routes.post('/revisions', { bodyLimit: 16_384 }, (request) =>
+      routes.get('/deployments', (request) => control.deployments(session(request)));
+      routes.post('/revisions', { bodyLimit: 262_144 }, (request) =>
         control.draft(
           session(request),
           z
@@ -53,6 +55,20 @@ export async function registerControlRoutes(
           session(request),
           z
             .object({ revisionId: z.uuid(), expectedVersion: versionSchema, reason: reasonSchema })
+            .strict()
+            .parse(request.body),
+        ),
+      );
+      routes.post('/night-release/rollback', { bodyLimit: 2048 }, (request) =>
+        control.rollbackNightRelease(
+          session(request),
+          z
+            .object({
+              channel: nightChannelSchema,
+              buildId: gameBuildId,
+              expectedVersion: versionSchema,
+              reason: reasonSchema,
+            })
             .strict()
             .parse(request.body),
         ),

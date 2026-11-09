@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
-import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { sql } from 'drizzle-orm';
 import { openDatabase, controlSnapshotDigest } from '@coffeeeeffoc/service-kit';
 import { createControlStore } from '../services/management-api/dist/admin/control-store.js';
@@ -11,6 +13,8 @@ import { CONTROL_GAMES } from '../services/management-api/dist/admin/control-mod
 import { createManagementService } from '../services/management-api/dist/app.js';
 import {
   verifyRuntimeControl,
+  rejectUnknownNightSchema,
+  verifyNightOperations,
   verifyCompetitionIdentityLocks,
 } from './admin-control-runtime-postgres.mjs';
 
@@ -54,6 +58,11 @@ const tetracubeMigration = await readFile(
   'utf8',
 );
 receipt.tetracubeMigrationSha256 = createHash('sha256').update(tetracubeMigration).digest('hex');
+const operationsMigration = await readFile(
+  new URL('../infra/admin-console/migrations/005-night-operations.sql', import.meta.url),
+  'utf8',
+);
+receipt.operationsMigrationSha256 = createHash('sha256').update(operationsMigration).digest('hex');
 const helperMigration = execFileSync(
   process.platform === 'win32' ? 'python' : 'python3',
   [
@@ -63,7 +72,7 @@ const helperMigration = execFileSync(
     fileURLToPath(new URL('../infra/admin-console/control-database.py', import.meta.url)),
   ],
   { encoding: 'utf8' },
-);
+).replaceAll('\r\n', '\n');
 const psql = (statement) =>
   docker(
     [
@@ -386,8 +395,8 @@ try {
   const beforeTetracubePolicies = psql(
     'select jsonb_agg(p order by game_id)::text from game_control.current_policy p',
   );
-  psql('BEGIN;\n' + helperMigration + '\nCOMMIT;');
-  psql('BEGIN;\n' + helperMigration + '\nCOMMIT;');
+  psql(tetracubeMigration);
+  psql(tetracubeMigration);
   assert.equal(
     psql(
       "select jsonb_agg(p order by game_id)::text from game_control.current_policy p where game_id<>'tetracube'",
@@ -402,8 +411,16 @@ try {
   );
   assert.equal(psql('select version from game_control.schema_version'), '4');
   assert.equal(psql('select count(*) from game_control.current_policy'), '13');
+  await managementHealth(503);
+  step('v4-to-v5-night-operations');
+  rejectUnknownNightSchema(psql, operationsMigration, checked);
+  assert.equal(history(), preserved);
+  psql('BEGIN;\n' + helperMigration + '\nCOMMIT;');
+  psql('BEGIN;\n' + helperMigration + '\nCOMMIT;');
+  rejectUnknownNightSchema(psql, operationsMigration, checked);
+  assert.equal(psql('select version from game_control.schema_version'), '5');
   await managementHealth(200);
-  checked('control-enabled-management-health-rejects-schema2-and-schema3-and-accepts-schema4');
+  checked('control-enabled-management-health-rejects-schema2-3-4-and-accepts-schema5');
   assert.equal(history(), preserved);
   assert.equal(sentinel(), beforeSentinel);
   assert.equal(
@@ -413,7 +430,7 @@ try {
     'disabled:1',
   );
   assert.equal((await service.state(active)).digest, legacyDigest);
-  checked('v2-to-v3-to-v4-idempotent-preserves-published-history-digest-policies-and-ACL');
+  checked('v2-to-v3-to-v4-to-v5-idempotent-preserves-published-history-digest-policies-and-ACL');
   step('CAS-publish-rollback-and-kill-epoch');
   const snapshot = {
     apiOrigins: ['http://localhost:8080'],
@@ -534,6 +551,17 @@ try {
   });
   step('competition-identity-FK-board-lock-order');
   receipt.identityLocks = await verifyCompetitionIdentityLocks({ owner, checked });
+  step('night-operations-publication-and-deployment-facts');
+  state = await verifyNightOperations({
+    service,
+    active,
+    owner,
+    runtime,
+    url: `postgres://runtime_app:${runtimePassword}@127.0.0.1:${guard()}/control_test`,
+    checked,
+  });
+  psql(operationsMigration);
+  assert.equal((await service.state(active)).digest, state.digest);
   step('observation-and-restart-persistence');
   assert.equal(state.status, 'desired');
   await runtime.db.execute(
@@ -553,14 +581,15 @@ try {
   assert.equal((await restarted.state(active)).version, state.version);
   assert.equal((await restarted.members(active)).filter((member) => member.active).length, 1);
   assert.equal(sentinel(), beforeSentinel);
-  psql(tetracubeMigration);
-  checked('publication-members-audit-survive-database-restart');
-  const evidence = new URL(
-    '../docs/admin-console/qa/control-postgres-current.json',
-    import.meta.url,
+  psql(operationsMigration);
+  assert.deepEqual(
+    (await restarted.state(active)).snapshot.nightOperations,
+    state.snapshot.nightOperations,
   );
-  await mkdir(new URL('.', evidence), { recursive: true });
+  checked('publication-members-audit-survive-database-restart');
+  const evidence = path.join(tmpdir(), `${runId}-receipt.json`);
   await writeFile(evidence, JSON.stringify(receipt, null, 2) + '\n');
+  console.log(`CONTROL_PG_RECEIPT ${evidence}`);
   console.log(`PASS: ${receipt.checks.length} isolated PostgreSQL control checks`);
 } catch (error) {
   const detail = String(error.stderr ?? error.stack ?? error.cause?.message ?? error.message)

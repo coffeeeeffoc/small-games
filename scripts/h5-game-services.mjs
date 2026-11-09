@@ -1,8 +1,10 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { nightStorageFiles } from '../platforms/competition/night-storage/manifest.mjs';
 import { competitionService } from './competition-service-config.mjs';
+import { nightVersionMetadata } from './night-build-version.mjs';
 
 export const h5BasicServiceGames = [
   'carding-car',
@@ -106,12 +108,68 @@ export async function reconfigureGameServices(filename, env, local = false) {
     /^globalThis\.__COMPETITION_CONFIG__ = Object\.freeze\((\{[^]*\})\);\s*$/,
   );
   if (!match) throw Error('Invalid basic service configuration');
-  const { game, platform, appId, identityProvider } = JSON.parse(match[1]);
+  const { game, platform, appId, identityProvider, release } = JSON.parse(match[1]);
   if (platform !== 'h5') throw Error('Unsupported basic service platform');
   await prepareGameServices(game, path.dirname(filename), {
     env,
     local,
     tapAppId: identityProvider === 'taptap' ? appId : '',
   });
+  if (game === 'night-overwatch')
+    await stampNightBuild(path.dirname(filename), release?.channel, release);
   return true;
+}
+
+/** Stamp after all public channel/configuration edits; ZIP integrity remains a separate hash. */
+export async function stampNightBuild(directory, channel = 'web-h5', metadata) {
+  if (!['web-h5', 'taptap-h5'].includes(channel)) throw Error('Invalid Night build channel');
+  const filename = path.join(directory, 'game-service-config.js');
+  const source = await readFile(filename, 'utf8');
+  const match = source.match(
+    /^globalThis\.__COMPETITION_CONFIG__ = Object\.freeze\((\{[^]*\})\);\s*$/,
+  );
+  if (!match) throw Error('Invalid basic service configuration');
+  const config = JSON.parse(match[1]);
+  if (config.game !== 'night-overwatch' || config.platform !== 'h5')
+    throw Error('Invalid Night build');
+  const versions = {};
+  for (const [kind, file, symbol] of [
+    ['ranked', 'Replay', 'RANKED_RULE_VERSION'],
+    ['multiplayer', 'Duel', 'DUEL_VERSION'],
+  ]) {
+    const code = await readFile(
+      new URL(`../games/local/night-overwatch/assets/scripts/core/${file}.ts`, import.meta.url),
+      'utf8',
+    );
+    const version = code.match(new RegExp(`export const ${symbol} = '([A-Za-z0-9._-]+)'`))?.[1];
+    if (!version) throw Error('Missing Night rule version');
+    versions[kind] = version;
+  }
+  const original = metadata ?? config.release;
+  const numbered =
+    original?.version !== undefined || original?.backendVersion !== undefined
+      ? nightVersionMetadata(original)
+      : {};
+  config.release = { channel, ...versions, ...numbered };
+  const serialize = () =>
+    `globalThis.__COMPETITION_CONFIG__ = Object.freeze(${JSON.stringify(config)});\n`;
+  const files = [];
+  for (const entry of await readdir(directory, { recursive: true, withFileTypes: true })) {
+    if (entry.isDirectory()) continue;
+    if (!entry.isFile()) throw Error('Night build cannot contain linked files');
+    files.push(
+      path.relative(directory, path.join(entry.parentPath, entry.name)).replaceAll('\\', '/'),
+    );
+  }
+  const hash = createHash('sha256');
+  for (const file of files.sort()) {
+    const bytes =
+      file === 'game-service-config.js'
+        ? Buffer.from(serialize())
+        : await readFile(path.join(directory, file));
+    hash.update(file + '\0' + bytes.length + '\0').update(bytes);
+  }
+  config.release.buildId = 'night-' + hash.digest('hex');
+  await writeFile(filename, serialize());
+  return config.release;
 }

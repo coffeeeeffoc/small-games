@@ -114,7 +114,12 @@ export const attackPreview = (effects: readonly string[]) => {
   return { shots, secondaryStrength: shots > 1 ? .6 : 0,
     heatMultiplier: effects.includes('cooling') ? .85 : 1 };
 };
-export const PROGRESSION = { version: GROWTH_VERSION, economy: ECONOMY, catalog: CATALOG, packages: PACKAGES, pools: POOLS, skills: SKILLS, wheelPrizes:WHEEL_PRIZES, levelProgress, validLoadout };
+export const BATTLE_REWARDS = {
+  solo: { win: { coins: 180, xp: 120 }, loss: { coins: 40, xp: 35 }, draw: { coins: 40, xp: 35 } },
+  duel: { win: { coins: 200, xp: 140 }, loss: { coins: 60, xp: 70 }, draw: { coins: 100, xp: 70 } },
+  bot: { win: { coins: 100, xp: 80 }, loss: { coins: 30, xp: 25 }, draw: { coins: 30, xp: 25 } },
+};
+export const PROGRESSION = { version: GROWTH_VERSION, economy: ECONOMY, battleRewards: BATTLE_REWARDS, catalog: CATALOG, packages: PACKAGES, pools: POOLS, skills: SKILLS, wheelPrizes:WHEEL_PRIZES, levelProgress, validLoadout };
 
 /** Offline runs may only use gear that cannot be lost before a later sync: permanent effects and the known level. */
 export function offlineLoadout(assets:AssetSnapshot|undefined):BattleLoadout {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Online, playerId, playerLabel, invitation, roomLink } from '../assets/scripts/Online.ts';
+import { Online, playerId, playerLabel, invitation, roomLink, type Release } from '../assets/scripts/Online.ts';
 import { createDuel, viewDuel } from '../assets/scripts/core/Duel.ts';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { assetFixture } from './progression-fixture.ts';
@@ -16,6 +16,53 @@ function fixture() {
     createRecorder: () => ({ start: async () => null, record() {}, finish: async () => null, invalidate() {} }) };
   return { current, bridge, received, count: () => calls, fail: () => { fail = true; } };
 }
+
+const release = (overrides: Partial<Release> = {}): Release => ({ currentBuildId: 'old', latestBuildId: 'new', update: 'optional', canStartNewGames: true, admissions: { ranked: true, multiplayer: true }, action: 'reopen', ...overrides });
+test('version checks never navigate or interrupt play; errors retain the last known admission policy', async () => {
+  const f = fixture(), online = new Online(storage(), () => {});
+  let next: Release | undefined = release(), fail = false;
+  Object.assign(f.bridge, { refresh: async () => { if(fail)throw Error('offline');return { ...await f.bridge.ready, release: next }; } });
+  await online.connect(f.bridge); online.panel = 'room';
+  await online.checkRelease(); assert.equal(online.panel, 'room'); assert(online.updateNotice);
+  next = release({ admissions: { ranked: false, multiplayer: true }, canStartNewGames: false, update: 'required' });
+  await online.checkRelease(); await online.startRanking({ mode: 'campaign', levelId: 'first', practice: false });
+  assert.equal(online.rankStatus, 'update-required');
+  fail = true; await online.checkRelease(); assert(online.releaseCheckFailed); assert.equal(online.release?.admissions.ranked, false);
+  fail = false; next = undefined; await online.checkRelease(); assert.equal(online.release, undefined); assert(!online.updateNotice);
+  online.dispose();
+});
+test('safe reentry waits for flush, preserves pending settlement, and rechecks activity and identity', async () => {
+  for (const outcome of ['saved', 'failed', 'unsafe', 'owner'] as const) {
+    const f = fixture(); let finish!: () => void, safe = true;
+    const disk = { ...storage(), flush: () => new Promise<void>((resolve, reject) => { finish = () => outcome === 'failed' ? reject(Error('disk')) : resolve(); }) };
+    const online = new Online(disk, () => {}); await online.connect(f.bridge); online.show('version');
+    online.rankStatus = 'pending-sync';
+    const save = online.prepareReentry(() => safe);
+    assert.equal(online.reentryStatus, 'saving');
+    if (outcome === 'unsafe') safe = false;
+    if (outcome === 'owner') online.authenticatedId = 'other';
+    finish(); await save;
+    assert.equal(online.reentryStatus, outcome === 'owner' ? 'unsafe' : outcome);
+    assert.equal(online.rankStatus, 'pending-sync'); online.dispose();
+  }
+});
+test('reentry rejects active rooms and failed journals without issuing a safe-to-exit notice', async () => {
+  const f = fixture(), online = new Online(storage(), () => {});
+  await online.connect(f.bridge); online.show('version'); online.room = room();
+  await online.prepareReentry(() => true); assert.equal(online.reentryStatus, 'unsafe');
+  online.room = undefined; Object.assign(online.recorder!, { saveForReentry: async () => false });
+  await online.prepareReentry(() => true); assert.equal(online.reentryStatus, 'failed');
+  online.dispose();
+});
+
+test('a new client refuses incompatible active room state before taking over the existing connection', async () => {
+  const f = fixture(), online = new Online(storage(), () => {}); let connections = 0;
+  Object.assign(f.current, { status: 'playing', version: 'older-duel', state: { incompatible: true } });
+  Object.assign(f.bridge.services, { connectRoom: async () => { connections++; return f.current; } });
+  await online.connect(f.bridge); await online.open('resume', f.current.code);
+  assert.equal(connections, 0); assert.equal(online.room, undefined); assert.equal(online.simulation, undefined);
+  assert(online.message); online.dispose();
+});
 test('server-confirmed ranked retirement displays a new-run notice instead of pending sync', async () => {
   const f=fixture(), online=new Online(storage(),()=>{}); let status:(value:string)=>void=()=>{};
   Object.assign(f.bridge,{createRecorder:(_version:string, options:any)=>{status=options.onStatus;return {start:async()=>null,record(){},finish:async()=>null,invalidate(){}};}});

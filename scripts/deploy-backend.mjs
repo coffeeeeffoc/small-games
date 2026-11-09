@@ -11,6 +11,8 @@ import { selectedBackendBuildCommands, backendPackages } from './backend-build.m
 import { prepareSelectedBackend } from './deployment-bundle.mjs';
 import { deploymentCommand } from './deployment-progress.mjs';
 import { pnpmInvocation } from './validate-push.mjs';
+import { releaseVersion } from './night-build-version.mjs';
+import { backendDeploymentSchema } from '../packages/service-kit/src/backend-deployment.ts';
 
 const allowed = ['runtime', 'kart', 'tianxia'],
   remoteRoot = '/opt/small-games/backend-updates';
@@ -35,6 +37,7 @@ export function backendInput(args) {
     args,
     options: {
       services: { type: 'string' },
+      version: { type: 'string' },
       prepare: { type: 'boolean' },
       check: { type: 'boolean' },
       rollback: { type: 'string' },
@@ -52,6 +55,13 @@ export function backendInput(args) {
   );
   assert([values.prepare, values.check, values.rollback].filter(Boolean).length <= 1, 'ARGUMENTS');
   if (values.rollback) assert(/^[a-z0-9-]{1,100}$/.test(values.rollback), 'ARGUMENTS');
+  if (!values.check && !values.rollback) {
+    try {
+      releaseVersion(values.version);
+    } catch {
+      throw Error('BACKEND_VERSION');
+    }
+  } else assert(values.version === undefined, 'ARGUMENTS');
   if (values['platform-config-file'] !== undefined)
     assert(
       values['platform-config-file'].trim() &&
@@ -70,6 +80,7 @@ export function backendInput(args) {
           ? 'rollback'
           : 'execute',
     services,
+    ...(!values.check && !values.rollback ? { backendVersion: values.version } : {}),
     release: values.rollback,
     ...(values['platform-config-file']
       ? { platformConfigFile: values['platform-config-file'] }
@@ -115,22 +126,56 @@ export async function readPlatformConfiguration(file, workspace = root) {
     throw Error('PLATFORM_CONFIG');
   }
 }
-export function backendDockerfile(services) {
+export function backendDockerfile(services, { backendVersion, head, nightRules } = {}) {
   assert(services.length && services.every((name) => allowed.includes(name)), 'BACKEND_SELECTION');
+  releaseVersion(backendVersion);
+  assert(/^[a-f0-9]{40}$/.test(head), 'SOURCE');
+  const labels = {
+    'io.small-games.backend-version': backendVersion,
+    'org.opencontainers.image.revision': head,
+  };
+  for (const [kind, version] of Object.entries(nightRules ?? {})) {
+    assert(
+      ['ranked', 'multiplayer'].includes(kind) && /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(version),
+      'SOURCE',
+    );
+    labels['io.small-games.night-' + kind] = version;
+  }
+  const label =
+    'LABEL ' +
+    Object.entries(labels)
+      .map(([key, value]) => key + '=' + JSON.stringify(value))
+      .join(' ') +
+    '\n';
   const entry = {
     runtime: 'services/runtime-api/dist/main.js',
     kart: 'services/kart-server/src/main.ts',
     tianxia: 'services/tianxia-server/src/main.mjs',
   }[services.includes('runtime') ? 'runtime' : services[0]];
-  return `FROM node:24.21.0-bookworm-slim\nWORKDIR /app\nRUN npm install -g pnpm@12.6.0\nCOPY --chown=node:node backend/ ./\nRUN pnpm ${services.map((name) => '--filter ' + backendPackages[name] + '...').join(' ')} install --prod --frozen-lockfile --ignore-scripts && mkdir -p /app/outbox /app/results && chown node:node /app/outbox /app/results\nENV NODE_ENV=production\nUSER node\nCMD ["node",${JSON.stringify(entry)}]\n`;
+  return `FROM node:24.21.0-bookworm-slim\n${label}WORKDIR /app\nRUN npm install -g pnpm@12.6.0\nCOPY --chown=node:node backend/ ./\nRUN pnpm ${services.map((name) => '--filter ' + backendPackages[name] + '...').join(' ')} install --prod --frozen-lockfile --ignore-scripts && mkdir -p /app/outbox /app/results && chown node:node /app/outbox /app/results\nENV NODE_ENV=production\nUSER node\nCMD ["node",${JSON.stringify(entry)}]\n`;
 }
 export async function writeBackendBundle(
   destination,
-  { head, release, services },
+  { head, release, services, backendVersion },
   workspace = root,
 ) {
   assert(/^[a-f0-9]{40}$/.test(head) && /^[a-z0-9-]{1,100}$/.test(release), 'SOURCE');
-  backendDockerfile(services);
+  const nightRules = services.includes('runtime') ? {} : undefined;
+  for (const [kind, file, symbol] of services.includes('runtime')
+    ? [
+        ['ranked', 'Replay', 'RANKED_RULE_VERSION'],
+        ['multiplayer', 'Duel', 'DUEL_VERSION'],
+      ]
+    : []) {
+    const source = await readFile(
+      path.join(workspace, `games/local/night-overwatch/assets/scripts/core/${file}.ts`),
+      'utf8',
+    );
+    const version = source.match(new RegExp(`export const ${symbol} = '([A-Za-z0-9._-]+)'`))?.[1];
+    assert(version, 'SOURCE');
+    nightRules[kind] = version;
+  }
+  const dockerfile = backendDockerfile(services, { backendVersion, head, nightRules });
   await mkdir(destination);
   await prepareSelectedBackend(path.join(destination, 'backend'), services, workspace);
   await cp(
@@ -143,7 +188,7 @@ export async function writeBackendBundle(
     path.join(destination, 'image-authority.py'),
     { force: false, errorOnExist: true },
   );
-  await writeFile(path.join(destination, 'Dockerfile'), backendDockerfile(services));
+  await writeFile(path.join(destination, 'Dockerfile'), dockerfile);
   const files = await fileHashes(destination);
   assert(
     !Object.keys(files).some((name) => /(?:^|\/)\.env(?:\.|$)|\.(?:pem|key|sql)$/i.test(name)),
@@ -151,6 +196,8 @@ export async function writeBackendBundle(
   );
   const manifest = {
     version: 1,
+    backendVersion,
+    ...(nightRules ? { nightRules } : {}),
     sourceSHA: head,
     release,
     services,
@@ -212,6 +259,7 @@ export function backendReceipt(text, selection) {
     'isolatedRestoreVerified',
     'activeImages',
     'imageCapabilities',
+    'deployment',
   ];
   assert(
     Object.keys(value).length === keys.length &&
@@ -227,6 +275,11 @@ export function backendReceipt(text, selection) {
     'REMOTE_RECEIPT',
   );
   assert.deepEqual(value.services, selection, 'REMOTE_RECEIPT');
+  assert(backendDeploymentSchema.safeParse(value.deployment).success, 'REMOTE_RECEIPT');
+  assert.deepEqual(value.deployment.services, selection, 'REMOTE_RECEIPT');
+  assert.equal(value.deployment.mode, value.mode, 'REMOTE_RECEIPT');
+  assert.equal(value.deployment.release, value.release, 'REMOTE_RECEIPT');
+  assert.deepEqual(value.deployment.activeImages, value.activeImages, 'REMOTE_RECEIPT');
   assert(
     Array.isArray(value.recreateCompanions) &&
       value.recreateCompanions.length <= 1 &&
@@ -282,11 +335,13 @@ export function backendReceipt(text, selection) {
   );
   for (const [name, proof] of Object.entries(value.imageCapabilities)) {
     assert(proof && typeof proof === 'object' && !Array.isArray(proof), 'REMOTE_RECEIPT');
+    const operations = name === 'runtime' && Object.hasOwn(proof, 'nightOperations');
     assert.deepEqual(
       Object.keys(proof).sort(),
-      ['image', ...Object.keys(floors[name])].sort(),
+      ['image', ...Object.keys(floors[name]), ...(operations ? ['nightOperations'] : [])].sort(),
       'REMOTE_RECEIPT',
     );
+    if (operations) assert.equal(proof.nightOperations, 1, 'REMOTE_RECEIPT');
     assert.equal(proof.image, value.activeImages[name], 'REMOTE_RECEIPT');
     for (const [key, minimum] of Object.entries(floors[name]))
       assert(
@@ -301,7 +356,7 @@ export async function main(args = process.argv.slice(2)) {
   const input = backendInput(args);
   if (input.mode === 'help') {
     console.log(
-      'pnpm deploy:backend --services=runtime[,kart,tianxia] [--prepare|--check|--rollback=release] [--platform-config-file=private.json]\n只更新已存在的选定后端；平台密钥文件仅用于 Runtime 正式更新，经 SSH stdin 传入，不进入部署包。',
+      'pnpm deploy:backend --services=runtime[,kart,tianxia] --version=1.0.0 [--prepare] [--platform-config-file=private.json]\n查询用 --check；镜像回滚用 --rollback=release（恢复旧镜像版本，不指定 --version）。只更新已存在的选定后端；平台密钥文件仅用于 Runtime 正式更新，经 SSH stdin 传入，不进入部署包。',
     );
     return;
   }
@@ -369,7 +424,12 @@ export async function main(args = process.argv.slice(2)) {
     parent = path.join(root, 'outputs/backend-deploy');
   await mkdir(parent, { recursive: true });
   const directory = path.join(parent, release),
-    manifest = await writeBackendBundle(directory, { head, release, services: input.services });
+    manifest = await writeBackendBundle(directory, {
+      head,
+      release,
+      services: input.services,
+      backendVersion: input.backendVersion,
+    });
   const archive = directory + '.tar.gz';
   await run('tar', ['-czf', archive, '-C', directory, '.'], { stage: 'archive' });
   const hash = createHash('sha256')
@@ -420,6 +480,8 @@ export async function main(args = process.argv.slice(2)) {
   });
   const receipt = backendReceipt(text, input.services);
   assert.equal(receipt.sourceSHA, head, 'REMOTE_RECEIPT');
+  assert.equal(receipt.deployment.version, input.backendVersion, 'REMOTE_RECEIPT');
+  assert.equal(receipt.deployment.sourceSHA, head, 'REMOTE_RECEIPT');
   await writeFile(path.join(directory, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
   console.log(JSON.stringify(receipt));
 }
@@ -427,6 +489,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
   main().catch((error) => {
     const allowed = new Set([
       'BACKEND_SELECTION',
+      'BACKEND_VERSION',
       'ARGUMENTS',
       'GIT_FAILED',
       'TIMEOUT',

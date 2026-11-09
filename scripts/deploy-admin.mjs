@@ -436,6 +436,7 @@ const controlHelpers = {
     'infra/admin-console/migrations/003-night-overwatch-control.sql',
   'migrations/004-tetracube-control.sql':
     'infra/admin-console/migrations/004-tetracube-control.sql',
+  'migrations/005-night-operations.sql': 'infra/admin-console/migrations/005-night-operations.sql',
   'migrations/014-player-sessions.sql': 'infra/migrations/014-player-sessions.sql',
 };
 
@@ -541,8 +542,8 @@ export async function writeControlBundle(
     services: runnerOnly ? [] : [...services],
     scope: 'admin-control',
     qualityChecks: 'not-run',
-    controlSchemaVersion: 4,
-    migrationArtifactSha256: files['migrations/004-tetracube-control.sql'],
+    controlSchemaVersion: 5,
+    migrationArtifactSha256: files['migrations/005-night-operations.sql'],
     cspContractSha256: files['admin-csp-contract.json'],
     adminHtml: runnerOnly
       ? null
@@ -629,7 +630,7 @@ export async function readControlBundle(directory) {
     typeof manifest.files !== 'object' ||
     manifest.scope !== 'admin-control' ||
     manifest.qualityChecks !== 'not-run' ||
-    manifest.controlSchemaVersion !== 4 ||
+    manifest.controlSchemaVersion !== 5 ||
     !['control-application', 'control-runner'].includes(manifest.kind)
   )
     stop('BUNDLE_UNSAFE');
@@ -691,7 +692,7 @@ export async function readControlBundle(directory) {
     Object.keys(controlHelpers)
       .filter((name) => name !== 'migrations/014-player-sessions.sql')
       .some((name) => !manifest.files[name]) ||
-    manifest.migrationArtifactSha256 !== manifest.files['migrations/004-tetracube-control.sql'] ||
+    manifest.migrationArtifactSha256 !== manifest.files['migrations/005-night-operations.sql'] ||
     manifest.cspContractSha256 !== manifest.files['admin-csp-contract.json'] ||
     (await readFile(path.join(directory, 'admin-csp-contract.json'), 'utf8')) !==
       JSON.stringify(controlCspContract, null, 2) + '\n'
@@ -859,7 +860,7 @@ export function controlReceipt(text, mode, runnerSourceSHA) {
       'metadataSha256,projectionSha256,schema,schemaVersion,version' ||
     contract.version !== 1 ||
     contract.schema !== 'game_control' ||
-    contract.schemaVersion !== 4 ||
+    contract.schemaVersion !== 5 ||
     ['projectionSha256', 'metadataSha256'].some(
       (key) => typeof contract[key] !== 'string' || !/^[a-f0-9]{64}$/.test(contract[key]),
     ) ||

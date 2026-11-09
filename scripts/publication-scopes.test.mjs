@@ -90,7 +90,10 @@ test('Night presence additions retain exact immediate and cumulative consumers',
     'platforms/competition/game-services.js',
     'platforms/competition/tests/game-services.test.mjs',
   ];
-  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const readHead = (file) =>
+    execFileSync('git', ['show', 'b2a9dc3e581dc79fd60bede8c1606b7d583ad71a:' + file], {
+      encoding: 'utf8',
+    });
   for (const file of changedPaths) {
     assert.notEqual(nightPresencePrevious(file, readHead(file)), undefined, file);
     assert.equal(nightPresencePrevious(file, readHead(file) + '\n// extra delta'), undefined, file);
@@ -456,6 +459,7 @@ import {
   sharedDeploymentScopePaths,
   selectedBackendConsumers,
   backendDeploymentScopePaths,
+  nightBuildVersionScopePaths,
   rankedRetentionScopePaths,
   backendSharedScopePaths,
   imageAuthorityScopePaths,
@@ -5075,7 +5079,10 @@ test('selected backend tools and additive local build commands have finite consu
     after.replace('"scripts": {', '"scripts": {}, "scripts": {'),
   ])
     assert.equal(targetedCommandsOnly(before, current), null);
-  for (const file of [...backendDeploymentScopePaths, 'package.json']) {
+  for (const file of [
+    ...backendDeploymentScopePaths.filter((file) => !nightBuildVersionScopePaths.includes(file)),
+    'package.json',
+  ]) {
     const context = {
       changedPaths: [file],
       packages,

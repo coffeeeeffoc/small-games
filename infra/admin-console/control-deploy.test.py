@@ -21,7 +21,7 @@ control = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(control)
 SHA = 'a' * 40
 IMAGE = 'sha256:' + 'b' * 64
-CONTRACT = {'version': 1, 'schema': 'game_control', 'schemaVersion': 4,
+CONTRACT = {'version': 1, 'schema': 'game_control', 'schemaVersion': 5,
             'projectionSha256': 'c' * 64, 'metadataSha256': 'd' * 64}
 
 
@@ -61,7 +61,7 @@ class ControlContracts(unittest.TestCase):
             base = Path(folder).resolve()
             release = base / 'releases' / 'candidate'
             release.mkdir(parents=True)
-            names = ['control-deploy.py', 'control-database.py', 'control-fingerprint.sql', 'legacy-tools.py', 'backend-context.py', 'image-authority.py', 'migrations/002-control-center.sql', 'migrations/003-night-overwatch-control.sql', 'migrations/004-tetracube-control.sql', 'admin-csp-contract.json']
+            names = ['control-deploy.py', 'control-database.py', 'control-fingerprint.sql', 'legacy-tools.py', 'backend-context.py', 'image-authority.py', 'migrations/002-control-center.sql', 'migrations/003-night-overwatch-control.sql', 'migrations/004-tetracube-control.sql', 'migrations/005-night-operations.sql', 'admin-csp-contract.json']
             files = {}
             for name in names:
                 target = release / name
@@ -71,17 +71,39 @@ class ControlContracts(unittest.TestCase):
                 files[name] = hashlib.sha256(data).hexdigest()
             value = {'version': 2, 'release': 'candidate', 'sourceSHA': SHA, 'kind': 'control-runner', 'services': [], 'scope': 'admin-control', 'qualityChecks': 'not-run', 'controlSchemaVersion': 4, 'migrationArtifactSha256': files[names[-2]], 'cspContractSha256': files['admin-csp-contract.json'], 'adminHtml': None, 'files': files}
             with patch.object(control, 'BASE', base):
-                for version, migration in ((2, names[-4]), (3, names[-3]), (4, names[-2])):
+                for version, migration in ((2, names[-5]), (3, names[-4]), (4, names[-3]), (5, names[-2])):
                     value.update(controlSchemaVersion=version, migrationArtifactSha256=files[migration])
                     (release / 'manifest.json').write_text(json.dumps(value))
                     self.assertEqual(control.manifest_from(release, True), value)
-                    if version == 4: self.assertEqual(control.manifest_from(release), value)
+                    if version == 5: self.assertEqual(control.manifest_from(release), value)
                     else:
                         with self.assertRaisesRegex(control.Stopped, 'RELEASE_MANIFEST'): control.manifest_from(release)
-                for version in (1, 5, True):
+                for version in (1, 6, True):
                     value['controlSchemaVersion'] = version
                     (release / 'manifest.json').write_text(json.dumps(value))
                     with self.assertRaisesRegex(control.Stopped, 'RELEASE_MANIFEST'): control.manifest_from(release, True)
+
+    def test_schema4_old_image_restore_is_only_before_commit(self):
+        release = Path('/fixture/candidate')
+        state = dict(journal(release), initialFloor='schema4', phase='verified-not-committed',
+                     verifiedNotCommitted=True, newActivationAttempted=False)
+        self.assertEqual(control.adoption_journal(state, release, manifest()), state)
+        with patch.object(control, 'database_floor', return_value='schema4') as floor, patch.object(control, 'assert_env'), patch.object(control, 'check_protected'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'target_inventory', side_effect=lambda name: state['inventory'][name]), patch.object(control, 'authority') as authority, patch.object(control, 'command') as command, patch.object(control, 'save_journal'), patch.object(control, 'service_health'), patch.object(control, 'assert_nginx'):
+            control.restore_before_migration(release, state, explicit_not_committed=True)
+            authority.assert_called_once_with({name: state['inventory'][name]['image'] for name in control.SERVICES}, control_catalog=4, night_operations=False)
+            for actual_floor, activated, proven in [('schema5', False, True), ('schema4', True, True), ('schema4', False, False)]:
+                floor.return_value = actual_floor
+                state['newActivationAttempted'] = activated
+                command.reset_mock()
+                with self.assertRaisesRegex(control.Stopped, 'DATABASE_OUTCOME_UNKNOWN'):
+                    control.restore_before_migration(release, state, explicit_not_committed=proven)
+                command.assert_not_called()
+
+    def test_current_authority_requires_operations_without_changing_catalog(self):
+        module = SimpleNamespace(require_images=Mock(return_value={}), AuthorityError=RuntimeError)
+        with patch.object(control, 'support', return_value=module):
+            control.authority({'management': IMAGE})
+            module.require_images.assert_called_once_with({'management': IMAGE}, 'AUTHORITY_IMAGE_REQUIRED', control_catalog=4, night_operations=True)
 
     def test_pointer_retry_preserves_previous_and_rejects_unexpected_current(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -160,7 +182,7 @@ class ControlContracts(unittest.TestCase):
             'COMPETITION_CONTROL_INSTANCE_ID': 'small-games-runtime',
             'COMPETITION_CORS_ORIGINS': 'http://localhost:8080,https://ma-h5-al.tapimg.com,https://coffeeeeffoc.github.io',
             'COMPETITION_CORS_METHODS': 'GET,POST,OPTIONS',
-            'COMPETITION_CORS_HEADERS': 'authorization,content-type',
+            'COMPETITION_CORS_HEADERS': 'authorization,content-type,x-game-build',
             'COMPETITION_CORS_CREDENTIALS': 'false'})
         self.assertEqual(control.PUBLIC_ENV['management'], {'ADMIN_CONTROL_ENABLED': 'true'})
         self.assertNotIn('COMPETITION_CORS_ORIGINS', control.PUBLIC_ENV['kart'])
@@ -378,7 +400,7 @@ class ControlContracts(unittest.TestCase):
                      verifiedNotCommitted=True, stopped=[], barrierAttempted=False)
         with patch.object(control, 'database_floor', return_value='schema3') as floor, patch.object(control, 'assert_env'), patch.object(control, 'check_protected'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'target_inventory', side_effect=lambda name: state['inventory'][name]), patch.object(control, 'authority') as authority, patch.object(control, 'command') as command, patch.object(control, 'save_journal'):
             control.restore_before_migration(release, state, explicit_not_committed=True)
-            authority.assert_called_once_with({name: state['inventory'][name]['image'] for name in control.SERVICES}, control_catalog=3)
+            authority.assert_called_once_with({name: state['inventory'][name]['image'] for name in control.SERVICES}, control_catalog=3, night_operations=False)
             command.assert_not_called()
             authority.reset_mock()
             for actual_floor in ('schema4', 'schema2', 'absent'):
@@ -432,7 +454,7 @@ class ControlContracts(unittest.TestCase):
         proof = {'controlContract': CONTRACT}
         domain = SimpleNamespace(provision_control_database=Mock(), provision_player_sessions=Mock())
         calls = []
-        with patch.object(control, 'domain_module', return_value=domain), patch.object(control, 'private_directory'), patch.object(control, 'private_json', return_value=state), patch.object(control, 'write_private'), patch.object(control, 'assert_nginx'), patch.object(control, 'target_inventory', return_value=state['inventory']['postgres']), patch.object(control, 'database_floor', return_value='schema4'), patch.object(control, 'read_precommit', return_value=(proof, 'f' * 64)), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'verified_database'), patch.object(control, 'activate_services', side_effect=control.Stopped('COMMAND_FAILED')), patch.object(control, 'command', side_effect=lambda *args: calls.append(args)), patch.object(control, 'restore_before_migration') as restore:
+        with patch.object(control, 'domain_module', return_value=domain), patch.object(control, 'private_directory'), patch.object(control, 'private_json', return_value=state), patch.object(control, 'write_private'), patch.object(control, 'assert_nginx'), patch.object(control, 'target_inventory', return_value=state['inventory']['postgres']), patch.object(control, 'database_floor', return_value='schema5'), patch.object(control, 'read_precommit', return_value=(proof, 'f' * 64)), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'verified_database'), patch.object(control, 'activate_services', side_effect=control.Stopped('COMMAND_FAILED')), patch.object(control, 'command', side_effect=lambda *args: calls.append(args)), patch.object(control, 'restore_before_migration') as restore:
             with self.assertRaisesRegex(control.Stopped, 'COMMAND_FAILED'):
                 with patch.object(Path, 'resolve', return_value=control.BASE / 'releases' / state['previous']):
                     control.adopt(release, manifest(), Path('/caddy'), True)
@@ -584,7 +606,7 @@ class ApplicationRepair(unittest.TestCase):
                 'domain_module': {'return_value': domain},
                 'read_precommit': {'return_value': ({'controlContract': CONTRACT}, '9' * 64)},
                 'assert_nginx': {'side_effect': ingress}, 'check_protected': {},
-                'database_floor': {'return_value': 'schema4'}, 'verified_database': {}, 'assert_env': {},
+                'database_floor': {'return_value': 'schema5'}, 'verified_database': {}, 'assert_env': {},
                 'target_inventory': {'side_effect': lambda name, **_: copy.deepcopy(live.get(name))},
                 'service_health': {}, 'assert_live_flags': {}, 'authority': {},
                 'build_image': {'return_value': new_image},
@@ -734,7 +756,7 @@ class HelperBoundary(unittest.TestCase):
             release = base / 'releases/candidate'
             (release / 'migrations').mkdir(parents=True)
             (private / release.name).mkdir(mode=0o700)
-            files = ('control-database.py', 'control-fingerprint.sql', 'migrations/002-control-center.sql', 'migrations/003-night-overwatch-control.sql', 'migrations/004-tetracube-control.sql', 'migrations/014-player-sessions.sql')
+            files = ('control-database.py', 'control-fingerprint.sql', 'migrations/002-control-center.sql', 'migrations/003-night-overwatch-control.sql', 'migrations/004-tetracube-control.sql', 'migrations/005-night-operations.sql', 'migrations/014-player-sessions.sql')
             for name in files:
                 shutil.copyfile((Path(control.__file__).parent.parent if name.endswith('014-player-sessions.sql') else Path(control.__file__).parent) / name, release / name)
             value = dict(manifest(), release=release.name, migrationArtifactSha256=db.MIGRATION_SHA256,
@@ -902,7 +924,7 @@ class RootPreconditionRecovery(unittest.TestCase):
                 elif failure == 'kart-removal': state['kartRemovalAttempted'] = True
                 elif failure == 'stopped': state['stopped'] = ['runtime']
                 elif failure == 'container': live['runtime']['id'] = 'f' * 64
-                elif failure == 'schema2': stack.enter_context(patch.object(control, 'database_floor', return_value='schema4'))
+                elif failure == 'schema2': stack.enter_context(patch.object(control, 'database_floor', return_value='schema5'))
                 elif failure == 'pointer': state['previous'] = 'other'
                 control.write_private(directory / 'control-journal.json', state)
                 with self.assertRaises(control.Stopped):
@@ -1110,7 +1132,7 @@ class NightV8CutoverContracts(unittest.TestCase):
                 directory.mkdir(mode=0o700)
                 state = dict(journal(release), initialFloor='schema3', nightV8Cutover=self.evidence(release))
                 control.write_private(directory / 'control-journal.json', state)
-                mocks['database_floor'].return_value = 'schema4'
+                mocks['database_floor'].return_value = 'schema5'
                 snapshot = dict(self.snapshot(), rowsSha256='8' * 64) if changed else self.snapshot()
                 with patch.object(control, 'runtime_idle', return_value=snapshot) as idle:
                     if changed:

@@ -180,9 +180,10 @@ def owned_probe_output(image, script):
                 raise failure('AUTHORITY_PROBE_CLEANUP_FAILED', error) from error
 
 
-def image_capability(service, image, *, control_catalog=4):
+def image_capability(service, image, *, control_catalog=4, night_operations=False):
     require(service in SPECS, 'AUTHORITY_IMAGE_REQUIRED')
     require(type(control_catalog) is int and control_catalog in (3, 4), 'AUTHORITY_IMAGE_REQUIRED')
+    require(type(night_operations) is bool and (not night_operations or control_catalog == 4), 'AUTHORITY_IMAGE_REQUIRED')
     module, export, floor, functions = SPECS[service]
     catalog_probe = ''
     if service in ('runtime', 'management'):
@@ -196,6 +197,17 @@ def image_capability(service, image, *, control_catalog=4):
             'kit.controlSnapshotSchema.parse({apiOrigins:[],games:Object.fromEntries(expected.map(id=>[id,"disabled"]))});'
             'kit.gameControlPolicySchema.parse({gameId:expected.at(-1),state:"disabled",killEpoch:0,revision:0});'
             'result.controlCatalog=' + str(control_catalog) + ';')
+        if night_operations:
+            catalog_probe += (
+                'const snapshot={apiOrigins:[],games:Object.fromEntries(expected.map(id=>[id,"disabled"]))};'
+                'const operations={announcements:[{id:"probe",title:"probe",body:"probe",enabled:true,startsAt:0}],compensations:[]};'
+                'const parsed=kit.controlSnapshotSchema.parse({...snapshot,nightOperations:operations});'
+                'if(JSON.stringify(parsed.nightOperations)!==JSON.stringify(operations)'
+                '||JSON.stringify(kit.normalizeControlSnapshot(parsed).nightOperations)!==JSON.stringify(operations)'
+                '||kit.controlSnapshotDigest(parsed)===kit.controlSnapshotDigest(snapshot))throw new Error();'
+                'kit.controlPublicationSchema.parse({version:1,snapshot:parsed,digest:kit.controlSnapshotDigest(parsed)});'
+                'result.nightOperations=1;')
+
     script = ('try {'
               'const m=await import(' + json.dumps(module) + ');'
               'const p=m[' + json.dumps(export) + '];'
@@ -213,18 +225,19 @@ def image_capability(service, image, *, control_catalog=4):
     output = owned_probe_output(image, script)
     require(len(output) <= 1024, 'AUTHORITY_IMAGE_REQUIRED')
     versions = json.loads(output)
-    keys = set(floor) | ({'controlCatalog'} if catalog_probe else set())
+    keys = set(floor) | ({'controlCatalog'} if catalog_probe else set()) | ({'nightOperations'} if catalog_probe and night_operations else set())
     require(isinstance(versions, dict) and set(versions) == keys
             and all(type(versions[key]) is int and floor[key] <= versions[key] <= 9007199254740991
                     for key in floor)
+            and (not (catalog_probe and night_operations) or type(versions['nightOperations']) is int and versions['nightOperations'] == 1)
             and (not catalog_probe or type(versions['controlCatalog']) is int and versions['controlCatalog'] == control_catalog), 'AUTHORITY_IMAGE_REQUIRED')
     return {'image': image, **versions}
 
 
-def require_images(images, failure='AUTHORITY_IMAGE_REQUIRED', *, control_catalog=4):
+def require_images(images, failure='AUTHORITY_IMAGE_REQUIRED', *, control_catalog=4, night_operations=False):
     require(isinstance(images, dict) and images and set(images) <= set(SPECS), failure)
     try:
-        return {name: image_capability(name, image, control_catalog=control_catalog) for name, image in images.items()}
+        return {name: image_capability(name, image, control_catalog=control_catalog, night_operations=night_operations) for name, image in images.items()}
     except AuthorityError as error:
         if error.code in ACTION_ERRORS:
             raise

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
 import {
   CONTROL_GAME_IDS,
+  controlSnapshotDigest,
   createService,
   openControlDatabase,
   registerCors,
@@ -520,4 +521,165 @@ async function verifyConcurrentCors(url, publishOrigins) {
     await app.close();
     control.close();
   }
+}
+
+export function rejectUnknownNightSchema(psql, migration, checked) {
+  const body = migration.replace(/^BEGIN;$/m, '').replace(/^COMMIT;$/m, '');
+  for (const mutation of [
+    'alter table game_control.members owner to wrong_owner',
+    'grant select on game_control.revisions to runtime_app',
+    'grant update(snapshot) on game_control.revisions to management_app',
+    'alter view game_control.published_config set (security_barrier=false)',
+    "create or replace view game_control.published_config with(security_barrier=true) as select h.version,h.revision_id,r.digest,jsonb_build_object('games',r.snapshot->'games') as snapshot from game_control.active_head h join game_control.revisions r on r.id=h.revision_id where h.id=1",
+    'alter table game_control.revisions drop constraint revisions_snapshot_check',
+    'alter table game_control.members add column unexpected text',
+    "update game_control.current_policy set revision=revision+1 where game_id='night-overwatch'",
+  ]) {
+    assert.throws(() => psql(`BEGIN;\n${mutation};\n${body}\nCOMMIT;`), mutation);
+  }
+  checked('night-schema-rejects-owner-ACL-view-constraint-shape-and-stale-policy');
+}
+
+export async function verifyNightOperations({ service, active, owner, runtime, url, checked }) {
+  const original = await service.state(active);
+  const snapshot = {
+    apiOrigins: original.snapshot.apiOrigins,
+    games: original.snapshot.games,
+    nightOperations: {
+      announcements: [{ id: 'notice', title: 'notice', body: 'body', enabled: true, startsAt: 1 }],
+      compensations: [
+        {
+          id: 'grant',
+          title: 'grant',
+          body: 'body',
+          enabled: true,
+          startsAt: 10,
+          endsAt: 20,
+          eligibleCreatedBefore: 5,
+          reward: { coins: 1, xp: 2, packs: 3 },
+        },
+      ],
+      release: {
+        schemaVersion: 1,
+        builds: ['old', 'new'].map((buildId) => ({
+          buildId,
+          channel: 'h5',
+          ranked: 'solo',
+          multiplayer: 'duel',
+          version: buildId,
+          backendVersion: 'backend',
+        })),
+        channels: [{ channel: 'h5', latestBuildId: 'new' }],
+        allowNew: { ranked: ['solo'], multiplayer: ['duel'] },
+        legacy: { channel: 'h5', ranked: 'solo', multiplayer: 'duel' },
+      },
+    },
+  };
+  const draft = await service.draft(active, {
+    expectedVersion: original.version,
+    snapshot,
+    reason: 'real operations publication',
+  });
+  await service.publish(active, draft.id, original.version);
+  const history = (
+    await owner.db.execute(
+      sql`select to_jsonb(r) as row from game_control.revisions r where id=${draft.id}`,
+    )
+  )[0].row;
+  const publication = (
+    await runtime.db.execute(sql`select version,digest,snapshot from game_control.published_config`)
+  )[0];
+  assert.deepEqual(publication.snapshot, draft.snapshot);
+  assert.equal(publication.digest, controlSnapshotDigest(publication.snapshot));
+  assert.equal(publication.digest, draft.digest);
+  const database = openControlDatabase(url);
+  const control = createCompetitionControl(database, {
+    origins: [],
+    methods: ['GET'],
+    headers: [],
+    credentials: false,
+    maxAge: 0,
+  });
+  try {
+    const policy = await database.transaction((tx) => control.lock(tx, 'night-overwatch'));
+    assert.deepEqual(policy.nightOperations, draft.snapshot.nightOperations);
+    assert.equal((await control.cors()).digest, draft.digest);
+  } finally {
+    await control.close();
+  }
+  checked('night-real-draft-publish-view-digest-and-runtime-reader');
+  const changed = structuredClone(draft.snapshot);
+  changed.nightOperations.compensations[0].reward.coins++;
+  await assert.rejects(
+    service.draft(active, {
+      expectedVersion: original.version + 1,
+      snapshot: changed,
+      reason: 'forbidden reward rewrite',
+    }),
+    { code: 'NIGHT_COMPENSATION_IMMUTABLE' },
+  );
+  changed.nightOperations.compensations[0].reward.coins--;
+  changed.nightOperations.release.builds[0].ranked = 'changed';
+  await assert.rejects(
+    service.draft(active, {
+      expectedVersion: original.version + 1,
+      snapshot: changed,
+      reason: 'forbidden build rewrite',
+    }),
+    { code: 'NIGHT_BUILD_IMMUTABLE' },
+  );
+  await service.rollbackNightRelease(active, {
+    expectedVersion: original.version + 1,
+    channel: 'h5',
+    buildId: 'old',
+    reason: 'quick rollback',
+  });
+  let state = await service.state(active);
+  const expected = structuredClone(draft.snapshot.nightOperations);
+  expected.release.channels[0].latestBuildId = 'old';
+  assert.deepEqual(state.snapshot.nightOperations, expected);
+  await service.rollback(active, {
+    expectedVersion: state.version,
+    revisionId: original.revisionId,
+    reason: 'control rollback retains operations',
+  });
+  state = await service.state(active);
+  assert.deepEqual(state.snapshot.nightOperations, expected);
+  assert.deepEqual(
+    (
+      await owner.db.execute(
+        sql`select to_jsonb(r) as row from game_control.revisions r where id=${draft.id}`,
+      )
+    )[0].row,
+    history,
+  );
+  for (const statement of [
+    'update game_control.revisions set snapshot=snapshot',
+    'delete from game_control.revisions',
+  ])
+    await assert.rejects(runtime.db.execute(sql.raw(statement)));
+  checked('night-history-immutable-quick-and-control-rollback-preserve-operations');
+
+  const expectedDeployments = [];
+  for (let i = 0; i < 8; i++) {
+    const detail = {
+      version: `backend-${i}`,
+      sourceSHA: 'a'.repeat(40),
+      release: `deployment-${i}`,
+      mode: 'execute',
+      services: [i === 7 ? 'kart' : 'runtime'],
+      activeImages: { runtime: `sha256:${'b'.repeat(64)}` },
+      verifiedAt: i + 1,
+    };
+    await owner.db.execute(
+      sql`insert into game_control.audit values(${randomUUID()},${history.actor},'deployments.backend',${detail.release},${JSON.stringify(detail)}::jsonb,${i + 1})`,
+    );
+    if (i !== 7) expectedDeployments.unshift(detail);
+  }
+  assert.deepEqual(await service.deployments(active), {
+    current: expectedDeployments[0],
+    history: expectedDeployments.slice(0, 5),
+  });
+  checked('night-real-deployment-facts-latest-five-runtime-only');
+  return state;
 }

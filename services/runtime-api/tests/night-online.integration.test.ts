@@ -390,7 +390,7 @@ integration('Night real HTTP and PostgreSQL', () => {
     await request(roomPath(room.code) + '/leave', watcher, {});
     await request(roomPath(room.code) + '/leave', owner, {});
   });
-  it('rematches and matches after advancing to finished and ignores old-version active rooms', async () => {
+  it('rematches after finishing and preserves the occupancy of unknown old-version active rooms', async () => {
     const [a, b] = await Promise.all([player(), player()]);
     const first = await pair(a, b);
     await eliminate(first.code, 1);
@@ -417,16 +417,10 @@ integration('Night real HTTP and PostgreSQL', () => {
     await database.db.execute(
       sql`update runtime.competition_rooms set data=${JSON.stringify(old)}::jsonb where code=${legacy.code}`,
     );
-    const created = await request(path + '/rooms', a, {});
-    expect(created.code).not.toBe(legacy.code);
-    expect(created.status).toBe('waiting');
-    await request(roomPath(created.code) + '/leave', a, {});
-    const queued = await request(path + '/match', a, {});
-    expect(queued.code).not.toBe(legacy.code);
-    expect(queued.status).toBe('waiting');
+    await request(path + '/rooms', a, {}, 409);
+    await request(path + '/match', a, {}, 409);
     expect(await storedRoom(legacy.code)).toEqual(old);
     expect((await request(path + '/history', a)).summary.games).toBe(2);
-    await request(roomPath(queued.code) + '/leave', a, {});
   });
   it('recovers within 30 seconds, rejects stale leases, and settles timeout only once', async () => {
     const [a, b] = await Promise.all([player(), player()]);

@@ -366,6 +366,7 @@ async function controlWorkspace(folder) {
     'infra/admin-console/migrations/002-control-center.sql',
     'infra/admin-console/migrations/003-night-overwatch-control.sql',
     'infra/admin-console/migrations/004-tetracube-control.sql',
+    'infra/admin-console/migrations/005-night-operations.sql',
     'infra/migrations/014-player-sessions.sql',
   ]) {
     await mkdir(path.dirname(path.join(workspace, name)), { recursive: true });
@@ -375,6 +376,7 @@ async function controlWorkspace(folder) {
       'infra/admin-console/migrations/002-control-center.sql',
       'infra/admin-console/migrations/003-night-overwatch-control.sql',
       'infra/admin-console/migrations/004-tetracube-control.sql',
+      'infra/admin-console/migrations/005-night-operations.sql',
     ]);
     await writeFile(
       path.join(workspace, name),
@@ -410,7 +412,7 @@ test('v2 public bundles bind 002, CSP and exactly three selected backend command
     );
     assert.deepEqual(selected, [controlServices]);
     assert.deepEqual(await readControlBundle(directory), manifest);
-    assert.equal(manifest.controlSchemaVersion, 4);
+    assert.equal(manifest.controlSchemaVersion, 5);
     assert(!Object.keys(manifest.files).some((name) => /001|bootstrap|management\.env/.test(name)));
     const dockerfile = await readFile(path.join(directory, 'Dockerfile'), 'utf8');
     assert.match(dockerfile, /runtime-api.*kart-server.*management-api/);
@@ -579,7 +581,7 @@ test('control receipt requires complete typed evidence and distinguishes runner 
     controlContract: {
       version: 1,
       schema: 'game_control',
-      schemaVersion: 4,
+      schemaVersion: 5,
       projectionSha256: 'd'.repeat(64),
       metadataSha256: 'e'.repeat(64),
     },
@@ -712,7 +714,7 @@ for (const operation of ['recover', 'repair-absent', 'repair-present']) {
         controlContract: {
           version: 1,
           schema: 'game_control',
-          schemaVersion: 4,
+          schemaVersion: 5,
           projectionSha256: 'd'.repeat(64),
           metadataSha256: 'e'.repeat(64),
         },

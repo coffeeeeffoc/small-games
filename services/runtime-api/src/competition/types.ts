@@ -34,6 +34,7 @@ export type Rule = {
   verifyRun?(config: Record<string, unknown>, input: unknown): { board: string; elapsedMs: number };
 };
 export type Member = {
+  buildId?: string;
   id: string;
   role?: string;
   ready: boolean;
