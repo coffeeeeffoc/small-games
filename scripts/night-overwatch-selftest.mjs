@@ -30,6 +30,10 @@ if (
 )
   throw Error('Supply an HTTPS origin without credentials or path.');
 const port = Number(portText);
+// Opt-in: also run the admin-only Management API (loopback 43001) and the runtime control reader,
+// so announcements/compensation published from the local admin console reach this stack.
+const admin = process.env.NIGHT_SELFTEST_ADMIN === '1';
+const adminOrigin = 'http://127.0.0.1:5182';
 assert(Number.isInteger(port) && port >= 1024 && port < 65536, 'Invalid loopback port.');
 const apiUrl = origin.origin + '/api/competition/v1';
 const target = gameDefaults.targets.find((t) => t.platform === 'taptap' && t.type === 'h5');
@@ -72,7 +76,14 @@ if (operation === 'plan') {
   // No filesystem changes and no account or Docker access.
   console.log(
     JSON.stringify(
-      { game: app, apiUrl, port, services: ['postgres', 'runtime', 'gateway'], appId, adUnit },
+      {
+        game: app,
+        apiUrl,
+        port,
+        services: ['postgres', 'runtime', ...(admin ? ['management'] : []), 'gateway'],
+        appId,
+        adUnit,
+      },
       null,
       2,
     ),
@@ -143,7 +154,7 @@ if (operation === 'plan') {
     invoke(pnpm.command, [...pnpm.prefix, 'run', 'deployment:bundle'], {
       env: {
         ...process.env,
-        DEPLOY_SERVICES: 'runtime',
+        DEPLOY_SERVICES: admin ? 'runtime,management' : 'runtime',
         DEPLOY_FRONTEND: '0',
         DEPLOY_RELEASE: release,
         DEPLOY_OUTPUT_DIR: bundle,
@@ -151,7 +162,12 @@ if (operation === 'plan') {
     });
     const composeFile = path.join(bundle, 'compose.yaml');
     const cfg = JSON.parse(await readFile(composeFile, 'utf8'));
-    assert.deepEqual(Object.keys(cfg.services).sort(), ['gateway', 'postgres', 'runtime']);
+    assert.deepEqual(Object.keys(cfg.services).sort(), [
+      'gateway',
+      ...(admin ? ['management'] : []),
+      'postgres',
+      'runtime',
+    ]);
     assert(!cfg.services.runtime.ports && !cfg.services.postgres.ports);
     cfg.services.gateway.ports = ['127.0.0.1:' + port + ':80'];
     const browserOrigins = [
@@ -161,6 +177,52 @@ if (operation === 'plan') {
     ];
     cfg.services.runtime.environment.COMPETITION_ORIGINS = browserOrigins.join(',');
     cfg.services.runtime.environment.COMPETITION_DEVELOPMENT_ENABLED = '1';
+    // Private local OAuth app for the admin console; never part of the bundle or its manifest.
+    let oauth;
+    if (admin) {
+      try {
+        oauth = JSON.parse(
+          await readFile(path.join(root, '.env.night-selftest-admin.local'), 'utf8'),
+        );
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e;
+      }
+      assert(
+        !oauth ||
+          (typeof oauth.clientId === 'string' &&
+            typeof oauth.clientSecret === 'string' &&
+            oauth.clientId &&
+            oauth.clientSecret),
+        'Invalid .env.night-selftest-admin.local (needs clientId and clientSecret).',
+      );
+      // Unpublished control keeps Night disabled (migration 003) and Runtime rejects any edited
+      // policy, so only read control once an admin can sign in and publish the first revision.
+      if (oauth)
+        Object.assign(cfg.services.runtime.environment, {
+          COMPETITION_CONTROL_ENABLED: 'true',
+          COMPETITION_CONTROL_INSTANCE_ID: 'night-selftest-runtime',
+        });
+      else
+        console.warn(
+          'No .env.night-selftest-admin.local: Management starts without sign-in and Runtime keeps environment policy.',
+        );
+      const management = cfg.services.management.environment;
+      for (const key of Object.keys(management))
+        if (key.startsWith('S3_') || key === 'STUDIO_ORIGIN') delete management[key];
+      Object.assign(management, {
+        MANAGEMENT_CAPABILITIES: 'admin',
+        ADMIN_CONTROL_ENABLED: 'true',
+        ADMIN_ORIGIN: adminOrigin,
+        ...(oauth
+          ? {
+              ADMIN_GITHUB_CLIENT_ID: '${ADMIN_GITHUB_CLIENT_ID:?required}',
+              ADMIN_GITHUB_CLIENT_SECRET: '${ADMIN_GITHUB_CLIENT_SECRET:?required}',
+              ...(oauth.allowedEmails ? { ADMIN_ALLOWED_EMAILS: '${ADMIN_ALLOWED_EMAILS}' } : {}),
+            }
+          : {}),
+      });
+      assert.deepEqual(cfg.services.management.ports, ['127.0.0.1:43001:43001']);
+    }
     await writeFile(composeFile, JSON.stringify(cfg, null, 2));
     const nginx = path.join(bundle, 'nginx.conf');
     const before = await readFile(nginx, 'utf8');
@@ -202,6 +264,13 @@ if (operation === 'plan') {
       ...privateEnv,
       APP_ORIGIN: 'https://ma-h5-al.tapimg.com',
       COMPETITION_PLATFORM_CONFIG: '[]',
+      ...(oauth
+        ? {
+            ADMIN_GITHUB_CLIENT_ID: oauth.clientId,
+            ADMIN_GITHUB_CLIENT_SECRET: oauth.clientSecret,
+            ADMIN_ALLOWED_EMAILS: oauth.allowedEmails ?? '',
+          }
+        : {}),
     };
     const compose = (args, input) =>
       invoke(
@@ -211,6 +280,7 @@ if (operation === 'plan') {
       );
     compose(['config', '--quiet']);
     compose(['build', 'runtime']);
+    // runtime and management share the bundle image; one build serves both.
     const identity = JSON.parse(
       await readFile(path.join(root, '.env.night-taptap-platform.local'), 'utf8'),
     );
@@ -244,6 +314,12 @@ if (operation === 'plan') {
         .sort()
         .map((f) => 'migrations/' + f),
     ];
+    const adminMigrations = admin
+      ? (await readdir(path.join(root, 'infra/admin-console/migrations')))
+          .filter((f) => f.endsWith('.sql'))
+          .sort()
+          .map((f) => path.join(root, 'infra/admin-console/migrations', f))
+      : [];
     for (const file of sql)
       compose(
         [
@@ -261,6 +337,47 @@ if (operation === 'plan') {
         ],
         await readFile(path.join(bundle, file), 'utf8'),
       );
+    // Idempotent control-center schema (game_control v5) for the runtime reader and Management.
+    const psql = [
+      'exec',
+      '-T',
+      'postgres',
+      'psql',
+      '-qX',
+      '-U',
+      'platform_owner',
+      '-d',
+      'small_games',
+      '-v',
+      'ON_ERROR_STOP=1',
+    ];
+    // 001 (admin_console) is re-runnable; 00N creates or upgrades game_control to version N and
+    // refuses any other starting shape, so apply only the versions this database still lacks.
+    const query = (statement) =>
+      invoke(
+        'docker',
+        [
+          'exec',
+          postgres,
+          'psql',
+          '-qXtA',
+          '-U',
+          'platform_owner',
+          '-d',
+          'small_games',
+          '-c',
+          statement,
+        ],
+        { capture: true },
+      ).trim();
+    const controlVersion =
+      admin && query("select to_regclass('game_control.schema_version') is not null") === 't'
+        ? Number(query('select max(version) from game_control.schema_version'))
+        : 0;
+    for (const file of adminMigrations) {
+      const version = Number.parseInt(path.basename(file), 10);
+      if (version === 1 || version > controlVersion) compose(psql, await readFile(file, 'utf8'));
+    }
     const migrated = migrateNightWallets({
       postgres,
       image: cfg.services.runtime.image,
@@ -271,6 +388,17 @@ if (operation === 'plan') {
       { platform: 'taptap', appId, secret: identity.secret, games: [app] },
     ]);
     compose(['up', '-d', '--no-build', '--wait', '--wait-timeout', '180', 'runtime']);
+    if (admin)
+      compose([
+        'up',
+        '-d',
+        '--no-build',
+        '--no-deps',
+        '--wait',
+        '--wait-timeout',
+        '180',
+        'management',
+      ]);
     env.COMPETITION_PLATFORM_CONFIG = '[]';
     compose(['run', '--rm', '--no-deps', 'gateway', 'nginx', '-t']);
     compose(['up', '-d', '--no-deps', '--wait', '--wait-timeout', '120', 'gateway']);

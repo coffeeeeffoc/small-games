@@ -15,6 +15,20 @@ node scripts/night-overwatch-selftest.mjs start https://你的隧道域名:端�
 
 本地生成的 Runtime compose 配置显式设置 `COMPETITION_DEVELOPMENT_ENABLED=1`，普通 Runtime 默认关闭（只接受 `0` 或 `1`）。通用接口为 `POST /games/:game/development/assets`，实际已接入夜航 `coins/xp`，其他游戏需要注册已有钱包的服务端适配器；完整协议见[通用服务规范](../architecture/game-services.md#测试服务器的通用资产调整)。它允许已验证的本人会话调整资产，金币/经验增减范围为每次 ±10 亿整数，结果不得为负或超过安全整数；新端点与旧夜航 `dev-adjust` 沿用同一资产锁、交易编号幂等及包含前后余额的私有流水。此能力属于测试服务器，不能配置到生产；测试包隐藏开发按钮并不代替服务器权限。
 
+### 可选：本地后管发布公告与补偿
+
+设置 `NIGHT_SELFTEST_ADMIN=1` 后，`start` 额外打包仅后管能力的 Management（`MANAGEMENT_CAPABILITIES=admin`，不需要 S3），只绑定 `127.0.0.1:43001`，并在同库执行 `infra/admin-console/migrations` 001–005（幂等）。存在 OAuth 私密文件时才为 Runtime 打开 `COMPETITION_CONTROL_ENABLED`：未发布任何配置时迁移 003 让夜航保持停用，Runtime 也拒绝被手改的策略（返回 `CONTROL_UNAVAILABLE`），所以必须能登录后管发布首个版本。后管发布的公告与补偿由 Runtime 在业务锁内读取，经 FRP 访问的手机端同样生效。网关公网白名单不变，Management 不经网关暴露。
+
+后管登录只支持 GitHub OAuth。新建 OAuth App，回调填 `http://127.0.0.1:5182/api/auth/github/callback`，在仓库根写入不提交的 `.env.night-selftest-admin.local`：`{"clientId":"…","clientSecret":"…","allowedEmails":"你的 GitHub 主邮箱"}`（`allowedEmails` 可省略，沿用默认白名单，仅用于空库首次绑定管理员）。文件缺失时 Management 照常启动但无法登录。
+
+```powershell
+$env:NIGHT_SELFTEST_ADMIN='1'
+node scripts/night-overwatch-selftest.mjs start https://你的隧道域名:端口 43003
+pnpm --filter @coffeeeeffoc/admin-web dev   # http://127.0.0.1:5182 ，/api 代理到 43001
+```
+
+带 OAuth 部署后到首次发布之间，夜航写操作返回 `GAME_DISABLED`：登录后先在配置中心把“夜航守望”设为启用并发布，此后公告/补偿草稿按正常流程保存、发布。补偿只能覆盖本栈 Runtime 已记录访问的时间段（升级后进入过游戏的玩家），且结束时间不晚于当前时间。
+
 `start` 在本地回环和 FRP 公网两端分别创建新的 QA 游客，验证 metadata 开启能力、通用接口正负调整、相同 requestId 重试不重复入账及负余额拒绝；不修改既有用户。结果保存为 `.scratch/night-overwatch-selftest/development-acceptance.json`，不含凭据。当前网关仍只放行夜航子路由，通用能力的代码复用不扩大其他游戏的公网白名单。
 
 `pack` 生成 `buildType: 'development'` 与 `apiUrls.test`。开发面板提供金币/经验增减、任意任务序号、火控热身、刷新和原交易重试；切关要求先正常结束行动并离开联机房间，继续使用试玩成绩/奖励隔离。提升经验会按现有成长规则解锁永久资格，降低经验不会撤销已经获得的永久物品。服务端未启用时显示明确错误，不伪造客户端余额。
