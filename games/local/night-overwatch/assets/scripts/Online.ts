@@ -142,20 +142,26 @@ export class Online {
   private roomKey = '';
   revision = 0;
   busy = false;
+  /** 正在进入的房号（或匹配入口），让按钮在请求返回前立即显示“进入中…”。 */
+  opening = '';
+  private listing = false;
+  private syncedAt = 0;
+  private peerOffline = new Map<string, boolean>();
+  private peerNotice = { text: '', online: false, until: 0 };
   available = false;
   ranked = false;
   message = '';
   rankStatus = 'local';
   assets?:AssetSnapshot;
   battleReward?:Settlement;
+  /** A run played offline earlier and credited after the player left its result screen. */
+  offlineSettled?:Settlement;
   private battleReceipt = '';
   private rewardRefresh?: { owner: string; inflight: boolean; retryAt: number };
   private rankingAttempt = 0;
   rankingVersion=CAMPAIGN_BOARD_VERSION;
   authenticatedId='';
   level = 0;
-  /** A run played offline earlier and credited after the player left its result screen. */
-  offlineSettled?:Settlement;
   ranking?: Ranking;
   room?: Room;
   view?: DuelView;
@@ -224,16 +230,16 @@ export class Online {
         const settled = this.recorder?.settlement;
         if (settled?.playerId === this.authenticatedId) this.receiveBattleReward(settled.result, settled.runId);
         this.revision++;
+      }, onSettled: settled => {
+        if (this.destroyed || this.bridge !== bridge || this.recorder !== recorder || settled.active || settled.playerId !== this.authenticatedId || settled.result?.status !== 'credited') return;
+        this.offlineSettled = settled.result; this.revision++;
+        this.rewardRefresh = { owner: this.authenticatedId, inflight: false, retryAt: 0 };
       } });
       this.recorder = recorder;
       const metadata = await bridge.ready;
       if (this.destroyed || this.bridge !== bridge) return;
       this.acceptMetadata(metadata);
       void this.recorder.recover?.();
-      }, onSettled: settled => {
-        if (this.destroyed || this.bridge !== bridge || this.recorder !== recorder || settled.active || settled.playerId !== this.authenticatedId || settled.result?.status !== 'credited') return;
-        this.offlineSettled = settled.result; this.revision++;
-        this.rewardRefresh = { owner: this.authenticatedId, inflight: false, retryAt: 0 };
     }
     this.revision++;
     const code = search ? invitation(search) : undefined;
@@ -263,12 +269,6 @@ export class Online {
     }
     return this.recorder?.start(options);
   }
-  cancelRanking() {
-    this.rankingAttempt++; this.battleReward = undefined; this.battleReceipt = '';
-    this.recorder?.invalidate();
-  }
-  get storageDiagnostic() { return this.recorder?.storageDiagnostic || ''; }
-  private receiveBattleReward(result: Settlement | null | undefined, receipt: string) {
   /** Journal a solo run locally while the mission service is unreachable; settles on a later sync. */
   async startOffline(levelId: string) {
     const recorder = this.recorder, attempt = ++this.rankingAttempt;
@@ -279,6 +279,12 @@ export class Online {
     if (this.destroyed || recorder !== this.recorder || attempt !== this.rankingAttempt || !run) return undefined;
     return loadout;
   }
+  cancelRanking() {
+    this.rankingAttempt++; this.battleReward = undefined; this.battleReceipt = '';
+    this.recorder?.invalidate();
+  }
+  get storageDiagnostic() { return this.recorder?.storageDiagnostic || ''; }
+  private receiveBattleReward(result: Settlement | null | undefined, receipt: string) {
     if (result?.status !== 'credited' || !Number.isSafeInteger(result.coins) || !Number.isSafeInteger(result.xp) || result.coins! < 0 || result.xp! < 0 || this.battleReceipt === receipt) return;
     this.battleReward = result; this.battleReceipt = receipt; this.revision++;
     this.rewardRefresh = { owner: this.authenticatedId, inflight: false, retryAt: 0 };
@@ -347,9 +353,26 @@ export class Online {
   get combatants():Player[]{const seat=this.view?.you??(this.room?.you===1?1:0);return [this.room?.players[seat]||this.identity,this.room?.players[1-seat]||this.opponent];}
   get opponent(): Player { return this.room?.players[this.room.you === 1 ? 0 : 1]
     || (this.view?.bot ? { id: 'bot-' + this.view.seed, name: '训练机器人' } : { name: '等待对手' }); }
+  /** 对手下线／重新上线各提示 4 秒；结算后不再显示。 */
   get offlineNotice() {
-    const player = this.room?.players.find((p, i) => p.disconnected && (this.spectator || i !== this.room?.you));
-    return player ? (player.nickname || player.name || '对方') + ' 已下线' : '';
+    return !this.view?.finished && performance.now() < this.peerNotice.until ? this.peerNotice.text : '';
+  }
+  get peerBackOnline() { return this.peerNotice.online; }
+  /** 自己的请求报错，或超过 3 秒没有收到房间同步时，提示正在重连。 */
+  get reconnecting() {
+    return this.connectionLost || !this.bot && this.room?.status === 'playing' && !this.view?.finished
+      && this.syncedAt > 0 && performance.now() - Math.max(this.syncedAt, this.enteringUntil) > 3000;
+  }
+  private trackPeers(room: Room) {
+    if (room.status !== 'playing' || room.state?.finished) return;
+    room.players.forEach((player, i) => {
+      if (!this.spectator && i === room.you) return;
+      const id = playerId(player) || String(i), was = this.peerOffline.get(id), offline = !!player.disconnected;
+      this.peerOffline.set(id, offline);
+      if (was === undefined ? !offline : was === offline) return;
+      this.peerNotice = { text: (player.nickname || player.name || '对方') + (offline ? ' 已下线' : ' 已重新上线'), online: !offline, until: performance.now() + 4000 };
+      this.revision++;
+    });
   }
   show(panel: Online['panel'],push=true) {
     if(push&&panel&&panel!==this.panel)this.panelHistory.push(this.panel);
@@ -362,8 +385,9 @@ export class Online {
       ? JSON.stringify({ code: room.code, playerId: playerId(this.identity), at: Date.now() }) : 'null'); } catch { /* Session remains playable without storage. */ }
   }
   async loadRooms() {
-    if (this.busy || this.room || this.active) return;
-    this.busy = true; const generation = this.generation;
+    // 列表刷新不占用 busy，否则刷新期间点“加入／观战”会被静默忽略。
+    if (this.listing || this.busy || this.room || this.active) return;
+    this.listing = true; const generation = this.generation;
     try {
       if (!this.available) this.acceptMetadata(await this.bridge?.refresh?.());
       if (!this.available || !this.bridge?.services.listRooms) { this.message = '联机暂不可用，可选择本地人机练习'; return; }
@@ -372,7 +396,7 @@ export class Online {
         this.rooms = rooms.filter(room => (this.hiddenRooms.get(room.code) || 0) <= Date.now()); this.message = '';
       }
     } catch { if (generation === this.generation) this.message = '网络异常，正在重新读取房间'; }
-    finally { if (generation === this.generation) { this.busy = false; this.listAt = performance.now() + 3000; this.revision++; } }
+    finally { this.listing = false; if (generation === this.generation) { this.listAt = performance.now() + 3000; this.revision++; } }
   }
   async saveName() {
     if (this.busy) return;
@@ -415,7 +439,7 @@ export class Online {
       this.message = '请输入正确的房间号'; this.revision++; return;
     }
     this.message = ''; const generation = ++this.generation;
-    this.busy = true; this.revision++;
+    this.busy = true; this.opening = code || (['join', 'watch'].includes(kind) ? this.draftCode.trim().toUpperCase() : kind); this.revision++;
     try {
       if (!this.available) this.acceptMetadata(await this.bridge?.refresh?.());
       if (generation !== this.generation) return;
@@ -453,7 +477,7 @@ export class Online {
           : '暂时无法进入房间，请检查房号与网络后重试';
         if (kind === 'resume' && ['PLAYER_DISCONNECTED', 'NOT_A_MEMBER', 'ROOM_NOT_FOUND', 'INVITATION_NOT_FOUND', 'MATCH_CLOSED', 'STALE_LEASE'].includes(code)) { this.resumeCode = ''; this.rememberRoom(); }
       }
-    } finally { if (generation === this.generation) { this.busy = false; this.revision++; } }
+    } finally { if (generation === this.generation) { this.busy = false; this.opening = ''; this.revision++; } }
   }
   startBot(now: number) {
     if (this.busy || this.active || this.room) return;
@@ -475,7 +499,8 @@ export class Online {
   }
   leave() {
     this.restoreRoomOnConnect = false;
-    const room = this.room; this.generation++; this.busy = false; this.inflight = false;
+    const room = this.room; this.generation++; this.busy = false; this.opening = ''; this.inflight = false;
+    this.syncedAt = 0; this.peerOffline.clear(); this.peerNotice = { text: '', online: false, until: 0 };
     if (room) this.hideRoom(room.code);
     this.resumeCode = room?.status === 'playing' && room.mode !== 'bot' && !this.view?.finished && !this.spectator ? room.code : '';
     this.rememberRoom(this.resumeCode ? room : undefined); this.connectionLost = false; this.replaced = false; this.roomKey = ''; this.enteringUntil = 0;
@@ -547,7 +572,7 @@ export class Online {
   }
   private accept(room: Room) {
     const start = !this.view && !!room.state;
-    this.room = room;
+    this.room = room; this.syncedAt = performance.now(); this.trackPeers(room);
     const key = JSON.stringify([room.code, room.status, room.players, room.settlement, room.you]);
     if (key !== this.roomKey) { this.roomKey = key; this.revision++; }
     if (room.status === 'playing') { this.resumeCode = room.code; this.rememberRoom(room); }

@@ -325,12 +325,14 @@ export class OnlineLobbyView {
       const bw = roomy ? 94 : Math.min(82, lw * 0.37);
       btn(
         (room.canJoin ? 'joinCode:' : 'watchCode:') + room.code,
-        this.h.t(room.canJoin ? '加入' : '观战', room.canJoin ? 'JOIN' : 'WATCH'),
+        o.opening === room.code
+          ? this.h.t('进入中…', 'ENTERING…')
+          : this.h.t(room.canJoin ? '加入' : '观战', room.canJoin ? 'JOIN' : 'WATCH'),
         l + lw - bw - 18,
         y + (roomy ? (rowH - 44) / 2 : rowH - 45),
         bw,
         room.canJoin ? 'gold' : 'blue',
-        !room.canJoin && !room.canSpectate,
+        o.busy || (!room.canJoin && !room.canSpectate),
         roomList.n,
       );
     });
@@ -1289,10 +1291,18 @@ export class OnlineLobbyView {
         detail.horizontalAlign = Label.HorizontalAlign.LEFT;
         button(
           (room.canJoin ? 'joinCode:' : 'watchCode:') + room.code,
-          room.canJoin ? this.h.t('加入', 'JOIN') : this.h.t('观战', 'WATCH'),
+          online.opening === room.code
+            ? this.h.t('进入中…', 'ENTERING…')
+            : room.canJoin
+              ? this.h.t('加入', 'JOIN')
+              : this.h.t('观战', 'WATCH'),
           pw - 102,
           y + 2,
           82,
+          false,
+          false,
+          '',
+          online.busy,
         );
       });
       if (!rows.length) {

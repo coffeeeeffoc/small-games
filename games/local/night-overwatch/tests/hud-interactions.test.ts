@@ -173,7 +173,7 @@ test('control sizes keep touch targets reachable and paused layout mode exposes 
    assert(b.w>=44&&b.h>=44&&b.x>=inset&&b.y>=inset&&b.x+b.w<=width-inset&&b.y+b.h<=height-inset,`${width}/${scale}/${b.id} in safe bounds`);
    assert(!controls.some((other:any)=>other!==b&&overlaps(b,other)),`${width}/${scale}/${b.id} separated`);
   }
-  assert.equal(hud.buttons.find((b:any)=>b.id==='fire').w,128*scale);
+  assert.equal(hud.buttons.find((b:any)=>b.id==='fire').w,100*scale);
   sim.pause('settings',true);hud.controlsOpen=true;hud.update(sim,world);
   const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
   assert.equal(buttons.find((b:any)=>b.id==='resume')?.label.string,'继续战斗');

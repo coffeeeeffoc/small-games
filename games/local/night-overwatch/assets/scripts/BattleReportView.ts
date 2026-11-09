@@ -87,6 +87,14 @@ export class BattleReportView {
         parentNode,
       ).fontSize = 13;
     }
+    const names = {
+      infantry: ['步兵', 'INFANTRY'],
+      light: ['轻车', 'LIGHT'],
+      turret: ['炮台', 'TURRET'],
+      heavy: ['重甲', 'ARMOR'],
+      rescue: ['救援车', 'RESCUE'],
+      escort: ['护卫', 'ESCORT'],
+    };
     if (!this.hud.equipmentOpen) {
       if (simulation.duelMode && this.hud.online) {
         this.hud.online.combatants.forEach((player, i) => {
@@ -94,6 +102,40 @@ export class BattleReportView {
           const x = panelLeft + 12 + i * (cardWidth + 12);
           const units = simulation.units.filter((u) => (i === 0 ? u.friendly : !u.friendly));
           const alive = units.filter((u) => u.hp > 0).length;
+          // 该玩家的战绩 = 对方单位被消灭数；按兵种列出。
+          const kills = battleCounts(simulation, i !== 0, true);
+          const killed = kills.reduce((sum, row) => sum + row.destroyed, 0);
+          const lines = kills.map((row) =>
+            this.hud.t(
+              `${text(names[row.kind], 'zh')}  消灭 ${row.destroyed} / ${row.total}`,
+              `${text(names[row.kind], 'en')}  KILLED ${row.destroyed} / ${row.total}`,
+            ),
+          );
+          // 卡片底边为 panelTop + panelHeight - 14；矮屏行高不足时合并成一段自动换行。
+          const listHeight = panelHeight - 269;
+          const rowHeight = Math.min(30, listHeight / Math.max(1, lines.length));
+          (rowHeight >= 16 ? lines : [lines.join(' · ')]).forEach((line, k, all) =>
+            this.hud.label(
+              parentNode,
+              line,
+              x + cardWidth / 2,
+              panelTop + 255 + (all.length > 1 ? rowHeight * (k + 0.5) : listHeight / 2),
+              all.length > 1 ? 13 : 11,
+              cardWidth - 24,
+              all.length > 1 ? rowHeight : listHeight,
+              C.white,
+            ),
+          );
+          this.hud.label(
+            parentNode,
+            this.hud.t(`共消灭敌方 ${killed}`, `ENEMY KILLED ${killed}`),
+            x + cardWidth / 2,
+            panelTop + 236,
+            15,
+            cardWidth - 24,
+            30,
+            i ? C.amber : C.mint,
+          );
           this.hud.plate(
             graphics,
             x,
@@ -147,14 +189,6 @@ export class BattleReportView {
           C.dim,
         ),
       );
-      const names = {
-        infantry: ['步兵', 'INFANTRY'],
-        light: ['轻车', 'LIGHT'],
-        turret: ['炮台', 'TURRET'],
-        heavy: ['重甲', 'ARMOR'],
-        rescue: ['救援车', 'RESCUE'],
-        escort: ['护卫', 'ESCORT'],
-      };
       battleCounts(simulation, false, simulation.duelMode).forEach((row, i) =>
         [
           text(names[row.kind], this.hud.lang),

@@ -74,6 +74,7 @@ const passwordKey = (password: string, salt: string) =>
     scrypt(password, salt, 32, (error, key) => (error ? reject(error) : resolve(key)));
   });
 const spectatorLeaseMs = 30_000;
+const offlineAfterMs = 6_000;
 const json = (value: unknown) => JSON.stringify(value);
 const boardOf = (rule: Rule) => `${rule.id}:${rule.version}`;
 const ruleSeat = (rule: Rule, room: Room, seat: number) =>
@@ -499,7 +500,8 @@ export function createCompetitionStore(
       (member) => !member.takenOver && now() >= (member.reconnectUntil ?? member.seenAt! + 30000),
     );
     for (const member of room.players) {
-      if (!member.takenOver && now() - member.seenAt! >= 2500) {
+      // 移动网络单次请求偶尔超过数秒；过短会让对手的“已下线”提示反复闪烁。
+      if (!member.takenOver && now() - member.seenAt! >= offlineAfterMs) {
         member.disconnected = true;
         member.reconnectUntil ??= member.seenAt! + 30000;
       }

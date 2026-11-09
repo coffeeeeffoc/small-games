@@ -15,12 +15,12 @@ const recipe = [
   },
   {
     file: 'assets/scripts/BattleStatusView.ts',
-    originalSha256: 'ec2f5e8348dfb9ddddca5e7dd1eb59c588717509a29d14644528751b3e2e6520',
+    originalSha256: '86560646e7ebb3f11bd223d10a8b8bea120a73573d11d3f1ca17705be80a8991',
     changes: [],
   },
   {
     file: 'assets/scripts/CombatControlsView.ts',
-    originalSha256: '441918c92bd44ec7c694f6fe3afd0c4889b2f0e81db2c060928339ef85dab731',
+    originalSha256: '4b3f4e57877250adcb09254118d3d7012f0de8790a07b2e6b772966fb427a829',
     changes: [],
   },
   {

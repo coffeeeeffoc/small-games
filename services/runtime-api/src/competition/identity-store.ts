@@ -117,10 +117,13 @@ export function createCompetitionIdentities(db: Database, now = Date.now) {
           }
         }
       }
+      // 平台账号也分配随机昵称；旧的空昵称账号在下次登录时补齐，不覆盖已有昵称。
+      const fallback = anonymousProfile();
       const rows =
-        await tx.execute(sql`insert into runtime.competition_players(id,platform,app_id,subject,created_at,profile)
-        values(${randomUUID()},${platform},${appId},${subject},${now()},'{"source":"default"}'::jsonb)
-        on conflict(platform,app_id,subject) do update set subject=excluded.subject returning id`);
+        await tx.execute(sql`insert into runtime.competition_players(id,platform,app_id,subject,created_at,display_name,profile)
+        values(${randomUUID()},${platform},${appId},${subject},${now()},${fallback.nickname},${JSON.stringify({ avatarId: fallback.avatarId, source: 'default' })}::jsonb)
+        on conflict(platform,app_id,subject) do update set subject=excluded.subject,
+          display_name=coalesce(runtime.competition_players.display_name,excluded.display_name) returning id`);
       return issue(tx, String(rows[0]!.id), game);
     });
   }

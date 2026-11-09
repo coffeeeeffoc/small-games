@@ -432,7 +432,7 @@ integration('Night real HTTP and PostgreSQL', () => {
     const [a, b] = await Promise.all([player(), player()]);
     const room = await pair(a, b);
     const old = leases.get(`${a.playerId}:${room.code}`);
-    time += 3000;
+    time += 6000;
     const offline = await request(roomPath(room.code), b);
     expect(offline.players[0].disconnected).toBe(true);
     expect(offline.players[0].takenOver).toBe(false);

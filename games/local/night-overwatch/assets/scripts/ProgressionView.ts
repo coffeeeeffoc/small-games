@@ -591,14 +591,16 @@ export class ProgressionView {
     const points=credited&&Number.isSafeInteger(reward?.points)&&reward!.points>=0?`+${reward!.points}`:official?waiting:this.t('不计分','NOT RANKED');
     const stats=[['作战用时','TIME',formatTime(Math.round((s.completionTime??s.time)*1000)),ivory],
       ...(!duel||!practice&&(official||Number.isSafeInteger(reward?.points))?[['本局积分','POINTS',points,ivory]]:[]),
-      ['获得金币','COINS',credited?`+${reward?.coins??0}`:waiting,gold],['获得经验','EXP',credited?`+${reward?.xp??0}`:waiting,'#b8e3a5']];
+      ...(online?.spectator&&duel?[]:[['获得金币','COINS',credited?`+${reward?.coins??0}`:waiting,gold],['获得经验','EXP',credited?`+${reward?.xp??0}`:waiting,'#b8e3a5']])];
     const sy=y+banner+8,gap=8,cw=(pw-40-gap*(stats.length-1))/stats.length,sh=this.low?65:ph*.21;
     stats.forEach(([zh,en,value,tone],i)=>{const xx=x+20+i*(cw+gap);this.panel(xx,sy,cw,sh);this.label(this.t(zh,en),xx+4,sy+5,cw-8,sh*.35,28,dim);this.label(value,xx+4,sy+sh*.35,cw-8,sh*.6,61,tone,true);});
     const py=sy+sh+(this.low?10:20*this.scale);if(!this.low)this.panel(x+20,py,pw-40,76*this.scale);
     this.label(`Lv.${q.assets?.level??1}`,x+20,py+(this.low?0:16*this.scale),this.low?75:150*this.scale,this.low?28:42*this.scale,this.low?29:39,gold,true);
     this.bar(x+(this.low?98:184*this.scale),py+(this.low?8:29*this.scale),pw-(this.low?220:380*this.scale),this.low?11:18*this.scale,(q.assets?.current??0)/(q.assets?.required||200));this.label(`EXP ${q.assets?.current??0}/${q.assets?.required??200}`,x+pw-(this.low?117:185*this.scale),py+(this.low?0:16*this.scale),this.low?98:160*this.scale,this.low?28:42*this.scale,26,dim);
     const next=!duel&&!training&&success&&s.mission.id!==MISSIONS.at(-1)!.id;
-    if(!this.low){const task=q.assets?.tasks.find(t=>t.event===(duel?'duel':'solo')||t.event==='complete'),ty=py+90*this.scale;this.panel(x+20,ty,pw-40,72*this.scale);this.label(task?`${this.t('每日任务','DAILY TASK')}  ${task.progress}/${task.target}`:this.t('查看每日任务与奖励','VIEW DAILY TASKS & REWARDS'),x+30,ty+7,pw*(next?.46:.59),44,31,ivory,false,true);this.button('qm:tasks',this.t('查看奖励','REWARDS'),x+pw*(next?.51:.69),ty+7,pw*(next?.22:.27),44);if(next)this.button('missionNext',this.t('下一关卡 ›','NEXT ›'),x+pw*.75,ty+7,pw*.21,44);}
+    // 第三个按钮：单人关卡为“下一关卡”，对战为“战绩”（复用战况面板）。
+    const extra:[string,string,string]|undefined=next?['missionNext','下一关卡 ›','NEXT ›']:duel?['battleReport','战绩','STATS']:undefined;
+    if(!this.low){const task=q.assets?.tasks.find(t=>t.event===(duel?'duel':'solo')||t.event==='complete'),ty=py+90*this.scale;this.panel(x+20,ty,pw-40,72*this.scale);this.label(task?`${this.t('每日任务','DAILY TASK')}  ${task.progress}/${task.target}`:this.t('查看每日任务与奖励','VIEW DAILY TASKS & REWARDS'),x+30,ty+7,pw*(extra?.46:.59),44,31,ivory,false,true);this.button('qm:tasks',this.t('查看奖励','REWARDS'),x+pw*(extra?.51:.69),ty+7,pw*(extra?.22:.27),44);if(extra)this.button(extra[0],this.t(extra[1],extra[2]),x+pw*.75,ty+7,pw*.21,44);}
     const pending=['pending-sync','syncing','recording','connecting'].includes(online?.rankStatus||'');
     const issues:Record<string,[string,string]>={
       'update-required':['版本已更新，请退出游戏后重新打开','UPDATE REQUIRED · REOPEN THE GAME'],
@@ -606,16 +608,16 @@ export class ProgressionView {
       'storage-unavailable':['行动记录暂未保存，请保持页面打开并联网','RUN NOT SAVED · KEEP THIS PAGE OPEN AND ONLINE'],
       'needs-attention':['收益校验未通过，请重新开始行动','REWARD VERIFICATION FAILED · START AGAIN'],
       unavailable:['收益确认失败，请重新连接','REWARD CONFIRMATION FAILED · RECONNECT'],
+      offline:['未联网 · 本局已暂存，联网后自动结算收益','OFFLINE · REWARDS SETTLE AUTOMATICALLY WHEN ONLINE'],
     };
     const issue=issues[online?.rankStatus||''];
-      offline:['未联网 · 本局已暂存，联网后自动结算收益','OFFLINE · REWARDS SETTLE AUTOMATICALLY WHEN ONLINE'],
     const status=practice?this.t('训练不消耗库存，不产出正式资产','Practice: no stock consumed or assets earned'):online?.spectator?this.t('观战不计收益','SPECTATING · NO REWARDS'):credited?this.t('✓ 收益已到账','✓ REWARDS CREDITED'):issue?this.t(...issue):duel||pending?this.t('收益待确认 · 请保持联网','REWARDS PENDING · STAY CONNECTED'):official?this.t('本局收益未通过确认','THIS RUN HAS NO CONFIRMED REWARD'):this.t('离线游玩 · 本局记录保存在本机','OFFLINE PLAY · RESULT SAVED LOCALLY');
     const comparison=this.h.timeComparison,record=duel?'':training?this.h.trainingBest?this.t(`最佳 ${this.h.trainingBest.time.toFixed(1)} 秒`,`BEST ${this.h.trainingBest.time.toFixed(1)}s`):'':comparison?this.t(`${comparison.newRecord?'新纪录 · ':''}个人最佳 ${formatTime(comparison.bestMs)}`,`${comparison.newRecord?'NEW RECORD · ':''}PERSONAL BEST ${formatTime(comparison.bestMs)}`):!success&&s.failureCause==='friendly'?this.t('致命伤来自己方火力，开火前检查友军','FRIENDLY FIRE · CHECK ALLIES BEFORE FIRING'):'';
     const earned=credited&&reward?.fragments?[(reward.firstClear===undefined?'':this.t(reward.firstClear?'首通奖励 · ':'重复通关 · ',reward.firstClear?'FIRST CLEAR · ':'REPEAT CLEAR · ')),Object.entries(reward.fragments).map(([id,n])=>`${this.catalogName(id)} +${n}`).join(' · ')].join(''):'';
     this.label(status+(earned?'\n'+earned:record?'\n'+record:''),x+20,y+ph-(this.low?104:172*this.scale),pw-40,this.low?42:60*this.scale,23,credited?'#94da90':dim);
-    const bw=this.low?(pw-(next?88:76))/(next?3:2):pw*.36,by=y+ph-(this.low?58:105*this.scale),bh=this.low?48:80*this.scale;
+    const bw=this.low?(pw-(extra?88:76))/(extra?3:2):pw*.36,by=y+ph-(this.low?58:105*this.scale),bh=this.low?48:80*this.scale;
     this.button('home',this.t('返回基地','RETURN TO BASE'),this.low?x+24:x+pw*.07,by,bw,bh,'blue');
     this.button(s.duelMode?'online:backLobby':'retry',this.t(s.duelMode?'返回大厅':'再次出动',s.duelMode?'BACK TO LOBBY':'DEPLOY AGAIN'),this.low?x+52+bw:x+pw*.57,by,bw,bh,'gold');
-    if(this.low&&next)this.button('missionNext',this.t('下一关卡','NEXT'),x+64+bw*2,y+ph-58,bw,48,'gold');
+    if(this.low&&extra)this.button(extra[0],this.t(extra[1].replace(' ›',''),extra[2].replace(' ›','')),x+64+bw*2,y+ph-58,bw,48,next?'gold':'blue');
   }
 }

@@ -169,7 +169,7 @@ export class BattleStatusView {
             : 'settings';
     else if (simulation.pauses.has('orientation')) key = 'orientation';
     else if (this.hud.supplyOpen) key = this.hud.pendingSupply ? 'supply:choice' : 'supply:offer';
-    else if (this.hud.reportOpen && simulation.phase === 'playing')
+    else if (this.hud.reportOpen && (simulation.phase === 'playing' || key === 'duelResult'))
       key = `report:${this.hud.equipmentOpen ? 'equipment' : 'overview'}:${Math.floor(simulation.time * 2)}`;
     else if (simulation.resumeCountdown > 0)
       key = `countdown:${Math.ceil(simulation.resumeCountdown)}`;
@@ -289,10 +289,15 @@ export class BattleStatusView {
     if (!key) this.layoutCombatControls();
     this.hud.buttonFeedback();
     const connection = this.hud.labels.get('connectionNotice')!;
-    connection.string = this.hud.online?.connectionLost
+    const reconnecting = !!this.hud.online?.reconnecting;
+    const peerOnline = !reconnecting && !!this.hud.online?.peerBackOnline;
+    connection.string = reconnecting
       ? this.hud.t('网络异常 · 正在重连', 'NETWORK LOST · RECONNECTING')
       : this.hud.online?.offlineNotice || '';
-    connection.node.active = simulation.duelMode && !!connection.string;
+    connection.color = col(peerOnline ? C.mint : C.red);
+    // 只在对战进行中提示；结算界面不残留上下线横幅。
+    connection.node.active =
+      simulation.duelMode && simulation.phase === 'playing' && !!connection.string;
     if (connection.node.active)
       this.hud.plate(
         this.hud.globalGraphics,
@@ -300,8 +305,8 @@ export class BattleStatusView {
         top + 54,
         Math.min(300, right - left - 140),
         28,
-        '#2f1118ee',
-        C.red,
+        peerOnline ? '#0f2a24ee' : '#2f1118ee',
+        peerOnline ? C.mint : C.red,
         4,
       );
     const toast = this.hud.labels.get('globalToast')!;

@@ -677,8 +677,10 @@ export class Overwatch extends Component {
     if (online?.panel && !this.sim.pauses.has('settings') && !this.sim.pauses.has('help') && ['close', 'home', 'resume'].includes(id)) { this.action('online:back'); return; }
     if (this.sim.duelMode && ['supply', 'homingReward', 'homing', 'zoomUpgrade', 'convoy', 'mission', 'retry', 'missionNext'].includes(id)) return;
     if (this.sim.duelMode && (id === 'exitConfirm' || id === 'home' && this.sim.phase !== 'playing')) { this.hud.exitConfirm = false; this.action(id==='home'?'online:back':'online:backLobby'); return; }
-    if (['equipment','reportOverview'].includes(id) && this.sim.phase === 'playing') { this.clear();this.hud.reportOpen=true;this.hud.equipmentOpen=id==='equipment';this.hud.modalKey='rebuild';return; }
-    if (id === 'battleReport' && this.sim.phase === 'playing') {
+    // 对战结算页也可打开战况查看双方战绩。
+    const reportable = this.sim.phase === 'playing' || this.sim.duelMode && !!online?.view?.finished;
+    if (['equipment','reportOverview'].includes(id) && reportable) { this.clear();this.hud.reportOpen=true;this.hud.equipmentOpen=id==='equipment';this.hud.modalKey='rebuild';return; }
+    if (id === 'battleReport' && reportable) {
       this.clear(); this.hud.reportOpen = !this.hud.reportOpen; this.hud.equipmentOpen=false; this.hud.modalKey = 'rebuild'; return;
     }
     if ((this.hud.reportOpen || this.hud.equipmentOpen) && ['close', 'equipmentClose', 'resume', 'pause'].includes(id)) {
@@ -1366,8 +1368,6 @@ export class Overwatch extends Component {
     if (this.online && !this.online.recorder && bridge && bridge !== this.lateBridge) {
       this.lateBridge = bridge;
       this.servicesReady = this.connectServices();
-    const frame = view.getFrameSize(),
-      key = frame.width + 'x' + frame.height + ':' + this.hud.touch + ':' + this.hud.safeRevision;
     }
     const settled = this.starting ? undefined : this.online?.offlineSettled;
     if (settled && this.online) {
@@ -1375,6 +1375,8 @@ export class Overwatch extends Component {
       this.hud.toast = this.hud.t(`离线行动已结算 · 金币 +${settled.coins ?? 0} · 经验 +${settled.xp ?? 0}`, `OFFLINE RUN SETTLED · +${settled.coins ?? 0} COINS · +${settled.xp ?? 0} EXP`);
       this.hud.toastUntil = Date.now() + 5000;
     }
+    const frame = view.getFrameSize(),
+      key = frame.width + 'x' + frame.height + ':' + this.hud.touch + ':' + this.hud.safeRevision;
     // Keyboard resize and input-mode changes must not destroy an active EditBox.
     if (key !== this.resizeKey && !this.hud.editing) {
       this.resizeKey = key;

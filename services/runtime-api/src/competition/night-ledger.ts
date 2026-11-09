@@ -156,8 +156,11 @@ export async function settleNightRoom(
             outcome,
             // Delayed polling must not turn a short simulated match into a reward-eligible one.
             durationMs: Math.min(at - room.startedAt, member.result?.secondary ?? 0),
+            // 对手超时离线时，坚持作战的胜方同样获得胜利收益；离线方不获得收益。
             valid:
-              reason === 'elimination' && member.result?.participated === true && !member.takenOver,
+              (reason === 'elimination' || (reason === 'disconnect' && outcome === 'win')) &&
+              member.result?.participated === true &&
+              !member.takenOver,
           },
         ),
       );
