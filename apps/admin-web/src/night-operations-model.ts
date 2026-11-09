@@ -25,12 +25,18 @@ export type NightAnnouncement = {
   startsAt: number;
   endsAt?: number;
 };
-export type NightCompensation = NightAnnouncement & {
-  endsAt: number;
-  eligibleCreatedBefore: number;
+export type NightCompensation = {
+  id: string;
+  title: string;
+  body: string;
+  /** Players seen in the game during [loginFrom, loginTo] receive one mail each. */
+  loginFrom: number;
+  loginTo: number;
   playerIds?: string[];
   reward: { coins: number; xp: number; packs: number };
 };
+/** Mirrors the runtime visit retention; older login ranges cannot be verified. */
+export const LOGIN_RETENTION_DAYS = 120;
 export type NightOperations = {
   announcements: NightAnnouncement[];
   compensations: NightCompensation[];
@@ -61,26 +67,36 @@ export const defaultNightOperations = (): NightOperations => ({
 });
 export function nightOperationsError(value?: NightOperations) {
   if (!value) return '';
-  for (const item of [...value.announcements, ...value.compensations]) {
+  for (const item of [...value.announcements, ...value.compensations])
     if (!item.title.trim() || !item.body.trim()) return '请填写公告和补偿的标题、正文。';
+  for (const item of value.announcements)
     if (
       !Number.isFinite(item.startsAt) ||
       (item.endsAt !== undefined && (!Number.isFinite(item.endsAt) || item.endsAt <= item.startsAt))
     )
-      return '结束时间必须晚于开始时间。';
-  }
+      return '公告失效时间必须晚于生效时间。';
+  const live = value.announcements.filter((a) => a.enabled).sort((a, b) => a.startsAt - b.startsAt);
+  for (let i = 1; i < live.length; i++)
+    if ((live[i - 1]!.endsAt ?? Infinity) > live[i]!.startsAt)
+      return '同一时间最多只能有一条生效公告；请撤销或调整时间重叠的公告。';
   for (const item of value.compensations) {
     if (
-      !Number.isFinite(item.endsAt) ||
-      !Number.isFinite(item.eligibleCreatedBefore) ||
-      item.eligibleCreatedBefore > item.startsAt ||
-      item.eligibleCreatedBefore > Date.now()
+      !Number.isFinite(item.loginFrom) ||
+      !Number.isFinite(item.loginTo) ||
+      item.loginTo <= item.loginFrom
     )
-      return '补偿账号截止时间不能晚于开始时间。';
+      return '补偿登录时间范围的结束必须晚于开始。';
     const amounts = Object.values(item.reward);
     if (amounts.some((n) => !Number.isSafeInteger(n) || n < 0) || amounts.every((n) => n === 0))
       return '补偿奖励至少一项大于零，且必须是非负整数。';
   }
+  return '';
+}
+/** Range checks that only apply before the compensation is first published. */
+export function newCompensationError(item: NightCompensation, now = Date.now()) {
+  if (item.loginTo > now) return '登录范围的结束时间不能晚于当前时间。';
+  if (item.loginFrom < now - LOGIN_RETENTION_DAYS * 86400000)
+    return `登录范围最早只能追溯 ${LOGIN_RETENTION_DAYS} 天。`;
   return '';
 }
 export function nightChanges(before?: NightOperations, after?: NightOperations) {
@@ -94,7 +110,7 @@ export function nightChanges(before?: NightOperations, after?: NightOperations) 
       const reward = key === 'compensations' ? (item as NightCompensation).reward : undefined;
       if (JSON.stringify(old) !== JSON.stringify(item)) {
         rows.push(
-          `${label}：${item.title || item.id} · ${item.enabled ? '启用' : '停用'}${reward ? ` · ${reward.coins} 金币 / ${reward.xp} EXP / ${reward.packs} 补给箱` : ''}`,
+          `${label}：${item.title || item.id} · ${reward ? `${reward.coins} 金币 / ${reward.xp} EXP / ${reward.packs} 补给箱` : (item as NightAnnouncement).enabled ? '生效' : '已撤销'}`,
         );
         rows.push(`${label}正文：${item.body}`);
       }

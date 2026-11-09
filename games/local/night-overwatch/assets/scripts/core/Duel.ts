@@ -3,7 +3,7 @@ import { WEAPONS, GARRISON, garrisonPoints, patrolPoint, type Point } from './Da
 import { MISSIONS } from './MissionCatalog.ts';
 import type { BattleLoadout } from './Progression.ts';
 
-export const DUEL_VERSION = 'night-duel-v9';
+export const DUEL_VERSION = 'night-duel-v10';
 // Retained for older presentation callers; authority has no match time limit.
 export const DUEL_SECONDS = 0;
 type Pilot = ReturnType<Simulation['pilotState']> & { leaseUntil: number };

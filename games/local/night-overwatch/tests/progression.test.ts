@@ -169,17 +169,17 @@ test('special weapons and EMP reject friendly/protected targets and terrain bloc
   const hp=enemy.hp;drone.step(.1);assert.equal(enemy.hp,hp);assert.equal(drone.drones.reduce((n,d)=>n+d.budget,0),432);
 });
 test('skills repeat after effect and cooldown, pause freezes and advertisements never refill cooldown',()=>{
-  const sim=setup(['tracking']);assert(sim.useSkill());assert.equal(sim.skillRemaining,60);assert.equal(sim.skillCooldown,150);
-  assert(!sim.grantBuff('tracking'));sim.pause('manual',true);sim.step(.1);assert.equal(sim.skillCooldown,150);
-  sim.pause('manual',false);sim.time=61;assert(!sim.useSkill());assert(sim.grantBuff('tracking'));assert.equal(sim.skill.readyAt,150);
-  sim.buff=undefined;sim.time=150;assert(sim.useSkill());assert.equal(sim.skill.readyAt,300);
-  const checkpoint=Simulation.restore(sim.checkpoint());assert.equal(checkpoint.skill.readyAt,300);
+  const sim=setup(['tracking']);assert(sim.useSkill());assert.equal(sim.skillRemaining,30);assert.equal(sim.skillCooldown,120);
+  assert(!sim.grantBuff('tracking'));sim.pause('manual',true);sim.step(.1);assert.equal(sim.skillCooldown,120);
+  sim.pause('manual',false);sim.time=61;assert(!sim.useSkill());assert(sim.grantBuff('tracking'));assert.equal(sim.skill.readyAt,120);
+  sim.buff=undefined;sim.time=120;assert(sim.useSkill());assert.equal(sim.skill.readyAt,240);
+  const checkpoint=Simulation.restore(sim.checkpoint());assert.equal(checkpoint.skill.readyAt,240);
 });
 test('EMP holds movement while allowing attacks and leaves projectiles intact; immunity prevents chaining',()=>{
   const sim=setup(['emp']);const unit=sim.addUnit('light',{x:-80,z:-40});sim.choose(1);sim.setAim(unit);sim.fire();
   const count=sim.shots.length,x=unit.x,z=unit.z,attack=unit.attack;assert(sim.useSkill());sim.step(.1);
   assert.equal(unit.x,x);assert.equal(unit.z,z);assert(unit.attack<attack);assert.equal(sim.shots.length,count);
-  sim.skill.readyAt=0;sim.time=13;assert(sim.useSkill());assert.equal(unit.rootedUntil,12);assert.equal(unit.immuneUntil,20);
+  sim.skill.readyAt=0;sim.time=16;assert(sim.useSkill());assert.equal(unit.rootedUntil,15);assert.equal(unit.immuneUntil,23);
 });
 test('duel ownership isolates tracking and EMP and survives checkpoints',()=>{
   const state=configureDuel(createDuel(11),[
@@ -187,10 +187,10 @@ test('duel ownership isolates tracking and EMP and survives checkpoints',()=>{
     {version:GROWTH_VERSION,level:10,effects:['emp'],skipped:[]},
   ]);
   commandDuel(state,0,[{command:'useSkill',args:[]}]);
-  assert.equal(viewDuel(state,0).simulation.skill.readyAt,150);assert.equal(viewDuel(state,1).simulation.skill.readyAt,0);
+  assert.equal(viewDuel(state,0).simulation.skill.readyAt,120);assert.equal(viewDuel(state,1).simulation.skill.readyAt,0);
   commandDuel(state,1,[{command:'useSkill',args:[]}]);advanceDuel(state,1000);
-  assert.equal(viewDuel(state,1).simulation.skill.readyAt,57);
-  assert(state.simulation.units.filter(u=>u.group===0).every(u=>u.rootedUntil===12));
+  assert.equal(viewDuel(state,1).simulation.skill.readyAt,75);
+  assert(state.simulation.units.filter(u=>u.group===0).every(u=>u.rootedUntil===15));
   assert(state.simulation.units.filter(u=>u.group===1).every(u=>!u.rootedUntil));
 });
 test('special weapons require entitlement; laser is continuous and bounded, drones expire without budget renewal',()=>{
@@ -206,7 +206,7 @@ test('server replay accepts skill input only through server-fixed entitlement',(
   const state=createNightReplay('campaign','corridor-01'),sim=Simulation.restore(state.simulation);
   sim.applyLoadout({version:GROWTH_VERSION,level:6,effects:['tracking'],skipped:[]});state.simulation=sim.checkpoint();
   applyNightReplay(state,[{input:{command:'useSkill',args:[]},ticks:0},{input:{},ticks:2}]);
-  assert.equal(state.assisted,false);assert.equal(state.simulation.skill.readyAt,150);
+  assert.equal(state.assisted,false);assert.equal(state.simulation.skill.readyAt,120);
   assert.throws(()=>applyNightReplay(state,[{input:{command:'applyLoadout',args:[]},ticks:0}]));
 });
 
@@ -354,14 +354,14 @@ test('drone formation attacks distinct targets beyond the old budget, then crash
   assert.equal(sim.events.filter(e=>e.type==='impact'&&e.weapon===4&&e.damage===undefined).length,3);
 });
 
-test('EMP lasts twelve seconds and pauses without shortening the effect',()=>{
+test('EMP lasts fifteen seconds and pauses without shortening the effect',()=>{
   const sim=setup(['emp']),unit=sim.addUnit('light',{x:-80,z:-40});
-  assert(sim.useSkill());assert.equal(sim.skillRemaining,12);assert.equal(sim.skillCooldown,57);
+  assert(sim.useSkill());assert.equal(sim.skillRemaining,15);assert.equal(sim.skillCooldown,75);
   sim.time=10.5;const position={x:unit.x,z:unit.z};sim.step(.1);
   assert.deepEqual({x:unit.x,z:unit.z},position);assert(sim.skillRemaining>1);
   sim.pause('manual',true);const remaining=sim.skillRemaining;sim.step(.1);assert.equal(sim.skillRemaining,remaining);sim.pause('manual',false);
-  sim.time=12.1;sim.step(.1);assert.equal(sim.skillRemaining,0);assert.notDeepEqual({x:unit.x,z:unit.z},position);
-  assert(CATALOG.filter(p=>p.effect==='emp').every(p=>p.name.includes('电磁干扰')&&p.description.includes('12 秒')));
+  sim.time=15.1;sim.step(.1);assert.equal(sim.skillRemaining,0);assert.notDeepEqual({x:unit.x,z:unit.z},position);
+  assert(CATALOG.filter(p=>p.effect==='emp').every(p=>p.name.includes('电磁干扰')&&p.description.includes('15 秒')));
 });
 
 

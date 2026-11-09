@@ -28,6 +28,7 @@ export {
   nightReleaseSchema,
   nightAnnouncementSchema,
   nightCompensationSchema,
+  NIGHT_LOGIN_RETENTION_MS,
   nightOperationsSchema,
   normalizeNightOperations,
   type NightReleaseConfig,

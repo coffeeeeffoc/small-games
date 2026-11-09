@@ -2,7 +2,11 @@
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { deliverNightCompensations, nightAnnouncements } from './night-operations.js';
+import {
+  deliverNightCompensations,
+  nightAnnouncements,
+  recordNightVisit,
+} from './night-operations.js';
 import type { NightOperations, openDatabase } from '@coffeeeeffoc/service-kit';
 import { CompetitionError, type Room } from './types.js';
 import type { RankedRun } from './ranked-types.js';
@@ -138,6 +142,8 @@ export type NightAssets = {
   fragmentDays?: Record<string, number>;
   achievementHistoryVersion?: 1;
   reservations: Record<string, Reservation>;
+  /** Day key -> [first, last] asset visit, used for login-range compensation. */
+  visits?: Record<string, [number, number]>;
   legacy?: Record<string, unknown>;
   migratedAt: number;
 };
@@ -650,16 +656,8 @@ export async function nightAssets(
     throw new CompetitionError('DEV_TOOLS_DISABLED', 403);
   const w = await locked(tx, owner, at, rules),
     day = nightDay(at);
-  const players = operations?.compensations.length
-    ? await tx.execute(sql`select created_at from runtime.competition_players where id=${owner}`)
-    : [];
-  const delivered = deliverNightCompensations(
-    w,
-    owner,
-    Number(players[0]?.created_at),
-    at,
-    operations,
-  );
+  recordNightVisit(w, at, day);
+  const delivered = deliverNightCompensations(w, owner, at, operations);
   const response = async (lastReceipt?: unknown) => {
     const cleared = rules.economy
       ? await tx.execute(
@@ -725,6 +723,7 @@ export async function nightAssets(
   if (previous[0]) {
     const receipt = previous[0].data as { hash: string; result: unknown };
     if (receipt.hash !== hash) throw new CompetitionError('REQUEST_ID_CONFLICT');
+    // Replays keep the receipt's wallet revision unless a compensation arrived meanwhile.
     if (delivered) await save(tx, owner, w);
     return response(receipt.result);
   }

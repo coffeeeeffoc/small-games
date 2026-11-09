@@ -55,6 +55,7 @@ export type ControlState = {
   digest: string | null;
   policies: { gameId: string; state: GameState; killEpoch: number; revision: number }[];
   observations: Observation[];
+  publishedNightCompensationIds?: string[];
   observationCoverage: {
     complete: false;
     missingConsumers: string[];

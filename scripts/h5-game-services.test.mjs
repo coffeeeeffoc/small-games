@@ -34,7 +34,7 @@ test('Night build identity covers final files, API and channel and survives dete
     });
     assert.notEqual(await config(), before);
     assert.match(await config(), /"channel":"taptap-h5"/);
-    assert.match(await config(), /"ranked":"night-input-replay-v16"/);
+    assert.match(await config(), /"ranked":"night-input-replay-v17"/);
     await assert.rejects(stampNightBuild(directory, 'native'), /channel/);
   } finally {
     await rm(directory, { recursive: true, force: true });

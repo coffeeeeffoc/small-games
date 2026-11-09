@@ -23,7 +23,12 @@ import {
 } from './control-common';
 
 import { NightOperationsEditor } from './night-operations-editor';
-import { nightChanges, nightOperationsError, type Deployments } from './night-operations-model';
+import {
+  newCompensationError,
+  nightChanges,
+  nightOperationsError,
+  type Deployments,
+} from './night-operations-model';
 
 const stateNames = { enabled: '开放', draining: '停止新局', disabled: '停用并终止旧局结算' };
 const editableSnapshot = (snapshot: Snapshot): Snapshot => ({
@@ -149,7 +154,6 @@ export function ConfigWorkspace({
     originList.every(validOrigin) &&
     new Set(originList).size === originList.length;
   const draftSnapshot = { ...snapshot, apiOrigins: originList };
-  const operationsError = nightOperationsError(snapshot.nightOperations);
   const dirty =
     JSON.stringify(draftSnapshot) !==
     JSON.stringify(
@@ -162,7 +166,15 @@ export function ConfigWorkspace({
       .filter((r) => r.publishedVersion !== null)
       .flatMap((r) => r.snapshot.nightOperations?.compensations.map((c) => c.id) ?? []),
     ...(state?.snapshot?.nightOperations?.compensations.map((c) => c.id) ?? []),
+    ...(state?.publishedNightCompensationIds ?? []),
   ]);
+  const operationsError =
+    nightOperationsError(snapshot.nightOperations) ||
+    (snapshot.nightOperations?.compensations ?? [])
+      .filter((c) => !publishedIds.has(c.id))
+      .map((c) => newCompensationError(c))
+      .find(Boolean) ||
+    '';
   const stateLabel = {
     unpublished: '未发布 · 保留现有环境策略',
     desired: '待应用',

@@ -1,4 +1,8 @@
-import { normalizeControlSnapshot, type ControlSnapshot } from '@coffeeeeffoc/service-kit';
+import {
+  NIGHT_LOGIN_RETENTION_MS,
+  normalizeControlSnapshot,
+  type ControlSnapshot,
+} from '@coffeeeeffoc/service-kit';
 import { ControlError, snapshotDigest, type ControlTransaction } from './control-model.js';
 
 /** Full publication history, never the bounded UI list: removed IDs remain reserved. */
@@ -13,13 +17,10 @@ export async function assertNightOperations(
     if (snapshotDigest(history.snapshot) !== history.digest)
       throw new Error('Invalid revision digest');
     const previous = normalizeControlSnapshot(history.snapshot).nightOperations;
+    // Published compensation cannot be edited, withdrawn or removed.
     for (const old of previous?.compensations ?? []) {
       const current = operations?.compensations.find((c) => c.id === old.id);
-      if (
-        current &&
-        JSON.stringify({ ...current, enabled: false }) !==
-          JSON.stringify({ ...old, enabled: false })
-      )
+      if (!current || JSON.stringify(current) !== JSON.stringify(old))
         throw new ControlError('NIGHT_COMPENSATION_IMMUTABLE');
     }
     for (const old of previous?.release?.builds ?? []) {
@@ -44,9 +45,19 @@ export async function assertNightOperations(
         throw new ControlError('NIGHT_BUILD_IMMUTABLE');
     }
   }
-  for (const compensation of operations?.compensations ?? [])
-    if (compensation.eligibleCreatedBefore > now)
-      throw new ControlError('NIGHT_COMPENSATION_FUTURE_ELIGIBILITY', 422);
+  const published = new Set(
+    histories
+      .flatMap((h) => normalizeControlSnapshot(h.snapshot).nightOperations?.compensations ?? [])
+      .map((c) => c.id),
+  );
+  for (const compensation of operations?.compensations ?? []) {
+    if (published.has(compensation.id)) continue;
+    // Only a finished range is verifiable, and visits are kept for the login retention only.
+    if (compensation.loginTo > now)
+      throw new ControlError('NIGHT_COMPENSATION_FUTURE_LOGIN_RANGE', 422);
+    if (compensation.loginFrom < now - NIGHT_LOGIN_RETENTION_MS)
+      throw new ControlError('NIGHT_COMPENSATION_LOGIN_RANGE_EXPIRED', 422);
+  }
 }
 
 export async function nightReleaseRollbackSnapshot(

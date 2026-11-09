@@ -18,7 +18,7 @@ const url = process.env.COMPETITION_TEST_DATABASE_URL;
   afterAll(async () => {
     await database?.close();
   });
-  it('adds compensation to existing wallets, atomically claims once, and keeps mail after withdrawal', async () => {
+  it('compensates only players seen in the login range, atomically claims once, and keeps the mail', async () => {
     let at = Date.now();
     const rule = (await import(new URL('../rules/night.mjs', import.meta.url).href))
       .default as Rule;
@@ -34,11 +34,9 @@ const url = process.env.COMPETITION_TEST_DATABASE_URL;
         {
           id: randomUUID(),
           title: '补偿',
-          body: '只发旧账号',
-          enabled: true,
-          startsAt: at + 10,
-          endsAt: at + 1000,
-          eligibleCreatedBefore: at,
+          body: '登录过的玩家',
+          loginFrom: at - 1000,
+          loginTo: at + 10,
           reward: { coins: 10, xp: 20, packs: 1 },
         },
       ],
@@ -50,6 +48,7 @@ const url = process.env.COMPETITION_TEST_DATABASE_URL;
     expect(first.mail.filter((m) => m.id === mailId)).toHaveLength(1);
     expect(second.mail.filter((m) => m.id === mailId)).toHaveLength(1);
     expect(second.announcements).toMatchObject([{ id: 'ops-notice' }]);
+    // A player first seen after the range closes receives nothing.
     const newer = (await store.guestSession({ game })).playerId;
     expect((await store.nightAssets(newer)).mail.some((m) => m.id === mailId)).toBe(false);
     gate.operations({ announcements: [], compensations: [] });

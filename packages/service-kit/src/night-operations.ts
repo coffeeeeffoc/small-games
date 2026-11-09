@@ -81,22 +81,24 @@ export type NightReleaseConfig = z.infer<typeof nightReleaseSchema>;
 
 const id = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$/);
 const timestamp = z.number().int().min(0).max(8640000000000000);
-const message = {
+const text = {
   id,
   title: z.string().trim().min(1).max(80),
   body: z.string().trim().min(1).max(300),
-  enabled: z.boolean(),
-  startsAt: timestamp,
 };
+/** Runtime keeps daily first/last visit stamps this long; older login ranges cannot be verified. */
+export const NIGHT_LOGIN_RETENTION_MS = 120 * 86400000;
+const announcementEnd = (a: { startsAt: number; endsAt?: number }) => a.endsAt ?? Infinity;
 export const nightAnnouncementSchema = z
-  .object({ ...message, endsAt: timestamp.optional() })
+  .object({ ...text, enabled: z.boolean(), startsAt: timestamp, endsAt: timestamp.optional() })
   .strict()
   .refine((v) => v.endsAt === undefined || v.endsAt > v.startsAt, 'Invalid announcement window');
+/** Delivered once to every player seen during [loginFrom, loginTo]; published entries never change. */
 export const nightCompensationSchema = z
   .object({
-    ...message,
-    endsAt: timestamp,
-    eligibleCreatedBefore: timestamp,
+    ...text,
+    loginFrom: timestamp,
+    loginTo: timestamp,
     playerIds: z
       .array(z.uuid().transform((value) => value.toLowerCase()))
       .min(1)
@@ -113,14 +115,11 @@ export const nightCompensationSchema = z
       .refine((v) => v.coins + v.xp + v.packs > 0, 'Empty compensation'),
   })
   .strict()
-  .refine(
-    (v) => v.endsAt > v.startsAt && v.eligibleCreatedBefore <= v.startsAt,
-    'Invalid compensation window',
-  );
+  .refine((v) => v.loginTo > v.loginFrom, 'Invalid compensation login range');
 export const nightOperationsSchema = z
   .object({
     announcements: z.array(nightAnnouncementSchema).max(50),
-    compensations: z.array(nightCompensationSchema).max(100),
+    compensations: z.array(nightCompensationSchema).max(200),
     release: nightReleaseSchema.optional(),
   })
   .strict()
@@ -128,6 +127,13 @@ export const nightOperationsSchema = z
     for (const entries of [value.announcements, value.compensations])
       if (new Set(entries.map((e) => e.id)).size !== entries.length)
         ctx.addIssue({ code: 'custom', message: 'Duplicate Night operation ID' });
+    // Players see at most one announcement: enabled windows may never overlap.
+    const live = value.announcements
+      .filter((a) => a.enabled)
+      .sort((a, b) => a.startsAt - b.startsAt);
+    for (let i = 1; i < live.length; i++)
+      if (announcementEnd(live[i - 1]!) > live[i]!.startsAt)
+        ctx.addIssue({ code: 'custom', message: 'Overlapping Night announcements' });
   });
 export type NightAnnouncement = z.infer<typeof nightAnnouncementSchema>;
 export type NightCompensation = z.infer<typeof nightCompensationSchema>;

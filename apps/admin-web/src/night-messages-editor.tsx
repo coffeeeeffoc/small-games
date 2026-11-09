@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Alert, Card, Checkbox, Input, InputNumber, Tag } from 'antd';
+import { Alert, Card, Input, InputNumber, Tag } from 'antd';
 import { ActionButton as Button, DataTable as Table } from './control-common';
 import { dateLabel } from './control-api';
 import {
   defaultNightOperations,
+  LOGIN_RETENTION_DAYS,
   type NightAnnouncement,
   type NightCompensation,
   type NightOperations,
@@ -13,16 +14,42 @@ const localTime = (time?: number) =>
   time !== undefined && Number.isFinite(time)
     ? new Date(time - new Date(time).getTimezoneOffset() * 60000).toISOString().slice(0, 19)
     : '';
-function MessageFields({
+function TimeField({
+  id,
+  label,
   value,
-  locked,
   disabled,
   change,
 }: {
-  value: NightAnnouncement;
-  locked: boolean;
+  id: string;
+  label: string;
+  value?: number;
   disabled: boolean;
-  change: (patch: Partial<NightAnnouncement>) => void;
+  change: (time: number | undefined) => void;
+}) {
+  return (
+    <div>
+      <label htmlFor={id}>{label}</label>
+      <Input
+        id={id}
+        aria-label={label}
+        type="datetime-local"
+        step={1}
+        value={localTime(value)}
+        disabled={disabled}
+        onChange={(e) => change(e.target.value ? new Date(e.target.value).getTime() : undefined)}
+      />
+    </div>
+  );
+}
+function MessageFields({
+  value,
+  disabled,
+  change,
+}: {
+  value: { id: string; title: string; body: string };
+  disabled: boolean;
+  change: (patch: { title?: string; body?: string }) => void;
 }) {
   return (
     <>
@@ -33,7 +60,7 @@ function MessageFields({
         aria-label="消息标题"
         maxLength={80}
         value={value.title}
-        disabled={disabled || locked}
+        disabled={disabled}
         onChange={(e) => change({ title: e.target.value })}
       />
       <label htmlFor={'body-' + value.id}>正文</label>
@@ -44,46 +71,9 @@ function MessageFields({
         showCount
         rows={4}
         value={value.body}
-        disabled={disabled || locked}
+        disabled={disabled}
         onChange={(e) => change({ body: e.target.value })}
       />
-      <div className="operation-fields">
-        <div>
-          <label htmlFor={'start-' + value.id}>开始时间</label>
-          <Input
-            id={'start-' + value.id}
-            aria-label="开始时间"
-            type="datetime-local"
-            step={1}
-            value={localTime(value.startsAt)}
-            disabled={disabled || locked}
-            onChange={(e) => change({ startsAt: new Date(e.target.value).getTime() })}
-          />
-        </div>
-        <div>
-          <label htmlFor={'end-' + value.id}>结束时间{'reward' in value ? '' : '（可留空）'}</label>
-          <Input
-            id={'end-' + value.id}
-            aria-label="结束时间"
-            type="datetime-local"
-            step={1}
-            value={localTime(value.endsAt)}
-            disabled={disabled || locked}
-            onChange={(e) =>
-              change({ endsAt: e.target.value ? new Date(e.target.value).getTime() : undefined })
-            }
-          />
-        </div>
-      </div>
-      <div className="control-check">
-        <Checkbox
-          checked={value.enabled}
-          disabled={disabled}
-          onChange={(e) => change({ enabled: e.target.checked })}
-        >
-          启用此消息
-        </Checkbox>
-      </div>
     </>
   );
 }
@@ -102,12 +92,14 @@ export function NightMessagesEditor({
   const [kind, setKind] = useState<'announcements' | 'compensations'>('announcements');
   const [selectedId, setSelectedId] = useState('');
   const [playersText, setPlayersText] = useState('');
-  const entries = operations[kind];
+  const entries: (NightAnnouncement | NightCompensation)[] = operations[kind];
   const selected = entries.find((e) => e.id === selectedId);
   const compensation =
     selected && 'reward' in selected ? (selected as NightCompensation) : undefined;
+  const announcement = selected && !compensation ? (selected as NightAnnouncement) : undefined;
+  // Publication is final for compensation: no edits, no withdrawal, no removal.
   const locked = !!compensation && publishedIds.has(compensation.id);
-  const edit = (patch: Partial<NightCompensation>) => {
+  const edit = (patch: Partial<NightAnnouncement> | Partial<NightCompensation>) => {
     if (!selected) return;
     change({
       ...operations,
@@ -116,30 +108,24 @@ export function NightMessagesEditor({
   };
   const add = () => {
     const now = Math.floor(Date.now() / 1000) * 1000;
-    const item: NightAnnouncement = {
-      id: crypto.randomUUID(),
-      title: '',
-      body: '',
-      startsAt: now,
-      enabled: false,
-    };
-    const entry =
+    const base = { id: crypto.randomUUID(), title: '', body: '' };
+    const entry: NightAnnouncement | NightCompensation =
       kind === 'compensations'
         ? {
-            ...item,
-            endsAt: now + 7 * 86400000,
-            eligibleCreatedBefore: now,
+            ...base,
+            loginFrom: now - 86400000,
+            loginTo: now,
             reward: { coins: 0, xp: 0, packs: 0 },
           }
-        : item;
+        : { ...base, startsAt: now, enabled: true };
     change({ ...operations, [kind]: [...entries, entry] });
-    setSelectedId(item.id);
+    setSelectedId(base.id);
     setPlayersText('');
   };
   return (
     <Card title="公告与补偿">
       <p className="control-help">
-        时间按当前浏览器时区显示。保存草稿后还需发布；停用补偿只停止后续投递，已到信箱的附件仍可领取。
+        时间按当前浏览器时区显示。保存草稿后需发布才生效。同一时间最多一条生效公告，可随时撤销；补偿发布后不可修改或撤销。
       </p>
       <div className="control-actions">
         <Button
@@ -161,7 +147,7 @@ export function NightMessagesEditor({
           补偿管理
         </Button>
         <Button
-          disabled={disabled || entries.length >= (kind === 'announcements' ? 50 : 100)}
+          disabled={disabled || entries.length >= (kind === 'announcements' ? 50 : 200)}
           onClick={add}
         >
           {kind === 'announcements' ? '新增公告' : '新增补偿'}
@@ -185,15 +171,23 @@ export function NightMessagesEditor({
             {
               title: '状态 / 时间',
               key: 'status',
-              render: (_, row) => (
-                <>
-                  <Tag>{row.enabled ? '启用' : '停用'}</Tag>
-                  <small className="control-id">
-                    {dateLabel(row.startsAt)}
-                    {row.endsAt ? ' 至 ' + dateLabel(row.endsAt) : ''}
-                  </small>
-                </>
-              ),
+              render: (_, row) =>
+                'reward' in row ? (
+                  <>
+                    <Tag>{publishedIds.has(row.id) ? '已发布' : '草稿'}</Tag>
+                    <small className="control-id">
+                      登录 {dateLabel(row.loginFrom)} 至 {dateLabel(row.loginTo)}
+                    </small>
+                  </>
+                ) : (
+                  <>
+                    <Tag>{row.enabled ? '生效' : '已撤销'}</Tag>
+                    <small className="control-id">
+                      {dateLabel(row.startsAt)}
+                      {row.endsAt ? ' 至 ' + dateLabel(row.endsAt) : ' 起长期'}
+                    </small>
+                  </>
+                ),
             },
             {
               title: '操作',
@@ -219,11 +213,55 @@ export function NightMessagesEditor({
       {selected && (
         <section aria-label="消息编辑">
           {locked && (
-            <Alert type="info" title="此补偿已发布，内容、奖励与资格已锁定；可以暂停或恢复投递。" />
+            <Alert type="info" title="此补偿已发布，内容、奖励与登录范围均已锁定，不可撤销。" />
           )}
-          <MessageFields value={selected} disabled={disabled} locked={locked} change={edit} />
+          <MessageFields value={selected} disabled={disabled || locked} change={edit} />
+          {announcement && (
+            <>
+              <div className="operation-fields">
+                <TimeField
+                  id={'start-' + announcement.id}
+                  label="生效时间"
+                  value={announcement.startsAt}
+                  disabled={disabled}
+                  change={(t) => edit({ startsAt: t ?? NaN })}
+                />
+                <TimeField
+                  id={'end-' + announcement.id}
+                  label="失效时间（可留空）"
+                  value={announcement.endsAt}
+                  disabled={disabled}
+                  change={(t) => edit({ endsAt: t })}
+                />
+              </div>
+              <div className="control-actions">
+                <Button
+                  disabled={disabled}
+                  onClick={() => edit({ enabled: !announcement.enabled })}
+                >
+                  {announcement.enabled ? '撤销公告' : '恢复公告'}
+                </Button>
+              </div>
+            </>
+          )}
           {compensation && (
             <>
+              <div className="operation-fields">
+                <TimeField
+                  id="login-from"
+                  label="登录时间范围开始"
+                  value={compensation.loginFrom}
+                  disabled={disabled || locked}
+                  change={(t) => edit({ loginFrom: t ?? NaN })}
+                />
+                <TimeField
+                  id="login-to"
+                  label="登录时间范围结束"
+                  value={compensation.loginTo}
+                  disabled={disabled || locked}
+                  change={(t) => edit({ loginTo: t ?? NaN })}
+                />
+              </div>
               <div className="operation-fields">
                 {(['coins', 'xp', 'packs'] as const).map((key, i) => (
                   <div key={key}>
@@ -241,18 +279,6 @@ export function NightMessagesEditor({
                   </div>
                 ))}
               </div>
-              <label htmlFor="eligible-before">补偿账号注册截止时间</label>
-              <Input
-                id="eligible-before"
-                aria-label="补偿账号注册截止时间"
-                type="datetime-local"
-                step={1}
-                value={localTime(compensation.eligibleCreatedBefore)}
-                disabled={disabled || locked}
-                onChange={(e) =>
-                  edit({ eligibleCreatedBefore: new Date(e.target.value).getTime() })
-                }
-              />
               <label htmlFor="compensation-players">指定玩家 ID（可留空，每行一个）</label>
               <Input.TextArea
                 id="compensation-players"
@@ -270,7 +296,8 @@ export function NightMessagesEditor({
                 }}
               />
               <p className="control-help">
-                留空面向截止时间前的全部账号；指定玩家仍受注册截止时间限制。每位符合条件的玩家仅领取一次。
+                范围内进入过游戏的玩家在下次进入时收到一封信箱消息，正文即上方文案，附件仅可领取一次。登录记录最多保留
+                {LOGIN_RETENTION_DAYS} 天，范围结束时间不能晚于当前时间。
               </p>
             </>
           )}

@@ -56,8 +56,8 @@ const effects: Array<[Effect, Product['category'], string, string, number, numbe
   ['cooling', 'mod', '冷却改装', '普通武器热量降低 15%，不改变技能冷却。', 180, 1, false],
   ['drone', 'weapon', '无人机', '释放3架无人机，持续攻击与减速，12秒后自动坠毁。', 600, 2, false],
   ['laser', 'weapon', '激光武器', '持续3秒，每秒80伤害（总240）；重甲伤害85%，冷却8秒，6发。', 800, 2, false],
-  ['tracking', 'skill', '追踪资格', '普通武器追踪 60 秒，结束后冷却 90 秒。', 300, 1, false],
-  ['emp', 'skill', '电磁干扰', '敌方地面单位定身 12 秒，结束后冷却 45 秒。', 400, 2, false],
+  ['tracking', 'skill', '追踪资格', '普通武器追踪 30 秒，结束后冷却 90 秒。', 300, 1, false],
+  ['emp', 'skill', '电磁干扰', '敌方地面单位定身 15 秒，结束后冷却 60 秒。', 400, 2, false],
 ];
 export const UNLOCK_LEVEL:Record<Effect,number>={power:1,rate:1,cooling:1,radius:3,drone:5,tracking:6,laser:8,emp:10,burst:12,twin:15};
 export const CATALOG: Product[] = effects.flatMap(([effect, category, name, description, price, rarity]) =>
@@ -69,7 +69,7 @@ export const PACKAGES = [
   { quantity: 5, coins: 900, videos: 3 }, { quantity: 10, coins: 1700, videos: 6 },
   { quantity: 20, coins: 3200, videos: 12 },
 ];
-export const SKILLS = { tracking: { duration: 60, cooldown: 90, level: 6 }, emp: { duration: 12, cooldown: 45, immunity: 8, level: 10 } };
+export const SKILLS = { tracking: { duration: 30, cooldown: 90, level: 6 }, emp: { duration: 15, cooldown: 60, immunity: 8, level: 10 } };
 const unifiedPool={name:'补给箱',packSell:40,weights:[60,25,12,3],coinDrops:[40,120,300,800],minimumRecycle:[40,12,17,96],effects:['power','rate','radius','cooling','drone','laser','burst','twin','tracking','emp']};
 // Old inventory keys remain valid, but their source no longer changes the contents.
 export const POOLS = {general:unifiedPool,gold:unifiedPool};

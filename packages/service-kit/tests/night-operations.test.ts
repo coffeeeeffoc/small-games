@@ -18,10 +18,8 @@ const operations: NightOperations = {
       id: 'grant',
       title: '补偿',
       body: '正文',
-      enabled: true,
-      startsAt: 10,
-      endsAt: 20,
-      eligibleCreatedBefore: 5,
+      loginFrom: 10,
+      loginTo: 20,
       reward: { coins: 1, xp: 0, packs: 0 },
     },
   ],
@@ -41,7 +39,7 @@ it('preserves old digests exactly and signs normalized operations independently 
       ...operations,
       announcements: [
         ...operations.announcements,
-        { ...operations.announcements[0]!, id: 'another' },
+        { ...operations.announcements[0]!, id: 'another', enabled: false },
       ],
     },
   };
@@ -63,8 +61,8 @@ it('preserves old digests exactly and signs normalized operations independently 
 it('rejects unbounded text, duplicate IDs, invalid windows/rewards/recipients and unknown fields', () => {
   const c = operations.compensations[0]!;
   for (const change of [
-    { endsAt: 10 },
-    { eligibleCreatedBefore: 11 },
+    { loginTo: 10 },
+    { enabled: true },
     { body: 'x'.repeat(301) },
     { reward: { coins: 0, xp: 0, packs: 0 } },
     { reward: { coins: -1, xp: 1, packs: 0 } },
@@ -80,6 +78,27 @@ it('rejects unbounded text, duplicate IDs, invalid windows/rewards/recipients an
     false,
   );
   expect(nightOperationsSchema.safeParse(operations).success).toBe(true);
+});
+it('keeps at most one enabled announcement live at any instant', () => {
+  const a = operations.announcements[0]!;
+  const parse = (announcements: NightOperations['announcements']) =>
+    nightOperationsSchema.safeParse({ ...operations, announcements }).success;
+  // Open-ended or overlapping enabled windows conflict.
+  expect(parse([a, { ...a, id: 'b', startsAt: 50 }])).toBe(false);
+  expect(
+    parse([
+      { ...a, endsAt: 60 },
+      { ...a, id: 'b', startsAt: 50 },
+    ]),
+  ).toBe(false);
+  // Back-to-back windows, or a revoked (disabled) overlap, are fine.
+  expect(
+    parse([
+      { ...a, endsAt: 50 },
+      { ...a, id: 'b', startsAt: 50 },
+    ]),
+  ).toBe(true);
+  expect(parse([a, { ...a, id: 'b', startsAt: 50, enabled: false }])).toBe(true);
 });
 it('allows latest to be disabled but only non-latest builds to be removed', () => {
   const config = {

@@ -29,10 +29,8 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
             id: 'ops-grant',
             title: '维护补偿',
             body: '每位符合条件的玩家仅领取一次。',
-            enabled: true,
-            startsAt: now,
-            endsAt: now + 86400000,
-            eligibleCreatedBefore: now,
+            loginFrom: now - 86400000,
+            loginTo: now,
             reward: { coins: 200, xp: 100, packs: 1 },
           },
         ],
@@ -111,6 +109,11 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         fullPage: true,
       });
       await activate(button('公告管理'));
+      // Only one announcement may be live: revoke the current one before adding the next.
+      await activate(
+        page.getByRole('table', { name: '公告列表' }).getByRole('button', { name: '查看 / 编辑' }),
+      );
+      await activate(button('撤销公告'));
       await activate(button('新增公告'));
       await page
         .getByRole('textbox', { name: '消息标题' })
@@ -118,9 +121,11 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
       await page
         .getByRole('textbox', { name: '消息正文' })
         .fill('版本维护完成。\n公告支持换行，按原文展示。');
-      await page.getByRole('checkbox', { name: '启用此消息' }).check();
       await publish();
-      assert.equal(f.state.snapshot.nightOperations.announcements.length, 2);
+      assert.deepEqual(
+        f.state.snapshot.nightOperations.announcements.map((a) => a.enabled),
+        [false, true],
+      );
       await activate(button('补偿管理'));
       await activate(button('新增补偿'));
       await page.getByRole('textbox', { name: '消息标题' }).fill('补偿测试');

@@ -34,10 +34,8 @@ const operations = (): NightOperations => ({
       id: 'grant',
       title: '补偿',
       body: '正文',
-      enabled: true,
-      startsAt: 10,
-      endsAt: 20,
-      eligibleCreatedBefore: 5,
+      loginFrom: Date.now() - 86400000,
+      loginTo: Date.now() - 1000,
       reward: { coins: 1, xp: 2, packs: 3 },
     },
   ],
@@ -49,12 +47,16 @@ async function publish(f: Awaited<ReturnType<typeof controlFixture>>, snapshot: 
   await f.service.publish(f.session, revision.id, expectedVersion);
   return revision;
 }
-it('protects every published compensation beyond the UI history window, even after withdrawal', async () => {
+it('keeps every published compensation immutable and irremovable beyond the UI history window', async () => {
   const f = await controlFixture(),
     snapshot = { ...controlSnapshot(), nightOperations: operations() };
   const original = await publish(f, snapshot);
+  const grant = original.snapshot.nightOperations!.compensations[0]!;
   const empty = { ...snapshot, nightOperations: { ...operations(), compensations: [] } };
-  await publish(f, empty);
+  // Publication is final: the campaign can be neither withdrawn nor removed.
+  await expect(
+    f.service.draft(f.session, { expectedVersion: 1, snapshot: empty, reason: 'withdraw' }),
+  ).rejects.toMatchObject({ code: 'NIGHT_COMPENSATION_IMMUTABLE' });
   for (let n = 0; n < 105; n++) {
     const filler = {
       ...original,
@@ -68,30 +70,51 @@ it('protects every published compensation beyond the UI history window, even aft
   for (const change of [
     { title: 'changed' },
     { body: 'changed' },
-    { startsAt: 11 },
-    { endsAt: 21 },
-    { eligibleCreatedBefore: 4 },
+    { loginFrom: grant.loginFrom - 1 },
+    { loginTo: grant.loginTo - 1 },
     { reward: { coins: 2, xp: 2, packs: 3 } },
     { playerIds: ['11111111-1111-4111-8111-111111111111'] },
   ]) {
     await expect(
       f.service.draft(f.session, {
-        expectedVersion: 2,
+        expectedVersion: 1,
         snapshot: {
           ...snapshot,
           nightOperations: {
             ...operations(),
-            compensations: [{ ...operations().compensations[0]!, ...change }],
+            compensations: [{ ...grant, ...change }],
           },
         },
         reason: 'cannot reuse',
       }),
     ).rejects.toMatchObject({ code: 'NIGHT_COMPENSATION_IMMUTABLE' });
   }
-  snapshot.nightOperations.compensations[0]!.enabled = false;
-  snapshot.nightOperations.announcements[0]!.body = '编辑公告';
-  await publish(f, snapshot);
+  // Announcements stay editable and revocable alongside the frozen compensation.
+  const next = structuredClone(snapshot);
+  next.nightOperations.announcements[0]!.enabled = false;
+  await publish(f, next);
   expect((await f.service.state(f.session)).publishedNightCompensationIds).toEqual(['grant']);
+});
+it('rejects new compensation for unfinished or no longer verifiable login ranges', async () => {
+  const f = await controlFixture(),
+    now = Date.now();
+  for (const [range, code] of [
+    [{ loginFrom: now - 1000, loginTo: now + 60000 }, 'NIGHT_COMPENSATION_FUTURE_LOGIN_RANGE'],
+    [
+      { loginFrom: now - 200 * 86400000, loginTo: now - 1000 },
+      'NIGHT_COMPENSATION_LOGIN_RANGE_EXPIRED',
+    ],
+  ] as const) {
+    const ops = operations();
+    Object.assign(ops.compensations[0]!, range);
+    await expect(
+      f.service.draft(f.session, {
+        expectedVersion: 0,
+        snapshot: { ...controlSnapshot(), nightOperations: ops },
+        reason: 'range',
+      }),
+    ).rejects.toMatchObject({ code });
+  }
 });
 it('switches only one channel atomically and rejects disabled/removed/unavailable target rules', async () => {
   const f = await controlFixture(),
