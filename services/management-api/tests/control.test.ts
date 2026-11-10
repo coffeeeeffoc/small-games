@@ -245,3 +245,32 @@ it('audits role permission changes with nonsecret before and after details', asy
     after: null,
   });
 });
+
+it('limits a scoped draft to its own area and copies every other area from the live head', async () => {
+  const f = await controlFixture();
+  const snapshot = controlSnapshot();
+  const first = await f.service.draft(f.session, { expectedVersion: 0, snapshot, reason: 'v1' });
+  await f.service.publish(f.session, first.id, 0);
+  // A stale client copy edits both areas; only the scoped one may reach the draft.
+  const stale = {
+    ...snapshot,
+    apiOrigins: ['https://scoped.example'],
+    games: { ...snapshot.games, 'cops-robbers': 'disabled' as const },
+  };
+  const origins = await f.service.draft(f.session, {
+    expectedVersion: 1,
+    snapshot: stale,
+    reason: 'origins only',
+    scope: 'public',
+  });
+  expect(origins.snapshot.apiOrigins).toEqual(['https://scoped.example']);
+  expect(origins.snapshot.games['cops-robbers']).toBe(snapshot.games['cops-robbers']);
+  const games = await f.service.draft(f.session, {
+    expectedVersion: 1,
+    snapshot: stale,
+    reason: 'games only',
+    scope: 'games',
+  });
+  expect(games.snapshot.apiOrigins).toEqual(snapshot.apiOrigins);
+  expect(games.snapshot.games['cops-robbers']).toBe('disabled');
+});

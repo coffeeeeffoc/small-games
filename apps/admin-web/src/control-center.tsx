@@ -6,10 +6,12 @@ import { ConfigWorkspace } from './config-workspace';
 import { MembersPage } from './members-page';
 import { RolesPage } from './roles-page';
 import { AuditPage } from './audit-page';
+import { ReleasesPage } from './release-page';
 
 const pages = [
   ['/config', '公共配置', 'control.read'],
   ['/games', '游戏状态', 'control.read'],
+  ['/releases', '发布记录', 'control.read'],
   ['/members', '成员', 'members.read'],
   ['/roles', '角色', 'roles.read'],
   ['/audit', '审计', 'audit.read'],
@@ -55,6 +57,8 @@ export function ControlCenter({
     <section className="control-center">
       {pathname === '/config' || pathname === '/games' ? (
         <ConfigWorkspace api={api} session={session} gamesOnly={pathname === '/games'} />
+      ) : pathname === '/releases' ? (
+        <ReleasesPage api={api} session={session} />
       ) : pathname === '/members' ? (
         <MembersPage api={api} session={session} />
       ) : pathname === '/roles' ? (

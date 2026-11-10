@@ -11,6 +11,7 @@ import {
   goLive,
   LOGIN_RETENTION_DAYS,
   newCompensationError,
+  same,
   type NightAnnouncement,
   type NightCompensation,
   type NightOperations,
@@ -199,7 +200,7 @@ export function NightMessagesEditor({
                     {!('reward' in row) &&
                       (!before ? (
                         <Tag color="gold">未发布</Tag>
-                      ) : JSON.stringify(before) !== JSON.stringify(row) ? (
+                      ) : !same(before, row) ? (
                         <Tag color="gold">有未发布改动</Tag>
                       ) : null)}
                   </div>

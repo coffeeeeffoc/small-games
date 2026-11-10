@@ -50,6 +50,7 @@ test('trusted admin document uses a fresh canonical nonce without relaxing scrip
     '/forbidden',
     '/config',
     '/games',
+    '/releases',
     '/members',
     '/roles',
     '/audit',

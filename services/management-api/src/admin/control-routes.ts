@@ -38,6 +38,7 @@ export async function registerControlRoutes(
               expectedVersion: versionSchema,
               snapshot: snapshotSchema,
               reason: reasonSchema,
+              scope: z.enum(['public', 'games']).optional(),
             })
             .strict()
             .parse(request.body),

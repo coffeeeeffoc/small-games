@@ -12,6 +12,7 @@ export const adminUiPaths = Object.freeze([
   '/forbidden',
   '/config',
   '/games',
+  '/releases',
   '/members',
   '/roles',
   '/audit',

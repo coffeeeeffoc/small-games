@@ -20,9 +20,6 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       const activate = (locator) => (width < 500 ? locator.tap() : locator.click());
       await page.goto(`${baseURL}/config`);
       await page.getByRole('heading', { name: '公共配置', exact: true }).waitFor();
-      await page.getByText('应用覆盖尚不完整', { exact: true }).waitFor();
-      assert(await page.getByText('已知应用版本匹配', { exact: true }).isVisible());
-      assert(await page.getByText(/状态未知：runtime/).isVisible());
       await page.screenshot({
         path: `${evidence}/config-${width}.png`,
         fullPage: true,
@@ -30,8 +27,10 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       });
       const origins = page.getByRole('textbox', { name: '公共 API Origins', exact: true });
       await origins.fill('https://game.example/path');
+      await activate(page.getByRole('button', { name: '查看改动并发布', exact: true }));
       await page.getByRole('textbox', { name: '变更理由', exact: true }).fill('reject bad origin');
       assert(await page.getByRole('button', { name: '保存草稿', exact: true }).isDisabled());
+      await activate(page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }));
       for (const invalid of [
         'https://*.example.com',
         'https://u:p@api.example',
@@ -39,17 +38,25 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
         'https://admin.nenggongzhiren.cn',
       ]) {
         await origins.fill(invalid);
+        await activate(page.getByRole('button', { name: '查看改动并发布', exact: true }));
         assert(await page.getByRole('button', { name: '保存草稿', exact: true }).isDisabled());
+        await activate(page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }));
       }
       await origins.fill('https://new.example:8443');
       assert.equal(fixture.state.snapshot.games['night-overwatch'], 'disabled');
+      await activate(page.getByRole('button', { name: '查看改动并发布', exact: true }));
       await activate(page.getByRole('button', { name: '保存草稿', exact: true }));
       await page.getByText('草稿已保存，尚未发布', { exact: true }).waitFor();
       assert.equal(fixture.writes.length, 1);
       assert.equal(fixture.writes[0].body.snapshot.games['night-overwatch'], 'disabled');
+      assert.equal(fixture.writes[0].body.scope, 'public');
       await page.getByRole('button', { name: '发布此草稿', exact: true }).click();
       await page.getByRole('button', { name: '确认发布', exact: true }).click();
-      await page.getByText('当前版本 3', { exact: true }).waitFor();
+      await page
+        .getByRole('region', { name: '保存与发布' })
+        .getByText('与线上一致', { exact: true })
+        .waitFor();
+      assert.equal(fixture.state.version, 3);
       assert.equal(fixture.writes.length, 2);
       assert.equal(fixture.state.snapshot.games['night-overwatch'], 'disabled');
       await page.getByRole('link', { name: '游戏状态', exact: true }).click();
@@ -72,6 +79,7 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
         .locator('.ant-select-dropdown:visible .ant-select-item-option')
         .filter({ hasText: '停止新局' })
         .click();
+      await page.getByRole('button', { name: '查看改动并发布', exact: true }).click();
       await page.getByRole('textbox', { name: '变更理由', exact: true }).fill('drain game');
       if (diagnostic)
         console.log(
@@ -107,6 +115,7 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       await page.getByRole('button', { name: '保存草稿', exact: true }).click();
       await page.getByText('草稿已保存，尚未发布', { exact: true }).waitFor();
       assert.equal(fixture.writes.at(-1).body.snapshot.games['cops-robbers'], 'draining');
+      assert.equal(fixture.writes.at(-1).body.scope, 'games');
       assert.equal(Object.keys(fixture.writes.at(-1).body.snapshot.games).length, 13);
       assert.equal(fixture.writes.at(-1).body.snapshot.games['night-overwatch'], 'enabled');
       assert.equal(fixture.writes.at(-1).body.snapshot.games.tetracube, 'enabled');
@@ -114,7 +123,11 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       assert.equal(fixture.state.snapshot.games['night-overwatch'], 'disabled');
       await page.getByRole('button', { name: '发布此草稿', exact: true }).click();
       await page.getByRole('button', { name: '确认发布', exact: true }).click();
-      await page.getByText('当前版本 4', { exact: true }).waitFor();
+      await page
+        .getByRole('region', { name: '保存与发布' })
+        .getByText('与线上一致', { exact: true })
+        .waitFor();
+      assert.equal(fixture.state.version, 4);
       assert.equal(fixture.state.snapshot.games['night-overwatch'], 'enabled');
       assert.equal(fixture.state.snapshot.games.tetracube, 'enabled');
       assert(
@@ -130,8 +143,20 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
         await clean();
         return 1;
       }
-      await page.getByRole('link', { name: '公共配置', exact: true }).click();
+      // History, application reports and rollback live on their own page.
+      await page.getByRole('link', { name: '发布记录', exact: true }).first().click();
+      await page.getByRole('heading', { name: '发布记录', exact: true }).waitFor();
       await clean();
+      assert(await page.getByText(/^应用覆盖尚不完整/).isVisible());
+      assert(await page.getByText('待应用', { exact: true }).isVisible());
+      const reports = page.getByRole('table', { name: '应用生效情况' });
+      assert(await reports.getByText('报告过期 · 状态未知', { exact: true }).isVisible());
+      assert(await reports.getByText('未收到报告', { exact: true }).isVisible());
+      await page.screenshot({
+        path: `${evidence}/releases-${width}.png`,
+        fullPage: true,
+        animations: 'disabled',
+      });
       await page
         .getByRole('row')
         .filter({ hasText: '已发布版本 1' })
@@ -217,6 +242,7 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       await page
         .getByRole('textbox', { name: '公共 API Origins', exact: true })
         .fill('https://mine.example');
+      await page.getByRole('button', { name: '查看改动并发布', exact: true }).click();
       await page.getByRole('textbox', { name: '变更理由', exact: true }).fill('preserve my draft');
       fixture.state.version = 3;
       fixture.state.snapshot.apiOrigins = ['https://concurrent.example'];
@@ -229,9 +255,15 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       );
       assert.equal(fixture.writes.length, 1);
       await page.getByRole('button', { name: /已核对差异/ }).click();
+      await page.getByRole('button', { name: '查看改动并发布', exact: true }).click();
+      assert.equal(
+        await page.getByRole('textbox', { name: '变更理由', exact: true }).inputValue(),
+        'preserve my draft',
+      );
       await page.getByRole('button', { name: '保存草稿', exact: true }).click();
       await page.getByText('草稿已保存，尚未发布', { exact: true }).waitFor();
       assert.equal(fixture.writes.at(-1).body.expectedVersion, 3);
+      await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
       await page.getByRole('link', { name: '成员', exact: true }).click();
       const owner = page.getByRole('row').filter({ hasText: 'owner@example.com' });
       await owner.getByRole('button', { name: '编辑成员' }).click();
@@ -391,18 +423,22 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       await page.goto(baseURL + path);
       await page.getByRole('heading', { name: title, exact: true }).waitFor();
       if (granted.includes('control.read')) {
-        assert(await page.getByRole('button', { name: '保存草稿', exact: true }).isDisabled());
-        const draftRow = page.getByRole('row').filter({ hasText: '未发布草稿' });
+        assert(
+          await page.getByRole('button', { name: '查看改动并发布', exact: true }).isDisabled(),
+        );
+        await page.goto(baseURL + '/releases');
+        await page.getByRole('heading', { name: '发布记录', exact: true }).waitFor();
+        const draftRow = page.getByRole('row').filter({ hasText: '待发布草稿' });
         await draftRow.waitFor();
         assert.equal(
           await draftRow.getByRole('button', { name: '准备回退', exact: true }).count(),
           0,
         );
         if (granted.includes('control.publish')) {
-          await draftRow.getByRole('button', { name: '载入草稿', exact: true }).click();
-          await page.getByRole('button', { name: '发布此草稿', exact: true }).click();
+          await draftRow.getByRole('button', { name: '发布此草稿', exact: true }).click();
           await page.getByRole('button', { name: '确认发布', exact: true }).click();
           await page.getByText('当前版本 3', { exact: true }).waitFor();
+          assert.equal(fixture.state.version, 3);
           assert.equal(fixture.writes.length, 1);
         }
       }

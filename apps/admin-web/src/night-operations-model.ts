@@ -1,3 +1,18 @@
+/** Key-order-insensitive equality: stored JSONB and freshly built objects order keys differently. */
+export function same(a: unknown, b: unknown) {
+  const stable = (v: unknown): unknown =>
+    Array.isArray(v)
+      ? v.map(stable)
+      : v && typeof v === 'object'
+        ? Object.fromEntries(
+            Object.entries(v)
+              .filter(([, x]) => x !== undefined)
+              .sort(([x], [y]) => (x < y ? -1 : 1))
+              .map(([k, x]) => [k, stable(x)]),
+          )
+        : v;
+  return JSON.stringify(stable(a)) === JSON.stringify(stable(b));
+}
 export type NightBuild = {
   buildId: string;
   channel: string;
@@ -156,7 +171,7 @@ export function nightChanges(before?: NightOperations, after?: NightOperations) 
     for (const item of after?.[key] ?? []) {
       const old = before?.[key].find((other) => other.id === item.id);
       const reward = key === 'compensations' ? (item as NightCompensation).reward : undefined;
-      if (JSON.stringify(old) !== JSON.stringify(item)) {
+      if (!same(old, item)) {
         rows.push(
           `${label}：${item.title || item.id} · ${reward ? `${(item as NightCompensation).voided ? '已作废 · ' : ''}${reward.coins} 金币 / ${reward.xp} EXP / ${reward.packs} 补给箱` : (item as NightAnnouncement).enabled ? '上线' : '下线'}`,
         );
@@ -167,7 +182,7 @@ export function nightChanges(before?: NightOperations, after?: NightOperations) 
       if (!after?.[key].some((other) => other.id === item.id))
         rows.push(`移除${label}：${item.title}`);
   }
-  if (JSON.stringify(before?.release) !== JSON.stringify(after?.release)) {
+  if (!same(before?.release, after?.release)) {
     for (const channel of after?.release?.channels ?? []) {
       const old = before?.release?.channels.find((c) => c.channel === channel.channel);
       if (old?.latestBuildId !== channel.latestBuildId)
@@ -177,7 +192,7 @@ export function nightChanges(before?: NightOperations, after?: NightOperations) 
     }
     for (const build of after?.release?.builds ?? []) {
       const old = before?.release?.builds.find((b) => b.buildId === build.buildId);
-      if (JSON.stringify(old) !== JSON.stringify(build))
+      if (!same(old, build))
         rows.push(
           `前端 ${build.version ?? build.buildId}：${build.removed ? '移除登记' : build.disabled ? '关闭新局' : '启用'} · 后端 ${build.backendVersion ?? '未标记'}`,
         );

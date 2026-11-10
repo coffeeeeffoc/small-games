@@ -115,19 +115,38 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
     audits: (session: AdminSession) => withPermission(session, 'audit.read', (tx) => tx.audits()),
     draft(
       session: AdminSession,
-      input: { expectedVersion: number; snapshot: unknown; reason: string },
+      input: {
+        expectedVersion: number;
+        snapshot: unknown;
+        reason: string;
+        /** Limits the draft to one page's area; every other area is copied from the live head. */
+        scope?: 'public' | 'games';
+      },
     ) {
-      return withPermission(session, 'control.write', (tx, actor) =>
-        newControlRevision(
+      return withPermission(session, 'control.write', async (tx, actor) => {
+        let snapshot = input.snapshot;
+        const head = input.scope ? await tx.head() : undefined;
+        const current = head?.revisionId ? await tx.revision(head.revisionId) : undefined;
+        if (input.scope && current) {
+          const next = normalizeControlSnapshot(input.snapshot);
+          const base = normalizeControlSnapshot(current.snapshot);
+          const merged =
+            input.scope === 'public'
+              ? { ...base, apiOrigins: next.apiOrigins }
+              : { ...base, games: next.games, nightOperations: next.nightOperations };
+          if (!merged.nightOperations) delete merged.nightOperations;
+          snapshot = merged;
+        }
+        return newControlRevision(
           tx,
           actor,
           input.expectedVersion,
-          input.snapshot,
+          snapshot,
           input.reason,
           adminOrigin,
           now,
-        ),
-      );
+        );
+      });
     },
     publish(session: AdminSession, id: string, expected: number) {
       return withPermission(session, 'control.publish', async (tx, actor) => {

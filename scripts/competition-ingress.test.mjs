@@ -413,7 +413,10 @@ test('management stays on its sole origin with finite APIs and no SPA API fallba
     main = renderCaddy({ ...companyConfig(), ingress });
   assert.match(admin, /admin\.nenggongzhiren\.cn \{/);
   assert.match(admin, /http:\/\/172\.30\.245\.3:8083/);
-  assert.match(admin, /@pages path \/ \/login \/config \/games \/members \/roles \/audit\n/);
+  assert.match(
+    admin,
+    /@pages path \/ \/login \/config \/games \/releases \/members \/roles \/audit\n/,
+  );
   assert.equal((admin.match(/templates \{/g) || []).length, 2);
   for (const header of [
     'If-None-Match',

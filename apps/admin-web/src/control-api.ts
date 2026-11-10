@@ -152,8 +152,12 @@ export function createControlApi(session: Session, accessLost: () => Promise<voi
     read: <T>(
       path: 'catalog' | 'state' | 'revisions' | 'members' | 'roles' | 'audit' | 'deployments',
     ) => request<T>(path),
-    draft: (body: { expectedVersion: number; snapshot: Snapshot; reason: string }) =>
-      request<RevisionData>('revisions', body),
+    draft: (body: {
+      expectedVersion: number;
+      snapshot: Snapshot;
+      reason: string;
+      scope?: 'public' | 'games';
+    }) => request<RevisionData>('revisions', body),
     publish: (id: string, expectedVersion: number) =>
       request(`revisions/${encodeURIComponent(id)}/publish`, { expectedVersion }),
     rollback: (revisionId: string, expectedVersion: number, reason: string) =>

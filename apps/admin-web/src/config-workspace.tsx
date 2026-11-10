@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { Alert, Card, Input, Modal, Select, Tabs, Tag } from 'antd';
 import {
   ApiError,
@@ -23,88 +24,15 @@ import {
 } from './control-common';
 
 import { NightOperationsEditor } from './night-operations-editor';
+import { changeGroups, Changes, editableSnapshot, stateNames } from './config-changes';
 import {
   newCompensationError,
   nightChanges,
   nightOperationsError,
   type Deployments,
+  same,
 } from './night-operations-model';
 
-const stateNames = { enabled: '开放', draining: '停止新局', disabled: '停用并终止旧局结算' };
-const editableSnapshot = (snapshot: Snapshot): Snapshot => ({
-  ...snapshot,
-  games: { 'night-overwatch': 'disabled', tetracube: 'disabled', ...snapshot.games },
-});
-/** Diff grouped by what it affects, so game-specific edits read as belonging to that game. */
-function changeGroups(before: Snapshot | null, after: Snapshot) {
-  before = before && editableSnapshot(before);
-  after = editableSnapshot(after);
-  const was = (id: string) => (before ? stateNames[before.games[id]] : '未发布');
-  const changed = (id: string) => before?.games[id] !== after.games[id];
-  return [
-    {
-      key: 'night',
-      short: '夜航守望',
-      title: '夜航守望（运行状态、公告、补偿、版本）',
-      rows: [
-        ...(changed('night-overwatch')
-          ? [`运行状态：${was('night-overwatch')} → ${stateNames[after.games['night-overwatch']]}`]
-          : []),
-        ...nightChanges(before?.nightOperations, after.nightOperations),
-      ],
-    },
-    {
-      key: 'games',
-      short: '其他游戏开关',
-      title: '其他游戏开关',
-      rows: Object.keys(after.games)
-        .filter((id) => id !== 'night-overwatch' && changed(id))
-        .map((id) => `${gameNames[id] ?? id}：${was(id)} → ${stateNames[after.games[id]]}`),
-    },
-    {
-      key: 'origins',
-      short: '公共 API 来源',
-      title: '公共 API 允许来源（所有游戏共用）',
-      rows: [
-        ...after.apiOrigins
-          .filter((origin) => !before?.apiOrigins.includes(origin))
-          .map((origin) => `新增来源：${origin}`),
-        ...(before?.apiOrigins ?? [])
-          .filter((origin) => !after.apiOrigins.includes(origin))
-          .map((origin) => `移除来源：${origin}`),
-      ],
-    },
-  ];
-}
-function Changes({ before, after }: { before: Snapshot | null; after: Snapshot }) {
-  const groups = changeGroups(before, after).filter((g) => g.rows.length);
-  return (
-    <div className="config-groups" aria-label="配置差异">
-      {!after.apiOrigins.length && (
-        <Alert
-          type="warning"
-          showIcon
-          title="公共 API 允许来源为空"
-          description="发布后所有网页与 H5 客户端（包括 TapTap H5 包）的请求都会被拒绝（ORIGIN_REJECTED）。请在“公共配置”填写客户端来源。"
-        />
-      )}
-      {groups.length ? (
-        groups.map((group) => (
-          <section key={group.key} className="config-group">
-            <h4>{group.title}</h4>
-            <ul className="config-diff">
-              {group.rows.map((row) => (
-                <li key={row}>{row}</li>
-              ))}
-            </ul>
-          </section>
-        ))
-      ) : (
-        <p className="control-help">配置内容没有变化；确认后仍会创建新版本。</p>
-      )}
-    </div>
-  );
-}
 function TabLabel({ name, count }: { name: string; count?: number }) {
   return (
     <>
@@ -137,12 +65,9 @@ export function ConfigWorkspace({
   const [base, setBase] = useState(0);
   const [saved, setSaved] = useState<RevisionData>();
   const [publishConfirm, setPublishConfirm] = useState(false);
-  const [rollback, setRollback] = useState<Revision>();
-  const [rollbackReason, setRollbackReason] = useState('');
-  const [pageTab, setPageTab] = useState<'games' | 'night' | 'history'>('games');
+  const [pageTab, setPageTab] = useState<'games' | 'night'>('games');
   const nightTab = pageTab === 'night';
-  const [showDiff, setShowDiff] = useState(false);
-  const [viewing, setViewing] = useState<Revision>();
+  const [releaseOpen, setReleaseOpen] = useState(false);
   const [deployments, setDeployments] = useState<Deployments>();
   const [conflict, setConflict] = useState<ControlState>();
   const canWrite = session.permissions.includes('control.write');
@@ -177,6 +102,7 @@ export function ConfigWorkspace({
     };
     setSnapshot(editableSnapshot(initial));
     setOrigins(initial.apiOrigins.join('\n'));
+    setReleaseOpen(false);
     setSaved(undefined);
     setPublishConfirm(false);
     setConflict(undefined);
@@ -194,6 +120,7 @@ export function ConfigWorkspace({
         setConflict(latest);
         setSaved(undefined);
         setPublishConfirm(false);
+        setReleaseOpen(false);
       }
       throw error;
     }
@@ -212,13 +139,10 @@ export function ConfigWorkspace({
     originList.every(validOrigin) &&
     new Set(originList).size === originList.length;
   const draftSnapshot = { ...snapshot, apiOrigins: originList };
-  const dirty =
-    JSON.stringify(draftSnapshot) !==
-    JSON.stringify(
-      state?.snapshot
-        ? editableSnapshot(state.snapshot)
-        : { apiOrigins: [], games: snapshot.games },
-    );
+  const dirty = !same(
+    draftSnapshot,
+    state?.snapshot ? editableSnapshot(state.snapshot) : { apiOrigins: [], games: snapshot.games },
+  );
   const publishedIds = new Set([
     ...revisions
       .filter((r) => r.publishedVersion !== null)
@@ -235,26 +159,15 @@ export function ConfigWorkspace({
     '';
   const groups = state ? changeGroups(state.snapshot, draftSnapshot) : [];
   const pending = Object.fromEntries(groups.map((g) => [g.key, g.rows.length]));
-  // A published row is compared with the version before it; a draft with its base version.
-  const previousOf = (row: Revision) =>
-    revisions.find(
-      (r) => r.publishedVersion === (row.publishedVersion ?? row.parentVersion + 1) - 1,
-    )?.snapshot ?? null;
   // Each page publishes only its own area; the other area stays at its published value.
   const ownKeys = gamesOnly ? ['night', 'games'] : ['origins'];
   const ownGroups = groups.filter((g) => ownKeys.includes(g.key));
   const changeCount = ownGroups.reduce((n, g) => n + g.rows.length, 0);
-  // Only possible before the first publication or with a loaded draft: say so instead of hiding it.
-  const otherCount = groups
-    .filter((g) => !ownKeys.includes(g.key))
-    .reduce((n, g) => n + g.rows.length, 0);
-  const step = saved ? 2 : changeCount ? 0 : -1;
-  const stateLabel = {
-    unpublished: '未发布 · 保留现有环境策略',
-    desired: '待应用',
-    partial: '部分已知应用匹配',
-    observed: '已知应用版本匹配',
-  };
+  // Scoped drafts copy the other page's area from the live head, so only the very first
+  // publication (no head yet) can carry another page's defaults: say so instead of hiding it.
+  const otherCount = state?.snapshot
+    ? 0
+    : groups.filter((g) => !ownKeys.includes(g.key)).reduce((n, g) => n + g.rows.length, 0);
   return (
     <>
       <PageTitle
@@ -269,122 +182,42 @@ export function ConfigWorkspace({
         <p role="status">正在读取配置…</p>
       ) : (
         <>
-          {/* One panel above every tab: the draft is global, so its status and actions live here. */}
-          <section className="release-panel" role="region" aria-label="保存与发布">
-            <div className="release-head">
-              <div>
-                <strong className="release-title">
-                  {gamesOnly ? '发布游戏配置' : '发布公共配置'}
-                </strong>
-                <span className="control-help">
-                  {gamesOnly
-                    ? '本页“游戏开关”和“夜航运营”的改动在这里一起保存、发布；公共 API 来源请到“公共配置”页单独发布。'
-                    : '只保存、发布本页的公共 API 允许来源；游戏状态页的配置不受影响。'}
-                </span>
-              </div>
-              <div className="control-summary">
-                <span>配置中心</span>
-                <Tag color="blue">当前版本 {state.version}</Tag>
-                <Tag>{stateLabel[state.status]}</Tag>
-                <span>编辑基线 {base}</span>
-              </div>
+          {/* Compact, always-visible status; the reason and actions live in the release dialog. */}
+          <section className="release-bar" role="region" aria-label="保存与发布">
+            <div className="release-status">
+              <strong>{gamesOnly ? '游戏配置' : '公共配置'}</strong>
+              <span className={changeCount || saved ? 'pending' : undefined}>
+                {saved
+                  ? '草稿已保存，待发布'
+                  : changeCount
+                    ? `有 ${changeCount} 项改动未发布`
+                    : '与线上一致'}
+              </span>
+              {ownGroups
+                .filter((g) => g.rows.length)
+                .map((g) => (
+                  <Tag key={g.key} color="gold">
+                    {g.short} {g.rows.length} 项
+                  </Tag>
+                ))}
             </div>
-            <ol className="release-steps" aria-label="发布步骤">
-              {[
-                ['编辑配置', changeCount ? `${changeCount} 项改动` : '暂无改动'],
-                ['保存草稿', saved ? '已保存' : '填写理由后保存'],
-                ['发布生效', saved ? '待确认发布' : '保存后可发布'],
-              ].map(([name, note], i) => (
-                <li key={name} className={i < step ? 'done' : i === step ? 'current' : undefined}>
-                  <span className="step-index">{i + 1}</span>
-                  <span>
-                    <strong>{name}</strong>
-                    <small>{note}</small>
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <div className="release-changes">
-              <span>本页待发布改动：</span>
-              {ownGroups.map((g) => (
-                <Tag key={g.key} color={g.rows.length ? 'gold' : undefined}>
-                  {g.short} {g.rows.length} 项
-                </Tag>
-              ))}
-              {otherCount > 0 && <Tag color="orange">另含其他页面改动 {otherCount} 项</Tag>}
+            <div className="control-actions">
+              <Link to="/releases" className="release-link">
+                发布记录
+              </Link>
+              {(dirty || saved) && (
+                <Button disabled={operation.busy} onClick={() => void operation.run(load)}>
+                  放弃编辑
+                </Button>
+              )}
               <Button
-                type="link"
-                disabled={!changeCount && !otherCount}
-                onClick={() => setShowDiff((v) => !v)}
+                type="primary"
+                disabled={(!canWrite && !canPublish) || (!changeCount && !otherCount && !saved)}
+                onClick={() => setReleaseOpen(true)}
               >
-                {showDiff ? '收起改动' : '查看改动'}
+                查看改动并发布
               </Button>
             </div>
-            {showDiff && <Changes before={state.snapshot} after={draftSnapshot} />}
-            {operationsError && <Alert type="error" title={operationsError} />}
-            <div className="release-form">
-              <label htmlFor="draft-reason">变更理由</label>
-              <Input
-                id="draft-reason"
-                aria-label="变更理由"
-                maxLength={500}
-                placeholder={
-                  gamesOnly
-                    ? '简述本次改动，例如：维护补偿 / 新版本公告'
-                    : '简述本次改动，例如：新增 TapTap H5 来源'
-                }
-                value={reason}
-                disabled={!canWrite || operation.busy}
-                onChange={(event) => {
-                  setReason(event.target.value);
-                  setSaved(undefined);
-                  setPublishConfirm(false);
-                }}
-              />
-              <div className="control-actions">
-                <Button
-                  type={saved ? 'default' : 'primary'}
-                  disabled={
-                    !canWrite || !reason.trim() || !originsValid || !!operationsError || !!conflict
-                  }
-                  loading={operation.busy}
-                  onClick={() =>
-                    void operation.run(() =>
-                      versioned(async () => {
-                        const revision = await api.draft({
-                          expectedVersion: base,
-                          snapshot: draftSnapshot,
-                          reason: reason.trim(),
-                        });
-                        setSaved(revision);
-                        setRevisions(await api.read<Revision[]>('revisions'));
-                        operation.success('草稿已保存，尚未发布。');
-                      }),
-                    )
-                  }
-                >
-                  保存草稿
-                </Button>
-                <Button
-                  type={saved ? 'primary' : 'default'}
-                  disabled={!canPublish || !saved || !!conflict || operation.busy}
-                  onClick={() => setPublishConfirm(true)}
-                >
-                  发布此草稿
-                </Button>
-                <Button disabled={operation.busy} onClick={() => void operation.run(load)}>
-                  放弃编辑并重新读取
-                </Button>
-              </div>
-            </div>
-            {saved && (
-              <Alert
-                type="success"
-                showIcon
-                title="草稿已保存，尚未发布"
-                description={`理由：${saved.reason} · 基线版本 ${saved.parentVersion}。核对改动后点击“发布此草稿”。`}
-              />
-            )}
           </section>
           {conflict && (
             <Card title="版本冲突 · 输入已保留" className="conflict-panel">
@@ -413,11 +246,10 @@ export function ConfigWorkspace({
               items={[
                 { key: 'games', label: <TabLabel name="游戏开关" count={pending.games} /> },
                 { key: 'night', label: <TabLabel name="夜航运营" count={pending.night} /> },
-                { key: 'history', label: '发布记录' },
               ]}
             />
           )}
-          {pageTab !== 'history' && (
+          {
             <>
               <Card
                 title={
@@ -534,17 +366,21 @@ export function ConfigWorkspace({
                 )}
               </Card>
             </>
-          )}
+          }
           <Modal
-            open={publishConfirm && !!saved}
-            title="确认发布此草稿"
+            open={releaseOpen}
+            title={publishConfirm ? '确认发布此草稿' : `发布${gamesOnly ? '游戏配置' : '公共配置'}`}
             width={720}
             destroyOnHidden
+            // Rendering in place skips rc-dialog's body scroll lock, whose injected style has no CSP nonce.
             getContainer={false}
-            onCancel={() => setPublishConfirm(false)}
+            onCancel={() => {
+              setReleaseOpen(false);
+              setPublishConfirm(false);
+            }}
             footer={null}
           >
-            {saved && (
+            {publishConfirm && saved ? (
               <>
                 <p>
                   将从版本 {base} 发布新版本；理由：{saved.reason}。以下改动将一起生效：
@@ -567,182 +403,99 @@ export function ConfigWorkspace({
                   >
                     确认发布
                   </Button>
-                  <Button onClick={() => setPublishConfirm(false)}>取消发布</Button>
+                  <Button onClick={() => setPublishConfirm(false)}>返回</Button>
                 </div>
               </>
-            )}
-          </Modal>
-          {(!gamesOnly || pageTab === 'history') && (
-            <Card title="草稿与发布历史">
-              <p className="control-help">
-                每次保存草稿和发布都会留下记录（理由、时间、改动）；成员操作明细见“审计”页。
-              </p>
-              <div className="table-scroll">
-                <Table
-                  pagination={false}
-                  rowKey="id"
-                  aria-label="草稿与发布历史"
-                  dataSource={revisions}
-                  columns={[
-                    {
-                      title: '记录',
-                      key: 'revision',
-                      render: (_, row) => (
-                        <>
-                          <strong>
-                            {row.publishedVersion === null
-                              ? '未发布草稿'
-                              : `已发布版本 ${row.publishedVersion}`}
-                          </strong>
-                          <small className="control-id">{row.id}</small>
-                          {row.id === state.revisionId && <Tag>当前目标</Tag>}
-                        </>
-                      ),
-                    },
-                    {
-                      title: '理由 / 时间',
-                      key: 'reason',
-                      render: (_, row) => (
-                        <>
-                          {row.reason}
-                          <small className="control-id">{dateLabel(row.createdAt)}</small>
-                          <Button type="link" onClick={() => setViewing(row)}>
-                            查看改动
-                          </Button>
-                        </>
-                      ),
-                    },
-                    {
-                      title: '操作',
-                      key: 'actions',
-                      render: (_, row) =>
-                        row.publishedVersion === null ? (
-                          <Button
-                            disabled={
-                              row.parentVersion !== state.version ||
-                              (!canWrite && !canPublish) ||
-                              operation.busy
-                            }
-                            onClick={() => {
-                              setBase(row.parentVersion);
-                              setSnapshot(editableSnapshot(row.snapshot));
-                              setOrigins(row.snapshot.apiOrigins.join('\n'));
-                              setReason(row.reason);
-                              setSaved(row);
-                              setPublishConfirm(false);
-                              setConflict(undefined);
-                            }}
-                          >
-                            载入草稿
-                          </Button>
-                        ) : (
-                          <Button
-                            disabled={!canPublish || row.id === state.revisionId || operation.busy}
-                            onClick={() => {
-                              setRollback(row);
-                              setRollbackReason('');
-                            }}
-                          >
-                            准备回退
-                          </Button>
-                        ),
-                    },
-                  ]}
-                />
-              </div>
-            </Card>
-          )}
-          {rollback && (
-            <Card title={`回退至已发布版本 ${rollback.publishedVersion}`} className="confirmation">
-              <p>回退会从当前版本 {state.version} 创建新版本，历史不会删除。</p>
-              <p>公告、补偿和游戏版本策略保留当前配置。</p>
-              <Changes
-                before={state.snapshot}
-                after={{ ...rollback.snapshot, nightOperations: state.snapshot?.nightOperations }}
-              />
-              <label htmlFor="rollback-reason">回退理由</label>
-              <Input.TextArea
-                id="rollback-reason"
-                aria-label="回退理由"
-                rows={3}
-                value={rollbackReason}
-                maxLength={500}
-                onChange={(event) => setRollbackReason(event.target.value)}
-              />
-              <div className="control-actions">
-                <Button
-                  danger
-                  disabled={!rollbackReason.trim() || !!conflict}
-                  loading={operation.busy}
-                  onClick={() =>
-                    void operation.run(() =>
-                      versioned(async () => {
-                        await api.rollback(rollback.id, base, rollbackReason.trim());
-                        setRollback(undefined);
-                        await load();
-                        operation.success('回退已创建新目标版本，等待应用报告。');
-                      }),
-                    )
-                  }
-                >
-                  确认回退
-                </Button>
-                <Button onClick={() => setRollback(undefined)}>取消回退</Button>
-              </div>
-            </Card>
-          )}
-          <Modal
-            open={!!viewing}
-            title={
-              viewing?.publishedVersion === null
-                ? '未发布草稿的改动'
-                : `版本 ${viewing?.publishedVersion} 的改动`
-            }
-            width={720}
-            destroyOnHidden
-            getContainer={false}
-            onCancel={() => setViewing(undefined)}
-            footer={<Button onClick={() => setViewing(undefined)}>关闭</Button>}
-          >
-            {viewing && (
-              <>
+            ) : (
+              <div className="release-form">
                 <p className="control-help">
-                  理由：{viewing.reason} · {dateLabel(viewing.createdAt)}
+                  {gamesOnly
+                    ? '本页“游戏开关”和“夜航运营”的改动一起保存、发布；保存草稿不会生效，发布后才生效。'
+                    : '只保存、发布本页的公共 API 允许来源；保存草稿不会生效，发布后才生效。'}
                 </p>
-                <Changes before={previousOf(viewing)} after={viewing.snapshot} />
-              </>
+                <Changes before={state.snapshot} after={draftSnapshot} />
+                {otherCount > 0 && (
+                  <Alert
+                    type="warning"
+                    title={`首次发布会同时写入其他页面的默认配置 ${otherCount} 项。`}
+                  />
+                )}
+                {operationsError && <Alert type="error" title={operationsError} />}
+                <label htmlFor="draft-reason">变更理由</label>
+                <Input
+                  id="draft-reason"
+                  aria-label="变更理由"
+                  maxLength={500}
+                  placeholder={
+                    gamesOnly
+                      ? '简述本次改动，例如：维护补偿 / 新版本公告'
+                      : '简述本次改动，例如：新增 TapTap H5 来源'
+                  }
+                  value={reason}
+                  disabled={!canWrite || operation.busy}
+                  onChange={(event) => {
+                    setReason(event.target.value);
+                    setSaved(undefined);
+                    setPublishConfirm(false);
+                  }}
+                />
+                {saved && (
+                  <Alert
+                    type="success"
+                    showIcon
+                    title="草稿已保存，尚未发布"
+                    description={`理由：${saved.reason} · 基线版本 ${saved.parentVersion}`}
+                  />
+                )}
+                <div className="control-actions modal-actions">
+                  <Button
+                    onClick={() => {
+                      setReleaseOpen(false);
+                      setPublishConfirm(false);
+                    }}
+                  >
+                    关闭
+                  </Button>
+                  <Button
+                    type={saved ? 'default' : 'primary'}
+                    disabled={
+                      !canWrite ||
+                      !reason.trim() ||
+                      !originsValid ||
+                      !!operationsError ||
+                      !!conflict
+                    }
+                    loading={operation.busy}
+                    onClick={() =>
+                      void operation.run(() =>
+                        versioned(async () => {
+                          const revision = await api.draft({
+                            expectedVersion: base,
+                            snapshot: draftSnapshot,
+                            reason: reason.trim(),
+                            // The server copies the other page's area from the live head.
+                            scope: gamesOnly ? 'games' : 'public',
+                          });
+                          setSaved(revision);
+                          setRevisions(await api.read<Revision[]>('revisions'));
+                          operation.success('草稿已保存，尚未发布。');
+                        }),
+                      )
+                    }
+                  >
+                    保存草稿
+                  </Button>
+                  <Button
+                    type={saved ? 'primary' : 'default'}
+                    disabled={!canPublish || !saved || !!conflict || operation.busy}
+                    onClick={() => setPublishConfirm(true)}
+                  >
+                    发布此草稿
+                  </Button>
+                </div>
+              </div>
             )}
           </Modal>
-          <Alert
-            type="info"
-            title="应用覆盖尚不完整"
-            description={
-              <>
-                <p>只展示已知实例的报告，不能据此判断完整部署覆盖或服务健康。</p>
-                {state.observationCoverage.missingConsumers.length > 0 && (
-                  <p>缺少新鲜报告：{state.observationCoverage.missingConsumers.join('、')}</p>
-                )}
-                {state.observationCoverage.expiredUnknown.map((item) => (
-                  <p key={`${item.consumer}/${item.instanceId}`}>
-                    状态未知：{item.consumer} / {item.instanceId}（报告过期，不能视为进程已停止）
-                  </p>
-                ))}
-              </>
-            }
-          />
-          {state.observations.length > 0 && (
-            <Card title="已知应用报告">
-              <ul>
-                {state.observations.map((item) => (
-                  <li key={`${item.consumer}/${item.instanceId}`}>
-                    {item.consumer} / {item.instanceId} · 版本 {item.version} ·{' '}
-                    {item.status === 'applied' ? '已报告应用' : '应用失败'} ·{' '}
-                    {dateLabel(item.observedAt)}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
         </>
       )}
     </>

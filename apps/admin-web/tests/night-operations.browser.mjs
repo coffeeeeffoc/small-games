@@ -82,12 +82,17 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
       const button = (name) => page.getByRole('button', { name, exact: true });
       const publish = async () => {
         const version = f.state.version;
+        await activate(button('查看改动并发布'));
         await page.getByRole('textbox', { name: '变更理由', exact: true }).fill('运营专项验证');
         await activate(button('保存草稿'));
         await page.getByText('草稿已保存，尚未发布', { exact: true }).waitFor();
         await activate(button('发布此草稿'));
         await activate(button('确认发布'));
-        await page.getByText(`当前版本 ${version + 1}`, { exact: true }).waitFor();
+        await page
+          .getByRole('region', { name: '保存与发布' })
+          .getByText('与线上一致', { exact: true })
+          .waitFor();
+        assert.equal(f.state.version, version + 1);
       };
       await page.goto(url + '/games');
       const tab = (name) => activate(page.getByRole('tab', { name, exact: true }));
@@ -264,11 +269,15 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
     assert(await page.getByRole('button', { name: '新增公告', exact: true }).isDisabled());
     await page.getByRole('tab', { name: '版本与部署', exact: true }).click();
     assert(await page.getByRole('button', { name: '登记到草稿', exact: true }).isDisabled());
-    // Release history is reachable from the games page, with each record's grouped changes.
-    await page.getByRole('tab', { name: '发布记录', exact: true }).click();
+    // Release history has its own page, linked from the games page, with grouped changes.
+    await page
+      .getByRole('region', { name: '保存与发布' })
+      .getByRole('link', { name: '发布记录' })
+      .click();
+    await page.getByRole('heading', { name: '发布记录', exact: true }).waitFor();
     await page
       .getByRole('table', { name: '草稿与发布历史' })
-      .getByRole('button', { name: '查看改动' })
+      .getByRole('button', { name: /^查看改动/ })
       .first()
       .click();
     await page.getByRole('dialog').getByLabel('配置差异').waitFor();

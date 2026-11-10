@@ -129,7 +129,7 @@ function App({ nonceReady }: { nonceReady: boolean }) {
   const forbidden = location.pathname === '/forbidden' || auth.state === 'forbidden';
   const mood = forbidden ? 'forbidden' : welcome ? 'welcome' : 'login';
   const error = new URLSearchParams(location.search).get('error');
-  const isControl = ['/config', '/games', '/members', '/roles', '/audit'].includes(
+  const isControl = ['/config', '/games', '/releases', '/members', '/roles', '/audit'].includes(
     location.pathname,
   );
   return (
@@ -168,7 +168,7 @@ function App({ nonceReady }: { nonceReady: boolean }) {
             }
           />
           <Route path="/forbidden" element={null} />
-          {['/config', '/games', '/members', '/roles', '/audit'].map((path) => (
+          {['/config', '/games', '/releases', '/members', '/roles', '/audit'].map((path) => (
             <Route
               key={path}
               path={path}
