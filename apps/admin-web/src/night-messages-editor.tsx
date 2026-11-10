@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Card, Input, InputNumber, Tag } from 'antd';
+import { Alert, Card, Input, InputNumber, Modal, Tag } from 'antd';
 import { ActionButton as Button, DataTable as Table } from './control-common';
 import { dateLabel } from './control-api';
 import {
@@ -193,139 +193,168 @@ export function NightMessagesEditor({
               title: '操作',
               key: 'actions',
               render: (_, row) => (
-                <Button
-                  onClick={() => {
-                    setSelectedId(row.id);
-                    setPlayersText(
-                      'playerIds' in row
-                        ? ((row as NightCompensation).playerIds?.join('\n') ?? '')
-                        : '',
-                    );
-                  }}
-                >
-                  查看 / 编辑
-                </Button>
+                <div className="control-actions">
+                  <Button
+                    onClick={() => {
+                      setSelectedId(row.id);
+                      setPlayersText(
+                        'playerIds' in row
+                          ? ((row as NightCompensation).playerIds?.join('\n') ?? '')
+                          : '',
+                      );
+                    }}
+                  >
+                    {'reward' in row && publishedIds.has(row.id) ? '查看' : '查看 / 编辑'}
+                  </Button>
+                  {!('reward' in row && publishedIds.has(row.id)) && (
+                    <Button
+                      danger
+                      disabled={disabled}
+                      onClick={() =>
+                        change({ ...operations, [kind]: entries.filter((e) => e.id !== row.id) })
+                      }
+                    >
+                      {'reward' in row ? '删除草稿' : '删除公告'}
+                    </Button>
+                  )}
+                </div>
               ),
             },
           ]}
         />
       </div>
-      {selected && (
-        <section aria-label="消息编辑">
-          {locked && (
-            <Alert type="info" title="此补偿已发布，内容、奖励与登录范围均已锁定，不可撤销。" />
-          )}
-          <MessageFields value={selected} disabled={disabled || locked} change={edit} />
-          {announcement && (
-            <>
-              <div className="operation-fields">
-                <TimeField
-                  id={'start-' + announcement.id}
-                  label="生效时间"
-                  value={announcement.startsAt}
-                  disabled={disabled}
-                  change={(t) => edit({ startsAt: t ?? NaN })}
+      <Modal
+        open={!!selected}
+        title={compensation ? (locked ? '查看补偿' : '编辑补偿') : '编辑公告'}
+        width={720}
+        destroyOnHidden
+        // Rendering in place skips rc-dialog's body scroll lock, whose injected style has no CSP nonce.
+        getContainer={false}
+        onCancel={() => setSelectedId('')}
+        footer={<Button onClick={() => setSelectedId('')}>完成</Button>}
+      >
+        {selected && (
+          <section aria-label="消息编辑">
+            {locked && (
+              <Alert type="info" title="此补偿已发布，内容、奖励与登录范围均已锁定，不可撤销。" />
+            )}
+            <MessageFields value={selected} disabled={disabled || locked} change={edit} />
+            {announcement && (
+              <>
+                <div className="operation-fields">
+                  <TimeField
+                    id={'start-' + announcement.id}
+                    label="生效时间"
+                    value={announcement.startsAt}
+                    disabled={disabled}
+                    change={(t) => edit({ startsAt: t ?? NaN })}
+                  />
+                  <TimeField
+                    id={'end-' + announcement.id}
+                    label="失效时间（可留空）"
+                    value={announcement.endsAt}
+                    disabled={disabled}
+                    change={(t) => edit({ endsAt: t })}
+                  />
+                </div>
+                <div className="control-actions">
+                  <Button
+                    disabled={disabled}
+                    onClick={() => edit({ enabled: !announcement.enabled })}
+                  >
+                    {announcement.enabled ? '撤销公告' : '恢复公告'}
+                  </Button>
+                </div>
+              </>
+            )}
+            {compensation && (
+              <>
+                <div className="operation-fields">
+                  <TimeField
+                    id="login-from"
+                    label="登录时间范围开始"
+                    value={compensation.loginFrom}
+                    disabled={disabled || locked}
+                    change={(t) => edit({ loginFrom: t ?? NaN })}
+                  />
+                  <TimeField
+                    id="login-to"
+                    label="登录时间范围结束"
+                    value={compensation.loginTo}
+                    disabled={disabled || locked}
+                    change={(t) => edit({ loginTo: t ?? NaN })}
+                  />
+                </div>
+                <div className="operation-fields">
+                  {(['coins', 'xp', 'packs'] as const).map((key, i) => (
+                    <div key={key}>
+                      <label htmlFor={'reward-' + key}>
+                        {['金币', '经验 EXP', '普通补给箱'][i]}
+                      </label>
+                      <InputNumber
+                        id={'reward-' + key}
+                        aria-label={['补偿金币', '补偿经验', '补偿补给箱'][i]}
+                        value={compensation.reward[key]}
+                        min={0}
+                        max={key === 'packs' ? 1000 : 1000000}
+                        precision={0}
+                        disabled={disabled || locked}
+                        onChange={(n) =>
+                          edit({ reward: { ...compensation.reward, [key]: n ?? 0 } })
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+                <label htmlFor="compensation-players">指定玩家 ID（可留空，每行一个）</label>
+                <Input.TextArea
+                  id="compensation-players"
+                  aria-label="指定玩家 ID"
+                  rows={3}
+                  value={playersText}
+                  disabled={disabled || locked}
+                  onChange={(e) => {
+                    setPlayersText(e.target.value);
+                    edit({
+                      playerIds: e.target.value.trim()
+                        ? e.target.value.trim().split(/\s+/)
+                        : undefined,
+                    });
+                  }}
                 />
-                <TimeField
-                  id={'end-' + announcement.id}
-                  label="失效时间（可留空）"
-                  value={announcement.endsAt}
-                  disabled={disabled}
-                  change={(t) => edit({ endsAt: t })}
-                />
-              </div>
+                <p className="control-help">
+                  范围内进入过游戏的玩家在下次进入时收到一封信箱消息，正文即上方文案，附件仅可领取一次。登录记录最多保留
+                  {LOGIN_RETENTION_DAYS} 天，范围结束时间不能晚于当前时间。
+                </p>
+              </>
+            )}
+            {!locked && (
               <div className="control-actions">
                 <Button
+                  danger
                   disabled={disabled}
-                  onClick={() => edit({ enabled: !announcement.enabled })}
+                  onClick={() => {
+                    change({ ...operations, [kind]: entries.filter((e) => e.id !== selected.id) });
+                    setSelectedId('');
+                  }}
                 >
-                  {announcement.enabled ? '撤销公告' : '恢复公告'}
+                  {compensation ? '删除草稿' : '删除公告'}
                 </Button>
               </div>
-            </>
-          )}
-          {compensation && (
-            <>
-              <div className="operation-fields">
-                <TimeField
-                  id="login-from"
-                  label="登录时间范围开始"
-                  value={compensation.loginFrom}
-                  disabled={disabled || locked}
-                  change={(t) => edit({ loginFrom: t ?? NaN })}
-                />
-                <TimeField
-                  id="login-to"
-                  label="登录时间范围结束"
-                  value={compensation.loginTo}
-                  disabled={disabled || locked}
-                  change={(t) => edit({ loginTo: t ?? NaN })}
-                />
-              </div>
-              <div className="operation-fields">
-                {(['coins', 'xp', 'packs'] as const).map((key, i) => (
-                  <div key={key}>
-                    <label htmlFor={'reward-' + key}>{['金币', '经验 EXP', '普通补给箱'][i]}</label>
-                    <InputNumber
-                      id={'reward-' + key}
-                      aria-label={['补偿金币', '补偿经验', '补偿补给箱'][i]}
-                      value={compensation.reward[key]}
-                      min={0}
-                      max={key === 'packs' ? 1000 : 1000000}
-                      precision={0}
-                      disabled={disabled || locked}
-                      onChange={(n) => edit({ reward: { ...compensation.reward, [key]: n ?? 0 } })}
-                    />
-                  </div>
-                ))}
-              </div>
-              <label htmlFor="compensation-players">指定玩家 ID（可留空，每行一个）</label>
-              <Input.TextArea
-                id="compensation-players"
-                aria-label="指定玩家 ID"
-                rows={3}
-                value={playersText}
-                disabled={disabled || locked}
-                onChange={(e) => {
-                  setPlayersText(e.target.value);
-                  edit({
-                    playerIds: e.target.value.trim()
-                      ? e.target.value.trim().split(/\s+/)
-                      : undefined,
-                  });
-                }}
-              />
-              <p className="control-help">
-                范围内进入过游戏的玩家在下次进入时收到一封信箱消息，正文即上方文案，附件仅可领取一次。登录记录最多保留
-                {LOGIN_RETENTION_DAYS} 天，范围结束时间不能晚于当前时间。
-              </p>
-            </>
-          )}
-          <div className="control-actions">
-            <Button
-              danger
-              disabled={disabled || locked}
-              onClick={() => {
-                change({ ...operations, [kind]: entries.filter((e) => e.id !== selected.id) });
-                setSelectedId('');
-              }}
-            >
-              {compensation ? '移除未发布补偿' : '移除公告'}
-            </Button>
-            <Button onClick={() => setSelectedId('')}>收起编辑</Button>
-          </div>
-          <div className="operation-preview" aria-label="玩家消息预览">
-            <strong>{selected.title || '标题预览'}</strong>
-            <p>{selected.body || '正文预览'}</p>
-            {compensation && (
-              <p>
-                {compensation.reward.coins} 金币 · {compensation.reward.xp} EXP ·{' '}
-                {compensation.reward.packs} 补给箱
-              </p>
             )}
-          </div>
-        </section>
-      )}
+            <div className="operation-preview" aria-label="玩家消息预览">
+              <strong>{selected.title || '标题预览'}</strong>
+              <p>{selected.body || '正文预览'}</p>
+              {compensation && (
+                <p>
+                  {compensation.reward.coins} 金币 · {compensation.reward.xp} EXP ·{' '}
+                  {compensation.reward.packs} 补给箱
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+      </Modal>
     </Card>
   );
 }

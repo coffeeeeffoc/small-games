@@ -99,8 +99,17 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
       );
       await activate(button('补偿管理'));
       await activate(
-        page.getByRole('table', { name: '补偿列表' }).getByRole('button', { name: '查看 / 编辑' }),
+        page
+          .getByRole('table', { name: '补偿列表' })
+          .getByRole('button', { name: '查看', exact: true }),
       );
+      const dialog = page.getByRole('dialog');
+      await dialog.waitFor();
+      await page.waitForFunction(
+        () => !document.querySelector('[class*="-zoom-appear"],[class*="-zoom-enter"]'),
+      );
+      // A published compensation offers no delete action anywhere.
+      assert.equal(await page.getByRole('button', { name: '删除草稿' }).count(), 0);
       assert(await page.getByRole('textbox', { name: '消息标题' }).isDisabled());
       assert(await page.getByRole('spinbutton', { name: '补偿金币' }).isDisabled());
       await page.waitForFunction(() => !document.querySelector('.ant-message-notice'));
@@ -108,12 +117,18 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         path: `${evidence}/night-locked-compensation-${width}.png`,
         fullPage: true,
       });
+      const close = async () => {
+        await activate(dialog.getByRole('button', { name: '完成', exact: true }));
+        await dialog.waitFor({ state: 'hidden' });
+      };
+      await close();
       await activate(button('公告管理'));
       // Only one announcement may be live: revoke the current one before adding the next.
       await activate(
         page.getByRole('table', { name: '公告列表' }).getByRole('button', { name: '查看 / 编辑' }),
       );
       await activate(button('撤销公告'));
+      await close();
       await activate(button('新增公告'));
       await page
         .getByRole('textbox', { name: '消息标题' })
@@ -121,12 +136,20 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
       await page
         .getByRole('textbox', { name: '消息正文' })
         .fill('版本维护完成。\n公告支持换行，按原文展示。');
+      await close();
       await publish();
       assert.deepEqual(
         f.state.snapshot.nightOperations.announcements.map((a) => a.enabled),
         [false, true],
       );
       await activate(button('补偿管理'));
+      // An unpublished compensation draft can be deleted from the list.
+      await activate(button('新增补偿'));
+      await close();
+      const rows = () => page.getByRole('table', { name: '补偿列表' }).locator('tbody tr').count();
+      const before = await rows();
+      await activate(page.getByRole('button', { name: '删除草稿' }));
+      assert.equal(await rows(), before - 1);
       await activate(button('新增补偿'));
       await page.getByRole('textbox', { name: '消息标题' }).fill('补偿测试');
       await page.getByRole('textbox', { name: '消息正文' }).fill('金币、经验与补给箱各发放一次。');
@@ -135,6 +158,7 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
       await page
         .getByRole('textbox', { name: '指定玩家 ID' })
         .fill('11111111-1111-4111-8111-111111111111\n22222222-2222-4222-8222-222222222222');
+      await close();
       await publish();
       assert.equal(f.state.snapshot.nightOperations.compensations[1].playerIds.length, 2);
       const service = backend.getByRole('row').filter({ hasText: '1.0.0' });
