@@ -187,7 +187,7 @@ export function NightVersionsEditor({
       </Card>
       <Card title="游戏版本与兼容服务">
         <p className="control-help">
-          按前端包绑定的后端版本控制新局。关闭或移除不删除执行器、资产、旧局及回执；恢复需当前服务器仍保留对应规则。所有草稿操作需在页面顶部“配置发布”保存并发布。
+          按前端包绑定的后端版本控制新局。关闭或移除不删除执行器、资产、旧局及回执；恢复需当前服务器仍保留对应规则。所有草稿操作需在页面顶部“发布游戏配置”保存并发布。
         </p>
         <div className="table-scroll">
           <Table

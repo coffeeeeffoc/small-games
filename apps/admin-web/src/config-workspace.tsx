@@ -240,7 +240,14 @@ export function ConfigWorkspace({
     revisions.find(
       (r) => r.publishedVersion === (row.publishedVersion ?? row.parentVersion + 1) - 1,
     )?.snapshot ?? null;
-  const changeCount = groups.reduce((n, g) => n + g.rows.length, 0);
+  // Each page publishes only its own area; the other area stays at its published value.
+  const ownKeys = gamesOnly ? ['night', 'games'] : ['origins'];
+  const ownGroups = groups.filter((g) => ownKeys.includes(g.key));
+  const changeCount = ownGroups.reduce((n, g) => n + g.rows.length, 0);
+  // Only possible before the first publication or with a loaded draft: say so instead of hiding it.
+  const otherCount = groups
+    .filter((g) => !ownKeys.includes(g.key))
+    .reduce((n, g) => n + g.rows.length, 0);
   const step = saved ? 2 : changeCount ? 0 : -1;
   const stateLabel = {
     unpublished: '未发布 · 保留现有环境策略',
@@ -266,12 +273,17 @@ export function ConfigWorkspace({
           <section className="release-panel" role="region" aria-label="保存与发布">
             <div className="release-head">
               <div>
-                <strong className="release-title">配置发布</strong>
+                <strong className="release-title">
+                  {gamesOnly ? '发布游戏配置' : '发布公共配置'}
+                </strong>
                 <span className="control-help">
-                  游戏开关、夜航运营与公共配置共用一份草稿，保存后需发布才会一起生效。
+                  {gamesOnly
+                    ? '本页“游戏开关”和“夜航运营”的改动在这里一起保存、发布；公共 API 来源请到“公共配置”页单独发布。'
+                    : '只保存、发布本页的公共 API 允许来源；游戏状态页的配置不受影响。'}
                 </span>
               </div>
               <div className="control-summary">
+                <span>配置中心</span>
                 <Tag color="blue">当前版本 {state.version}</Tag>
                 <Tag>{stateLabel[state.status]}</Tag>
                 <span>编辑基线 {base}</span>
@@ -293,13 +305,18 @@ export function ConfigWorkspace({
               ))}
             </ol>
             <div className="release-changes">
-              <span>待发布改动：</span>
-              {groups.map((g) => (
+              <span>本页待发布改动：</span>
+              {ownGroups.map((g) => (
                 <Tag key={g.key} color={g.rows.length ? 'gold' : undefined}>
                   {g.short} {g.rows.length} 项
                 </Tag>
               ))}
-              <Button type="link" disabled={!changeCount} onClick={() => setShowDiff((v) => !v)}>
+              {otherCount > 0 && <Tag color="orange">另含其他页面改动 {otherCount} 项</Tag>}
+              <Button
+                type="link"
+                disabled={!changeCount && !otherCount}
+                onClick={() => setShowDiff((v) => !v)}
+              >
                 {showDiff ? '收起改动' : '查看改动'}
               </Button>
             </div>
@@ -311,7 +328,11 @@ export function ConfigWorkspace({
                 id="draft-reason"
                 aria-label="变更理由"
                 maxLength={500}
-                placeholder="简述本次改动，例如：维护补偿 / 新版本公告"
+                placeholder={
+                  gamesOnly
+                    ? '简述本次改动，例如：维护补偿 / 新版本公告'
+                    : '简述本次改动，例如：新增 TapTap H5 来源'
+                }
                 value={reason}
                 disabled={!canWrite || operation.busy}
                 onChange={(event) => {
@@ -510,11 +531,6 @@ export function ConfigWorkspace({
                       <Alert type="error" title="来源必须是规范且不重复的公共 HTTP(S) Origin。" />
                     )}
                   </>
-                )}
-                {gamesOnly && (
-                  <p className="control-help">
-                    草稿保留 {originList.length} 个公共 API 来源；可在“公共配置”页面核对。
-                  </p>
                 )}
               </Card>
             </>
