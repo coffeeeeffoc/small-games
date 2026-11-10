@@ -103,6 +103,7 @@ export function ConfigWorkspace({
     setSnapshot(editableSnapshot(initial));
     setOrigins(initial.apiOrigins.join('\n'));
     setReleaseOpen(false);
+    setReason('');
     setSaved(undefined);
     setPublishConfirm(false);
     setConflict(undefined);
@@ -129,6 +130,14 @@ export function ConfigWorkspace({
     setSnapshot(next);
     setSaved(undefined);
     setPublishConfirm(false);
+  }
+  // The release dialog always opens blank: no previous reason, saved-draft notice, confirm step or error.
+  function openRelease() {
+    setReason('');
+    setSaved(undefined);
+    setPublishConfirm(false);
+    operation.clearError();
+    setReleaseOpen(true);
   }
   const originList = origins
     .split(/\r?\n/)
@@ -213,7 +222,7 @@ export function ConfigWorkspace({
               <Button
                 type="primary"
                 disabled={(!canWrite && !canPublish) || (!changeCount && !otherCount && !saved)}
-                onClick={() => setReleaseOpen(true)}
+                onClick={openRelease}
               >
                 查看改动并发布
               </Button>

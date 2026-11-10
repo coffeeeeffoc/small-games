@@ -241,6 +241,15 @@ main.control-main {
   color: #b45309;
   font-weight: 600;
 }
+.preview-reward-line {
+  display: block;
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #fff3d6;
+  color: #b45309;
+  font-weight: 600;
+}
 
 /* Cards read as calm panels rather than floating bubbles. */
 .control-center > .ant-card,

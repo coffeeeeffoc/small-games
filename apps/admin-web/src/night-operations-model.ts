@@ -52,6 +52,12 @@ export type NightCompensation = {
   playerIds?: string[];
   reward: { coins: number; xp: number; packs: number };
 };
+/** Players' client replaces this in a compensation body with one highlighted line of the attachment. Keep in sync with the game's core/Progression.ts. */
+export const REWARD_TOKEN = '{补偿明细}';
+export const rewardText = (r: NightCompensation['reward']) =>
+  [r.coins && `${r.coins} 金币`, r.xp && `${r.xp} EXP`, r.packs && `${r.packs} 补给箱`]
+    .filter(Boolean)
+    .join(' · ');
 /** Mirrors the runtime visit retention; older login ranges cannot be verified. */
 export const LOGIN_RETENTION_DAYS = 120;
 export type NightOperations = {

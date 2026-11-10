@@ -39,12 +39,18 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       ]) {
         await origins.fill(invalid);
         await activate(page.getByRole('button', { name: '查看改动并发布', exact: true }));
+        assert.equal(
+          await page.getByRole('textbox', { name: '变更理由', exact: true }).inputValue(),
+          '',
+          'a reopened release dialog carries nothing from the previous one',
+        );
         assert(await page.getByRole('button', { name: '保存草稿', exact: true }).isDisabled());
         await activate(page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }));
       }
       await origins.fill('https://new.example:8443');
       assert.equal(fixture.state.snapshot.games['night-overwatch'], 'disabled');
       await activate(page.getByRole('button', { name: '查看改动并发布', exact: true }));
+      await page.getByRole('textbox', { name: '变更理由', exact: true }).fill('new origin');
       await activate(page.getByRole('button', { name: '保存草稿', exact: true }));
       await page.getByText('草稿已保存，尚未发布', { exact: true }).waitFor();
       assert.equal(fixture.writes.length, 1);
@@ -256,10 +262,12 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       assert.equal(fixture.writes.length, 1);
       await page.getByRole('button', { name: /已核对差异/ }).click();
       await page.getByRole('button', { name: '查看改动并发布', exact: true }).click();
+      // The dialog reopens blank; only the page edits (origins) survive a conflict.
       assert.equal(
         await page.getByRole('textbox', { name: '变更理由', exact: true }).inputValue(),
-        'preserve my draft',
+        '',
       );
+      await page.getByRole('textbox', { name: '变更理由', exact: true }).fill('preserve my draft');
       await page.getByRole('button', { name: '保存草稿', exact: true }).click();
       await page.getByText('草稿已保存，尚未发布', { exact: true }).waitFor();
       assert.equal(fixture.writes.at(-1).body.expectedVersion, 3);

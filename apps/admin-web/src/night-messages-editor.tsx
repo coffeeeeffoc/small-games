@@ -11,6 +11,8 @@ import {
   goLive,
   LOGIN_RETENTION_DAYS,
   newCompensationError,
+  REWARD_TOKEN,
+  rewardText,
   same,
   type NightAnnouncement,
   type NightCompensation,
@@ -362,6 +364,21 @@ export function NightMessagesEditor({
               disabled={disabled || locked}
               onChange={(e) => edit({ body: e.target.value })}
             />
+            {compensation && (
+              <p className="control-help">
+                正文中写入 <code>{REWARD_TOKEN}</code>
+                ，玩家端会替换为本补偿的奖励明细（如“2 金币 · 23 EXP · 2 补给箱”），整行高亮显示。
+                {!locked && !disabled && !draft.body.includes(REWARD_TOKEN) && (
+                  <Button
+                    size="small"
+                    type="link"
+                    onClick={() => edit({ body: (draft.body + REWARD_TOKEN).slice(0, 300) })}
+                  >
+                    插入到正文末尾
+                  </Button>
+                )}
+              </p>
+            )}
             {announcement && (
               <div className="operation-fields">
                 <TimeField
@@ -442,8 +459,21 @@ export function NightMessagesEditor({
             <div className="operation-preview" aria-label="玩家消息预览">
               <span className="preview-label">玩家看到的内容</span>
               <strong>{draft.title || '标题预览'}</strong>
-              <p>{draft.body || '正文预览'}</p>
-              {compensation && (
+              <p>
+                {compensation && draft.body.includes(REWARD_TOKEN)
+                  ? draft.body.split(REWARD_TOKEN).flatMap((part, i) => [
+                      ...(i
+                        ? [
+                            <mark key={i} className="preview-reward-line">
+                              {rewardText(compensation.reward) || '（无奖励）'}
+                            </mark>,
+                          ]
+                        : []),
+                      part,
+                    ])
+                  : draft.body || '正文预览'}
+              </p>
+              {compensation && !draft.body.includes(REWARD_TOKEN) && (
                 <p className="preview-reward">
                   {compensation.reward.coins} 金币 · {compensation.reward.xp} EXP ·{' '}
                   {compensation.reward.packs} 补给箱
