@@ -240,6 +240,8 @@ export function ConfigWorkspace({
     revisions.find(
       (r) => r.publishedVersion === (row.publishedVersion ?? row.parentVersion + 1) - 1,
     )?.snapshot ?? null;
+  const changeCount = groups.reduce((n, g) => n + g.rows.length, 0);
+  const step = saved ? 2 : changeCount ? 0 : -1;
   const stateLabel = {
     unpublished: '未发布 · 保留现有环境策略',
     desired: '待应用',
@@ -260,28 +262,109 @@ export function ConfigWorkspace({
         <p role="status">正在读取配置…</p>
       ) : (
         <>
-          <div className="control-summary">
-            <Tag color="blue">当前版本 {state.version}</Tag>
-            <Tag>{stateLabel[state.status]}</Tag>
-            <span>编辑基线 {base}</span>
-          </div>
-          <Alert
-            type="info"
-            title="应用覆盖尚不完整"
-            description={
-              <>
-                <p>只展示已知实例的报告，不能据此判断完整部署覆盖或服务健康。</p>
-                {state.observationCoverage.missingConsumers.length > 0 && (
-                  <p>缺少新鲜报告：{state.observationCoverage.missingConsumers.join('、')}</p>
-                )}
-                {state.observationCoverage.expiredUnknown.map((item) => (
-                  <p key={`${item.consumer}/${item.instanceId}`}>
-                    状态未知：{item.consumer} / {item.instanceId}（报告过期，不能视为进程已停止）
-                  </p>
-                ))}
-              </>
-            }
-          />
+          {/* One panel above every tab: the draft is global, so its status and actions live here. */}
+          <section className="release-panel" role="region" aria-label="保存与发布">
+            <div className="release-head">
+              <div>
+                <strong className="release-title">配置发布</strong>
+                <span className="control-help">
+                  游戏开关、夜航运营与公共配置共用一份草稿，保存后需发布才会一起生效。
+                </span>
+              </div>
+              <div className="control-summary">
+                <Tag color="blue">当前版本 {state.version}</Tag>
+                <Tag>{stateLabel[state.status]}</Tag>
+                <span>编辑基线 {base}</span>
+              </div>
+            </div>
+            <ol className="release-steps" aria-label="发布步骤">
+              {[
+                ['编辑配置', changeCount ? `${changeCount} 项改动` : '暂无改动'],
+                ['保存草稿', saved ? '已保存' : '填写理由后保存'],
+                ['发布生效', saved ? '待确认发布' : '保存后可发布'],
+              ].map(([name, note], i) => (
+                <li key={name} className={i < step ? 'done' : i === step ? 'current' : undefined}>
+                  <span className="step-index">{i + 1}</span>
+                  <span>
+                    <strong>{name}</strong>
+                    <small>{note}</small>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <div className="release-changes">
+              <span>待发布改动：</span>
+              {groups.map((g) => (
+                <Tag key={g.key} color={g.rows.length ? 'gold' : undefined}>
+                  {g.short} {g.rows.length} 项
+                </Tag>
+              ))}
+              <Button type="link" disabled={!changeCount} onClick={() => setShowDiff((v) => !v)}>
+                {showDiff ? '收起改动' : '查看改动'}
+              </Button>
+            </div>
+            {showDiff && <Changes before={state.snapshot} after={draftSnapshot} />}
+            {operationsError && <Alert type="error" title={operationsError} />}
+            <div className="release-form">
+              <label htmlFor="draft-reason">变更理由</label>
+              <Input
+                id="draft-reason"
+                aria-label="变更理由"
+                maxLength={500}
+                placeholder="简述本次改动，例如：维护补偿 / 新版本公告"
+                value={reason}
+                disabled={!canWrite || operation.busy}
+                onChange={(event) => {
+                  setReason(event.target.value);
+                  setSaved(undefined);
+                  setPublishConfirm(false);
+                }}
+              />
+              <div className="control-actions">
+                <Button
+                  type={saved ? 'default' : 'primary'}
+                  disabled={
+                    !canWrite || !reason.trim() || !originsValid || !!operationsError || !!conflict
+                  }
+                  loading={operation.busy}
+                  onClick={() =>
+                    void operation.run(() =>
+                      versioned(async () => {
+                        const revision = await api.draft({
+                          expectedVersion: base,
+                          snapshot: draftSnapshot,
+                          reason: reason.trim(),
+                        });
+                        setSaved(revision);
+                        setRevisions(await api.read<Revision[]>('revisions'));
+                        operation.success('草稿已保存，尚未发布。');
+                      }),
+                    )
+                  }
+                >
+                  保存草稿
+                </Button>
+                <Button
+                  type={saved ? 'primary' : 'default'}
+                  disabled={!canPublish || !saved || !!conflict || operation.busy}
+                  onClick={() => setPublishConfirm(true)}
+                >
+                  发布此草稿
+                </Button>
+                <Button disabled={operation.busy} onClick={() => void operation.run(load)}>
+                  放弃编辑并重新读取
+                </Button>
+              </div>
+            </div>
+            {saved && (
+              <Alert
+                type="success"
+                showIcon
+                title="草稿已保存，尚未发布"
+                description={`理由：${saved.reason} · 基线版本 ${saved.parentVersion}。核对改动后点击“发布此草稿”。`}
+              />
+            )}
+          </section>
           {conflict && (
             <Card title="版本冲突 · 输入已保留" className="conflict-panel">
               <p>
@@ -434,89 +517,7 @@ export function ConfigWorkspace({
                   </p>
                 )}
               </Card>
-              {/* Sticky so saving never requires scrolling past long editors. */}
-              <div className="save-bar" role="region" aria-label="保存与发布">
-                <div className="save-bar-head">
-                  <strong>全局配置草稿</strong>
-                  <span className="control-help">
-                    游戏开关、夜航运营与公共 API
-                    来源共用这一份草稿：保存草稿不会生效，发布后全部改动一起生效。
-                  </span>
-                  <span className="tag-row">
-                    {groups.map((g) => (
-                      <Tag key={g.key} color={g.rows.length ? 'gold' : undefined}>
-                        {g.short} {g.rows.length} 项
-                      </Tag>
-                    ))}
-                    <Button type="link" onClick={() => setShowDiff((v) => !v)}>
-                      {showDiff ? '收起改动' : '查看待发布改动'}
-                    </Button>
-                  </span>
-                </div>
-                {showDiff && <Changes before={state.snapshot} after={draftSnapshot} />}
-                {operationsError && <Alert type="error" title={operationsError} />}
-                <label htmlFor="draft-reason">变更理由</label>
-                <Input.TextArea
-                  id="draft-reason"
-                  aria-label="变更理由"
-                  rows={1}
-                  maxLength={500}
-                  placeholder="简述本次改动，例如：维护补偿 / 新版本公告"
-                  value={reason}
-                  disabled={!canWrite || operation.busy}
-                  onChange={(event) => {
-                    setReason(event.target.value);
-                    setSaved(undefined);
-                    setPublishConfirm(false);
-                  }}
-                />
-                <div className="control-actions">
-                  <Button
-                    type="primary"
-                    disabled={
-                      !canWrite ||
-                      !reason.trim() ||
-                      !originsValid ||
-                      !!operationsError ||
-                      !!conflict
-                    }
-                    loading={operation.busy}
-                    onClick={() =>
-                      void operation.run(() =>
-                        versioned(async () => {
-                          const revision = await api.draft({
-                            expectedVersion: base,
-                            snapshot: draftSnapshot,
-                            reason: reason.trim(),
-                          });
-                          setSaved(revision);
-                          setRevisions(await api.read<Revision[]>('revisions'));
-                          operation.success('草稿已保存，尚未发布。');
-                        }),
-                      )
-                    }
-                  >
-                    保存草稿
-                  </Button>
-                  <Button
-                    disabled={!canPublish || !saved || !!conflict || operation.busy}
-                    onClick={() => setPublishConfirm(true)}
-                  >
-                    发布此草稿
-                  </Button>
-                  <Button disabled={operation.busy} onClick={() => void operation.run(load)}>
-                    放弃编辑并重新读取
-                  </Button>
-                </div>
-              </div>
             </>
-          )}
-          {saved && (
-            <Alert
-              type="success"
-              title="草稿已保存，尚未发布"
-              description={`草稿 ${saved.id} · 基线 ${saved.parentVersion} · ${saved.reason}`}
-            />
           )}
           <Modal
             open={publishConfirm && !!saved}
@@ -696,6 +697,23 @@ export function ConfigWorkspace({
               </>
             )}
           </Modal>
+          <Alert
+            type="info"
+            title="应用覆盖尚不完整"
+            description={
+              <>
+                <p>只展示已知实例的报告，不能据此判断完整部署覆盖或服务健康。</p>
+                {state.observationCoverage.missingConsumers.length > 0 && (
+                  <p>缺少新鲜报告：{state.observationCoverage.missingConsumers.join('、')}</p>
+                )}
+                {state.observationCoverage.expiredUnknown.map((item) => (
+                  <p key={`${item.consumer}/${item.instanceId}`}>
+                    状态未知：{item.consumer} / {item.instanceId}（报告过期，不能视为进程已停止）
+                  </p>
+                ))}
+              </>
+            }
+          />
           {state.observations.length > 0 && (
             <Card title="已知应用报告">
               <ul>

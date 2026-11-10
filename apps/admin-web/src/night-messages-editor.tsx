@@ -147,7 +147,7 @@ export function NightMessagesEditor({
         {announcements
           ? '新增公告默认未上线。玩家同一时间最多看到一条公告：上线时，更早开始的重叠公告会在新公告生效时结束，其余重叠公告自动下线。'
           : '补偿发布后不可修改或作废；作废的草稿仅保留记录，不会发放。'}
-        时间按当前浏览器时区显示，所有改动需在页面底部保存草稿并发布后生效。
+        时间按当前浏览器时区显示，所有改动需在页面顶部“配置发布”保存草稿并发布后生效。
       </p>
       {/* Plain wrapping tabs: AntD Tabs hide overflow in a menu that narrow screens cannot reach. */}
       <div className="status-bar">
