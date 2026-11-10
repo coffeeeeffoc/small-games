@@ -629,7 +629,9 @@ export class Overwatch extends Component {
       if(action==='chatBlocks'){online.chatMenu=online.chatMenu==='blocks'?'':'blocks';online.chatRevision++;return;}
       if(action==='chatSend'){void online.sendChat();return;}
       if(action==='roomReturn'){online.show('room');return;}
-      if(action==='chatInvite'){if(!online.room){online.show('create');online.chatStatus='先创建公开房间，即可邀请大厅玩家';}else{void online.sendChat(true);online.show('menu');}return;}
+      if(action==='roomCollapse'&&online.room){online.show('menu');return;}
+      // 邀请后留在当前界面（房间或收起后的大厅），结果显示在房间提示与大厅状态行。
+      if(action==='chatInvite'){if(!online.room){online.show('create');online.chatStatus='先创建公开房间，即可邀请大厅玩家';}else if(!online.chatAvailable)online.chatStatus='大厅交流暂不可用，请把房间号告诉好友';else if(!online.chatSending){online.chatStatus='';void online.sendChat(true).then(()=>{if(!online.chatStatus)online.chatStatus='邀请已发到大厅';online.revision++;});}return;}
       if(action==='chatLatest'){this.hud.listScroll.chat=Number.MAX_SAFE_INTEGER;this.hud.modalKey='rebuild';return;}
       if(action.startsWith('chatMenu:')){online.chatMenu=online.chatMenu===action.slice(9)?'':action.slice(9);online.chatRevision++;return;}
       if(action.startsWith('chatBlock:')){online.toggleBlock(action.slice(10));return;}
@@ -641,7 +643,7 @@ export class Overwatch extends Component {
       if (action === 'friend') { online.draftPassword = ''; online.show('create'); }
       if (action === 'join') { online.draftPassword = ''; online.show('join'); }
       if (action === 'public' || action === 'private') { online.privateRoom = action === 'private'; online.revision++; }
-      if (action === 'createConfirm') void online.open('friend');
+      if (action === 'createConfirm') { online.chatStatus = ''; void online.open('friend'); }
       if (action === 'joinConfirm') void online.open('join');
       if (action.startsWith('joinCode:')) void online.open('join', action.slice(9));
       if (action.startsWith('watchCode:')) void online.open('watch', action.slice(10));

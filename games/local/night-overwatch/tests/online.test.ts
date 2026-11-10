@@ -485,3 +485,14 @@ test('a late poll cannot replace a newer acknowledged chat message or move the c
 test('level rankings cycle all current and historical rule versions with matching query parameters',async()=>{
  const f=fixture(),online=new Online(storage(),()=>{}),requests:any[]=[];f.bridge.services.leaderboard=async(input:any)=>{requests.push(input);return{top:[],me:null};};await online.connect(f.bridge);await online.loadRanking(0,'level');for(let i=0;i<5;i++)await online.cycleRankingVersion();assert.deepEqual(requests.map(r=>r.ruleVersion),['night-campaign-v4','night-campaign-v3','night-campaign-v2','night-growth-v1','night-records-v1','night-campaign-v4']);assert(requests.every(r=>r.boardId==='level-corridor-01'));
 });
+
+test('a minimized waiting room keeps the lobby list live and stops listing once the match starts', async () => {
+  const f = fixture(); let lists = 0;
+  Object.assign(f.bridge.services, { listRooms: async () => { lists++; return { rooms: [] }; } });
+  const online = new Online(storage(), () => {}); await online.connect(f.bridge);
+  await online.open('friend'); assert.equal(online.panel, 'room');
+  online.show('menu'); await online.pump(1e9); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(lists, 1); assert.equal(online.room?.code, f.current.code, 'listing keeps the room');
+  online.back(); assert.equal(online.panel, 'room', 'back from the lobby restores the room');
+  f.current.status = 'playing'; await online.loadRooms(); assert.equal(lists, 1);
+});

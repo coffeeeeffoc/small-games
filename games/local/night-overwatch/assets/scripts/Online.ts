@@ -433,7 +433,8 @@ export class Online {
   }
   async loadRooms() {
     // 列表刷新不占用 busy，否则刷新期间点“加入／观战”会被静默忽略。
-    if (this.listing || this.busy || this.room || this.active) return;
+    // 收起等待中的房间时大厅仍需实时列表；开战后停止。
+    if (this.listing || this.busy || this.active || this.room && this.room.status !== 'waiting') return;
     this.listing = true; const generation = this.generation;
     try {
       if (!this.available) this.acceptMetadata(await this.bridge?.refresh?.());
@@ -593,7 +594,7 @@ export class Online {
       return;
     }
     if (this.entering) return;
-    if (this.panel === 'menu' && !this.room && now >= this.listAt) { await this.loadRooms(); return; }
+    if (this.panel === 'menu' && now >= this.listAt) { if (!this.room) { await this.loadRooms(); return; } void this.loadRooms(); }
     if (!this.room || !['waiting', 'playing'].includes(this.room.status) || !this.bridge || this.busy || this.inflight || now < this.nextPoll || this.view?.finished) return;
     const generation = this.generation, code = this.room.code;
     this.inflight = true; this.nextPoll = now + (this.room.status === 'playing' ? 100 : 1000);

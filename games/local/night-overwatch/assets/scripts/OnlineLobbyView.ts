@@ -327,12 +327,14 @@ export class OnlineLobbyView {
         (room.canJoin ? 'joinCode:' : 'watchCode:') + room.code,
         o.opening === room.code
           ? this.h.t('进入中…', 'ENTERING…')
-          : this.h.t(room.canJoin ? '加入' : '观战', room.canJoin ? 'JOIN' : 'WATCH'),
+          : o.room?.code === room.code
+            ? this.h.t('我的房间', 'MINE')
+            : this.h.t(room.canJoin ? '加入' : '观战', room.canJoin ? 'JOIN' : 'WATCH'),
         l + lw - bw - 18,
         y + (roomy ? (rowH - 44) / 2 : rowH - 45),
         bw,
         room.canJoin ? 'gold' : 'blue',
-        o.busy || (!room.canJoin && !room.canSpectate),
+        o.busy || !!o.room || (!room.canJoin && !room.canSpectate),
         roomList.n,
       );
     });
@@ -348,19 +350,44 @@ export class OnlineLobbyView {
         70,
         C.dim,
       );
-    const ww = (lw - 24) / 2;
-    btn(
-      o.room ? 'roomReturn' : 'friend',
-      this.h.t(o.room ? '返回房间' : '创建房间', o.room ? 'MY ROOM' : 'CREATE'),
-      l + 8,
-      b - 92,
-      ww,
-      'gold',
-      o.busy,
-    );
-    btn('join', this.h.t('房号加入', 'JOIN CODE'), l + 16 + ww, b - 92, ww, 'blue', o.busy);
-    btn('match', this.h.t('快速匹配', 'MATCH'), l + 8, b - 46, ww, 'blue', o.busy);
-    btn('bot', this.h.t('人机练习', 'PRACTICE'), l + 16 + ww, b - 46, ww, 'panel', o.busy);
+    const ww = (lw - 24) / 2,
+      mine = o.room;
+    if (mine) {
+      // 收起的房间：保留房号、双方准备状态，一键展开回完整房间。
+      const dw = lw - 16,
+        ew = Math.min(120, dw * 0.42),
+        tw = dw - ew - 22,
+        size = roomy ? 15 : 11,
+        line = (str: string, y: number, color: string, bold = false) => {
+          const label = this.h.label(body, str, l + 18 + tw / 2, y, size, tw, 22, color);
+          label.horizontalAlign = Label.HorizontalAlign.LEFT;
+          label.isBold = bold;
+        };
+      this.lobbySkin(body, 'panel', l + 8, b - 92, dw, 90);
+      line(
+        (roomy ? this.h.t('我的房间 #', 'MY ROOM #') : '#') + mine.code + ` · ${mine.players.length}/2`,
+        b - 74,
+        C.amber,
+        true,
+      );
+      for (let i = 0; i < 2; i++) {
+        const p = mine.players[i];
+        line(
+          p
+            ? (p.ready ? this.h.t('已准备 ', 'READY ') : this.h.t('未准备 ', 'NOT READY ')) +
+                (i === mine.you ? this.h.t('你', 'YOU') : p.nickname || p.name || '飞行员')
+            : this.h.t('等待加入…', 'WAITING…'),
+          b - 50 + i * 22,
+          p?.ready ? C.mint : C.dim,
+        );
+      }
+      btn('roomReturn', this.h.t('展开房间', 'EXPAND'), l + 8 + dw - ew - 6, b - 69, ew, 'gold');
+    } else {
+      btn('friend', this.h.t('创建房间', 'CREATE'), l + 8, b - 92, ww, 'gold', o.busy);
+      btn('join', this.h.t('房号加入', 'JOIN CODE'), l + 16 + ww, b - 92, ww, 'blue', o.busy);
+      btn('match', this.h.t('快速匹配', 'MATCH'), l + 8, b - 46, ww, 'blue', o.busy);
+      btn('bot', this.h.t('人机练习', 'PRACTICE'), l + 16 + ww, b - 46, ww, 'panel', o.busy);
+    }
     const area = { x: rx + 8, y: top + 43, w: rw - 16, h: Math.max(44, inputY - top - 68) },
       messages = o.visibleChat;
     const old = this.chatLayout,
@@ -497,7 +524,7 @@ export class OnlineLobbyView {
           y + row.h - 48,
           roomy ? 96 : 68,
           'blue',
-          !m.room.canJoin,
+          !m.room.canJoin || !!o.room,
           chat.n,
         );
       }
@@ -1435,8 +1462,11 @@ export class OnlineLobbyView {
         own ? C.mint : C.white,
       );
     }
+    // 收起后回到大厅，房间仍在后台保持；大厅底部的房间条可一键展开。
+    if (room?.status === 'waiting') button('roomCollapse', this.h.t('收起', 'MINIMIZE'), pw - 146, 4, 84);
     label(
       online.message ||
+        (online.chatSending ? this.h.t('正在发送大厅邀请…', 'SENDING INVITE…') : online.chatStatus) ||
         this.h.t(
           '把房间号告诉好友，双方准备后开始',
           'TELL YOUR FRIEND THE ROOM NUMBER · BOTH READY TO START',
