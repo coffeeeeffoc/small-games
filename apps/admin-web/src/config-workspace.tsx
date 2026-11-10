@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Card, Input, Select, Tabs, Tag } from 'antd';
+import { Alert, Card, Input, Modal, Select, Tabs, Tag } from 'antd';
 import {
   ApiError,
   dateLabel,
@@ -35,32 +35,87 @@ const editableSnapshot = (snapshot: Snapshot): Snapshot => ({
   ...snapshot,
   games: { 'night-overwatch': 'disabled', tetracube: 'disabled', ...snapshot.games },
 });
-function Changes({ before, after }: { before: Snapshot | null; after: Snapshot }) {
+/** Diff grouped by what it affects, so game-specific edits read as belonging to that game. */
+function changeGroups(before: Snapshot | null, after: Snapshot) {
   before = before && editableSnapshot(before);
   after = editableSnapshot(after);
-  const rows = [
-    ...nightChanges(before?.nightOperations, after.nightOperations),
-    ...after.apiOrigins
-      .filter((origin) => !before?.apiOrigins.includes(origin))
-      .map((origin) => `新增来源：${origin}`),
-    ...(before?.apiOrigins ?? [])
-      .filter((origin) => !after.apiOrigins.includes(origin))
-      .map((origin) => `移除来源：${origin}`),
-    ...Object.entries(after.games)
-      .filter(([id, state]) => before?.games[id] !== state)
-      .map(
-        ([id, state]) =>
-          `${gameNames[id] ?? id}：${before ? stateNames[before.games[id]] : '未发布'} → ${stateNames[state]}`,
-      ),
+  const was = (id: string) => (before ? stateNames[before.games[id]] : '未发布');
+  const changed = (id: string) => before?.games[id] !== after.games[id];
+  return [
+    {
+      key: 'night',
+      short: '夜航守望',
+      title: '夜航守望（运行状态、公告、补偿、版本）',
+      rows: [
+        ...(changed('night-overwatch')
+          ? [`运行状态：${was('night-overwatch')} → ${stateNames[after.games['night-overwatch']]}`]
+          : []),
+        ...nightChanges(before?.nightOperations, after.nightOperations),
+      ],
+    },
+    {
+      key: 'games',
+      short: '其他游戏开关',
+      title: '其他游戏开关',
+      rows: Object.keys(after.games)
+        .filter((id) => id !== 'night-overwatch' && changed(id))
+        .map((id) => `${gameNames[id] ?? id}：${was(id)} → ${stateNames[after.games[id]]}`),
+    },
+    {
+      key: 'origins',
+      short: '公共 API 来源',
+      title: '公共 API 允许来源（所有游戏共用）',
+      rows: [
+        ...after.apiOrigins
+          .filter((origin) => !before?.apiOrigins.includes(origin))
+          .map((origin) => `新增来源：${origin}`),
+        ...(before?.apiOrigins ?? [])
+          .filter((origin) => !after.apiOrigins.includes(origin))
+          .map((origin) => `移除来源：${origin}`),
+      ],
+    },
   ];
+}
+function Changes({ before, after }: { before: Snapshot | null; after: Snapshot }) {
+  const groups = changeGroups(before, after).filter((g) => g.rows.length);
   return (
-    <ul className="config-diff" aria-label="配置差异">
-      {rows.length ? (
-        rows.map((row) => <li key={row}>{row}</li>)
-      ) : (
-        <li>公共配置内容没有变化；确认后仍会创建新版本。</li>
+    <div className="config-groups" aria-label="配置差异">
+      {!after.apiOrigins.length && (
+        <Alert
+          type="warning"
+          showIcon
+          title="公共 API 允许来源为空"
+          description="发布后所有网页与 H5 客户端（包括 TapTap H5 包）的请求都会被拒绝（ORIGIN_REJECTED）。请在“公共配置”填写客户端来源。"
+        />
       )}
-    </ul>
+      {groups.length ? (
+        groups.map((group) => (
+          <section key={group.key} className="config-group">
+            <h4>{group.title}</h4>
+            <ul className="config-diff">
+              {group.rows.map((row) => (
+                <li key={row}>{row}</li>
+              ))}
+            </ul>
+          </section>
+        ))
+      ) : (
+        <p className="control-help">配置内容没有变化；确认后仍会创建新版本。</p>
+      )}
+    </div>
+  );
+}
+function TabLabel({ name, count }: { name: string; count?: number }) {
+  return (
+    <>
+      {name}
+      {/* Hidden from the accessible name; the save bar lists the same counts in words. */}
+      {!!count && (
+        <span className="tab-count" aria-hidden="true">
+          {count}
+        </span>
+      )}
+    </>
   );
 }
 export function ConfigWorkspace({
@@ -84,7 +139,10 @@ export function ConfigWorkspace({
   const [publishConfirm, setPublishConfirm] = useState(false);
   const [rollback, setRollback] = useState<Revision>();
   const [rollbackReason, setRollbackReason] = useState('');
-  const [nightTab, setNightTab] = useState(false);
+  const [pageTab, setPageTab] = useState<'games' | 'night' | 'history'>('games');
+  const nightTab = pageTab === 'night';
+  const [showDiff, setShowDiff] = useState(false);
+  const [viewing, setViewing] = useState<Revision>();
   const [deployments, setDeployments] = useState<Deployments>();
   const [conflict, setConflict] = useState<ControlState>();
   const canWrite = session.permissions.includes('control.write');
@@ -175,6 +233,13 @@ export function ConfigWorkspace({
       .map((c) => newCompensationError(c))
       .find(Boolean) ||
     '';
+  const groups = state ? changeGroups(state.snapshot, draftSnapshot) : [];
+  const pending = Object.fromEntries(groups.map((g) => [g.key, g.rows.length]));
+  // A published row is compared with the version before it; a draft with its base version.
+  const previousOf = (row: Revision) =>
+    revisions.find(
+      (r) => r.publishedVersion === (row.publishedVersion ?? row.parentVersion + 1) - 1,
+    )?.snapshot ?? null;
   const stateLabel = {
     unpublished: '未发布 · 保留现有环境策略',
     desired: '待应用',
@@ -239,178 +304,213 @@ export function ConfigWorkspace({
           {gamesOnly && (
             <Tabs
               className="page-tabs"
-              activeKey={nightTab ? 'night' : 'games'}
-              onChange={(key) => setNightTab(key === 'night')}
+              activeKey={pageTab}
+              onChange={(key) => setPageTab(key as typeof pageTab)}
               items={[
-                { key: 'games', label: '游戏开关' },
-                { key: 'night', label: '夜航运营' },
+                { key: 'games', label: <TabLabel name="游戏开关" count={pending.games} /> },
+                { key: 'night', label: <TabLabel name="夜航运营" count={pending.night} /> },
+                { key: 'history', label: '发布记录' },
               ]}
             />
           )}
-          <Card
-            title={gamesOnly ? (nightTab ? '夜航运营草稿' : '游戏运行策略') : '公共 API 允许来源'}
-          >
-            {gamesOnly && nightTab ? (
-              <NightOperationsEditor
-                value={snapshot.nightOperations}
-                published={state.snapshot?.nightOperations}
-                publishedIds={publishedIds}
-                deployments={deployments}
-                disabled={!canWrite || operation.busy}
-                canPublish={canPublish && !conflict}
-                busy={operation.busy}
-                dirty={dirty}
-                change={(nightOperations) => edited({ ...snapshot, nightOperations })}
-                rollback={async (build, note) => {
-                  let completed = false;
-                  await operation.run(() =>
-                    versioned(async () => {
-                      await api.rollbackNightRelease(build.channel, build.buildId, base, note);
-                      await load();
-                      completed = true;
-                      operation.success('渠道推荐版本已回退，公告与补偿已保留。');
-                    }),
-                  );
-                  return completed;
-                }}
-              />
-            ) : gamesOnly ? (
-              <>
-                <div className="table-scroll">
-                  <Table
-                    pagination={false}
-                    rowKey="id"
-                    aria-label="游戏运行策略"
-                    dataSource={catalog.games.map((id) => ({ id }))}
-                    columns={[
-                      {
-                        title: '游戏',
-                        dataIndex: 'id',
-                        render: (_, { id }) => (
-                          <>
-                            <strong>{gameNames[id] ?? id}</strong>
-                            <small className="control-id">{id}</small>
-                          </>
-                        ),
-                      },
-                      {
-                        title: '草稿状态',
-                        key: 'state',
-                        render: (_, row) => (
-                          <Select
-                            aria-label={`${row.id} 状态`}
-                            value={snapshot.games[row.id]}
-                            disabled={!canWrite || operation.busy}
-                            options={Object.entries(stateNames).map(([value, label]) => ({
-                              value,
-                              label,
-                            }))}
-                            onChange={(value: GameState) =>
-                              edited({ ...snapshot, games: { ...snapshot.games, [row.id]: value } })
-                            }
-                          />
-                        ),
-                      },
-                      {
-                        title: '终止代次',
-                        key: 'epoch',
-                        render: (_, row) =>
-                          state.policies.find((policy) => policy.gameId === row.id)?.killEpoch ??
-                          '未知',
-                      },
-                    ]}
+          {pageTab !== 'history' && (
+            <>
+              <Card
+                title={
+                  gamesOnly ? (nightTab ? '夜航运营草稿' : '游戏运行策略') : '公共 API 允许来源'
+                }
+              >
+                {gamesOnly && nightTab ? (
+                  <NightOperationsEditor
+                    value={snapshot.nightOperations}
+                    published={state.snapshot?.nightOperations}
+                    publishedIds={publishedIds}
+                    deployments={deployments}
+                    disabled={!canWrite || operation.busy}
+                    canPublish={canPublish && !conflict}
+                    busy={operation.busy}
+                    dirty={dirty}
+                    change={(nightOperations) => edited({ ...snapshot, nightOperations })}
+                    rollback={async (build, note) => {
+                      let completed = false;
+                      await operation.run(() =>
+                        versioned(async () => {
+                          await api.rollbackNightRelease(build.channel, build.buildId, base, note);
+                          await load();
+                          completed = true;
+                          operation.success('渠道推荐版本已回退，公告与补偿已保留。');
+                        }),
+                      );
+                      return completed;
+                    }}
                   />
+                ) : gamesOnly ? (
+                  <>
+                    <div className="table-scroll">
+                      <Table
+                        pagination={false}
+                        rowKey="id"
+                        aria-label="游戏运行策略"
+                        dataSource={catalog.games.map((id) => ({ id }))}
+                        columns={[
+                          {
+                            title: '游戏',
+                            dataIndex: 'id',
+                            render: (_, { id }) => (
+                              <>
+                                <strong>{gameNames[id] ?? id}</strong>
+                                <small className="control-id">{id}</small>
+                              </>
+                            ),
+                          },
+                          {
+                            title: '草稿状态',
+                            key: 'state',
+                            render: (_, row) => (
+                              <Select
+                                aria-label={`${row.id} 状态`}
+                                value={snapshot.games[row.id]}
+                                disabled={!canWrite || operation.busy}
+                                options={Object.entries(stateNames).map(([value, label]) => ({
+                                  value,
+                                  label,
+                                }))}
+                                onChange={(value: GameState) =>
+                                  edited({
+                                    ...snapshot,
+                                    games: { ...snapshot.games, [row.id]: value },
+                                  })
+                                }
+                              />
+                            ),
+                          },
+                          {
+                            title: '终止代次',
+                            key: 'epoch',
+                            render: (_, row) =>
+                              state.policies.find((policy) => policy.gameId === row.id)
+                                ?.killEpoch ?? '未知',
+                          },
+                        ]}
+                      />
+                    </div>
+                    <p className="control-help">
+                      停止新局会保留在途对局；停用会终止旧局结算，重新开放不会恢复旧局资格。只有发布后才改变目标策略。
+                    </p>
+                    {catalog.independentGames.map((game) => (
+                      <Alert
+                        key={game.id}
+                        type="warning"
+                        title={`${game.id} · 独立服务，尚未纳管`}
+                      />
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <label htmlFor="api-origins">每行一个完整 Origin（协议、域名、可选端口）</label>
+                    <Input.TextArea
+                      id="api-origins"
+                      aria-label="公共 API Origins"
+                      rows={5}
+                      value={origins}
+                      disabled={!canWrite || operation.busy}
+                      onChange={(event) => {
+                        setOrigins(event.target.value);
+                        setSaved(undefined);
+                        setPublishConfirm(false);
+                      }}
+                    />
+                    <p className="control-help">
+                      不接受路径、尾斜线、通配符、账号密码、查询参数或管理站点。留空表示明确不允许跨域来源，不会自动加入平台域名。
+                    </p>
+                    {!originsValid && (
+                      <Alert type="error" title="来源必须是规范且不重复的公共 HTTP(S) Origin。" />
+                    )}
+                  </>
+                )}
+                {gamesOnly && (
+                  <p className="control-help">
+                    草稿保留 {originList.length} 个公共 API 来源；可在“公共配置”页面核对。
+                  </p>
+                )}
+              </Card>
+              {/* Sticky so saving never requires scrolling past long editors. */}
+              <div className="save-bar" role="region" aria-label="保存与发布">
+                <div className="save-bar-head">
+                  <strong>全局配置草稿</strong>
+                  <span className="control-help">
+                    游戏开关、夜航运营与公共 API
+                    来源共用这一份草稿：保存草稿不会生效，发布后全部改动一起生效。
+                  </span>
+                  <span className="tag-row">
+                    {groups.map((g) => (
+                      <Tag key={g.key} color={g.rows.length ? 'gold' : undefined}>
+                        {g.short} {g.rows.length} 项
+                      </Tag>
+                    ))}
+                    <Button type="link" onClick={() => setShowDiff((v) => !v)}>
+                      {showDiff ? '收起改动' : '查看待发布改动'}
+                    </Button>
+                  </span>
                 </div>
-                <p className="control-help">
-                  停止新局会保留在途对局；停用会终止旧局结算，重新开放不会恢复旧局资格。只有发布后才改变目标策略。
-                </p>
-                {catalog.independentGames.map((game) => (
-                  <Alert key={game.id} type="warning" title={`${game.id} · 独立服务，尚未纳管`} />
-                ))}
-              </>
-            ) : (
-              <>
-                <label htmlFor="api-origins">每行一个完整 Origin（协议、域名、可选端口）</label>
+                {showDiff && <Changes before={state.snapshot} after={draftSnapshot} />}
+                {operationsError && <Alert type="error" title={operationsError} />}
+                <label htmlFor="draft-reason">变更理由</label>
                 <Input.TextArea
-                  id="api-origins"
-                  aria-label="公共 API Origins"
-                  rows={5}
-                  value={origins}
+                  id="draft-reason"
+                  aria-label="变更理由"
+                  rows={1}
+                  maxLength={500}
+                  placeholder="简述本次改动，例如：维护补偿 / 新版本公告"
+                  value={reason}
                   disabled={!canWrite || operation.busy}
                   onChange={(event) => {
-                    setOrigins(event.target.value);
+                    setReason(event.target.value);
                     setSaved(undefined);
                     setPublishConfirm(false);
                   }}
                 />
-                <p className="control-help">
-                  不接受路径、尾斜线、通配符、账号密码、查询参数或管理站点。留空表示明确不允许跨域来源，不会自动加入平台域名。
-                </p>
-                {!originsValid && (
-                  <Alert type="error" title="来源必须是规范且不重复的公共 HTTP(S) Origin。" />
-                )}
-              </>
-            )}
-            {gamesOnly && (
-              <p className="control-help">
-                草稿保留 {originList.length} 个公共 API 来源；可在“公共配置”页面核对。
-              </p>
-            )}
-          </Card>
-          {/* Sticky so saving never requires scrolling past long editors. */}
-          <div className="save-bar" role="region" aria-label="保存与发布">
-            {operationsError && <Alert type="error" title={operationsError} />}
-            <label htmlFor="draft-reason">变更理由</label>
-            <Input.TextArea
-              id="draft-reason"
-              aria-label="变更理由"
-              rows={1}
-              maxLength={500}
-              placeholder="简述本次改动，例如：维护补偿 / 新版本公告"
-              value={reason}
-              disabled={!canWrite || operation.busy}
-              onChange={(event) => {
-                setReason(event.target.value);
-                setSaved(undefined);
-                setPublishConfirm(false);
-              }}
-            />
-            <div className="control-actions">
-              <Button
-                type="primary"
-                disabled={
-                  !canWrite || !reason.trim() || !originsValid || !!operationsError || !!conflict
-                }
-                loading={operation.busy}
-                onClick={() =>
-                  void operation.run(() =>
-                    versioned(async () => {
-                      const revision = await api.draft({
-                        expectedVersion: base,
-                        snapshot: draftSnapshot,
-                        reason: reason.trim(),
-                      });
-                      setSaved(revision);
-                      setRevisions(await api.read<Revision[]>('revisions'));
-                      operation.success('草稿已保存，尚未发布。');
-                    }),
-                  )
-                }
-              >
-                保存草稿
-              </Button>
-              <Button
-                disabled={!canPublish || !saved || !!conflict || operation.busy}
-                onClick={() => setPublishConfirm(true)}
-              >
-                发布此草稿
-              </Button>
-              <Button disabled={operation.busy} onClick={() => void operation.run(load)}>
-                放弃编辑并重新读取
-              </Button>
-              {dirty && <Tag color="gold">有未发布的编辑</Tag>}
-            </div>
-          </div>
+                <div className="control-actions">
+                  <Button
+                    type="primary"
+                    disabled={
+                      !canWrite ||
+                      !reason.trim() ||
+                      !originsValid ||
+                      !!operationsError ||
+                      !!conflict
+                    }
+                    loading={operation.busy}
+                    onClick={() =>
+                      void operation.run(() =>
+                        versioned(async () => {
+                          const revision = await api.draft({
+                            expectedVersion: base,
+                            snapshot: draftSnapshot,
+                            reason: reason.trim(),
+                          });
+                          setSaved(revision);
+                          setRevisions(await api.read<Revision[]>('revisions'));
+                          operation.success('草稿已保存，尚未发布。');
+                        }),
+                      )
+                    }
+                  >
+                    保存草稿
+                  </Button>
+                  <Button
+                    disabled={!canPublish || !saved || !!conflict || operation.busy}
+                    onClick={() => setPublishConfirm(true)}
+                  >
+                    发布此草稿
+                  </Button>
+                  <Button disabled={operation.busy} onClick={() => void operation.run(load)}>
+                    放弃编辑并重新读取
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
           {saved && (
             <Alert
               type="success"
@@ -418,35 +518,48 @@ export function ConfigWorkspace({
               description={`草稿 ${saved.id} · 基线 ${saved.parentVersion} · ${saved.reason}`}
             />
           )}
-          {publishConfirm && saved && (
-            <Card title="确认发布此草稿" className="confirmation">
-              <p>
-                将从版本 {base} 发布新版本；理由：{saved.reason}
-              </p>
-              <Changes before={state.snapshot} after={saved.snapshot} />
-              <div className="control-actions">
-                <Button
-                  type="primary"
-                  loading={operation.busy}
-                  disabled={!!conflict}
-                  onClick={() =>
-                    void operation.run(() =>
-                      versioned(async () => {
-                        await api.publish(saved.id, base);
-                        await load();
-                        operation.success('目标版本已发布，等待应用报告。');
-                      }),
-                    )
-                  }
-                >
-                  确认发布
-                </Button>
-                <Button onClick={() => setPublishConfirm(false)}>取消发布</Button>
-              </div>
-            </Card>
-          )}
-          {!gamesOnly && (
+          <Modal
+            open={publishConfirm && !!saved}
+            title="确认发布此草稿"
+            width={720}
+            destroyOnHidden
+            getContainer={false}
+            onCancel={() => setPublishConfirm(false)}
+            footer={null}
+          >
+            {saved && (
+              <>
+                <p>
+                  将从版本 {base} 发布新版本；理由：{saved.reason}。以下改动将一起生效：
+                </p>
+                <Changes before={state.snapshot} after={saved.snapshot} />
+                <div className="control-actions modal-actions">
+                  <Button
+                    type="primary"
+                    loading={operation.busy}
+                    disabled={!!conflict}
+                    onClick={() =>
+                      void operation.run(() =>
+                        versioned(async () => {
+                          await api.publish(saved.id, base);
+                          await load();
+                          operation.success('目标版本已发布，等待应用报告。');
+                        }),
+                      )
+                    }
+                  >
+                    确认发布
+                  </Button>
+                  <Button onClick={() => setPublishConfirm(false)}>取消发布</Button>
+                </div>
+              </>
+            )}
+          </Modal>
+          {(!gamesOnly || pageTab === 'history') && (
             <Card title="草稿与发布历史">
+              <p className="control-help">
+                每次保存草稿和发布都会留下记录（理由、时间、改动）；成员操作明细见“审计”页。
+              </p>
               <div className="table-scroll">
                 <Table
                   pagination={false}
@@ -476,6 +589,9 @@ export function ConfigWorkspace({
                         <>
                           {row.reason}
                           <small className="control-id">{dateLabel(row.createdAt)}</small>
+                          <Button type="link" onClick={() => setViewing(row)}>
+                            查看改动
+                          </Button>
                         </>
                       ),
                     },
@@ -558,6 +674,28 @@ export function ConfigWorkspace({
               </div>
             </Card>
           )}
+          <Modal
+            open={!!viewing}
+            title={
+              viewing?.publishedVersion === null
+                ? '未发布草稿的改动'
+                : `版本 ${viewing?.publishedVersion} 的改动`
+            }
+            width={720}
+            destroyOnHidden
+            getContainer={false}
+            onCancel={() => setViewing(undefined)}
+            footer={<Button onClick={() => setViewing(undefined)}>关闭</Button>}
+          >
+            {viewing && (
+              <>
+                <p className="control-help">
+                  理由：{viewing.reason} · {dateLabel(viewing.createdAt)}
+                </p>
+                <Changes before={previousOf(viewing)} after={viewing.snapshot} />
+              </>
+            )}
+          </Modal>
           {state.observations.length > 0 && (
             <Card title="已知应用报告">
               <ul>

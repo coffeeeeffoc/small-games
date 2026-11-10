@@ -17,7 +17,7 @@ node scripts/night-overwatch-selftest.mjs start https://你的隧道域名:端�
 
 ### 可选：本地后管发布公告与补偿
 
-设置 `NIGHT_SELFTEST_ADMIN=1` 后，`start` 额外打包仅后管能力的 Management（`MANAGEMENT_CAPABILITIES=admin`，不需要 S3），只绑定 `127.0.0.1:43001`，并在同库执行 `infra/admin-console/migrations` 001–005（幂等）。存在 OAuth 私密文件时才为 Runtime 打开 `COMPETITION_CONTROL_ENABLED`：未发布任何配置时迁移 003 让夜航保持停用，Runtime 也拒绝被手改的策略（返回 `CONTROL_UNAVAILABLE`），所以必须能登录后管发布首个版本。后管发布的公告与补偿由 Runtime 在业务锁内读取，经 FRP 访问的手机端同样生效。网关公网白名单不变，Management 不经网关暴露。
+设置 `NIGHT_SELFTEST_ADMIN=1` 后，`start` 额外打包仅后管能力的 Management（`MANAGEMENT_CAPABILITIES=admin`，不需要 S3），只绑定 `127.0.0.1:43001`，并在同库执行 `infra/admin-console/migrations` 001–005（幂等）。存在 OAuth 私密文件时才为 Runtime 打开 `COMPETITION_CONTROL_ENABLED`：未发布任何配置时迁移 003 让夜航保持停用，Runtime 也拒绝被手改的策略（返回 `CONTROL_UNAVAILABLE`），所以必须能登录后管发布首个版本。首个版本会以配置中心的“公共 API 允许来源”取代部署时的 `APP_ORIGIN`：发布前须在“公共配置”填入 `https://ma-h5-al.tapimg.com`（TapTap H5 包的来源），否则 H5 包登录被拒（`ORIGIN_REJECTED`），表现为“服务不可用”。后管发布的公告与补偿由 Runtime 在业务锁内读取，经 FRP 访问的手机端同样生效。网关公网白名单不变，Management 不经网关暴露。
 
 后管登录只支持 GitHub OAuth。新建 OAuth App，回调填 `http://127.0.0.1:5182/api/auth/github/callback`，在仓库根写入不提交的 `.env.night-selftest-admin.local`：`{"clientId":"…","clientSecret":"…","allowedEmails":"你的 GitHub 主邮箱"}`（`allowedEmails` 可省略，沿用默认白名单，仅用于空库首次绑定管理员）。文件缺失时 Management 照常启动但无法登录。
 

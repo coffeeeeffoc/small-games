@@ -395,3 +395,52 @@ main.control-main {
     min-height: 40px;
   }
 }
+.config-groups {
+  display: grid;
+  gap: 12px;
+}
+.config-group {
+  padding: 12px 16px;
+  border: 1px solid #eceee9;
+  border-radius: 8px;
+  background: #fafbf8;
+}
+.config-group h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+.config-group .config-diff {
+  margin: 0;
+}
+.save-bar-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
+.save-bar-head .control-help {
+  line-height: 1.5;
+  font-size: 13px;
+}
+.save-bar > .config-groups {
+  max-height: 40vh;
+  overflow: auto;
+}
+.tab-count {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #faad14;
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+@media (min-width: 761px) {
+  .save-bar > .save-bar-head,
+  .save-bar > .config-groups {
+    grid-column: 1 / -1;
+  }
+}

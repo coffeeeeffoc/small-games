@@ -264,6 +264,14 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
     assert(await page.getByRole('button', { name: '新增公告', exact: true }).isDisabled());
     await page.getByRole('tab', { name: '版本与部署', exact: true }).click();
     assert(await page.getByRole('button', { name: '登记到草稿', exact: true }).isDisabled());
+    // Release history is reachable from the games page, with each record's grouped changes.
+    await page.getByRole('tab', { name: '发布记录', exact: true }).click();
+    await page
+      .getByRole('table', { name: '草稿与发布历史' })
+      .getByRole('button', { name: '查看改动' })
+      .first()
+      .click();
+    await page.getByRole('dialog').getByLabel('配置差异').waitFor();
     assert.equal(f.writes.length, 0);
     checks++;
   } finally {
