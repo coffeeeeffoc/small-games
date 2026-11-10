@@ -1471,6 +1471,10 @@ test('warehouse identifies terms and pool tiers; inbox cannot claim a selection 
   assert(hud.buttons.some((b:any)=>b.id==='qm:claimMail'),'scroll preserves selected mail rather than silently changing it');
   q.selectedMail='mail-2';q.revision++;hud.update(sim,world);
   assert(hud.buttons.some((b:any)=>b.id==='qm:claimMail'));
+  online.assets.mail[2].body='请查收：{补偿明细}感谢支持';q.revision++;hud.update(sim,world);
+  const lines=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);
+  assert(lines.includes('200 金币 · 80 EXP · 3 补给箱'),'placeholder becomes its own line from the mail reward');
+  assert(lines.includes('请查收：')&&lines.includes('感谢支持')&&!lines.some((s:string)=>s.includes('{补偿明细}')));
 });
 
 test('warehouse sale includes the total, current crates have valid tiers, and synchronization stays an icon',()=>{

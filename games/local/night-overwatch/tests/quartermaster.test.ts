@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Quartermaster, wheelLandingAngle, wheelTravel, WHEEL_DURATION, WHEEL_PREVIEW_DURATION } from '../assets/scripts/Quartermaster.ts';
-import { ECONOMY } from '../assets/scripts/core/Progression.ts';
+import { ECONOMY, rewardText } from '../assets/scripts/core/Progression.ts';
 import { assetFixture } from './progression-fixture.ts';
 
 function setup(){
@@ -155,6 +155,16 @@ test('gift receipts survive idempotent responses without relying on inventory de
   await q.execute({kind:'buy-packs',quantity:3,pool:'gold'});assert.deepEqual(q.gift?.packs,{'pack:gold:2':3});
   online.assetCommand=async()=>({...online.assets,lastReceipt:{kind:'checkin',reward:{packs:1,coins:100}}});
   await q.execute({kind:'checkin'});assert.deepEqual(q.gift?.packs,{'pack:general:0':1});
+});
+
+test('claiming a mail lists the whole attachment first; crates open on demand',async()=>{
+  const {q,online}=setup(),claim=(reward:any)=>{online.assetCommand=async()=>({...online.assets,lastReceipt:{kind:'claim-mail',reward}});return q.execute({kind:'claim-mail',mailId:'m'});};
+  await claim({coins:2,xp:23,packs:2});
+  assert.deepEqual(q.gift,{packs:{'pack:general:0':2},drops:[],granted:[{coins:2},{xp:23}],opened:false});
+  await claim({coins:5,xp:0,packs:0});
+  assert.deepEqual(q.gift,{packs:{},drops:[],granted:[{coins:5}],opened:true});
+  assert.equal(rewardText({coins:2,xp:23,packs:2},true),'2 金币 · 23 EXP · 2 补给箱');
+  assert.equal(rewardText({coins:0,xp:23},false),'23 EXP');
 });
 
 test('switching accounts before opening a gift never spends the new account inventory',async()=>{

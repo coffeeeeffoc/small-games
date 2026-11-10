@@ -3,7 +3,7 @@ import type { HUD } from './HUD';
 import { playerLabel } from './Online';
 import { ProgressionArt } from './ProgressionArt';
 import { Quartermaster, effectEnglish, wheelLandingAngle, wheelTravel, WHEEL_PREVIEW_DURATION } from './Quartermaster';
-import { FRAGMENTS, type Fragment, CATALOG, PACKAGES, POOLS, SKILLS, WHEEL_PRIZES, eligibleDrops, levelProgress, attackPreview, type Product, type Effect, type AssetReward } from './core/Progression';
+import { FRAGMENTS, type Fragment, CATALOG, PACKAGES, POOLS, SKILLS, WHEEL_PRIZES, eligibleDrops, levelProgress, attackPreview, type Product, type Effect, type AssetReward, REWARD_TOKEN, rewardText } from './core/Progression';
 import { formatTime } from './core/BattleRecords';
 import { text } from './core/Data';
 import type { Simulation } from './core/Simulation';
@@ -421,14 +421,22 @@ export class ProgressionView {
     const builtInNews=selected.id==='growth-v1'&&selected.body==='积分保持原规则。金币、经验独立记录；单人和双人分别配装。技能按冷却重复使用。';
     const body=this.h.lang==='zh'?selected.body:builtInNews?'Points retain their original rules. Coins and EXP are separate. Save solo and duel loadouts independently. Skills can be reused after cooldown.':selected.id.startsWith('night-return')?'Your previous points, progress and verified assets are preserved. The attachment can be claimed once.':selected.body;
     const bodyY=top+(this.low?38:(bottom-top)*.33),bodyH=news?bottom-bodyY-10:this.low?bottom-top-90:(bottom-top)*.19;
-    const bodyLabel=this.label(body,rx+18,bodyY,rw-48,bodyH,25,ivory,false,true);
-    const transform=bodyLabel.node.getComponent(UITransform)!;
-    transform.setAnchorPoint(.5,1);bodyLabel.verticalAlign=Label.VerticalAlign.TOP;
-    bodyLabel.overflow=Label.Overflow.RESIZE_HEIGHT;bodyLabel.updateRenderData(true);
-    this.list('message:'+selected.id+':'+this.h.lang,rx+18,bodyY,rw-36,bodyH,transform.contentSize.height,offset=>{
-      bodyLabel.node.parent=this.n;bodyLabel.node.setPosition(rx+18+(rw-48)/2-this.w/2,this.height/2-bodyY+offset);
-    });
     const mail=!news?q.assets?.mail.find(m=>m.id===selected.id):undefined;
+    // REWARD_TOKEN becomes one highlighted line built from this mail's real attachment.
+    const segments=body.split(REWARD_TOKEN).flatMap((text,i)=>[...(i&&mail?[{text:this.rewardLine(mail.reward),hl:true}]:i?[{text:REWARD_TOKEN,hl:false}]:[]),...(text.trim()?[{text:text.trim(),hl:false}]:[])]);
+    const blocks=segments.map(({text,hl})=>{
+      const label=this.label(text,rx+18,bodyY,rw-48,bodyH,25,hl?gold:ivory,hl,true),transform=label.node.getComponent(UITransform)!;
+      transform.setAnchorPoint(.5,1);label.verticalAlign=Label.VerticalAlign.TOP;
+      label.overflow=Label.Overflow.RESIZE_HEIGHT;label.updateRenderData(true);
+      return {label,hl,h:transform.contentSize.height+(hl?10:0)};
+    }),gap=8;
+    this.list('message:'+selected.id+':'+this.h.lang,rx+18,bodyY,rw-36,bodyH,Math.max(0,blocks.reduce((n,b)=>n+b.h+gap,-gap)),offset=>{
+      let used=0;
+      for(const b of blocks){
+        if(b.hl)this.h.rect(this.g,rx+14,bodyY+used-offset,rw-40,b.h,'#ffc35a24',gold,2);
+        b.label.node.parent=this.n;b.label.node.setPosition(rx+18+(rw-48)/2-this.w/2,this.height/2-bodyY-used-(b.hl?5:0)+offset);used+=b.h+gap;
+      }
+    });
     if(mail&&this.low){this.button('qm:claimMail',this.t(mail.claimed?'附件已领取':`领取 · ${mail.reward.coins}金币 / ${mail.reward.packs||0}补给箱`,mail.claimed?'CLAIMED':`CLAIM · ${mail.reward.coins} COINS / ${mail.reward.packs||0} CRATES`),rx+8,bottom-48,rw-16,44,'gold',mail.claimed||q.busy);}
     else if(mail){const cy=top+(bottom-top)*.53,cw=(rw-40)/2,ch=(bottom-top)*.26;this.picture('coins',rx+14,cy,cw,ch);this.picture('rewardSupply',rx+26+cw,cy,cw,ch);
       this.label(`● ${mail.reward.coins}   EXP ${mail.reward.xp}`,rx+14,cy+ch-26,cw,24,25,gold);this.label(this.t(`补给箱 ×${mail.reward.packs||0}`,`CRATES ×${mail.reward.packs||0}`),rx+26+cw,cy+ch-26,cw,24,25,ivory);
@@ -436,6 +444,7 @@ export class ProgressionView {
       if(!this.narrow)this.label(this.t(mail.read?'已读':'未读',mail.read?'Read':'Unread'),rx+14,bottom-52,rw*.22,40,21,dim);
     }
   }
+  private rewardLine(reward:AssetReward){return rewardText(reward,this.h.lang==='zh');}
   private messageTitle(message:{id:string;title:string}){
     return this.h.lang==='zh'?message.title:message.id.startsWith('night-return')?'Welcome / return compensation':message.id==='growth-v1'&&message.title==='成长与军需上线'?'Growth & supplies update':message.title;
   }
@@ -563,14 +572,15 @@ export class ProgressionView {
     const q=this.q,gift=q.gift!,opening=!!gift.started;
     for(const b of this.h.buttons)if(this.h.inModal(b.label.node))b.disabled=true;this.h.listAreas=[];
     const overlay=this.h.node('GiftPresentation',this.n);this.n=overlay;const background=this.a.get('base');if(background)this.h.coverImage(overlay,'GiftAirfield',background,0,0,this.w,this.height);const shade=this.h.node('GiftShade',overlay).addComponent(Graphics);this.h.rect(shade,0,0,this.w,this.height,'#03101b55');this.surfaces=this.h.node('GiftArt',overlay);this.g=this.h.node('GiftInk',overlay).addComponent(Graphics);
-    const l=this.left,r=this.right,top=this.h.safe.top+8,b=this.bottom;this.label(this.t(opening?'补给箱开启':gift.opened?'获得物资':'获得补给箱',opening?'OPENING':gift.opened?'REWARDS':'SUPPLIES RECEIVED'),l+12,top,r-l-140,42,53,gold,true,true);
+    const l=this.left,r=this.right,top=this.h.safe.top+8,b=this.bottom;const mailGift=!!gift.granted,crateLoot=mailGift&&gift.drops.length>0;
+    this.label(mailGift?this.t(opening?'补给箱开启':crateLoot?'补给箱开出的物资':'附件已领取',opening?'OPENING':crateLoot?'CRATE REWARDS':'ATTACHMENT CLAIMED'):this.t(opening?'补给箱开启':gift.opened?'获得物资':'获得补给箱',opening?'OPENING':gift.opened?'REWARDS':'SUPPLIES RECEIVED'),l+12,top,r-l-140,42,53,gold,true,true);
     if(opening){
       const elapsed=(Date.now()-gift.started!)/(gift.duration||1600),key=elapsed<.3?'closedCrate':'openCrate',size=Math.min(this.w*.6,this.height*.9);this.picture(key,(this.w-size)/2,top+43,size,b-top-50,false);
       const glow=this.h.node('CrateGlow',overlay).addComponent(Graphics);glow.fillColor=color('#ffc35a22');glow.circle(0,0,size*.27);glow.fill();const opacity=glow.node.addComponent(UIOpacity);if(!this.h.reducedEffects)tween(opacity).to(.35,{opacity:80}).to(.35,{opacity:230}).union().repeatForever().start();const chest=this.surfaces.children.find(n=>n.name.includes(key));if(chest&&!this.h.reducedEffects){const fade=chest.addComponent(UIOpacity);fade.opacity=elapsed<.3?180:80;tween(fade).to(.22,{opacity:255}).start();}
       this.button('qm:giftSkip',this.t('跳过 ›','SKIP ›'),r-105,top,105,44);return;
     }
     const heroW=(r-l)*.29,rx=l+heroW+14,rw=r-rx,cy=top+52,bottom=b-54;this.picture(gift.opened?'openCrate':'closedCrate',l,cy,heroW,bottom-cy,false);this.panel(rx,cy,rw,bottom-cy);
-    const counts=new Map<string,number>();let coins=0,xp=0;for(const d of gift.drops){if(d.item)counts.set(d.item,(counts.get(d.item)||0)+1);else {coins+=d.coins||0;xp+=d.xp||0;}}
+    const counts=new Map<string,number>();let coins=0,xp=0;for(const d of mailGift&&!crateLoot?gift.granted!:gift.drops){if(d.item)counts.set(d.item,(counts.get(d.item)||0)+1);else {coins+=d.coins||0;xp+=d.xp||0;}}
     const entries:Array<{id:string;n:number}>=[...Object.entries(gift.packs).map(([id,n])=>({id,n})),...(coins?[{id:'coins',n:coins}]:[]),...(xp?[{id:'xp',n:xp}]:[]),...Array.from(counts,([id,n])=>({id,n}))];
     const cols=Math.min(this.narrow?2:3,Math.max(1,entries.length)),cw=(rw-26-(cols-1)*9)/cols,ch=this.low?150:Math.max(220,bottom-cy-22);
     this.list('gifts',rx+8,cy+8,rw-16,bottom-cy-16,Math.max(0,Math.ceil(entries.length/cols)*(ch+9)-9),offset=>entries.forEach(({id,n},i)=>{const x=rx+10+i%cols*(cw+9),y=cy+10+Math.floor(i/cols)*(ch+9)-offset,p=q.catalog.find(p=>p.id===id),money=id==='coins',experience=id==='xp',tier=p?.rarity??(id.startsWith('pack:')?Number(id.split(':')[2]):0);this.panel(x,y,cw,ch);this.h.rect(this.g,x+2,y+2,cw-4,ch-4,'#00000000',money?gold:rarityColor[tier],3);this.picture(money?'coinPile':experience?'emblem':p?this.productArt(p.effect):id==='fragment:weapon'?'droneGear':id==='fragment:skill'?'tracking':'closedCrate',x+5,y+25,cw-10,ch*.54,false);this.label(money?this.t('金币','COINS'):experience?'EXP':id in FRAGMENTS?this.t('合成材料','MATERIAL'):this.t(rarity[tier],rarityEn[tier])+(p?' · '+this.term(p.term):''),x+8,y+4,cw-16,24,25,money?gold:rarityColor[tier],true,true);if(p)this.infoButton(id,x+cw-44,y+1);

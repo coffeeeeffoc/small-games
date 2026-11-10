@@ -22,7 +22,10 @@ export type BattleLoadout = { version: string; level: number; effects: Effect[];
 export type Product = { id: string; effect: Effect; category: 'mod' | 'weapon' | 'skill'; term: 'match' | '24h' | 'permanent'; price: number; sell: number; rarity: number; name: string; description: string; goldOnly: boolean; unlockLevel:number };
 export type WheelPrize = { coins:number; tier:number; weight:number; xp?:number; quantity?:number; category?:Product['category']|'all'; term?:'match'|'24h'|'random'; fragments?:Partial<Record<Fragment,number>> };
 export type AssetReward = { coins:number; xp:number; packs?:number; permanent?:string };
-export type AssetTask = {id:string;day:string;name:string;event:string;target:number;progress:number;reward:AssetReward;claimed:boolean;alternate?:boolean};
+/** Operators write this in a mail body; the client swaps it for one highlighted line of the real attachment. Keep in sync with apps/admin-web night-operations-model.ts. */
+export const REWARD_TOKEN='{补偿明细}';
+export const rewardText=(r:AssetReward,zh:boolean)=>[r.coins&&`${r.coins} ${zh?'金币':'COINS'}`,r.xp&&`${r.xp} EXP`,r.packs&&`${r.packs} ${zh?'补给箱':'CRATES'}`].filter(Boolean).join(' · ');
+export type AssetTask ={id:string;day:string;name:string;event:string;target:number;progress:number;reward:AssetReward;claimed:boolean;alternate?:boolean};
 export type AssetMail = {id:string;title:string;body:string;createdAt:number;read:boolean;claimed:boolean;reward:AssetReward};
 export type VideoOrder = {id:string;quantity:number;required:number;completed:number;delivered:boolean;version:string;createdAt:number;purpose?:'packs'|'wheel';attempt?:{id:string;startedAt:number}};
 export type OpenReceipt = {requestId:string;at:number;item:string;quantity:number;drops:Array<{item?:string;coins?:number;xp?:number}>};

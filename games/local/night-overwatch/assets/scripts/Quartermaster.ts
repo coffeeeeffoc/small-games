@@ -47,7 +47,8 @@ export class Quartermaster {
   slot:LoadoutSlot='mod:0'; loadoutScroll=0; loadoutScrollMax=0;
   loadoutArea={x:0,y:0,w:0,h:0};
   drafts:Partial<Record<'solo'|'duel',Loadout>>={}; private modDrafts:Partial<Record<'solo'|'duel',Array<string|null>>>={}; leaveTo?:ProgressionPage;
-  gift?:{packs:Record<string,number>;drops:Array<{item?:string;coins?:number;xp?:number}>;opened:boolean;started?:number;duration?:number;illuminated?:boolean};
+  /** `granted`: what a claimed mail already paid out directly; shown until the crates are opened. */
+  gift?:{packs:Record<string,number>;drops:Array<{item?:string;coins?:number;xp?:number}>;granted?:Array<{item?:string;coins?:number;xp?:number}>;opened:boolean;started?:number;duration?:number;illuminated?:boolean};
   drag?:{item:string;x:number;y:number;target?:LoadoutSlot};
   private openingGift=false;private adReady?:{orderId:string;attemptId:string;startedAt:number};
   busy=false; viewing=false; revision=0; message:[string,string]=['','']; pending?:AssetCommand;
@@ -215,7 +216,8 @@ export class Quartermaster {
         this.message=[`已获得：${grants}（装备可在配装使用，碎片存入仓库）`,`Received: ${grantsEn} (Gear: loadout; fragments: warehouse)`];
         this.gift={packs:{},drops:[...(reward?.coins?[{coins:reward.coins}]:[]),...(reward?.xp?[{xp:reward.xp}]:[]),...Object.entries(items).flatMap(([item,count])=>Array.from({length:count},()=>({item})))],opened:true};
       }
-      if(packs&&Object.keys(packs).length)this.gift={packs:{...packs},drops:[],opened:false};
+      if(command.kind==='claim-mail'&&reward)this.gift={packs:reward.packs?{'pack:general:0':reward.packs}:{},drops:[],granted:[...(reward.coins?[{coins:reward.coins}]:[]),...(reward.xp?[{xp:reward.xp}]:[])],opened:!reward.packs};
+      else if(packs&&Object.keys(packs).length)this.gift={packs:{...packs},drops:[],opened:false};
       else if(reward?.packs)this.gift={packs:{'pack:general:0':reward.packs},drops:[],opened:false};
       if(command.kind==='open'){
         const drops=snapshot.lastReceipt?.drops as Array<{item?:string;coins?:number;xp?:number}>|undefined;
