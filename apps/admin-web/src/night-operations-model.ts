@@ -32,6 +32,8 @@ export type NightCompensation = {
   /** Players seen in the game during [loginFrom, loginTo] receive one mail each. */
   loginFrom: number;
   loginTo: number;
+  /** Voided before publication: kept for the record, never delivered. */
+  voided?: true;
   playerIds?: string[];
   reward: { coins: number; xp: number; packs: number };
 };
@@ -78,7 +80,7 @@ export function nightOperationsError(value?: NightOperations) {
   const live = value.announcements.filter((a) => a.enabled).sort((a, b) => a.startsAt - b.startsAt);
   for (let i = 1; i < live.length; i++)
     if ((live[i - 1]!.endsAt ?? Infinity) > live[i]!.startsAt)
-      return '同一时间最多只能有一条生效公告；请撤销或调整时间重叠的公告。';
+      return '同一时间最多只能有一条生效公告；请下线或调整时间重叠的公告。';
   for (const item of value.compensations) {
     if (
       !Number.isFinite(item.loginFrom) ||
@@ -92,8 +94,54 @@ export function nightOperationsError(value?: NightOperations) {
   }
   return '';
 }
+export type AnnouncementStatus = 'live' | 'scheduled' | 'expired' | 'offline';
+export const announcementStatusNames: Record<AnnouncementStatus, string> = {
+  live: '生效中',
+  scheduled: '待生效',
+  expired: '已过期',
+  offline: '已下线',
+};
+export function announcementStatus(a: NightAnnouncement, now = Date.now()): AnnouncementStatus {
+  if (!a.enabled) return 'offline';
+  if (a.startsAt > now) return 'scheduled';
+  return a.endsAt !== undefined && a.endsAt <= now ? 'expired' : 'live';
+}
+export type CompensationStatus = 'draft' | 'published' | 'voided';
+export const compensationStatusNames: Record<CompensationStatus, string> = {
+  draft: '草稿',
+  published: '已发布',
+  voided: '已作废',
+};
+export const compensationStatus = (c: NightCompensation, published: Set<string>) =>
+  c.voided ? 'voided' : published.has(c.id) ? 'published' : 'draft';
+/**
+ * Players see at most one announcement. Going live ends an earlier overlapping one at the new
+ * start time and takes any later-starting overlap offline.
+ */
+export function goLive(list: NightAnnouncement[], id: string) {
+  const target = list.find((a) => a.id === id)!;
+  const end = (a: NightAnnouncement) => a.endsAt ?? Infinity;
+  const clashes = list.filter(
+    (a) => a.id !== id && a.enabled && a.startsAt < end(target) && target.startsAt < end(a),
+  );
+  const trimmed = clashes.filter((a) => a.startsAt < target.startsAt);
+  return {
+    trimmed,
+    offline: clashes.filter((a) => !trimmed.includes(a)),
+    next: list.map((a) =>
+      a.id === id
+        ? { ...a, enabled: true }
+        : trimmed.includes(a)
+          ? { ...a, endsAt: target.startsAt }
+          : clashes.includes(a)
+            ? { ...a, enabled: false }
+            : a,
+    ),
+  };
+}
 /** Range checks that only apply before the compensation is first published. */
 export function newCompensationError(item: NightCompensation, now = Date.now()) {
+  if (item.voided) return '';
   if (item.loginTo > now) return '登录范围的结束时间不能晚于当前时间。';
   if (item.loginFrom < now - LOGIN_RETENTION_DAYS * 86400000)
     return `登录范围最早只能追溯 ${LOGIN_RETENTION_DAYS} 天。`;
@@ -110,7 +158,7 @@ export function nightChanges(before?: NightOperations, after?: NightOperations) 
       const reward = key === 'compensations' ? (item as NightCompensation).reward : undefined;
       if (JSON.stringify(old) !== JSON.stringify(item)) {
         rows.push(
-          `${label}：${item.title || item.id} · ${reward ? `${reward.coins} 金币 / ${reward.xp} EXP / ${reward.packs} 补给箱` : (item as NightAnnouncement).enabled ? '生效' : '已撤销'}`,
+          `${label}：${item.title || item.id} · ${reward ? `${(item as NightCompensation).voided ? '已作废 · ' : ''}${reward.coins} 金币 / ${reward.xp} EXP / ${reward.packs} 补给箱` : (item as NightAnnouncement).enabled ? '上线' : '下线'}`,
         );
         rows.push(`${label}正文：${item.body}`);
       }

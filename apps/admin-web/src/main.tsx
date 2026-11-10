@@ -362,7 +362,7 @@ createRoot(document.getElementById('root')!).render(
           theme={{
             token: {
               colorPrimary: '#214ee8',
-              borderRadius: 12,
+              borderRadius: 8,
               fontFamily: "Inter, 'Segoe UI', 'Microsoft Yahei', sans-serif",
             },
           }}

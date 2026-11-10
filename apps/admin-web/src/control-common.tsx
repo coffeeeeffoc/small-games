@@ -76,7 +76,10 @@ export function useOperation() {
     try {
       await work();
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : '操作暂未完成，请稍后手动重试。');
+      const text = failure instanceof Error ? failure.message : '操作暂未完成，请稍后手动重试。';
+      setError(text);
+      // The inline alert may sit far above the clicked button; a toast keeps the failure visible.
+      void message.error(`操作未完成：${text}`);
     } finally {
       lock.current = false;
       setBusy(false);

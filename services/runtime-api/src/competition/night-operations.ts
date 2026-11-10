@@ -32,6 +32,7 @@ export function deliverNightCompensations(
   for (const campaign of operations?.compensations ?? []) {
     const id = `ops-compensation:${campaign.id}`;
     if (
+      campaign.voided ||
       (campaign.playerIds && !campaign.playerIds.includes(owner)) ||
       wallet.mail.some((m) => m.id === id) ||
       !seen(campaign.loginFrom, campaign.loginTo)

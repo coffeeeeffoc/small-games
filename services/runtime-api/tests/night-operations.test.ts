@@ -37,6 +37,13 @@ it('delivers once to players seen in the login range and keeps the mail as the r
   ops.compensations[0]!.playerIds = ['22222222-2222-4222-8222-222222222222'];
   expect(deliverNightCompensations(wallet, owner, 100, ops)).toBe(false);
   ops.compensations[0]!.playerIds = [owner];
+  // A voided compensation is kept on record but never delivered.
+  expect(
+    deliverNightCompensations(wallet, owner, 100, {
+      ...ops,
+      compensations: [{ ...ops.compensations[0]!, voided: true }],
+    }),
+  ).toBe(false);
   expect(deliverNightCompensations(wallet, owner, 100, ops)).toBe(true);
   expect(wallet.mail[0]).toMatchObject({
     id: 'ops-compensation:grant',

@@ -99,6 +99,8 @@ export const nightCompensationSchema = z
     ...text,
     loginFrom: timestamp,
     loginTo: timestamp,
+    /** Voided before publication: kept for the record, never delivered. */
+    voided: z.literal(true).optional(),
     playerIds: z
       .array(z.uuid().transform((value) => value.toLowerCase()))
       .min(1)

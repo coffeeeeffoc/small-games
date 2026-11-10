@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Card, Input } from 'antd';
+import { Alert, Card, Input, Tabs } from 'antd';
 import { ActionButton as Button } from './control-common';
 import { NightMessagesEditor } from './night-messages-editor';
 import { NightVersionsEditor } from './night-versions-editor';
@@ -32,23 +32,42 @@ export function NightOperationsEditor({
   const [reason, setReason] = useState('');
   return (
     <>
-      <NightMessagesEditor
-        value={value}
-        disabled={disabled}
-        publishedIds={publishedIds}
-        change={change}
-      />
-      <NightVersionsEditor
-        value={value}
-        published={published}
-        deployments={deployments}
-        disabled={disabled}
-        canPublish={canPublish && !busy && !dirty}
-        change={change}
-        quickRollback={(build) => {
-          setTarget(build);
-          setReason('');
-        }}
+      <Tabs
+        className="section-tabs"
+        items={[
+          ...(['announcements', 'compensations'] as const).map((kind) => ({
+            key: kind,
+            label: kind === 'announcements' ? '公告管理' : '补偿管理',
+            children: (
+              <NightMessagesEditor
+                kind={kind}
+                value={value}
+                published={published}
+                disabled={disabled}
+                publishedIds={publishedIds}
+                change={change}
+              />
+            ),
+          })),
+          {
+            key: 'versions',
+            label: '版本与部署',
+            children: (
+              <NightVersionsEditor
+                value={value}
+                published={published}
+                deployments={deployments}
+                disabled={disabled}
+                canPublish={canPublish && !busy && !dirty}
+                change={change}
+                quickRollback={(build) => {
+                  setTarget(build);
+                  setReason('');
+                }}
+              />
+            ),
+          },
+        ]}
       />
       {dirty && <p className="control-help">有未发布编辑。快速回退前请发布或放弃这些编辑。</p>}
       {target && (

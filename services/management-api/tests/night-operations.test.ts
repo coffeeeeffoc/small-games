@@ -114,6 +114,13 @@ it('rejects new compensation for unfinished or no longer verifiable login ranges
         reason: 'range',
       }),
     ).rejects.toMatchObject({ code });
+    // A voided draft never delivers, so its range no longer blocks the draft.
+    ops.compensations[0]!.voided = true;
+    await f.service.draft(f.session, {
+      expectedVersion: 0,
+      snapshot: { ...controlSnapshot(), nightOperations: ops },
+      reason: 'voided',
+    });
   }
 });
 it('switches only one channel atomically and rejects disabled/removed/unavailable target rules', async () => {

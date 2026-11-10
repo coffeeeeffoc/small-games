@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Card, Input, Select, Tag } from 'antd';
+import { Alert, Card, Input, Select, Tabs, Tag } from 'antd';
 import {
   ApiError,
   dateLabel,
@@ -237,14 +237,15 @@ export function ConfigWorkspace({
             </Card>
           )}
           {gamesOnly && (
-            <div className="control-actions">
-              <Button aria-pressed={!nightTab} onClick={() => setNightTab(false)}>
-                游戏开关
-              </Button>
-              <Button aria-pressed={nightTab} onClick={() => setNightTab(true)}>
-                夜航运营
-              </Button>
-            </div>
+            <Tabs
+              className="page-tabs"
+              activeKey={nightTab ? 'night' : 'games'}
+              onChange={(key) => setNightTab(key === 'night')}
+              items={[
+                { key: 'games', label: '游戏开关' },
+                { key: 'night', label: '夜航运营' },
+              ]}
+            />
           )}
           <Card
             title={gamesOnly ? (nightTab ? '夜航运营草稿' : '游戏运行策略') : '公共 API 允许来源'}
@@ -351,15 +352,21 @@ export function ConfigWorkspace({
               </>
             )}
             {gamesOnly && (
-              <p>草稿保留 {originList.length} 个公共 API 来源；可在“公共配置”页面核对。</p>
+              <p className="control-help">
+                草稿保留 {originList.length} 个公共 API 来源；可在“公共配置”页面核对。
+              </p>
             )}
+          </Card>
+          {/* Sticky so saving never requires scrolling past long editors. */}
+          <div className="save-bar" role="region" aria-label="保存与发布">
             {operationsError && <Alert type="error" title={operationsError} />}
             <label htmlFor="draft-reason">变更理由</label>
             <Input.TextArea
               id="draft-reason"
               aria-label="变更理由"
-              rows={3}
+              rows={1}
               maxLength={500}
+              placeholder="简述本次改动，例如：维护补偿 / 新版本公告"
               value={reason}
               disabled={!canWrite || operation.busy}
               onChange={(event) => {
@@ -401,8 +408,9 @@ export function ConfigWorkspace({
               <Button disabled={operation.busy} onClick={() => void operation.run(load)}>
                 放弃编辑并重新读取
               </Button>
+              {dirty && <Tag color="gold">有未发布的编辑</Tag>}
             </div>
-          </Card>
+          </div>
           {saved && (
             <Alert
               type="success"

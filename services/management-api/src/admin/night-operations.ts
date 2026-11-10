@@ -51,7 +51,7 @@ export async function assertNightOperations(
       .map((c) => c.id),
   );
   for (const compensation of operations?.compensations ?? []) {
-    if (published.has(compensation.id)) continue;
+    if (published.has(compensation.id) || compensation.voided) continue;
     // Only a finished range is verifiable, and visits are kept for the login retention only.
     if (compensation.loginTo > now)
       throw new ControlError('NIGHT_COMPENSATION_FUTURE_LOGIN_RANGE', 422);
