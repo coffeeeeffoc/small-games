@@ -187,7 +187,7 @@ export async function startAdminCaddy(site, { apiHandler, spawnProcess = spawn }
       assert.equal(config.split(before).length - 1, expected, 'Caddy fixture contract changed');
       config = config.replaceAll(before, after);
     };
-    replace(`${adminDomain} {`, `${url} {`);
+    replace(`${adminDomain} {`, `${url} {\n    bind 127.0.0.1`);
     replace('/srv/admin', quoted(await realpath(site)));
     replace('/opt/small-games/admin-console/current/site', quoted(await realpath(site)), 2);
     replace(`http://${ingress.network.nginxIp}:8083`, `http://127.0.0.1:${api.address().port}`);

@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, writeFile, readFile, realpath, rm, unlink } from 'node:
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { execFileSync, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { readFileSync } from 'node:fs';
@@ -112,6 +113,17 @@ test(
       await writeFile(path.join(directory, 'assets/app.js'), asset);
       const api = '<!doctype html><p>{{ never execute templates on API responses }}</p>';
       server = await startAdminCaddy(directory, {
+        spawnProcess(executable, args, options) {
+          const adapted = execFileSync(executable, ['adapt', ...args.slice(1)], {
+            ...options,
+            encoding: 'utf8',
+          });
+          const { servers } = JSON.parse(adapted).apps.http;
+          const listeners = Object.values(servers).flatMap((server) => server.listen);
+          assert.equal(listeners.length, 1);
+          assert.match(listeners[0], /^127\.0\.0\.1:\d+$/);
+          return spawn(executable, args, options);
+        },
         apiHandler: (_request, response) => {
           response.writeHead(200, { 'Content-Type': 'text/html' });
           response.end(api);
@@ -193,6 +205,7 @@ test(
             realDeviceVerified: false,
             sourceHashes,
             checks: [
+              'loopback-only-listener',
               'eight-finite-documents-and-403',
               'fresh-canonical-32-byte-nonce-per-response',
               'all-six-conditionals-and-range-stripped-before-file-server',
