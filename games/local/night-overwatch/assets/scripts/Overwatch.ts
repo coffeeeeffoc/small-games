@@ -1,3 +1,4 @@
+import { UPDATE_LOG } from './UpdateLog';
 import { captureOverwatchSnapshot } from './OverwatchSnapshot';
 import {
   _decorator,
@@ -18,7 +19,7 @@ import { ACTIONS, TUTORIAL } from './core/Actions';
 import { World } from './World';
 import { HUD } from './HUD';
 import { Platform, RADIO } from './Platform';
-import { Online } from './Online';
+import { Online, playerId } from './Online';
 import { DuelPresentation } from './Presentation';
 import { shareScreenControl } from './ShareScreen';
 import { observeNightInputs } from './core/Replay';
@@ -106,6 +107,7 @@ export class Overwatch extends Component {
       this.hud.modalKey = state.finished ? 'rebuild' : this.hud.modalKey;
     });
     this.hud.online = this.online;
+    try{this.hud.majorUpdate=this.platform.storage.getItem('night-update-seen')!==UPDATE_LOG[0].id;}catch{this.hud.majorUpdate=true;}
     this.quartermaster=new Quartermaster(this.online,this.platform.storage);
     this.hud.quartermaster=this.quartermaster;
     this.stopDeveloperTools=installDeveloperTools(this);
@@ -611,6 +613,13 @@ export class Overwatch extends Component {
       this.hud.toastUntil = Date.now() + 4000; return;
     }
     this.platform.activate();
+    if(id==='updates'||id==='social:updates'){this.clear();this.hud.updatesOpen=true;this.hud.majorUpdate=false;this.hud.modalKey='rebuild';try{this.platform.storage.setItem('night-update-seen',UPDATE_LOG[0].id);}catch{}return;}
+    if(id==='updates:close'){this.hud.updatesOpen=false;this.hud.modalKey='rebuild';return;}
+    if(id==='social:dismiss'){if(online?.notification&&performance.now()<online.notificationUntil){online.notification=undefined;}else{this.hud.majorUpdate=false;try{this.platform.storage.setItem('night-update-seen',UPDATE_LOG[0].id);}catch{}}return;}
+    if(id==='social:reply'&&online?.notification){this.clear();online.openConversation({playerId:online.notification.playerId,nickname:online.notification.nickname});this.hud.listScroll.direct=Number.MAX_SAFE_INTEGER;return;}
+    if(id==='social:close'){this.clear();online?.closeConversation();this.hud.modalKey='rebuild';return;}
+    if(id==='social:older'){void online?.loadConversation(online.conversationBefore);this.hud.listScroll.direct=0;return;}
+    if(id==='social:inbox'&&online){this.clear();if(online.notification){online.openConversation({playerId:online.notification.playerId,nickname:online.notification.nickname});}else if(online.social.conversations.length){online.openConversation(online.social.conversations.find(c=>c.unread)||online.social.conversations[0]);}else{online.lobbyTab='friends';online.show('menu');}return;}
     if(this.progressionAction(id))return;
     if (id === 'screen') {
       void this.screenControl?.toggle().catch(() => {
@@ -619,23 +628,31 @@ export class Overwatch extends Component {
       return;
     }
     if (online && id.startsWith('online:')) {
-      if(this.quartermaster)this.quartermaster.page='';
+      if(this.quartermaster&&!online.socialOpen)this.quartermaster.page='';
       const action = id.slice(7);
       if (action === 'dismiss') { this.action(online.room || online.active ? 'online:backLobby' : 'online:back'); return; }
       this.clear(); this.hud.modalKey = 'rebuild';
       if (action === 'version') { this.pause('settings', false); online.show('version'); return; }
       if (action === 'releaseCheck') { void online.checkRelease(); return; }
+      if(action==='players'){online.showPlayers();return;}
+      if(action==='friends'){online.lobbyTab='friends';online.revision++;void online.refreshSocial(Number.MAX_SAFE_INTEGER);return;}
+      if(action.startsWith('friendAction:')){const [,kind,peer]=action.split(':');void online.friendAction(kind as 'request',peer);return;}
+      if(action==='lobbyRooms'){online.lobbyTab='rooms';online.revision++;return;}
+      if(action==='playersNext'||action==='playersPrev'){online.pagePlayers(action==='playersNext');this.hud.listScroll.players=0;return;}
+      if(action==='chatPublic'||action==='chatInbox'){online.selectChat(undefined,action==='chatInbox');this.hud.listScroll.chat=0;return;}
+      if(action.startsWith('whisper:')||action.startsWith('invitePlayer:')){const peer=online.peer(action.slice(action.indexOf(':')+1))||[online.opponent,online.chatPeer].find(p=>p&&playerId(p)===action.slice(action.indexOf(':')+1));if(peer){if(action.startsWith('invitePlayer:'))void online.invitePlayer(peer);else online.openConversation(peer);}return;}
+      if(action.startsWith('chatReply:')){const m=[...online.chatMessages,...online.conversation].find(m=>m.id===action.slice(10));if(m){const own=m.playerId===online.authenticatedId;online.openConversation({playerId:own?m.recipientId:m.playerId,nickname:own?m.recipientNickname:m.nickname});}return;}
       if(action==='chatBlocks'){online.chatMenu=online.chatMenu==='blocks'?'':'blocks';online.chatRevision++;return;}
       if(action==='chatSend'){void online.sendChat();return;}
       if(action==='roomReturn'){online.show('room');return;}
       if(action==='roomCollapse'&&online.room){online.show('menu');return;}
       // 邀请后留在当前界面（房间或收起后的大厅），结果显示在房间提示与大厅状态行。
-      if(action==='chatInvite'){if(!online.room){online.show('create');online.chatStatus='先创建公开房间，即可邀请大厅玩家';}else if(!online.chatAvailable)online.chatStatus='大厅交流暂不可用，请把房间号告诉好友';else if(!online.chatSending){online.chatStatus='';void online.sendChat(true).then(()=>{if(!online.chatStatus)online.chatStatus='邀请已发到大厅';online.revision++;});}return;}
+      if(action==='chatInvite'){if(online.chatPeer){void online.invitePlayer(online.chatPeer);return;}if(online.chatInbox){online.chatStatus='先选择要邀请的玩家';online.chatRevision++;return;}if(!online.room){online.show('create');online.chatStatus='先创建公开房间，即可邀请大厅玩家';}else if(!online.chatAvailable)online.chatStatus='大厅交流暂不可用，请把房间号告诉好友';else if(!online.chatSending){online.chatStatus='';void online.sendChat(true).then(()=>{if(!online.chatStatus)online.chatStatus='邀请已发到大厅';online.revision++;});}return;}
       if(action==='chatLatest'){this.hud.listScroll.chat=Number.MAX_SAFE_INTEGER;this.hud.modalKey='rebuild';return;}
       if(action.startsWith('chatMenu:')){online.chatMenu=online.chatMenu===action.slice(9)?'':action.slice(9);online.chatRevision++;return;}
       if(action.startsWith('chatBlock:')){online.toggleBlock(action.slice(10));return;}
       if(action.startsWith('chatReport:')){void online.reportChat(action.slice(11));return;}
-      if(action.startsWith('chatJoin:')){const m=online.chatMessages.find(m=>m.id===action.slice(9));if(m?.room?.canJoin)void online.open('join',m.room.code,m.room.createdAt);return;}
+      if(action.startsWith('chatJoin:')){const m=[...online.chatMessages,...online.conversation].find(m=>m.id===action.slice(9));if(m?.room?.canJoin&&online.activity!=='playing'){online.socialOpen=false;void online.open('join',m.room.code,m.room.createdAt);}return;}
       if (action === 'menu') { online.show('menu'); void online.loadRooms(); }
       if (action === 'profile') { this.pause('settings', false); online.show('profile'); }
       if (action === 'saveName') void online.saveName();
@@ -672,6 +689,7 @@ export class Overwatch extends Component {
       if (action === 'refresh') void online.loadRanking();
       if (action === 'ruleVersion') void online.cycleRankingVersion();
       if (action === 'match' || action === 'bot') void online.open(action);
+      if(action==='rematch'){void online.rematch().then(ok=>{if(ok){this.sim=new Simulation(this.selectedMission);this.syncWorld();this.hud.missionsOpen=false;this.hud.modalKey='rebuild';}});return;}
       if (action === 'ready') void online.ready();
       if (action === 'share' && sys.isBrowser) void online.share(location.href);
       if(action==='back'&&online.panel!=='room'){online.back();if(!online.panel&&!online.room&&!online.active&&this.quartermaster?.externalReturn==='modes'){this.quartermaster.show('modes',false);this.quartermaster.externalReturn='';}return;}
@@ -1322,6 +1340,7 @@ export class Overwatch extends Component {
     this.hud.touch = false;
     this.platform.activate();
     if(this.hud.storageError){if(e.keyCode===27)this.action('close');return;}
+    if(this.online?.socialOpen||this.hud.updatesOpen){if(e.keyCode===27)this.action(this.online?.socialOpen?'social:close':'updates:close');return;}
     if(this.quartermaster?.page&&(['help','settings','mission'] as const).some(reason=>this.sim.pauses.has(reason))){if(e.keyCode===27)this.action('close');this.keys.add(e.keyCode);return;}
     if((this.hud.reportOpen||this.hud.equipmentOpen)&&e.keyCode===27){this.action('equipmentClose');return;}
     if(this.quartermaster?.page){if(e.keyCode===27)this.action('qm:back');else if(e.keyCode===13&&this.quartermaster.page==='modes')this.action('mode:enter');this.keys.add(e.keyCode);return;}
@@ -1382,6 +1401,7 @@ export class Overwatch extends Component {
       this.sim.setExtractionRadioPending(this.platform.radioPending);
   }
   update(dt: number) {
+    if(this.online)this.online.activity=this.sim.phase==='playing'?'playing':'available';
     if (!this.hud) return;
     // Connect once per late-arriving bridge; a failed recorder must not reconnect on every frame.
     const bridge = (globalThis as any).SmallGamesServices;

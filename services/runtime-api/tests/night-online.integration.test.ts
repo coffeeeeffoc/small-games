@@ -390,6 +390,70 @@ integration('Night real HTTP and PostgreSQL', () => {
     await request(roomPath(room.code) + '/leave', watcher, {});
     await request(roomPath(room.code) + '/leave', owner, {});
   });
+  it('reserves rematch seats, propagates departures and keeps old leave retries from ejecting new members', async () => {
+    const [a, b, c] = await Promise.all([player(), player(), player()]);
+    const old = await pair(a, b);
+    await eliminate(old.code, 1);
+    const again = await request(roomPath(old.code) + '/rematch', a, {});
+    const next = again.rematch;
+    expect(
+      (await request(path + '/rooms', c)).rooms.find((r: { code: string }) => r.code === next)
+        ?.canJoin,
+    ).toBe(false);
+    await request(path + '/rooms/join', c, { code: next }, 409);
+    const outsider = await request(path + '/match', c, {});
+    expect(outsider.code).not.toBe(next);
+    await request(roomPath(outsider.code) + '/leave', c, {});
+    await request(roomPath(old.code) + '/rematch', b, {});
+    await request(roomPath(next) + '/connect', b, {});
+    await request(roomPath(next) + '/connect', a, {});
+    await request(roomPath(next) + '/ready', a, {});
+    await request(roomPath(old.code) + '/leave', b, {});
+    expect((await storedRoom(next)).players[0].ready).toBe(false);
+    expect((await storedRoom(next)).players.map((p) => p.id)).toEqual([a.playerId]);
+    await request(path + '/rooms/join', b, { code: next });
+    await request(roomPath(old.code) + '/leave', b, {});
+    expect((await storedRoom(next)).players.map((p) => p.id)).toContain(b.playerId);
+    await request(roomPath(next) + '/connect', a, {});
+    await request(roomPath(next) + '/leave', a, {});
+    await request(roomPath(next) + '/leave', b, {});
+    const second = await pair(a, b);
+    await eliminate(second.code, 1);
+    const waiting = await request(roomPath(second.code) + '/rematch', a, {});
+    await request(roomPath(waiting.rematch) + '/connect', a, {});
+    await request(roomPath(waiting.rematch) + '/leave', a, {});
+    const stayed = await request(roomPath(second.code), b);
+    expect(
+      stayed.players.find((p: { id: string; left?: boolean }) => p.id === a.playerId).left,
+    ).toBe(true);
+    expect(stayed.rematch).toBeUndefined();
+    const restored = await request(roomPath(second.code) + '/rematch', b, {});
+    expect(restored.rematch).not.toBe(waiting.rematch);
+    await request(roomPath(restored.rematch) + '/connect', b, {});
+    await request(roomPath(restored.rematch) + '/leave', b, {});
+  }, 15000);
+  it('releases abandoned rematches and countdown departures for replacements', async () => {
+    const [a, b, c] = await Promise.all([player(), player(), player()]);
+    const old = await pair(a, b);
+    await eliminate(old.code, 1);
+    const first = await request(roomPath(old.code) + '/rematch', a, {});
+    await request(roomPath(old.code) + '/leave', a, {});
+    expect((await request(roomPath(old.code), b)).rematch).toBeUndefined();
+    const second = await request(roomPath(old.code) + '/rematch', b, {});
+    expect(second.rematch).not.toBe(first.rematch);
+    await request(path + '/rooms/join', a, { code: second.rematch });
+    await request(roomPath(second.rematch) + '/connect', b, {});
+    await request(roomPath(second.rematch) + '/ready', a, {});
+    await request(roomPath(second.rematch) + '/ready', b, {});
+    await request(roomPath(second.rematch) + '/leave', a, {});
+    const waiting = await storedRoom(second.rematch);
+    expect(waiting.status).toBe('waiting');
+    expect(waiting.rematchMembers).toBeUndefined();
+    expect(waiting.players[0].ready).toBe(false);
+    await request(path + '/rooms/join', c, { code: second.rematch });
+    await request(roomPath(second.rematch) + '/leave', c, {});
+    await request(roomPath(second.rematch) + '/leave', b, {});
+  }, 15000);
   it('rematches after finishing and preserves the occupancy of unknown old-version active rooms', async () => {
     const [a, b] = await Promise.all([player(), player()]);
     const first = await pair(a, b);
@@ -403,6 +467,8 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect((await storedRoom(rematched.rematch)).status).toBe('waiting');
     await request(roomPath(rematched.rematch) + '/connect', a, {});
     await request(roomPath(rematched.rematch) + '/leave', a, {});
+    await request(roomPath(rematched.rematch) + '/connect', b, {});
+    await request(roomPath(rematched.rematch) + '/leave', b, {});
     const second = await pair(a, b);
     await eliminate(second.code, 1);
     const matched = await request(path + '/match', a, {});

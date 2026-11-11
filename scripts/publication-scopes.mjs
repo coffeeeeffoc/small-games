@@ -1473,6 +1473,175 @@ export function threeChooseTwoBackendFileScope(file, before, after) {
   return expected === after;
 }
 
+// Exact social delta; undo it before classifying any earlier shared changes.
+const nightSocialReviews = {
+  'infra/migrations/018-night-direct-messages.sql': [
+    null,
+    '131b3c5389b18051caa493ae706efede08cbe7c73dea565ba4707540f44d07cd',
+    [],
+  ],
+  'scripts/prepare-night-server.mjs': [
+    null,
+    '87583665bc7f52719ccd2f8d0822cc38212ed4ff9ae4c98fd065a2076c1865ce',
+    [],
+  ],
+  'scripts/prepare-night-server.test.mjs': [
+    null,
+    'da4aa0180912e7d081ba6fd3ae7152eee2f1d9b6329af404f5ebe2c4ea262fc1',
+    [],
+  ],
+  'scripts/competition.mjs': [
+    '84d7044bdc77a6eab56d87620c12119bb0c50daa9b02473fb812f443048df402',
+    '8808a9d816359a5fd36cfa9d08b98ba1ca17694d482cf77cccb5c475ede8e198',
+    [
+      [
+        "    await readFile(new URL('../infra/migrations/017-night-presence.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n  await psql(\n    await readFile(new URL('../infra/migrations/018-night-direct-messages.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n} else if (mode === 'dev') {\n  await mkdir(new URL('../.scratch/competition/', import.meta.url), { recursive: true });\n  const keyFile = new URL('../.scratch/competition/internal-key', import.meta.url);\n",
+        "    await readFile(new URL('../infra/migrations/017-night-presence.sql', import.meta.url)),\n    mode === 'test-db' ? 'competition_test' : 'small_games',\n  );\n} else if (mode === 'dev') {\n  await mkdir(new URL('../.scratch/competition/', import.meta.url), { recursive: true });\n  const keyFile = new URL('../.scratch/competition/internal-key', import.meta.url);\n",
+      ],
+    ],
+  ],
+  'scripts/platform.mjs': [
+    '24c2fdf62dc1ec2cb51ad6f646b17fd7099dfbdceb2d3be9d2c91e0aedcf2281',
+    '2865948df05e18e9dca4ee0eea9eea0fa3734b572641b454abb8c2f4ef1d1b7b',
+    [
+      [
+        "    '015-generic-content-drafts.sql',\n    '016-night-chat.sql',\n    '017-night-presence.sql',\n    '018-night-direct-messages.sql',\n  ])\n    await run(\n      'docker',\n",
+        "    '015-generic-content-drafts.sql',\n    '016-night-chat.sql',\n    '017-night-presence.sql',\n  ])\n    await run(\n      'docker',\n",
+      ],
+    ],
+  ],
+  'scripts/deploy-tencent.mjs': [
+    '06f647c8015b067942e16535025acddc9dc83b7420f436d92785b8861eb2db0f',
+    '1fb152947d47e2107353cc45107ad4b5eefcd66bb26d3c166bf85ca606d80d17',
+    [
+      [
+        "    '015-generic-content-drafts.sql',\n    '016-night-chat.sql',\n    '017-night-presence.sql',\n    '018-night-direct-messages.sql',\n  ])\n    await cp(path.join(root, 'infra/migrations', file), path.join(bundle, 'migrations', file));\n  await writeFile(\n",
+        "    '015-generic-content-drafts.sql',\n    '016-night-chat.sql',\n    '017-night-presence.sql',\n  ])\n    await cp(path.join(root, 'infra/migrations', file), path.join(bundle, 'migrations', file));\n  await writeFile(\n",
+      ],
+    ],
+  ],
+  'scripts/deploy-tencent.test.mjs': [
+    '5327c755ad481b538ca892b06b51a1d81bac4f0a236dd2ff77a1e52b29448625',
+    '140ee6c2526566f99a0eb5b27774a4f4d3cf78118ab18ec2971fe8dd732e99a5',
+    [
+      [
+        "      '015-generic-content-drafts.sql',\n      '016-night-chat.sql',\n      '017-night-presence.sql',\n      '018-night-direct-messages.sql',\n    ];\n    assert.deepEqual((await readdir(path.join(directory, 'migrations'))).sort(), expected);\n    for (const file of expected)\n",
+        "      '015-generic-content-drafts.sql',\n      '016-night-chat.sql',\n      '017-night-presence.sql',\n    ];\n    assert.deepEqual((await readdir(path.join(directory, 'migrations'))).sort(), expected);\n    for (const file of expected)\n",
+      ],
+    ],
+  ],
+  'scripts/h5-taptap-runtime.mjs': [
+    '5d9d65bead03b8085a9bf708b36152c8df1179da5de8bfe2387f18afd9a15d63',
+    '787e6e4a7d59d1d1ac198724e2320b2c1366ba2c668b60c9123a0177596ed733',
+    [
+      [
+        "  'infra/migrations/014-player-sessions.sql',\n  'infra/migrations/016-night-chat.sql',\n  'infra/migrations/017-night-presence.sql',\n  'infra/migrations/018-night-direct-messages.sql',\n  'infra/admin-console/migrations/001-admin-auth.sql',\n  'infra/admin-console/migrations/002-control-center.sql',\n  'infra/admin-console/migrations/003-night-overwatch-control.sql',\n",
+        "  'infra/migrations/014-player-sessions.sql',\n  'infra/migrations/016-night-chat.sql',\n  'infra/migrations/017-night-presence.sql',\n  'infra/admin-console/migrations/001-admin-auth.sql',\n  'infra/admin-console/migrations/002-control-center.sql',\n  'infra/admin-console/migrations/003-night-overwatch-control.sql',\n",
+      ],
+    ],
+  ],
+  'scripts/h5-taptap-runtime.test.mjs': [
+    '5215256f20fe6fccbec285f41c3fa98237fb6c8b272f1693965ab4a859768524',
+    '938845cb2e3efdbe230b9393c9bd7fa895a7d416de5fc8a3739d375c9d6368f9',
+    [
+      [
+        "      '014-player-sessions.sql',\n      '016-night-chat.sql',\n      '017-night-presence.sql',\n      '018-night-direct-messages.sql',\n      '001-admin-auth.sql',\n      '002-control-center.sql',\n      '003-night-overwatch-control.sql',\n",
+        "      '014-player-sessions.sql',\n      '016-night-chat.sql',\n      '017-night-presence.sql',\n      '001-admin-auth.sql',\n      '002-control-center.sql',\n      '003-night-overwatch-control.sql',\n",
+      ],
+    ],
+  ],
+  'platforms/competition/game-services.js': [
+    '0c4c343809579dabf9000ad21a87115d830cec16be36e9a7b0b3f991f54a4e8c',
+    'd002d89bc72ec40205ac8be89cbc432883b150b45937ce21b5aecc55e7103a91',
+    [
+      [
+        "      return roomRequest(code, operation, body);\n    },\n    identity: async () => (await request(path)).identity,\n    async nightPresence(expectedPlayerId, input = {}) {\n      if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');\n      const credential = await auth.current();\n      if (expectedPlayerId && credential.playerId !== expectedPlayerId)\n        throw failure('IDENTITY_CHANGED');\n      const result = await request(path + '/presence', input, credential);\n      if ((await auth.current()).playerId !== credential.playerId)\n        throw failure('IDENTITY_CHANGED');\n      return result;\n    },\n    async nightSocial(input, expectedPlayerId) {\n      if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');\n      const credential = await auth.current();\n      if (expectedPlayerId && credential.playerId !== expectedPlayerId)\n        throw failure('IDENTITY_CHANGED');\n      const result = await request(path + '/social', input, credential);\n      if ((await auth.current()).playerId !== credential.playerId)\n        throw failure('IDENTITY_CHANGED');\n      return result;\n    },\n    nightChat: ({ cursor, waitMs = 0, direct = false, peer, before } = {}, expectedPlayerId) =>\n      nightChatRequest(\n        '?' +\n          new URLSearchParams({\n            ...(cursor ? { cursor } : {}),\n            waitMs: String(waitMs),\n            ...(direct ? { direct: '1' } : {}),\n            ...(peer ? { peer } : {}),\n            ...(before ? { before } : {}),\n          }),\n        undefined,\n        expectedPlayerId,\n      ),\n    sendNightChat: (input, expectedPlayerId) =>\n      nightChatRequest('?direct=1', input, expectedPlayerId),\n    reportNightChat: (input, expectedPlayerId) =>\n      nightChatRequest('/report', input, expectedPlayerId),\n    async nightAssets(expectedPlayerId) {\n",
+        "      return roomRequest(code, operation, body);\n    },\n    identity: async () => (await request(path)).identity,\n    async nightPresence(expectedPlayerId) {\n      if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');\n      const credential = await auth.current();\n      if (expectedPlayerId && credential.playerId !== expectedPlayerId)\n        throw failure('IDENTITY_CHANGED');\n      return request(path + '/presence', {}, credential);\n    },\n    nightChat: ({ cursor, waitMs = 0 } = {}, expectedPlayerId) =>\n      nightChatRequest(\n        '?' + new URLSearchParams({ ...(cursor ? { cursor } : {}), waitMs: String(waitMs) }),\n        undefined,\n        expectedPlayerId,\n      ),\n    sendNightChat: (input, expectedPlayerId) => nightChatRequest('', input, expectedPlayerId),\n    reportNightChat: (input, expectedPlayerId) =>\n      nightChatRequest('/report', input, expectedPlayerId),\n    async nightAssets(expectedPlayerId) {\n",
+      ],
+    ],
+  ],
+  'scripts/competition-gateway.mjs': [
+    'efef95e2b0ff81b73cc8510fae77bfbf31137d8ba275ae97329a979b8607a609',
+    'f85443b6f800a5340ff6dcab905fc04728e92289704c5490b8152c9b0bbe4954',
+    [
+      [
+        "import { competitionService, serviceGames } from './competition-service-config.mjs';\nimport { h5ServiceConfig, serviceHtml, prepareH5Service } from './competition-h5-service.mjs';\nexport function isPublicCompetitionPath(pathname) {\n  if (/^\\/api\\/competition\\/v1\\/games\\/night-overwatch\\/(?:presence|social)$/.test(pathname))\n    return true;\n  if (/^\\/api\\/competition\\/v1\\/games\\/night-overwatch\\/chat(?:\\/report)?$/.test(pathname))\n    return true;\n  if (\n",
+        "import { competitionService, serviceGames } from './competition-service-config.mjs';\nimport { h5ServiceConfig, serviceHtml, prepareH5Service } from './competition-h5-service.mjs';\nexport function isPublicCompetitionPath(pathname) {\n  if (pathname === '/api/competition/v1/games/night-overwatch/presence') return true;\n  if (/^\\/api\\/competition\\/v1\\/games\\/night-overwatch\\/chat(?:\\/report)?$/.test(pathname))\n    return true;\n  if (\n",
+      ],
+    ],
+  ],
+  'scripts/competition-gateway.test.mjs': [
+    '5bf118c3310e2cd890528c7c9e75fdc470a3681439106e03ed7270e2d2f649ea',
+    'da35618f30f37b02ab59777134056191a2127966d0ef83aafd5edf9947be8d4f',
+    [
+      [
+        "    'games/night-overwatch/assets',\n    'games/night-overwatch/chat',\n    'games/night-overwatch/presence',\n    'games/night-overwatch/social',\n    'games/night-overwatch/chat/report',\n    'games/night-overwatch/history',\n    'games/night-overwatch/rooms/123456',\n",
+        "    'games/night-overwatch/assets',\n    'games/night-overwatch/chat',\n    'games/night-overwatch/presence',\n    'games/night-overwatch/chat/report',\n    'games/night-overwatch/history',\n    'games/night-overwatch/rooms/123456',\n",
+      ],
+      [
+        "    'internal/verify',\n    'games/wulong-city/presence',\n    'games/night-overwatch/presence/players',\n    'games/night-overwatch/social/other',\n    'sessions/upgrade/internal',\n    'sessions/refresh/anything',\n    'runs/cops-robbers-realtime/internal',\n",
+        "    'internal/verify',\n    'games/wulong-city/presence',\n    'games/night-overwatch/presence/players',\n    'sessions/upgrade/internal',\n    'sessions/refresh/anything',\n    'runs/cops-robbers-realtime/internal',\n",
+      ],
+    ],
+  ],
+  'scripts/competition-ingress.mjs': [
+    'd6aa84f0e8f4c58e641509734f80a7133058a5985fb7032c8bc6bded7cdaabdf',
+    '2401a76961b3bce562a43d7362b7a50cf3b8dbf17d318df8f9aaea15c48245f3',
+    [
+      [
+        "// Keep the public surface finite; arbitrary future /api routes are not published.\n// Methods are also enforced: no DELETE/PUT, no catalog/projection/internal endpoints.\nconst internalCompetitionPaths = [\n  '/api/competition/v1/games/night-overwatch/(?:presence|social)',\n  '/api/competition/v1/games/night-overwatch/(?:assets|chat(?:/report)?|runs/[a-f0-9-]{36}/cancel)',\n  '/api/competition/v1/sessions/(?:guest|platform|refresh|upgrade|logout)',\n  '/api/competition/v1/me',\n",
+        "// Keep the public surface finite; arbitrary future /api routes are not published.\n// Methods are also enforced: no DELETE/PUT, no catalog/projection/internal endpoints.\nconst internalCompetitionPaths = [\n  '/api/competition/v1/games/night-overwatch/presence',\n  '/api/competition/v1/games/night-overwatch/(?:assets|chat(?:/report)?|runs/[a-f0-9-]{36}/cancel)',\n  '/api/competition/v1/sessions/(?:guest|platform|refresh|upgrade|logout)',\n  '/api/competition/v1/me',\n",
+      ],
+    ],
+  ],
+  'scripts/competition-ingress.test.mjs': [
+    'ee4435ee704cba4343c3df11dfdfca0e52ed1f47fb3be1fd87f156c4ae9347e1',
+    'e785418bf11ca0e2d15d0e7845acb780c6659b72d097f3f224939360d2ea003d',
+    [
+      [
+        "import { spawnSync } from 'node:child_process';\nimport { fileURLToPath } from 'node:url';\nimport yaml from 'js-yaml';\nimport { createRequire } from 'node:module';\nimport {\n  validateIngress,\n  renderApiCaddy,\n",
+        "import { spawnSync } from 'node:child_process';\nimport { fileURLToPath } from 'node:url';\nimport yaml from 'js-yaml';\nimport {\n  validateIngress,\n  renderApiCaddy,\n",
+      ],
+      [
+        "});\n\ntest('both generic Runtime producers start with trust disabled, keep other services unchanged and satisfy validation', async () => {\n  const { tsImport } = createRequire(\n    new URL('../services/runtime-api/package.json', import.meta.url),\n  )('tsx/esm/api');\n  const { validateRuntimeEnvironment } = await tsImport(\n    '../services/runtime-api/src/config.ts',\n    import.meta.url,\n  );\n  const bundle = renderBundleCompose(bundleConfig({ DEPLOY_SERVICES: 'runtime,management,kart' }));\n  const template = await readFile(\n    new URL('../infra/tencent/compose.yaml', import.meta.url),\n",
+        "});\n\ntest('both generic Runtime producers start with trust disabled, keep other services unchanged and satisfy validation', async () => {\n  const { validateRuntimeEnvironment } = await import('../services/runtime-api/src/config.ts');\n  const bundle = renderBundleCompose(bundleConfig({ DEPLOY_SERVICES: 'runtime,management,kart' }));\n  const template = await readFile(\n    new URL('../infra/tencent/compose.yaml', import.meta.url),\n",
+      ],
+      [
+        "    assert.doesNotThrow(() =>\n      validateRuntimeEnvironment({\n        ...compose.services.runtime.environment,\n        NIGHT_RELEASE_CONFIG: '',\n        RUNTIME_DATABASE_URL: 'postgres://runtime_app:test@127.0.0.1/test',\n        COMPETITION_INTERNAL_KEY: 'a'.repeat(32),\n        COMPETITION_ORIGINS: 'http://localhost:8080',\n",
+        "    assert.doesNotThrow(() =>\n      validateRuntimeEnvironment({\n        ...compose.services.runtime.environment,\n        RUNTIME_DATABASE_URL: 'postgres://runtime_app:test@127.0.0.1/test',\n        COMPETITION_INTERNAL_KEY: 'a'.repeat(32),\n        COMPETITION_ORIGINS: 'http://localhost:8080',\n",
+      ],
+      [
+        "    'games/night-overwatch/history',\n    'games/night-overwatch/chat',\n    'games/night-overwatch/presence',\n    'games/night-overwatch/social',\n    'games/night-overwatch/chat/report',\n    'games/night-overwatch/runs/12345678-1234-1234-1234-123456789abc/resume',\n    'games/night-overwatch/rooms/123456/spectate',\n",
+        "    'games/night-overwatch/history',\n    'games/night-overwatch/chat',\n    'games/night-overwatch/presence',\n    'games/night-overwatch/chat/report',\n    'games/night-overwatch/runs/12345678-1234-1234-1234-123456789abc/resume',\n    'games/night-overwatch/rooms/123456/spectate',\n",
+      ],
+    ],
+  ],
+  'scripts/check-workspace-dependencies.mjs': [
+    '7cce23eaa37dfde37460b3249140575c2a30bcfa6c5e276c40517c844a26481b',
+    '6407df16b48ae7544b745166ce5f96452732ef9bf699957fdc300d549fc8414e',
+    [
+      [
+        "  'games/local/night-overwatch/tests/smoke.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',\n  'games/local/night-overwatch/tests/chat-live-browser.mjs -> scripts/h5-taptap-runtime.mjs',\n  'games/local/night-overwatch/tests/presence-browser.mjs -> scripts/h5-taptap-runtime.mjs',\n  'games/local/night-overwatch/tests/social-browser.mjs -> scripts/h5-taptap-runtime.mjs',\n  'games/local/night-overwatch/tests/release-browser.mjs -> scripts/h5-taptap-runtime.mjs',\n  'games/local/night-overwatch/publishing/promo/videos/review-2026-11-05-source/capture.mjs -> scripts/h5-taptap-runtime.mjs',\n  'apps/shell-web/scripts/prepare-standalone-games.mjs -> scripts/competition-build.mjs',\n",
+        "  'games/local/night-overwatch/tests/smoke.mjs -> apps/shell-web/scripts/standalone-game-checks.mjs',\n  'games/local/night-overwatch/tests/chat-live-browser.mjs -> scripts/h5-taptap-runtime.mjs',\n  'games/local/night-overwatch/tests/presence-browser.mjs -> scripts/h5-taptap-runtime.mjs',\n  'games/local/night-overwatch/tests/release-browser.mjs -> scripts/h5-taptap-runtime.mjs',\n  'games/local/night-overwatch/publishing/promo/videos/review-2026-11-05-source/capture.mjs -> scripts/h5-taptap-runtime.mjs',\n  'apps/shell-web/scripts/prepare-standalone-games.mjs -> scripts/competition-build.mjs',\n",
+      ],
+    ],
+  ],
+};
+export function nightSocialPrevious(file, after) {
+  const review = nightSocialReviews[file];
+  if (!review || typeof after !== 'string') return undefined;
+  const digest = (value) => createHash('sha256').update(value).digest('hex');
+  after = after.replaceAll('\r\n', '\n');
+  const [baseHash, headHash, replacements] = review;
+  if (digest(after) !== headHash) return undefined;
+  if (baseHash === null) return null;
+  for (const [current, previous] of replacements) {
+    if (after.split(current).length !== 2) return undefined;
+    after = after.replace(current, previous);
+  }
+  return digest(after) === baseHash ? after : undefined;
+}
+
 // Exact additive Night heartbeat wiring; earlier deltas retain their existing consumers.
 const nightPresenceReviews = {
   'infra/migrations/017-night-presence.sql': [
@@ -1777,6 +1946,21 @@ export function legacyPolyfillTurboOnly(before, after) {
     }
     assert(added);
     return isDeepStrictEqual(base, head);
+  } catch {
+    return false;
+  }
+}
+export function nightVersionAndPolyfillTurboOnly(before, after) {
+  try {
+    const middle = JSON.parse(after),
+      input = '$TURBO_ROOT$/platforms/competition/legacy-polyfills.js';
+    for (const key of ['@coffeeeeffoc/night-overwatch#build', '@coffeeeeffoc/tetracube#build'])
+      middle.tasks[key].inputs = middle.tasks[key].inputs.filter((value) => value !== input);
+    const intermediate = JSON.stringify(middle);
+    return (
+      nightVersionBuildScope('turbo.json', before, intermediate) &&
+      legacyPolyfillTurboOnly(intermediate, after)
+    );
   } catch {
     return false;
   }
@@ -3344,6 +3528,8 @@ export const competitionIngressScopePaths = [
   'scripts/deploy-tencent.test.mjs',
 ];
 export const adminControlDeploymentScopePaths = [
+  'scripts/prepare-night-server.mjs',
+  'scripts/prepare-night-server.test.mjs',
   'infra/admin-console/.gitattributes',
   'scripts/deploy-admin.mjs',
   'scripts/deploy-admin.test.mjs',
@@ -4866,16 +5052,18 @@ export function reviewedSharedFileScopes({
   });
   for (const file of changedPaths) {
     try {
-      if (Object.hasOwn(nightPresenceReviews, file)) {
+      if (Object.hasOwn(nightPresenceReviews, file) || Object.hasOwn(nightSocialReviews, file)) {
         let before = null;
         try {
           before = readBase(file)?.replaceAll('\r\n', '\n') ?? null;
         } catch {}
-        const previous = nightPresencePrevious(file, readHead(file));
+        const social = nightSocialPrevious(file, readHead(file));
+        const previous =
+          social !== undefined ? social : nightPresencePrevious(file, readHead(file));
         if (previous !== undefined) {
           let inherited = [];
           if (before !== previous) {
-            assert(previous !== null, 'Presence migration must be new');
+            assert(previous !== null, 'New social/presence inputs must be absent from base');
             const prior = reviewedSharedFileScopes({
               changedPaths: [file],
               readBase,
@@ -4901,6 +5089,10 @@ export function reviewedSharedFileScopes({
               ...inherited,
               'games/local/night-overwatch',
               'services/runtime-api',
+              ...(file.startsWith('apps/shell-minigame/') ? ['apps/shell-minigame'] : []),
+              ...(file.startsWith('scripts/prepare-night-server')
+                ? ['services/management-api', 'services/kart-server', 'apps/admin-web']
+                : []),
               ...(file.includes('competition-gateway')
                 ? ['apps/shell-web']
                 : file.includes('competition-ingress')
@@ -5642,6 +5834,28 @@ export function reviewedSharedFileScopes({
         scopes.set(file, consumers);
         continue;
       }
+      const runtimeReleaseReview = {
+        '.prettierignore': [
+          'f7790647b7505e1bf54c3f05d648c146da613c5dc4b5f08e8c9385413819a306',
+          '1a8662bff670fa222517af49205ec2480f2f39e2ebf3d50526e5dbaa82929774',
+        ],
+        'infra/tencent/compose.yaml': [
+          '227b09951764e82e33a3df16d68fcbc8cebf9a363e84554a5d9594da0e936577',
+          'f8e566031a4aec9e452cf470ab30d6774cc20d75ef5f05711f807bc0cc01f75b',
+        ],
+      }[file];
+      if (runtimeReleaseReview && readBase && readHead) {
+        const digest = (text) =>
+          createHash('sha256').update(text.replaceAll('\r\n', '\n')).digest('hex');
+        if (
+          digest(readBase(file)) === runtimeReleaseReview[0] &&
+          digest(readHead(file)) === runtimeReleaseReview[1]
+        ) {
+          assert(packages.some((pkg) => pkg.dir === 'services/runtime-api'));
+          scopes.set(file, ['services/runtime-api']);
+          continue;
+        }
+      }
       if (runtimeProxyDefaultScopePaths.includes(file) && readBase && readHead) {
         const before = readBase(file)?.replaceAll('\r\n', '\n'),
           after = readHead(file)?.replaceAll('\r\n', '\n');
@@ -6072,7 +6286,11 @@ export function reviewedSharedFileScopes({
         ]);
         continue;
       }
-      if (file === 'turbo.json' && legacyPolyfillTurboOnly(readBase(file), readHead(file))) {
+      if (
+        file === 'turbo.json' &&
+        (legacyPolyfillTurboOnly(readBase(file), readHead(file)) ||
+          nightVersionAndPolyfillTurboOnly(readBase(file), readHead(file)))
+      ) {
         assertNightStorageConsumer(games, packages, readHead);
         for (const source of legacyPolyfillConsumers)
           assert.equal(packages.filter((pkg) => pkg.dir === source).length, 1);

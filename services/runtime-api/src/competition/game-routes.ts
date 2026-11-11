@@ -42,10 +42,26 @@ export function registerGameRoutes(
     store.nightAssets(await player(request.headers.authorization)),
   );
   routes.post('/games/night-overwatch/presence', { bodyLimit: 128 }, async (request) => {
-    z.object({}).strict().parse(request.body);
+    const input = z
+      .object({
+        cursor: z.uuid().optional(),
+        activity: z.enum(['available', 'playing']).optional(),
+      })
+      .strict()
+      .parse(request.body);
     definition('night-overwatch');
-    return store.nightPresence(await player(request.headers.authorization));
+    return store.nightPresence(
+      await player(request.headers.authorization),
+      input.cursor,
+      input.activity,
+    );
   });
+  routes.get('/games/night-overwatch/social', async (request) =>
+    store.nightSocial.list(await player(request.headers.authorization)),
+  );
+  routes.post('/games/night-overwatch/social', { bodyLimit: 512 }, async (request) =>
+    store.nightSocial.act(await player(request.headers.authorization), request.body),
+  );
   routes.get('/games/night-overwatch/chat', async (request, reply) => {
     const input = z
       .object({
@@ -54,15 +70,34 @@ export function registerGameRoutes(
           .regex(/^[a-f0-9]{64}$/)
           .optional(),
         waitMs: z.coerce.number().int().min(0).max(5000).default(0),
+        direct: z.literal('1').optional(),
+        peer: z.uuid().optional(),
+        before: z
+          .string()
+          .regex(/^[1-9][0-9]{0,18}$/)
+          .refine((v) => BigInt(v) <= 9223372036854775807n)
+          .optional(),
       })
       .strict()
       .parse(request.query);
+    if (input.peer) {
+      if (!input.direct || input.cursor || input.waitMs)
+        throw new CompetitionError('INVALID_INPUT', 422);
+      return store.nightChat.history(
+        await player(request.headers.authorization),
+        input.peer,
+        input.before,
+        build('night-overwatch', request.headers),
+      );
+    }
+    if (input.before) throw new CompetitionError('INVALID_INPUT', 422);
     return store.nightChat.list(
       await player(request.headers.authorization),
       input.cursor,
       input.waitMs,
       () => reply.raw.destroyed,
       build('night-overwatch', request.headers),
+      input.direct === '1',
     );
   });
   routes.post('/games/night-overwatch/chat', { bodyLimit: 2048 }, async (request) =>
@@ -70,6 +105,10 @@ export function registerGameRoutes(
       await player(request.headers.authorization),
       request.body,
       build('night-overwatch', request.headers),
+      z
+        .object({ direct: z.literal('1').optional() })
+        .strict()
+        .parse(request.query).direct === '1',
     ),
   );
   routes.post('/games/night-overwatch/chat/report', { bodyLimit: 1024 }, async (request) =>
@@ -117,7 +156,9 @@ export function registerGameRoutes(
         leaderboards: boards.length > 0,
         multiplayer: !!multiplayer,
         ...(multiplayer?.lobby ? { lobby: true, history: true } : {}),
-        ...(game === 'night-overwatch' && multiplayer ? { chat: true, presence: true } : {}),
+        ...(game === 'night-overwatch' && multiplayer
+          ? { chat: true, presence: true, social: true }
+          : {}),
       },
       boards,
       developmentAssets: store.developmentAssetCapabilities?.(game) ?? {

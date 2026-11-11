@@ -24,6 +24,7 @@ import { createCompetitionIdentities } from './identity-store.js';
 import { createDevelopmentAssets, type DevelopmentAssetAdapter } from './development-assets.js';
 import { createNightChat } from './night-chat.js';
 import { createNightPresence } from './night-presence.js';
+import { createNightSocial } from './night-social.js';
 import {
   nightAssets,
   reserveNightLoadout,
@@ -352,7 +353,17 @@ export function createCompetitionStore(
       leaseId: member?.leaseId === leaseId ? leaseId : undefined,
       settlement: member?.settlement ?? null,
       players: room.players.map(
-        ({ id, role, ready, result, disconnected, reconnectUntil, takenOver, settlement }) => ({
+        ({
+          id,
+          role,
+          ready,
+          result,
+          disconnected,
+          reconnectUntil,
+          takenOver,
+          settlement,
+          left,
+        }) => ({
           id,
           ...profileOf(id),
           role,
@@ -360,6 +371,7 @@ export function createCompetitionStore(
           disconnected: !!disconnected,
           reconnectUntil,
           takenOver: !!takenOver,
+          ...(room.game === 'night-overwatch' ? { left: !!left } : {}),
           settlement: settlement
             ? {
                 points: settlement.points,
@@ -661,6 +673,7 @@ export function createCompetitionStore(
             await tx.execute(sql`select data from runtime.competition_rooms where data->>'game'=${game}
             and data->>'version'=${rule.version} and data->>'visibility'='public' and data->>'mode'<>'bot'
             and data->>'status'='waiting' and expires_at>${now()} and jsonb_array_length(data->'players')=1
+            and (not (data ? 'rematchMembers') or data->'rematchMembers' ? ${playerId})
             and coalesce((data->>'killEpoch')::bigint,0)=${policy?.killEpoch ?? 0}
             and (${game !== 'night-overwatch' || !currentRelease?.config} or ${json(compatibleHosts)}::jsonb ? coalesce(data->'players'->0->>'buildId',''))
             order by data->>'createdAt',code limit 1 for update`);
@@ -819,6 +832,12 @@ export function createCompetitionStore(
     if (!member && (operation === 'spectate' || (operation === 'get' && spectator)))
       room.spectatorSeenAt![playerId] = now();
     if (operation === 'join' && !member) {
+      if (
+        room.game === 'night-overwatch' &&
+        room.rematchMembers &&
+        !room.rematchMembers.includes(playerId)
+      )
+        throw new CompetitionError('ROOM_RESERVED');
       if (room.status !== 'waiting') throw new CompetitionError('INVITATION_EXPIRED');
       if (room.players.length >= (rule.roomSize?.(room.mode) ?? 2))
         throw new CompetitionError('ROOM_FULL');
@@ -853,6 +872,54 @@ export function createCompetitionStore(
       delete member.reconnectUntil;
     }
     if (operation === 'leave' && member) {
+      if (
+        room.game === 'night-overwatch' &&
+        (room.status !== 'playing' || now() < room.startedAt!) &&
+        !member.left
+      ) {
+        member.left = true;
+        if (room.previousRoom) {
+          const previousRows = await tx.execute(
+            sql`select data from runtime.competition_rooms where code=${room.previousRoom} for update`,
+          );
+          const previous = previousRows[0]?.data as Room | undefined;
+          if (previous?.rematch === room.code) {
+            const departed = previous.players.find((p) => p.id === playerId);
+            if (departed) departed.left = true;
+            if (room.players.length === 1) delete previous.rematch;
+            await tx.execute(
+              sql`update runtime.competition_rooms set data=${json(previous)}::jsonb where code=${previous.code}`,
+            );
+          }
+        }
+        if (room.rematchMembers)
+          room.rematchMembers = room.rematchMembers.filter((id) => id !== playerId);
+        if (room.rematchMembers && room.rematchMembers.length < 2) delete room.rematchMembers;
+        if (room.rematch) {
+          const nextRows = await tx.execute(
+            sql`select data from runtime.competition_rooms where code=${room.rematch} for update`,
+          );
+          const next = nextRows[0]?.data as Room | undefined;
+          if (next?.status === 'waiting' && next.previousRoom === room.code) {
+            next.rematchMembers = next.rematchMembers?.filter((id) => id !== playerId);
+            if (next.rematchMembers && next.rematchMembers.length < 2) delete next.rematchMembers;
+            next.players = next.players.filter((p) => p.id !== playerId);
+            for (const player of next.players) {
+              player.ready = false;
+              player.state = null;
+              player.seq = 0;
+            }
+            if (next.players.length)
+              await tx.execute(
+                sql`update runtime.competition_rooms set data=${json(next)}::jsonb where code=${next.code}`,
+              );
+            else {
+              await tx.execute(sql`delete from runtime.competition_rooms where code=${next.code}`);
+              delete room.rematch;
+            }
+          }
+        }
+      }
       if (room.status === 'waiting' || (room.status === 'playing' && now() < room.startedAt!)) {
         if (room.loadoutBattle && rule.progression) {
           for (const player of [...room.players].sort((a, b) => a.id.localeCompare(b.id)))
@@ -938,9 +1005,13 @@ export function createCompetitionStore(
       if (!['finished', 'abandoned', 'expired'].includes(room.status))
         throw new CompetitionError('MATCH_NOT_FINISHED');
       if (!room.rematch) {
+        if (room.game === 'night-overwatch' && (member.left || member.takenOver))
+          throw new CompetitionError('NOT_A_MEMBER', 403);
         await tx.execute(
           sql`update runtime.competition_rooms set data=${json(room)}::jsonb where code=${room.code}`,
         );
+        if (room.game === 'night-overwatch' && (await activeRoom(tx, room.game, playerId)))
+          throw new CompetitionError('ACTIVE_ROOM');
         const next = await create(
           playerId,
           room.game,
@@ -950,10 +1021,53 @@ export function createCompetitionStore(
         next.visibility = room.visibility;
         next.passwordHash = room.passwordHash;
         next.passwordSalt = room.passwordSalt;
+        if (room.game === 'night-overwatch') {
+          next.previousRoom = room.code;
+          next.rematchMembers = room.players
+            .filter((p) => !p.left && !p.takenOver)
+            .map((p) => p.id);
+          if (next.rematchMembers.length < 2) delete next.rematchMembers;
+        }
         await tx.execute(
           sql`update runtime.competition_rooms set data=${json(next)}::jsonb where code=${next.code}`,
         );
         room.rematch = next.code;
+      }
+      if (room.game === 'night-overwatch') {
+        if (member.left || member.takenOver) throw new CompetitionError('NOT_A_MEMBER', 403);
+        const rows = await tx.execute(
+          sql`select data from runtime.competition_rooms where code=${room.rematch} for update`,
+        );
+        const next = rows[0]?.data as Room | undefined;
+        if (
+          !next ||
+          next.previousRoom !== room.code ||
+          next.deadline <= now() ||
+          next.status !== 'waiting'
+        )
+          throw new CompetitionError('INVITATION_EXPIRED');
+        const active = await activeRoom(tx, room.game, playerId);
+        if (active && active.code !== next.code) throw new CompetitionError('ACTIVE_ROOM');
+        assertStart(
+          next,
+          publishedNightRelease(release, policy?.nightOperations),
+          input.buildId ?? member.buildId,
+        );
+        if (!next.players.some((p) => p.id === playerId)) {
+          if (next.players.length >= 2) throw new CompetitionError('ROOM_FULL');
+          next.players.push({
+            id: playerId,
+            buildId: input.buildId ?? member.buildId,
+            ready: false,
+            seq: 0,
+            state: null,
+            leaseId: randomUUID(),
+            seenAt: now(),
+          });
+          await tx.execute(
+            sql`update runtime.competition_rooms set data=${json(next)}::jsonb where code=${next.code}`,
+          );
+        }
       }
     }
     await tx.execute(
@@ -1285,6 +1399,7 @@ export function createCompetitionStore(
     nightAssets: nightAssetsFor,
     nightChat: createNightChat(db, now, control, rules.get('night-overwatch')?.version, release),
     nightPresence: createNightPresence(db, now, control),
+    nightSocial: createNightSocial(db, now, control),
     ...createCompetitionIdentities(db, now),
     gameDefinitions: () => [...rules.values()],
     ranking,
@@ -1381,6 +1496,7 @@ export function createCompetitionStore(
               canStart(room, currentRelease, buildId) &&
               room.players.every((p) => canStart(room, currentRelease, p.buildId)) &&
               room.status === 'waiting' &&
+              (!room.rematchMembers || room.rematchMembers.includes(playerIdOf(auth))) &&
               room.players.length < capacity,
             canSpectate: !!rule.lobby,
             players: room.players.map((p) => ({

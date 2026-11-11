@@ -240,20 +240,41 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
       return roomRequest(code, operation, body);
     },
     identity: async () => (await request(path)).identity,
-    async nightPresence(expectedPlayerId) {
+    async nightPresence(expectedPlayerId, input = {}) {
       if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');
       const credential = await auth.current();
       if (expectedPlayerId && credential.playerId !== expectedPlayerId)
         throw failure('IDENTITY_CHANGED');
-      return request(path + '/presence', {}, credential);
+      const result = await request(path + '/presence', input, credential);
+      if ((await auth.current()).playerId !== credential.playerId)
+        throw failure('IDENTITY_CHANGED');
+      return result;
     },
-    nightChat: ({ cursor, waitMs = 0 } = {}, expectedPlayerId) =>
+    async nightSocial(input, expectedPlayerId) {
+      if (gameId !== 'night-overwatch') throw failure('GAME_UNAVAILABLE');
+      const credential = await auth.current();
+      if (expectedPlayerId && credential.playerId !== expectedPlayerId)
+        throw failure('IDENTITY_CHANGED');
+      const result = await request(path + '/social', input, credential);
+      if ((await auth.current()).playerId !== credential.playerId)
+        throw failure('IDENTITY_CHANGED');
+      return result;
+    },
+    nightChat: ({ cursor, waitMs = 0, direct = false, peer, before } = {}, expectedPlayerId) =>
       nightChatRequest(
-        '?' + new URLSearchParams({ ...(cursor ? { cursor } : {}), waitMs: String(waitMs) }),
+        '?' +
+          new URLSearchParams({
+            ...(cursor ? { cursor } : {}),
+            waitMs: String(waitMs),
+            ...(direct ? { direct: '1' } : {}),
+            ...(peer ? { peer } : {}),
+            ...(before ? { before } : {}),
+          }),
         undefined,
         expectedPlayerId,
       ),
-    sendNightChat: (input, expectedPlayerId) => nightChatRequest('', input, expectedPlayerId),
+    sendNightChat: (input, expectedPlayerId) =>
+      nightChatRequest('?direct=1', input, expectedPlayerId),
     reportNightChat: (input, expectedPlayerId) =>
       nightChatRequest('/report', input, expectedPlayerId),
     async nightAssets(expectedPlayerId) {

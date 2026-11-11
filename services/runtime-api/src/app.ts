@@ -57,6 +57,11 @@ export function createRuntimeService(
               await database.db.execute(sql`select 1 from runtime.competition_matches limit 0`);
               await database.db.execute(sql`select 1 from runtime.night_chat_messages limit 0`);
               await database.db.execute(sql`select 1 from runtime.night_presence limit 0`);
+              await database.db.execute(sql`select 1 from runtime.night_direct_messages limit 0`);
+              await database.db.execute(
+                sql`select 1 from runtime.night_friendships,runtime.night_direct_reads,runtime.night_friend_limits limit 0`,
+              );
+              await database.db.execute(sql`select activity from runtime.night_presence limit 0`);
               await database.db.execute(
                 sql`select game,session_hash from runtime.competition_refresh_tokens limit 0`,
               );

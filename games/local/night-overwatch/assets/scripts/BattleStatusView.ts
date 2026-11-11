@@ -241,6 +241,7 @@ export class BattleStatusView {
         continue;
       }
       if (this.hud.isGlobalAction(button.id)) {
+        if(button.id.startsWith('social:'))continue;
         button.label.node.active = !key || key === 'home';
         if (!button.label.node.active) continue;
         const controlCenterX = button.x + button.w / 2 - width / 2;

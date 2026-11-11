@@ -7,6 +7,7 @@ import { FLIGHT, WEAPONS, text } from './core/Data';
 import { SKILLS } from './core/Progression';
 import type { Simulation } from './core/Simulation';
 import type { World } from './World';
+import { UPDATE_LOG } from './UpdateLog';
 type SettingsHost = Pick<
   HUD,
   | 'autoPriority'
@@ -51,6 +52,21 @@ export class SettingsGuideView {
   private readonly h: SettingsHost;
   constructor(h: SettingsHost) {
     this.h = h;
+  }
+  renderUpdates(n:Node,g:Graphics){
+    const h=this.h,w=Math.min(760,h.w-h.safe.left-h.safe.right-24),x=h.safe.left+(h.w-h.safe.left-h.safe.right-w)/2,top=Math.max(h.safe.top+12,(h.capsuleRect?.bottom||0)+6),bottom=h.h-h.safe.bottom-12,ph=bottom-top;
+    h.panelFrame(g,x,top,w,ph,C.amber,'#050f1df5',false);
+    h.menuButton(n,g,'updates:close','‹',x+8,top+4,44,'secondary','',44);
+    h.label(n,h.t('更新日志','UPDATE HISTORY'),x+w/2,top+26,22,w-120,40,C.white);
+    const version=(globalThis as any).__COMPETITION_CONFIG__?.release?.version;
+    h.label(n,h.t('当前安装版本：','INSTALLED: ')+(version||'—'),x+w/2,top+61,12,w-32,24,C.dim);
+    const width=w-44,font=h.w<700?13:16,lines=UPDATE_LOG.flatMap(entry=>[
+      {text:entry.date+' · '+(entry.major?h.t('重大更新 · ','MAJOR · '):'')+entry.title[h.lang==='zh'?0:1],major:entry.major},
+      ...entry.changes.map(item=>({text:'• '+item[h.lang==='zh'?0:1],major:false})),
+    ]);
+    let total=0;const rows=lines.map(line=>{const height=18+Math.ceil(Array.from(line.text).length/Math.max(12,Math.floor(width/font)))*(font+6);const y=total;total+=height;return {...line,y,height};});
+    const list=h.listViewport(n,'updates',{x:x+14,y:top+80,w:w-28,h:Math.max(44,ph-94)},total);
+    for(const row of rows){const y=top+80+row.y-list.offset;h.label(list.n,row.text,x+w/2,y+row.height/2,font,width,row.height-6,row.major?C.amber:C.white).horizontalAlign=Label.HorizontalAlign.LEFT;}list.finish();
   }
   renderSettings(n: Node, g: Graphics, s: Simulation, world: World, key: string) {
     const flight = this.h.toolsOpen,
@@ -347,6 +363,7 @@ export class SettingsGuideView {
         ],
         ['language', this.h.lang === 'zh' ? '语言 · 中文' : 'LANGUAGE · EN'],
         ['help', this.h.t('飞行手册', 'FIELD GUIDE')],
+        ['updates', this.h.t('更新日志', 'UPDATE HISTORY')],
         ...(playing
           ? [
               [

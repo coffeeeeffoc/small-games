@@ -781,7 +781,13 @@ export function runIncrementalToolChecks({
       'logged',
     );
   if (plan.admin_deployment_checks)
-    execute(process.execPath, ['--test', 'scripts/deploy-admin.test.mjs'], root, env, 'logged');
+    execute(
+      process.execPath,
+      ['--test', 'scripts/deploy-admin.test.mjs', 'scripts/prepare-night-server.test.mjs'],
+      root,
+      env,
+      'logged',
+    );
   if (plan.admin_csp_checks)
     execute(
       process.execPath,

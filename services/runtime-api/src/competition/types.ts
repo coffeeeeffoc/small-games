@@ -47,6 +47,7 @@ export type Member = {
   disconnected?: boolean;
   reconnectUntil?: number;
   takenOver?: boolean;
+  left?: boolean;
   settlement?: {
     coins?: number;
     xp?: number;
@@ -81,6 +82,8 @@ export type Room = {
   deadline: number;
   results?: unknown;
   rematch?: string;
+  previousRoom?: string;
+  rematchMembers?: string[];
   visibility?: 'public' | 'private';
   passwordSalt?: string;
   passwordHash?: string;

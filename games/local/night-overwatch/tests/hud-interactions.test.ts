@@ -643,7 +643,7 @@ test('HUD: global actions hide behind panels, with safe modal layout, focus mark
           assert(back && back.label.string === (lang === 'zh' ? '返回' : 'BACK'));
           assert.equal(back.y, Math.max(...controls.map((b: any) => b.y)), 'return stays in the footer');
         }
-        if (reason === 'manual' || reason === 'settings') assert.equal(controls.map((b: any) => b.id).join(','), 'flightControls,zoomControls,buttonControls,sound,voicePrompts,autoPriority,language,help,convoy,mission,supply,home,' + (reason === 'settings' ? 'close' : 'resume'));
+        if (reason === 'manual' || reason === 'settings') assert.equal(hud.buttons.filter((b:any)=>hud.inModal(b.label.node)).map((b: any) => b.id).join(','), 'flightControls,zoomControls,buttonControls,sound,voicePrompts,autoPriority,language,help,updates,convoy,mission,supply,home,' + (reason === 'settings' ? 'close' : 'resume'));
       }
       sim.pause('settings', true); hud.toolsOpen = true; hud.update(sim, world);
       assert.equal(hud.modalKey, 'settings:flight');
@@ -1092,7 +1092,7 @@ test('HUD: independent title cover precedes mission previews and compact setting
       }
       hud.supplyOpen = false; hud.pendingSupply = false; hud.rewardsAvailable = false; hud.modalKey = 'rebuild'; hud.update(sim, world);
       assertPanelTargets(hud);
-      assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).map((b: any) => b.id), ['flightControls', 'zoomControls', 'buttonControls', 'sound', 'voicePrompts', 'autoPriority', 'language', 'help', 'convoy', 'mission', 'home', 'resume'], 'offline settings omit only ads');
+      assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).map((b: any) => b.id), ['flightControls', 'zoomControls', 'buttonControls', 'sound', 'voicePrompts', 'autoPriority', 'language', 'help', 'updates', 'convoy', 'mission', 'home', 'resume'], 'offline settings omit only ads');
     }
   inset = 0;
 });
@@ -1656,4 +1656,16 @@ test('new shop categories filter cards and the home lobby respects capability an
   online.available=false;online.revision++;hud.modalKey='rebuild';hud.update(sim,world);assert(!hud.buttons.some((b:any)=>b.id==='online:menu'));
   q.show('shop');for(const category of ['mod','weapon','skill'] as const){q.shopCategory=category;q.revision++;hud.update(sim,world);const cards=hud.buttons.filter((b:any)=>b.id.startsWith('product:'));assert(cards.length>0);for(const b of cards)assert.equal(q.catalog.find(p=>p.id===b.id.slice(8))!.category,category);assert(hud.buttons.some((b:any)=>b.id==='qm:shopCategory:'+category));}
  }inset=0;
+});
+
+test('global direct conversations retain their composer, fit touch screens and preserve the live room',()=>{
+ for(const [width,height] of [[568,320],[844,390],[1280,720]]){
+  Object.assign(frame,{width,height});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;
+  online.identity={playerId:'a',nickname:'A'};online.authenticatedId='a';online.socialAvailable=true;online.chatAvailable=true;online.chatPeer={playerId:'b',nickname:'B',status:'available'};online.chatInbox=true;online.socialOpen=true;online.chatMessages=[{id:'1',playerId:'b',nickname:'B',recipientId:'a',text:'测试私信',at:1}];
+  sim.start();const phase=sim.phase;hud.update(sim,world);const modal=hud.modal,field=modal.getComponentsInChildren(cc.EditBox)[0];assert(field);
+  online.chatRevision++;hud.update(sim,world);assert.equal(hud.modal,modal);assert.equal(modal.getComponentsInChildren(cc.EditBox)[0],field);assert.equal(sim.phase,phase);
+  const controls=hud.buttons.filter((b:any)=>hud.inModal(b.label.node));for(const b of controls){assert(b.w>=44&&b.h>=44,b.id);assert(b.x>=0&&b.x+b.w<=width&&b.y>=0&&b.y+b.h<=height,b.id);}
+  assert(controls.some((b:any)=>b.id==='social:close'));assert(controls.some((b:any)=>b.id==='online:chatSend'));
+  online.socialOpen=false;hud.updatesOpen=true;hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='updates:close'));assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>/重大更新/.test(l.string||'')));online.dispose();
+ }
 });

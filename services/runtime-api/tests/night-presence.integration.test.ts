@@ -53,24 +53,60 @@ const url = process.env.COMPETITION_TEST_DATABASE_URL;
       expect((await beat(0)).statusCode).toBe(401);
       expect((await beat(0, other.token)).statusCode).toBe(403);
       expect((await beat(0, a.token, { playerId: b.playerId })).statusCode).toBe(422);
-      expect((await beat(0, a.token)).json()).toEqual({ onlineCount: 1 });
-      expect((await beat(1, a.token)).json()).toEqual({ onlineCount: 1 });
-      expect((await beat(1, b.token)).json()).toEqual({ onlineCount: 2 });
+      expect((await beat(0, a.token)).json()).toMatchObject({
+        onlineCount: 1,
+        players: [{ playerId: a.playerId }],
+      });
+      expect((await beat(1, a.token)).json()).toMatchObject({ onlineCount: 1 });
+      const both = (await beat(1, b.token)).json();
+      expect(both.onlineCount).toBe(2);
+      expect(both.players.map((p: { playerId: string }) => p.playerId).sort()).toEqual(
+        [a.playerId, b.playerId].sort(),
+      );
+      expect(Object.keys(both.players[0]).sort()).toEqual([
+        'nickname',
+        'online',
+        'playerId',
+        'status',
+      ]);
       at += 19999;
-      expect((await beat(0, a.token)).json()).toEqual({ onlineCount: 2 });
+      expect((await beat(0, a.token)).json()).toMatchObject({ onlineCount: 2 });
       at++;
-      expect((await beat(1, a.token)).json()).toEqual({ onlineCount: 1 });
+      expect((await beat(1, a.token)).json()).toMatchObject({
+        onlineCount: 1,
+        players: [{ playerId: a.playerId }],
+      });
       await store.sweepRooms();
       expect(
         (await db.db.execute(sql`select count(*)::int as n from runtime.night_presence`))[0]!.n,
       ).toBe(1);
-      expect((await beat(0, b.token)).json()).toEqual({ onlineCount: 2 });
+      expect((await beat(0, b.token)).json()).toMatchObject({ onlineCount: 2 });
       at += 20000;
       await store.sweepRooms();
       expect(
         (await db.db.execute(sql`select count(*)::int as n from runtime.night_presence`))[0]!.n,
       ).toBe(0);
-      expect((await beat(1, a.token)).json()).toEqual({ onlineCount: 1 });
+      expect((await beat(1, a.token)).json()).toMatchObject({ onlineCount: 1 });
     });
+    it('paginates the complete roster without duplicates or leaking credentials', async () => {
+      at += 20000;
+      const people = [];
+      for (let i = 0; i < 53; i++) {
+        const p = await store.guestSession({ game: 'night-overwatch' });
+        people.push(p);
+        await beat(i % 2, p.token);
+      }
+      const first = (await beat(0, people[0]!.token)).json();
+      expect(first.onlineCount).toBe(53);
+      expect(first.players).toHaveLength(50);
+      expect(first.nextCursor).toBeTruthy();
+      const last = (await beat(1, people[0]!.token, { cursor: first.nextCursor })).json();
+      expect(last.players).toHaveLength(3);
+      expect(last.nextCursor).toBeUndefined();
+      expect([...first.players, ...last.players].map((p) => p.playerId).sort()).toEqual(
+        people.map((p) => p.playerId).sort(),
+      );
+      expect((await beat(0, people[0]!.token, { cursor: 'bad' })).statusCode).toBe(422);
+    }, 20000);
   },
 );

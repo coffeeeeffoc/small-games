@@ -31,6 +31,7 @@ if (mode === 'stop') {
     '015-generic-content-drafts.sql',
     '016-night-chat.sql',
     '017-night-presence.sql',
+    '018-night-direct-messages.sql',
   ])
     await run(
       'docker',

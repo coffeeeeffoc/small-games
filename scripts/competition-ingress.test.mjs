@@ -6,6 +6,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
+import { createRequire } from 'node:module';
 import {
   validateIngress,
   renderApiCaddy,
@@ -112,7 +113,13 @@ test('Caddy source guard rejects dirty nonce implementation or declarations at b
 });
 
 test('both generic Runtime producers start with trust disabled, keep other services unchanged and satisfy validation', async () => {
-  const { validateRuntimeEnvironment } = await import('../services/runtime-api/src/config.ts');
+  const { tsImport } = createRequire(
+    new URL('../services/runtime-api/package.json', import.meta.url),
+  )('tsx/esm/api');
+  const { validateRuntimeEnvironment } = await tsImport(
+    '../services/runtime-api/src/config.ts',
+    import.meta.url,
+  );
   const bundle = renderBundleCompose(bundleConfig({ DEPLOY_SERVICES: 'runtime,management,kart' }));
   const template = await readFile(
     new URL('../infra/tencent/compose.yaml', import.meta.url),
@@ -138,6 +145,7 @@ test('both generic Runtime producers start with trust disabled, keep other servi
     assert.doesNotThrow(() =>
       validateRuntimeEnvironment({
         ...compose.services.runtime.environment,
+        NIGHT_RELEASE_CONFIG: '',
         RUNTIME_DATABASE_URL: 'postgres://runtime_app:test@127.0.0.1/test',
         COMPETITION_INTERNAL_KEY: 'a'.repeat(32),
         COMPETITION_ORIGINS: 'http://localhost:8080',
@@ -206,6 +214,7 @@ test('public paths cover registered game, identity, TCT and carrom endpoints and
     'games/night-overwatch/history',
     'games/night-overwatch/chat',
     'games/night-overwatch/presence',
+    'games/night-overwatch/social',
     'games/night-overwatch/chat/report',
     'games/night-overwatch/runs/12345678-1234-1234-1234-123456789abc/resume',
     'games/night-overwatch/rooms/123456/spectate',

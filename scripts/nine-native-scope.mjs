@@ -716,9 +716,11 @@ export function nineNativeFileScopes({
           assert.equal(pkg.name, '@coffeeeeffoc/xiangqi-five');
           assert.equal(pkg.scripts?.build, 'node build.js');
           // Parent Git cannot read inside a gitlink; this reviewed commit loads and copies both mirrors.
-          assert.equal(
-            readHeadEntry(source),
-            '160000 commit 0b7d2b346a670e7300ce9126728c76b6018c0c98\t' + source + '\n',
+          assert(
+            [
+              '160000 commit 0b7d2b346a670e7300ce9126728c76b6018c0c98\t' + source + '\n',
+              '160000 commit d68f82b674ddb66a1e0f87e8d4639cd4e397b927\t' + source + '\n',
+            ].includes(readHeadEntry(source)),
           );
           consumers.push(source);
           continue;

@@ -30,6 +30,7 @@ export const fixtureMigrations = Object.freeze([
   'infra/migrations/014-player-sessions.sql',
   'infra/migrations/016-night-chat.sql',
   'infra/migrations/017-night-presence.sql',
+  'infra/migrations/018-night-direct-messages.sql',
   'infra/admin-console/migrations/001-admin-auth.sql',
   'infra/admin-console/migrations/002-control-center.sql',
   'infra/admin-console/migrations/003-night-overwatch-control.sql',

@@ -156,16 +156,6 @@ export class OnlineLobbyView {
         40,
         C.white,
       ).isBold = true;
-      this.h.label(
-        n,
-        this.h.t('大厅交流', 'LOBBY CHAT'),
-        rx + rw * 0.32,
-        top + 21,
-        19,
-        rw * 0.61,
-        32,
-        C.white,
-      ).isBold = true;
       const field = this.h.node('LobbyComposer', n),
         fw = Math.max(90, rw - 142);
       field.active = false;
@@ -246,7 +236,7 @@ export class OnlineLobbyView {
       });
       old.destroy();
     }
-    this.h.listAreas = this.h.listAreas.filter((a) => !['rooms', 'chat'].includes(a.key));
+    this.h.listAreas = this.h.listAreas.filter((a) => !['rooms', 'players', 'chat'].includes(a.key));
     const body = (this.lobbyBody = this.h.node('LobbyLiveContent', n)),
       g = this.h.node('Ink', body).addComponent(Graphics);
     const onlineRight = this.h.topRight(this.h.safe.top + 13, 28);
@@ -268,10 +258,47 @@ export class OnlineLobbyView {
       label.isBold = true;
       this.h.buttons.at(-1)!.disabled = disabled;
     };
-    const roomTop = top + 8,
-      roomBottom = b - 98,
+    const tabW=(lw-32)/3;
+    btn('lobbyRooms',this.h.t('房间','ROOMS'),l+8,top+4,tabW,o.lobbyTab==='rooms'?'gold':'panel');
+    btn('players',this.h.t('在线','ONLINE'),l+16+tabW,top+4,tabW,o.lobbyTab==='players'?'gold':'panel');
+    btn('friends',this.h.t('好友'+(o.incomingFriends?' · '+o.incomingFriends:''),'FRIENDS'),l+24+tabW*2,top+4,tabW,o.lobbyTab==='friends'?'gold':'panel');
+    btn('chatPublic', this.h.t('大厅交流', 'PUBLIC'), rx + 8, top + 4, (rw - 24) / 2, !o.chatInbox ? 'gold' : 'panel');
+    btn('chatInbox', this.h.t(`私信${o.directUnread ? ' (' + o.directUnread + ')' : ''}`, `DM${o.directUnread ? ' (' + o.directUnread + ')' : ''}`), rx + 16 + (rw - 24) / 2, top + 4, (rw - 24) / 2, o.chatInbox ? 'gold' : 'panel', !o.socialAvailable);
+    if(this.lobbyComposer && this.lobbyComposer.string !== o.chatDraft) this.lobbyComposer.string = o.chatDraft;
+    const roomTop = top + 56,
+      roomBottom = b - (o.lobbyTab !== 'rooms' && !o.room ? 0 : 98),
       rowH = this.h.h < 420 ? 112 : 136,
       rooms = o.rooms;
+    if(o.lobbyTab !== 'rooms') {
+      const friends=o.lobbyTab==='friends',entries=friends?[...o.social.requests.filter(p=>!o.blockedPlayers.has(playerId(p))),...o.social.friends]:o.onlinePlayers;
+      const bottom=roomBottom-(friends?0:46),height=Math.max(44,bottom-roomTop),row=110;
+      const list=this.h.listViewport(body,'players',{x:l+8,y:roomTop,w:lw-16,h:height},entries.length*row);
+      entries.forEach((p,i)=>{
+        const y=roomTop+i*row-list.offset,id=playerId(p),own=id===o.authenticatedId;
+        if(y+row<roomTop||y>bottom)return;
+        this.lobbySkin(list.n,'panel',l+8,y,lw-16,row-6);
+        const status=p.status==='playing'?this.h.t('游戏中','PLAYING'):p.status==='offline'?this.h.t('离线','OFFLINE'):this.h.t('在线','ONLINE');
+        const tone=p.status==='offline'?C.dim:p.status==='playing'?C.amber:C.mint;
+        this.h.label(list.n,'●',l+20,y+18,15,18,24,tone);
+        const name=this.h.label(list.n,playerLabel(p)+(own?this.h.t(' · 你',' · YOU'):''),l+34+(lw-58)/2,y+18,roomy?16:12,lw-58,28,C.white);name.enableWrapText=false;name.overflow=Label.Overflow.SHRINK;
+        const pending='direction' in p?p.direction:undefined;
+        this.h.label(list.n,status+(pending?this.h.t(pending==='incoming'?' · 向你申请好友':' · 等待对方同意',pending==='incoming'?' · FRIEND REQUEST':' · REQUEST SENT'):''),l+lw/2,y+41,11,lw-36,24,tone);
+        if(!own){
+          const blocked=o.blockedPlayers.has(id),w=(lw-48)/3;
+          if(pending){
+            btn('friendAction:'+(pending==='incoming'?'accept':'cancel')+':'+id,this.h.t(pending==='incoming'?'同意':'取消',pending==='incoming'?'ACCEPT':'CANCEL'),l+16,y+57,w,'gold',o.socialBusy,list.n);
+            btn(pending==='incoming'?'friendAction:decline:'+id:'whisper:'+id,this.h.t(pending==='incoming'?'拒绝':'私信',pending==='incoming'?'DECLINE':'MESSAGE'),l+24+w,y+57,w,'blue',o.socialBusy,list.n);
+          }else{
+            btn('whisper:'+id,this.h.t('私信','MESSAGE'),l+16,y+57,w,'blue',blocked,list.n);
+            btn('invitePlayer:'+id,this.h.t('邀请','INVITE'),l+24+w,y+57,w,'gold',!o.canInvite(p),list.n);
+          }
+          const added=o.social.friends.some(f=>playerId(f)===id),requested=o.social.requests.some(f=>playerId(f)===id);
+          btn('friendAction:request:'+id,this.h.t(added?'好友':requested?'已申请':'加好友',added?'FRIEND':requested?'PENDING':'ADD'),l+32+w*2,y+57,w,'panel',added||requested||blocked||o.socialBusy,list.n);
+        }
+      });list.finish();
+      if(!entries.length)this.h.label(body,o.socialStatus||this.h.t(!o.socialAvailable?'等待社交服务更新':friends?'暂无好友 · 从在线玩家添加':'正在刷新在线玩家…',!o.socialAvailable?'SOCIAL SERVICE UNAVAILABLE':friends?'ADD FRIENDS FROM ONLINE PLAYERS':'REFRESHING PLAYERS…'),l+lw/2,roomTop+34,12,lw-32,64,C.dim);
+      if(!friends){btn('playersPrev','‹',l+8,roomBottom-44,44,'panel',!o.playersPrevious.length);this.h.label(body,String(o.playersPrevious.length+1),l+lw/2,roomBottom-22,13,lw-120,28,C.dim);btn('playersNext','›',l+lw-52,roomBottom-44,44,'panel',!o.playersNext);}
+    } else {
     const roomList = this.h.listViewport(
       body,
       'rooms',
@@ -352,6 +379,7 @@ export class OnlineLobbyView {
         70,
         C.dim,
       );
+    }
     const ww = (lw - 24) / 2,
       mine = o.room;
     if (mine) {
@@ -384,14 +412,23 @@ export class OnlineLobbyView {
         );
       }
       btn('roomReturn', this.h.t('展开房间', 'EXPAND'), l + 8 + dw - ew - 6, b - 69, ew, 'gold');
-    } else {
+    } else if(o.lobbyTab === 'rooms') {
       btn('friend', this.h.t('创建房间', 'CREATE'), l + 8, b - 92, ww, 'gold', o.busy);
       btn('join', this.h.t('房号加入', 'JOIN CODE'), l + 16 + ww, b - 92, ww, 'blue', o.busy);
       btn('match', this.h.t('快速匹配', 'MATCH'), l + 8, b - 46, ww, 'blue', o.busy);
       btn('bot', this.h.t('人机练习', 'PRACTICE'), l + 16 + ww, b - 46, ww, 'panel', o.busy);
     }
-    const area = { x: rx + 8, y: top + 43, w: rw - 16, h: Math.max(44, inputY - top - 68) },
+    const area = { x: rx + 8, y: top + 54, w: rw - 16, h: Math.max(44, inputY - top - 79) },
       messages = o.visibleChat;
+    if(this.lobbyComposer)this.lobbyComposer.enabled=!o.chatInbox||!!o.chatPeer;
+    if(o.chatInbox&&!o.chatPeer){
+      const entries=o.social.conversations.filter(c=>!o.blockedPlayers.has(playerId(c))),list=this.h.listViewport(body,'chat',area,entries.length*96);
+      entries.forEach((c,i)=>{const y=area.y+i*96-list.offset;if(y+96<area.y||y>area.y+area.h)return;this.lobbySkin(list.n,'panel',rx+8,y,rw-16,90);const caption=playerLabel(c)+(c.unread?' · '+c.unread:'')+'\n'+c.lastMessage.text;const label=this.h.label(list.n,caption,rx+18+(rw-108)/2,y+42,roomy?16:12,rw-108,74,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;btn('whisper:'+playerId(c),this.h.t('会话','OPEN'),r-80,y+24,68,'blue',false,list.n);});list.finish();
+      if(!entries.length)this.h.label(body,this.h.t('暂无会话 · 从在线玩家或好友发起私信','MESSAGE AN ONLINE PLAYER OR FRIEND'),rx+rw/2,area.y+40,13,rw-32,70,C.dim);
+      this.h.label(body,o.socialStatus||this.h.t('历史保存在服务端 · 选择会话后回复','HISTORY SAVED ON SERVER · SELECT A CONVERSATION'),rx+rw/2,inputY-12,10,rw-18,21,C.dim);
+      for(const id of ['online:chatSend','online:chatInvite']){const button=this.h.buttons.find(b=>b.id===id);if(button)button.disabled=true;}
+      this.lobbyStamp=`${o.revision}:${o.chatRevision}`;return;
+    }
     const old = this.chatLayout,
       oldOffset = this.h.listScroll.chat || 0,
       oldTotal = old.length ? old.at(-1)!.y + old.at(-1)!.h + 8 : 0,
@@ -410,7 +447,7 @@ export class OnlineLobbyView {
             Array.from(m.text).length / Math.max(6, Math.floor((maxBubble - 20) / messageFont)),
           ),
         ),
-        h = (m.room ? (roomy ? 170 : 174) : roomy ? 80 : 68) + (lines - 1) * messageFont * 1.4;
+        h = Math.max(o.chatMenu === m.id ? 168 : 0, (m.room ? (roomy ? 170 : 174) : roomy ? 80 : 68) + (lines - 1) * messageFont * 1.4);
       const row = { id: m.id, y: total, h };
       total += h + 8;
       return row;
@@ -453,7 +490,7 @@ export class OnlineLobbyView {
       ).isBold = true;
       this.h.label(
         chat.n,
-        (own ? this.h.t('你 · ', 'YOU · ') : '') + m.nickname + '  ' + stamp,
+        (own ? this.h.t('你', 'YOU') : m.nickname) + (m.recipientId ? ' → ' + (m.recipientId === o.authenticatedId ? this.h.t('你', 'YOU') : m.recipientNickname || '') : '') + '  ' + stamp,
         textX + maxBubble / 2,
         y + 14,
         roomy ? 15 : 11,
@@ -487,7 +524,7 @@ export class OnlineLobbyView {
         C.white,
       );
       label.horizontalAlign = Label.HorizontalAlign.LEFT;
-      this.h.button('online:chatMenu:' + m.id, '⋮', r - 46, y + 20, 44, 44, chat.n).fontSize = 24;
+      this.h.button('online:chatMenu:' + m.id, '⋮', r - 52, y + 20, 44, 44, chat.n).fontSize = 24;
       if (m.room) {
         const cardY = bubbleY + textH + 8,
           iw = roomy ? 90 : 44,
@@ -532,12 +569,13 @@ export class OnlineLobbyView {
       }
       if (o.chatMenu === m.id) {
         const menuY = y + 24;
-        this.lobbySkin(chat.n, 'panel', r - 146, menuY, 100, 92);
+        this.lobbySkin(chat.n, 'panel', r - 146, menuY, 100, 138);
+        btn('chatReply:'+m.id,this.h.t('私信回复','REPLY'),r-144,menuY,96,'blue',!o.socialAvailable||own&&!m.recipientId,chat.n);
         btn(
           'chatBlock:' + m.playerId,
           this.h.t('屏蔽', 'BLOCK'),
           r - 144,
-          menuY,
+          menuY + 46,
           96,
           'panel',
           own,
@@ -547,7 +585,7 @@ export class OnlineLobbyView {
           'chatReport:' + m.id,
           this.h.t('举报', 'REPORT'),
           r - 144,
-          menuY + 46,
+          menuY + 92,
           96,
           'panel',
           own,
@@ -561,7 +599,7 @@ export class OnlineLobbyView {
         body,
         !o.chatAvailable
           ? this.h.t('大厅交流暂不可用', 'CHAT UNAVAILABLE')
-          : this.h.t('和大厅飞行员打个招呼', 'Say hello to other pilots'),
+          : o.chatInbox ? this.h.t(o.chatPeer ? '发送私信，邀请对方一起出动' : '暂无私信 · 从在线玩家选择对象', 'Choose an online pilot to message') : this.h.t('和大厅飞行员打个招呼', 'Say hello to other pilots'),
         rx + rw / 2,
         area.y + 42,
         13,
@@ -570,10 +608,10 @@ export class OnlineLobbyView {
         C.dim,
       );
     if (this.chatUnread)
-      btn('chatLatest', this.h.t('新消息 ↓', 'NEW ↓'), r - 108, top + 1, 98, 'blue');
+      btn('chatLatest', this.h.t('新消息 ↓', 'NEW ↓'), r - 108, area.y + area.h - 44, 98, 'blue');
     this.h.label(
       body,
-      o.chatStatus || this.h.t('文字交流 · 120字 · 发言间隔3秒', 'TEXT · 120 CHARS · 3s INTERVAL'),
+      o.chatStatus || (o.chatPeer ? this.h.t('私信给 ', 'TO ') + playerLabel(o.chatPeer) : o.chatInbox ? this.h.t('点消息菜单回复 · 仅双方可见', 'REPLY FROM MESSAGE MENU · PRIVATE') : this.h.t('文字交流 · 120字 · 发言间隔3秒', 'TEXT · 120 CHARS · 3s INTERVAL')),
       rx + rw / 2,
       inputY - 12,
       10,
@@ -897,8 +935,8 @@ export class OnlineLobbyView {
       this.h.rect(g, px + 32, py + bottom - 7, pw - 64, 1, '#8ba0ab44');
       const bw = Math.min(210, pw - 64);
       button(
-        'backLobby',
-        this.h.t('返回大厅', 'BACK TO LOBBY'),
+        'roomReturn',
+        this.h.t('留在房间', 'STAY IN ROOM'),
         (pw - bw) / 2,
         bottom,
         bw,
@@ -1468,7 +1506,7 @@ export class OnlineLobbyView {
           ? playerLabel(player) +
               (own ? this.h.t(' · 你', ' · YOU') : '') +
               ' · ' +
-              (player.ready ? this.h.t('已准备', 'READY') : this.h.t('未准备', 'NOT READY'))
+              (player.left?this.h.t('已退出','LEFT'):room?.status==='finished'?this.h.t('本局结束','FINISHED'):player.ready ? this.h.t('已准备', 'READY') : this.h.t('未准备', 'NOT READY'))
           : this.h.t('等待另一位飞行员', 'WAITING FOR ANOTHER PILOT'),
         y,
         13,
@@ -1490,6 +1528,7 @@ export class OnlineLobbyView {
     );
     const cw = Math.min(180, (pw - 52) / 3);
     button('backLobby', this.h.t('离开房间', 'LEAVE'), 18, bottom, cw, false, false, 'back');
+    if(room?.status==='finished'&&!online.spectator){button('rematch',this.h.t('再战准备','REMATCH'),pw-18-cw,bottom,cw,true,false,'',online.busy);button('whisper:'+playerId(online.opponent||{}),this.h.t('私信队友','MESSAGE'),26+cw,bottom,cw,false,false,'',!online.socialAvailable);}
     if (room?.status === 'waiting' && !online.spectator) {
       button('chatInvite', this.h.t('大厅邀请', 'INVITE'), 26 + cw, bottom, cw);
       button(

@@ -5,7 +5,7 @@ import { RANKED_RULE_VERSION, observeNightInputs } from './core/Replay.ts';
 import { MISSIONS, CAMPAIGN_BOARD_VERSION } from './core/MissionCatalog.ts';
 import type { AssetCommand, AssetSnapshot, BattleLoadout } from './core/Progression.ts';
 
-export type Player = { id?: string; userId?: string; playerId?: string; name?: string; nickname?: string; ready?: boolean; disconnected?: boolean; reconnectUntil?: number; takenOver?: boolean; settlement?: Settlement };
+export type Player = { id?: string; userId?: string; playerId?: string; name?: string; nickname?: string; ready?: boolean; disconnected?: boolean; reconnectUntil?: number; takenOver?: boolean; left?:boolean; online?:boolean; status?:'available'|'playing'|'offline'; settlement?: Settlement };
 export const playerId = (player: Player) => player.playerId || player.userId || player.id || '';
 export const playerLabel = (player: Player) => `${player.nickname || player.name || '飞行员'} #${playerId(player).replace(/-/g, '').slice(-8).toUpperCase()}`;
 type DuelView = Omit<ReturnType<typeof viewDuel>,'enemyEquipment'>&Partial<Pick<ReturnType<typeof viewDuel>,'enemyEquipment'>>;
@@ -13,7 +13,7 @@ export type Settlement = { points: number; totalPoints?: number; wins?: number; 
 export type RoomSummary = { code: string; status: string; mode: string; players: Player[]; playerCount: number; canJoin: boolean; canSpectate: boolean };
 export type BattleHistory = { summary: { wins: number; losses: number; draws: number; games: number; winRate: number };
   matches: { id: string; code: string; opponent: Player; outcome: string; reason: string; startedAt: number; finishedAt: number; durationMs: number; points: number }[]; nextCursor?: string };
-export type Room = { version?: string; serverNow?: number; startsAt?: number; spectator?: boolean; visibility?: string; settlement?: Settlement; code: string; status: string; mode: string; you: number; seq: number; players: Player[]; state: DuelView | null };
+export type Room = { rematch?:string; version?: string; serverNow?: number; startsAt?: number; spectator?: boolean; visibility?: string; settlement?: Settlement; code: string; status: string; mode: string; you: number; seq: number; players: Player[]; state: DuelView | null };
 type RankingRow = Player & { rank: number; score: number; secondary: number; wins?: number; games?: number };
 type Ranking = { top: RankingRow[]; me: RankingRow | null };
 type Recorder = { start(options: { mode: string; levelId: string; practice: boolean }): Promise<{loadout?:BattleLoadout}|null|undefined>;
@@ -21,11 +21,12 @@ type Recorder = { start(options: { mode: string; levelId: string; practice: bool
   persist?(): void; saveForReentry?(): Promise<boolean>; recover?(): Promise<void>; pending?: number; storageDiagnostic?: string;
   startOffline?(options: { mode: string; levelId: string; loadout: BattleLoadout }): Promise<object | null>;
   settlement?: { playerId: string; runId: string; result: Settlement } };
-export type ChatMessage={id:string;playerId:string;nickname:string;text:string;at:number;room?:{code:string;createdAt:number;canJoin:boolean}};
-export type ChatSnapshot={messages:ChatMessage[];cursor:string;reset:boolean;serverNow:number};
+export type ChatMessage={id:string;playerId:string;nickname:string;text:string;at:number;recipientId?:string;recipientNickname?:string;room?:{code:string;createdAt:number;canJoin:boolean}};
+export type ChatSnapshot={messages:ChatMessage[];cursor:string;reset:boolean;serverNow:number;nextBefore?:string};
 export type Release = { currentBuildId: string | null; currentVersion?: string | null; latestBuildId: string | null; latestVersion?: string | null; update: 'none' | 'optional' | 'required'; canStartNewGames: boolean; admissions: { ranked: boolean; multiplayer: boolean }; action: 'reopen' };
+export type SocialSnapshot={friends:Player[];requests:(Player&{direction:'incoming'|'outgoing';createdAt:number})[];conversations:(Player&{unread:number;lastReadId:string;lastMessage:ChatMessage})[];serverNow:number};
 type RequestResult = { path: string; method: 'GET' | 'POST'; playerId: string; error?: string };
-type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean;chat?:boolean;presence?:boolean }; release?: Release };
+type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean;chat?:boolean;presence?:boolean;social?:boolean }; release?: Release };
 type OnlineStorage = Pick<Storage, 'getItem' | 'setItem'> & { flush?(): Promise<void> };
 function validRelease(value: Release) {
   const build = (id: unknown) => id === null || typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(id);
@@ -40,9 +41,10 @@ type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Me
     spectateRoom?(input: { code: string; password?: string }): Promise<Room>;
     getRoom(input: { code: string }): Promise<Room>; roomAction(input: { code: string; operation: string; body?: object }): Promise<Room>;
     nightAssets?(expectedPlayerId?:string):Promise<AssetSnapshot>;nightAssetCommand?(input:AssetCommand,expectedPlayerId?:string):Promise<AssetSnapshot>;
-    nightChat?(input:{cursor?:string;waitMs?:number},expectedPlayerId?:string):Promise<ChatSnapshot>;
-    nightPresence?(expectedPlayerId?:string):Promise<{onlineCount:number}>;
-    sendNightChat?(input:{requestId:string;text:string;roomCode?:string},expectedPlayerId?:string):Promise<ChatSnapshot>;
+    nightChat?(input:{cursor?:string;waitMs?:number;direct?:boolean;peer?:string;before?:string},expectedPlayerId?:string):Promise<ChatSnapshot>;
+    nightPresence?(expectedPlayerId?:string,input?:{cursor?:string;activity?:'available'|'playing'}):Promise<{onlineCount:number;players?:Player[];nextCursor?:string}>;
+    nightSocial?(input?:{action:'request'|'accept'|'decline'|'cancel'|'remove'|'read';playerId:string;throughId?:string},expectedPlayerId?:string):Promise<SocialSnapshot>;
+    sendNightChat?(input:{requestId:string;text:string;roomCode?:string;recipientId?:string},expectedPlayerId?:string):Promise<ChatSnapshot>;
     reportNightChat?(input:{id:string;reason:string},expectedPlayerId?:string):Promise<unknown>;
     leaderboard(input: { boardId: string;ruleVersion?:string }): Promise<Ranking> };
   createRecorder(version: string, options: { onStatus: (status: string) => void; onSettled?: (settled: { playerId: string; runId: string; result: Settlement; active: boolean }) => void; startTimeoutMs?: number; durable?: { storage: Pick<Storage, 'getItem' | 'setItem'>; source?: string } }): Recorder };
@@ -86,6 +88,7 @@ export class Online {
       if (this.destroyed || this.bridge !== bridge) return;
       if (!metadata || metadata.release !== undefined && !validRelease(metadata.release)) throw Error('Release unavailable');
       this.release = metadata.release; this.releaseCheckFailed = false;
+      if(playerId(metadata.identity) === this.authenticatedId) this.acceptCapabilities(metadata.capabilities);
       if (!this.updateNotice) this.releaseIssue = undefined;
     } catch { if (this.bridge === bridge) this.releaseCheckFailed = true; }
     finally { if (this.releaseCheck === check) { this.releaseCheck = undefined; this.checkingRelease = false; if (!this.destroyed) this.revision++; } }
@@ -128,6 +131,107 @@ export class Online {
     finally { if (!this.destroyed) this.revision++; }
   }
   onlineCount: number | null = null;
+  onlinePlayers: Player[] = [];
+  playersCursor?: string;
+  playersNext?: string;
+  playersPrevious: (string | undefined)[] = [];
+  socialAvailable = false;
+  lobbyTab: 'rooms' | 'players' | 'friends' = 'rooms';
+  chatInbox = false;
+  chatPeer?: Player;
+  private inviting = false;
+  socialOpen=false;
+  activity:'available'|'playing'='available';
+  social:SocialSnapshot={friends:[],requests:[],conversations:[],serverNow:0};
+  socialBusy=false;
+  socialStatus='';
+  conversation:ChatMessage[]=[];
+  conversationBefore?:string;
+  conversationLoading=false;
+  notification?:ChatMessage;
+  notificationUntil=0;
+  private notified=new Set<string>();
+  private socialNext=0;
+  private socialPolling=false;
+  private conversationEpoch=0;
+  private readPending=false;
+  private readThrough='';
+  get incomingFriends(){return this.social.requests.filter(p=>p.direction==='incoming'&&!this.blockedPlayers.has(playerId(p))).length;}
+  peer(id:string):Player|undefined{return [...this.onlinePlayers,...this.social.friends,...this.social.requests,...this.social.conversations].find(p=>playerId(p)===id);}
+  canInvite(peer:Player){return this.socialAvailable&&this.activity!=='playing'&&!this.active&&!this.busy&&!this.inviting&&!this.chatSending&&!this.blockedPlayers.has(playerId(peer))&&peer.status!=='playing'&&peer.status!=='offline'&&(!this.room||this.room.status==='waiting'&&this.room.visibility==='public'&&this.room.players.length<2&&playerId(this.room.players[0])===this.authenticatedId);}
+  async refreshSocial(now=performance.now()) {
+    if(!this.socialAvailable||!this.foreground||this.destroyed||this.socialPolling||now<this.socialNext||!this.bridge?.services.nightSocial)return;
+    const owner=this.authenticatedId;this.socialPolling=true;
+    try{const result=await this.bridge.services.nightSocial(undefined,owner);if(owner===this.authenticatedId&&!this.destroyed)this.acceptSocial(result);}
+    catch{if(owner===this.authenticatedId){this.socialStatus='好友与会话暂不可用，正在重连';this.revision++;}}
+    finally{this.socialPolling=false;this.socialNext=performance.now()+5000;}
+  }
+  private acceptSocial(result:SocialSnapshot){
+    if(result.serverNow<this.social.serverNow)return;
+    this.social=result;this.socialStatus='';this.chatRevision++;this.revision++;
+    for(const c of [...result.conversations].reverse())if(c.unread&&c.lastMessage.playerId!==this.authenticatedId&&!this.blockedPlayers.has(playerId(c))&&!this.notified.has(c.lastMessage.id)){
+      this.notified.add(c.lastMessage.id);
+      if(!(this.socialOpen||this.panel==='menu')||!this.chatPeer||playerId(this.chatPeer)!==playerId(c)){this.notification={...c.lastMessage,nickname:c.nickname||'飞行员'};this.notificationUntil=performance.now()+10000;}
+    }
+    this.markDirectRead();
+  }
+  async friendAction(action:'request'|'accept'|'decline'|'cancel'|'remove',peer:string){
+    if(this.socialBusy||!this.bridge?.services.nightSocial||!this.socialAvailable)return;
+    const owner=this.authenticatedId;this.socialBusy=true;this.socialStatus='';this.revision++;
+    try{const result=await this.bridge.services.nightSocial({action,playerId:peer},owner);if(owner===this.authenticatedId)this.acceptSocial(result);}
+    catch(error){if(owner===this.authenticatedId){const code=(error as {code?:string}).code;this.socialStatus=code==='FRIEND_LIMIT'?'好友已达200人，请先清理':code==='FRIEND_REQUEST_LIMIT'?'待确认的申请已达50条，请先清理':code==='CHAT_RATE_LIMIT'?'操作太快，请稍后重试':'操作未完成，请稍后重试';}}
+    finally{this.socialBusy=false;this.revision++;}
+  }
+  async loadConversation(before?:string){
+    if(!this.chatPeer||!this.bridge?.services.nightChat||!this.socialAvailable||this.conversationLoading)return;
+    const peer=playerId(this.chatPeer),owner=this.authenticatedId,epoch=this.conversationEpoch;this.conversationLoading=true;this.chatRevision++;
+    try{const result=await this.bridge.services.nightChat({direct:true,peer,...(before?{before}:{})},owner);if(epoch!==this.conversationEpoch||owner!==this.authenticatedId)return;
+      this.conversation=before?[...result.messages,...this.conversation.filter(m=>!result.messages.some(v=>v.id===m.id))]:result.messages;
+      this.conversationBefore=result.nextBefore;this.markDirectRead();
+    }catch{if(epoch===this.conversationEpoch)this.chatStatus='会话读取失败，可点击重试';}
+    finally{if(epoch===this.conversationEpoch){this.conversationLoading=false;this.chatRevision++;}}
+  }
+  openConversation(peer:Player){this.selectChat(peer);if(this.chatPeer&&playerId(this.chatPeer)===playerId(peer)){this.socialOpen=true;this.notification=undefined;this.markDirectRead();this.revision++;}}
+  closeConversation(){this.socialOpen=false;this.revision++;}
+  private directRead = new Set<string>();
+  get directUnread() { return this.bridge?.services.nightSocial?this.social.conversations.reduce((n,c)=>n+(this.blockedPlayers.has(playerId(c))?0:c.unread),0):this.chatMessages.filter(m => m.recipientId === this.authenticatedId && !this.blockedPlayers.has(m.playerId) && !this.directRead.has(m.id)).length; }
+  showPlayers() { this.lobbyTab = 'players'; this.show('menu'); this.presenceNext = 0; }
+  pagePlayers(next: boolean) {
+    if(next && !this.playersNext || !next && !this.playersPrevious.length) return;
+    if(next) { this.playersPrevious.push(this.playersCursor); this.playersCursor = this.playersNext; }
+    else this.playersCursor = this.playersPrevious.pop();
+    this.presenceEpoch++; this.presenceNext = 0; this.onlinePlayers = []; this.playersNext = undefined; this.revision++;
+  }
+  selectChat(peer?: Player, inbox = false) {
+    const abandoned=!!this.chatIntent?.recipientId&&!this.socialAvailable&&!this.chatSending;
+    if(abandoned)this.chatIntent=undefined;
+    if(this.inviting || this.chatSending || this.chatIntent) { this.chatStatus = this.inviting ? '正在创建邀请，请稍候' : '请先重试确认上一条消息的发送结果'; this.chatRevision++; return; }
+    if(peer && (!this.socialAvailable || playerId(peer) === this.authenticatedId)) return;
+    this.chatPeer = peer; this.chatInbox = inbox || !!peer; this.chatDraft = ''; this.chatMenu = ''; this.chatStatus = abandoned?'已停止重试上一条私信，是否送达暂未确认':''; this.chatRevision++;
+    this.conversationEpoch++;this.conversation=[];this.conversationBefore=undefined;this.conversationLoading=false;this.readThrough='';
+    if(peer)void this.loadConversation();
+    this.markDirectRead();
+  }
+  private markDirectRead() {
+    if((this.panel !== 'menu'&&!this.socialOpen) || !this.chatInbox) return;
+    for(const m of this.visibleChat) if(m.recipientId === this.authenticatedId) this.directRead.add(m.id);
+    const peer=this.chatPeer&&playerId(this.chatPeer),last=this.conversation.at(-1),owner=this.authenticatedId;
+    if(!peer||!last||this.readPending||this.readThrough===peer+':'+last.id||!this.bridge?.services.nightSocial)return;
+    this.readPending=true;
+    void this.bridge.services.nightSocial({action:'read',playerId:peer,throughId:last.id},owner).then(result=>{if(owner===this.authenticatedId){this.readThrough=peer+':'+last.id;this.acceptSocial(result);}}).catch(()=>{}).finally(()=>{this.readPending=false;});
+  }
+  async invitePlayer(peer: Player) {
+    if(!this.canInvite(peer)){this.chatStatus='双方需在线且不在游戏中才能邀请';this.chatRevision++;return;}
+    if(!this.socialAvailable || this.inviting || this.busy || this.active || this.chatSending || this.chatIntent || this.blockedPlayers.has(playerId(peer))) return;
+    const owner = this.authenticatedId;
+    this.selectChat(peer);
+    this.inviting = true;
+    try {
+      if(!this.room) { this.privateRoom = false; await this.open('friend'); }
+      if(owner !== this.authenticatedId || this.destroyed || !this.room) return;
+      this.show('menu'); this.chatStatus = ''; this.inviting=false; await this.sendChat(true);
+    } finally { this.inviting = false; }
+  }
   private presenceAvailable = false;
   private presenceEpoch = 0;
   private presenceNext = 0;
@@ -145,6 +249,7 @@ export class Online {
   private resetPresence() {
     this.presenceEpoch++;
     this.presenceNext = 0;
+    this.onlinePlayers = []; this.playersNext = this.playersCursor = undefined; this.playersPrevious = [];
     this.setOnlineCount(null);
   }
   private async pollPresence(now: number) {
@@ -152,12 +257,16 @@ export class Online {
     const epoch = this.presenceEpoch, owner = this.authenticatedId;
     this.presencePolling = true;
     try {
-      const result = await this.bridge.services.nightPresence(owner);
+      const result = await this.bridge.services.nightPresence(owner, this.socialAvailable ? {cursor:this.playersCursor,activity:this.activity} : {});
       if (epoch !== this.presenceEpoch || owner !== this.authenticatedId || this.destroyed) return;
       if (!Number.isSafeInteger(result.onlineCount) || result.onlineCount < 0) throw Error('Invalid presence');
       this.setOnlineCount(result.onlineCount);
-    } catch {
-      if (epoch === this.presenceEpoch) this.setOnlineCount(null);
+      if(JSON.stringify(this.onlinePlayers) !== JSON.stringify(result.players || []) || this.playersNext !== result.nextCursor) {
+        this.onlinePlayers = result.players || []; this.playersNext = result.nextCursor; this.revision++;
+      }
+    } catch (error) {
+      if (epoch === this.presenceEpoch) { this.onlinePlayers = []; this.playersNext = undefined; this.setOnlineCount(null); this.revision++; }
+      if(this.socialAvailable && (error as {code?:string}).code === 'INVALID_INPUT') void this.checkRelease();
     } finally {
       this.presencePolling = false;
       if (epoch === this.presenceEpoch) this.presenceNext = performance.now() + 5000;
@@ -165,29 +274,31 @@ export class Online {
   }
   chatMessages:ChatMessage[]=[];chatDraft='';chatStatus='';chatRevision=0;chatSending=false;chatAvailable=false;chatMenu='';
   blockedPlayers=new Set<string>();private chatOwner='';private chatEpoch=0;private chatPoll=false;private chatNext=0;private chatCursor='';private foreground=true;private destroyed=false;
-  private chatIntent?:{requestId:string;text:string;roomCode?:string};
+  private chatIntent?:{requestId:string;text:string;roomCode?:string;recipientId?:string};
   panelHistory:Online['panel'][]=[];
-  get visibleChat(){return this.chatMessages.filter(m=>!this.blockedPlayers.has(m.playerId));}
+  get visibleChat(){return (this.chatPeer&&this.bridge?.services.nightSocial?this.conversation:this.chatMessages).filter(m=>!this.blockedPlayers.has(m.playerId === this.authenticatedId ? m.recipientId || '' : m.playerId) && (this.chatInbox ? !!m.recipientId && (!this.chatPeer || m.playerId === playerId(this.chatPeer) || m.recipientId === playerId(this.chatPeer)) : !m.recipientId));}
   setForeground(value:boolean){if(this.foreground===value)return;this.foreground=value;this.chatEpoch++;this.chatNext=0;this.resetPresence();if(value)void this.checkRelease();}
   private chatAcceptedAt=0;
-  private acceptChat(result:ChatSnapshot){if(result.serverNow<this.chatAcceptedAt)return;this.chatAcceptedAt=result.serverNow;if(JSON.stringify(this.chatMessages)!==JSON.stringify(result.messages)){this.chatMessages=result.messages;this.chatRevision++;}this.chatCursor=result.cursor;}
+  private acceptChat(result:ChatSnapshot){if(result.serverNow<this.chatAcceptedAt)return;this.chatAcceptedAt=result.serverNow;if(JSON.stringify(this.chatMessages)!==JSON.stringify(result.messages)){this.chatMessages=result.messages;this.chatRevision++;this.revision++;}this.chatCursor=result.cursor;if(this.chatPeer&&this.bridge?.services.nightSocial){const peer=playerId(this.chatPeer),incoming=result.messages.filter(m=>m.recipientId&&(m.playerId===peer||m.recipientId===peer));const ids=new Set(incoming.map(m=>m.id));this.conversation=[...this.conversation.filter(m=>!ids.has(m.id)),...incoming].sort((a,b)=>a.id.length-b.id.length||a.id.localeCompare(b.id));}if(this.chatStatus==='交流暂不可用，正在重连'){this.chatStatus='';this.chatRevision++;}this.markDirectRead();}
   private async pollChat(now:number){
-    if(this.destroyed||!this.foreground||this.panel!=='menu'||!this.chatAvailable||!this.bridge?.services.nightChat||this.chatPoll||now<this.chatNext)return;
+    if(this.destroyed||!this.foreground||(this.panel!=='menu'&&!this.socialAvailable)||!this.chatAvailable||!this.bridge?.services.nightChat||this.chatPoll||now<this.chatNext)return;
     const epoch=this.chatEpoch,owner=this.authenticatedId;this.chatPoll=true;
-    try{const result=await this.bridge.services.nightChat({cursor:this.chatCursor||undefined,waitMs:this.chatCursor?5000:0},owner);if(epoch!==this.chatEpoch||owner!==this.authenticatedId||this.destroyed)return;this.acceptChat(result);this.chatStatus='';this.chatNext=performance.now()+200;}
-    catch{if(epoch===this.chatEpoch){this.chatStatus='交流暂不可用，正在重连';this.chatNext=performance.now()+4000;this.chatRevision++;}}
+    try{const result=await this.bridge.services.nightChat({cursor:this.chatCursor||undefined,waitMs:this.panel==='menu'&&this.chatCursor?5000:0,direct:this.socialAvailable},owner);if(epoch!==this.chatEpoch||owner!==this.authenticatedId||this.destroyed)return;this.acceptChat(result);this.chatNext=performance.now()+(this.panel==='menu'?200:5000);}
+    catch(error){if(epoch===this.chatEpoch){this.chatStatus='交流暂不可用，正在重连';this.chatNext=performance.now()+4000;this.chatRevision++;if(this.socialAvailable && (error as {code?:string}).code==='INVALID_INPUT')void this.checkRelease();}}
     finally{this.chatPoll=false;}
   }
   async sendChat(invite=false){
-    if(this.chatSending||!this.chatAvailable||!this.bridge?.services.sendNightChat)return;
+    if(this.inviting||this.chatSending||!this.chatAvailable||!this.bridge?.services.sendNightChat)return;
+    if(this.chatInbox && !this.chatPeer) { this.chatStatus = '先选择在线玩家或点消息回复'; this.chatRevision++; return; }
+    if(this.chatPeer && (!this.socialAvailable || this.blockedPlayers.has(playerId(this.chatPeer)))) { this.chatStatus = this.socialAvailable?'请先取消屏蔽后再私信':'私信服务暂不可用，可返回大厅交流'; this.chatRevision++; return; }
     const text=this.chatDraft.normalize('NFKC').trim();
     if(!this.chatIntent&&(!text&&!invite||Array.from(text).length>120)){this.chatStatus='请输入1–120个字';this.chatRevision++;return;}
     const room=invite?this.room:undefined;
     if(invite&&(!room||room.visibility!=='public'||room.status!=='waiting'||room.players[0]&&playerId(room.players[0])!==this.authenticatedId)){this.chatStatus='只有自己创建的公开等待房间可以邀请';this.chatRevision++;return;}
-    if(!this.chatIntent){const bytes=randomBytes();bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');this.chatIntent={requestId:`${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`,text:text||(invite?'来我的房间，一起出动！':''),...(room?{roomCode:room.code}:{})};}
+    if(!this.chatIntent){const bytes=randomBytes();bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');this.chatIntent={requestId:`${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`,text:text||(invite?'来我的房间，一起出动！':''),...(room?{roomCode:room.code}:{}),...(this.chatPeer?{recipientId:playerId(this.chatPeer)}:{})};}
     const owner=this.authenticatedId,intent=this.chatIntent;this.chatSending=true;this.chatRevision++;
     try{const result=await this.bridge.services.sendNightChat(intent,owner);if(owner!==this.authenticatedId||this.destroyed)return;this.chatEpoch++;this.chatNext=0;this.acceptChat(result);this.chatIntent=undefined;if(this.chatDraft.normalize('NFKC').trim()===intent.text)this.chatDraft='';this.chatStatus='';}
-    catch(error){if(owner!==this.authenticatedId||this.destroyed)return;const code=(error as {code?:string}).code||'';const known=['CHAT_RATE_LIMIT','CHAT_MUTED','INVALID_INPUT','INVITATION_UNAVAILABLE','REQUEST_ID_CONFLICT'].includes(code);if(known)this.chatIntent=undefined;this.chatStatus=code==='CHAT_RATE_LIMIT'?'发言间隔3秒，请稍后再发':code==='CHAT_MUTED'?'当前账号暂时无法发言':code==='INVITATION_UNAVAILABLE'?'房间已不再接受邀请':known?'消息未发送，请检查内容':'发送结果待确认，点击发送可安全重试';}
+    catch(error){if(owner!==this.authenticatedId||this.destroyed)return;const code=(error as {code?:string}).code||'';const known=['CHAT_RATE_LIMIT','CHAT_MUTED','INVALID_INPUT','INVITATION_UNAVAILABLE','REQUEST_ID_CONFLICT','RECIPIENT_UNAVAILABLE','RECIPIENT_BUSY'].includes(code);if(known)this.chatIntent=undefined;this.chatStatus=code==='CHAT_RATE_LIMIT'?'发言间隔3秒，请稍后再发':code==='CHAT_MUTED'?'当前账号暂时无法发言':code==='RECIPIENT_BUSY'?'对方已离线或正在游戏，暂不能邀请':code==='RECIPIENT_UNAVAILABLE'?'该玩家暂不可接收私信':code==='INVITATION_UNAVAILABLE'?'房间已不再接受邀请':known?'消息未发送，请检查内容':'发送结果待确认，点击发送可安全重试';}
     finally{if(owner===this.authenticatedId){this.chatSending=false;this.chatRevision++;}}
   }
   toggleBlock(id:string){if(id===this.authenticatedId)return;this.blockedPlayers.has(id)?this.blockedPlayers.delete(id):this.blockedPlayers.add(id);try{this.storage.setItem('night-chat-blocks:'+this.authenticatedId,JSON.stringify(Array.from(this.blockedPlayers)));}catch{}this.chatMenu='';this.chatRevision++;}
@@ -297,6 +408,7 @@ export class Online {
     this.bridge = bridge;
     this.unsubscribeRequests = bridge.subscribeRequests?.(result => { if (this.bridge === bridge) void this.observeRequest(result); });
     this.presenceAvailable = false;
+    this.socialAvailable = false;
     this.resetPresence();
     if (bridge) {
       const recorder = bridge.createRecorder(RANKED_RULE_VERSION, { durable: { storage: this.storage, source: (this.storage as {source?:string}).source || 'cocos.localStorage' }, startTimeoutMs: 8000, onStatus: status => {
@@ -396,12 +508,19 @@ export class Online {
     if (owner !== this.authenticatedId) { this.resetPresence(); this.recordSaveAttempt++; this.recordSaveStatus = ''; this.releaseIssue = undefined; this.pendingRequests.clear(); }
     if (owner !== this.authenticatedId) this.rewardRefresh = undefined;
     if(owner!==this.authenticatedId){this.assets=undefined;this.battleReward=undefined;this.authenticatedId=owner;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.chatIntent=undefined;this.chatSending=false;this.chatMenu='';this.chatCursor='';this.chatAcceptedAt=0;this.chatStatus='';this.chatOwner=owner;this.chatRevision++;this.blockedPlayers=new Set();try{this.blockedPlayers=new Set(JSON.parse(this.storage.getItem('night-chat-blocks:'+owner)||'[]'));}catch{}}
+    if(owner !== playerId(this.identity)) { this.chatPeer = undefined; this.chatInbox = false; this.directRead.clear();this.socialOpen=false;this.social={friends:[],requests:[],conversations:[],serverNow:0};this.socialNext=0;this.conversation=[];this.conversationEpoch++;this.conversationLoading=false;this.notification=undefined;this.notified.clear();this.readThrough=''; this.resetPresence(); }
     this.identity = metadata.identity;
     this.draftName = this.identity.nickname || this.identity.name || '';
-    this.available = metadata.capabilities.multiplayer;
-    this.ranked = metadata.capabilities.leaderboards;
-    this.chatAvailable=!!metadata.capabilities.chat&&!!this.bridge?.services.nightChat;
-    this.presenceAvailable=!!metadata.capabilities.presence&&!!this.bridge?.services.nightPresence;
+    this.acceptCapabilities(metadata.capabilities);
+    this.revision++;
+  }
+  private acceptCapabilities(capabilities: Metadata['capabilities']) {
+    this.available = capabilities.multiplayer;
+    this.ranked = capabilities.leaderboards;
+    this.chatAvailable=!!capabilities.chat&&!!this.bridge?.services.nightChat;
+    if(this.socialAvailable && !capabilities.social) { this.playersCursor = this.playersNext = undefined; this.playersPrevious = []; this.onlinePlayers = []; this.presenceEpoch++; this.presenceNext = 0; this.chatEpoch++; this.chatCursor = ''; this.chatNext = 0; }
+    this.socialAvailable=!!capabilities.social;if(!this.socialAvailable)this.notification=undefined;
+    this.presenceAvailable=!!capabilities.presence&&!!this.bridge?.services.nightPresence;
     if (!this.presenceAvailable) this.resetPresence();
     this.revision++;
   }
@@ -584,6 +703,21 @@ export class Online {
     } catch { if (generation === this.generation) this.message = '准备状态更新失败，请重试'; }
     finally { if (generation === this.generation) { this.busy = false; this.revision++; } }
   }
+  async rematch(){
+    if(!this.room||!this.view?.finished||this.spectator||this.busy||!this.bridge?.services.connectRoom)return false;
+    const generation=this.generation,code=this.room.code;this.busy=true;this.message='';this.revision++;
+    try {
+      const next=await this.requestRoom(async()=>{
+        const old=await this.bridge!.services.roomAction({code,operation:'rematch'});
+        if(generation!==this.generation||!old.rematch)return;
+        return this.bridge!.services.connectRoom!({code:old.rematch});
+      });
+      if(!next||generation!==this.generation)return false;
+      this.view=undefined;this.pending=undefined;this.commands=[];this.roomKey='';this.enteringUntil=0;
+      this.panel='room';this.accept(next);this.nextPoll=0;return true;
+    }catch{if(generation===this.generation)this.message='再战准备未完成，队友可能已退出；可重试或退出房间';return false;}
+    finally{if(generation===this.generation){this.busy=false;this.revision++;}}
+  }
   leave() {
     this.restoreRoomOnConnect = false;
     const room = this.room; this.generation++; this.busy = false; this.opening = ''; this.inflight = false;
@@ -615,6 +749,7 @@ export class Online {
     if (this.foreground && now - this.releaseCheckedAt >= 60000) void this.checkRelease();
     if (this.foreground && this.recordSaveStatus === 'failed' && Date.now() - this.recordSaveAt >= 5000) void this.saveRecords();
     void this.pollPresence(now);
+    void this.refreshSocial(now);
     void this.refreshBattleAssets(now);
     void this.pollChat(now);
     if (now >= this.syncAt) { this.syncAt = now + 10000; void this.recorder?.recover?.(); }
@@ -627,14 +762,14 @@ export class Online {
     }
     if (this.entering) return;
     if (this.panel === 'menu' && now >= this.listAt) { if (!this.room) { await this.loadRooms(); return; } void this.loadRooms(); }
-    if (!this.room || !['waiting', 'playing'].includes(this.room.status) || !this.bridge || this.busy || this.inflight || now < this.nextPoll || this.view?.finished) return;
+    if (!this.room || !['waiting', 'playing','finished'].includes(this.room.status) || !this.bridge || this.busy || this.inflight || now < this.nextPoll) return;
     const generation = this.generation, code = this.room.code;
-    this.inflight = true; this.nextPoll = now + (this.room.status === 'playing' ? 100 : 1000);
+    this.inflight = true; this.nextPoll = now + (this.room.status === 'playing'&&!this.view?.finished ? 100 : this.room.status==='finished'?3000:1000);
     try {
       const room = await this.requestRoom(async () => {
       if (generation !== this.generation || !this.room || !this.bridge) return;
       let room: Room;
-      if (this.room.status === 'playing' && !this.spectator) {
+      if (this.room.status === 'playing' && !this.spectator&&!this.view?.finished) {
         this.pending ||= { seq: this.room.seq + 1, action: { commands: this.commands.splice(0, 64), keepAlive: true } };
         try { room = await this.bridge.services.roomAction({ code, operation: 'actions', body: this.pending }); }
         catch (error) {
@@ -687,7 +822,8 @@ export class Online {
         const state = { ...room.state, finished: true, winner: null, simulation: { ...room.state.simulation, phase: 'failure' as const } };
         this.message = '房间已结束'; this.acceptView(state); return;
       }
-      this.acceptView(room.state);
+      if(this.view?.finished&&room.state.finished)this.view=room.state;
+      else this.acceptView(room.state);
     }
     else if (!['waiting', 'playing'].includes(room.status)) this.message = '房间已结束或对手已离开，请返回';
   }

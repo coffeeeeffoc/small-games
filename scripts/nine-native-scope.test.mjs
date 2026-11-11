@@ -1262,3 +1262,42 @@ test('Homebound source and Creator-only ad bridge select TapTap without entering
     [],
   );
 });
+
+test('canonical dev-mode mirrors accept only the two reviewed Xiangqi gitlinks and retain all consumers', async () => {
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const packages = await workspacePackages(root);
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const readHead = (file) =>
+    readFileSync(new URL('../' + file, import.meta.url), 'utf8').replaceAll('\r\n', '\n');
+  const changedPaths = ['platforms/h5/dev-mode.js', 'platforms/h5/dev-mode.d.ts'];
+  const source = 'games/submodules/xiangqi-five';
+  const context = {
+    games,
+    packages,
+    changedPaths,
+    readHead,
+    readBase: (file) =>
+      execFileSync('git', ['show', '76e3adc47981a116d819d80bbc2f9e0d7c44a0c0:' + file], {
+        encoding: 'utf8',
+      }),
+  };
+  for (const sha of [
+    '0b7d2b346a670e7300ce9126728c76b6018c0c98',
+    'd68f82b674ddb66a1e0f87e8d4639cd4e397b927',
+  ]) {
+    const scopes = nineNativeFileScopes({
+      ...context,
+      readHeadEntry: () => `160000 commit ${sha}\t${source}\n`,
+    });
+    for (const file of changedPaths) {
+      assert(scopes.get(file)?.includes(source));
+      assert(scopes.get(file)?.includes('apps/shell-web'));
+      assert(scopes.get(file).length >= 40);
+    }
+  }
+  const bad = { ...context, readHeadEntry: () => `160000 commit ${'a'.repeat(40)}\t${source}\n` };
+  assert.equal(nineNativeFileScopes(bad).size, 0);
+});

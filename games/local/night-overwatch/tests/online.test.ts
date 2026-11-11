@@ -18,6 +18,74 @@ function fixture() {
 }
 
 const release = (overrides: Partial<Release> = {}): Release => ({ currentBuildId: 'old', latestBuildId: 'new', update: 'optional', canStartNewGames: true, admissions: { ranked: true, multiplayer: true }, action: 'reopen', ...overrides });
+test('private conversations isolate recipients and retry the same intent before changing peers',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{}),sent:any[]=[];
+  f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
+  Object.assign(f.bridge.services,{nightChat:async()=>({messages:[],cursor:'',reset:true,serverNow:0}),sendNightChat:async(input:any)=>{sent.push({...input});if(sent.length===1)throw Error('network');return {messages:[{id:'1',playerId:'a',nickname:'A',at:1,...input}],cursor:'x',reset:true,serverNow:1};}});
+  await online.connect(f.bridge);online.show('menu');online.selectChat({playerId:'b',nickname:'B'});online.chatDraft='私聊';await online.sendChat();
+  online.selectChat({playerId:'c',nickname:'C'});assert.equal(playerId(online.chatPeer!),'b');
+  await online.sendChat();assert.deepEqual(sent[0],sent[1]);assert.equal(sent[0].recipientId,'b');
+  online.chatMessages.push({id:'2',playerId:'c',nickname:'C',recipientId:'a',text:'另一会话',at:2},{id:'3',playerId:'c',nickname:'C',text:'公开',at:3});
+  assert.equal(online.visibleChat.length,1);assert.equal(online.directUnread,1);
+  online.selectChat(undefined,true);assert.equal(online.visibleChat.length,2);assert.equal(online.directUnread,0);
+  online.selectChat();assert.deepEqual(online.visibleChat.map(m=>m.id),['3']);
+  online.selectChat({playerId:'b',nickname:'B'});online.toggleBlock('b');assert.equal(online.visibleChat.length,0);online.dispose();
+});
+test('a direct invitation creates one public room and sends to the selected player',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});let created=0;const sent:any[]=[];
+  f.current.visibility='public';f.current.players=[{id:'a'}];
+  f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
+  Object.assign(f.bridge.services,{createRoom:async(input:any)=>{created++;assert.equal(input.visibility,'public');return f.current;},nightChat:async()=>({messages:[],cursor:'',reset:true,serverNow:0}),sendNightChat:async(input:any)=>{sent.push(input);return {messages:[],cursor:'',reset:true,serverNow:1};}});
+  await online.connect(f.bridge);await online.invitePlayer({playerId:'b'});
+  assert.equal(created,1);assert.equal(sent[0].recipientId,'b');assert.equal(sent[0].roomCode,f.current.code);assert.equal(online.panel,'menu');online.dispose();
+});
+test('creating a direct invitation pins its recipient across attempted channel switches',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});let finish!:(value:any)=>void;const sent:any[]=[];
+  f.current.visibility='public';f.current.players=[{id:'a'}];
+  f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
+  Object.assign(f.bridge.services,{createRoom:()=>new Promise(r=>{finish=r;}),nightChat:async()=>({messages:[],cursor:'',reset:true,serverNow:0}),sendNightChat:async(input:any)=>{sent.push(input);return {messages:[],cursor:'',reset:true,serverNow:1};}});
+  await online.connect(f.bridge);const invite=online.invitePlayer({playerId:'b'});await new Promise(r=>setImmediate(r));
+  online.selectChat({playerId:'c'});online.selectChat();online.chatDraft='建房时不能抢先发送';await online.sendChat();assert.equal(sent.length,0);finish(f.current);await invite;
+  assert.equal(sent[0].recipientId,'b');online.dispose();
+});
+test('capability refresh after a rollback drops new read parameters but never publishes a private draft',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});let social=true;const requests:any[]=[];let sent=0;
+  const metadata=()=>({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,presence:true,social}});
+  f.bridge.ready=Promise.resolve(metadata());Object.assign(f.bridge,{refresh:async()=>metadata()});
+  Object.assign(f.bridge.services,{nightChat:async(input:any)=>{requests.push(input);if(!social&&input.direct)throw Object.assign(Error(),{code:'INVALID_INPUT'});return {messages:[],cursor:'x',reset:true,serverNow:1};},sendNightChat:async()=>{sent++;},nightPresence:async()=>({onlineCount:1})});
+  await online.connect(f.bridge);online.show('menu');online.selectChat({playerId:'b'});online.chatDraft='保密';online.playersCursor='old-page';social=false;
+  await online.pump(performance.now()+10000);await new Promise(r=>setImmediate(r));
+  assert.equal(online.socialAvailable,false);assert.equal(online.playersCursor,undefined);await online.sendChat();assert.equal(sent,0);
+  online.selectChat();await online.pump(performance.now()+10000);await new Promise(r=>setImmediate(r));assert.equal(requests.at(-1).direct,false);online.dispose();
+});
+test('unknown private delivery can be abandoned after rollback without exposing it publicly',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{}),sent:any[]=[];let social=true;
+  const metadata=()=>({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social}});
+  f.bridge.ready=Promise.resolve(metadata());Object.assign(f.bridge,{refresh:async()=>metadata()});
+  Object.assign(f.bridge.services,{nightChat:async()=>({messages:[],cursor:'x',reset:true,serverNow:1}),sendNightChat:async(input:any)=>{sent.push(input);if(sent.length===1)throw Error('lost response');return {messages:[],cursor:'x',reset:true,serverNow:2};}});
+  await online.connect(f.bridge);online.selectChat({playerId:'b'});online.chatDraft='私密内容';await online.sendChat();social=false;await online.checkRelease();online.selectChat();
+  assert.equal(online.chatPeer,undefined);assert.equal(online.chatDraft,'');assert.match(online.chatStatus,/暂未确认/);
+  online.chatDraft='新的公开消息';await online.sendChat();assert.equal(sent[1].recipientId,undefined);assert.equal(sent[1].text,'新的公开消息');online.dispose();
+});
+test('global social notifications and conversation read cursors work during a battle without leaving it',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{}),reads:any[]=[];
+  const msg={id:'9',playerId:'b',nickname:'B',recipientId:'a',text:'战斗中收到',at:2};
+  const result={friends:[{playerId:'b',nickname:'B',status:'offline'}],requests:[],conversations:[{playerId:'b',nickname:'B',lastMessage:msg,lastReadId:'0',unread:1}],serverNow:2};
+  f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
+  Object.assign(f.bridge.services,{nightSocial:async(input:any)=>{if(input){reads.push(input);return {...result,conversations:[{...result.conversations[0],unread:0}],serverNow:3};}return result;},nightChat:async()=>({messages:[msg],cursor:'x',reset:true,serverNow:2})});
+  await online.connect(f.bridge);await online.open('friend');const original=online.room;online.activity='playing';
+  await online.refreshSocial(1e9);assert.equal(online.notification?.id,'9');assert.equal(online.directUnread,1);assert.equal(online.canInvite(result.friends[0] as any),false);
+  online.openConversation({playerId:'b',nickname:'B'});await new Promise(r=>setImmediate(r));
+  assert(online.socialOpen);assert.equal(online.room,original);assert.equal(online.visibleChat[0].text,'战斗中收到');assert.deepEqual(reads,[{action:'read',playerId:'b',throughId:'9'}]);
+  online.closeConversation();assert.equal(online.room,original);assert.equal(online.directUnread,0);online.dispose();
+});
+test('finished human rooms keep polling and rematch takes a fresh lease without reusing commands',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});await online.connect(f.bridge);await online.open('friend');
+  f.current.status='finished';f.current.state={...viewDuel(createDuel(41)),finished:true};await online.pump(1e9);assert(online.room);assert(online.view?.finished);
+  let polls=0;f.bridge.services.getRoom=async()=>{polls++;return {...f.current,rematch:'654321'};};await online.pump(1e9+4000);assert.equal(polls,1);assert.equal(online.room?.code,f.current.code);
+  f.bridge.services.roomAction=async()=>({...f.current,rematch:'654321'});Object.assign(f.bridge.services,{connectRoom:async({code}:any)=>({...room(),code})});
+  assert.equal(await online.rematch(),true);assert.equal(online.room?.code,'654321');assert.equal(online.view,undefined);assert.equal(online.panel,'room');online.dispose();
+});
 test('version metadata never blocks working interfaces; checks never interrupt play', async () => {
   const f = fixture(), online = new Online(storage(), () => {});
   let next: Release | undefined = release(), fail = false;

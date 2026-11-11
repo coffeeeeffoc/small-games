@@ -43,6 +43,7 @@ import { ProgressionArt } from './ProgressionArt';
 import { ProgressionView } from './ProgressionView';
 import type { Quartermaster } from './Quartermaster';
 import { SettingsGuideView } from './SettingsGuideView';
+import { SocialView } from './SocialView';
 import { SupportPanelView } from './SupportPanelView';
 import type { World } from './World';
 import { WorldOverlayView } from './WorldOverlayView';
@@ -80,6 +81,9 @@ export class HUD {
   private readonly missionView = new MissionPanelView(this);
   private readonly onlineView = new OnlineLobbyView(this, () => this.missionArtwork);
   private readonly settingsView = new SettingsGuideView(this);
+  private readonly socialView = new SocialView(this);
+  updatesOpen=false;
+  majorUpdate=false;
   listAreas: Array<{
     key: string;
     x: number;
@@ -759,7 +763,7 @@ export class HUD {
     return this.drawing.icon(graphics, kind, x, y, size, color);
   }
   isGlobalAction(id: string) {
-    return id === 'settings' || id === 'screen';
+    return id === 'settings' || id === 'screen'||['social:reply','social:inbox','social:dismiss','social:updates'].includes(id);
   }
   corners(graphics: Graphics, x: number, y: number, width: number, height: number, tone: string, arm = 14) {
     return this.drawing.corners(graphics, x, y, width, height, tone, arm);
@@ -857,9 +861,12 @@ export class HUD {
     return this.drawing.panelFrame(graphics, x, y, width, height, accent, dim, header);
   }
   renderModal(key: string, simulation: Simulation, world: World) {
+    if(this.online?.socialOpen)key='social:'+this.online.chatRevision+':'+this.online.revision;
+    else if(this.updatesOpen)key='updates';
     const family = key.startsWith('online:')
       ? key.split(':').slice(0, 2).join(':')
       : key.split(':')[0];
+    if(family==='social'&&this.modalFamily==='social'&&this.modal){this.socialView.render(this.modal);this.modalKey=key;return;}
     if (
       family === 'online:menu' &&
       this.modalFamily === family &&
@@ -949,6 +956,8 @@ export class HUD {
     this.node('Backdrop', parentNode).addComponent(Graphics);
     this.surfaces = this.node('Surfaces', parentNode);
     const graphics = this.node('Ink', parentNode).addComponent(Graphics);
+    if(family==='social'){this.socialView.render(parentNode,true);return;}
+    if(key==='updates'){this.settingsView.renderUpdates(parentNode,graphics);return;}
     if (key.startsWith('storageError:')) {
       this.supportView.renderStorageError(parentNode, graphics, simulation, key);
       return;
@@ -1044,7 +1053,8 @@ export class HUD {
         : this.t('战斗补给', 'COMBAT SUPPLY');
   }
   update(simulation: Simulation, world: World) {
-    return this.battleView.update(simulation, world);
+    this.battleView.update(simulation, world);
+    this.socialView.updateBanner();
   }
 
   drawMinimap(simulation: Simulation) {

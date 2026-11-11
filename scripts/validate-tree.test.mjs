@@ -189,7 +189,14 @@ test('admin deployment contract actually executes and fails closed independently
     execute: (command, args) => calls.push([command, ...args]),
   };
   runIncrementalToolChecks(options);
-  assert.deepEqual(calls, [[process.execPath, '--test', 'scripts/deploy-admin.test.mjs']]);
+  assert.deepEqual(calls, [
+    [
+      process.execPath,
+      '--test',
+      'scripts/deploy-admin.test.mjs',
+      'scripts/prepare-night-server.test.mjs',
+    ],
+  ]);
   assert.throws(
     () =>
       runIncrementalToolChecks({

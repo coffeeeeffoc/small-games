@@ -67,7 +67,9 @@ test('release browser import accepts only its precise additive dependency edge',
   const before = execFileSync('git', ['show', 'b2a9dc3e581dc79fd60bede8c1606b7d583ad71a:' + file], {
       encoding: 'utf8',
     }),
-    after = read(file);
+    after = execFileSync('git', ['show', '20ecbab971a083f767675658dcf90252a842960e:' + file], {
+      encoding: 'utf8',
+    });
   assert(nightReleaseImportsScope(before, after));
   assert(!nightReleaseImportsScope(before, after + '\nunsafe();'));
   assert(!nightReleaseImportsScope(before, after.replace('release-browser.mjs', 'other.mjs')));
@@ -77,7 +79,7 @@ test('release browser import accepts only its precise additive dependency edge',
       packages,
       changedPaths: [file],
       readBase: () => before,
-      readHead: read,
+      readHead: (name) => (name === file ? after : read(name)),
     }).get(file),
     [source, 'services/runtime-api'],
   );
@@ -203,7 +205,7 @@ test('version counter tools and exact build wiring select their real consumers',
         ['show', '9c9c3797a7a85d3b5cd2f18dbc8d39cd6fd1f001:' + file],
         { encoding: 'utf8' },
       ),
-      after = read(file);
+      after = execFileSync('git', ['show', '1dc3f31d:' + file], { encoding: 'utf8' });
     assert(nightVersionBuildScope(file, before, after));
     assert(!nightVersionBuildScope(file, before, after + '\nunsafe();'));
     const changed =
@@ -214,9 +216,12 @@ test('version counter tools and exact build wiring select their real consumers',
           : after.replace('night-build-version.mjs', 'unknown.mjs');
     assert(!nightVersionBuildScope(file, before, changed));
     assert.deepEqual(
-      reviewedSharedFileScopes({ ...options, changedPaths: [file], readBase: () => before }).get(
-        file,
-      ),
+      reviewedSharedFileScopes({
+        ...options,
+        changedPaths: [file],
+        readBase: () => before,
+        readHead: (name) => (name === file ? after : read(name)),
+      }).get(file),
       [source],
     );
   }

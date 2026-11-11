@@ -1,5 +1,51 @@
 import { test } from 'node:test';
 
+test('Night social wiring preserves earlier consumers and rejects unreviewed bytes', async () => {
+  const { nightSocialPrevious } = await import('./publication-scopes.mjs');
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url)),
+  );
+  const packages = await workspacePackages(root);
+  const changedPaths = [
+    'infra/migrations/018-night-direct-messages.sql',
+    'scripts/prepare-night-server.mjs',
+    'scripts/prepare-night-server.test.mjs',
+    'scripts/competition.mjs',
+    'scripts/platform.mjs',
+    'scripts/deploy-tencent.mjs',
+    'scripts/deploy-tencent.test.mjs',
+    'scripts/h5-taptap-runtime.mjs',
+    'scripts/h5-taptap-runtime.test.mjs',
+    'platforms/competition/game-services.js',
+    'scripts/competition-gateway.mjs',
+    'scripts/competition-gateway.test.mjs',
+    'scripts/competition-ingress.mjs',
+    'scripts/competition-ingress.test.mjs',
+    'scripts/check-workspace-dependencies.mjs',
+  ];
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  for (const file of changedPaths) {
+    assert.notEqual(nightSocialPrevious(file, readHead(file)), undefined, file);
+    assert.equal(nightSocialPrevious(file, readHead(file) + '\n// unexpected'), undefined, file);
+    assert.equal(nightSocialPrevious(file + '.unknown', readHead(file)), undefined, file);
+  }
+  for (const base of [
+    '20ecbab971a083f767675658dcf90252a842960e',
+    '76e3adc47981a116d819d80bbc2f9e0d7c44a0c0',
+  ]) {
+    const readBase = (file) =>
+      file.includes('018-night-direct') || file.startsWith('scripts/prepare-night-server')
+        ? null
+        : execFileSync('git', ['show', base + ':' + file], { encoding: 'utf8' });
+    const scopes = reviewedSharedFileScopes({ changedPaths, readBase, readHead, games, packages });
+    for (const file of changedPaths)
+      assert(scopes.get(file)?.includes('services/runtime-api'), base + ':' + file);
+    assert(scopes.get('scripts/prepare-night-server.mjs').includes('services/management-api'));
+  }
+});
+
 test('Night IndexedDB files and its sole Turbo input select only Night and reject unrelated drift', () => {
   const games = JSON.parse(
     readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
@@ -6969,5 +7015,42 @@ test('Echo share URL repair selects its real consumer for immediate and cumulati
         0,
       );
     }
+  }
+});
+
+test('cumulative Night release and polyfill wiring keeps both consumers and rejects extra changes', async () => {
+  const { nightVersionAndPolyfillTurboOnly } = await import('./publication-scopes.mjs');
+  const before = execFileSync(
+    'git',
+    ['show', '76e3adc47981a116d819d80bbc2f9e0d7c44a0c0:turbo.json'],
+    { encoding: 'utf8' },
+  );
+  const after = readFileSync(new URL('../turbo.json', import.meta.url), 'utf8');
+  assert(nightVersionAndPolyfillTurboOnly(before, after));
+  const changed = JSON.parse(after);
+  changed.tasks.build.outputs.push('unreviewed');
+  assert(!nightVersionAndPolyfillTurboOnly(before, JSON.stringify(changed)));
+});
+
+test('Runtime frozen-format and release configuration changes are bound to reviewed bytes', async () => {
+  const { workspacePackages } = await import('./validation-plan.mjs');
+  const packages = await workspacePackages(fileURLToPath(new URL('../', import.meta.url)));
+  const games = JSON.parse(
+    readFileSync(new URL('../apps/shell-web/src/standalone-games.json', import.meta.url), 'utf8'),
+  );
+  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const readBase = (file) =>
+    execFileSync('git', ['show', '76e3adc47981a116d819d80bbc2f9e0d7c44a0c0:' + file], {
+      encoding: 'utf8',
+    });
+  for (const file of ['.prettierignore', 'infra/tencent/compose.yaml']) {
+    const context = { packages, games, readHead, readBase, changedPaths: [file] };
+    assert.deepEqual(reviewedSharedFileScopes(context).get(file), ['services/runtime-api']);
+    assert(
+      !reviewedSharedFileScopes({
+        ...context,
+        readHead: (name) => readHead(name) + (name === file ? '\nUNREVIEWED' : ''),
+      }).has(file),
+    );
   }
 });

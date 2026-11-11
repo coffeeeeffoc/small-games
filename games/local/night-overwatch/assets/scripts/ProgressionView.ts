@@ -190,7 +190,10 @@ export class ProgressionView {
     }
     const fh=Math.max(44,h*.11),fy=Math.min(Math.max(body+8,h*.452),cy-2*fh-14);
     // A short screen cannot fit both the version button and the online count above the side panel.
-    if(this.h.online&&!(this.h.online.updateNotice&&fy-28<body+50)){this.h.rect(this.g,r-fw,fy-28,fw,24,'#07121cdd');this.label(this.h.online.onlineLabel(this.h.lang),r-fw,fy-28,fw,24,24,ivory);}
+    if(this.h.online&&fy-44>=top+Math.max(44,bar)+8&&!(this.h.online.updateNotice&&fy-44<body+50)){
+      const online=this.h.online,caption=online.onlineLabel(this.h.lang)+(online.directUnread?this.t(` · 私信${online.directUnread}`,` · DM ${online.directUnread}`):' ›');
+      this.h.rect(this.g,r-fw,fy-44,fw,44,'#07121cdd');this.h.button('online:players',caption,r-fw,fy-44,fw,44,this.n).fontSize=this.font(24,11);
+    }
     this.panel(r-fw,fy,fw,fh*2+6);this.button('qm:checkin',this.t('每日签到','CHECK IN'),r-fw+5,fy+3,fw-10,fh);
     this.button('qm:supply',this.t('补给·抽奖','SUPPLY & WHEEL'),r-fw+5,fy+fh+3,fw-10,fh);
     for(const [i,[id,key,zh,en]]of [['shop','homeShop','军需商店','ARMORY'],['growth','homeGrowth','等级成长','GROWTH'],['tasks','homeTasks','任务','TASKS'],['warehouse','homeWarehouse','我的仓库','WAREHOUSE']].entries()){
@@ -785,8 +788,8 @@ export class ProgressionView {
     const earned=credited&&reward?.fragments?[(reward.firstClear===undefined?'':this.t(reward.firstClear?'首通奖励 · ':'重复通关 · ',reward.firstClear?'FIRST CLEAR · ':'REPEAT CLEAR · ')),Object.entries(reward.fragments).map(([id,n])=>`${this.catalogName(id)} +${n}`).join(' · ')].join(''):'';
     this.label(status+(earned?'\n'+earned:record?'\n'+record:''),x+20,y+ph-(this.low?104:172*this.scale),pw-40,this.low?42:60*this.scale,23,credited?'#94da90':dim);
     const bw=this.low?(pw-(extra?88:76))/(extra?3:2):pw*.36,by=y+ph-(this.low?58:105*this.scale),bh=this.low?48:80*this.scale;
-    this.button('home',this.t('返回基地','RETURN TO BASE'),this.low?x+24:x+pw*.07,by,bw,bh,'blue');
-    this.button(s.duelMode?'online:backLobby':'retry',this.t(s.duelMode?'返回大厅':'再次出动',s.duelMode?'BACK TO LOBBY':'DEPLOY AGAIN'),this.low?x+52+bw:x+pw*.57,by,bw,bh,'gold');
+    this.button(duel&&!online?.spectator?'online:backLobby':'home',this.t(duel&&!online?.spectator?'退出房间':'返回基地',duel&&!online?.spectator?'LEAVE ROOM':'RETURN TO BASE'),this.low?x+24:x+pw*.07,by,bw,bh,'blue');
+    this.button(s.duelMode&&!online?.spectator?'online:roomReturn':s.duelMode?'online:backLobby':'retry',this.t(s.duelMode&&!online?.spectator?'留在房间':s.duelMode?'返回大厅':'再次出动',s.duelMode&&!online?.spectator?'STAY IN ROOM':s.duelMode?'BACK TO LOBBY':'DEPLOY AGAIN'),this.low?x+52+bw:x+pw*.57,by,bw,bh,'gold');
     if(this.low&&extra)this.button(extra[0],this.t(extra[1].replace(' ›',''),extra[2].replace(' ›','')),x+64+bw*2,y+ph-58,bw,48,next?'gold':'blue');
   }
 }

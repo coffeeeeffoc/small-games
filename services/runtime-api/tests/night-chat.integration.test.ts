@@ -26,6 +26,7 @@ const url = process.env.COMPETITION_TEST_DATABASE_URL;
       database = openDatabase(url, 'runtime');
       await database.db.execute(sql`delete from runtime.night_chat_reports`);
       await database.db.execute(sql`delete from runtime.night_chat_messages`);
+      await database.db.execute(sql`delete from runtime.night_direct_messages`);
       await database.db.execute(sql`delete from runtime.night_chat_limits`);
       const rule = (await import(new URL('../rules/night.mjs', import.meta.url).href))
         .default as Rule;

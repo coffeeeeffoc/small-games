@@ -169,10 +169,10 @@
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 4793,
-      "sha256": "16e3d55b5ebf0b4d30863ae45e68ef9ffbb650a8a3638afa836addb5505c4be7",
-      "verifiedForSourceHash": "925572c14809cf36c777a971ee87bd9ad60b0cb45bae9991ba0b8e124c1da638",
-      "capturedSourceHash": "925572c14809cf36c777a971ee87bd9ad60b0cb45bae9991ba0b8e124c1da638",
+      "bytes": 5505,
+      "sha256": "a207afab1806ddffa8bd77ceb26970ebe5f700aa1b58f639d99a18d338e99609",
+      "verifiedForSourceHash": "af1ec9343823235fa677e1e6b8c6f1e6407413c74088db848c758d1657d3de57",
+      "capturedSourceHash": "af1ec9343823235fa677e1e6b8c6f1e6407413c74088db848c758d1657d3de57",
       "reusedUnchanged": false
     },
     {
