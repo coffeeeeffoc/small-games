@@ -213,8 +213,45 @@ main.control-main {
 }
 .control-center input[type='file'] {
   display: block;
-  max-width: 100%;
+  width: min(100%, 560px);
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.control-center input[type='file']::file-selector-button {
   min-height: 44px;
+  margin-inline-end: 12px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 600;
+  cursor: inherit;
+}
+.control-center input[type='file']:not(:disabled):hover {
+  border-color: var(--blue);
+}
+.control-center input[type='file']:not(:disabled):hover::file-selector-button {
+  background: #e8edff;
+}
+.control-center input[type='file']:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.control-center input[type='file']:disabled {
+  background: var(--paper);
+  cursor: not-allowed;
+}
+.control-center input[type='file']:disabled::file-selector-button {
+  background: var(--line);
+  color: var(--muted);
 }
 .control-check {
   margin: 20px 0;
