@@ -37,6 +37,7 @@ export type AssetSnapshot = {
   mail:AssetMail[];announcements:Array<{id:string;title:string;body:string;createdAt:number}>;
   videoOrders:VideoOrder[];signedDays:string[];signedToday:boolean;day:string;serverNow:number;
   videoDailyLimit:number;videosToday:number;catalog:Product[];packages:typeof PACKAGES;pools:typeof POOLS;
+  packDailyLimit?:number;
   quoteVersion:string;adVerification:string;legacyPreserved:boolean;lastReceipt?:Record<string,unknown>;
   openReceipts?:OpenReceipt[];
   devToolsEnabled?:boolean;

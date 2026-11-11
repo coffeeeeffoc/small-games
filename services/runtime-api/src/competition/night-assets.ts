@@ -211,6 +211,8 @@ const board = 'night-overwatch:private-assets-v3';
 const walletId = (owner: string) => `night-assets:${owner}`;
 const eventId = (owner: string, event: string) => `night-assets-event:${owner}:${event}`;
 export const nightDay = (at: number) => new Date(at + 8 * 3600000).toISOString().slice(0, 10);
+const WHEEL_DAILY_LIMIT = 10;
+const PACK_DAILY_LIMIT = 10;
 const cutoff = Date.parse('2026-11-01T00:00:00+08:00');
 const fail = (code: string): never => {
   throw new CompetitionError(code, 422);
@@ -594,7 +596,8 @@ function snapshot(
     signedToday: w.signedDays.includes(nightDay(at)),
     day: nightDay(at),
     serverNow: at,
-    videoDailyLimit: 12,
+    videoDailyLimit: WHEEL_DAILY_LIMIT + PACK_DAILY_LIMIT,
+    packDailyLimit: PACK_DAILY_LIMIT,
     videosToday: w.videoDays[nightDay(at)] ?? 0,
     catalog: rules.catalog,
     packages: rules.packages,
@@ -704,7 +707,7 @@ export async function nightAssets(
       openReceipts,
       wheelTickets: w.wheelTickets ?? 0,
       wheelVideosToday: w.wheelVideoDays?.[day] ?? 0,
-      wheelDailyLimit: 5,
+      wheelDailyLimit: WHEEL_DAILY_LIMIT,
       wheelPrizes: rules.wheelPrizes ?? [],
       ...(lastReceipt ? { lastReceipt } : {}),
     };
@@ -845,8 +848,11 @@ export async function nightAssets(
   } else if (cmd.kind === 'ad-start' || cmd.kind === 'ad-complete') {
     const order = w.videoOrders.find((o) => o.id === cmd.orderId) ?? fail('ORDER_NOT_FOUND');
     if (order.delivered) fail('ALREADY_CLAIMED');
-    if ((w.videoDays[day] ?? 0) >= 12) fail('DAILY_VIDEO_LIMIT');
-    if (order.purpose === 'wheel' && (w.wheelVideoDays?.[day] ?? 0) >= 5) fail('DAILY_WHEEL_LIMIT');
+    const wheel = order.purpose === 'wheel';
+    const wheelVideos = w.wheelVideoDays?.[day] ?? 0;
+    if (wheel && wheelVideos >= WHEEL_DAILY_LIMIT) fail('DAILY_WHEEL_LIMIT');
+    if (!wheel && (w.videoDays[day] ?? 0) - wheelVideos >= PACK_DAILY_LIMIT)
+      fail('DAILY_VIDEO_LIMIT');
     if (cmd.kind === 'ad-start') {
       const playing = w.videoOrders.find(
         (o) => !o.delivered && o.attempt && at - o.attempt.startedAt < 30 * 60000,
@@ -867,7 +873,7 @@ export async function nightAssets(
         await recordNightAdAudit(tx, owner, at, 'ad-complete', 'FAST_CALLBACK');
       order.completed++;
       w.videoDays[day] = (w.videoDays[day] ?? 0) + 1;
-      if (order.purpose === 'wheel') {
+      if (wheel) {
         w.wheelVideoDays ??= {};
         w.wheelVideoDays[day] = (w.wheelVideoDays[day] ?? 0) + 1;
       }
@@ -875,7 +881,7 @@ export async function nightAssets(
       progress(w, day, ['video']);
       if (order.completed === order.required) {
         order.delivered = true;
-        if (order.purpose === 'wheel') {
+        if (wheel) {
           w.wheelTickets = (w.wheelTickets ?? 0) + 1;
           result.tickets = 1;
         } else

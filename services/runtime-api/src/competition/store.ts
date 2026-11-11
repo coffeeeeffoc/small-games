@@ -15,8 +15,9 @@ import {
   backfillNightClears,
   nightBoard,
   nightHistory,
+  nightHistoryCounts,
+  nightHistorySummary,
   nightLedgerLock,
-  nightSummary,
   settleNightRoom,
 } from './night-ledger.js';
 import { createCompetitionIdentities } from './identity-store.js';
@@ -59,7 +60,7 @@ type RankingRow = ReturnType<typeof publicProfile> & {
   rank: number;
   position: number;
   total: number;
-};
+} & Partial<ReturnType<typeof nightHistorySummary>>;
 type Ranking = {
   board: string;
   top: RankingRow[];
@@ -142,30 +143,38 @@ export function createCompetitionStore(
       });
     const playerId = auth;
     const night = board.startsWith('night-overwatch:');
-    const order = sql`b.score desc,b.secondary asc${board === nightBoard('clears') ? sql`,coalesce(points.score,0) desc` : sql``}${night ? sql`,b.updated_at asc` : sql``},b.player_id`;
+    const clears = board === nightBoard('clears');
+    const winRate = board === nightBoard('win-rate');
+    const secondaryOrder = winRate ? sql`coalesce(duels.games,0) desc` : sql`b.secondary asc`;
+    const order = sql`b.score desc,${secondaryOrder}${clears ? sql`,coalesce(points.score,0) desc` : sql``}${night ? sql`,b.updated_at asc` : sql``},b.player_id`;
     const rankedRows = await executor.execute(sql`with ranked as (
       select b.player_id as "playerId", p.display_name,p.profile, b.score, b.secondary,
+      ${winRate ? sql`duels.games,duels.wins,duels.losses,duels.draws,` : sql``}
       ${night ? sql`row_number() over(order by ${order})` : sql`rank() over(order by b.score desc,b.secondary asc)`}::int as rank,
       row_number() over(order by ${order})::int as position,
       count(*) over()::int as total from runtime.competition_best b join runtime.competition_players p on p.id=b.player_id
-      ${board === nightBoard('clears') ? sql`left join runtime.competition_best points on points.player_id=b.player_id and points.board=${nightBoard('points')}` : sql``}
+      ${clears ? sql`left join runtime.competition_best points on points.player_id=b.player_id and points.board=${nightBoard('points')}` : sql``}
+      ${
+        winRate
+          ? sql`left join (
+        select data->>'playerId' as player_id, ${nightHistoryCounts}
+        from runtime.competition_matches where board=${nightBoard('history')} group by 1
+      ) duels on duels.player_id=b.player_id::text`
+          : sql``
+      }
       where b.board=${board}
     ) select * from ranked where position<=100 or "playerId"=${playerId}
       or position=(select max(position) from ranked where rank<(select rank from ranked where "playerId"=${playerId})) order by position`);
-    const rows = await Promise.all(
-      rankedRows.map(async (row) => ({
-        ...publicProfile(row),
-        playerId: String(row.playerId),
-        score: Number(row.score),
-        secondary: Number(row.secondary),
-        rank: Number(row.rank),
-        position: Number(row.position),
-        total: Number(row.total),
-        ...(board === nightBoard('win-rate')
-          ? await nightSummary(executor, String(row.playerId))
-          : {}),
-      })),
-    );
+    const rows = rankedRows.map((row) => ({
+      ...publicProfile(row),
+      playerId: String(row.playerId),
+      score: Number(row.score),
+      secondary: Number(row.secondary),
+      rank: Number(row.rank),
+      position: Number(row.position),
+      total: Number(row.total),
+      ...(winRate ? nightHistorySummary(row) : {}),
+    }));
     const top = rows.filter((row) => Number(row.position) <= 100);
     const me = rows.find((row) => row.playerId === playerId) ?? null;
     const previous = me

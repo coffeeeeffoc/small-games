@@ -417,10 +417,11 @@ export class ProgressionView {
       const pulse=this.h.node('WheelPressPulse',this.n).addComponent(Graphics);pulse.strokeColor=color('#ffe5a2');pulse.lineWidth=7;pulse.circle(ox,oy,diameter*.47);pulse.stroke();
       const opacity=pulse.node.addComponent(UIOpacity);opacity.opacity=this.h.reducedEffects?120:255;tween(opacity).to(.4,{opacity:0}).start();
     }
-    this.label(this.t(`剩余次数 ${q.assets?.wheelTickets??0} · 今日广告 ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`,`SPINS ${q.assets?.wheelTickets??0} · ADS ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`),rx+8,by-34,rw-16,30,26,gold,true);
+    const wheelLimit=q.assets?.wheelDailyLimit??5;
+    this.label(this.t(`剩余次数 ${q.assets?.wheelTickets??0} · 今日广告 ${q.assets?.wheelVideosToday??0}/${wheelLimit}`,`SPINS ${q.assets?.wheelTickets??0} · ADS ${q.assets?.wheelVideosToday??0}/${wheelLimit}`),rx+8,by-34,rw-16,30,26,gold,true);
     const bw=(rw-26)/2;
     this.button(spinning?'qm:wheelSkip':'qm:wheelSpin',this.t(spinning?'跳过动画':'抽一次',spinning?'SKIP':'SPIN'),rx+9,by,bw,44,'gold',q.busy||q.viewing||!!q.pending||previewing);
-    this.button('qm:wheelWatch',this.t('广告+1次','AD +1'),rx+17+bw,by,bw,44,'blue',q.busy||q.viewing||spinning||!q.assets||!!q.pending||(q.assets.wheelVideosToday??0)>=(q.assets.wheelDailyLimit??5)||q.assets.videosToday>=q.assets.videoDailyLimit);
+    this.button('qm:wheelWatch',this.t('广告+1次','AD +1'),rx+17+bw,by,bw,44,'blue',q.busy||q.viewing||spinning||!q.assets||!!q.pending||(q.assets.wheelVideosToday??0)>=wheelLimit||(q.assets.packDailyLimit===undefined&&q.assets.videosToday>=q.assets.videoDailyLimit));
   }
   private growth(){
     const q=this.q,l=this.left,r=this.right,y=this.top,b=this.bottom,lw=(r-l)*.27,rx=l+lw+14,rw=r-rx,h=b-y;
@@ -613,9 +614,16 @@ export class ProgressionView {
         this.t('装备按对应类别内未永久拥有的效果等概率抽取，不受商店等级限制。单场装备开局消耗；24小时装备存入仓库，激活后计时。','Gear is equally likely among non-permanent effects in its category, regardless of shop level. Match gear is consumed at deployment; 24h begins on activation.'),
         this.t('增益：威力、高速供弹、冷却、范围、两连发、双弹道；武器：无人机、激光；技能：追踪、电磁干扰。史诗组合从以上全部装备等概率抽取。','Mods: power, rapid feed, cooling, blast radius, double burst, twin trajectory. Weapons: drones, laser. Skills: tracking, EMP. The epic bundle draws equally from all gear.'),
         this.t('对应类别已全永久：增益转4、武器转10、技能转6武器碎片；史诗装备全永久转10武器碎片。组合内其他奖励仍照常发放。','If the category is fully permanent: mods convert to 4, weapons to 10, skills to 6 weapon fragments; epic gear converts to 10. Other bundle rewards are retained.'),
-        this.t('完整观看1段广告获得1次；每日最多5段，与补给箱共用每日12段。次数跨天保留。','One completed ad grants one saved spin. 5 wheel ads/day, sharing 12 total ads/day with supply crates.'));
+        this.t('完整观看1段广告获得1次抽奖机会。次数跨天保留。','One completed ad grants one spin. Saved spins carry over to the next day.'));
+      if(q.assets){
+        const wheelLimit=q.assets.wheelDailyLimit??5,packLimit=q.assets.packDailyLimit,total=q.assets.videoDailyLimit;
+        lines.push(packLimit===undefined
+          ?this.t(`转盘每天最多${wheelLimit}次广告，与补给箱共用${total}次额度。`,`Up to ${wheelLimit} wheel ads/day, sharing ${total} total ads/day with supply crates.`)
+          :this.t(`转盘每天最多${wheelLimit}次广告，补给箱另有${packLimit}次额度。`,`Up to ${wheelLimit} wheel ads/day and ${packLimit} separate supply crate ads/day.`));
+      }
     }
     else {const pool=q.pools.general,pack=/^pack:(general|gold):([0-3])$/.exec(q.info),tier=pack?Number(pack[2]):-1;lines=[this.t(pack?'此箱档位已确定，开启不重新抽取档位。':'以下是获取随机补给箱时的档位概率。已持有的箱子档位已确定，开启不重新抽档。',pack?'This crate’s tier is fixed. Opening does not reroll its tier.':'These are random crate acquisition odds. Owned crates keep their existing tier.')];lines.push(...pool.weights.flatMap((weight,i)=>{if(tier>=0&&tier!==i)return [];const bundle=q.assets?.economy?.bundleTiers?.[i],eligible=eligibleDrops(q.catalog,i,bundle?levelProgress((q.assets?.xp||0)+bundle.xp).level:q.assets?.level||1,q.assets?.permanent||[]).filter(p=>pool.effects.includes(p.effect)&&(!!bundle||p.category!=='skill')),content=i===0?this.t('获得40金币','Receive 40 coins'):eligible.length?eligible.map(p=>this.productName(p)).join(' / ')+this.t(`（每种${(100/eligible.length).toFixed(1)}%，档内等概率）`,` (equal odds within tier)`):this.t(`本档当前无可用装备，获得${pool.coinDrops[i]}金币`,`No eligible item: ${pool.coinDrops[i]} coins`);return [this.t(rarity[i],rarityEn[i])+(tier<0?` ${weight}%`:'')+'\n'+(bundle?this.t(`${eligible.length?bundle.coins:pool.coinDrops[i]}金币 + ${bundle.xp}EXP + ${bundle.fragments}碎片${eligible.length?' + 随机装备：':''}`,`${eligible.length?bundle.coins:pool.coinDrops[i]} coins + ${bundle.xp} EXP + ${bundle.fragments} fragments${eligible.length?' + gear: ':''}`)+(eligible.length?eligible.map(p=>this.productName(p)).join(' / '):''):content)];}));lines.push(q.assets?.economy?.bundleTiers?this.t('补给箱含金币、EXP和碎片；精良及以上另送装备，效果档内等概率，期限见下方说明；24小时入库后手动激活计时。增益/武器按等级，技能可提前获得；排除已永久拥有，无候选时金币替代。各套餐概率相同。','Bundles contain coins, EXP and fragments; Fine+ adds gear with equal effect odds; see term odds below. Activate 24h gear from inventory to start its timer. Mods/weapons require shop level; skills may drop early. Permanent-owned gear converts to the tier coin fallback. Package odds are identical.'):this.t('仅抽取已解锁且未永久拥有的单场增益或武器；无候选时获得本档金币。','Only unlocked, unowned one-match mods or weapons; no eligible gear yields tier coins.'));lines.push(this.rewardTerm());const locked=q.catalog.filter(p=>p.term==='match'&&p.category!=='skill'&&p.unlockLevel>(q.assets?.level||1));if(locked.length){lines.push(this.t('尚未进入当前奖池（达到等级后解锁）：','NOT IN THE CURRENT POOL (unlock by level):'));lines.push(...locked.map(p=>`${this.productName(p)} · Lv.${p.unlockLevel}`));}}
+    if(q.info==='pool'&&q.assets?.packDailyLimit!==undefined)lines.push(this.t(`补给箱每天最多看${q.assets.packDailyLimit}次广告，未完成的订单可次日继续。`,`Up to ${q.assets.packDailyLimit} supply crate ads/day. Continue unfinished orders the next day.`));
     const pw=Math.min(650,this.right-this.left),font=this.font(27),width=pw-52;
     const heights=lines.map(line=>Math.max(30,line.split('\n').reduce((n,part)=>n+Math.max(1,Math.ceil(Array.from(part).reduce((sum,c)=>sum+(/[^\x00-\x7f]/.test(c)?1:.6),0)*font/width)),0)*font*1.23+8));
     const content=heights.reduce((a,b)=>a+b,0),title=p?this.productName(p):this.t(q.info==='wheel'?'转盘概率':'补给箱概率与内容',q.info==='wheel'?'WHEEL ODDS':'CRATE CONTENTS & ODDS');

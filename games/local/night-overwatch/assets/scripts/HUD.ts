@@ -88,6 +88,7 @@ export class HUD {
     h: number;
     max: number;
     axis: 'x' | 'y';
+    scrollbar?: { x: number; y: number; w: number; h: number; thumbX: number; thumbWidth: number };
   }> = [];
   listScroll: Record<string, number> = {};
   missionFocus: number | undefined;
@@ -106,7 +107,10 @@ export class HUD {
   listAt(x: number, y: number) {
     return [...this.listAreas]
       .reverse()
-      .find((area) => x >= area.x && x <= area.x + area.w && y >= area.y && y <= area.y + area.h);
+      .find((area) => {
+        const region = area.scrollbar && y >= area.scrollbar.y ? area.scrollbar : area;
+        return x >= region.x && x <= region.x + region.w && y >= region.y && y <= region.y + region.h;
+      });
   }
   moveList(key: string, amount: number) {
     const area = this.listAreas.find((area) => area.key === key);
@@ -114,6 +118,14 @@ export class HUD {
     const scrollOffsets = key.startsWith('qm:') ? this.quartermaster!.scrolls : this.listScroll;
     scrollOffsets[key] = Math.max(0, Math.min(area.max, (scrollOffsets[key] || 0) + amount));
     this.modalKey = 'rebuild';
+  }
+  seekList(key: string, thumbLeft: number) {
+    const area = this.listAreas.find((area) => area.key === key);
+    const bar = area?.scrollbar;
+    if (!area || !bar) return;
+    const fraction = Math.max(0, Math.min(1, (thumbLeft - bar.x) / (bar.w - bar.thumbWidth)));
+    const offset = (key.startsWith('qm:') ? this.quartermaster!.scrolls : this.listScroll)[key] || 0;
+    if (fraction * area.max !== offset) this.moveList(key, fraction * area.max - offset);
   }
   listViewport(
     parent: Node,
@@ -125,7 +137,15 @@ export class HUD {
     const maxOffset = Math.max(0, total - (axis === 'x' ? area.w : area.h));
     const scrollOffsets = key.startsWith('qm:') ? this.quartermaster!.scrolls : this.listScroll;
     const offset = (scrollOffsets[key] = Math.max(0, Math.min(maxOffset, scrollOffsets[key] || 0)));
-    this.listAreas.push({ ...area, key, max: maxOffset, axis });
+    let scrollbar: HUD['listAreas'][number]['scrollbar'];
+    if (maxOffset && axis === 'x') {
+      const x = area.x + 16, w = area.w - 32;
+      const h = Math.min(44, Math.max(24, area.h - 100));
+      const thumbWidth = Math.min(44, w / 2);
+      scrollbar = { x, y: area.y + area.h - h, w, h, thumbX: x + (w - thumbWidth) * offset / maxOffset, thumbWidth };
+      area = { ...area, h: area.h - h };
+    }
+    this.listAreas.push({ ...area, key, max: maxOffset, axis, scrollbar });
     const viewport = this.node('Scroll:' + key, parent);
     const centerX = area.x + area.w / 2 - this.w / 2;
     const centerY = this.h / 2 - area.y - area.h / 2;
@@ -143,23 +163,18 @@ export class HUD {
       surfaces,
       g: graphics,
       offset,
+      height: area.h,
       finish: () => {
         // 只给本次列表新增的按钮加裁剪范围，避免滚出视口后仍能点击。
         for (const button of this.buttons.slice(firstButtonIndex)) button.clip = area;
-        if (maxOffset && axis === 'x') {
+        if (scrollbar) {
           const ink = this.node('ScrollIndicator', parent).addComponent(Graphics);
-          const trackLength = area.w - 32;
-          const thumbLength = Math.max(20, (trackLength * area.w) / total);
-          const y = area.y + area.h - 5;
-          this.rect(ink, area.x + 16, y, trackLength, 3, '#253e50');
-          this.rect(
-            ink,
-            area.x + 16 + ((trackLength - thumbLength) * offset) / maxOffset,
-            y - 1,
-            thumbLength,
-            5,
-            C.amber,
-          );
+          const { x, y, w, h, thumbX, thumbWidth } = scrollbar;
+          const center = y + h / 2;
+          this.plate(ink, x, center - 3, w, 6, '#101f2c', '#385468', 2);
+          this.plate(ink, thumbX, center - 7, thumbWidth, 14, C.amber, '#ffe6ae', 3);
+          for (const dx of [-5, 0, 5])
+            this.rect(ink, thumbX + thumbWidth / 2 + dx - 1, center - 3, 2, 6, C.action);
           if (offset > 1)
             this.label(parent, '‹', area.x + 5, area.y + area.h / 2, 25, 14, 32, C.white);
           if (offset < maxOffset - 1)

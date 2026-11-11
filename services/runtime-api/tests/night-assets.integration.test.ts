@@ -1112,35 +1112,71 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
     await expect(
       command(id, { kind: 'wheel-spin', requestId: randomUUID() }),
     ).rejects.toMatchObject({ code: 'NO_WHEEL_TICKETS' });
-    await seed(id, { videoDays: { [created.day]: 11 }, wheelVideoDays: { [created.day]: 4 } });
-    const next = await command(id, {
-      kind: 'ad-order',
-      quantity: 1,
-      purpose: 'wheel',
-      requestId: randomUUID(),
-    });
-    const nextOrder = next.videoOrders.find((o) => o.purpose === 'wheel' && !o.delivered)!;
-    const permit = await command(id, {
-      kind: 'ad-start',
-      orderId: nextOrder.id,
-      requestId: randomUUID(),
-    });
-    const last = await command(id, {
-      kind: 'ad-complete',
-      orderId: nextOrder.id,
-      attemptId: (permit.lastReceipt as { attemptId: string }).attemptId,
-      requestId: randomUUID(),
-    });
-    expect(last.videosToday).toBe(12);
-    expect(last.wheelVideosToday).toBe(5);
-    await expect(
-      command(id, {
-        kind: 'ad-start',
-        orderId: created.videoOrders[0]!.id,
+  });
+  it('allows ten ads for each reward and continues unfinished crate orders after midnight', async () => {
+    const id = await owner();
+    const createOrder = async (purpose: 'packs' | 'wheel', quantity: number) => {
+      const snapshot = await command(id, {
+        kind: 'ad-order',
+        quantity,
+        purpose,
         requestId: randomUUID(),
-      }),
-    ).rejects.toMatchObject({ code: 'DAILY_VIDEO_LIMIT' });
-    expect((await get(id, at + 86400000)).wheelTickets).toBe(1);
+      });
+      return snapshot.videoOrders.at(-1)!;
+    };
+    const start = (orderId: string, time = at) =>
+      command(id, { kind: 'ad-start', orderId, requestId: randomUUID() }, time);
+    const watch = async (orderId: string, time = at) => {
+      const { lastReceipt } = await start(orderId, time);
+      return command(
+        id,
+        {
+          kind: 'ad-complete',
+          orderId,
+          attemptId: (lastReceipt as { attemptId: string }).attemptId,
+          requestId: randomUUID(),
+        },
+        time + 10000,
+      );
+    };
+    expect(await get(id)).toMatchObject({
+      videoDailyLimit: 20,
+      packDailyLimit: 10,
+      wheelDailyLimit: 10,
+    });
+    const pack = await createOrder('packs', 20);
+    expect(pack.required).toBe(12);
+    for (let n = 0; n < 9; n++) await watch(pack.id);
+    for (let n = 0; n < 10; n++) await watch((await createOrder('wheel', 1)).id);
+
+    const wheel = await createOrder('wheel', 1);
+    await expect(start(wheel.id)).rejects.toMatchObject({ code: 'DAILY_WHEEL_LIMIT' });
+    expect(await watch(pack.id)).toMatchObject({
+      videosToday: 20,
+      wheelVideosToday: 10,
+      wheelTickets: 10,
+    });
+    await expect(start(pack.id)).rejects.toMatchObject({ code: 'DAILY_VIDEO_LIMIT' });
+
+    const tomorrow = Date.parse('2026-11-03T00:00:00+08:00');
+    expect(await get(id, tomorrow)).toMatchObject({
+      videosToday: 0,
+      wheelVideosToday: 0,
+      wheelTickets: 10,
+    });
+    await watch(pack.id, tomorrow);
+    const finished = await watch(pack.id, tomorrow + 10000);
+    expect(finished.videoOrders.find((o) => o.id === pack.id)).toMatchObject({
+      completed: 12,
+      delivered: true,
+    });
+    const { packs } = finished.lastReceipt as { packs: Record<string, number> };
+    expect(Object.values(packs).reduce((sum, count) => sum + count, 0)).toBe(20);
+    expect(await watch(wheel.id, tomorrow + 20000)).toMatchObject({
+      videosToday: 3,
+      wheelVideosToday: 1,
+      wheelTickets: 11,
+    });
   });
   it('rejected video callbacks retain sanitized audit counts after the asset transaction rolls back', async () => {
     const id = await owner();

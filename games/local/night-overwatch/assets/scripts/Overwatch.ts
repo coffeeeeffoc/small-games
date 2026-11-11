@@ -49,7 +49,7 @@ export class Overwatch extends Component {
   keys = new Set<number>();
   mouseButton = '';
   private infoHold?:{id:string;at:number};
-  private listGesture?:{pointer:number|'mouse';key:string;x:number;y:number;lastX:number;lastY:number;axis:'x'|'y';button?:string;moved:boolean;started:number};
+  private listGesture?:{pointer:number|'mouse';key:string;x:number;y:number;lastX:number;lastY:number;axis:'x'|'y';button?:string;moved:boolean;thumbGrab?:number};
   private loadoutGesture?:{pointer:number|'mouse';item?:string;source?:LoadoutSlot;x:number;y:number;lastY:number;mode:'pending'|'scroll'|'drag'};
   private controlGesture?: { pointer: number | 'mouse'; button: string; x: number; y: number; origin: { x: number; y: number }; position?: { x: number; y: number }; moved: boolean };
   private fireGesture?: { pointer: number | 'mouse'; x: number; y: number; origin: { x: number; y: number }; position?: { x: number; y: number }; moved: boolean };
@@ -988,9 +988,17 @@ export class Overwatch extends Component {
     this.sim.setAim(p);
   }
   private beginListGesture(pointer:number|'mouse',x:number,y:number){
-    const area=this.hud.listAt(x,y),button=this.hud.hit(x,y);if(!area||this.listGesture)return false;
+    const area=this.hud.listAt(x,y);if(!area||this.listGesture)return false;
+    const bar=area.scrollbar;
+    if(bar&&y>=bar.y){
+      const thumbGrab=x>=bar.thumbX&&x<=bar.thumbX+bar.thumbWidth?x-bar.thumbX:bar.thumbWidth/2;
+      this.listGesture={pointer,key:area.key,x,y,lastX:x,lastY:y,axis:'x',moved:true,thumbGrab};
+      this.hud.seekList(area.key,x-thumbGrab);
+      return true;
+    }
+    const button=this.hud.hit(x,y);
     if(button?.id.startsWith('info:'))this.infoHold={id:button.id,at:Date.now()};
-    this.listGesture={pointer,key:area.key,x,y,lastX:x,lastY:y,axis:area.axis||'y',button:button?.id,moved:false,started:Date.now()};return true;
+    this.listGesture={pointer,key:area.key,x,y,lastX:x,lastY:y,axis:area.axis||'y',button:button?.id,moved:false};return true;
   }
   private beginControlGesture(pointer: number | 'mouse', x: number, y: number) {
     const editing = this.hud.layoutEditing && Array.from(this.sim.pauses).every(reason => reason === 'settings' || reason === 'manual');
@@ -1044,11 +1052,13 @@ export class Overwatch extends Component {
   }
   private moveListGesture(pointer:number|'mouse',x:number,y:number){
     const a=this.listGesture;if(!a||a.pointer!==pointer)return false;
+    if(a.thumbGrab!==undefined){this.hud.seekList(a.key,x-a.thumbGrab);return true;}
     if(Math.hypot(x-a.x,y-a.y)>8){a.moved=true;this.infoHold=undefined;}
     if(a.moved)this.hud.moveList(a.key,a.axis==='x'?a.lastX-x:a.lastY-y);a.lastX=x;a.lastY=y;return true;
   }
   private endListGesture(pointer:number|'mouse',x:number,y:number){
     const a=this.listGesture;if(!a||a.pointer!==pointer)return false;this.listGesture=undefined;this.infoHold=undefined;
+    if(a.thumbGrab!==undefined){this.hud.seekList(a.key,x-a.thumbGrab);return true;}
     if(!a.moved&&Math.hypot(x-a.x,y-a.y)<=8&&a.button&&this.hud.hit(x,y)?.id===a.button)this.action(a.button);return true;
   }
   private beginLoadoutGesture(pointer:number|'mouse',x:number,y:number){

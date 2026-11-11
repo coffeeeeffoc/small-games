@@ -998,7 +998,8 @@ export class OnlineLobbyView {
     }
     if (online.panel === 'ranking') {
       const solo = online.board === 'clears' || online.board === 'level',
-        level = online.board === 'level';
+        level = online.board === 'level',
+        winRate = online.board === 'win-rate';
       button('category:solo', this.h.t('单人模式', 'SOLO'), pw - 234, 4, 104, solo);
       button('category:duel', this.h.t('对战模式', 'VERSUS'), pw - 122, 4, 104, !solo);
       const tabW = Math.min(140, (pw - 64) / 4);
@@ -1034,7 +1035,7 @@ export class OnlineLobbyView {
         clears: this.h.t('最高通关', 'HIGHEST CLEAR'),
         level: this.h.t(`第 ${online.level + 1} 关`, `LEVEL ${online.level + 1}`),
         points: this.h.t('累计积分', 'TOTAL POINTS'),
-        'win-rate': this.h.t('真人对战胜率', 'HUMAN WIN RATE'),
+        'win-rate': this.h.t('真人对战胜率 · 胜场/总场次', 'HUMAN WIN RATE · WINS/TOTAL'),
       };
       this.h.label(
         n,
@@ -1049,7 +1050,7 @@ export class OnlineLobbyView {
       const value = (row: NonNullable<Online['ranking']>['top'][number]) =>
         level
           ? formatTime(row.secondary)
-          : online.board === 'win-rate'
+          : winRate
             ? Math.round((row.games ? (row.wins || 0) / row.games : row.score) * 1000) / 10 + '%'
             : online.board === 'clears'
               ? this.h.t('第', '') + row.score + this.h.t('关', '')
@@ -1061,7 +1062,8 @@ export class OnlineLobbyView {
             ? this.h.t('最高通关 ', 'LEVEL ')
             : online.board === 'points'
               ? this.h.t('积分 ', 'POINTS ')
-              : this.h.t('胜率 ', 'WIN RATE ')) + value(row);
+              : this.h.t('胜率 ', 'WIN RATE ')) + value(row) +
+        (winRate && row.wins !== undefined && row.games !== undefined ? ` · ${row.wins}/${row.games}` : '');
       const rows = online.ranking?.top || [],
         rowH = 36,
         vw = pw - 36,
@@ -1112,7 +1114,7 @@ export class OnlineLobbyView {
           [caption, 92, nameW],
           [metric(row), vw - 146, 142],
         ] as const) {
-          this.h.label(
+          const entryLabel = this.h.label(
             content,
             captionText,
             originX + x + width / 2,
@@ -1121,7 +1123,12 @@ export class OnlineLobbyView {
             width,
             30,
             own ? C.mint : C.white,
-          ).horizontalAlign = Label.HorizontalAlign.LEFT;
+          );
+          entryLabel.horizontalAlign = Label.HorizontalAlign.LEFT;
+          if (winRate && x === vw - 146) {
+            entryLabel.enableWrapText = false;
+            entryLabel.overflow = Label.Overflow.SHRINK;
+          }
         }
       });
       this.h.scrollMax = Math.max(0, rows.length * rowH - vh);

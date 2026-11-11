@@ -29,7 +29,7 @@ globalThis.SmallGamesServices = {
       return { top, me: fixture.mode === 'empty' ? null : { ...identity, rank: 105, score: 12, secondary: 65000, wins: 1, games: 10 } };
     }
   },
-  createRecorder: (_version, { onStatus }) => ({ start: async () => onStatus('practice'), record() {}, finish: async () => {}, invalidate() {} })
+  createRecorder: (_version, { onStatus }) => ({ start: async () => onStatus('unavailable'), record() {}, finish: async () => {}, invalidate() {} })
 };`;
 const labels = page => page.evaluate(async () => {
   const { director, Label } = await System.import('cc');
@@ -104,6 +104,12 @@ try {
       await page.waitForFunction(board => __night.snapshot().online.board === board && __night.snapshot().online.ranking?.top.length === 100, board);
       assert.equal((await listState(page)).scroll, 0);
       assert.deepEqual(await boardButtons(), board === 'level' ? ['online:board:clears', 'online:board:level'] : ['online:board:points', 'online:board:win-rate']);
+      if (board === 'win-rate') {
+        const text = await labels(page);
+        assert(text.includes('真人对战胜率 · 胜场/总场次'));
+        assert(text.includes('胜率 99% · 99/100'));
+        assert(text.includes('我的排名 第105名 · 胜率 10% · 1/10'));
+      }
       await capture('board-' + board);
     }
     await click('online:category:solo');
@@ -138,7 +144,8 @@ try {
     await click('online:profile'); assert.equal((await nickname()).value, '保存后的昵称'); await click('online:back');
     await click('missions'); await click('start');
     await page.waitForFunction(() => __night.snapshot().phase === 'playing');
-    assert((await labels(page)).some(text => text.startsWith('第 1 关\n'))); await capture('level-1');
+    await capture('level-1');
+    assert((await labels(page)).some(text => text.startsWith('1关 · ')));
     if (record) {
       await page.waitForTimeout(5500); // Let the intentional local-fixture notice clear before publishing capture.
       await click('weapon0'); const firedBefore = (await snapshot(page)).fired;

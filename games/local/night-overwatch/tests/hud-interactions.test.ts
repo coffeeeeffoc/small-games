@@ -376,7 +376,7 @@ test('HUD: grouped rankings keep all 100 rows scrollable, medal the top three an
   for (const [width,height] of [[568,320],[844,390],[1280,720]]) {
     Object.assign(frame,{width,height}); inset=20;
     const hud=new HUD(new SceneNode()), sim=new Simulation(), online=new Online({getItem:()=>null,setItem(){}},()=>{});
-    const rows=Array.from({length:100},(_,i)=>({playerId:String(i).padStart(8,'0'),nickname:'这是一个包含十六个汉字的玩家昵称',rank:i+1,score:120-i,secondary:1200}));
+    const rows=Array.from({length:100},(_,i)=>({playerId:String(i).padStart(8,'0'),nickname:'这是一个包含十六个汉字的玩家昵称',rank:i+1,score:120-i,secondary:1200,wins:120-i,games:240}));
     hud.online=online;online.identity=rows[99];online.ranking={top:rows,me:rows[99]};online.show('ranking');
     for (const board of ['clears','level','points','win-rate'] as const) {
       online.board=board;online.revision++;hud.update(sim,world);
@@ -391,7 +391,12 @@ test('HUD: grouped rankings keep all 100 rows scrollable, medal the top three an
       const last=labels.find((l:any)=>l.string==='第100名');
       assert.equal(last.node.position.y+hud.scroll,-hud.scrollArea.h/2+18,'last row remains fully visible at the end');
       assert(!hud.buttons.some((b:any)=>b.id==='online:pageNext'));
-      assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.startsWith('我的排名 第100名')));
+      const mine=hud.modal.getComponentsInChildren(cc.Label).find((l:any)=>l.string.startsWith('我的排名 第100名'));
+      assert(mine);
+      if(board==='win-rate'){
+        assert.equal(mine.string,'我的排名 第100名 · 胜率 8.8% · 21/240');
+        assert(labels.some((l:any)=>l.string==='胜率 50% · 120/240'));
+      }
     }
   }
   inset=0;

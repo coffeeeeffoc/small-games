@@ -740,6 +740,44 @@ integration('Night real HTTP and PostgreSQL', () => {
     }
   }, 30000);
 
+  it('breaks win-rate ties by human matches played, including legacy results', async () => {
+    const [newcomer, veteran, higherRate] = await Promise.all([player(), player(), player()]);
+    const fixtures = [
+      { pilot: newcomer, score: 0.5, outcomes: ['win', 'loss'] },
+      { pilot: veteran, score: 0.5, outcomes: ['win', 'win', 'loss', 'draw'] },
+      { pilot: higherRate, score: 1, outcomes: ['win'] },
+    ];
+    try {
+      for (const [i, { pilot, score, outcomes }] of fixtures.entries()) {
+        await database.db.execute(sql`insert into runtime.competition_matches values
+          ${sql.join(
+            outcomes.map(
+              (outcome) =>
+                sql`(${randomUUID()},${nightBoard('history')},${JSON.stringify({ playerId: pilot.playerId, outcome })}::jsonb,${time})`,
+            ),
+            sql`,`,
+          )}`);
+        await database.db.execute(sql`insert into runtime.competition_best values
+          (${nightBoard('win-rate')},${pilot.playerId},${score},0,${randomUUID()},${time + i})`);
+      }
+      const board = path + '/leaderboards/win-rate';
+      const [newRank, veteranRank, higherRank] = await Promise.all(
+        fixtures.map(({ pilot }) => request(board, pilot).then((ranking) => ranking.me)),
+      );
+      expect(veteranRank).toMatchObject({ score: 0.5, wins: 2, games: 4, losses: 1, draws: 1 });
+      expect(newRank).toMatchObject({ score: 0.5, wins: 1, games: 2 });
+      expect(higherRank.rank).toBeLessThan(veteranRank.rank);
+      expect(veteranRank.rank).toBeLessThan(newRank.rank);
+    } finally {
+      await database.db
+        .execute(sql`delete from runtime.competition_best where board=${nightBoard('win-rate')}
+        and player_id in (${sql.join(
+          fixtures.map(({ pilot }) => sql`${pilot.playerId}::uuid`),
+          sql`,`,
+        )})`);
+    }
+  });
+
   it('keeps full economy receipts private from opponents and spectators', async () => {
     const [a, b, watcher] = await Promise.all([player(), player(), player()]);
     const room = await pair(a, b);

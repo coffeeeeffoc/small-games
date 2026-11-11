@@ -233,12 +233,11 @@ export class HomeView {
       156,
       42,
     ).isBold = true;
-    const top = this.hud.safe.top + (compactRewards?64:104);
+    const top = this.hud.safe.top + (compactRewards?48:104);
     const bottom = height - this.hud.safe.bottom - 58;
     const cardGap = 12;
     const cardWidth = Math.min(300, Math.max(160, (right - left) / 3.2));
     const previewHeight=preview?48:0;
-    const cardHeight = Math.max(100, bottom - top - 22-previewHeight);
     if (this.hud.missionFocus !== undefined) {
       this.hud.listScroll.missions = this.hud.missionFocus * (cardWidth + cardGap);
       this.hud.missionFocus = undefined;
@@ -248,10 +247,11 @@ export class HomeView {
     const missionList = this.hud.listViewport(
       parentNode,
       'missions',
-      { x: left, y: top, w: right - left, h: bottom - top - 8-previewHeight },
+      { x: left, y: top, w: right - left, h: bottom - top - previewHeight },
       MISSIONS.length * (cardWidth + cardGap) - cardGap,
       'x',
     );
+    const cardHeight = missionList.height;
     parentNode = missionList.n;
     graphics = missionList.g;
     for (const [index, mission] of MISSIONS.entries()) {

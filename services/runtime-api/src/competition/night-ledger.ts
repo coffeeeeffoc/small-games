@@ -47,20 +47,27 @@ export async function refreshNightClears(tx: Tx, at: number, playerId?: string) 
     where runtime.competition_best.score<>excluded.score`);
 }
 
-export async function nightSummary(tx: Tx | Database, playerId: string) {
-  const rows = await tx.execute(sql`select count(*)::int as games,
-    count(*) filter(where data->>'outcome'='win')::int as wins,
-    count(*) filter(where data->>'outcome'='loss')::int as losses,
-    count(*) filter(where data->>'outcome'='draw')::int as draws
-    from runtime.competition_matches where board=${nightBoard('history')} and data->>'playerId'=${playerId}`);
-  const { wins, losses, draws, games } = rows[0]!;
+export const nightHistoryCounts = sql`count(*)::int as games,
+  count(*) filter(where data->>'outcome'='win')::int as wins,
+  count(*) filter(where data->>'outcome'='loss')::int as losses,
+  count(*) filter(where data->>'outcome'='draw')::int as draws`;
+
+export function nightHistorySummary(row: Record<string, unknown>) {
+  const wins = Number(row.wins ?? 0);
+  const games = Number(row.games ?? 0);
   return {
-    wins: Number(wins),
-    losses: Number(losses),
-    draws: Number(draws),
-    games: Number(games),
-    winRate: Number(games) ? Number(wins) / Number(games) : 0,
+    wins,
+    losses: Number(row.losses ?? 0),
+    draws: Number(row.draws ?? 0),
+    games,
+    winRate: games ? wins / games : 0,
   };
+}
+
+export async function nightSummary(tx: Tx | Database, playerId: string) {
+  const rows = await tx.execute(sql`select ${nightHistoryCounts}
+    from runtime.competition_matches where board=${nightBoard('history')} and data->>'playerId'=${playerId}`);
+  return nightHistorySummary(rows[0]!);
 }
 
 export async function nightPoints(

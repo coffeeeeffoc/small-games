@@ -12,6 +12,6 @@ export function assetFixture(playerId='qa-pilot'):AssetSnapshot {
     mail:Array.from({length:4},(_,i)=>({id:'mail-'+i,title:i?'补给通知 '+i:'夜航回归补偿',body:'旧积分和进度保持不变。金币与经验独立累计，本次补偿只可领取一次。',createdAt:now-i*1000,read:false,claimed:false,reward:{coins:200,xp:80,packs:3}})),
     announcements:[{id:'news',title:'成长与军需更新',body:'单人和双人独立配装。主动技能可冷却后重复使用。',createdAt:now}],
     videoOrders:[{id:'video-order',purpose:'packs',quantity:5,required:3,completed:1,delivered:false,version:'night-growth-v1',createdAt:now}],
-    wheelTickets:1,wheelVideosToday:0,wheelDailyLimit:5,wheelPrizes:WHEEL_PRIZES,
-    openReceipts:[{requestId:'qa-opening',at:now,item:'pack:general:3',quantity:5,drops:[{item:'twin-match'},{item:'twin-match'},{coins:800},{item:'laser-match'},{coins:800}]}],signedDays:['2026-10-31'],signedToday:false,day,serverNow:now,videoDailyLimit:12,videosToday:1,catalog:CATALOG,packages:PACKAGES,pools:POOLS,quoteVersion:'night-growth-v1',adVerification:'limited-client-callback',legacyPreserved:true};
+    wheelTickets:1,wheelVideosToday:0,wheelDailyLimit:10,wheelPrizes:WHEEL_PRIZES,
+    openReceipts:[{requestId:'qa-opening',at:now,item:'pack:general:3',quantity:5,drops:[{item:'twin-match'},{item:'twin-match'},{coins:800},{item:'laser-match'},{coins:800}]}],signedDays:['2026-10-31'],signedToday:false,day,serverNow:now,videoDailyLimit:20,packDailyLimit:10,videosToday:1,catalog:CATALOG,packages:PACKAGES,pools:POOLS,quoteVersion:'night-growth-v1',adVerification:'limited-client-callback',legacyPreserved:true};
 }
