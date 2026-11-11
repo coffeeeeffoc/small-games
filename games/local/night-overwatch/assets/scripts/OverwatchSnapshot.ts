@@ -1,5 +1,6 @@
-import { director } from 'cc';
+import { director, sys } from 'cc';
 import type { Overwatch } from './Overwatch';
+import { safeAreaSources } from './core/SafeArea';
 
 type SnapshotSource = Pick<
   Overwatch,
@@ -247,6 +248,8 @@ export function captureOverwatchSnapshot(game: SnapshotSource, presentedTime: nu
     zoom: game.world.zoom,
     follow: game.world.follow,
     safe: game.hud.safe,
+    // Unmerged inputs of `safe`: engine rect is bottom-left based (CSS env() insets on H5), hosts are raw SDK readings.
+    safeSources: { frame: [game.hud.w, game.hud.h], engineRect: sys.getSafeAreaRect(false), hosts: safeAreaSources() },
     temporary: game.world.temporary,
     thermal: game.world.thermal,
     viewMode: game.world.viewMode,

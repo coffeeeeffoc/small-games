@@ -42,6 +42,7 @@ type OnlineHost = Pick<
   | 'scrollMax'
   | 'scrollNode'
   | 't'
+  | 'topRight'
   | 'w'
 >;
 
@@ -248,8 +249,9 @@ export class OnlineLobbyView {
     this.h.listAreas = this.h.listAreas.filter((a) => !['rooms', 'chat'].includes(a.key));
     const body = (this.lobbyBody = this.h.node('LobbyLiveContent', n)),
       g = this.h.node('Ink', body).addComponent(Graphics);
-    this.h.rect(g, r - 200, this.h.safe.top + 13, 200, 28, '#07121cdd');
-    this.h.label(body, o.onlineLabel(this.h.lang), r - 100, this.h.safe.top + 27, 14, 200, 28, C.white);
+    const onlineRight = this.h.topRight(this.h.safe.top + 13, 28);
+    this.h.rect(g, onlineRight - 200, this.h.safe.top + 13, 200, 28, '#07121cdd');
+    this.h.label(body, o.onlineLabel(this.h.lang), onlineRight - 100, this.h.safe.top + 27, 14, 200, 28, C.white);
     const btn = (
       id: string,
       caption: string,

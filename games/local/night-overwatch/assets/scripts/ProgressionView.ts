@@ -21,7 +21,8 @@ export class ProgressionView {
   constructor(h:HUD,q:Quartermaster,a:ProgressionArt,n:Node,g:Graphics,surfaces:Node){
     this.h=h;this.q=q;this.a=a;this.n=n;this.g=g;this.surfaces=surfaces;this.w=h.w;this.height=h.h;
     this.left=h.safe.left+Math.max(12,h.w*.016);this.right=h.w-h.safe.right-Math.max(12,h.w*.016);
-    this.top=h.safe.top+Math.max(52,h.h*.1);this.bottom=h.h-h.safe.bottom-12;this.scale=Math.min(h.w/1672,h.h/941);
+    // Page bodies start below a host capsule even when no top inset pushes them there.
+    this.top=Math.max(h.safe.top+Math.max(52,h.h*.1),(h.capsuleRect?.bottom??0)+6);this.bottom=h.h-h.safe.bottom-12;this.scale=Math.min(h.w/1672,h.h/941);
   }
   private t(zh:string,en:string){return this.h.t(zh,en);}
   private get narrow(){return this.right-this.left<660;}
@@ -133,6 +134,13 @@ export class ProgressionView {
     if(failed)this.button('qm:artRetry',this.t('重新加载','RETRY'),this.w/2+6,by,bw,44,'gold');
     return true;
   }
+  /** Outline pencil in an s×s box at screen (x,y): marks the nickname as editable. */
+  private pencil(x:number,y:number,s:number){
+    const g=this.g,X=(v:number)=>x+v*s-this.w/2,Y=(v:number)=>this.height/2-y-v*s;
+    g.strokeColor=color(cyan);g.lineWidth=1.6;
+    g.moveTo(X(.1),Y(.9));g.lineTo(X(.18),Y(.6));g.lineTo(X(.7),Y(.08));g.lineTo(X(.92),Y(.3));g.lineTo(X(.4),Y(.82));g.close();g.stroke();
+    g.moveTo(X(.56),Y(.22));g.lineTo(X(.78),Y(.44));g.stroke();
+  }
   private home(){
     const h=this.height,w=this.w,l=this.left,r=this.right,q=this.q,top=this.h.safe.top,bar=Math.max(48,h*.115);
     this.h.rect(this.g,0,0,w,top+bar,'#020e19c9','#61707c');
@@ -140,7 +148,8 @@ export class ProgressionView {
     if(!compactHeader)this.picture('homeBadge',l,top+bar*.2,bar*1.15,bar*.69);
     const px=l+(compactHeader?0:bar*1.3),pw=profileW-(px-l);
     this.h.button('online:profile','',px,top,pw,Math.max(44,bar),this.n);
-    this.label(playerLabel(this.h.online?.identity||{}).split(' #')[0],px+8,top+3,pw-16,bar*.48,32,ivory,true,true);
+    const pen=Math.min(16,bar*.3);this.pencil(px+8,top+3+(bar*.48-pen)/2,pen);
+    this.label(playerLabel(this.h.online?.identity||{}).split(' #')[0],px+13+pen,top+3,pw-21-pen,bar*.48,32,ivory,true,true);
     this.label(`Lv.${q.assets?.level??1}${compactHeader?' EXP':''}`,px+8,top+bar*.53,compactHeader?70:48,20,compactHeader?15:20,ivory);
     this.bar(px+(compactHeader?82:62),top+bar*.67,Math.max(25,pw-(compactHeader?96:178)),Math.max(5,bar*.09),(q.assets?.current??0)/(q.assets?.required||200));
     if(!compactHeader)this.label(`EXP ${q.assets?.current??0}/${q.assets?.required??200}`,px+pw-112,top+bar*.53,104,25,18,dim);
@@ -425,7 +434,7 @@ export class ProgressionView {
     // REWARD_TOKEN becomes one highlighted line built from this mail's real attachment.
     const segments=body.split(REWARD_TOKEN).flatMap((text,i)=>[...(i&&mail?[{text:this.rewardLine(mail.reward),hl:true}]:i?[{text:REWARD_TOKEN,hl:false}]:[]),...(text.trim()?[{text:text.trim(),hl:false}]:[])]);
     const blocks=segments.map(({text,hl})=>{
-      const label=this.label(text,rx+18,bodyY,rw-48,bodyH,25,hl?gold:ivory,hl,true),transform=label.node.getComponent(UITransform)!;
+      const label=this.label(text,rx+18,bodyY,hl?rw-68:rw-48,bodyH,25,hl?gold:ivory,hl,true),transform=label.node.getComponent(UITransform)!;
       transform.setAnchorPoint(.5,1);label.verticalAlign=Label.VerticalAlign.TOP;
       label.overflow=Label.Overflow.RESIZE_HEIGHT;label.updateRenderData(true);
       return {label,hl,h:transform.contentSize.height+(hl?10:0)};
@@ -433,11 +442,12 @@ export class ProgressionView {
     this.list('message:'+selected.id+':'+this.h.lang,rx+18,bodyY,rw-36,bodyH,Math.max(0,blocks.reduce((n,b)=>n+b.h+gap,-gap)),offset=>{
       let used=0;
       for(const b of blocks){
-        if(b.hl)this.h.rect(this.g,rx+14,bodyY+used-offset,rw-40,b.h,'#ffc35a24',gold,2);
-        b.label.node.parent=this.n;b.label.node.setPosition(rx+18+(rw-48)/2-this.w/2,this.height/2-bodyY-used-(b.hl?5:0)+offset);used+=b.h+gap;
+        // The list viewport clips at rx+18, so the highlight box stays inside it and the text is inset from the box edge.
+        if(b.hl)this.h.rect(this.g,rx+20,bodyY+used-offset,rw-40,b.h,'#ffc35a24',gold,2);
+        b.label.node.parent=this.n;b.label.node.setPosition(b.hl?rx+32+(rw-68)/2-this.w/2:rx+18+(rw-48)/2-this.w/2,this.height/2-bodyY-used-(b.hl?5:0)+offset);used+=b.h+gap;
       }
     });
-    if(mail&&this.low){this.button('qm:claimMail',this.t(mail.claimed?'附件已领取':`领取 · ${mail.reward.coins}金币 / ${mail.reward.packs||0}补给箱`,mail.claimed?'CLAIMED':`CLAIM · ${mail.reward.coins} COINS / ${mail.reward.packs||0} CRATES`),rx+8,bottom-48,rw-16,44,'gold',mail.claimed||q.busy);}
+    if(mail&&this.low){this.button('qm:claimMail',this.t(mail.claimed?'附件已领取':`领取 · ${rewardText(mail.reward,true)||'附件'}`,mail.claimed?'CLAIMED':`CLAIM · ${rewardText(mail.reward,false)||'ATTACHMENT'}`),rx+8,bottom-48,rw-16,44,'gold',mail.claimed||q.busy);}
     else if(mail){const cy=top+(bottom-top)*.53,cw=(rw-40)/2,ch=(bottom-top)*.26;this.picture('coins',rx+14,cy,cw,ch);this.picture('rewardSupply',rx+26+cw,cy,cw,ch);
       this.label(`● ${mail.reward.coins}   EXP ${mail.reward.xp}`,rx+14,cy+ch-26,cw,24,25,gold);this.label(this.t(`补给箱 ×${mail.reward.packs||0}`,`CRATES ×${mail.reward.packs||0}`),rx+26+cw,cy+ch-26,cw,24,25,ivory);
       this.button('qm:claimMail',this.t(mail.claimed?'已领取':'领取附件',mail.claimed?'CLAIMED':'CLAIM ATTACHMENT'),rx+rw*.28,bottom-54,rw*.66,44,'gold',mail.claimed||q.busy);

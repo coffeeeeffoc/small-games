@@ -29,7 +29,7 @@ try{
   let s=await shot('home');
   const deploy=s.buttons.find(b=>b.id==='qm:modes'),cards=s.buttons.filter(b=>['qm:shop','qm:growth','qm:tasks','qm:warehouse'].includes(b.id));
   assert(cards.length===4&&cards.every(b=>!overlap(deploy,b)),'deploy remains above bottom cards');
-  if(host==='tap'){assert.equal(s.safe.top,24);assert(s.buttons.find(b=>b.id==='settings').x+44<=width-96);}
+  if(host==='tap'){assert.equal(s.safe.top,0,'a hidden landscape status bar reserves no top band');assert(s.buttons.find(b=>b.id==='settings').x+44<=width-96);}
   await start();const initial=await shot('battle');
   await click('settings');await shot('settings');
   await click('help');s=await snapshot(page);assert(s.modal.startsWith('help:')&&s.scrollMax>0&&s.lastHelpLine);

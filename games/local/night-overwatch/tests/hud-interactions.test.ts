@@ -1475,6 +1475,10 @@ test('warehouse identifies terms and pool tiers; inbox cannot claim a selection 
   const lines=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);
   assert(lines.includes('200 金币 · 80 EXP · 3 补给箱'),'placeholder becomes its own line from the mail reward');
   assert(lines.includes('请查收：')&&lines.includes('感谢支持')&&!lines.some((s:string)=>s.includes('{补偿明细}')));
+  assert(lines.includes('领取 · 200 金币 · 80 EXP · 3 补给箱'));
+  online.assets.mail[2].reward={coins:0,xp:80,packs:0};q.revision++;hud.update(sim,world);
+  const zero=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);
+  assert(zero.includes('领取 · 80 EXP')&&zero.includes('80 EXP'),'zero-valued rewards are omitted from the button and the highlighted line');
 });
 
 test('warehouse sale includes the total, current crates have valid tiers, and synchronization stays an icon',()=>{
