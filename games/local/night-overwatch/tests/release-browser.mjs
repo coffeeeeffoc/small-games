@@ -45,11 +45,11 @@ try {
     await press(page, 'online:version', true, false);
     await page.waitForFunction(() => __night.snapshot().online.panel === 'version');
     await capture('version', width, height);
-    await press(page, 'online:releaseSave', true, false);
-    await page.waitForFunction(() => __night.snapshot().online.reentryStatus === 'saved');
-    await capture('saved', width, height);
+    assert(!(await snapshot(page)).buttons.some(b=>b.id==='online:releaseSave'));
+    assert.equal((await snapshot(page)).online.releaseIssue,undefined);
+    await press(page, 'online:releaseCheck', true, false);
     await press(page, 'online:back', true, false);
-    evidence.checks.push(`Manual version and committed reentry notice at ${width}x${height}`);
+    evidence.checks.push(`Update notice without manual saving or false incompatibility at ${width}x${height}`);
   }
   await press(page, 'qm:modes'); await press(page, 'mode:enter'); await press(page, 'start');
   await page.waitForFunction(() => __night.snapshot().phase === 'playing');
@@ -65,9 +65,9 @@ try {
   await page.waitForFunction(() => __night.snapshot().buttons.some(b => b.id === 'home'));
   await press(page, 'home', true, false); await press(page, 'exitConfirm', true, false);
   await page.waitForFunction(() => __night.snapshot().phase === 'briefing');
-  await press(page, 'online:version'); await press(page, 'online:releaseSave');
-  await page.waitForFunction(() => __night.snapshot().online.reentryStatus === 'saved');
-  evidence.checks.push('Explicitly leaving the battle permits a committed reentry notice');
+  await press(page, 'online:version');
+  assert.equal((await snapshot(page)).online.releaseIssue,undefined);
+  evidence.checks.push('Compatible old client continues normally after an actual match');
   assert.deepEqual(evidence.errors, []);
   evidence.passed = true;
 } finally {

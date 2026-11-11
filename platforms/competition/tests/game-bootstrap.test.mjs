@@ -7,6 +7,10 @@ test('normal startup creates game-scoped anonymous identity, reads metadata and 
     previousStorage = globalThis.__nightStorage;
   const values = new Map();
   globalThis.__nightStorage = {
+    get length() {
+      return values.size;
+    },
+    key: (index) => [...values.keys()][index],
     getItem: (key) => values.get(key) ?? null,
     setItem: (key, value) => values.set(key, value),
     removeItem: (key) => values.delete(key),
@@ -36,6 +40,7 @@ test('normal startup creates game-scoped anonymous identity, reads metadata and 
           : { game, capabilities: { identity: true, leaderboards: false }, boards: [] },
     };
   });
+  const respond = globalThis.fetch;
   for (const game of [
     'carding-car',
     'vibeJam-myself-history-guess',
@@ -54,6 +59,47 @@ test('normal startup creates game-scoped anonymous identity, reads metadata and 
     assert.equal((await bridge.ready).game, game);
     assert.equal(bridge.status, 'ready');
     assert.deepEqual(calls.at(-2)[1], { game });
+    if (game === 'night-overwatch') {
+      const results = [];
+      const removeThrowing = bridge.subscribeRequests(() => {
+        throw Error('observer');
+      });
+      const unsubscribe = bridge.subscribeRequests((result) => results.push(result));
+      await bridge.refresh();
+      assert.deepEqual(results, [], 'metadata checks never notify or recurse');
+      await bridge.services.listRooms();
+      assert.deepEqual(results, [
+        { path: '/games/night-overwatch/rooms', method: 'GET', playerId: game },
+      ]);
+      t.mock.method(globalThis, 'fetch', async () => ({
+        status: 409,
+        json: async () => ({ error: 'BUILD_DISABLED' }),
+      }));
+      await assert.rejects(bridge.services.match(), { code: 'BUILD_DISABLED' });
+      assert.equal(results.at(-1).error, 'BUILD_DISABLED');
+      assert.equal(results.at(-1).method, 'POST');
+      const recorder = bridge.createRecorder('v8', {
+        durable: { storage: globalThis.__nightStorage },
+      });
+      await recorder.start({ mode: 'campaign', levelId: 'first' });
+      assert(
+        results.some(
+          (result) =>
+            result.path === '/games/night-overwatch/runs' && result.error === 'BUILD_DISABLED',
+        ),
+        JSON.stringify({
+          results,
+          status: recorder.status,
+          diagnostic: recorder.storageDiagnostic,
+        }),
+      );
+      const count = results.length;
+      unsubscribe();
+      removeThrowing();
+      await assert.rejects(bridge.services.listRooms());
+      assert.equal(results.length, count);
+      t.mock.method(globalThis, 'fetch', respond);
+    }
   }
   assert(calls.every(([url]) => url.includes('/sessions/guest') || url.includes('/games/')));
   t.mock.method(globalThis, 'fetch', async () => {

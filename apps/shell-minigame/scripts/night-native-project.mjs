@@ -15,7 +15,7 @@ const recipe = [
   },
   {
     file: 'assets/scripts/BattleStatusView.ts',
-    originalSha256: '86560646e7ebb3f11bd223d10a8b8bea120a73573d11d3f1ca17705be80a8991',
+    originalSha256: '549dac81f27eda285a7abba7a7a75dfdcec584453cb6d8882f4825b6336d0768',
     changes: [],
   },
   {
@@ -25,7 +25,7 @@ const recipe = [
   },
   {
     file: 'assets/scripts/Platform.ts',
-    originalSha256: 'c035e7e770c3c7328a69864071f11ac40498860522779ccb560d7a1a126c9c66',
+    originalSha256: 'cee2b5ebe49340056b5b405125b3583bd8c1c52ef14cbb87898004362053e635',
     changes: [],
   },
 ];
@@ -138,6 +138,7 @@ export async function prepareNativeProject(gameRoot, { stageBase } = {}) {
       'platforms/competition/client.js',
       'platforms/competition/game-services.js',
       'platforms/competition/game-bootstrap.js',
+      'platforms/competition/legacy-polyfills.js',
       ...nightStorageSourceFiles,
       'platforms/taptap/competition-identity.mjs',
       'platforms/taptap/calls.mjs',

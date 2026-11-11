@@ -4,7 +4,17 @@ export function connectGameServices() {
   const config = globalThis.__COMPETITION_CONFIG__;
   if (!config?.competitionEnabled || !config.apiUrl) return undefined;
   const storage = config.game === 'night-overwatch' ? globalThis.__nightStorage : undefined;
-  const services = createGameServices({ gameId: config.game, storage });
+  const observers = new Set();
+  const onRequest = (result) => {
+    for (const listener of observers) {
+      try {
+        listener(result);
+      } catch {
+        /* An observer cannot block requests or other listeners. */
+      }
+    }
+  };
+  const services = createGameServices({ gameId: config.game, storage, onRequest });
   let status = 'connecting',
     metadata,
     error;
@@ -26,7 +36,14 @@ export function connectGameServices() {
   return Object.freeze({
     services,
     createRecorder: (ruleVersion, options) =>
-      createRunRecorder(createGameServices({ gameId: config.game, ruleVersion, storage }), options),
+      createRunRecorder(
+        createGameServices({ gameId: config.game, ruleVersion, storage, onRequest }),
+        options,
+      ),
+    subscribeRequests(listener) {
+      observers.add(listener);
+      return () => observers.delete(listener);
+    },
     ready,
     refresh,
     get status() {

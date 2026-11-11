@@ -1,0 +1,100 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "d0d5f527f51e68612e884613c943ef0870e71b00ddb40b4fcc768c624a54c944"
+  },
+  "fixture": true,
+  "checks": [
+    {
+      "prefix": "reduced-844",
+      "entry": "single",
+      "duration": 2210
+    },
+    {
+      "prefix": "reduced-844",
+      "entry": "quantity",
+      "duration": 2209
+    },
+    {
+      "prefix": "reduced-844",
+      "entry": "gift",
+      "duration": 2204
+    },
+    {
+      "prefix": "reduced-568",
+      "entry": "single",
+      "duration": 2208
+    },
+    {
+      "prefix": "reduced-568",
+      "entry": "quantity",
+      "duration": 2209
+    },
+    {
+      "prefix": "reduced-568",
+      "entry": "gift",
+      "duration": 2204
+    },
+    {
+      "prefix": "reduced-1280",
+      "entry": "single",
+      "duration": 2205
+    },
+    {
+      "prefix": "reduced-1280",
+      "entry": "quantity",
+      "duration": 2210
+    },
+    {
+      "prefix": "reduced-1280",
+      "entry": "gift",
+      "duration": 2202
+    },
+    {
+      "prefix": "full-844",
+      "entry": "single",
+      "duration": 2209
+    },
+    {
+      "prefix": "full-844",
+      "entry": "quantity",
+      "duration": 2210
+    },
+    {
+      "prefix": "full-844",
+      "entry": "gift",
+      "duration": 2204
+    },
+    {
+      "prefix": "full-568",
+      "entry": "single",
+      "duration": 2209
+    },
+    {
+      "prefix": "full-568",
+      "entry": "quantity",
+      "duration": 2211
+    },
+    {
+      "prefix": "full-568",
+      "entry": "gift",
+      "duration": 2204
+    },
+    {
+      "prefix": "full-1280",
+      "entry": "single",
+      "duration": 2209
+    },
+    {
+      "prefix": "full-1280",
+      "entry": "quantity",
+      "duration": 2208
+    },
+    {
+      "prefix": "full-1280",
+      "entry": "gift",
+      "duration": 2204
+    }
+  ]
+}

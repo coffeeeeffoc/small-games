@@ -3,8 +3,18 @@ import './client.js';
 const nativeNames = { wechat: 'wx', bilibili: 'bl', douyin: 'tt', kuaishou: 'ks', taptap: 'tap' };
 const failure = (code, message = '排行榜暂不可用，本地挑战仍可继续。') =>
   Object.assign(new Error(message), { code });
+const updateRequired = (code) =>
+  [
+    'RULE_VERSION_CHANGED',
+    'RULE_NEW_GAMES_DISABLED',
+    'RULE_VERSION_RETIRED',
+    'BUILD_DISABLED',
+    'BUILD_REMOVED',
+    'BACKEND_VERSION_DISABLED',
+    'NIGHT_RELEASE_UNAVAILABLE',
+  ].includes(code);
 
-export function createGameServices({ gameId, ruleVersion, storage: suppliedStorage }) {
+export function createGameServices({ gameId, ruleVersion, storage: suppliedStorage, onRequest }) {
   if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,79}$/.test(gameId)) throw failure('INVALID_GAME');
   const config = { ...globalThis.__COMPETITION_CONFIG__, game: gameId };
   if (globalThis.__COMPETITION_CONFIG__?.game && globalThis.__COMPETITION_CONFIG__.game !== gameId)
@@ -85,11 +95,26 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
     auth.assertCurrent(credential);
     const data = await transport(url, body, credential).catch((error) => {
       auth.invalidate(credential, error);
+      notifyRequest(
+        url,
+        body === undefined ? 'GET' : 'POST',
+        credential.playerId,
+        error.code || 'SERVICE_UNAVAILABLE',
+      );
       throw error;
     });
     if (storage?.refresh) await storage.refresh();
     auth.assertCurrent(credential);
+    notifyRequest(url, body === undefined ? 'GET' : 'POST', credential.playerId);
     return data;
+  }
+  function notifyRequest(url, method, playerId, error) {
+    if (gameId !== 'night-overwatch' || url === path || !onRequest) return;
+    try {
+      onRequest({ path: url, method, playerId, ...(error ? { error } : {}) });
+    } catch {
+      /* Presentation observers must not alter request outcomes. */
+    }
   }
   async function owner(id) {
     const value = owners.get(id);
@@ -718,7 +743,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
       report(
         error?.code === 'STORAGE_UNAVAILABLE'
           ? 'storage-unavailable'
-          : ['RULE_VERSION_CHANGED', 'RULE_NEW_GAMES_DISABLED'].includes(error?.code)
+          : updateRequired(error?.code)
             ? 'update-required'
             : error?.code === 'IDENTITY_CHANGED'
               ? 'identity-changed'
@@ -925,7 +950,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           } catch (confirmationError) {
             cause = confirmationError;
           }
-          if (stopRecovery()) return null;
+          if (await stopRecovery()) return null;
         }
         failed(run, cause);
         return null;
@@ -1017,7 +1042,7 @@ function createDurableRecorder(services, { storage, source = 'provided' }, onSta
           report(
             error?.code === 'STORAGE_UNAVAILABLE'
               ? 'storage-unavailable'
-              : ['RULE_VERSION_CHANGED', 'RULE_NEW_GAMES_DISABLED'].includes(error?.code)
+              : updateRequired(error?.code)
                 ? 'update-required'
                 : error?.code === 'IDENTITY_CHANGED'
                   ? 'identity-changed'
@@ -1273,7 +1298,7 @@ export function createRunRecorder(
         })
         .catch((error) => {
           // Pre-handshake servers reject the version field through their strict input schema.
-          if (['RULE_VERSION_CHANGED', 'INVALID_INPUT'].includes(error?.code))
+          if (updateRequired(error?.code) || error?.code === 'INVALID_INPUT')
             failureStatus = 'update-required';
           return null;
         });

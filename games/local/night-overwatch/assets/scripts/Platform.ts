@@ -65,12 +65,7 @@ export class Platform {
         const value = Number(this.storage.getItem('night-overwatch-' + key));
         if (Number.isFinite(value) && value >= .8 && value <= 1.5) this[key] = Math.round(value * 10) / 10;
       }
-      const preference = this.storage.getItem('night-overwatch-reduced-effects');
-      this.reducedEffects =
-        preference === 'true' ||
-        (preference === null &&
-          sys.isBrowser &&
-          window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+      this.reducedEffects = this.storage.getItem('night-overwatch-reduced-effects') === 'true';
     } catch {
       /* Preferences never block the mission. */
     }

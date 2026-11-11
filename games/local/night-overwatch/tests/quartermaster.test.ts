@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Quartermaster, wheelLandingAngle, wheelTravel, WHEEL_DURATION, WHEEL_PREVIEW_DURATION } from '../assets/scripts/Quartermaster.ts';
+import { Quartermaster, wheelLandingAngle, wheelTravel, WHEEL_DURATION, WHEEL_PREVIEW_DURATION, GIFT_DURATION, GIFT_BURST } from '../assets/scripts/Quartermaster.ts';
 import { ECONOMY, rewardText } from '../assets/scripts/core/Progression.ts';
 import { assetFixture } from './progression-fixture.ts';
 
@@ -25,14 +25,14 @@ test('wheel click without tickets gives feedback; a combined reward appears once
   const {q,online,calls}=setup();q.syncIdentity();q.page='supply';online.assets.wheelTickets=0;
   await q.spin();assert(q.wheelPreviewAt>0);assert.equal(q.wheelPressAt,q.wheelPreviewAt);assert.match(q.message[0],/广告/);assert.equal(calls.length,0);
   const revision=q.revision;await q.spin();q.nudgeWheel();assert.equal(q.revision,revision,'repeated taps cannot restart the preview');
-  q.tickPresentation(true);assert(q.wheelPreviewAt);assert.equal(q.gift,undefined);
-  q.wheelPreviewAt-=WHEEL_PREVIEW_DURATION;q.tickPresentation(true);assert.equal(q.wheelPreviewAt,0);assert.equal(q.gift,undefined);
+  q.tickPresentation();assert(q.wheelPreviewAt);assert.equal(q.gift,undefined);
+  q.wheelPreviewAt-=WHEEL_PREVIEW_DURATION;q.tickPresentation();assert.equal(q.wheelPreviewAt,0);assert.equal(q.gift,undefined);
   online.assets.wheelTickets=1;
   online.assetCommand=async(command:any)=>{calls.push(command);online.assets.wheelTickets--;return {...online.assets,lastReceipt:{kind:'wheel-spin',prizeIndex:5,coins:60,xp:40,packs:{'pack:general:3':1},items:{'drone-24h':1}}};};
   await q.spin();await q.spin();assert.equal(calls.length,1);assert.equal(q.gift,undefined);
-  q.tickPresentation(true);assert.equal(q.gift,undefined,'Reduced effects must not skip the spin');
-  q.wheel!.started-=WHEEL_DURATION;q.tickPresentation(true);assert.equal(q.gift?.packs['pack:general:3'],1);assert.deepEqual(q.gift?.drops,[{coins:60},{xp:40},{item:'drone-24h'}]);
-  const gift=q.gift;q.tickPresentation(true);assert.equal(q.gift,gift);
+  q.tickPresentation();assert.equal(q.gift,undefined,'Rewards must wait for the spin');
+  q.wheel!.started-=WHEEL_DURATION;q.tickPresentation();assert.equal(q.gift?.packs['pack:general:3'],1);assert.deepEqual(q.gift?.drops,[{coins:60},{xp:40},{item:'drone-24h'}]);
+  const gift=q.gift;q.tickPresentation();assert.equal(q.gift,gift);
 });
 test('wheel rim feedback never spends tickets and only an explicit skip reveals early',async()=>{
   const {q,online,calls}=setup();q.syncIdentity();q.page='supply';const tickets=online.assets.wheelTickets;
@@ -142,6 +142,29 @@ test('warehouse loadout entry selects the matching equipment or next empty compa
   q.unequip();q.item='power-permanent';q.selectInventorySlot();assert.equal(q.slot,'mod:1');
   q.item='laser-match';q.selectInventorySlot();assert.equal(q.slot,'weapon');
 });
+
+for(const entry of ['single','quantity','gift'] as const){
+  test(`${entry} crate opening plays before rewards`,async(t)=>{
+    let now=1700000000000;t.mock.method(Date,'now',()=>now);
+    const {q,online,calls}=setup();q.syncIdentity();
+    online.assetCommand=async(command:any)=>{calls.push(command);return {...online.assets,lastReceipt:{drops:[{coins:10}]}};};
+    if(entry==='gift'){
+      q.gift={packs:{'pack:general:0':2,'pack:gold:3':1},drops:[],opened:false};
+      await q.openGifts();
+    }else await q.execute({kind:'open',item:'pack:general:0',quantity:entry==='single'?1:3});
+    const started=q.gift!.started;
+    assert.equal(started,now);
+    q.tickPresentation();
+    assert.equal(q.gift!.started,started,'first frame must keep the opening animation');
+    assert.equal(q.gift!.revealed,undefined,'rewards must stay hidden');
+    now+=GIFT_DURATION*GIFT_BURST+1;q.tickPresentation();
+    assert.equal(q.gift!.illuminated,true,'the lid opens before rewards appear');
+    assert.equal(q.gift!.started,started);
+    now=started!+GIFT_DURATION;q.tickPresentation();
+    assert.equal(q.gift!.started,undefined);assert.equal(q.gift!.revealed,now);
+    assert.equal(calls.length,entry==='gift'?2:1,'presentation never spends more crates');
+  });
+}
 
 test('multi-crate opening retries the same failed transaction and never reopens the completed group',async()=>{
   const {q,online,calls}=setup();q.syncIdentity();q.gift={packs:{'pack:general:0':2,'pack:gold:3':1},drops:[],opened:false};let lose=true;

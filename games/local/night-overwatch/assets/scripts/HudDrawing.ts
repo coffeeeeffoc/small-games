@@ -222,6 +222,10 @@ export class HudDrawing {
         [-5, 9],
         [5, 9],
       ]);
+    } else if (kind === 'info') {
+      graphics.circle(centerX, centerY, 8 * iconScale);graphics.stroke();
+      line([[0, -1], [0, 5]]);
+      graphics.circle(centerX, centerY + 4 * iconScale, .7 * iconScale);graphics.stroke();
     } else if (kind === 'refresh') {
       line([
         [-7, 1],

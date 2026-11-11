@@ -92,7 +92,7 @@ export class BattleStatusView {
   }
   update(simulation: Simulation, world: World) {
     if (this.hud.quartermaster && this.hud.progressionArt.homeReady) this.hud.progressionArt.warm();
-    this.hud.quartermaster?.tickPresentation(this.hud.reducedEffects);
+    this.hud.quartermaster?.tickPresentation();
     if (this.hud.quartermaster) {
       this.hud.quartermaster.syncIdentity();
       const revision = `${this.hud.quartermaster.revision}:${this.hud.online?.revision}:${this.hud.lang}`;

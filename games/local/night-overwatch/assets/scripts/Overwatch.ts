@@ -606,8 +606,8 @@ export class Overwatch extends Component {
     if (this.hud.layoutEditing && !['layoutDone','settings','close','resume','pause'].includes(id)) return;
     if (id === 'resultClose') id = 'home';
     const online = this.online;
-    if (['online:version', 'online:releaseSave'].includes(id) && !this.canReenter()) {
-      this.hud.toast = this.hud.t('请完成本局和当前操作，返回首页后再重进', 'FINISH THE MATCH AND CURRENT ACTION FIRST');
+    if (id === 'online:version' && !this.canReenter()) {
+      this.hud.toast = this.hud.t('本局结束后可在首页查看更新', 'CHECK UPDATES ON HOME AFTER THIS MATCH');
       this.hud.toastUntil = Date.now() + 4000; return;
     }
     this.platform.activate();
@@ -625,7 +625,6 @@ export class Overwatch extends Component {
       this.clear(); this.hud.modalKey = 'rebuild';
       if (action === 'version') { this.pause('settings', false); online.show('version'); return; }
       if (action === 'releaseCheck') { void online.checkRelease(); return; }
-      if (action === 'releaseSave') { void online.prepareReentry(this.canReenter); return; }
       if(action==='chatBlocks'){online.chatMenu=online.chatMenu==='blocks'?'':'blocks';online.chatRevision++;return;}
       if(action==='chatSend'){void online.sendChat();return;}
       if(action==='roomReturn'){online.show('room');return;}

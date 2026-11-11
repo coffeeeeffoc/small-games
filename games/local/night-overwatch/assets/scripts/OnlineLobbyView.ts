@@ -629,7 +629,7 @@ export class OnlineLobbyView {
     }
     const pw = Math.min(result ? 560 : 760, this.h.w - this.h.safe.left - this.h.safe.right - 32),
       ph = Math.min(
-        result ? 360 : online.panel === 'ranking' ? 620 : 440,
+        result ? 360 : online.panel === 'ranking' ? 620 : online.panel === 'version' ? 300 : 440,
         this.h.h - this.h.safe.top - this.h.safe.bottom - 28,
       ),
       px = (this.h.w - pw) / 2,
@@ -714,7 +714,7 @@ export class OnlineLobbyView {
       create: ['创建房间', 'CREATE ROOM'],
       join: ['加入房间', 'JOIN ROOM'],
       history: ['对战记录', 'BATTLE RECORDS'],
-      version: ['版本与重进', 'VERSION / REOPEN'],
+      version: ['游戏更新', 'GAME UPDATES'],
       '': ['', ''],
     };
     if (!result) {
@@ -738,7 +738,7 @@ export class OnlineLobbyView {
             ? 'ranking'
             : online.panel === 'history'
               ? 'history'
-              : 'profile',
+              : online.panel === 'version' ? 'refresh' : 'profile',
         px + 31,
         py + 25,
         22,
@@ -750,25 +750,31 @@ export class OnlineLobbyView {
       const status = online.checkingRelease ? this.h.t('正在检查版本…', 'Checking version…')
         : online.releaseCheckFailed ? this.h.t('检查失败，可稍后重试', 'Check failed. Try again later.')
         : !release ? this.h.t('服务暂未提供版本信息', 'Version information is unavailable.')
-        : !release.canStartNewGames ? this.h.t('部分新对局暂不可用', 'Some new matches are unavailable.')
-        : release.update !== 'none' ? this.h.t('有可用的新版本', 'A newer version is available.')
-        : release.latestBuildId ? this.h.t('已是当前发布版本', 'You have the current release.')
+        : online.updateNotice ? this.h.t('发现新版本', 'Update available')
+        : release.latestBuildId ? this.h.t('已是最新版本', 'You are up to date')
         : this.h.t('当前版本可继续使用', 'This version remains supported.');
       label(status, 64, 16, C.amber);
-      const current = release?.currentBuildId || (globalThis as any).__COMPETITION_CONFIG__?.release?.buildId;
-      label(this.h.t('当前构建：', 'Build: ') + (current ? current.slice(0, 22) : '—'), 92, 11, C.dim);
-      const messages = {
-        '': this.h.t('游戏不会中途刷新。\n完成本局后，可先保存记录再退出重进。', 'The game will not reload during a match.\nFinish playing, then save before reopening.'),
-        saving: this.h.t('正在保存本机记录…', 'Saving local records…'),
-        saved: this.h.t('本机记录已保存；未到账结算将在联网后继续同步。\n请完全退出游戏，再从原入口进入。\n若仍是旧版，请稍后再试。', 'Local records saved; pending results sync when online.\nExit the game, then reopen from the same entry.\nIf the old version remains, try again later.'),
-        failed: this.h.t('记录尚未保存成功，请留在游戏内重试。', 'Records could not be saved. Stay in the game and retry.'),
-        unsafe: this.h.t('请先完成本局和当前操作，再返回首页。', 'Finish the match and current action, then return home.'),
-      };
-      this.h.label(n, messages[online.reentryStatus], px + pw / 2, py + 148, pw < 600 ? 12 : 14, pw - 48, 80, online.reentryStatus === 'failed' ? C.red : C.white);
-      const third = (pw - 56) / 3;
-      button('back', this.h.t('返回', 'BACK'), 16, bottom, third, false, true);
-      button('releaseCheck', this.h.t('检查版本', 'CHECK'), 28 + third, bottom, third, false, false, '', online.checkingRelease);
-      button('releaseSave', this.h.t('保存与重进说明', 'SAVE / REOPEN'), 40 + third * 2, bottom, third, true, false, '', online.reentryStatus === 'saving');
+      const local = (globalThis as any).__COMPETITION_CONFIG__?.release;
+      const version = local?.version || this.h.t('版本未知', 'Unknown version');
+      const channel = local?.channel || 'H5';
+      label(this.h.t('当前版本：', 'Current version: ') + `${version} · ${channel}`, 94, 16, C.white);
+      const current = local?.buildId;
+      label(this.h.t('构建标识：', 'Build: ') + (current ? current.slice(0, 22) : '—'), 116, 10, C.dim);
+      const latest = release?.latestVersion || (release?.latestBuildId && release.latestBuildId === current ? local?.version : undefined);
+      label(this.h.t('最新版本：', 'Latest version: ') + (latest ? `${latest} · ${channel}` : this.h.t('暂未获取', 'Unavailable')), 144, 16, latest ? C.white : C.dim);
+      label(this.h.t('构建标识：', 'Build: ') + (release?.latestBuildId ? release.latestBuildId.slice(0, 22) : '—'), 166, 10, C.dim);
+      if (online.updateNotice && online.releaseIssue) {
+        const incompatible = /^(?:RULE_|BUILD_|BACKEND_VERSION_|NIGHT_RELEASE_)/.test(online.releaseIssue.error || '');
+        const issue = incompatible ? this.h.t('本次操作与当前服务不兼容，请更新后重试。', 'This action needs an update. Reopen the game, then retry.')
+          : this.h.t('本次请求未完成，可重试或更新版本。', 'This request failed. Retry or update the game.');
+        const saved = online.recordSaveStatus === 'failed' ? this.h.t('自动保存失败，请暂勿退出，将自动重试。', 'Auto-save failed. Stay here; saving will retry.')
+          : online.recordSaveStatus === 'saved' ? this.h.t('记录已自动保存，待同步内容将在联网后补传。', 'Records saved automatically; pending results will sync online.')
+          : this.h.t('正在自动保存记录…', 'Saving records automatically…');
+        this.h.controlIcon(g, 'info', px + 32, py + 196, 18, online.recordSaveStatus === 'failed' ? C.red : C.amber);
+        this.h.label(n, issue + '\n' + saved, px + pw / 2 + 12, py + 204, pw < 600 ? 11 : 13, pw - 90, 40, online.recordSaveStatus === 'failed' ? C.red : C.dim);
+      }
+      button('back', this.h.t('返回', 'BACK'), 16, bottom, half, false, true);
+      button('releaseCheck', this.h.t('检查版本', 'CHECK FOR UPDATES'), 28 + half, bottom, half, false, false, 'refresh', online.checkingRelease);
       return;
     }
     if (result) {

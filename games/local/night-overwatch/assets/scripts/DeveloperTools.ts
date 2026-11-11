@@ -63,7 +63,7 @@ export function installDeveloperTools(game: Overwatch) {
     { id: 'night-preview-update', dismiss: true, label: '模拟版本提示（下次检查版本后恢复）', input: { label: '0无更新 / 1建议更新 / 2必须更新', min: 0, max: 2, step: 1, value: 1 }, run(value) {
       ready(); const level = whole(value, 0, 2), online = game.online; if (!online) throw Error('联机服务尚未就绪');
       const current = online.release?.currentBuildId ?? null;
-      online.release = { ...(online.release || { currentVersion: null, backendVersion: null }), currentBuildId: current, latestBuildId: level ? 'dev-preview-build' : current, update: (['none', 'optional', 'required'] as const)[level], canStartNewGames: level < 2, admissions: { ranked: level < 2, multiplayer: level < 2 }, action: 'reopen' } as NonNullable<typeof online.release>;
+      online.release = { ...(online.release || { currentVersion: null, backendVersion: null }), currentBuildId: current, latestBuildId: level ? 'dev-preview-build' : current, latestVersion: null, update: (['none', 'optional', 'required'] as const)[level], canStartNewGames: level < 2, admissions: { ranked: level < 2, multiplayer: level < 2 }, action: 'reopen' } as NonNullable<typeof online.release>;
       online.revision++; game.hud.modalKey = 'rebuild';
     } },
     { id: 'night-page', dismiss: true, label: '跳转成长页面', input: { label: '1行动 2配置 3商店 4补给 5成长 6任务 7信箱 8仓库 9合成 10开箱记录 11签到', min: 1, max: pages.length, step: 1, value: 4 }, run(value) {

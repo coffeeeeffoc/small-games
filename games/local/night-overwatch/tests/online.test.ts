@@ -18,41 +18,106 @@ function fixture() {
 }
 
 const release = (overrides: Partial<Release> = {}): Release => ({ currentBuildId: 'old', latestBuildId: 'new', update: 'optional', canStartNewGames: true, admissions: { ranked: true, multiplayer: true }, action: 'reopen', ...overrides });
-test('version checks never navigate or interrupt play; errors retain the last known admission policy', async () => {
+test('version metadata never blocks working interfaces; checks never interrupt play', async () => {
   const f = fixture(), online = new Online(storage(), () => {});
   let next: Release | undefined = release(), fail = false;
   Object.assign(f.bridge, { refresh: async () => { if(fail)throw Error('offline');return { ...await f.bridge.ready, release: next }; } });
   await online.connect(f.bridge); online.panel = 'room';
   await online.checkRelease(); assert.equal(online.panel, 'room'); assert(online.updateNotice);
   next = release({ admissions: { ranked: false, multiplayer: true }, canStartNewGames: false, update: 'required' });
+  let starts=0;online.recorder!.start=async()=>{starts++;return null;};
   await online.checkRelease(); await online.startRanking({ mode: 'campaign', levelId: 'first', practice: false });
-  assert.equal(online.rankStatus, 'update-required');
+  assert.equal(starts,1,'actual start endpoint decides compatibility');
+  next=release({admissions:{ranked:false,multiplayer:false},canStartNewGames:false,update:'required'});
+  await online.checkRelease();await online.open('match');assert.equal(f.count(),1);
   fail = true; await online.checkRelease(); assert(online.releaseCheckFailed); assert.equal(online.release?.admissions.ranked, false);
   fail = false; next = undefined; await online.checkRelease(); assert.equal(online.release, undefined); assert(!online.updateNotice);
   online.dispose();
 });
-test('safe reentry waits for flush, preserves pending settlement, and rechecks activity and identity', async () => {
-  for (const outcome of ['saved', 'failed', 'unsafe', 'owner'] as const) {
-    const f = fixture(); let finish!: () => void, safe = true;
+test('latest version metadata accepts older servers and rejects malformed display values', async () => {
+  const f=fixture(),online=new Online(storage(),()=>{});
+  let next=release({latestVersion:'1.0.17'});
+  Object.assign(f.bridge,{refresh:async()=>({...await f.bridge.ready,release:next})});
+  await online.connect(f.bridge);await online.checkRelease();assert.equal(online.release?.latestVersion,'1.0.17');
+  for(const invalid of [123,{},'bad\nversion','1'.repeat(101)]){
+    next={...next,latestVersion:invalid as string};await online.checkRelease();
+    assert(online.releaseCheckFailed);assert.equal(online.release?.latestVersion,'1.0.17');
+  }
+  for(const latestVersion of [undefined,null]){next=release({latestVersion});await online.checkRelease();assert(!online.releaseCheckFailed);}
+  online.dispose();
+});
+
+test('automatic record saving waits for commit without requiring a panel or ending a match', async () => {
+  for (const outcome of ['saved', 'failed'] as const) {
+    const f = fixture(); let finish!: () => void;
     const disk = { ...storage(), flush: () => new Promise<void>((resolve, reject) => { finish = () => outcome === 'failed' ? reject(Error('disk')) : resolve(); }) };
-    const online = new Online(disk, () => {}); await online.connect(f.bridge); online.show('version');
+    const online = new Online(disk, () => {}); await online.connect(f.bridge); online.panel='room';online.room=room();
     online.rankStatus = 'pending-sync';
-    const save = online.prepareReentry(() => safe);
-    assert.equal(online.reentryStatus, 'saving');
-    if (outcome === 'unsafe') safe = false;
-    if (outcome === 'owner') online.authenticatedId = 'other';
+    const save = online.saveRecords();
+    assert.equal(online.recordSaveStatus, 'saving');
     finish(); await save;
-    assert.equal(online.reentryStatus, outcome === 'owner' ? 'unsafe' : outcome);
+    assert.equal(online.recordSaveStatus, outcome);assert.equal(online.panel,'room');assert(online.room);
     assert.equal(online.rankStatus, 'pending-sync'); online.dispose();
   }
 });
-test('reentry rejects active rooms and failed journals without issuing a safe-to-exit notice', async () => {
+test('automatic saving never reports success for a failed journal or replaced identity', async () => {
   const f = fixture(), online = new Online(storage(), () => {});
-  await online.connect(f.bridge); online.show('version'); online.room = room();
-  await online.prepareReentry(() => true); assert.equal(online.reentryStatus, 'unsafe');
-  online.room = undefined; Object.assign(online.recorder!, { saveForReentry: async () => false });
-  await online.prepareReentry(() => true); assert.equal(online.reentryStatus, 'failed');
+  await online.connect(f.bridge);Object.assign(online.recorder!, { saveForReentry: async () => false });
+  await online.saveRecords(); assert.equal(online.recordSaveStatus, 'failed');
+  let finish!:(saved:boolean)=>void;Object.assign(online.recorder!,{saveForReentry:()=>new Promise<boolean>(resolve=>{finish=resolve;})});
+  const saving=online.saveRecords();
+  await online.connect({...f.bridge,ready:Promise.resolve({...(await f.bridge.ready),identity:{id:'b',name:'B'}})});
+  finish(true);await saving;assert.equal(online.recordSaveStatus,'');
   online.dispose();
+});
+
+test('only an outdated client with a real failed request shows an update issue and auto-saves once',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});let notify!:(result:any)=>void,removed=0,saves=0;
+  Object.assign(f.bridge,{subscribeRequests:(listener:any)=>{notify=listener;return()=>{removed++;};}});
+  await online.connect(f.bridge);Object.assign(online.recorder!,{saveForReentry:async()=>{saves++;return true;}});
+  online.release=release({update:'none',currentBuildId:'new'});
+  notify({path:'/games/night-overwatch/match',method:'POST',playerId:'a',error:'SERVICE_UNAVAILABLE'});
+  await new Promise(r=>setImmediate(r));assert.equal(online.releaseIssue,undefined);assert.equal(saves,0);
+  online.release=release({canStartNewGames:false,admissions:{ranked:false,multiplayer:false}});
+  assert.equal(online.releaseIssue,undefined);
+  notify({path:'/games/night-overwatch/match',method:'POST',playerId:'a',error:'INVALID_PASSWORD'});
+  assert.equal(saves,0,'ordinary business rejections do not suggest updating');
+  const failed={path:'/games/night-overwatch/match',method:'POST',playerId:'a',error:'BUILD_DISABLED'};
+  notify(failed);notify(failed);await new Promise(r=>setImmediate(r));
+  assert.equal(saves,1);assert.equal(online.recordSaveStatus,'saved');assert.equal(online.releaseIssue?.error,'BUILD_DISABLED');
+  online.show('version');assert.equal(online.recordSaveStatus,'saved','navigation does not discard saved evidence');
+  notify({path:failed.path,method:'GET',playerId:'a'});assert(online.releaseIssue,'reading a resource does not clear a failed mutation');
+  notify({path:failed.path,method:'POST',playerId:'a'});assert.equal(online.releaseIssue,undefined,'a successful retry clears the warning');
+  notify({...failed,playerId:'another'});assert.equal(online.releaseIssue,undefined);
+  online.dispose();assert.equal(removed,1);notify(failed);assert.equal(saves,1);
+});
+
+test('requests share an in-flight version check and successful retries invalidate delayed errors',async()=>{
+  for(const recovered of [false,true]){
+    const f=fixture(),online=new Online(storage(),()=>{});let notify!:(result:any)=>void,resolve!:(metadata:any)=>void,saves=0,checks=0;
+    Object.assign(f.bridge,{subscribeRequests:(listener:any)=>{notify=listener;return()=>{};},refresh:()=>{checks++;return new Promise(r=>{resolve=r;});}});
+    await online.connect(f.bridge);Object.assign(online.recorder!,{saveForReentry:async()=>{saves++;return true;}});
+    const checking=online.checkRelease();await Promise.resolve();
+    const failed={path:'/games/night-overwatch/rooms',method:'POST',playerId:'a',error:'BUILD_DISABLED'};
+    notify(failed);
+    if(recovered)notify({...failed,error:undefined});
+    resolve({...await f.bridge.ready,release:release()});await checking;await new Promise(r=>setImmediate(r));
+    assert.equal(checks,1);assert.equal(saves,recovered?0:1);assert.equal(!!online.releaseIssue,!recovered);
+    online.dispose();
+  }
+});
+
+test('failed automatic saving retries even after a successful request clears the update issue',async t=>{
+  const f=fixture(),online=new Online(storage(),()=>{});let notify!:(result:any)=>void,saves=0,now=10000;
+  t.mock.method(Date,'now',()=>now);
+  Object.assign(f.bridge,{subscribeRequests:(listener:any)=>{notify=listener;return()=>{};}});
+  await online.connect(f.bridge);online.release=release();
+  Object.assign(online.recorder!,{saveForReentry:async()=>++saves>1});
+  const failed={path:'/games/night-overwatch/rooms',method:'POST',playerId:'a',error:'BUILD_DISABLED'};
+  notify(failed);await new Promise(r=>setImmediate(r));assert.equal(online.recordSaveStatus,'failed');
+  notify({...failed,error:undefined});assert.equal(online.releaseIssue,undefined);
+  now+=5001;await online.pump(100);await new Promise(r=>setImmediate(r));
+  assert.equal(saves,2);assert.equal(online.recordSaveStatus,'saved');online.dispose();
 });
 
 test('a new client refuses incompatible active room state before taking over the existing connection', async () => {

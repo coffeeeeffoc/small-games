@@ -1,0 +1,40 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "96448e08de71e21fe510b8f1b119dfff019f96626883eb0b5f9c88285d737a61"
+  },
+  "fixture": "HTTP only; production bridge, recorder and storage",
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "requests": 30,
+      "autoSaved": true,
+      "latestFailureHasNoUpdateWarning": true,
+      "currentVersionOffline": true,
+      "latestVersion": "1.0.17",
+      "missingLatestNotGuessed": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "requests": 30,
+      "autoSaved": true,
+      "latestFailureHasNoUpdateWarning": true,
+      "currentVersionOffline": true,
+      "latestVersion": "1.0.17",
+      "missingLatestNotGuessed": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "requests": 30,
+      "autoSaved": true,
+      "latestFailureHasNoUpdateWarning": true,
+      "currentVersionOffline": true,
+      "latestVersion": "1.0.17",
+      "missingLatestNotGuessed": true
+    }
+  ]
+}

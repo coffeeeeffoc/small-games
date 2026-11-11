@@ -178,7 +178,7 @@ export class ProgressionView {
     const body=top+bar+this.ticker(top+bar,this.h.online?.updateNotice?r-Math.max(128,w*.175)-8:r);
     const buttonGap=Math.max(5,h*.014),bh=Math.max(44,Math.min(Math.max(46,h*.133),(cy-body-28-buttonGap)/2));
     const titleY=body+Math.min(12,h*.045),desiredTitleW=w*(this.low?.29:.33),bw=w*.30,fw=Math.max(128,w*.175);
-    if(this.h.online?.updateNotice)this.button('online:version',this.t('版本 / 重进提示','VERSION / REOPEN'),r-fw,body+4,fw,44,'panel');
+    if(this.h.online?.updateNotice)this.button('online:version',this.t('发现新版本','UPDATE AVAILABLE'),r-fw,body+4,fw,44,'panel');
     let titleX=l+8,titleW=Math.min(desiredTitleW,Math.max(0,cy-titleY-2*bh-buttonGap-16)*3);
     const titleBeside=titleW<desiredTitleW*.65;
     if(titleBeside){titleX=l+8+bw+16;titleW=Math.min(desiredTitleW,r-fw-titleX-12);}
@@ -683,12 +683,13 @@ export class ProgressionView {
   }
   /** Shake and glow build up, then the lid bursts open in the colour of the best reward inside. */
   private crateOpening(overlay:Node,top:number,b:number){
+    const calm=this.h.reducedEffects;
     const gift=this.q.gift!,total=gift.duration||2200,elapsed=Date.now()-gift.started!,burstAt=total*GIFT_BURST,burst=elapsed>=burstAt,since=(elapsed-burstAt)/1000,left=Math.max(.05,(burstAt-elapsed)/1000);
     const cy=this.height/2-(top+46+b)/2,boxH=Math.max(60,(b-top-60)*.92),boxW=Math.min(this.w*.46,boxH*1.5),tone=burst?this.giftTone():'#ffc35a',one=new Vec3(1,1,1); // rarity colour is the surprise: gold until the lid opens
     const part=(name:string)=>{const node=this.h.node(name,overlay);node.setPosition(0,cy);return {node,ink:node.addComponent(Graphics),fade:node.addComponent(UIOpacity)};};
     const fan=part('CrateRays');this.rays(fan.ink,tone,Math.max(this.w,this.height)*.62,'40','1c');
     const glow=part('CrateGlow');for(const [radius,alpha]of [[.62,'12'],[.47,'1e'],[.33,'30'],[.2,'44']] as const){glow.ink.fillColor=color(tone+alpha);glow.ink.circle(0,0,boxW*radius);glow.ink.fill();}
-    this.loop(fan.node,fan.node).by(burst?9:22,{angle:-360}).repeatForever().start();
+    if(!calm)this.loop(fan.node,fan.node).by(burst?9:22,{angle:-360}).repeatForever().start();
     const actor=this.h.node('CrateActor',overlay);actor.setPosition(0,cy);
     const key=burst?'openCrate':'closedCrate',frame=this.a.get(key);
     if(frame){const art=this.h.node('Illustration:'+key,actor),sprite=art.addComponent(Sprite),ratio=frame.rect.width/frame.rect.height,w=Math.min(boxW,boxH*ratio);sprite.sizeMode=Sprite.SizeMode.CUSTOM;sprite.spriteFrame=frame;art.getComponent(UITransform)!.setContentSize(w,w/ratio);}
@@ -696,20 +697,20 @@ export class ProgressionView {
       // Anticipation: light leaks out while the crate rattles harder and harder, then squashes before the pop.
       fan.fade.opacity=Math.min(120,elapsed/burstAt*120);fan.node.setScale(.55,.55,1);tween(fan.fade).to(left,{opacity:130}).start();tween(fan.node).to(left,{scale:new Vec3(.9,.9,1)}).start();
       glow.fade.opacity=60+elapsed/burstAt*120;tween(glow.fade).to(left,{opacity:255}).start();glow.node.setScale(.7,.7,1);tween(glow.node).to(left,{scale:new Vec3(1.15,1.15,1)},{easing:'quadIn'}).start();
-      if(elapsed<200){actor.setScale(.55,.55,1);tween(actor).to(.22,{scale:one},{easing:'backOut'}).start();}
+      if(elapsed<200){const scale=calm ? .9 : .55;actor.setScale(scale,scale,1);tween(actor).to(.22,{scale:one},{easing:'backOut'}).start();}
       const rattle=tween(actor);let t=elapsed;
-      for(let side=1;t<burstAt-130;t+=64,side=-side){const amp=1.2+7.5*Math.pow(t/burstAt,2);rattle.to(.064,{angle:side*amp,position:new Vec3(side*amp*.7,cy+(side>0?amp*.5:0),0)});}
-      rattle.to(.05,{angle:0,position:new Vec3(0,cy,0)}).to(.08,{scale:new Vec3(1.14,.84,1)},{easing:'quadOut'}).start();
+      for(let side=1;t<burstAt-130;t+=64,side=-side){const amp=(1.2+7.5*Math.pow(t/burstAt,2))*(calm ? .35 : 1);rattle.to(.064,{angle:side*amp,position:new Vec3(side*amp*.7,cy+(side>0?amp*.5:0),0)});}
+      rattle.to(.05,{angle:0,position:new Vec3(0,cy,0)}).to(.08,{scale:new Vec3(calm?1.08:1.14,calm ? .94 : .84,1)},{easing:'quadOut'}).start();
       return;
     }
     fan.fade.opacity=255;glow.fade.opacity=255;
     this.loop(glow.node,glow.fade).to(.4,{opacity:150}).to(.4,{opacity:255}).union().repeatForever().start();
-    const sparks=Array.from({length:22},(_,i)=>{const a=i*2.39996,far=boxW*(.55+((i*37)%50)/100),size=2.5+(i*13)%5;return {a,far,size};});
+    const sparks=Array.from({length:calm?8:22},(_,i)=>{const a=i*2.39996,far=boxW*(.55+((i*37)%50)/100)*(calm ? .6 : 1),size=2.5+(i*13)%5;return {a,far,size};});
     if(since<.35){
       fan.node.setScale(.9,.9,1);tween(fan.node).to(.3,{scale:new Vec3(1.3,1.3,1)},{easing:'quadOut'}).start();
-      actor.setScale(.8,1.3,1);actor.setPosition(0,cy+boxH*.07);tween(actor).to(.13,{scale:new Vec3(1.22,1.1,1)},{easing:'quadOut'}).to(.3,{scale:one,position:new Vec3(0,cy,0)},{easing:'backOut'}).start();
-      const flash=this.h.node('CrateFlash',overlay),ink=flash.addComponent(Graphics),fade=flash.addComponent(UIOpacity);flash.setSiblingIndex(actor.getSiblingIndex());this.h.rect(ink,0,0,this.w,this.height,'#fff3d2');fade.opacity=215;tween(fade).to(.42,{opacity:0},{easing:'quadOut'}).start();
-      for(const [delay,width]of [[0,7],[.12,3]] as const){const ring=part('CrateRing');ring.ink.strokeColor=color(tone);ring.ink.lineWidth=width;ring.ink.circle(0,0,boxW*.3);ring.ink.stroke();ring.node.setScale(.35,.35,1);tween(ring.node).delay(delay).to(.6,{scale:new Vec3(2.6,2.6,1)},{easing:'quadOut'}).start();tween(ring.fade).delay(delay).to(.6,{opacity:0}).start();}
+      actor.setScale(calm ? .96 : .8,calm?1.08:1.3,1);actor.setPosition(0,cy+boxH*(calm ? .035 : .07));tween(actor).to(.13,{scale:new Vec3(calm?1.08:1.22,calm?1.04:1.1,1)},{easing:'quadOut'}).to(.3,{scale:one,position:new Vec3(0,cy,0)},{easing:'backOut'}).start();
+      if(!calm){const flash=this.h.node('CrateFlash',overlay),ink=flash.addComponent(Graphics),fade=flash.addComponent(UIOpacity);flash.setSiblingIndex(actor.getSiblingIndex());this.h.rect(ink,0,0,this.w,this.height,'#fff3d2');fade.opacity=215;tween(fade).to(.42,{opacity:0},{easing:'quadOut'}).start();}
+      for(const [delay,width]of (calm?[[0,3]]:[[0,7],[.12,3]])){const ring=part('CrateRing');ring.ink.strokeColor=color(tone);ring.ink.lineWidth=width;ring.ink.circle(0,0,boxW*.3);ring.ink.stroke();ring.node.setScale(.35,.35,1);const scale=calm?1.8:2.6;tween(ring.node).delay(delay).to(.6,{scale:new Vec3(scale,scale,1)},{easing:'quadOut'}).start();tween(ring.fade).delay(delay).to(.6,{opacity:0}).start();}
       for(const {a,far,size} of sparks){
         const spark=part('CrateSpark');spark.ink.fillColor=color(size>5?'#fff6dc':tone);spark.ink.moveTo(0,size*1.8);spark.ink.lineTo(size*.55,0);spark.ink.lineTo(0,-size*1.8);spark.ink.lineTo(-size*.55,0);spark.ink.close();spark.ink.fill();
         const life=.55+size*.07,x=Math.cos(a)*far,y=cy+Math.sin(a)*far*.8+boxH*.12;spark.node.angle=a*57.3-90;
@@ -717,14 +718,14 @@ export class ProgressionView {
       }
     }else fan.node.setScale(1.3,1.3,1);
     // Loot twinkles keep rising out of the open lid until the rewards are listed.
-    for(let i=0;i<7;i++){
-      const star=part('CrateTwinkle'),sx=(i-3)*boxW*.11,size=3+i%3*1.5;star.ink.fillColor=color(i%2?'#fff6dc':tone);
+    for(let i=0;i<(calm?3:7);i++){
+      const star=part('CrateTwinkle'),sx=(i-(calm?1:3))*boxW*.11,size=3+i%3*1.5;star.ink.fillColor=color(i%2?'#fff6dc':tone);
       for(const [w,h]of [[size*.4,size*2],[size*2,size*.4]])star.ink.rect(-w/2,-h/2,w,h);star.ink.fill();star.node.setPosition(sx,cy);star.fade.opacity=0;
       const rise=.9+i%3*.25;
       this.loop(star.node,star.node).delay(i*.11).set({position:new Vec3(sx,cy+boxH*.05,0)}).to(rise,{position:new Vec3(sx*1.5,cy+boxH*.55,0)},{easing:'quadOut'}).union().repeatForever().start();
       this.loop(star.node,star.fade).delay(i*.11).to(rise*.25,{opacity:255}).to(rise*.75,{opacity:0}).union().repeatForever().start();
     }
-    this.loop(actor,actor).delay(Math.max(0,.45-since)).by(.6,{position:new Vec3(0,5,0)},{easing:'sineInOut'}).by(.6,{position:new Vec3(0,-5,0)},{easing:'sineInOut'}).union().repeatForever().start();
+    const float=calm?2:5;this.loop(actor,actor).delay(Math.max(0,.45-since)).by(.6,{position:new Vec3(0,float,0)},{easing:'sineInOut'}).by(.6,{position:new Vec3(0,-float,0)},{easing:'sineInOut'}).union().repeatForever().start();
   }
   private confirm(){
     const q=this.q,intent=q.confirmation!,{x,y,pw,ph}=this.dialog('',220);

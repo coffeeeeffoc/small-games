@@ -132,6 +132,47 @@ function durableFixture({ atomic = false } = {}) {
     owner: (v) => (owner = v),
   };
 }
+test('Night release rejections retain a savable journal instead of treating it as corrupt', async () => {
+  for (const code of [
+    'RULE_VERSION_CHANGED',
+    'RULE_NEW_GAMES_DISABLED',
+    'BUILD_DISABLED',
+    'BUILD_REMOVED',
+    'BACKEND_VERSION_DISABLED',
+    'NIGHT_RELEASE_UNAVAILABLE',
+  ]) {
+    const f = durableFixture(),
+      recorder = f.recorder();
+    await recorder.start({ mode: 'campaign', levelId: 'first' });
+    recorder.record({}, 20);
+    f.services.getRun = async () => {
+      throw Object.assign(Error(code), { code });
+    };
+    await recorder.finish();
+    assert.equal(recorder.status, 'update-required', code);
+    assert.equal(await recorder.saveForReentry(), true, code);
+    assert(
+      [...f.values.values()].some((value) => JSON.parse(value).batches?.[0]?.[0]?.ticks === 20),
+      'pending actions remain on disk',
+    );
+  }
+});
+
+test('Night failed terminal recheck reports the actual failure and retains pending input', async () => {
+  const f = durableFixture(),
+    recorder = f.recorder();
+  await recorder.start({ mode: 'campaign', levelId: 'first' });
+  recorder.record({}, 20);
+  let calls = 0;
+  f.services.getRun = async () => {
+    throw Object.assign(Error(), { code: ++calls === 1 ? 'RUN_EXPIRED' : 'SERVICE_UNAVAILABLE' });
+  };
+  await recorder.finish();
+  assert.equal(calls, 2);
+  assert.equal(recorder.status, 'pending-sync');
+  assert.equal(await recorder.saveForReentry(), true);
+});
+
 test('Night durable completion survives lost append response and reload, querying before replay', async () => {
   const f = durableFixture(),
     first = f.recorder();

@@ -39,6 +39,7 @@ async function fixture() {
     'platforms/competition/client.js',
     'platforms/competition/game-services.js',
     'platforms/competition/game-bootstrap.js',
+    'platforms/competition/legacy-polyfills.js',
     ...nightStorageSourceFiles,
     'platforms/taptap/competition-identity.mjs',
     'platforms/taptap/calls.mjs',

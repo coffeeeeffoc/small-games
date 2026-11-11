@@ -1,0 +1,31 @@
+{
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "f29843986c58e54a5eb75bbba8828a94b23b3319104d0fe411f94665acccbd01"
+  },
+  "fixture": "HTTP only; production bridge, recorder and storage",
+  "checks": [
+    {
+      "width": 568,
+      "height": 320,
+      "requests": 24,
+      "autoSaved": true,
+      "latestFailureHasNoUpdateWarning": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "requests": 24,
+      "autoSaved": true,
+      "latestFailureHasNoUpdateWarning": true
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "requests": 24,
+      "autoSaved": true,
+      "latestFailureHasNoUpdateWarning": true
+    }
+  ]
+}

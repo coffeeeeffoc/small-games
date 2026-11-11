@@ -58,6 +58,44 @@ it('validates bounded builds and strict channel/rule references without inventin
   expect(releaseFixture(true).release.metadata().release.update).toBe('required');
 });
 
+it('reports the published version for the client channel without guessing missing version numbers', () => {
+  const { old, current, config } = releaseFixture();
+  config.builds[0]!.version = '1.0.16';
+  config.builds[1]!.version = '1.0.17';
+  config.builds.push({
+    ...config.builds[1]!,
+    buildId: 'other-channel',
+    channel: 'taptap-h5',
+    version: '9.0.0',
+  });
+  config.channels.push({ channel: 'taptap-h5', latestBuildId: 'other-channel' });
+  const make = () =>
+    createNightRelease(
+      [current.ranked, old.ranked],
+      [current.multiplayer, old.multiplayer],
+      config,
+    );
+  expect(make().metadata('build-a').release).toMatchObject({
+    currentVersion: '1.0.16',
+    latestVersion: '1.0.17',
+    latestBuildId: 'build-b',
+  });
+  expect(make().metadata('build-b').release).toMatchObject({
+    currentVersion: '1.0.17',
+    latestVersion: '1.0.17',
+    update: 'none',
+  });
+  expect(make().metadata('other-channel').release.latestVersion).toBe('9.0.0');
+  expect(make().metadata('unknown').release.latestVersion).toBeNull();
+  delete config.builds[1]!.version;
+  expect(make().metadata('build-a').release.latestVersion).toBeNull();
+  config.channels[0]!.latestBuildId = null;
+  expect(make().metadata('build-a').release).toMatchObject({
+    latestBuildId: null,
+    latestVersion: null,
+  });
+});
+
 it('pins real A/B apply/result/boards, restores lost creates after stop, and retains unknown versions', async () => {
   const memory = memoryRuns(),
     initial = releaseFixture(),

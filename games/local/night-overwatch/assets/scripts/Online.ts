@@ -23,14 +23,17 @@ type Recorder = { start(options: { mode: string; levelId: string; practice: bool
   settlement?: { playerId: string; runId: string; result: Settlement } };
 export type ChatMessage={id:string;playerId:string;nickname:string;text:string;at:number;room?:{code:string;createdAt:number;canJoin:boolean}};
 export type ChatSnapshot={messages:ChatMessage[];cursor:string;reset:boolean;serverNow:number};
-export type Release = { currentBuildId: string | null; latestBuildId: string | null; update: 'none' | 'optional' | 'required'; canStartNewGames: boolean; admissions: { ranked: boolean; multiplayer: boolean }; action: 'reopen' };
+export type Release = { currentBuildId: string | null; currentVersion?: string | null; latestBuildId: string | null; latestVersion?: string | null; update: 'none' | 'optional' | 'required'; canStartNewGames: boolean; admissions: { ranked: boolean; multiplayer: boolean }; action: 'reopen' };
+type RequestResult = { path: string; method: 'GET' | 'POST'; playerId: string; error?: string };
 type Metadata = { identity: Player; capabilities: { multiplayer: boolean; leaderboards: boolean;chat?:boolean;presence?:boolean }; release?: Release };
 type OnlineStorage = Pick<Storage, 'getItem' | 'setItem'> & { flush?(): Promise<void> };
 function validRelease(value: Release) {
   const build = (id: unknown) => id === null || typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(id);
-  return value && build(value.currentBuildId) && build(value.latestBuildId) && ['none', 'optional', 'required'].includes(value.update) && typeof value.canStartNewGames === 'boolean' && typeof value.admissions?.ranked === 'boolean' && typeof value.admissions?.multiplayer === 'boolean' && value.action === 'reopen';
+  const version = value?.latestVersion;
+  return value && (version === undefined || version === null || typeof version === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(version)) && build(value.currentBuildId) && build(value.latestBuildId) && ['none', 'optional', 'required'].includes(value.update) && typeof value.canStartNewGames === 'boolean' && typeof value.admissions?.ranked === 'boolean' && typeof value.admissions?.multiplayer === 'boolean' && value.action === 'reopen';
 }
 type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Metadata | undefined>;
+  subscribeRequests?(listener: (result: RequestResult) => void): () => void;
   services: { createRoom(input: { mode: string; visibility?: string; password?: string }): Promise<Room>; match(): Promise<Room>; joinRoom(input: { code: string; password?: string }): Promise<Room>;
     listRooms?(): Promise<{ rooms: RoomSummary[] }>; history?(input: { cursor?: string }): Promise<BattleHistory>;
     updateProfile?(input: { nickname: string }): Promise<Player>; connectRoom?(input: { code: string }): Promise<Room>;
@@ -63,35 +66,65 @@ export class Online {
   release?: Release;
   checkingRelease = false;
   releaseCheckFailed = false;
-  reentryStatus: '' | 'saving' | 'saved' | 'failed' | 'unsafe' = '';
-  private reentryAttempt = 0;
-  get updateNotice() { return !!this.release && (this.release.update !== 'none' || !this.release.canStartNewGames); }
+  recordSaveStatus: '' | 'saving' | 'saved' | 'failed' = '';
+  releaseIssue?: RequestResult;
+  private recordSaveAttempt = 0;
+  private unsubscribeRequests?: () => void;
+  private releaseCheckedAt = 0;
+  private recordSaveAt = 0;
+  private releaseCheck?: Promise<void>;
+  private pendingRequests = new Map<string, RequestResult>();
+  get updateNotice() { return !!this.release && this.release.update !== 'none'; }
   async checkRelease() {
     const bridge = this.bridge;
-    if (this.destroyed || this.checkingRelease || !bridge) return;
-    this.checkingRelease = true; this.revision++;
+    if (this.destroyed || !bridge) return;
+    if (this.releaseCheck) return this.releaseCheck;
+    this.checkingRelease = true; this.releaseCheckedAt = performance.now(); this.revision++;
+    const check = Promise.resolve().then(async () => {
     try {
       const metadata = await (bridge.refresh?.() ?? bridge.ready);
       if (this.destroyed || this.bridge !== bridge) return;
       if (!metadata || metadata.release !== undefined && !validRelease(metadata.release)) throw Error('Release unavailable');
       this.release = metadata.release; this.releaseCheckFailed = false;
+      if (!this.updateNotice) this.releaseIssue = undefined;
     } catch { if (this.bridge === bridge) this.releaseCheckFailed = true; }
-    finally { this.checkingRelease = false; if (!this.destroyed) this.revision++; }
+    finally { if (this.releaseCheck === check) { this.releaseCheck = undefined; this.checkingRelease = false; if (!this.destroyed) this.revision++; } }
+    });
+    this.releaseCheck = check;
+    return check;
   }
-  async prepareReentry(safe: () => boolean) {
-    const canLeave = () => !this.destroyed && this.panel === 'version' && !this.busy && !this.active && !this.room && !this.chatSending && safe();
-    if (this.reentryStatus === 'saving') return;
-    if (!canLeave()) { this.reentryStatus = 'unsafe'; this.revision++; return; }
-    const attempt = ++this.reentryAttempt, owner = this.authenticatedId;
-    this.reentryStatus = 'saving'; this.revision++;
+  private async observeRequest(result: RequestResult) {
+    if (this.destroyed || result.playerId !== this.authenticatedId) return;
+    const key = result.method + ':' + result.path;
+    const sameRequest = this.releaseIssue?.path === result.path && this.releaseIssue?.method === result.method;
+    if (!result.error) {
+      this.pendingRequests.delete(key);
+      if (sameRequest) { this.releaseIssue = undefined; this.revision++; }
+      return;
+    }
+    if (!/^(?:SERVICE_UNAVAILABLE|INTERNAL_ERROR|NOT_FOUND|RULE_VERSION_CHANGED|RULE_NEW_GAMES_DISABLED|RULE_VERSION_RETIRED|BUILD_DISABLED|BUILD_REMOVED|BACKEND_VERSION_DISABLED|NIGHT_RELEASE_UNAVAILABLE)$/.test(result.error)) return;
+    this.pendingRequests.set(key, result);
+    const bridge = this.bridge;
+    if (!this.updateNotice) await this.checkRelease();
+    if (this.pendingRequests.get(key) !== result) return;
+    this.pendingRequests.delete(key);
+    if (!this.updateNotice || this.destroyed || this.bridge !== bridge || result.playerId !== this.authenticatedId) return;
+    const repeated = this.releaseIssue?.path === result.path && this.releaseIssue?.method === result.method;
+    this.releaseIssue = result; this.revision++;
+    if (!repeated || this.recordSaveStatus === 'failed' && Date.now() - this.recordSaveAt >= 5000) void this.saveRecords();
+  }
+  async saveRecords() {
+    if (this.destroyed || this.recordSaveStatus === 'saving') return;
+    const attempt = ++this.recordSaveAttempt, owner = this.authenticatedId, recorder = this.recorder;
+    this.recordSaveAt = Date.now(); this.recordSaveStatus = 'saving'; this.revision++;
     try {
-      if (this.recorder?.saveForReentry) {
-        if (!(await this.recorder.saveForReentry())) throw Error('Journal not committed');
-      } else this.recorder?.persist?.();
+      if (recorder?.saveForReentry) {
+        if (!(await recorder.saveForReentry())) throw Error('Journal not committed');
+      } else recorder?.persist?.();
       await this.storage.flush?.();
-      if (attempt !== this.reentryAttempt || this.destroyed) return;
-      this.reentryStatus = canLeave() && owner === this.authenticatedId ? 'saved' : 'unsafe';
-    } catch { if (attempt === this.reentryAttempt && !this.destroyed) this.reentryStatus = 'failed'; }
+      if (attempt !== this.recordSaveAttempt || this.destroyed || owner !== this.authenticatedId || recorder !== this.recorder) return;
+      this.recordSaveStatus = 'saved';
+    } catch { if (attempt === this.recordSaveAttempt && !this.destroyed && owner === this.authenticatedId) this.recordSaveStatus = 'failed'; }
     finally { if (!this.destroyed) this.revision++; }
   }
   onlineCount: number | null = null;
@@ -160,7 +193,7 @@ export class Online {
   toggleBlock(id:string){if(id===this.authenticatedId)return;this.blockedPlayers.has(id)?this.blockedPlayers.delete(id):this.blockedPlayers.add(id);try{this.storage.setItem('night-chat-blocks:'+this.authenticatedId,JSON.stringify(Array.from(this.blockedPlayers)));}catch{}this.chatMenu='';this.chatRevision++;}
   async reportChat(id:string){const owner=this.authenticatedId;try{await this.bridge?.services.reportNightChat?.({id,reason:'玩家举报：不适当或骚扰内容'},owner);if(owner===this.authenticatedId)this.chatStatus='举报已提交';}catch{if(owner===this.authenticatedId)this.chatStatus='举报失败，请稍后重试';}if(owner===this.authenticatedId){this.chatMenu='';this.chatRevision++;}}
   back(){this.show(this.panelHistory.pop()||'',false);}
-  dispose(){this.destroyed=true;this.rewardRefresh=undefined;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.resetPresence();}
+  dispose(){this.destroyed=true;this.unsubscribeRequests?.();this.pendingRequests.clear();this.rewardRefresh=undefined;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.resetPresence();}
   identity: Player;
   panel: '' | 'menu' | 'room' | 'ranking' | 'profile' | 'create' | 'join' | 'history' | 'version' = '';
   rooms: RoomSummary[] = [];
@@ -259,7 +292,10 @@ export class Online {
   async connect(bridge: Bridge | undefined, search = '') {
     if (!bridge || this.bridge === bridge) return;
     const generation = this.generation;
+    this.unsubscribeRequests?.(); this.recordSaveAttempt++; this.recordSaveStatus = ''; this.releaseIssue = undefined;
+    this.releaseCheck = undefined; this.checkingRelease = false; this.pendingRequests.clear();
     this.bridge = bridge;
+    this.unsubscribeRequests = bridge.subscribeRequests?.(result => { if (this.bridge === bridge) void this.observeRequest(result); });
     this.presenceAvailable = false;
     this.resetPresence();
     if (bridge) {
@@ -303,9 +339,6 @@ export class Online {
       } catch { /* A failed identity lookup must not start a run under an unconfirmed pilot. */ }
     }
     if (generation !== this.generation || attempt !== this.rankingAttempt || this.destroyed) return;
-    if (!options.practice && this.release?.admissions.ranked === false) {
-      this.rankStatus = 'update-required'; this.revision++; return;
-    }
     if (!this.ranked && !this.recorder?.recover) {
       this.rankStatus = options.practice ? 'practice' : 'unavailable'; this.revision++;
       return;
@@ -358,8 +391,9 @@ export class Online {
     if (!metadata) return;
     if (metadata.release === undefined || validRelease(metadata.release)) this.release = metadata.release;
     else this.releaseCheckFailed = true;
+    if (!this.updateNotice) this.releaseIssue = undefined;
     const owner=playerId(metadata.identity);
-    if (owner !== this.authenticatedId) this.resetPresence();
+    if (owner !== this.authenticatedId) { this.resetPresence(); this.recordSaveAttempt++; this.recordSaveStatus = ''; this.releaseIssue = undefined; this.pendingRequests.clear(); }
     if (owner !== this.authenticatedId) this.rewardRefresh = undefined;
     if(owner!==this.authenticatedId){this.assets=undefined;this.battleReward=undefined;this.authenticatedId=owner;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.chatIntent=undefined;this.chatSending=false;this.chatMenu='';this.chatCursor='';this.chatAcceptedAt=0;this.chatStatus='';this.chatOwner=owner;this.chatRevision++;this.blockedPlayers=new Set();try{this.blockedPlayers=new Set(JSON.parse(this.storage.getItem('night-chat-blocks:'+owner)||'[]'));}catch{}}
     this.identity = metadata.identity;
@@ -420,7 +454,6 @@ export class Online {
     });
   }
   show(panel: Online['panel'],push=true) {
-    this.reentryAttempt++; this.reentryStatus = '';
     if(push&&panel&&panel!==this.panel)this.panelHistory.push(this.panel);
     if(panel!==this.panel){this.chatEpoch++;this.chatNext=0;}
     if (panel === 'profile') this.draftName = this.identity.nickname || this.identity.name || '';
@@ -491,9 +524,6 @@ export class Online {
     try {
       if (!this.available) this.acceptMetadata(await this.bridge?.refresh?.());
       if (generation !== this.generation) return;
-      if (!['resume', 'watch'].includes(kind) && this.release?.admissions.multiplayer === false) {
-        this.message = '当前版本暂不能新开对战，请返回首页查看版本提示'; return;
-      }
       if (!this.available || !this.bridge) {
         if (kind === 'bot') { this.busy = false; this.startBot(performance.now()); return; }
         this.message = '联机服务暂不可用，可选择本地人机练习'; return;
@@ -582,6 +612,8 @@ export class Online {
     });
   }
   async pump(now: number) {
+    if (this.foreground && now - this.releaseCheckedAt >= 60000) void this.checkRelease();
+    if (this.foreground && this.recordSaveStatus === 'failed' && Date.now() - this.recordSaveAt >= 5000) void this.saveRecords();
     void this.pollPresence(now);
     void this.refreshBattleAssets(now);
     void this.pollChat(now);

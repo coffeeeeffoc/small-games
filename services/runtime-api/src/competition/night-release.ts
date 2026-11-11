@@ -141,6 +141,7 @@ export function createNightRelease(
           backendVersion:
             selected && 'backendVersion' in selected ? (selected.backendVersion ?? null) : null,
           latestBuildId: target,
+          latestVersion: config?.builds.find((b) => b.buildId === target)?.version ?? null,
           update:
             target && target !== buildId ? (canStartNewGames ? 'optional' : 'required') : 'none',
           canStartNewGames,
