@@ -570,7 +570,7 @@ export class HUD {
   styleButton(
     graphics: Graphics,
     button: ButtonRect,
-    kind: 'primary' | 'secondary' | 'quiet' = 'secondary',
+    kind: 'primary' | 'secondary' | 'quiet' | 'ghost' = 'secondary',
     icon = '',
   ) {
     return this.drawing.styleButton(graphics, button, kind, icon);
@@ -583,7 +583,7 @@ export class HUD {
     x: number,
     y: number,
     width: number,
-    kind: 'primary' | 'secondary' | 'quiet' = 'secondary',
+    kind: 'primary' | 'secondary' | 'quiet' | 'ghost' = 'secondary',
     icon = '',
     height = 44,
     disabled = false,
@@ -745,6 +745,9 @@ export class HUD {
   }
   isGlobalAction(id: string) {
     return id === 'settings' || id === 'screen';
+  }
+  corners(graphics: Graphics, x: number, y: number, width: number, height: number, tone: string, arm = 14) {
+    return this.drawing.corners(graphics, x, y, width, height, tone, arm);
   }
   inModal(node: Node) {
     for (let current: Node | null = node; current; current = current.parent)

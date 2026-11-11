@@ -87,8 +87,8 @@ try {
     await click('online:menu'); await capture('lobby');
     assert(!(await snapshot(page)).buttons.some(b => b.id === 'online:dismiss'));
     if (!apiUrl) assert((await snapshot(page)).scrollLists.find(a=>a.key==='rooms').max===0);
-    await click('online:friend'); await click('online:private'); await capture('private-room'); await click('online:dismiss');
-    await click('online:profile'); await capture('nickname'); await click('online:dismiss');
+    await click('online:friend'); await click('online:private'); await capture('private-room'); await click('online:back');
+    await click('online:profile'); await capture('nickname'); await click('online:back');
     await click('online:ranking');
     if (apiUrl) {
       await page.waitForFunction(() => __night.snapshot().online.ranking?.top.length > 0);

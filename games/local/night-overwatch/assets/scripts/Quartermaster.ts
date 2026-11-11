@@ -9,6 +9,9 @@ type IntentStorage = Pick<Storage,'getItem'|'setItem'|'removeItem'> & {flush?:()
 export const wheelLandingAngle=(index:number,start=0,turns=18)=>start+360*turns+((15+index*60-start%360+360)%360);
 export const WHEEL_DURATION=4800;
 export const WHEEL_PREVIEW_DURATION=2000;
+/** Share of the opening animation spent on anticipation before the crate bursts open. */
+export const GIFT_BURST=.5;
+export const GIFT_DURATION=2200;
 /** Integrate speed: 0.6s acceleration, 1.6s cruise, 2.6s gradual braking. */
 export function wheelTravel(progress:number){
   const t=Math.max(0,Math.min(1,progress))*4.8,area=.3+1.6+2.6/3;
@@ -48,7 +51,7 @@ export class Quartermaster {
   loadoutArea={x:0,y:0,w:0,h:0};
   drafts:Partial<Record<'solo'|'duel',Loadout>>={}; private modDrafts:Partial<Record<'solo'|'duel',Array<string|null>>>={}; leaveTo?:ProgressionPage;
   /** `granted`: what a claimed mail already paid out directly; shown until the crates are opened. */
-  gift?:{packs:Record<string,number>;drops:Array<{item?:string;coins?:number;xp?:number}>;granted?:Array<{item?:string;coins?:number;xp?:number}>;opened:boolean;started?:number;duration?:number;illuminated?:boolean};
+  gift?:{packs:Record<string,number>;drops:Array<{item?:string;coins?:number;xp?:number}>;granted?:Array<{item?:string;coins?:number;xp?:number}>;opened:boolean;started?:number;duration?:number;illuminated?:boolean;revealed?:number;preview?:boolean};
   drag?:{item:string;x:number;y:number;target?:LoadoutSlot};
   private openingGift=false;private adReady?:{orderId:string;attemptId:string;startedAt:number};
   busy=false; viewing=false; revision=0; message:[string,string]=['','']; pending?:AssetCommand;
@@ -104,6 +107,8 @@ export class Quartermaster {
   async openGifts(){
     this.syncIdentity();
     const gift=this.gift,owner=this.owner;if(!gift||this.busy||this.openingGift)return;
+    // Developer preview crates are opened locally and never reach the service.
+    if(gift.preview){gift.drops.push({coins:80},{xp:40},{item:'power-match'});gift.packs={};gift.opened=true;gift.started=Date.now();gift.illuminated=false;gift.duration=GIFT_DURATION;this.revision++;return;}
     if(this.pending&&this.pending.kind!=='open')return;
     this.openingGift=true;
     try{
@@ -114,7 +119,7 @@ export class Quartermaster {
         if(!result){this.gift=gift;return;}
         gift.drops.push(...(result.lastReceipt?.drops as Array<{item?:string;coins?:number;xp?:number}>||[]));delete gift.packs[item];
       }
-      gift.opened=true;gift.started=Date.now();gift.duration=gift.drops.length>1?2200:1600;this.gift=gift;
+      gift.opened=true;gift.started=Date.now();gift.illuminated=false;gift.duration=GIFT_DURATION;this.gift=gift;
     }finally{this.openingGift=false;this.revision++;}
   }
   get unread(){return this.assets?.mail.some(m=>!m.read||!m.claimed)||false;}
@@ -143,8 +148,8 @@ export class Quartermaster {
   tickPresentation(reduced=false){
     const now=Date.now();
     if(this.wheelPreviewAt&&now-this.wheelPreviewAt>=WHEEL_PREVIEW_DURATION){this.wheelPreviewAt=0;this.revision++;}
-    if(this.gift?.started&&!this.gift.illuminated&&now-this.gift.started>(this.gift.duration||1600)*.3){this.gift.illuminated=true;this.revision++;}
-    if(this.gift?.started&&(reduced||now-this.gift.started>=(this.gift.duration||1600))){this.gift.started=undefined;this.revision++;}
+    if(this.gift?.started&&!this.gift.illuminated&&now-this.gift.started>(this.gift.duration||GIFT_DURATION)*GIFT_BURST){this.gift.illuminated=true;this.revision++;}
+    if(this.gift?.started&&(reduced||now-this.gift.started>=(this.gift.duration||GIFT_DURATION))){this.gift.started=undefined;this.gift.revealed=now;this.revision++;}
     if(this.wheel&&now-this.wheel.started>=this.wheel.duration)this.finishWheel();
   }
   finishWheel(){
@@ -221,7 +226,7 @@ export class Quartermaster {
       else if(reward?.packs)this.gift={packs:{'pack:general:0':reward.packs},drops:[],opened:false};
       if(command.kind==='open'){
         const drops=snapshot.lastReceipt?.drops as Array<{item?:string;coins?:number;xp?:number}>|undefined;
-        if(!this.openingGift)this.gift={packs:{},drops:drops||[],opened:true,started:Date.now(),duration:command.quantity>1?2200:1600};
+        if(!this.openingGift)this.gift={packs:{},drops:drops||[],opened:true,started:Date.now(),duration:GIFT_DURATION};
         const coins=(drops||[]).reduce((n,d)=>n+(d.coins||0),0),xp=(drops||[]).reduce((n,d)=>n+(d.xp||0),0),items=(drops||[]).filter(d=>d.item);
         this.message=[`已开 ${command.quantity} 个：金币 +${coins}，EXP +${xp}，物资 ${items.length} 件（见仓库）`,`Opened ${command.quantity}: +${coins} coins, +${xp} EXP, ${items.length} gear items in warehouse`];
       }

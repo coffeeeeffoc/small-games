@@ -105,16 +105,6 @@ export class MissionPanelView {
       C.white,
     );
     headingLabel.isBold = true;
-    if (result)
-      this.hud.button(
-        'resultClose',
-        '×',
-        panelLeft + panelWidth - 52,
-        panelTop + 4,
-        44,
-        44,
-        parentNode,
-      );
     const bottom = panelTop + panelHeight - 58;
     if (key === 'briefing' || key === 'mission') {
       const split = !small;

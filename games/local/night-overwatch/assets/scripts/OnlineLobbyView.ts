@@ -674,7 +674,7 @@ export class OnlineLobbyView {
         px + x,
         py + y,
         width,
-        primary && !selected ? 'primary' : quiet ? 'quiet' : 'secondary',
+        primary && !selected ? 'primary' : quiet ? (caption ? 'ghost' : 'quiet') : 'secondary',
         glyph,
         44,
         disabled,
@@ -745,8 +745,6 @@ export class OnlineLobbyView {
         C.amber,
       );
     }
-    if (result || !['ranking', 'menu', 'history'].includes(online.panel))
-      button('dismiss', '', pw - 58, 4, 44, false, true, 'close');
     if (!result && online.panel === 'version') {
       const release = online.release;
       const status = online.checkingRelease ? this.h.t('正在检查版本…', 'Checking version…')

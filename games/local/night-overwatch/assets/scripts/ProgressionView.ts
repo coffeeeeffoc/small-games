@@ -1,8 +1,8 @@
-import { Color, Label, Node, Graphics, Sprite, UITransform, Mask, UIOpacity, Tween, tween } from 'cc';
+import { Color, Label, Node, Graphics, Sprite, UITransform, Mask, UIOpacity, Tween, Vec3, tween } from 'cc';
 import type { HUD } from './HUD';
 import { playerLabel } from './Online';
 import { ProgressionArt } from './ProgressionArt';
-import { Quartermaster, effectEnglish, wheelLandingAngle, wheelTravel, WHEEL_PREVIEW_DURATION } from './Quartermaster';
+import { Quartermaster, effectEnglish, wheelLandingAngle, wheelTravel, WHEEL_PREVIEW_DURATION, GIFT_BURST } from './Quartermaster';
 import { FRAGMENTS, type Fragment, CATALOG, PACKAGES, POOLS, SKILLS, WHEEL_PRIZES, eligibleDrops, levelProgress, attackPreview, type Product, type Effect, type AssetReward, REWARD_TOKEN, rewardText } from './core/Progression';
 import { formatTime } from './core/BattleRecords';
 import { text } from './core/Data';
@@ -70,6 +70,15 @@ export class ProgressionView {
     return l;
   }
   private tab(id:string,caption:string,x:number,y:number,w:number,selected:boolean){this.button(id,caption,x,y,w,44,selected?'blue':'panel');if(selected)this.h.rect(this.g,x+3,y+3,w-6,38,'#78e3ff18',cyan,3);}
+  /** Second-level filter: a light pill, deliberately unlike the skinned first-level tabs. */
+  private chip(id:string,caption:string,x:number,y:number,w:number,selected:boolean){
+    const ph=30,py=y+(44-ph)/2;this.h.rect(this.g,x,py,w,ph,selected?'#78e3ff26':'#07131dcc',selected?cyan:'#3f5666',ph/2);
+    if(selected){this.g.fillColor=color(cyan);this.g.circle(x+15-this.w/2,this.height/2-py-ph/2,3);this.g.fill();}
+    const l=this.h.button(id,caption,x,y,w,44,this.n);this.h.buttons.at(-1)!.visual={x,y:py,w,h:ph};
+    l.fontSize=this.font(27,13);l.color=color(selected?cyan:dim);l.isBold=selected;
+  }
+  /** Stops endless tweens with the node that owns them; rebuilt views must not leak animations. */
+  private loop<T extends object>(owner:Node,target:T){owner.once(Node.EventType.NODE_DESTROYED,()=>Tween.stopAllByTarget(target));return tween(target);}
   private bar(x:number,y:number,w:number,h:number,ratio:number,tone=cyan){
     this.h.rect(this.g,x,y,w,h,'#06121a','#64808d',h/2);if(ratio>0)this.h.gradient(this.g,x+2,y+2,Math.max(0,(w-4)*Math.min(1,ratio)),h-4,tone,'#4887a7',Math.min(4,h/2));
   }
@@ -161,14 +170,15 @@ export class ProgressionView {
     const inboxW=compactHeader?46:132,coinW=compactHeader?88:150;
     this.h.button('qm:inbox',this.t('信箱','Inbox'),settingsX-inboxW-6,top+3,inboxW,Math.max(44,bar-6),this.n).fontSize=this.font(26,13);
     const noticeX=settingsX-inboxW*2-12;
-    if(!compactHeader)this.h.button('qm:announcements',this.t('公告','News'),noticeX,top+3,inboxW,Math.max(44,bar-6),this.n).fontSize=this.font(26,13);
-    const coinX=(compactHeader?settingsX-inboxW-6:noticeX)-coinW-8;
+    const hasNews=!!q.assets?.announcements?.length;if(!compactHeader&&!hasNews)this.h.button('qm:announcements',this.t('公告','News'),noticeX,top+3,inboxW,Math.max(44,bar-6),this.n).fontSize=this.font(26,13);
+    const coinX=(compactHeader||hasNews?settingsX-inboxW-6:noticeX)-coinW-8;
     this.label('● '+(q.assets?.coins.toLocaleString()??'—'),coinX,top+8,coinW,bar-16,30,gold);
     if(q.unread){this.g.fillColor=color('#ec4940');this.g.circle(settingsX-11-w/2,h/2-top-10,4);this.g.fill();}
     const cy=Math.min(h*.755,this.bottom-44),ch=Math.min(h*.19,this.bottom-cy),gap=Math.max(6,w*.009),cw=(r-l-gap*3)/4;
-    const buttonGap=Math.max(5,h*.014),bh=Math.max(44,Math.min(Math.max(46,h*.133),(cy-top-bar-28-buttonGap)/2));
-    const titleY=top+bar+Math.min(12,h*.045),desiredTitleW=w*(this.low?.29:.33),bw=w*.30,fw=Math.max(128,w*.175);
-    if(this.h.online?.updateNotice)this.button('online:version',this.t('版本 / 重进提示','VERSION / REOPEN'),r-fw,top+bar+4,fw,44,'panel');
+    const body=top+bar+this.ticker(top+bar,this.h.online?.updateNotice?r-Math.max(128,w*.175)-8:r);
+    const buttonGap=Math.max(5,h*.014),bh=Math.max(44,Math.min(Math.max(46,h*.133),(cy-body-28-buttonGap)/2));
+    const titleY=body+Math.min(12,h*.045),desiredTitleW=w*(this.low?.29:.33),bw=w*.30,fw=Math.max(128,w*.175);
+    if(this.h.online?.updateNotice)this.button('online:version',this.t('版本 / 重进提示','VERSION / REOPEN'),r-fw,body+4,fw,44,'panel');
     let titleX=l+8,titleW=Math.min(desiredTitleW,Math.max(0,cy-titleY-2*bh-buttonGap-16)*3);
     const titleBeside=titleW<desiredTitleW*.65;
     if(titleBeside){titleX=l+8+bw+16;titleW=Math.min(desiredTitleW,r-fw-titleX-12);}
@@ -178,8 +188,9 @@ export class ProgressionView {
       const yy=by+i*(bh+buttonGap),label=this.button('qm:'+id,this.t(i?'开始行动  ›':'作战配置  ›',i?'DEPLOY  ›':'LOADOUT  ›'),l+8,yy,bw,bh,i?'gold':'blue');
       if(!this.narrow){this.picture(i?'homeCompass':'homeCrate',l+bw*.07,yy+bh*.18,bw*.22,bh*.64,false);label.fontSize=this.font(49,16);label.node.setPosition(l+8+bw*.64-w/2,h/2-yy-bh/2);label.node.getComponent(UITransform)!.setContentSize(bw*.65,bh-10);}
     }
-    const fh=Math.max(44,h*.11),fy=Math.min(Math.max(top+bar+8,h*.452),cy-2*fh-14);
-    if(this.h.online){this.h.rect(this.g,r-fw,fy-28,fw,24,'#07121cdd');this.label(this.h.online.onlineLabel(this.h.lang),r-fw,fy-28,fw,24,24,ivory);}
+    const fh=Math.max(44,h*.11),fy=Math.min(Math.max(body+8,h*.452),cy-2*fh-14);
+    // A short screen cannot fit both the version button and the online count above the side panel.
+    if(this.h.online&&!(this.h.online.updateNotice&&fy-28<body+50)){this.h.rect(this.g,r-fw,fy-28,fw,24,'#07121cdd');this.label(this.h.online.onlineLabel(this.h.lang),r-fw,fy-28,fw,24,24,ivory);}
     this.panel(r-fw,fy,fw,fh*2+6);this.button('qm:checkin',this.t('每日签到','CHECK IN'),r-fw+5,fy+3,fw-10,fh);
     this.button('qm:supply',this.t('补给·抽奖','SUPPLY & WHEEL'),r-fw+5,fy+fh+3,fw-10,fh);
     for(const [i,[id,key,zh,en]]of [['shop','homeShop','军需商店','ARMORY'],['growth','homeGrowth','等级成长','GROWTH'],['tasks','homeTasks','任务','TASKS'],['warehouse','homeWarehouse','我的仓库','WAREHOUSE']].entries()){
@@ -189,6 +200,32 @@ export class ProgressionView {
       label.node.setPosition(x+cw/2-w/2,h/2-cy-ch+Math.min(21,ch*.28));label.node.getComponent(UITransform)!.setContentSize(cw-8,Math.min(40,ch*.45));
       if(this.h.lang==='zh'&&this.a.font){label.font=this.a.font;label.useSystemFont=false;}
     }
+    // On cramped screens the strip's hit area yields to whatever sits directly below it.
+    const strip=this.h.buttons.find(b=>b.id==='qm:announcements'&&b.w>300);
+    if(strip){const below=Math.min(...this.h.buttons.filter(b=>b!==strip&&b.y>strip.y+10&&b.x<strip.x+strip.w&&b.x+b.w>strip.x).map(b=>b.y));strip.h=Math.max(strip.visual!.h,Math.min(44,below-strip.y-1));}
+  }
+  /** Scrolling announcement strip under the home header; returns the height it occupies. */
+  private ticker(y:number,hitRight:number){
+    const news=this.q.assets?.announcements||[];if(!news.length)return 0;
+    const l=this.left,r=this.right,sh=this.low?24:30,badge=this.low?54:68,vx=l+badge+8,vw=r-l-badge-34;
+    this.h.gradient(this.g,l,y+2,r-l,sh,'#3a2608ee','#150d03ee',5,6);this.h.rect(this.g,l,y+2,r-l,sh,'#00000000','#e5bd7199',5);
+    this.h.rect(this.g,l+3,y+5,badge,sh-6,'#e5bd71',undefined,3);
+    this.label(this.t('公告','NEWS'),l+3,y+5,badge,sh-6,25,'#2a1a05',true);
+    const dot=this.h.node('TickerPulse',this.n),ink=dot.addComponent(Graphics),fade=dot.addComponent(UIOpacity);
+    ink.fillColor=color('#ff5a4e');ink.circle(l+badge-3-this.w/2,this.height/2-y-7,3.5);ink.fill();
+    this.loop(dot,fade).to(.55,{opacity:60}).to(.55,{opacity:255}).union().repeatForever().start();
+    this.label('›',r-22,y+2,18,sh,30,gold,true);
+    const view=this.h.node('TickerViewport',this.n);view.setPosition(vx+vw/2-this.w/2,this.height/2-y-2-sh/2);view.getComponent(UITransform)!.setContentSize(vw,sh);view.addComponent(Mask).type=Mask.Type.GRAPHICS_RECT;
+    const line=news.map(m=>`【${this.messageTitle(m)}】${m.body.split(REWARD_TOKEN).join('').replace(/\s+/g,' ').slice(0,60)}`).join('　　◆　　');
+    const text=this.h.label(view,line,this.w/2,this.height/2,this.font(24,13),10,sh,'#ffe9b8');text.node.name='TickerText';
+    text.overflow=Label.Overflow.NONE;text.enableWrapText=false;text.updateRenderData(true);
+    // Position follows the clock, so rebuilding the home view never restarts the line.
+    const tw=text.node.getComponent(UITransform)!.contentSize.width,span=tw+vw,speed=this.h.reducedEffects?28:58,from=span/2,to=-span/2,x=from-(Date.now()/1000*speed)%span;
+    text.node.setPosition(x,0);
+    this.loop(text.node,text.node).to((x-to)/speed,{position:new Vec3(to,0,0)}).call(()=>{text.node.setPosition(from,0);this.loop(text.node,text.node).to(span/speed,{position:new Vec3(to,0,0)}).set({position:new Vec3(from,0,0)}).union().repeatForever().start();}).start();
+    // The 44px hit area grows downward only: the header above and the version button keep their own taps.
+    this.h.button('qm:announcements','',l,y+2,hitRight-l,44,this.n);this.h.buttons.at(-1)!.visual={x:l,y:y+2,w:r-l,h:sh};
+    return sh+4;
   }
   private modes(){
     const q=this.q,l=this.left,r=this.right,y=this.top+Math.max(12,this.height*.04),bottom=this.bottom-58,gap=Math.max(8,this.w*.016),cw=(r-l-gap*2)/3,ch=bottom-y-12;
@@ -236,7 +273,7 @@ export class ProgressionView {
     const bottom=this.bottom;
     if(this.narrow&&q.detail){this.productDetail(current,l,y,r-l,bottom-y-50,true);this.button('qm:list',this.t('商品列表','ITEM LIST'),l,bottom-46,144);return;}
     (['match','24h','permanent'] as const).forEach((term,i)=>this.tab('term:'+term,this.term(term),l+i*tabW,y,tabW-4,q.term===term));
-    (['mod','weapon','skill'] as const).forEach((category,i)=>this.tab('qm:shopCategory:'+category,this.category(category),l+i*tabW,y+48,tabW-4,q.shopCategory===category));
+    const chipW=Math.min(tabW-10,132);(['mod','weapon','skill'] as const).forEach((category,i)=>this.chip('qm:shopCategory:'+category,this.category(category),l+4+i*(chipW+8),y+47,chipW,q.shopCategory===category));
     const top=y+100,cols=2,cw=(leftW-20)/2,ch=this.low?Math.max(100,Math.min(138,bottom-top)):200,compact=ch<130;
     this.list('shop:'+q.term+':'+q.shopCategory,l,top,leftW,bottom-top,Math.ceil(products.length/cols)*(ch+10),offset=>products.forEach((p,i)=>{const x=l+i%2*(cw+10),yy=top+Math.floor(i/2)*(ch+10)-offset;if(yy+ch<top||yy>bottom)return;const locked=(q.assets?.level??1)<p.unlockLevel;this.panel(x,yy,cw,ch,p.id===q.selected);this.picture(this.productArt(p.effect),x+5,yy+5,cw-10,ch*.6);this.h.gradient(this.g,x+5,yy+ch*.45,cw-10,ch*.51,'#06121a22','#06121aff');
       this.label(this.category(p.category),x+8,yy+5,Math.min(80,cw*.4),24,20,cyan,true,true);
@@ -316,43 +353,68 @@ export class ProgressionView {
     this.button('qm:watch',q.viewing?this.t('观看中','WATCHING'):this.t(order?'继续观看':'观看广告',order?'CONTINUE':'WATCH'),l+20+cw,by,cw,44,'blue',q.busy||q.viewing||!q.assets||!!q.pending||!!q.wheel&&!q.wheel.shown);
     const diameter=Math.min(rw-34,by-42-(y+48)),cx=rx+rw/2,cyWheel=y+48+diameter/2;
     const motion=q.wheel,spinning=!!motion&&!motion.shown,previewing=!!q.wheelPreviewAt,turning=spinning||previewing;
-    const halo=this.h.node('WheelHalo',this.n);halo.setPosition(cx-this.w/2,this.height/2-cyWheel);
+    const calm=this.h.reducedEffects,ox=cx-this.w/2,oy=this.height/2-cyWheel;
+    const rays=this.h.node('WheelRays',this.n);rays.setPosition(ox,oy);const beam=rays.addComponent(Graphics);
+    for(let i=0;i<16;i++){const a=i*Math.PI/8,half=i%2?.05:.085,R=diameter*.66;beam.fillColor=color(i%2?'#edba5c0d':'#78e3ff12');beam.moveTo(0,0);beam.lineTo(Math.sin(a-half)*R,Math.cos(a-half)*R);beam.lineTo(Math.sin(a+half)*R,Math.cos(a+half)*R);beam.close();beam.fill();}
+    for(const [radius,tint]of [[.56,'#00000026'],[.535,'#00000040'],[.515,'#02080d99']] as const){beam.fillColor=color(tint);beam.circle(0,-diameter*.012,diameter*radius);beam.fill();}
+    if(!calm)this.loop(rays,rays).by(turning?6:38,{angle:360}).repeatForever().start();
+    const halo=this.h.node('WheelHalo',this.n);halo.setPosition(ox,oy);
     const glow=halo.addComponent(Graphics);
-    for(const [width,tint]of [[11,'#edba5c12'],[6,'#edba5c28'],[2,'#e5bd71']] as const){glow.strokeColor=color(tint);glow.lineWidth=width;glow.circle(0,0,diameter*.505);glow.stroke();}
-    for(let i=0;i<24;i++){const a=i*Math.PI/12;glow.fillColor=color(i%2===0?'#ffedb0':'#a8793e');glow.circle(Math.sin(a)*diameter*.505,Math.cos(a)*diameter*.505,Math.max(1.5,diameter*.007));glow.fill();}
+    for(const [width,tint]of [[13,'#edba5c10'],[7,'#edba5c2a'],[2.5,'#f3cf86']] as const){glow.strokeColor=color(tint);glow.lineWidth=width;glow.circle(0,0,diameter*.507);glow.stroke();}
     const shine=halo.addComponent(UIOpacity);shine.opacity=170;
-    const pulseTime=this.h.reducedEffects?1.2:turning?.3:.85;
-    tween(shine).to(pulseTime,{opacity:this.h.reducedEffects?220:255}).to(pulseTime,{opacity:this.h.reducedEffects?160:100}).union().repeatForever().start();
-    if(turning&&!this.h.reducedEffects)tween(halo).by(2,{angle:-360}).repeatForever().start();
-    halo.once(Node.EventType.NODE_DESTROYED,()=>Tween.stopAllByTarget(shine));
-    const wheel=this.h.node('LuckyWheel',this.n);wheel.setPosition(cx-this.w/2,this.height/2-cyWheel);wheel.getComponent(UITransform)!.setContentSize(diameter,diameter);
-    const frame=this.a.get('wheel');if(frame){const rim=this.h.node('WheelMetalRim',wheel),sprite=rim.addComponent(Sprite);sprite.spriteFrame=frame;sprite.sizeMode=Sprite.SizeMode.CUSTOM;rim.getComponent(UITransform)!.setContentSize(diameter,diameter);}
-    const disk=this.h.node('WheelPlate',wheel).addComponent(Graphics);disk.fillColor=color('#a47c48');disk.circle(0,0,diameter*.463);disk.fill();
-    const palette=[[48,114,181],[125,66,166],[30,144,148],[199,112,49]];
-    for(let i=0;i<12;i++){
-      const sector=this.h.node('WheelSector:'+i,wheel).addComponent(Graphics),start=i*Math.PI/6+.008,end=(i+1)*Math.PI/6-.008;
-      const band=(inner:number,outer:number,tint:Color)=>{sector.fillColor=tint;sector.moveTo(Math.sin(start)*inner,Math.cos(start)*inner);for(let j=0;j<=8;j++){const a=start+(end-start)*j/8;sector.lineTo(Math.sin(a)*outer,Math.cos(a)*outer);}for(let j=8;j>=0;j--){const a=start+(end-start)*j/8;sector.lineTo(Math.sin(a)*inner,Math.cos(a)*inner);}sector.close();sector.fill();};
-      for(let j=0;j<16;j++){const shade=.74+.3*Math.sin((j+2)/18*Math.PI),rgb=palette[i%4];band(diameter*(.1+j*.0226),diameter*(.1+(j+1)*.0226),new Color(Math.round(rgb[0]*shade),Math.round(rgb[1]*shade),Math.round(rgb[2]*shade),255));}
-      band(diameter*.456,diameter*.461,color('#ffe6ae55'));
-      const a=(start+end)/2,sx=Math.sin(a)*diameter*.325,sy=Math.cos(a)*diameter*.325,radius=diameter*.029;
-      sector.fillColor=color('#ffe3a4');sector.strokeColor=color('#6b4a36');sector.lineWidth=Math.max(.7,diameter*.002);
-      for(let j=0;j<10;j++){const angle=a+j*Math.PI/5,r=j%2?radius*.44:radius,x=sx+Math.sin(angle)*r,y=sy+Math.cos(angle)*r;if(j===0)sector.moveTo(x,y);else sector.lineTo(x,y);}sector.close();sector.fill();sector.stroke();
+    const pulseTime=calm?1.2:turning?.3:.85;
+    this.loop(halo,shine).to(pulseTime,{opacity:calm?220:255}).to(pulseTime,{opacity:calm?160:100}).union().repeatForever().start();
+    // Two bulb rings blink in turn: a chasing-light bezel that speeds up while the wheel turns.
+    for(const phase of [0,1]){
+      const bulbs=this.h.node('WheelBulbs:'+phase,this.n);bulbs.setPosition(ox,oy);const lamp=bulbs.addComponent(Graphics),blink=bulbs.addComponent(UIOpacity);
+      for(let i=phase;i<24;i+=2){const a=i*Math.PI/12,x=Math.sin(a)*diameter*.507,y=Math.cos(a)*diameter*.507,br=Math.max(2,diameter*.011);lamp.fillColor=color('#ffd98a44');lamp.circle(x,y,br*1.9);lamp.fill();lamp.fillColor=color(phase?'#fff3cf':'#ffc861');lamp.circle(x,y,br);lamp.fill();}
+      const beat=calm?1.1:turning?.16:.5;blink.opacity=phase?255:70;
+      this.loop(bulbs,blink).to(beat,{opacity:phase?70:255}).to(beat,{opacity:phase?255:70}).union().repeatForever().start();
     }
-    const hub=this.h.node('WheelHub',this.n);hub.setPosition(cx-this.w/2,this.height/2-cyWheel);const core=hub.addComponent(Graphics);
-    for(const [radius,tint]of [[.15,'#72522b'],[.14,'#eed090'],[.126,'#b27d39'],[.113,'#163b55']] as const){core.fillColor=color(tint);core.circle(0,0,diameter*radius);core.fill();}
-    core.strokeColor=color('#ffedbe');core.lineWidth=Math.max(1.5,diameter*.008);for(let j=0;j<=20;j++){const a=-Math.PI*.3+j*Math.PI*1.6/20,x=Math.sin(a)*diameter*.058,y=Math.cos(a)*diameter*.058;if(j===0)core.moveTo(x,y);else core.lineTo(x,y);}core.stroke();
-    core.fillColor=color('#ffedbe');core.moveTo(-diameter*.075,-diameter*.012);core.lineTo(-diameter*.032,-diameter*.029);core.lineTo(-diameter*.058,-diameter*.06);core.close();core.fill();
+    const wheel=this.h.node('LuckyWheel',this.n);wheel.setPosition(ox,oy);wheel.getComponent(UITransform)!.setContentSize(diameter,diameter);
+    const frame=this.a.get('wheel');if(frame){const rim=this.h.node('WheelMetalRim',wheel),sprite=rim.addComponent(Sprite);sprite.spriteFrame=frame;sprite.sizeMode=Sprite.SizeMode.CUSTOM;rim.getComponent(UITransform)!.setContentSize(diameter,diameter);}
+    const disk=this.h.node('WheelPlate',wheel).addComponent(Graphics);disk.fillColor=color('#d9b26a');disk.circle(0,0,diameter*.466);disk.fill();disk.fillColor=color('#0a1622');disk.circle(0,0,diameter*.455);disk.fill();
+    // Six wide prize wedges sit exactly where the six reward groups land; narrow bronze spokes separate them.
+    const prizes=q.assets?.wheelPrizes?.length?q.assets.wheelPrizes:WHEEL_PRIZES,deg=Math.PI/180;
+    for(let i=0;i<12;i++){
+      const sector=this.h.node('WheelSector:'+i,wheel).addComponent(Graphics),k=i>>1,spoke=i%2===1,prize=prizes[k],mid=(15+k*60+(spoke?30:0))*deg,span=(spoke?7.4:22)*deg,start=mid-span,end=mid+span;
+      const epic=!spoke&&(prize?.category==='all'||(prize?.tier??-1)>=3);
+      const band=(inner:number,outer:number,tint:Color)=>{sector.fillColor=tint;sector.moveTo(Math.sin(start)*inner,Math.cos(start)*inner);for(let j=0;j<=8;j++){const a=start+(end-start)*j/8;sector.lineTo(Math.sin(a)*outer,Math.cos(a)*outer);}for(let j=8;j>=0;j--){const a=start+(end-start)*j/8;sector.lineTo(Math.sin(a)*inner,Math.cos(a)*inner);}sector.close();sector.fill();};
+      const rgb=spoke?[168,122,58]:epic?[104,56,150]:k%2?[19,86,104]:[26,62,108];
+      for(let j=0;j<14;j++){const shade=(spoke?.62:.58)+.62*Math.pow((j+1)/14,1.35);band(diameter*(.1+j*.0252),diameter*(.1+(j+1)*.0252),new Color(Math.min(255,Math.round(rgb[0]*shade)),Math.min(255,Math.round(rgb[1]*shade)),Math.min(255,Math.round(rgb[2]*shade)),255));}
+      band(diameter*.44,diameter*.453,color(spoke?'#ffe9b877':epic?'#e6b8ff66':'#bfe9ff3d'));
+      const sx=Math.sin(mid),sy=Math.cos(mid),u=diameter*.045,rad=diameter*(spoke?.4:.325);
+      // Local frame: +x runs along the rim, +y points outward, so every emblem faces the pointer when it lands.
+      const P=(x:number,y:number):[number,number]=>[sx*rad+sy*x*u+sx*y*u,sy*rad-sx*x*u+sy*y*u];
+      const path=(points:number[][],fill=true)=>{points.forEach(([x,y],j)=>{const p=P(x,y);if(j)sector.lineTo(p[0],p[1]);else sector.moveTo(p[0],p[1]);});if(fill){sector.close();sector.fill();}else sector.stroke();};
+      const dot=(x:number,y:number,radius:number,fill=true)=>{const p=P(x,y);sector.circle(p[0],p[1],radius*u);if(fill)sector.fill();else sector.stroke();};
+      const light=epic?'#ffe9a8':'#ffe3a4',dark='#3a2a14';sector.fillColor=color(light);sector.strokeColor=color(light);sector.lineWidth=Math.max(1.2,u*.26);
+      if(spoke){sector.fillColor=color('#fff0c8');dot(0,0,.32);sector.fillColor=color('#7a5524');dot(0,0,.14);continue;}
+      if(prize?.category==='all'||epic){path(Array.from({length:10},(_,j)=>{const a=j*Math.PI/5,r=j%2?.62:1.45;return [Math.sin(a)*r,Math.cos(a)*r];}));sector.fillColor=color('#fff8dc');dot(0,0,.3);}
+      else if(prize?.category==='mod'){for(const y of [.55,-.45])path([[-1.05,y-.55],[0,y+.45],[1.05,y-.55],[.55,y-.55],[0,y-.05],[-.55,y-.55]]);}
+      else if(prize?.category==='weapon'){dot(0,0,.95,false);for(const [x,y]of [[0,1],[1,0],[0,-1],[-1,0]])path([[x*.55,y*.55],[x*1.5,y*1.5]],false);dot(0,0,.24);}
+      else if(prize?.category==='skill')path([[.35,1.4],[-.85,-.15],[-.1,-.15],[-.4,-1.4],[.85,.3],[.1,.3]]);
+      else if((prize?.tier??-1)>=0){path([[-1.2,-.85],[1.2,-.85],[1.2,.45],[-1.2,.45]]);path([[-1.35,.6],[1.35,.6],[1.1,1.05],[-1.1,1.05]]);sector.fillColor=color(dark);path([[-.22,-.85],[.22,-.85],[.22,.45],[-.22,.45]]);sector.fillColor=color('#fff3cf');dot(0,-.1,.2);}
+      else {dot(0,0,1.12);sector.strokeColor=color(dark);sector.lineWidth=Math.max(1,u*.16);dot(0,0,.78,false);path([[0,.5],[0,-.5]],false);path([[-.34,.18],[.34,.18]],false);path([[-.34,-.18],[.34,-.18]],false);}
+    }
+    const hub=this.h.node('WheelHub',this.n);hub.setPosition(ox,oy);const core=hub.addComponent(Graphics);
+    for(const [radius,tint]of [[.168,'#00000055'],[.155,'#6b4a22'],[.146,'#f6dc9c'],[.132,'#c08a3c'],[.118,'#8a5a1e'],[.108,'#12324a']] as const){core.fillColor=color(tint);core.circle(0,radius===.168?-diameter*.008:0,diameter*radius);core.fill();}
+    core.fillColor=color('#78e3ff1f');core.circle(0,diameter*.03,diameter*.075);core.fill();
+    this.label(this.t('抽','GO'),cx-diameter*.1,cyWheel-diameter*.1,diameter*.2,diameter*.2,diameter*.115/this.scale,'#ffeab6',true).node.name='WheelHubCaption';
     const landing=motion?wheelLandingAngle(motion.index,motion.startAngle,this.h.reducedEffects?12:18):0;
     const start=previewing?landing:motion?.startAngle??0,end=previewing?landing+360*(this.h.reducedEffects?4:6):landing;
     const duration=previewing?WHEEL_PREVIEW_DURATION:motion?.duration||1,started=previewing?q.wheelPreviewAt:motion?.started||0;
     const elapsed=turning?Math.max(0,Math.min(1,(Date.now()-started)/duration)):1,traveled=wheelTravel(elapsed);wheel.angle=start+(end-start)*traveled;
     if(turning&&elapsed<1)tween(wheel).to((duration/1000)*(1-elapsed),{angle:end},{easing:t=>(wheelTravel(elapsed+t*(1-elapsed))-traveled)/Math.max(1e-9,1-traveled)}).start();
     if(!turning&&Date.now()-q.wheelNudgeAt<660){const rest=wheel.angle,amount=this.h.reducedEffects?4:10;tween(wheel).to(.14,{angle:rest+amount},{easing:'quadOut'}).to(.18,{angle:rest-amount*.6},{easing:'sineInOut'}).to(.16,{angle:rest+amount*.25},{easing:'sineInOut'}).to(.18,{angle:rest},{easing:'sineOut'}).start();}
-    const pointer=this.h.node('WheelPointer',this.n).addComponent(Graphics),px=cx-this.w/2,py=this.height/2-cyWheel+diameter*.51;
-    pointer.fillColor=color('#fff1c2');pointer.strokeColor=color('#c18a3c');pointer.lineWidth=2;pointer.moveTo(px-7,py+7);pointer.lineTo(px+7,py+7);pointer.lineTo(px+5,py-3);pointer.lineTo(px,py-12);pointer.lineTo(px-5,py-3);pointer.close();pointer.fill();pointer.stroke();
+    const pointer=this.h.node('WheelPointer',this.n).addComponent(Graphics),px=cx-this.w/2,py=this.height/2-cyWheel+diameter*.5,pu=Math.max(5,diameter*.034);
+    const arrow=(dx:number,dy:number)=>{pointer.moveTo(px-pu*1.25+dx,py+pu*1.35+dy);pointer.lineTo(px+pu*1.25+dx,py+pu*1.35+dy);pointer.lineTo(px+pu*1.25+dx,py+pu*.35+dy);pointer.lineTo(px+dx,py-pu*2.1+dy);pointer.lineTo(px-pu*1.25+dx,py+pu*.35+dy);pointer.close();};
+    pointer.fillColor=color('#00000066');arrow(1.5,-2.5);pointer.fill();
+    pointer.fillColor=color('#f6dc9c');pointer.strokeColor=color('#7a5524');pointer.lineWidth=1.6;arrow(0,0);pointer.fill();arrow(0,0);pointer.stroke();
+    pointer.fillColor=color('#d83a2e');pointer.circle(px,py+pu*.45,pu*.62);pointer.fill();pointer.fillColor=color('#ffb3a3');pointer.circle(px-pu*.18,py+pu*.62,pu*.2);pointer.fill();
     if(!spinning){const tap=this.h.button('qm:wheelTap','',cx-diameter/2,cyWheel-diameter/2,diameter,diameter,this.n);this.h.buttons.at(-1)!.disabled=q.busy||q.viewing||!!q.pending||previewing;tap.node.name='WheelTouchTarget';}
     if(Date.now()-q.wheelPressAt<450){
-      const pulse=this.h.node('WheelPressPulse',this.n).addComponent(Graphics);pulse.strokeColor=color('#ffe5a2');pulse.lineWidth=7;pulse.circle(px,this.height/2-cyWheel,diameter*.47);pulse.stroke();
+      const pulse=this.h.node('WheelPressPulse',this.n).addComponent(Graphics);pulse.strokeColor=color('#ffe5a2');pulse.lineWidth=7;pulse.circle(ox,oy,diameter*.47);pulse.stroke();
       const opacity=pulse.node.addComponent(UIOpacity);opacity.opacity=this.h.reducedEffects?120:255;tween(opacity).to(.4,{opacity:0}).start();
     }
     this.label(this.t(`剩余次数 ${q.assets?.wheelTickets??0} · 今日广告 ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`,`SPINS ${q.assets?.wheelTickets??0} · ADS ${q.assets?.wheelVideosToday??0}/${q.assets?.wheelDailyLimit??5}`),rx+8,by-34,rw-16,30,26,gold,true);
@@ -547,7 +609,7 @@ export class ProgressionView {
         }
         return `${p.weight}% · ${parts.join(' + ')}`;
       });
-      lines.push(this.t('盘面仅展示动效；中奖概率以此处数值为准。','The wheel is decorative; the odds listed here determine rewards.'),
+      lines.push(this.t('盘面六个图标对应以上六组奖励，扇区等大但概率不同；中奖概率以此处数值为准。','The six emblems match the six reward groups above. Wedges are equal in size but not in odds; the odds listed here determine rewards.'),
         this.t('装备按对应类别内未永久拥有的效果等概率抽取，不受商店等级限制。单场装备开局消耗；24小时装备存入仓库，激活后计时。','Gear is equally likely among non-permanent effects in its category, regardless of shop level. Match gear is consumed at deployment; 24h begins on activation.'),
         this.t('增益：威力、高速供弹、冷却、范围、两连发、双弹道；武器：无人机、激光；技能：追踪、电磁干扰。史诗组合从以上全部装备等概率抽取。','Mods: power, rapid feed, cooling, blast radius, double burst, twin trajectory. Weapons: drones, laser. Skills: tracking, EMP. The epic bundle draws equally from all gear.'),
         this.t('对应类别已全永久：增益转4、武器转10、技能转6武器碎片；史诗装备全永久转10武器碎片。组合内其他奖励仍照常发放。','If the category is fully permanent: mods convert to 4, weapons to 10, skills to 6 weapon fragments; epic gear converts to 10. Other bundle rewards are retained.'),
@@ -559,7 +621,7 @@ export class ProgressionView {
     const content=heights.reduce((a,b)=>a+b,0),title=p?this.productName(p):this.t(q.info==='wheel'?'转盘概率':'补给箱概率与内容',q.info==='wheel'?'WHEEL ODDS':'CRATE CONTENTS & ODDS');
     const {x,y,ph}=this.dialog(title,content+118);
     this.list('info',x+18,y+53,pw-36,ph-118,content,offset=>{let yy=y+55-offset;lines.forEach((line,i)=>{this.label(line,x+22,yy,width,heights[i]-8,27,ivory,false,true);yy+=heights[i];});});
-    this.button('qm:infoClose',this.t('知道了','CLOSE'),x+pw/2-70,y+ph-57,140,44,'blue');
+    this.button('qm:infoClose',this.t('知道了','CLOSE'),x+pw/2-80,y+ph-57,160,44,'gold');
   }
   private dialog(title:string,desiredHeight=390){
     const pw=Math.min(650,this.right-this.left),ph=Math.min(desiredHeight,this.height-this.h.safe.top-this.h.safe.bottom-24),x=(this.w-pw)/2,y=this.h.safe.top+(this.height-this.h.safe.top-this.h.safe.bottom-ph)/2;
@@ -568,15 +630,22 @@ export class ProgressionView {
     this.h.rect(this.g,0,0,this.w,this.height,'#01070ca8');this.surfaces=this.h.node('DialogPanel',overlay);this.panel(x,y,pw,ph);
     this.g=this.h.node('DialogFill',overlay).addComponent(Graphics);this.h.gradient(this.g,x+6,y+6,pw-12,ph-12,'#1a3547f5','#0b1b2af5',4);
     this.surfaces=this.h.node('DialogSurfaces',overlay);this.g=this.h.node('DialogInk',overlay).addComponent(Graphics);
-    if(title)this.label(title,x+16,y+10,pw-32,34,38,gold,true);
+    // Title band, bracket corners and a footer rule give every dialog the same framed structure.
+    if(title){
+      this.h.gradient(this.g,x+8,y+8,pw-16,42,'#e5bd7130','#e5bd7100',4,8);this.h.rect(this.g,x+18,y+49,pw-36,1,'#e5bd7166');
+      const mx=x+pw/2-this.w/2,my=this.height/2-y-49.5;this.g.fillColor=color(gold);this.g.moveTo(mx-7,my);this.g.lineTo(mx,my+4);this.g.lineTo(mx+7,my);this.g.lineTo(mx,my-4);this.g.close();this.g.fill();
+      this.label(title,x+16,y+10,pw-32,34,38,gold,true);
+    }
+    this.h.corners(this.g,x+9,y+9,pw-18,ph-18,gold,16);
+    this.h.gradient(this.g,x+8,y+ph-66,pw-16,58,'#02080e00','#02080e99',4,8);this.h.rect(this.g,x+18,y+ph-66,pw-36,1,'#78e3ff3d');
     return {x,y,pw,ph};
   }
   private leaveDialog(){
     const pending=this.q.pending?.kind==='loadout',{x,y,pw,ph}=this.dialog(this.t(pending?'保存结果待确认':'方案尚未保存',pending?'SAVE RESULT PENDING':'UNSAVED LOADOUT'),220);
     const modes=this.q.dirtyModes.map(mode=>this.t(mode==='solo'?'单人方案':'双人方案',mode==='solo'?'Solo':'Duel')).join('、');
     this.label(pending?this.t('保存请求已发送，结果尚未确认。\n离开不会取消请求；草稿与交易编号会保留，稍后可重试确认。','The save was sent but is not yet confirmed.\nLeaving keeps the request and draft. Retry later to confirm.'):this.t(`${modes}有未保存的修改。\n返回编辑并确定保存，或放弃修改后离开。`,`${modes} has unsaved changes.\nContinue editing to save, or discard and leave.`),x+22,y+55,pw-44,ph-126,29,ivory);
-    this.button('qm:keepEditing',this.t(pending?'继续确认':'返回编辑',pending?'CONTINUE':'KEEP EDITING'),x+20,y+ph-60,(pw-52)/2,44,'blue');
-    this.button(pending?'qm:leavePending':'qm:discard',this.t(pending?'保留请求并离开':'放弃修改',pending?'KEEP REQUEST & LEAVE':'DISCARD'),x+32+(pw-52)/2,y+ph-60,(pw-52)/2,44,'panel');
+    this.button(pending?'qm:leavePending':'qm:discard',this.t(pending?'保留请求并离开':'放弃修改',pending?'KEEP REQUEST & LEAVE':'DISCARD'),x+20,y+ph-60,(pw-52)/2,44,'panel');
+    this.button('qm:keepEditing',this.t(pending?'继续确认':'返回编辑',pending?'CONTINUE':'KEEP EDITING'),x+32+(pw-52)/2,y+ph-60,(pw-52)/2,44,'gold');
   }
   private giftDialog(){
     const q=this.q,gift=q.gift!,opening=!!gift.started;
@@ -584,19 +653,78 @@ export class ProgressionView {
     const overlay=this.h.node('GiftPresentation',this.n);this.n=overlay;const background=this.a.get('base');if(background)this.h.coverImage(overlay,'GiftAirfield',background,0,0,this.w,this.height);const shade=this.h.node('GiftShade',overlay).addComponent(Graphics);this.h.rect(shade,0,0,this.w,this.height,'#03101b55');this.surfaces=this.h.node('GiftArt',overlay);this.g=this.h.node('GiftInk',overlay).addComponent(Graphics);
     const l=this.left,r=this.right,top=this.h.safe.top+8,b=this.bottom;const mailGift=!!gift.granted,crateLoot=mailGift&&gift.drops.length>0;
     this.label(mailGift?this.t(opening?'补给箱开启':crateLoot?'补给箱开出的物资':'附件已领取',opening?'OPENING':crateLoot?'CRATE REWARDS':'ATTACHMENT CLAIMED'):this.t(opening?'补给箱开启':gift.opened?'获得物资':'获得补给箱',opening?'OPENING':gift.opened?'REWARDS':'SUPPLIES RECEIVED'),l+12,top,r-l-140,42,53,gold,true,true);
-    if(opening){
-      const elapsed=(Date.now()-gift.started!)/(gift.duration||1600),key=elapsed<.3?'closedCrate':'openCrate',size=Math.min(this.w*.6,this.height*.9);this.picture(key,(this.w-size)/2,top+43,size,b-top-50,false);
-      const glow=this.h.node('CrateGlow',overlay).addComponent(Graphics);glow.fillColor=color('#ffc35a22');glow.circle(0,0,size*.27);glow.fill();const opacity=glow.node.addComponent(UIOpacity);if(!this.h.reducedEffects)tween(opacity).to(.35,{opacity:80}).to(.35,{opacity:230}).union().repeatForever().start();const chest=this.surfaces.children.find(n=>n.name.includes(key));if(chest&&!this.h.reducedEffects){const fade=chest.addComponent(UIOpacity);fade.opacity=elapsed<.3?180:80;tween(fade).to(.22,{opacity:255}).start();}
-      this.button('qm:giftSkip',this.t('跳过 ›','SKIP ›'),r-105,top,105,44);return;
+    if(opening){this.crateOpening(overlay,top,b);this.button('qm:giftSkip',this.t('跳过 ›','SKIP ›'),r-105,top,105,44);return;}
+    const heroW=(r-l)*.29,rx=l+heroW+14,rw=r-rx,cy=top+52,bottom=b-54;
+    const fresh=!!gift.revealed&&Date.now()-gift.revealed<450&&!this.h.reducedEffects;
+    if(gift.opened){
+      // Slow light fan behind the opened crate keeps the reward screen alive after the burst.
+      const aura=this.h.node('GiftAura',overlay);aura.setSiblingIndex(this.surfaces.getSiblingIndex());aura.setPosition(l+heroW/2-this.w/2,this.height/2-(cy+bottom)/2);this.rays(aura.addComponent(Graphics),this.giftTone(),heroW*.75,'2e','14');
+      if(!this.h.reducedEffects)this.loop(aura,aura).by(26,{angle:360}).repeatForever().start();
     }
-    const heroW=(r-l)*.29,rx=l+heroW+14,rw=r-rx,cy=top+52,bottom=b-54;this.picture(gift.opened?'openCrate':'closedCrate',l,cy,heroW,bottom-cy,false);this.panel(rx,cy,rw,bottom-cy);
+    this.picture(gift.opened?'openCrate':'closedCrate',l,cy,heroW,bottom-cy,false);this.panel(rx,cy,rw,bottom-cy);
+    if(fresh){const hero=this.surfaces.children.find(n=>n.name==='Illustration:openCrate');if(hero){hero.setScale(1.18,1.18,1);tween(hero).to(.32,{scale:new Vec3(1,1,1)},{easing:'backOut'}).start();}}
     const counts=new Map<string,number>();let coins=0,xp=0;for(const d of mailGift&&!crateLoot?gift.granted!:gift.drops){if(d.item)counts.set(d.item,(counts.get(d.item)||0)+1);else {coins+=d.coins||0;xp+=d.xp||0;}}
     const entries:Array<{id:string;n:number}>=[...Object.entries(gift.packs).map(([id,n])=>({id,n})),...(coins?[{id:'coins',n:coins}]:[]),...(xp?[{id:'xp',n:xp}]:[]),...Array.from(counts,([id,n])=>({id,n}))];
     const cols=Math.min(this.narrow?2:3,Math.max(1,entries.length)),cw=(rw-26-(cols-1)*9)/cols,ch=this.low?150:Math.max(220,bottom-cy-22);
     this.list('gifts',rx+8,cy+8,rw-16,bottom-cy-16,Math.max(0,Math.ceil(entries.length/cols)*(ch+9)-9),offset=>entries.forEach(({id,n},i)=>{const x=rx+10+i%cols*(cw+9),y=cy+10+Math.floor(i/cols)*(ch+9)-offset,p=q.catalog.find(p=>p.id===id),money=id==='coins',experience=id==='xp',tier=p?.rarity??(id.startsWith('pack:')?Number(id.split(':')[2]):0);this.panel(x,y,cw,ch);this.h.rect(this.g,x+2,y+2,cw-4,ch-4,'#00000000',money?gold:rarityColor[tier],3);this.picture(money?'coinPile':experience?'emblem':p?this.productArt(p.effect):id==='fragment:weapon'?'droneGear':id==='fragment:skill'?'tracking':'closedCrate',x+5,y+25,cw-10,ch*.54,false);this.label(money?this.t('金币','COINS'):experience?'EXP':id in FRAGMENTS?this.t('合成材料','MATERIAL'):this.t(rarity[tier],rarityEn[tier])+(p?' · '+this.term(p.term):''),x+8,y+4,cw-16,24,25,money?gold:rarityColor[tier],true,true);if(p)this.infoButton(id,x+cw-44,y+1);
       this.label((money?this.t('金币 +','COINS +'):experience?'EXP +':p?this.productName(p)+' ×':id in FRAGMENTS?this.catalogName(id)+' ×':this.t(rarity[tier]+'补给箱 ×',rarityEn[tier]+' CRATES ×'))+n,x+8,y+ch*.66,cw-16,36,32,money?gold:ivory,true);this.label(p?(p.term==='24h'?this.t('存入仓库 · 激活后计时24小时','In inventory · 24h starts on activation'):this.brief(p)):experience?this.t('已计入成长经验','Added to growth EXP'):money?this.t('已存入金币余额','Added to your balance'):id in FRAGMENTS?this.t('已存入仓库 · 可用于合成','Stored in inventory · ready for crafting'):this.t('点击一键打开查看物资','Open to reveal supplies'),x+8,y+ch*.84,cw-16,ch*.13,22,dim);
     }));
-    const bw=(rw-12)/2;this.button('qm:giftClose',this.t(gift.opened?'完成':'稍后打开',gift.opened?'DONE':'LATER'),rx,b-48,bw,44,'gold',q.busy);this.button(gift.opened?'qm:giftWarehouse':'qm:giftOpen',this.t(gift.opened?'查看仓库':q.pending?'重试打开':'一键打开',gift.opened?'INVENTORY':q.pending?'RETRY':'OPEN ALL'),rx+bw+12,b-48,bw,44,'blue',q.busy);
+    if(fresh){
+      const cards=this.n.children.find(n=>n.name==='Scroll:qm:gifts');if(cards){const fade=cards.addComponent(UIOpacity);fade.opacity=0;tween(fade).delay(.08).to(.3,{opacity:255}).start();}
+      const flash=this.h.node('GiftRevealFlash',overlay),ink=flash.addComponent(Graphics),fade=flash.addComponent(UIOpacity);this.h.rect(ink,0,0,this.w,this.height,'#fff1c8');fade.opacity=120;tween(fade).to(.3,{opacity:0}).start();
+    }
+    const bw=(rw-12)/2,done=gift.opened;
+    this.button(done?'qm:giftWarehouse':'qm:giftClose',this.t(done?'查看仓库':'稍后打开',done?'INVENTORY':'LATER'),rx,b-48,bw,44,'panel',q.busy);
+    this.button(done?'qm:giftClose':'qm:giftOpen',this.t(done?'完成':q.pending?'重试打开':'一键打开',done?'DONE':q.pending?'RETRY':'OPEN ALL'),rx+bw+12,b-48,bw,44,'gold',q.busy);
+  }
+  private giftTone(){const tier=Math.max(0,...(this.q.gift?.drops||[]).map(d=>this.q.catalog.find(p=>p.id===d.item)?.rarity??0));return tier?rarityColor[tier]:'#ffc35a';}
+  private rays(g:Graphics,tone:string,radius:number,strong:string,soft:string){
+    for(let i=0;i<12;i++){const a=i*Math.PI/6,half=i%2?.07:.13;g.fillColor=color(tone+(i%2?soft:strong));g.moveTo(0,0);g.lineTo(Math.cos(a-half)*radius,Math.sin(a-half)*radius);g.lineTo(Math.cos(a+half)*radius,Math.sin(a+half)*radius);g.close();g.fill();}
+  }
+  /** Shake and glow build up, then the lid bursts open in the colour of the best reward inside. */
+  private crateOpening(overlay:Node,top:number,b:number){
+    const gift=this.q.gift!,total=gift.duration||2200,elapsed=Date.now()-gift.started!,burstAt=total*GIFT_BURST,burst=elapsed>=burstAt,since=(elapsed-burstAt)/1000,left=Math.max(.05,(burstAt-elapsed)/1000);
+    const cy=this.height/2-(top+46+b)/2,boxH=Math.max(60,(b-top-60)*.92),boxW=Math.min(this.w*.46,boxH*1.5),tone=burst?this.giftTone():'#ffc35a',one=new Vec3(1,1,1); // rarity colour is the surprise: gold until the lid opens
+    const part=(name:string)=>{const node=this.h.node(name,overlay);node.setPosition(0,cy);return {node,ink:node.addComponent(Graphics),fade:node.addComponent(UIOpacity)};};
+    const fan=part('CrateRays');this.rays(fan.ink,tone,Math.max(this.w,this.height)*.62,'40','1c');
+    const glow=part('CrateGlow');for(const [radius,alpha]of [[.62,'12'],[.47,'1e'],[.33,'30'],[.2,'44']] as const){glow.ink.fillColor=color(tone+alpha);glow.ink.circle(0,0,boxW*radius);glow.ink.fill();}
+    this.loop(fan.node,fan.node).by(burst?9:22,{angle:-360}).repeatForever().start();
+    const actor=this.h.node('CrateActor',overlay);actor.setPosition(0,cy);
+    const key=burst?'openCrate':'closedCrate',frame=this.a.get(key);
+    if(frame){const art=this.h.node('Illustration:'+key,actor),sprite=art.addComponent(Sprite),ratio=frame.rect.width/frame.rect.height,w=Math.min(boxW,boxH*ratio);sprite.sizeMode=Sprite.SizeMode.CUSTOM;sprite.spriteFrame=frame;art.getComponent(UITransform)!.setContentSize(w,w/ratio);}
+    if(!burst){
+      // Anticipation: light leaks out while the crate rattles harder and harder, then squashes before the pop.
+      fan.fade.opacity=Math.min(120,elapsed/burstAt*120);fan.node.setScale(.55,.55,1);tween(fan.fade).to(left,{opacity:130}).start();tween(fan.node).to(left,{scale:new Vec3(.9,.9,1)}).start();
+      glow.fade.opacity=60+elapsed/burstAt*120;tween(glow.fade).to(left,{opacity:255}).start();glow.node.setScale(.7,.7,1);tween(glow.node).to(left,{scale:new Vec3(1.15,1.15,1)},{easing:'quadIn'}).start();
+      if(elapsed<200){actor.setScale(.55,.55,1);tween(actor).to(.22,{scale:one},{easing:'backOut'}).start();}
+      const rattle=tween(actor);let t=elapsed;
+      for(let side=1;t<burstAt-130;t+=64,side=-side){const amp=1.2+7.5*Math.pow(t/burstAt,2);rattle.to(.064,{angle:side*amp,position:new Vec3(side*amp*.7,cy+(side>0?amp*.5:0),0)});}
+      rattle.to(.05,{angle:0,position:new Vec3(0,cy,0)}).to(.08,{scale:new Vec3(1.14,.84,1)},{easing:'quadOut'}).start();
+      return;
+    }
+    fan.fade.opacity=255;glow.fade.opacity=255;
+    this.loop(glow.node,glow.fade).to(.4,{opacity:150}).to(.4,{opacity:255}).union().repeatForever().start();
+    const sparks=Array.from({length:22},(_,i)=>{const a=i*2.39996,far=boxW*(.55+((i*37)%50)/100),size=2.5+(i*13)%5;return {a,far,size};});
+    if(since<.35){
+      fan.node.setScale(.9,.9,1);tween(fan.node).to(.3,{scale:new Vec3(1.3,1.3,1)},{easing:'quadOut'}).start();
+      actor.setScale(.8,1.3,1);actor.setPosition(0,cy+boxH*.07);tween(actor).to(.13,{scale:new Vec3(1.22,1.1,1)},{easing:'quadOut'}).to(.3,{scale:one,position:new Vec3(0,cy,0)},{easing:'backOut'}).start();
+      const flash=this.h.node('CrateFlash',overlay),ink=flash.addComponent(Graphics),fade=flash.addComponent(UIOpacity);flash.setSiblingIndex(actor.getSiblingIndex());this.h.rect(ink,0,0,this.w,this.height,'#fff3d2');fade.opacity=215;tween(fade).to(.42,{opacity:0},{easing:'quadOut'}).start();
+      for(const [delay,width]of [[0,7],[.12,3]] as const){const ring=part('CrateRing');ring.ink.strokeColor=color(tone);ring.ink.lineWidth=width;ring.ink.circle(0,0,boxW*.3);ring.ink.stroke();ring.node.setScale(.35,.35,1);tween(ring.node).delay(delay).to(.6,{scale:new Vec3(2.6,2.6,1)},{easing:'quadOut'}).start();tween(ring.fade).delay(delay).to(.6,{opacity:0}).start();}
+      for(const {a,far,size} of sparks){
+        const spark=part('CrateSpark');spark.ink.fillColor=color(size>5?'#fff6dc':tone);spark.ink.moveTo(0,size*1.8);spark.ink.lineTo(size*.55,0);spark.ink.lineTo(0,-size*1.8);spark.ink.lineTo(-size*.55,0);spark.ink.close();spark.ink.fill();
+        const life=.55+size*.07,x=Math.cos(a)*far,y=cy+Math.sin(a)*far*.8+boxH*.12;spark.node.angle=a*57.3-90;
+        tween(spark.node).to(life,{position:new Vec3(x,y,0)},{easing:'quadOut'}).to(life*.8,{position:new Vec3(x*1.06,y-boxH*.16,0)},{easing:'quadIn'}).start();tween(spark.fade).delay(life*.9).to(life*.8,{opacity:0}).start();
+      }
+    }else fan.node.setScale(1.3,1.3,1);
+    // Loot twinkles keep rising out of the open lid until the rewards are listed.
+    for(let i=0;i<7;i++){
+      const star=part('CrateTwinkle'),sx=(i-3)*boxW*.11,size=3+i%3*1.5;star.ink.fillColor=color(i%2?'#fff6dc':tone);
+      for(const [w,h]of [[size*.4,size*2],[size*2,size*.4]])star.ink.rect(-w/2,-h/2,w,h);star.ink.fill();star.node.setPosition(sx,cy);star.fade.opacity=0;
+      const rise=.9+i%3*.25;
+      this.loop(star.node,star.node).delay(i*.11).set({position:new Vec3(sx,cy+boxH*.05,0)}).to(rise,{position:new Vec3(sx*1.5,cy+boxH*.55,0)},{easing:'quadOut'}).union().repeatForever().start();
+      this.loop(star.node,star.fade).delay(i*.11).to(rise*.25,{opacity:255}).to(rise*.75,{opacity:0}).union().repeatForever().start();
+    }
+    this.loop(actor,actor).delay(Math.max(0,.45-since)).by(.6,{position:new Vec3(0,5,0)},{easing:'sineInOut'}).by(.6,{position:new Vec3(0,-5,0)},{easing:'sineInOut'}).union().repeatForever().start();
   }
   private confirm(){
     const q=this.q,intent=q.confirmation!,{x,y,pw,ph}=this.dialog('',220);

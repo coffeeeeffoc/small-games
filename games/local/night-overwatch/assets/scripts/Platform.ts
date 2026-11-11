@@ -38,6 +38,7 @@ export class Platform {
   private disposed = false;
   private wheelSound=0;
   private wheelRevealed=0;
+  private crateRattle=0;private crateBurst=0;
   clips = new Map<string, AudioClip>();
   audioStatus = 'loading';
   cleanup: (() => void)[] = [];
@@ -205,6 +206,12 @@ export class Platform {
       if(!wheel.shown&&!this.reducedEffects){this.play('wheel-spin');if(spin)spin.currentTime=Math.min(spin.duration||4.8,Math.max(0,(Date.now()-wheel.started)/1000));}
     }
     if(wheel.shown){spin?.stop();if(this.wheelRevealed!==wheel.started){this.wheelRevealed=wheel.started;this.play('wheel-win');}}
+  }
+  /** One click as the crate starts to rattle, the win sting when it bursts open. */
+  crateAudio(gift:Quartermaster['gift']){
+    if(!gift?.started||!this.focused||this.muted||this.disposed)return;
+    if(this.crateRattle!==gift.started){this.crateRattle=gift.started;this.play('wheel-click');}
+    if(gift.illuminated&&this.crateBurst!==gift.started){this.crateBurst=gift.started;this.play('wheel-win');}
   }
   stop(preserveRadio = false) {
     if (preserveRadio && this.radioPending) {

@@ -100,7 +100,7 @@ try {
     await click('online:back');
     await click('online:menu'); await click('online:join');
     await edit('draftCode', '1234'); await edit('draftPassword', 'friends');
-    await click('online:dismiss');
+    await click('online:back');
     await click('missions'); await click('start');
     await page.waitForFunction(() => __night.snapshot().phase === 'playing');
     let state = await snapshot(page);

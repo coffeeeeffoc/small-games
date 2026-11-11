@@ -532,7 +532,7 @@ export class Overwatch extends Component {
         else q.back();
         q.revision++;return true;
       }
-      if(value==='announcements'){q.show('inbox');q.section='news';return true;}
+      if(value==='announcements'){q.show('inbox');q.section='news';q.selectedMail=q.assets?.announcements[0]?.id||'';return true;}
       if(value==='refresh'){void q.refresh();return true;}
       if(value==='retry'){void q.execute();return true;}
       if(value==='prev'||value==='choosePrev')q.index=Math.max(0,q.index-1);
@@ -549,7 +549,7 @@ export class Overwatch extends Component {
       if(value==='leavePending')q.leavePending();
       if(value==='giftOpen')void q.openGifts();
       if(value==='giftClose')q.gift=undefined;
-      if(value==='giftSkip'&&q.gift)q.gift.started=undefined;
+      if(value==='giftSkip'&&q.gift){q.gift.started=undefined;q.gift.revealed=Date.now();}
       if(value==='infoClose')q.info='';
       if(value==='wheelSkip')q.finishWheel();
       if(value==='wheelNudge')q.nudgeWheel();
@@ -1481,6 +1481,7 @@ export class Overwatch extends Component {
     this.hud.pressedButton=this.controlGesture&&!this.controlGesture.moved?this.controlGesture.button:this.mouseButton || Array.from(this.touches.values()).find(t=>t.role==='button'||t.role==='fire')?.button || '';
     this.hud.update(presented, this.world);
     this.platform.wheelAudio(this.quartermaster?.wheel,this.quartermaster?.page==='supply');
+    this.platform.crateAudio(this.quartermaster?.gift);
     if (this.pauseControl) {
       this.pauseControl.hidden = !this.hud.buttons.find(button => button.id === 'settings')?.label.node.activeInHierarchy;
       this.pauseControl.disabled = !!this.rewardRequest || this.hud.supplyOpen || this.sim.resumeCountdown > 0 || this.hud.exitConfirm;

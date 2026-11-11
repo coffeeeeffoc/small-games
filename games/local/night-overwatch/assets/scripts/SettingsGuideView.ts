@@ -473,7 +473,7 @@ export class SettingsGuideView {
         px + 16,
         by,
         bw,
-        'quiet',
+        'ghost',
         'back',
       );
     const width = Math.min(playing ? bw : 160, 200),

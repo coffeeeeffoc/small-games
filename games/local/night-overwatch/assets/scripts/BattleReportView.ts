@@ -11,6 +11,8 @@ import type { HUD } from './HUD';
 type BattleReportViewHost = Pick<
   HUD,
   | 'button'
+  | 'buttons'
+  | 'styleButton'
   | 'equipmentOpen'
   | 'h'
   | 'label'
@@ -64,6 +66,7 @@ export class BattleReportView {
       44,
       parentNode,
     ).fontSize = 12;
+    this.hud.styleButton(graphics, this.hud.buttons[this.hud.buttons.length - 1], 'ghost');
     for (const [i, id] of ['reportOverview', 'equipment'].entries()) {
       const x = panelLeft + 12 + i * 110;
       const selected = this.hud.equipmentOpen === (i === 1);

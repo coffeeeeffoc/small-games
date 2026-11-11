@@ -18,7 +18,7 @@ test('only development packages register controls and snapshot; disposal unregis
   const s=setup(t,'production');assert.equal(s.actions.length,0);s.cleanup();assert.equal(s.cleaned(),0);
 });
 test('developer controls send real intents, report failures, and retain safe mission selection',async t=>{
-  const s=setup(t);assert.equal(s.actions.length,6);assert.deepEqual(s.snapshot(),{phase:'briefing'});
+  const s=setup(t);assert.equal(s.actions.length,14);assert.deepEqual(s.snapshot(),{phase:'briefing'});
   await s.run('night-coins',-35);await s.run('night-xp',250);
   assert.deepEqual(s.calls.slice(0,2),[{kind:'dev-adjust',coinsDelta:-35},{kind:'dev-adjust',xpDelta:250}]);
   await assert.rejects(s.run('night-coins',1.5),/整数/);

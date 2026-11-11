@@ -295,7 +295,7 @@ export class HudDrawing {
   styleButton(
     graphics: Graphics,
     button: ButtonRect,
-    kind: 'primary' | 'secondary' | 'quiet' = 'secondary',
+    kind: 'primary' | 'secondary' | 'quiet' | 'ghost' = 'secondary',
     icon = '',
   ) {
     const visualBounds = (button.visual = {
@@ -336,6 +336,18 @@ export class HudDrawing {
         button.disabled ? '#72899655' : '#8ba9ba',
         3,
       );
+    // Ghost: the low-emphasis footer action still reads as a button beside gold/blue ones.
+    else if (kind === 'ghost')
+      this.hud.rect(
+        graphics,
+        visualBounds.x,
+        visualBounds.y,
+        visualBounds.w,
+        visualBounds.h,
+        '#14263399',
+        button.disabled ? '#7d97a855' : '#7d97a8',
+        3,
+      );
     button.label.color = col(
       button.disabled ? '#72818a' : kind === 'primary' ? '#fff0d0' : C.white,
     );
@@ -366,7 +378,7 @@ export class HudDrawing {
     x: number,
     y: number,
     width: number,
-    kind: 'primary' | 'secondary' | 'quiet' = 'secondary',
+    kind: 'primary' | 'secondary' | 'quiet' | 'ghost' = 'secondary',
     icon = '',
     height = 44,
     disabled = false,
@@ -737,6 +749,24 @@ export class HudDrawing {
     }
     graphics.stroke();
   }
+  /** Four bracket corners: cheap hardware detail that keeps flat dialogs from reading as plain boxes. */
+  corners(graphics: Graphics, x: number, y: number, width: number, height: number, tone: string, arm = 14) {
+    graphics.strokeColor = col(tone);
+    graphics.lineWidth = 2;
+    const left = x - this.hud.w / 2,
+      top = this.hud.h / 2 - y;
+    for (const [cx, cy, dx, dy] of [
+      [left, top, 1, -1],
+      [left + width, top, -1, -1],
+      [left, top - height, 1, 1],
+      [left + width, top - height, -1, 1],
+    ]) {
+      graphics.moveTo(cx + dx * arm, cy);
+      graphics.lineTo(cx, cy);
+      graphics.lineTo(cx, cy + dy * arm);
+      graphics.stroke();
+    }
+  }
   panelFrame(
     graphics: Graphics,
     x: number,
@@ -768,6 +798,8 @@ export class HudDrawing {
     if (header)
       this.hud.gradient(graphics, x + 9, y + 9, width - 18, 36, '#55656725', '#17282f00', 7, 10);
     if (header) this.hud.rect(graphics, x + 14, y + 47, width - 28, 1, '#b7b09488');
+    if (header) this.hud.rect(graphics, x + 14, y + 45, Math.min(72, width * 0.2), 3, accent);
+    this.corners(graphics, x + 7, y + 7, width - 14, height - 14, accent);
     this.hud.rect(graphics, x + 14, y + height - 66, width - 28, 1, '#45677c66');
     // Quiet instrument grid and a wing planform live behind the readable controls.
     for (let xx = x + 22; xx < x + width - 20; xx += 24)

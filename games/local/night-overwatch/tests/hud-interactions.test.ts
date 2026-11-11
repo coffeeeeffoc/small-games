@@ -78,8 +78,9 @@ let inset = 0;
 let artworkAvailable = false;
 const cc = {
   EditBox: class { static InputMode = { SINGLE_LINE: 0 }; static InputFlag = { PASSWORD: 0, DEFAULT: 1 }; static EventType = { TEXT_CHANGED: 'change' }; isFocused() { return false; } },
+  Vec3: class { x: number; y: number; z: number; constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; } },
   UIOpacity: class { opacity = 255; }, Tween: { stopAllByTarget() {} },
-  tween: (target: any) => ({ to(_time: number, values: object) { Object.assign(target, values); return this; }, call(callback: () => void) { callback(); return this; }, by(){return this;},union(){return this;},repeatForever(){return this;},start() {} }),
+  tween: (target: any) => ({ to(_time: number, values: object) { Object.assign(target, values); return this; }, call(callback: () => void) { callback(); return this; }, by(){return this;},delay(){return this;},set(){return this;},union(){return this;},repeatForever(){return this;},start() {} }),
   Node: SceneNode, UITransform: Transform, Graphics, Color,
   Camera: class { static ProjectionType = { ORTHO: 0 }; static ClearFlag = { DEPTH_ONLY: 0 }; },
   Canvas: class {}, Mask: class { static Type = { GRAPHICS_RECT: 0 }; },
@@ -429,7 +430,7 @@ test('HUD: identical names remain distinct, own ranking is highlighted, and clos
   hud.online.message = '房间已结束'; hud.online.revision++;
   hud.update(sim, world);
   const ids = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal).map((button: any) => button.id);
-  assert.deepEqual(ids, ['online:dismiss', 'online:backLobby']);
+  assert.deepEqual(ids, ['online:backLobby']);
 });
 
 test('HUD: duel results keep global settings and share controls away from the close target after resize', () => {
@@ -578,7 +579,7 @@ test('HUD: escort and range entries are discoverable, and range results show a s
         sim.phase = phase; sim.failure = phase === 'failure' ? 'vehicle' : '';
         hud.update(sim, world);
         const buttons = hud.buttons.filter((button: any) => button.label.node.parent === hud.modal);
-        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['homeMenu', 'training', 'start'] : ['resultClose', 'home', 'retry']);
+        assert.deepEqual(buttons.map((button: any) => button.id), phase === 'briefing' ? ['homeMenu', 'training', 'start'] : ['home', 'retry']);
         for (const button of buttons) {
           assert(button.w >= 44 && button.h >= 44);
           assert(button.y >= inset + 58 && button.y + button.h <= height - inset);
