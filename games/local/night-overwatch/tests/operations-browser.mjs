@@ -19,10 +19,12 @@ try {
   for (const [width, height] of [[568, 320], [844, 390], [1280, 720]]) {
     const assets = assetFixture();
     const title = '运营维护补偿 · Operations compensation';
-    const body = ('本次补偿已经到账。金币、经验和补给箱仅发放一次。Maintenance compensation is ready.\n').repeat(4).slice(0,300);
+    // {补偿明细} becomes its own highlighted line built from the mail attachment.
+    const lead = '本次补偿已经到账。';
+    const body = ('金币、经验和补给箱仅发放一次。Maintenance compensation is ready.\n').repeat(4).slice(0,270).trim();
     const noticeTitle = '服务器版本维护公告 · Version notice';
     const noticeBody = ('旧版本服务可以暂停或恢复，新对局以当前版本策略为准；已开始的对局继续结算。Existing matches keep their original rules.\n').repeat(4).slice(0,300);
-    assets.mail = [{ id: 'ops-compensation:qa', title, body, read: false, claimed: false, createdAt: Date.now(), reward: { coins: 20, xp: 30, packs: 1 } }];
+    assets.mail = [{ id: 'ops-compensation:qa', title, body: lead + '\n{补偿明细}\n' + body, read: false, claimed: false, createdAt: Date.now(), reward: { coins: 20, xp: 30, packs: 1 } }];
     assets.announcements = [{ id: 'ops-news', title: noticeTitle, body: noticeBody, createdAt: Date.now() }];
     const context = await browser.newContext({ viewport: { width, height }, hasTouch: width < 1000, isMobile: width < 1000 });
     try {
@@ -46,7 +48,10 @@ try {
       for (const lang of ['zh', 'en']) {
         if (lang === 'en') { await click('settings'); await click('language'); await click('close'); }
         await click('qm:inbox'); await click('mail:ops-compensation:qa');
-        assert((await texts(page)).includes(title)); assert((await texts(page)).includes(body));
+        const shown = await texts(page);
+        assert(shown.includes(title)); assert(shown.includes(lead)); assert(shown.includes(body));
+        assert(shown.includes(lang === 'zh' ? '20 金币 · 30 EXP · 1 补给箱' : '20 COINS · 30 EXP · 1 CRATES'), 'placeholder line from the attachment');
+        assert(!shown.some(t => t.includes('{补偿明细}')));
         const area=(await snapshot(page)).scrollLists.find(a=>a.key.startsWith('qm:message:'));
         if(width===568){assert(area.max>0);await scrollPage(page,area.key);assert((await snapshot(page)).scrollLists.find(a=>a.key===area.key).offset>0);}
         const font=await page.evaluate(async body=>{const {director,Label}=await System.import('cc');return director.getScene().getComponentsInChildren(Label).find(l=>l.node.activeInHierarchy&&l.string===body).fontSize;},body);
