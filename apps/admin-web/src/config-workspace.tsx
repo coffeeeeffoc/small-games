@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
+import { useUnsavedChanges } from './unsaved-changes';
 import { Alert, Card, Input, Modal, Select, Tabs, Tag } from 'antd';
 import {
   ApiError,
@@ -66,6 +67,7 @@ export function ConfigWorkspace({
   const [saved, setSaved] = useState<RevisionData>();
   const [publishConfirm, setPublishConfirm] = useState(false);
   const [pageTab, setPageTab] = useState<'games' | 'night'>('games');
+  const [editorVersion, setEditorVersion] = useState(0);
   const nightTab = pageTab === 'night';
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [deployments, setDeployments] = useState<Deployments>();
@@ -152,6 +154,7 @@ export function ConfigWorkspace({
     draftSnapshot,
     state?.snapshot ? editableSnapshot(state.snapshot) : { apiOrigins: [], games: snapshot.games },
   );
+  useUnsavedChanges(!!state && (dirty || !!saved || (releaseOpen && !!reason)));
   const publishedIds = new Set([
     ...revisions
       .filter((r) => r.publishedVersion !== null)
@@ -215,7 +218,15 @@ export function ConfigWorkspace({
                 发布记录
               </Link>
               {(dirty || saved) && (
-                <Button disabled={operation.busy} onClick={() => void operation.run(load)}>
+                <Button
+                  disabled={operation.busy}
+                  onClick={() =>
+                    void operation.run(async () => {
+                      await load();
+                      setEditorVersion((version) => version + 1);
+                    })
+                  }
+                >
                   放弃编辑
                 </Button>
               )}
@@ -265,32 +276,41 @@ export function ConfigWorkspace({
                   gamesOnly ? (nightTab ? '夜航运营草稿' : '游戏运行策略') : '公共 API 允许来源'
                 }
               >
-                {gamesOnly && nightTab ? (
-                  <NightOperationsEditor
-                    value={snapshot.nightOperations}
-                    published={state.snapshot?.nightOperations}
-                    publishedIds={publishedIds}
-                    deployments={deployments}
-                    disabled={!canWrite || operation.busy}
-                    canPublish={canPublish && !conflict}
-                    busy={operation.busy}
-                    dirty={dirty}
-                    change={(nightOperations) => edited({ ...snapshot, nightOperations })}
-                    rollback={async (build, note) => {
-                      let completed = false;
-                      await operation.run(() =>
-                        versioned(async () => {
-                          await api.rollbackNightRelease(build.channel, build.buildId, base, note);
-                          await load();
-                          completed = true;
-                          operation.success('渠道推荐版本已回退，公告与补偿已保留。');
-                        }),
-                      );
-                      return completed;
-                    }}
-                  />
-                ) : gamesOnly ? (
-                  <>
+                {gamesOnly && (
+                  <div hidden={!nightTab}>
+                    <NightOperationsEditor
+                      key={editorVersion}
+                      value={snapshot.nightOperations}
+                      published={state.snapshot?.nightOperations}
+                      publishedIds={publishedIds}
+                      deployments={deployments}
+                      disabled={!canWrite || operation.busy}
+                      canPublish={canPublish && !conflict}
+                      busy={operation.busy}
+                      dirty={dirty}
+                      change={(nightOperations) => edited({ ...snapshot, nightOperations })}
+                      rollback={async (build, note) => {
+                        let completed = false;
+                        await operation.run(() =>
+                          versioned(async () => {
+                            await api.rollbackNightRelease(
+                              build.channel,
+                              build.buildId,
+                              base,
+                              note,
+                            );
+                            await load();
+                            completed = true;
+                            operation.success('渠道推荐版本已回退，公告与补偿已保留。');
+                          }),
+                        );
+                        return completed;
+                      }}
+                    />
+                  </div>
+                )}
+                {gamesOnly ? (
+                  <div hidden={nightTab}>
                     <div className="table-scroll">
                       <Table
                         pagination={false}
@@ -349,7 +369,7 @@ export function ConfigWorkspace({
                         title={`${game.id} · 独立服务，尚未纳管`}
                       />
                     ))}
-                  </>
+                  </div>
                 ) : (
                   <>
                     <label htmlFor="api-origins">每行一个完整 Origin（协议、域名、可选端口）</label>

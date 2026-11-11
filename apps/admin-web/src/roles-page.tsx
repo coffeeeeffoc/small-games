@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Card, Checkbox, Input, Tag } from 'antd';
+import { same } from './night-operations-model';
+import { useUnsavedChanges } from './unsaved-changes';
 import {
   permissions,
   type ControlApi,
@@ -35,6 +37,15 @@ export function RolesPage({ api, session }: { api: ControlApi; session: Session 
     [reason, setReason] = useState('');
   const [grants, setGrants] = useState<Permission[]>([]);
   const canWrite = session.permissions.includes('roles.write');
+  const initial = editing && editing !== 'new' ? editing : undefined;
+  useUnsavedChanges(
+    (!!editing &&
+      (id !== (initial?.id ?? '') ||
+        name !== (initial?.name ?? '') ||
+        !same([...grants].sort(), [...(initial?.permissions ?? [])].sort()) ||
+        !!reason)) ||
+      (!!deleting && !!reason),
+  );
   const load = async () => setRoles(await api.read<Role[]>('roles'));
   useEffect(() => {
     void operation.run(load);

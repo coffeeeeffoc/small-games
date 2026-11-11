@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert, Card, Input, Tabs } from 'antd';
+import { useUnsavedChanges } from './unsaved-changes';
 import { ActionButton as Button } from './control-common';
 import { NightMessagesEditor } from './night-messages-editor';
 import { NightVersionsEditor } from './night-versions-editor';
@@ -30,6 +31,7 @@ export function NightOperationsEditor({
 }) {
   const [target, setTarget] = useState<NightBuild>();
   const [reason, setReason] = useState('');
+  useUnsavedChanges(!!target && !!reason);
   return (
     <>
       <Tabs

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Alert, Card, Checkbox, Input, Select, Tag } from 'antd';
 import type { ControlApi, Member, Role, Session } from './control-api';
+import { same } from './night-operations-model';
+import { useUnsavedChanges } from './unsaved-changes';
 import {
   ActionButton as Button,
   DataTable as Table,
@@ -21,6 +23,15 @@ export function MembersPage({ api, session }: { api: ControlApi; session: Sessio
     [reason, setReason] = useState('');
   const canWrite = session.permissions.includes('members.write'),
     canRoles = session.permissions.includes('roles.read');
+  const initial = editing && editing !== 'new' ? editing : undefined;
+  useUnsavedChanges(
+    (!!editing &&
+      (email !== (initial?.email ?? '') ||
+        active !== (initial?.active ?? true) ||
+        !same([...roleIds].sort(), [...(initial?.roleIds ?? [])].sort()) ||
+        !!reason)) ||
+      (!!deleting && !!reason),
+  );
   async function load() {
     setMembers(await api.read<Member[]>('members'));
     // Do not fetch the directory on behalf of a member lacking roles.read.

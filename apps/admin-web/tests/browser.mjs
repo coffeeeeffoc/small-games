@@ -6,6 +6,7 @@ import { chromium } from '@playwright/test';
 import { startAdminCaddy } from '../../../scripts/admin-caddy-fixture.mjs';
 import { controlBrowserChecks } from './control-browser.mjs';
 import { nightOperationsBrowserChecks } from './night-operations.browser.mjs';
+import { unsavedChangesBrowserChecks } from './unsaved-changes.browser.mjs';
 import { collectBrowserErrors } from './control.fixture.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -24,6 +25,7 @@ const sourceFiles = [
   'apps/admin-web/tests/control.fixture.mjs',
   'apps/admin-web/tests/control-browser.mjs',
   'apps/admin-web/tests/night-operations.browser.mjs',
+  'apps/admin-web/tests/unsaved-changes.browser.mjs',
   'scripts/admin-caddy-fixture.mjs',
   'scripts/admin-csp.mjs',
   'scripts/competition-ingress.mjs',
@@ -161,6 +163,9 @@ try {
   const nightOperationsChecks = diagnostic
     ? 0
     : await nightOperationsBrowserChecks(browser, server.url, evidence);
+  const unsavedChangesChecks = diagnostic
+    ? 0
+    : await unsavedChangesBrowserChecks(browser, server.url, evidence);
   if (diagnostic)
     console.log(`DIAGNOSTIC ONLY: ${diagnostic} completed; no full acceptance receipt`);
   else {
@@ -189,6 +194,7 @@ try {
           actualCaddy: server.runtime,
           controlChecks,
           nightOperationsChecks,
+          unsavedChangesChecks,
           legitimateCspViolations: 0,
           intentionalUnnoncedStyleBlocked: true,
           realGithubVerified: false,

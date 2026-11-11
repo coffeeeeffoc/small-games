@@ -273,6 +273,10 @@ export async function controlBrowserChecks(browser, baseURL, evidence, diagnosti
       assert.equal(fixture.writes.at(-1).body.expectedVersion, 3);
       await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
       await page.getByRole('link', { name: '成员', exact: true }).click();
+      await page
+        .getByRole('dialog', { name: '确认离开当前页面？' })
+        .getByRole('button', { name: '确认离开' })
+        .click();
       const owner = page.getByRole('row').filter({ hasText: 'owner@example.com' });
       await owner.getByRole('button', { name: '编辑成员' }).click();
       assert(await page.getByRole('textbox', { name: '成员邮箱', exact: true }).isDisabled());

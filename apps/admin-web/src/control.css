@@ -399,6 +399,9 @@ main.control-main {
   .control-center .ant-btn:not(.ant-btn-link) {
     min-height: 44px;
   }
+  .unsaved-changes-modal .ant-btn {
+    min-height: 44px;
+  }
   .status-tabs button {
     min-height: 40px;
   }

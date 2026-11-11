@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert, App, Input, InputNumber, Modal, Tag } from 'antd';
+import { useUnsavedChanges } from './unsaved-changes';
 import { ActionButton as Button, DataTable as Table } from './control-common';
 import { dateLabel } from './control-api';
 import {
@@ -98,7 +99,7 @@ export function NightMessagesEditor({
   const entries: Entry[] = operations[kind];
   const [filter, setFilter] = useState('all');
   // The dialog edits a private copy; the draft changes only on 确定.
-  const [editing, setEditing] = useState<{ entry: Entry; isNew: boolean }>();
+  const [editing, setEditing] = useState<{ entry: Entry; initial: Entry; isNew: boolean }>();
   const [playersText, setPlayersText] = useState('');
   const status = (e: Entry) =>
     'reward' in e ? compensationStatus(e, publishedIds) : announcementStatus(e);
@@ -112,7 +113,7 @@ export function NightMessagesEditor({
   const save = (list: Entry[]) => change({ ...operations, [kind]: list });
   const replace = (entry: Entry) => save(entries.map((e) => (e.id === entry.id ? entry : e)));
   const open = (entry: Entry, isNew = false) => {
-    setEditing({ entry, isNew });
+    setEditing({ entry, initial: entry, isNew });
     setPlayersText('playerIds' in entry ? (entry.playerIds?.join('\n') ?? '') : '');
   };
   const add = () => {
@@ -132,6 +133,13 @@ export function NightMessagesEditor({
   };
   const draft = editing?.entry;
   const locked = !!draft && readOnly(draft);
+  useUnsavedChanges(
+    !!editing &&
+      !locked &&
+      (!same(draft, editing.initial) ||
+        playersText !==
+          ('playerIds' in editing.initial ? (editing.initial.playerIds?.join('\n') ?? '') : '')),
+  );
   const edit = (patch: Partial<NightAnnouncement> | Partial<NightCompensation>) =>
     setEditing(
       (current) => current && { ...current, entry: { ...current.entry, ...patch } as Entry },

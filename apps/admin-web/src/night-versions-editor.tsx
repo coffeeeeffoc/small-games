@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useUnsavedChanges } from './unsaved-changes';
 import { Alert, Card, Input, Select, Tag } from 'antd';
 import { ActionButton as Button, DataTable as Table } from './control-common';
 import { dateLabel } from './control-api';
 import {
   defaultNightOperations,
+  same,
   type Deployments,
   type NightBuild,
   type NightOperations,
@@ -38,6 +40,8 @@ export function NightVersionsEditor({
     multiplayer: '',
   });
   const [error, setError] = useState('');
+  const initialBuild = useRef(build);
+  useUnsavedChanges(!same(build, initialBuild.current));
   const setRelease = (next: NightRelease) => change({ ...operations, release: next });
   const editBuild = (id: string, patch: Partial<NightBuild>) => {
     if (release)
@@ -95,7 +99,8 @@ export function NightVersionsEditor({
         multiplayer: [...new Set([...base.allowNew.multiplayer, build.multiplayer])],
       },
     });
-    setBuild({ ...build, buildId: '', version: '' });
+    initialBuild.current = { ...build, buildId: '', version: '' };
+    setBuild(initialBuild.current);
     setError('');
   };
   const importManifest = async (file?: File) => {

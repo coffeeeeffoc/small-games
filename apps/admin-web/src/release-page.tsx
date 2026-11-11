@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, Card, Input, Modal, Tag } from 'antd';
+import { useUnsavedChanges } from './unsaved-changes';
 import {
   dateLabel,
   type ControlApi,
@@ -39,6 +40,7 @@ export function ReleasesPage({ api, session }: { api: ControlApi; session: Sessi
   const [publishing, setPublishing] = useState<Revision>();
   const [rollback, setRollback] = useState<Revision>();
   const [reason, setReason] = useState('');
+  useUnsavedChanges(!!rollback && !!reason);
   const canPublish = session.permissions.includes('control.publish');
   async function load() {
     const [next, history] = await Promise.all([

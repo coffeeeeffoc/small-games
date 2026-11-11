@@ -1,9 +1,18 @@
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router';
 import { App as AntApp, ConfigProvider } from 'antd';
 import { permissions, type Session } from './control-api';
 import { ControlCenter, ControlNavigation } from './control-center';
+import { UnsavedChangesProvider } from './unsaved-changes';
 import './theme.css';
 import './control.css';
 
@@ -353,27 +362,33 @@ function readNonce(): string | undefined {
   }
 }
 const nonce = readNonce();
+const router = createBrowserRouter([
+  {
+    path: '*',
+    element: nonce ? (
+      <ConfigProvider
+        csp={{ nonce }}
+        theme={{
+          token: {
+            colorPrimary: '#214ee8',
+            borderRadius: 8,
+            fontFamily: "Inter, 'Segoe UI', 'Microsoft Yahei', sans-serif",
+          },
+        }}
+      >
+        <AntApp component={false}>
+          <UnsavedChangesProvider>
+            <App nonceReady />
+          </UnsavedChangesProvider>
+        </AntApp>
+      </ConfigProvider>
+    ) : (
+      <App nonceReady={false} />
+    ),
+  },
+]);
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      {nonce ? (
-        <ConfigProvider
-          csp={{ nonce }}
-          theme={{
-            token: {
-              colorPrimary: '#214ee8',
-              borderRadius: 8,
-              fontFamily: "Inter, 'Segoe UI', 'Microsoft Yahei', sans-serif",
-            },
-          }}
-        >
-          <AntApp component={false}>
-            <App nonceReady />
-          </AntApp>
-        </ConfigProvider>
-      ) : (
-        <App nonceReady={false} />
-      )}
-    </BrowserRouter>
+    <RouterProvider router={router} />
   </StrictMode>,
 );

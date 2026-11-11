@@ -56,7 +56,12 @@ export function ControlCenter({
   return (
     <section className="control-center">
       {pathname === '/config' || pathname === '/games' ? (
-        <ConfigWorkspace api={api} session={session} gamesOnly={pathname === '/games'} />
+        <ConfigWorkspace
+          key={pathname}
+          api={api}
+          session={session}
+          gamesOnly={pathname === '/games'}
+        />
       ) : pathname === '/releases' ? (
         <ReleasesPage api={api} session={session} />
       ) : pathname === '/members' ? (
