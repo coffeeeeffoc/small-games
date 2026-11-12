@@ -89,7 +89,7 @@ export class ProgressionView {
   private term(term:Product['term']){return this.t(term==='match'?'单场':term==='24h'?'24小时':'永久',term==='match'?'One match':term==='24h'?'24 hours':'Permanent');}
   private reward(r:AssetReward){return `${this.t('金币','Coins')} +${r.coins}   EXP +${r.xp}${r.packs?`   ${this.t('补给箱','Crates')} ×${r.packs}`:''}`;}
   private header(title:string){
-    const y=this.h.safe.top,h=this.top-y-6,right=Math.min(this.right,this.h.topRight(y,h));
+    const y=this.h.safe.top,h=Math.max(46,this.height*.1-6),right=Math.min(this.right,this.h.topRight(y,h));
     // Extend the backdrop through the safe area; controls still avoid system overlays.
     this.h.rect(this.g,0,0,this.w,y+h,'#03101dda','#566872');
     this.button('qm:back','‹',this.left,y+3,48,Math.max(44,h-6));
@@ -109,7 +109,7 @@ export class ProgressionView {
     else if(this.q.leaveTo!==undefined)this.leaveDialog();
     else if(this.q.gift)this.giftDialog();
   }
-  private brief(p:Product){return this.h.lang==='zh'?({power:'普通武器威力 +15%',rate:'攻击间隔 −12%',burst:'追加一枚60%威力副弹',twin:'追加一枚侧向副弹',radius:'爆炸范围 +15%',cooling:'普通武器热量 −15%',drone:'3架持续攻击 · 12秒后坠毁',laser:'持续3秒 · 每秒80伤害',tracking:'追踪30秒 · 冷却90秒',emp:'干扰15秒 · 冷却60秒'})[p.effect]:({power:'Weapon damage +15%',rate:'Attack interval −12%',burst:'Extra shell at 60% power',twin:'Extra side shell',radius:'Blast radius +15%',cooling:'Weapon heat −15%',drone:'3 drones · 12 seconds',laser:'3 seconds · 80 damage/s',tracking:'Tracking 30s · cooldown 90s',emp:'Disrupt 15s · cooldown 60s'})[p.effect];}
+  private brief(p:Product){return this.h.lang==='zh'?({power:'普通武器威力 +15%',rate:'攻击间隔 −12%',burst:'追加一枚60%威力副弹',twin:'追加一枚侧向副弹',radius:'爆炸范围 +15%',cooling:'普通武器热量 −15%',drone:'3架持续攻击 · 12秒后坠毁',laser:'持续3秒 · 每秒80伤害',tracking:'追踪20秒 · 冷却90秒',emp:'干扰15秒 · 冷却60秒'})[p.effect]:({power:'Weapon damage +15%',rate:'Attack interval −12%',burst:'Extra shell at 60% power',twin:'Extra side shell',radius:'Blast radius +15%',cooling:'Weapon heat −15%',drone:'3 drones · 12 seconds',laser:'3 seconds · 80 damage/s',tracking:'Tracking 20s · cooldown 90s',emp:'Disrupt 15s · cooldown 60s'})[p.effect];}
   private infoButton(id:string,x:number,y:number){this.h.button('info:'+id,'ⓘ',x,y,44,44,this.n).fontSize=22;}
   private list(key:string,x:number,y:number,w:number,h:number,total:number,draw:(offset:number)=>void){
     const old={n:this.n,surfaces:this.surfaces,g:this.g},list=this.h.listViewport(this.n,'qm:'+key,{x,y,w,h},total);

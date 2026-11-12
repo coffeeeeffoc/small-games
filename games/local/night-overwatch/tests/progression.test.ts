@@ -169,11 +169,11 @@ test('special weapons and EMP reject friendly/protected targets and terrain bloc
   const hp=enemy.hp;drone.step(.1);assert.equal(enemy.hp,hp);assert.equal(drone.drones.reduce((n,d)=>n+d.budget,0),432);
 });
 test('skills repeat after effect and cooldown, pause freezes and advertisements never refill cooldown',()=>{
-  const sim=setup(['tracking']);assert(sim.useSkill());assert.equal(sim.skillRemaining,30);assert.equal(sim.skillCooldown,120);
-  assert(!sim.grantBuff('tracking'));sim.pause('manual',true);sim.step(.1);assert.equal(sim.skillCooldown,120);
-  sim.pause('manual',false);sim.time=61;assert(!sim.useSkill());assert(sim.grantBuff('tracking'));assert.equal(sim.skill.readyAt,120);
-  sim.buff=undefined;sim.time=120;assert(sim.useSkill());assert.equal(sim.skill.readyAt,240);
-  const checkpoint=Simulation.restore(sim.checkpoint());assert.equal(checkpoint.skill.readyAt,240);
+  const sim=setup(['tracking']);assert(sim.useSkill());assert.equal(sim.skillRemaining,20);assert.equal(sim.skillCooldown,110);
+  assert(!sim.grantBuff('tracking'));sim.pause('manual',true);sim.step(.1);assert.equal(sim.skillCooldown,110);
+  sim.pause('manual',false);sim.time=61;assert(!sim.useSkill());assert(sim.grantBuff('tracking'));assert.equal(sim.skill.readyAt,110);
+  sim.buff=undefined;sim.time=110;assert(sim.useSkill());assert.equal(sim.skill.readyAt,220);
+  const checkpoint=Simulation.restore(sim.checkpoint());assert.equal(checkpoint.skill.readyAt,220);
 });
 test('EMP holds movement while allowing attacks and leaves projectiles intact; immunity prevents chaining',()=>{
   const sim=setup(['emp']);const unit=sim.addUnit('light',{x:-80,z:-40});sim.choose(1);sim.setAim(unit);sim.fire();
@@ -187,7 +187,7 @@ test('duel ownership isolates tracking and EMP and survives checkpoints',()=>{
     {version:GROWTH_VERSION,level:10,effects:['emp'],skipped:[]},
   ]);
   commandDuel(state,0,[{command:'useSkill',args:[]}]);
-  assert.equal(viewDuel(state,0).simulation.skill.readyAt,120);assert.equal(viewDuel(state,1).simulation.skill.readyAt,0);
+  assert.equal(viewDuel(state,0).simulation.skill.readyAt,110);assert.equal(viewDuel(state,1).simulation.skill.readyAt,0);
   commandDuel(state,1,[{command:'useSkill',args:[]}]);advanceDuel(state,1000);
   assert.equal(viewDuel(state,1).simulation.skill.readyAt,75);
   assert(state.simulation.units.filter(u=>u.group===0).every(u=>u.rootedUntil===15));
@@ -206,7 +206,7 @@ test('server replay accepts skill input only through server-fixed entitlement',(
   const state=createNightReplay('campaign','corridor-01'),sim=Simulation.restore(state.simulation);
   sim.applyLoadout({version:GROWTH_VERSION,level:6,effects:['tracking'],skipped:[]});state.simulation=sim.checkpoint();
   applyNightReplay(state,[{input:{command:'useSkill',args:[]},ticks:0},{input:{},ticks:2}]);
-  assert.equal(state.assisted,false);assert.equal(state.simulation.skill.readyAt,120);
+  assert.equal(state.assisted,false);assert.equal(state.simulation.skill.readyAt,110);
   assert.throws(()=>applyNightReplay(state,[{input:{command:'applyLoadout',args:[]},ticks:0}]));
 });
 
@@ -394,5 +394,15 @@ test('crafting then selling never beats selling the materials directly',()=>{
     const product=CATALOG.find(p=>p.effect===recipe.effect&&p.term==='match');assert(product);
     assert(product.sell<=recipe.match*ECONOMY.fragmentSell,recipe.effect+' must not create a recycling arbitrage');
     assert(recipe.permanent>recipe.match,'permanent unlock remains a longer-term collection target');
+  }
+});
+
+
+test('tracking has the same 20-second window at every level and expires before reuse',()=>{
+  for(const level of [5,6,10,15,50]){
+    const sim=setup(['tracking']);sim.applyLoadout({version:GROWTH_VERSION,level,effects:['tracking'],skipped:[]});
+    assert(sim.useSkill());assert.equal(sim.skillRemaining,20);assert.equal(sim.skill.readyAt,110);
+    sim.time=19.99;assert(sim.trackingActive);sim.time=20;assert(!sim.trackingActive);assert(!sim.useSkill());
+    sim.time=109.99;assert(!sim.useSkill());sim.time=110;assert(sim.useSkill());assert.equal(sim.skill.activeUntil,130);
   }
 });

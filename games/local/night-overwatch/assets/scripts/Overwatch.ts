@@ -618,6 +618,8 @@ export class Overwatch extends Component {
     if(id==='social:dismiss'){if(online?.notification&&performance.now()<online.notificationUntil){online.notification=undefined;}else{this.hud.majorUpdate=false;try{this.platform.storage.setItem('night-update-seen',UPDATE_LOG[0].id);}catch{}}return;}
     if(id==='social:reply'&&online?.notification){this.clear();online.openConversation({playerId:online.notification.playerId,nickname:online.notification.nickname});this.hud.listScroll.direct=Number.MAX_SAFE_INTEGER;return;}
     if(id==='social:close'){this.clear();online?.closeConversation();this.hud.modalKey='rebuild';return;}
+    if(id==='social:removeCancel'&&online){online.friendRemoval=undefined;online.revision++;this.hud.modalKey='rebuild';return;}
+    if(id==='social:removeConfirm'&&online?.friendRemoval){void online.friendAction('remove',playerId(online.friendRemoval),true);this.hud.modalKey='rebuild';return;}
     if(id==='social:older'){void online?.loadConversation(online.conversationBefore);this.hud.listScroll.direct=0;return;}
     if(id==='social:inbox'&&online){this.clear();if(online.notification){online.openConversation({playerId:online.notification.playerId,nickname:online.notification.nickname});}else if(online.social.conversations.length){online.openConversation(online.social.conversations.find(c=>c.unread)||online.social.conversations[0]);}else{online.lobbyTab='friends';online.show('menu');}return;}
     if(this.progressionAction(id))return;
@@ -1340,6 +1342,7 @@ export class Overwatch extends Component {
     this.hud.touch = false;
     this.platform.activate();
     if(this.hud.storageError){if(e.keyCode===27)this.action('close');return;}
+    if(this.online?.friendRemoval){if(e.keyCode===27)this.action('social:removeCancel');return;}
     if(this.online?.socialOpen||this.hud.updatesOpen){if(e.keyCode===27)this.action(this.online?.socialOpen?'social:close':'updates:close');return;}
     if(this.quartermaster?.page&&(['help','settings','mission'] as const).some(reason=>this.sim.pauses.has(reason))){if(e.keyCode===27)this.action('close');this.keys.add(e.keyCode);return;}
     if((this.hud.reportOpen||this.hud.equipmentOpen)&&e.keyCode===27){this.action('equipmentClose');return;}

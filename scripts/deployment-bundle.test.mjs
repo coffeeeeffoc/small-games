@@ -429,6 +429,7 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       'services/runtime-api/rules/night.mjs',
       'services/runtime-api/rules/night-ranked.mjs',
       'services/runtime-api/rules/frozen/night-v16-v9',
+      'services/runtime-api/rules/frozen/night-v17-v10',
       'services/runtime-api/rules/tetracube-ranked.mjs',
       'games/local/cage-rescue/src/core.mjs',
       'games/local/cage-rescue/src/levels.mjs',
@@ -472,18 +473,19 @@ test('runtime-only bundles can load the actual Flick multiplayer rule and its co
       await import(pathToFileURL(path.join(output, 'services/runtime-api/rules/night.mjs')).href)
     ).default;
     assert.equal(duel.view(duel.initial(7, 'bot'), 0).bot, true);
-    for (const name of ['night-ranked', 'night']) {
-      const frozen = (
-        await import(
-          pathToFileURL(
-            path.join(output, `services/runtime-api/rules/frozen/night-v16-v9/${name}.mjs`),
-          ).href
-        )
-      ).default;
-      assert.equal(frozen.id, 'night-overwatch');
-      if (name === 'night') assert.equal(frozen.view(frozen.initial(7, 'bot'), 0).bot, true);
-      else assert(frozen.create(levels[0].id, 7, levels[0].id.slice(6)).simulation);
-    }
+    for (const version of ['night-v16-v9', 'night-v17-v10'])
+      for (const name of ['night-ranked', 'night']) {
+        const frozen = (
+          await import(
+            pathToFileURL(
+              path.join(output, `services/runtime-api/rules/frozen/${version}/${name}.mjs`),
+            ).href
+          )
+        ).default;
+        assert.equal(frozen.id, 'night-overwatch');
+        if (name === 'night') assert.equal(frozen.view(frozen.initial(7, 'bot'), 0).bot, true);
+        else assert(frozen.create(levels[0].id, 7, levels[0].id.slice(6)).simulation);
+      }
     await assert.rejects(
       stat(path.join(output, 'games/local/night-overwatch/assets/scripts/Overwatch.ts')),
       { code: 'ENOENT' },

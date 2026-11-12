@@ -1766,9 +1766,53 @@ test('global direct conversations retain their composer, fit touch screens and p
   Object.assign(frame,{width,height});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;
   online.identity={playerId:'a',nickname:'A'};online.authenticatedId='a';online.socialAvailable=true;online.chatAvailable=true;online.chatPeer={playerId:'b',nickname:'B',status:'available'};online.chatInbox=true;online.socialOpen=true;online.chatMessages=[{id:'1',playerId:'b',nickname:'B',recipientId:'a',text:'测试私信',at:1}];
   sim.start();const phase=sim.phase;hud.update(sim,world);const modal=hud.modal,field=modal.getComponentsInChildren(cc.EditBox)[0];assert(field);
-  online.chatRevision++;hud.update(sim,world);assert.equal(hud.modal,modal);assert.equal(modal.getComponentsInChildren(cc.EditBox)[0],field);assert.equal(sim.phase,phase);
+  online.chatRevision++;hud.update(sim,world);assert.equal(hud.modal,modal);assert.equal(modal.getComponentsInChildren(cc.EditBox)[0],field);assert.equal(sim.phase,phase);assert.equal(hud.surfaces.children.length,0,'dynamic chat never leaves button skins in shared surfaces');
   const controls=hud.buttons.filter((b:any)=>hud.inModal(b.label.node));for(const b of controls){assert(b.w>=44&&b.h>=44,b.id);assert(b.x>=0&&b.x+b.w<=width&&b.y>=0&&b.y+b.h<=height,b.id);}
   assert(controls.some((b:any)=>b.id==='social:close'));assert(controls.some((b:any)=>b.id==='online:chatSend'));
   online.socialOpen=false;hud.updatesOpen=true;hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='updates:close'));assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>/重大更新/.test(l.string||'')));online.dispose();
  }
+});
+
+
+test('social notices own their entire frame and disappear without painting the underlying page',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;hud.update(sim,world);
+ const before=hud.modal.getComponentsInChildren(Graphics).reduce((n:any,g:any)=>n+g.calls.length,0),surfaces=hud.surfaces.children.length;
+ online.notification={id:'1',playerId:'b',nickname:'B',recipientId:'a',text:'hello',at:1};online.notificationUntil=performance.now()+10000;hud.update(sim,world);
+ assert(hud.globalControls.getChildByName('SocialNotice'));assert.equal(hud.surfaces.children.length,surfaces);assert.equal(hud.modal.getComponentsInChildren(Graphics).reduce((n:any,g:any)=>n+g.calls.length,0),before);
+ online.notification=undefined;hud.update(sim,world);assert(!hud.globalControls.getChildByName('SocialNotice'));assert(!hud.buttons.some((b:any)=>b.id==='social:reply'));online.dispose();
+});
+
+test('secondary headers stay compact above a low host capsule',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;
+ (globalThis as any).tap={getWindowInfo:()=>({windowWidth:844,windowHeight:390,statusBarHeight:58}),getMenuButtonBoundingClientRect:()=>({left:720,right:820,top:80,bottom:120})};
+ try{
+  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});online.assets=assetFixture();hud.online=online;hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster.page='modes';hud.update(sim,world);
+  const back=hud.buttons.find((b:any)=>b.id==='qm:back');assert(back.y<12);assert.equal(back.h,44);assert(hud.buttons.filter((b:any)=>b.id.startsWith('mode:')).every((b:any)=>b.y>=126));online.dispose();
+ }finally{delete (globalThis as any).tap;}
+});
+
+test('friend removal confirms, direct messages respect side cutouts, and returning shows every conversation',()=>{
+ Object.assign(frame,{width:844,height:390});inset=12;
+ const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.authenticatedId='a';online.socialAvailable=true;online.chatAvailable=true;
+ const peer={playerId:'b',nickname:'B',status:'available' as const},message={id:'1',playerId:'b',recipientId:'a',nickname:'B',text:'test',at:1,room:{code:'123456',createdAt:1,canJoin:true}};
+ online.social.friends=[peer];online.social.conversations=[{...peer,lastMessage:message,unread:1,lastReadId:'0'},{...peer,playerId:'c',nickname:'C',lastMessage:{...message,id:'2'},unread:1,lastReadId:'0'}];online.show('menu');online.lobbyTab='friends';hud.update(sim,world);
+ assert.equal(hud.buttons.find((b:any)=>b.id==='online:friendAction:remove:b').label.string,'移除好友');
+ online.openConversation(peer);online.chatMessages=[message];hud.update(sim,world);
+ const controls=hud.buttons.filter((b:any)=>hud.inModal(b.label.node));assert(controls.every((b:any)=>b.x>=42&&b.x+b.w<=802));assert(!controls.some((b:any)=>/chatBlock|chatReport/.test(b.id)));
+ const join=controls.find((b:any)=>b.id==='online:chatJoin:1');assert(join&&join.w===160);
+ online.friendRemoval=peer;online.revision++;hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='social:removeCancel'));assert(hud.buttons.some((b:any)=>b.id==='social:removeConfirm'));
+ online.friendRemoval=undefined;online.closeConversation();hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='online:whisper:b'));assert(hud.buttons.some((b:any)=>b.id==='online:whisper:c'));assert(!hud.buttons.some((b:any)=>b.id==='online:chatJoin:1'));online.dispose();inset=0;
+});
+
+
+test('the inbox retains a failed first message and old blocks have a restore-only path',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;
+ const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.socialAvailable=true;online.chatAvailable=true;online.show('menu');
+ online.chatPeer={playerId:'offline-peer',nickname:'Offline pilot',status:'offline'};online.chatInbox=true;
+ Object.defineProperty(online,'chatRetryPending',{value:true});hud.update(sim,world);
+ assert(hud.buttons.some((b:any)=>b.id==='online:whisper:offline-peer'));assert(panelLabels(hud).some((l:any)=>l.string.includes('发送结果待确认')));
+ online.chatInbox=false;online.blockedPlayers.add('offline-peer');online.chatRevision++;hud.update(sim,world);
+ assert.equal(hud.buttons.find((b:any)=>b.id==='online:chatBlocks').label.string,'恢复联系(1)');
+ online.chatMenu='blocks';online.chatRevision++;hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='online:chatBlock:offline-peer'));
+ online.toggleBlock('offline-peer');hud.update(sim,world);assert.equal(online.blockedPlayers.size,0);assert(!hud.buttons.some((b:any)=>b.id.startsWith('online:chatBlock')));online.dispose();
 });

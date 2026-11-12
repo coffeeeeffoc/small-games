@@ -1,0 +1,27 @@
+{
+  "fixture": "isolated-real-postgresql-http",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "16df54154daae8343a9480fb94ed6c000e24a7ab328a90316343ed6313c65341"
+  },
+  "checks": [
+    "mutual friend acceptance, offline status and delivery, private history after reload, third-party isolation, reply restores warehouse page; 568/844/1280 layouts and update history",
+    "low K90 capsule keeps secondary header at top; safe side gutters; two-conversation inbox restored; removal cancel/confirm retains history; block/report hidden; no leftover notice frame",
+    "targeted invitation joins same room, both ready to start; busy indicator disables invitation; global notification and direct reply work during live human battle without leaving"
+  ],
+  "errors": [],
+  "cleaned": true,
+  "clientTests": 115,
+  "hudTests": 12,
+  "runtimeTests": 248,
+  "runtimeSkipped": 2,
+  "bundleTests": 11,
+  "broaderClient": {
+    "passed": 368,
+    "failed": 6,
+    "interrupted": "missions.test.ts stopped after 194s; not accepted as completed"
+  },
+  "physicalDevices": false,
+  "productionDeployed": false
+}

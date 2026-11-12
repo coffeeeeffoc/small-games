@@ -875,7 +875,8 @@ export class HUD {
     return this.drawing.panelFrame(graphics, x, y, width, height, accent, dim, header);
   }
   renderModal(key: string, simulation: Simulation, world: World) {
-    if(this.online?.socialOpen)key='social:'+this.online.chatRevision+':'+this.online.revision;
+    if(this.online?.friendRemoval)key='friendRemove';
+    else if(this.online?.socialOpen)key='social:'+this.online.chatRevision+':'+this.online.revision;
     else if(this.updatesOpen)key='updates';
     const family = key.startsWith('online:')
       ? key.split(':').slice(0, 2).join(':')
@@ -970,6 +971,7 @@ export class HUD {
     this.node('Backdrop', parentNode).addComponent(Graphics);
     this.surfaces = this.node('Surfaces', parentNode);
     const graphics = this.node('Ink', parentNode).addComponent(Graphics);
+    if(family==='friendRemove'){this.socialView.renderRemoval(parentNode,graphics);return;}
     if(family==='social'){this.socialView.render(parentNode,true);return;}
     if(key==='updates'){this.settingsView.renderUpdates(parentNode,graphics);return;}
     if (key.startsWith('storageError:')) {

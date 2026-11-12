@@ -1,0 +1,229 @@
+{
+  "checkedAt": "2026-11-12",
+  "sourceHash": "16df54154daae8343a9480fb94ed6c000e24a7ab328a90316343ed6313c65341",
+  "scope": "All 8 categories exist; all 37 manifest files read and hashed. Introduction updated for removal confirmation and 20-second equipment tracking. Unchanged images/videos retain prior verified capture, dimensions, codec and playback identity. QA social images are not publishing media.",
+  "files": [
+    {
+      "file": "gameplay/screenshots/2026-11-04-support/night-1280.png",
+      "bytes": 635122,
+      "sha256": "267a21b3fe14fc3a94886d76f7f1f914821f915d25d9ef771c32710f5a4db7b9",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-04-support/enhanced-1280.png",
+      "bytes": 918489,
+      "sha256": "2e9f5468115d9a649cc5c36d59730ee7d0f67f6a189dc0ec2b36911867b597a0",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-04-support/thermal-1280.png",
+      "bytes": 256434,
+      "sha256": "3cd18104d5a7ca2acff8b5e33d2c1a6616b628dee4ad10f329c90503d82b554d",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-05-mobile/settings-1280.png",
+      "bytes": 617173,
+      "sha256": "1c8c91433ab0580e4355db90b51cafa2b30f48d0b1c559ec2e7e5e8aa3252fd9",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-05-mobile/settlement-1280.png",
+      "bytes": 880648,
+      "sha256": "81b050e23fc36d5e1a55e7d9104935b8911574581d262d6472ccc59e278286a7",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-04-support/equipment-1280.png",
+      "bytes": 233610,
+      "sha256": "1a8dfdb25a4bd8422ce12b22fc418275581224643263bc7d3c3a34da5582d5b7",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-05-mobile/home-1280.png",
+      "bytes": 1427471,
+      "sha256": "8b248fda5cc73e72919a77bd2f1ede0d38429fa9c6327df7fa8313fcdc2ade5b",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-04-refinement/growth-1280.png",
+      "bytes": 1342528,
+      "sha256": "30952cb9c6eba16bff22bd89a0cbdc2065ab76353d49322794e7663354fbe0ff",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-04-refinement/modes-1280.png",
+      "bytes": 1262760,
+      "sha256": "8bae9ac1333614215792a6918e9e082a3da9453ffa93b18640b23b83411e69cd",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-04-refinement/missions-1280.png",
+      "bytes": 793452,
+      "sha256": "4bee13411ff2c5dfc1c6229255ba246faa47dbd38c3b083456965d59b210f841",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/videos/support-2026-11-04-1280x720-silent.mp4",
+      "bytes": 4065288,
+      "sha256": "82921f825b8c3bb260936d318dc5723e4ddd37db0ff300e75f607bc1adfd25c5",
+      "matchesPrevious": true
+    },
+    {
+      "file": "promo/videos/refinement-2026-11-04-1280x720-silent.mp4",
+      "bytes": 1930880,
+      "sha256": "b87cbe130c4f960525106887503c89e394f08150cda28fc1969929389d2465db",
+      "matchesPrevious": true
+    },
+    {
+      "file": "promo/videos/refinement-2026-11-04-edit.json",
+      "bytes": 1238,
+      "sha256": "5e8705969533960112052daddf307d5a331e39b73ad3c51ddfcacb4532b64a9c",
+      "matchesPrevious": true
+    },
+    {
+      "file": "copy/introduction.md",
+      "bytes": 5686,
+      "sha256": "28987ded43204d12bf7fff111bd1ca75e6a0f9cc769172ecf1e74dba6f70f5ee",
+      "matchesPrevious": false
+    },
+    {
+      "file": "copy/developer-note.md",
+      "bytes": 3361,
+      "sha256": "0bc3d89a1f59da249afebef0fde0dd6b697734fd612a6547091306884f58db63",
+      "matchesPrevious": true
+    },
+    {
+      "file": "copy/tagline.md",
+      "bytes": 68,
+      "sha256": "711632f9f54473e1fcc7a35d6b6110b58eaf5b8693515756d61fc61bc3d51998",
+      "matchesPrevious": true
+    },
+    {
+      "file": "icon/icon-1024.png",
+      "bytes": 1168540,
+      "sha256": "16eb53f945baddc89f00389715beb7b3953290d71305c4273dc74b5433e5610d",
+      "matchesPrevious": true
+    },
+    {
+      "file": "promo/images/title-1920x1080.png",
+      "bytes": 2392478,
+      "sha256": "a81bcb3dea9e4bbeb17b3c0ca5bd9d1acd55c7361852aa8500183b2a353c14f0",
+      "matchesPrevious": true
+    },
+    {
+      "file": "promo/images/title-1440x1440.png",
+      "bytes": 2285613,
+      "sha256": "b801b40155959ebb475c01ec88a896204ff1b41240de6ceaa8a1eb8fb021983c",
+      "matchesPrevious": true
+    },
+    {
+      "file": "promo/videos/night-overwatch-tactical-2026-11-04-1920x1080.mp4",
+      "bytes": 18825252,
+      "sha256": "41466044915f0e47b5d8bd90e462baa3a722fababfb950a09315f4b8d2d6354b",
+      "matchesPrevious": true
+    },
+    {
+      "file": "promo/videos/night-overwatch-ignite-2026-11-04-1920x1080.mp4",
+      "bytes": 18825870,
+      "sha256": "5bfdf6236e29fb520a5154f5a47960898e674e914a0b14a015202f43723a8713",
+      "matchesPrevious": true
+    },
+    {
+      "file": "promo/videos/night-overwatch-ignite-native1080-2026-11-04.mp4",
+      "bytes": 25926290,
+      "sha256": "e4d39cd708f44b6a852c2dc0746dbabda6de9f7f5ea630d29b827d8dafec97f3",
+      "matchesPrevious": true
+    },
+    {
+      "file": "promo/videos/support-2026-11-04-1280x720-silent.mp4",
+      "bytes": 2178634,
+      "sha256": "4f040926c75c54f27b9b5af2cbac8d75c1759b7af828173c09cb6e2f75fab99f",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/videos/night-overwatch-combat-2026-11-05-1920x1080.mp4",
+      "bytes": 49810941,
+      "sha256": "b2687419f9e4578cf85d2630e13fdba19bf2aae80175f610ac3a2f3b2154b288",
+      "matchesPrevious": true
+    },
+    {
+      "file": "promo/videos/night-overwatch-action-2026-11-05-1920x1080.mp4",
+      "bytes": 18384822,
+      "sha256": "ae48cc696d4d3f8d72f737a6200feae13b99b13606faab39664a49b94f02c86d",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-06-rewards/settlement-1280.png",
+      "bytes": 881685,
+      "sha256": "78425c8544b94c437ed29604e7b274eae6fae6f3840db6055dc19231d4b103dd",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-06-rewards/missions-1280.png",
+      "bytes": 837596,
+      "sha256": "c80f4c9d749a7a967a967dd0e1453847a0060c3b37fb403b7f316aea7e985cea",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/videos/night-overwatch-combat-2026-11-06-1920x1080.mp4",
+      "bytes": 49565100,
+      "sha256": "2047a4a56eb7f0b19dc0f15a3056927a2c5c9fd1fd8a5a6786ba26e3ec6dab89",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-07-garrison/missions-1280.png",
+      "bytes": 838277,
+      "sha256": "cbaf6fa96fdc4e8ce31016acce804668e9ae3be8aa0a646d7bc316e643f07253",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-07-garrison/settlement-1920.png",
+      "bytes": 1891826,
+      "sha256": "421a69a050a3b8b759b780e4d5d93c6af195fa32aa8aef5a336ba0704cf0c265",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-07-garrison/infantry-1920.png",
+      "bytes": 1368839,
+      "sha256": "e1af48c5d016ac67dada9c19ce8a80fdc9f837cc2732c306d2e8279c64a69a1d",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/videos/night-overwatch-combat-2026-11-07-1920x1080.mp4",
+      "bytes": 49313883,
+      "sha256": "e6994f0a58b413e05e8ea13560c57921c7d134ac05bd1103ae4eb5d7ecc89ccd",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-07-army/missions-1280.png",
+      "bytes": 837147,
+      "sha256": "7bf132fb5769dc2a613f77d7aa95b8bdcebe5994910d29a86960b1e134338efd",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-07-army/settlement-1920.png",
+      "bytes": 2013916,
+      "sha256": "474600e60178a46dbd29162f562e1d50945003e6138061ffe51d063a495ebd57",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-07-army/infantry-1920.png",
+      "bytes": 1346433,
+      "sha256": "9756a201948277ab92f3bd8059f75ce094b8da6603fe430c8a3fe66803856df1",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/videos/night-overwatch-army-2026-11-07-1920x1080.mp4",
+      "bytes": 42596857,
+      "sha256": "a17d00a07c6653048535db80652d4b35fe01b6667ccbfeb90f589b482fdeea69",
+      "matchesPrevious": true
+    },
+    {
+      "file": "gameplay/screenshots/2026-11-07-army/supplies-1280.png",
+      "bytes": 1217067,
+      "sha256": "31171782ba9ee4d934b4e5a494644ec9b18fd3b7583fad2adaa30525511987ea",
+      "matchesPrevious": true
+    }
+  ]
+}

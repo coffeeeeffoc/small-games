@@ -169,11 +169,11 @@
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 5505,
-      "sha256": "a207afab1806ddffa8bd77ceb26970ebe5f700aa1b58f639d99a18d338e99609",
-      "verifiedForSourceHash": "af1ec9343823235fa677e1e6b8c6f1e6407413c74088db848c758d1657d3de57",
+      "bytes": 5686,
+      "sha256": "28987ded43204d12bf7fff111bd1ca75e6a0f9cc769172ecf1e74dba6f70f5ee",
+      "verifiedForSourceHash": "16df54154daae8343a9480fb94ed6c000e24a7ab328a90316343ed6313c65341",
       "capturedSourceHash": "af1ec9343823235fa677e1e6b8c6f1e6407413c74088db848c758d1657d3de57",
-      "reusedUnchanged": false
+      "verified": "2026-11-12"
     },
     {
       "path": "copy/developer-note.md",

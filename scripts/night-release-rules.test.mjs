@@ -8,6 +8,7 @@ import { freezeNightRules, verifyNightRules, baselineDirectory } from './night-r
 
 test('Night freezes an independently executable closure and rejects edits or replacement', async () => {
   await verifyNightRules(baselineDirectory);
+  await verifyNightRules(join(baselineDirectory, '../night-v17-v10'));
   const root = await mkdtemp(join(tmpdir(), 'night-rules-')),
     destination = join(root, 'frozen');
   try {

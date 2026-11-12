@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "provenance": "local-baseline-not-certified-live",
+  "ranked": "night-input-replay-v17",
+  "multiplayer": "night-duel-v10",
+  "files": [
+    {
+      "source": "services/runtime-api/rules/night-ranked.mjs",
+      "sourceSha256": "53421a4dc8aeb93282d0a07795f670b4c7593bf6b06502415b0cc6fef27cc760",
+      "file": "night-ranked.mjs",
+      "sha256": "1a14704d5e4957c230fa8af38dff09b8b3f0a08da4ffcc92d93def4999ba7fae"
+    },
+    {
+      "source": "games/local/night-overwatch/assets/scripts/core/Replay.ts",
+      "sourceSha256": "ed095d2c86e44a9ae929c789449d849729ca5ece82304aa482b380a4d44ce31f",
+      "file": "Replay.mjs",
+      "sha256": "8fa7717e4c05e772545c4afbf154122e411acfcad50dbd888bb066d2bb08a7fd"
+    },
+    {
+      "source": "games/local/night-overwatch/assets/scripts/core/Simulation.ts",
+      "sourceSha256": "3282b82f9c994c19c64b55099dac5b0e36b6900712135e5e689a646483f686b1",
+      "file": "Simulation.mjs",
+      "sha256": "517657cd402a2660078937b31cf94af4d2a9317dac4c9cc4e317a104bbd9083d"
+    },
+    {
+      "source": "games/local/night-overwatch/assets/scripts/core/Data.ts",
+      "sourceSha256": "d6dfde81ef6a90f97d95d797839208731ea4405f68d9d792003a1323a78f0975",
+      "file": "Data.mjs",
+      "sha256": "709ee6604aadf24bae55b83cc6029c8f98d672e56287449077aa67464614839f"
+    },
+    {
+      "source": "games/local/night-overwatch/assets/scripts/core/Flight.ts",
+      "sourceSha256": "e79644d44d406dfaaec24587adb9d2d381dc83474c70e7a8eb0b90c1e191cfd5",
+      "file": "Flight.mjs",
+      "sha256": "f8d3efba909ff530914ea9e23d08f63faee8d0781d7cb38409e7ae6a2d034b47"
+    },
+    {
+      "source": "games/local/night-overwatch/assets/scripts/core/MissionCatalog.ts",
+      "sourceSha256": "5914676fe5a166bcb2814493c695b9f325e89e3e2059a8c05b2aaac3194ffa58",
+      "file": "MissionCatalog.mjs",
+      "sha256": "860dad64568467fd3a834488e99db18d9b3a5b86687844ad0959c09e5fb1f5ed"
+    },
+    {
+      "source": "games/local/night-overwatch/assets/scripts/core/Progression.ts",
+      "sourceSha256": "88189d5e5a98434a7f042be2e1502c66d5869026705f5e271354762e59ce5a8b",
+      "file": "Progression.mjs",
+      "sha256": "c3a362da775ee549a4afbb73c4d00e27922a41fd94bbc5a066e9571553fa24fb"
+    },
+    {
+      "source": "services/runtime-api/rules/night.mjs",
+      "sourceSha256": "1270c6fb170812c79853075710c8736597dd154ec51229d1dcf012b4200c1604",
+      "file": "night.mjs",
+      "sha256": "7f3242e385f8fee505980998ad26acc72e558e30ff858a4db85e3c892debb53f"
+    },
+    {
+      "source": "games/local/night-overwatch/assets/scripts/core/Duel.ts",
+      "sourceSha256": "1bca31da31746601772051ae782b615390500522c2a5cbad15d1ed181090c80f",
+      "file": "Duel.mjs",
+      "sha256": "0d585858d9bfba5e20b721bb15383380f96ead1f26b44b3628111c14ed73de1f"
+    }
+  ]
+}

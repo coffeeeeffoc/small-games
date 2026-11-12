@@ -23,12 +23,15 @@ test('private conversations isolate recipients and retry the same intent before 
   const f=fixture(),online=new Online(storage(),()=>{}),sent:any[]=[];
   f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
   Object.assign(f.bridge.services,{nightChat:async()=>({messages:[],cursor:'',reset:true,serverNow:0}),sendNightChat:async(input:any)=>{sent.push({...input});if(sent.length===1)throw Error('network');return {messages:[{id:'1',playerId:'a',nickname:'A',at:1,...input}],cursor:'x',reset:true,serverNow:1};}});
-  await online.connect(f.bridge);online.show('menu');online.selectChat({playerId:'b',nickname:'B'});online.chatDraft='私聊';await online.sendChat();
+  await online.connect(f.bridge);online.show('menu');online.openConversation({playerId:'b',nickname:'B'});online.chatDraft='私聊';await online.sendChat();
+  online.closeConversation();assert(!online.socialOpen);assert(online.chatRetryPending);assert.equal(playerId(online.chatPeer!),'b');assert.equal(online.chatDraft,'私聊');
+  online.openConversation({playerId:'b',nickname:'B'});assert(online.socialOpen);
   online.selectChat({playerId:'c',nickname:'C'});assert.equal(playerId(online.chatPeer!),'b');
   await online.sendChat();assert.deepEqual(sent[0],sent[1]);assert.equal(sent[0].recipientId,'b');
   online.chatMessages.push({id:'2',playerId:'c',nickname:'C',recipientId:'a',text:'另一会话',at:2},{id:'3',playerId:'c',nickname:'C',text:'公开',at:3});
   assert.equal(online.visibleChat.length,1);assert.equal(online.directUnread,1);
-  online.selectChat(undefined,true);assert.equal(online.visibleChat.length,2);assert.equal(online.directUnread,0);
+  online.selectChat(undefined,true);assert.equal(online.visibleChat.length,2);assert.equal(online.directUnread,1,'the inbox does not mark unopened conversations read');
+  online.openConversation({playerId:'c',nickname:'C'});assert.equal(online.directUnread,0);online.closeConversation();
   online.selectChat();assert.deepEqual(online.visibleChat.map(m=>m.id),['3']);
   online.selectChat({playerId:'b',nickname:'B'});online.toggleBlock('b');assert.equal(online.visibleChat.length,0);online.dispose();
 });
@@ -666,4 +669,25 @@ test('a minimized waiting room keeps the lobby list live and stops listing once 
   assert.equal(lists, 1); assert.equal(online.room?.code, f.current.code, 'listing keeps the room');
   online.back(); assert.equal(online.panel, 'room', 'back from the lobby restores the room');
   f.current.status = 'playing'; await online.loadRooms(); assert.equal(lists, 1);
+});
+
+
+test('closing a conversation restores the inbox and ignores a late history response',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});let finish!:(value:any)=>void;
+  f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
+  Object.assign(f.bridge.services,{nightChat:()=>new Promise(r=>{finish=r;}),nightSocial:async()=>({friends:[],requests:[],conversations:[],serverNow:1})});
+  await online.connect(f.bridge);online.show('menu');online.openConversation({playerId:'b',nickname:'B'});
+  online.closeConversation();finish({messages:[{id:'9',playerId:'b',recipientId:'a',nickname:'B',text:'late',at:1}],cursor:'',reset:true,serverNow:1});await new Promise(r=>setImmediate(r));
+  assert(!online.socialOpen);assert(online.chatInbox);assert.equal(online.chatPeer,undefined);assert.deepEqual(online.conversation,[]);assert.equal(online.panel,'menu');online.dispose();
+});
+
+test('removing a confirmed friend requires confirmation and preserves history',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{}),calls:any[]=[];
+  f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
+  const peer={playerId:'b',nickname:'B'},message={id:'9',playerId:'b',recipientId:'a',nickname:'B',text:'keep',at:1};
+  Object.assign(f.bridge.services,{nightSocial:async(input:any)=>{calls.push(input);return {friends:[],requests:[],conversations:[{...peer,unread:0,lastReadId:'9',lastMessage:message}],serverNow:2};}});
+  await online.connect(f.bridge);online.social.friends=[peer];await online.friendAction('remove','b');assert.equal(calls.length,0);assert.equal(online.friendRemoval,peer);
+  online.friendRemoval=undefined;assert.equal(online.social.friends.length,1);
+  await online.friendAction('remove','b');await online.friendAction('remove','b',true);
+  assert.deepEqual(calls,[{action:'remove',playerId:'b'}]);assert.equal(online.friendRemoval,undefined);assert.equal(online.social.friends.length,0);assert.equal(online.social.conversations[0].lastMessage.text,'keep');online.dispose();
 });

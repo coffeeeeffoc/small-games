@@ -182,9 +182,17 @@ export async function loadNightRelease(
   const duelUrl = new URL('../../rules/frozen/night-v16-v9/night.mjs', import.meta.url).href;
   const solo = (await import(soloUrl)) as { default: RankedRule };
   const duel = (await import(duelUrl)) as { default: Rule };
+  const previousSoloUrl = new URL(
+    '../../rules/frozen/night-v17-v10/night-ranked.mjs',
+    import.meta.url,
+  ).href;
+  const previousDuelUrl = new URL('../../rules/frozen/night-v17-v10/night.mjs', import.meta.url)
+    .href;
+  const previousSolo = (await import(previousSoloUrl)) as { default: RankedRule };
+  const previousDuel = (await import(previousDuelUrl)) as { default: Rule };
   return createNightRelease(
-    [ranked, solo.default],
-    [multiplayer, duel.default],
+    [ranked, previousSolo.default, solo.default],
+    [multiplayer, previousDuel.default, duel.default],
     readNightReleaseConfig(env),
   );
 }

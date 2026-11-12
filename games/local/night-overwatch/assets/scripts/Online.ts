@@ -153,6 +153,7 @@ export class Online {
   activity:'available'|'playing'='available';
   social:SocialSnapshot={friends:[],requests:[],conversations:[],serverNow:0};
   socialBusy=false;
+  friendRemoval?:Player;
   socialStatus='';
   conversation:ChatMessage[]=[];
   conversationBefore?:string;
@@ -180,12 +181,14 @@ export class Online {
     this.social=result;this.socialStatus='';this.chatRevision++;this.revision++;
     for(const c of [...result.conversations].reverse())if(c.unread&&c.lastMessage.playerId!==this.authenticatedId&&!this.blockedPlayers.has(playerId(c))&&!this.notified.has(c.lastMessage.id)){
       this.notified.add(c.lastMessage.id);
-      if(!(this.socialOpen||this.panel==='menu')||!this.chatPeer||playerId(this.chatPeer)!==playerId(c)){this.notification={...c.lastMessage,nickname:c.nickname||'飞行员'};this.notificationUntil=performance.now()+10000;}
+      if(!this.socialOpen||!this.chatPeer||playerId(this.chatPeer)!==playerId(c)){this.notification={...c.lastMessage,nickname:c.nickname||'飞行员'};this.notificationUntil=performance.now()+10000;}
     }
     this.markDirectRead();
   }
-  async friendAction(action:'request'|'accept'|'decline'|'cancel'|'remove',peer:string){
+  async friendAction(action:'request'|'accept'|'decline'|'cancel'|'remove',peer:string,confirmed=false){
     if(this.socialBusy||!this.bridge?.services.nightSocial||!this.socialAvailable)return;
+    if(action==='remove'&&!confirmed){this.friendRemoval=this.social.friends.find(p=>playerId(p)===peer);this.revision++;return;}
+    this.friendRemoval=undefined;
     const owner=this.authenticatedId;this.socialBusy=true;this.socialStatus='';this.revision++;
     try{const result=await this.bridge.services.nightSocial({action,playerId:peer},owner);if(owner===this.authenticatedId)this.acceptSocial(result);}
     catch(error){if(owner===this.authenticatedId){const code=(error as {code?:string}).code;this.socialStatus=code==='FRIEND_LIMIT'?'好友已达200人，请先清理':code==='FRIEND_REQUEST_LIMIT'?'待确认的申请已达50条，请先清理':code==='CHAT_RATE_LIMIT'?'操作太快，请稍后重试':'操作未完成，请稍后重试';}}
@@ -201,7 +204,7 @@ export class Online {
     finally{if(epoch===this.conversationEpoch){this.conversationLoading=false;this.chatRevision++;}}
   }
   openConversation(peer:Player){this.selectChat(peer);if(this.chatPeer&&playerId(this.chatPeer)===playerId(peer)){this.socialOpen=true;this.notification=undefined;this.markDirectRead();this.revision++;}}
-  closeConversation(){this.socialOpen=false;this.revision++;}
+  closeConversation(){this.socialOpen=false;this.selectChat(undefined,true);this.revision++;}
   private directRead = new Set<string>();
   get directUnread() { return this.bridge?.services.nightSocial?this.social.conversations.reduce((n,c)=>n+(this.blockedPlayers.has(playerId(c))?0:c.unread),0):this.chatMessages.filter(m => m.recipientId === this.authenticatedId && !this.blockedPlayers.has(m.playerId) && !this.directRead.has(m.id)).length; }
   showPlayers() { this.lobbyTab = 'players'; this.show('menu'); this.presenceNext = 0; }
@@ -222,7 +225,7 @@ export class Online {
     this.markDirectRead();
   }
   private markDirectRead() {
-    if((this.panel !== 'menu'&&!this.socialOpen) || !this.chatInbox) return;
+    if(!this.socialOpen || !this.chatInbox || !this.chatPeer) return;
     for(const m of this.visibleChat) if(m.recipientId === this.authenticatedId) this.directRead.add(m.id);
     const peer=this.chatPeer&&playerId(this.chatPeer),last=this.conversation.at(-1),owner=this.authenticatedId;
     if(!peer||!last||this.readPending||this.readThrough===peer+':'+last.id||!this.bridge?.services.nightSocial)return;
@@ -518,7 +521,7 @@ export class Online {
     if (owner !== this.authenticatedId) { this.resetPresence(); this.recordSaveAttempt++; this.recordSaveStatus = ''; this.releaseIssue = undefined; this.pendingRequests.clear(); }
     if (owner !== this.authenticatedId) this.rewardRefresh = undefined;
     if(owner!==this.authenticatedId){this.assets=undefined;this.battleReward=undefined;this.authenticatedId=owner;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.chatIntent=undefined;this.chatSending=false;this.chatMenu='';this.chatCursor='';this.chatAcceptedAt=0;this.chatStatus='';this.chatOwner=owner;this.chatRevision++;this.blockedPlayers=new Set();try{this.blockedPlayers=new Set(JSON.parse(this.storage.getItem('night-chat-blocks:'+owner)||'[]'));}catch{}}
-    if(owner !== playerId(this.identity)) { this.chatPeer = undefined; this.chatInbox = false; this.directRead.clear();this.socialOpen=false;this.social={friends:[],requests:[],conversations:[],serverNow:0};this.socialNext=0;this.conversation=[];this.conversationEpoch++;this.conversationLoading=false;this.notification=undefined;this.notified.clear();this.readThrough=''; this.resetPresence(); }
+    if(owner !== playerId(this.identity)) { this.chatPeer = undefined; this.chatInbox = false; this.directRead.clear();this.socialOpen=false;this.friendRemoval=undefined;this.social={friends:[],requests:[],conversations:[],serverNow:0};this.socialNext=0;this.conversation=[];this.conversationEpoch++;this.conversationLoading=false;this.notification=undefined;this.notified.clear();this.readThrough=''; this.resetPresence(); }
     this.identity = metadata.identity;
     this.draftName = this.identity.nickname || this.identity.name || '';
     this.acceptCapabilities(metadata.capabilities);

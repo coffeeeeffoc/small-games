@@ -16,7 +16,7 @@ import {
   UITransform,
   isValid,
 } from 'cc';
-import { playerId, playerLabel, playerTag, type Online } from './Online';
+import { playerId, playerLabel, playerTag, type Online, type Player } from './Online';
 type OnlineHost = Pick<
   HUD,
   | 'artwork'
@@ -143,7 +143,7 @@ export class OnlineLobbyView {
   private updateLobbySend() {
     const o = this.h.online!, send = this.lobbySend;
     if (!send) return;
-    send.label.node.parent!.active = (!o.chatInbox || !!o.chatPeer) &&
+    send.label.node.parent!.active = !o.chatInbox &&
       (o.chatDraft.trim().length > 0 || o.chatRetryPending);
     send.disabled = !o.chatAvailable || o.chatSending;
     send.label.string = o.chatRetryPending ? this.h.t('重试', 'RETRY') : this.h.t('发送', 'SEND');
@@ -334,7 +334,8 @@ export class OnlineLobbyView {
         name.horizontalAlign = Label.HorizontalAlign.LEFT;
         name.isBold = true;
         name.lineHeight = font;
-        const pending = 'direction' in p ? p.direction : undefined;
+        const added = o.social.friends.some((f) => playerId(f) === id);
+        const pending = !added && 'direction' in p ? p.direction : undefined;
         const detail = playerTag(id) + ' · ' + status + (pending
           ? this.h.t(pending === 'incoming' ? ' · 向你申请好友' : ' · 等待对方同意', pending === 'incoming' ? ' · FRIEND REQUEST' : ' · REQUEST SENT') : '');
         const meta = this.h.label(list.n, detail, centerX, detailY, 11, textW, 16, C.dim);
@@ -344,17 +345,18 @@ export class OnlineLobbyView {
         if (!own) {
           const blocked = o.blockedPlayers.has(id), secondX = actionX + w + 4;
           if(pending){
-            btn('friendAction:'+(pending==='incoming'?'accept':'cancel')+':'+id,this.h.t(pending==='incoming'?'同意':'取消',pending==='incoming'?'ACCEPT':'CANCEL'),actionX,actionY,w,'gold',o.socialBusy,list.n);
+            btn('friendAction:'+(pending==='incoming'?'accept':'cancel')+':'+id,this.h.t(pending==='incoming'?'同意':'取消申请',pending==='incoming'?'ACCEPT':'CANCEL REQUEST'),actionX,actionY,w,'gold',o.socialBusy,list.n);
             btn(pending==='incoming'?'friendAction:decline:'+id:'whisper:'+id,this.h.t(pending==='incoming'?'拒绝':'私信',pending==='incoming'?'DECLINE':'DM'),secondX,actionY,w,'blue',o.socialBusy,list.n);
           }else{
             const canInvite = o.canInvite(p);
             btn('whisper:'+id,this.h.t('私信','DM'),actionX,actionY,w,'blue',blocked,list.n,'message');
             btn('invitePlayer:'+id,this.h.t('邀请','INVITE'),secondX,actionY,w,canInvite?'blue':'panel',!canInvite,list.n,'lobby');
           }
-          const added = o.social.friends.some((f) => playerId(f) === id);
           const request = o.social.requests.find((f) => playerId(f) === id);
           const relationshipX = secondX + w + 4;
-          if (added || request) {
+          if (added && friends) {
+            btn('friendAction:remove:'+id,this.h.t('移除好友','REMOVE'),relationshipX,actionY,w,'panel',o.socialBusy,list.n);
+          } else if (added || request) {
             const tag = added ? this.h.t('好友', 'FRIEND')
               : request?.direction === 'incoming' ? this.h.t('待处理', 'NEW') : this.h.t('已申请', 'SENT');
             this.h.rect(list.g, relationshipX + (w - 46) / 2, actionY + 11, 46, 22, added ? '#1e3b32' : '#203244', undefined, 5);
@@ -492,16 +494,18 @@ export class OnlineLobbyView {
     }
     const area = { x: rx + 8, y: top + 54, w: rw - 16, h: Math.max(44, inputY - top - 79) },
       messages = o.visibleChat;
-    const canCompose = !o.chatInbox || !!o.chatPeer;
+    const canCompose = !o.chatInbox;
     if(this.lobbyComposer)this.lobbyComposer.enabled=canCompose;
     const invite = this.h.buttons.find((b) => b.id === 'online:chatInvite');
     if (invite) invite.disabled = !canCompose;
-    if(o.chatInbox&&!o.chatPeer){
-      const entries = o.socialAvailable
-        ? o.social.conversations.filter((c) => !o.blockedPlayers.has(playerId(c)))
+    if(o.chatInbox){
+      const entries: {peer:Player;caption:string}[] = o.socialAvailable
+        ? o.social.conversations.filter((c) => !o.blockedPlayers.has(playerId(c))).map(c=>({peer:c,caption:playerLabel(c)+(c.unread?' · '+c.unread:'')+'\n'+c.lastMessage.text}))
         : [];
+      const pending=o.chatRetryPending&&o.chatPeer;
+      if(pending&&!entries.some(c=>playerId(c.peer)===playerId(pending)))entries.unshift({peer:pending,caption:playerLabel(pending)+'\n'+this.h.t('发送结果待确认 · 打开会话重试','DELIVERY UNCONFIRMED · OPEN TO RETRY')});
       const list = this.h.listViewport(body, 'chat', area, entries.length * 96);
-      entries.forEach((c,i)=>{const y=area.y+i*96-list.offset;if(y+96<area.y||y>area.y+area.h)return;this.lobbySkin(list.n,'panel',rx+8,y,rw-16,90);const caption=playerLabel(c)+(c.unread?' · '+c.unread:'')+'\n'+c.lastMessage.text;const label=this.h.label(list.n,caption,rx+18+(rw-108)/2,y+42,roomy?16:12,rw-108,74,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;btn('whisper:'+playerId(c),this.h.t('会话','OPEN'),r-80,y+24,68,'blue',false,list.n);});list.finish();
+      entries.forEach((c,i)=>{const y=area.y+i*96-list.offset;if(y+96<area.y||y>area.y+area.h)return;this.lobbySkin(list.n,'panel',rx+8,y,rw-16,90);const label=this.h.label(list.n,c.caption,rx+18+(rw-108)/2,y+42,roomy?16:12,rw-108,74,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;btn('whisper:'+playerId(c.peer),this.h.t('会话','OPEN'),r-80,y+24,68,'blue',false,list.n);});list.finish();
       if (!entries.length) {
         const message = o.socialAvailable
           ? this.h.t('暂无会话 · 从在线玩家或好友发起私信', 'MESSAGE AN ONLINE PLAYER OR FRIEND')
@@ -530,7 +534,7 @@ export class OnlineLobbyView {
             Array.from(m.text).length / Math.max(6, Math.floor((maxBubble - 20) / messageFont)),
           ),
         ),
-        h = Math.max(o.chatMenu === m.id ? 168 : 0, (m.room ? (roomy ? 170 : 174) : roomy ? 80 : 68) + (lines - 1) * messageFont * 1.4);
+        h = (m.room ? (roomy ? 170 : 174) : roomy ? 80 : 68) + (lines - 1) * messageFont * 1.4;
       const row = { id: m.id, y: total, h };
       total += h + 8;
       return row;
@@ -652,28 +656,8 @@ export class OnlineLobbyView {
       }
       if (o.chatMenu === m.id) {
         const menuY = y + 24;
-        this.lobbySkin(chat.n, 'panel', r - 146, menuY, 100, 138);
+        this.lobbySkin(chat.n, 'panel', r - 146, menuY, 100, 44);
         btn('chatReply:'+m.id,this.h.t('私信回复','REPLY'),r-144,menuY,96,'blue',!o.socialAvailable||own&&!m.recipientId,chat.n);
-        btn(
-          'chatBlock:' + m.playerId,
-          this.h.t('屏蔽', 'BLOCK'),
-          r - 144,
-          menuY + 46,
-          96,
-          'panel',
-          own,
-          chat.n,
-        );
-        btn(
-          'chatReport:' + m.id,
-          this.h.t('举报', 'REPORT'),
-          r - 144,
-          menuY + 92,
-          96,
-          'panel',
-          own,
-          chat.n,
-        );
       }
     });
     chat.finish();
@@ -705,7 +689,7 @@ export class OnlineLobbyView {
     if (o.blockedPlayers.size)
       btn(
         'chatBlocks',
-        this.h.t(`屏蔽(${o.blockedPlayers.size})`, `BLOCKS (${o.blockedPlayers.size})`),
+        this.h.t(`恢复联系(${o.blockedPlayers.size})`, `RESTORE (${o.blockedPlayers.size})`),
         rx + rw - 105,
         area.y + area.h - 45,
         96,
