@@ -57,7 +57,7 @@ export type ButtonRect = {
   h: number;
   label: Label;
   detail?: Label;
-  visual?: { x: number; y: number; w: number; h: number };
+  visual?: { x: number; y: number; w: number; h: number; radius?: number; cut?: number };
   disabled?: boolean;
   clip?: { x: number; y: number; w: number; h: number };
 };
@@ -237,6 +237,7 @@ export class HUD {
   touch = sys.isMobile || (sys.isBrowser && window.matchMedia('(pointer: coarse)').matches);
   // UI coordinates from real mouse input; the controller clears this on leave/touch/blur.
   mousePointer?: { x: number; y: number };
+  pressedPoint?: { x: number; y: number };
   pressedButton = '';
   private uiFrames = new Map<string, SpriteFrame>();
   private artworkRetries = new Map<string, () => void>();
@@ -622,18 +623,20 @@ export class HUD {
     );
   }
   buttonFeedback() {
+    const pointer = this.pressedButton ? this.pressedPoint || this.mousePointer : this.mousePointer;
+    const pointed = pointer && this.hit(pointer.x, pointer.y);
     const button = this.pressedButton
-      ? this.buttons.find((button) => button.id === this.pressedButton)
-      : this.mousePointer
-        ? this.hit(this.mousePointer.x, this.mousePointer.y)
-        : undefined;
+      ? pointed?.id === this.pressedButton
+        ? pointed
+        : this.buttons.find((button) => button.id === this.pressedButton && button.label.node.activeInHierarchy)
+      : pointed;
     if (
       !button ||
       button.id === 'qm:wheelTap' ||
       button.id === 'qm:wheelNudge' ||
       button.disabled ||
       !button.label.node.activeInHierarchy ||
-      (this.modal && button.label.node.parent !== this.modal && !this.isGlobalAction(button.id))
+      (this.modal && !this.inModal(button.label.node) && !this.isGlobalAction(button.id))
     )
       return;
     if (button.id === 'fire') {
@@ -644,7 +647,7 @@ export class HUD {
       graphics.circle(
         button.x + button.w / 2 - this.w / 2,
         this.h / 2 - button.y - button.h / 2,
-        Math.min(button.w, button.h) / 2 - 3,
+        button.visual ? Math.min(button.visual.w, button.visual.h) / 2 : Math.min(button.w, button.h) / 2 - 5,
       );
       graphics.fill();
       graphics.stroke();
@@ -656,15 +659,26 @@ export class HUD {
       w: button.w - 6,
       h: button.h - 8,
     };
+    const { x, y, w, h, cut, radius } = visualBounds;
+    const clip = button.clip;
+    if (clip && (x < clip.x || y < clip.y || x + w > clip.x + clip.w || y + h > clip.y + clip.h)) return;
+    const fill = this.pressedButton ? '#e5d5b433' : '#e0efff14';
+    const stroke = this.pressedButton ? C.amber : '#bdcfd6aa';
+    if (cut) {
+      const ink = this.globalGraphics;
+      const path = () => this.drawing.chamferPath(ink, x, y, w, h, cut);
+      ink.fillColor = col(fill);
+      path();
+      ink.fill();
+      ink.strokeColor = col(stroke);
+      ink.lineWidth = 1;
+      path();
+      ink.stroke();
+      return;
+    }
     this.rect(
       this.globalGraphics,
-      visualBounds.x,
-      visualBounds.y,
-      visualBounds.w,
-      visualBounds.h,
-      this.pressedButton ? '#e5d5b433' : '#e0efff14',
-      this.pressedButton ? C.amber : '#bdcfd6aa',
-      3,
+      x, y, w, h, fill, stroke, radius ?? 3,
     );
   }
   live(

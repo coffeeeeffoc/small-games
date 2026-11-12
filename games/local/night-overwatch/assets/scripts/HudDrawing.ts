@@ -72,6 +72,11 @@ export class HudDrawing {
         [0, -7],
         [0, 7],
       ]);
+    } else if (kind === 'message') {
+      line([[-8, -6], [8, -6], [8, 4], [-2, 4], [-7, 8], [-7, 4], [-8, 4]], true);
+    } else if (kind === 'send') {
+      line([[-9, -1], [8, -7], [3, 8], [-1, 2]], true);
+      line([[-1, 2], [8, -7]]);
     } else if (kind === 'time' || kind === 'history') {
       graphics.circle(centerX, centerY, 8 * iconScale);
       graphics.stroke();
@@ -509,6 +514,19 @@ export class HudDrawing {
       graphics.fill();
     }
   }
+  chamferPath(graphics: Graphics, x: number, y: number, width: number, height: number, cut: number) {
+    const left = x - this.hud.w / 2, right = left + width;
+    const top = this.hud.h / 2 - y, bottom = top - height;
+    graphics.moveTo(left + cut, top);
+    graphics.lineTo(right - cut, top);
+    graphics.lineTo(right, top - cut);
+    graphics.lineTo(right, bottom + cut);
+    graphics.lineTo(right - cut, bottom);
+    graphics.lineTo(left + cut, bottom);
+    graphics.lineTo(left, bottom + cut);
+    graphics.lineTo(left, top - cut);
+    graphics.close();
+  }
   plate(
     graphics: Graphics,
     x: number,
@@ -525,22 +543,8 @@ export class HudDrawing {
     const emphasis = gold || fill === C.mint;
     if (emphasis) stroke = gold ? C.amber : C.mint;
     cut = Math.min(cut, width / 5, height / 4);
-    const path = (inset = 0, dy = 0) => {
-      const left = x - this.hud.w / 2 + inset;
-      const right = x + width - this.hud.w / 2 - inset;
-      const top = this.hud.h / 2 - y - inset + dy;
-      const bottom = this.hud.h / 2 - y - height + inset + dy;
-      const cornerCut = Math.max(2, cut - inset);
-      graphics.moveTo(left + cornerCut, top);
-      graphics.lineTo(right - cornerCut, top);
-      graphics.lineTo(right, top - cornerCut);
-      graphics.lineTo(right, bottom + cornerCut);
-      graphics.lineTo(right - cornerCut, bottom);
-      graphics.lineTo(left + cornerCut, bottom);
-      graphics.lineTo(left, bottom + cornerCut);
-      graphics.lineTo(left, top - cornerCut);
-      graphics.close();
-    };
+    const path = (inset = 0, dy = 0) =>
+      this.chamferPath(graphics, x + inset, y + inset - dy, width - 2 * inset, height - 2 * inset, Math.max(2, cut - inset));
     const skinned =
       gold &&
       graphics.node.parent === this.hud.modal &&

@@ -63,7 +63,7 @@ export class ProgressionView {
     h=Math.max(44,h);this.skin(kind,x+2,y+2,w-4,h-4);
     const l=this.h.button(id,caption,x,y,w,h,this.n),b=this.h.buttons.at(-1)!;
     const units=Array.from(caption).reduce((n,c)=>n+(/[^\x00-\x7f]/.test(c)?1:.56),0);
-    b.disabled=disabled;b.visual={x:x+2,y:y+2,w:w-4,h:h-4};l.fontSize=Math.max(12,Math.min(this.font(kind==='gold'?48:43,14),h*.56,(w-22)/Math.max(1,units)));l.lineHeight=l.fontSize*1.15;
+    b.disabled=disabled;b.visual={x:x+2,y:y+2,w:w-4,h:h-4,cut:this.a.get(kind)?8:undefined};l.fontSize=Math.max(12,Math.min(this.font(kind==='gold'?48:43,14),h*.56,(w-22)/Math.max(1,units)));l.lineHeight=l.fontSize*1.15;
     l.color=color(disabled?'#75828b':ivory);l.isBold=true;
     if(this.h.lang==='zh'&&this.a.font){l.font=this.a.font;l.useSystemFont=false;}
     if(disabled)this.h.rect(this.g,x+3,y+3,w-6,h-6,'#08121c77');
@@ -74,7 +74,7 @@ export class ProgressionView {
   private chip(id:string,caption:string,x:number,y:number,w:number,selected:boolean){
     const ph=30,py=y+(44-ph)/2;this.h.rect(this.g,x,py,w,ph,selected?'#78e3ff26':'#07131dcc',selected?cyan:'#3f5666',ph/2);
     if(selected){this.g.fillColor=color(cyan);this.g.circle(x+15-this.w/2,this.height/2-py-ph/2,3);this.g.fill();}
-    const l=this.h.button(id,caption,x,y,w,44,this.n);this.h.buttons.at(-1)!.visual={x,y:py,w,h:ph};
+    const l=this.h.button(id,caption,x,y,w,44,this.n);this.h.buttons.at(-1)!.visual={x,y:py,w,h:ph,radius:ph/2};
     l.fontSize=this.font(27,13);l.color=color(selected?cyan:dim);l.isBold=selected;
   }
   /** Stops endless tweens with the node that owns them; rebuilt views must not leak animations. */

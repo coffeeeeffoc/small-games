@@ -557,7 +557,7 @@ export class BattleStatusView {
             { night: '夜景', enhanced: '增强', thermal: '热像' }[world.viewMode || 'night'],
             { night: 'NIGHT', enhanced: 'ENH', thermal: 'IR' }[world.viewMode || 'night'],
           );
-        button.visual = { x: button.x + 2, y: button.y + 8, w: button.w - 4, h: 28 };
+        button.visual = { x: button.x + 2, y: button.y + 8, w: button.w - 4, h: 28, radius: 4 };
         this.hud.rect(
           graphics,
           button.visual.x,
@@ -650,7 +650,7 @@ export class BattleStatusView {
         simulation.weaponReadiness().remaining > 0
       )
         button.label.string += '\n' + simulation.weaponReadiness().displaySeconds.toFixed(1) + 's';
-      button.visual = { x: button.x + 2, y: button.y + 5, w: button.w - 4, h: button.h - 10 };
+      button.visual = { x: button.x + 2, y: button.y + 5, w: button.w - 4, h: button.h - 10, radius: 4 };
       if (fire) {
         const radius = button.w / 2 - 5;
         const x = button.x + button.w / 2 - width / 2;

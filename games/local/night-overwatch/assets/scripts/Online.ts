@@ -78,6 +78,10 @@ export class Online {
   private releaseCheck?: Promise<void>;
   private pendingRequests = new Map<string, RequestResult>();
   get updateNotice() { return !!this.release && this.release.update !== 'none'; }
+  private get updateRequired() {
+    const release = this.release;
+    return release?.update === 'required' && !!release.latestBuildId && release.latestBuildId !== release.currentBuildId;
+  }
   async checkRelease() {
     const bridge = this.bridge;
     if (this.destroyed || !bridge) return;
@@ -90,7 +94,7 @@ export class Online {
       if (!metadata || metadata.release !== undefined && !validRelease(metadata.release)) throw Error('Release unavailable');
       this.release = metadata.release; this.releaseCheckFailed = false;
       if(playerId(metadata.identity) === this.authenticatedId) this.acceptCapabilities(metadata.capabilities);
-      if (!this.updateNotice) this.releaseIssue = undefined;
+      if (!this.updateRequired) this.releaseIssue = undefined;
     } catch { if (this.bridge === bridge) this.releaseCheckFailed = true; }
     finally { if (this.releaseCheck === check) { this.releaseCheck = undefined; this.checkingRelease = false; if (!this.destroyed) this.revision++; } }
     });
@@ -101,18 +105,22 @@ export class Online {
     if (this.destroyed || result.playerId !== this.authenticatedId) return;
     const key = result.method + ':' + result.path;
     const sameRequest = this.releaseIssue?.path === result.path && this.releaseIssue?.method === result.method;
-    if (!result.error) {
+    if (!result.error || !/^(?:SERVICE_UNAVAILABLE|INTERNAL_ERROR|NOT_FOUND|RULE_VERSION_CHANGED|RULE_NEW_GAMES_DISABLED|RULE_VERSION_RETIRED|BUILD_DISABLED|BUILD_REMOVED|BACKEND_VERSION_DISABLED|NIGHT_RELEASE_UNAVAILABLE)$/.test(result.error)) {
       this.pendingRequests.delete(key);
       if (sameRequest) { this.releaseIssue = undefined; this.revision++; }
       return;
     }
-    if (!/^(?:SERVICE_UNAVAILABLE|INTERNAL_ERROR|NOT_FOUND|RULE_VERSION_CHANGED|RULE_NEW_GAMES_DISABLED|RULE_VERSION_RETIRED|BUILD_DISABLED|BUILD_REMOVED|BACKEND_VERSION_DISABLED|NIGHT_RELEASE_UNAVAILABLE)$/.test(result.error)) return;
     this.pendingRequests.set(key, result);
     const bridge = this.bridge;
-    if (!this.updateNotice) await this.checkRelease();
+    await this.checkRelease();
     if (this.pendingRequests.get(key) !== result) return;
     this.pendingRequests.delete(key);
-    if (!this.updateNotice || this.destroyed || this.bridge !== bridge || result.playerId !== this.authenticatedId) return;
+    if (this.destroyed || this.bridge !== bridge || result.playerId !== this.authenticatedId) return;
+    const versionRejected = /^(?:RULE_VERSION_CHANGED|RULE_VERSION_RETIRED|BUILD_DISABLED|BUILD_REMOVED|BACKEND_VERSION_DISABLED)$/.test(result.error);
+    if (this.releaseCheckFailed || !versionRejected || !this.updateRequired) {
+      if (sameRequest && this.releaseIssue) { this.releaseIssue = undefined; this.revision++; }
+      return;
+    }
     const repeated = this.releaseIssue?.path === result.path && this.releaseIssue?.method === result.method;
     this.releaseIssue = result; this.revision++;
     if (!repeated || this.recordSaveStatus === 'failed' && Date.now() - this.recordSaveAt >= 5000) void this.saveRecords();
@@ -276,6 +284,7 @@ export class Online {
   chatMessages:ChatMessage[]=[];chatDraft='';chatStatus='';chatRevision=0;chatSending=false;chatAvailable=false;chatMenu='';
   blockedPlayers=new Set<string>();private chatOwner='';private chatEpoch=0;private chatPoll=false;private chatNext=0;private chatCursor='';private foreground=true;private destroyed=false;
   private chatIntent?:{requestId:string;text:string;roomCode?:string;recipientId?:string};
+  get chatRetryPending() { return !!this.chatIntent && !this.chatSending; }
   panelHistory:Online['panel'][]=[];
   get visibleChat(){return (this.chatPeer&&this.bridge?.services.nightSocial?this.conversation:this.chatMessages).filter(m=>!this.blockedPlayers.has(m.playerId === this.authenticatedId ? m.recipientId || '' : m.playerId) && (this.chatInbox ? !!m.recipientId && (!this.chatPeer || m.playerId === playerId(this.chatPeer) || m.recipientId === playerId(this.chatPeer)) : !m.recipientId));}
   setForeground(value:boolean){if(this.foreground===value)return;this.foreground=value;this.chatEpoch++;this.chatNext=0;this.resetPresence();if(value)void this.checkRelease();}
@@ -504,7 +513,7 @@ export class Online {
     if (!metadata) return;
     if (metadata.release === undefined || validRelease(metadata.release)) this.release = metadata.release;
     else this.releaseCheckFailed = true;
-    if (!this.updateNotice) this.releaseIssue = undefined;
+    if (!this.updateRequired) this.releaseIssue = undefined;
     const owner=playerId(metadata.identity);
     if (owner !== this.authenticatedId) { this.resetPresence(); this.recordSaveAttempt++; this.recordSaveStatus = ''; this.releaseIssue = undefined; this.pendingRequests.clear(); }
     if (owner !== this.authenticatedId) this.rewardRefresh = undefined;
@@ -590,8 +599,7 @@ export class Online {
     if (this.listing || this.busy || this.active || this.room && this.room.status !== 'waiting') return;
     this.listing = true; const generation = this.generation;
     try {
-      if (!this.available) this.acceptMetadata(await this.bridge?.refresh?.());
-      if (!this.available || !this.bridge?.services.listRooms) { this.message = '联机暂不可用，可选择本地人机练习'; return; }
+      if (!this.bridge?.services.listRooms) { this.message = '联机暂不可用，可选择本地人机练习'; return; }
       const { rooms } = await this.bridge.services.listRooms();
       if (generation === this.generation) {
         this.rooms = rooms.filter(room => (this.hiddenRooms.get(room.code) || 0) <= Date.now()); this.message = '';
@@ -622,8 +630,7 @@ export class Online {
     this.show('history'); this.busy = true;
     const generation = this.generation;
     try {
-      if (!this.available) this.acceptMetadata(await this.bridge?.refresh?.());
-      if (!this.bridge?.services.history || !this.available) { this.message = '对战记录暂不可用'; return; }
+      if (!this.bridge?.services.history) { this.message = '对战记录暂不可用'; return; }
       const result = await this.bridge.services.history({ cursor });
       if (generation !== this.generation || this.panel !== 'history') return;
       this.history = cursor && this.history ? { ...result, matches: [...this.history.matches, ...result.matches] } : result;
@@ -642,9 +649,7 @@ export class Online {
     this.message = ''; const generation = ++this.generation;
     this.busy = true; this.opening = code || (['join', 'watch'].includes(kind) ? this.draftCode.trim().toUpperCase() : kind); this.revision++;
     try {
-      if (!this.available) this.acceptMetadata(await this.bridge?.refresh?.());
-      if (generation !== this.generation) return;
-      if (!this.available || !this.bridge) {
+      if (!this.bridge || kind === 'bot' && !this.available) {
         if (kind === 'bot') { this.busy = false; this.startBot(performance.now()); return; }
         this.message = '联机服务暂不可用，可选择本地人机练习'; return;
       }
@@ -676,11 +681,13 @@ export class Online {
       }
     } catch (error) {
       if (generation === this.generation) {
-        const code = (error as { code?: string }).code || '';
-        this.message = /RULE_VERSION_CHANGED|RULE_NEW_GAMES_DISABLED|BUILD_DISABLED|BUILD_REMOVED|BACKEND_VERSION_DISABLED|NIGHT_RELEASE_UNAVAILABLE/.test(code) ? '版本暂不支持此对战，请返回首页查看版本提示'
+        const { code = '', incompatibleRoom } = error as { code?: string; incompatibleRoom?: boolean };
+        this.message = incompatibleRoom ? '此房间使用不同的对战规则，请返回大厅'
           : /PASSWORD/.test(code) ? '房间密码不正确，请重新输入'
           : /FULL|STARTED/.test(code) ? '房间已满或已经开战，请选择其他房间'
           : /STALE_LEASE/.test(code) ? '此对局已在另一个页面恢复'
+          : code === 'RULE_NEW_GAMES_DISABLED' ? '对战暂未开放新开局，请稍后重试'
+          : /^(?:SERVICE_UNAVAILABLE|INTERNAL_ERROR|NIGHT_RELEASE_UNAVAILABLE)$/.test(code) ? '房间服务暂不可用，请稍后重试'
           : '暂时无法进入房间，请检查房号与网络后重试';
         if (kind === 'resume' && ['PLAYER_DISCONNECTED', 'NOT_A_MEMBER', 'ROOM_NOT_FOUND', 'INVITATION_NOT_FOUND', 'MATCH_CLOSED', 'STALE_LEASE'].includes(code)) { this.resumeCode = ''; this.rememberRoom(); }
       }
@@ -797,7 +804,7 @@ export class Online {
   }
   private assertRoomVersion(room: Room) {
     if (room.state && room.version && room.version !== DUEL_VERSION)
-      throw Object.assign(Error('This build cannot render the historical room'), { code: 'RULE_VERSION_CHANGED' });
+      throw Object.assign(Error('This build cannot render the historical room'), { code: 'RULE_VERSION_CHANGED', incompatibleRoom: true });
   }
   private accept(room: Room) {
     this.assertRoomVersion(room);

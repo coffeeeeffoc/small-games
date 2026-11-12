@@ -1507,7 +1507,10 @@ export class Overwatch extends Component {
       this.platform.saveRewards();
     }
     this.updateRadio(Math.min(dt, .1));
-    this.hud.pressedButton=this.controlGesture&&!this.controlGesture.moved?this.controlGesture.button:this.mouseButton || Array.from(this.touches.values()).find(t=>t.role==='button'||t.role==='fire')?.button || '';
+    const touchPress = Array.from(this.touches.values()).find((touch) => touch.role === 'button' || touch.role === 'fire');
+    const controlPress = this.controlGesture && !this.controlGesture.moved ? this.controlGesture : undefined;
+    this.hud.pressedButton = controlPress?.button || this.mouseButton || touchPress?.button || '';
+    this.hud.pressedPoint = controlPress || (this.mouseButton ? this.hud.mousePointer : touchPress);
     this.hud.update(presented, this.world);
     this.platform.wheelAudio(this.quartermaster?.wheel,this.quartermaster?.page==='supply');
     this.platform.crateAudio(this.quartermaster?.gift);

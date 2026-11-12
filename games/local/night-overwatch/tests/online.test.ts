@@ -18,6 +18,7 @@ function fixture() {
 }
 
 const release = (overrides: Partial<Release> = {}): Release => ({ currentBuildId: 'old', latestBuildId: 'new', update: 'optional', canStartNewGames: true, admissions: { ranked: true, multiplayer: true }, action: 'reopen', ...overrides });
+const requiredRelease = () => release({ update: 'required', canStartNewGames: false, admissions: { ranked: false, multiplayer: false } });
 test('private conversations isolate recipients and retry the same intent before changing peers',async()=>{
   const f=fixture(),online=new Online(storage(),()=>{}),sent:any[]=[];
   f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
@@ -141,12 +142,13 @@ test('automatic saving never reports success for a failed journal or replaced id
 
 test('only an outdated client with a real failed request shows an update issue and auto-saves once',async()=>{
   const f=fixture(),online=new Online(storage(),()=>{});let notify!:(result:any)=>void,removed=0,saves=0;
-  Object.assign(f.bridge,{subscribeRequests:(listener:any)=>{notify=listener;return()=>{removed++;};}});
+  let metadata = release({update:'none',currentBuildId:'new'});
+  Object.assign(f.bridge,{subscribeRequests:(listener:any)=>{notify=listener;return()=>{removed++;};},refresh:async()=>({...await f.bridge.ready,release:metadata})});
   await online.connect(f.bridge);Object.assign(online.recorder!,{saveForReentry:async()=>{saves++;return true;}});
-  online.release=release({update:'none',currentBuildId:'new'});
+  online.release=metadata;
   notify({path:'/games/night-overwatch/match',method:'POST',playerId:'a',error:'SERVICE_UNAVAILABLE'});
   await new Promise(r=>setImmediate(r));assert.equal(online.releaseIssue,undefined);assert.equal(saves,0);
-  online.release=release({canStartNewGames:false,admissions:{ranked:false,multiplayer:false}});
+  online.release=metadata=requiredRelease();
   assert.equal(online.releaseIssue,undefined);
   notify({path:'/games/night-overwatch/match',method:'POST',playerId:'a',error:'INVALID_PASSWORD'});
   assert.equal(saves,0,'ordinary business rejections do not suggest updating');
@@ -169,7 +171,7 @@ test('requests share an in-flight version check and successful retries invalidat
     const failed={path:'/games/night-overwatch/rooms',method:'POST',playerId:'a',error:'BUILD_DISABLED'};
     notify(failed);
     if(recovered)notify({...failed,error:undefined});
-    resolve({...await f.bridge.ready,release:release()});await checking;await new Promise(r=>setImmediate(r));
+    resolve({...await f.bridge.ready,release:requiredRelease()});await checking;await new Promise(r=>setImmediate(r));
     assert.equal(checks,1);assert.equal(saves,recovered?0:1);assert.equal(!!online.releaseIssue,!recovered);
     online.dispose();
   }
@@ -178,14 +180,50 @@ test('requests share an in-flight version check and successful retries invalidat
 test('failed automatic saving retries even after a successful request clears the update issue',async t=>{
   const f=fixture(),online=new Online(storage(),()=>{});let notify!:(result:any)=>void,saves=0,now=10000;
   t.mock.method(Date,'now',()=>now);
-  Object.assign(f.bridge,{subscribeRequests:(listener:any)=>{notify=listener;return()=>{};}});
-  await online.connect(f.bridge);online.release=release();
+  Object.assign(f.bridge,{subscribeRequests:(listener:any)=>{notify=listener;return()=>{};},refresh:async()=>({...await f.bridge.ready,release:requiredRelease()})});
+  await online.connect(f.bridge);online.release=requiredRelease();
   Object.assign(online.recorder!,{saveForReentry:async()=>++saves>1});
   const failed={path:'/games/night-overwatch/rooms',method:'POST',playerId:'a',error:'BUILD_DISABLED'};
   notify(failed);await new Promise(r=>setImmediate(r));assert.equal(online.recordSaveStatus,'failed');
   notify({...failed,error:undefined});assert.equal(online.releaseIssue,undefined);
   now+=5001;await online.pump(100);await new Promise(r=>setImmediate(r));
   assert.equal(saves,2);assert.equal(online.recordSaveStatus,'saved');online.dispose();
+});
+
+test('creating a room reaches the service before consulting version metadata', async () => {
+  for (const [failure, version, blocks] of [
+    [undefined, release(), false],
+    ['SERVICE_UNAVAILABLE', requiredRelease(), false],
+    ['RULE_NEW_GAMES_DISABLED', requiredRelease(), false],
+    ['INVALID_PASSWORD', requiredRelease(), false],
+    ['BUILD_DISABLED', release(), false],
+    ['BUILD_DISABLED', requiredRelease(), true],
+  ] as const) {
+    const f = fixture(), online = new Online(storage(), () => {}), calls: string[] = [];
+    const ready = { ...await f.bridge.ready, capabilities: { multiplayer: false, leaderboards: true }, release: version };
+    let notify!: (result: object) => void;
+    Object.assign(f.bridge, {
+      ready: Promise.resolve(ready),
+      refresh: async () => { calls.push('version'); return ready; },
+      subscribeRequests: (listener: typeof notify) => { notify = listener; return () => {}; },
+    });
+    f.bridge.services.createRoom = async () => {
+      calls.push('create');
+      notify({ path: '/games/night-overwatch/rooms', method: 'POST', playerId: 'a', error: failure });
+      if (failure) throw Object.assign(Error(failure), { code: failure });
+      return f.current;
+    };
+    await online.connect(f.bridge);
+    online.show('create');
+    await online.open('friend');
+    await new Promise((resolve) => setImmediate(resolve));
+    const checksVersion = failure && failure !== 'INVALID_PASSWORD';
+    assert.deepEqual(calls, checksVersion ? ['create', 'version'] : ['create']);
+    assert.equal(online.releaseIssue?.error, blocks ? failure : undefined);
+    assert.equal(online.room?.code, failure ? undefined : f.current.code);
+    if (failure === 'INVALID_PASSWORD') assert.match(online.message, /房间密码/);
+    online.dispose();
+  }
 });
 
 test('a new client refuses incompatible active room state before taking over the existing connection', async () => {

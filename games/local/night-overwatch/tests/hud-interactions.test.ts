@@ -305,7 +305,7 @@ test('fire press and hover feedback follow the circular trigger at every configu
   hud.fireScale=scale;hud.update(sim,world);const fire=hud.buttons.find((b:any)=>b.id==='fire');assert.equal(hud.controlAt(fire.x+fire.w/2,fire.y+fire.h/2)?.id,'fire');
   for(const pressed of [false,true]){
    hud.pressedButton=pressed?'fire':'';hud.mousePointer={x:fire.x+fire.w/2,y:fire.y+fire.h/2};hud.globalGraphics.clear();hud.buttonFeedback();
-   const calls=hud.globalGraphics.calls;assert(calls.some((c:any)=>c.op==='circle'&&c.args[2]===Math.min(fire.w,fire.h)/2-3));assert(!calls.some((c:any)=>c.op==='rect'||c.op==='roundRect'));
+   const calls=hud.globalGraphics.calls;assert(calls.some((c:any)=>c.op==='circle'&&c.args[2]===fire.visual.w/2));assert(!calls.some((c:any)=>c.op==='rect'||c.op==='roundRect'));
   }
  }
 });
@@ -1672,6 +1672,10 @@ test('lobby keeps the private tab usable without social service and insets the c
   const editorLeft = hud.w / 2 + field.position.x - editorWidth / 2;
   assert.equal(button('chatInbox').disabled, false);
   assert(Math.abs(editorLeft - button('chatPublic').x - 12) < 0.01);
+  const send = button('chatSend');
+  const invite = button('chatInvite');
+  assert(!send.label.node.activeInHierarchy);
+  assert(editorLeft + editorWidth < send.x && send.x + send.w < invite.x);
 
   online.selectChat(undefined, true);
   hud.update(sim, world);
@@ -1687,6 +1691,22 @@ test('lobby keeps the private tab usable without social service and insets the c
   online.selectChat();
   hud.update(sim, world);
   assert.equal(field.getComponent(cc.EditBox).enabled, true);
+  assert.equal(invite.disabled, false);
+
+  online.chatAvailable = true;
+  online.chatDraft = '测试消息';
+  online.chatRevision++;
+  hud.update(sim, world);
+  assert(send.label.node.activeInHierarchy);
+  hud.pressedButton = send.id;
+  hud.globalGraphics.clear();
+  hud.buttonFeedback();
+  assert(hud.globalGraphics.calls.some((call: any) => call.op === 'roundRect' &&
+    call.args[0] === send.visual.x - hud.w / 2 && call.args[2] === send.visual.w && call.args[3] === 34 && call.args[4] === 4));
+  online.chatDraft = '   ';
+  online.chatRevision++;
+  hud.update(sim, world);
+  assert(!send.label.node.activeInHierarchy);
   online.dispose();
 });
 
@@ -1704,6 +1724,7 @@ test('lobby player rows show status and fit more players while keeping full touc
         playerId: String(i).padStart(8, '0'), nickname: '飞行员' + i,
         status: i === 2 ? 'playing' : 'available',
       }));
+      online.social.friends = [online.onlinePlayers[1]];
       online.showPlayers();
       hud.update(sim, world);
       const list = hud.listAreas.find((area: any) => area.key === 'players');
@@ -1713,10 +1734,23 @@ test('lobby player rows show status and fit more players while keeping full touc
       assert(!actions.some((button: any) => button.id.endsWith(online.authenticatedId)));
       assert(actions.every((button: any) => button.h >= 44 && button.w >= 44 && button.clip.y === list.y));
       const labels = panelLabels(hud);
+      assert(labels.some((label: any) => label.string === '好友' && label.color.hex === '#a6e9bf'));
+      assert(!hud.buttons.some((button: any) => button.id === 'online:friendAction:request:00000001'));
       assert(labels.some((label: any) => label.string === '你 · 飞行员0'));
       assert(labels.some((label: any) => label.string === '#00000000 · 在线'));
       assert(labels.some((label: any) => label.string === '#00000002 · 游戏中'));
       assert(labels.some((label: any) => label.string === '●' && label.color.hex === '#83f5a8'));
+      const dm = actions.find((button: any) => button.id === 'online:whisper:00000001');
+      const { x, y, cut } = dm.visual;
+      hud.pressedButton = dm.id;
+      hud.globalGraphics.clear();
+      hud.buttonFeedback();
+      assert(hud.globalGraphics.calls.some((call: any) => call.op === 'moveTo' &&
+        Math.abs(call.args[0] - (x - hud.w / 2 + cut)) < 0.01 && call.args[1] === hud.h / 2 - y));
+      dm.clip = { ...dm.clip, y: y + 1 };
+      hud.globalGraphics.clear();
+      hud.buttonFeedback();
+      assert.equal(hud.globalGraphics.calls.length, 0, 'outline stays inside the scrolled list');
 
       online.playersNext = 'next';
       online.revision++;
