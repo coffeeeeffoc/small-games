@@ -157,10 +157,11 @@ export class OnlineLobbyView {
         C.white,
       ).isBold = true;
       const field = this.h.node('LobbyComposer', n),
-        fw = Math.max(90, rw - 142);
+        fw = Math.max(90, rw - 142),
+        editorWidth = fw - 20;
       field.active = false;
       field.setPosition(rx + 10 + fw / 2 - this.h.w / 2, this.h.h / 2 - inputY - 22);
-      field.getComponent(UITransform)!.setContentSize(fw, 44);
+      field.getComponent(UITransform)!.setContentSize(editorWidth, 44);
       this.lobbySkin(n, 'panel', rx + 8, inputY, fw + 4, 44);
       field.setSiblingIndex(n.children.length - 1);
       const edit = (this.lobbyComposer = field.addComponent(EditBox));
@@ -170,7 +171,7 @@ export class OnlineLobbyView {
         this.h.w / 2,
         this.h.h / 2,
         roomy ? 18 : 13,
-        fw - 12,
+        editorWidth,
         40,
         C.white,
       );
@@ -180,7 +181,7 @@ export class OnlineLobbyView {
         this.h.w / 2,
         this.h.h / 2,
         roomy ? 17 : 12,
-        fw - 12,
+        editorWidth,
         40,
         C.dim,
       );
@@ -263,7 +264,7 @@ export class OnlineLobbyView {
     btn('players',this.h.t('在线','ONLINE'),l+16+tabW,top+4,tabW,o.lobbyTab==='players'?'gold':'panel');
     btn('friends',this.h.t('好友'+(o.incomingFriends?' · '+o.incomingFriends:''),'FRIENDS'),l+24+tabW*2,top+4,tabW,o.lobbyTab==='friends'?'gold':'panel');
     btn('chatPublic', this.h.t('大厅交流', 'PUBLIC'), rx + 8, top + 4, (rw - 24) / 2, !o.chatInbox ? 'gold' : 'panel');
-    btn('chatInbox', this.h.t(`私信${o.directUnread ? ' (' + o.directUnread + ')' : ''}`, `DM${o.directUnread ? ' (' + o.directUnread + ')' : ''}`), rx + 16 + (rw - 24) / 2, top + 4, (rw - 24) / 2, o.chatInbox ? 'gold' : 'panel', !o.socialAvailable);
+    btn('chatInbox', this.h.t(`私信${o.directUnread ? ' (' + o.directUnread + ')' : ''}`, `DM${o.directUnread ? ' (' + o.directUnread + ')' : ''}`), rx + 16 + (rw - 24) / 2, top + 4, (rw - 24) / 2, o.chatInbox ? 'gold' : 'panel');
     if(this.lobbyComposer && this.lobbyComposer.string !== o.chatDraft) this.lobbyComposer.string = o.chatDraft;
     const roomTop = top + 56,
       roomBottom = b - (o.lobbyTab !== 'rooms' && !o.room ? 0 : 98),
@@ -422,10 +423,19 @@ export class OnlineLobbyView {
       messages = o.visibleChat;
     if(this.lobbyComposer)this.lobbyComposer.enabled=!o.chatInbox||!!o.chatPeer;
     if(o.chatInbox&&!o.chatPeer){
-      const entries=o.social.conversations.filter(c=>!o.blockedPlayers.has(playerId(c))),list=this.h.listViewport(body,'chat',area,entries.length*96);
+      const entries = o.socialAvailable
+        ? o.social.conversations.filter((c) => !o.blockedPlayers.has(playerId(c)))
+        : [];
+      const list = this.h.listViewport(body, 'chat', area, entries.length * 96);
       entries.forEach((c,i)=>{const y=area.y+i*96-list.offset;if(y+96<area.y||y>area.y+area.h)return;this.lobbySkin(list.n,'panel',rx+8,y,rw-16,90);const caption=playerLabel(c)+(c.unread?' · '+c.unread:'')+'\n'+c.lastMessage.text;const label=this.h.label(list.n,caption,rx+18+(rw-108)/2,y+42,roomy?16:12,rw-108,74,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;btn('whisper:'+playerId(c),this.h.t('会话','OPEN'),r-80,y+24,68,'blue',false,list.n);});list.finish();
-      if(!entries.length)this.h.label(body,this.h.t('暂无会话 · 从在线玩家或好友发起私信','MESSAGE AN ONLINE PLAYER OR FRIEND'),rx+rw/2,area.y+40,13,rw-32,70,C.dim);
-      this.h.label(body,o.socialStatus||this.h.t('历史保存在服务端 · 选择会话后回复','HISTORY SAVED ON SERVER · SELECT A CONVERSATION'),rx+rw/2,inputY-12,10,rw-18,21,C.dim);
+      if (!entries.length) {
+        const message = o.socialAvailable
+          ? this.h.t('暂无会话 · 从在线玩家或好友发起私信', 'MESSAGE AN ONLINE PLAYER OR FRIEND')
+          : this.h.t('私信服务暂不可用', 'PRIVATE MESSAGING UNAVAILABLE');
+        this.h.label(body, message, rx + rw / 2, area.y + 40, 13, rw - 32, 70, C.dim);
+      }
+      if (o.socialAvailable)
+        this.h.label(body,o.socialStatus||this.h.t('历史保存在服务端 · 选择会话后回复','HISTORY SAVED ON SERVER · SELECT A CONVERSATION'),rx+rw/2,inputY-12,10,rw-18,21,C.dim);
       for(const id of ['online:chatSend','online:chatInvite']){const button=this.h.buttons.find(b=>b.id===id);if(button)button.disabled=true;}
       this.lobbyStamp=`${o.revision}:${o.chatRevision}`;return;
     }

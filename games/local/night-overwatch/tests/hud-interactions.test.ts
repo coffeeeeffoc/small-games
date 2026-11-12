@@ -1658,6 +1658,38 @@ test('new shop categories filter cards and the home lobby respects capability an
  }inset=0;
 });
 
+test('lobby keeps the private tab usable without social service and insets the chat editor', () => {
+  Object.assign(frame, { width: 844, height: 390 });
+  inset = 0;
+  const hud = new HUD(new SceneNode()), sim = new Simulation();
+  const online = new Online({ getItem: () => null, setItem() {} }, () => {});
+  hud.online = online;
+  online.show('menu');
+  hud.update(sim, world);
+  const button = (id: string) => hud.buttons.find((b: any) => b.id === `online:${id}`);
+  const field = hud.modal.getChildByName('LobbyComposer');
+  const editorWidth = field.getComponent(cc.UITransform).contentSize.width;
+  const editorLeft = hud.w / 2 + field.position.x - editorWidth / 2;
+  assert.equal(button('chatInbox').disabled, false);
+  assert(Math.abs(editorLeft - button('chatPublic').x - 12) < 0.01);
+
+  online.selectChat(undefined, true);
+  hud.update(sim, world);
+  assert(panelLabels(hud).some((label: any) => label.string === '私信服务暂不可用'));
+  assert.equal(field.getComponent(cc.EditBox).enabled, false);
+  assert.equal(button('chatSend').disabled, true);
+  assert.equal(button('chatInvite').disabled, true);
+
+  online.socialAvailable = true;
+  online.revision++;
+  hud.update(sim, world);
+  assert(panelLabels(hud).some((label: any) => label.string.startsWith('暂无会话')));
+  online.selectChat();
+  hud.update(sim, world);
+  assert.equal(field.getComponent(cc.EditBox).enabled, true);
+  online.dispose();
+});
+
 test('global direct conversations retain their composer, fit touch screens and preserve the live room',()=>{
  for(const [width,height] of [[568,320],[844,390],[1280,720]]){
   Object.assign(frame,{width,height});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;
