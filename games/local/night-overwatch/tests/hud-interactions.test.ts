@@ -1690,6 +1690,43 @@ test('lobby keeps the private tab usable without social service and insets the c
   online.dispose();
 });
 
+test('lobby player rows show status and fit more players while keeping full touch targets', () => {
+  try {
+    for (const [width, height, visible] of [[568, 320, 2], [844, 390, 4], [1280, 720, 8]]) {
+      Object.assign(frame, { width, height });
+      inset = 12;
+      const hud = new HUD(new SceneNode()), sim = new Simulation();
+      const online = new Online({ getItem: () => null, setItem() {} }, () => {});
+      hud.online = online;
+      online.authenticatedId = '00000000';
+      online.socialAvailable = true;
+      online.onlinePlayers = Array.from({ length: 10 }, (_, i) => ({
+        playerId: String(i).padStart(8, '0'), nickname: '飞行员' + i,
+        status: i === 2 ? 'playing' : 'available',
+      }));
+      online.showPlayers();
+      hud.update(sim, world);
+      const list = hud.listAreas.find((area: any) => area.key === 'players');
+      const actions = hud.buttons.filter((button: any) => button.id.startsWith('online:whisper:'));
+      assert(1 + actions.filter((button: any) => button.y + button.h <= list.y + list.h).length >= visible);
+      assert(!hud.buttons.some((button: any) => button.id === 'online:playersNext'));
+      assert(!actions.some((button: any) => button.id.endsWith(online.authenticatedId)));
+      assert(actions.every((button: any) => button.h >= 44 && button.w >= 44 && button.clip.y === list.y));
+      const labels = panelLabels(hud);
+      assert(labels.some((label: any) => label.string === '你 · 飞行员0'));
+      assert(labels.some((label: any) => label.string === '#00000000 · 在线'));
+      assert(labels.some((label: any) => label.string === '#00000002 · 游戏中'));
+      assert(labels.some((label: any) => label.string === '●' && label.color.hex === '#83f5a8'));
+
+      online.playersNext = 'next';
+      online.revision++;
+      hud.update(sim, world);
+      assert(hud.buttons.some((button: any) => button.id === 'online:playersNext' && !button.disabled));
+      online.dispose();
+    }
+  } finally { inset = 0; }
+});
+
 test('global direct conversations retain their composer, fit touch screens and preserve the live room',()=>{
  for(const [width,height] of [[568,320],[844,390],[1280,720]]){
   Object.assign(frame,{width,height});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;

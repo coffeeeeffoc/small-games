@@ -4,6 +4,7 @@ import { formatTime } from './core/BattleRecords';
 import { MISSIONS, CAMPAIGN_BOARD_VERSION } from './core/MissionCatalog';
 import type { HUD } from './HUD';
 import { C, col } from './HudTheme';
+import { fitName } from './core/SafeArea';
 import {
   EditBox,
   Graphics,
@@ -15,7 +16,7 @@ import {
   UITransform,
   isValid,
 } from 'cc';
-import { playerId, playerLabel, type Online } from './Online';
+import { playerId, playerLabel, playerTag, type Online } from './Online';
 type OnlineHost = Pick<
   HUD,
   | 'artwork'
@@ -271,34 +272,74 @@ export class OnlineLobbyView {
       rowH = this.h.h < 420 ? 112 : 136,
       rooms = o.rooms;
     if(o.lobbyTab !== 'rooms') {
-      const friends=o.lobbyTab==='friends',entries=friends?[...o.social.requests.filter(p=>!o.blockedPlayers.has(playerId(p))),...o.social.friends]:o.onlinePlayers;
-      const bottom=roomBottom-(friends?0:46),height=Math.max(44,bottom-roomTop),row=110;
-      const list=this.h.listViewport(body,'players',{x:l+8,y:roomTop,w:lw-16,h:height},entries.length*row);
-      entries.forEach((p,i)=>{
-        const y=roomTop+i*row-list.offset,id=playerId(p),own=id===o.authenticatedId;
-        if(y+row<roomTop||y>bottom)return;
-        this.lobbySkin(list.n,'panel',l+8,y,lw-16,row-6);
-        const status=p.status==='playing'?this.h.t('游戏中','PLAYING'):p.status==='offline'?this.h.t('离线','OFFLINE'):this.h.t('在线','ONLINE');
-        const tone=p.status==='offline'?C.dim:p.status==='playing'?C.amber:C.mint;
-        this.h.label(list.n,'●',l+20,y+18,15,18,24,tone);
-        const name=this.h.label(list.n,playerLabel(p)+(own?this.h.t(' · 你',' · YOU'):''),l+34+(lw-58)/2,y+18,roomy?16:12,lw-58,28,C.white);name.enableWrapText=false;name.overflow=Label.Overflow.SHRINK;
-        const pending='direction' in p?p.direction:undefined;
-        this.h.label(list.n,status+(pending?this.h.t(pending==='incoming'?' · 向你申请好友':' · 等待对方同意',pending==='incoming'?' · FRIEND REQUEST':' · REQUEST SENT'):''),l+lw/2,y+41,11,lw-36,24,tone);
-        if(!own){
-          const blocked=o.blockedPlayers.has(id),w=(lw-48)/3;
+      const friends = o.lobbyTab === 'friends';
+      const entries = friends
+        ? [...o.social.requests.filter((p) => !o.blockedPlayers.has(playerId(p))), ...o.social.friends]
+        : o.onlinePlayers;
+      const paging = !friends && (o.playersPrevious.length > 0 || !!o.playersNext);
+      const bottom = roomBottom - (paging ? 46 : 0);
+      const area = { x: l + 8, y: roomTop, w: lw - 16, h: Math.max(44, bottom - roomTop) };
+      const inlineActions = area.w >= 320;
+      const w = inlineActions ? 56 : (area.w - 28) / 3;
+      const end = area.x + area.w - 12, textX = area.x + 24;
+      let total = 0;
+      const rows = entries.map((p) => {
+        const id = playerId(p), own = id === o.authenticatedId;
+        const height = own || inlineActions ? 52 : 74;
+        const row = { p, id, own, height, offset: total };
+        total += height;
+        return row;
+      });
+      const list = this.h.listViewport(body, 'players', area, total);
+      for (const { p, id, own, height, offset } of rows) {
+        const y = roomTop + offset - list.offset;
+        if (y + height <= roomTop || y >= bottom) continue;
+        this.h.rect(list.g, area.x + 1, y, area.w - 10, height - 4, C.ink, C.line, 4);
+        const status = p.status === 'playing' ? this.h.t('游戏中', 'PLAYING')
+          : p.status === 'offline' ? this.h.t('离线', 'OFFLINE') : this.h.t('在线', 'ONLINE');
+        const tone = p.status === 'offline' ? C.dim : p.status === 'playing' ? C.amber : '#83f5a8';
+        const stacked = !own && !inlineActions;
+        const actionX = end - 3 * w - 8, actionY = y + (stacked ? 26 : 2);
+        const textW = (!own && inlineActions ? actionX - 6 : end) - textX;
+        const centerX = textX + textW / 2;
+        const titleY = y + (stacked ? 9 : 14), detailY = y + (stacked ? 21 : 34);
+        this.h.label(list.n, '●', area.x + 12, titleY, 12, 16, 18, tone);
+        const font = roomy ? 16 : 13;
+        const nickname = p.nickname || p.name || this.h.t('飞行员', 'PILOT');
+        const title = own ? this.h.t('你 · ', 'YOU · ') + nickname : nickname;
+        const name = this.h.label(list.n, fitName(title, textW, font), centerX, titleY, font, textW, 20);
+        name.enableWrapText = false;
+        name.horizontalAlign = Label.HorizontalAlign.LEFT;
+        name.isBold = true;
+        name.lineHeight = font;
+        const pending = 'direction' in p ? p.direction : undefined;
+        const detail = playerTag(id) + ' · ' + status + (pending
+          ? this.h.t(pending === 'incoming' ? ' · 向你申请好友' : ' · 等待对方同意', pending === 'incoming' ? ' · FRIEND REQUEST' : ' · REQUEST SENT') : '');
+        const meta = this.h.label(list.n, detail, centerX, detailY, 11, textW, 16, C.dim);
+        meta.enableWrapText = false;
+        meta.overflow = Label.Overflow.SHRINK;
+        meta.horizontalAlign = Label.HorizontalAlign.LEFT;
+        if (!own) {
+          const blocked = o.blockedPlayers.has(id), secondX = actionX + w + 4;
           if(pending){
-            btn('friendAction:'+(pending==='incoming'?'accept':'cancel')+':'+id,this.h.t(pending==='incoming'?'同意':'取消',pending==='incoming'?'ACCEPT':'CANCEL'),l+16,y+57,w,'gold',o.socialBusy,list.n);
-            btn(pending==='incoming'?'friendAction:decline:'+id:'whisper:'+id,this.h.t(pending==='incoming'?'拒绝':'私信',pending==='incoming'?'DECLINE':'MESSAGE'),l+24+w,y+57,w,'blue',o.socialBusy,list.n);
+            btn('friendAction:'+(pending==='incoming'?'accept':'cancel')+':'+id,this.h.t(pending==='incoming'?'同意':'取消',pending==='incoming'?'ACCEPT':'CANCEL'),actionX,actionY,w,'gold',o.socialBusy,list.n);
+            btn(pending==='incoming'?'friendAction:decline:'+id:'whisper:'+id,this.h.t(pending==='incoming'?'拒绝':'私信',pending==='incoming'?'DECLINE':'DM'),secondX,actionY,w,'blue',o.socialBusy,list.n);
           }else{
-            btn('whisper:'+id,this.h.t('私信','MESSAGE'),l+16,y+57,w,'blue',blocked,list.n);
-            btn('invitePlayer:'+id,this.h.t('邀请','INVITE'),l+24+w,y+57,w,'gold',!o.canInvite(p),list.n);
+            const canInvite = o.canInvite(p);
+            btn('whisper:'+id,this.h.t('私信','DM'),actionX,actionY,w,'blue',blocked,list.n);
+            btn('invitePlayer:'+id,this.h.t('邀请','INVITE'),secondX,actionY,w,canInvite?'gold':'panel',!canInvite,list.n);
           }
-          const added=o.social.friends.some(f=>playerId(f)===id),requested=o.social.requests.some(f=>playerId(f)===id);
-          btn('friendAction:request:'+id,this.h.t(added?'好友':requested?'已申请':'加好友',added?'FRIEND':requested?'PENDING':'ADD'),l+32+w*2,y+57,w,'panel',added||requested||blocked||o.socialBusy,list.n);
+          const added = o.social.friends.some((f) => playerId(f) === id);
+          const request = o.social.requests.find((f) => playerId(f) === id);
+          const relationship = added ? this.h.t('好友', 'FRIEND')
+            : request?.direction === 'incoming' ? this.h.t('待处理', 'NEW')
+            : request ? this.h.t('已申请', 'SENT') : this.h.t('加好友', 'ADD');
+          btn('friendAction:request:'+id,relationship,secondX+w+4,actionY,w,'panel',added||!!request||blocked||o.socialBusy,list.n);
         }
-      });list.finish();
+      }
+      list.finish();
       if(!entries.length)this.h.label(body,o.socialStatus||this.h.t(!o.socialAvailable?'等待社交服务更新':friends?'暂无好友 · 从在线玩家添加':'正在刷新在线玩家…',!o.socialAvailable?'SOCIAL SERVICE UNAVAILABLE':friends?'ADD FRIENDS FROM ONLINE PLAYERS':'REFRESHING PLAYERS…'),l+lw/2,roomTop+34,12,lw-32,64,C.dim);
-      if(!friends){btn('playersPrev','‹',l+8,roomBottom-44,44,'panel',!o.playersPrevious.length);this.h.label(body,String(o.playersPrevious.length+1),l+lw/2,roomBottom-22,13,lw-120,28,C.dim);btn('playersNext','›',l+lw-52,roomBottom-44,44,'panel',!o.playersNext);}
+      if(paging){btn('playersPrev','‹',l+8,roomBottom-44,44,'panel',!o.playersPrevious.length);this.h.label(body,String(o.playersPrevious.length+1),l+lw/2,roomBottom-22,13,lw-120,28,C.dim);btn('playersNext','›',l+lw-52,roomBottom-44,44,'panel',!o.playersNext);}
     } else {
     const roomList = this.h.listViewport(
       body,

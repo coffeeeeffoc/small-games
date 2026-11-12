@@ -7,7 +7,8 @@ import type { AssetCommand, AssetSnapshot, BattleLoadout } from './core/Progress
 
 export type Player = { id?: string; userId?: string; playerId?: string; name?: string; nickname?: string; ready?: boolean; disconnected?: boolean; reconnectUntil?: number; takenOver?: boolean; left?:boolean; online?:boolean; status?:'available'|'playing'|'offline'; settlement?: Settlement };
 export const playerId = (player: Player) => player.playerId || player.userId || player.id || '';
-export const playerLabel = (player: Player) => `${player.nickname || player.name || '飞行员'} #${playerId(player).replace(/-/g, '').slice(-8).toUpperCase()}`;
+export const playerTag = (id: string) => `#${id.replace(/-/g, '').slice(-8).toUpperCase()}`;
+export const playerLabel = (player: Player) => `${player.nickname || player.name || '飞行员'} ${playerTag(playerId(player))}`;
 type DuelView = Omit<ReturnType<typeof viewDuel>,'enemyEquipment'>&Partial<Pick<ReturnType<typeof viewDuel>,'enemyEquipment'>>;
 export type Settlement = { points: number; totalPoints?: number; wins?: number; games?: number; outcome?: string; coins?:number; xp?:number; totalXp?:number; status?:string; firstClear?:boolean; fragments?:Record<string,number> };
 export type RoomSummary = { code: string; status: string; mode: string; players: Player[]; playerCount: number; canJoin: boolean; canSpectate: boolean };
