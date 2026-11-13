@@ -11,6 +11,17 @@ export {
 import { CompetitionError, type Rule } from './types.js';
 import type { RankedRule } from './ranked-types.js';
 
+function isNewerVersion(target: string | undefined, current: string) {
+  const format = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+  if (!target || !format.test(target) || !format.test(current)) return false;
+  const currentParts = current.split('.');
+  for (const [index, part] of target.split('.').entries()) {
+    const diff = BigInt(part) - BigInt(currentParts[index]!);
+    if (diff !== 0n) return diff > 0n;
+  }
+  return false;
+}
+
 export function readNightReleaseConfig(env: Record<string, string | undefined>) {
   if (env.NIGHT_RELEASE_CONFIG === undefined || env.NIGHT_RELEASE_CONFIG === '') return undefined;
   try {
@@ -123,10 +134,19 @@ export function createNightRelease(
     },
     metadata(buildId?: string) {
       const selected = client(buildId);
-      const target =
-        config && selected && 'channel' in selected
-          ? (config.channels.find((c) => c.channel === selected.channel)?.latestBuildId ?? null)
-          : null;
+      const currentVersion = selected?.version ?? null;
+      const recommendedId = config?.channels.find(
+        (c) => c.channel === selected?.channel,
+      )?.latestBuildId;
+      let target = config?.builds.find((b) => b.buildId === recommendedId);
+      // TapTap may deliver a new build before its channel recommendation is changed.
+      if (
+        target &&
+        target.buildId !== buildId &&
+        currentVersion &&
+        !isNewerVersion(target.version, currentVersion)
+      )
+        target = undefined;
       const disabled = clientDisabled(buildId);
       const admissions = {
         ranked: !disabled && !!selected?.ranked && canStart('ranked', selected.ranked),
@@ -137,13 +157,17 @@ export function createNightRelease(
       return {
         release: {
           currentBuildId: buildId ?? null,
-          currentVersion: selected && 'version' in selected ? (selected.version ?? null) : null,
+          currentVersion,
           backendVersion:
             selected && 'backendVersion' in selected ? (selected.backendVersion ?? null) : null,
-          latestBuildId: target,
-          latestVersion: config?.builds.find((b) => b.buildId === target)?.version ?? null,
+          latestBuildId: target?.buildId ?? null,
+          latestVersion: target?.version ?? null,
           update:
-            target && target !== buildId ? (canStartNewGames ? 'optional' : 'required') : 'none',
+            target && target.buildId !== buildId
+              ? canStartNewGames
+                ? 'optional'
+                : 'required'
+              : 'none',
           canStartNewGames,
           admissions,
           action: 'reopen',

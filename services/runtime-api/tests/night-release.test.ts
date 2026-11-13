@@ -96,6 +96,42 @@ it('reports the published version for the client channel without guessing missin
   });
 });
 
+it('only offers a channel recommendation to a numbered client when it is newer', () => {
+  const { old, current, config } = releaseFixture();
+  const a = config.builds[0]!;
+  const b = config.builds[1]!;
+  const channel = config.channels[0]!;
+  a.version = '1.0.9';
+  b.version = '1.0.10';
+  channel.latestBuildId = a.buildId;
+  const metadata = (buildId: string) =>
+    createNightRelease(
+      [current.ranked, old.ranked],
+      [current.multiplayer, old.multiplayer],
+      config,
+    ).metadata(buildId).release;
+
+  const noUpdate = { update: 'none', latestBuildId: null, latestVersion: null };
+  expect(metadata(b.buildId)).toMatchObject({ ...noUpdate, canStartNewGames: true });
+  b.disabled = true;
+  expect(metadata(b.buildId)).toMatchObject({ ...noUpdate, canStartNewGames: false });
+  delete b.disabled;
+  a.version = b.version;
+  expect(metadata(b.buildId)).toMatchObject(noUpdate);
+  delete a.version;
+  expect(metadata(b.buildId)).toMatchObject(noUpdate);
+
+  a.version = '1.0.9';
+  channel.latestBuildId = b.buildId;
+  expect(metadata(a.buildId)).toMatchObject({
+    update: 'optional',
+    latestBuildId: b.buildId,
+    latestVersion: b.version,
+  });
+  a.disabled = true;
+  expect(metadata(a.buildId)).toMatchObject({ update: 'required', latestBuildId: b.buildId });
+});
+
 it('pins real A/B apply/result/boards, restores lost creates after stop, and retains unknown versions', async () => {
   const memory = memoryRuns(),
     initial = releaseFixture(),
