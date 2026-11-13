@@ -478,7 +478,7 @@ export class ProgressionView {
   }
   private inbox(){
     const q=this.q,l=this.left,r=this.right,y=this.top;this.tab('inbox:mail',this.t('信箱','INBOX'),l,y,Math.min(200,(r-l)*.25),q.section!=='news');this.tab('inbox:news',this.t('公告','NEWS'),l+Math.min(208,(r-l)*.26),y,Math.min(200,(r-l)*.25),q.section==='news');
-    const news=q.section==='news',entries=news?q.assets?.announcements||[]:q.assets?.mail||[],selected=entries.find(m=>m.id===q.selectedMail);
+    const news=q.section==='news',entries=news?q.assets?.announcements||[]:q.mail,selected=entries.find(m=>m.id===q.selectedMail);
     if(selected)q.selectedMail=selected.id;
     const top=y+53,bottom=this.bottom-54,lw=this.narrow?(r-l)*.32:(r-l)*.35,rx=l+lw+14,rw=r-rx,size=this.low?2:3,rowH=Math.min(this.low?68:112,(bottom-top-(size-1)*8)/size);
     this.list('inbox:'+q.section,l,top,lw,bottom-top,entries.length*(rowH+8),offset=>entries.forEach((m,i)=>{

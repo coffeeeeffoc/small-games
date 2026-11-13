@@ -11,6 +11,22 @@ function setup(){
   return {q:new Quartermaster(online,storage),online,storage,values,calls};
 }
 
+test('opening the inbox selects and marks the newest mail as read',async()=>{
+  const {q,online,calls}=setup();
+  const [mail]=online.assets.mail;
+  online.assets.mail=[
+    {...mail,id:'old',createdAt:1,read:false},
+    {...mail,id:'new',createdAt:3,read:false},
+    {...mail,id:'middle',createdAt:2,read:false},
+  ];
+  q.show('inbox');
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(q.selectedMail,'new');
+  assert.deepEqual(calls.map(c=>[c.kind,c.mailId]),[['read-mail','new']]);
+  assert.deepEqual(q.mail.map(m=>m.id),['new','middle','old']);
+  assert.deepEqual(online.assets.mail.map((m:{id:string})=>m.id),['old','new','middle']);
+});
+
 test('wheel accelerates, cruises and spends 2.6 seconds slowing to the exact result',()=>{
   const speed=(second:number)=>(wheelTravel((second+.001)/4.8)-wheelTravel(second/4.8))/.001;
   assert.equal(WHEEL_DURATION,4800);assert.equal(wheelTravel(-1),0);assert.equal(wheelTravel(2),1);

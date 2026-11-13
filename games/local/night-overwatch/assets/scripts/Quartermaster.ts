@@ -58,6 +58,7 @@ export class Quartermaster {
   private owner=''; private disposed=false; private online:Online; private storage:IntentStorage;
   constructor(online:Online,storage:IntentStorage){this.online=online;this.storage=storage;}
   get assets(){return this.online.assets;}
+  get mail(){return [...(this.assets?.mail??[])].sort((a,b)=>b.createdAt-a.createdAt);}
   get catalog(){return this.assets?.catalog||CATALOG;}
   get packages(){return this.assets?.packages||PACKAGES;}
   get pools(){return this.assets?.pools||POOLS;}
@@ -144,7 +145,7 @@ export class Quartermaster {
     try{const value=JSON.parse(this.storage.getItem(this.key())||'null');if(value?.requestId&&value?.kind)this.pending=value;}catch{/* Corrupt local intent cannot alter server assets. */}
     this.allowDeveloperIntent();
   }
-  show(page:ProgressionPage,push=true){if(page!=='supply'&&this.wheel&&!this.wheel.shown){this.wheel.shown=true;this.wheel.started=0;}if(push&&page!==this.page)this.navigation.push(this.capture());this.page=page;this.leaveTo=undefined;this.leavingBack=false;this.drag=undefined;this.section=page==='growth'?'base':'';this.index=0;this.detail=false;this.info='';this.scrolls={};this.confirmation=undefined;this.message=['',''];this.revision++;if(page&&page!=='modes')void this.refresh().then(()=>{if(this.page==='inbox'&&this.section!=='news'){const mail=this.assets?.mail.find(m=>m.id===this.selectedMail)||this.assets?.mail[0];if(mail){this.selectedMail=mail.id;this.revision++;if(!mail.read)void this.execute({kind:'read-mail',mailId:mail.id});}}});}
+  show(page:ProgressionPage,push=true){if(page!=='supply'&&this.wheel&&!this.wheel.shown){this.wheel.shown=true;this.wheel.started=0;}if(push&&page!==this.page)this.navigation.push(this.capture());this.page=page;this.leaveTo=undefined;this.leavingBack=false;this.drag=undefined;this.section=page==='growth'?'base':'';this.index=0;this.detail=false;this.info='';this.scrolls={};this.confirmation=undefined;this.message=['',''];this.revision++;if(page&&page!=='modes')void this.refresh().then(()=>{if(this.page==='inbox'&&this.section!=='news'){const mails=this.mail,mail=mails.find(m=>m.id===this.selectedMail)||mails[0];if(mail){this.selectedMail=mail.id;this.revision++;if(!mail.read)void this.execute({kind:'read-mail',mailId:mail.id});}}});}
   tickPresentation(){
     const now=Date.now();
     if(this.wheelPreviewAt&&now-this.wheelPreviewAt>=WHEEL_PREVIEW_DURATION){this.wheelPreviewAt=0;this.revision++;}
