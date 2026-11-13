@@ -1,9 +1,9 @@
 import { Simulation } from './Simulation.ts';
-import { WEAPONS, GARRISON, garrisonPoints, patrolPoint, type Point } from './Data.ts';
+import { WEAPONS, garrisonPoints, patrolPoint, type Point } from './Data.ts';
 import { MISSIONS } from './MissionCatalog.ts';
 import type { BattleLoadout } from './Progression.ts';
 
-export const DUEL_VERSION = 'night-duel-v11';
+export const DUEL_VERSION = 'night-duel-v12';
 // Retained for older presentation callers; authority has no match time limit.
 export const DUEL_SECONDS = 0;
 type Pilot = ReturnType<Simulation['pilotState']> & { leaseUntil: number };
@@ -16,19 +16,24 @@ const check = (value: unknown) => { if (!value) throw Error('Invalid duel input'
 export function createDuel(seed: number, bot = false): DuelState {
   check(Number.isSafeInteger(seed) && seed >= 0 && seed <= 0x7fffffff);
   const map = seed % 2 ? 'highland' : 'valley';
-  const sim = new Simulation(MISSIONS.find(mission => mission.map === map)!.id);
+  const light = (['day', 'dusk', 'night'] as const)[Math.floor(seed / 2) % 3];
+  const sim = new Simulation(MISSIONS.find(mission => mission.map === map && mission.light === light)!.id);
   sim.duelMode = true; sim.phase = 'playing'; sim.units = []; sim.spawned = new Set(sim.mission.events.map((_, i) => i));
   sim.convoy = 'holding'; sim.progress = 0;
   let random = seed || 1;
   const next = () => { random = (Math.imul(random, 1664525) + 1013904223) >>> 0; return random / 4294967296; };
-  const formation = Array.from({ length: 8 }, (_, i) => ({ x: 48 + (i % 3) * 22 + next() * 8, z: -57 + Math.floor(i / 3) * 38 + next() * 8 }));
+  const armor = 6 + Math.floor(seed / 24) % 3 * 2, infantry = 32 + Math.floor(seed / 6) % 4 * 8;
+  const spacing = 32 + next() * 8, offset = next() * 16 - 8;
+  const formation = Array.from({ length: armor }, (_, i) => ({ x: 44 + (i % 3) * (20 + next() * 6), z: -57 + Math.floor(i / 3) * spacing + offset }));
   for (const side of [0, 1]) for (let i = 0; i < formation.length; i++) {
     const sign = side === 0 ? -1 : 1;
-    const unit = sim.addUnit(i < 4 ? 'light' : i < 6 ? 'turret' : 'heavy', { x: formation[i].x * sign, z: formation[i].z * sign }, side === 0);
+    const unit = sim.addUnit(i < armor / 2 ? 'light' : i < armor - 2 ? 'turret' : 'heavy', { x: formation[i].x * sign, z: formation[i].z * sign }, side === 0);
     unit.group = side;
   }
-  for(const side of [0,1])for(const point of garrisonPoints(GARRISON.duelPerSide,side)){
-    const unit=sim.addUnit('infantry',point,side===0);unit.group=side;
+  const garrison = garrisonPoints(infantry,1).map(point=>({x:point.x+next()*10-5,z:point.z+next()*10-5}));
+  for(const side of [0,1])for(const point of garrison){
+    const sign=side===0?-1:1;
+    const unit=sim.addUnit('infantry',{x:point.x*sign,z:point.z*sign},side===0);unit.group=side;
   }
   const first = copy({ ...sim.pilotState(), leaseUntil: 0 }), second = copy(first);
   second.flight.aircraft.x *= -1; second.flight.aircraft.z *= -1;

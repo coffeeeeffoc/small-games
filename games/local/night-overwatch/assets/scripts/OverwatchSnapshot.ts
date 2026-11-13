@@ -186,6 +186,7 @@ export function captureOverwatchSnapshot(game: SnapshotSource, presentedTime: nu
     friendlyRisk: game.sim.friendlyRisk,
     aimedUnit: game.sim.aimedUnit?.id,
     ui: {
+      pageControls: game.hud.modal ? game.hud.buttons.filter(b => b.label.node.activeInHierarchy && game.hud.inModal(b.label.node, game.hud.modal)).map(b => b.id) : [],
       homeArtworkReady: !!game.hud.homeArtwork.spriteFrame,
       interfaceArtworkReady: game.hud.interfaceArtworkReady,
       artwork: {
@@ -231,7 +232,7 @@ export function captureOverwatchSnapshot(game: SnapshotSource, presentedTime: nu
       .filter(
         (b) =>
           b.label.node.activeInHierarchy &&
-          (!game.hud.modal || game.hud.inModal(b.label.node) || game.hud.isGlobalAction(b.id)),
+          (!game.hud.activeModal || game.hud.inModal(b.label.node) || game.hud.activeModal === game.hud.modal && game.hud.isGlobalAction(b.id)),
       )
       .map(({ id, x, y, w, h, label, detail, visual, disabled, clip }) => {
         const right = clip ? Math.min(x + w, clip.x + clip.w) : x + w,

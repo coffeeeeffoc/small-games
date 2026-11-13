@@ -1,6 +1,6 @@
 import { Color, Label, Node, Graphics, Sprite, UITransform, Mask, UIOpacity, Tween, Vec3, tween } from 'cc';
 import type { HUD } from './HUD';
-import { playerLabel } from './Online';
+import { playerLabel, duelEndNotice, duelRewardNotice } from './Online';
 import { ProgressionArt } from './ProgressionArt';
 import { Quartermaster, effectEnglish, wheelLandingAngle, wheelTravel, WHEEL_PREVIEW_DURATION, GIFT_BURST } from './Quartermaster';
 import { FRAGMENTS, type Fragment, CATALOG, PACKAGES, POOLS, SKILLS, WHEEL_PRIZES, eligibleDrops, levelProgress, attackPreview, type Product, type Effect, type AssetReward, REWARD_TOKEN, rewardText } from './core/Progression';
@@ -13,6 +13,20 @@ const ivory='#f4e9d1',dim='#a7bcc9',cyan='#78e3ff',gold='#e5bd71';
 const color=(hex:string)=>new Color().fromHEX(hex);
 const names:Record<string,[string,string]>={modes:['开始行动','DEPLOY'],loadout:['作战配置','LOADOUT'],shop:['军需商店','ARMORY'],supply:['补给','SUPPLY & WHEEL'],growth:['等级成长','GROWTH & SKILLS'],tasks:['任务','TASKS'],inbox:['消息中心','MESSAGES'],warehouse:['我的仓库','WAREHOUSE'],craft:['碎片合成','FRAGMENT WORKSHOP'],receipts:['开箱记录','OPENING HISTORY'],checkin:['每日签到','DAILY CHECK-IN'],probability:['概率与内容','CONTENTS & ODDS']};
 const rarity=['普通','精良','稀有','史诗'],rarityEn=['Common','Fine','Rare','Epic'],rarityColor=['#b8c0c7','#74cf9c','#69b7ff','#d08aff'];
+
+export function homeHeaderLayout(h: Pick<HUD, 'w' | 'h' | 'safe' | 'buttons'>, hasNews: boolean) {
+  const w=h.w,left=h.safe.left+Math.max(12,w*.016),right=w-h.safe.right-Math.max(12,w*.016);
+  const bar=Math.max(48,h.h*.115),settingsX=h.buttons.find(b=>b.id==='settings')?.x??right-44;
+  const compactHeader=w<1280,tightHeader=w<700,inboxW=compactHeader?46:132,coinW=compactHeader?88:150;
+  const noticeX=settingsX-inboxW*2-12,coinX=(compactHeader||hasNews?settingsX-inboxW-6:noticeX)-coinW-8;
+  const entryRight=tightHeader?settingsX-inboxW-6:coinX;
+  const profileW=Math.max(44,Math.min(tightHeader?100:compactHeader?140:w*.25,entryRight-left-(compactHeader?264:376)-4));
+  let x=left+profileW+4;
+  const entries=([['friends',compactHeader?44:64],['players',compactHeader?112:158],['chat',compactHeader?44:64],['ranking',compactHeader?48:74]] as const).map(([panel,w])=>{
+    const bounds={panel,x,y:h.safe.top+3,w,h:Math.max(44,bar-6)};x+=w+4;return bounds;
+  });
+  return {bar,settingsX,compactHeader,tightHeader,inboxW,coinW,noticeX,coinX,profileW,entries};
+}
 
 /** One responsive Cocos presentation for the approved nine screens, with live text and touch targets. */
 export class ProgressionView {
@@ -151,34 +165,29 @@ export class ProgressionView {
     g.moveTo(X(.56),Y(.22));g.lineTo(X(.78),Y(.44));g.stroke();
   }
   private home(){
-    const h=this.height,w=this.w,l=this.left,r=this.right,q=this.q,top=this.h.safe.top,bar=Math.max(48,h*.115);
+    const h=this.height,w=this.w,l=this.left,r=this.right,q=this.q,top=this.h.safe.top,hasNews=!!q.assets?.announcements?.length;
+    const {bar,settingsX,compactHeader,tightHeader,inboxW,coinW,noticeX,coinX,profileW,entries}=homeHeaderLayout(this.h,hasNews);
     this.h.rect(this.g,0,0,w,top+bar,'#020e19c9','#61707c');
-    const compactHeader=w<1000,profileW=compactHeader?140:w*.25;
-    if(!compactHeader)this.picture('homeBadge',l,top+bar*.2,bar*1.15,bar*.69);
-    const px=l+(compactHeader?0:bar*1.3),pw=profileW-(px-l);
+    const badge=!compactHeader&&profileW>=300;
+    if(badge)this.picture('homeBadge',l,top+bar*.2,bar*1.15,bar*.69);
+    const px=l+(badge?bar*1.3:0),pw=profileW-(px-l);
     this.h.button('online:profile','',px,top,pw,Math.max(44,bar),this.n);
     const pen=Math.min(16,bar*.3);this.pencil(px+8,top+3+(bar*.48-pen)/2,pen);
-    this.label(playerLabel(this.h.online?.identity||{}).split(' #')[0],px+13+pen,top+3,pw-21-pen,bar*.48,32,ivory,true,true);
-    this.label(`Lv.${q.assets?.level??1}${compactHeader?' EXP':''}`,px+8,top+bar*.53,compactHeader?70:48,20,compactHeader?15:20,ivory);
-    this.bar(px+(compactHeader?82:62),top+bar*.67,Math.max(25,pw-(compactHeader?96:178)),Math.max(5,bar*.09),(q.assets?.current??0)/(q.assets?.required||200));
+    const nickname=this.label(playerLabel(this.h.online?.identity||{}).split(' #')[0],px+13+pen,top+3,pw-21-pen,bar*.48,32,ivory,true,true);nickname.enableWrapText=false;nickname.overflow=Label.Overflow.SHRINK;
+    const level=this.label(`Lv.${q.assets?.level??1}${tightHeader?' · ● '+(q.assets?.coins.toLocaleString()??'—'):compactHeader?' EXP':''}`,px+8,top+bar*.53,tightHeader?pw-12:compactHeader?70:48,20,compactHeader?15:20,tightHeader?gold:ivory);level.enableWrapText=false;level.overflow=Label.Overflow.SHRINK;
+    if(!tightHeader)this.bar(px+(compactHeader?82:62),top+bar*.67,Math.max(25,pw-(compactHeader?96:178)),Math.max(5,bar*.09),(q.assets?.current??0)/(q.assets?.required||200));
     if(!compactHeader)this.label(`EXP ${q.assets?.current??0}/${q.assets?.required??200}`,px+pw-112,top+bar*.53,104,25,18,dim);
-    const recordX=l+profileW+8;
-    this.h.button('online:ranking',this.t('战绩','Records'),recordX,top+3,compactHeader?50:75,Math.max(44,bar-6),this.n).fontSize=this.font(24,13);
-    if(this.h.online?.available)this.h.button('online:menu',this.t('大厅','Lobby'),recordX+(compactHeader?54:80),top+3,compactHeader?48:75,Math.max(44,bar-6),this.n).fontSize=this.font(24,13);
-    if(!compactHeader)this.h.controlIcon(this.g,'ranking',recordX+37,top+bar*.26,25,ivory);
-    const settingsX=this.h.buttons.find(b=>b.id==='settings')?.x??r-44;
-    const inboxW=compactHeader?46:132,coinW=compactHeader?88:150;
+    const count=this.h.online?.onlineCount??'—';
+    const captions={friends:this.t('好友','Friends'),players:this.t(`在线玩家（${count}）`,`Players (${count})`),chat:this.t('大厅','Lobby'),ranking:this.t('战绩','Records')};
+    for(const b of entries){if(b.panel==='chat'&&!this.h.online?.available)continue;this.h.button('online:'+b.panel,captions[b.panel],b.x,b.y,b.w,b.h,this.n).fontSize=this.font(24,12);}
     this.h.button('qm:inbox',this.t('信箱','Inbox'),settingsX-inboxW-6,top+3,inboxW,Math.max(44,bar-6),this.n).fontSize=this.font(26,13);
-    const noticeX=settingsX-inboxW*2-12;
-    const hasNews=!!q.assets?.announcements?.length;if(!compactHeader&&!hasNews)this.h.button('qm:announcements',this.t('公告','News'),noticeX,top+3,inboxW,Math.max(44,bar-6),this.n).fontSize=this.font(26,13);
-    const coinX=(compactHeader||hasNews?settingsX-inboxW-6:noticeX)-coinW-8;
-    this.label('● '+(q.assets?.coins.toLocaleString()??'—'),coinX,top+8,coinW,bar-16,30,gold);
+    if(!compactHeader&&!hasNews)this.h.button('qm:announcements',this.t('公告','News'),noticeX,top+3,inboxW,Math.max(44,bar-6),this.n).fontSize=this.font(26,13);
+    if(!tightHeader)this.label('● '+(q.assets?.coins.toLocaleString()??'—'),coinX,top+8,coinW,bar-16,30,gold);
     if(q.unread){this.g.fillColor=color('#ec4940');this.g.circle(settingsX-11-w/2,h/2-top-10,4);this.g.fill();}
     const cy=Math.min(h*.755,this.bottom-44),ch=Math.min(h*.19,this.bottom-cy),gap=Math.max(6,w*.009),cw=(r-l-gap*3)/4;
-    const body=top+bar+this.ticker(top+bar,this.h.online?.updateNotice?r-Math.max(128,w*.175)-8:r);
+    const body=top+bar+this.ticker(top+bar,this.h.majorUpdate||this.h.online?.updateNotice?r-148:r);
     const buttonGap=Math.max(5,h*.014),bh=Math.max(44,Math.min(Math.max(46,h*.133),(cy-body-28-buttonGap)/2));
     const titleY=body+Math.min(12,h*.045),desiredTitleW=w*(this.low?.29:.33),bw=w*.30,fw=Math.max(128,w*.175);
-    if(this.h.online?.updateNotice)this.button('online:version',this.t('发现新版本','UPDATE AVAILABLE'),r-fw,body+4,fw,44,'panel');
     let titleX=l+8,titleW=Math.min(desiredTitleW,Math.max(0,cy-titleY-2*bh-buttonGap-16)*3);
     const titleBeside=titleW<desiredTitleW*.65;
     if(titleBeside){titleX=l+8+bw+16;titleW=Math.min(desiredTitleW,r-fw-titleX-12);}
@@ -189,13 +198,8 @@ export class ProgressionView {
       if(!this.narrow){this.picture(i?'homeCompass':'homeCrate',l+bw*.07,yy+bh*.18,bw*.22,bh*.64,false);label.fontSize=this.font(49,16);label.node.setPosition(l+8+bw*.64-w/2,h/2-yy-bh/2);label.node.getComponent(UITransform)!.setContentSize(bw*.65,bh-10);}
     }
     const fh=Math.max(44,h*.11),fy=Math.min(Math.max(body+8,h*.452),cy-2*fh-14);
-    // A short screen cannot fit both the version button and the online count above the side panel.
-    if(this.h.online&&fy-44>=top+Math.max(44,bar)+8&&!(this.h.online.updateNotice&&fy-44<body+50)){
-      const online=this.h.online,caption=online.onlineLabel(this.h.lang)+(online.directUnread?this.t(` · 私信${online.directUnread}`,` · DM ${online.directUnread}`):' ›');
-      this.h.rect(this.g,r-fw,fy-44,fw,44,'#07121cdd');this.h.button('online:players',caption,r-fw,fy-44,fw,44,this.n).fontSize=this.font(24,11);
-    }
     this.panel(r-fw,fy,fw,fh*2+6);this.button('qm:checkin',this.t('每日签到','CHECK IN'),r-fw+5,fy+3,fw-10,fh);
-    this.button('qm:supply',this.t('补给·抽奖','SUPPLY & WHEEL'),r-fw+5,fy+fh+3,fw-10,fh);
+    this.button('qm:supply',this.t('礼包·抽奖','GIFTS & WHEEL'),r-fw+5,fy+fh+3,fw-10,fh);
     for(const [i,[id,key,zh,en]]of [['shop','homeShop','军需商店','ARMORY'],['growth','homeGrowth','等级成长','GROWTH'],['tasks','homeTasks','任务','TASKS'],['warehouse','homeWarehouse','我的仓库','WAREHOUSE']].entries()){
       const x=l+i*(cw+gap);this.panel(x,cy,cw,ch);this.picture(key,x+4,cy+4,cw-8,Math.max(12,ch-24));
       this.h.gradient(this.g,x+4,cy+ch*.55,cw-8,ch*.42,'#020a1200','#020a12ef');
@@ -210,13 +214,10 @@ export class ProgressionView {
   /** Scrolling announcement strip under the home header; returns the height it occupies. */
   private ticker(y:number,hitRight:number){
     const news=this.q.assets?.announcements||[];if(!news.length)return 0;
-    const l=this.left,r=this.right,sh=this.low?24:30,badge=this.low?54:68,vx=l+badge+8,vw=r-l-badge-34;
+    const l=this.left,r=hitRight,sh=this.low?24:30,badge=this.low?54:68,vx=l+badge+8,vw=r-l-badge-34;
     this.h.gradient(this.g,l,y+2,r-l,sh,'#3a2608ee','#150d03ee',5,6);this.h.rect(this.g,l,y+2,r-l,sh,'#00000000','#e5bd7199',5);
     this.h.rect(this.g,l+3,y+5,badge,sh-6,'#e5bd71',undefined,3);
     this.label(this.t('公告','NEWS'),l+3,y+5,badge,sh-6,25,'#2a1a05',true);
-    const dot=this.h.node('TickerPulse',this.n),ink=dot.addComponent(Graphics),fade=dot.addComponent(UIOpacity);
-    ink.fillColor=color('#ff5a4e');ink.circle(l+badge-3-this.w/2,this.height/2-y-7,3.5);ink.fill();
-    this.loop(dot,fade).to(.55,{opacity:60}).to(.55,{opacity:255}).union().repeatForever().start();
     this.label('›',r-22,y+2,18,sh,30,gold,true);
     const view=this.h.node('TickerViewport',this.n);view.setPosition(vx+vw/2-this.w/2,this.height/2-y-2-sh/2);view.getComponent(UITransform)!.setContentSize(vw,sh);view.addComponent(Mask).type=Mask.Type.GRAPHICS_RECT;
     const line=news.map(m=>`【${this.messageTitle(m)}】${m.body.split(REWARD_TOKEN).join('').replace(/\s+/g,' ').slice(0,60)}`).join('　　◆　　');
@@ -636,7 +637,7 @@ export class ProgressionView {
   }
   private dialog(title:string,desiredHeight=390){
     const pw=Math.min(650,this.right-this.left),ph=Math.min(desiredHeight,this.height-this.h.safe.top-this.h.safe.bottom-24),x=(this.w-pw)/2,y=this.h.safe.top+(this.height-this.h.safe.top-this.h.safe.bottom-ph)/2;
-    for(const b of this.h.buttons)if(this.h.inModal(b.label.node))b.disabled=true;this.h.listAreas=[];
+    for(const b of this.h.buttons)if(this.h.inModal(b.label.node,this.h.modal))b.disabled=true;this.h.listAreas=this.h.listAreas.filter(a=>a.key==='direct');
     const overlay=this.h.node('RewardDialog',this.n);this.n=overlay;this.g=this.h.node('DialogShade',overlay).addComponent(Graphics);
     this.h.rect(this.g,0,0,this.w,this.height,'#01070ca8');this.surfaces=this.h.node('DialogPanel',overlay);this.panel(x,y,pw,ph);
     this.g=this.h.node('DialogFill',overlay).addComponent(Graphics);this.h.gradient(this.g,x+6,y+6,pw-12,ph-12,'#1a3547f5','#0b1b2af5',4);
@@ -660,7 +661,7 @@ export class ProgressionView {
   }
   private giftDialog(){
     const q=this.q,gift=q.gift!,opening=!!gift.started;
-    for(const b of this.h.buttons)if(this.h.inModal(b.label.node))b.disabled=true;this.h.listAreas=[];
+    for(const b of this.h.buttons)if(this.h.inModal(b.label.node,this.h.modal))b.disabled=true;this.h.listAreas=this.h.listAreas.filter(a=>a.key==='direct');
     const overlay=this.h.node('GiftPresentation',this.n);this.n=overlay;const background=this.a.get('base');if(background)this.h.coverImage(overlay,'GiftAirfield',background,0,0,this.w,this.height);const shade=this.h.node('GiftShade',overlay).addComponent(Graphics);this.h.rect(shade,0,0,this.w,this.height,'#03101b55');this.surfaces=this.h.node('GiftArt',overlay);this.g=this.h.node('GiftInk',overlay).addComponent(Graphics);
     const l=this.left,r=this.right,top=this.h.safe.top+8,b=this.bottom;const mailGift=!!gift.granted,crateLoot=mailGift&&gift.drops.length>0;
     this.label(mailGift?this.t(opening?'补给箱开启':crateLoot?'补给箱开出的物资':'附件已领取',opening?'OPENING':crateLoot?'CRATE REWARDS':'ATTACHMENT CLAIMED'):this.t(opening?'补给箱开启':gift.opened?'获得物资':'获得补给箱',opening?'OPENING':gift.opened?'REWARDS':'SUPPLIES RECEIVED'),l+12,top,r-l-140,42,53,gold,true,true);
@@ -751,7 +752,8 @@ export class ProgressionView {
     const duel=s.duelMode,outcome=reward?.outcome||(online?.view?.winner===null?'draw':online?.view?.winner===(online?.room?.you??0)?'win':'loss');
     const title=duel?online?.spectator?this.t('观战结束','MATCH ENDED'):this.t(outcome==='win'?'战斗胜利':outcome==='draw'?'战斗平局':'战斗失败',outcome==='win'?'VICTORY':outcome==='draw'?'DRAW':'DEFEAT'):training?this.t(success?'训练完成':'训练结束',success?'TRAINING COMPLETE':'TRAINING ENDED'):this.t(success?'关卡完成':'行动结束',success?'LEVEL COMPLETE':'OPERATION ENDED');
     const reason=success?this.t(`评价 ${s.rating} · 友伤 ${Math.round(s.friendlyDamage)}`,`RATING ${s.rating} · FRIENDLY DAMAGE ${Math.round(s.friendlyDamage)}`):s.failedGroup?this.t(`第 ${s.failedGroup} 据点全灭`,`OUTPOST ${s.failedGroup} LOST`):s.failure==='vehicle'?this.t('救援车被毁','RESCUE VEHICLE LOST'):this.t('整备后再战','REGROUP AND RETRY');
-    const subtitle=duel?this.t('对手：','OPPONENT: ')+playerLabel(online?.opponent||{}):text(s.mission.name,this.h.lang)+' · '+reason;
+    const endNotice=duelEndNotice(reward);
+    const subtitle=duel?(endNotice?this.t(...endNotice)+' · ':'')+this.t('对手：','OPPONENT: ')+playerLabel(online?.opponent||{}):text(s.mission.name,this.h.lang)+' · '+reason;
     const pw=Math.min(this.w-this.h.safe.left-this.h.safe.right-24,this.low?this.w*.79+80:this.w*.78),ph=Math.min(this.height-this.h.safe.top-this.h.safe.bottom-24,this.height*.84+(this.low?20:0)),x=(this.w-pw)/2,y=(this.height-ph)/2;
     this.h.rect(this.g,0,0,this.w,this.height,'#030c1766');this.panel(x,y,pw,ph);
     const banner=this.low?57:ph*.34;
@@ -761,7 +763,7 @@ export class ProgressionView {
     const credited=reward?.status==='credited',practice=training||!!online?.bot||online?.rankStatus==='practice',official=!practice&&!online?.spectator&&(duel||!!online?.recorder);
     const waiting=official?this.t('未确认','UNCONFIRMED'):'—';
     const points=credited&&Number.isSafeInteger(reward?.points)&&reward!.points>=0?`+${reward!.points}`:official?waiting:this.t('不计分','NOT RANKED');
-    const stats=[['作战用时','TIME',formatTime(Math.round((s.completionTime??s.time)*1000)),ivory],
+    const stats=[['作战用时','TIME',formatTime(duel&&reward?.durationMs!==undefined?reward.durationMs:Math.round((s.completionTime??s.time)*1000)),ivory],
       ...(!duel||!practice&&(official||Number.isSafeInteger(reward?.points))?[['本局积分','POINTS',points,ivory]]:[]),
       ...(online?.spectator&&duel?[]:[['获得金币','COINS',credited?`+${reward?.coins??0}`:waiting,gold],['获得经验','EXP',credited?`+${reward?.xp??0}`:waiting,'#b8e3a5']])];
     const sy=y+banner+8,gap=8,cw=(pw-40-gap*(stats.length-1))/stats.length,sh=this.low?65:ph*.21;
@@ -782,8 +784,8 @@ export class ProgressionView {
       unavailable:['收益确认失败，请重新连接','REWARD CONFIRMATION FAILED · RECONNECT'],
       offline:['未联网 · 本局已暂存，联网后自动结算收益','OFFLINE · REWARDS SETTLE AUTOMATICALLY WHEN ONLINE'],
     };
-    const issue=issues[online?.rankStatus||''];
-    const status=practice?this.t('训练不消耗库存，不产出正式资产','Practice: no stock consumed or assets earned'):online?.spectator?this.t('观战不计收益','SPECTATING · NO REWARDS'):credited?this.t('✓ 收益已到账','✓ REWARDS CREDITED'):issue?this.t(...issue):duel||pending?this.t('收益待确认 · 请保持联网','REWARDS PENDING · STAY CONNECTED'):official?this.t('本局收益未通过确认','THIS RUN HAS NO CONFIRMED REWARD'):this.t('离线游玩 · 本局记录保存在本机','OFFLINE PLAY · RESULT SAVED LOCALLY');
+    const issue=issues[online?.rankStatus||''],rewardNotice=duelRewardNotice(reward);
+    const status=practice?this.t('训练不消耗库存，不产出正式资产','Practice: no stock consumed or assets earned'):online?.spectator?this.t('观战不计收益','SPECTATING · NO REWARDS'):credited?(rewardNotice?this.t(...rewardNotice):this.t('✓ 收益已到账','✓ REWARDS CREDITED')):issue?this.t(...issue):duel||pending?this.t('收益待确认 · 请保持联网','REWARDS PENDING · STAY CONNECTED'):official?this.t('本局收益未通过确认','THIS RUN HAS NO CONFIRMED REWARD'):this.t('离线游玩 · 本局记录保存在本机','OFFLINE PLAY · RESULT SAVED LOCALLY');
     const comparison=this.h.timeComparison,record=duel?'':training?this.h.trainingBest?this.t(`最佳 ${this.h.trainingBest.time.toFixed(1)} 秒`,`BEST ${this.h.trainingBest.time.toFixed(1)}s`):'':comparison?this.t(`${comparison.newRecord?'新纪录 · ':''}个人最佳 ${formatTime(comparison.bestMs)}`,`${comparison.newRecord?'NEW RECORD · ':''}PERSONAL BEST ${formatTime(comparison.bestMs)}`):!success&&s.failureCause==='friendly'?this.t('致命伤来自己方火力，开火前检查友军','FRIENDLY FIRE · CHECK ALLIES BEFORE FIRING'):'';
     const earned=credited&&reward?.fragments?[(reward.firstClear===undefined?'':this.t(reward.firstClear?'首通奖励 · ':'重复通关 · ',reward.firstClear?'FIRST CLEAR · ':'REPEAT CLEAR · ')),Object.entries(reward.fragments).map(([id,n])=>`${this.catalogName(id)} +${n}`).join(' · ')].join(''):'';
     this.label(status+(earned?'\n'+earned:record?'\n'+record:''),x+20,y+ph-(this.low?104:172*this.scale),pw-40,this.low?42:60*this.scale,23,credited?'#94da90':dim);

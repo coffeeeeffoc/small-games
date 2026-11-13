@@ -21,7 +21,7 @@ type BattleStatusViewHost = Pick<
   | 'controlsOpen'
   | 'drawMinimap'
   | 'drawWorld'
-  | 'editing'
+  | 'pageEditing'
   | 'effects'
   | 'equipmentOpen'
   | 'exitConfirm'
@@ -46,6 +46,7 @@ type BattleStatusViewHost = Pick<
   | 'missionsOpen'
   | 'modalKey'
   | 'online'
+  | 'updatesOpen'
   | 'pendingSupply'
   | 'plate'
   | 'progressionArt'
@@ -96,7 +97,7 @@ export class BattleStatusView {
     if (this.hud.quartermaster) {
       this.hud.quartermaster.syncIdentity();
       const revision = `${this.hud.quartermaster.revision}:${this.hud.online?.revision}:${this.hud.lang}`;
-      if (revision !== this.progressionRevision && !this.hud.editing) {
+      if (revision !== this.progressionRevision && !this.hud.pageEditing) {
         this.progressionRevision = revision;
         this.hud.modalKey = 'rebuild';
       }
@@ -242,7 +243,7 @@ export class BattleStatusView {
       }
       if (this.hud.isGlobalAction(button.id)) {
         if(button.id.startsWith('social:'))continue;
-        button.label.node.active = !key || key === 'home';
+        button.label.node.active = (!key || key === 'home') && !this.hud.online?.friendRemoval && !this.hud.updatesOpen;
         if (!button.label.node.active) continue;
         const controlCenterX = button.x + button.w / 2 - width / 2;
         const controlCenterY = height / 2 - button.y - button.h / 2;
@@ -312,7 +313,7 @@ export class BattleStatusView {
       );
     const toast = this.hud.labels.get('globalToast')!;
     toast.node.active =
-      ['missions', 'settings:zoom'].includes(key) &&
+      (['missions', 'settings:zoom'].includes(key) || key.startsWith('online:room:')) &&
       !!this.hud.toast &&
       Date.now() < this.hud.toastUntil;
     toast.string = this.hud.toast;

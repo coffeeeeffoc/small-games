@@ -30,6 +30,7 @@ export async function registerControlRoutes(
       routes.get('/roles', (request) => control.roles(session(request)));
       routes.get('/audit', (request) => control.audits(session(request)));
       routes.get('/deployments', (request) => control.deployments(session(request)));
+      routes.get('/night-runtime', (request) => control.nightRuntime(session(request)));
       routes.post('/revisions', { bodyLimit: 262_144 }, (request) =>
         control.draft(
           session(request),

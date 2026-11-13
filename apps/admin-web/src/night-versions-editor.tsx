@@ -3,6 +3,8 @@ import { useUnsavedChanges } from './unsaved-changes';
 import { Alert, Card, Input, Select, Tag } from 'antd';
 import { ActionButton as Button, DataTable as Table } from './control-common';
 import { dateLabel } from './control-api';
+import { buildCompatibility, type NightRuntimeStatus } from './night-compatibility';
+import { Compatibility, NightRuntimeView } from './night-runtime-view';
 import {
   defaultNightOperations,
   same,
@@ -13,6 +15,9 @@ import {
 } from './night-operations-model';
 const identifier = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 export function NightVersionsEditor({
+  runtime,
+  refreshRuntime,
+  readingRuntime,
   value,
   published,
   deployments,
@@ -21,6 +26,9 @@ export function NightVersionsEditor({
   change,
   quickRollback,
 }: {
+  runtime?: NightRuntimeStatus;
+  refreshRuntime: () => void;
+  readingRuntime: boolean;
   value?: NightOperations;
   published?: NightOperations;
   deployments?: Deployments;
@@ -134,6 +142,7 @@ export function NightVersionsEditor({
   };
   return (
     <>
+      <NightRuntimeView status={runtime} refresh={refreshRuntime} loading={readingRuntime} />
       <Card title="实际后端部署">
         <p className="control-help">
           最近 5 次通过健康核验的 Runtime
@@ -201,6 +210,38 @@ export function NightVersionsEditor({
             columns={[
               { title: '后端兼容版本', dataIndex: 'id' },
               {
+                title: '与运行服务端的规则兼容性',
+                key: 'compatibility',
+                render: (_, row) => {
+                  const builds =
+                    release?.builds.filter(
+                      (build) => build.backendVersion === row.id && !build.removed,
+                    ) ?? [];
+                  const results = builds.map((build) => buildCompatibility(build, runtime));
+                  return (
+                    <>
+                      {!builds.length ? (
+                        <Tag>无客户端可核对</Tag>
+                      ) : (
+                        [...new Set(results)].map((result) => (
+                          <Tag
+                            key={result}
+                            color={
+                              result === '兼容' ? 'green' : result === '不兼容' ? 'red' : 'orange'
+                            }
+                          >
+                            {result} {results.filter((value) => value === result).length} 个客户端
+                          </Tag>
+                        ))
+                      )}
+                      <small className="control-help">
+                        按所绑定客户端的单人、双人规则核对；不是镜像版本号比较。
+                      </small>
+                    </>
+                  );
+                },
+              },
+              {
                 title: '新局服务',
                 key: 'state',
                 render: (_, row) => (
@@ -245,12 +286,33 @@ export function NightVersionsEditor({
                   <>
                     {row.backendVersion ?? '旧版未标记'}
                     <br />
-                    <Tag>{row.removed ? '已移除登记' : row.disabled ? '已关闭新局' : '启用'}</Tag>
+                    <Tag>
+                      {row.removed
+                        ? '已移除登记'
+                        : row.disabled
+                          ? '已关闭新局'
+                          : release?.disabledBackendVersions?.includes(row.backendVersion ?? '')
+                            ? '兼容服务已关闭'
+                            : (['ranked', 'multiplayer'] as const).some((kind) =>
+                                  release?.retiredRules?.[kind].includes(row[kind]),
+                                )
+                              ? '规则已退役'
+                              : (['ranked', 'multiplayer'] as const).some(
+                                    (kind) => !release?.allowNew[kind].includes(row[kind]),
+                                  )
+                                ? '规则未开放新局'
+                                : '启用'}
+                    </Tag>
                     {release?.channels.some((c) => c.latestBuildId === row.buildId) && (
                       <Tag color="blue">推荐版本</Tag>
                     )}
                   </>
                 ),
+              },
+              {
+                title: '客户端 / 服务端规则',
+                key: 'compatibility',
+                render: (_, row) => <Compatibility build={row} status={runtime} />,
               },
               {
                 title: '操作',
@@ -364,6 +426,7 @@ export function NightVersionsEditor({
           <p className="control-help">
             使用包清单中的准确标识与规则版本。首次登记将同一规则设为无构建标识旧客户端的兼容映射，推荐版本需另行确认。
           </p>
+          {build.ranked && build.multiplayer && <Compatibility build={build} status={runtime} />}
           <div className="control-actions">
             <Button disabled={disabled || !valid} onClick={add}>
               登记到草稿
@@ -373,6 +436,7 @@ export function NightVersionsEditor({
         {release && (
           <section aria-label="旧客户端兼容">
             <h3>未携带构建标识的旧客户端</h3>
+            <Compatibility build={release.legacy} status={runtime} />
             <p className="control-help">
               旧客户端也绑定后端兼容版本；关闭该服务版本同样停止其新局。
             </p>

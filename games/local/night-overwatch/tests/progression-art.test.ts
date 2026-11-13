@@ -23,7 +23,7 @@ let ProgressionArt:any;
 try{({ProgressionArt}=await import('../assets/scripts/ProgressionArt.ts'));}
 finally{hooks.deregister();delete (globalThis as any).__nightArtCC;}
 const home=['home','title','skins','01-home','night-ui-serif'];
-function harness(){requests.clear();calls.length=0;const hud={root:{alive:true},modalKey:'home',editing:false};return {hud,art:new ProgressionArt(hud)};}
+function harness(){requests.clear();calls.length=0;const hud={root:{alive:true},modalKey:'home',editing:false,pageEditing:false};return {hud,art:new ProgressionArt(hud)};}
 function finish(name:string,error:Error|null=null){const callback=requests.get(name)?.shift();assert(callback,`${name} was requested`);if(!requests.get(name)?.length)requests.delete(name);callback(error,error?undefined:{});}
 const flush=async()=>{await Promise.resolve();await Promise.resolve();await Promise.resolve();};
 
@@ -64,6 +64,8 @@ test('home failure is observable, and late completion after destruction cannot r
 
 test('background artwork completion does not rebuild a focused text field',async()=>{
   const {hud,art}=harness();home.forEach(name=>finish(name));await flush();
-  hud.editing=true;hud.modalKey='online:profile';art.load('base');finish('base');
-  assert.equal(hud.modalKey,'online:profile');art.destroy();
+  hud.editing=true;hud.pageEditing=true;hud.modalKey='online:profile';art.load('base');finish('base');
+  assert.equal(hud.modalKey,'online:profile');
+  hud.pageEditing=false;art.load('hangar');finish('hangar');
+  assert.equal(hud.modalKey,'rebuild','focused global chat does not suppress underlying artwork');art.destroy();
 });

@@ -48,6 +48,28 @@ it.each(['player_game_access', 'game,family_id,family_expires_at', 'game,session
     );
     try {
       expect((await app.inject('/health')).statusCode).toBe(missing ? 503 : 200);
+      const capabilities = await app.inject('/health/night-rules');
+      expect(capabilities.statusCode).toBe(200);
+      expect(capabilities.headers['cache-control']).toBe('no-store');
+      expect(capabilities.json()).toMatchObject({
+        ranked: {
+          current: 'night-input-replay-v18',
+          supported: expect.arrayContaining([
+            'night-input-replay-v18',
+            'night-input-replay-v17',
+            'night-input-replay-v16',
+          ]),
+        },
+        multiplayer: {
+          current: 'night-duel-v12',
+          supported: expect.arrayContaining([
+            'night-duel-v12',
+            'night-duel-v11',
+            'night-duel-v10',
+            'night-duel-v9',
+          ]),
+        },
+      });
       if (!missing)
         for (const part of ['player_game_access', 'family_id', 'family_expires_at', 'session_hash'])
           expect(queries.some((query) => query.includes(part))).toBe(true);

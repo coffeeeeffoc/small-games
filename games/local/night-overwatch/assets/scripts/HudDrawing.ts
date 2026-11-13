@@ -63,6 +63,8 @@ export class HudDrawing {
               [-3, 6],
             ],
       );
+    else if (kind === 'check') line([[-7, 0], [-2, 5], [8, -6]]);
+    else if (kind === 'minus') line([[-7, 0], [7, 0]]);
     else if (kind === 'plus') {
       line([
         [-7, 0],
@@ -787,78 +789,13 @@ export class HudDrawing {
   ) {
     const backdrop = this.hud.modal?.getChildByName('Backdrop')?.getComponent(Graphics) || graphics;
     this.hud.rect(backdrop, 0, 0, this.hud.w, this.hud.h, dim);
-    const skinned = this.hud.artwork('panel', x, y, width, height);
-    // Separate load-bearing frame, recessed display and machined corner hardware.
-    if (!skinned)
-      this.hud.plate(graphics, x - 4, y + 3, width + 8, height + 2, '#162838', '#020b12', 18);
-    if (!skinned) this.hud.gradient(graphics, x, y, width, height, '#35454b', '#101a21', 15, 22);
-    this.hud.gradient(
-      graphics,
-      x + 5,
-      y + 5,
-      width - 10,
-      height - 10,
-      skinned ? '#17282f33' : '#17282f',
-      skinned ? '#070f1644' : '#070f16',
-      11,
-      22,
-    );
-    if (header)
-      this.hud.gradient(graphics, x + 9, y + 9, width - 18, 36, '#55656725', '#17282f00', 7, 10);
-    if (header) this.hud.rect(graphics, x + 14, y + 47, width - 28, 1, '#b7b09488');
-    if (header) this.hud.rect(graphics, x + 14, y + 45, Math.min(72, width * 0.2), 3, accent);
-    this.corners(graphics, x + 7, y + 7, width - 14, height - 14, accent);
-    this.hud.rect(graphics, x + 14, y + height - 66, width - 28, 1, '#45677c66');
-    // Quiet instrument grid and a wing planform live behind the readable controls.
-    for (let xx = x + 22; xx < x + width - 20; xx += 24)
-      this.hud.rect(graphics, xx, y + 51, 1, Math.max(0, height - 120), '#a3c6df07');
-    for (let yy = y + 58; yy < y + height - 68; yy += 24)
-      this.hud.rect(graphics, x + 18, yy, width - 36, 1, '#a3c6df07');
-    const centerX = x + width / 2 - this.hud.w / 2;
-    const centerY = this.hud.h / 2 - y - height * 0.54;
-    graphics.strokeColor = col('#8eafc414');
-    graphics.lineWidth = 1;
-    graphics.moveTo(centerX, centerY + height * 0.21);
-    graphics.lineTo(centerX + 8, centerY + 5);
-    graphics.lineTo(centerX + width * 0.3, centerY - height * 0.06);
-    graphics.lineTo(centerX + width * 0.3, centerY - height * 0.1);
-    graphics.lineTo(centerX + 7, centerY - 12);
-    graphics.lineTo(centerX + 5, centerY - height * 0.2);
-    graphics.lineTo(centerX + width * 0.09, centerY - height * 0.24);
-    graphics.lineTo(centerX - width * 0.09, centerY - height * 0.24);
-    graphics.lineTo(centerX - 5, centerY - height * 0.2);
-    graphics.lineTo(centerX - 7, centerY - 12);
-    graphics.lineTo(centerX - width * 0.3, centerY - height * 0.1);
-    graphics.lineTo(centerX - width * 0.3, centerY - height * 0.06);
-    graphics.lineTo(centerX - 8, centerY + 5);
-    graphics.close();
-    graphics.stroke();
-    for (const side of [-1, 1])
-      for (const end of [-1, 1]) {
-        const xx = side < 0 ? x + 4 : x + width - 35;
-        const yy = end < 0 ? y + 4 : y + height - 24;
-        this.hud.gradient(
-          graphics,
-          xx,
-          yy,
-          31,
-          20,
-          skinned ? '#4b5a6070' : '#4b5a60',
-          skinned ? '#1b2c3444' : '#1b2c34',
-          5,
-          6,
-        );
-        this.hud.rect(graphics, xx + 5, yy + 3, 21, 1, '#c5d5d363');
-        graphics.fillColor = col('#07131b');
-        graphics.circle(xx + 8 - this.hud.w / 2, this.hud.h / 2 - yy - 10, 2.5);
-        graphics.fill();
-        graphics.strokeColor = col('#d8ba6c80');
-        graphics.lineWidth = 1;
-        graphics.circle(xx + 8 - this.hud.w / 2, this.hud.h / 2 - yy - 10, 2.5);
-        graphics.stroke();
-      }
-    this.hud.rect(graphics, x + 45, y + 3, width - 90, 1, '#e4d19995');
-    if (header) this.hud.rect(graphics, x + width / 2 - 30, y + 47, 60, 2, accent);
-    this.hud.rect(graphics, x + 44, y + height - 5, width - 88, 1, '#c6ac7080');
+    this.hud.rect(graphics, x - 3, y + 5, width + 6, height + 3, '#02080e66', undefined, 16);
+    this.hud.rect(graphics, x, y, width, height, '#101f2ff5', '#425a6e', 12);
+    if (header) {
+      this.hud.rect(graphics, x + 16, y + 48, width - 32, 1, '#31495d');
+      this.hud.rect(graphics, x + 16, y + 47, 36, 2, accent);
+    }
+    this.hud.rect(graphics, x + 16, y + height - 60, width - 32, 1, '#253e51');
+
   }
 }

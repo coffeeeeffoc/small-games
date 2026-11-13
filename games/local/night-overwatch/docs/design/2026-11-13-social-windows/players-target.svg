@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="844" height="390" viewBox="0 0 844 390">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#142f43"/><stop offset="1" stop-color="#07111f"/></linearGradient><filter id="shadow"><feDropShadow dy="8" stdDeviation="12" flood-opacity=".5"/></filter></defs>
+<rect width="844" height="390" fill="url(#bg)"/><path d="M0 280L120 150 240 260 420 120 630 230 760 90 844 170V390H0" fill="#0a1a28"/>
+<g font-family="Microsoft YaHei,sans-serif" fill="#e8f1f6"><text x="24" y="35" font-size="16">夜航守望</text><text x="210" y="35" font-size="14">战绩　 大厅</text><text x="650" y="35" font-size="13">● 有新版本</text><text x="38" y="162" font-size="34">夜航守望</text><rect x="32" y="190" width="220" height="48" rx="8" fill="#183e55"/><text x="100" y="220">作战配置 ›</text><rect x="32" y="248" width="220" height="48" rx="8" fill="#ae8b50"/><text x="100" y="278">开始行动 ›</text></g>
+<rect width="844" height="390" fill="#040b12" opacity=".30"/>
+<g filter="url(#shadow)"><rect x="398" y="58" width="420" height="302" rx="14" fill="#101f2f" stroke="#425a6e"/><path d="M414 108H802" stroke="#31495d"/><rect x="418" y="79" width="3" height="18" rx="1" fill="#9bcfdb"/></g>
+<g font-family="Microsoft YaHei,sans-serif"><text x="434" y="94" font-size="18" font-weight="bold" fill="#eaf1f5">在线玩家 · 3</text><text x="781" y="92" font-size="23" fill="#a5b7c5">×</text>
+<g fill="#eaf1f5" font-size="14"><text x="437" y="145">夜航飞行员</text><text x="437" y="197">山谷守望者</text><text x="437" y="249">机灵羚羊</text></g><g fill="#839bae" font-size="11"><text x="437" y="164">#C20F19A4</text><text x="437" y="216">#772C24D8 · 游戏中</text><text x="437" y="268">#21591773</text></g>
+<g fill="#8fdbb0"><circle cx="422" cy="141" r="3"/><circle cx="422" cy="245" r="3"/></g><circle cx="422" cy="193" r="3" fill="#d1ad6b"/>
+<g fill="none" stroke="#a5c1cf" stroke-width="1.6"><path id="chat" d="M677 134h18v13h-10l-6 5v-5h-2z"/><path d="M724 135l13 15m0-15l-13 15M775 136v14m-7-7h14"/><use href="#chat" transform="translate(0 52)"/><use href="#chat" transform="translate(0 104)"/><path d="M724 239l13 15m0-15l-13 15M775 240v14m-7-7h14"/></g>
+<path d="M418 179h380m-380 52h380m-380 52h380" stroke="#23394c"/><text x="420" y="332" fill="#839bae" font-size="12">私信 · 邀请对战 · 添加好友</text></g></svg>

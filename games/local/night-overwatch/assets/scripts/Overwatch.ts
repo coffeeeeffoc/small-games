@@ -94,7 +94,7 @@ export class Overwatch extends Component {
         this.hud.exitConfirm = this.hud.reportOpen = this.hud.equipmentOpen = this.hud.toolsOpen = this.hud.zoomOpen = this.hud.controlsOpen = this.hud.layoutEditing = false;
       }
       if (!start) this.sim.aim = { ...previous.aim };
-      this.online!.bind(this.sim, () => this.sim.paused || !!this.hud.modal);
+      this.online!.bind(this.sim, () => this.sim.paused || !!this.hud.activeModal);
       if (start) {
         this.presentation = new DuelPresentation(); this.completionSpoken = false;
         this.clear(); this.lastEvent = 0; this.accumulator = 0;
@@ -518,7 +518,7 @@ export class Overwatch extends Component {
     if(id==='qm:warehouseGo')id='qm:warehouse';
 
     const q=this.quartermaster;if(!q)return false;
-    if(id==='skillUse'){if(!this.hud.modal&&!this.online?.spectator)this.sim.useSkill();return true;}
+    if(id==='skillUse'){if(!this.hud.activeModal&&!this.online?.spectator)this.sim.useSkill();return true;}
     if(!/^(qm:|mode:|term:|product:|loadout:|slot:|gear:|equip:|package:|pool:|growth:|skill:|tasks:|task:|taskalt:|achievement:|inbox:|mail:|inventory:|info:)/.test(id))return false;
     this.clear();this.hud.modalKey='rebuild';const [group,...rest]=id.split(':'),value=rest.join(':');
     if(group==='qm'){
@@ -618,10 +618,10 @@ export class Overwatch extends Component {
     if(id==='social:dismiss'){if(online?.notification&&performance.now()<online.notificationUntil){online.notification=undefined;}else{this.hud.majorUpdate=false;try{this.platform.storage.setItem('night-update-seen',UPDATE_LOG[0].id);}catch{}}return;}
     if(id==='social:reply'&&online?.notification){this.clear();online.openConversation({playerId:online.notification.playerId,nickname:online.notification.nickname});this.hud.listScroll.direct=Number.MAX_SAFE_INTEGER;return;}
     if(id==='social:close'){this.clear();online?.closeConversation();this.hud.modalKey='rebuild';return;}
-    if(id==='social:removeCancel'&&online){online.friendRemoval=undefined;online.revision++;this.hud.modalKey='rebuild';return;}
+    if((id==='social:removeCancel'||id==='social:removeClose')&&online){online.friendRemoval=undefined;online.revision++;this.hud.modalKey='rebuild';return;}
     if(id==='social:removeConfirm'&&online?.friendRemoval){void online.friendAction('remove',playerId(online.friendRemoval),true);this.hud.modalKey='rebuild';return;}
     if(id==='social:older'){void online?.loadConversation(online.conversationBefore);this.hud.listScroll.direct=0;return;}
-    if(id==='social:inbox'&&online){this.clear();if(online.notification){online.openConversation({playerId:online.notification.playerId,nickname:online.notification.nickname});}else if(online.social.conversations.length){online.openConversation(online.social.conversations.find(c=>c.unread)||online.social.conversations[0]);}else{online.lobbyTab='friends';online.show('menu');}return;}
+    if(id==='social:inbox'&&online){this.clear();if(online.chatRetryPending&&online.chatPeer){online.openConversation(online.chatPeer);}else if(online.notification){online.openConversation({playerId:online.notification.playerId,nickname:online.notification.nickname});}else if(online.social.conversations.length){online.openConversation(online.social.conversations.find(c=>c.unread)||online.social.conversations[0]);}else{online.lobbyTab='friends';online.show('friends');}return;}
     if(this.progressionAction(id))return;
     if (id === 'screen') {
       void this.screenControl?.toggle().catch(() => {
@@ -632,12 +632,13 @@ export class Overwatch extends Component {
     if (online && id.startsWith('online:')) {
       if(this.quartermaster&&!online.socialOpen)this.quartermaster.page='';
       const action = id.slice(7);
+      if (action === 'close') { this.action('online:back'); return; }
       if (action === 'dismiss') { this.action(online.room || online.active ? 'online:backLobby' : 'online:back'); return; }
       this.clear(); this.hud.modalKey = 'rebuild';
       if (action === 'version') { this.pause('settings', false); online.show('version'); return; }
       if (action === 'releaseCheck') { void online.checkRelease(); return; }
       if(action==='players'){online.showPlayers();return;}
-      if(action==='friends'){online.lobbyTab='friends';online.revision++;void online.refreshSocial(Number.MAX_SAFE_INTEGER);return;}
+      if(action==='friends'){online.lobbyTab='friends';if(online.panel!=='menu')online.show('friends');else online.revision++;void online.refreshSocial(Number.MAX_SAFE_INTEGER);return;}
       if(action.startsWith('friendAction:')){const [,kind,peer]=action.split(':');void online.friendAction(kind as 'request',peer);return;}
       if(action==='lobbyRooms'){online.lobbyTab='rooms';online.revision++;return;}
       if(action==='playersNext'||action==='playersPrev'){online.pagePlayers(action==='playersNext');this.hud.listScroll.players=0;return;}
@@ -655,7 +656,8 @@ export class Overwatch extends Component {
       if(action.startsWith('chatBlock:')){online.toggleBlock(action.slice(10));return;}
       if(action.startsWith('chatReport:')){void online.reportChat(action.slice(11));return;}
       if(action.startsWith('chatJoin:')){const m=[...online.chatMessages,...online.conversation].find(m=>m.id===action.slice(9));if(m?.room?.canJoin&&online.activity!=='playing'){online.socialOpen=false;void online.open('join',m.room.code,m.room.createdAt);}return;}
-      if (action === 'menu') { online.show('menu'); void online.loadRooms(); }
+      if (action === 'chat') { online.selectChat();online.show('chat');return; }
+      if (action === 'menu') { online.selectChat();online.lobbyTab='rooms';online.show('menu'); void online.loadRooms(); }
       if (action === 'profile') { this.pause('settings', false); online.show('profile'); }
       if (action === 'saveName') void online.saveName();
       if (action === 'friend') { online.draftPassword = ''; online.show('create'); }
@@ -801,6 +803,7 @@ export class Overwatch extends Component {
     }
     if (id === 'training' || id === 'missionReturn') {
       this.selectMission(id === 'training' ? 'training-60' : this.selectedMission);
+      if(id === 'training')this.beginCampaign();
       return;
     }
     if (id === 'missionNext') {
@@ -901,7 +904,7 @@ export class Overwatch extends Component {
       this.platform.viewMode = this.world.viewMode;
       this.platform.savePreferences();
       this.sim.completed.add('sensor');
-      if (this.hud.modal) this.hud.modalKey = 'rebuild';
+      if (this.hud.activeModal) this.hud.modalKey = 'rebuild';
       return;
     }
     if (id === 'effects') {
@@ -1022,7 +1025,7 @@ export class Overwatch extends Component {
   }
   private beginControlGesture(pointer: number | 'mouse', x: number, y: number) {
     const editing = this.hud.layoutEditing && Array.from(this.sim.pauses).every(reason => reason === 'settings' || reason === 'manual');
-    if (this.controlGesture || this.hud.modal || this.sim.paused && !editing || this.sim.phase !== 'playing' || this.online?.spectator || this.online?.entering) return false;
+    if (this.controlGesture || this.hud.activeModal || this.sim.paused && !editing || this.sim.phase !== 'playing' || this.online?.spectator || this.online?.entering) return false;
     const button = this.hud.controlAt(x, y); if (!button || button.id === 'fire' && !editing) return false;
     const bounds = this.hud.controlBounds(button.id), saved = this.hud.controlPositions[button.id];
     this.controlGesture = { pointer, button: button.id, x, y, position: saved && { ...saved },
@@ -1045,7 +1048,7 @@ export class Overwatch extends Component {
     return true;
   }
   private beginFireGesture(pointer: number | 'mouse', x: number, y: number) {
-    if(this.fireGesture||this.sim.paused||this.hud.modal||this.sim.phase!=='playing'||this.online?.spectator||this.online?.entering)return false;
+    if(this.fireGesture||this.sim.paused||this.hud.activeModal||this.sim.phase!=='playing'||this.online?.spectator||this.online?.entering)return false;
     const button=this.hud.hit(x,y);if(button?.id!=='fire')return false;
     const bounds=this.hud.controlBounds('fire'),saved=this.hud.controlPositions.fire;
     this.fireGesture={pointer,x,y,position:saved&&{...saved},origin:{x:(button.x-bounds.x)/Math.max(1,bounds.w),y:(button.y-bounds.y)/Math.max(1,bounds.h)},moved:false};
@@ -1082,6 +1085,7 @@ export class Overwatch extends Component {
     if(!a.moved&&Math.hypot(x-a.x,y-a.y)<=8&&a.button&&this.hud.hit(x,y)?.id===a.button)this.action(a.button);return true;
   }
   private beginLoadoutGesture(pointer:number|'mouse',x:number,y:number){
+    if(this.hud.activeModal!==this.hud.modal)return false;
     const q=this.quartermaster;if(!q||q.page!=='loadout'||q.gift||q.info||q.leaveTo!==undefined||q.confirmation||q.busy||q.pending||this.loadoutGesture)return false;
     const button=this.hud.hit(x,y);if(button?.id.startsWith('info:'))return false;const source=button?.id.startsWith('slot:')?button.id.slice(5) as LoadoutSlot:undefined,a=q.loadoutArea;
     if(!source&&(x<a.x||x>a.x+a.w||y<a.y||y>a.y+a.h))return false;
@@ -1123,7 +1127,7 @@ export class Overwatch extends Component {
     }
     if (this.hud.blocksBattlefield(p.x, p.y) && this.mouseButton !== 'fire')
       this.sim.setFire('mouse', false);
-    if (!this.sim.homingSelected && !this.hud.modal && !this.hud.blocksBattlefield(p.x, p.y)) {
+    if (!this.sim.homingSelected && !this.hud.activeModal && !this.hud.blocksBattlefield(p.x, p.y)) {
       const q = e.getLocation();
       const aim = this.world.aimAt(q.x, q.y);
       if (aim) this.sim.setAim(aim);
@@ -1141,7 +1145,7 @@ export class Overwatch extends Component {
     if(e.getButton()===0&&(this.beginControlGesture('mouse',p.x,p.y)||this.beginLoadoutGesture('mouse',p.x,p.y)||this.beginListGesture('mouse',p.x,p.y)))return;
     if (b) {
       if (e.getButton() !== 0) return;
-      if (this.hud.modal && !this.hud.inModal(b.label.node) && !this.hud.isGlobalAction(b.id)) return;
+      if (this.hud.activeModal && !this.hud.inModal(b.label.node) && !this.hud.isGlobalAction(b.id)) return;
       this.mouseButton = b.id;if(b.id.startsWith('info:'))this.infoHold={id:b.id,at:Date.now()};
       if (b.id === 'fire') this.beginFireGesture('mouse',p.x,p.y);
       return;
@@ -1151,7 +1155,7 @@ export class Overwatch extends Component {
       this.locateMap(mapPoint);
       return;
     }
-    if (this.hud.modal || this.online?.spectator || this.online?.entering || this.hud.blocksBattlefield(p.x, p.y)) return;
+    if (this.hud.activeModal || this.online?.spectator || this.online?.entering || this.hud.blocksBattlefield(p.x, p.y)) return;
     if (e.getButton() === 2) {
       this.world.temporary = true;
       this.world.updateCamera();
@@ -1184,8 +1188,9 @@ export class Overwatch extends Component {
     if (id && id !== 'fire' && b?.id === id) this.action(id);
   }
   wheel(e: EventMouse) {
-    if (this.hud.modal) {
+    if (this.hud.activeModal) {
       const point=this.mousePosition(e),area=this.hud.listAt(point.x,point.y);if(area){this.hud.moveList(area.key,(area.axis==='x'&&e.getScrollX?.()?e.getScrollX():-e.getScrollY())*.2);return;}
+      if(this.hud.activeModal!==this.hud.modal)return;
       const q=this.quartermaster;if(q?.page==='loadout'&&!q.gift&&!q.confirmation&&!q.info&&q.leaveTo===undefined){const p=this.mousePosition(e),a=q.loadoutArea;if(p.x>=a.x&&p.x<=a.x+a.w&&p.y>=a.y&&p.y<=a.y+a.h){q.scrollLoadout(-e.getScrollY()*.2);return;}}
       if (this.hud.scrollNode) this.hud.scrollBy(-e.getScrollY() * 0.2);
       return;
@@ -1222,16 +1227,16 @@ export class Overwatch extends Component {
         this.touches.set(id, { role: 'map', x, y });
         continue;
       }
-      if (b && (!this.hud.modal || this.hud.inModal(b.label.node) || this.hud.isGlobalAction(b.id))) {
+      if (b && (!this.hud.activeModal || this.hud.inModal(b.label.node) || this.hud.isGlobalAction(b.id))) {
         if (b.id === 'fire' && (Array.from(this.touches.values()).some((t) => t.role === 'pinch') || !this.beginFireGesture(id,x,y))) {
           this.touches.set(id, { role: 'cancelled', x, y });
           continue;
         }
         if(b.id.startsWith('info:'))this.infoHold={id:b.id,at:Date.now()};
         this.touches.set(id, { role: b.id === 'fire' ? 'fire' : 'button', x, y, button: b.id });
-      } else if (this.hud.modal) {
+      } else if (this.hud.activeModal) {
         const area = this.hud.scrollArea;
-        if (this.hud.scrollNode && x >= area.x && x <= area.x + area.w && y >= area.y && y <= area.y + area.h)
+        if (this.hud.activeModal === this.hud.modal && this.hud.scrollNode && x >= area.x && x <= area.x + area.w && y >= area.y && y <= area.y + area.h)
           this.touches.set(id, { role: 'scroll', x, y });
       } else if (
         !this.hud.blocksBattlefield(x, y) && this.sim.phase === 'playing' && !this.sim.paused
@@ -1358,7 +1363,7 @@ export class Overwatch extends Component {
     }
     const a = ACTIONS.find((a) => (a.keys as readonly number[]).includes(e.keyCode));
     if (!a) return;
-    if (a.id === 'fire') { if (!this.hud.modal && !this.sim.paused && !this.online?.spectator) this.sim.setFire('space', true); }
+    if (a.id === 'fire') { if (!this.hud.activeModal && !this.sim.paused && !this.online?.spectator) this.sim.setFire('space', true); }
     else this.action(a.id);
   }
   keyUp(e: EventKeyboard) {
@@ -1465,7 +1470,7 @@ export class Overwatch extends Component {
     // Pan in screen space: the ground axes rotate with the aircraft and sensor.
     if (
       !this.sim.paused &&
-      !this.hud.modal &&
+      !this.hud.activeModal &&
       this.sim.phase === 'playing' &&
       this.world.zoom > 1.05 &&
       (Array.from(this.touches.values()).some((t) => t.role === 'aim') ||
@@ -1552,7 +1557,7 @@ export class Overwatch extends Component {
     this.stopDeveloperTools?.();
     this.quartermaster?.dispose();this.online?.dispose();
     this.online?.recorder?.persist?.();
-    this.online?.leave(); this.online?.cancelRanking();
+    this.online?.cancelRanking();
     this.pauseControl?.remove();
     this.screenControl?.dispose();
     input.off(Input.EventType.MOUSE_MOVE, this.mouseMove, this);

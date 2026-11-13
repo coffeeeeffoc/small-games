@@ -253,6 +253,7 @@ export function renderBundleCompose(config) {
       // The authoring API stays on host loopback; it is not a public game route.
       item.ports = ['127.0.0.1:43001:43001'];
       Object.assign(env, {
+        ADMIN_RUNTIME_ORIGIN: variable('ADMIN_RUNTIME_ORIGIN', 'http://runtime:43002'),
         MANAGEMENT_DATABASE_URL: `postgres://management_app:${variable('MANAGEMENT_DB_PASSWORD')}@postgres:5432/small_games`,
         STUDIO_ORIGIN: variable('STUDIO_ORIGIN'),
         S3_ENDPOINT: variable('S3_ENDPOINT'),

@@ -150,7 +150,15 @@ export function createControlApi(session: Session, accessLost: () => Promise<voi
   }
   return {
     read: <T>(
-      path: 'catalog' | 'state' | 'revisions' | 'members' | 'roles' | 'audit' | 'deployments',
+      path:
+        | 'catalog'
+        | 'state'
+        | 'revisions'
+        | 'members'
+        | 'roles'
+        | 'audit'
+        | 'deployments'
+        | 'night-runtime',
     ) => request<T>(path),
     draft: (body: {
       expectedVersion: number;

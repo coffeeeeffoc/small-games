@@ -61,6 +61,8 @@ export type Member = {
     games: number;
     outcome: 'win' | 'loss' | 'draw';
     reason: string;
+    durationMs?: number;
+    rewardReason?: string;
   };
 };
 export type Room = {

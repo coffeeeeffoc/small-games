@@ -1,0 +1,65 @@
+{
+  "deployedAt": "2026-11-13T15:23:17.134Z",
+  "release": "night-20261113-duel12",
+  "sourceCommit": "cafbd74a7c781e10c486669b1118cab9e3647ead",
+  "image": "small-games-bundle:night-20261113-duel12",
+  "imageId": "sha256:fef92f9013e9165f92a86f08c07575387056decd2d46ef88033ac1c3b54bf426",
+  "noDatabaseMigration": true,
+  "liveRules": {
+    "checkedAt": 1794583397097,
+    "report": {
+      "instanceId": "night-selftest-runtime",
+      "ranked": {
+        "current": "night-input-replay-v18",
+        "supported": [
+          "night-input-replay-v18",
+          "night-input-replay-v17",
+          "night-input-replay-v16"
+        ]
+      },
+      "multiplayer": {
+        "current": "night-duel-v12",
+        "supported": [
+          "night-duel-v12",
+          "night-duel-v11",
+          "night-duel-v10",
+          "night-duel-v9"
+        ]
+      }
+    },
+    "error": null,
+    "otherInstances": []
+  },
+  "endpoints": [
+    {
+      "base": "http://127.0.0.1:43003",
+      "health": 200,
+      "anonymous": 401,
+      "internal": 404,
+      "otherGame": 404,
+      "tapCors": 204,
+      "metadata": 200,
+      "social": 200,
+      "me": 200
+    },
+    {
+      "base": "https://nas.hc2a5c9f0.nyat.app:29549",
+      "health": 200,
+      "anonymous": 401,
+      "internal": 404,
+      "otherGame": 404,
+      "tapCors": 204,
+      "metadata": 200,
+      "social": 200,
+      "me": 200
+    }
+  ],
+  "backup": "backup-1794583310469",
+  "preservedContainers": [
+    "postgres",
+    "gateway"
+  ],
+  "anonymousAdminViaVite": 401,
+  "publicDiagnostics": 404,
+  "authenticatedBrowser": "Not verified: local computer-use initialization failed; authenticated routes tested in fixture."
+}

@@ -5,6 +5,7 @@ import { createControlAccess } from './control-access.js';
 import { controlApplicationState } from './control-observations.js';
 import { newControlRevision, publishControlRevision } from './control-publication.js';
 import { nightReleaseRollbackSnapshot } from './night-operations.js';
+import { readNightRuntime, validateRuntimeOrigin } from './night-runtime.js';
 import {
   ADMINISTRATOR,
   CONSUMERS,
@@ -20,7 +21,13 @@ import {
   type Principal,
 } from './control-model.js';
 
-export function createControlService(store: ControlStore, adminOrigin: string, now = Date.now) {
+export function createControlService(
+  store: ControlStore,
+  adminOrigin: string,
+  now = Date.now,
+  runtimeOrigin?: string,
+) {
+  validateRuntimeOrigin(runtimeOrigin);
   const access = createControlAccess(store, now);
   const audit = (
     tx: ControlTransaction,
@@ -68,6 +75,10 @@ export function createControlService(store: ControlStore, adminOrigin: string, n
   }
   return {
     access,
+    async nightRuntime(session: AdminSession) {
+      const observations = await withPermission(session, 'control.read', (tx) => tx.observations());
+      return readNightRuntime(runtimeOrigin, observations, now);
+    },
     catalog(session: AdminSession) {
       return withPermission(session, 'control.read', async () => ({
         games: CONTROL_GAMES,

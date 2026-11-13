@@ -78,6 +78,17 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         verifiedAt: now - i * 1000,
       }));
       f.deployments = { current: history[0], history };
+      const runtime = {
+        checkedAt: Date.now(),
+        error: null,
+        otherInstances: [],
+        report: {
+          instanceId: 'qa-runtime',
+          ranked: { current: 'solo-b', supported: ['solo-a', 'solo-b'] },
+          multiplayer: { current: 'duel-b', supported: ['duel-a', 'duel-b'] },
+        },
+      };
+      f.nightRuntime = structuredClone(runtime);
       const activate = (locator) => (width < 500 ? locator.tap() : locator.click());
       const button = (name) => page.getByRole('button', { name, exact: true });
       const publish = async () => {
@@ -177,6 +188,43 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         2,
       );
       await tab('版本与部署');
+      const buildA = builds.getByRole('row').filter({ hasText: 'night-build-a' });
+      const buildB = builds.getByRole('row').filter({ hasText: 'night-build-b' });
+      await buildA.getByText('兼容', { exact: true }).waitFor();
+      const versionInput = page.getByRole('textbox', { name: '前端版本号', exact: true });
+      await versionInput.fill('9.9.9');
+      const writes = f.requests.filter((r) => r.method !== 'GET').length;
+      f.nightRuntime.report.ranked = { current: 'solo-a', supported: ['solo-a'] };
+      await activate(button('刷新服务端版本'));
+      await buildB.getByText('不兼容', { exact: true }).waitFor();
+      assert.equal(
+        await versionInput.inputValue(),
+        '9.9.9',
+        'runtime refresh preserves registration draft',
+      );
+      assert.equal(
+        f.requests.filter((r) => r.method !== 'GET').length,
+        writes,
+        'runtime refresh does not publish',
+      );
+      await page.getByText('1 个启用的客户端版本与运行服务端不兼容', { exact: true }).waitFor();
+      await page.screenshot({
+        path: `${evidence}/night-rule-mismatch-${width}.png`,
+        fullPage: true,
+      });
+      f.nightRuntime = { ...runtime, report: null, error: 'UNAVAILABLE' };
+      await activate(button('刷新服务端版本'));
+      await buildB.getByText('待核实', { exact: true }).waitFor();
+      f.nightRuntime = { ...runtime, checkedAt: Date.now() - 61_000 };
+      await activate(button('刷新服务端版本'));
+      await page.getByText('服务端规则待核实', { exact: true }).waitFor();
+      f.nightRuntime = { ...runtime, checkedAt: Date.now(), otherInstances: ['mixed-runtime'] };
+      await activate(button('刷新服务端版本'));
+      await buildA.getByText('部分实例待核实', { exact: true }).waitFor();
+      f.nightRuntime = { ...runtime, checkedAt: Date.now() };
+      await activate(button('刷新服务端版本'));
+      await buildB.getByText('兼容', { exact: true }).waitFor();
+      await versionInput.fill('');
       assert.equal(
         await page.getByRole('table', { name: '后端上线历史' }).locator('tbody tr').count(),
         5,

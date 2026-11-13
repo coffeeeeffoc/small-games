@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import type { ControlApi } from './control-api';
+import { hasIncompatibleNewGames, type NightRuntimeStatus } from './night-compatibility';
 import { Alert, Card, Input, Tabs } from 'antd';
 import { useUnsavedChanges } from './unsaved-changes';
 import { ActionButton as Button } from './control-common';
@@ -7,6 +9,7 @@ import { NightVersionsEditor } from './night-versions-editor';
 import type { Deployments, NightBuild, NightOperations } from './night-operations-model';
 
 export function NightOperationsEditor({
+  api,
   value,
   published,
   publishedIds,
@@ -18,6 +21,7 @@ export function NightOperationsEditor({
   change,
   rollback,
 }: {
+  api: ControlApi;
   value?: NightOperations;
   published?: NightOperations;
   publishedIds: Set<string>;
@@ -29,11 +33,46 @@ export function NightOperationsEditor({
   change: (value: NightOperations) => void;
   rollback: (build: NightBuild, reason: string) => Promise<boolean>;
 }) {
+  const [runtime, setRuntime] = useState<NightRuntimeStatus>();
+  const [readingRuntime, setReadingRuntime] = useState(false);
+  const reading = useRef(0);
+  const refreshRuntime = useCallback(async () => {
+    const attempt = ++reading.current;
+    setReadingRuntime(true);
+    try {
+      const next = await api.read<NightRuntimeStatus>('night-runtime');
+      if (attempt === reading.current) setRuntime(next);
+    } catch {
+      if (attempt === reading.current) setRuntime(undefined);
+    } finally {
+      if (attempt === reading.current) setReadingRuntime(false);
+    }
+  }, [api]);
+  useEffect(() => {
+    void refreshRuntime();
+    const timer = setInterval(() => void refreshRuntime(), 30_000);
+    return () => {
+      clearInterval(timer);
+      reading.current++;
+    };
+  }, [refreshRuntime]);
+  const incompatible =
+    value?.release?.builds.filter((build) =>
+      hasIncompatibleNewGames(build, value.release!, runtime),
+    ) ?? [];
   const [target, setTarget] = useState<NightBuild>();
   const [reason, setReason] = useState('');
   useUnsavedChanges(!!target && !!reason);
   return (
     <>
+      {incompatible.length > 0 && (
+        <Alert
+          type="error"
+          showIcon
+          title={`${incompatible.length} 个启用的客户端版本与运行服务端不兼容`}
+          description={`包括 ${incompatible.map((build) => `${build.version ?? build.buildId}${value?.release?.channels.some((channel) => channel.latestBuildId === build.buildId) ? '（推荐版本）' : ''}`).join('、')}。请在“版本与部署”查看规则差异，升级服务端或处理客户端后再开放新局。`}
+        />
+      )}
       <Tabs
         className="section-tabs"
         items={[
@@ -56,6 +95,9 @@ export function NightOperationsEditor({
             label: '版本与部署',
             children: (
               <NightVersionsEditor
+                runtime={runtime}
+                refreshRuntime={() => void refreshRuntime()}
+                readingRuntime={readingRuntime}
                 value={value}
                 published={published}
                 deployments={deployments}

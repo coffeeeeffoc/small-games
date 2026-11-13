@@ -190,9 +190,12 @@ export async function loadNightRelease(
     .href;
   const previousSolo = (await import(previousSoloUrl)) as { default: RankedRule };
   const previousDuel = (await import(previousDuelUrl)) as { default: Rule };
+  const retainedDuel = (await import(
+    new URL('../../rules/frozen/night-v18-v11/night.mjs', import.meta.url).href
+  )) as { default: Rule };
   return createNightRelease(
     [ranked, previousSolo.default, solo.default],
-    [multiplayer, previousDuel.default, duel.default],
+    [multiplayer, retainedDuel.default, previousDuel.default, duel.default],
     readNightReleaseConfig(env),
   );
 }

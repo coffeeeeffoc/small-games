@@ -211,6 +211,7 @@ if (operation === 'plan') {
         if (key.startsWith('S3_') || key === 'STUDIO_ORIGIN') delete management[key];
       Object.assign(management, {
         MANAGEMENT_CAPABILITIES: 'admin',
+        ADMIN_RUNTIME_ORIGIN: 'http://runtime:43002',
         ADMIN_CONTROL_ENABLED: 'true',
         ADMIN_ORIGIN: adminOrigin,
         ...(oauth

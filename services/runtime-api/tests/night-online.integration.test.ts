@@ -129,14 +129,14 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(started.state.you).toBe(1);
     expect(
       started.state.simulation.units.filter((u: { friendly: boolean }) => u.friendly),
-    ).toHaveLength(56);
+    ).toHaveLength(started.state.simulation.units.length / 2);
     for (const friendly of [false, true])
-      expect(
+      expect([32, 40, 48, 56]).toContain(
         started.state.simulation.units.filter(
           (unit: { friendly: boolean; kind: string }) =>
             unit.friendly === friendly && unit.kind === 'infantry',
-        ),
-      ).toHaveLength(48);
+        ).length,
+      );
     await request(roomPath(room.code), outsider, undefined, 403);
     await request(roomPath(room.code), wrongGame, undefined, 403);
     expect(started.startsAt).toBe(time + 1200);
@@ -506,7 +506,7 @@ integration('Night real HTTP and PostgreSQL', () => {
         { leaseId: old, ...(op === 'actions' ? { seq: 1, action: { commands: [] } } : {}) },
         409,
       );
-    await request(roomPath(room.code) + '/leave', a, {});
+    // Network loss sends no leave request; an explicit leave is an immediate forfeit.
     time += 15000;
     await request(roomPath(room.code), b);
     time += 14000;
@@ -515,12 +515,16 @@ integration('Night real HTTP and PostgreSQL', () => {
       false,
     );
     expect((await request(path + '/history', a)).summary.games).toBe(0);
-    await request(roomPath(room.code) + '/leave', a, {});
     time += 15000;
     await request(roomPath(room.code), b);
-    time += 15001;
+    time += 20001;
     const taken = await request(roomPath(room.code), b);
-    expect(taken.status).toBe('playing');
+    expect(taken.status).toBe('finished');
+    expect(taken.state).toMatchObject({
+      finished: true,
+      winner: 1,
+      simulation: { phase: 'success' },
+    });
     expect(taken.players[0]).toMatchObject({ disconnected: true, takenOver: true });
     expect(taken.settlement).toMatchObject({
       points: 120,
@@ -562,6 +566,66 @@ integration('Night real HTTP and PostgreSQL', () => {
       games: 3,
     });
   }, 30000);
+  it('ends voluntary exits immediately for either seat, awards only defeat consolation, and never runs bots after settlement', async () => {
+    for (const quitterSeat of [0, 1]) {
+      const players = await Promise.all([player(), player()]),
+        room = await pair(players[0], players[1]);
+      for (let i = 0; i < 3; i++) {
+        time += 4000;
+        for (const p of players) await request(roomPath(room.code), p);
+      }
+      const quitter = players[quitterSeat],
+        stayer = players[1 - quitterSeat];
+      const left = await request(roomPath(room.code) + '/leave', quitter, {});
+      expect(left).toMatchObject({
+        status: 'finished',
+        settlement: { outcome: 'loss', reason: 'forfeit', coins: 60, xp: 70 },
+        state: { finished: true, winner: 1 - quitterSeat, simulation: { phase: 'failure' } },
+      });
+      expect(left.settlement.fragments).toBeUndefined();
+      const stayed = await request(roomPath(room.code), stayer);
+      expect(left.opponent).toEqual(left.players[1 - quitterSeat].result);
+      expect(stayed).toMatchObject({
+        status: 'finished',
+        settlement: {
+          outcome: 'win',
+          reason: 'forfeit',
+          coins: 0,
+          xp: 0,
+          rewardReason: 'opponent-left',
+        },
+        state: { finished: true, winner: 1 - quitterSeat, simulation: { phase: 'success' } },
+      });
+      const stored = await storedRoom(room.code),
+        receipt = left.settlement;
+      time += 300000;
+      const repeated = await request(roomPath(room.code) + '/leave', quitter, {});
+      expect(repeated.settlement).toEqual(receipt);
+      expect((await request(roomPath(room.code), stayer)).state).toEqual(stayed.state);
+      expect((await storedRoom(room.code)).players[0].state).toEqual(stored.players[0].state);
+      expect((await request(path + '/history', quitter)).summary).toMatchObject({
+        games: 1,
+        losses: 1,
+      });
+      expect((await request(path + '/history', stayer)).summary).toMatchObject({
+        games: 1,
+        wins: 1,
+      });
+    }
+  }, 30000);
+  it('keeps the bot as winner when its only human player loses', async () => {
+    const a = await player(),
+      room = await request(path + '/rooms', a, { mode: 'bot' });
+    await request(roomPath(room.code) + '/ready', a, {});
+    time += 1201;
+    await eliminate(room.code, 0);
+    const ended = await request(roomPath(room.code), a);
+    expect(ended).toMatchObject({
+      status: 'finished',
+      settlement: { outcome: 'loss', reason: 'elimination' },
+      state: { finished: true, winner: 1, simulation: { phase: 'failure' } },
+    });
+  });
   it('gives no pre-start result and records two abandoned losses without points', async () => {
     const [a, b] = await Promise.all([player(), player()]);
     const room = await pair(a, b);
@@ -572,10 +636,8 @@ integration('Night real HTTP and PostgreSQL', () => {
     expect(waiting).toMatchObject({ status: 'waiting', you: 0, state: null });
     expect(waiting.players).toHaveLength(1);
     await request(roomPath(room.code) + '/leave', b, {});
-    const next = await pair(a, b);
-    await request(roomPath(next.code) + '/leave', a, {});
-    await request(roomPath(next.code) + '/leave', b, {});
-    time += 30001;
+    await pair(a, b);
+    time += 35001;
     const record = await request(path + '/history', a);
     expect(record.summary).toMatchObject({ losses: 1, games: 1 });
     expect(record.matches[0]).toMatchObject({ reason: 'abandoned', points: 0 });

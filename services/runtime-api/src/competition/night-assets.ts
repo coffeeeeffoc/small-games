@@ -76,6 +76,7 @@ export type ProgressionRules = {
 };
 type Reward = { coins: number; xp: number; packs?: number; permanent?: string };
 type BattleReward = Reward & {
+  rewardReason?: string;
   firstClear?: boolean;
   fragments?: Record<string, number>;
   totalCoins: number;
@@ -1284,6 +1285,8 @@ export async function rewardNightBattle(
     outcome: 'win' | 'loss' | 'draw';
     durationMs: number;
     valid: boolean;
+    invalidReason?: string;
+    consolation?: boolean;
     levelId?: string;
     firstClear?: boolean;
   },
@@ -1324,6 +1327,7 @@ export async function rewardNightBattle(
   if (
     valid &&
     input.mode === 'duel' &&
+    !input.consolation &&
     rules.economy &&
     input.durationMs >= rules.economy.duelFragmentMinMs
   ) {
@@ -1338,7 +1342,7 @@ export async function rewardNightBattle(
   }
   for (const [item, count] of Object.entries(fragments)) stock(w, item, count);
   add(w, reward);
-  if (valid)
+  if (valid && !input.consolation)
     progress(w, nightDay(at), [
       'complete',
       input.mode === 'solo' ? 'solo' : 'duel',
@@ -1348,6 +1352,11 @@ export async function rewardNightBattle(
   await save(tx, owner, w);
   const receipt: BattleReward = {
     ...reward,
+    rewardReason: valid
+      ? 'eligible'
+      : !input.valid
+        ? (input.invalidReason ?? 'not-eligible')
+        : 'too-short',
     ...(campaign && valid && input.outcome === 'win'
       ? { firstClear: input.firstClear === true }
       : {}),

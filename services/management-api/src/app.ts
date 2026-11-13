@@ -42,7 +42,12 @@ export function createManagementService(
   const admin = adminOnly || env.ADMIN_ORIGIN ? readAdminConfig(env) : undefined;
   const database = openDatabase(databaseUrl, 'management');
   const control = adminControlEnabled(env)
-    ? createControlService(createControlStore(database.db), admin!.origin)
+    ? createControlService(
+        createControlStore(database.db),
+        admin!.origin,
+        Date.now,
+        env.ADMIN_RUNTIME_ORIGIN ?? 'http://runtime:43002',
+      )
     : undefined;
   const checkControl = async () => {
     if (!control) return;

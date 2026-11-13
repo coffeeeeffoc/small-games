@@ -23,11 +23,18 @@ it('reuses canonical GitHub sessions and host/Origin/CSRF protection, exposes on
       'roles',
       'audit',
       'deployments',
+      'night-runtime',
     ])
       expect((await get(`/api/control/${route}`)).statusCode).toBe(200);
     expect((await get('/api/control/state', { host: 'api.nenggongzhiren.cn' })).statusCode).toBe(
       403,
     );
+    expect(
+      (await f.app.inject({ url: '/api/control/night-runtime', headers: f.headers })).statusCode,
+    ).toBe(401);
+    expect(
+      (await get('/api/control/night-runtime', { host: 'api.nenggongzhiren.cn' })).statusCode,
+    ).toBe(403);
     expect(
       (
         await f.app.inject({

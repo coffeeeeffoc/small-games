@@ -60,7 +60,7 @@ const testStorage = { getItem:(key:string)=>cc.sys.localStorage.getItem(key),
 function mission() {
   const g = new Overwatch();
   g.servicesReady = Promise.resolve();
-  g.hud = { t: (value: string) => value, supplySelection: 'tracking', h: 600, modal: null, hit: (x: number) => x > 900 ? { id: 'fire',x:900,y:450,w:68,h:68 } : undefined,
+  g.hud = { t: (value: string) => value, supplySelection: 'tracking', h: 600, modal: null, get activeModal(){return this.modal;}, hit: (x: number) => x > 900 ? { id: 'fire',x:900,y:450,w:68,h:68 } : undefined,
     controlPositions:{},controlBounds:()=>({x:0,y:0,w:932,h:532}),placeControl(){},
     controlAt: () => undefined, listAt: () => undefined, minimapPoint: () => undefined, blocksBattlefield: () => false };
   g.world = { map: 'valley', light: 'day', root: { active: true, destroy() {} }, camera: {}, viewMode: 'night', updateCamera() {}, reset() {}, setView(mode) { this.viewMode=mode;this.thermal=mode==='thermal'; }, sensor() { this.setView(this.viewMode==='night'?'enhanced':this.viewMode==='enhanced'?'thermal':'night'); } };
@@ -68,6 +68,19 @@ function mission() {
   g.sim.start(); g.sim.choose(0);
   return g;
 }
+
+test('a private overlay blocks loadout and legacy scrolling while leaving its own chat scroll reachable',()=>{
+  const g=mission();let pageScroll=0,chatScroll=0;
+  g.quartermaster={page:'loadout',loadoutArea:{x:0,y:0,w:1000,h:600},scrollLoadout:()=>pageScroll++};
+  Object.defineProperty(g.hud,'activeModal',{get:()=>({conversation:true})});
+  Object.assign(g.hud,{modal:{page:true},hit:()=>undefined,scrollNode:{},scrollArea:{x:0,y:0,w:1000,h:600},scrollBy:()=>pageScroll++,moveList:()=>chatScroll++});
+  g.mousePosition=()=>({x:400,y:300});
+  assert.equal(g.beginLoadoutGesture('mouse',400,300),false);
+  g.wheel({getScrollY:()=>-30});assert.equal(pageScroll,0);
+  g.touchStart(touch(1,400,300));assert.equal(g.loadoutGesture,undefined);assert.equal(g.touches.size,0,'outside-chat touch cannot scroll or aim');
+  g.hud.listAt=()=>({key:'direct',axis:'y'});g.wheel({getScrollY:()=>-30});assert.equal(chatScroll,1);assert.equal(pageScroll,0);
+  g.platform.dispose();
+});
 
 test('each weapon and skill drags independently within the match and cancels without actions', () => {
   for (const mouse of [false,true]) for(const id of ['weapon0','weapon1','weapon2','weapon3','homing','weapon4','skillUse','weapon5']) {
@@ -233,8 +246,8 @@ test('leaving a pending campaign clears its waiting message and ignores its late
   const g=mission();let finish!:(run:any)=>void,cancelled=0;
   g.online={leave(){},cancelRanking(){cancelled++;},startRanking:()=>new Promise(resolve=>{finish=resolve;}),recorder:{record(){}}};
   g.sim.phase='briefing';g.beginCampaign();await new Promise(resolve=>setImmediate(resolve));
-  g.action(action);assert.equal(g.hud.toastUntil,0);assert.equal(g.starting,undefined);assert.equal(cancelled,2);
-  if(action==='training'){g.beginCampaign();assert.equal(g.sim.phase,'playing');}
+  g.action(action);assert.equal(g.hud.toastUntil,0);assert.equal(g.starting,undefined);assert(cancelled>=2);
+  if(action==='training')assert.equal(g.sim.phase,'playing','warmup starts with one click');
   finish({loadout:{version:'night-growth-v1',level:1,effects:[],skipped:[]}});await new Promise(resolve=>setImmediate(resolve));
   assert.equal(g.sim.phase,action==='training'?'playing':'briefing');assert.equal(g.hud.toastUntil,0);g.platform.dispose();
  }
@@ -710,6 +723,7 @@ test('actual warmup entry, retry and return keep saved escort preferences and sy
     g.prepareMission('?mission=patrol-03');
     assert.equal(g.sim.mission.id, 'patrol-03'); assert.deepEqual(writes, []);
     g.action('training'); assert.equal(g.sim.mission.id, 'training-60');
+    assert.equal(g.sim.phase,'playing');g.sim.phase='failure';
     g.action('missionReturn'); assert.equal(g.sim.mission.id, 'patrol-03');
     assert.equal(saved.get('night-overwatch-mission-v1'), 'ambush-02');
     g.platform.saveMission('training-60'); assert.deepEqual(writes, []);
@@ -750,6 +764,7 @@ test('actual task choices update public entry URLs without carrying private fiel
   try {
     g.action('training');
     assert.equal(browserLocation.href, 'https://example.test/night/?mission=training-60');
+    assert.equal(g.sim.phase,'playing');g.sim.phase='failure';
     g.action('missionReturn');
     assert.equal(browserLocation.href, 'https://example.test/night/?mission=corridor-01');
     g.action('missionNext');

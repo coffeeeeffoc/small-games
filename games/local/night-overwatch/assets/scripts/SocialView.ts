@@ -12,57 +12,68 @@ export class SocialView {
   private stamp='';
   private lastMessage='';
   private h:HUD;
+  private box={x:0,y:0,w:400,h:320};
   constructor(h:HUD){this.h=h;}
   private discard(node?:Node){
     if(!node||!isValid(node))return;
     this.h.buttons=this.h.buttons.filter(b=>{for(let p:Node|null=b.label.node;p;p=p.parent)if(p===node)return false;return true;});node.destroy();
   }
   private button(parent:Node,g:Graphics,id:string,text:string,x:number,y:number,w:number,disabled=false,primary=false){
-    // Keep every surface under the overlay so closing it removes all of its ink.
-    this.h.plate(g,x+2,y+3,w-4,38,primary&&!disabled?C.amber:'#162c3e',disabled?C.line:primary?C.amber:C.mint,6);
-    const label=this.h.button(id,text,x,y,w,44,parent),button=this.h.buttons.at(-1)!;
-    button.disabled=disabled;button.visual={x:x+2,y:y+3,w:w-4,h:38,cut:6};
-    label.color=col(disabled?C.dim:primary?'#fff0d0':C.white);label.isBold=true;label.fontSize=14;label.enableWrapText=false;label.overflow=Label.Overflow.SHRINK;
-    return label;
+    return this.h.dialogButton(parent,g,id,text,x,y,w,primary?'primary':'secondary','',44,disabled);
   }
+
   updateBanner(){
     const h=this.h,o=h.online,notice=o?.notification&&performance.now()<o.notificationUntil?o.notification:undefined;
-    const major=h.majorUpdate&&!o?.socialOpen&&!h.updatesOpen&&!h.modalKey.startsWith('online:')&&h.modalKey==='home';
+    const major=h.majorUpdate&&!h.updatesOpen;
     const visible=!!o&&!o.socialOpen&&!o.friendRemoval&&!h.updatesOpen&&!h.storageError;
-    const key=[visible,notice?.id,o?.directUnread,o?.incomingFriends,major,h.w,h.h,h.lang,h.safe.top].join(':');
+    const key=[visible,notice?.id,o?.directUnread,o?.incomingFriends,o?.chatRetryPending,major,o?.updateNotice,h.w,h.h,h.lang,h.safe.top,h.modalKey].join(':');
     if(key===this.bannerKey&&this.banner&&isValid(this.banner))return;
     this.bannerKey=key;this.discard(this.banner);this.banner=undefined;
-    if(!visible||!notice&&!o!.directUnread&&!o!.incomingFriends&&!major)return;
+    if(!visible||!notice&&!o!.directUnread&&!o!.incomingFriends&&!o!.chatRetryPending&&!((major||o!.updateNotice)&&h.modalKey==='home'))return;
     const n=this.banner=h.node('SocialNotice',h.globalControls),g=n.addComponent(Graphics);
-    const w=Math.min(480,h.w-h.safe.left-h.safe.right-24),x=h.safe.left+(h.w-h.safe.left-h.safe.right-w)/2,y=Math.max(h.safe.top+52,(h.capsuleRect?.bottom||0)+6);
-    if(notice||major){
-      h.plate(g,x,y,w,76,'#102434',major?C.amber:C.mint,8);
-      const caption=notice?`${notice.nickname} · ${h.t('私信','MESSAGE')}\n${notice.text}`:h.t('版本更新 · 私信体验与追踪平衡\n点此查看更新日志','UPDATE · PRIVATE CHAT & TRACKING BALANCE\nVIEW UPDATE LOG');
-      h.label(n,caption,x+(w-148)/2+12,y+38,13,w-148,62,C.white).horizontalAlign=Label.HorizontalAlign.LEFT;
-      this.button(n,g,notice?'social:reply':'social:updates',h.t(notice?'回复':'查看',notice?'REPLY':'VIEW'),x+w-128,y+16,76,false,true);
-      this.button(n,g,'social:dismiss','×',x+w-48,y+16,44);
-    }else {
-      const text=h.t(`私信 ${o!.directUnread} · 好友申请 ${o!.incomingFriends}`,`MESSAGES ${o!.directUnread} · REQUESTS ${o!.incomingFriends}`);
-      this.button(n,g,'social:inbox',text,x+w-230,y,230);
+    const right=h.w-h.safe.right-16,top=Math.max(h.safe.top+52,(h.capsuleRect?.bottom||0)+8);
+    // Version news belongs to the corner; direct messages keep their own speech bubble.
+    if((major||o!.updateNotice)&&h.modalKey==='home'){
+      const w=140,x=right-w,y=top;
+      h.rect(g,x,y+6,w,32,'#0b1c2de8','#365269',9);
+      g.fillColor=col('#ee6a62');g.circle(x+13-h.w/2,h.h/2-y-22,3.5);g.fill();
+      h.button(o!.updateNotice?'online:version':'social:updates',h.t(o!.updateNotice?'发现新版本':'更新日志',o!.updateNotice?'NEW VERSION':'WHAT’S NEW'),x+22,y,w-22,44,n).fontSize=12;
+    }
+    if(notice){
+      const w=Math.min(340,h.w-h.safe.left-h.safe.right-32),x=right-w,y=top+((major||o!.updateNotice)&&h.modalKey==='home'?46:0);
+      h.rect(g,x-2,y+4,w+4,80,'#020a1466',undefined,15);
+      h.rect(g,x,y,w,76,'#315e77fa','#99c8da',13);
+      g.fillColor=col('#315e77');g.moveTo(x+24-h.w/2,h.h/2-y-74);g.lineTo(x+24-h.w/2,h.h/2-y-85);g.lineTo(x+38-h.w/2,h.h/2-y-74);g.close();g.fill();
+      h.controlIcon(g,'message',x+24,y+23,20,C.mint);
+      h.label(n,notice.nickname,x+44+(w-96)/2,y+22,13,w-96,24,C.mint).horizontalAlign=Label.HorizontalAlign.LEFT;
+      const preview=h.label(n,notice.text,x+16+(w-68)/2,y+51,13,w-68,26,C.white);preview.enableWrapText=false;preview.overflow=Label.Overflow.SHRINK;preview.horizontalAlign=Label.HorizontalAlign.LEFT;
+      h.button('social:reply','',x,y,w-48,76,n).node.name=h.t('打开私信','OPEN MESSAGE');
+      h.dialogButton(n,g,'social:dismiss','',x+w-48,y+4,44,'quiet','close');
+    }else if(o!.directUnread||o!.incomingFriends||o!.chatRetryPending){
+      const w=148,x=right-w,y=h.h-h.safe.bottom-54;
+      h.rect(g,x,y+3,w,38,'#153147f5','#52798d',19);
+      h.controlIcon(g,'message',x+22,y+22,18,C.mint);
+      h.button('social:inbox',h.t(o!.chatRetryPending?'消息待重试':o!.directUnread?`未读消息 ${o!.directUnread}`:`好友申请 ${o!.incomingFriends}`,o!.chatRetryPending?'RETRY MESSAGE':o!.directUnread?`MESSAGES ${o!.directUnread}`:`REQUESTS ${o!.incomingFriends}`),x+38,y,w-38,44,n).fontSize=12;
     }
   }
+
   renderRemoval(n:Node,g:Graphics){
-    const h=this.h,o=h.online!,w=Math.min(420,h.w-h.safe.left-h.safe.right-64),x=(h.w-w)/2,y=(h.h-200)/2;
-    h.panelFrame(g,x,y,w,200,C.amber,'#050f1de8');
-    h.label(n,h.t('移除好友','REMOVE FRIEND'),x+w/2,y+28,20,w-32,36,C.white).isBold=true;
-    h.label(n,h.t(`确定移除 ${playerLabel(o.friendRemoval!)}？\n聊天记录会保留，之后可重新申请好友。`,`Remove ${playerLabel(o.friendRemoval!)}?\nChat history is kept. You can add them again.`),x+w/2,y+94,14,w-36,80,C.dim);
-    this.button(n,g,'social:removeCancel',h.t('取消','CANCEL'),x+16,y+146,(w-40)/2);
-    this.button(n,g,'social:removeConfirm',h.t('确认移除','REMOVE'),x+24+(w-40)/2,y+146,(w-40)/2,false,true);
+    const h=this.h,o=h.online!;
+    const {x,y,w,h:height}=h.dialog(n,g,{width:420,height:210,title:h.t('移除好友','REMOVE FRIEND'),close:'social:removeClose'});
+    h.label(n,h.t(`确定移除 ${playerLabel(o.friendRemoval!)}？\n聊天记录会保留，之后可重新申请好友。`,`Remove ${playerLabel(o.friendRemoval!)}?\nChat history is kept.`),x+w/2,y+101,14,w-40,76,C.dim);
+    this.button(n,g,'social:removeCancel',h.t('取消','CANCEL'),x+16,y+height-56,(w-40)/2);
+    this.button(n,g,'social:removeConfirm',h.t('确认移除','REMOVE'),x+24+(w-40)/2,y+height-56,(w-40)/2,false,true);
   }
+
   render(n:Node,initial=false){
     const h=this.h,o=h.online!,peer=o.chatPeer;
-    const x=Math.max(32,Math.min(60,h.w*.05),h.safe.left+12,h.safe.right+12),w=h.w-x*2,top=Math.max(h.safe.top+8,(h.capsuleRect?.bottom||0)+6),bottom=h.h-h.safe.bottom-10,inputY=bottom-44;
+    if(initial)this.box=h.dialog(n,n.addComponent(Graphics),{width:400,height:330,position:'right',close:'social:close',dim:'#03091244',background:'#29485bfa'});
+    const {x,y,w,h:height}=this.box,top=y+4,bottom=y+height-12,inputY=bottom-44;
     if(initial){
-      h.rect(n.addComponent(Graphics),0,0,h.w,h.h,'#050f1df0');
-      const field=h.node('DirectComposer',n),fw=w-84;
-      field.active=false;field.setPosition(x+fw/2-h.w/2,h.h/2-inputY-22);field.getComponent(UITransform)!.setContentSize(fw-16,44);
+      const field=h.node('DirectComposer',n),fw=w-104;
+      field.active=false;field.setPosition(x+12+fw/2-h.w/2,h.h/2-inputY-22);field.getComponent(UITransform)!.setContentSize(fw-16,44);
       const edit=this.composer=field.addComponent(EditBox);edit.textLabel=h.label(field,'',h.w/2,h.h/2,16,fw-20,42);
-      edit.placeholderLabel=h.label(field,h.t('回复这位玩家…','Reply to this pilot…'),h.w/2,h.h/2,13,fw-20,42,C.dim);
+      edit.placeholderLabel=h.label(field,h.t('回复这位玩家…','Reply to this pilot…'),h.w/2,h.h/2,13,fw-20,42,'#c8dfe8');
       edit.inputMode=EditBox.InputMode.SINGLE_LINE;edit.maxLength=240;edit.string=o.chatDraft;
       for(const label of [edit.textLabel,edit.placeholderLabel]){label.node.getComponent(UITransform)!.setAnchorPoint(0,1);label.horizontalAlign=Label.HorizontalAlign.LEFT;label.verticalAlign=Label.VerticalAlign.CENTER;}
       field.on(EditBox.EventType.TEXT_CHANGED,()=>{o.chatDraft=edit.string;});field.active=true;
@@ -74,16 +85,13 @@ export class SocialView {
     const body=this.body=h.node('DirectContent',n),g=h.node('DirectInk',body).addComponent(Graphics);
     body.setSiblingIndex(0);
     const button=(id:string,caption:string,bx:number,by:number,bw:number,disabled=false,primary=false,parent=body,ink=g)=>this.button(parent,ink,id,caption,bx,by,bw,disabled,primary);
-    button('social:close','‹',x,top,44);
-    const p=peer&&o.peer(playerId(peer))||peer,status=p?.status==='playing'?h.t('游戏中','PLAYING'):p?.status==='offline'?h.t('离线 · 可留言','OFFLINE · LEAVE A MESSAGE'):h.t('在线','ONLINE');
-    const title=h.label(body,playerLabel(p||{}),x+50+(w-58)/2,top+14,16,w-58,26,C.white);title.enableWrapText=false;title.overflow=Label.Overflow.SHRINK;
-    h.label(body,status,x+50+(w-58)/2,top+35,11,w-58,20,p?.status==='playing'?C.amber:p?.status==='offline'?C.dim:C.mint);
-    const id=peer?playerId(peer):'',friend=o.social.friends.some(v=>playerId(v)===id),request=o.social.requests.find(v=>playerId(v)===id),cw=(w-12)/3;
-    button('online:friendAction:'+(friend?'remove':request?.direction==='incoming'?'accept':request?'cancel':'request')+':'+id,h.t(friend?'移除好友':request?.direction==='incoming'?'同意好友':request?'取消申请':'添加好友',friend?'REMOVE FRIEND':request?.direction==='incoming'?'ACCEPT':request?'CANCEL REQUEST':'ADD FRIEND'),x,top+46,cw,o.socialBusy);
-    button('online:invitePlayer:'+id,h.t('邀请对战','INVITE'),x+cw+6,top+46,cw,!p||!o.canInvite(p),true);
-    button('social:older',h.t(o.conversationBefore?'更早消息':'刷新会话',o.conversationBefore?'OLDER':'REFRESH'),x+(cw+6)*2,top+46,cw,o.conversationLoading);
-    const area={x,y:top+96,w,h:Math.max(44,inputY-top-124)},messages=o.visibleChat,font=h.w<700?13:16;
-    const maxBubble=Math.min(620,w*.88);
+    const p=peer&&o.peer(playerId(peer))||peer;
+    const title=h.label(body,p?.nickname||p?.name||h.t('私信','MESSAGE'),x+18+(w-82)/2,top+19,16,w-82,26,C.white);title.enableWrapText=false;title.horizontalAlign=Label.HorizontalAlign.LEFT;title.overflow=Label.Overflow.SHRINK;title.isBold=true;
+    h.label(body,playerId(p||{})?playerLabel(p||{}).split(' ').at(-1)!+' · '+h.t(p?.status==='offline'?'离线留言':'私信',p?.status==='offline'?'OFFLINE MESSAGE':'PRIVATE'):h.t('私信','PRIVATE'),x+18+(w-82)/2,top+38,10,w-82,18,'#d0e6ef').horizontalAlign=Label.HorizontalAlign.LEFT;
+    const history=!!o.conversationBefore||o.conversationFailed;
+    if(history)button('social:older',h.t(o.conversationBefore?'更早消息':'重新读取',o.conversationBefore?'OLDER MESSAGES':'RETRY'),x+12,top+52,w-24,o.conversationLoading);
+    const area={x:x+12,y:top+(history?100:58),w:w-24,h:Math.max(44,inputY-top-(history?128:86))},messages=o.visibleChat,font=13;
+    const maxBubble=area.w-16;
     let total=0;const rows=messages.map(m=>{const bw=m.room?maxBubble:Math.min(maxBubble,Math.max(200,Array.from(m.text).length*font+32)),height=38+Math.max(1,Math.ceil(Array.from(m.text).length/Math.floor((bw-32)/font)))*(font+5)+(m.room?100:0);const row={y:total,height,bw};total+=height+12;return row;});
     const newest=messages.at(-1)?.id||'',oldOffset=h.listScroll.direct||0;
     if(this.lastMessage!==newest){h.listScroll.direct=Number.MAX_SAFE_INTEGER;this.lastMessage=newest;}
@@ -91,9 +99,9 @@ export class SocialView {
     const list=h.listViewport(body,'direct',area,total);
     messages.forEach((m,i)=>{
       const row=rows[i],y=area.y+row.y-list.offset;if(y+row.height<area.y||y>area.y+area.h)return;
-      const own=m.playerId===o.authenticatedId,bx=own?x+w-row.bw-12:x+4,bw=row.bw,textH=row.height-38-(m.room?100:0);
-      h.rect(list.g,bx,y,bw,row.height,own?'#173b4fee':'#122736ee',own?'#578291':'#3c5668',8);
-      h.label(list.n,(own?h.t('你','YOU'):m.nickname)+' · '+new Date(m.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),bx+bw/2,y+16,11,bw-28,24,own?C.mint:C.dim).horizontalAlign=Label.HorizontalAlign.LEFT;
+      const own=m.playerId===o.authenticatedId,bx=own?area.x+area.w-row.bw-8:area.x+4,bw=row.bw,textH=row.height-38-(m.room?100:0);
+      h.rect(list.g,bx,y,bw,row.height,own?'#3f7084ff':'#355c71ff',own?'#a2d5da':'#7baabd',8);
+      h.label(list.n,(own?h.t('你','YOU'):m.nickname)+' · '+new Date(m.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),bx+bw/2,y+16,11,bw-28,24,own?'#c0f0f3':'#d6e9ef').horizontalAlign=Label.HorizontalAlign.LEFT;
       h.label(list.n,m.text,bx+bw/2,y+30+textH/2,font,bw-28,textH,C.white).horizontalAlign=Label.HorizontalAlign.LEFT;
       if(m.room){
         const cardY=y+row.height-98,art=h.progressionArt.get('duel');
@@ -105,9 +113,9 @@ export class SocialView {
         button('online:chatJoin:'+m.id,caption,bx+bw-174,y+row.height-48,160,own||!m.room.canJoin||!!o.room||o.activity==='playing',true,list.n,list.g);
       }
     });list.finish();
-    if(!messages.length)h.label(body,o.conversationLoading?h.t('正在读取会话…','LOADING…'):h.t('发送第一条消息 · 离线好友也能收到','SEND A MESSAGE · OFFLINE FRIENDS CAN READ LATER'),x+w/2,area.y+area.h/2,14,w-24,60,C.dim);
-    h.label(body,o.socialStatus||o.chatStatus||h.t('私信仅双方可见 · 离线也可留言','PRIVATE · LEAVE A MESSAGE ANYTIME'),x+w/2,inputY-14,11,w-12,24,C.dim);
-    h.inset(g,x,inputY,w-84,44);button('online:chatSend',h.t(o.chatSending?'发送中':'发送',o.chatSending?'SENDING':'SEND'),x+w-78,inputY,78,o.chatSending||!o.socialAvailable,true);
+    if(!messages.length)h.label(body,o.conversationLoading?h.t('正在读取会话…','LOADING…'):h.t('发送第一条消息 · 离线好友也能收到','SEND A MESSAGE · OFFLINE FRIENDS CAN READ LATER'),x+w/2,area.y+area.h/2,13,w-48,60,'#d0e6ef');
+    h.label(body,o.socialStatus||o.chatStatus||h.t('私信仅双方可见 · 离线也可留言','PRIVATE · LEAVE A MESSAGE ANYTIME'),x+w/2,inputY-14,11,w-12,24,'#d0e6ef');
+    h.rect(g,x+12,inputY,w-104,44,'#091725','#345064',8);button('online:chatSend',h.t(o.chatSending?'发送中':o.chatRetryPending?'重试':'发送',o.chatSending?'SENDING':o.chatRetryPending?'RETRY':'SEND'),x+w-84,inputY,72,o.chatSending||!o.socialAvailable,true);
     if(this.composer&&this.composer.string!==o.chatDraft)this.composer.string=o.chatDraft;
   }
 }

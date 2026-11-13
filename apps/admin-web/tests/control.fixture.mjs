@@ -161,6 +161,12 @@ export async function installControlFixture(page, granted = permissions) {
         roles: fixture.directory,
         audit: fixture.audit,
         deployments: fixture.deployments,
+        'night-runtime': fixture.nightRuntime ?? {
+          checkedAt: Date.now(),
+          report: null,
+          error: 'NOT_CONFIGURED',
+          otherInstances: [],
+        },
       }[path.split('/').at(-1)];
       return respond(result ?? { error: 'NOT_FOUND' }, result ? 200 : 404);
     }

@@ -10,7 +10,19 @@ export const playerId = (player: Player) => player.playerId || player.userId || 
 export const playerTag = (id: string) => `#${id.replace(/-/g, '').slice(-8).toUpperCase()}`;
 export const playerLabel = (player: Player) => `${player.nickname || player.name || '飞行员'} ${playerTag(playerId(player))}`;
 type DuelView = Omit<ReturnType<typeof viewDuel>,'enemyEquipment'>&Partial<Pick<ReturnType<typeof viewDuel>,'enemyEquipment'>>;
-export type Settlement = { points: number; totalPoints?: number; wins?: number; games?: number; outcome?: string; coins?:number; xp?:number; totalXp?:number; status?:string; firstClear?:boolean; fragments?:Record<string,number> };
+export type Settlement = { points: number; totalPoints?: number; wins?: number; games?: number; outcome?: string; reason?:string; rewardReason?:string; durationMs?:number; coins?:number; xp?:number; totalXp?:number; status?:string; firstClear?:boolean; fragments?:Record<string,number> };
+export function duelEndNotice(settlement?: Settlement): [string,string] | undefined {
+  const lost=settlement?.outcome==='loss';
+  if(settlement?.reason==='forfeit')return lost?['你已退出，本局判负','YOU LEFT · DEFEAT']:['对手已退出，对战结束','OPPONENT LEFT · MATCH ENDED'];
+  if(settlement?.reason==='disconnect')return lost?['重连超时，本局判负','RECONNECT EXPIRED · DEFEAT']:['对手重连超时，本局获胜','OPPONENT TIMED OUT · VICTORY'];
+  if(settlement?.reason==='abandoned')return ['双方离线，对战结束','BOTH PLAYERS OFFLINE · MATCH ENDED'];
+}
+export function duelRewardNotice(settlement?: Settlement): [string,string] | undefined {
+  if(settlement?.rewardReason==='opponent-left')return ['对手退出，本局不发放金币与经验','OPPONENT LEFT · NO COINS OR EXP'];
+  if(settlement?.rewardReason==='too-short')return ['对局不足 10 秒，本局无金币与经验','MATCH UNDER 10s · NO COINS OR EXP'];
+  if(settlement?.rewardReason==='not-participated')return ['未有效参战，本局无金币与经验','NO COMBAT PARTICIPATION · NO COINS OR EXP'];
+  if(settlement?.rewardReason==='disconnected'||settlement?.rewardReason==='abandoned')return ['离线结束，本局无金币与经验','DISCONNECTED · NO COINS OR EXP'];
+}
 export type RoomSummary = { code: string; status: string; mode: string; players: Player[]; playerCount: number; canJoin: boolean; canSpectate: boolean };
 export type BattleHistory = { summary: { wins: number; losses: number; draws: number; games: number; winRate: number };
   matches: { id: string; code: string; opponent: Player; outcome: string; reason: string; startedAt: number; finishedAt: number; durationMs: number; points: number }[]; nextCursor?: string };
@@ -158,6 +170,7 @@ export class Online {
   conversation:ChatMessage[]=[];
   conversationBefore?:string;
   conversationLoading=false;
+  conversationFailed=false;
   notification?:ChatMessage;
   notificationUntil=0;
   private notified=new Set<string>();
@@ -199,15 +212,15 @@ export class Online {
     const peer=playerId(this.chatPeer),owner=this.authenticatedId,epoch=this.conversationEpoch;this.conversationLoading=true;this.chatRevision++;
     try{const result=await this.bridge.services.nightChat({direct:true,peer,...(before?{before}:{})},owner);if(epoch!==this.conversationEpoch||owner!==this.authenticatedId)return;
       this.conversation=before?[...result.messages,...this.conversation.filter(m=>!result.messages.some(v=>v.id===m.id))]:result.messages;
-      this.conversationBefore=result.nextBefore;this.markDirectRead();
-    }catch{if(epoch===this.conversationEpoch)this.chatStatus='会话读取失败，可点击重试';}
+      this.conversationBefore=result.nextBefore;this.conversationFailed=false;if(this.chatStatus==='会话读取失败，可点击重试')this.chatStatus='';this.markDirectRead();
+    }catch{if(epoch===this.conversationEpoch){this.conversationFailed=true;this.chatStatus='会话读取失败，可点击重试';}}
     finally{if(epoch===this.conversationEpoch){this.conversationLoading=false;this.chatRevision++;}}
   }
   openConversation(peer:Player){this.selectChat(peer);if(this.chatPeer&&playerId(this.chatPeer)===playerId(peer)){this.socialOpen=true;this.notification=undefined;this.markDirectRead();this.revision++;}}
-  closeConversation(){this.socialOpen=false;this.selectChat(undefined,true);this.revision++;}
+  closeConversation(){this.socialOpen=false;if(!this.chatSending&&!this.chatRetryPending){const status=this.chatStatus;this.selectChat();this.chatStatus=status;}this.revision++;}
   private directRead = new Set<string>();
   get directUnread() { return this.bridge?.services.nightSocial?this.social.conversations.reduce((n,c)=>n+(this.blockedPlayers.has(playerId(c))?0:c.unread),0):this.chatMessages.filter(m => m.recipientId === this.authenticatedId && !this.blockedPlayers.has(m.playerId) && !this.directRead.has(m.id)).length; }
-  showPlayers() { this.lobbyTab = 'players'; this.show('menu'); this.presenceNext = 0; }
+  showPlayers() { this.lobbyTab = 'players'; if(this.panel !== 'menu')this.show('players'); else this.revision++; this.presenceNext = 0; }
   pagePlayers(next: boolean) {
     if(next && !this.playersNext || !next && !this.playersPrevious.length) return;
     if(next) { this.playersPrevious.push(this.playersCursor); this.playersCursor = this.playersNext; }
@@ -220,7 +233,7 @@ export class Online {
     if(this.inviting || this.chatSending || this.chatIntent) { this.chatStatus = this.inviting ? '正在创建邀请，请稍候' : '请先重试确认上一条消息的发送结果'; this.chatRevision++; return; }
     if(peer && (!this.socialAvailable || playerId(peer) === this.authenticatedId)) return;
     this.chatPeer = peer; this.chatInbox = inbox || !!peer; this.chatDraft = ''; this.chatMenu = ''; this.chatStatus = abandoned?'已停止重试上一条私信，是否送达暂未确认':''; this.chatRevision++;
-    this.conversationEpoch++;this.conversation=[];this.conversationBefore=undefined;this.conversationLoading=false;this.readThrough='';
+    this.conversationEpoch++;this.conversation=[];this.conversationBefore=undefined;this.conversationLoading=false;this.conversationFailed=false;this.readThrough='';
     if(peer)void this.loadConversation();
     this.markDirectRead();
   }
@@ -234,15 +247,20 @@ export class Online {
   }
   async invitePlayer(peer: Player) {
     if(!this.canInvite(peer)){this.chatStatus='双方需在线且不在游戏中才能邀请';this.chatRevision++;return;}
-    if(!this.socialAvailable || this.inviting || this.busy || this.active || this.chatSending || this.chatIntent || this.blockedPlayers.has(playerId(peer))) return;
+    if(this.chatIntent){this.chatStatus='上一条私信发送结果待确认，请打开原会话重试';this.chatRevision++;return;}
+    if(!this.socialAvailable || this.inviting || this.busy || this.active || this.chatSending || this.blockedPlayers.has(playerId(peer))) return;
     const owner = this.authenticatedId;
     this.selectChat(peer);
-    this.inviting = true;
+    this.inviting = true;this.chatStatus='正在创建邀请…';this.chatRevision++;
     try {
       if(!this.room) { this.privateRoom = false; await this.open('friend'); }
-      if(owner !== this.authenticatedId || this.destroyed || !this.room) return;
-      this.show('menu'); this.chatStatus = ''; this.inviting=false; await this.sendChat(true);
-    } finally { this.inviting = false; }
+      if(owner !== this.authenticatedId || this.destroyed) return;
+      if(!this.room){this.chatStatus=this.message||'创建邀请失败，请稍后重试';return;}
+      this.chatStatus = ''; this.inviting=false; await this.sendChat(true);
+      if(owner !== this.authenticatedId || this.destroyed)return;
+      if(this.chatRetryPending){this.socialOpen=true;}
+      else {const message=this.chatStatus||'邀请已发送，等待对方加入';this.closeConversation();this.message=message;this.chatStatus=message;}
+    } finally { this.inviting = false;if(owner===this.authenticatedId&&!this.socialOpen&&!this.chatRetryPending)this.closeConversation();this.chatRevision++;this.revision++; }
   }
   private presenceAvailable = false;
   private presenceEpoch = 0;
@@ -294,9 +312,9 @@ export class Online {
   private chatAcceptedAt=0;
   private acceptChat(result:ChatSnapshot){if(result.serverNow<this.chatAcceptedAt)return;this.chatAcceptedAt=result.serverNow;if(JSON.stringify(this.chatMessages)!==JSON.stringify(result.messages)){this.chatMessages=result.messages;this.chatRevision++;this.revision++;}this.chatCursor=result.cursor;if(this.chatPeer&&this.bridge?.services.nightSocial){const peer=playerId(this.chatPeer),incoming=result.messages.filter(m=>m.recipientId&&(m.playerId===peer||m.recipientId===peer));const ids=new Set(incoming.map(m=>m.id));this.conversation=[...this.conversation.filter(m=>!ids.has(m.id)),...incoming].sort((a,b)=>a.id.length-b.id.length||a.id.localeCompare(b.id));}if(this.chatStatus==='交流暂不可用，正在重连'){this.chatStatus='';this.chatRevision++;}this.markDirectRead();}
   private async pollChat(now:number){
-    if(this.destroyed||!this.foreground||(this.panel!=='menu'&&!this.socialAvailable)||!this.chatAvailable||!this.bridge?.services.nightChat||this.chatPoll||now<this.chatNext)return;
+    if(this.destroyed||!this.foreground||(!['menu','chat'].includes(this.panel)&&!this.socialAvailable)||!this.chatAvailable||!this.bridge?.services.nightChat||this.chatPoll||now<this.chatNext)return;
     const epoch=this.chatEpoch,owner=this.authenticatedId;this.chatPoll=true;
-    try{const result=await this.bridge.services.nightChat({cursor:this.chatCursor||undefined,waitMs:this.panel==='menu'&&this.chatCursor?5000:0,direct:this.socialAvailable},owner);if(epoch!==this.chatEpoch||owner!==this.authenticatedId||this.destroyed)return;this.acceptChat(result);this.chatNext=performance.now()+(this.panel==='menu'?200:5000);}
+    try{const result=await this.bridge.services.nightChat({cursor:this.chatCursor||undefined,waitMs:['menu','chat'].includes(this.panel)&&this.chatCursor?5000:0,direct:this.socialAvailable},owner);if(epoch!==this.chatEpoch||owner!==this.authenticatedId||this.destroyed)return;this.acceptChat(result);this.chatNext=performance.now()+(['menu','chat'].includes(this.panel)?200:5000);}
     catch(error){if(epoch===this.chatEpoch){this.chatStatus='交流暂不可用，正在重连';this.chatNext=performance.now()+4000;this.chatRevision++;if(this.socialAvailable && (error as {code?:string}).code==='INVALID_INPUT')void this.checkRelease();}}
     finally{this.chatPoll=false;}
   }
@@ -309,17 +327,17 @@ export class Online {
     const room=invite?this.room:undefined;
     if(invite&&(!room||room.visibility!=='public'||room.status!=='waiting'||room.players[0]&&playerId(room.players[0])!==this.authenticatedId)){this.chatStatus='只有自己创建的公开等待房间可以邀请';this.chatRevision++;return;}
     if(!this.chatIntent){const bytes=randomBytes();bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');this.chatIntent={requestId:`${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`,text:text||(invite?'来我的房间，一起出动！':''),...(room?{roomCode:room.code}:{}),...(this.chatPeer?{recipientId:playerId(this.chatPeer)}:{})};}
-    const owner=this.authenticatedId,intent=this.chatIntent;this.chatSending=true;this.chatRevision++;
+    const owner=this.authenticatedId,intent=this.chatIntent,wasOpen=this.socialOpen;this.chatSending=true;this.chatRevision++;
     try{const result=await this.bridge.services.sendNightChat(intent,owner);if(owner!==this.authenticatedId||this.destroyed)return;this.chatEpoch++;this.chatNext=0;this.acceptChat(result);this.chatIntent=undefined;if(this.chatDraft.normalize('NFKC').trim()===intent.text)this.chatDraft='';this.chatStatus='';}
     catch(error){if(owner!==this.authenticatedId||this.destroyed)return;const code=(error as {code?:string}).code||'';const known=['CHAT_RATE_LIMIT','CHAT_MUTED','INVALID_INPUT','INVITATION_UNAVAILABLE','REQUEST_ID_CONFLICT','RECIPIENT_UNAVAILABLE','RECIPIENT_BUSY'].includes(code);if(known)this.chatIntent=undefined;this.chatStatus=code==='CHAT_RATE_LIMIT'?'发言间隔3秒，请稍后再发':code==='CHAT_MUTED'?'当前账号暂时无法发言':code==='RECIPIENT_BUSY'?'对方已离线或正在游戏，暂不能邀请':code==='RECIPIENT_UNAVAILABLE'?'该玩家暂不可接收私信':code==='INVITATION_UNAVAILABLE'?'房间已不再接受邀请':known?'消息未发送，请检查内容':'发送结果待确认，点击发送可安全重试';}
-    finally{if(owner===this.authenticatedId){this.chatSending=false;this.chatRevision++;}}
+    finally{if(owner===this.authenticatedId){this.chatSending=false;if(wasOpen&&!this.socialOpen&&!this.chatIntent)this.closeConversation();this.chatRevision++;}}
   }
   toggleBlock(id:string){if(id===this.authenticatedId)return;this.blockedPlayers.has(id)?this.blockedPlayers.delete(id):this.blockedPlayers.add(id);try{this.storage.setItem('night-chat-blocks:'+this.authenticatedId,JSON.stringify(Array.from(this.blockedPlayers)));}catch{}this.chatMenu='';this.chatRevision++;}
   async reportChat(id:string){const owner=this.authenticatedId;try{await this.bridge?.services.reportNightChat?.({id,reason:'玩家举报：不适当或骚扰内容'},owner);if(owner===this.authenticatedId)this.chatStatus='举报已提交';}catch{if(owner===this.authenticatedId)this.chatStatus='举报失败，请稍后重试';}if(owner===this.authenticatedId){this.chatMenu='';this.chatRevision++;}}
   back(){this.show(this.panelHistory.pop()||'',false);}
-  dispose(){this.destroyed=true;this.unsubscribeRequests?.();this.pendingRequests.clear();this.rewardRefresh=undefined;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.resetPresence();}
+  dispose(){this.destroyed=true;this.generation++;this.unsubscribeRequests?.();this.pendingRequests.clear();this.rewardRefresh=undefined;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.resetPresence();}
   identity: Player;
-  panel: '' | 'menu' | 'room' | 'ranking' | 'profile' | 'create' | 'join' | 'history' | 'version' = '';
+  panel: '' | 'menu' | 'chat' | 'players' | 'friends' | 'room' | 'ranking' | 'profile' | 'create' | 'join' | 'history' | 'version' = '';
   rooms: RoomSummary[] = [];
   roomPage = 0;
   pageSize = 3;
@@ -385,9 +403,11 @@ export class Online {
   private async releaseRoom(room: Room) {
     this.hideRoom(room.code);
     this.releasing = room;
-    try { await this.bridge!.services.roomAction({ code: room.code, operation: 'leave' }); }
+    let result:Room|undefined;
+    try { result=await this.bridge!.services.roomAction({ code: room.code, operation: 'leave' }); }
     catch (error) { if (!['INVITATION_NOT_FOUND','ROOM_NOT_FOUND','NOT_A_MEMBER','STALE_LEASE'].includes((error as {code?:string}).code || '')) throw error; }
     if (this.releasing === room) this.releasing = undefined;
+    return result;
   }
   private hideRoom(code: string) {
     for (const [id, until] of this.hiddenRooms) if (until <= Date.now()) this.hiddenRooms.delete(id);
@@ -521,7 +541,7 @@ export class Online {
     if (owner !== this.authenticatedId) { this.resetPresence(); this.recordSaveAttempt++; this.recordSaveStatus = ''; this.releaseIssue = undefined; this.pendingRequests.clear(); }
     if (owner !== this.authenticatedId) this.rewardRefresh = undefined;
     if(owner!==this.authenticatedId){this.assets=undefined;this.battleReward=undefined;this.authenticatedId=owner;this.chatEpoch++;this.chatMessages=[];this.chatDraft='';this.chatIntent=undefined;this.chatSending=false;this.chatMenu='';this.chatCursor='';this.chatAcceptedAt=0;this.chatStatus='';this.chatOwner=owner;this.chatRevision++;this.blockedPlayers=new Set();try{this.blockedPlayers=new Set(JSON.parse(this.storage.getItem('night-chat-blocks:'+owner)||'[]'));}catch{}}
-    if(owner !== playerId(this.identity)) { this.chatPeer = undefined; this.chatInbox = false; this.directRead.clear();this.socialOpen=false;this.friendRemoval=undefined;this.social={friends:[],requests:[],conversations:[],serverNow:0};this.socialNext=0;this.conversation=[];this.conversationEpoch++;this.conversationLoading=false;this.notification=undefined;this.notified.clear();this.readThrough=''; this.resetPresence(); }
+    if(owner !== playerId(this.identity)) { this.chatPeer = undefined; this.chatInbox = false; this.directRead.clear();this.socialOpen=false;this.friendRemoval=undefined;this.social={friends:[],requests:[],conversations:[],serverNow:0};this.socialNext=0;this.conversation=[];this.conversationEpoch++;this.conversationLoading=false;this.conversationFailed=false;this.notification=undefined;this.notified.clear();this.readThrough=''; this.resetPresence(); }
     this.identity = metadata.identity;
     this.draftName = this.identity.nickname || this.identity.name || '';
     this.acceptCapabilities(metadata.capabilities);
@@ -605,7 +625,8 @@ export class Online {
       if (!this.bridge?.services.listRooms) { this.message = '联机暂不可用，可选择本地人机练习'; return; }
       const { rooms } = await this.bridge.services.listRooms();
       if (generation === this.generation) {
-        this.rooms = rooms.filter(room => (this.hiddenRooms.get(room.code) || 0) <= Date.now()); this.message = '';
+        this.rooms = rooms.filter(room => (this.hiddenRooms.get(room.code) || 0) <= Date.now());
+        if(['网络异常，正在重新读取房间','联机暂不可用，可选择本地人机练习'].includes(this.message))this.message='';
       }
     } catch { if (generation === this.generation) this.message = '网络异常，正在重新读取房间'; }
     finally { this.listing = false; if (generation === this.generation) { this.listAt = performance.now() + 3000; this.revision++; } }
@@ -642,7 +663,7 @@ export class Online {
     finally { if (generation === this.generation) { this.busy = false; this.revision++; } }
   }
   async open(kind: 'friend' | 'match' | 'join' | 'bot' | 'watch' | 'resume', code?: string,createdAt?:number) {
-    if (this.busy || this.active || this.room) return;
+    if (this.destroyed || this.busy || this.active || this.room) return;
     if (kind === 'friend' && this.privateRoom && (this.draftPassword.length < 4 || this.draftPassword.length > 64)) {
       this.message = '私密房密码需要 4–64 个字符'; this.revision++; return;
     }
@@ -672,6 +693,7 @@ export class Online {
         : kind === 'watch' ? await services.spectateRoom!(input)
         : kind === 'resume' ? await services.connectRoom!({ code: input.code })
         : await services.joinRoom(input);
+        if(this.destroyed)return;
         if (generation !== this.generation) { await this.releaseRoom(room); return; }
         return room;
       });
@@ -689,9 +711,12 @@ export class Online {
           : /PASSWORD/.test(code) ? '房间密码不正确，请重新输入'
           : /FULL|STARTED/.test(code) ? '房间已满或已经开战，请选择其他房间'
           : /STALE_LEASE/.test(code) ? '此对局已在另一个页面恢复'
+          : code === 'ACTIVE_ROOM' ? '你还有一场未结束的对战，请先返回原房间'
+          : /^(?:RULE_VERSION_CHANGED|RULE_VERSION_RETIRED|BUILD_DISABLED|BUILD_REMOVED|BACKEND_VERSION_DISABLED)$/.test(code) ? '版本不匹配，请重新进入游戏或等待服务更新'
           : code === 'RULE_NEW_GAMES_DISABLED' ? '对战暂未开放新开局，请稍后重试'
           : /^(?:SERVICE_UNAVAILABLE|INTERNAL_ERROR|NIGHT_RELEASE_UNAVAILABLE)$/.test(code) ? '房间服务暂不可用，请稍后重试'
-          : '暂时无法进入房间，请检查房号与网络后重试';
+          : /ROOM_NOT_FOUND|INVITATION_NOT_FOUND|MATCH_CLOSED/.test(code) ? '房间不存在或已关闭，请确认房间号'
+          : kind === 'friend' || kind === 'bot' ? '创建房间失败，请稍后重试' : '暂时无法进入房间，请检查房号与网络后重试';
         if (kind === 'resume' && ['PLAYER_DISCONNECTED', 'NOT_A_MEMBER', 'ROOM_NOT_FOUND', 'INVITATION_NOT_FOUND', 'MATCH_CLOSED', 'STALE_LEASE'].includes(code)) { this.resumeCode = ''; this.rememberRoom(); }
       }
     } finally { if (generation === this.generation) { this.busy = false; this.opening = ''; this.revision++; } }
@@ -734,12 +759,20 @@ export class Online {
     const room = this.room; this.generation++; this.busy = false; this.opening = ''; this.inflight = false;
     this.syncedAt = 0; this.peerOffline.clear(); this.peerNotice = { text: '', online: false, until: 0 };
     if (room) this.hideRoom(room.code);
-    this.resumeCode = room?.status === 'playing' && room.mode !== 'bot' && !this.view?.finished && !this.spectator ? room.code : '';
+    this.resumeCode = '';
     this.rememberRoom(this.resumeCode ? room : undefined); this.connectionLost = false; this.replaced = false; this.roomKey = ''; this.enteringUntil = 0;
     this.room = this.view = this.bot = undefined; this.panel = ''; this.message = '';
     this.commands = []; this.pending = undefined; this.nextPoll = 0; this.botStarted = 0; this.revision++;
-    if (room && this.bridge) void this.requestRoom(() => this.releaseRoom(room)).catch(() => {
-      this.message = '离开房间未确认，再次进入时会重试'; this.revision++;
+    const generation=this.generation,owner=this.authenticatedId;
+    if (room && this.bridge) void this.requestRoom(() => this.releaseRoom(room)).then(result=>{
+      if(generation!==this.generation||owner!==this.authenticatedId||this.destroyed)return;
+      const reward=result?.settlement;
+      if(room.status==='playing'&&reward?.reason==='forfeit'&&reward.outcome==='loss'){
+        this.message='你已退出，本局判负 · '+(duelRewardNotice(reward)?.[0]||`金币 +${reward.coins??0} · 经验 +${reward.xp??0}`);this.revision++;
+        void this.refreshAssets().catch(()=>{});
+      }
+    }).catch(() => {
+      if(generation===this.generation&&owner===this.authenticatedId){this.message = '离开房间未确认，再次进入时会重试'; this.revision++;}
     });
   }
   control(input: Record<string, unknown>) {
@@ -757,6 +790,7 @@ export class Online {
     });
   }
   async pump(now: number) {
+    if(this.destroyed)return;
     if (this.foreground && now - this.releaseCheckedAt >= 60000) void this.checkRelease();
     if (this.foreground && this.recordSaveStatus === 'failed' && Date.now() - this.recordSaveAt >= 5000) void this.saveRecords();
     void this.pollPresence(now);
@@ -811,6 +845,9 @@ export class Online {
   }
   private accept(room: Room) {
     this.assertRoomVersion(room);
+    if(room.players.length===2&&this.chatStatus==='邀请已发送，等待对方加入'){
+      if(this.message===this.chatStatus)this.message='';this.chatStatus='';this.chatRevision++;
+    }
     const start = !this.view && !!room.state;
     this.room = room; this.syncedAt = performance.now(); this.trackPeers(room);
     const key = JSON.stringify([room.code, room.status, room.players, room.settlement, room.you]);
@@ -820,13 +857,15 @@ export class Online {
     if (start) this.enteringUntil = performance.now() + (room.startsAt === undefined ? 0
       : Math.max(900, room.startsAt - (room.serverNow || Date.now())));
     if (room.state) {
-      if (room.you >= 0 && room.players[room.you]?.takenOver && room.settlement) {
+      if (room.you >= 0 && room.settlement) {
         const state = { ...room.state, simulation: { ...room.state.simulation } };
-        state.finished = true; state.winner = room.you === 0 ? 1 : 0;
-        state.simulation.phase = 'failure';
+        state.finished = true; state.winner = room.settlement.outcome==='draw'||room.settlement.reason==='abandoned'?null:room.settlement.outcome==='win'?room.you:1-room.you;
+        state.simulation.phase = room.settlement.outcome==='win'?'success':'failure';
+        if(room.settlement.durationMs!==undefined){state.elapsed=room.settlement.durationMs/1000;state.simulation.time=state.elapsed;state.simulation.completionTime=state.elapsed;}
+        state.simulation.held=[];
         this.resumeCode = ''; this.rememberRoom();
-        this.message = '重连时间已过，本局已按离线失败结算';
-        this.acceptView(state);
+        this.message = duelEndNotice(room.settlement)?.[0]||'';
+        if(this.view?.finished)this.view=state;else this.acceptView(state);
         return;
       }
       if (!['waiting', 'playing', 'finished'].includes(room.status) && !room.state.finished) {

@@ -1,7 +1,7 @@
 {
-  "sourceHash": "925572c14809cf36c777a971ee87bd9ad60b0cb45bae9991ba0b8e124c1da638",
-  "verified": "2026-11-07",
-  "environment": "Eight infantry sectors and text-free wheel; current 1080p ordinary-guest continuous combat capture via isolated real PostgreSQL/HTTP, three new screenshots and revised copy. Prior media retain their original capture identities. No platform upload or physical-device capture. Final 12-sector wheel is a frontend-only follow-up; combat media keep the prior capture hash. Wheel motion follow-up verifies normal and reduced-motion rendering; prior combat footage retains its capture identity. Zero-ticket click feedback was verified through actual Sakura guest touch input and a separate QA recording. High-speed spin and ad wording follow-up: current supply screenshot and introduction updated; prior recordings retain capture identities.",
+  "sourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+  "verified": "2026-11-13",
+  "environment": "Creator 3.8.8 Web Mobile 1.0.50; current social/ready-room screenshots captured in desktop Chromium touch emulation with three ordinary guests and isolated real PostgreSQL/HTTP. Prior combat and promotional media retain their original capture identities. No physical-device or platform upload verification.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",
@@ -169,17 +169,18 @@
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 5686,
-      "sha256": "28987ded43204d12bf7fff111bd1ca75e6a0f9cc769172ecf1e74dba6f70f5ee",
-      "verifiedForSourceHash": "16df54154daae8343a9480fb94ed6c000e24a7ab328a90316343ed6313c65341",
+      "bytes": 5950,
+      "sha256": "90f0ee436a96db0c5604d5b7e7ccc72a4d46be687160961e14504f152baff5e4",
+      "verifiedForSourceHash": "05c04f2eb1233503297b756670d2708678d7e434dc981e7fdeaa9d16775dce79",
       "capturedSourceHash": "af1ec9343823235fa677e1e6b8c6f1e6407413c74088db848c758d1657d3de57",
-      "verified": "2026-11-12"
+      "verified": "2026-11-12",
+      "reusedUnchanged": false
     },
     {
       "path": "copy/developer-note.md",
-      "bytes": 3361,
-      "sha256": "0bc3d89a1f59da249afebef0fde0dd6b697734fd612a6547091306884f58db63",
-      "verifiedForSourceHash": "cb7a8ebea0e5a54314545c67db0ab5469ffd53a52b418391a03f4bf71f9d3fd0",
+      "bytes": 3727,
+      "sha256": "a7bff7497c8b6b72d7731b2327302d404fa89145974a01b693c05943bb95172f",
+      "verifiedForSourceHash": "05c04f2eb1233503297b756670d2708678d7e434dc981e7fdeaa9d16775dce79",
       "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
       "reusedUnchanged": false
     },
@@ -470,6 +471,77 @@
       "width": 1280,
       "height": 720,
       "environment": "Actual Sakura API, ordinary new guest, no assets fixture"
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-13-social-windows/home-1280.png",
+      "bytes": 1423459,
+      "sha256": "da96b4e24e54a423ab76cd7ba0394eb59a3cfe04458a1521421b7aa77d7298a7",
+      "capturedSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "verifiedForSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720,
+      "environment": "Desktop Chromium touch emulation; ordinary guest; isolated real PostgreSQL/HTTP; no balance or assets fixture",
+      "evidence": "../docs/design/2026-11-13-social-windows/actual/evidence.json"
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-13-social-windows/players-1280.png",
+      "bytes": 928339,
+      "sha256": "6cc7a649554f7412eee968fb6b3b38c313f14ea5871342b990dd9152f14f858b",
+      "capturedSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "verifiedForSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720,
+      "environment": "Desktop Chromium touch emulation; ordinary guest; isolated real PostgreSQL/HTTP; no balance or assets fixture",
+      "evidence": "../docs/design/2026-11-13-social-windows/actual/evidence.json"
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-13-social-windows/conversation-1280.png",
+      "bytes": 654355,
+      "sha256": "c26f061760f5bf552aeed79578662ce01f8ceccce4af79f502afd9d5f8418476",
+      "capturedSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "verifiedForSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720,
+      "environment": "Desktop Chromium touch emulation; ordinary guest; isolated real PostgreSQL/HTTP; no balance or assets fixture",
+      "evidence": "../docs/design/2026-11-13-social-windows/actual/evidence.json"
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-13-social-windows/public-lobby-1280.png",
+      "bytes": 934153,
+      "sha256": "ea6adab559162fed16ba84aadd00b7de91db4fb055cc0e5ebb7de1b0d4bc159d",
+      "capturedSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "verifiedForSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720,
+      "environment": "Desktop Chromium touch emulation; ordinary guest; isolated real PostgreSQL/HTTP; no balance or assets fixture",
+      "evidence": "../docs/design/2026-11-13-social-windows/actual/evidence.json"
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-13-social-windows/settings-1280.png",
+      "bytes": 1032545,
+      "sha256": "1cf2350856afb45edda87dc5b5e5b8a6ff0bcaffd62eb8c801a9cf0b631cfa5b",
+      "capturedSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "verifiedForSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "reusedUnchanged": false,
+      "width": 1280,
+      "height": 720,
+      "environment": "Desktop Chromium touch emulation; ordinary guest; isolated real PostgreSQL/HTTP; no balance or assets fixture",
+      "evidence": "../docs/design/2026-11-13-social-windows/actual/evidence.json"
+    },
+    {
+      "path": "gameplay/screenshots/2026-11-13-social-windows/ready-room-empty-1280.png",
+      "bytes": 885827,
+      "sha256": "1133b653c9627f983f5415a9c7f2ee499119c06fdd16f5dd165280071082ebbf",
+      "verifiedForSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "capturedSourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
+      "reusedUnchanged": true,
+      "width": 1280,
+      "height": 720,
+      "environment": "Chromium 1280x720; fresh guest on isolated real PostgreSQL/HTTP; ordinary first mission; no developer assets or balance fixture"
     }
   ]
 }

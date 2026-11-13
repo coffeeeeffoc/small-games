@@ -1,0 +1,185 @@
+{
+  "verifiedAt": "2026-11-13T01:45:41.338Z",
+  "scope": "Local Sakura FRP test stack only",
+  "sourceCommit": "cafbd74a7c781e10c486669b1118cab9e3647ead",
+  "sourceDirty": true,
+  "previousImage": "small-games-bundle:night-20261112-d0d8182b",
+  "image": "small-games-bundle:night-20261113-frp-v18-r2",
+  "imageId": "sha256:62d3d7bba1d6dbc112fc3a4b8a89cf17f0c24b6c8e5149671a7a9dc96a1ea662",
+  "bundleManifestSha256": "09c2e9f98b99612d980223becf39d1148927c1237c9a4b78a8ad4ec1f31bc9b7",
+  "noDatabaseMigration": true,
+  "backup": {
+    "archiveSha256": "b770645c288f985ce7bf5914be4453e41eb766d195da6b137ac3d475e661ffbd",
+    "tableCount": 54,
+    "restoredAndCompared": true,
+    "legacyRehearsal": {
+      "wallets": 5,
+      "preservedCoins": 80,
+      "conversionCoins": 3300,
+      "signDays": 2,
+      "legacyRowsUnchanged": true,
+      "idempotent": true
+    }
+  },
+  "retainedContainers": {
+    "night-overwatch-taptap-test-postgres-1": "e605bab6b7adb4408f91b3b999b320c9bece364b3af913ca8b39575c658201bd",
+    "night-overwatch-taptap-test-gateway-1": "562511a53bf9074426df7acac742d6951aadf71bea598c499f85af56d55b25df",
+    "night-overwatch-taptap-test-management-1": "8ed477982ed3862c036cb8532c71ff6e56f84252c5c399b0bbc35d4833175cc7"
+  },
+  "before": {
+    "registeredClientVersion": "1.0.36",
+    "requestedBuildId": "night-3be2469d75129720b78d714cc926531dccffff2aaf310df58ccdeaf0bb833fc7",
+    "clientRules": [
+      "night-input-replay-v18",
+      "night-duel-v11"
+    ],
+    "serverRules": [
+      "night-input-replay-v17",
+      "night-duel-v10"
+    ],
+    "loopbackAndFrpCreate": {
+      "status": 409,
+      "error": "RULE_VERSION_CHANGED"
+    }
+  },
+  "after": [
+    {
+      "base": "http://127.0.0.1:43003/api/competition/v1",
+      "metadata": {
+        "status": 200,
+        "versions": {
+          "ranked": "night-input-replay-v18",
+          "multiplayer": "night-duel-v11"
+        },
+        "clientRules": {
+          "ranked": "night-input-replay-v18",
+          "multiplayer": "night-duel-v11"
+        },
+        "supportedRules": {
+          "ranked": [
+            "night-input-replay-v18",
+            "night-input-replay-v17",
+            "night-input-replay-v16"
+          ],
+          "multiplayer": [
+            "night-duel-v11",
+            "night-duel-v10",
+            "night-duel-v9"
+          ]
+        },
+        "release": {
+          "currentBuildId": "night-3be2469d75129720b78d714cc926531dccffff2aaf310df58ccdeaf0bb833fc7",
+          "currentVersion": "1.0.36",
+          "backendVersion": "1.0.0",
+          "latestBuildId": "night-3be2469d75129720b78d714cc926531dccffff2aaf310df58ccdeaf0bb833fc7",
+          "latestVersion": "1.0.36",
+          "update": "none",
+          "canStartNewGames": true,
+          "admissions": {
+            "ranked": true,
+            "multiplayer": true
+          },
+          "action": "reopen"
+        }
+      },
+      "create": {
+        "status": 200,
+        "room": true,
+        "version": "night-duel-v11"
+      },
+      "cleanup": 200,
+      "requestedBuildId": "night-3be2469d75129720b78d714cc926531dccffff2aaf310df58ccdeaf0bb833fc7"
+    },
+    {
+      "base": "https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1",
+      "metadata": {
+        "status": 200,
+        "versions": {
+          "ranked": "night-input-replay-v18",
+          "multiplayer": "night-duel-v11"
+        },
+        "clientRules": {
+          "ranked": "night-input-replay-v18",
+          "multiplayer": "night-duel-v11"
+        },
+        "supportedRules": {
+          "ranked": [
+            "night-input-replay-v18",
+            "night-input-replay-v17",
+            "night-input-replay-v16"
+          ],
+          "multiplayer": [
+            "night-duel-v11",
+            "night-duel-v10",
+            "night-duel-v9"
+          ]
+        },
+        "release": {
+          "currentBuildId": "night-3be2469d75129720b78d714cc926531dccffff2aaf310df58ccdeaf0bb833fc7",
+          "currentVersion": "1.0.36",
+          "backendVersion": "1.0.0",
+          "latestBuildId": "night-3be2469d75129720b78d714cc926531dccffff2aaf310df58ccdeaf0bb833fc7",
+          "latestVersion": "1.0.36",
+          "update": "none",
+          "canStartNewGames": true,
+          "admissions": {
+            "ranked": true,
+            "multiplayer": true
+          },
+          "action": "reopen"
+        }
+      },
+      "create": {
+        "status": 200,
+        "room": true,
+        "version": "night-duel-v11"
+      },
+      "cleanup": 200,
+      "requestedBuildId": "night-3be2469d75129720b78d714cc926531dccffff2aaf310df58ccdeaf0bb833fc7"
+    }
+  ],
+  "invitations": {
+    "verifiedAt": "2026-11-13T01:45:41.338Z",
+    "api": "https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1",
+    "buildId": "night-3be2469d75129720b78d714cc926531dccffff2aaf310df58ccdeaf0bb833fc7",
+    "registeredClientVersion": "1.0.36",
+    "checks": [
+      "mutual friendship",
+      "public room creation",
+      "private invitation received and joinable",
+      "recipient joins the invited room",
+      "both ready starts v11 battle"
+    ],
+    "cleanup": "both QA guests left and logged out; no public chat or existing player data changed"
+  },
+  "checks": {
+    "nightReleaseAndOperations": 10,
+    "nightRules": 4,
+    "frozenRules": 1,
+    "healthAndScope": [
+      {
+        "base": "http://127.0.0.1:43003",
+        "health": 200,
+        "anonymous": 401,
+        "internal": 404,
+        "otherGame": 404,
+        "tapCors": 204,
+        "metadata": 200,
+        "social": 200,
+        "me": 200
+      },
+      {
+        "base": "https://nas.hc2a5c9f0.nyat.app:29549",
+        "health": 200,
+        "anonymous": 401,
+        "internal": 404,
+        "otherGame": 404,
+        "tapCors": 204,
+        "metadata": 200,
+        "social": 200,
+        "me": 200
+      }
+    ]
+  },
+  "note": "Registered build 1.0.36 used for real HTTP replay; current standalone 1.0.41 offline artifact was not registered or published. No production changes."
+}

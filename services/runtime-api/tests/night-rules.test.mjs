@@ -8,7 +8,7 @@ it('publishes stable summary boards and binds sampled level replays', () => {
   expect(new Set(ranked.boards.map((board) => board.id)).size).toBe(123);
   expect(ranked.boardVersion).toBe('night-records-v1');
   expect(ranked.version).toBe('night-input-replay-v18');
-  expect(duel.version).toBe('night-duel-v11');
+  expect(duel.version).toBe('night-duel-v12');
   expect(ranked.boardKey('level-operation-120')).toBe(
     'night-overwatch:level-operation-120:night-campaign-v4',
   );
@@ -98,6 +98,7 @@ it('loads real retained executors with 60/30/20 second tracking for old and new 
     ['night-input-replay-v16', 'night-duel-v9', 60],
     ['night-input-replay-v17', 'night-duel-v10', 30],
     ['night-input-replay-v18', 'night-duel-v11', 20],
+    ['night-input-replay-v18', 'night-duel-v12', 20],
   ]) {
     const solo = release.ranked.get(soloVersion),
       multi = release.multiplayer.get(duelVersion);

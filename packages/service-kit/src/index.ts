@@ -37,3 +37,4 @@ export {
   type NightOperations,
 } from './night-operations.js';
 export { backendDeploymentSchema, type BackendDeployment } from './backend-deployment.js';
+export { nightRuntimeSchema, type NightRuntime } from './night-runtime.js';

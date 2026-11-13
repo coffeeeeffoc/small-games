@@ -128,7 +128,7 @@ export class HomeView {
       const menuWidth = wide ? (right - left - 36) / 4 : Math.min(248, (right - left - 12) / 2);
       const entries = [
         ['missions', this.hud.t('单人模式', 'SINGLE PLAYER'), 'mountain'],
-        ['online:menu', this.hud.t('对战大厅', 'BATTLE LOBBY'), 'battle'],
+        ['online:chat', this.hud.t('大厅交流', 'PUBLIC CHAT'), 'battle'],
         ['online:ranking', this.hud.t('排行榜', 'LEADERBOARDS'), 'ranking'],
         ['help', this.hud.t('飞行手册', 'FIELD GUIDE'), 'book'],
       ];
@@ -477,7 +477,7 @@ export class HomeView {
         id,
         [
           this.hud.t('返回', 'BACK'),
-          this.hud.t('火控热身', 'FIRE CONTROL'),
+          this.hud.t('三靶热身', '3-TARGET DRILL'),
           simulation.mission.mode === 'training'
             ? this.hud.t('开始热身 →', 'START WARMUP →')
             : this.hud.t(

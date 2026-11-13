@@ -15,6 +15,8 @@ type SettingsHost = Pick<
   | 'buttons'
   | 'capsuleRect'
   | 'controlIcon'
+  | 'dialog'
+  | 'dialogButton'
   | 'controlScale'
   | 'controlsOpen'
   | 'fireScale'
@@ -75,7 +77,7 @@ export class SettingsGuideView {
       subpage = flight || zoom || controls,
       playing = s.phase === 'playing';
     const pw = Math.min(
-      subpage ? Math.max(344, Math.min(420, this.h.w * 0.5)) : 640,
+      subpage ? Math.max(344, Math.min(420, this.h.w * 0.5)) : 520,
       this.h.w - this.h.safe.left - this.h.safe.right - 32,
     );
     const px = this.h.safe.left + (this.h.w - this.h.safe.left - this.h.safe.right - pw) / 2;
@@ -85,11 +87,11 @@ export class SettingsGuideView {
     );
     const short = this.h.h - safeTop - this.h.safe.bottom < 360;
     const ph = Math.min(
-      zoom || controls ? 248 : short ? 288 : flight ? 304 : 360,
+      zoom || controls ? 274 : short ? 288 : flight ? 304 : 360,
       this.h.h - safeTop - this.h.safe.bottom - 32,
     );
     const py = safeTop + (this.h.h - safeTop - this.h.safe.bottom - ph) / 2;
-    this.h.panelFrame(g, px, py, pw, ph, C.mint, flight || zoom ? '#050f1d18' : '#050f1d45');
+    this.h.dialog(n, g, { width: pw, height: ph, dim: flight || zoom ? '#050f1d18' : '#050f1d55' });
     const title = flight
       ? this.h.t('飞行 / 视野', 'FLIGHT / VIEW')
       : zoom
@@ -109,7 +111,7 @@ export class SettingsGuideView {
       active = false,
       disabled = false,
     ) => {
-      const label = this.h.menuButton(n, g, id, caption, x, y, w, 'secondary', '', 44, disabled);
+      const label = this.h.dialogButton(n, g, id, caption, x, y, w, 'secondary', '', 44, disabled);
       if (active) this.h.rect(g, x + 12, y + 39, w - 24, 2, C.mint);
       label.fontSize = w < 100 ? 11 : 13;
       label.lineHeight = 17;
@@ -121,7 +123,7 @@ export class SettingsGuideView {
     else
       this.h.label(
         n,
-        s.duelMode ? this.h.t('对战继续', 'BATTLE LIVE') : this.h.t('已暂停', 'PAUSED'),
+        s.duelMode ? this.h.t('对战继续', 'BATTLE LIVE') : this.h.t(playing ? '已暂停' : '偏好设置', playing ? 'PAUSED' : 'PREFERENCES'),
         px + pw - 48,
         py + 20,
         10,
@@ -146,6 +148,10 @@ export class SettingsGuideView {
         C.mint,
       );
     }
+    const shellNode=n,shellGraphics=g;
+    const sublist=subpage && ph < 260 ? this.h.listViewport(n,'settings:detail',{x:px+12,y:py+54,w:pw-24,h:ph-110},150) : undefined;
+    const offset=sublist?.offset||0;
+    if(sublist){n=sublist.n;g=sublist.g;}
     if (controls) {
       const inner = pw - 32;
       for (const [i, [id, caption, value]] of (
@@ -154,7 +160,7 @@ export class SettingsGuideView {
           ['controlScale', this.h.t('武器 / 技能', 'WEAPONS / SKILLS'), this.h.controlScale],
         ] as const
       ).entries()) {
-        const y = py + 36 + i * 44;
+        const y = py + 56 + i * 44 - offset;
         control(id + ':down', '−', px + 16, y, 44, false, value <= 0.8);
         control(id + ':up', '+', px + pw - 60, y, 44, false, value >= 1.5);
         this.h.label(
@@ -172,7 +178,7 @@ export class SettingsGuideView {
         'layoutEdit',
         this.h.t('调整按钮位置', 'MOVE BUTTONS'),
         px + 16,
-        py + 124,
+        py + 144 - offset,
         half,
         false,
         !playing || !!this.h.online?.spectator,
@@ -181,14 +187,14 @@ export class SettingsGuideView {
         'layoutReset',
         this.h.t('恢复默认位置', 'RESET POSITIONS'),
         px + 24 + half,
-        py + 124,
+        py + 144 - offset,
         half,
       );
     } else if (flight) {
       const a = s.aircraft,
         cell = (pw - 40) / 2,
         row = short ? 64 : 86,
-        top = py + (short ? 44 : 54);
+        top = py + 58;
       const groups = [
         [
           this.h.t('飞行高度 / m', 'ALTITUDE / m'),
@@ -259,7 +265,7 @@ export class SettingsGuideView {
           C.mint,
         );
     } else if (zoom) {
-      const y = py + (short ? 36 : 44),
+      const y = py + 56 - offset,
         step = short ? 46 : 48,
         inner = pw - 32,
         half = (inner - 8) / 2;
@@ -324,7 +330,7 @@ export class SettingsGuideView {
     } else {
       const x = px + 16,
         inner = pw - 32,
-        top = py + (short ? 34 : 44),
+        top = py + 56 - offset,
         step = short ? 44 : 48;
       if (playing) {
         const width = (inner - 16) / 3;
@@ -394,7 +400,7 @@ export class SettingsGuideView {
           !(id === 'convoy' && s.mission.mode === 'training') &&
           !(id === 'supply' && !this.h.rewardsAvailable && !this.h.pendingSupply),
       );
-      const cols = short ? 3 : 2,
+      const cols = 2,
         cw = (inner - (cols - 1) * 16) / cols;
       const listTop = top + (playing ? step : 0),
         listHeight = py + ph - 52 - listTop,
@@ -427,7 +433,7 @@ export class SettingsGuideView {
             supply: 'plus',
           } as Record<string, string>
         )[id];
-        const label = this.h.menuButton(
+        const label = this.h.dialogButton(
           itemNode,
           itemGraphics,
           id,
@@ -478,11 +484,12 @@ export class SettingsGuideView {
       });
       list?.finish();
     }
+    sublist?.finish();n=shellNode;g=shellGraphics;
     const by = py + ph - 52,
       bw = (pw - 40) / 2;
     if (!short) this.h.rect(g, px + 16, by - 7, pw - 32, 1, '#4c605e77');
     if (playing || controls)
-      this.h.menuButton(
+      this.h.dialogButton(
         n,
         g,
         subpage ? 'close' : 'home',
@@ -496,7 +503,7 @@ export class SettingsGuideView {
     const width = Math.min(playing ? bw : 160, 200),
       bx = px + pw - 16 - width;
     const primary = playing && (subpage || key === 'pause') ? 'resume' : 'close';
-    const label = this.h.menuButton(
+    const label = this.h.dialogButton(
       n,
       g,
       primary,

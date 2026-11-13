@@ -77,7 +77,7 @@ const frame = { width: 568, height: 320 };
 let inset = 0;
 let artworkAvailable = false;
 const cc = {
-  EditBox: class { static InputMode = { SINGLE_LINE: 0 }; static InputFlag = { PASSWORD: 0, DEFAULT: 1 }; static EventType = { TEXT_CHANGED: 'change' }; isFocused() { return false; } },
+  EditBox: class { enabled=true; static InputMode = { SINGLE_LINE: 0 }; static InputFlag = { PASSWORD: 0, DEFAULT: 1 }; static EventType = { TEXT_CHANGED: 'change' }; isFocused() { return false; } },
   Vec3: class { x: number; y: number; z: number; constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; } },
   UIOpacity: class { opacity = 255; }, Tween: { stopAllByTarget() {} },
   tween: (target: any) => ({ to(_time: number, values: object) { Object.assign(target, values); return this; }, call(callback: () => void) { callback(); return this; }, by(){return this;},delay(){return this;},set(){return this;},union(){return this;},repeatForever(){return this;},start() {} }),
@@ -202,7 +202,7 @@ test('high physical top insets and full capsules cannot push home actions into c
    const capsule={left:width-110,right:width-12,top:20,bottom:76};
    if(fullCapsule)(globalThis as any).tap={getWindowInfo:()=>({windowWidth:width,windowHeight:height,statusBarHeight:24}),getMenuButtonBoundingClientRect:()=>capsule};
    const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.touch=true;
-   online.assets=assetFixture();hud.online=online;hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.update(sim,world);
+   online.available=true;online.assets=assetFixture();hud.online=online;hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.update(sim,world);
    const strip=hud.modal.getComponentsInChildren(Graphics).flatMap((g:any)=>g.calls).find((c:any)=>c.op==='rect'&&c.fill==='#020e19c9');
    assert(strip,'home header backdrop is drawn');assert.equal(strip.args[1]+strip.args[3],height/2,'header backdrop reaches the screen top without moving safe content');
    if(width===568){const title=hud.modal.getComponentsInChildren(cc.Sprite).find((sprite:any)=>sprite.node.name==='Illustration:title');assert(title.node.getComponent(Transform).contentSize.width>=100,'the title stays readable beside the controls on a short safe viewport');}
@@ -212,7 +212,7 @@ test('high physical top insets and full capsules cannot push home actions into c
    sim.start();sim.pause('settings',true);
    for(const page of ['controlsOpen','zoomOpen']){
     hud.controlsOpen=page==='controlsOpen';hud.zoomOpen=page==='zoomOpen';hud.update(sim,world);
-    const settings=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy);
+    const settings=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy&&(!b.clip||b.y>=b.clip.y&&b.y+b.h<=b.clip.y+b.clip.h));
     for(const b of settings)assert(!settings.some((other:any)=>other!==b&&overlaps(b,other)),`${width}/${fullCapsule}/${page}/${b.id} settings separated`);
    }
    hud.layoutEditing=true;hud.update(sim,world);
@@ -480,7 +480,7 @@ test('HUD: lobby forms, records, boards and share control fit landscape phones a
       const gear = hud.buttons.find((b: any) => b.id === 'settings');
       assert.equal(gear.label.node.activeInHierarchy, panel === '', panel + ': settings only on the home page');
       if (panel) assert.notEqual(hud.hit(gear.x + 22, gear.y + 22)?.id, 'settings');
-      if (panel === 'profile') assert(!hud.buttons.find((b: any) => b.id === 'online:saveName').label.isBold, 'name confirmation uses the quiet secondary style');
+      if (panel === 'profile') assert(hud.buttons.find((b: any) => b.id === 'online:saveName').label.isBold, 'saving is the primary form action');
       const buttons = hud.buttons.filter((b: any) => b.label.node.activeInHierarchy && (!hud.modal || b.label.node.parent === hud.modal || hud.isGlobalAction(b.id)));
       assert.equal(new Set(buttons.map((b: any) => b.id)).size, buttons.length, panel + ': duplicate controls');
       for (let i = 0; i < buttons.length; i++) {
@@ -899,7 +899,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
           return { x: p.x + width / 2 - size.width / 2, y: height / 2 - p.y - size.height / 2, w: size.width, h: size.height };
         };
         const checkLayout = () => {
-          const buttons = visible();
+          const buttons = visible().filter((b:any)=>!b.clip||b.y>=b.clip.y&&b.y+b.h<=b.clip.y+b.clip.h);
           for (const b of buttons) {
             assert(b.x >= safe && b.x + b.w <= width - safe, `${physicalWidth}x${physicalHeight}: ${b.id} horizontal safe area`);
             assert(b.y >= safe && b.y + b.h <= height - safe, `${b.id}: vertical safe area`);
@@ -955,7 +955,7 @@ test('HUD: combat supply, choices and buff countdown fit phones and the rotated 
         assert.equal(hud.modalKey, '');
         assert(!control('supply'));
         sim.pause('settings', true); hud.update(sim, world); checkLayout();
-        assert(control('supply').disabled); assert.equal(hud.hit(control('supply').x+10,control('supply').y+10),undefined);
+        assert(control('supply').disabled); if(!control('supply').clip)assert.equal(hud.hit(control('supply').x+10,control('supply').y+10),undefined);
         sim.pause('settings', false); hud.update(sim, world);
         assert(!hud.labels.get('buff').node.activeInHierarchy, 'tracking countdown moved into its button');
         assert.equal(control('homing').label.color.hex, control('weapon' + sim.selected).label.color.hex);
@@ -1076,12 +1076,12 @@ test('HUD: independent title cover precedes mission previews and compact setting
       const captions = panelLabels(hud).map((l: any) => l.string);
       assert(captions.includes(lang === 'zh' ? '战斗设置' : 'BATTLE SETTINGS'));
       const graphics = hud.modal.getComponentsInChildren(Graphics).flatMap((g: any) => g.calls);
-      const panel = graphics.find((c: any) => c.op === 'rect' && c.fill === '#b7b09488');
+      const panel = graphics.find((c: any) => c.op === 'rect' && c.fill === '#31495d');
       assert(panel && panel.args[2] <= 622 && panel.args[3] === 1, 'header separator stays inside the centered panel');
       assert.equal(panel.args[0] + panel.args[2] / 2, 0, 'settings are horizontally centered');
-      assert(panel.args[2] >= Math.min(640, width - safe * 2 - 32) - 28, 'settings use the available width');
+      assert(panel.args[2] >= Math.min(520, width - safe * 2 - 32) - 32, 'settings use the available width');
       const resume = hud.buttons.find((b: any) => b.id === 'resume');
-      assert(graphics.some((c: any) => c.op === 'roundRect' && c.fill === '#4a3d24' && c.args[0] === resume.visual.x - width / 2), 'resume is the amber primary action');
+      assert(graphics.some((c: any) => c.op === 'roundRect' && c.fill === '#a98649' && c.args[0] === resume.visual.x - width / 2), 'resume is the amber primary action');
       for (const pending of [false, true]) {
         hud.supplyOpen = true; hud.pendingSupply = pending; hud.update(sim, world);
         assertPanelTargets(hud);
@@ -1092,7 +1092,7 @@ test('HUD: independent title cover precedes mission previews and compact setting
       }
       hud.supplyOpen = false; hud.pendingSupply = false; hud.rewardsAvailable = false; hud.modalKey = 'rebuild'; hud.update(sim, world);
       assertPanelTargets(hud);
-      assert.deepEqual(hud.buttons.filter((b: any) => b.label.node.parent === hud.modal).map((b: any) => b.id), ['flightControls', 'zoomControls', 'buttonControls', 'sound', 'voicePrompts', 'autoPriority', 'language', 'help', 'updates', 'convoy', 'mission', 'home', 'resume'], 'offline settings omit only ads');
+      assert.deepEqual(hud.buttons.filter((b: any) => hud.inModal(b.label.node)).map((b: any) => b.id), ['flightControls', 'zoomControls', 'buttonControls', 'sound', 'voicePrompts', 'autoPriority', 'language', 'help', 'updates', 'convoy', 'mission', 'home', 'resume'], 'offline settings omit only ads');
     }
   inset = 0;
 });
@@ -1385,10 +1385,16 @@ test('progression pages keep every live action reachable on short and wide scree
   for(const [width,height]of [[568,320],[844,390],[1280,720],[1672,941]])for(const safe of [0,12])for(const lang of ['zh','en']){
     Object.assign(frame,{width,height});inset=safe;
     const hud=new HUD(new SceneNode()),sim=new Simulation();hud.lang=lang;hud.touch=true;
-    const online=new Online({getItem:()=>null,setItem(){}},()=>{});online.authenticatedId='qa-pilot';online.assets={...assetFixture(),economy:ECONOMY};hud.online=online;
+    const online=new Online({getItem:()=>null,setItem(){}},()=>{});online.authenticatedId='qa-pilot';online.available=true;online.onlineCount=2;online.assets={...assetFixture(),economy:ECONOMY};hud.online=online;
     const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
     for(const page of pages)for(const detail of page==='shop'?[false,true]:[false]){
       q.page=page;q.detail=detail;q.index=0;q.message=['',''];q.revision++;hud.update(sim,world);
+      if(!page){
+        const entries=['online:friends','online:players','online:chat','online:ranking'].map(id=>hud.buttons.find((b:any)=>b.id===id)!);
+        assert(entries.every((b:any,i:number)=>b&&b.y===entries[0].y&&(!i||b.x>=entries[i-1].x+entries[i-1].w)), 'home social entries are ordered in one header row');
+        assert(!hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.startsWith('当前在线')));
+        assert.equal(entries[1].label.string,lang==='zh'?'在线玩家（2）':'Players (2)');
+      }
       const buttons=hud.buttons.filter((b:any)=>b.label.node.activeInHierarchy).map((b:any)=>{
         if(!b.clip)return b;
         const x=Math.max(b.x,b.clip.x),y=Math.max(b.y,b.clip.y);
@@ -1407,6 +1413,20 @@ test('progression pages keep every live action reachable on short and wide scree
     }
   }
   inset=0;
+});
+
+test('home social header leaves space for coins and keeps long nicknames on one line',()=>{
+  for(const [width,height]of [[1000,600],[1280,720]]){
+    Object.assign(frame,{width,height});inset=44;
+    (globalThis as any).tap={getWindowInfo:()=>({windowWidth:width,windowHeight:height,statusBarHeight:24}),getMenuButtonBoundingClientRect:()=>({left:width-110,right:width-12,top:20,bottom:76})};
+    try{
+      const hud=new HUD(new SceneNode()),online=new Online({getItem:()=>null,setItem(){}},()=>{});online.available=true;online.identity={playerId:'qa',name:'勇敢水獭七十六号飞行员'};online.assets={...assetFixture(),coins:12345,announcements:[]};hud.online=online;hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.update(new Simulation(),world);
+      const record=hud.buttons.find((b:any)=>b.id==='online:ranking');
+      const coin=hud.modal.getComponentsInChildren(Graphics).flatMap((g:any)=>g.calls).find((c:any)=>c.op==='circle'&&c.fill==='#d59a2d');
+      assert(coin&&record.x+record.w<coin.args[0]-coin.args[2]+width/2,`${width}: records must not overlap the coin icon`);
+      const name=hud.modal.getComponentsInChildren(cc.Label).find((l:any)=>l.string===online.identity.name);assert(name&&!name.enableWrapText&&name.overflow===cc.Label.Overflow.SHRINK);
+    }finally{delete(globalThis as any).tap;inset=0;}
+  }
 });
 
 test('crafting shows material costs and owned states; stage bonuses use server history',async(t)=>{
@@ -1651,68 +1671,34 @@ test('new shop categories filter cards and the home lobby respects capability an
  for(const [width,height]of [[568,320],[844,390],[1280,720]])for(const lang of ['zh','en']){
   Object.assign(frame,{width,height});inset=12;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
   online.assets={...assetFixture(),economy:ECONOMY};online.authenticatedId='qa-pilot';online.available=true;hud.online=online;hud.lang=lang;const q=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});hud.quartermaster=q;
-  hud.update(sim,world);const lobby=hud.buttons.find((b:any)=>b.id==='online:menu');assert(lobby);assert(lobby.w>=44&&lobby.h>=44);
+  hud.update(sim,world);const lobby=hud.buttons.find((b:any)=>b.id==='online:chat');assert(lobby);assert(lobby.w>=44&&lobby.h>=44);
   for(const b of hud.buttons.filter((b:any)=>b!==lobby&&b.label.node.activeInHierarchy))assert(!overlaps(lobby,b),`${width}/${lang} lobby overlaps ${b.id}`);
-  online.available=false;online.revision++;hud.modalKey='rebuild';hud.update(sim,world);assert(!hud.buttons.some((b:any)=>b.id==='online:menu'));
+  online.available=false;online.revision++;hud.modalKey='rebuild';hud.update(sim,world);assert(!hud.buttons.some((b:any)=>b.id==='online:chat'));
   q.show('shop');for(const category of ['mod','weapon','skill'] as const){q.shopCategory=category;q.revision++;hud.update(sim,world);const cards=hud.buttons.filter((b:any)=>b.id.startsWith('product:'));assert(cards.length>0);for(const b of cards)assert.equal(q.catalog.find(p=>p.id===b.id.slice(8))!.category,category);assert(hud.buttons.some((b:any)=>b.id==='qm:shopCategory:'+category));}
  }inset=0;
 });
 
-test('lobby keeps the private tab usable without social service and insets the chat editor', () => {
-  Object.assign(frame, { width: 844, height: 390 });
-  inset = 0;
-  const hud = new HUD(new SceneNode()), sim = new Simulation();
-  const online = new Online({ getItem: () => null, setItem() {} }, () => {});
-  hud.online = online;
-  online.show('menu');
-  hud.update(sim, world);
-  const button = (id: string) => hud.buttons.find((b: any) => b.id === `online:${id}`);
-  const field = hud.modal.getChildByName('LobbyComposer');
-  const editorWidth = field.getComponent(cc.UITransform).contentSize.width;
-  const editorLeft = hud.w / 2 + field.position.x - editorWidth / 2;
-  assert.equal(button('chatInbox').disabled, false);
-  assert(Math.abs(editorLeft - button('chatPublic').x - 12) < 0.01);
-  const send = button('chatSend');
-  const invite = button('chatInvite');
-  assert(!send.label.node.activeInHierarchy);
-  assert(editorLeft + editorWidth < send.x && send.x + send.w < invite.x);
-
-  online.selectChat(undefined, true);
-  hud.update(sim, world);
-  assert(panelLabels(hud).some((label: any) => label.string === '私信服务暂不可用'));
-  assert.equal(field.getComponent(cc.EditBox).enabled, false);
-  assert.equal(button('chatSend').disabled, true);
-  assert.equal(button('chatInvite').disabled, true);
-
-  online.socialAvailable = true;
-  online.revision++;
-  hud.update(sim, world);
-  assert(panelLabels(hud).some((label: any) => label.string.startsWith('暂无会话')));
-  online.selectChat();
-  hud.update(sim, world);
-  assert.equal(field.getComponent(cc.EditBox).enabled, true);
-  assert.equal(invite.disabled, false);
-
-  online.chatAvailable = true;
-  online.chatDraft = '测试消息';
-  online.chatRevision++;
-  hud.update(sim, world);
-  assert(send.label.node.activeInHierarchy);
-  hud.pressedButton = send.id;
-  hud.globalGraphics.clear();
-  hud.buttonFeedback();
-  assert(hud.globalGraphics.calls.some((call: any) => call.op === 'roundRect' &&
-    call.args[0] === send.visual.x - hud.w / 2 && call.args[2] === send.visual.w && call.args[3] === 34 && call.args[4] === 4));
-  online.chatDraft = '   ';
-  online.chatRevision++;
-  hud.update(sim, world);
-  assert(!send.label.node.activeInHierarchy);
-  online.dispose();
+test('public lobby and battle lobby have one public composer and no private inbox tab', () => {
+  for(const panel of ['chat','menu'] as const){
+    Object.assign(frame,{width:844,height:390});inset=0;
+    const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;
+    online.show(panel);hud.update(sim,world);
+    assert(!hud.buttons.some((b:any)=>b.id==='online:chatInbox'));
+    assert.equal(hud.buttons.some((b:any)=>b.id==='online:players'),panel==='menu');
+    assert.equal(hud.buttons.some((b:any)=>b.id==='online:friends'),panel==='menu');
+    const field=hud.modal.getChildByName('LobbyComposer'),editorWidth=field.getComponent(cc.UITransform).contentSize.width;
+    const left=hud.w/2+field.position.x-editorWidth/2,send=hud.buttons.find((b:any)=>b.id==='online:chatSend'),invite=hud.buttons.find((b:any)=>b.id==='online:chatInvite');
+    assert(left+editorWidth<send.x&&send.x+send.w<invite.x);
+    assert(!send.label.node.activeInHierarchy);
+    online.chatAvailable=true;online.chatDraft='hello';online.chatRevision++;hud.update(sim,world);
+    assert(send.label.node.activeInHierarchy);assert.equal(hud.modal.getChildByName('LobbyComposer'),field,'polling retains the input');
+    online.chatDraft='';online.chatRevision++;hud.update(sim,world);assert(!send.label.node.activeInHierarchy);online.dispose();
+  }
 });
 
 test('lobby player rows show status and fit more players while keeping full touch targets', () => {
   try {
-    for (const [width, height, visible] of [[568, 320, 2], [844, 390, 4], [1280, 720, 8]]) {
+    for (const [width, height, visible] of [[568, 320, 3], [844, 390, 4], [1280, 720, 5]]) {
       Object.assign(frame, { width, height });
       inset = 12;
       const hud = new HUD(new SceneNode()), sim = new Simulation();
@@ -1734,19 +1720,18 @@ test('lobby player rows show status and fit more players while keeping full touc
       assert(!actions.some((button: any) => button.id.endsWith(online.authenticatedId)));
       assert(actions.every((button: any) => button.h >= 44 && button.w >= 44 && button.clip.y === list.y));
       const labels = panelLabels(hud);
-      assert(labels.some((label: any) => label.string === '好友' && label.color.hex === '#a6e9bf'));
+      assert(actions.every((button:any)=>button.label.string===''&&button.label.node.name==='私信'));
       assert(!hud.buttons.some((button: any) => button.id === 'online:friendAction:request:00000001'));
       assert(labels.some((label: any) => label.string === '你 · 飞行员0'));
-      assert(labels.some((label: any) => label.string === '#00000000 · 在线'));
+      assert(labels.some((label: any) => label.string === '#00000000'));
       assert(labels.some((label: any) => label.string === '#00000002 · 游戏中'));
-      assert(labels.some((label: any) => label.string === '●' && label.color.hex === '#83f5a8'));
+      assert(!labels.some((label:any)=>label.string==='在线'||label.string.endsWith(' · 在线')));
       const dm = actions.find((button: any) => button.id === 'online:whisper:00000001');
-      const { x, y, cut } = dm.visual;
+      const { x, y } = dm.visual;
       hud.pressedButton = dm.id;
       hud.globalGraphics.clear();
       hud.buttonFeedback();
-      assert(hud.globalGraphics.calls.some((call: any) => call.op === 'moveTo' &&
-        Math.abs(call.args[0] - (x - hud.w / 2 + cut)) < 0.01 && call.args[1] === hud.h / 2 - y));
+      assert(hud.globalGraphics.calls.some((call: any) => call.op === 'roundRect' && Math.abs(call.args[0] - (x - hud.w / 2)) < 0.01 && call.args[4] === 7));
       dm.clip = { ...dm.clip, y: y + 1 };
       hud.globalGraphics.clear();
       hud.buttonFeedback();
@@ -1761,12 +1746,46 @@ test('lobby player rows show status and fit more players while keeping full touc
   } finally { inset = 0; }
 });
 
+test('home player and friend dropdowns anchor below their own toolbar entry and fill the safe height',()=>{
+  try {
+    for(const panel of ['players','friends'] as const)for(const capsule of [false,true]){
+      Object.assign(frame,{width:844,height:390});inset=12;
+      if(capsule)(globalThis as any).tap={getWindowInfo:()=>({windowWidth:frame.width,windowHeight:frame.height,statusBarHeight:52}),getMenuButtonBoundingClientRect:()=>({left:frame.width-124,right:frame.width-12,top:80,bottom:120})};
+      const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+      hud.online=online;online.assets=assetFixture();online.available=true;online.socialAvailable=true;
+      hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});
+      hud.update(sim,world);
+      for(const [width,height]of [[568,320],[844,390],[1280,720]]){
+        online.show(panel);Object.assign(frame,{width,height});hud.resize();hud.update(sim,world);
+        assert(hud.coveredModal?.getComponentsInChildren(cc.Label).some((l:any)=>l.string==='好友'),'resize retains the toolbar under the dropdown');
+        const list=hud.listAreas.find((a:any)=>a.key==='players'),close=hud.buttons.find((b:any)=>b.id==='online:back');
+        assert(list);const box={x:list.x-12,y:list.y-60,w:list.w+24,h:list.h+72};
+        assert.equal(box.y+box.h,height-hud.safe.bottom-12,'even an empty list extends to the bottom margin');
+        assert(box.x>=hud.safe.left+16&&box.x+box.w<=width-hud.safe.right-16);
+        assert.equal(hud.hit(close.x+22,close.y+22)?.id,'online:back');
+        online.back();hud.update(sim,world);
+        const entry=hud.buttons.find((b:any)=>b.id==='online:'+panel);
+        assert.equal(box.x,Math.max(hud.safe.left+16,Math.min(entry.x,width-hud.safe.right-box.w-16)));
+        const capsuleBottom=capsule&&box.x+box.w>hud.capsuleRect.left?hud.capsuleRect.bottom:0;
+        assert(Math.abs(box.y-Math.max(entry.y+entry.h+6,capsuleBottom+6))<.01);
+        online.onlinePlayers=Array.from({length:20},(_,i)=>({playerId:String(i),nickname:'飞行员'+i,status:'available'}));online.social.friends=online.onlinePlayers;
+        online.show(panel);hud.update(sim,world);
+        const populated=hud.listAreas.find((a:any)=>a.key==='players');assert.equal(populated.h,list.h);
+        hud.moveList('players',populated.max);hud.update(sim,world);
+        assert(hud.buttons.some((b:any)=>b.id==='online:whisper:19'&&b.y+b.h<=populated.y+populated.h),'last row stays reachable');
+        online.back();hud.update(sim,world);online.onlinePlayers=[];online.social.friends=[];
+      }
+      online.dispose();delete (globalThis as any).tap;
+    }
+  } finally {inset=0;delete (globalThis as any).tap;}
+});
+
 test('global direct conversations retain their composer, fit touch screens and preserve the live room',()=>{
  for(const [width,height] of [[568,320],[844,390],[1280,720]]){
   Object.assign(frame,{width,height});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;
   online.identity={playerId:'a',nickname:'A'};online.authenticatedId='a';online.socialAvailable=true;online.chatAvailable=true;online.chatPeer={playerId:'b',nickname:'B',status:'available'};online.chatInbox=true;online.socialOpen=true;online.chatMessages=[{id:'1',playerId:'b',nickname:'B',recipientId:'a',text:'测试私信',at:1}];
-  sim.start();const phase=sim.phase;hud.update(sim,world);const modal=hud.modal,field=modal.getComponentsInChildren(cc.EditBox)[0];assert(field);
-  online.chatRevision++;hud.update(sim,world);assert.equal(hud.modal,modal);assert.equal(modal.getComponentsInChildren(cc.EditBox)[0],field);assert.equal(sim.phase,phase);assert.equal(hud.surfaces.children.length,0,'dynamic chat never leaves button skins in shared surfaces');
+  sim.start();const phase=sim.phase;hud.update(sim,world);const modal=hud.activeModal,field=modal.getComponentsInChildren(cc.EditBox)[0];assert(field);
+  online.chatRevision++;hud.update(sim,world);assert.equal(hud.activeModal,modal);assert.equal(modal.getComponentsInChildren(cc.EditBox)[0],field);assert.equal(sim.phase,phase);assert.equal(hud.modal,undefined,'battle has no page modal beneath its independent conversation');
   const controls=hud.buttons.filter((b:any)=>hud.inModal(b.label.node));for(const b of controls){assert(b.w>=44&&b.h>=44,b.id);assert(b.x>=0&&b.x+b.w<=width&&b.y>=0&&b.y+b.h<=height,b.id);}
   assert(controls.some((b:any)=>b.id==='social:close'));assert(controls.some((b:any)=>b.id==='online:chatSend'));
   online.socialOpen=false;hud.updatesOpen=true;hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='updates:close'));assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>/重大更新/.test(l.string||'')));online.dispose();
@@ -1774,12 +1793,101 @@ test('global direct conversations retain their composer, fit touch screens and p
 });
 
 
+test('private chat preserves pages through message refresh, resize and close without leaking input',()=>{
+  try {
+    for(const page of ['home','warehouse','missions','chat','players','settings','battle','result']){
+      Object.assign(frame,{width:844,height:390});inset=0;
+      const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+      hud.online=online;online.assets=assetFixture();online.authenticatedId='a';online.available=true;online.socialAvailable=true;online.chatAvailable=true;
+      const q=hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});
+      if(page==='warehouse')q.page='warehouse';
+      if(page==='missions')hud.missionsOpen=true;
+      if(page==='chat'||page==='players')online.show(page);
+      if(page==='settings')sim.pauses.add('settings');
+      if(page==='battle'||page==='result'){sim.start();if(page==='result')sim.phase='success';}
+      hud.update(sim,world);
+      const originalPage=q.page,phase=sim.phase;
+      const action=hud.buttons.find((b:any)=>hud.modal&&hud.inModal(b.label.node,hud.modal)&&!b.disabled)?.id;
+      online.chatPeer={playerId:'b',nickname:'飞行员乙',status:'available'};online.chatInbox=true;online.socialOpen=true;online.chatDraft='保留草稿';
+      hud.update(sim,world);const conversation=hud.activeModal;
+      for(const resize of [false,true,false]){
+        hud.activeModal.getComponentsInChildren(cc.EditBox)[0].isFocused=()=>true;
+        assert(hud.editing&&!hud.pageEditing,'chat focus is separate from page focus');
+        const pageBefore=hud.modal;
+        online.chatMessages.push({id:String(online.chatMessages.length+1),playerId:'b',nickname:'飞行员乙',recipientId:'a',text:'收到消息',at:1});online.chatRevision++;online.revision++;
+        if(resize){Object.assign(frame,{width:1000,height:500});inset=12;hud.resize();}
+        hud.update(sim,world);
+        if(page==='home')assert.notEqual(hud.modal,pageBefore,'message data still repaints home while chat is focused');
+        assert.equal(q.page,originalPage,page+' keeps navigation');assert.equal(sim.phase,phase,page+' keeps simulation');
+        assert.equal(hud.activeModal.getComponentsInChildren(cc.EditBox)[0].string,'保留草稿');
+        if(action){
+          assert(hud.modal&&hud.modal!==hud.activeModal,page+' keeps an independent page');
+          const background=hud.buttons.find((b:any)=>b.id===action&&hud.inModal(b.label.node,hud.modal));
+          assert(background?.label.node.activeInHierarchy,page+' retains visible original content');
+          assert.notEqual(hud.hit(background.x+background.w/2,background.y+background.h/2)?.id,action,page+' blocks underlying input');
+        }else assert.equal(hud.modal,undefined,'battle keeps its existing scene');
+        const send=hud.buttons.find((b:any)=>b.id==='online:chatSend'&&hud.inModal(b.label.node));assert(send&&!send.disabled);
+        for(const field of hud.modal?.getComponentsInChildren(cc.EditBox)||[])assert.equal(field.enabled,false,'underlying composer is suspended');
+        const direct=hud.listAreas.find((a:any)=>a.key==='direct');assert(direct&&hud.listAt(direct.x+10,direct.y+10)?.key==='direct');
+      }
+      assert.notEqual(hud.activeModal,conversation,'resize rebuilds only presentation, preserving chat state');
+      const base=hud.modal;online.closeConversation();hud.update(sim,world);assert.equal(hud.activeModal,hud.modal);assert.equal(q.page,originalPage);
+      assert(!hud.buttons.some((b:any)=>b.id==='social:close'));assert(!hud.listAreas.some((a:any)=>a.key==='direct'));
+      if(page==='chat')for(const field of hud.modal.getComponentsInChildren(cc.EditBox))assert.equal(field.enabled,true,'public composer returns after closing chat');
+      assert(base?.activeInHierarchy!==false||hud.modal?.activeInHierarchy,page+' returns to a live page');
+      online.dispose();
+    }
+  }finally{inset=0;}
+});
+
 test('social notices own their entire frame and disappear without painting the underlying page',()=>{
  Object.assign(frame,{width:844,height:390});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;hud.update(sim,world);
  const before=hud.modal.getComponentsInChildren(Graphics).reduce((n:any,g:any)=>n+g.calls.length,0),surfaces=hud.surfaces.children.length;
  online.notification={id:'1',playerId:'b',nickname:'B',recipientId:'a',text:'hello',at:1};online.notificationUntil=performance.now()+10000;hud.update(sim,world);
  assert(hud.globalControls.getChildByName('SocialNotice'));assert.equal(hud.surfaces.children.length,surfaces);assert.equal(hud.modal.getComponentsInChildren(Graphics).reduce((n:any,g:any)=>n+g.calls.length,0),before);
  online.notification=undefined;hud.update(sim,world);assert(!hud.globalControls.getChildByName('SocialNotice'));assert(!hud.buttons.some((b:any)=>b.id==='social:reply'));online.dispose();
+});
+
+test('ready rooms use two compact seats and keep all actions reachable below host capsules',()=>{
+ for(const [width,height]of [[568,320],[844,390],[1280,720]])for(const capsule of [false,true]){
+  Object.assign(frame,{width,height});inset=0;
+  if(capsule)(globalThis as any).tap={getWindowInfo:()=>({windowWidth:width,windowHeight:height,statusBarHeight:58}),getMenuButtonBoundingClientRect:()=>({left:width-124,right:width-12,top:80,bottom:120})};
+  try{
+   const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.authenticatedId='a';
+   online.room={code:'123456',you:0,status:'waiting',players:[{playerId:'a',nickname:'很长的玩家昵称测试十六个字'}, {playerId:'b',nickname:'B',ready:true}]} as any;online.show('room');hud.update(sim,world);
+   const buttons=hud.buttons.filter((b:any)=>hud.inModal(b.label.node));
+   for(const id of ['online:backLobby','online:chatInvite','online:ready','online:roomCollapse'])assert(buttons.some((b:any)=>b.id===id));
+   for(const b of buttons){assert(b.h>=44&&b.y>=0&&b.y+b.h<=height,`${width} ${b.id}`);assert(!buttons.some((o:any)=>o!==b&&overlaps(b,o)));}
+   const labels=hud.modal.getComponentsInChildren(cc.Label),names=labels.filter((l:any)=>l.string.startsWith('很长')||l.string==='B');
+   assert.equal(names.length,2);assert.equal(names[0].node.position.y,names[1].node.position.y);assert(names[0].node.position.x<names[1].node.position.x);
+   assert(labels.some((l:any)=>l.string==='✓ 已准备'));assert(labels.some((l:any)=>l.string.includes('123456')));
+   for(const name of names){const ready=labels.find((l:any)=>l.string==='✓ 已准备'&&l.node.position.x>=name.node.position.x-10);if(ready&&name.string==='B'){const a=name.node.getComponent(cc.UITransform).contentSize,b=ready.node.getComponent(cc.UITransform).contentSize;assert(!overlaps({x:name.node.position.x-a.width/2,y:name.node.position.y-a.height/2,w:a.width,h:a.height},{x:ready.node.position.x-b.width/2,y:ready.node.position.y-b.height/2,w:b.width,h:b.height}));}}
+   online.message='准备失败，请重试';online.revision++;hud.update(sim,world);if(hud.toast)assert(hud.labels.get('globalToast').node.active);
+   if(width===844&&!capsule){Object.assign(frame,{width:568,height:320});(globalThis as any).tap={getWindowInfo:()=>({windowWidth:568,windowHeight:320,statusBarHeight:58}),getMenuButtonBoundingClientRect:()=>({left:444,right:556,top:80,bottom:120})};hud.resize();hud.update(sim,world);assert.equal(hud.toast,online.message);assert(hud.labels.get('globalToast').node.active);}
+   online.dispose();
+  }finally{delete(globalThis as any).tap;}
+ }
+});
+
+test('duel result uses authoritative receipt outcome, duration and reward explanation for either seat',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;
+ for(const seat of [0,1])for(const outcome of ['win','loss']){
+  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.assets=assetFixture();hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});
+  sim.duelMode=true;sim.phase='success';sim.time=271;online.room={you:seat,players:[{id:'a'},{id:'b'}],settlement:{outcome,reason:'forfeit',durationMs:12000,status:'credited',points:outcome==='win'?120:40,coins:outcome==='win'?0:60,xp:outcome==='win'?0:70,rewardReason:outcome==='win'?'opponent-left':'eligible'}} as any;hud.update(sim,world);
+  const labels=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);
+  assert(labels.includes(outcome==='win'?'战斗胜利':'战斗失败'));assert(labels.some((s:string)=>s.includes(outcome==='win'?'对手已退出':'你已退出')));assert(labels.includes('00:12.00'));
+  if(outcome==='win')assert(labels.some((s:string)=>s.includes('不发放金币与经验')));else assert(labels.includes('+60')&&labels.includes('+70'));online.dispose();
+ }
+});
+
+test('quit settlement is visible in every lobby tab even after a previous invitation',()=>{
+ Object.assign(frame,{width:844,height:390});inset=0;
+ const hud=new HUD(new SceneNode()),online=new Online({getItem:()=>null,setItem(){}},()=>{}),sim=new Simulation();hud.online=online;
+ for(const tab of ['rooms','players','friends'] as const){
+  online.show('menu');online.lobbyTab=tab;online.chatStatus='邀请已发送，等待对方加入';online.message='你已退出，本局判负 · 金币 +60 · 经验 +70';hud.update(sim,world);
+  const labels=hud.modal.getComponentsInChildren(cc.Label);assert(labels.some((l:any)=>l.node.activeInHierarchy&&l.string===online.message));assert(!labels.some((l:any)=>l.node.activeInHierarchy&&l.string===online.chatStatus));
+ }
+ online.dispose();
 });
 
 test('secondary headers stay compact above a low host capsule',()=>{
@@ -1791,28 +1899,40 @@ test('secondary headers stay compact above a low host capsule',()=>{
  }finally{delete (globalThis as any).tap;}
 });
 
-test('friend removal confirms, direct messages respect side cutouts, and returning shows every conversation',()=>{
+test('friend removal stays in the list and compact conversations return to that list',()=>{
  Object.assign(frame,{width:844,height:390});inset=12;
  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.authenticatedId='a';online.socialAvailable=true;online.chatAvailable=true;
  const peer={playerId:'b',nickname:'B',status:'available' as const},message={id:'1',playerId:'b',recipientId:'a',nickname:'B',text:'test',at:1,room:{code:'123456',createdAt:1,canJoin:true}};
  online.social.friends=[peer];online.social.conversations=[{...peer,lastMessage:message,unread:1,lastReadId:'0'},{...peer,playerId:'c',nickname:'C',lastMessage:{...message,id:'2'},unread:1,lastReadId:'0'}];online.show('menu');online.lobbyTab='friends';hud.update(sim,world);
- assert.equal(hud.buttons.find((b:any)=>b.id==='online:friendAction:remove:b').label.string,'移除好友');
+ assert.equal(hud.buttons.find((b:any)=>b.id==='online:friendAction:remove:b').label.node.name,'移除好友');
  online.openConversation(peer);online.chatMessages=[message];hud.update(sim,world);
- const controls=hud.buttons.filter((b:any)=>hud.inModal(b.label.node));assert(controls.every((b:any)=>b.x>=42&&b.x+b.w<=802));assert(!controls.some((b:any)=>/chatBlock|chatReport/.test(b.id)));
+ const controls=hud.buttons.filter((b:any)=>hud.inModal(b.label.node));assert(controls.every((b:any)=>b.x>=400&&b.x+b.w<=816));assert(!controls.some((b:any)=>/chatBlock|chatReport|friendAction|invitePlayer/.test(b.id)));
  const join=controls.find((b:any)=>b.id==='online:chatJoin:1');assert(join&&join.w===160);
  online.friendRemoval=peer;online.revision++;hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='social:removeCancel'));assert(hud.buttons.some((b:any)=>b.id==='social:removeConfirm'));
- online.friendRemoval=undefined;online.closeConversation();hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='online:whisper:b'));assert(hud.buttons.some((b:any)=>b.id==='online:whisper:c'));assert(!hud.buttons.some((b:any)=>b.id==='online:chatJoin:1'));online.dispose();inset=0;
+ online.friendRemoval=undefined;online.closeConversation();hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='online:whisper:b'));assert(!hud.buttons.some((b:any)=>b.id==='online:whisper:c'),'unrelated conversations are not an inbox sidebar');assert(!hud.buttons.some((b:any)=>b.id==='online:chatJoin:1'));online.dispose();inset=0;
 });
 
 
-test('the inbox retains a failed first message and old blocks have a restore-only path',()=>{
+test('a failed first message remains reachable from its compact retry notice',()=>{
  Object.assign(frame,{width:844,height:390});inset=0;
  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.socialAvailable=true;online.chatAvailable=true;online.show('menu');
  online.chatPeer={playerId:'offline-peer',nickname:'Offline pilot',status:'offline'};online.chatInbox=true;
  Object.defineProperty(online,'chatRetryPending',{value:true});hud.update(sim,world);
- assert(hud.buttons.some((b:any)=>b.id==='online:whisper:offline-peer'));assert(panelLabels(hud).some((l:any)=>l.string.includes('发送结果待确认')));
+ assert(hud.buttons.some((b:any)=>b.id==='social:inbox'));online.openConversation(online.chatPeer!);hud.update(sim,world);assert.equal(hud.buttons.find((b:any)=>b.id==='online:chatSend').label.string,'重试');online.socialOpen=false;
  online.chatInbox=false;online.blockedPlayers.add('offline-peer');online.chatRevision++;hud.update(sim,world);
  assert.equal(hud.buttons.find((b:any)=>b.id==='online:chatBlocks').label.string,'恢复联系(1)');
  online.chatMenu='blocks';online.chatRevision++;hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='online:chatBlock:offline-peer'));
  online.toggleBlock('offline-peer');hud.update(sim,world);assert.equal(online.blockedPlayers.size,0);assert(!hud.buttons.some((b:any)=>b.id.startsWith('online:chatBlock')));online.dispose();
+});
+
+
+test('narrow duel lobby retains player names and history failure keeps a retry beside live messages',()=>{
+ Object.assign(frame,{width:568,height:320});inset=44;
+ try{
+  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.socialAvailable=true;online.chatAvailable=true;online.authenticatedId='a';
+  online.onlinePlayers=[{playerId:'b',nickname:'飞行员乙',status:'available'}];online.show('menu');online.lobbyTab='players';hud.update(sim,world);
+  const name=panelLabels(hud).find((l:any)=>l.string==='飞行员乙');assert(name);assert(name.node.getComponent(cc.UITransform).contentSize.width>=120);
+  online.chatPeer=online.onlinePlayers[0];online.chatInbox=true;online.socialOpen=true;online.conversationFailed=true;online.conversation=[{id:'1',playerId:'b',nickname:'飞行员乙',recipientId:'a',text:'实时消息',at:1}];hud.update(sim,world);
+  assert(hud.buttons.some((b:any)=>b.id==='social:older'&&b.label.string==='重新读取'));online.conversationFailed=false;online.chatRevision++;hud.update(sim,world);assert(!hud.buttons.some((b:any)=>b.id==='social:older'));online.dispose();
+ }finally{inset=0;}
 });

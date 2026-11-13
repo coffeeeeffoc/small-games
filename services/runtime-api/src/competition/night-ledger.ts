@@ -10,6 +10,37 @@ export const nightLedgerLock = (tx: Tx) =>
   tx.execute(sql`select pg_advisory_xact_lock(hashtext('night-overwatch-ledger'))`);
 const clearsMigration = 'night-migration:highest-clear-v2';
 
+export function settledNightView(room: Room, value: unknown, seat: number) {
+  if (room.game !== 'night-overwatch' || room.settledAt === undefined || !value) return value;
+  const view = value as { elapsed?: number; simulation?: Record<string, unknown> };
+  const own = room.players[seat]?.settlement;
+  const winner =
+    room.mode === 'bot' && own?.outcome === 'loss' && own.reason === 'elimination'
+      ? 1
+      : room.players.findIndex((p) => p.settlement?.outcome === 'win');
+  const duration =
+    own?.durationMs ??
+    Math.min((view.elapsed ?? Infinity) * 1000, room.settledAt - room.startedAt!);
+  return {
+    ...view,
+    finished: true,
+    winner: winner < 0 ? null : winner,
+    elapsed: duration / 1000,
+    remaining: 0,
+    ...(view.simulation
+      ? {
+          simulation: {
+            ...view.simulation,
+            phase: own?.outcome === 'win' ? 'success' : 'failure',
+            time: duration / 1000,
+            completionTime: duration / 1000,
+            held: [],
+          },
+        }
+      : {}),
+  };
+}
+
 async function clearsMigrated(tx: Tx) {
   const rows = await tx.execute(sql`select id from runtime.competition_matches
     where id=${clearsMigration} and data->>'status'='complete'`);
@@ -96,7 +127,7 @@ export async function settleNightRoom(
   tx: Tx,
   room: Room,
   at: number,
-  reason: 'elimination' | 'disconnect' | 'abandoned',
+  reason: 'elimination' | 'disconnect' | 'abandoned' | 'forfeit',
   progression?: ProgressionRules,
   accountRules = progression,
 ) {
@@ -108,8 +139,8 @@ export async function settleNightRoom(
     const outcome =
       reason === 'abandoned'
         ? 'loss'
-        : reason === 'disconnect'
-          ? member.takenOver
+        : reason === 'disconnect' || reason === 'forfeit'
+          ? member.takenOver || member.left
             ? 'loss'
             : 'win'
           : member.result!.outcome!;
@@ -149,6 +180,7 @@ export async function settleNightRoom(
       games: summary.games,
       outcome,
       reason,
+      durationMs: Math.min(at - room.startedAt, member.result?.secondary ?? 0),
     };
     if (progression)
       Object.assign(
@@ -164,11 +196,22 @@ export async function settleNightRoom(
             outcome,
             // Delayed polling must not turn a short simulated match into a reward-eligible one.
             durationMs: Math.min(at - room.startedAt, member.result?.secondary ?? 0),
-            // 对手超时离线时，坚持作战的胜方同样获得胜利收益；离线方不获得收益。
+            // 主动退赛只给失败金币与经验，仍保留最短对局要求；不推进任务或发放碎片。
             valid:
-              (reason === 'elimination' || (reason === 'disconnect' && outcome === 'win')) &&
-              member.result?.participated === true &&
+              (reason === 'elimination' ||
+                (reason === 'disconnect' && outcome === 'win') ||
+                (reason === 'forfeit' && outcome === 'loss')) &&
+              (reason === 'forfeit' || member.result?.participated === true) &&
               !member.takenOver,
+            consolation: reason === 'forfeit',
+            invalidReason:
+              reason === 'abandoned'
+                ? 'abandoned'
+                : member.takenOver
+                  ? 'disconnected'
+                  : reason === 'forfeit' && outcome === 'win'
+                    ? 'opponent-left'
+                    : 'not-participated',
           },
           accountRules,
         ),

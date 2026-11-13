@@ -416,6 +416,7 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       'idle',
       'short',
       'delayed-short',
+      'forfeit',
     ]) {
       const a = await owner(),
         b = await owner(),
@@ -446,12 +447,18 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       if (scenario === 'takeover') room.players[0]!.takenOver = true;
       // A timeout disconnect always marks the departed player as taken over.
       if (scenario === 'disconnect') room.players[1]!.takenOver = true;
+      if (scenario === 'forfeit') {
+        room.players[1]!.left = true;
+        room.players[1]!.result.participated = false;
+      }
       const reason =
-        scenario === 'disconnect'
-          ? 'disconnect'
-          : scenario === 'abandoned'
-            ? 'abandoned'
-            : 'elimination';
+        scenario === 'forfeit'
+          ? 'forfeit'
+          : scenario === 'disconnect'
+            ? 'disconnect'
+            : scenario === 'abandoned'
+              ? 'abandoned'
+              : 'elimination';
       await database.db.transaction(async (tx) => {
         await settleNightRoom(tx, room, at, reason, rules);
         await settleNightRoom(tx, room, at, reason, rules);
@@ -461,8 +468,22 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
         ['eligible', 'disconnect'].includes(scenario) ? 2 : 0,
       );
       expect((await get(b)).inventory['fragment:weapon'] ?? 0).toBe(
-        ['disconnect', 'abandoned', 'short', 'delayed-short'].includes(scenario) ? 0 : 1,
+        ['disconnect', 'abandoned', 'short', 'delayed-short', 'forfeit'].includes(scenario) ? 0 : 1,
       );
+      if (scenario === 'forfeit') {
+        expect(room.players[0]!.settlement).toMatchObject({
+          outcome: 'win',
+          coins: 0,
+          xp: 0,
+          rewardReason: 'opponent-left',
+        });
+        expect(room.players[1]!.settlement).toMatchObject({ outcome: 'loss', coins: 60, xp: 70 });
+        expect(
+          (await get(b)).tasks
+            .filter((t) => ['duel', 'complete'].includes(t.event))
+            .every((t) => t.progress === 0),
+        ).toBe(true);
+      }
     }
   });
   it('reward previews include old verified replay clears before backfill and exclude unrelated boards', async () => {

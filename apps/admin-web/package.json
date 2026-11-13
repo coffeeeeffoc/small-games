@@ -9,7 +9,7 @@
     "preview": "vite preview --host 127.0.0.1 --port 4182 --strictPort",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "pnpm build && node tests/browser.mjs"
+    "test": "node --test tests/night-compatibility.test.ts && pnpm build && node tests/browser.mjs"
   },
   "dependencies": {
     "antd": "6.6.6",

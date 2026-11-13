@@ -5,6 +5,7 @@ import { MISSIONS, CAMPAIGN_BOARD_VERSION } from './core/MissionCatalog';
 import type { ButtonRect, HUD } from './HUD';
 import { C, col } from './HudTheme';
 import { fitName } from './core/SafeArea';
+import { homeHeaderLayout } from './ProgressionView';
 import {
   EditBox,
   Graphics,
@@ -16,13 +17,15 @@ import {
   UITransform,
   isValid,
 } from 'cc';
-import { playerId, playerLabel, playerTag, type Online, type Player } from './Online';
+import { playerId, playerLabel, playerTag, duelEndNotice, type Online, type Player } from './Online';
 type OnlineHost = Pick<
   HUD,
   | 'artwork'
   | 'button'
   | 'buttons'
   | 'controlIcon'
+  | 'dialog'
+  | 'dialogButton'
   | 'coverImage'
   | 'h'
   | 'inset'
@@ -32,11 +35,13 @@ type OnlineHost = Pick<
   | 'listScroll'
   | 'listViewport'
   | 'menuButton'
+  | 'missionsOpen'
   | 'node'
   | 'online'
   | 'panelFrame'
   | 'plate'
   | 'progressionArt'
+  | 'quartermaster'
   | 'rect'
   | 'safe'
   | 'scrollArea'
@@ -44,10 +49,13 @@ type OnlineHost = Pick<
   | 'scrollNode'
   | 't'
   | 'topRight'
+  | 'toast'
+  | 'toastUntil'
   | 'w'
 >;
 
 export class OnlineLobbyView {
+  private roomNotice='';
   private readonly h: OnlineHost;
   private readonly missionArtwork: () => readonly SpriteFrame[];
   constructor(h: OnlineHost, missionArtwork: () => readonly SpriteFrame[]) {
@@ -154,8 +162,67 @@ export class OnlineLobbyView {
     if (online.checkingRelease || online.releaseCheckFailed || !issue || !request.test(`${issue.method} ${issue.path}`)) return '';
     return this.h.t('当前版本无法完成此操作，请退出并重新进入游戏后重试', 'UPDATE REQUIRED · REOPEN THE GAME AND RETRY');
   }
+  private renderPlayers(n: Node, bounds: { x: number; y: number; w: number; h: number }, friends: boolean) {
+    const h = this.h, o = h.online!;
+    const entries = friends ? [...o.social.requests.filter(p => !o.blockedPlayers.has(playerId(p))), ...o.social.friends] : o.onlinePlayers;
+    const paging = !friends && (o.playersPrevious.length > 0 || !!o.playersNext);
+    const status = o.message || o.socialStatus || o.chatStatus;
+    const area = { ...bounds, h: Math.max(44, bounds.h - (paging ? 44 : 0) - (status ? 30 : 0)) };
+    const stacked = area.w < 280, rowHeight = stacked ? 94 : 52;
+    const list = h.listViewport(n, 'players', area, entries.length * rowHeight);
+    entries.forEach((p, i) => {
+      const id = playerId(p), own = id === o.authenticatedId, y = area.y + i * rowHeight - list.offset;
+      if (y + rowHeight <= area.y || y >= area.y + area.h) return;
+      const actionX = area.x + area.w - 140, textX = area.x + 20;
+      const textW = (own || stacked ? area.x + area.w - 12 : actionX - 6) - textX;
+      const tone = p.status === 'playing' ? C.amber : p.status === 'offline' ? C.dim : '#8fdbb0';
+      list.g.fillColor = col(tone);
+      list.g.circle(area.x + 8 - h.w / 2, h.h / 2 - y - 16, 3);
+      list.g.fill();
+      const name = h.label(list.n, fitName((own ? h.t('你 · ', 'YOU · ') : '') + (p.nickname || p.name || h.t('飞行员', 'PILOT')), textW, 13), textX + textW / 2, y + 15, 13, textW, 22);
+      name.horizontalAlign = Label.HorizontalAlign.LEFT;
+      name.enableWrapText = false;
+      name.isBold = true;
+      const added = o.social.friends.some(f => playerId(f) === id);
+      const request = o.social.requests.find(f => playerId(f) === id);
+      const detail = request ? h.t(request.direction === 'incoming' ? ' · 好友申请' : ' · 已申请', request.direction === 'incoming' ? ' · REQUEST' : ' · SENT')
+        : p.status === 'playing' ? h.t(' · 游戏中', ' · PLAYING') : p.status === 'offline' ? h.t(' · 离线', ' · OFFLINE') : '';
+      const meta = h.label(list.n, playerTag(id) + detail, textX + textW / 2, y + 35, 10, textW, 18, C.dim);
+      meta.horizontalAlign = Label.HorizontalAlign.LEFT;
+      meta.enableWrapText = false;
+      meta.overflow = Label.Overflow.SHRINK;
+      h.rect(list.g, area.x + 4, y + rowHeight - 2, area.w - 14, 1, '#23394c');
+      const action = (slot: number, key: string, caption: string, icon: string, disabled = false) => {
+        const label = h.dialogButton(list.n, list.g, 'online:' + key, '', actionX + slot * 44, y + (stacked ? 45 : 3), 44, 'quiet', icon, 44, disabled);
+        label.node.name = caption;
+      };
+      if (own) return;
+      const blocked = o.blockedPlayers.has(id);
+      action(0, 'whisper:' + id, h.t('私信', 'MESSAGE'), 'message', blocked || !o.socialAvailable);
+      if (request?.direction === 'incoming') {
+        action(1, 'friendAction:accept:' + id, h.t('同意好友', 'ACCEPT'), 'check', o.socialBusy);
+        action(2, 'friendAction:decline:' + id, h.t('拒绝申请', 'DECLINE'), 'close', o.socialBusy);
+      } else {
+        action(1, 'invitePlayer:' + id, h.t('邀请对战', 'INVITE'), 'lobby', !o.canInvite(p));
+        if (added && friends) action(2, 'friendAction:remove:' + id, h.t('移除好友', 'REMOVE FRIEND'), 'minus', o.socialBusy);
+        else if (request) action(2, 'friendAction:cancel:' + id, h.t('取消申请', 'CANCEL REQUEST'), 'close', o.socialBusy);
+        else if (added) h.controlIcon(list.g, 'check', actionX + 110, y + (stacked ? 67 : 25), 18, C.mint);
+        else action(2, 'friendAction:request:' + id, h.t('添加好友', 'ADD FRIEND'), 'plus', blocked || o.socialBusy || !o.socialAvailable);
+      }
+    });
+    list.finish();
+    if (!entries.length) h.label(n, o.socialStatus || h.t(friends ? '还没有好友，去在线玩家认识一下吧' : '正在读取在线玩家…', friends ? 'ADD FRIENDS FROM ONLINE PLAYERS' : 'LOADING PLAYERS…'), area.x + area.w / 2, area.y + 35, 12, area.w - 24, 60, C.dim);
+    if (status) h.label(n, status, area.x + area.w / 2, area.y + area.h + 15, 11, area.w - 12, 28, C.amber);
+    if (paging) {
+      const y = bounds.y + bounds.h - 44;
+      h.dialogButton(n, n.getComponent(Graphics) || n.addComponent(Graphics), 'online:playersPrev', '‹', area.x, y, 44, 'quiet', '', 44, !o.playersPrevious.length);
+      h.label(n, String(o.playersPrevious.length + 1), area.x + area.w / 2, y + 22, 12, 60, 24, C.dim);
+      h.dialogButton(n, n.getComponent(Graphics)!, 'online:playersNext', '›', area.x + area.w - 48, y, 44, 'quiet', '', 44, !o.playersNext);
+    }
+  }
   private renderLobby(n: Node, initial = false) {
     const o = this.h.online!,
+      publicOnly = o.panel === 'chat',
       roomy = this.h.w >= 1000,
       l = this.h.safe.left + 12,
       r = this.h.w - this.h.safe.right - 12,
@@ -163,16 +230,16 @@ export class OnlineLobbyView {
       b = this.h.h - this.h.safe.bottom - 12,
       gap = 14,
       lw = (r - l - gap) * 0.44,
-      rx = l + lw + gap,
+      rx = publicOnly ? l : l + lw + gap,
       rw = r - rx,
       inputY = b - 48;
     if (initial) {
-      this.lobbySkin(n, 'panel', l, top, lw, b - top);
+      if (!publicOnly) this.lobbySkin(n, 'panel', l, top, lw, b - top);
       this.lobbySkin(n, 'panel', rx, top, rw, b - top);
       this.h.button('online:back', '‹', l, this.h.safe.top + 5, 44, 44, n).fontSize = 31;
       this.h.label(
         n,
-        this.h.t('全局大厅', 'GLOBAL LOBBY'),
+        this.h.t(publicOnly ? '大厅交流' : '全局大厅', publicOnly ? 'PUBLIC LOBBY' : 'GLOBAL LOBBY'),
         l + 145,
         this.h.safe.top + 27,
         25,
@@ -259,8 +326,8 @@ export class OnlineLobbyView {
     const body = (this.lobbyBody = this.h.node('LobbyLiveContent', n)),
       g = this.h.node('Ink', body).addComponent(Graphics);
     const onlineRight = this.h.topRight(this.h.safe.top + 13, 28);
-    this.h.rect(g, onlineRight - 200, this.h.safe.top + 13, 200, 28, '#07121cdd');
-    this.h.label(body, o.onlineLabel(this.h.lang), onlineRight - 100, this.h.safe.top + 27, 14, 200, 28, C.white);
+    if (!publicOnly) this.h.rect(g, onlineRight - 200, this.h.safe.top + 13, 200, 28, '#07121cdd');
+    if (!publicOnly) this.h.label(body, o.onlineLabel(this.h.lang), onlineRight - 100, this.h.safe.top + 27, 14, 200, 28, C.white);
     const btn = (
       id: string,
       caption: string,
@@ -281,94 +348,22 @@ export class OnlineLobbyView {
       button.visual = { x, y, w, h: 44, cut: 8 };
       if (icon) this.lobbyButtonIcon(button, icon);
     };
-    const tabW=(lw-32)/3;
-    btn('lobbyRooms',this.h.t('房间','ROOMS'),l+8,top+4,tabW,o.lobbyTab==='rooms'?'gold':'panel');
-    btn('players',this.h.t('在线','ONLINE'),l+16+tabW,top+4,tabW,o.lobbyTab==='players'?'gold':'panel');
-    btn('friends',this.h.t('好友'+(o.incomingFriends?' · '+o.incomingFriends:''),'FRIENDS'),l+24+tabW*2,top+4,tabW,o.lobbyTab==='friends'?'gold':'panel');
-    btn('chatPublic', this.h.t('大厅交流', 'PUBLIC'), rx + 8, top + 4, (rw - 24) / 2, !o.chatInbox ? 'gold' : 'panel');
-    btn('chatInbox', this.h.t(`私信${o.directUnread ? ' (' + o.directUnread + ')' : ''}`, `DM${o.directUnread ? ' (' + o.directUnread + ')' : ''}`), rx + 16 + (rw - 24) / 2, top + 4, (rw - 24) / 2, o.chatInbox ? 'gold' : 'panel');
+    if (!publicOnly) {
+      const tabW = (lw - 32) / 3;
+      btn('lobbyRooms', this.h.t('房间', 'ROOMS'), l + 8, top + 4, tabW, o.lobbyTab === 'rooms' ? 'gold' : 'panel');
+      btn('players', this.h.t('在线玩家', 'PLAYERS'), l + 16 + tabW, top + 4, tabW, o.lobbyTab === 'players' ? 'gold' : 'panel');
+      btn('friends', this.h.t('好友', 'FRIENDS'), l + 24 + tabW * 2, top + 4, tabW, o.lobbyTab === 'friends' ? 'gold' : 'panel');
+      this.h.label(body, this.h.t('大厅交流', 'PUBLIC CHAT'), rx + rw / 2, top + 26, 16, rw - 24, 36, C.white);
+    }
     if(this.lobbyComposer && this.lobbyComposer.string !== o.chatDraft) this.lobbyComposer.string = o.chatDraft;
     this.updateLobbySend();
     const roomTop = top + 56,
       roomBottom = b - (o.lobbyTab !== 'rooms' && !o.room ? 0 : 98),
       rowH = this.h.h < 420 ? 112 : 136,
       rooms = o.rooms;
-    if(o.lobbyTab !== 'rooms') {
-      const friends = o.lobbyTab === 'friends';
-      const entries = friends
-        ? [...o.social.requests.filter((p) => !o.blockedPlayers.has(playerId(p))), ...o.social.friends]
-        : o.onlinePlayers;
-      const paging = !friends && (o.playersPrevious.length > 0 || !!o.playersNext);
-      const bottom = roomBottom - (paging ? 46 : 0);
-      const area = { x: l + 8, y: roomTop, w: lw - 16, h: Math.max(44, bottom - roomTop) };
-      const inlineActions = area.w >= 320;
-      const w = inlineActions ? 56 : (area.w - 28) / 3;
-      const end = area.x + area.w - 12, textX = area.x + 24;
-      let total = 0;
-      const rows = entries.map((p) => {
-        const id = playerId(p), own = id === o.authenticatedId;
-        const height = own || inlineActions ? 52 : 74;
-        const row = { p, id, own, height, offset: total };
-        total += height;
-        return row;
-      });
-      const list = this.h.listViewport(body, 'players', area, total);
-      for (const { p, id, own, height, offset } of rows) {
-        const y = roomTop + offset - list.offset;
-        if (y + height <= roomTop || y >= bottom) continue;
-        this.h.rect(list.g, area.x + 1, y, area.w - 10, height - 4, C.ink, C.line, 4);
-        const status = p.status === 'playing' ? this.h.t('游戏中', 'PLAYING')
-          : p.status === 'offline' ? this.h.t('离线', 'OFFLINE') : this.h.t('在线', 'ONLINE');
-        const tone = p.status === 'offline' ? C.dim : p.status === 'playing' ? C.amber : '#83f5a8';
-        const stacked = !own && !inlineActions;
-        const actionX = end - 3 * w - 8, actionY = y + (stacked ? 26 : 2);
-        const textW = (!own && inlineActions ? actionX - 6 : end) - textX;
-        const centerX = textX + textW / 2;
-        const titleY = y + (stacked ? 9 : 14), detailY = y + (stacked ? 21 : 34);
-        this.h.label(list.n, '●', area.x + 12, titleY, 12, 16, 18, tone);
-        const font = roomy ? 16 : 13;
-        const nickname = p.nickname || p.name || this.h.t('飞行员', 'PILOT');
-        const title = own ? this.h.t('你 · ', 'YOU · ') + nickname : nickname;
-        const name = this.h.label(list.n, fitName(title, textW, font), centerX, titleY, font, textW, 20);
-        name.enableWrapText = false;
-        name.horizontalAlign = Label.HorizontalAlign.LEFT;
-        name.isBold = true;
-        name.lineHeight = font;
-        const added = o.social.friends.some((f) => playerId(f) === id);
-        const pending = !added && 'direction' in p ? p.direction : undefined;
-        const detail = playerTag(id) + ' · ' + status + (pending
-          ? this.h.t(pending === 'incoming' ? ' · 向你申请好友' : ' · 等待对方同意', pending === 'incoming' ? ' · FRIEND REQUEST' : ' · REQUEST SENT') : '');
-        const meta = this.h.label(list.n, detail, centerX, detailY, 11, textW, 16, C.dim);
-        meta.enableWrapText = false;
-        meta.overflow = Label.Overflow.SHRINK;
-        meta.horizontalAlign = Label.HorizontalAlign.LEFT;
-        if (!own) {
-          const blocked = o.blockedPlayers.has(id), secondX = actionX + w + 4;
-          if(pending){
-            btn('friendAction:'+(pending==='incoming'?'accept':'cancel')+':'+id,this.h.t(pending==='incoming'?'同意':'取消申请',pending==='incoming'?'ACCEPT':'CANCEL REQUEST'),actionX,actionY,w,'gold',o.socialBusy,list.n);
-            btn(pending==='incoming'?'friendAction:decline:'+id:'whisper:'+id,this.h.t(pending==='incoming'?'拒绝':'私信',pending==='incoming'?'DECLINE':'DM'),secondX,actionY,w,'blue',o.socialBusy,list.n);
-          }else{
-            const canInvite = o.canInvite(p);
-            btn('whisper:'+id,this.h.t('私信','DM'),actionX,actionY,w,'blue',blocked,list.n,'message');
-            btn('invitePlayer:'+id,this.h.t('邀请','INVITE'),secondX,actionY,w,canInvite?'blue':'panel',!canInvite,list.n,'lobby');
-          }
-          const request = o.social.requests.find((f) => playerId(f) === id);
-          const relationshipX = secondX + w + 4;
-          if (added && friends) {
-            btn('friendAction:remove:'+id,this.h.t('移除好友','REMOVE'),relationshipX,actionY,w,'panel',o.socialBusy,list.n);
-          } else if (added || request) {
-            const tag = added ? this.h.t('好友', 'FRIEND')
-              : request?.direction === 'incoming' ? this.h.t('待处理', 'NEW') : this.h.t('已申请', 'SENT');
-            this.h.rect(list.g, relationshipX + (w - 46) / 2, actionY + 11, 46, 22, added ? '#1e3b32' : '#203244', undefined, 5);
-            this.h.label(list.n, tag, relationshipX + w / 2, actionY + 22, 11, 46, 20, added ? '#a6e9bf' : C.dim);
-          } else {
-            btn('friendAction:request:'+id,this.h.t('加好友','ADD'),relationshipX,actionY,w,'panel',blocked||o.socialBusy,list.n,'plus');
-          }
-        }
-      }
-      list.finish();
-      if(!entries.length)this.h.label(body,o.socialStatus||this.h.t(!o.socialAvailable?'等待社交服务更新':friends?'暂无好友 · 从在线玩家添加':'正在刷新在线玩家…',!o.socialAvailable?'SOCIAL SERVICE UNAVAILABLE':friends?'ADD FRIENDS FROM ONLINE PLAYERS':'REFRESHING PLAYERS…'),l+lw/2,roomTop+34,12,lw-32,64,C.dim);
-      if(paging){btn('playersPrev','‹',l+8,roomBottom-44,44,'panel',!o.playersPrevious.length);this.h.label(body,String(o.playersPrevious.length+1),l+lw/2,roomBottom-22,13,lw-120,28,C.dim);btn('playersNext','›',l+lw-52,roomBottom-44,44,'panel',!o.playersNext);}
+    if (!publicOnly) {
+    if (o.lobbyTab !== 'rooms') {
+      this.renderPlayers(body, { x: l + 8, y: roomTop, w: lw - 16, h: roomBottom - roomTop }, o.lobbyTab === 'friends');
     } else {
     const roomNotice = !o.busy && (this.releaseFailure(/^POST .*\/(?:rooms|match)(?:\/[^?]*)?(?:\?|$)/) ||
       (o.message && this.releaseFailure(/^GET .*\/rooms(?:\?|$)/)) || o.message);
@@ -492,30 +487,11 @@ export class OnlineLobbyView {
       btn('match', this.h.t('快速匹配', 'MATCH'), l + 8, b - 46, ww, 'blue', o.busy);
       btn('bot', this.h.t('人机练习', 'PRACTICE'), l + 16 + ww, b - 46, ww, 'panel', o.busy);
     }
-    const area = { x: rx + 8, y: top + 54, w: rw - 16, h: Math.max(44, inputY - top - 79) },
-      messages = o.visibleChat;
-    const canCompose = !o.chatInbox;
-    if(this.lobbyComposer)this.lobbyComposer.enabled=canCompose;
-    const invite = this.h.buttons.find((b) => b.id === 'online:chatInvite');
-    if (invite) invite.disabled = !canCompose;
-    if(o.chatInbox){
-      const entries: {peer:Player;caption:string}[] = o.socialAvailable
-        ? o.social.conversations.filter((c) => !o.blockedPlayers.has(playerId(c))).map(c=>({peer:c,caption:playerLabel(c)+(c.unread?' · '+c.unread:'')+'\n'+c.lastMessage.text}))
-        : [];
-      const pending=o.chatRetryPending&&o.chatPeer;
-      if(pending&&!entries.some(c=>playerId(c.peer)===playerId(pending)))entries.unshift({peer:pending,caption:playerLabel(pending)+'\n'+this.h.t('发送结果待确认 · 打开会话重试','DELIVERY UNCONFIRMED · OPEN TO RETRY')});
-      const list = this.h.listViewport(body, 'chat', area, entries.length * 96);
-      entries.forEach((c,i)=>{const y=area.y+i*96-list.offset;if(y+96<area.y||y>area.y+area.h)return;this.lobbySkin(list.n,'panel',rx+8,y,rw-16,90);const label=this.h.label(list.n,c.caption,rx+18+(rw-108)/2,y+42,roomy?16:12,rw-108,74,C.white);label.horizontalAlign=Label.HorizontalAlign.LEFT;btn('whisper:'+playerId(c.peer),this.h.t('会话','OPEN'),r-80,y+24,68,'blue',false,list.n);});list.finish();
-      if (!entries.length) {
-        const message = o.socialAvailable
-          ? this.h.t('暂无会话 · 从在线玩家或好友发起私信', 'MESSAGE AN ONLINE PLAYER OR FRIEND')
-          : this.h.t('私信服务暂不可用', 'PRIVATE MESSAGING UNAVAILABLE');
-        this.h.label(body, message, rx + rw / 2, area.y + 40, 13, rw - 32, 70, C.dim);
-      }
-      if (o.socialAvailable)
-        this.h.label(body,o.socialStatus||this.h.t('历史保存在服务端 · 选择会话后回复','HISTORY SAVED ON SERVER · SELECT A CONVERSATION'),rx+rw/2,inputY-12,10,rw-18,21,C.dim);
-      this.lobbyStamp=`${o.revision}:${o.chatRevision}`;return;
     }
+    const chatTop = top + (publicOnly ? 12 : 54);
+    const area = { x: rx + 8, y: chatTop, w: rw - 16, h: Math.max(44, inputY - chatTop - 25) },
+      messages = o.chatMessages.filter(m => !m.recipientId && !o.blockedPlayers.has(m.playerId));
+    if (this.lobbyComposer) this.lobbyComposer.enabled = !o.chatPeer;
     const old = this.chatLayout,
       oldOffset = this.h.listScroll.chat || 0,
       oldTotal = old.length ? old.at(-1)!.y + old.at(-1)!.h + 8 : 0,
@@ -678,7 +654,7 @@ export class OnlineLobbyView {
       btn('chatLatest', this.h.t('新消息 ↓', 'NEW ↓'), r - 108, area.y + area.h - 44, 98, 'blue');
     this.h.label(
       body,
-      (o.chatStatus && this.releaseFailure(/^[A-Z]+ .*\/chat(?:\?|$)/)) || o.chatStatus || (o.chatPeer ? this.h.t('私信给 ', 'TO ') + playerLabel(o.chatPeer) : o.chatInbox ? this.h.t('点消息菜单回复 · 仅双方可见', 'REPLY FROM MESSAGE MENU · PRIVATE') : this.h.t('文字交流 · 120字 · 发言间隔3秒', 'TEXT · 120 CHARS · 3s INTERVAL')),
+      (!publicOnly&&o.message) || (o.chatStatus && this.releaseFailure(/^[A-Z]+ .*\/chat(?:\?|$)/)) || o.chatStatus || (o.chatPeer ? this.h.t('私信给 ', 'TO ') + playerLabel(o.chatPeer) : o.chatInbox ? this.h.t('点消息菜单回复 · 仅双方可见', 'REPLY FROM MESSAGE MENU · PRIVATE') : this.h.t('文字交流 · 120字 · 发言间隔3秒', 'TEXT · 120 CHARS · 3s INTERVAL')),
       rx + rw / 2,
       inputY - 12,
       10,
@@ -721,27 +697,32 @@ export class OnlineLobbyView {
   }
   renderOnline(n: Node, g: Graphics, s: Simulation, result: boolean) {
     const online = this.h.online!;
-    if (online.panel === 'menu' && !result) {
+    if ((online.panel === 'menu' || online.panel === 'chat') && !result) {
       this.renderLobby(n, true);
       return;
     }
-    const pw = Math.min(result ? 560 : 760, this.h.w - this.h.safe.left - this.h.safe.right - 32),
+    if (online.panel === 'players' || online.panel === 'friends') {
+      const friends = online.panel === 'friends';
+      const q=this.h.quartermaster;
+      const anchor=q&&!q.page&&s.phase==='briefing'&&!this.h.missionsOpen
+        ? homeHeaderLayout(this.h,!!q.assets?.announcements?.length).entries.find(b=>b.panel===online.panel) : undefined;
+      const count=friends?online.social.friends.length+online.social.requests.length:online.onlinePlayers.length;
+      const height=anchor?this.h.h:Math.min(360,Math.max(220,72+count*52)+(online.message||online.socialStatus||online.chatStatus?30:0)+(!friends&&(online.playersNext||online.playersPrevious.length)?44:0));
+      const box = this.h.dialog(n, g, { width: 420, height, position: 'right', anchor,
+        title: friends ? this.h.t('好友', 'FRIENDS') : this.h.t('在线玩家', 'ONLINE PLAYERS') + (online.onlineCount === null ? '' : ' · ' + online.onlineCount), close: 'online:back' });
+      this.renderPlayers(n, { x: box.x + 12, y: box.y + 60, w: box.w - 24, h: box.h - 72 }, friends);
+      return;
+    }
+    const form = ['profile', 'create', 'join'].includes(online.panel), readyRoom=online.panel==='room'&&!result;
+    let pw = Math.min(result ? 560 : form ? 420 : readyRoom ? 640 : 760, this.h.w - this.h.safe.left - this.h.safe.right - 32),
       ph = Math.min(
-        result ? 360 : online.panel === 'ranking' ? 620 : online.panel === 'version' ? 300 : 440,
+        result ? 360 : form ? (online.panel === 'profile' ? 246 : 284) : readyRoom ? 340 : online.panel === 'ranking' ? 620 : online.panel === 'version' ? 300 : 440,
         this.h.h - this.h.safe.top - this.h.safe.bottom - 28,
       ),
-      px = (this.h.w - pw) / 2,
-      py = (this.h.h - ph) / 2;
-    this.h.panelFrame(
-      g,
-      px,
-      py,
-      pw,
-      ph,
-      result ? C.amber : C.mint,
-      result ? '#050f1d66' : '#050f1d55',
-      !result && !(online.panel === 'ranking' && ph < 280),
-    );
+      px = this.h.safe.left + (this.h.w - this.h.safe.left - this.h.safe.right - pw) / 2,
+      py = this.h.safe.top + (this.h.h - this.h.safe.top - this.h.safe.bottom - ph) / 2;
+    if (form||readyRoom) { const box=this.h.dialog(n, g, { width: pw, height: ph, ...(form?{close:'online:close'}:{}) });px=box.x;py=box.y;pw=box.w;ph=box.h; }
+    else this.h.panelFrame(g, px, py, pw, ph, result ? C.amber : C.mint, result ? '#050f1d66' : '#050f1d55', !result && !(online.panel === 'ranking' && ph < 280));
     const label = (str: string, y: number, size = 14, color = C.white) =>
       this.h.label(n, str, px + pw / 2, py + y, size, pw - 40, 26, color);
     const button = (
@@ -764,7 +745,7 @@ export class OnlineLobbyView {
           id === 'private' ||
           id.startsWith('board:') ||
           id.startsWith('category:'));
-      const text = this.h.menuButton(
+      const text = this.h.dialogButton(
         n,
         g,
         'online:' + id,
@@ -806,6 +787,9 @@ export class OnlineLobbyView {
       );
     const titles = {
       menu: ['对战大厅', 'BATTLE LOBBY'],
+      chat: ['大厅交流', 'PUBLIC CHAT'],
+      players: ['在线玩家', 'ONLINE PLAYERS'],
+      friends: ['好友', 'FRIENDS'],
       ranking: ['排行榜', 'RANKINGS'],
       room: ['作战准备室', 'READY ROOM'],
       profile: ['玩家昵称', 'PLAYER NAME'],
@@ -816,13 +800,13 @@ export class OnlineLobbyView {
       '': ['', ''],
     };
     if (!result) {
-      const headingW = online.panel === 'ranking' ? pw - 294 : pw - 130;
+      const headingW = readyRoom ? pw - 300 : online.panel === 'ranking' ? pw - 294 : pw - 130;
       const heading = this.h.label(
         n,
         text(titles[online.panel], this.h.lang),
         px + 54 + headingW / 2,
         py + 26,
-        21,
+        readyRoom ? 18 : 21,
         headingW,
         32,
       );
@@ -964,7 +948,7 @@ export class OnlineLobbyView {
         );
         this.h.label(
           n,
-          i ? (settlement ? '+' + settlement.points : '—') : formatTime(s.time * 1000),
+          i ? (settlement ? '+' + settlement.points : '—') : formatTime(settlement?.durationMs ?? s.time * 1000),
           cx + 14,
           py + mid + 13,
           short ? 24 : 30,
@@ -990,6 +974,8 @@ export class OnlineLobbyView {
             C.dim,
           );
       }
+      const endNotice=duelEndNotice(settlement);
+      if(endNotice)label(this.h.t(...endNotice),bottom-22,11,C.amber);
       this.h.rect(g, px + 32, py + bottom - 7, pw - 64, 1, '#8ba0ab44');
       const bw = Math.min(210, pw - 64);
       button(
@@ -1080,7 +1066,7 @@ export class OnlineLobbyView {
         11,
         C.amber,
       );
-      button('back', this.h.t('返回', 'BACK'), 18, bottom, 100, false, true, 'back');
+      button('back', this.h.t('取消', 'CANCEL'), 18, bottom, 100, false, true);
       const versionWidth = Math.min(112, pw - 332);
       if (updateHint && versionWidth >= 44)
         button('version', this.h.t('版本详情', 'VERSION'), (pw - 80 - versionWidth) / 2, bottom, versionWidth);
@@ -1090,11 +1076,11 @@ export class OnlineLobbyView {
           : online.panel === 'create'
             ? 'createConfirm'
             : 'joinConfirm',
-        online.busy ? this.h.t('请稍候', 'PLEASE WAIT') : this.h.t('确定', 'CONFIRM'),
+        online.busy ? this.h.t('请稍候…', 'PLEASE WAIT…') : online.panel === 'profile' ? this.h.t('保存昵称', 'SAVE NAME') : online.panel === 'create' ? this.h.t('创建房间', 'CREATE ROOM') : this.h.t('加入房间', 'JOIN ROOM'),
         pw - 198,
         bottom,
         180,
-        online.panel !== 'profile',
+        true,
       );
       return;
     }
@@ -1548,45 +1534,34 @@ export class OnlineLobbyView {
       return;
     }
     const room = online.room;
-    label(
-      room
-        ? this.h.t('房间号 ', 'ROOM ') +
-            room.code +
-            (room.visibility === 'private' ? this.h.t(' · 私密', ' · PRIVATE') : '')
-        : online.busy
-          ? this.h.t('正在连接…', 'CONNECTING…')
-          : '',
-      78,
-      20,
-      C.amber,
-    );
+    this.h.label(n,room?this.h.t('房间 ', 'ROOM ')+room.code:this.h.t('正在连接…','CONNECTING…'),px+pw-155,py+27,15,160,28,C.amber).isBold=true;
+    const compact=ph<280,hideTip=ph<230,cardW=(pw-48)/2,cardY=py+(hideTip?58:66),cardH=ph-(hideTip?122:158),single=cardH<68;
     for (let i = 0; i < 2; i++) {
       const player = room?.players[i],
         own = player && playerId(player) === playerId(online.identity),
-        y = 117 + i * 34;
-      if (own) this.h.plate(g, px + 18, py + y - 14, pw - 36, 30, '#29423c', C.mint, 5);
-      label(
-        player
-          ? playerLabel(player) +
-              (own ? this.h.t(' · 你', ' · YOU') : '') +
-              ' · ' +
-              (player.left?this.h.t('已退出','LEFT'):room?.status==='finished'?this.h.t('本局结束','FINISHED'):player.ready ? this.h.t('已准备', 'READY') : this.h.t('未准备', 'NOT READY'))
-          : this.h.t('等待另一位飞行员', 'WAITING FOR ANOTHER PILOT'),
-        y,
-        13,
-        own ? C.mint : C.white,
-      );
+        cx=px+18+i*(cardW+12),present=!!player&&!player.left;
+      this.h.rect(g,cx,cardY,cardW,cardH,present?'#1c3448':'#142638',own?'#6d9aab':'#38546a',9);
+      if(!compact){const seat=this.h.label(n,this.h.t(i?'飞行员 B':'飞行员 A',i?'PILOT B':'PILOT A')+(own?this.h.t(' · 你',' · YOU'):''),cx+cardW/2,cardY+19,11,cardW-24,22,C.dim);seat.horizontalAlign=Label.HorizontalAlign.LEFT;}
+      if(!single)this.h.controlIcon(g,'profile',cx+27,cardY+(compact?23:54),24,present?C.mint:C.dim);
+      const name=this.h.label(n,present?(player!.nickname||player!.name||this.h.t('飞行员','PILOT'))+(compact&&own?this.h.t(' · 你',' · YOU'):''):this.h.t('等待玩家加入','WAITING FOR A PILOT'),single?cx+12+(cardW-78)/2:cx+49+(cardW-62)/2,cardY+(single?cardH/2:compact?22:52),compact?14:16,single?cardW-78:cardW-62,24,present?C.white:C.dim);
+      name.horizontalAlign=Label.HorizontalAlign.LEFT;name.enableWrapText=false;name.overflow=Label.Overflow.SHRINK;name.isBold=present;
+      if(cardH>=130)this.h.label(n,present?playerTag(playerId(player!)):this.h.t('邀请好友，共同出战','INVITE A FRIEND'),cx+cardW/2,cardY+81,11,cardW-24,22,C.dim);
+      const ready=present&&player!.ready&&room?.status==='waiting';
+      this.h.label(n,!present?this.h.t('空闲席位','OPEN SEAT'):room?.status==='finished'?this.h.t('本局结束','FINISHED'):ready?this.h.t('✓ 已准备','✓ READY'):this.h.t('等待准备','NOT READY'),single?cx+cardW-33:cx+cardW/2,cardY+(single?cardH/2:cardH-21),single?10:13,single?56:cardW-24,24,ready?C.mint:present?C.amber:C.dim);
     }
     // 收起后回到大厅，房间仍在后台保持；大厅底部的房间条可一键展开。
-    if (room?.status === 'waiting') button('roomCollapse', this.h.t('收起', 'MINIMIZE'), pw - 146, 4, 84);
-    label(
+    if (room?.status === 'waiting') button('roomCollapse', this.h.t('收起', 'HIDE'), pw - 70, 4, 56,false,true);
+    const notice=online.message||online.chatStatus;
+    if(hideTip&&notice&&notice!==this.roomNotice){this.h.toast=notice;this.h.toastUntil=Date.now()+6000;}
+    this.roomNotice=hideTip?notice:'';
+    if(!hideTip)label(
       (online.message && this.releaseFailure(/^POST .*\/rooms\//)) || online.message ||
         (online.chatSending ? this.h.t('正在发送大厅邀请…', 'SENDING INVITE…') : online.chatStatus) ||
         this.h.t(
           '把房间号告诉好友，双方准备后开始',
           'TELL YOUR FRIEND THE ROOM NUMBER · BOTH READY TO START',
         ),
-      bottom - 25,
+      bottom - 19,
       11,
       C.dim,
     );
@@ -1603,6 +1578,7 @@ export class OnlineLobbyView {
         pw - 18 - cw,
         bottom,
         cw,
+        !room.players[room.you]?.ready,
       );
     }
   }

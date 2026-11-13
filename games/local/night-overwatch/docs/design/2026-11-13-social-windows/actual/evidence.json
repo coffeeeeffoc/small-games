@@ -1,0 +1,502 @@
+{
+  "fixture": "isolated-real-postgresql-http",
+  "checks": [
+    "three viewport home entries, compact lists and pure conversation windows; independent public lobby; nickname/settings; mutual friends, offline delivery, durable history, third-party isolation, original page restoration",
+    "voluntary exit ends both clients immediately, quitter receives defeat coins/EXP once, opponent sees exit reason with zero coins/EXP; compact room seats cover empty/joined/finished states",
+    "failed invite exposes version rejection in place; successful targeted invitation creates one room and recipient joins; both ready; busy player invitation disabled; battle continues through private reply",
+    "battle lobby retains room/player/friend tabs without inbox; compact join/create forms and explicit failure; single tap from mission selection starts three-target practice"
+  ],
+  "errors": [],
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad"
+  },
+  "cleaned": true,
+  "runtimeModules": {
+    "packages/service-kit/dist/database.js": "5e61c1ca49480997287331c189d87a19a612d1df71fc01718e679d6ffc522a57",
+    "services/runtime-api/dist/app.js": "60fd1470ad8f8eee97795bf4ddc4a14a712bbf5fc330431d9a32ef0100363f92",
+    "services/runtime-api/dist/competition/auth.js": "b40dce53ac7bedf0b3ea414d365cf3019e014f699310dc7cea097297a4ca1425",
+    "services/runtime-api/dist/competition/control.js": "cb05440d9f6ee1aaf6772d561889c8dd56485dac7d6bfff5c1cca6d0238427d7",
+    "services/runtime-api/dist/competition/store.js": "b75291404cebef48d79014ab625e10b8e190768384f224c4b36e5d441ea729b9",
+    "services/management-api/dist/admin/control-store.js": "4aea11e605bfcbb013f02857b438e9c1fb5cf76544577eebd616b51f01994360"
+  },
+  "runtimeErrors": [
+    {
+      "at": "2026-11-13T15:28:29.916Z",
+      "path": "/api/competition/v1/sessions/refresh",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:29.930Z",
+      "path": "/api/competition/v1/me",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:29.993Z",
+      "path": "/api/competition/v1/boards/cops-robbers-realtime",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.004Z",
+      "path": "/api/competition/v1/games/cops-robbers-realtime/leaderboards/versus",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.014Z",
+      "path": "/api/competition/v1/boards/xiangqi-five",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.025Z",
+      "path": "/api/competition/v1/games/xiangqi-five/leaderboards/versus",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.122Z",
+      "path": "/api/competition/v1/me",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.133Z",
+      "path": "/api/competition/v1/sessions/refresh",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.251Z",
+      "path": "/api/competition/v1/sessions/refresh",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.264Z",
+      "path": "/api/competition/v1/me",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.314Z",
+      "path": "/api/competition/v1/boards/cops-robbers",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.325Z",
+      "path": "/api/competition/v1/games/cops-robbers/leaderboards/versus",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.334Z",
+      "path": "/api/competition/v1/boards/xiangqi-five",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.344Z",
+      "path": "/api/competition/v1/games/xiangqi-five/leaderboards/versus",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.504Z",
+      "path": "/api/competition/v1/me",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.515Z",
+      "path": "/api/competition/v1/sessions/refresh",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.626Z",
+      "path": "/api/competition/v1/sessions/refresh",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.639Z",
+      "path": "/api/competition/v1/me",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.696Z",
+      "path": "/api/competition/v1/boards/cops-robbers",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.706Z",
+      "path": "/api/competition/v1/games/cops-robbers/leaderboards/versus",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.715Z",
+      "path": "/api/competition/v1/boards/cops-robbers-realtime",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.724Z",
+      "path": "/api/competition/v1/games/cops-robbers-realtime/leaderboards/versus",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.827Z",
+      "path": "/api/competition/v1/me",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:30.842Z",
+      "path": "/api/competition/v1/sessions/refresh",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:31.904Z",
+      "path": "/api/competition/v1/me",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:31.929Z",
+      "path": "/api/competition/v1/rooms/41715F78F34F",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:31.966Z",
+      "path": "/api/competition/v1/rooms/join",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:31.998Z",
+      "path": "/api/competition/v1/rooms/41715F78F34F/ready",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.026Z",
+      "path": "/api/competition/v1/rooms/41715F78F34F/actions",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.044Z",
+      "path": "/api/competition/v1/rooms/41715F78F34F/leave",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.066Z",
+      "path": "/api/competition/v1/rooms",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.096Z",
+      "path": "/api/competition/v1/rooms/41715F78F34F",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.126Z",
+      "path": "/api/competition/v1/rooms/join",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.149Z",
+      "path": "/api/competition/v1/rooms/41715F78F34F/actions",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.170Z",
+      "path": "/api/competition/v1/rooms",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.195Z",
+      "path": "/api/competition/v1/rooms/41715F78F34F",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.218Z",
+      "path": "/api/competition/v1/rooms/join",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.244Z",
+      "path": "/api/competition/v1/rooms/41715F78F34F/actions",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.274Z",
+      "path": "/api/competition/v1/rooms/470F7E6A8FC2",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.303Z",
+      "path": "/api/competition/v1/rooms/join",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.332Z",
+      "path": "/api/competition/v1/rooms/470F7E6A8FC2/ready",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.363Z",
+      "path": "/api/competition/v1/rooms/470F7E6A8FC2/actions",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.381Z",
+      "path": "/api/competition/v1/rooms/470F7E6A8FC2/leave",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.402Z",
+      "path": "/api/competition/v1/rooms",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.426Z",
+      "path": "/api/competition/v1/rooms/470F7E6A8FC2",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.449Z",
+      "path": "/api/competition/v1/rooms/join",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.473Z",
+      "path": "/api/competition/v1/rooms/470F7E6A8FC2/actions",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.493Z",
+      "path": "/api/competition/v1/rooms",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.518Z",
+      "path": "/api/competition/v1/rooms/470F7E6A8FC2",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.541Z",
+      "path": "/api/competition/v1/rooms/join",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.564Z",
+      "path": "/api/competition/v1/rooms/470F7E6A8FC2/actions",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.590Z",
+      "path": "/api/competition/v1/rooms/478CC8EA0BBB",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.617Z",
+      "path": "/api/competition/v1/rooms/join",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.642Z",
+      "path": "/api/competition/v1/rooms/478CC8EA0BBB/ready",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.670Z",
+      "path": "/api/competition/v1/rooms/478CC8EA0BBB/actions",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.692Z",
+      "path": "/api/competition/v1/rooms/478CC8EA0BBB/leave",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.714Z",
+      "path": "/api/competition/v1/rooms",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.745Z",
+      "path": "/api/competition/v1/rooms/478CC8EA0BBB",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.778Z",
+      "path": "/api/competition/v1/rooms/join",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.811Z",
+      "path": "/api/competition/v1/rooms/478CC8EA0BBB/actions",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.840Z",
+      "path": "/api/competition/v1/rooms",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.873Z",
+      "path": "/api/competition/v1/rooms/478CC8EA0BBB",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.922Z",
+      "path": "/api/competition/v1/rooms/join",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.961Z",
+      "path": "/api/competition/v1/rooms/478CC8EA0BBB/actions",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:32.992Z",
+      "path": "/api/competition/v1/runs/cops-robbers-realtime",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:33.003Z",
+      "path": "/api/competition/v1/runs/cops-robbers-realtime",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:28:33.013Z",
+      "path": "/api/competition/v1/runs/cops-robbers-realtime",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    },
+    {
+      "at": "2026-11-13T15:30:10.942Z",
+      "path": "/[unrecognized]",
+      "database": {
+        "code": "UNCLASSIFIED"
+      }
+    }
+  ]
+}

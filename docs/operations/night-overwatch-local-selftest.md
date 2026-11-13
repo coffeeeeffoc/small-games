@@ -2,6 +2,16 @@
 
 此流程仅启动本机 Docker Desktop 中的 Night Runtime、PostgreSQL 和回环网关。Sakura FRP 沿用已有隧道，将公网 HTTPS 转发到 `127.0.0.1:43003`。不操作生产、不上传渠道，也不自动打 TapTap ZIP。
 
+## 2026-11-13 本地版本对齐
+
+10:27 后续：本地Runtime与Management共同更新为 `small-games-bundle:night-20261113-compatibility`（镜像 `00f5a354c49d625edec1094dad76f68c384a8c5ed23e3178900c5ab8fae104ea`），两者健康。后管通过内部 `ADMIN_RUNTIME_ORIGIN=http://runtime:43002` 读取实际加载的单人v18/v17/v16、双人v11/v10/v9；公网不开放该诊断路由。当前 `current.json` 的 `composeOverride` 同时覆盖Runtime与Management镜像及内部诊断地址，仍保留原数据库和网关。无迁移，升级前54表独立恢复比对通过；回环/FRP健康、社交与建房，以及正常Vite后管入口匿名401已核对。[部署证据](../../games/local/night-overwatch/docs/design/2026-11-13-social-windows/runtime-compatibility.json)。这不是生产部署或渠道包更新。
+
+以下为09:46的首次故障修复记录：
+
+本地Runtime已更新为 `small-games-bundle:night-20261113-frp-v18-r2`，镜像摘要 `62d3d7bba1d6dbc112fc3a4b8a89cf17f0c24b6c8e5149671a7a9dc96a1ea662`，支持v18/v11并保留v17/v10、v16/v9。原54表备份已独立恢复比对；本次未执行原库迁移，PostgreSQL、Management、网关容器及后管发布版本13保持。真实FRP已登记1.0.36建房/好友邀请/加入/双方准备通过。[修复证据](../../games/local/night-overwatch/docs/design/2026-11-13-social-windows/frp-local-repair.json)。
+
+本次故障是后管已登记v18/v11，但Runtime镜像仍只加载v17/v10；因此在线/好友读取成功，建房仍409 `RULE_VERSION_CHANGED`。更新版本时须核对**服务实际supportedRules、客户端clientRules和准确buildId登记**，单看健康或后管允许列表不能证明可建房。验证先用该真实构建标识建房再退出，不以不带buildId的游客元数据代替。只需更新运行代码时复用当前compose及私密环境，仅切Runtime并重载网关；没有SQL变化就不重跑旧迁移。后续新包仍按后管流程登记，不自动放行未知构建。
+
 ## 启动与打包配置
 
 先确认 Docker 使用本机 Linux Engine 28+，既有 Sakura 隧道在线。公网地址必须是无路径、无账号信息的 HTTPS origin。
@@ -101,3 +111,7 @@ GROUP BY 1, 2, 3 ORDER BY 1 DESC, 2, 3;
 运行制品的 428 个文件摘要已验证，manifest 记录回环端口/CORS/Nginx 的本地覆盖前后摘要；源码基点 `358b1fe0248203068aac0c4df0cf76b282349816`，`sourceDirty=true`，对应本次未提交实现快照。两个真实 API 端均返回 Replay v9、Duel v3、Assets v3；通过新建 QA 游客在 FRP 签到、回环重试同一 requestId，确认只发 100 金币、40 XP、1 个通用普通包。没有操作已有用户的补偿附件。健康、匿名拒绝、允许/拒绝来源、其他游戏/内部路由拒绝已通过。详细脱敏结果在 `.scratch/night-overwatch-selftest/acceptance.json`；H5 配置和当前制品位置在同目录 `h5.json`、`current.json`。
 
 真实 HTTP 开局验收还覆盖服务端配装快照、未开局取消释放预留、合法零 tick 操作不扣耗、重复推进请求只消耗一次、正式开局后主动退出不返还。无人机一组齐射只计一次命中发数，持续伤害仍分别计入命中次数；单人 checkpoint、双人归属和训练纪录合法性测试通过。
+
+### 2026-11-13 双人终局与随机战场联调更新
+
+本地 Runtime/Management 已替换为 `night-20261113-duel12`；双人当前 v12，保留 v11/v10/v9，单人当前 v18。备份恢复54表一致，无数据库迁移，原数据库/网关保留。真实 FRP 已登记 v11 包仍可建房/退出；新 v12 包须另登记准确 buildId 和准入。主动退出立即结束双方并按失败档结算退出方（最短10秒），留下方无金币/经验；断线超时结算后停止模拟。完整当前构建、截图、回滚来源及边界见[当前验收记录](../../games/local/night-overwatch/docs/design/2026-11-13-social-windows/README.md#最终追加独立聊天随机对战与准备室)。

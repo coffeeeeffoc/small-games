@@ -41,7 +41,7 @@ test('a direct invitation creates one public room and sends to the selected play
   f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
   Object.assign(f.bridge.services,{createRoom:async(input:any)=>{created++;assert.equal(input.visibility,'public');return f.current;},nightChat:async()=>({messages:[],cursor:'',reset:true,serverNow:0}),sendNightChat:async(input:any)=>{sent.push(input);return {messages:[],cursor:'',reset:true,serverNow:1};}});
   await online.connect(f.bridge);await online.invitePlayer({playerId:'b'});
-  assert.equal(created,1);assert.equal(sent[0].recipientId,'b');assert.equal(sent[0].roomCode,f.current.code);assert.equal(online.panel,'menu');online.dispose();
+  assert.equal(created,1);assert.equal(sent[0].recipientId,'b');assert.equal(sent[0].roomCode,f.current.code);assert.equal(online.panel,'room');assert.match(online.message,/邀请已发送/);online.dispose();
 });
 test('creating a direct invitation pins its recipient across attempted channel switches',async()=>{
   const f=fixture(),online=new Online(storage(),()=>{});let finish!:(value:any)=>void;const sent:any[]=[];
@@ -536,7 +536,7 @@ test('lobby, nickname and history use the shared bridge and private room input i
   assert.deepEqual(calls.at(-1), { mode: 'friend', visibility: 'private', password: 'friend-123' });
 });
 
-test('10Hz transport is serial, preserves opponent disconnect play and ends only the taken-over player view', async () => {
+test('10Hz transport is serial, allows short reconnection and stops combat when an authoritative receipt arrives', async () => {
   const f = fixture(), online = new Online(storage(), () => {});
   await online.connect(f.bridge); await online.open('match');
   f.current.status = 'playing'; f.current.players = [{ id: 'a' }, { id: 'b', name: '队友' }] as any;
@@ -555,6 +555,37 @@ test('10Hz transport is serial, preserves opponent disconnect play and ends only
   assert.equal(online.room!.status, 'playing'); assert(online.view!.finished);
   assert.equal(online.view!.simulation.phase, 'failure');
   assert.equal(f.current.state.finished, false, 'shared authoritative snapshot is unchanged');
+});
+
+test('receipt wins, losses and quit reasons override stale combat snapshots for either player',async()=>{
+  for(const you of [0,1])for(const outcome of ['win','loss']){
+    const f=fixture(),online=new Online(storage(),()=>{});await online.connect(f.bridge);await online.open('match');
+    Object.assign(f.current,{you,status:'finished',players:[{id:'a'},{id:'b'}],state:viewDuel(createDuel(41),you),settlement:{points:outcome==='win'?120:40,outcome,reason:'forfeit',durationMs:12000,coins:outcome==='win'?0:60,xp:outcome==='win'?0:70,status:'credited'}});
+    await online.pump(0);
+    assert.equal(online.view!.finished,true);assert.equal(online.view!.winner,outcome==='win'?you:1-you);assert.equal(online.view!.simulation.phase,outcome==='win'?'success':'failure');assert.equal(online.view!.simulation.time,12);
+    assert.match(online.message,outcome==='win'?/对手已退出/:/你已退出/);assert.equal(online.resumeCode,'');
+    assert.equal(f.current.state!.finished,false,'client leaves the received snapshot immutable');online.dispose();
+  }
+});
+
+test('confirmed voluntary exit clears reconnect and refreshes the quitter wallet without reopening battle',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});await online.connect(f.bridge);await online.open('match');
+  f.current.status='playing';f.current.state=viewDuel(createDuel(41));await online.pump(0);
+  let refreshed=0;online.refreshAssets=async()=>{refreshed++;return {} as any;};
+  f.bridge.services.roomAction=async()=>({...f.current,status:'finished',settlement:{points:40,outcome:'loss',reason:'forfeit',coins:60,xp:70,status:'credited'}});
+  online.leave();await new Promise(r=>setImmediate(r));assert.equal(online.resumeCode,'');assert(!online.active);assert.equal(refreshed,1);assert.match(online.message,/判负.*金币 \+60.*经验 \+70/);
+  Object.assign(f.bridge.services,{listRooms:async()=>({rooms:[]})});await online.loadRooms();assert.match(online.message,/判负.*金币 \+60/);online.dispose();
+});
+
+test('destroying the client cancels late room callbacks without issuing a voluntary forfeit or starting bots',async()=>{
+  for(const kind of ['bot','match'] as const){
+    const f=fixture();let changed=0,finish!:(r:any)=>void;const online=new Online(storage(),()=>{changed++;});await online.connect(f.bridge);
+    f.bridge.services.createRoom=f.bridge.services.match=()=>new Promise(r=>{finish=r;});
+    const opening=online.open(kind);await new Promise(r=>setImmediate(r));online.dispose();finish({...f.current,mode:kind});await opening;await online.pump(100);
+    assert.equal(changed,0);assert.equal(f.received.length,0);assert.equal(online.room,undefined);
+  }
+  const f=fixture();let changed=0,finish!:(r:any)=>void;const online=new Online(storage(),()=>{changed++;});await online.connect(f.bridge);await online.open('match');
+  f.bridge.services.getRoom=()=>new Promise(r=>{finish=r;});const poll=online.pump(0);await new Promise(r=>setImmediate(r));online.dispose();finish({...f.current,status:'playing',state:viewDuel(createDuel(41))});await poll;assert.equal(changed,0);assert.equal(f.received.length,0);
 });
 
 test('newer connection ownership stops retries and entry animation rejects firing', async () => {
@@ -672,13 +703,13 @@ test('a minimized waiting room keeps the lobby list live and stops listing once 
 });
 
 
-test('closing a conversation restores the inbox and ignores a late history response',async()=>{
+test('closing a conversation restores public chat and ignores a late history response',async()=>{
   const f=fixture(),online=new Online(storage(),()=>{});let finish!:(value:any)=>void;
   f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
   Object.assign(f.bridge.services,{nightChat:()=>new Promise(r=>{finish=r;}),nightSocial:async()=>({friends:[],requests:[],conversations:[],serverNow:1})});
   await online.connect(f.bridge);online.show('menu');online.openConversation({playerId:'b',nickname:'B'});
   online.closeConversation();finish({messages:[{id:'9',playerId:'b',recipientId:'a',nickname:'B',text:'late',at:1}],cursor:'',reset:true,serverNow:1});await new Promise(r=>setImmediate(r));
-  assert(!online.socialOpen);assert(online.chatInbox);assert.equal(online.chatPeer,undefined);assert.deepEqual(online.conversation,[]);assert.equal(online.panel,'menu');online.dispose();
+  assert(!online.socialOpen);assert(!online.chatInbox);assert.equal(online.chatPeer,undefined);assert.deepEqual(online.conversation,[]);assert.equal(online.panel,'menu');online.dispose();
 });
 
 test('removing a confirmed friend requires confirmation and preserves history',async()=>{
@@ -690,4 +721,62 @@ test('removing a confirmed friend requires confirmation and preserves history',a
   online.friendRemoval=undefined;assert.equal(online.social.friends.length,1);
   await online.friendAction('remove','b');await online.friendAction('remove','b',true);
   assert.deepEqual(calls,[{action:'remove',playerId:'b'}]);assert.equal(online.friendRemoval,undefined);assert.equal(online.social.friends.length,0);assert.equal(online.social.conversations[0].lastMessage.text,'keep');online.dispose();
+});
+
+
+test('invitation failures are visible and uncertain delivery cannot silently change recipients', async () => {
+  const f=fixture(),online=new Online(storage(),()=>{});let created=0;const sent:any[]=[];
+  f.bridge.ready=Promise.resolve({identity:{id:'a'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
+  Object.assign(f.bridge.services,{
+    createRoom:async()=>{created++;throw Object.assign(Error(),{code:'RULE_VERSION_CHANGED'});},
+    nightChat:async()=>({messages:[],cursor:'',reset:true,serverNow:0}),
+    sendNightChat:async(input:any)=>{sent.push({...input});throw Error('lost response');},
+  });
+  await online.connect(f.bridge);online.showPlayers();
+  await online.invitePlayer({playerId:'b',status:'available'});
+  assert.equal(created,1);assert.match(online.chatStatus,/版本不匹配/);assert.equal(online.panel,'players');assert.equal(sent.length,0);assert.equal(online.chatPeer,undefined);assert(!online.chatInbox);
+  online.openConversation({playerId:'b'});online.chatDraft='private';await online.sendChat();
+  online.closeConversation();assert(online.chatRetryPending);assert.equal(playerId(online.chatPeer!),'b');
+  await online.invitePlayer({playerId:'c',status:'available'});
+  assert.match(online.chatStatus,/待确认/);assert.equal(created,1);assert.equal(sent.length,1);
+  online.openConversation({playerId:'b'});await online.sendChat();assert.deepEqual(sent[1],sent[0]);online.dispose();
+});
+
+test('room rejection distinguishes existing games and version rollout from invalid room numbers',async()=>{
+  for(const [code,pattern] of [['ACTIVE_ROOM',/未结束/],['BUILD_DISABLED',/版本不匹配/],['RULE_NEW_GAMES_DISABLED',/暂未开放/],['ROOM_NOT_FOUND',/不存在/]] as const){
+    const f=fixture(),online=new Online(storage(),()=>{});f.bridge.services.createRoom=async()=>{throw Object.assign(Error(),{code});};
+    await online.connect(f.bridge);await online.open('friend');assert.match(online.message,pattern);assert(!online.busy);online.dispose();
+  }
+});
+
+
+test('closing an in-flight private send restores public chat only after a definite result',async()=>{
+ for(const code of ['', 'RECIPIENT_BUSY', 'network']){
+  const f=fixture(),online=new Online(storage(),()=>{});let finish!:(value:any)=>void,fail!:(value:any)=>void;
+  f.bridge.ready=Promise.resolve({identity:{id:'a'},capabilities:{multiplayer:true,chat:true,social:true}});
+  Object.assign(f.bridge.services,{nightChat:async()=>({messages:[],cursor:'',reset:true,serverNow:0}),sendNightChat:()=>new Promise((resolve,reject)=>{finish=resolve;fail=reject;})});
+  await online.connect(f.bridge);online.show('chat');online.openConversation({playerId:'b'});online.chatDraft='private';const pending=online.sendChat();online.closeConversation();
+  assert.equal(playerId(online.chatPeer!),'b');
+  if(code)fail(Object.assign(Error(),{code}));else finish({messages:[],cursor:'',reset:true,serverNow:1});await pending;
+  assert.equal(online.chatRetryPending,code==='network');assert.equal(online.chatInbox,code==='network');
+  assert.equal(online.chatPeer?.playerId,code==='network'?'b':undefined);assert.equal(online.chatDraft,code==='network'?'private':'');
+  if(code==='RECIPIENT_BUSY')assert.match(online.chatStatus,/暂不能邀请/);online.dispose();
+ }
+});
+
+test('rejected invite from the lobby keeps its visible error and releases the private recipient',async()=>{
+ const f=fixture(),online=new Online(storage(),()=>{});f.current.visibility='public';f.current.players=[{id:'a'}];
+ f.bridge.ready=Promise.resolve({identity:{id:'a'},capabilities:{multiplayer:true,chat:true,social:true}});
+ Object.assign(f.bridge.services,{nightChat:async()=>({messages:[],cursor:'',reset:true,serverNow:0}),sendNightChat:async()=>{throw Object.assign(Error(),{code:'CHAT_RATE_LIMIT'});}});
+ await online.connect(f.bridge);await online.open('friend');online.show('menu');online.lobbyTab='players';await online.invitePlayer({playerId:'b'});
+ assert.match(online.chatStatus,/发言间隔/);assert.equal(online.chatPeer,undefined);assert(!online.chatInbox);assert.equal(online.panel,'menu');online.dispose();
+});
+
+test('failed conversation history can recover even after a realtime message arrives',async()=>{
+ const f=fixture(),online=new Online(storage(),()=>{});let fail=true;
+ f.bridge.ready=Promise.resolve({identity:{id:'a'},capabilities:{multiplayer:true,chat:true,social:true}});
+ Object.assign(f.bridge.services,{nightChat:async()=>{if(fail)throw Error('offline');return {messages:[],cursor:'',reset:true,serverNow:1};}});
+ await online.connect(f.bridge);online.openConversation({playerId:'b'});await new Promise(r=>setImmediate(r));assert(online.conversationFailed);
+ online.conversation.push({id:'1',playerId:'b',recipientId:'a',nickname:'B',text:'live',at:1});assert(online.conversationFailed);
+ fail=false;await online.loadConversation();assert(!online.conversationFailed);online.dispose();
 });

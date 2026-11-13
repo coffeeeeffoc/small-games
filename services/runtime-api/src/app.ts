@@ -5,10 +5,11 @@ import {
   openControlDatabase,
   type DependencyProbe,
   type RequestSpanExporter,
+  nightRuntimeSchema,
 } from '@coffeeeeffoc/service-kit';
 import { z } from 'zod';
 import { sql } from 'drizzle-orm';
-import { webcrypto } from 'node:crypto';
+import { webcrypto, randomUUID } from 'node:crypto';
 import { createReleaseStore } from './releases/store.js';
 import { registerReleaseProjection } from './releases/routes.js';
 import { registerCatalog } from './catalog/routes.js';
@@ -140,6 +141,21 @@ export function createRuntimeService(
         rankedRules.find((rule) => rule.id === 'night-overwatch')!,
         rules.get('night-overwatch')!,
         env,
+      );
+      const capabilities = nightRuntimeSchema.parse({
+        instanceId: control?.instanceId ?? randomUUID(),
+        ranked: {
+          current: rankedRules.find((rule) => rule.id === 'night-overwatch')!.version,
+          supported: [...nightRelease.ranked.keys()],
+        },
+        multiplayer: {
+          current: rules.get('night-overwatch')!.version,
+          supported: [...nightRelease.multiplayer.keys()],
+        },
+      });
+      // Private diagnostics: the public gateway only forwards the exact /health route.
+      instance.get('/health/night-rules', async (_request, reply) =>
+        reply.header('cache-control', 'no-store').send(capabilities),
       );
       const competition = createCompetitionStore(
         database.db,

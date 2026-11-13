@@ -35,6 +35,7 @@ import { type TrainingRecord } from './core/TrainingRecords';
 import { type EffectsFrame } from './Effects';
 import { HomeView } from './HomeView';
 import { HudDrawing } from './HudDrawing';
+import { dialog, dialogButton, type DialogOptions } from './Dialog';
 import { C, col } from './HudTheme';
 import { MissionPanelView } from './MissionPanelView';
 import { type Online } from './Online';
@@ -112,6 +113,7 @@ export class HUD {
     return [...this.listAreas]
       .reverse()
       .find((area) => {
+        if (this.conversationModal && area.key !== 'direct') return false;
         const region = area.scrollbar && y >= area.scrollbar.y ? area.scrollbar : area;
         return x >= region.x && x <= region.x + region.w && y >= region.y && y <= region.y + region.h;
       });
@@ -121,7 +123,7 @@ export class HUD {
     if (!area) return;
     const scrollOffsets = key.startsWith('qm:') ? this.quartermaster!.scrolls : this.listScroll;
     scrollOffsets[key] = Math.max(0, Math.min(area.max, (scrollOffsets[key] || 0) + amount));
-    this.modalKey = 'rebuild';
+    if (key !== 'direct') this.modalKey = 'rebuild';
   }
   seekList(key: string, thumbLeft: number) {
     const area = this.listAreas.find((area) => area.key === key);
@@ -265,6 +267,12 @@ export class HUD {
   modalKey = '';
   private onlineRevision = -1;
   private modalFamily = '';
+  private coveredModal?: Node;
+  private compactModal = false;
+  private conversationModal?: Node;
+  private conversationPage?: Node;
+  private conversationInputs: EditBox[] = [];
+  get activeModal() { return this.conversationModal || this.modal; }
   screenControl = false;
   screenActive = false;
   missionsOpen = false;
@@ -334,7 +342,10 @@ export class HUD {
     return this.desktop && !this.touch;
   }
   get editing() {
-    return this.modal?.getComponentsInChildren(EditBox).some((field) => field.isFocused()) ?? false;
+    return this.activeModal?.getComponentsInChildren(EditBox).some((field) => field.isFocused()) ?? false;
+  }
+  get pageEditing() {
+    return this.modal?.getComponentsInChildren(EditBox).some(field => field.enabled && field.isFocused()) ?? false;
   }
   get minimapLayout() {
     const width = this.compact ? 112 : 156;
@@ -346,7 +357,7 @@ export class HUD {
     };
   }
   minimapPoint(x: number, y: number): Point | undefined {
-    if (this.modal || ![x, y].every(Number.isFinite)) return;
+    if (this.activeModal || ![x, y].every(Number.isFinite)) return;
     const map = this.minimapLayout;
     const left = map.x + 8;
     const top = map.y + 25;
@@ -393,7 +404,7 @@ export class HUD {
           if (!isValid(this.root)) return;
           if (error) {
             this.artworkRetries.set(asset, load);
-            if (!this.editing) this.modalKey = 'rebuild';
+            if (!this.pageEditing) this.modalKey = 'rebuild';
             return;
           }
           const count = asset === 'title-metal' ? 1 : 3;
@@ -412,7 +423,7 @@ export class HUD {
             else if (count === 3) this.missionArtwork.push(frame);
             else this.titleArtwork = frame;
           }
-          if (!this.editing) this.modalKey = 'rebuild';
+          if (!this.pageEditing) this.modalKey = 'rebuild';
         });
       load();
     }
@@ -422,7 +433,7 @@ export class HUD {
           if (!isValid(this.root)) return;
           if (error) {
             this.artworkRetries.set(name, load);
-            if (!this.editing) this.modalKey = 'rebuild';
+            if (!this.pageEditing) this.modalKey = 'rebuild';
             return;
           }
           const frame = new SpriteFrame();
@@ -433,7 +444,7 @@ export class HUD {
           }
           this.uiFrames.set(name, frame);
           this.artworkFrames.push(frame);
-          if (!this.editing) this.modalKey = 'rebuild';
+          if (!this.pageEditing) this.modalKey = 'rebuild';
         });
       load();
     }
@@ -481,6 +492,12 @@ export class HUD {
     for (const label of Array.from(this.unitLabels.values())) label.node.destroy();
     this.unitLabels.clear();
     this.modal?.destroy();
+    this.conversationModal?.destroy();
+    this.conversationModal = this.conversationPage = undefined;
+    this.conversationInputs = [];
+    this.coveredModal?.destroy();
+    this.coveredModal = undefined;
+    this.compactModal = false;
     this.modal = undefined;
     this.modalKey = '';
     this.buildControls();
@@ -636,7 +653,7 @@ export class HUD {
       button.id === 'qm:wheelNudge' ||
       button.disabled ||
       !button.label.node.activeInHierarchy ||
-      (this.modal && !this.inModal(button.label.node) && !this.isGlobalAction(button.id))
+      (this.activeModal && !this.inModal(button.label.node) && !(this.isGlobalAction(button.id) && !this.conversationModal))
     )
       return;
     if (button.id === 'fire') {
@@ -782,9 +799,9 @@ export class HUD {
   corners(graphics: Graphics, x: number, y: number, width: number, height: number, tone: string, arm = 14) {
     return this.drawing.corners(graphics, x, y, width, height, tone, arm);
   }
-  inModal(node: Node) {
+  inModal(node: Node, modal = this.activeModal) {
     for (let current: Node | null = node; current; current = current.parent)
-      if (current === this.modal) return true;
+      if (current === modal) return true;
     return false;
   }
   hit(x: number, y: number, includeDisabled = false) {
@@ -805,7 +822,7 @@ export class HUD {
         y >= button.y &&
         y <= button.y + button.h &&
         button.label.node.activeInHierarchy &&
-        (!this.modal || this.inModal(button.label.node) || this.isGlobalAction(button.id)),
+        (!this.activeModal || this.inModal(button.label.node) || this.isGlobalAction(button.id) && !this.conversationModal),
     );
     if (hit?.id === 'qm:wheelTap' && Math.hypot(x - hit.x - hit.w / 2, y - hit.y - hit.h / 2) > hit.w * .43)
       return { ...hit, id: 'qm:wheelNudge' };
@@ -817,7 +834,7 @@ export class HUD {
       (button) =>
         !(ignorePriority && button.id === 'priority') &&
         button.label.node.activeInHierarchy &&
-        (!this.modal || this.inModal(button.label.node) || this.isGlobalAction(button.id)) &&
+        (!this.activeModal || this.inModal(button.label.node) || this.isGlobalAction(button.id) && !this.conversationModal) &&
         x >= button.x &&
         x <= button.x + button.w &&
         y >= button.y &&
@@ -874,16 +891,50 @@ export class HUD {
   ) {
     return this.drawing.panelFrame(graphics, x, y, width, height, accent, dim, header);
   }
+  dialog(n: Node, g: Graphics, options: DialogOptions) {
+    return dialog(this, n, g, options);
+  }
+  dialogButton(n: Node, g: Graphics, id: string, caption: string, x: number, y: number,
+    w: number, kind: 'primary' | 'secondary' | 'quiet' | 'ghost' = 'secondary', icon = '', height = 44, disabled = false) {
+    return dialogButton(this, n, g, id, caption, x, y, w, kind, icon, height, disabled);
+  }
   renderModal(key: string, simulation: Simulation, world: World) {
+    this.renderPage(key, simulation, world);
+    const open = this.online?.socialOpen && !this.online.friendRemoval && !this.updatesOpen && !this.storageError;
+    if (!open) {
+      if (this.conversationModal) {
+        this.buttons = this.buttons.filter(b => !this.inModal(b.label.node, this.conversationModal));
+        this.conversationModal.destroy();
+        this.conversationModal = undefined;
+        this.listAreas = this.listAreas.filter(a => a.key !== 'direct');
+        if (this.conversationPage === this.modal)
+          for (const field of this.conversationInputs) if (isValid(field)) field.enabled = true;
+      }
+      this.conversationPage = undefined;
+      this.conversationInputs = [];
+      return;
+    }
+    if (this.conversationPage !== this.modal) {
+      this.conversationPage = this.modal;
+      this.conversationInputs = this.modal?.getComponentsInChildren(EditBox).filter(field => field.enabled) || [];
+      for (const field of this.conversationInputs) field.enabled = false;
+    }
+    const initial = !this.conversationModal;
+    this.conversationModal ??= this.node('Conversation', this.root);
+    this.socialView.render(this.conversationModal, initial);
+  }
+  private renderPage(key: string, simulation: Simulation, world: World) {
+    // A resized home dropdown still needs its toolbar underneath at the new size.
+    if (/^online:(players|friends):/.test(key) && this.quartermaster && !this.quartermaster.page &&
+      simulation.phase === 'briefing' && !this.missionsOpen && !this.modal && !this.coveredModal)
+      this.renderPage('home', simulation, world);
     if(this.online?.friendRemoval)key='friendRemove';
-    else if(this.online?.socialOpen)key='social:'+this.online.chatRevision+':'+this.online.revision;
     else if(this.updatesOpen)key='updates';
     const family = key.startsWith('online:')
       ? key.split(':').slice(0, 2).join(':')
       : key.split(':')[0];
-    if(family==='social'&&this.modalFamily==='social'&&this.modal){this.socialView.render(this.modal);this.modalKey=key;return;}
     if (
-      family === 'online:menu' &&
+      (family === 'online:menu' || family === 'online:chat') &&
       this.modalFamily === family &&
       this.modal &&
       this.onlineView.refreshLobby(this.modal, key !== this.modalKey)
@@ -892,7 +943,7 @@ export class HUD {
       return;
     }
     // 同一面板内输入时保留节点，避免异步刷新打断输入框焦点。
-    if (family === this.modalFamily && this.editing) return;
+    if (family === this.modalFamily && this.pageEditing) return;
     if (
       simulation.phase !== 'playing' &&
       this.online &&
@@ -903,6 +954,7 @@ export class HUD {
     }
     if (key === this.modalKey) return;
     this.buttons = this.buttons.filter((button) => {
+      if (this.conversationModal && this.inModal(button.label.node, this.conversationModal)) return true;
       if (button.label.node.parent !== this.root && !this.isGlobalAction(button.id)) {
         return false;
       }
@@ -936,8 +988,19 @@ export class HUD {
     // 轮询数据变化只刷新内容；真正切换页面或页签时才播放淡入淡出。
     const animate = !this.reducedEffects && semantic !== this.semanticKey;
     this.semanticKey = semantic;
-    this.listAreas = [];
-    const previous = this.modal;
+    this.listAreas = this.listAreas.filter(a => this.conversationModal && a.key === 'direct');
+    const compact = ['friendRemove', 'settings', 'pause', 'online:players', 'online:friends', 'online:profile', 'online:create', 'online:join'].includes(family);
+    let previous = this.modal;
+    if (compact && !this.compactModal && previous) {
+      this.coveredModal?.destroy();
+      this.coveredModal = previous;
+      for (const field of previous.getComponentsInChildren(EditBox)) field.enabled = false;
+      previous = undefined;
+    } else if (!compact) {
+      this.coveredModal?.destroy();
+      this.coveredModal = undefined;
+    }
+    this.compactModal = compact;
     if (previous) {
       // 淡出节点尚未销毁时先停用输入，避免旧面板继续接收文本。
       for (const field of previous.getComponentsInChildren(EditBox)) field.enabled = false;
@@ -972,7 +1035,6 @@ export class HUD {
     this.surfaces = this.node('Surfaces', parentNode);
     const graphics = this.node('Ink', parentNode).addComponent(Graphics);
     if(family==='friendRemove'){this.socialView.renderRemoval(parentNode,graphics);return;}
-    if(family==='social'){this.socialView.render(parentNode,true);return;}
     if(key==='updates'){this.settingsView.renderUpdates(parentNode,graphics);return;}
     if (key.startsWith('storageError:')) {
       this.supportView.renderStorageError(parentNode, graphics, simulation, key);
@@ -1071,6 +1133,7 @@ export class HUD {
   update(simulation: Simulation, world: World) {
     this.battleView.update(simulation, world);
     this.socialView.updateBanner();
+    this.conversationModal?.setSiblingIndex(this.root.children.length - 1);
   }
 
   drawMinimap(simulation: Simulation) {

@@ -1,0 +1,11 @@
+{
+  "checks": 4,
+  "hashes": {
+    "night-compatibility.ts": "f1193be689b44d6a261948dc92f4885c12b5d6035a8ea636f4a4dfe95378dbb9",
+    "night-runtime-view.tsx": "57fa1524fb8b9c1c64760d8403d8b76a01740219e168f90f57f987df2524f435",
+    "night-versions-editor.tsx": "c010e2aaad74cc49a5a309c2a1d390c3d60146a2e385227dbd88a290f686f798",
+    "night-operations-editor.tsx": "1ffe08d934b74d2a0a402ccfffd91b71e233e7283289c8d3d649dd1e1f5266e7"
+  },
+  "fixture": "real Caddy; mocked authenticated API",
+  "testedAt": "2026-11-13T02:30:54.322Z"
+}

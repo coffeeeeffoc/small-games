@@ -279,6 +279,7 @@ export function ConfigWorkspace({
                 {gamesOnly && (
                   <div hidden={!nightTab}>
                     <NightOperationsEditor
+                      api={api}
                       key={editorVersion}
                       value={snapshot.nightOperations}
                       published={state.snapshot?.nightOperations}

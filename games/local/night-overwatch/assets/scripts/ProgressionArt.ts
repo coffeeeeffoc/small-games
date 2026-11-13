@@ -53,7 +53,7 @@ export class ProgressionArt {
         this.loading.delete(name);
         if(!this.disposed&&isValid(this.hud.root)){
           if(error)this.failed.add(name);
-          if(!this.hud.editing)this.hud.modalKey='rebuild';
+          if(!this.hud.pageEditing)this.hud.modalKey='rebuild';
         }
         resolve();
       };

@@ -1,0 +1,195 @@
+import { AIRFRAME, FLIGHT, WEAPONS, terrainHeight,                         } from './Data.mjs';
+
+                                 
+                                                                      
+              
+                
+                                                                                           
+                                                                                                
+                   
+                                                                               
+  
+const clamp = (value        , min        , max        ) => Math.max(min, Math.min(max, value));
+
+export class Flight {
+           aircraft           = {
+    x: 0, y: FLIGHT.altitude, z: FLIGHT.radius, heading: 270, yaw: -Math.PI / 2, pitch: 0,
+    bank: Math.atan(FLIGHT.speed ** 2 / (FLIGHT.gravity * FLIGHT.radius)),
+    radius: FLIGHT.radius, altitude: FLIGHT.altitude, direction: 1,
+  };
+          altitude         = FLIGHT.altitude;
+          radius         = FLIGHT.radius;
+
+  checkpoint() {
+    return { aircraft: { ...this.aircraft }, altitude: this.altitude, radius: this.radius };
+  }
+  restore(value                                  ) {
+    Object.assign(this.aircraft, value.aircraft);
+    this.altitude = value.altitude;
+    this.radius = value.radius;
+  }
+
+  setDirection(direction        , immediate = false) {
+    if (direction !== -1 && direction !== 1) return;
+    const a = this.aircraft;
+    a.direction = direction;
+    if (immediate) {
+      const angle = Math.atan2(a.z, a.x);
+      a.yaw = Math.atan2(-Math.sin(angle) * direction, Math.cos(angle) * direction);
+      a.heading = ((a.yaw * 180 / Math.PI) % 360 + 360) % 360;
+      a.bank = clamp(Math.atan(direction * FLIGHT.speed ** 2 / (FLIGHT.gravity * Math.max(FLIGHT.minRadius, Math.hypot(a.x, a.z)))), -FLIGHT.maxBank, FLIGHT.maxBank);
+    }
+  }
+  adjustAltitude(delta        , immediate = false) {
+    if (!Number.isFinite(delta)) return;
+    this.altitude = clamp(this.altitude + delta, FLIGHT.minAltitude, FLIGHT.maxAltitude);
+    if (immediate) {
+      this.aircraft.y = this.aircraft.altitude = this.altitude;
+      this.aircraft.pitch = 0;
+    }
+  }
+  adjustRadius(delta        , immediate = false) {
+    if (!Number.isFinite(delta)) return;
+    this.radius = clamp(this.radius + delta, FLIGHT.minRadius, FLIGHT.maxRadius);
+    if (immediate) {
+      const a = this.aircraft, angle = Math.atan2(a.z, a.x);
+      a.radius = this.radius;
+      a.x = Math.cos(angle) * this.radius;
+      a.z = Math.sin(angle) * this.radius;
+      this.setDirection(a.direction, true);
+    }
+  }
+  step(dt        ) {
+    if (!Number.isFinite(dt) || dt <= 0 || dt > 0.1) throw Error('Use fixed steps <= 0.1 seconds');
+    const a = this.aircraft, y = a.y;
+    const blend = 1 - Math.exp(-FLIGHT.response * dt);
+    a.radius += clamp((this.radius - a.radius) * blend, -FLIGHT.radiusRate * dt, FLIGHT.radiusRate * dt);
+    a.altitude += clamp((this.altitude - a.altitude) * blend, -FLIGHT.climbRate * dt, FLIGHT.climbRate * dt);
+    a.y = a.altitude;
+    const climb = (a.y - y) / dt;
+    const speed = Math.sqrt(FLIGHT.speed ** 2 - climb ** 2);
+    const radius = Math.hypot(a.x, a.z), angle = Math.atan2(a.z, a.x);
+    // Tangent plus radial correction guides a constant-speed aircraft back to the selected orbit.
+    // Reversal changes the desired heading, never the sign of airspeed (no mid-air stop).
+    const radial = clamp((a.radius - radius) / a.radius * 2, -1, 1);
+    const desired = Math.atan2(-Math.sin(angle) * a.direction + Math.cos(angle) * radial,
+      Math.cos(angle) * a.direction + Math.sin(angle) * radial);
+    const error = Math.atan2(Math.sin(desired - a.yaw), Math.cos(desired - a.yaw));
+    const yawRate = error * FLIGHT.response - a.direction * speed / Math.max(radius, FLIGHT.minRadius);
+    // Coordinated-turn relation tan(bank) = v²/(gR) = v * turnRate / g (FAA PHAK ch.5).
+    // https://www.faa.gov/sites/faa.gov/files/pilots/pilot_handbook_1.pdf
+    const bank = clamp(Math.atan(-speed * yawRate / FLIGHT.gravity), -FLIGHT.maxBank, FLIGHT.maxBank);
+    a.bank += clamp(bank - a.bank, -FLIGHT.rollRate * dt, FLIGHT.rollRate * dt);
+    const turn = -FLIGHT.gravity * Math.tan(a.bank) / speed * dt;
+    const midpoint = a.yaw + turn / 2;
+    const travel = speed * dt * (Math.abs(turn) < 1e-8 ? 1 : Math.sin(turn / 2) / (turn / 2));
+    a.x += Math.sin(midpoint) * travel;
+    a.z += Math.cos(midpoint) * travel;
+    a.yaw += turn;
+    a.pitch = Math.atan2(climb, speed);
+    a.heading = ((a.yaw * 180 / Math.PI) % 360 + 360) % 360;
+  }
+}
+
+                                                                                   
+
+/** Shared quaternion for the rendered model, physical gun stations and sensor mount. */
+export function aircraftRotation(a                                              ) {
+  const cy = Math.cos(a.yaw / 2), sy = Math.sin(a.yaw / 2);
+  const cp = Math.cos((a.pitch ?? 0) / 2), sp = Math.sin((a.pitch ?? 0) / 2);
+  const cb = Math.cos((a.bank ?? 0) / 2), sb = Math.sin((a.bank ?? 0) / 2);
+  return { x: -cy * sp * cb + sy * cp * sb, y: sy * cp * cb + cy * sp * sb,
+    z: cy * cp * sb + sy * sp * cb, w: cy * cp * cb - sy * sp * sb };
+}
+
+export function aircraftPoint(a              , mount        )         {
+  const q = aircraftRotation(a);
+  const x = 2 * (q.y * mount.z - q.z * mount.y);
+  const y = 2 * (q.z * mount.x - q.x * mount.z);
+  const z = 2 * (q.x * mount.y - q.y * mount.x);
+  return {
+    x: a.x + mount.x + q.w * x + q.y * z - q.z * y,
+    y: a.y + mount.y + q.w * y + q.z * x - q.x * z,
+    z: a.z + mount.z + q.w * z + q.x * y - q.y * x,
+  };
+}
+
+export function muzzlePosition(a              , weapon = 0)         {
+  return aircraftPoint(a, WEAPONS[weapon]?.muzzle ?? FLIGHT.muzzle);
+}
+
+/** Convert the original metre-authored bay mesh into the selected aircraft-local station. */
+export function cabinPoint(point        , weapon = 0)         {
+  const mount = WEAPONS[weapon]?.muzzle ?? FLIGHT.muzzle;
+  return { x: mount.x + (point.x - AIRFRAME.cabinMuzzle.x) * AIRFRAME.cabinScale,
+    y: mount.y + (point.y - AIRFRAME.cabinMuzzle.y) * AIRFRAME.cabinScale,
+    z: mount.z + (point.z - AIRFRAME.cabinMuzzle.z) * AIRFRAME.cabinScale };
+}
+
+// Low ballistic arc at the specified muzzle speed. Stable quadratic root in t².
+export function ballisticLaunch(origin        , target       , speed        , height = terrainHeight) {
+  if (![origin.x, origin.y, origin.z, target.x, target.z, speed].every(Number.isFinite) ||
+      speed <= 0 || origin.y <= height(origin.x, origin.z)) return;
+  const targetY = height(target.x, target.z);
+  const dx = target.x - origin.x, dy = targetY - origin.y, dz = target.z - origin.z;
+  const distance2 = dx * dx + dy * dy + dz * dz;
+  const k = speed * speed - FLIGHT.gravity * dy;
+  const discriminant = k * k - FLIGHT.gravity * FLIGHT.gravity * distance2;
+  if (discriminant < 0 || !Number.isFinite(discriminant)) return;
+  const duration = Math.sqrt(2 * distance2 / (k + Math.sqrt(discriminant)));
+  if (duration <= 0 || !Number.isFinite(duration)) return;
+  return {
+    duration, targetY,
+    velocity: { x: dx / duration, y: dy / duration + 0.5 * FLIGHT.gravity * duration, z: dz / duration },
+  };
+}
+
+                                                                                                             
+export function shotPosition(shot            , time        )         {
+  const t = (clamp(time, shot.born, shot.due) - shot.born) * (shot.timeScale ?? 1);
+  return {
+    x: shot.origin.x + shot.velocity.x * t,
+    y: shot.origin.y + shot.velocity.y * t - 0.5 * FLIGHT.gravity * t * t,
+    z: shot.origin.z + shot.velocity.z * t,
+  };
+}
+
+export function terrainContact(shot            , from        , to        , height = terrainHeight) {
+  let start = Math.max(shot.born, from);
+  const end = Math.min(shot.due, to);
+  if (end < start) return;
+  // ponytail: 0.5-unit sweeps resolve these broad hills; use mesh CCD if terrain gains cliffs/caves.
+  const scale = shot.timeScale ?? 1;
+  const count = Math.max(1, Math.ceil((end - start) * scale * Math.hypot(
+    shot.velocity.x, shot.velocity.y - FLIGHT.gravity * (end - shot.born) * scale, shot.velocity.z,
+  ) / 0.5));
+  const begin = start;
+  for (let i = 1; i <= count; i++) {
+    let stop = begin + (end - begin) * i / count;
+    const p = shotPosition(shot, stop);
+    if (p.y <= height(p.x, p.z) + 1e-8) {
+      for (let n = 0; n < 24; n++) {
+        const mid = (start + stop) / 2, q = shotPosition(shot, mid);
+        if (q.y <= height(q.x, q.z)) stop = mid;
+        else start = mid;
+      }
+      const point = shotPosition(shot, stop);
+      point.y = height(point.x, point.z);
+      return { time: stop, point };
+    }
+    start = stop;
+  }
+}
+
+/** Presentation-only recoil in UI pixels; never feeds the physical gun or aim. */
+export function recoilOffset(events                                                           , time        , reduced = false) {
+  let x = 0, y = 0;
+  for (const e of events.slice(-24)) {
+    const age = time - e.time, life = [.12, .24, .42, .3][e.weapon] ?? 0;
+    if (e.type !== 'shot' || age < 0 || age >= life) continue;
+    const strength = ([1.1, 3.4, 7, 4][e.weapon] ?? 0) * (1 - age / life) ** 2 * (reduced ? .2 : 1);
+    x += Math.sin(age * 105 + e.time * 8) * strength * .45;
+    y += (Math.cos(age * 72) * .35 + .65) * strength;
+  }
+  return { x: Math.max(-8, Math.min(8, x)), y: Math.max(-8, Math.min(8, y)) };
+}

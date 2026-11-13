@@ -1,0 +1,14 @@
+{
+  "verifiedAt": "2026-11-13T15:24:20.722Z",
+  "scope": "local Sakura FRP",
+  "build": "night-3be2469d75129720b78d714cc926531dccffff2aaf310df58ccdeaf0bb833fc7",
+  "create": 200,
+  "leave": 200,
+  "roomRule": "night-duel-v11",
+  "supported": [
+    "night-duel-v12",
+    "night-duel-v11",
+    "night-duel-v10",
+    "night-duel-v9"
+  ]
+}

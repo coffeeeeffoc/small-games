@@ -19,6 +19,7 @@ import {
   nightHistorySummary,
   nightLedgerLock,
   settleNightRoom,
+  settledNightView,
 } from './night-ledger.js';
 import { createCompetitionIdentities } from './identity-store.js';
 import { createDevelopmentAssets, type DevelopmentAssetAdapter } from './development-assets.js';
@@ -336,6 +337,22 @@ export function createCompetitionStore(
       )})`,
     );
     const profileOf = (id: string) => publicProfile(names.find((p) => p.id === id) ?? { id });
+    const resultOf = (member?: Pick<Room['players'][number], 'result' | 'settlement'>) => {
+      const { result, settlement } = member ?? {};
+      return publicResult(
+        room.game === 'night-overwatch' && settlement && result
+          ? {
+              ...result,
+              finished: true,
+              outcome: settlement.outcome,
+              score: settlement.outcome === 'win' ? 1 : 0,
+              secondary:
+                settlement.durationMs ??
+                Math.min(result.secondary, room.settledAt! - room.startedAt!),
+            }
+          : (result ?? null),
+      );
+    };
     return {
       id: room.id ?? room.code,
       code: room.code,
@@ -382,7 +399,7 @@ export function createCompetitionStore(
                 reason: settlement.reason,
               }
             : undefined,
-          result: publicResult(result),
+          result: resultOf({ result, settlement }),
         }),
       ),
       seq: member?.seq ?? 0,
@@ -394,14 +411,15 @@ export function createCompetitionStore(
       state:
         !rule || room.players[0]!.state === null
           ? null
-          : rule.view(
-              rule.duel ? room.players[0]!.state : (member ?? room.players[0]!).state,
-              ruleSeat(rule, room, Math.max(0, seat)),
+          : settledNightView(
+              room,
+              rule.view(
+                rule.duel ? room.players[0]!.state : (member ?? room.players[0]!).state,
+                ruleSeat(rule, room, Math.max(0, seat)),
+              ),
+              Math.max(0, seat),
             ),
-      opponent:
-        seat >= 0 && room.players.length === 2
-          ? publicResult(room.players[1 - seat]?.result ?? null)
-          : null,
+      opponent: seat >= 0 && room.players.length === 2 ? resultOf(room.players[1 - seat]) : null,
       results: publicRoomResults(room.results),
       rematch: room.rematch,
     };
@@ -567,6 +585,12 @@ export function createCompetitionStore(
   async function advanceLobby(room: Room, tx: Tx) {
     pruneSpectators(room);
     if (room.status !== 'playing') return;
+    if (room.game === 'night-overwatch' && room.settledAt !== undefined) {
+      room.status = room.players.every((p) => p.settlement?.outcome === 'loss')
+        ? 'abandoned'
+        : 'finished';
+      return;
+    }
     const rule = ruleFor(room.game, room.version);
     if (room.game === 'night-overwatch') await nightLedgerLock(tx);
     const elapsed = Math.max(0, now() - room.startedAt!);
@@ -622,10 +646,8 @@ export function createCompetitionStore(
         rule.progression,
         rules.get(room.game)?.progression,
       );
-      if (abandoned) {
-        room.status = 'abandoned';
-        return;
-      }
+      room.status = abandoned ? 'abandoned' : 'finished';
+      return;
     }
     room.players[0]!.state = rule.advance!(room.players[0]!.state, elapsed);
     await finish(room, tx);
@@ -962,8 +984,24 @@ export function createCompetitionStore(
           rules.get(room.game)?.progression,
         );
       } else if (room.status === 'playing' && !member.takenOver) {
-        member.disconnected = true;
-        member.reconnectUntil = now() + 30000;
+        if (room.game === 'night-overwatch') {
+          member.left = true;
+          member.disconnected = true;
+          for (const [seat, player] of room.players.entries())
+            player.result = rule.result(room.players[0]!.state, seat);
+          await settleNightRoom(
+            tx,
+            room,
+            now(),
+            'forfeit',
+            rule.progression,
+            rules.get(room.game)?.progression,
+          );
+          room.status = 'finished';
+        } else {
+          member.disconnected = true;
+          member.reconnectUntil = now() + 30000;
+        }
       }
     } else if (operation === 'ready' && member) {
       if (room.status === 'waiting') {
