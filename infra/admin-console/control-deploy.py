@@ -563,12 +563,13 @@ def check_protected(items, pointers):
     require(all(Path(file).resolve(strict=True) == Path(target) for file, target in pointers.items()), 'PROTECTED_POINTER_CHANGED')
 
 
-def active_guards(items, allow_night_v8_cutover=False):
+def active_guards(items, allow_night_v8_cutover=False, candidate_image=None):
     support('backend-context.py').guard_games({name: items[name] for name in ('runtime', 'kart')})
-    return runtime_idle(items['postgres']['id'], allow_night_v8_cutover)
+    return (runtime_idle(items['postgres']['id'], allow_night_v8_cutover) if candidate_image is None
+            else runtime_idle(items['postgres']['id'], allow_night_v8_cutover, candidate_image=candidate_image))
 
 
-def runtime_idle(pg, allow_night_v8_cutover=False, observed_at=None):
+def runtime_idle(pg, allow_night_v8_cutover=False, observed_at=None, candidate_image=None):
     require(type(allow_night_v8_cutover) is bool and (observed_at is None or (
         allow_night_v8_cutover and type(observed_at) is int and 0 < observed_at <= 9007199254740991)), 'NIGHT_CUTOVER_EVIDENCE')
     if allow_night_v8_cutover:
@@ -602,14 +603,51 @@ SELECT (SELECT count(*) FROM runtime.competition_matches
      + (SELECT count(*) FROM runtime.three_choose_two_sessions
         WHERE status='active' AND expires_at>(extract(epoch from now())*1000)::bigint);
 COMMIT;"""
-    require(support('legacy-tools.py').psql(pg, sql) == '0', 'ACTIVE_GAME')
+    if support('legacy-tools.py').psql(pg, sql) != '0':
+        require(candidate_image is not None, 'ACTIVE_GAME')
+        retained_night_runs(pg, candidate_image)
 
 
-def stopped_writers(pg, allow_night_v8_cutover=False):
+def retained_night_runs(pg, image):
+    # The database migration verifies unchanged rows; the candidate must actually retain their executors.
+    value = json_value(support('legacy-tools.py').psql(pg, """BEGIN TRANSACTION READ ONLY;
+SELECT json_build_object(
+ 'blocked', (SELECT count(*) FROM runtime.competition_matches WHERE data->>'kind'='ranked-run-v1'
+   AND data->>'status'='active' AND (data->>'expiresAt')::bigint>(extract(epoch from now())*1000)::bigint
+   AND (data->>'game' IS DISTINCT FROM 'night-overwatch' OR data->>'version' IS NULL))
+   + (SELECT count(*) FROM runtime.three_choose_two_sessions WHERE status='active'
+      AND expires_at>(extract(epoch from now())*1000)::bigint),
+ 'versions', (SELECT COALESCE(json_agg(version ORDER BY version), '[]'::json) FROM
+   (SELECT DISTINCT data->>'version' version FROM runtime.competition_matches
+    WHERE data->>'kind'='ranked-run-v1' AND data->>'status'='active'
+    AND (data->>'expiresAt')::bigint>(extract(epoch from now())*1000)::bigint
+    AND data->>'game'='night-overwatch') versions));
+COMMIT;"""))
+    require(isinstance(value, dict) and set(value) == {'blocked', 'versions'}
+            and type(value['blocked']) is int and value['blocked'] == 0
+            and isinstance(value['versions'], list) and len(value['versions']) <= 16
+            and all(isinstance(v, str) and re.fullmatch(r'night-input-replay-v[0-9]{1,4}', v)
+                    for v in value['versions']), 'ACTIVE_GAME')
+    script = ('try {const {loadNightRelease}=await import("file:///app/services/runtime-api/dist/competition/night-release.js");'
+              'const {default:ranked}=await import("file:///app/services/runtime-api/rules/night-ranked.mjs");'
+              'const {default:duel}=await import("file:///app/services/runtime-api/rules/night.mjs");'
+              'const release=await loadNightRelease(ranked,duel,{});'
+              'const versions=' + json.dumps(value['versions']) + ';'
+              'for(const version of versions){const rule=release.ranked.get(version);'
+              'if(!rule||rule.id!=="night-overwatch"||rule.version!==version||'
+              '["create","apply","result","configure"].some(key=>typeof rule[key]!=="function"))throw new Error();}'
+              'process.stdout.write(JSON.stringify(versions));}catch{process.exitCode=78;}')
+    output = support('image-authority.py').owned_probe_output(image, script)
+    require(json_value(output) == value['versions'], 'ACTIVE_GAME')
+    return value['versions']
+
+
+def stopped_writers(pg, allow_night_v8_cutover=False, candidate_image=None):
     tools = support('legacy-tools.py')
     require(tools.psql(pg, "BEGIN TRANSACTION READ ONLY; SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid() AND backend_type='client backend'; COMMIT;") == '0', 'UNKNOWN_DATABASE_WRITER')
     require(tools.psql(pg, "BEGIN TRANSACTION READ ONLY; SELECT count(*) FROM runtime.competition_rooms WHERE data->>'status' IN ('waiting','playing') AND expires_at>(extract(epoch from now())*1000)::bigint; COMMIT;") == '0', 'ACTIVE_GAME')
-    return runtime_idle(pg, allow_night_v8_cutover)
+    return (runtime_idle(pg, allow_night_v8_cutover) if candidate_image is None
+            else runtime_idle(pg, allow_night_v8_cutover, candidate_image=candidate_image))
 
 
 def service_health(name, item):
@@ -924,6 +962,8 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False, allo
             snapshot = journal['nightV8Cutover']['snapshot']
             require(runtime_idle(journal['inventory']['postgres']['id'], True, snapshot['observedAt']) == snapshot,
                     'NIGHT_CUTOVER_EVIDENCE')
+        else:
+            runtime_idle(journal['inventory']['postgres']['id'], candidate_image=journal['candidateImage'])
         assert_env(Path(journal['envFile']), journal['envMetadata'])
         require(contexts_for(journal['inventory']) == journal['contexts'], 'COMPOSE_CONTEXT_CHANGED')
         verified_database(domain, journal['inventory']['postgres']['id'], manifest, precommit['controlContract'])
@@ -941,9 +981,9 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False, allo
         require(items['management']['admin'] == previous.name, 'UNKNOWN_MANAGEMENT_SERVICE')
         envfile, signature, _ = management_config(previous, True)
         contexts = contexts_for(items)
-        snapshot = active_guards(items, True) if allow_night_v8_cutover else active_guards(items)
         image = build_image(release)
         authority({name: image for name in SERVICES})
+        snapshot = active_guards(items, True) if allow_night_v8_cutover else active_guards(items, False, image)
         if allow_night_v8_cutover:
             night_v12_authority(image)
         try:
@@ -974,7 +1014,7 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False, allo
             if allow_night_v8_cutover:
                 active_guards(items, True)
             else:
-                active_guards(items)
+                active_guards(items, False, image)
             for name in ('management', 'kart', 'runtime'):
                 journal['stopped'].append(name)
                 save_journal(release, journal)
@@ -984,7 +1024,7 @@ def adopt(release, manifest, caddy, recover=False, root_precondition=False, allo
                 journal['nightV8Cutover'].update(finalized=True, snapshot=night_cutover_snapshot(snapshot))
                 save_journal(release, journal)
             else:
-                stopped_writers(items['postgres']['id'])
+                stopped_writers(items['postgres']['id'], False, image)
         except BaseException:
             restore_before_migration(release, journal)
             raise

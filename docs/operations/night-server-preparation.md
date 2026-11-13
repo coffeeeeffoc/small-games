@@ -1,9 +1,9 @@
 # 夜航服务端待上线准备
 
-本次用户明确要求现在不上线。以下入口只有本地准备能力，不接受执行、SSH、检查远端、回滚等参数。
+原准备阶段未授权上线；2026-11-14 用户已明确授权正式部署后管和Runtime。以下准备入口仍只有本地准备能力，不接受执行、SSH、检查远端、回滚等参数，正式执行复用控制台及后端部署命令。
 
 ```powershell
-node scripts/prepare-night-server.mjs --version=1.0.0
+node scripts/prepare-night-server.mjs --version=1.1.0
 ```
 
 版本号必须显式给出，用作本地候选Runtime标识；它不证明现网版本，也不会更新版本运营配置。运行前先提交，工作区须干净。脚本复用 `prepareControl()` 构建 Runtime、Kart、Management 和管理台静态资源，再复用 `writeBackendBundle()` 输出独立Runtime应用包；前后核对同一HEAD。输出保存在忽略目录 `outputs/night-server-preparation/<release>/`，控制台配套包位于 `outputs/admin-deploy/<release>/`，交接时两个目录一起保留。
@@ -16,4 +16,8 @@ node scripts/prepare-night-server.mjs --version=1.0.0
 
 018不修改公共聊天表，因此旧Runtime不会泄露私信；控制库v5则不能退回不支持该版本的应用。schema摘要变化可能触发旧部署journal的 `SCHEMA_CHANGED` 保护。不要绕过守卫；应用回退和数据库整体恢复分别决策，后者需处理上线后的新增玩家数据。
 
-本任务没有执行生产或Sakura服务升级、平台上传或审核。推送dev会触发现有前端CI/Pages流程，服务端部署仍是独立操作。
+2026-11-14 发布基线：线上控制库v4，Runtime单人v16/双人v9，016/017已存在、018缺失。前端首包和兼容开关分组从1.1.0起；线上实际发布结果另存回执，不由准备成功推断。
+
+控制库升级现在允许候选真实保留执行器的夜航未过期单人局：切换前、入口关闭后及writer停止后重查活动版本，通过隔离镜像实际加载 `loadNightRelease` 核对全部旧规则；恢复时再核对journal绑定的候选镜像。未知版本、其他游戏活动、联机房间和未知数据库writer仍阻断。原数据库备份、隔离恢复、事务内数据指纹及旧数据保护保持；不结束或清除旧局。用户已知当前实际在线约两人，接受发布时短暂中断。
+
+准备包不代表生产或Sakura升级、平台上传或审核。推送dev会触发现有前端CI/Pages流程，服务端部署仍是独立操作。

@@ -456,8 +456,9 @@ class ControlContracts(unittest.TestCase):
         calls = []
         with patch.object(control, 'domain_module', return_value=domain), patch.object(control, 'private_directory'), patch.object(control, 'private_json', return_value=state), patch.object(control, 'write_private'), patch.object(control, 'assert_nginx'), patch.object(control, 'target_inventory', return_value=state['inventory']['postgres']), patch.object(control, 'database_floor', return_value='schema5'), patch.object(control, 'read_precommit', return_value=(proof, 'f' * 64)), patch.object(control, 'authority'), patch.object(control, 'assert_env'), patch.object(control, 'contexts_for', return_value=state['contexts']), patch.object(control, 'verified_database'), patch.object(control, 'activate_services', side_effect=control.Stopped('COMMAND_FAILED')), patch.object(control, 'command', side_effect=lambda *args: calls.append(args)), patch.object(control, 'restore_before_migration') as restore:
             with self.assertRaisesRegex(control.Stopped, 'COMMAND_FAILED'):
-                with patch.object(Path, 'resolve', return_value=control.BASE / 'releases' / state['previous']):
+                with patch.object(Path, 'resolve', return_value=control.BASE / 'releases' / state['previous']), patch.object(control, 'runtime_idle') as idle:
                     control.adopt(release, manifest(), Path('/caddy'), True)
+            idle.assert_called_once_with(state['inventory']['postgres']['id'], candidate_image=IMAGE)
             self.assertEqual(calls, [('docker', 'stop', '--time', '30', state['inventory']['nginx']['id'])])
             restore.assert_not_called()
             domain.provision_control_database.assert_not_called()
@@ -533,6 +534,40 @@ class ControlContracts(unittest.TestCase):
             control.active_guards(facts())
             control.stopped_writers(facts()['postgres']['id'])
             self.assertEqual(idle.call_count, 2)
+
+    def test_retained_night_runs_require_real_candidate_rules_and_reject_other_activity(self):
+        versions = ['night-input-replay-v16']
+        probe = Mock(return_value=json.dumps(versions).encode())
+        reader = Mock(return_value=json.dumps({'blocked': 0, 'versions': versions}))
+        def module(name):
+            return SimpleNamespace(psql=reader) if name == 'legacy-tools.py' else SimpleNamespace(owned_probe_output=probe)
+        with patch.object(control, 'support', side_effect=module):
+            self.assertEqual(control.retained_night_runs('pg', IMAGE), versions)
+            self.assertIn('BEGIN TRANSACTION READ ONLY', reader.call_args.args[1])
+            self.assertIn('runtime.three_choose_two_sessions', reader.call_args.args[1])
+            self.assertIn('loadNightRelease', probe.call_args.args[1])
+            self.assertIn('release.ranked.get(version)', probe.call_args.args[1])
+            for value in ({'blocked': 1, 'versions': versions}, {'blocked': 0, 'versions': [None]},
+                          {'blocked': 0, 'versions': ['bad']}, {'blocked': False, 'versions': versions}):
+                reader.return_value = json.dumps(value)
+                with self.assertRaisesRegex(control.Stopped, 'ACTIVE_GAME'):
+                    control.retained_night_runs('pg', IMAGE)
+            self.assertEqual(probe.call_count, 1)
+            reader.return_value = json.dumps({'blocked': 0, 'versions': versions})
+            probe.return_value = b'[]'
+            with self.assertRaisesRegex(control.Stopped, 'ACTIVE_GAME'):
+                control.retained_night_runs('pg', IMAGE)
+            probe.side_effect = RuntimeError('unsupported rule')
+            with self.assertRaises(RuntimeError):
+                control.retained_night_runs('pg', IMAGE)
+        with patch.object(control, 'support', return_value=SimpleNamespace(psql=Mock(return_value='1'))), patch.object(control, 'retained_night_runs') as retained:
+            control.runtime_idle('pg', candidate_image=IMAGE)
+            retained.assert_called_once_with('pg', IMAGE)
+        with patch.object(control, 'runtime_idle') as idle, patch.object(control, 'support', return_value=SimpleNamespace(psql=Mock(return_value='0'), guard_games=Mock())):
+            control.active_guards(facts(), False, IMAGE)
+            control.stopped_writers('pg', False, IMAGE)
+            self.assertEqual(idle.call_count, 2)
+            idle.assert_called_with('pg', False, candidate_image=IMAGE)
 
     def test_recovery_binds_historical_data_without_executing_historical_runner(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -838,7 +873,7 @@ class HelperBoundary(unittest.TestCase):
 
     def test_real_helper_failure_before_any_database_command_restores_exact_old_services(self):
         with self.fixture() as (db, release, value, private, live, events, sql):
-            def changed_after_stop(_pg):
+            def changed_after_stop(_pg, *args):
                 (release / 'control-fingerprint.sql').write_text('changed after preflight')
             with patch.object(control, 'stopped_writers', side_effect=changed_after_stop):
                 with self.assertRaisesRegex(control.Stopped, 'DATABASE_NOT_COMMITTED') as caught:
