@@ -53,6 +53,14 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
               ranked: 'solo-b',
               multiplayer: 'duel-b',
             },
+            ...[9, 10, 2, 3, 4, 5, 6, 7, 8].map((patch) => ({
+              buildId: `night-build-${patch}`,
+              channel: 'taptap-h5',
+              version: `1.0.${patch}`,
+              backendVersion: `1.0.${patch}`,
+              ranked: 'solo-a',
+              multiplayer: 'duel-a',
+            })),
           ],
           channels: [{ channel: 'taptap-h5', latestBuildId: 'night-build-b' }],
           allowNew: { ranked: ['solo-a', 'solo-b'], multiplayer: ['duel-a', 'duel-b'] },
@@ -191,6 +199,45 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
       const buildA = builds.getByRole('row').filter({ hasText: 'night-build-a' });
       const buildB = builds.getByRole('row').filter({ hasText: 'night-build-b' });
       await buildA.getByText('兼容', { exact: true }).waitFor();
+      assert.deepEqual(
+        await buildA
+          .getByRole('button')
+          .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label'))),
+        ['关闭新局', '设为推荐', '更多'],
+      );
+      const recommend = (row) => row.getByRole('button', { name: '设为推荐', exact: true });
+      assert(await recommend(buildB).isDisabled());
+      await activate(recommend(buildA));
+      await buildA.getByText('推荐版本', { exact: true }).waitFor();
+      await activate(recommend(buildB));
+      await buildB.getByText('推荐版本', { exact: true }).waitFor();
+      assert.deepEqual(
+        await builds.locator('tbody strong').allTextContents(),
+        Array.from({ length: 11 }, (_, index) => `1.0.${10 - index}`),
+      );
+      assert.deepEqual(
+        (await backend.locator('tbody tr > :first-child').allTextContents()).slice(0, 3),
+        ['2.0.0', '1.0.10', '1.0.9'],
+      );
+      const buildList = page.getByRole('region', { name: '前端版本登记列表' });
+      await buildList.evaluate((el) => {
+        el.scrollTop = el.scrollHeight;
+      });
+      assert(
+        await buildList.evaluate(
+          (el) =>
+            el.scrollTop > 0 &&
+            el.clientHeight <= 480 &&
+            Math.abs(
+              el.querySelector('th').getBoundingClientRect().top - el.getBoundingClientRect().top,
+            ) <= 2,
+        ),
+      );
+      const openActions = async (row) => {
+        await page.getByRole('menu').waitFor({ state: 'hidden' });
+        await activate(row.getByRole('button', { name: '更多', exact: true }));
+        return page.getByRole('menu');
+      };
       const versionInput = page.getByRole('textbox', { name: '前端版本号', exact: true });
       await versionInput.fill('9.9.9');
       const writes = f.requests.filter((r) => r.method !== 'GET').length;
@@ -230,25 +277,17 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         5,
       );
       const service = backend.getByRole('row').filter({ hasText: '1.0.0' });
-      await activate(service.getByRole('button', { name: '关闭该版本服务', exact: true }));
+      await activate(service.getByRole('button', { name: '关闭新局', exact: true }));
       assert(
-        await builds
-          .getByRole('row')
-          .filter({ hasText: 'night-build-a' })
-          .getByRole('button', { name: '快速回退到此版本' })
-          .isDisabled(),
+        await (await openActions(buildA)).getByRole('menuitem', { name: '快速回退' }).isDisabled(),
       );
+      await page.keyboard.press('Escape');
       await publish();
       assert.deepEqual(f.state.snapshot.nightOperations.release.disabledBackendVersions, ['1.0.0']);
-      await activate(service.getByRole('button', { name: '恢复该版本服务', exact: true }));
+      await activate(service.getByRole('button', { name: '恢复新局', exact: true }));
       await publish();
       const beforeRollback = structuredClone(f.state.snapshot.nightOperations);
-      await activate(
-        builds
-          .getByRole('row')
-          .filter({ hasText: 'night-build-a' })
-          .getByRole('button', { name: '快速回退到此版本' }),
-      );
+      await activate((await openActions(buildA)).getByRole('menuitem', { name: '快速回退' }));
       await page.getByRole('textbox', { name: '版本回退理由' }).fill('回退到保留版本');
       await activate(button('确认回退游戏版本'));
       await page.getByText('渠道推荐版本已回退，公告与补偿已保留。', { exact: true }).waitFor();
@@ -265,26 +304,13 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         beforeRollback.announcements,
       );
       assert(
-        await builds
-          .getByRole('row')
-          .filter({ hasText: 'night-build-a' })
-          .getByRole('button', { name: '移除旧版本' })
-          .isDisabled(),
+        await (await openActions(buildA)).getByRole('menuitem', { name: '移除登记' }).isDisabled(),
       );
-      await activate(
-        builds
-          .getByRole('row')
-          .filter({ hasText: 'night-build-b' })
-          .getByRole('button', { name: '移除旧版本' }),
-      );
+      await page.keyboard.press('Escape');
+      await activate((await openActions(buildB)).getByRole('menuitem', { name: '移除登记' }));
       await publish();
       assert(f.state.snapshot.nightOperations.release.builds[1].removed);
-      await activate(
-        builds
-          .getByRole('row')
-          .filter({ hasText: 'night-build-b' })
-          .getByRole('button', { name: '恢复登记' }),
-      );
+      await activate((await openActions(buildB)).getByRole('menuitem', { name: '恢复登记' }));
       await publish();
       const release = { ...ops.release.builds[1], buildId: 'night-build-c', version: '1.0.2' };
       await page.getByLabel('导入 H5 构建清单', { exact: true }).setInputFiles({

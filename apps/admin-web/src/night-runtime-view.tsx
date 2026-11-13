@@ -25,14 +25,16 @@ export function Compatibility({
         {result}
       </Tag>
       {ruleKinds.map(([kind, label]) => (
-        <div key={kind} className="control-help">
-          {label}客户端：<code>{build[kind]}</code>
+        <div key={kind} className="control-help night-rule-comparison">
+          <span>
+            {label}客户端 <code>{build[kind]}</code>
+          </span>
           {report && (
             <>
-              <br />
-              服务端当前：<code>{report[kind].current}</code>
-              <br />
-              {ruleAdvice(build[kind], report[kind])}
+              <span>
+                服务端 <code>{report[kind].current}</code>
+              </span>
+              <small>{ruleAdvice(build[kind], report[kind])}</small>
             </>
           )}
         </div>
@@ -55,7 +57,7 @@ export function NightRuntimeView({
     <Card
       title="当前运行服务端"
       extra={
-        <Button loading={loading} onClick={refresh}>
+        <Button color="primary" variant="filled" loading={loading} onClick={refresh}>
           刷新服务端版本
         </Button>
       }

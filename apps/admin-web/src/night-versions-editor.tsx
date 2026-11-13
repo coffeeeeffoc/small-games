@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useUnsavedChanges } from './unsaved-changes';
-import { Alert, Card, Input, Select, Tag } from 'antd';
+import { Alert, Card, Dropdown, Input, Select, Tag } from 'antd';
 import { ActionButton as Button, DataTable as Table } from './control-common';
 import { dateLabel } from './control-api';
 import { buildCompatibility, type NightRuntimeStatus } from './night-compatibility';
@@ -14,6 +14,7 @@ import {
   type NightRelease,
 } from './night-operations-model';
 const identifier = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const versionOrder = new Intl.Collator('en', { numeric: true });
 export function NightVersionsEditor({
   runtime,
   refreshRuntime,
@@ -64,7 +65,9 @@ export function NightVersionsEditor({
       ...(release?.builds.flatMap((b) => (b.backendVersion ? [b.backendVersion] : [])) ?? []),
       ...(release?.disabledBackendVersions ?? []),
     ]),
-  ].filter((v) => v !== 'unknown');
+  ]
+    .filter((v) => v !== 'unknown')
+    .sort((a, b) => versionOrder.compare(b, a));
   const toggleBackend = (version: string) => {
     if (!release) return;
     const old = release.disabledBackendVersions ?? [];
@@ -163,10 +166,11 @@ export function NightVersionsEditor({
         <div className="table-scroll">
           <Table
             aria-label="后端上线历史"
-            dataSource={(deployments?.history ?? []).map((d, i) => ({
-              ...d,
-              id: d.release + ':' + d.verifiedAt + ':' + i,
-            }))}
+            dataSource={(deployments?.history ?? [])
+              .map((d, i) => ({ ...d, id: d.release + ':' + d.verifiedAt + ':' + i }))
+              .sort(
+                (a, b) => versionOrder.compare(b.version, a.version) || b.verifiedAt - a.verifiedAt,
+              )}
             columns={[
               {
                 title: '版本',
@@ -203,7 +207,12 @@ export function NightVersionsEditor({
         <p className="control-help">
           按前端包绑定的后端版本控制新局。关闭或移除不删除执行器、资产、旧局及回执；恢复需当前服务器仍保留对应规则。所有草稿操作需在页面顶部“发布游戏配置”保存并发布。
         </p>
-        <div className="table-scroll">
+        <div
+          className="table-scroll night-versions-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label="后端兼容服务列表"
+        >
           <Table
             aria-label="后端兼容服务"
             dataSource={versions.map((id) => ({ id }))}
@@ -234,9 +243,6 @@ export function NightVersionsEditor({
                           </Tag>
                         ))
                       )}
-                      <small className="control-help">
-                        按所绑定客户端的单人、双人规则核对；不是镜像版本号比较。
-                      </small>
                     </>
                   );
                 },
@@ -254,20 +260,30 @@ export function NightVersionsEditor({
                 title: '操作',
                 key: 'actions',
                 render: (_, row) => (
-                  <Button disabled={disabled || !release} onClick={() => toggleBackend(row.id)}>
-                    {release?.disabledBackendVersions?.includes(row.id)
-                      ? '恢复该版本服务'
-                      : '关闭该版本服务'}
+                  <Button
+                    type="primary"
+                    size="small"
+                    disabled={disabled || !release}
+                    onClick={() => toggleBackend(row.id)}
+                  >
+                    {release?.disabledBackendVersions?.includes(row.id) ? '恢复新局' : '关闭新局'}
                   </Button>
                 ),
               },
             ]}
           />
         </div>
-        <div className="table-scroll">
+        <div
+          className="table-scroll night-versions-scroll night-builds-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label="前端版本登记列表"
+        >
           <Table
             aria-label="前端版本登记"
-            dataSource={(release?.builds ?? []).map((b) => ({ ...b, id: b.buildId }))}
+            dataSource={(release?.builds ?? [])
+              .map((b) => ({ ...b, id: b.buildId }))
+              .sort((a, b) => versionOrder.compare(b.version ?? '', a.version ?? ''))}
             columns={[
               {
                 title: '前端版本 / 渠道',
@@ -275,7 +291,9 @@ export function NightVersionsEditor({
                 render: (_, row) => (
                   <>
                     <strong>{row.version ?? '未标记版本'}</strong> · {row.channel}
-                    <small className="control-id">{row.buildId}</small>
+                    <small className="control-id" title={row.buildId}>
+                      {row.buildId}
+                    </small>
                   </>
                 ),
               },
@@ -333,23 +351,19 @@ export function NightVersionsEditor({
                         !published?.release?.retiredRules?.[k].includes(saved[k]),
                     );
                   return (
-                    <div className="control-actions">
+                    <div className="night-version-actions">
                       <Button
+                        type="primary"
+                        size="small"
                         disabled={disabled || !!row.removed}
                         onClick={() => editBuild(row.buildId, { disabled: !row.disabled })}
                       >
                         {row.disabled ? '恢复新局' : '关闭新局'}
                       </Button>
                       <Button
-                        danger
-                        disabled={disabled || !!latest}
-                        onClick={() =>
-                          editBuild(row.buildId, { removed: row.removed ? undefined : true })
-                        }
-                      >
-                        {row.removed ? '恢复登记' : '移除旧版本'}
-                      </Button>
-                      <Button
+                        color="primary"
+                        variant="filled"
+                        size="small"
                         disabled={disabled || !!row.removed || !!row.disabled || !!latest}
                         onClick={() => {
                           if (release)
@@ -365,18 +379,47 @@ export function NightVersionsEditor({
                       >
                         设为推荐
                       </Button>
-                      <Button
-                        disabled={
-                          !canPublish ||
-                          !ready ||
-                          published?.release?.channels.some((c) => c.latestBuildId === row.buildId)
-                        }
-                        onClick={() => {
-                          if (saved) quickRollback(saved);
+                      <Dropdown
+                        autoFocus
+                        trigger={['click']}
+                        placement="bottomRight"
+                        disabled={disabled && !canPublish}
+                        menu={{
+                          items: [
+                            {
+                              key: 'rollback',
+                              label: '快速回退',
+                              disabled:
+                                !canPublish ||
+                                !ready ||
+                                published?.release?.channels.some(
+                                  (c) => c.latestBuildId === row.buildId,
+                                ),
+                              onClick: () => {
+                                if (saved) quickRollback(saved);
+                              },
+                            },
+                            {
+                              key: 'remove',
+                              label: row.removed ? '恢复登记' : '移除登记',
+                              danger: !row.removed,
+                              disabled: disabled || !!latest,
+                              onClick: () =>
+                                editBuild(row.buildId, { removed: row.removed ? undefined : true }),
+                            },
+                          ],
                         }}
                       >
-                        快速回退到此版本
-                      </Button>
+                        <Button
+                          color="primary"
+                          variant="filled"
+                          size="small"
+                          disabled={disabled && !canPublish}
+                          aria-haspopup="menu"
+                        >
+                          更多
+                        </Button>
+                      </Dropdown>
                     </div>
                   );
                 },
@@ -428,7 +471,7 @@ export function NightVersionsEditor({
           </p>
           {build.ranked && build.multiplayer && <Compatibility build={build} status={runtime} />}
           <div className="control-actions">
-            <Button disabled={disabled || !valid} onClick={add}>
+            <Button type="primary" disabled={disabled || !valid} onClick={add}>
               登记到草稿
             </Button>
           </div>

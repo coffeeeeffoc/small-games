@@ -136,6 +136,7 @@ export function NightOperationsEditor({
           />
           <div className="control-actions">
             <Button
+              type="primary"
               danger
               loading={busy}
               disabled={!canPublish || dirty || !reason.trim()}

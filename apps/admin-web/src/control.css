@@ -140,6 +140,64 @@ main.control-main {
 .control-table td {
   overflow-wrap: anywhere;
 }
+.night-versions-scroll {
+  max-height: min(480px, 60vh);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+.night-versions-scroll .control-table {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+}
+.night-versions-scroll th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.night-versions-scroll th,
+.night-versions-scroll td {
+  padding: 8px 12px;
+}
+.night-versions-scroll .ant-btn {
+  min-height: 32px;
+  white-space: nowrap;
+}
+.night-builds-scroll .control-table {
+  min-width: 980px;
+  table-layout: fixed;
+}
+.night-builds-scroll th:nth-child(1) {
+  width: 21%;
+}
+.night-builds-scroll th:nth-child(2) {
+  width: 16%;
+}
+.night-builds-scroll th:last-child {
+  width: 244px;
+}
+.night-builds-scroll .control-id {
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.night-version-actions,
+.night-rule-comparison {
+  display: flex;
+  gap: 6px;
+}
+.night-rule-comparison {
+  flex-wrap: wrap;
+  column-gap: 12px;
+  row-gap: 0;
+  line-height: 1.5;
+}
+.night-rule-comparison small {
+  flex-basis: 100%;
+}
 .config-diff {
   padding-left: 24px;
   line-height: 1.9;
