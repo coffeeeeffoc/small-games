@@ -47,6 +47,7 @@ export function createManagementService(
         admin!.origin,
         Date.now,
         env.ADMIN_RUNTIME_ORIGIN ?? 'http://runtime:43002',
+        env.ADMIN_RUNTIME_KEY,
       )
     : undefined;
   const checkControl = async () => {

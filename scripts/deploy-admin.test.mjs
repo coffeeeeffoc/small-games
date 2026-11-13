@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, writeFile, rm, readdir, symlink, link } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -489,6 +490,46 @@ test('unlisted env/key, nested links and changed public hashes cause zero remote
     await writeFile(path.join(directory, 'control-deploy.py'), 'changed');
     await assert.rejects(rejectBeforeRemote(), /BUNDLE_UNSAFE/);
     assert.equal(remote, 0);
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+});
+
+test('historical CSP accepts only known path sets and keeps candidate and policy strict', async () => {
+  const folder = await mkdtemp(path.join(tmpdir(), 'admin-historical-csp-'));
+  try {
+    const workspace = await controlWorkspace(folder),
+      directory = path.join(folder, 'candidate');
+    const manifest = await writeControlBundle(
+      directory,
+      { head: 'a'.repeat(40), release: 'candidate', runnerOnly: true },
+      workspace,
+    );
+    const file = path.join(directory, 'admin-csp-contract.json');
+    const current = JSON.parse(await readFile(file, 'utf8'));
+    for (const remove of [['/players'], ['/players', '/releases']]) {
+      for (const invalid of [false, true]) {
+        const contract = {
+          ...current,
+          paths: current.paths.filter((p) => !remove.includes(p)),
+          ...(invalid ? { prefix: 'unsafe' } : {}),
+        };
+        const bytes = JSON.stringify(contract, null, 2) + '\n';
+        await writeFile(file, bytes);
+        manifest.cspContractSha256 = manifest.files['admin-csp-contract.json'] = createHash(
+          'sha256',
+        )
+          .update(bytes)
+          .digest('hex');
+        await writeFile(
+          path.join(directory, 'manifest.json'),
+          JSON.stringify(manifest, null, 2) + '\n',
+        );
+        await assert.rejects(readControlBundle(directory), /BUNDLE_UNSAFE/);
+        if (invalid) await assert.rejects(readControlBundle(directory, true), /BUNDLE_UNSAFE/);
+        else assert.deepEqual(await readControlBundle(directory, true), manifest);
+      }
+    }
   } finally {
     await rm(folder, { recursive: true, force: true });
   }

@@ -6,6 +6,7 @@ import { controlApplicationState } from './control-observations.js';
 import { newControlRevision, publishControlRevision } from './control-publication.js';
 import { nightReleaseRollbackSnapshot } from './night-operations.js';
 import { readNightRuntime, validateRuntimeOrigin } from './night-runtime.js';
+import { nightPlayerControl } from './night-players.js';
 import {
   ADMINISTRATOR,
   CONSUMERS,
@@ -26,6 +27,7 @@ export function createControlService(
   adminOrigin: string,
   now = Date.now,
   runtimeOrigin?: string,
+  runtimeKey?: string,
 ) {
   validateRuntimeOrigin(runtimeOrigin);
   const access = createControlAccess(store, now);
@@ -75,6 +77,11 @@ export function createControlService(
   }
   return {
     access,
+    ...nightPlayerControl(runtimeOrigin, runtimeKey, (session, action, target, detail) =>
+      withPermission(session, 'control.read', (tx, actor) =>
+        audit(tx, actor, action, target, detail),
+      ),
+    ),
     async nightRuntime(session: AdminSession) {
       const observations = await withPermission(session, 'control.read', (tx) => tx.observations());
       return readNightRuntime(runtimeOrigin, observations, now);

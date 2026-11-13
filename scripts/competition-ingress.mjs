@@ -73,7 +73,7 @@ export const competitionIngressPaths = internalCompetitionPaths.flatMap((route) 
 ]);
 export const competitionIngressPattern = `^(?:${competitionIngressPaths.join('|')})$`;
 export const managementIngressPattern =
-  '^/api/(?:auth/github(?:/callback)?|session|refresh|logout|control/(?:catalog|state|audit|rollback|revisions(?:/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/publish)?|members(?:/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}(?:/delete)?)?|roles(?:/[a-z][a-z0-9-]{0,47}(?:/delete)?)?))$';
+  '^/api/(?:auth/github(?:/callback)?|session|refresh|logout|control/(?:catalog|state|audit|deployments|night-runtime|night-release/rollback|night-players/(?:query|detail)|rollback|revisions(?:/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/publish)?|members(?:/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}(?:/delete)?)?|roles(?:/[a-z][a-z0-9-]{0,47}(?:/delete)?)?))$';
 
 export function renderAdminCaddy(ingress) {
   const config = validateIngress(ingress);

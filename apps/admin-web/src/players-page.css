@@ -1,0 +1,18 @@
+.player-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+.player-filters label {
+  display: grid;
+  gap: 6px;
+}
+.player-json {
+  max-height: 55vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}

@@ -234,6 +234,8 @@ test('public paths cover registered game, identity, TCT and carrom endpoints and
     '/api/runtime/releases/project',
     '/api/competition/v1/internal',
     '/api/competition/v1/internal/verify',
+    '/api/competition/v1/internal/night-players/list',
+    '/api/competition/v1/internal/night-players/detail',
     '/api/competition/v1/internal/night-chat/messages',
     '/api/competition/v1/internal/night-chat/moderate',
     '/api/competition/v1/internal/three-choose-two/sessions/x/review',
@@ -403,6 +405,11 @@ test('management stays on its sole origin with finite APIs and no SPA API fallba
     '/api/control/roles',
     '/api/control/roles/config-editor/delete',
     '/api/control/audit',
+    '/api/control/deployments',
+    '/api/control/night-runtime',
+    '/api/control/night-release/rollback',
+    '/api/control/night-players/query',
+    '/api/control/night-players/detail',
   ])
     assert(allowed.test(route), route);
   for (const route of [
@@ -413,6 +420,14 @@ test('management stays on its sole origin with finite APIs and no SPA API fallba
     '/api/admin/session',
     '/api/control',
     '/api/control/internal',
+    '/api/control/night-players',
+    '/api/control/night-players/delete',
+    '/api/control/night-players/detail/extra',
+    '/api/control/night-runtime/extra',
+    '/api/control/deployments/extra',
+    '/api/control/night-release/rollback/extra',
+    '/api/competition/v1/internal/night-players/list',
+    '/api/competition/v1/internal/night-players/detail',
     '/api/control/revisions/not-a-uuid/publish',
     '/api/control/revisions/11111111-1111-4111-8111-111111111111/delete',
     '/api/control/roles/administrator/extra',
@@ -424,7 +439,7 @@ test('management stays on its sole origin with finite APIs and no SPA API fallba
   assert.match(admin, /http:\/\/172\.30\.245\.3:8083/);
   assert.match(
     admin,
-    /@pages path \/ \/login \/config \/games \/releases \/members \/roles \/audit\n/,
+    /@pages path \/ \/login \/config \/games \/releases \/players \/members \/roles \/audit\n/,
   );
   assert.equal((admin.match(/templates \{/g) || []).length, 2);
   for (const header of [

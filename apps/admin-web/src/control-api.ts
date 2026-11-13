@@ -80,6 +80,10 @@ export type Audit = {
   createdAt: number;
 };
 const errors: Record<string, string> = {
+  NIGHT_PLAYERS_NOT_CONFIGURED: '玩家查询尚未配置内部连接，请联系部署管理员。',
+  NIGHT_PLAYERS_UNAVAILABLE: '玩家数据暂时无法读取，请检查内部连接或稍后重试。',
+  NIGHT_PLAYER_DATA_TOO_LARGE:
+    '当前响应超过 4 MiB，未返回部分数据。请改为每页 1 条重试；单条仍超限需管理员专项读取。',
   NIGHT_COMPENSATION_IMMUTABLE: '已发布补偿的内容、奖励和资格不能修改。请新建补偿。',
   NIGHT_COMPENSATION_FUTURE_ELIGIBILITY: '补偿账号截止时间不能在未来。',
   NIGHT_BUILD_IMMUTABLE: '已发布的构建标识不能绑定其他版本或规则。请登记新构建。',
@@ -149,6 +153,8 @@ export function createControlApi(session: Session, accessLost: () => Promise<voi
     return result as T;
   }
   return {
+    queryPlayers: <T>(body: unknown) => request<T>('night-players/query', body),
+    playerDetail: <T>(body: unknown) => request<T>('night-players/detail', body),
     read: <T>(
       path:
         | 'catalog'

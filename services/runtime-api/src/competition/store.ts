@@ -26,6 +26,7 @@ import { createDevelopmentAssets, type DevelopmentAssetAdapter } from './develop
 import { createNightChat } from './night-chat.js';
 import { createNightPresence } from './night-presence.js';
 import { createNightSocial } from './night-social.js';
+import { createNightPlayerReader } from './night-players.js';
 import {
   nightAssets,
   reserveNightLoadout,
@@ -1543,6 +1544,7 @@ export function createCompetitionStore(
     nightChat: createNightChat(db, now, control, rules.get('night-overwatch')?.version, release),
     nightPresence: createNightPresence(db, now, control),
     nightSocial: createNightSocial(db, now, control),
+    nightPlayers: createNightPlayerReader(db, now),
     ...createCompetitionIdentities(db, now),
     gameDefinitions: () => [...rules.values()],
     ranking,
