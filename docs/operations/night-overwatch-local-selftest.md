@@ -2,6 +2,12 @@
 
 此流程仅启动本机 Docker Desktop 中的 Night Runtime、PostgreSQL 和回环网关。Sakura FRP 沿用已有隧道，将公网 HTTPS 转发到 `127.0.0.1:43003`。不操作生产、不上传渠道，也不自动打 TapTap ZIP。
 
+## 2026-11-14 重连修复已更新到本地服务
+
+本地Runtime已更新为 `small-games-bundle:night-20261114-reconnect-r2`，镜像 `6df11291f61d7696ed2cf1f759515a34523a43aee0ccb7e1ea552c147683238a`。之前仍运行 `night-20261113-duel12`，容器内没有重连及原房间续留代码，是用户继续测到退出立即结算的原因。新制品来自 `ae972df5` 工作区未提交修复，与前轮通过验证的相关源码摘要一致；四个修改后的编译模块与运行容器逐一对应。
+
+54张表备份已在独立容器恢复并比对，无原库迁移；仅替换Runtime，数据库、Management和网关容器保留，网关平滑重载。回环/FRP健康、鉴权拒绝、CORS及保留规则检查通过。使用后管已登记的TapTap H5 1.0.57构建标识通过真实FRP建私密QA房：开战超过10秒后退出，另一方持续11秒没有结算、退出者可返回；再次退出后30.096秒转为机器人且仍未结算，超时返回被拒绝。QA房和会话已释放。[脱敏部署与实测记录](../../games/local/night-overwatch/docs/design/2026-11-13-social-windows/reconnect/local-deployment.json)。同版本号的本地Web预览属于不同buildId，未登记时仍拒绝开局，没有放宽版本准入。未部署生产、上传渠道或验收实体宿主。
+
 ## 2026-11-13 本地版本对齐
 
 10:27 后续：本地Runtime与Management共同更新为 `small-games-bundle:night-20261113-compatibility`（镜像 `00f5a354c49d625edec1094dad76f68c384a8c5ed23e3178900c5ab8fae104ea`），两者健康。后管通过内部 `ADMIN_RUNTIME_ORIGIN=http://runtime:43002` 读取实际加载的单人v18/v17/v16、双人v11/v10/v9；公网不开放该诊断路由。当前 `current.json` 的 `composeOverride` 同时覆盖Runtime与Management镜像及内部诊断地址，仍保留原数据库和网关。无迁移，升级前54表独立恢复比对通过；回环/FRP健康、社交与建房，以及正常Vite后管入口匿名401已核对。[部署证据](../../games/local/night-overwatch/docs/design/2026-11-13-social-windows/runtime-compatibility.json)。这不是生产部署或渠道包更新。

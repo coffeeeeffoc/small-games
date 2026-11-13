@@ -2,9 +2,14 @@ import { useRef, useState } from 'react';
 import { useUnsavedChanges } from './unsaved-changes';
 import { Alert, Card, Dropdown, Input, Select, Tag } from 'antd';
 import { ActionButton as Button, DataTable as Table } from './control-common';
-import { dateLabel } from './control-api';
-import { buildCompatibility, type NightRuntimeStatus } from './night-compatibility';
-import { Compatibility, NightRuntimeView } from './night-runtime-view';
+import { dateLabel, type GameState } from './control-api';
+import {
+  newGameBlock,
+  ruleKinds,
+  type NightRuleKind,
+  type NightRuntimeStatus,
+} from './night-compatibility';
+import { NightRuleStatus, NightRuntimeView } from './night-runtime-view';
 import {
   defaultNightOperations,
   same,
@@ -21,6 +26,8 @@ export function NightVersionsEditor({
   readingRuntime,
   value,
   published,
+  gameState,
+  publishedGameState,
   deployments,
   disabled,
   canPublish,
@@ -32,6 +39,8 @@ export function NightVersionsEditor({
   readingRuntime: boolean;
   value?: NightOperations;
   published?: NightOperations;
+  gameState?: GameState;
+  publishedGameState?: GameState;
   deployments?: Deployments;
   disabled: boolean;
   canPublish: boolean;
@@ -39,7 +48,8 @@ export function NightVersionsEditor({
   quickRollback: (build: NightBuild) => void;
 }) {
   const operations = value ?? defaultNightOperations(),
-    release = operations.release;
+    release = operations.release,
+    liveRelease = published?.release;
   const [build, setBuild] = useState<NightBuild>({
     buildId: '',
     channel: 'taptap-h5',
@@ -61,12 +71,13 @@ export function NightVersionsEditor({
   };
   const versions = [
     ...new Set([
-      ...(deployments?.history.map((d) => d.version) ?? []),
       ...(release?.builds.flatMap((b) => (b.backendVersion ? [b.backendVersion] : [])) ?? []),
       ...(release?.disabledBackendVersions ?? []),
+      release?.legacy.backendVersion,
+      liveRelease?.legacy.backendVersion,
     ]),
   ]
-    .filter((v) => v !== 'unknown')
+    .filter((v): v is string => !!v && v !== 'unknown')
     .sort((a, b) => versionOrder.compare(b, a));
   const toggleBackend = (version: string) => {
     if (!release) return;
@@ -143,136 +154,37 @@ export function NightVersionsEditor({
       setError('构建清单无效，请选择本次夜航 H5 包对应的 JSON 清单。');
     }
   };
+  function renderRule(
+    kind: NightRuleKind,
+    draft: NightRelease['legacy'],
+    live?: NightRelease['legacy'],
+  ) {
+    if (!release) return null;
+    const block = newGameBlock(kind, draft, release, gameState);
+    const liveBlock =
+      live && liveRelease && newGameBlock(kind, live, liveRelease, publishedGameState);
+    return (
+      <>
+        {live && (
+          <NightRuleStatus kind={kind} rule={live[kind]} status={runtime} block={liveBlock} />
+        )}
+        {(!live || draft[kind] !== live[kind] || block !== liveBlock) && (
+          <div className="night-draft-rule">
+            <small>草稿预览</small>
+            <NightRuleStatus kind={kind} rule={draft[kind]} status={runtime} block={block} />
+          </div>
+        )}
+      </>
+    );
+  }
   return (
     <>
       <NightRuntimeView status={runtime} refresh={refreshRuntime} loading={readingRuntime} />
-      <Card title="实际后端部署">
+      <Card title="客户端新局状态">
         <p className="control-help">
-          最近 5 次通过健康核验的 Runtime
-          上线记录。配置发布与前端打包不会生成上线记录；此列表不是实时健康检测。
+          按已发布配置和运行实例的规则判断。草稿预览在发布游戏配置后生效。
         </p>
-        {deployments?.current ? (
-          <p>
-            <Tag color="blue">最近确认版本 {deployments.current.version}</Tag>核验于{' '}
-            {dateLabel(deployments.current.verifiedAt)}
-          </p>
-        ) : (
-          <Alert
-            type="info"
-            title="尚无可核实的版本部署记录"
-            description="升级后的部署工具完成上线后自动记录；已有旧部署不会补造版本号。"
-          />
-        )}
-        <div className="table-scroll">
-          <Table
-            aria-label="后端上线历史"
-            dataSource={(deployments?.history ?? [])
-              .map((d, i) => ({ ...d, id: d.release + ':' + d.verifiedAt + ':' + i }))
-              .sort(
-                (a, b) => versionOrder.compare(b.version, a.version) || b.verifiedAt - a.verifiedAt,
-              )}
-            columns={[
-              {
-                title: '版本',
-                key: 'version',
-                render: (_, row) => (
-                  <>
-                    <strong>{row.version}</strong>
-                    <small className="control-id">
-                      {row.mode === 'rollback' ? '回滚后版本' : '上线版本'}
-                    </small>
-                  </>
-                ),
-              },
-              {
-                title: '核验时间 / 源码',
-                key: 'verified',
-                render: (_, row) => (
-                  <>
-                    {dateLabel(row.verifiedAt)}
-                    <small className="control-id">{row.sourceSHA}</small>
-                  </>
-                ),
-              },
-              {
-                title: '镜像',
-                key: 'image',
-                render: (_, row) => <span className="control-id">{row.activeImages.runtime}</span>,
-              },
-            ]}
-          />
-        </div>
-      </Card>
-      <Card title="游戏版本与兼容服务">
-        <p className="control-help">
-          按前端包绑定的后端版本控制新局。关闭或移除不删除执行器、资产、旧局及回执；恢复需当前服务器仍保留对应规则。所有草稿操作需在页面顶部“发布游戏配置”保存并发布。
-        </p>
-        <div
-          className="table-scroll night-versions-scroll"
-          tabIndex={0}
-          role="region"
-          aria-label="后端兼容服务列表"
-        >
-          <Table
-            aria-label="后端兼容服务"
-            dataSource={versions.map((id) => ({ id }))}
-            columns={[
-              { title: '后端兼容版本', dataIndex: 'id' },
-              {
-                title: '与运行服务端的规则兼容性',
-                key: 'compatibility',
-                render: (_, row) => {
-                  const builds =
-                    release?.builds.filter(
-                      (build) => build.backendVersion === row.id && !build.removed,
-                    ) ?? [];
-                  const results = builds.map((build) => buildCompatibility(build, runtime));
-                  return (
-                    <>
-                      {!builds.length ? (
-                        <Tag>无客户端可核对</Tag>
-                      ) : (
-                        [...new Set(results)].map((result) => (
-                          <Tag
-                            key={result}
-                            color={
-                              result === '兼容' ? 'green' : result === '不兼容' ? 'red' : 'orange'
-                            }
-                          >
-                            {result} {results.filter((value) => value === result).length} 个客户端
-                          </Tag>
-                        ))
-                      )}
-                    </>
-                  );
-                },
-              },
-              {
-                title: '新局服务',
-                key: 'state',
-                render: (_, row) => (
-                  <Tag>
-                    {release?.disabledBackendVersions?.includes(row.id) ? '已关闭' : '启用'}
-                  </Tag>
-                ),
-              },
-              {
-                title: '操作',
-                key: 'actions',
-                render: (_, row) => (
-                  <Button
-                    type="primary"
-                    size="small"
-                    disabled={disabled || !release}
-                    onClick={() => toggleBackend(row.id)}
-                  >
-                    {release?.disabledBackendVersions?.includes(row.id) ? '恢复新局' : '关闭新局'}
-                  </Button>
-                ),
-              },
-            ]}
-          />
-        </div>
+        {!liveRelease && <p className="control-help">后管尚未发布客户端版本登记。</p>}
         <div
           className="table-scroll night-versions-scroll night-builds-scroll"
           tabIndex={0}
@@ -288,68 +200,52 @@ export function NightVersionsEditor({
               {
                 title: '前端版本 / 渠道',
                 key: 'version',
-                render: (_, row) => (
-                  <>
-                    <strong>{row.version ?? '未标记版本'}</strong> · {row.channel}
-                    <small className="control-id" title={row.buildId}>
-                      {row.buildId}
-                    </small>
-                  </>
-                ),
+                render: (_, row) => {
+                  const recommended = liveRelease?.channels.some(
+                    (c) => c.latestBuildId === row.buildId,
+                  );
+                  const draftRecommended = release?.channels.some(
+                    (c) => c.latestBuildId === row.buildId,
+                  );
+                  return (
+                    <>
+                      <strong>{row.version ?? '未标记版本'}</strong> · {row.channel}
+                      <small className="control-id" title={row.buildId}>
+                        {row.buildId}
+                      </small>
+                      {recommended && <Tag color="blue">推荐版本</Tag>}
+                      {draftRecommended !== recommended && (draftRecommended || recommended) && (
+                        <Tag color="gold">{draftRecommended ? '草稿设为推荐' : '草稿取消推荐'}</Tag>
+                      )}
+                    </>
+                  );
+                },
               },
+              ...ruleKinds.map(([kind, label]) => ({
+                title: `${label}新局`,
+                key: kind,
+                render: (_: unknown, row: NightBuild) =>
+                  renderRule(
+                    kind,
+                    row,
+                    liveRelease?.builds.find((b) => b.buildId === row.buildId),
+                  ),
+              })),
               {
-                title: '兼容服务 / 状态',
-                key: 'status',
-                render: (_, row) => (
-                  <>
-                    {row.backendVersion ?? '旧版未标记'}
-                    <br />
-                    <Tag>
-                      {row.removed
-                        ? '已移除登记'
-                        : row.disabled
-                          ? '已关闭新局'
-                          : release?.disabledBackendVersions?.includes(row.backendVersion ?? '')
-                            ? '兼容服务已关闭'
-                            : (['ranked', 'multiplayer'] as const).some((kind) =>
-                                  release?.retiredRules?.[kind].includes(row[kind]),
-                                )
-                              ? '规则已退役'
-                              : (['ranked', 'multiplayer'] as const).some(
-                                    (kind) => !release?.allowNew[kind].includes(row[kind]),
-                                  )
-                                ? '规则未开放新局'
-                                : '启用'}
-                    </Tag>
-                    {release?.channels.some((c) => c.latestBuildId === row.buildId) && (
-                      <Tag color="blue">推荐版本</Tag>
-                    )}
-                  </>
-                ),
-              },
-              {
-                title: '客户端 / 服务端规则',
-                key: 'compatibility',
-                render: (_, row) => <Compatibility build={row} status={runtime} />,
+                title: '开关分组',
+                key: 'group',
+                render: (_, row) => row.backendVersion ?? '未分组',
               },
               {
                 title: '操作',
                 key: 'actions',
                 render: (_, row) => {
                   const latest = release?.channels.some((c) => c.latestBuildId === row.buildId);
-                  const saved = published?.release?.builds.find((b) => b.buildId === row.buildId);
+                  const saved = liveRelease?.builds.find((b) => b.buildId === row.buildId);
                   const ready =
                     saved &&
-                    !saved.disabled &&
-                    !saved.removed &&
-                    !published?.release?.disabledBackendVersions?.includes(
-                      saved.backendVersion ?? '',
-                    ) &&
-                    (['ranked', 'multiplayer'] as const).every(
-                      (k) =>
-                        published?.release?.allowNew[k].includes(saved[k]) &&
-                        !published?.release?.retiredRules?.[k].includes(saved[k]),
-                    );
+                    liveRelease &&
+                    ruleKinds.every(([kind]) => !newGameBlock(kind, saved, liveRelease));
                   return (
                     <div className="night-version-actions">
                       <Button
@@ -392,9 +288,7 @@ export function NightVersionsEditor({
                               disabled:
                                 !canPublish ||
                                 !ready ||
-                                published?.release?.channels.some(
-                                  (c) => c.latestBuildId === row.buildId,
-                                ),
+                                liveRelease?.channels.some((c) => c.latestBuildId === row.buildId),
                               onClick: () => {
                                 if (saved) quickRollback(saved);
                               },
@@ -446,7 +340,7 @@ export function NightVersionsEditor({
             {(
               [
                 ['version', '前端版本号'],
-                ['backendVersion', '绑定后端版本号'],
+                ['backendVersion', '新局开关分组'],
                 ['buildId', '构建标识'],
                 ['channel', '发布渠道'],
                 ['ranked', '单人规则版本'],
@@ -467,42 +361,69 @@ export function NightVersionsEditor({
             ))}
           </div>
           <p className="control-help">
-            使用包清单中的准确标识与规则版本。首次登记将同一规则设为无构建标识旧客户端的兼容映射，推荐版本需另行确认。
+            导入会填入包的标识、渠道、开关分组和所需规则。首次登记也会用这些值初始化旧包映射。
           </p>
-          {build.ranked && build.multiplayer && <Compatibility build={build} status={runtime} />}
+          {build.ranked && build.multiplayer && (
+            <div className="night-rule-pair" aria-label="导入清单的规则核对">
+              {ruleKinds.map(([kind, label]) => (
+                <div key={kind}>
+                  <span>{label}规则预览</span>
+                  <NightRuleStatus kind={kind} rule={build[kind]} status={runtime} preview />
+                </div>
+              ))}
+            </div>
+          )}
           <div className="control-actions">
             <Button type="primary" disabled={disabled || !valid} onClick={add}>
               登记到草稿
             </Button>
           </div>
         </section>
-        {release && (
-          <section aria-label="旧客户端兼容">
-            <h3>未携带构建标识的旧客户端</h3>
-            <Compatibility build={release.legacy} status={runtime} />
+      </Card>
+      {release && (
+        <Card title="无构建标识的旧客户端">
+          <p className="control-help">
+            {liveRelease
+              ? `已发布映射 · ${liveRelease.legacy.channel} · 开关分组 ${liveRelease.legacy.backendVersion ?? '无'}`
+              : '旧包映射尚未发布'}
+            {(!liveRelease ||
+              release.legacy.channel !== liveRelease.legacy.channel ||
+              release.legacy.backendVersion !== liveRelease.legacy.backendVersion) && (
+              <>
+                {' '}
+                · 草稿映射 {release.legacy.channel} · 开关分组{' '}
+                {release.legacy.backendVersion ?? '无'}
+              </>
+            )}
+          </p>
+          <p className="control-help">下方状态适用于规则与映射一致的旧包。</p>
+          <div className="night-rule-pair">
+            {ruleKinds.map(([kind, label]) => (
+              <div key={kind}>
+                <span>{label}新局</span>
+                {renderRule(kind, release.legacy, liveRelease?.legacy)}
+              </div>
+            ))}
+          </div>
+          <details className="night-legacy-settings">
+            <summary>旧包兼容设置</summary>
             <p className="control-help">
-              旧客户端也绑定后端兼容版本；关闭该服务版本同样停止其新局。
+              确认旧包使用相同规则后，可复制已登记包的渠道、规则和开关分组到草稿。
             </p>
-            <label htmlFor="legacy-build">采用已登记版本的规则</label>
+            <label htmlFor="legacy-build">从已登记包复制旧客户端映射</label>
             <Select
               id="legacy-build"
-              aria-label="旧客户端兼容版本"
+              aria-label="从已登记包复制旧客户端映射"
               disabled={disabled}
-              placeholder="选择兼容版本"
-              value={
-                release.builds.find(
-                  (b) =>
-                    b.channel === release.legacy.channel &&
-                    b.ranked === release.legacy.ranked &&
-                    b.multiplayer === release.legacy.multiplayer &&
-                    b.backendVersion === release.legacy.backendVersion,
-                )?.buildId
-              }
+              placeholder="选择已登记包"
+              value={null}
+              virtual={false}
+              optionRender={(option) => <div className="night-legacy-option">{option.label}</div>}
               options={release.builds
                 .filter((b) => !b.removed)
                 .map((b) => ({
                   value: b.buildId,
-                  label: (b.version ?? b.buildId) + ' · ' + b.channel,
+                  label: `${b.version ?? b.buildId} · ${b.channel} · ${b.ranked} / ${b.multiplayer} · ${b.backendVersion ?? '未分组'}`,
                 }))}
               onChange={(id) => {
                 const b = release.builds.find((b) => b.buildId === id)!;
@@ -517,8 +438,119 @@ export function NightVersionsEditor({
                 });
               }}
             />
-          </section>
+          </details>
+        </Card>
+      )}
+      <Card title="新局开关分组">
+        <p className="control-help">
+          停开一个分组会关闭组内所有客户端的新局。已开局继续使用其原有规则。
+        </p>
+        <div
+          className="table-scroll night-versions-scroll night-groups-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label="新局开关分组列表"
+        >
+          <Table
+            aria-label="新局开关分组"
+            dataSource={versions.map((id) => ({ id }))}
+            columns={[
+              { title: '分组标识', dataIndex: 'id' },
+              {
+                title: '已发布关联',
+                key: 'builds',
+                render: (_, row) =>
+                  `${liveRelease?.builds.filter((b) => b.backendVersion === row.id && !b.removed).length ?? 0} 个前端包${liveRelease?.legacy.backendVersion === row.id ? ' + 旧包映射' : ''}`,
+              },
+              {
+                title: '分组开关',
+                key: 'state',
+                render: (_, row) => {
+                  const closed = !!liveRelease?.disabledBackendVersions?.includes(row.id);
+                  const draftClosed = !!release?.disabledBackendVersions?.includes(row.id);
+                  return (
+                    <>
+                      <Tag>{liveRelease ? (closed ? '已停开' : '已开放') : '未发布'}</Tag>
+                      {closed !== draftClosed && (
+                        <Tag color="gold">草稿{draftClosed ? '停开' : '恢复'}</Tag>
+                      )}
+                    </>
+                  );
+                },
+              },
+              {
+                title: '操作',
+                key: 'actions',
+                render: (_, row) => (
+                  <Button
+                    type="primary"
+                    size="small"
+                    disabled={disabled || !release}
+                    onClick={() => toggleBackend(row.id)}
+                  >
+                    {release?.disabledBackendVersions?.includes(row.id) ? '恢复新局' : '关闭新局'}
+                  </Button>
+                ),
+              },
+            ]}
+          />
+        </div>
+      </Card>
+      <Card title="Runtime 部署历史">
+        <p className="control-help">
+          最近 5 次通过健康核验的 Runtime 上线记录，用于追溯镜像与源码。
+        </p>
+        {deployments?.current ? (
+          <p>
+            <Tag color="blue">最近确认版本 {deployments.current.version}</Tag>核验于{' '}
+            {dateLabel(deployments.current.verifiedAt)}
+          </p>
+        ) : (
+          <Alert
+            type="info"
+            title="尚无可核实的版本部署记录"
+            description="升级后的部署工具完成上线后自动记录；已有旧部署不会补造版本号。"
+          />
         )}
+        <div className="table-scroll">
+          <Table
+            aria-label="后端上线历史"
+            dataSource={(deployments?.history ?? [])
+              .map((d, i) => ({ ...d, id: d.release + ':' + d.verifiedAt + ':' + i }))
+              .sort(
+                (a, b) => versionOrder.compare(b.version, a.version) || b.verifiedAt - a.verifiedAt,
+              )}
+            columns={[
+              {
+                title: '部署版本',
+                key: 'version',
+                render: (_, row) => (
+                  <>
+                    <strong>{row.version}</strong>
+                    <small className="control-id">
+                      {row.mode === 'rollback' ? '回滚后版本' : '上线版本'}
+                    </small>
+                  </>
+                ),
+              },
+              {
+                title: '核验时间 / 源码',
+                key: 'verified',
+                render: (_, row) => (
+                  <>
+                    {dateLabel(row.verifiedAt)}
+                    <small className="control-id">{row.sourceSHA}</small>
+                  </>
+                ),
+              },
+              {
+                title: '镜像',
+                key: 'image',
+                render: (_, row) => <span className="control-id">{row.activeImages.runtime}</span>,
+              },
+            ]}
+          />
+        </div>
       </Card>
     </>
   );

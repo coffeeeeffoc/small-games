@@ -165,15 +165,22 @@ main.control-main {
   min-height: 32px;
   white-space: nowrap;
 }
+.night-runtime-rules .control-table {
+  min-width: 0;
+}
+.night-runtime-rules .ant-tag {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .night-builds-scroll .control-table {
-  min-width: 980px;
+  min-width: 900px;
   table-layout: fixed;
 }
 .night-builds-scroll th:nth-child(1) {
   width: 21%;
 }
-.night-builds-scroll th:nth-child(2) {
-  width: 16%;
+.night-builds-scroll th:nth-child(4) {
+  width: 12%;
 }
 .night-builds-scroll th:last-child {
   width: 244px;
@@ -184,19 +191,92 @@ main.control-main {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.night-version-actions,
-.night-rule-comparison {
+.night-version-actions {
   display: flex;
   gap: 6px;
 }
-.night-rule-comparison {
-  flex-wrap: wrap;
-  column-gap: 12px;
-  row-gap: 0;
+.night-rule-status {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.night-rule-status .ant-tag {
+  white-space: normal;
+}
+.night-rule-status code,
+.night-rule-status small,
+.night-draft-rule > small {
+  font-size: 12px;
   line-height: 1.5;
 }
-.night-rule-comparison small {
-  flex-basis: 100%;
+.night-draft-rule {
+  margin-top: 6px;
+  padding-inline-start: 8px;
+  border-inline-start: 2px solid #d89614;
+}
+.night-rule-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(175px, 100%), 1fr));
+  gap: 12px;
+  margin-block: 12px;
+}
+.night-rule-pair > div {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.night-rule-pair > div > span {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.night-legacy-settings summary {
+  cursor: pointer;
+  width: fit-content;
+  padding-block: 8px;
+  color: var(--blue);
+}
+.night-legacy-settings .ant-select {
+  display: flex;
+  width: min(100%, 620px);
+  margin-top: 4px;
+}
+.night-legacy-option {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .night-runtime-rules th,
+  .night-runtime-rules td {
+    padding: 8px;
+  }
+  .night-runtime-rules th {
+    white-space: normal;
+  }
+  .night-groups-scroll .control-table {
+    min-width: 300px;
+  }
+  .night-groups-scroll th,
+  .night-groups-scroll td {
+    padding-inline: 6px;
+  }
+  .night-builds-scroll .control-table {
+    min-width: 560px;
+  }
+  .night-builds-scroll th,
+  .night-builds-scroll td {
+    padding-inline: 6px;
+  }
+  .night-builds-scroll th:nth-child(-n + 3) {
+    width: 80px;
+  }
+  .night-builds-scroll .ant-tag {
+    margin-inline-end: 0;
+    white-space: normal;
+  }
 }
 .config-diff {
   padding-left: 24px;

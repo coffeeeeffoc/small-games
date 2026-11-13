@@ -1,0 +1,15 @@
+{
+  "checked": "2026-11-14",
+  "files": 43,
+  "result": "All file sizes and SHA-256 match the existing verified publishing manifest; original media capture identities preserved. Input-only fix does not change artwork or gameplay.",
+  "categories": [
+    "introduction",
+    "tagline",
+    "developer note",
+    "icon",
+    "promotional images",
+    "promotional video",
+    "gameplay screenshots",
+    "gameplay video"
+  ]
+}

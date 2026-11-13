@@ -1,0 +1,846 @@
+{
+  "deployedAt": "2026-11-13T17:45:51.165Z",
+  "release": "night-20261114-reconnect-r2",
+  "bundle": "F:\\playground\\playground-ai\\small-games\\.scratch\\night-overwatch-selftest\\night-20261114-reconnect-r2",
+  "sourceCommit": "ae972df5160e87bcd761dd5e52ac8a606e8c2bec",
+  "image": "small-games-bundle:night-20261114-reconnect-r2",
+  "imageId": "sha256:6df11291f61d7696ed2cf1f759515a34523a43aee0ccb7e1ea552c147683238a",
+  "backup": "F:\\playground\\playground-ai\\small-games\\.scratch\\night-overwatch-selftest\\backup-1794591889447",
+  "sourceDirty": true,
+  "verifiedFiles": 485,
+  "noDatabaseMigration": true,
+  "retained": {
+    "night-overwatch-taptap-test-postgres-1": "e605bab6b7adb4408f91b3b999b320c9bece364b3af913ca8b39575c658201bd",
+    "night-overwatch-taptap-test-gateway-1": "562511a53bf9074426df7acac742d6951aadf71bea598c499f85af56d55b25df",
+    "night-overwatch-taptap-test-management-1": "09e4e387e1fbcf86bb10cd5fe8792f21149a4c103907a89f57fb82fab9c9a5d6"
+  },
+  "endpoints": [
+    {
+      "base": "http://127.0.0.1:43003",
+      "health": 200,
+      "anonymous": 401,
+      "internal": 404,
+      "otherGame": 404,
+      "tapCors": 204,
+      "metadata": 200,
+      "social": 200,
+      "me": 200
+    },
+    {
+      "base": "https://nas.hc2a5c9f0.nyat.app:29549",
+      "health": 200,
+      "anonymous": 401,
+      "internal": 404,
+      "otherGame": 404,
+      "tapCors": 204,
+      "metadata": 200,
+      "social": 200,
+      "me": 200
+    }
+  ],
+  "previousImage": "small-games-bundle:night-20261113-duel12",
+  "previousImageId": "sha256:fef92f9013e9165f92a86f08c07575387056decd2d46ef88033ac1c3b54bf426",
+  "composeFile": "F:\\playground\\playground-ai\\small-games\\.scratch\\night-overwatch-selftest\\night-1794334935236-11ae\\compose.yaml",
+  "composeOverride": "F:\\playground\\playground-ai\\small-games\\.scratch\\night-overwatch-selftest\\night-20261114-reconnect-r2-runtime.compose.json",
+  "backupVerification": {
+    "tables": 54,
+    "archiveSha256": "6632267af74c5420718c155d3d653ccf6da1ccdfc5dae21e310701b6f0b6b3ab",
+    "preview": {
+      "wallets": 5,
+      "preservedCoins": 80,
+      "conversionCoins": 3300,
+      "signDays": 2,
+      "legacyRowsUnchanged": true,
+      "idempotent": true
+    }
+  },
+  "artifactVerification": {
+    "verifiedAt": "2026-11-13T17:48:25.943Z",
+    "files": {
+      "store.js": "6e162db05efc8285b6a955c5f1faf699f7bc18d2577fcb86791b509f6ea4f5e3",
+      "night-ledger.js": "67351bc4a2df03906d05d8be100da5b72fcd4468890e6cedbee2071ac7feef65",
+      "night-chat.js": "9cae6ad5f3e29045a239dabebcac40ba50eb7327db52dc9879ff638a94983489",
+      "types.js": "222d4ce0828b53b9f466e6a055cf2e11e2302946ab23cc800f819e8f9c004066"
+    }
+  },
+  "liveCheck": {
+    "api": "https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1",
+    "client": {
+      "channel": "taptap-h5",
+      "ranked": "night-input-replay-v18",
+      "multiplayer": "night-duel-v12",
+      "version": "1.0.57",
+      "backendVersion": "1.0.0",
+      "buildId": "night-f8a4c400273e744a2ebd86b04a6a4b19721e228ae9a2171b486202bcc3f1513b"
+    },
+    "verification": "Real HTTP with the currently registered TapTap H5 client identity; no physical host",
+    "checks": [
+      "Actual admitted Web H5 build creates a private v12 room; after more than 10 seconds of play, exit does not settle the peer; A reconnects after 11 seconds in the same match",
+      "At the server 30-second deadline the existing duel continues with a bot and no settlement; late return is rejected",
+      "Only QA private room and new guest identities were used; both sessions are logged out"
+    ],
+    "samples": [
+      {
+        "name": "first-exit",
+        "elapsed": 0,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 159,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 1225,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 2300,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 3357,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 4412,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 5459,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 6510,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 7551,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 8599,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 9639,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-before-return",
+        "elapsed": 10687,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592106437
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "returned-before-30s",
+        "elapsed": 11728,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 108,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 1240,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 2380,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 3521,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 4667,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 5793,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 6943,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 8092,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 9240,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 10367,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 11513,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 12653,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 13805,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 14962,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 16107,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 17272,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 18425,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 19553,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 20704,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 21908,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 23251,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 24382,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 25516,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 26650,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 27797,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 28928,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": false,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      },
+      {
+        "name": "waiting-for-takeover",
+        "elapsed": 30096,
+        "status": "playing",
+        "settlement": null,
+        "players": [
+          {
+            "left": true,
+            "disconnected": true,
+            "takenOver": true,
+            "reconnectUntil": 1794592118403
+          },
+          {
+            "left": false,
+            "disconnected": false,
+            "takenOver": false
+          }
+        ]
+      }
+    ],
+    "takeoverAfterMs": 30096
+  },
+  "scope": "Local Docker Runtime and existing Sakura FRP only; no production or channel upload; no existing user assets changed"
+}

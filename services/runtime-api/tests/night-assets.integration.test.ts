@@ -465,7 +465,7 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       });
       // A winner who keeps fighting through the opponent's timeout disconnect is still rewarded.
       expect((await get(a)).inventory['fragment:weapon'] ?? 0, scenario).toBe(
-        ['eligible', 'disconnect'].includes(scenario) ? 2 : 0,
+        ['eligible', 'disconnect', 'forfeit'].includes(scenario) ? 2 : 0,
       );
       expect((await get(b)).inventory['fragment:weapon'] ?? 0).toBe(
         ['disconnect', 'abandoned', 'short', 'delayed-short', 'forfeit'].includes(scenario) ? 0 : 1,
@@ -473,11 +473,15 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       if (scenario === 'forfeit') {
         expect(room.players[0]!.settlement).toMatchObject({
           outcome: 'win',
+          coins: 200,
+          xp: 140,
+        });
+        expect(room.players[1]!.settlement).toMatchObject({
+          outcome: 'loss',
+          points: 0,
           coins: 0,
           xp: 0,
-          rewardReason: 'opponent-left',
         });
-        expect(room.players[1]!.settlement).toMatchObject({ outcome: 'loss', coins: 60, xp: 70 });
         expect(
           (await get(b)).tasks
             .filter((t) => ['duel', 'complete'].includes(t.event))

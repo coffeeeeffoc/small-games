@@ -55,6 +55,9 @@ export function captureOverwatchSnapshot(game: SnapshotSource, presentedTime: nu
       panel: game.online.panel,
       room: game.online.room,
       active: game.online.active,
+      resumeCode: game.online.resumeCode,
+      peerChoice: game.online.peerChoice,
+      peerReconnectSeconds: game.online.peerReconnectSeconds,
       message: game.online.message,
       rankStatus: game.online.rankStatus,
       release: game.online.release,
@@ -110,9 +113,9 @@ export function captureOverwatchSnapshot(game: SnapshotSource, presentedTime: nu
     })),
     chat: game.online
       ? {
-          messages: game.online.visibleChat,
-          draft: game.online.chatDraft,
-          status: game.online.chatStatus,
+          messages: game.online.socialOpen ? game.online.visibleChat : game.online.publicMessages,
+          draft: game.online.socialOpen ? game.online.chatDraft : game.online.publicChat.draft,
+          status: game.online.socialOpen ? game.online.chatStatus : game.online.publicChat.status,
           blocked: Array.from(game.online.blockedPlayers),
           sending: game.online.chatSending,
         }

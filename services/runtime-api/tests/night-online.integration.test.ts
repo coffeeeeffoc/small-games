@@ -390,77 +390,124 @@ integration('Night real HTTP and PostgreSQL', () => {
     await request(roomPath(room.code) + '/leave', watcher, {});
     await request(roomPath(room.code) + '/leave', owner, {});
   });
-  it('reserves rematch seats, propagates departures and keeps old leave retries from ejecting new members', async () => {
+  it('keeps old invitations joinable when a finished room has a remaining occupant', async () => {
+    const [a, b] = await Promise.all([player(), player()]);
+    const room = await request(path + '/rooms', a, {}),
+      chat = path + '/chat';
+    const sent = (
+      await request(chat, a, { requestId: randomUUID(), text: '原房间邀请', roomCode: room.code })
+    ).messages.at(-1);
+    // Terminal fixture exercises invitation metadata without replaying a full battle.
+    await database.db.execute(
+      sql`update runtime.competition_rooms set data=jsonb_set(data,'{status}','"finished"'::jsonb) where code=${room.code}`,
+    );
+    expect(
+      (await request(chat, b)).messages.find((m: { id: string }) => m.id === sent.id).room,
+    ).toEqual(sent.room);
+    time += 4000;
+    await request(chat, a, { requestId: randomUUID(), text: '还在原房间', roomCode: room.code });
+    const joined = await request(path + '/rooms/join', b, {
+      code: sent.room.code,
+      createdAt: sent.room.createdAt,
+    });
+    expect(joined).toMatchObject({ code: room.code, status: 'waiting' });
+    expect(joined.id).not.toBe(room.id);
+    expect(
+      (await request(chat, b)).messages.find((m: { id: string }) => m.id === sent.id).room.canJoin,
+    ).toBe(false);
+  });
+  it('keeps the same room and invitation across rounds, rotates leases and releases vacant seats', async () => {
     const [a, b, c] = await Promise.all([player(), player(), player()]);
-    const old = await pair(a, b);
+    const old = await pair(a, b),
+      original = await storedRoom(old.code);
+    const oldLease = leases.get(`${a.playerId}:${old.code}`);
     await eliminate(old.code, 1);
     const again = await request(roomPath(old.code) + '/rematch', a, {});
-    const next = again.rematch;
+    expect(again).toMatchObject({
+      code: old.code,
+      status: 'waiting',
+      rematch: old.code,
+      state: null,
+    });
+    expect(again.id).not.toBe(old.id);
+    // The server committed the rematch but its response was lost; the old lease retries the same claim.
+    const retried = await request(roomPath(old.code) + '/rematch', a, { leaseId: oldLease });
+    expect(retried.id).toBe(again.id);
+    expect(retried.leaseId).toBe(again.leaseId);
+    await request(roomPath(old.code), a);
     expect(
-      (await request(path + '/rooms', c)).rooms.find((r: { code: string }) => r.code === next)
-        ?.canJoin,
-    ).toBe(false);
-    await request(path + '/rooms/join', c, { code: next }, 409);
-    const outsider = await request(path + '/match', c, {});
-    expect(outsider.code).not.toBe(next);
-    await request(roomPath(outsider.code) + '/leave', c, {});
-    await request(roomPath(old.code) + '/rematch', b, {});
-    await request(roomPath(next) + '/connect', b, {});
-    await request(roomPath(next) + '/connect', a, {});
-    await request(roomPath(next) + '/ready', a, {});
-    await request(roomPath(old.code) + '/leave', b, {});
-    expect((await storedRoom(next)).players[0].ready).toBe(false);
-    expect((await storedRoom(next)).players.map((p) => p.id)).toEqual([a.playerId]);
-    await request(path + '/rooms/join', b, { code: next });
-    await request(roomPath(old.code) + '/leave', b, {});
-    expect((await storedRoom(next)).players.map((p) => p.id)).toContain(b.playerId);
-    await request(roomPath(next) + '/connect', a, {});
-    await request(roomPath(next) + '/leave', a, {});
-    await request(roomPath(next) + '/leave', b, {});
-    const second = await pair(a, b);
-    await eliminate(second.code, 1);
-    const waiting = await request(roomPath(second.code) + '/rematch', a, {});
-    await request(roomPath(waiting.rematch) + '/connect', a, {});
-    await request(roomPath(waiting.rematch) + '/leave', a, {});
-    const stayed = await request(roomPath(second.code), b);
+      (await request(roomPath(old.code) + '/rematch', a, { leaseId: oldLease }, 409)).error,
+    ).toBe('STALE_LEASE');
+    expect((await storedRoom(old.code)).createdAt).toBe(original.createdAt);
+    // An old result page can discover the new round without stealing another tab's control lease.
+    const discovered = await request(roomPath(old.code), b);
+    expect(discovered.id).toBe(again.id);
+    expect(discovered.status).toBe('waiting');
+    await request(
+      roomPath(old.code) + '/actions',
+      a,
+      { leaseId: oldLease, seq: 1, action: { commands: [] } },
+      409,
+    );
+    await request(roomPath(old.code) + '/leave', a, { leaseId: oldLease }, 409);
+    expect((await request(roomPath(old.code) + '/rematch', b, {})).id).toBe(again.id);
+    const claimedLease = leases.get(`${b.playerId}:${old.code}`);
+    await request(roomPath(old.code) + '/connect', b, {});
     expect(
-      stayed.players.find((p: { id: string; left?: boolean }) => p.id === a.playerId).left,
-    ).toBe(true);
-    expect(stayed.rematch).toBeUndefined();
-    const restored = await request(roomPath(second.code) + '/rematch', b, {});
-    expect(restored.rematch).not.toBe(waiting.rematch);
-    await request(roomPath(restored.rematch) + '/connect', b, {});
-    await request(roomPath(restored.rematch) + '/leave', b, {});
-  }, 15000);
-  it('releases abandoned rematches and countdown departures for replacements', async () => {
-    const [a, b, c] = await Promise.all([player(), player(), player()]);
-    const old = await pair(a, b);
-    await eliminate(old.code, 1);
-    const first = await request(roomPath(old.code) + '/rematch', a, {});
+      (await request(roomPath(old.code) + '/rematch', b, { leaseId: claimedLease }, 409)).error,
+    ).toBe('STALE_LEASE');
+    await request(path + '/rooms/join', c, { code: old.code, createdAt: original.createdAt }, 409);
     await request(roomPath(old.code) + '/leave', a, {});
-    expect((await request(roomPath(old.code), b)).rematch).toBeUndefined();
-    const second = await request(roomPath(old.code) + '/rematch', b, {});
-    expect(second.rematch).not.toBe(first.rematch);
-    await request(path + '/rooms/join', a, { code: second.rematch });
-    await request(roomPath(second.rematch) + '/connect', b, {});
-    await request(roomPath(second.rematch) + '/ready', a, {});
-    await request(roomPath(second.rematch) + '/ready', b, {});
-    await request(roomPath(second.rematch) + '/leave', a, {});
-    const waiting = await storedRoom(second.rematch);
-    expect(waiting.status).toBe('waiting');
-    expect(waiting.rematchMembers).toBeUndefined();
-    expect(waiting.players[0].ready).toBe(false);
-    await request(path + '/rooms/join', c, { code: second.rematch });
-    await request(roomPath(second.rematch) + '/leave', c, {});
-    await request(roomPath(second.rematch) + '/leave', b, {});
+    const joined = await request(path + '/rooms/join', c, {
+      code: old.code,
+      createdAt: original.createdAt,
+    });
+    expect(joined.code).toBe(old.code);
+    expect(joined.players.map((p: { id: string }) => p.id)).toEqual([b.playerId, c.playerId]);
+    expect((await storedRoom(old.code)).deadline).toBe(Number.MAX_SAFE_INTEGER);
+    time += 1000;
+    expect((await request(roomPath(old.code), b)).status).toBe('waiting');
+    await request(roomPath(old.code) + '/ready', b, {});
+    expect((await request(roomPath(old.code) + '/ready', c, {})).status).toBe('playing');
+    // Leaving during countdown restores the same room and releases unconsumed loadouts.
+    await request(roomPath(old.code) + '/leave', c, {});
+    expect(await request(roomPath(old.code), b)).toMatchObject({ status: 'waiting', state: null });
+    await request(path + '/rooms/join', a, { code: old.code, createdAt: original.createdAt });
+    await request(roomPath(old.code) + '/leave', a, {});
+    await request(roomPath(old.code) + '/leave', b, {});
+    await request(roomPath(old.code), b, undefined, 404);
   }, 15000);
+  it('gives each same-room round an independent settlement and never replays old actions', async () => {
+    const [a, b] = await Promise.all([player(), player()]);
+    const first = await pair(a, b);
+    await request(roomPath(first.code) + '/actions', a, { seq: 1, action: { commands: [] } });
+    await eliminate(first.code, 1);
+    const waiting = await request(roomPath(first.code) + '/rematch', a, {});
+    await request(roomPath(first.code) + '/connect', b, {});
+    await request(roomPath(first.code) + '/ready', a, {});
+    const second = await request(roomPath(first.code) + '/ready', b, {});
+    expect(second.id).toBe(waiting.id);
+    time += 1201;
+    const action = await request(roomPath(first.code) + '/actions', a, {
+      seq: 1,
+      action: { commands: [{ command: 'choose', args: [2] }] },
+    });
+    expect(action.seq).toBe(1);
+    await eliminate(first.code, 0);
+    await request(roomPath(first.code), b);
+    const history = await request(path + '/history', a);
+    expect(history.matches).toHaveLength(2);
+    expect(new Set(history.matches.map((m: { id: string }) => m.id)).size).toBe(2);
+    expect(history.matches.every((m: { code: string }) => m.code === first.code)).toBe(true);
+    expect(history.summary).toMatchObject({ wins: 1, losses: 1 });
+  });
   it('rematches after finishing and preserves the occupancy of unknown old-version active rooms', async () => {
     const [a, b] = await Promise.all([player(), player()]);
     const first = await pair(a, b);
     await eliminate(first.code, 1);
     const rematched = await request(roomPath(first.code) + '/rematch', a, {});
-    expect(rematched.status).toBe('finished');
-    expect(rematched.rematch).not.toBe(first.code);
+    expect(rematched.status).toBe('waiting');
+    expect(rematched.rematch).toBe(first.code);
     expect((await request(roomPath(first.code) + '/rematch', b, {})).rematch).toBe(
       rematched.rematch,
     );
@@ -506,7 +553,7 @@ integration('Night real HTTP and PostgreSQL', () => {
         { leaseId: old, ...(op === 'actions' ? { seq: 1, action: { commands: [] } } : {}) },
         409,
       );
-    // Network loss sends no leave request; an explicit leave is an immediate forfeit.
+    // Both network loss and voluntary leave allow the full reconnection window.
     time += 15000;
     await request(roomPath(room.code), b);
     time += 14000;
@@ -519,25 +566,25 @@ integration('Night real HTTP and PostgreSQL', () => {
     await request(roomPath(room.code), b);
     time += 20001;
     const taken = await request(roomPath(room.code), b);
-    expect(taken.status).toBe('finished');
-    expect(taken.state).toMatchObject({
-      finished: true,
-      winner: 1,
-      simulation: { phase: 'success' },
-    });
+    expect(taken.status).toBe('playing');
+    expect(taken.state.finished).toBe(false);
+    expect(taken.state.bots[0]).toBe(true);
     expect(taken.players[0]).toMatchObject({ disconnected: true, takenOver: true });
-    expect(taken.settlement).toMatchObject({
+    expect(taken.settlement).toBeNull();
+    expect((await request(path + '/history', b)).summary.games).toBe(0);
+    await eliminate(room.code, 0);
+    const wonAfterBot = await request(roomPath(room.code), b);
+    expect(wonAfterBot.status).toBe('finished');
+    expect(wonAfterBot.settlement).toMatchObject({
       points: 120,
-      wins: 1,
-      games: 1,
       outcome: 'win',
-      reason: 'disconnect',
+      reason: 'elimination',
     });
     await request(roomPath(room.code) + '/connect', a, {}, 409);
     const lost = await request(path + '/history', a),
       won = await request(path + '/history', b);
     expect(lost.summary).toMatchObject({ losses: 1, games: 1, wins: 0 });
-    expect(lost.matches[0].points).toBe(40);
+    expect(lost.matches[0].points).toBe(0);
     expect(won.summary).toMatchObject({ wins: 1, games: 1, winRate: 1 });
     await eliminate(room.code, 1);
     const ended = await request(roomPath(room.code), b);
@@ -566,53 +613,152 @@ integration('Night real HTTP and PostgreSQL', () => {
       games: 3,
     });
   }, 30000);
-  it('ends voluntary exits immediately for either seat, awards only defeat consolation, and never runs bots after settlement', async () => {
+  it('keeps voluntary exits reconnectable for 30 seconds without settling the other player', async () => {
+    const [a, b] = await Promise.all([player(), player()]);
+    const room = await pair(a, b);
+    time += 12000;
+    await request(roomPath(room.code), a);
+    await request(roomPath(room.code), b);
+    const left = await request(roomPath(room.code) + '/leave', a, {});
+    expect(left.status).toBe('playing');
+    expect(left.settlement).toBeNull();
+    expect(left.players[0]).toMatchObject({
+      disconnected: true,
+      reconnectUntil: time + 30000,
+      takenOver: false,
+    });
+    expect((await request(roomPath(room.code), b)).status).toBe('playing');
+  });
+  it('resumes voluntary departures before the deadline and otherwise keeps playing the bot with fair rewards', async () => {
     for (const quitterSeat of [0, 1]) {
       const players = await Promise.all([player(), player()]),
         room = await pair(players[0], players[1]);
-      for (let i = 0; i < 3; i++) {
-        time += 4000;
-        for (const p of players) await request(roomPath(room.code), p);
-      }
+      time += 12000;
+      for (const p of players) await request(roomPath(room.code), p);
       const quitter = players[quitterSeat],
         stayer = players[1 - quitterSeat];
       const left = await request(roomPath(room.code) + '/leave', quitter, {});
-      expect(left).toMatchObject({
-        status: 'finished',
-        settlement: { outcome: 'loss', reason: 'forfeit', coins: 60, xp: 70 },
-        state: { finished: true, winner: 1 - quitterSeat, simulation: { phase: 'failure' } },
+      time += 15000;
+      await request(roomPath(room.code), stayer);
+      time += 14999;
+      const returned = await request(roomPath(room.code) + '/connect', quitter, {});
+      expect(returned.players[quitterSeat]).toMatchObject({
+        left: false,
+        disconnected: false,
+        takenOver: false,
       });
-      expect(left.settlement.fragments).toBeUndefined();
-      const stayed = await request(roomPath(room.code), stayer);
-      expect(left.opponent).toEqual(left.players[1 - quitterSeat].result);
-      expect(stayed).toMatchObject({
-        status: 'finished',
-        settlement: {
-          outcome: 'win',
-          reason: 'forfeit',
-          coins: 0,
-          xp: 0,
-          rewardReason: 'opponent-left',
-        },
-        state: { finished: true, winner: 1 - quitterSeat, simulation: { phase: 'success' } },
-      });
-      const stored = await storedRoom(room.code),
-        receipt = left.settlement;
-      time += 300000;
-      const repeated = await request(roomPath(room.code) + '/leave', quitter, {});
-      expect(repeated.settlement).toEqual(receipt);
-      expect((await request(roomPath(room.code), stayer)).state).toEqual(stayed.state);
-      expect((await storedRoom(room.code)).players[0].state).toEqual(stored.players[0].state);
-      expect((await request(path + '/history', quitter)).summary).toMatchObject({
-        games: 1,
-        losses: 1,
-      });
+      expect(returned.status).toBe('playing');
+      expect(returned.settlement).toBeNull();
+      const again = await request(roomPath(room.code) + '/leave', quitter, {});
+      expect(again.players[quitterSeat].reconnectUntil).toBeGreaterThan(
+        left.players[quitterSeat].reconnectUntil,
+      );
+      time += 15000;
+      await request(roomPath(room.code), stayer);
+      time += 14999;
+      const waiting = await request(roomPath(room.code), stayer);
+      expect(waiting.players[quitterSeat].takenOver).toBe(false);
+      // Retrying leave must not extend the already agreed deadline.
+      const retried = await request(roomPath(room.code) + '/leave', quitter, {});
+      expect(retried.players[quitterSeat].reconnectUntil).toBe(
+        again.players[quitterSeat].reconnectUntil,
+      );
+      time += 1;
+      const taken = await request(roomPath(room.code), stayer);
+      expect(taken.status).toBe('playing');
+      expect(taken.state.bots[quitterSeat]).toBe(true);
+      expect(taken.settlement).toBeNull();
+      await request(roomPath(room.code) + '/connect', quitter, {}, 409);
+      const stored = await storedRoom(room.code);
+      const state = stored.players[0]!.state as {
+        simulation: {
+          pilotSide: number;
+          ammoSpent: number;
+          hitShots: number;
+          duelStats: { ammoSpent: number; hitShots: number }[];
+        };
+      };
+      Object.assign(state.simulation.duelStats[1 - quitterSeat]!, { ammoSpent: 3, hitShots: 1 });
+      if (state.simulation.pilotSide === 1 - quitterSeat)
+        Object.assign(state.simulation, { ammoSpent: 3, hitShots: 1 });
+      await database.db.execute(
+        sql`update runtime.competition_rooms set data=${JSON.stringify(stored)}::jsonb where code=${room.code}`,
+      );
+      await eliminate(room.code, quitterSeat);
+      const won = await request(roomPath(room.code), stayer),
+        lost = await request(roomPath(room.code), quitter);
+      expect(won.settlement).toMatchObject({ outcome: 'win', points: 120, coins: 200, xp: 140 });
+      expect(lost.settlement).toMatchObject({ outcome: 'loss', points: 0, coins: 0, xp: 0 });
+      expect((await request(roomPath(room.code), stayer)).settlement).toEqual(won.settlement);
       expect((await request(path + '/history', stayer)).summary).toMatchObject({
         games: 1,
         wins: 1,
       });
+      const retained = await request(roomPath(room.code) + '/rematch', stayer, {});
+      expect(retained).toMatchObject({ code: room.code, status: 'waiting' });
+      expect(retained.players).toHaveLength(1);
     }
   }, 30000);
+  it('does not let an old result tab reclaim a round already claimed through create or match', async () => {
+    for (const operation of ['rooms', 'match']) {
+      const [a, b] = await Promise.all([player(), player()]);
+      const room = await pair(a, b),
+        oldLease = leases.get(`${b.playerId}:${room.code}`);
+      await eliminate(room.code, 1);
+      await request(roomPath(room.code) + '/rematch', a, {});
+      const claimed = await request(path + '/' + operation, b, {});
+      expect(claimed.code).toBe(room.code);
+      expect(
+        (await request(roomPath(room.code) + '/rematch', b, { leaseId: oldLease }, 409)).error,
+      ).toBe('STALE_LEASE');
+      expect((await request(roomPath(room.code) + '/ready', b, {})).players[1].ready).toBe(true);
+    }
+  });
+  it('preserves a takeover bot victory and active spectator identity across rounds', async () => {
+    const [a, b, watcher] = await Promise.all([player(), player(), player()]);
+    const room = await pair(a, b);
+    await request(roomPath(room.code) + '/spectate', watcher, {});
+    await request(roomPath(room.code) + '/leave', a, {});
+    time += 15000;
+    await request(roomPath(room.code), b);
+    await request(roomPath(room.code), watcher);
+    time += 15000;
+    await request(roomPath(room.code), b);
+    await eliminate(room.code, 1);
+    const lost = await request(roomPath(room.code), b);
+    expect(lost).toMatchObject({
+      settlement: { outcome: 'loss' },
+      state: { winner: 0, simulation: { phase: 'failure' } },
+    });
+    expect((await request(roomPath(room.code), a)).settlement).toMatchObject({
+      outcome: 'loss',
+      coins: 0,
+      xp: 0,
+      points: 0,
+    });
+    for (let i = 0; i < 3; i++) {
+      const watched = await request(roomPath(room.code), watcher);
+      expect(watched).toMatchObject({
+        you: -1,
+        spectator: true,
+        settlement: null,
+        state: { winner: 0, simulation: { phase: 'success' } },
+      });
+      expect(watched.leaseId).toBeUndefined();
+      time += 15000;
+    }
+    await request(roomPath(room.code) + '/rematch', b, {});
+    const waiting = await request(roomPath(room.code), watcher);
+    expect(waiting).toMatchObject({
+      code: room.code,
+      status: 'waiting',
+      you: -1,
+      spectator: true,
+      state: null,
+      settlement: null,
+    });
+    expect(waiting.leaseId).toBeUndefined();
+  });
   it('keeps the bot as winner when its only human player loses', async () => {
     const a = await player(),
       room = await request(path + '/rooms', a, { mode: 'bot' });

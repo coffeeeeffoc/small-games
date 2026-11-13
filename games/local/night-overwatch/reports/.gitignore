@@ -38,3 +38,7 @@
 
 # Selected social phone regression evidence lives in docs/design/2026-11-12-social.
 /2026-11-12-social-refinement/
+
+# Version-notice regression: selected evidence is retained with the social-window design record.
+/version-notice/
+/2026-11-14-reconnect/

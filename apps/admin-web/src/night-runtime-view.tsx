@@ -1,44 +1,43 @@
 import { Alert, Card, Tag } from 'antd';
 import { ActionButton as Button, DataTable as Table } from './control-common';
 import { dateLabel } from './control-api';
-import {
-  buildCompatibility,
-  ruleAdvice,
-  ruleKinds,
-  runtimeReport,
-  type NightRuntimeStatus,
-} from './night-compatibility';
-import type { NightBuild } from './night-operations-model';
+import { ruleAdvice, ruleKinds, ruleSupport, runtimeReport } from './night-compatibility';
+import type { NightRuleKind, NightRuntimeStatus } from './night-compatibility';
 
-export function Compatibility({
-  build,
+export function NightRuleStatus({
+  kind,
+  rule,
   status,
+  block,
+  preview = false,
 }: {
-  build: Pick<NightBuild, 'ranked' | 'multiplayer'>;
+  kind: NightRuleKind;
+  rule: string;
   status?: NightRuntimeStatus;
+  block?: string;
+  preview?: boolean;
 }) {
-  const result = buildCompatibility(build, status),
-    report = runtimeReport(status);
+  const support = ruleSupport(kind, rule, status);
+  const server = runtimeReport(status)?.[kind];
+  const [color, label] = {
+    current: ['green', '支持当前规则'],
+    retained: ['green', '支持保留规则'],
+    unsupported: ['red', '缺少规则执行器'],
+    unknown: ['orange', '待核实'],
+    partial: ['orange', '部分实例待核实'],
+  }[support];
+  const admission = !preview && (support === 'current' || support === 'retained');
   return (
-    <div>
-      <Tag color={result === '兼容' ? 'green' : result === '不兼容' ? 'red' : 'orange'}>
-        {result}
+    <div className="night-rule-status">
+      <Tag color={block ? undefined : color}>
+        {block ??
+          (admission ? (support === 'retained' ? '可开新局 · 保留规则' : '可开新局') : label)}
       </Tag>
-      {ruleKinds.map(([kind, label]) => (
-        <div key={kind} className="control-help night-rule-comparison">
-          <span>
-            {label}客户端 <code>{build[kind]}</code>
-          </span>
-          {report && (
-            <>
-              <span>
-                服务端 <code>{report[kind].current}</code>
-              </span>
-              <small>{ruleAdvice(build[kind], report[kind])}</small>
-            </>
-          )}
-        </div>
-      ))}
+      <code>{rule}</code>
+      {block && <small className="control-help">{label}</small>}
+      {support === 'unsupported' && server && (
+        <small className="control-help">{ruleAdvice(rule, server)}</small>
+      )}
     </div>
   );
 }
@@ -55,38 +54,37 @@ export function NightRuntimeView({
   const report = runtimeReport(status);
   return (
     <Card
-      title="当前运行服务端"
+      title="运行实例支持的规则"
       extra={
         <Button color="primary" variant="filled" loading={loading} onClick={refresh}>
-          刷新服务端版本
+          刷新服务端规则
         </Button>
       }
     >
       <p className="control-help">
-        直接读取运行实例实际加载的规则；每 30 秒刷新，60
-        秒后过期。版本登记和“启用”开关不代表服务端支持。
+        单人规则用于回放和成绩校验，双人规则用于联机匹配和对战。每 30 秒读取运行实例，60 秒后过期。
       </p>
       {report ? (
         <>
           <p>
             读取于 {dateLabel(status!.checkedAt)} · 实例 <code>{report.instanceId}</code>
           </p>
-          <div className="table-scroll">
+          <div className="table-scroll night-runtime-rules">
             <Table
               aria-label="服务端实际规则"
               dataSource={ruleKinds.map(([id, label]) => ({ id, label, ...report[id] }))}
               columns={[
                 { title: '规则类型', dataIndex: 'label' },
-                { title: '当前规则版本', dataIndex: 'current' },
+                { title: '部署默认规则', dataIndex: 'current' },
                 {
-                  title: '实际支持（含保留旧版）',
+                  title: '仍受支持的旧规则',
                   key: 'supported',
-                  render: (_, row) =>
-                    row.supported.map((rule) => (
-                      <Tag key={rule} color={rule === row.current ? 'blue' : undefined}>
-                        {rule}
-                      </Tag>
-                    )),
+                  render: (_, row) => {
+                    const retained = row.supported.filter((rule) => rule !== row.current);
+                    return retained.length
+                      ? retained.map((rule) => <Tag key={rule}>{rule}</Tag>)
+                      : '无';
+                  },
                 },
               ]}
             />
@@ -98,9 +96,6 @@ export function NightRuntimeView({
               description={`已读取上方实例；其他心跳实例：${status!.otherInstances.join('、')}。请检查是否混合部署了不同版本。`}
             />
           )}
-          <p className="control-help">
-            结论限于已读取的实例；未发现的实例不在覆盖范围内。后端兼容版本是登记绑定标识，实际部署版本见下方部署记录。
-          </p>
         </>
       ) : (
         <Alert

@@ -12,11 +12,16 @@ const clearsMigration = 'night-migration:highest-clear-v2';
 
 export function settledNightView(room: Room, value: unknown, seat: number) {
   if (room.game !== 'night-overwatch' || room.settledAt === undefined || !value) return value;
-  const view = value as { elapsed?: number; simulation?: Record<string, unknown> };
+  const view = value as {
+    elapsed?: number;
+    winner?: number | null;
+    simulation?: Record<string, unknown>;
+  };
   const own = room.players[seat]?.settlement;
+  const reason = own?.reason ?? room.players[0]?.settlement?.reason;
   const winner =
-    room.mode === 'bot' && own?.outcome === 'loss' && own.reason === 'elimination'
-      ? 1
+    reason === 'elimination'
+      ? (view.winner ?? null)
       : room.players.findIndex((p) => p.settlement?.outcome === 'win');
   const duration =
     own?.durationMs ??
@@ -24,14 +29,14 @@ export function settledNightView(room: Room, value: unknown, seat: number) {
   return {
     ...view,
     finished: true,
-    winner: winner < 0 ? null : winner,
+    winner: winner === null || winner < 0 ? null : winner,
     elapsed: duration / 1000,
     remaining: 0,
     ...(view.simulation
       ? {
           simulation: {
             ...view.simulation,
-            phase: own?.outcome === 'win' ? 'success' : 'failure',
+            phase: (seat < 0 ? winner === 0 : own?.outcome === 'win') ? 'success' : 'failure',
             time: duration / 1000,
             completionTime: duration / 1000,
             held: [],
@@ -136,16 +141,15 @@ export async function settleNightRoom(
   const matchId = room.id ?? room.code;
   const human = room.players.length === 2 && room.mode !== 'bot';
   for (const member of room.players) {
+    const departed = !!(member.takenOver || member.left);
     const outcome =
-      reason === 'abandoned'
+      reason === 'abandoned' || departed
         ? 'loss'
         : reason === 'disconnect' || reason === 'forfeit'
-          ? member.takenOver || member.left
-            ? 'loss'
-            : 'win'
+          ? 'win'
           : member.result!.outcome!;
     const points =
-      reason === 'abandoned'
+      reason === 'abandoned' || departed
         ? 0
         : human
           ? { win: 120, loss: 40, draw: 60 }[outcome]
@@ -196,22 +200,14 @@ export async function settleNightRoom(
             outcome,
             // Delayed polling must not turn a short simulated match into a reward-eligible one.
             durationMs: Math.min(at - room.startedAt, member.result?.secondary ?? 0),
-            // 主动退赛只给失败金币与经验，仍保留最短对局要求；不推进任务或发放碎片。
             valid:
               (reason === 'elimination' ||
                 (reason === 'disconnect' && outcome === 'win') ||
-                (reason === 'forfeit' && outcome === 'loss')) &&
-              (reason === 'forfeit' || member.result?.participated === true) &&
-              !member.takenOver,
-            consolation: reason === 'forfeit',
+                (reason === 'forfeit' && outcome === 'win')) &&
+              member.result?.participated === true &&
+              !departed,
             invalidReason:
-              reason === 'abandoned'
-                ? 'abandoned'
-                : member.takenOver
-                  ? 'disconnected'
-                  : reason === 'forfeit' && outcome === 'win'
-                    ? 'opponent-left'
-                    : 'not-participated',
+              reason === 'abandoned' ? 'abandoned' : departed ? 'disconnected' : 'not-participated',
           },
           accountRules,
         ),

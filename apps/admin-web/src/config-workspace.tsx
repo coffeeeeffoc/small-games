@@ -283,6 +283,8 @@ export function ConfigWorkspace({
                       key={editorVersion}
                       value={snapshot.nightOperations}
                       published={state.snapshot?.nightOperations}
+                      gameState={snapshot.games['night-overwatch']}
+                      publishedGameState={state.snapshot?.games['night-overwatch']}
                       publishedIds={publishedIds}
                       deployments={deployments}
                       disabled={!canWrite || operation.busy}

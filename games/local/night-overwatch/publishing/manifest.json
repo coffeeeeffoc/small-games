@@ -1,7 +1,7 @@
 {
-  "sourceHash": "01afb7b8da214e7bffc2405e38e0045fd0ccb93e07c1a2b0afef08db4dd70cad",
-  "verified": "2026-11-13",
-  "environment": "Creator 3.8.8 Web Mobile 1.0.50; current social/ready-room screenshots captured in desktop Chromium touch emulation with three ordinary guests and isolated real PostgreSQL/HTTP. Prior combat and promotional media retain their original capture identities. No physical-device or platform upload verification.",
+  "sourceHash": "8d830fe1914aeef2c004afadc60c9e1cb4a239260d379563057b9a625c2445e1",
+  "verified": "2026-11-14",
+  "environment": "Creator 3.8.8 Web Mobile 1.0.56; reconnect/room/reward copy updated. Existing media retain their original capture identities; new interaction screenshots are QA evidence only. No physical-device, channel upload or deployment verification.",
   "files": [
     {
       "path": "gameplay/screenshots/2026-11-04-support/night-1280.png",
@@ -169,20 +169,21 @@
     },
     {
       "path": "copy/introduction.md",
-      "bytes": 5950,
-      "sha256": "90f0ee436a96db0c5604d5b7e7ccc72a4d46be687160961e14504f152baff5e4",
-      "verifiedForSourceHash": "05c04f2eb1233503297b756670d2708678d7e434dc981e7fdeaa9d16775dce79",
-      "capturedSourceHash": "af1ec9343823235fa677e1e6b8c6f1e6407413c74088db848c758d1657d3de57",
-      "verified": "2026-11-12",
+      "bytes": 6142,
+      "sha256": "803c8c6d89d139cb3e21d8fdc1a61e6e26de6be1b6e31445a8791e8b31bfd828",
+      "verifiedForSourceHash": "8d830fe1914aeef2c004afadc60c9e1cb4a239260d379563057b9a625c2445e1",
+      "capturedSourceHash": "8d830fe1914aeef2c004afadc60c9e1cb4a239260d379563057b9a625c2445e1",
+      "verified": "2026-11-14",
       "reusedUnchanged": false
     },
     {
       "path": "copy/developer-note.md",
-      "bytes": 3727,
-      "sha256": "a7bff7497c8b6b72d7731b2327302d404fa89145974a01b693c05943bb95172f",
-      "verifiedForSourceHash": "05c04f2eb1233503297b756670d2708678d7e434dc981e7fdeaa9d16775dce79",
-      "capturedSourceHash": "04beb35ead692b201aade34623110d989c08c994a12547874f5fe1a747c56ab6",
-      "reusedUnchanged": false
+      "bytes": 4021,
+      "sha256": "5d203315ddcb92efa25153c10e84553992bc55afe2099f800c3712ec5674219a",
+      "verifiedForSourceHash": "8d830fe1914aeef2c004afadc60c9e1cb4a239260d379563057b9a625c2445e1",
+      "capturedSourceHash": "8d830fe1914aeef2c004afadc60c9e1cb4a239260d379563057b9a625c2445e1",
+      "reusedUnchanged": false,
+      "verified": "2026-11-14"
     },
     {
       "path": "copy/tagline.md",

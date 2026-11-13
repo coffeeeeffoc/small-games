@@ -464,6 +464,24 @@ test('HUD: a full waiting room remains labelled as awaiting battle', () => {
   assert.match(caption, /等待开战/); assert(!caption.includes('对战中'));
 });
 
+test('HUD: the room just left offers rejoin in its row, while other rooms offer watch', () => {
+  Object.assign(frame, { width: 1280, height: 720 }); inset = 0;
+  const hud = new HUD(new SceneNode()), sim = new Simulation();
+  const online = new Online({ getItem: () => null, setItem() {} }, () => {});
+  hud.online = online;
+  const room = { code: '123456', mode: 'friend', status: 'playing', players: [], playerCount: 2, canJoin: false, canSpectate: true };
+  online.rooms = [room, { ...room, code: '654321' }];
+  online.resumeCode = room.code;
+  online.show('menu'); hud.update(sim, world);
+
+  const rejoin = hud.buttons.find((b: any) => b.id === 'online:resumeRoom:123456');
+  assert(rejoin, 'the room row must rejoin the battle');
+  assert.equal(rejoin.label.string, '返回对战');
+  assert.equal(hud.hit(rejoin.x + rejoin.w / 2, rejoin.y + rejoin.h / 2), rejoin);
+  assert(!hud.buttons.some((b: any) => b.id === 'online:watchCode:123456'));
+  assert(hud.buttons.some((b: any) => b.id === 'online:watchCode:654321' && b.label.string === '观战'));
+});
+
 test('HUD: lobby forms, records, boards and share control fit landscape phones and desktop', () => {
   for (const [width, height] of [[568, 320], [844, 390], [1280, 720]]) {
     Object.assign(frame, { width, height }); inset = 0;
@@ -1696,6 +1714,74 @@ test('public lobby and battle lobby have one public composer and no private inbo
   }
 });
 
+test('closing a pending private send leaves public chat usable across lobby switches', async () => {
+  Object.assign(frame, { width: 844, height: 390 });
+  inset = 0;
+  const hud = new HUD(new SceneNode()), sim = new Simulation();
+  const online = new Online({ getItem: () => null, setItem() {} }, () => {});
+  hud.online = online;
+  let loseResponse!: () => void;
+  const snapshot = { messages: [], cursor: '', reset: true, serverNow: 1 };
+  const sent: { requestId: string; text: string; recipientId?: string }[] = [];
+  await online.connect({
+    ready: Promise.resolve({ identity: { id: 'a' }, capabilities: { multiplayer: true, leaderboards: false, chat: true, social: true } }),
+    createRecorder: () => ({ start: async () => null, record() {}, finish: async () => null, invalidate() {} }),
+    services: {
+      nightChat: async () => snapshot,
+      sendNightChat: input => {
+        sent.push(input);
+        return sent.length === 1
+          ? new Promise((_, reject) => { loseResponse = () => reject(Error('network')); })
+          : Promise.resolve(snapshot);
+      },
+    },
+  });
+  try {
+    online.show('menu');
+    online.showPlayers();
+    online.chatDraft = '公开草稿';
+    hud.update(sim, world);
+    online.openConversation({ playerId: 'b', nickname: '飞行员乙' });
+    online.chatDraft = '私信草稿';
+    const pending = online.sendChat();
+    hud.update(sim, world);
+    online.closeConversation();
+    const assertPublic = () => {
+      hud.update(sim, world);
+      const labels = hud.modal.getComponentsInChildren(cc.Label).map((label: any) => label.string);
+      assert(!labels.some((label: string) => /发送私信，邀请对方一起出动|私信给|发送结果待确认/.test(label)));
+      assert(labels.includes('和大厅飞行员打个招呼'));
+      const composer = hud.modal.getChildByName('LobbyComposer').getComponent(cc.EditBox);
+      assert.equal(composer.enabled, true);
+      assert.equal(composer.string, '公开草稿');
+      return hud.buttons.find((b: any) => b.id === 'online:chatSend' && b.label.node.activeInHierarchy);
+    };
+    assert.equal(assertPublic().disabled, true);
+    loseResponse();
+    await pending;
+    for (const panel of ['menu', 'chat', 'menu'] as const) {
+      online.show(panel);
+      const send = assertPublic();
+      assert.equal(send.label.string, '发送');
+      assert.equal(send.disabled, false);
+      assert.equal(hud.hit(send.x + send.w / 2, send.y + send.h / 2)?.id, 'online:chatSend');
+    }
+    assert(online.chatRetryPending);
+    await online.sendChat(false, 'public');
+    assert.equal(sent[1].recipientId, undefined);
+    assert.equal(sent[1].text, '公开草稿');
+    assert.equal(online.publicChat.draft, '');
+    online.openConversation({ playerId: 'b' });
+    hud.update(sim, world);
+    assert.equal(hud.activeModal.getComponentsInChildren(cc.EditBox)[0].string, '私信草稿');
+    assert(hud.buttons.some((b: any) => b.id === 'online:chatSend' && b.label.string === '重试'));
+    await online.sendChat(false, 'direct');
+    assert.deepEqual(sent[2], sent[0]);
+  } finally {
+    online.dispose();
+  }
+});
+
 test('lobby player rows show status and fit more players while keeping full touch targets', () => {
   try {
     for (const [width, height, visible] of [[568, 320, 3], [844, 390, 4], [1280, 720, 5]]) {
@@ -1840,6 +1926,35 @@ test('private chat preserves pages through message refresh, resize and close wit
   }finally{inset=0;}
 });
 
+test('home update notices remain clickable above the home panel and open the version comparison',()=>{
+ for(const [width,height]of [[568,320],[844,390],[1280,720]])for(const update of ['optional','required'] as const){
+  Object.assign(frame,{width,height});inset=0;
+  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});
+  hud.online=online;online.assets=assetFixture();hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});
+  online.release={currentBuildId:'installed',latestBuildId:'latest',latestVersion:'1.0.99',update,canStartNewGames:update==='optional',admissions:{ranked:true,multiplayer:true},action:'reopen'};
+  try{
+   for(let refresh=0;refresh<2;refresh++){
+    online.revision++;hud.update(sim,world);
+    const notice=hud.buttons.find((b:any)=>b.id==='online:version');assert(notice);
+    assert.equal(notice.label.string,'发现新版本');assert(!hud.inModal(notice.label.node));
+    assert.equal(hud.hit(notice.x+notice.w/2,notice.y+notice.h/2)?.id,'online:version',`${width}/${update}: home notice accepts input`);
+   }
+   online.show('version');hud.update(sim,world);
+   assert(hud.modalKey.startsWith('online:version:'));
+   assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.startsWith('当前版本：')));
+   assert(hud.modal.getComponentsInChildren(cc.Label).some((l:any)=>l.string.startsWith('最新版本：1.0.99')));
+   assert(!hud.buttons.some((b:any)=>b.id==='online:version'),'home notice disappears while the comparison is open');
+   online.back();hud.update(sim,world);assert.equal(hud.modalKey,'home');
+   const notice=hud.buttons.find((b:any)=>b.id==='online:version');assert.equal(hud.hit(notice.x+notice.w/2,notice.y+notice.h/2)?.id,'online:version');
+   sim.pause('settings',true);hud.update(sim,world);
+   const settings=hud.buttons.find((b:any)=>b.id==='online:version'&&b.label.node.activeInHierarchy);assert(settings,'settings keeps its game update entry visible');
+   assert.equal(hud.hit(settings.x+settings.w/2,settings.y+settings.h/2)?.id,'online:version');
+   sim.pause('settings',false);online.show('version');hud.update(sim,world);
+   assert(!hud.buttons.includes(settings),'leaving settings releases its version button');
+  }finally{online.dispose();}
+ }
+});
+
 test('social notices own their entire frame and disappear without painting the underlying page',()=>{
  Object.assign(frame,{width:844,height:390});inset=0;const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;hud.update(sim,world);
  const before=hud.modal.getComponentsInChildren(Graphics).reduce((n:any,g:any)=>n+g.calls.length,0),surfaces=hud.surfaces.children.length;
@@ -1873,21 +1988,41 @@ test('duel result uses authoritative receipt outcome, duration and reward explan
  Object.assign(frame,{width:844,height:390});inset=0;
  for(const seat of [0,1])for(const outcome of ['win','loss']){
   const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.assets=assetFixture();hud.quartermaster=new Quartermaster(online,{getItem:()=>null,setItem(){},removeItem(){}});
-  sim.duelMode=true;sim.phase='success';sim.time=271;online.room={you:seat,players:[{id:'a'},{id:'b'}],settlement:{outcome,reason:'forfeit',durationMs:12000,status:'credited',points:outcome==='win'?120:40,coins:outcome==='win'?0:60,xp:outcome==='win'?0:70,rewardReason:outcome==='win'?'opponent-left':'eligible'}} as any;hud.update(sim,world);
+  sim.duelMode=true;sim.phase='success';sim.time=271;online.room={you:seat,players:[{id:'a'},{id:'b'}],settlement:{outcome,reason:'elimination',durationMs:12000,status:'credited',points:outcome==='win'?120:0,coins:outcome==='win'?200:0,xp:outcome==='win'?140:0,rewardReason:outcome==='win'?'eligible':'disconnected'}} as any;hud.update(sim,world);
   const labels=hud.modal.getComponentsInChildren(cc.Label).map((l:any)=>l.string);
-  assert(labels.includes(outcome==='win'?'战斗胜利':'战斗失败'));assert(labels.some((s:string)=>s.includes(outcome==='win'?'对手已退出':'你已退出')));assert(labels.includes('00:12.00'));
-  if(outcome==='win')assert(labels.some((s:string)=>s.includes('不发放金币与经验')));else assert(labels.includes('+60')&&labels.includes('+70'));online.dispose();
+  assert(labels.includes(outcome==='win'?'战斗胜利':'战斗失败'));assert(labels.includes('00:12.00'));
+  if(outcome==='win')assert(labels.includes('+200')&&labels.includes('+140'));else {assert(labels.some((s:string)=>s.includes('无金币与经验')));assert(!labels.includes('+60')&&!labels.includes('+70'));}online.dispose();
  }
 });
 
-test('quit settlement is visible in every lobby tab even after a previous invitation',()=>{
- Object.assign(frame,{width:844,height:390});inset=0;
+test('offline choice uses two safe touch targets and leaves the battle unpaused',()=>{
+ for(const [width,height] of [[568,320],[844,390],[1280,720]])for(const lang of ['zh','en']){
+  Object.assign(frame,{width,height});inset=12;
+  const hud=new HUD(new SceneNode()),online=new Online({getItem:()=>null,setItem(){}},()=>{}),sim=new Simulation();hud.online=online;hud.lang=lang;sim.start();sim.duelMode=true;
+  let visible=true,seconds=23;
+  Object.defineProperties(online,{peerChoice:{get:()=>visible},peerReconnectSeconds:{get:()=>seconds}});
+  online.socialOpen=true;hud.updatesOpen=true;
+  hud.update(sim,world);assert.equal(hud.modalKey,'peerOffline:23');assert.equal(hud.conversationModal,undefined);assert.equal(sim.paused,false);
+  const buttons=hud.buttons.filter((b:any)=>hud.inModal(b.label.node));assert.deepEqual(buttons.map((b:any)=>b.id),['online:peerLeave','online:peerContinue']);
+  for(const b of buttons){assert(b.h>=44);assert(b.x>=hud.safe.left&&b.x+b.w<=width-hud.safe.right);assert(b.y>=hud.safe.top&&b.y+b.h<=height-hud.safe.bottom);assert(!buttons.some((o:any)=>o!==b&&overlaps(b,o)));}
+  assert(panelLabels(hud).some((l:any)=>l.string.includes('23')));
+  seconds=22;hud.update(sim,world);assert.equal(hud.modalKey,'peerOffline:22');assert(panelLabels(hud).some((l:any)=>l.string.includes('22')));
+  visible=false;online.socialOpen=false;hud.updatesOpen=false;hud.update(sim,world);assert.equal(hud.modal,undefined);assert.equal(sim.paused,false);online.dispose();
+ }
+ inset=0;
+});
+
+test('quit recovery notice is visible in every lobby tab even after a previous invitation',()=>{
+ for(const [width,height] of [[568,320],[844,390],[1280,720]]){
+ Object.assign(frame,{width,height});inset=0;
  const hud=new HUD(new SceneNode()),online=new Online({getItem:()=>null,setItem(){}},()=>{}),sim=new Simulation();hud.online=online;
  for(const tab of ['rooms','players','friends'] as const){
-  online.show('menu');online.lobbyTab=tab;online.chatStatus='邀请已发送，等待对方加入';online.message='你已退出，本局判负 · 金币 +60 · 经验 +70';hud.update(sim,world);
+  online.show('menu');online.lobbyTab=tab;online.resumeCode='123456';online.chatStatus='邀请已发送，等待对方加入';online.message='已离开，可在30秒内返回原对战；超时由机器人接管，未回归不获收益';hud.update(sim,world);
   const labels=hud.modal.getComponentsInChildren(cc.Label);assert(labels.some((l:any)=>l.node.activeInHierarchy&&l.string===online.message));assert(!labels.some((l:any)=>l.node.activeInHierarchy&&l.string===online.chatStatus));
+  const resume=hud.buttons.find((b:any)=>b.id==='online:resumeRoom');assert(resume&&resume.h>=44);assert(resume.x>=hud.safe.left&&resume.x+resume.w<=width-hud.safe.right&&resume.y+resume.h<=height-hud.safe.bottom);
  }
  online.dispose();
+ }
 });
 
 test('secondary headers stay compact above a low host capsule',()=>{
@@ -1918,7 +2053,7 @@ test('a failed first message remains reachable from its compact retry notice',()
  const hud=new HUD(new SceneNode()),sim=new Simulation(),online=new Online({getItem:()=>null,setItem(){}},()=>{});hud.online=online;online.socialAvailable=true;online.chatAvailable=true;online.show('menu');
  online.chatPeer={playerId:'offline-peer',nickname:'Offline pilot',status:'offline'};online.chatInbox=true;
  Object.defineProperty(online,'chatRetryPending',{value:true});hud.update(sim,world);
- assert(hud.buttons.some((b:any)=>b.id==='social:inbox'));online.openConversation(online.chatPeer!);hud.update(sim,world);assert.equal(hud.buttons.find((b:any)=>b.id==='online:chatSend').label.string,'重试');online.socialOpen=false;
+ assert(hud.buttons.some((b:any)=>b.id==='social:inbox'));online.openConversation(online.chatPeer!);hud.update(sim,world);assert.equal(hud.buttons.find((b:any)=>b.id==='online:chatSend'&&hud.inModal(b.label.node)).label.string,'重试');online.socialOpen=false;
  online.chatInbox=false;online.blockedPlayers.add('offline-peer');online.chatRevision++;hud.update(sim,world);
  assert.equal(hud.buttons.find((b:any)=>b.id==='online:chatBlocks').label.string,'恢复联系(1)');
  online.chatMenu='blocks';online.chatRevision++;hud.update(sim,world);assert(hud.buttons.some((b:any)=>b.id==='online:chatBlock:offline-peer'));

@@ -180,6 +180,7 @@ export class BattleStatusView {
       simulation.phase === 'playing' &&
       Array.from(simulation.pauses).every((reason) => reason === 'settings' || reason === 'manual');
     if (editingLayout) key = '';
+    if (this.hud.online?.peerChoice) key = `peerOffline:${this.hud.online.peerReconnectSeconds}`;
     if (this.hud.storageError) key = 'storageError:' + this.hud.storageError;
     this.hud.renderModal(key, simulation, world);
     graphics.clear();
@@ -242,7 +243,7 @@ export class BattleStatusView {
         continue;
       }
       if (this.hud.isGlobalAction(button.id)) {
-        if(button.id.startsWith('social:'))continue;
+        if(button.id.startsWith('social:')||button.id==='online:version')continue;
         button.label.node.active = (!key || key === 'home') && !this.hud.online?.friendRemoval && !this.hud.updatesOpen;
         if (!button.label.node.active) continue;
         const controlCenterX = button.x + button.w / 2 - width / 2;

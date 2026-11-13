@@ -794,7 +794,7 @@ export class HUD {
     return this.drawing.icon(graphics, kind, x, y, size, color);
   }
   isGlobalAction(id: string) {
-    return id === 'settings' || id === 'screen'||['social:reply','social:inbox','social:dismiss','social:updates'].includes(id);
+    return id === 'online:version' && this.modalFamily === 'home' || id === 'settings' || id === 'screen'||['social:reply','social:inbox','social:dismiss','social:updates'].includes(id);
   }
   corners(graphics: Graphics, x: number, y: number, width: number, height: number, tone: string, arm = 14) {
     return this.drawing.corners(graphics, x, y, width, height, tone, arm);
@@ -900,7 +900,7 @@ export class HUD {
   }
   renderModal(key: string, simulation: Simulation, world: World) {
     this.renderPage(key, simulation, world);
-    const open = this.online?.socialOpen && !this.online.friendRemoval && !this.updatesOpen && !this.storageError;
+    const open = this.online?.socialOpen && !this.online.peerChoice && !this.online.friendRemoval && !this.updatesOpen && !this.storageError;
     if (!open) {
       if (this.conversationModal) {
         this.buttons = this.buttons.filter(b => !this.inModal(b.label.node, this.conversationModal));
@@ -928,8 +928,10 @@ export class HUD {
     if (/^online:(players|friends):/.test(key) && this.quartermaster && !this.quartermaster.page &&
       simulation.phase === 'briefing' && !this.missionsOpen && !this.modal && !this.coveredModal)
       this.renderPage('home', simulation, world);
-    if(this.online?.friendRemoval)key='friendRemove';
-    else if(this.updatesOpen)key='updates';
+    if (!key.startsWith('peerOffline:')) {
+      if(this.online?.friendRemoval)key='friendRemove';
+      else if(this.updatesOpen)key='updates';
+    }
     const family = key.startsWith('online:')
       ? key.split(':').slice(0, 2).join(':')
       : key.split(':')[0];
@@ -989,7 +991,7 @@ export class HUD {
     const animate = !this.reducedEffects && semantic !== this.semanticKey;
     this.semanticKey = semantic;
     this.listAreas = this.listAreas.filter(a => this.conversationModal && a.key === 'direct');
-    const compact = ['friendRemove', 'settings', 'pause', 'online:players', 'online:friends', 'online:profile', 'online:create', 'online:join'].includes(family);
+    const compact = ['peerOffline', 'friendRemove', 'settings', 'pause', 'online:players', 'online:friends', 'online:profile', 'online:create', 'online:join'].includes(family);
     let previous = this.modal;
     if (compact && !this.compactModal && previous) {
       this.coveredModal?.destroy();
@@ -1034,6 +1036,7 @@ export class HUD {
     this.node('Backdrop', parentNode).addComponent(Graphics);
     this.surfaces = this.node('Surfaces', parentNode);
     const graphics = this.node('Ink', parentNode).addComponent(Graphics);
+    if (family === 'peerOffline') { this.supportView.renderPeerOffline(parentNode, graphics); return; }
     if(family==='friendRemove'){this.socialView.renderRemoval(parentNode,graphics);return;}
     if(key==='updates'){this.settingsView.renderUpdates(parentNode,graphics);return;}
     if (key.startsWith('storageError:')) {

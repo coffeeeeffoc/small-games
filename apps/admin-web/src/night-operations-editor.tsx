@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import type { ControlApi } from './control-api';
+import type { ControlApi, GameState } from './control-api';
 import { hasIncompatibleNewGames, type NightRuntimeStatus } from './night-compatibility';
 import { Alert, Card, Input, Tabs } from 'antd';
 import { useUnsavedChanges } from './unsaved-changes';
@@ -12,6 +12,8 @@ export function NightOperationsEditor({
   api,
   value,
   published,
+  gameState,
+  publishedGameState,
   publishedIds,
   deployments,
   disabled,
@@ -24,6 +26,8 @@ export function NightOperationsEditor({
   api: ControlApi;
   value?: NightOperations;
   published?: NightOperations;
+  gameState?: GameState;
+  publishedGameState?: GameState;
   publishedIds: Set<string>;
   deployments?: Deployments;
   disabled: boolean;
@@ -56,9 +60,10 @@ export function NightOperationsEditor({
       reading.current++;
     };
   }, [refreshRuntime]);
+  const liveRelease = published?.release;
   const incompatible =
-    value?.release?.builds.filter((build) =>
-      hasIncompatibleNewGames(build, value.release!, runtime),
+    liveRelease?.builds.filter((build) =>
+      hasIncompatibleNewGames(build, liveRelease, runtime, publishedGameState),
     ) ?? [];
   const [target, setTarget] = useState<NightBuild>();
   const [reason, setReason] = useState('');
@@ -70,7 +75,7 @@ export function NightOperationsEditor({
           type="error"
           showIcon
           title={`${incompatible.length} 个启用的客户端版本与运行服务端不兼容`}
-          description={`包括 ${incompatible.map((build) => `${build.version ?? build.buildId}${value?.release?.channels.some((channel) => channel.latestBuildId === build.buildId) ? '（推荐版本）' : ''}`).join('、')}。请在“版本与部署”查看规则差异，升级服务端或处理客户端后再开放新局。`}
+          description={`已发布配置中的 ${incompatible.map((build) => `${build.version ?? build.buildId}${liveRelease?.channels.some((channel) => channel.latestBuildId === build.buildId) ? '（推荐版本）' : ''}`).join('、')}。请在“版本与部署”查看缺少的规则。`}
         />
       )}
       <Tabs
@@ -100,6 +105,8 @@ export function NightOperationsEditor({
                 readingRuntime={readingRuntime}
                 value={value}
                 published={published}
+                gameState={gameState}
+                publishedGameState={publishedGameState}
                 deployments={deployments}
                 disabled={disabled}
                 canPublish={canPublish && !busy && !dirty}

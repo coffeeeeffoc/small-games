@@ -252,6 +252,11 @@ export function createCompetitionStore(
       const own = await activeRoom(executor, game, playerId);
       if (own) {
         if (own.version !== rule.version) throw new CompetitionError('ACTIVE_ROOM');
+        const member = own.players.find((p) => p.id === playerId)!;
+        delete member.previousLeaseId;
+        await executor.execute(
+          sql`update runtime.competition_rooms set data=${json(own)}::jsonb where code=${own.code}`,
+        );
         return own;
       }
     }
@@ -297,7 +302,7 @@ export function createCompetitionStore(
         },
       ],
       createdAt: now(),
-      deadline: now() + 15 * 60_000,
+      deadline: game === 'night-overwatch' ? Number.MAX_SAFE_INTEGER : now() + 15 * 60_000,
     };
     for (let attempt = 0; attempt < 20; attempt++) {
       const inserted = await executor.execute(
@@ -417,7 +422,7 @@ export function createCompetitionStore(
                 rule.duel ? room.players[0]!.state : (member ?? room.players[0]!).state,
                 ruleSeat(rule, room, Math.max(0, seat)),
               ),
-              Math.max(0, seat),
+              seat,
             ),
       opponent: seat >= 0 && room.players.length === 2 ? resultOf(room.players[1 - seat]) : null,
       results: publicRoomResults(room.results),
@@ -638,16 +643,18 @@ export function createCompetitionStore(
           member.takenOver = true;
           member.disconnected = true;
         }
-      await settleNightRoom(
-        tx,
-        room,
-        now(),
-        abandoned ? 'abandoned' : 'disconnect',
-        rule.progression,
-        rules.get(room.game)?.progression,
-      );
-      room.status = abandoned ? 'abandoned' : 'finished';
-      return;
+      if (abandoned) {
+        await settleNightRoom(
+          tx,
+          room,
+          now(),
+          'abandoned',
+          rule.progression,
+          rules.get(room.game)?.progression,
+        );
+        room.status = 'abandoned';
+        return;
+      }
     }
     room.players[0]!.state = rule.advance!(room.players[0]!.state, elapsed);
     await finish(room, tx);
@@ -713,6 +720,7 @@ export function createCompetitionStore(
           else
             room = await create(auth, game, { mode: 'match', visibility: 'public', buildId }, tx);
         }
+        delete room.players.find((p) => p.id === playerId)!.previousLeaseId;
         await tx.execute(
           sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${room.code}`,
         );
@@ -777,6 +785,39 @@ export function createCompetitionStore(
       return view(room, playerId, tx);
     });
   }
+  async function resetNightRoom(room: Room, tx: Tx) {
+    const occupants = [];
+    for (const player of room.players) {
+      if (player.left || player.takenOver) continue;
+      const active = await activeRoom(tx, room.game, player.id);
+      if (active && active.code !== room.code) continue;
+      occupants.push({
+        id: player.id,
+        buildId: player.buildId,
+        ready: false,
+        seq: 0,
+        state: null,
+        leaseId: randomUUID(),
+        previousLeaseId: player.leaseId,
+        seenAt: now(),
+      });
+    }
+    room.players = occupants;
+    room.id = randomUUID();
+    room.seed = randomInt(1, 2147483647);
+    room.status = 'waiting';
+    room.deadline = Number.MAX_SAFE_INTEGER;
+    delete room.startedAt;
+    delete room.settledAt;
+    delete room.results;
+    delete room.loadoutBattle;
+    delete room.loadouts;
+    delete room.rematch;
+    delete room.previousRoom;
+    delete room.rematchMembers;
+    // A new round rotates leases before reusing sequence numbers; history keeps its immutable match ID.
+    await tx.execute(sql`delete from runtime.competition_actions where room_code=${room.code}`);
+  }
   async function lobbyAction(
     room: Room,
     playerId: string,
@@ -809,12 +850,25 @@ export function createCompetitionStore(
       throw new CompetitionError('NOT_A_MEMBER', 403);
     if (!member && !['get', 'spectate', 'join'].includes(operation))
       throw new CompetitionError('SPECTATOR_READ_ONLY', 403);
-    if (member && input.leaseId && input.leaseId !== member.leaseId)
+    const returningToRoom =
+      room.game === 'night-overwatch' &&
+      operation === 'rematch' &&
+      room.status === 'waiting' &&
+      !!input.leaseId &&
+      input.leaseId === member?.previousLeaseId;
+    if (
+      member &&
+      input.leaseId &&
+      input.leaseId !== member.leaseId &&
+      operation !== 'get' &&
+      !returningToRoom
+    )
       throw new CompetitionError('STALE_LEASE');
     if (
       member &&
       !['get', 'join', 'connect', 'spectate'].includes(operation) &&
-      input.leaseId !== member.leaseId
+      input.leaseId !== member.leaseId &&
+      !returningToRoom
     )
       throw new CompetitionError('STALE_LEASE');
     if (!member && ['join', 'spectate'].includes(operation)) await password(room, input.password);
@@ -842,6 +896,16 @@ export function createCompetitionStore(
       );
     await advanceLobby(room, tx);
     if (room.status === 'waiting' && now() >= room.deadline) room.status = 'expired';
+    if (
+      room.game === 'night-overwatch' &&
+      operation === 'join' &&
+      ['finished', 'abandoned'].includes(room.status) &&
+      room.players.some((p) => !p.left && !p.takenOver) &&
+      room.players.filter((p) => !p.left && !p.takenOver).length < (rule.roomSize?.(room.mode) ?? 2)
+    ) {
+      await resetNightRoom(room, tx);
+      member = room.players.find((p) => p.id === playerId);
+    }
     let exposeLease: string | undefined;
     if (operation === 'spectate' && !member) {
       if (!['waiting', 'playing'].includes(room.status)) throw new CompetitionError('MATCH_CLOSED');
@@ -882,16 +946,21 @@ export function createCompetitionStore(
     if (member && operation === 'connect') {
       if (member.takenOver) throw new CompetitionError('PLAYER_DISCONNECTED');
       member.leaseId = randomUUID();
+      delete member.previousLeaseId;
       exposeLease = member.leaseId;
     }
     if (
       member &&
       !member.takenOver &&
-      (operation === 'connect' || input.leaseId === member.leaseId)
+      operation !== 'leave' &&
+      (operation === 'connect' || (!member.left && input.leaseId === member.leaseId))
     ) {
       member.seenAt = now();
       member.disconnected = false;
+      member.left = false;
       delete member.reconnectUntil;
+      // Keep the old lease only until the new lease is used, so a lost rematch reply can be retried.
+      if (operation !== 'rematch') delete member.previousLeaseId;
     }
     if (operation === 'leave' && member) {
       if (
@@ -960,7 +1029,8 @@ export function createCompetitionStore(
         room.players = room.players.filter((player) => player.id !== playerId);
         room.status = 'waiting';
         delete room.startedAt;
-        room.deadline = now() + 15 * 60_000;
+        room.deadline =
+          room.game === 'night-overwatch' ? Number.MAX_SAFE_INTEGER : now() + 15 * 60_000;
         for (const player of room.players) {
           player.ready = false;
           player.state = null;
@@ -984,24 +1054,29 @@ export function createCompetitionStore(
           rules.get(room.game)?.progression,
         );
       } else if (room.status === 'playing' && !member.takenOver) {
-        if (room.game === 'night-overwatch') {
-          member.left = true;
-          member.disconnected = true;
-          for (const [seat, player] of room.players.entries())
-            player.result = rule.result(room.players[0]!.state, seat);
+        member.left = true;
+        member.disconnected = true;
+        member.reconnectUntil ??= now() + 30000;
+        if (room.players.every((p) => p.left || p.takenOver)) {
           await settleNightRoom(
             tx,
             room,
             now(),
-            'forfeit',
+            'abandoned',
             rule.progression,
             rules.get(room.game)?.progression,
           );
-          room.status = 'finished';
-        } else {
-          member.disconnected = true;
-          member.reconnectUntil = now() + 30000;
+          room.status = 'abandoned';
         }
+      }
+      if (
+        room.game === 'night-overwatch' &&
+        room.status !== 'playing' &&
+        room.players.every((p) => p.left || p.takenOver)
+      ) {
+        await tx.execute(sql`delete from runtime.competition_actions where room_code=${room.code}`);
+        await tx.execute(sql`delete from runtime.competition_rooms where code=${room.code}`);
+        return { code: room.code, left: true };
       }
     } else if (operation === 'ready' && member) {
       if (room.status === 'waiting') {
@@ -1040,6 +1115,26 @@ export function createCompetitionStore(
         await finish(room, tx);
       }
     } else if (operation === 'rematch' && member) {
+      if (room.game === 'night-overwatch') {
+        if (member.left || member.takenOver) throw new CompetitionError('NOT_A_MEMBER', 403);
+        const active = await activeRoom(tx, room.game, playerId);
+        if (active && active.code !== room.code) throw new CompetitionError('ACTIVE_ROOM');
+        if (['finished', 'abandoned', 'expired'].includes(room.status))
+          await resetNightRoom(room, tx);
+        else if (room.status !== 'waiting') throw new CompetitionError('MATCH_NOT_FINISHED');
+        member = room.players.find((p) => p.id === playerId)!;
+        assertStart(
+          room,
+          publishedNightRelease(release, policy?.nightOperations),
+          input.buildId ?? member.buildId,
+        );
+        if (input.buildId) member.buildId = input.buildId;
+        member.seenAt = now();
+        await tx.execute(
+          sql`update runtime.competition_rooms set data=${json(room)}::jsonb,expires_at=${room.deadline} where code=${room.code}`,
+        );
+        return { ...(await view(room, playerId, tx, member.leaseId)), rematch: room.code };
+      }
       if (!['finished', 'abandoned', 'expired'].includes(room.status))
         throw new CompetitionError('MATCH_NOT_FINISHED');
       if (!room.rematch) {
@@ -1158,8 +1253,18 @@ export function createCompetitionStore(
         throw new CompetitionError('INVITATION_NOT_FOUND', 404);
       if (room.game === 'night-overwatch') {
         const member = room.players.find((p) => p.id === playerId);
-        if (operation === 'get' && ['finished', 'abandoned', 'expired'].includes(room.status))
+        if (operation === 'get' && ['finished', 'abandoned', 'expired'].includes(room.status)) {
+          if (!member && room.spectators?.includes(playerId)) {
+            pruneSpectators(room);
+            if (room.spectators.includes(playerId)) {
+              room.spectatorSeenAt![playerId] = now();
+              await tx.execute(
+                sql`update runtime.competition_rooms set data=${json(room)}::jsonb where code=${code}`,
+              );
+            }
+          }
           return view(room, playerId, tx);
+        }
         if (operation === 'actions' && member) {
           if (input.leaseId !== member.leaseId) throw new CompetitionError('STALE_LEASE');
           const receipts = await tx.execute(

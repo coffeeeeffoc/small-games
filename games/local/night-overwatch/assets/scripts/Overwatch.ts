@@ -85,6 +85,7 @@ export class Overwatch extends Component {
     this.platform = new Platform(this.node, this.pause, this.clear);
     this.prepareMission(sys.isBrowser ? location.search : '');
     this.online = new Online(this.platform.storage, (state, start) => {
+      if (!state) { this.resetOnlineRoom(); return; }
       const previous = this.sim, pauses = new Set(previous.pauses);
       this.sim = Simulation.restore(state.simulation);
       this.sim.pauses = pauses;
@@ -95,6 +96,7 @@ export class Overwatch extends Component {
       }
       if (!start) this.sim.aim = { ...previous.aim };
       this.online!.bind(this.sim, () => this.sim.paused || !!this.hud.activeModal);
+      if (this.online!.peerChoice && !this.hud.modalKey.startsWith('peerOffline:')) this.clear();
       if (start) {
         this.presentation = new DuelPresentation(); this.completionSpoken = false;
         this.clear(); this.lastEvent = 0; this.accumulator = 0;
@@ -603,11 +605,27 @@ export class Overwatch extends Component {
     q.revision++;return true;
   }
   private canReenter = () => !this.disposed && this.sim.phase !== 'playing' && !this.starting && !this.hud.advert && !this.quartermaster?.busy && !this.quartermaster?.viewing && !this.online?.active && !this.online?.room && !this.online?.busy;
+  private resetOnlineRoom() {
+    this.clear(); this.platform.stopRadio();
+    this.sim = new Simulation(this.selectedMission);
+    this.presentation = new DuelPresentation(); this.completionSpoken = false;
+    this.lastEvent = 0; this.accumulator = 0; this.presentedTime = 0;
+    this.hud.exitConfirm = this.hud.reportOpen = this.hud.equipmentOpen = this.hud.toolsOpen = this.hud.zoomOpen = this.hud.controlsOpen = this.hud.layoutEditing = false;
+    this.hud.missionsOpen = this.hud.tutorial = this.hud.updatesOpen = false;
+    this.hud.controlPositions = {}; this.hud.timeComparison = undefined; this.hud.modalKey = 'rebuild';
+    this.syncWorld();
+  }
   action(id: string) {
     if(this.hud.storageError){if(id==='close'){this.hud.storageError='';this.hud.modalKey='rebuild';}return;}
-    if (this.hud.layoutEditing && !['layoutDone','settings','close','resume','pause'].includes(id)) return;
     if (id === 'resultClose') id = 'home';
     const online = this.online;
+    if (online?.peerChoice) {
+      if (!['online:peerContinue', 'online:peerLeave'].includes(id)) return;
+      this.clear(); online.continueWithoutPeer(); this.hud.modalKey = 'rebuild';
+      if (id === 'online:peerLeave') { this.hud.layoutEditing = false; this.action('online:backLobby'); }
+      return;
+    }
+    if (this.hud.layoutEditing && !['layoutDone','settings','close','resume','pause'].includes(id)) return;
     if (id === 'online:version' && !this.canReenter()) {
       this.hud.toast = this.hud.t('本局结束后可在首页查看更新', 'CHECK UPDATES ON HOME AFTER THIS MATCH');
       this.hud.toastUntil = Date.now() + 4000; return;
@@ -646,16 +664,21 @@ export class Overwatch extends Component {
       if(action.startsWith('whisper:')||action.startsWith('invitePlayer:')){const peer=online.peer(action.slice(action.indexOf(':')+1))||[online.opponent,online.chatPeer].find(p=>p&&playerId(p)===action.slice(action.indexOf(':')+1));if(peer){if(action.startsWith('invitePlayer:'))void online.invitePlayer(peer);else online.openConversation(peer);}return;}
       if(action.startsWith('chatReply:')){const m=[...online.chatMessages,...online.conversation].find(m=>m.id===action.slice(10));if(m){const own=m.playerId===online.authenticatedId;online.openConversation({playerId:own?m.recipientId:m.playerId,nickname:own?m.recipientNickname:m.nickname});}return;}
       if(action==='chatBlocks'){online.chatMenu=online.chatMenu==='blocks'?'':'blocks';online.chatRevision++;return;}
-      if(action==='chatSend'){void online.sendChat();return;}
-      if(action==='roomReturn'){online.show('room');return;}
+      if(action==='chatSend'){void online.sendChat(false, online.socialOpen ? 'direct' : 'public');return;}
+      if(action==='roomReturn'){if(!online.room)this.action('online:backLobby');else if(online.view?.finished&&!online.spectator)void online.rematch();else online.show('room');return;}
       if(action==='roomCollapse'&&online.room){online.show('menu');return;}
       // 邀请后留在当前界面（房间或收起后的大厅），结果显示在房间提示与大厅状态行。
-      if(action==='chatInvite'){if(online.chatPeer){void online.invitePlayer(online.chatPeer);return;}if(online.chatInbox){online.chatStatus='先选择要邀请的玩家';online.chatRevision++;return;}if(!online.room){online.show('create');online.chatStatus='先创建公开房间，即可邀请大厅玩家';}else if(!online.chatAvailable)online.chatStatus='大厅交流暂不可用，请把房间号告诉好友';else if(!online.chatSending){online.chatStatus='';void online.sendChat(true).then(()=>{if(!online.chatStatus)online.chatStatus='邀请已发到大厅';online.revision++;});}return;}
+      if (action === 'chatInvite') {
+        if (!online.room) { online.show('create'); online.publicChat.status = '先创建公开房间，即可邀请大厅玩家'; }
+        else if (!online.chatAvailable) online.publicChat.status = '大厅交流暂不可用，请把房间号告诉好友';
+        else void online.sendChat(true, 'public');
+        return;
+      }
       if(action==='chatLatest'){this.hud.listScroll.chat=Number.MAX_SAFE_INTEGER;this.hud.modalKey='rebuild';return;}
       if(action.startsWith('chatMenu:')){online.chatMenu=online.chatMenu===action.slice(9)?'':action.slice(9);online.chatRevision++;return;}
       if(action.startsWith('chatBlock:')){online.toggleBlock(action.slice(10));return;}
       if(action.startsWith('chatReport:')){void online.reportChat(action.slice(11));return;}
-      if(action.startsWith('chatJoin:')){const m=[...online.chatMessages,...online.conversation].find(m=>m.id===action.slice(9));if(m?.room?.canJoin&&online.activity!=='playing'){online.socialOpen=false;void online.open('join',m.room.code,m.room.createdAt);}return;}
+      if(action.startsWith('chatJoin:')){const m=[...online.chatMessages,...online.conversation].find(m=>m.id===action.slice(9));if(m?.room?.canJoin&&online.activity!=='playing'){online.closeConversation();void online.open('join',m.room.code,m.room.createdAt);}return;}
       if (action === 'chat') { online.selectChat();online.show('chat');return; }
       if (action === 'menu') { online.selectChat();online.lobbyTab='rooms';online.show('menu'); void online.loadRooms(); }
       if (action === 'profile') { this.pause('settings', false); online.show('profile'); }
@@ -663,11 +686,11 @@ export class Overwatch extends Component {
       if (action === 'friend') { online.draftPassword = ''; online.show('create'); }
       if (action === 'join') { online.draftPassword = ''; online.show('join'); }
       if (action === 'public' || action === 'private') { online.privateRoom = action === 'private'; online.revision++; }
-      if (action === 'createConfirm') { online.chatStatus = ''; void online.open('friend'); }
+      if (action === 'createConfirm') { online.publicChat.status = ''; void online.open('friend'); }
       if (action === 'joinConfirm') void online.open('join');
       if (action.startsWith('joinCode:')) void online.open('join', action.slice(9));
       if (action.startsWith('watchCode:')) void online.open('watch', action.slice(10));
-      if (action === 'resumeRoom') void online.open('resume', online.resumeCode);
+      if (online.resumeCode && (action === 'resumeRoom' || action === `resumeRoom:${online.resumeCode}`)) void online.open('resume', online.resumeCode);
       if (action === 'roomsRefresh') void online.loadRooms();
       if (action === 'roomPrev' || action === 'roomNext') {
         online.roomPage = Math.max(0, Math.min(Math.ceil(online.rooms.length / online.pageSize) - 1, online.roomPage + (action === 'roomNext' ? 1 : -1))); online.revision++;
@@ -693,7 +716,7 @@ export class Overwatch extends Component {
       if (action === 'refresh') void online.loadRanking();
       if (action === 'ruleVersion') void online.cycleRankingVersion();
       if (action === 'match' || action === 'bot') void online.open(action);
-      if(action==='rematch'){void online.rematch().then(ok=>{if(ok){this.sim=new Simulation(this.selectedMission);this.syncWorld();this.hud.missionsOpen=false;this.hud.modalKey='rebuild';}});return;}
+      if(action==='rematch'){void online.rematch();return;}
       if (action === 'ready') void online.ready();
       if (action === 'share' && sys.isBrowser) void online.share(location.href);
       if(action==='back'&&online.panel!=='room'){online.back();if(!online.panel&&!online.room&&!online.active&&this.quartermaster?.externalReturn==='modes'){this.quartermaster.show('modes',false);this.quartermaster.externalReturn='';}return;}
@@ -701,7 +724,7 @@ export class Overwatch extends Component {
         this.platform.stopRadio();
         online.leave(); this.sim.phase = 'briefing'; this.selectMission(this.selectedMission); this.hud.missionsOpen = false;
         if (sys.isBrowser) { const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url.href); }
-        if (action === 'backLobby') { online.show('menu'); void online.loadRooms(); }
+        if (action === 'backLobby') { const message = online.message; online.show('menu'); online.message = message; void online.loadRooms(); }
       }
       return;
     }

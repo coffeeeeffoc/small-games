@@ -1,7 +1,7 @@
 import { Color, Graphics, view } from 'cc';
 import { FLIGHT, WEAPONS } from './core/Data';
 import type { Point } from './core/Data';
-import type { Simulation } from './core/Simulation';
+import type { PresentedImpact, PresentedSimulation } from './Presentation';
 import type { World } from './World';
 
 type ScreenPoint = { x: number; y: number };
@@ -23,7 +23,7 @@ const clamp = (n: number) => Math.max(0, Math.min(1, n));
  */
 export function drawEffects(
   g: Graphics,
-  s: Simulation,
+  s: PresentedSimulation,
   world: World,
   width: number,
   height: number,
@@ -229,10 +229,13 @@ export function drawEffects(
     if(!reduced){g.moveTo(p.x-r*.3,p.y+r);g.lineTo(p.x+r*.2,p.y+r*.4);g.lineTo(p.x-r*.15,p.y);g.lineTo(p.x+r*.3,p.y-r*.6);g.stroke();}
   }
   // Every terrain impact explodes, including misses. Kill events use wreck smoke, not a second explosion.
+  const projectileTime = s.projectileTime ?? s.time;
+  const events: PresentedImpact[] = [...world.impactClouds, ...s.events.filter(e => e.type === 'attack')];
   let attacks = 0;
-  for (const e of [...world.impactClouds, ...s.events.filter((event) => event.type === 'attack')]) {
-    const
-      age = s.time - e.time;
+  for (const e of events) {
+    const age = s.projectileTime !== undefined && e.type === 'impact' && e.shot !== undefined
+      ? projectileTime - (e.shownAt ?? e.time)
+      : s.time - e.time;
     if (age < 0) continue;
     if (e.type === 'attack') {
       if (age >= 0.3 || attacks++ >= 8) continue;
@@ -331,11 +334,9 @@ export function drawEffects(
   }
 
   // ponytail: last 16 rounds cover current cadence; raise this budget if weapons gain simultaneous volleys.
-  for (let i = Math.max(0, s.shots.length - 16); i < s.shots.length; i++) {
-    const shot = s.shots[i],
-      age = s.time - shot.born,
+  for (const shot of s.shots.filter(shot => shot.born <= projectileTime && projectileTime < shot.due).slice(-16)) {
+    const age = projectileTime - shot.born,
       flight = shot.due - shot.born;
-    if (flight <= 0 || age < 0 || age >= flight) continue;
     const t = clamp(age / flight),
       weapon = shot.weapon, spec = WEAPONS[weapon], missile = shot.guidance?.kind === 'consumable';
     const position = (progress: number): ScreenPoint =>
@@ -347,7 +348,7 @@ export function drawEffects(
     for (let j = 0; j <= 6; j++) tail.push(position(start + ((t - start) * j) / 6));
     if (tail.some((p) => !Number.isFinite(p.x) || !Number.isFinite(p.y) ||
       Math.abs(p.x) > width * 3 || Math.abs(p.y) > height * 3)) continue;
-    const location = s.shotPosition(shot), projected = airborne(location);
+    const location = s.shotPosition(shot, projectileTime), projected = airborne(location);
     const localScale = Math.min(200, Math.max(...[
       { x: location.x + 1, y: location.y, z: location.z },
       { x: location.x, y: location.y + 1, z: location.z },

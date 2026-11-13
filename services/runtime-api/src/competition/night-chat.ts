@@ -68,21 +68,24 @@ export function createNightChat(
         let room: { code: string; createdAt: number; canJoin: boolean } | undefined;
         if (ref) {
           const data = row.current_room as Room | undefined;
+          const occupants =
+            data?.players.filter((member) => !member.left && !member.takenOver) ?? [];
           room = {
             ...ref,
             canJoin:
               !!data &&
               data.game === 'night-overwatch' &&
               compatible(data.version, buildId, currentRelease) &&
-              data.players.every((member) =>
+              occupants.every((member) =>
                 compatible(data.version, member.buildId, currentRelease),
               ) &&
               (epoch === undefined || (data.killEpoch ?? 0) === epoch) &&
               data.createdAt === ref.createdAt &&
               data.visibility !== 'private' &&
-              data.status === 'waiting' &&
+              ['waiting', 'finished', 'abandoned'].includes(data.status) &&
               (!data.rematchMembers || data.rematchMembers.includes(playerIdOf(auth))) &&
-              data.players.length < 2 &&
+              occupants.length > 0 &&
+              occupants.length < 2 &&
               data.deadline > now(),
           };
         }
@@ -185,6 +188,8 @@ export function createNightChat(
             sql`select data from runtime.competition_rooms where code=${input.roomCode}`,
           );
           const current = rows[0]?.data as Room | undefined;
+          const occupants =
+            current?.players.filter((member) => !member.left && !member.takenOver) ?? [];
           if (
             !current ||
             current.game !== 'night-overwatch' ||
@@ -195,12 +200,20 @@ export function createNightChat(
             ) ||
             (policy && (current.killEpoch ?? 0) !== policy.killEpoch) ||
             current.visibility === 'private' ||
-            current.status !== 'waiting' ||
+            !['waiting', 'finished', 'abandoned'].includes(current.status) ||
             current.deadline <= now() ||
-            current.players.length >= 2 ||
+            occupants.length >= 2 ||
+            occupants.some(
+              (member) =>
+                !compatible(
+                  current.version,
+                  member.buildId,
+                  publishedNightRelease(release, policy?.nightOperations),
+                ),
+            ) ||
             (current.rematchMembers &&
               (!input.recipientId || !current.rematchMembers.includes(input.recipientId))) ||
-            !current.players.some((p) => p.id === owner)
+            !occupants.some((p) => p.id === owner)
           )
             throw new CompetitionError('INVITATION_UNAVAILABLE', 422);
           room = { code: current.code, createdAt: current.createdAt };

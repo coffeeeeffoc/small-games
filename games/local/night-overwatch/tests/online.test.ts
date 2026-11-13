@@ -19,6 +19,75 @@ function fixture() {
 
 const release = (overrides: Partial<Release> = {}): Release => ({ currentBuildId: 'old', latestBuildId: 'new', update: 'optional', canStartNewGames: true, admissions: { ranked: true, multiplayer: true }, action: 'reopen', ...overrides });
 const requiredRelease = () => release({ update: 'required', canStartNewGames: false, admissions: { ranked: false, multiplayer: false } });
+
+test('same-code new rounds claim their lease once through rematch and accept fresh ready commands', async () => {
+  const f=fixture(), changes:any[]=[], online=new Online(storage(),(state,start)=>changes.push({state,start}));
+  let current:any={...room(),id:'round-1',status:'finished',seq:19,players:[{id:'a'},{id:'b'}],state:{...viewDuel(createDuel(41)),finished:true}};
+  f.bridge.services.createRoom=f.bridge.services.getRoom=async()=>structuredClone(current);
+  let claims=0;f.bridge.services.roomAction=async(input:any)=>{assert.equal(input.operation,'rematch');claims++;return structuredClone(current);};
+  Object.assign(f.bridge.services,{connectRoom:async()=>{throw Error('automatic connect could steal another page');}});
+  await online.connect(f.bridge);await online.open('friend');
+  current={...current,id:'round-2',status:'waiting',state:null,seq:0,rematch:current.code};
+  await online.pump(1e9);await online.pump(1e9+4000);
+  assert.equal(claims,1);assert.equal(online.view,undefined);assert.equal(online.active,false);assert.equal(online.panel,'room');
+  assert(changes.some(c=>c.state===undefined),'controller must discard its old Simulation');
+  f.bridge.services.roomAction=async(input:any)=>{f.received.push(input);return structuredClone(current);};
+  await online.ready();assert.equal(f.received.at(-1)?.operation,'ready');online.dispose();
+});
+
+test('a cancelled countdown returns the same round to its ready room without reconnecting',async()=>{
+  const f=fixture(),changes:any[]=[],online=new Online(storage(),state=>changes.push(state));
+  let current:any={...room(),id:'round-1',status:'playing',state:viewDuel(createDuel(41))};
+  f.bridge.services.createRoom=f.bridge.services.getRoom=f.bridge.services.roomAction=async()=>structuredClone(current);
+  Object.assign(f.bridge.services,{connectRoom:async()=>{throw Error('must not reclaim this lease');}});
+  await online.connect(f.bridge);await online.open('friend');
+  current={...current,status:'waiting',state:null};await online.pump(1e9);
+  assert.equal(online.view,undefined);assert.equal(online.panel,'room');assert.equal(changes.at(-1),undefined);assert.equal(online.resumeCode,'');online.dispose();
+});
+
+test('explicit same-code rematch accepts its rotated lease without an extra connect',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});let actions=0;
+  const current:any={...room(),id:'round-1',status:'finished',state:{...viewDuel(createDuel(41)),finished:true}};
+  f.bridge.services.match=async()=>current;
+  f.bridge.services.roomAction=async(input:any)=>{actions++;assert.equal(input.operation,'rematch');return {...current,id:'round-2',status:'waiting',state:null,rematch:current.code};};
+  Object.assign(f.bridge.services,{connectRoom:async()=>{throw Error('rematch already returned the lease');}});
+  await online.connect(f.bridge);await online.open('match');assert.equal(await online.rematch(),true);assert.equal(actions,1);assert.equal(online.room?.id,'round-2');assert(!online.active);online.dispose();
+});
+
+test('a consumed previous lease stops automatic new-round claims instead of stealing control',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});let claims=0;
+  let current:any={...room(),id:'round-1',status:'finished',state:{...viewDuel(createDuel(41)),finished:true}};
+  f.bridge.services.match=f.bridge.services.getRoom=async()=>structuredClone(current);
+  f.bridge.services.roomAction=async()=>{claims++;throw Object.assign(Error(),{code:'STALE_LEASE'});};
+  Object.assign(f.bridge.services,{connectRoom:async()=>{throw Error('must not take over');}});
+  await online.connect(f.bridge);await online.open('match');current={...current,id:'round-2',status:'waiting',state:null};
+  await online.pump(1e9);await online.pump(1e9+4000);assert.equal(claims,1);assert.equal(online.room?.id,'round-1');assert.match(online.message,/另一页面/);online.dispose();
+});
+
+test('offline choice expires by server deadline without pausing or inventing a result',async(t)=>{
+  let now=100;t.mock.method(performance,'now',()=>now);
+  const f=fixture(),online=new Online(storage(),()=>{});
+  const current:any={...room(),id:'round-1',status:'playing',serverNow:11000,players:[{id:'a'},{id:'b',disconnected:true,reconnectUntil:31000}],state:viewDuel(createDuel(41))};
+  f.bridge.services.match=f.bridge.services.getRoom=f.bridge.services.roomAction=async()=>structuredClone(current);
+  await online.connect(f.bridge);await online.open('match');assert.equal(online.peerReconnectSeconds,20);
+  now=10100;await online.pump(now);assert.equal(online.peerReconnectSeconds,10,'duplicate snapshots cannot extend the deadline');
+  now=20100;assert(!online.peerChoice);assert.equal(online.peerReconnectSeconds,0);assert(!online.view!.finished);assert.equal(online.room?.settlement,undefined);online.dispose();
+});
+
+test('offline choice uses server time, survives repeated snapshots and clears on reconnect or takeover',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});
+  let current:any={...room(),id:'round-1',status:'playing',serverNow:1000,players:[{id:'a'},{id:'b'}],state:viewDuel(createDuel(41))};
+  f.bridge.services.createRoom=f.bridge.services.getRoom=f.bridge.services.roomAction=async(input:any)=>{if(input.operation)f.received.push(input);return structuredClone(current);};
+  await online.connect(f.bridge);await online.open('friend');
+  current.players[1]={id:'b',disconnected:true,left:true,reconnectUntil:31000};current.serverNow=11000;
+  await online.pump(1e9);assert.equal(online.peerReconnectSeconds,20);assert(online.peerChoice);
+  online.control({command:'fire',args:[]});await online.pump(1e9+1000);
+  assert.deepEqual(f.received.at(-1).body.action.commands,[{command:'clearInput',args:[]}]);
+  online.continueWithoutPeer();await online.pump(1e9+2000);assert(!online.peerChoice);assert(!online.view!.finished);
+  current.players[1]={id:'b'};await online.pump(1e9+3000);assert.equal(online.peerReconnectSeconds,0);
+  current.players[1]={id:'b',disconnected:true,reconnectUntil:41000};await online.pump(1e9+4000);assert(online.peerChoice);
+  current.players[1].takenOver=true;await online.pump(1e9+5000);assert(!online.peerChoice);assert(!online.view!.finished);online.dispose();
+});
 test('private conversations isolate recipients and retry the same intent before changing peers',async()=>{
   const f=fixture(),online=new Online(storage(),()=>{}),sent:any[]=[];
   f.bridge.ready=Promise.resolve({identity:{id:'a',name:'A'},capabilities:{multiplayer:true,leaderboards:true,chat:true,social:true}});
@@ -568,13 +637,64 @@ test('receipt wins, losses and quit reasons override stale combat snapshots for 
   }
 });
 
-test('confirmed voluntary exit clears reconnect and refreshes the quitter wallet without reopening battle',async()=>{
-  const f=fixture(),online=new Online(storage(),()=>{});await online.connect(f.bridge);await online.open('match');
-  f.current.status='playing';f.current.state=viewDuel(createDuel(41));await online.pump(0);
-  let refreshed=0;online.refreshAssets=async()=>{refreshed++;return {} as any;};
-  f.bridge.services.roomAction=async()=>({...f.current,status:'finished',settlement:{points:40,outcome:'loss',reason:'forfeit',coins:60,xp:70,status:'credited'}});
-  online.leave();await new Promise(r=>setImmediate(r));assert.equal(online.resumeCode,'');assert(!online.active);assert.equal(refreshed,1);assert.match(online.message,/判负.*金币 \+60.*经验 \+70/);
-  Object.assign(f.bridge.services,{listRooms:async()=>({rooms:[]})});await online.loadRooms();assert.match(online.message,/判负.*金币 \+60/);online.dispose();
+test('voluntary exit preserves durable recovery, then reconnect restores the same round without a reward',async()=>{
+  const f=fixture(),disk=storage(),online=new Online(disk,()=>{});let flushes=0;
+  Object.assign(disk,{flush:async()=>{flushes++;}});
+  let current:any={...room(),id:'round-1',status:'playing',serverNow:1000,players:[{id:'a'},{id:'b'}],state:viewDuel(createDuel(41))};
+  f.bridge.services.match=f.bridge.services.getRoom=async()=>structuredClone(current);
+  f.bridge.services.roomAction=async(input:any)=>{f.received.push(input);current.players[0]={id:'a',left:true,disconnected:true,reconnectUntil:31000};return structuredClone(current);};
+  let connects=0;Object.assign(f.bridge.services,{connectRoom:async()=>{connects++;current.players[0]={id:'a'};return structuredClone(current);}});
+  await online.connect(f.bridge);await online.open('match');online.lobbyTab='friends';online.leave();await new Promise(r=>setImmediate(r));
+  assert.equal(online.lobbyTab,'rooms');
+  assert.equal(online.resumeCode,current.code);assert(!online.active);assert.equal(online.room,undefined);assert.equal(online.battleReward,undefined);assert(flushes>0);
+  assert.equal(JSON.parse(disk.getItem('night-overwatch-room-v1')!).code,current.code);
+  online.leave();assert.equal(online.resumeCode,current.code,'navigating home must preserve the recovery entry');online.dispose();
+  const restored=new Online(disk,()=>{});await restored.connect(f.bridge);
+  assert.equal(connects,1);assert.equal(restored.room?.id,'round-1');assert(restored.active);assert(!restored.room!.players[0].left);restored.dispose();
+});
+
+test('waiting, finished, spectator and taken-over departures clear recovery storage',async()=>{
+  for(const mode of ['waiting','finished','spectator','takenOver']){
+    const f=fixture(),disk=storage(),online=new Online(disk,()=>{});
+    const current:any={...room(),id:'round-1',status:mode==='waiting'?'waiting':mode==='finished'?'finished':'playing',you:mode==='spectator'?-1:0,spectator:mode==='spectator',players:[{id:'a',takenOver:mode==='takenOver'},{id:'b'}],state:mode==='waiting'?null:{...viewDuel(createDuel(41)),finished:mode==='finished'}};
+    f.bridge.services.match=f.bridge.services.roomAction=async()=>current;
+    await online.connect(f.bridge);await online.open('match');online.leave();await new Promise(r=>setImmediate(r));
+    assert.equal(online.resumeCode,'',mode);assert.equal(disk.getItem('night-overwatch-room-v1'),'null',mode);online.dispose();
+  }
+});
+
+test('a new-round lease claim failure retries serially and never replays old attacks',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{}),calls:any[]=[];
+  let current:any={...room(),id:'round-1',status:'playing',seq:9,players:[{id:'a'},{id:'b'}],state:viewDuel(createDuel(41))};
+  f.bridge.services.match=f.bridge.services.getRoom=async()=>structuredClone(current);
+  let claims=0;f.bridge.services.roomAction=async(input:any)=>{calls.push(structuredClone(input));if(input.operation==='rematch'){if(++claims===1)throw Error('network');return structuredClone(current);}throw Object.assign(Error(),{code:'STALE_LEASE'});};
+  Object.assign(f.bridge.services,{connectRoom:async()=>{throw Error('automatic connect could steal another page');}});
+  await online.connect(f.bridge);await online.open('match');online.control({command:'fire',args:[]});
+  current={...current,id:'round-2',status:'waiting',seq:0,state:null};
+  await online.pump(1e9);assert(online.connectionLost);assert.equal(online.room?.id,'round-1');
+  await online.pump(1e9+2000);assert.equal(claims,2);assert(!online.active);assert(!online.connectionLost);
+  current={...current,status:'playing',state:viewDuel(createDuel(43))};await online.pump(1e9+4000);
+  f.bridge.services.roomAction=async(input:any)=>{calls.push(structuredClone(input));return structuredClone(current);};
+  await online.pump(1e9+5000);assert.equal(calls.at(-1).body.seq,1);assert.deepEqual(calls.at(-1).body.action.commands,[]);online.dispose();
+});
+
+test('old-round STALE_LEASE never reconnects or reopens the recovery entry',async()=>{
+  const f=fixture(),online=new Online(storage(),()=>{});let connects=0;
+  const current:any={...room(),id:'round-1',status:'playing',state:viewDuel(createDuel(41))};
+  f.bridge.services.match=f.bridge.services.getRoom=async()=>structuredClone(current);
+  f.bridge.services.roomAction=async()=>{throw Object.assign(Error(),{code:'STALE_LEASE'});};
+  Object.assign(f.bridge.services,{connectRoom:async()=>{connects++;return current;}});
+  await online.connect(f.bridge);await online.open('match');await online.pump(1e9);await online.pump(1e9+2000);
+  assert.equal(connects,0);assert.match(online.message,/另一页面/);online.leave();assert.equal(online.resumeCode,'');online.dispose();
+});
+
+test('a final receipt corrects an already-finished simulated view through the controller callback',async()=>{
+  const f=fixture(),states:any[]=[],online=new Online(storage(),state=>states.push(state));
+  let current:any={...room(),id:'round-1',status:'finished',state:{...viewDuel(createDuel(41)),finished:true,winner:0}};
+  f.bridge.services.match=f.bridge.services.getRoom=async()=>structuredClone(current);
+  await online.connect(f.bridge);await online.open('match');
+  current={...current,settlement:{points:0,outcome:'loss',reason:'elimination',durationMs:123000,coins:0,xp:0,status:'credited',rewardReason:'disconnected'}};
+  await online.pump(1e9);assert.equal(states.at(-1).winner,0,'bot winning this seat must not become a human victory');assert.equal(states.at(-1).simulation.phase,'failure');assert.equal(states.at(-1).simulation.time,123);online.dispose();
 });
 
 test('destroying the client cancels late room callbacks without issuing a voluntary forfeit or starting bots',async()=>{
@@ -624,7 +744,7 @@ test('leaving a network bot completes on the server before immediate human match
   f.bridge.services.roomAction=async ()=>{calls.push('leave'); await new Promise<void>(r=>{release=r;}); return f.current;};
   f.bridge.services.match=async ()=>{calls.push('match'); return {...room(),code:'654321'};};
   online.leave(); const matching=online.open('match'); await new Promise(r=>setImmediate(r));
-  assert.deepEqual(calls,['leave']); assert.equal(online.resumeCode,'');
+  assert.deepEqual(calls,['leave']); assert.equal(online.resumeCode,f.current.code);
   release(); await matching;
   assert.deepEqual(calls,['leave','match']); assert.equal(online.room!.mode,'match');
   assert.equal(online.room!.code,'654321'); assert.equal(online.bot,undefined); assert.equal(online.view,undefined);

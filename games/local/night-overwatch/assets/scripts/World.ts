@@ -41,7 +41,7 @@ import {
   type Point,
   type Kind,
 } from './core/Data';
-import type { Simulation, BattleEvent } from './core/Simulation';
+import type { PresentedImpact, PresentedSimulation } from './Presentation';
 import {
   aircraftCamera,
   groundAxes,
@@ -476,7 +476,7 @@ export class World {
   viewMode: ViewMode = 'night';
   get thermal() { return this.viewMode === 'thermal'; }
   views = new Map<number, { node: Node; material: Material; wreck: boolean }>();
-  impactClouds: BattleEvent[] = [];
+  impactClouds: PresentedImpact[] = [];
   private lastImpact = 0;
   terrain: { material: Material; day: string; heat: string; surface?: number; renderer?: MeshRenderer }[] = [];
   meshes = new Map<Kind, Mesh>();
@@ -1348,7 +1348,7 @@ export class World {
     this.wreckMeshes.clear();
     if (isValid(this.cameraNode, true)) this.cameraNode.destroy();
   }
-  update(s: Simulation, reduced = false) {
+  update(s: PresentedSimulation, reduced = false) {
     if (this.surfaceEffectReady) for (const terrain of this.terrain) if (terrain.surface !== undefined)
       terrain.material.setProperty('surfaceParams', new Vec4(terrain.surface, reduced ? 0 : s.time, this.thermal ? 1 : 0, this.viewMode === 'night' ? .7 : 1));
     this.cloudLayer?.setPosition(Math.sin(s.time * .008) * 14, 0, Math.cos(s.time * .006) * 8);
@@ -1361,9 +1361,13 @@ export class World {
       this.lastImpact = Math.max(this.lastImpact, event.id);
     }
     // ponytail: keep 24 large clouds plus 8 recent small impacts; spatial pooling if missions grow.
+    const impactAge = (e: PresentedImpact) =>
+      s.projectileTime !== undefined && e.shot !== undefined
+        ? s.projectileTime - (e.shownAt ?? e.time)
+        : s.time - e.time;
     this.impactClouds = [
-      ...this.impactClouds.filter((e) => e.weapon > 0 && s.time - e.time < (e.weapon === 2 ? 16 : 10)).slice(-24),
-      ...this.impactClouds.filter((e) => e.weapon === 0 && s.time - e.time < 1.5).slice(-8),
+      ...this.impactClouds.filter((e) => e.weapon > 0 && impactAge(e) < (e.weapon === 2 ? 16 : 10)).slice(-24),
+      ...this.impactClouds.filter((e) => e.weapon === 0 && impactAge(e) < 1.5).slice(-8),
     ];
     const cursor = this.project(s.aim, 0, true);
     this.recoil = s.paused || s.phase !== 'playing' ? { x: 0, y: 0 } : recoilOffset(s.events.filter(e => !s.duelMode || e.side === s.pilotSide), s.time, reduced);

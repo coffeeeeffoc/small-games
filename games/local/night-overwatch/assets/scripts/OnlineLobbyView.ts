@@ -151,10 +151,10 @@ export class OnlineLobbyView {
   private updateLobbySend() {
     const o = this.h.online!, send = this.lobbySend;
     if (!send) return;
-    send.label.node.parent!.active = !o.chatInbox &&
-      (o.chatDraft.trim().length > 0 || o.chatRetryPending);
+    const chat = o.publicChat;
+    send.label.node.parent!.active = chat.draft.trim().length > 0 || !!chat.intent;
     send.disabled = !o.chatAvailable || o.chatSending;
-    send.label.string = o.chatRetryPending ? this.h.t('重试', 'RETRY') : this.h.t('发送', 'SEND');
+    send.label.string = chat.intent && !chat.sending ? this.h.t('重试', 'RETRY') : this.h.t('发送', 'SEND');
     send.label.color = col(send.disabled ? C.dim : C.white);
   }
   private releaseFailure(request: RegExp) {
@@ -166,7 +166,7 @@ export class OnlineLobbyView {
     const h = this.h, o = h.online!;
     const entries = friends ? [...o.social.requests.filter(p => !o.blockedPlayers.has(playerId(p))), ...o.social.friends] : o.onlinePlayers;
     const paging = !friends && (o.playersPrevious.length > 0 || !!o.playersNext);
-    const status = o.message || o.socialStatus || o.chatStatus;
+    const status = o.message || o.socialStatus || o.publicChat.status;
     const area = { ...bounds, h: Math.max(44, bounds.h - (paging ? 44 : 0) - (status ? 30 : 0)) };
     const stacked = area.w < 280, rowHeight = stacked ? 94 : 52;
     const list = h.listViewport(n, 'players', area, entries.length * rowHeight);
@@ -280,14 +280,14 @@ export class OnlineLobbyView {
       edit.inputMode = EditBox.InputMode.SINGLE_LINE;
       edit.inputFlag = EditBox.InputFlag.DEFAULT;
       edit.maxLength = 240;
-      edit.string = o.chatDraft;
+      edit.string = o.publicChat.draft;
       for (const label of [edit.textLabel, edit.placeholderLabel]) {
         label.node.getComponent(UITransform)!.setAnchorPoint(0, 1);
         label.horizontalAlign = Label.HorizontalAlign.LEFT;
         label.verticalAlign = Label.VerticalAlign.CENTER;
       }
       field.on(EditBox.EventType.TEXT_CHANGED, () => {
-        o.chatDraft = edit.string;
+        o.publicChat.draft = edit.string;
         this.updateLobbySend();
       });
       field.active = true;
@@ -355,10 +355,10 @@ export class OnlineLobbyView {
       btn('friends', this.h.t('好友', 'FRIENDS'), l + 24 + tabW * 2, top + 4, tabW, o.lobbyTab === 'friends' ? 'gold' : 'panel');
       this.h.label(body, this.h.t('大厅交流', 'PUBLIC CHAT'), rx + rw / 2, top + 26, 16, rw - 24, 36, C.white);
     }
-    if(this.lobbyComposer && this.lobbyComposer.string !== o.chatDraft) this.lobbyComposer.string = o.chatDraft;
+    if (this.lobbyComposer && this.lobbyComposer.string !== o.publicChat.draft) this.lobbyComposer.string = o.publicChat.draft;
     this.updateLobbySend();
     const roomTop = top + 56,
-      roomBottom = b - (o.lobbyTab !== 'rooms' && !o.room ? 0 : 98),
+      roomBottom = b - (o.lobbyTab !== 'rooms' && !o.room ? o.resumeCode ? 50 : 0 : 98),
       rowH = this.h.h < 420 ? 112 : 136,
       rooms = o.rooms;
     if (!publicOnly) {
@@ -421,18 +421,20 @@ export class OnlineLobbyView {
         room.canJoin ? C.mint : C.amber,
       ).horizontalAlign = Label.HorizontalAlign.LEFT;
       const bw = roomy ? 94 : Math.min(82, lw * 0.37);
+      const rejoin = room.status === 'playing' && room.code === o.resumeCode;
       btn(
-        (room.canJoin ? 'joinCode:' : 'watchCode:') + room.code,
+        (rejoin ? 'resumeRoom:' : room.canJoin ? 'joinCode:' : 'watchCode:') + room.code,
         o.opening === room.code
           ? this.h.t('进入中…', 'ENTERING…')
           : o.room?.code === room.code
             ? this.h.t('我的房间', 'MINE')
-            : this.h.t(room.canJoin ? '加入' : '观战', room.canJoin ? 'JOIN' : 'WATCH'),
+            : rejoin ? this.h.t('返回对战', 'REJOIN')
+              : this.h.t(room.canJoin ? '加入' : '观战', room.canJoin ? 'JOIN' : 'WATCH'),
         l + lw - bw - 18,
         y + (roomy ? (rowH - 44) / 2 : rowH - 45),
         bw,
-        room.canJoin ? 'gold' : 'blue',
-        o.busy || !!o.room || (!room.canJoin && !room.canSpectate),
+        rejoin || room.canJoin ? 'gold' : 'blue',
+        o.busy || !!o.room || (!rejoin && !room.canJoin && !room.canSpectate),
         roomList.n,
       );
     });
@@ -484,14 +486,15 @@ export class OnlineLobbyView {
     } else if(o.lobbyTab === 'rooms') {
       btn('friend', this.h.t('创建房间', 'CREATE'), l + 8, b - 92, ww, 'gold', o.busy);
       btn('join', this.h.t('房号加入', 'JOIN CODE'), l + 16 + ww, b - 92, ww, 'blue', o.busy);
-      btn('match', this.h.t('快速匹配', 'MATCH'), l + 8, b - 46, ww, 'blue', o.busy);
+      btn(o.resumeCode ? 'resumeRoom' : 'match', this.h.t(o.resumeCode ? '返回对战' : '快速匹配', o.resumeCode ? 'REJOIN BATTLE' : 'MATCH'), l + 8, b - 46, ww, o.resumeCode ? 'gold' : 'blue', o.busy);
       btn('bot', this.h.t('人机练习', 'PRACTICE'), l + 16 + ww, b - 46, ww, 'panel', o.busy);
+    } else if (o.resumeCode) {
+      btn('resumeRoom', this.h.t('返回对战', 'REJOIN BATTLE'), l + 8, b - 46, lw - 16, 'gold', o.busy);
     }
     }
     const chatTop = top + (publicOnly ? 12 : 54);
     const area = { x: rx + 8, y: chatTop, w: rw - 16, h: Math.max(44, inputY - chatTop - 25) },
-      messages = o.chatMessages.filter(m => !m.recipientId && !o.blockedPlayers.has(m.playerId));
-    if (this.lobbyComposer) this.lobbyComposer.enabled = !o.chatPeer;
+      messages = o.publicMessages;
     const old = this.chatLayout,
       oldOffset = this.h.listScroll.chat || 0,
       oldTotal = old.length ? old.at(-1)!.y + old.at(-1)!.h + 8 : 0,
@@ -642,7 +645,7 @@ export class OnlineLobbyView {
         body,
         !o.chatAvailable
           ? this.h.t('大厅交流暂不可用', 'CHAT UNAVAILABLE')
-          : o.chatInbox ? this.h.t(o.chatPeer ? '发送私信，邀请对方一起出动' : '暂无私信 · 从在线玩家选择对象', 'Choose an online pilot to message') : this.h.t('和大厅飞行员打个招呼', 'Say hello to other pilots'),
+          : this.h.t('和大厅飞行员打个招呼', 'Say hello to other pilots'),
         rx + rw / 2,
         area.y + 42,
         13,
@@ -654,7 +657,8 @@ export class OnlineLobbyView {
       btn('chatLatest', this.h.t('新消息 ↓', 'NEW ↓'), r - 108, area.y + area.h - 44, 98, 'blue');
     this.h.label(
       body,
-      (!publicOnly&&o.message) || (o.chatStatus && this.releaseFailure(/^[A-Z]+ .*\/chat(?:\?|$)/)) || o.chatStatus || (o.chatPeer ? this.h.t('私信给 ', 'TO ') + playerLabel(o.chatPeer) : o.chatInbox ? this.h.t('点消息菜单回复 · 仅双方可见', 'REPLY FROM MESSAGE MENU · PRIVATE') : this.h.t('文字交流 · 120字 · 发言间隔3秒', 'TEXT · 120 CHARS · 3s INTERVAL')),
+      (!publicOnly && o.message) || (o.publicChat.status && this.releaseFailure(/^[A-Z]+ .*\/chat(?:\?|$)/)) ||
+        o.publicChat.status || this.h.t('文字交流 · 120字 · 发言间隔3秒', 'TEXT · 120 CHARS · 3s INTERVAL'),
       rx + rw / 2,
       inputY - 12,
       10,
@@ -707,7 +711,7 @@ export class OnlineLobbyView {
       const anchor=q&&!q.page&&s.phase==='briefing'&&!this.h.missionsOpen
         ? homeHeaderLayout(this.h,!!q.assets?.announcements?.length).entries.find(b=>b.panel===online.panel) : undefined;
       const count=friends?online.social.friends.length+online.social.requests.length:online.onlinePlayers.length;
-      const height=anchor?this.h.h:Math.min(360,Math.max(220,72+count*52)+(online.message||online.socialStatus||online.chatStatus?30:0)+(!friends&&(online.playersNext||online.playersPrevious.length)?44:0));
+      const height=anchor?this.h.h:Math.min(360,Math.max(220,72+count*52)+(online.message||online.socialStatus||online.publicChat.status?30:0)+(!friends&&(online.playersNext||online.playersPrevious.length)?44:0));
       const box = this.h.dialog(n, g, { width: 420, height, position: 'right', anchor,
         title: friends ? this.h.t('好友', 'FRIENDS') : this.h.t('在线玩家', 'ONLINE PLAYERS') + (online.onlineCount === null ? '' : ' · ' + online.onlineCount), close: 'online:back' });
       this.renderPlayers(n, { x: box.x + 12, y: box.y + 60, w: box.w - 24, h: box.h - 72 }, friends);
@@ -1551,12 +1555,12 @@ export class OnlineLobbyView {
     }
     // 收起后回到大厅，房间仍在后台保持；大厅底部的房间条可一键展开。
     if (room?.status === 'waiting') button('roomCollapse', this.h.t('收起', 'HIDE'), pw - 70, 4, 56,false,true);
-    const notice=online.message||online.chatStatus;
+    const notice=online.message||online.publicChat.status;
     if(hideTip&&notice&&notice!==this.roomNotice){this.h.toast=notice;this.h.toastUntil=Date.now()+6000;}
     this.roomNotice=hideTip?notice:'';
     if(!hideTip)label(
       (online.message && this.releaseFailure(/^POST .*\/rooms\//)) || online.message ||
-        (online.chatSending ? this.h.t('正在发送大厅邀请…', 'SENDING INVITE…') : online.chatStatus) ||
+        (online.publicChat.sending ? this.h.t('正在发送大厅邀请…', 'SENDING INVITE…') : online.publicChat.status) ||
         this.h.t(
           '把房间号告诉好友，双方准备后开始',
           'TELL YOUR FRIEND THE ROOM NUMBER · BOTH READY TO START',

@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-14",
+  "build": {
+    "creator": "3.8.8",
+    "target": "web-mobile",
+    "sourceHash": "8d830fe1914aeef2c004afadc60c9e1cb4a239260d379563057b9a625c2445e1"
+  },
+  "version": "1.0.56",
+  "bytes": 59662696,
+  "client": {
+    "tests": 207,
+    "passed": 207
+  },
+  "runtime": {
+    "passed": 365,
+    "skipped": 3
+  },
+  "followup": {
+    "online": 24,
+    "invitation": 1
+  },
+  "nativeGuard": 7,
+  "frozenRules": 1,
+  "checks": [
+    "client and Runtime typecheck",
+    "Runtime build",
+    "touched Runtime source/test lint",
+    "git diff --check",
+    "real Creator build",
+    "three-player browser acceptance"
+  ],
+  "browser": {
+    "errors": [],
+    "cleaned": true,
+    "terminalFixtures": [
+      {
+        "code": "873119",
+        "round": "4648139f-77f0-49a4-96c0-eb77b583a236",
+        "loser": 0,
+        "participationInjected": true
+      },
+      {
+        "code": "873119",
+        "round": "b302b9ec-4f14-4420-b7b8-1d1964ea459d",
+        "loser": 1,
+        "participationInjected": false
+      }
+    ],
+    "notCovered": [
+      "natural full-length battle and reward eligibility earned solely by browser gameplay"
+    ]
+  },
+  "sourceFiles": [
+    {
+      "path": "games/local/night-overwatch/assets/scripts/Online.ts",
+      "sha256": "9c7897bd2d2c40238a74e8d73a340c62a2d8394a86064b1197ecccc640117f8f"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/OnlineLobbyView.ts",
+      "sha256": "be3e0c4a2a74ac8b2a86f96517e6f0b25d9e07c1a7a264e3d44493f03c87aac1"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/Overwatch.ts",
+      "sha256": "7ccdd64d59877d8e97943b2ec9edbb6a35e5a30d1fe98609212bd42c4a88c6f9"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/HUD.ts",
+      "sha256": "5927abdc5e51d175fc45086f67c8466fa1d960e0803b9348c867ab6ae1fe79e7"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/BattleStatusView.ts",
+      "sha256": "5c7fb224cf46878c123126c844de292e736abbe516fe27a9b6489cb60b12e2a0"
+    },
+    {
+      "path": "games/local/night-overwatch/assets/scripts/SupportPanelView.ts",
+      "sha256": "2bafb8f965afe6aa0a53c80c232716dc52f7e2c1c0b925ba89d394981de8c56f"
+    },
+    {
+      "path": "services/runtime-api/src/competition/store.ts",
+      "sha256": "10ca2006eea502d306b2685fc3e92ea4a9e9f50ddef33fb67fbe282e951fb51c"
+    },
+    {
+      "path": "services/runtime-api/src/competition/night-ledger.ts",
+      "sha256": "918fd0d2918b9aa1850029515664a2a61db69752be427412cc6821e9108b2286"
+    },
+    {
+      "path": "services/runtime-api/src/competition/night-chat.ts",
+      "sha256": "6efe3b33352c9a37a41a6bec4b41f16fe0572a5a236ed29958cdc4e9700f5648"
+    },
+    {
+      "path": "services/runtime-api/src/competition/types.ts",
+      "sha256": "7fe31a4cd7f355928eff3cbd26cce2061a3ae0c059952910059c3832a084fa3a"
+    }
+  ],
+  "deployed": false
+}

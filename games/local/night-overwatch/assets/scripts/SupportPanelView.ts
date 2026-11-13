@@ -8,6 +8,9 @@ type SupportPanelViewHost = Pick<
   HUD,
   | 'advert'
   | 'button'
+  | 'dialog'
+  | 'dialogButton'
+  | 'online'
   | 'h'
   | 'label'
   | 'modal'
@@ -351,6 +354,18 @@ export class SupportPanelView {
     watch.isBold = !simulation.buff;
     return;
   }
+  renderPeerOffline(parentNode: Node, graphics: Graphics) {
+    const { x, y, w, h } = this.hud.dialog(parentNode, graphics, {
+      width: 440, height: 216, title: this.hud.t('对方暂时离线', 'OPPONENT OFFLINE'),
+    });
+    this.hud.label(parentNode, this.hud.t(
+      `还可等待 ${this.hud.online?.peerReconnectSeconds ?? 0} 秒\n期间返回可恢复本人控制，超时由机器人接管。\n战斗继续进行；退出未回归不获收益。`,
+      `${this.hud.online?.peerReconnectSeconds ?? 0}s TO RECONNECT\nReturn before the timer ends; otherwise a bot takes over.\nBattle continues. Leaving without returning earns nothing.`,
+    ), x + w / 2, y + 96, 13, w - 32, 76, C.dim);
+    const bw = (w - 40) / 2;
+    this.hud.dialogButton(parentNode, graphics, 'online:peerLeave', this.hud.t('退出房间', 'LEAVE ROOM'), x + 16, y + h - 56, bw);
+    this.hud.dialogButton(parentNode, graphics, 'online:peerContinue', this.hud.t('继续对战', 'KEEP PLAYING'), x + 24 + bw, y + h - 56, bw, 'primary');
+  }
   renderExit(parentNode: Node, graphics: Graphics, simulation: Simulation, key: string) {
     const panelWidth = Math.min(440, this.hud.w - this.hud.safe.left - this.hud.safe.right - 32);
     const panelHeight = 178;
@@ -374,8 +389,8 @@ export class SupportPanelView {
       parentNode,
       simulation.duelMode
         ? this.hud.t(
-            '离开后30秒内可重回，超时将按失败结算。',
-            'REJOIN WITHIN 30 SECONDS OR THE MATCH COUNTS AS A LOSS.',
+            '30秒内可返回；超时机器人接管，未回归不获收益。',
+            'REJOIN WITHIN 30s. THEN A BOT TAKES OVER; NO REWARD IF YOU DO NOT RETURN.',
           )
         : this.hud.t('将会中断本次游戏并退出。', 'This will end the current battle and exit.'),
       panelLeft + panelWidth / 2,

@@ -1,4 +1,5 @@
 import type { NightBuild, NightRelease } from './night-operations-model';
+import type { GameState } from './control-api';
 
 export type RuntimeRules = { current: string; supported: string[] };
 export type NightRuntimeStatus = {
@@ -11,6 +12,11 @@ export const ruleKinds = [
   ['ranked', '单人'],
   ['multiplayer', '双人'],
 ] as const;
+export type NightRuleKind = (typeof ruleKinds)[number][0];
+type RuleClient = Pick<
+  NightBuild,
+  'ranked' | 'multiplayer' | 'backendVersion' | 'disabled' | 'removed'
+>;
 export function ruleOrder(client: string, server: string) {
   if (client === server) return '一致';
   const a = /^(.*)-v(\d+)$/.exec(client),
@@ -28,15 +34,17 @@ export function runtimeReport(status: NightRuntimeStatus | undefined, now = Date
     ? status.report
     : null;
 }
-export function buildCompatibility(
-  build: Pick<NightBuild, 'ranked' | 'multiplayer'>,
+export function ruleSupport(
+  kind: NightRuleKind,
+  rule: string,
   status: NightRuntimeStatus | undefined,
   now = Date.now(),
 ) {
-  const report = runtimeReport(status, now);
-  if (!report) return '待核实';
-  if (ruleKinds.some(([kind]) => !report[kind].supported.includes(build[kind]))) return '不兼容';
-  return status!.otherInstances.length ? '部分实例待核实' : '兼容';
+  const server = runtimeReport(status, now)?.[kind];
+  if (!server) return 'unknown';
+  if (!server.supported.includes(rule)) return 'unsupported';
+  if (status?.otherInstances.length) return 'partial';
+  return rule === server.current ? 'current' : 'retained';
 }
 export function ruleAdvice(client: string, server: RuntimeRules) {
   const order = ruleOrder(client, server.current);
@@ -49,22 +57,30 @@ export function ruleAdvice(client: string, server: RuntimeRules) {
       : `${order}；需部署对应执行器或更换客户端`;
 }
 
+export function newGameBlock(
+  kind: NightRuleKind,
+  build: RuleClient,
+  release: NightRelease,
+  gameState?: GameState,
+) {
+  if (gameState === 'disabled') return '游戏已停用';
+  if (gameState === 'draining') return '游戏已暂停新局';
+  if (build.removed) return '已移除登记';
+  if (build.disabled) return '已关闭此包的新局';
+  if (release.disabledBackendVersions?.includes(build.backendVersion ?? '')) return '分组已停开';
+  if (release.retiredRules?.[kind].includes(build[kind])) return '规则已退役';
+  if (!release.allowNew[kind].includes(build[kind])) return '规则未开放新局';
+}
+
 export function hasIncompatibleNewGames(
-  build: NightBuild,
+  build: RuleClient,
   release: NightRelease,
   status?: NightRuntimeStatus,
+  gameState?: GameState,
 ) {
-  const report = runtimeReport(status);
-  return (
-    !!report &&
-    !build.removed &&
-    !build.disabled &&
-    !release.disabledBackendVersions?.includes(build.backendVersion ?? '') &&
-    ruleKinds.some(
-      ([kind]) =>
-        release.allowNew[kind].includes(build[kind]) &&
-        !release.retiredRules?.[kind].includes(build[kind]) &&
-        !report[kind].supported.includes(build[kind]),
-    )
+  return ruleKinds.some(
+    ([kind]) =>
+      !newGameBlock(kind, build, release, gameState) &&
+      ruleSupport(kind, build[kind], status) === 'unsupported',
   );
 }

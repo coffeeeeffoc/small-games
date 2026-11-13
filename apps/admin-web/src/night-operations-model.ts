@@ -200,16 +200,20 @@ export function nightChanges(before?: NightOperations, after?: NightOperations) 
       const old = before?.release?.builds.find((b) => b.buildId === build.buildId);
       if (!same(old, build))
         rows.push(
-          `前端 ${build.version ?? build.buildId}：${build.removed ? '移除登记' : build.disabled ? '关闭新局' : '启用'} · 后端 ${build.backendVersion ?? '未标记'}`,
+          `前端 ${build.version ?? build.buildId}：${build.removed ? '移除登记' : build.disabled ? '关闭新局' : '启用'} · 开关分组 ${build.backendVersion ?? '无'}`,
         );
     }
     const previous = before?.release?.disabledBackendVersions ?? [],
       next = after?.release?.disabledBackendVersions ?? [];
     for (const version of new Set([...previous, ...next]))
       if (previous.includes(version) !== next.includes(version))
-        rows.push(
-          `后端兼容版本 ${version}：${next.includes(version) ? '关闭新局服务' : '恢复新局服务'}`,
-        );
+        rows.push(`新局开关分组 ${version}：${next.includes(version) ? '关闭新局' : '恢复新局'}`);
+  }
+  if (after?.release && !same(before?.release?.legacy, after.release.legacy)) {
+    const { channel, ranked, multiplayer, backendVersion } = after.release.legacy;
+    rows.push(
+      `旧客户端映射 · ${channel} · 单人 ${ranked} · 双人 ${multiplayer} · 开关分组 ${backendVersion ?? '无'}`,
+    );
   }
   return rows;
 }

@@ -69,6 +69,34 @@ function mission() {
   return g;
 }
 
+test('offline choices clear held controls, block other actions and leave through the existing room path',()=>{
+  for(const choice of ['online:peerContinue','online:peerLeave']){
+    const g=mission();let visible=true,left=0;
+    g.online={get peerChoice(){return visible;},continueWithoutPeer(){visible=false;},leave(){left++;},show(){},loadRooms:async()=>{},room:{code:'123456',status:'playing'}};
+    g.sim.duelMode=true;g.sim.setFire('space',true);g.keys.add(32);g.touches.set(1,{role:'fire'});g.hud.layoutEditing=true;
+    const current=g.sim,selected=g.sim.selected;
+    g.action('weapon1');g.action('settings');assert.equal(g.sim.selected,selected);assert.equal(g.sim.paused,false);
+    g.action(choice);assert.equal(g.keys.size,0);assert.equal(g.touches.size,0);assert.equal(current.held.size,0);
+    if(choice==='online:peerContinue'){assert.equal(g.sim,current);assert.equal(g.sim.paused,false);assert.equal(g.sim.phase,'playing');assert.equal(left,0);}
+    else {assert.equal(left,1);assert.equal(g.sim.phase,'briefing');}
+    g.platform.dispose();
+  }
+});
+
+test('ready-room reset discards duel simulation, old pauses, controls and overlays',()=>{
+  const g=mission(),old=g.sim;old.duelMode=true;old.phase='failure';old.pauses.add('settings');
+  g.hud.exitConfirm=g.hud.reportOpen=g.hud.layoutEditing=true;g.hud.controlPositions={weapon0:{x:.2,y:.4}};
+  g.resetOnlineRoom();assert.notEqual(g.sim,old);assert.equal(g.sim.phase,'briefing');assert.equal(g.sim.duelMode,false);assert.equal(g.sim.paused,false);
+  assert(!g.hud.exitConfirm&&!g.hud.reportOpen&&!g.hud.layoutEditing);assert.deepEqual(g.hud.controlPositions,{});g.platform.dispose();
+});
+
+test('stay in the result room requests a rematch while collapsed waiting rooms simply reopen',()=>{
+  const g=mission();let rematches=0,shows=0;
+  g.online={room:{code:'123456'},view:{finished:true},rematch:async()=>{rematches++;},show(){shows++;}};
+  g.action('online:roomReturn');assert.equal(rematches,1);assert.equal(shows,0);
+  g.online.view=undefined;g.action('online:roomReturn');assert.equal(shows,1);assert.equal(rematches,1);g.platform.dispose();
+});
+
 test('a private overlay blocks loadout and legacy scrolling while leaving its own chat scroll reachable',()=>{
   const g=mission();let pageScroll=0,chatScroll=0;
   g.quartermaster={page:'loadout',loadoutArea:{x:0,y:0,w:1000,h:600},scrollLoadout:()=>pageScroll++};

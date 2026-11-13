@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 import { chromium } from '@playwright/test';
-import { createOwnedRuntime, ownedChild } from '../../../../scripts/h5-taptap-runtime.mjs';
+import { createOwnedRuntime, ownedChild, assertOwnedContainer } from '../../../../scripts/h5-taptap-runtime.mjs';
 import { acceptanceBuild, snapshot, press, settleVisuals, assertLayout } from './flight-browser.mjs';
 import { scrollPage, scrollToButton } from './scroll-helpers.mjs';
 
-const workspace=fileURLToPath(new URL('../../../../',import.meta.url)),out=new URL('../reports/2026-11-13-social-windows/',import.meta.url);
+const workspace=fileURLToPath(new URL('../../../../',import.meta.url)),out=new URL('../reports/2026-11-14-reconnect/',import.meta.url);
 await mkdir(out,{recursive:true});
 const evidence={fixture:'isolated-real-postgresql-http',checks:[],errors:[]};
 let fixture,server,browser;const pages=[];
@@ -30,6 +31,20 @@ try {
   const choose=async(p,id,key='players')=>{await settleVisuals(p);await scrollToButton(p,id,key);await click(p,id);};
   const type=async(p,text)=>{const send=(await snapshot(p)).buttons.find(b=>b.id==='online:chatSend');await p.touchscreen.tap(send.x-130,send.y+22);await p.locator('input:visible').fill(text);};
   const shot=async(p,name)=>{await settleVisuals(p);await p.screenshot({path:fileURLToPath(new URL(name+'.png',out))});};
+  const finishFixture=(code,round,loser,rewardSeat)=>{
+    assert(/^[0-9]{6}$/.test(code)&&/^[a-f0-9-]{36}$/.test(round)&&[0,1].includes(loser));
+    const container=fixture.descriptor.postgresContainer;
+    const docker=(args,input)=>execFileSync('docker',args,{input,encoding:'utf8',windowsHide:true});
+    assertOwnedContainer(JSON.parse(docker(['container','inspect',container]))[0],fixture.names,container,true);
+    // Only the owned test battle is accelerated; real HTTP performs its settlement and next-round transition.
+    docker(['exec','-i',container,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','platform_owner','-d','h5_acceptance'],`DO $$ DECLARE r jsonb; BEGIN
+      SELECT data INTO r FROM runtime.competition_rooms WHERE code='${code}' FOR UPDATE;
+      ASSERT r->>'id'='${round}' AND r->>'status'='playing';
+      r=jsonb_set(r,'{players,0,state,simulation,units}',(SELECT jsonb_agg(CASE WHEN (u->>'group')::int=${loser} THEN jsonb_set(u,'{hp}','0') ELSE u END) FROM jsonb_array_elements(r#>'{players,0,state,simulation,units}') u));
+      ${rewardSeat===1?"r=jsonb_set(r,'{players,0,state,simulation,duelStats,1,ammoSpent}','3'); r=jsonb_set(r,'{players,0,state,simulation,duelStats,1,hitShots}','1');":''}
+      UPDATE runtime.competition_rooms SET data=r WHERE code='${code}'; END $$;`);
+    (evidence.terminalFixtures??=[]).push({code,round,loser,participationInjected:rewardSeat===1});
+  };
   const dropdown=async(p,entry,s)=>{
     s??=await snapshot(p);
     const list=s.scrollLists.find(v=>v.key==='players'),{width,height}=p.viewportSize();
@@ -104,14 +119,59 @@ try {
   await type(c,'战斗中也能收到');await click(c,'online:chatSend');await b.waitForFunction(()=>__night.snapshot().online.notification?.text==='战斗中也能收到');await click(b,'social:reply');
   const battle=(await snapshot(b)).online.room.code;await type(b,'战斗中回复');await click(b,'online:chatSend');await c.waitForFunction(()=>__night.snapshot().chat.messages.some(m=>m.text==='战斗中回复'));await shot(b,'reply-during-battle');
   assert.equal((await snapshot(b)).online.room.code,battle);assert((await snapshot(b)).online.active);await click(b,'social:close');assert.equal((await snapshot(b)).phase,'playing');
+  const round=(await snapshot(b)).online.room.id;
   await a.waitForFunction(()=>__night.snapshot().time>=11);await click(a,'settings');await click(a,'home');await click(a,'exitConfirm');
-  await a.waitForFunction(()=>__night.snapshot().online.message.includes('本局判负'));
-  await b.waitForFunction(()=>__night.snapshot().online.room?.settlement?.reason==='forfeit'&&__night.snapshot().phase==='success');
-  const ended=(await snapshot(b)).online.room;
-  assert.equal(ended.settlement.outcome,'win');assert.equal(ended.settlement.coins,0);assert.equal(ended.settlement.xp,0);assert.equal(ended.settlement.rewardReason,'opponent-left');
-  assert.match((await snapshot(a)).online.message,/金币 \+60.*经验 \+70/);assert.equal(ended.players.find(p=>p.id===aid||p.playerId===aid).settlement.outcome,'loss');
-  await shot(a,'quit-defeat-consolation');await shot(b,'opponent-left-result');await click(b,'online:roomReturn');await shot(b,'ready-room-finished');
-  evidence.checks.push('voluntary exit ends both clients immediately, quitter receives defeat coins/EXP once, opponent sees exit reason with zero coins/EXP; compact room seats cover empty/joined/finished states');
+  await a.waitForFunction(code=>__night.snapshot().online.resumeCode===code&&!__night.snapshot().online.active,battle);
+  await b.waitForFunction(()=>__night.snapshot().online.peerChoice);
+  let waiting=await snapshot(b);assert(waiting.online.peerReconnectSeconds>0&&waiting.online.peerReconnectSeconds<=30);assert.equal(waiting.phase,'playing');assert.equal(waiting.online.room.settlement,null);
+  assert(waiting.buttons.some(v=>v.id==='online:peerLeave'));await shot(b,'opponent-offline-choice');await shot(a,'quit-recovery-entry');
+  await click(b,'online:peerContinue');const beforeWait=(await snapshot(b)).time;await b.waitForTimeout(1200);
+  waiting=await snapshot(b);assert(!waiting.online.peerChoice);assert(waiting.time>beforeWait,'continuing does not pause the battle');
+  const rejoin='online:resumeRoom:'+battle;
+  await a.waitForFunction(id=>__night.snapshot().buttons.some(b=>b.id===id&&b.text==='返回对战'&&!b.disabled),rejoin);
+  assert(!(await snapshot(a)).buttons.some(b=>b.id==='online:watchCode:'+battle));
+  await choose(a,rejoin,'rooms');await a.waitForFunction(id=>__night.snapshot().online.room?.id===id&&__night.snapshot().phase==='playing',round);
+  await b.waitForFunction(id=>{const p=__night.snapshot().online.room?.players.find(p=>(p.id||p.playerId)===id);return p&&!p.disconnected&&!p.left&&!p.takenOver;},aid);
+  assert.equal((await snapshot(b)).online.room.code,battle);await shot(a,'voluntary-return-control');
+  await a.context().setOffline(true);await b.waitForFunction(()=>__night.snapshot().online.peerChoice);
+  await shot(b,'network-offline-choice');await a.context().setOffline(false);
+  await b.waitForFunction(id=>{const s=__night.snapshot(),p=s.online.room?.players.find(p=>(p.id||p.playerId)===id);return !s.online.peerChoice&&p&&!p.disconnected&&!p.takenOver;},aid);
+  assert.equal((await snapshot(a)).online.room.id,round);await shot(b,'network-return-choice-dismissed');
+  await click(a,'settings');await click(a,'home');await click(a,'exitConfirm');await b.waitForFunction(()=>__night.snapshot().online.peerChoice);await click(b,'online:peerContinue');
+  await b.waitForFunction(id=>__night.snapshot().online.room?.players.some(p=>(p.id||p.playerId)===id&&p.takenOver),aid,{timeout:45000});
+  const taken=await snapshot(b);assert.equal(taken.online.room.id,round);assert.equal(taken.online.room.code,battle);assert.equal(taken.online.room.settlement,null);assert.equal(taken.phase,'playing');assert(!taken.online.peerChoice);
+  assert(taken.online.room.state.bots[0]);await shot(b,'timeout-bot-continues');
+  await click(a,'online:resumeRoom');await a.waitForFunction(()=>!__night.snapshot().online.resumeCode&&!__night.snapshot().online.active);assert(!(await snapshot(a)).online.room);
+  finishFixture(battle,round,0,1);
+  await b.waitForFunction(()=>__night.snapshot().phase==='success'&&__night.snapshot().online.room?.settlement);
+  const receipt=(await snapshot(b)).online.room.settlement;
+  assert.equal(receipt.points,120);assert.equal(receipt.coins,200);assert.equal(receipt.xp,140);await shot(b,'eligible-win-receipt');
+  let droppedRematch=false;
+  const lostReply=async route=>{
+    if(droppedRematch)return route.continue();
+    const response=await route.fetch();assert(response.ok());droppedRematch=true;return route.abort('connectionfailed');
+  };
+  await b.route('**/rooms/'+battle+'/rematch',lostReply);
+  await click(b,'online:roomReturn');await b.waitForFunction(()=>__night.snapshot().online.room?.status==='waiting'&&__night.snapshot().online.panel==='room');
+  assert(droppedRematch);await b.unroute('**/rooms/'+battle+'/rematch',lostReply);
+  assert.equal((await snapshot(b)).online.room.code,battle);await shot(b,'same-room-after-bot');
+  await a.goto(origin+'/?room='+battle+'&dev=0');await a.waitForFunction(code=>globalThis.__night?.snapshot().online.room?.code===code&&__night.snapshot().online.panel==='room',battle);
+  await b.waitForFunction(()=>__night.snapshot().online.room?.players.length===2);
+  const secondRound=(await snapshot(b)).online.room.id;assert.notEqual(secondRound,round);
+  await click(a,'online:ready');await click(b,'online:ready');await a.waitForFunction(()=>__night.snapshot().phase==='playing'&&__night.snapshot().time>1);
+  finishFixture(battle,secondRound,1);
+  for(const p of [a,b])await p.waitForFunction(()=>!!__night.snapshot().online.room?.settlement);
+  await click(b,'online:roomReturn');
+  for(const p of [a,b])await p.waitForFunction(id=>__night.snapshot().online.room?.status==='waiting'&&__night.snapshot().online.room.id!==id&&__night.snapshot().buttons.some(b=>b.id==='online:ready'),secondRound);
+  assert.equal((await snapshot(a)).online.room.code,battle);await shot(a,'passive-same-room-next-round');
+  await click(b,'online:backLobby');await b.waitForFunction(()=>!__night.snapshot().online.room);
+  await click(b,'online:players');await choose(b,'online:whisper:'+aid);await b.waitForFunction(id=>__night.snapshot().chat.messages.some(m=>m.id===id&&m.room?.canJoin),invite.id);
+  await choose(b,'online:chatJoin:'+invite.id,'direct');await b.waitForFunction(code=>__night.snapshot().online.room?.code===code,battle);await shot(b,'original-invitation-rejoined');
+  for(const p of [a,b])await click(p,'online:backLobby');
+  evidence.checks.push('voluntary leave shows rejoin instead of watch on the original public room row; opponent chooses continue without pausing; tapping the room row restores control of the same round; real network loss/recovery dismisses choice; 30s expiry hands the existing battle to a bot without settling; expired recovery is refused; final remaining player leaves');
+  evidence.checks.push('owned SQL fixtures accelerate two terminal battles; real server credits eligible winner 120/200/140; a lost committed rematch response recovers without stealing control; stay retains room code; original URL returns; partner automatically receives next round; original chat invitation joins again');
+  evidence.notCovered=['natural full-length battle and reward eligibility earned solely by browser gameplay'];
+  evidence.terminalInjection=true;
   evidence.checks.push('failed invite exposes version rejection in place; successful targeted invitation creates one room and recipient joins; both ready; busy player invitation disabled; battle continues through private reply');
   await click(c,'social:close');await click(c,'online:back');
   await click(c,'qm:modes');await click(c,'mode:duel');await click(c,'mode:enter');await c.waitForFunction(()=>__night.snapshot().online.panel==='menu');await shot(c,'battle-lobby');

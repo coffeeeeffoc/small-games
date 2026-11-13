@@ -43,6 +43,7 @@ export type Member = {
   result?: Result;
   before?: unknown;
   leaseId?: string;
+  previousLeaseId?: string;
   seenAt?: number;
   disconnected?: boolean;
   reconnectUntil?: number;

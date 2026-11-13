@@ -26,10 +26,11 @@ export class SocialView {
     const h=this.h,o=h.online,notice=o?.notification&&performance.now()<o.notificationUntil?o.notification:undefined;
     const major=h.majorUpdate&&!h.updatesOpen;
     const visible=!!o&&!o.socialOpen&&!o.friendRemoval&&!h.updatesOpen&&!h.storageError;
-    const key=[visible,notice?.id,o?.directUnread,o?.incomingFriends,o?.chatRetryPending,major,o?.updateNotice,h.w,h.h,h.lang,h.safe.top,h.modalKey].join(':');
+    const retry = !!o?.chatPeer && o.chatRetryPending;
+    const key=[visible,notice?.id,o?.directUnread,o?.incomingFriends,retry,major,o?.updateNotice,h.w,h.h,h.lang,h.safe.top,h.modalKey].join(':');
     if(key===this.bannerKey&&this.banner&&isValid(this.banner))return;
     this.bannerKey=key;this.discard(this.banner);this.banner=undefined;
-    if(!visible||!notice&&!o!.directUnread&&!o!.incomingFriends&&!o!.chatRetryPending&&!((major||o!.updateNotice)&&h.modalKey==='home'))return;
+    if(!visible||!notice&&!o!.directUnread&&!o!.incomingFriends&&!retry&&!((major||o!.updateNotice)&&h.modalKey==='home'))return;
     const n=this.banner=h.node('SocialNotice',h.globalControls),g=n.addComponent(Graphics);
     const right=h.w-h.safe.right-16,top=Math.max(h.safe.top+52,(h.capsuleRect?.bottom||0)+8);
     // Version news belongs to the corner; direct messages keep their own speech bubble.
@@ -49,11 +50,12 @@ export class SocialView {
       const preview=h.label(n,notice.text,x+16+(w-68)/2,y+51,13,w-68,26,C.white);preview.enableWrapText=false;preview.overflow=Label.Overflow.SHRINK;preview.horizontalAlign=Label.HorizontalAlign.LEFT;
       h.button('social:reply','',x,y,w-48,76,n).node.name=h.t('打开私信','OPEN MESSAGE');
       h.dialogButton(n,g,'social:dismiss','',x+w-48,y+4,44,'quiet','close');
-    }else if(o!.directUnread||o!.incomingFriends||o!.chatRetryPending){
-      const w=148,x=right-w,y=h.h-h.safe.bottom-54;
+    }else if(o!.directUnread||o!.incomingFriends||retry){
+      const lobby = o!.panel === 'menu' || o!.panel === 'chat';
+      const w=148,x=right-w,y=lobby ? Math.max(top, h.safe.top + 104) : h.h-h.safe.bottom-54;
       h.rect(g,x,y+3,w,38,'#153147f5','#52798d',19);
       h.controlIcon(g,'message',x+22,y+22,18,C.mint);
-      h.button('social:inbox',h.t(o!.chatRetryPending?'消息待重试':o!.directUnread?`未读消息 ${o!.directUnread}`:`好友申请 ${o!.incomingFriends}`,o!.chatRetryPending?'RETRY MESSAGE':o!.directUnread?`MESSAGES ${o!.directUnread}`:`REQUESTS ${o!.incomingFriends}`),x+38,y,w-38,44,n).fontSize=12;
+      h.button('social:inbox',h.t(retry?'消息待重试':o!.directUnread?`未读消息 ${o!.directUnread}`:`好友申请 ${o!.incomingFriends}`,retry?'RETRY MESSAGE':o!.directUnread?`MESSAGES ${o!.directUnread}`:`REQUESTS ${o!.incomingFriends}`),x+38,y,w-38,44,n).fontSize=12;
     }
   }
 

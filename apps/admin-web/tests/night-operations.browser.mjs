@@ -73,11 +73,12 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         },
       };
       f.state.snapshot.nightOperations = structuredClone(ops);
+      f.state.snapshot.games['night-overwatch'] = 'enabled';
       f.revisions.find((r) => r.id === f.state.revisionId).snapshot = structuredClone(
         f.state.snapshot,
       );
       const history = Array.from({ length: 5 }, (_, i) => ({
-        version: i === 0 ? '2.0.0' : `1.0.${4 - i}`,
+        version: i === 0 ? '3.0.0' : `1.0.${4 - i}`,
         sourceSHA: 'a'.repeat(40),
         release: `release-${i}`,
         mode: 'execute',
@@ -92,7 +93,10 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         otherInstances: [],
         report: {
           instanceId: 'qa-runtime',
-          ranked: { current: 'solo-b', supported: ['solo-a', 'solo-b'] },
+          ranked: {
+            current: 'solo-b',
+            supported: ['solo-a', 'solo-b', 'night-input-replay-v18'],
+          },
           multiplayer: { current: 'duel-b', supported: ['duel-a', 'duel-b'] },
         },
       };
@@ -116,7 +120,7 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
       await page.goto(url + '/games');
       const tab = (name) => activate(page.getByRole('tab', { name, exact: true }));
       await tab('夜航运营');
-      const backend = page.getByRole('table', { name: '后端兼容服务', exact: true });
+      const backend = page.getByRole('table', { name: '新局开关分组', exact: true });
       const builds = page.getByRole('table', { name: '前端版本登记', exact: true });
       const dialog = page.getByRole('dialog');
       const settle = () =>
@@ -196,9 +200,17 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         2,
       );
       await tab('版本与部署');
+      const runtimeRules = page.getByRole('table', { name: '服务端实际规则' });
+      await runtimeRules.getByText('night-input-replay-v18', { exact: true }).waitFor();
+      assert(
+        await runtimeRules.evaluate(
+          (table) => table.offsetWidth <= table.parentElement.clientWidth,
+        ),
+        'runtime rules fit without horizontal scrolling',
+      );
       const buildA = builds.getByRole('row').filter({ hasText: 'night-build-a' });
       const buildB = builds.getByRole('row').filter({ hasText: 'night-build-b' });
-      await buildA.getByText('兼容', { exact: true }).waitFor();
+      await buildA.getByText('可开新局 · 保留规则', { exact: true }).first().waitFor();
       assert.deepEqual(
         await buildA
           .getByRole('button')
@@ -208,7 +220,8 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
       const recommend = (row) => row.getByRole('button', { name: '设为推荐', exact: true });
       assert(await recommend(buildB).isDisabled());
       await activate(recommend(buildA));
-      await buildA.getByText('推荐版本', { exact: true }).waitFor();
+      await buildA.getByText('草稿设为推荐', { exact: true }).waitFor();
+      await buildB.getByText('推荐版本', { exact: true }).waitFor();
       await activate(recommend(buildB));
       await buildB.getByText('推荐版本', { exact: true }).waitFor();
       assert.deepEqual(
@@ -242,8 +255,11 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
       await versionInput.fill('9.9.9');
       const writes = f.requests.filter((r) => r.method !== 'GET').length;
       f.nightRuntime.report.ranked = { current: 'solo-a', supported: ['solo-a'] };
-      await activate(button('刷新服务端版本'));
-      await buildB.getByText('不兼容', { exact: true }).waitFor();
+      await activate(button('刷新服务端规则'));
+      const singleB = buildB.getByRole('cell').nth(1);
+      const duelB = buildB.getByRole('cell').nth(2);
+      await singleB.getByText('缺少规则执行器', { exact: true }).waitFor();
+      await duelB.getByText('可开新局', { exact: true }).waitFor();
       assert.equal(
         await versionInput.inputValue(),
         '9.9.9',
@@ -260,17 +276,17 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         fullPage: true,
       });
       f.nightRuntime = { ...runtime, report: null, error: 'UNAVAILABLE' };
-      await activate(button('刷新服务端版本'));
-      await buildB.getByText('待核实', { exact: true }).waitFor();
+      await activate(button('刷新服务端规则'));
+      await singleB.getByText('待核实', { exact: true }).waitFor();
       f.nightRuntime = { ...runtime, checkedAt: Date.now() - 61_000 };
-      await activate(button('刷新服务端版本'));
+      await activate(button('刷新服务端规则'));
       await page.getByText('服务端规则待核实', { exact: true }).waitFor();
       f.nightRuntime = { ...runtime, checkedAt: Date.now(), otherInstances: ['mixed-runtime'] };
-      await activate(button('刷新服务端版本'));
-      await buildA.getByText('部分实例待核实', { exact: true }).waitFor();
+      await activate(button('刷新服务端规则'));
+      await buildA.getByText('部分实例待核实', { exact: true }).first().waitFor();
       f.nightRuntime = { ...runtime, checkedAt: Date.now() };
-      await activate(button('刷新服务端版本'));
-      await buildB.getByText('兼容', { exact: true }).waitFor();
+      await activate(button('刷新服务端规则'));
+      await singleB.getByText('可开新局', { exact: true }).waitFor();
       await versionInput.fill('');
       assert.equal(
         await page.getByRole('table', { name: '后端上线历史' }).locator('tbody tr').count(),
@@ -278,12 +294,18 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
       );
       const service = backend.getByRole('row').filter({ hasText: '1.0.0' });
       await activate(service.getByRole('button', { name: '关闭新局', exact: true }));
+      const singleA = buildA.getByRole('cell').nth(1);
+      await singleA.getByText('可开新局 · 保留规则', { exact: true }).waitFor();
+      await singleA.getByText('分组已停开', { exact: true }).waitFor();
+      await singleA.getByText('草稿预览', { exact: true }).waitFor();
       assert(
         await (await openActions(buildA)).getByRole('menuitem', { name: '快速回退' }).isDisabled(),
       );
       await page.keyboard.press('Escape');
       await publish();
       assert.deepEqual(f.state.snapshot.nightOperations.release.disabledBackendVersions, ['1.0.0']);
+      await singleA.getByText('分组已停开', { exact: true }).waitFor();
+      assert.equal(await singleA.getByText('草稿预览', { exact: true }).count(), 0);
       await activate(service.getByRole('button', { name: '恢复新局', exact: true }));
       await publish();
       const beforeRollback = structuredClone(f.state.snapshot.nightOperations);
@@ -318,9 +340,23 @@ export async function nightOperationsBrowserChecks(browser, url, evidence) {
         mimeType: 'application/json',
         buffer: Buffer.from(JSON.stringify({ release })),
       });
+      await page.getByText('支持当前规则', { exact: true }).first().waitFor();
       await activate(button('登记到草稿'));
+      await builds
+        .getByRole('row')
+        .filter({ hasText: 'night-build-c' })
+        .getByText('草稿预览')
+        .first()
+        .waitFor();
       await publish();
       assert.equal(f.state.snapshot.nightOperations.release.builds.at(-1).version, '1.0.2');
+      await activate(page.getByText('旧包兼容设置', { exact: true }));
+      await activate(page.getByRole('combobox', { name: '从已登记包复制旧客户端映射' }));
+      await activate(
+        page.getByRole('option', { name: '1.0.1 · taptap-h5 · solo-b / duel-b · 2.0.0' }),
+      );
+      await page.getByText(/草稿映射 taptap-h5 · 开关分组 2.0.0/).waitFor();
+      assert.equal(f.state.snapshot.nightOperations.release.legacy.ranked, 'solo-a');
       await page.waitForFunction(() => !document.querySelector('.ant-message-notice'));
       await page.screenshot({ path: `${evidence}/night-operations-${width}.png`, fullPage: true });
       assert(

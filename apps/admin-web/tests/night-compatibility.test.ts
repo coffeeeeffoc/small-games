@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-  buildCompatibility,
   hasIncompatibleNewGames,
+  newGameBlock,
   ruleOrder,
   ruleAdvice,
   runtimeReport,
+  ruleSupport,
   type NightRuntimeStatus,
 } from '../src/night-compatibility.ts';
 import type { NightBuild, NightRelease } from '../src/night-operations-model';
@@ -24,24 +25,22 @@ test('rule membership decides compatibility independently of numerical age', () 
       multiplayer: { current: 'night-duel-v11', supported: ['night-duel-v11', 'night-duel-v10'] },
     },
   };
-  const old = { ranked: 'night-input-replay-v17', multiplayer: 'night-duel-v10' };
-  assert.equal(buildCompatibility(old, status, 100_000), '兼容');
-  assert.equal(
-    buildCompatibility({ ...old, multiplayer: 'night-duel-v12' }, status, 100_000),
-    '不兼容',
-  );
+  const old = 'night-duel-v10';
+  assert.equal(ruleSupport('multiplayer', old, status, 100_000), 'retained');
+  assert.equal(ruleSupport('ranked', 'night-input-replay-v18', status, 100_000), 'current');
+  assert.equal(ruleSupport('multiplayer', 'night-duel-v12', status, 100_000), 'unsupported');
   assert.match(ruleAdvice('night-duel-v12', status.report!.multiplayer), /需升级服务端/);
   assert.match(ruleAdvice('night-duel-v9', status.report!.multiplayer), /需升级客户端/);
-  assert.match(ruleAdvice(old.multiplayer, status.report!.multiplayer), /已保留支持/);
+  assert.match(ruleAdvice(old, status.report!.multiplayer), /已保留支持/);
   assert.equal(ruleOrder('night-duel-v10', 'night-duel-v9'), '客户端较高 / 服务端较低');
   assert.equal(ruleOrder('other-v10', 'night-duel-v9'), '版本系列不同，无法排序');
   assert.equal(ruleOrder('solo-a', 'solo-b'), '版本系列不同，无法排序');
   assert.equal(
-    buildCompatibility(old, { ...status, otherInstances: ['two'] }, 100_000),
-    '部分实例待核实',
+    ruleSupport('multiplayer', old, { ...status, otherInstances: ['two'] }, 100_000),
+    'partial',
   );
-  assert.equal(buildCompatibility(old, { ...status, report: null }, 100_000), '待核实');
-  assert.equal(buildCompatibility(old, status, 160_001), '待核实');
+  assert.equal(ruleSupport('multiplayer', old, { ...status, report: null }, 100_000), 'unknown');
+  assert.equal(ruleSupport('multiplayer', old, status, 160_001), 'unknown');
   assert.equal(runtimeReport(status, 90_000), null);
 });
 
@@ -90,4 +89,7 @@ test('alerts only unsupported rules that still admit new games', () => {
   );
   assert(!hasIncompatibleNewGames({ ...build, disabled: true }, release, status));
   assert(!hasIncompatibleNewGames({ ...build, removed: true }, release, status));
+  assert(!hasIncompatibleNewGames(build, release, status, 'draining'));
+  assert.equal(newGameBlock('ranked', build, release, 'disabled'), '游戏已停用');
+  assert.equal(newGameBlock('multiplayer', build, release), undefined);
 });
