@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { readAdminConfig } from './admin/config.js';
 import { readAdminControlFlag } from './admin/rbac-protocol.js';
+import { validateNightPlayerConfig } from './admin/night-players.js';
 
 export function adminControlEnabled(env: Record<string, string | undefined>) {
   return readAdminControlFlag(env.ADMIN_CONTROL_ENABLED);
@@ -8,6 +9,7 @@ export function adminControlEnabled(env: Record<string, string | undefined>) {
 
 /** Reject incomplete configuration before allocating database or object-store clients. */
 export function validateManagementEnvironment(env: Record<string, string | undefined>) {
+  validateNightPlayerConfig(env);
   if (adminControlEnabled(env) && env.MANAGEMENT_CAPABILITIES !== 'admin' && !env.ADMIN_ORIGIN)
     throw new Error(
       'Invalid management configuration: ADMIN_CONTROL_ENABLED requires ADMIN_ORIGIN',

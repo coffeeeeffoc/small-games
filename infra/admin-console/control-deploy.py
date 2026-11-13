@@ -37,7 +37,7 @@ CSP_BASE = "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-
 CSP_META = '<meta name="sg-csp-nonce" content="{{ $sgNonce }}">'
 CSP_PREFIX = ('<!--{{- $sgNonce := randBytes 32 -}}{{- .RespHeader.Set "Content-Security-Policy" (printf "'
               + CSP_BASE.replace("style-src 'self'", "style-src 'self' 'nonce-%s'") + '" $sgNonce) -}}-->')
-UI_PATHS = ['/', '/login', '/forbidden', '/config', '/games', '/members', '/roles', '/audit']
+UI_PATHS = ['/', '/login', '/forbidden', '/config', '/games', '/releases', '/players', '/members', '/roles', '/audit']
 CSP_CONTRACT = {'version': 1, 'kind': 'nonce-v1', 'prefix': CSP_PREFIX, 'meta': CSP_META, 'baseCsp': CSP_BASE, 'paths': UI_PATHS}
 MODULES = {}
 STAGE = 'preflight'
@@ -202,7 +202,7 @@ def write_private(file, value, replace=False):
     fsync_directory(file.parent)
 
 
-def manifest_from(release, historical=False):
+def manifest_from(release, historical=False, historical_csp=False):
     require(release.parent == BASE / 'releases' and release.resolve(strict=True) == release
             and re.fullmatch(r'[a-z0-9-]{1,100}', release.name), 'RELEASE_PATH')
     value = json_value((release / 'manifest.json').read_bytes())
@@ -232,8 +232,12 @@ def manifest_from(release, historical=False):
     else:
         require(value['services'] and {'Dockerfile', 'site/index.html'} <= set(value['files'])
                 and value['adminHtml'] == {'contract': 'nonce-v1', 'templateSha256': value['files']['site/index.html']}, 'RELEASE_MANIFEST')
-    contract = (json.dumps(CSP_CONTRACT, indent=2, ensure_ascii=False) + '\n').encode()
-    require((release / 'admin-csp-contract.json').read_bytes() == contract, 'CSP_CONTRACT')
+    paths = [UI_PATHS]
+    if historical or historical_csp:
+        paths += [[p for p in UI_PATHS if p != '/players'],
+                  [p for p in UI_PATHS if p not in ('/players', '/releases')]]
+    contracts = [(json.dumps(dict(CSP_CONTRACT, paths=p), indent=2, ensure_ascii=False) + '\n').encode() for p in paths]
+    require((release / 'admin-csp-contract.json').read_bytes() in contracts, 'CSP_CONTRACT')
     return value
 
 
@@ -445,11 +449,12 @@ def oauth_metadata(headers, status):
 
 def public_probe(release):
     manifest = manifest_from(release, historical=True)
+    paths = json_value((release / 'admin-csp-contract.json').read_bytes())['paths'] if 'adminHtml' in manifest else UI_PATHS[:3]
     deadline = time.monotonic() + 40
     while True:
         try:
             nonces = set()
-            for path in UI_PATHS if 'adminHtml' in manifest else UI_PATHS[:3]:
+            for path in paths:
                 status, headers, body = https_request(path, deadline)
                 require(status == (403 if path == '/forbidden' else 200), 'HTTPS_PROBE')
                 nonce = check_document(release, manifest, headers, body)
@@ -497,7 +502,7 @@ def read_control_proof(release, manifest):
             and all(digest(proof[key]) for key in ('backupSHA256', 'oldStateSHA256', 'precommitSHA256')), 'CONTROL_PROOF')
     control_contract(value['controlContract'])
     origin = BASE / 'releases' / proof['release']
-    original, checksum = read_precommit(origin, manifest_from(origin))
+    original, checksum = read_precommit(origin, manifest_from(origin, False, True))
     require(checksum == proof['precommitSHA256'] and original['sourceSHA'] == proof['sourceSHA']
             and original['controlContract'] == value['controlContract']
             and all(original[key] == proof[key] for key in ('backupSHA256', 'oldStateSHA256')), 'CONTROL_PROOF')
@@ -1230,7 +1235,7 @@ def repair_application(release, manifest, target, target_manifest):
 
 
 def guarded_management(release, expected_image):
-    manifest = manifest_from(release)
+    manifest = manifest_from(release, False, True)
     proof = read_control_proof(release, manifest)
     file, signature, model = management_config(release)
     require(model['services']['management']['image'] == expected_image
@@ -1255,7 +1260,7 @@ def update(release, manifest, caddy, rollback=False):
     if rollback:
         require(saved['previous'] is not None, 'AUTHORITY_FALLBACK_REQUIRED')
         target = Path(saved['previous'])
-        target_manifest = manifest_from(target)
+        target_manifest = manifest_from(target, False, True)
         target_model = private_json(PRIVATE / target.name / 'compose.json')
         image = target_model['services']['management']['image']
         _, proof, envfile, signature = guarded_management(target, image)
@@ -1324,12 +1329,12 @@ def diagnostic_markers(error):
     return result
 
 
-def recovery_target(runner, manifest, payload):
+def recovery_target(runner, manifest, payload, historical_csp=True):
     require(manifest['kind'] == 'control-runner' and isinstance(payload['targetRelease'], str)
             and re.fullmatch(r'[a-z0-9-]{1,100}', payload['targetRelease'])
             and digest(payload['targetManifestSHA256']), 'CONFIG')
     target = BASE / 'releases' / payload['targetRelease']
-    target_manifest = manifest_from(target)
+    target_manifest = manifest_from(target, False, historical_csp)
     require(hashlib.sha256((target / 'manifest.json').read_bytes()).hexdigest() == payload['targetManifestSHA256'], 'RELEASE_HASH')
     require(target_manifest['migrationArtifactSha256'] == manifest['migrationArtifactSha256'], 'CONTROL_CONTRACT')
     require(target != runner, 'RECOVERY_REQUIRED')
@@ -1365,7 +1370,7 @@ def main(args=None, payload=None):
         target, target_manifest = recovery_target(release, manifest, payload)
     if args[0] == '--repair':
         application, application_manifest = recovery_target(release, manifest, {
-            'targetRelease': payload['applicationRelease'], 'targetManifestSHA256': payload['applicationManifestSHA256']})
+            'targetRelease': payload['applicationRelease'], 'targetManifestSHA256': payload['applicationManifestSHA256']}, False)
         require(application_manifest['sourceSHA'] == manifest['sourceSHA'], 'SOURCE_MISMATCH')
     domain_module()
     caddy = Path(payload['caddyDirectory'])

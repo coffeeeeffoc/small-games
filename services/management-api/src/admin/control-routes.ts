@@ -31,6 +31,12 @@ export async function registerControlRoutes(
       routes.get('/audit', (request) => control.audits(session(request)));
       routes.get('/deployments', (request) => control.deployments(session(request)));
       routes.get('/night-runtime', (request) => control.nightRuntime(session(request)));
+      routes.post('/night-players/query', { bodyLimit: 2048 }, (request) =>
+        control.nightPlayers(session(request), request.body),
+      );
+      routes.post('/night-players/detail', { bodyLimit: 2048 }, (request) =>
+        control.nightPlayer(session(request), request.body),
+      );
       routes.post('/revisions', { bodyLimit: 262_144 }, (request) =>
         control.draft(
           session(request),

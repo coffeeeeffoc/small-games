@@ -56,6 +56,18 @@ def manifest():
 
 
 class ControlContracts(unittest.TestCase):
+    def test_public_probe_uses_the_verified_targets_historical_routes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            release = Path(folder)
+            paths = [p for p in control.UI_PATHS if p not in ('/players', '/releases')]
+            (release / 'admin-csp-contract.json').write_text(json.dumps(dict(control.CSP_CONTRACT, paths=paths)))
+            def request(path, _deadline):
+                if path == '/api/session': return 401, [('content-type','application/json')], b'{"error":"authentication_required"}'
+                return (403 if path == '/forbidden' else 200), [], path.encode()
+            with patch.object(control, 'manifest_from', return_value={'adminHtml': {}}), patch.object(control, 'https_request', side_effect=request) as http, patch.object(control, 'check_document', side_effect=lambda r,m,h,b:b), patch.object(control, 'oauth_metadata'):
+                control.public_probe(release)
+                self.assertEqual([c.args[0] for c in http.call_args_list], paths + ['/api/session','/api/auth/github'])
+
     def test_historical_manifest_catalogs_are_finite_and_do_not_authorize_current_candidates(self):
         with tempfile.TemporaryDirectory() as folder:
             base = Path(folder).resolve()
@@ -78,6 +90,22 @@ class ControlContracts(unittest.TestCase):
                     if version == 5: self.assertEqual(control.manifest_from(release), value)
                     else:
                         with self.assertRaisesRegex(control.Stopped, 'RELEASE_MANIFEST'): control.manifest_from(release)
+                for paths in ([p for p in control.UI_PATHS if p != '/players'], [p for p in control.UI_PATHS if p not in ('/players','/releases')]):
+                    data = (json.dumps(dict(control.CSP_CONTRACT, paths=paths), indent=2, ensure_ascii=False) + '\n').encode()
+                    (release / 'admin-csp-contract.json').write_bytes(data)
+                    files['admin-csp-contract.json'] = hashlib.sha256(data).hexdigest()
+                    value['cspContractSha256'] = files['admin-csp-contract.json']
+                    (release / 'manifest.json').write_text(json.dumps(value))
+                    self.assertEqual(control.manifest_from(release, True), value)
+                    self.assertEqual(control.manifest_from(release, False, True), value)
+                    with self.assertRaisesRegex(control.Stopped, 'CSP_CONTRACT'): control.manifest_from(release)
+                    changed = dict(control.CSP_CONTRACT, paths=paths, prefix='unsafe')
+                    invalid = (json.dumps(changed, indent=2, ensure_ascii=False) + '\n').encode()
+                    (release / 'admin-csp-contract.json').write_bytes(invalid)
+                    files['admin-csp-contract.json'] = hashlib.sha256(invalid).hexdigest()
+                    value['cspContractSha256'] = files['admin-csp-contract.json']
+                    (release / 'manifest.json').write_text(json.dumps(value))
+                    with self.assertRaisesRegex(control.Stopped, 'CSP_CONTRACT'): control.manifest_from(release, False, True)
                 for version in (1, 6, True):
                     value['controlSchemaVersion'] = version
                     (release / 'manifest.json').write_text(json.dumps(value))
@@ -579,8 +607,11 @@ class ControlContracts(unittest.TestCase):
             current = dict(manifest(), kind='control-runner')
             old = dict(manifest(), sourceSHA='0' * 40)
             payload = {'targetRelease': 'old', 'targetManifestSHA256': checksum}
-            with patch.object(control, 'BASE', base), patch.object(control, 'manifest_from', return_value=old):
+            with patch.object(control, 'BASE', base), patch.object(control, 'manifest_from', return_value=old) as read:
                 self.assertEqual(control.recovery_target(base / 'releases/current', current, payload), (target, old))
+                read.assert_called_with(target, False, True)
+                control.recovery_target(base / 'releases/current', current, payload, False)
+                read.assert_called_with(target, False, False)
                 for bad in [dict(payload, targetRelease='../old'), dict(payload, targetManifestSHA256='0' * 64)]:
                     with self.assertRaises(control.Stopped):
                         control.recovery_target(base / 'releases/current', current, bad)

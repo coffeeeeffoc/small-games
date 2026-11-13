@@ -1952,13 +1952,23 @@ export function legacyPolyfillTurboOnly(before, after) {
 }
 export function nightVersionAndPolyfillTurboOnly(before, after) {
   try {
-    const middle = JSON.parse(after),
+    const base = JSON.parse(before),
+      middle = JSON.parse(after),
       input = '$TURBO_ROOT$/platforms/competition/legacy-polyfills.js';
     for (const key of ['@coffeeeeffoc/night-overwatch#build', '@coffeeeeffoc/tetracube#build'])
       middle.tasks[key].inputs = middle.tasks[key].inputs.filter((value) => value !== input);
     const intermediate = JSON.stringify(middle);
+    const key = '@coffeeeeffoc/night-overwatch#build';
+    for (const input of [
+      '$TURBO_ROOT$/platforms/competition/night-storage.js',
+      '$TURBO_ROOT$/platforms/competition/night-storage/**',
+    ])
+      if (!base.tasks[key].inputs.includes(input))
+        middle.tasks[key].inputs = middle.tasks[key].inputs.filter((value) => value !== input);
+    const withoutStorage = JSON.stringify(middle);
     return (
-      nightVersionBuildScope('turbo.json', before, intermediate) &&
+      (withoutStorage === intermediate || nightStorageTurboOnly(withoutStorage, intermediate)) &&
+      nightVersionBuildScope('turbo.json', before, withoutStorage) &&
       legacyPolyfillTurboOnly(intermediate, after)
     );
   } catch {

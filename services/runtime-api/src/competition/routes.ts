@@ -187,10 +187,13 @@ export async function registerCompetition(
           );
         });
       }
-      const internal = (request: { ip: string; headers: Record<string, unknown> }) => {
+      const internal = (
+        request: { ip: string; headers: Record<string, unknown> },
+        readOnly = false,
+      ) => {
         const provided = request.headers['x-competition-internal-key'];
         if (
-          !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(request.ip) ||
+          (!readOnly && !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(request.ip)) ||
           !internalKey ||
           typeof provided !== 'string' ||
           Buffer.byteLength(provided) !== Buffer.byteLength(internalKey) ||
@@ -198,6 +201,17 @@ export async function registerCompetition(
         )
           throw new CompetitionError('INTERNAL_UNAUTHORIZED', 403);
       };
+      for (const operation of ['list', 'detail'] as const) {
+        routes.post(
+          `/internal/night-players/${operation}`,
+          { bodyLimit: 2048, config: { rateLimit: { max: 30, timeWindow: '1 minute' } } },
+          async (request) => {
+            // This finite read surface uses the existing service key; old internal routes keep their loopback check.
+            internal(request, true);
+            return store.nightPlayers[operation](request.body);
+          },
+        );
+      }
       if (threeChooseTwo) registerThreeChooseTwoInternalRoutes(routes, threeChooseTwo, internal);
       routes.post('/internal/verify', { bodyLimit: 2048 }, async (request) => {
         internal(request);

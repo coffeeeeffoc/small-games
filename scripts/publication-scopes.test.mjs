@@ -25,7 +25,10 @@ test('Night social wiring preserves earlier consumers and rejects unreviewed byt
     'scripts/competition-ingress.test.mjs',
     'scripts/check-workspace-dependencies.mjs',
   ];
-  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const readHead = (file) =>
+    execFileSync('git', ['show', '336038138032c0891f4d5da9ba1d87a1a0624fd3:' + file], {
+      encoding: 'utf8',
+    });
   for (const file of changedPaths) {
     assert.notEqual(nightSocialPrevious(file, readHead(file)), undefined, file);
     assert.equal(nightSocialPrevious(file, readHead(file) + '\n// unexpected'), undefined, file);
@@ -7030,6 +7033,18 @@ test('cumulative Night release and polyfill wiring keeps both consumers and reje
   const changed = JSON.parse(after);
   changed.tasks.build.outputs.push('unreviewed');
   assert(!nightVersionAndPolyfillTurboOnly(before, JSON.stringify(changed)));
+  const ciBase = execFileSync(
+    'git',
+    ['show', 'baaae8d717559610df529aff43a0cb2a31961393:turbo.json'],
+    { encoding: 'utf8' },
+  );
+  assert(nightVersionAndPolyfillTurboOnly(ciBase, after));
+  assert(!nightVersionAndPolyfillTurboOnly(ciBase, JSON.stringify(changed)));
+  const duplicate = JSON.parse(after);
+  duplicate.tasks['@coffeeeeffoc/night-overwatch#build'].inputs.push(
+    '$TURBO_ROOT$/platforms/competition/night-storage.js',
+  );
+  assert(!nightVersionAndPolyfillTurboOnly(ciBase, JSON.stringify(duplicate)));
 });
 
 test('Runtime frozen-format and release configuration changes are bound to reviewed bytes', async () => {

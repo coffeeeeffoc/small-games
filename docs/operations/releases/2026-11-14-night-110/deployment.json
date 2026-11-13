@@ -1,0 +1,298 @@
+{
+  "date": "2026-11-14",
+  "admin": {
+    "ok": true,
+    "mode": "adopt",
+    "runnerSourceSHA": "7a9bf1a98d8cccc85f21fbc9a09fbfeb6be53935",
+    "sourceSHA": "7a9bf1a98d8cccc85f21fbc9a09fbfeb6be53935",
+    "release": "7a9bf1a98d8c-1794598562686-5a3c77",
+    "services": ["runtime", "kart", "management"],
+    "activeImages": {
+      "runtime": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c",
+      "kart": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c",
+      "management": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c"
+    },
+    "controlContract": {
+      "metadataSha256": "163027ed03084854938c165259a809af4704da4628244489bafd8493e0c4d36f",
+      "projectionSha256": "06fed71e3914a5421040c4b8919a32901e83c2f0e5c45d09950326a0abb4c86f",
+      "schema": "game_control",
+      "schemaVersion": 5,
+      "version": 1
+    },
+    "migrationArtifactSha256": "11653ac25a750ea10e4620ded710426a7f28b0a868bb0c4e8ebfae48514647d4",
+    "controlEnabled": true,
+    "remoteConfigReused": true,
+    "internalHealthVerified": true,
+    "publicHtmlVerified": true,
+    "anonymousSessionVerified": true,
+    "oauthStartVerified": true,
+    "realGithubLoginVerified": false,
+    "backupSHA256": "445b6388c6dbaec1cb1ac30d29405258267952f3d324a6e577cac9c71b40582c",
+    "oldStateSHA256": "9f0f7749db12c8548e7e1cda3848b098e4b7d130972a3bb5545c3bf4a11d31ef"
+  },
+  "backend": {
+    "ok": true,
+    "mode": "execute",
+    "sourceSHA": "592c847b8167fb52fe80ed55a59c36758d1f7d2b",
+    "release": "592c847b8167-1794600423233-be369e",
+    "services": ["runtime"],
+    "recreateCompanions": ["kart"],
+    "healthVerified": true,
+    "databaseReplaced": false,
+    "schemaChanged": false,
+    "backupCreated": true,
+    "backupSHA256": "0c3ef278e7124e0ec8a12f1713d525889524ee7f1c2b59b0a12db46df98cce18",
+    "isolatedRestoreVerified": false,
+    "activeImages": {
+      "runtime": "sha256:829f89f1e9233ae2da4902bb102498ae1773e506dd662dfc60a37b5ea1f60146",
+      "kart": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c"
+    },
+    "imageCapabilities": {
+      "runtime": {
+        "image": "sha256:829f89f1e9233ae2da4902bb102498ae1773e506dd662dfc60a37b5ea1f60146",
+        "control": 1,
+        "authenticatedGameScope": 1,
+        "controlCatalog": 4,
+        "nightOperations": 1
+      },
+      "kart": {
+        "image": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c",
+        "control": 1,
+        "identityRecheck": 1,
+        "authenticatedGameScope": 1
+      }
+    },
+    "deployment": {
+      "version": "1.1.0",
+      "sourceSHA": "592c847b8167fb52fe80ed55a59c36758d1f7d2b",
+      "release": "592c847b8167-1794600423233-be369e",
+      "mode": "execute",
+      "services": ["runtime"],
+      "activeImages": {
+        "runtime": "sha256:829f89f1e9233ae2da4902bb102498ae1773e506dd662dfc60a37b5ea1f60146",
+        "kart": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c"
+      },
+      "verifiedAt": 1794600485752,
+      "nightRules": {
+        "ranked": "night-input-replay-v18",
+        "multiplayer": "night-duel-v12"
+      }
+    }
+  },
+  "socialMigration": {
+    "ok": true,
+    "sourceSHA": "7a9bf1a98d8cccc85f21fbc9a09fbfeb6be53935",
+    "release": "social-7a9bf1a98d8c-1794598588578",
+    "sqlSHA256": "131b3c5389b18051caa493ae706efede08cbe7c73dea565ba4707540f44d07cd",
+    "moduleSHA256": "d109b0fe535c8dc7d49508e71a7fd45eb4ead8cdef76501768726d74e768a6f5",
+    "runnerSHA256": "c4a28cdfe035f2e13aba43c1fa8cc0e569e66316bef523045f5ab3c634a57656",
+    "postgresId": "fb6f941c30af4788a29ad48b6c3a6a5e0eb831927c8df72c602511c8322cd229",
+    "postgresImage": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+    "backupSHA256": "e994c6962009eaa293c10d0c7c332d8714e88da3be839217a29ce1038973d407",
+    "isolatedRestoreVerified": true,
+    "migrationIdempotent": true,
+    "restoredExistingRelationsPreserved": 34,
+    "newTables": [
+      "night_direct_messages",
+      "night_direct_reads",
+      "night_friend_limits",
+      "night_friendships"
+    ],
+    "servicesStopped": false,
+    "databaseReplaced": false,
+    "productionTableSchemaVerified": true
+  },
+  "controlPublication": {
+    "version": 3,
+    "revisionId": "48f37149-b099-48bb-bc00-4ecd77ae128e",
+    "status": "observed",
+    "consumers": ["runtime", "kart"],
+    "realGithubLoginVerified": true,
+    "audited": true
+  },
+  "production": {
+    "containers": {
+      "runtime": {
+        "id": "d0d60a954e93759ddcbce42baf68ef1cb199717da42259f7f379bd11aa587a13",
+        "image": "sha256:829f89f1e9233ae2da4902bb102498ae1773e506dd662dfc60a37b5ea1f60146",
+        "running": true,
+        "health": "healthy",
+        "mounts": []
+      },
+      "kart": {
+        "id": "946bb7129e6748bf4183f01168807dabcc3cbaca959601bea22a3e4bc17b4019",
+        "image": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c",
+        "running": true,
+        "health": "healthy",
+        "mounts": [
+          {
+            "name": "small-games_kart-outbox",
+            "destination": "/app/outbox"
+          }
+        ]
+      },
+      "management": {
+        "id": "9b178dadd97670f7297df51f8c24064d35ba1a285e70b6840ae913af57b5c035",
+        "image": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c",
+        "running": true,
+        "health": "healthy",
+        "mounts": []
+      },
+      "postgres": {
+        "id": "fb6f941c30af4788a29ad48b6c3a6a5e0eb831927c8df72c602511c8322cd229",
+        "image": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+        "running": true,
+        "health": "healthy",
+        "mounts": [
+          {
+            "name": "small-games_postgres-data",
+            "destination": "/var/lib/postgresql/data"
+          }
+        ]
+      },
+      "nginx": {
+        "id": "cf098c2e70affeff3228db4ae6405e2252b7e10f178f5271ece213d43669a9a0",
+        "image": "sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5",
+        "running": true,
+        "health": "healthy",
+        "mounts": [
+          {
+            "name": null,
+            "destination": "/srv/site"
+          },
+          {
+            "name": null,
+            "destination": "/etc/nginx/conf.d"
+          },
+          {
+            "name": null,
+            "destination": "/etc/nginx/legacy"
+          }
+        ]
+      }
+    },
+    "database": {
+      "schemaVersion": 5,
+      "publication": 3,
+      "night": "enabled",
+      "chat": true,
+      "presence": true,
+      "social": true,
+      "bytes": 347262099,
+      "activeRanked": 150,
+      "activeRooms": 0,
+      "activeVersions": [
+        {
+          "game": "night-overwatch",
+          "version": "night-input-replay-v16",
+          "count": 150,
+          "first_expiry": "2026-11-13T21:12:28+00:00",
+          "last_expiry": "2026-11-14T19:35:48+00:00"
+        }
+      ],
+      "sessionMigration": {
+        "unscopedSessions": 0,
+        "unscopedRefresh": 0,
+        "accessTable": true
+      }
+    },
+    "rules": {
+      "ranked": "night-input-replay-v18",
+      "multiplayer": "night-duel-v12"
+    },
+    "pointers": {
+      "company": "/opt/small-games/company/releases/20261018174117-6cc69521c7ad-7deb08",
+      "caddy": "/opt/small-games/caddy/releases/20261113193843-7a9bf1a98d8c-14b743",
+      "admin-console": "/opt/small-games/admin-console/releases/7a9bf1a98d8c-1794598562686-5a3c77"
+    },
+    "timers": {
+      "small-games-ranked-retention.timer": "active",
+      "company-caddy-backup.timer": "active"
+    }
+  },
+  "compatibilitySmoke": {
+    "ok": true,
+    "runId": "a180860f-76e8-4f84-8226-722f99655285",
+    "crossDeploymentOldRun": true,
+    "oldRule": "night-input-replay-v16",
+    "newRoomRule": "night-duel-v12",
+    "privateMessageIsolation": true,
+    "readCursor": true,
+    "roomIsolation": true,
+    "temporaryPlayersLoggedOut": true
+  },
+  "finalAdmissionCheck": {
+    "ok": true,
+    "oldAndNewRunAdmission": true,
+    "anonymousQueryStatus": 401,
+    "publicInternalRouteStatus": 404,
+    "loggedOut": true,
+    "metadata": {
+      "legacy": {
+        "release": {
+          "currentBuildId": null,
+          "currentVersion": null,
+          "backendVersion": null,
+          "latestBuildId": null,
+          "latestVersion": null,
+          "update": "none",
+          "canStartNewGames": true,
+          "admissions": {
+            "ranked": true,
+            "multiplayer": true
+          },
+          "action": "reopen"
+        },
+        "supportedRules": {
+          "ranked": ["night-input-replay-v18", "night-input-replay-v17", "night-input-replay-v16"],
+          "multiplayer": ["night-duel-v12", "night-duel-v11", "night-duel-v10", "night-duel-v9"]
+        },
+        "clientRules": {
+          "ranked": "night-input-replay-v16",
+          "multiplayer": "night-duel-v9"
+        }
+      },
+      "current": {
+        "release": {
+          "currentBuildId": "night-e829400e2aa4c54e587c62fd6df411c02051275cb09d8aecb6f514f9b400f6de",
+          "currentVersion": "1.1.0",
+          "backendVersion": "1.1.0",
+          "latestBuildId": null,
+          "latestVersion": null,
+          "update": "none",
+          "canStartNewGames": true,
+          "admissions": {
+            "ranked": true,
+            "multiplayer": true
+          },
+          "action": "reopen"
+        },
+        "supportedRules": {
+          "ranked": ["night-input-replay-v18", "night-input-replay-v17", "night-input-replay-v16"],
+          "multiplayer": ["night-duel-v12", "night-duel-v11", "night-duel-v10", "night-duel-v9"]
+        },
+        "clientRules": {
+          "ranked": "night-input-replay-v18",
+          "multiplayer": "night-duel-v12"
+        }
+      }
+    }
+  },
+  "publishingAssets": {
+    "verifiedFiles": 43,
+    "manifest": "games/local/night-overwatch/publishing/manifest.json",
+    "captureIdentityPreserved": true
+  },
+  "h5": {
+    "version": "1.1.0",
+    "backendVersion": "1.1.0",
+    "buildId": "night-e829400e2aa4c54e587c62fd6df411c02051275cb09d8aecb6f514f9b400f6de",
+    "sourceSHA": "68ea8191009b2b6e01c794f85f95c1fe5e99a58e",
+    "sourceDirty": false,
+    "zip": "outputs/game-builds/20261113T193357848Z-f2bad6/taptap-h5/night-overwatch-taptap-h5-production-ads-on-service-on.zip",
+    "bytes": 53250641,
+    "sha256": "52c4413548934dc94e5cd162dc3757588a60d68980ba92c5d06092b25c190e9c",
+    "channelUploaded": false,
+    "deviceVerified": false
+  }
+}

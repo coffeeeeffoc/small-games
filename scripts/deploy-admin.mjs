@@ -589,7 +589,7 @@ export async function prepareControl({ services = controlServices, runnerOnly = 
   return { directory, manifest };
 }
 
-export async function readControlBundle(directory) {
+export async function readControlBundle(directory, historicalCsp = false) {
   if (
     (await lstat(directory)).isSymbolicLink() ||
     (await realpath(directory)) !== path.resolve(directory)
@@ -694,8 +694,17 @@ export async function readControlBundle(directory) {
       .some((name) => !manifest.files[name]) ||
     manifest.migrationArtifactSha256 !== manifest.files['migrations/005-night-operations.sql'] ||
     manifest.cspContractSha256 !== manifest.files['admin-csp-contract.json'] ||
-    (await readFile(path.join(directory, 'admin-csp-contract.json'), 'utf8')) !==
-      JSON.stringify(controlCspContract, null, 2) + '\n'
+    !(
+      historicalCsp
+        ? [
+            adminUiPaths,
+            adminUiPaths.filter((p) => p !== '/players'),
+            adminUiPaths.filter((p) => !['/players', '/releases'].includes(p)),
+          ]
+        : [adminUiPaths]
+    )
+      .map((paths) => JSON.stringify({ ...controlCspContract, paths }, null, 2) + '\n')
+      .includes(await readFile(path.join(directory, 'admin-csp-contract.json'), 'utf8'))
   )
     stop('BUNDLE_UNSAFE');
   return manifest;
@@ -710,7 +719,7 @@ export async function controlExecution(
   const target = input.bundle
     ? { directory: path.join(workspace, 'outputs/admin-deploy', input.bundle) }
     : null;
-  if (target) target.manifest = await read(target.directory);
+  if (target) target.manifest = await read(target.directory, input.mode !== '--adopt-control');
   const application = input.application
     ? { directory: path.join(workspace, 'outputs/admin-deploy', input.application) }
     : null;
