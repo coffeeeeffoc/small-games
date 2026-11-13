@@ -25,7 +25,10 @@ test('Night social wiring preserves earlier consumers and rejects unreviewed byt
     'scripts/competition-ingress.test.mjs',
     'scripts/check-workspace-dependencies.mjs',
   ];
-  const readHead = (file) => readFileSync(new URL('../' + file, import.meta.url), 'utf8');
+  const readHead = (file) =>
+    execFileSync('git', ['show', '336038138032c0891f4d5da9ba1d87a1a0624fd3:' + file], {
+      encoding: 'utf8',
+    });
   for (const file of changedPaths) {
     assert.notEqual(nightSocialPrevious(file, readHead(file)), undefined, file);
     assert.equal(nightSocialPrevious(file, readHead(file) + '\n// unexpected'), undefined, file);

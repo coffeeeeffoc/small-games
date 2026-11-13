@@ -37,6 +37,7 @@ it('preserves large business arrays and long strings while recursively omitting 
   }));
   const value = playerBusiness({
     mail,
+    result: { before: { coins: 3, xp: 4, token: 'canary' } },
     legacy: { inventory: { a: 1 }, token: 'canary' },
     players: [
       {
@@ -52,6 +53,7 @@ it('preserves large business arrays and long strings while recursively omitting 
   });
   expect(value).toEqual({
     mail,
+    result: { before: { coins: 3, xp: 4 } },
     legacy: { inventory: { a: 1 } },
     players: [{ id: 'p', settlement: { points: 1 } }],
   });

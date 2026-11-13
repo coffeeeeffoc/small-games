@@ -141,7 +141,7 @@ export function playerBusiness(value: unknown): unknown {
   if (value && typeof value === 'object')
     return Object.fromEntries(
       Object.entries(value)
-        .filter(([key]) => !privateField.test(key) && key !== 'state' && key !== 'before')
+        .filter(([key]) => !privateField.test(key) && key !== 'state')
         .map(([key, child]) => [key, playerBusiness(child)]),
     );
   return value;

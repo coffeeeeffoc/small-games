@@ -64,6 +64,7 @@ const roomFields = [
   'initiative',
   'firstRole',
   'players',
+  'spectators',
   'createdAt',
   'startedAt',
   'deadline',

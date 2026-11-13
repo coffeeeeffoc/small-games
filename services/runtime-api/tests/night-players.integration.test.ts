@@ -135,6 +135,9 @@ import { createNightPlayerReader } from '../src/competition/night-players.js';
       await admin.db.execute(
         sql`insert into runtime.night_chat_reports(reporter_id,message_seq,evidence,reason,created_at) values(${unknown},123,${JSON.stringify({ player_id: id, body: '证据' })}::jsonb,'测试',${now})`,
       );
+      await admin.db.execute(
+        sql`insert into runtime.competition_rooms(code,data,expires_at) values('TEST01',${JSON.stringify({ game: 'night-overwatch', players: [{ id }], spectators: [unknown], createdAt: now, state: { private: 'canary' }, before: { private: 'canary' } })}::jsonb,${now + 1000})`,
+      );
       for (let i = 0; i < 55; i++)
         await admin.db.execute(
           sql`insert into runtime.competition_matches(id,board,data,created_at) values(${`night-assets-event:${id}:request:${i}`},'night-overwatch:private-assets-v3',${JSON.stringify({ hash: 'canary', result: { coins: i }, at: now + i })}::jsonb,${now + i})`,
@@ -181,6 +184,10 @@ import { createNightPlayerReader } from '../src/competition/night-players.js';
         '2026-11-01',
       ]);
       expect((await reader.detail({ id, section: 'reports' })).total).toBe(1);
+      const rooms = await reader.detail({ id, section: 'rooms' });
+      expect(rooms.items).toEqual([
+        { game: 'night-overwatch', players: [{ id }], spectators: [unknown], createdAt: now },
+      ]);
       expect(JSON.stringify(detail)).not.toContain('canary');
       const pages = await Promise.all(
         [1, 2, 3].map((page) => reader.detail({ id, section: 'records', page })),
