@@ -355,18 +355,23 @@ export function registerGameRoutes(
     { bodyLimit: 1024, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
     async (request) => {
       const game = multiplayerGame(request.params);
-      const { code, password, createdAt } = z
+      const { code, password, createdAt, switchFrom } = z
         .object({
           code: roomCode,
           password: z.string().max(64).optional(),
           createdAt: z.number().int().positive().optional(),
+          switchFrom: z.object({ code: roomCode, leaseId: z.uuid() }).strict().optional(),
         })
         .strict()
+        .refine(
+          (input) => !input.switchFrom || (input.createdAt && input.switchFrom.code !== input.code),
+        )
         .parse(request.body);
       return store.roomAction(await player(request.headers.authorization), code, 'join', {
         game,
         password,
         createdAt,
+        switchFrom,
         buildId: build(game, request.headers),
       });
     },

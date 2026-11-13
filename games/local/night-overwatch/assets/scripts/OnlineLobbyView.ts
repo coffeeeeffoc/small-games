@@ -184,7 +184,7 @@ export class OnlineLobbyView {
       name.enableWrapText = false;
       name.isBold = true;
       const added = o.social.friends.some(f => playerId(f) === id);
-      const request = o.social.requests.find(f => playerId(f) === id);
+      const request = added ? undefined : o.social.requests.find(f => playerId(f) === id);
       const detail = request ? h.t(request.direction === 'incoming' ? ' · 好友申请' : ' · 已申请', request.direction === 'incoming' ? ' · REQUEST' : ' · SENT')
         : p.status === 'playing' ? h.t(' · 游戏中', ' · PLAYING') : p.status === 'offline' ? h.t(' · 离线', ' · OFFLINE') : '';
       const meta = h.label(list.n, playerTag(id) + detail, textX + textW / 2, y + 35, 10, textW, 18, C.dim);
@@ -203,11 +203,10 @@ export class OnlineLobbyView {
         action(1, 'friendAction:accept:' + id, h.t('同意好友', 'ACCEPT'), 'check', o.socialBusy);
         action(2, 'friendAction:decline:' + id, h.t('拒绝申请', 'DECLINE'), 'close', o.socialBusy);
       } else {
-        action(1, 'invitePlayer:' + id, h.t('邀请对战', 'INVITE'), 'lobby', !o.canInvite(p));
-        if (added && friends) action(2, 'friendAction:remove:' + id, h.t('移除好友', 'REMOVE FRIEND'), 'minus', o.socialBusy);
+        action(1, 'invitePlayer:' + id, h.t('邀请对战', 'INVITE'), 'gamepad', !o.canInvite(p));
+        if (added && friends) action(2, 'friendAction:remove:' + id, h.t('移除好友', 'REMOVE FRIEND'), 'friendRemove', o.socialBusy);
         else if (request) action(2, 'friendAction:cancel:' + id, h.t('取消申请', 'CANCEL REQUEST'), 'close', o.socialBusy);
-        else if (added) h.controlIcon(list.g, 'check', actionX + 110, y + (stacked ? 67 : 25), 18, C.mint);
-        else action(2, 'friendAction:request:' + id, h.t('添加好友', 'ADD FRIEND'), 'plus', blocked || o.socialBusy || !o.socialAvailable);
+        else if (!added) action(2, 'friendAction:request:' + id, h.t('添加好友', 'ADD FRIEND'), 'friendAdd', blocked || o.socialBusy || !o.socialAvailable);
       }
     });
     list.finish();
@@ -422,19 +421,20 @@ export class OnlineLobbyView {
       ).horizontalAlign = Label.HorizontalAlign.LEFT;
       const bw = roomy ? 94 : Math.min(82, lw * 0.37);
       const rejoin = room.status === 'playing' && room.code === o.resumeCode;
+      const own = o.room?.code === room.code;
       btn(
-        (rejoin ? 'resumeRoom:' : room.canJoin ? 'joinCode:' : 'watchCode:') + room.code,
+        (own ? 'roomReturn:' : rejoin ? 'resumeRoom:' : room.canJoin ? 'joinCode:' : 'watchCode:') + room.code,
         o.opening === room.code
           ? this.h.t('进入中…', 'ENTERING…')
-          : o.room?.code === room.code
+          : own
             ? this.h.t('我的房间', 'MINE')
             : rejoin ? this.h.t('返回对战', 'REJOIN')
               : this.h.t(room.canJoin ? '加入' : '观战', room.canJoin ? 'JOIN' : 'WATCH'),
         l + lw - bw - 18,
         y + (roomy ? (rowH - 44) / 2 : rowH - 45),
         bw,
-        rejoin || room.canJoin ? 'gold' : 'blue',
-        o.busy || !!o.room || (!rejoin && !room.canJoin && !room.canSpectate),
+        own || rejoin || room.canJoin ? 'gold' : 'blue',
+        o.busy || (!own && (!!o.room || (!rejoin && !room.canJoin && !room.canSpectate))),
         roomList.n,
       );
     });
@@ -624,12 +624,12 @@ export class OnlineLobbyView {
         ).horizontalAlign = Label.HorizontalAlign.LEFT;
         btn(
           'chatJoin:' + m.id,
-          this.h.t(m.room.canJoin ? '加入' : '已失效', m.room.canJoin ? 'JOIN' : 'CLOSED'),
+          !m.room.canJoin ? this.h.t('已失效', 'CLOSED') : o.room?.code === m.room.code ? this.h.t('已在房间', 'IN ROOM') : o.room?.status === 'waiting' ? this.h.t('换房', 'SWITCH') : this.h.t('加入', 'JOIN'),
           textX + bubbleW - (roomy ? 104 : 72),
           y + row.h - 48,
           roomy ? 96 : 68,
           'blue',
-          !m.room.canJoin || !!o.room,
+          !o.canJoinInvitation(m),
           chat.n,
         );
       }
@@ -1448,11 +1448,12 @@ export class OnlineLobbyView {
           C.dim,
         );
         detail.horizontalAlign = Label.HorizontalAlign.LEFT;
+        const own = online.room?.code === room.code;
         button(
-          (room.canJoin ? 'joinCode:' : 'watchCode:') + room.code,
+          (own ? 'roomReturn:' : room.canJoin ? 'joinCode:' : 'watchCode:') + room.code,
           online.opening === room.code
             ? this.h.t('进入中…', 'ENTERING…')
-            : room.canJoin
+            : own ? this.h.t('我的房间', 'MINE') : room.canJoin
               ? this.h.t('加入', 'JOIN')
               : this.h.t('观战', 'WATCH'),
           pw - 102,
@@ -1461,7 +1462,7 @@ export class OnlineLobbyView {
           false,
           false,
           '',
-          online.busy,
+          online.busy || (!own && !!online.room),
         );
       });
       if (!rows.length) {

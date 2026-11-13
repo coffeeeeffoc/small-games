@@ -58,15 +58,20 @@ try {
     s = await shot('collapsed');
     assert.equal(s.online.room?.code, code, 'collapsing keeps membership');
     target(s, 'online:roomReturn');
+    const row = 'online:roomReturn:' + code;
+    target(s, row);
     assert(!s.buttons.some(b => ['online:friend', 'online:match', 'online:bot'].includes(b.id)), 'room dock replaces create/match actions');
 
+    await hit(row);
+    await page.waitForFunction(code => __night.snapshot().online.panel === 'room' && __night.snapshot().online.room?.code === code, code);
+    await hit('online:roomCollapse');
     await hit('online:roomReturn');
     await page.waitForFunction(() => __night.snapshot().online.panel === 'room');
     await hit('online:roomCollapse'); await hit('online:back');
     await page.waitForFunction(() => __night.snapshot().online.panel === 'room');
     await hit('online:backLobby');
     await page.waitForFunction(() => !__night.snapshot().online.room && __night.snapshot().online.panel === 'menu');
-    evidence.checks.push({ width, height, code, staysInRoom: true, inviteStays: true, collapse: true, expand: true, backRestores: true });
+    evidence.checks.push({ width, height, code, staysInRoom: true, inviteStays: true, collapse: true, expand: true, listReturnsToSameRoom: true, backRestores: true });
     await context.close();
   }
   assert.deepEqual(evidence.errors, []);

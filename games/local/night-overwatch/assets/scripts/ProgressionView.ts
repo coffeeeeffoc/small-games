@@ -220,13 +220,20 @@ export class ProgressionView {
     this.label(this.t('公告','NEWS'),l+3,y+5,badge,sh-6,25,'#2a1a05',true);
     this.label('›',r-22,y+2,18,sh,30,gold,true);
     const view=this.h.node('TickerViewport',this.n);view.setPosition(vx+vw/2-this.w/2,this.height/2-y-2-sh/2);view.getComponent(UITransform)!.setContentSize(vw,sh);view.addComponent(Mask).type=Mask.Type.GRAPHICS_RECT;
-    const line=news.map(m=>`【${this.messageTitle(m)}】${m.body.split(REWARD_TOKEN).join('').replace(/\s+/g,' ').slice(0,60)}`).join('　　◆　　');
-    const text=this.h.label(view,line,this.w/2,this.height/2,this.font(24,13),10,sh,'#ffe9b8');text.node.name='TickerText';
-    text.overflow=Label.Overflow.NONE;text.enableWrapText=false;text.updateRenderData(true);
+    const line=news.map(m=>`【${this.messageTitle(m)}】${m.body.replace(/\s+/g,' ')}`).join('　　◆　　');
+    const track=this.h.node('TickerText',view),fontSize=this.font(24,13),characters=Array.from(line);
+    // Keep each label below Cocos's 2048px texture limit even for wide glyphs.
+    const chunkSize=Math.max(1,Math.floor(960/fontSize));let tw=0;
+    for(let i=0;i<characters.length;i+=chunkSize){
+      const label=this.h.label(track,characters.slice(i,i+chunkSize).join(''),this.w/2,this.height/2,fontSize,10,sh,'#ffe9b8');
+      label.overflow=Label.Overflow.NONE;label.enableWrapText=false;label.updateRenderData(true);
+      const width=label.node.getComponent(UITransform)!.contentSize.width;
+      label.node.setPosition(tw+width/2,0);tw+=width;
+    }
     // Position follows the clock, so rebuilding the home view never restarts the line.
-    const tw=text.node.getComponent(UITransform)!.contentSize.width,span=tw+vw,speed=this.h.reducedEffects?28:58,from=span/2,to=-span/2,x=from-(Date.now()/1000*speed)%span;
-    text.node.setPosition(x,0);
-    this.loop(text.node,text.node).to((x-to)/speed,{position:new Vec3(to,0,0)}).call(()=>{text.node.setPosition(from,0);this.loop(text.node,text.node).to(span/speed,{position:new Vec3(to,0,0)}).set({position:new Vec3(from,0,0)}).union().repeatForever().start();}).start();
+    const span=tw+vw,speed=this.h.reducedEffects?28:58,from=vw/2,to=from-span,x=from-(Date.now()/1000*speed)%span;
+    track.setPosition(x,0);
+    this.loop(track,track).to((x-to)/speed,{position:new Vec3(to,0,0)}).call(()=>{track.setPosition(from,0);this.loop(track,track).to(span/speed,{position:new Vec3(to,0,0)}).set({position:new Vec3(from,0,0)}).union().repeatForever().start();}).start();
     // The 44px hit area grows downward only: the header above and the version button keep their own taps.
     this.h.button('qm:announcements','',l,y+2,hitRight-l,44,this.n);this.h.buttons.at(-1)!.visual={x:l,y:y+2,w:r-l,h:sh};
     return sh+4;

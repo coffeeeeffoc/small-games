@@ -1,25 +1,24 @@
-import { Graphics, Label, Node } from 'cc';
+import { Graphics, Label, Node, UITransform } from 'cc';
 import { battleCounts } from './core/BattleRecords';
 import { WEAPONS, text } from './core/Data';
 import { CATALOG, attackPreview } from './core/Progression';
 import type { Simulation } from './core/Simulation';
-import { C } from './HudTheme';
+import { C, col } from './HudTheme';
 import { playerLabel } from './Online';
 import { effectEnglish } from './Quartermaster';
 
 import type { HUD } from './HUD';
 type BattleReportViewHost = Pick<
   HUD,
-  | 'button'
-  | 'buttons'
-  | 'styleButton'
+  | 'dialog'
+  | 'dialogButton'
   | 'equipmentOpen'
   | 'h'
   | 'label'
   | 'lang'
   | 'online'
-  | 'panelFrame'
-  | 'plate'
+  | 'listViewport'
+  | 'rect'
   | 'safe'
   | 't'
   | 'w'
@@ -32,64 +31,50 @@ export class BattleReportView {
     this.hud = hud;
   }
   render(parentNode: Node, graphics: Graphics, simulation: Simulation) {
-    const panelWidth = Math.min(1060, this.hud.w - this.hud.safe.left - this.hud.safe.right - 24);
-    const panelHeight = Math.min(590, this.hud.h - this.hud.safe.top - this.hud.safe.bottom - 20);
-    const panelLeft =
-      this.hud.safe.left + (this.hud.w - this.hud.safe.left - this.hud.safe.right - panelWidth) / 2;
-    const panelTop =
-      this.hud.safe.top + (this.hud.h - this.hud.safe.top - this.hud.safe.bottom - panelHeight) / 2;
-    this.hud.panelFrame(
-      graphics,
-      panelLeft,
-      panelTop,
-      panelWidth,
-      panelHeight,
-      C.mint,
-      '#071724f5',
-    );
-    this.hud.label(
-      parentNode,
-      this.hud.t('战况', 'BATTLE REPORT'),
-      panelLeft + (panelWidth - 96) / 2,
-      panelTop + 24,
-      20,
-      panelWidth - 120,
-      32,
-      C.mint,
-    ).isBold = true;
-    this.hud.button(
-      'close',
-      this.hud.t('关闭', 'CLOSE'),
-      panelLeft + panelWidth - 82,
-      panelTop + 4,
-      70,
-      44,
-      parentNode,
-    ).fontSize = 12;
-    this.hud.styleButton(graphics, this.hud.buttons[this.hud.buttons.length - 1], 'ghost');
+    const h = this.hud, t = (zh: string, en: string) => h.t(zh, en);
+    const { x: panelLeft, y: panelTop, w: panelWidth, h: panelHeight } = h.dialog(parentNode, graphics, {
+      width: Math.min(860, (h.w - h.safe.left - h.safe.right) * .86), height: 500,
+      dim: '#071724e8', keepCapsuleBeside: true,
+    });
+    h.rect(graphics, panelLeft + 20, panelTop + 19, 3, 18, C.mint, undefined, 1);
+    const heading = h.label(parentNode, t('战况', 'BATTLE REPORT'), panelLeft + panelWidth / 2 - 27, panelTop + 28, 18, panelWidth - 122, 30);
+    heading.horizontalAlign = Label.HorizontalAlign.LEFT;
+    heading.isBold = true;
+    h.dialogButton(parentNode, graphics, 'close', t('关闭', 'CLOSE'), panelLeft + panelWidth - 80, panelTop + 4, 72);
     for (const [i, id] of ['reportOverview', 'equipment'].entries()) {
-      const x = panelLeft + 12 + i * 110;
-      const selected = this.hud.equipmentOpen === (i === 1);
-      this.hud.plate(
-        graphics,
-        x,
-        panelTop + 49,
-        104,
-        44,
-        selected ? '#23404b' : '#0b1d2a',
-        selected ? C.mint : C.line,
-        3,
-      );
-      this.hud.button(
-        id,
-        i ? this.hud.t('装配', 'LOADOUT') : this.hud.t('概况', 'OVERVIEW'),
-        x,
-        panelTop + 49,
-        104,
-        44,
-        parentNode,
-      ).fontSize = 13;
+      const selected = h.equipmentOpen === (i === 1), x = panelLeft + 14 + i * 104;
+      const tab = h.dialogButton(parentNode, graphics, id, i ? t('装配', 'LOADOUT') : t('概况', 'OVERVIEW'), x, panelTop + 51, 100, selected ? 'secondary' : 'quiet');
+      if (selected) {
+        tab.isBold = true;
+        tab.color = col(C.mint);
+        h.rect(graphics, x + 16, panelTop + 90, 68, 2, C.mint);
+      }
     }
+    const bodyY = panelTop + 102, bodyH = panelHeight - 114, bodyX = panelLeft + 14, bodyW = panelWidth - 28;
+    const duel = simulation.duelMode && h.online;
+    const cardWidth = duel ? (bodyW - 10) / 2 : bodyW;
+    const font = panelHeight < 340 ? 12 : 14;
+    const tone = (side: number) => side ? C.amber : C.mint;
+    const name = (side: number) => duel ? playerLabel(duel.combatants[side]).split(' #')[0] : t('我方', 'YOU');
+    const sideName = (side: number) => duel && duel.spectator ? (side ? t('二号席', 'SEAT 2') : t('一号席', 'SEAT 1')) : (side ? t('对方', 'OPPONENT') : t('我方', 'YOU'));
+    const card = (side: number, level?: number) => {
+      const x = bodyX + side * (cardWidth + 10);
+      h.rect(graphics, x, bodyY, cardWidth, bodyH, '#0b1825', '#31495d', 8);
+      h.rect(graphics, x + 10, bodyY + 10, 3, 18, tone(side), undefined, 1);
+      const role = sideName(side);
+      const roleW = h.lang === 'zh' ? 42 : 70;
+      h.label(parentNode, role, x + 18 + (roleW - 4) / 2, bodyY + 20, 10, roleW - 4, 22, tone(side)).horizontalAlign = Label.HorizontalAlign.LEFT;
+      if (duel || level !== undefined) {
+        const titleW = cardWidth - roleW - 30 - (level === undefined ? 0 : 40);
+        const title = h.label(parentNode, duel ? name(side) : t('当前装配', 'CURRENT LOADOUT'), x + 18 + roleW + titleW / 2, bodyY + 20, 14, titleW, 24);
+        title.horizontalAlign = Label.HorizontalAlign.LEFT;
+        title.enableWrapText = false;
+        title.overflow = Label.Overflow.SHRINK;
+        title.isBold = true;
+        if (level !== undefined) h.label(parentNode, `Lv.${level}`, x + cardWidth - 29, bodyY + 20, 10, 40, 22, C.dim);
+      }
+      return x;
+    };
     const names = {
       infantry: ['步兵', 'INFANTRY'],
       light: ['轻车', 'LIGHT'],
@@ -99,79 +84,28 @@ export class BattleReportView {
       escort: ['护卫', 'ESCORT'],
     };
     if (!this.hud.equipmentOpen) {
-      if (simulation.duelMode && this.hud.online) {
-        this.hud.online.combatants.forEach((player, i) => {
-          const cardWidth = (panelWidth - 36) / 2;
-          const x = panelLeft + 12 + i * (cardWidth + 12);
+      if (duel) {
+        duel.combatants.forEach((_, i) => {
+          const x = card(i);
           const units = simulation.units.filter((u) => (i === 0 ? u.friendly : !u.friendly));
           const alive = units.filter((u) => u.hp > 0).length;
           // 该玩家的战绩 = 对方单位被消灭数；按兵种列出。
           const kills = battleCounts(simulation, i !== 0, true);
           const killed = kills.reduce((sum, row) => sum + row.destroyed, 0);
-          const lines = kills.map((row) =>
-            this.hud.t(
-              `${text(names[row.kind], 'zh')}  消灭 ${row.destroyed} / ${row.total}`,
-              `${text(names[row.kind], 'en')}  KILLED ${row.destroyed} / ${row.total}`,
-            ),
-          );
-          // 卡片底边为 panelTop + panelHeight - 14；矮屏行高不足时合并成一段自动换行。
-          const listHeight = panelHeight - 269;
-          const rowHeight = Math.min(30, listHeight / Math.max(1, lines.length));
-          (rowHeight >= 16 ? lines : [lines.join(' · ')]).forEach((line, k, all) =>
-            this.hud.label(
-              parentNode,
-              line,
-              x + cardWidth / 2,
-              panelTop + 255 + (all.length > 1 ? rowHeight * (k + 0.5) : listHeight / 2),
-              all.length > 1 ? 13 : 11,
-              cardWidth - 24,
-              all.length > 1 ? rowHeight : listHeight,
-              C.white,
-            ),
-          );
-          this.hud.label(
-            parentNode,
-            this.hud.t(`共消灭敌方 ${killed}`, `ENEMY KILLED ${killed}`),
-            x + cardWidth / 2,
-            panelTop + 236,
-            15,
-            cardWidth - 24,
-            30,
-            i ? C.amber : C.mint,
-          );
-          this.hud.plate(
-            graphics,
-            x,
-            panelTop + 102,
-            cardWidth,
-            panelHeight - 116,
-            '#071725',
-            i ? C.amber : C.mint,
-            4,
-          );
-          this.hud.label(
-            parentNode,
-            playerLabel(player).split(' #')[0],
-            x + cardWidth / 2,
-            panelTop + 137,
-            16,
-            cardWidth - 24,
-            58,
-            i ? C.amber : C.mint,
-          );
-          this.hud.label(
-            parentNode,
-            this.hud.t(
-              `已损失 ${units.length - alive} · 剩余 ${alive}`,
-              `LOST ${units.length - alive} · REMAINING ${alive}`,
-            ),
-            x + cardWidth / 2,
-            panelTop + 189,
-            14,
-            cardWidth - 24,
-            44,
-            C.white,
-          );
+          const statW = (cardWidth - 20) / 3;
+          h.rect(graphics, x + 8, bodyY + 36, cardWidth - 16, 42, '#162a3b', undefined, 5);
+          [t('剩余', 'ALIVE'), t('损失', 'LOST'), t('消灭', 'KILLS')].forEach((label, j) => {
+            const cx = x + 10 + statW * (j + .5);
+            h.label(parentNode, String([alive, units.length - alive, killed][j]), cx, bodyY + 51, 18, statW - 4, 20, j === 2 ? tone(i) : C.white).isBold = true;
+            h.label(parentNode, label, cx, bodyY + 69, 10, statW - 4, 14, C.dim);
+          });
+          const cellW = (cardWidth - 20) / 2, cellH = Math.min(27, (bodyH - 87) / 3);
+          kills.forEach((row, j) => {
+            const cx = x + 10 + cellW * (j % 2 + .5), cy = bodyY + 83 + cellH * (Math.floor(j / 2) + .5);
+            const label = h.label(parentNode, `${text(names[row.kind], h.lang)} ${row.destroyed}/${row.total}`, cx, cy, font, cellW - 4, cellH, C.dim);
+            label.enableWrapText = false;
+            label.overflow = Label.Overflow.SHRINK;
+          });
         });
         return;
       }
@@ -192,7 +126,9 @@ export class BattleReportView {
           C.dim,
         ),
       );
-      battleCounts(simulation, false, simulation.duelMode).forEach((row, i) =>
+      const rows = battleCounts(simulation, false, simulation.duelMode);
+      const rowHeight = Math.min(25, (bodyH - 42) / Math.max(1, rows.length));
+      rows.forEach((row, i) =>
         [
           text(names[row.kind], this.hud.lang),
           row.total,
@@ -204,10 +140,10 @@ export class BattleReportView {
             parentNode,
             String(v),
             panelLeft + panelWidth * columns[j],
-            panelTop + 140 + i * 23,
+            bodyY + 23 + rowHeight * (i + .5),
             13,
             panelWidth * 0.18,
-            23,
+            rowHeight,
             j === 3 ? C.mint : C.white,
           ),
         ),
@@ -224,30 +160,12 @@ export class BattleReportView {
       );
       return;
     }
-    const gap = 12;
-    const cardWidth = (panelWidth - 36) / 2;
-    const bodyH = panelHeight - 110;
-    const font = panelHeight < 380 ? 11 : 14;
-    const sides = [simulation.pilotState(), this.hud.online?.view?.enemyEquipment];
+    const sides = [simulation.pilotState(), ...(duel ? [duel.view?.enemyEquipment] : [])];
     sides.forEach((pilot, side) => {
-      const x = panelLeft + 12 + side * (cardWidth + gap);
-      const title =
-        simulation.duelMode && this.hud.online
-          ? playerLabel(this.hud.online.combatants[side]).split(' #')[0]
-          : side
-            ? this.hud.t('对方', 'OPPONENT')
-            : this.hud.t('我方', 'YOU');
-      this.hud.plate(graphics, x, panelTop + 100, cardWidth, bodyH, '#0b1d2ae8', C.line, 4);
-      let lines: string[] = [title];
+      const x = card(side, pilot?.loadout.level);
+      const sections: { title: string; lines: string[] }[] = [];
       if (!pilot) {
-        lines.push(
-          this.hud.t(
-            simulation.duelMode ? '对方尚未提供装配信息' : '地面敌军 · 无军需插槽',
-            simulation.duelMode
-              ? 'Opponent equipment is not available'
-              : 'Ground forces · no loadout slots',
-          ),
-        );
+        sections.push({ title: '', lines: [t('对方尚未提供装配信息', 'Opponent equipment is not available')] });
       } else {
         const loadout = pilot.loadout;
         const effects = loadout.effects;
@@ -276,6 +194,8 @@ export class BattleReportView {
             : w.radius;
         const heat = w.heat * preview.heatMultiplier;
         const formatValue = (v: number) => Number(v.toFixed(2)).toString();
+        const change = (base: number, current: number) => formatValue(base) === formatValue(current)
+          ? formatValue(current) : `${formatValue(base)} → ${formatValue(current)}`;
         const skill = effects.includes('tracking')
           ? 'tracking'
           : effects.includes('emp')
@@ -284,13 +204,8 @@ export class BattleReportView {
         const remaining = Math.max(0, pilot.skill.activeUntil - simulation.time);
         const cooldown = Math.max(0, pilot.skill.readyAt - simulation.time);
         const gun = pilot.guns[pilot.selected];
-        lines = [
-          title + ` · Lv.${loadout.level}`,
-          this.hud.t('装配：', 'Equipped: ') +
-            (names.join(' / ') || this.hud.t('默认配置', 'Default')),
-          this.hud.t('装配武器：', 'Equipped weapon: ') + text(w.name, this.hud.lang),
-          this.hud.t('默认 → 当前：', 'Default → current: ') +
-            this.hud.t(`每轮 1 → ${shots} 弹 · 耗弹 1`, `Projectiles 1 → ${shots} · ammo 1`),
+        sections.push({ title: t('当前武器：', 'WEAPON: ') + text(w.name, h.lang), lines: [
+          ...(shots > 1 ? [t(`每轮 ${shots} 发 · 耗弹 1`, `${shots} projectiles · costs 1 round`)] : []),
           pilot.selected === 5
             ? this.hud.t(
                 '持续3秒 · 每秒80 · 总240 · 重甲×0.85',
@@ -307,32 +222,28 @@ export class BattleReportView {
                     `Primary ${formatValue(damage)} + ${shots - 1} secondary × ${formatValue(damage * preview.secondaryStrength)}`,
                   )
                 : this.hud.t(
-                    `基础伤害 ${formatValue(w.damage)} → ${formatValue(damage)} / 发`,
-                    `Base damage ${formatValue(w.damage)} → ${formatValue(damage)} / shot`,
+                    `伤害 ${change(w.damage, damage)} / 发`,
+                    `Damage ${change(w.damage, damage)} / shot`,
                   ),
           this.hud.t(
-            `间隔 ${formatValue(w.interval)} → ${formatValue(interval)} 秒`,
-            `Interval ${formatValue(w.interval)} → ${formatValue(interval)} s`,
+            `间隔 ${change(w.interval, interval)} 秒 · 范围 ${change(w.radius, radius)}`,
+            `Interval ${change(w.interval, interval)} s · Range ${change(w.radius, radius)}`,
           ),
           this.hud.t(
-            `热量 ${formatValue(w.heat)} → ${formatValue(heat)} / 次 · 范围 ${formatValue(w.radius)} → ${formatValue(radius)}`,
-            `Heat ${formatValue(w.heat)} → ${formatValue(heat)} / attack · radius ${formatValue(w.radius)} → ${formatValue(radius)}`,
+            `每次热量 ${change(w.heat, heat)}`,
+            `Heat per shot ${change(w.heat, heat)}`,
           ),
           this.hud.t(
-            `实时热量 ${Math.round(gun.heat)} · 武器冷却 ${formatValue(gun.cooldown)} 秒`,
-            `Heat ${Math.round(gun.heat)} · weapon cooldown ${formatValue(gun.cooldown)} s`,
+            `当前热量 ${Math.round(gun.heat)} · 冷却 ${formatValue(gun.cooldown)} 秒`,
+            `Current heat ${Math.round(gun.heat)} · Cooldown ${formatValue(gun.cooldown)} s`,
           ),
-          this.hud.t('武器 / 剩余弹药：', 'Weapons / ammo: ') +
-            WEAPONS.filter((_, i) => i < 4 || effects.includes(i === 4 ? 'drone' : 'laser'))
-              .map((weapon) => {
-                const i = WEAPONS.indexOf(weapon);
-                return (
-                  text(weapon.name, this.hud.lang) +
-                  ' ' +
-                  (weapon.ammo === Infinity ? '∞' : pilot.guns[i].ammo)
-                );
-              })
-              .join(' / '),
+        ] });
+        sections.push({ title: t('剩余弹药', 'AMMO'), lines: [WEAPONS.flatMap((weapon, i) =>
+          i < 4 || effects.includes(i === 4 ? 'drone' : 'laser')
+            ? [`${text(weapon.name, h.lang)} ${weapon.ammo === Infinity ? '∞' : pilot.guns[i].ammo}`] : [],
+        ).join(' · ')] });
+        const modifiers = { title: t('技能与增益', 'SKILLS & MODIFIERS'), lines: [
+          names.join(' · ') || t('默认配置', 'Default loadout'),
           this.hud.t('技能：', 'Skill: ') +
             (skill
               ? (this.hud.lang === 'zh'
@@ -351,16 +262,14 @@ export class BattleReportView {
                       : ' · ready',
                 )
               : this.hud.t('未装配', 'None')),
-          this.hud.t('临时增益：', 'Temporary buff: ') +
-            (pilot.buff
-              ? this.hud.t(
+          ...(pilot.buff ? [t('临时增益：', 'Temporary buff: ') +
+              this.hud.t(
                   pilot.buff.kind === 'rate' ? '射速 +30%' : '追踪',
                   pilot.buff.kind === 'rate' ? 'Fire rate +30%' : 'Tracking',
-                ) + ` ${Math.ceil(pilot.buff.remaining)}s`
-              : this.hud.t('无', 'None')),
-        ];
+                ) + ` ${Math.ceil(pilot.buff.remaining)}s`] : []),
+        ] };
         if (loadout.skipped.length)
-          lines.push(
+          modifiers.lines.push(
             this.hud.t('未生效：', 'Unavailable: ') +
               loadout.skipped
                 .map((id) =>
@@ -368,21 +277,32 @@ export class BattleReportView {
                 )
                 .join(' / '),
           );
+        sections.push(modifiers);
       }
-      const label = this.hud.label(
-        parentNode,
-        lines.join('\n'),
-        x + cardWidth / 2,
-        panelTop + 100 + bodyH / 2,
-        font,
-        cardWidth - 20,
-        bodyH - 12,
-        C.white,
-      );
-      label.horizontalAlign = Label.HorizontalAlign.LEFT;
-      label.verticalAlign = Label.VerticalAlign.TOP;
-      label.lineHeight = font * 1.45;
-      label.overflow = Label.Overflow.SHRINK;
+      const width = cardWidth - 28, y = bodyY + 38;
+      const blocks = sections.flatMap(section => [
+        ...(section.title ? [{ text: section.title, heading: true }] : []),
+        { text: section.lines.join('\n'), heading: false },
+      ]).map(block => {
+        const label = h.label(parentNode, block.text, x + 10 + width / 2, y, font, width, 22, block.heading ? tone(side) : C.white);
+        const transform = label.node.getComponent(UITransform)!;
+        label.horizontalAlign = Label.HorizontalAlign.LEFT;
+        label.verticalAlign = Label.VerticalAlign.TOP;
+        label.isBold = block.heading;
+        label.lineHeight = font + 4;
+        label.overflow = Label.Overflow.RESIZE_HEIGHT;
+        transform.setAnchorPoint(.5, 1);
+        label.updateRenderData(true);
+        return { label, height: transform.contentSize.height + (block.heading ? 2 : 8) };
+      });
+      const list = h.listViewport(parentNode, `report:loadout:${side}`, { x: x + 8, y, w: cardWidth - 16, h: bodyH - 45 }, blocks.reduce((sum, b) => sum + b.height, 0));
+      let offset = list.offset;
+      for (const block of blocks) {
+        block.label.node.parent = list.n;
+        block.label.node.setPosition(x + 10 + width / 2 - h.w / 2, h.h / 2 - y + offset);
+        offset -= block.height;
+      }
+      list.finish();
     });
     return;
   }

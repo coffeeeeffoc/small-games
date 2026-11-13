@@ -75,6 +75,75 @@ integration('Night real HTTP and PostgreSQL', () => {
     ++guests <= 12 ? request('/sessions/guest', undefined, { game }) : store.guestSession({ game });
   const path = '/games/night-overwatch';
   const roomPath = (code: string) => `${path}/rooms/${code}`;
+  it('switches waiting rooms only after validating the invitation and the original lease', async () => {
+    const [host, guest, other] = await Promise.all([player(), player(), player()]);
+    const source = await request(`${path}/rooms`, guest, { mode: 'friend', visibility: 'public' });
+    const target = await request(`${path}/rooms`, host, { mode: 'friend', visibility: 'public' });
+    const createdAt = Number(
+      (
+        await database.db.execute(
+          sql`select data->>'createdAt' as at from runtime.competition_rooms where code=${target.code}`,
+        )
+      )[0].at,
+    );
+    const body = {
+      code: target.code,
+      createdAt,
+      switchFrom: { code: source.code, leaseId: source.leaseId },
+    };
+    await request(`${path}/rooms/join`, guest, { ...body, createdAt: createdAt + 1 }, 404);
+    await request(
+      `${path}/rooms/join`,
+      guest,
+      { ...body, switchFrom: { ...body.switchFrom, leaseId: randomUUID() } },
+      409,
+    );
+    await request(`${path}/rooms/join`, other, { code: target.code });
+    await request(`${path}/rooms/join`, guest, body, 409);
+    expect((await request(roomPath(source.code), guest)).players).toHaveLength(1);
+    await request(`${roomPath(target.code)}/leave`, other, {});
+    const joined = await request(`${path}/rooms/join`, guest, body);
+    expect(joined).toMatchObject({
+      code: target.code,
+      status: 'waiting',
+      players: expect.arrayContaining([expect.objectContaining({ id: guest.playerId })]),
+    });
+    expect(joined.leaseId).toBeTruthy();
+    await request(roomPath(source.code), guest, undefined, 404);
+    const recovered = await request(`${path}/rooms/join`, guest, body);
+    expect(recovered.leaseId).toBeTruthy();
+    const otherRoom = await request(`${path}/rooms`, other, {
+      mode: 'friend',
+      visibility: 'public',
+    });
+    const otherCreatedAt = Number(
+      (
+        await database.db.execute(
+          sql`select data->>'createdAt' as at from runtime.competition_rooms where code=${otherRoom.code}`,
+        )
+      )[0].at,
+    );
+    await request(`${roomPath(target.code)}/ready`, host, { ready: true });
+    await request(`${roomPath(target.code)}/ready`, guest, { ready: true });
+    expect(
+      (
+        await request(
+          `${path}/rooms/join`,
+          guest,
+          {
+            code: otherRoom.code,
+            createdAt: otherCreatedAt,
+            switchFrom: { code: target.code, leaseId: recovered.leaseId },
+          },
+          409,
+        )
+      ).error,
+    ).toBe('ACTIVE_ROOM');
+    expect((await request(roomPath(target.code), guest)).status).toBe('playing');
+    await request(`${roomPath(target.code)}/leave`, guest, {});
+    await request(`${roomPath(target.code)}/leave`, host, {});
+    await request(`${roomPath(otherRoom.code)}/leave`, other, {});
+  });
   beforeAll(async () => {
     if (!databaseUrl || new URL(databaseUrl).pathname !== '/competition_test')
       throw Error('Use isolated competition_test');

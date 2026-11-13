@@ -112,6 +112,47 @@ test('a direct invitation creates one public room and sends to the selected play
   await online.connect(f.bridge);await online.invitePlayer({playerId:'b'});
   assert.equal(created,1);assert.equal(sent[0].recipientId,'b');assert.equal(sent[0].roomCode,f.current.code);assert.equal(online.panel,'room');assert.match(online.message,/邀请已发送/);online.dispose();
 });
+test('a waiting pilot can switch via an invitation without leaving on a rejected join', async () => {
+  const f = fixture(), online = new Online(storage(), () => {});
+  const target = { ...room(), code: '123456', players: [{ id: 'b' }, { id: 'a' }] };
+  const message = { id: '1', playerId: 'b', nickname: 'B', text: '邀请', at: 1, room: { code: target.code, canJoin: true, createdAt: 1 } };
+  let reject = true;
+  f.bridge.services.joinRoom = async (input?: unknown) => {
+    assert.deepEqual(input, { code: target.code, createdAt: 1, password: undefined, switchFrom: f.current.code });
+    if (reject) throw Object.assign(Error(), { code: 'ROOM_FULL' });
+    return target;
+  };
+  try {
+    await online.connect(f.bridge); await online.open('friend');
+    assert(online.canJoinInvitation(message));
+    online.activity = 'playing'; assert(!online.canJoinInvitation(message)); online.activity = 'available';
+    await online.open('join', target.code, message.room.createdAt);
+    assert.equal(online.room?.code, f.current.code); assert.match(online.message, /房间已满/);
+    reject = false; await online.open('join', target.code, message.room.createdAt);
+    assert.equal(online.room?.code, target.code); assert.equal(online.panel, 'room');
+    assert(!online.canJoinInvitation(message)); assert(!f.received.some(request => request.operation === 'leave'));
+  } finally { online.dispose(); }
+});
+test('room invitation confirmations clear when a guest joins or the host leaves, including late replies', async () => {
+  const f = fixture(), online = new Online(storage(), () => {});
+  f.current.visibility = 'public'; f.current.players = [{ id: 'a' }];
+  f.bridge.ready = Promise.resolve({ identity: { id: 'a', name: 'A' }, capabilities: { multiplayer: true, leaderboards: true, chat: true, social: true } });
+  const reply = { messages: [], cursor: '', reset: true, serverNow: 1 };
+  let delay = false, resolveSend!: (value: typeof reply) => void;
+  Object.assign(f.bridge.services, { nightChat: async () => reply, sendNightChat: async () => delay ? new Promise(r => { resolveSend = r; }) : reply });
+  try {
+    await online.connect(f.bridge); await online.open('friend');
+    await online.sendChat(true, 'public'); assert.equal(online.publicChat.status, '邀请已发到大厅');
+    f.current.players.push({ id: 'b' }); await online.pump(1e9);
+    assert.equal(online.publicChat.status, '', 'clear as soon as the room fills');
+    f.current.players.pop(); await online.pump(1e9 + 1000);
+    await online.sendChat(true, 'public'); online.leave();
+    assert.equal(online.publicChat.status, '', 'clear even if the host leaves before a match');
+    await online.open('friend'); delay = true;
+    const pending = online.sendChat(true, 'public'); online.leave(); resolveSend(reply); await pending;
+    assert.equal(online.publicChat.status, '', 'a late send reply cannot restore the old notice');
+  } finally { online.dispose(); }
+});
 test('creating a direct invitation pins its recipient across attempted channel switches',async()=>{
   const f=fixture(),online=new Online(storage(),()=>{});let finish!:(value:any)=>void;const sent:any[]=[];
   f.current.visibility='public';f.current.players=[{id:'a'}];

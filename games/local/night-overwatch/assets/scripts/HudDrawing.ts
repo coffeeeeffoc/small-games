@@ -74,8 +74,24 @@ export class HudDrawing {
         [0, -7],
         [0, 7],
       ]);
-    } else if (kind === 'message') {
-      line([[-8, -6], [8, -6], [8, 4], [-2, 4], [-7, 8], [-7, 4], [-8, 4]], true);
+    } else if (kind === 'message' || kind === 'gamepad') {
+      graphics.fillColor = col(color);
+      if (kind === 'message') {
+        line([[-9, -4], [-7, -7], [7, -7], [9, -4], [9, 3], [7, 5], [-1, 5], [-6, 9], [-6, 5], [-9, 3]], true);
+        for (const dot of [-4, 0, 4]) graphics.circle(centerX + dot * iconScale, centerY + iconScale, 1.05 * iconScale);
+      } else {
+        line([[-7, -6], [7, -6], [9, -3], [11, 5], [9, 8], [6, 7], [3, 4], [-3, 4], [-6, 7], [-9, 8], [-11, 5], [-9, -3]], true);
+        line([[-7, -1], [-1, -1]]);
+        line([[-4, -4], [-4, 2]]);
+        for (const [dx, dy] of [[4, 0], [7, -2]]) graphics.circle(centerX + dx * iconScale, centerY - dy * iconScale, 1.1 * iconScale);
+      }
+      graphics.fill();
+    } else if (kind === 'friendAdd' || kind === 'friendRemove') {
+      graphics.circle(centerX - 4 * iconScale, centerY + 4 * iconScale, 3.5 * iconScale);
+      graphics.stroke();
+      line([[-11, 8], [-10, 4], [-7, 2], [-1, 2], [2, 4], [3, 8]]);
+      line([[4, 0], [11, 0]]);
+      if (kind === 'friendAdd') line([[7.5, -3.5], [7.5, 3.5]]);
     } else if (kind === 'send') {
       line([[-9, -1], [8, -7], [3, 8], [-1, 2]], true);
       line([[-1, 2], [8, -7]]);

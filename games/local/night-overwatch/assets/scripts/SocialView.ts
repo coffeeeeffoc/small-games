@@ -111,8 +111,9 @@ export class SocialView {
         if(art)h.coverImage(list.n,'DirectInvitationArt',art,bx+14,cardY+6,58,42);
         h.label(list.n,h.t('对战邀请 · 房间 ','INVITATION · ROOM ')+m.room.code,bx+80+(bw-94)/2,cardY+17,13,bw-94,24,C.amber).horizontalAlign=Label.HorizontalAlign.LEFT;
         h.label(list.n,h.t(m.room.canJoin?'等待加入':'已满或已关闭',m.room.canJoin?'WAITING FOR A PILOT':'FULL OR CLOSED'),bx+80+(bw-94)/2,cardY+38,11,bw-94,20,C.dim).horizontalAlign=Label.HorizontalAlign.LEFT;
-        const caption=own?h.t('已发送邀请','INVITATION SENT'):h.t(m.room.canJoin?'加入对战 ›':'邀请已失效',m.room.canJoin?'JOIN BATTLE ›':'INVITATION CLOSED');
-        button('online:chatJoin:'+m.id,caption,bx+bw-174,y+row.height-48,160,own||!m.room.canJoin||!!o.room||o.activity==='playing',true,list.n,list.g);
+        const caption=own?h.t('已发送邀请','INVITATION SENT'):!m.room.canJoin?h.t('邀请已失效','INVITATION CLOSED'):
+          o.room?.code===m.room.code?h.t('已在房间','IN ROOM'):o.room?.status==='waiting'?h.t('切换房间 ›','SWITCH ROOM ›'):h.t('加入对战 ›','JOIN BATTLE ›');
+        button('online:chatJoin:'+m.id,caption,bx+bw-174,y+row.height-48,160,!o.canJoinInvitation(m),true,list.n,list.g);
       }
     });list.finish();
     if(!messages.length)h.label(body,o.conversationLoading?h.t('正在读取会话…','LOADING…'):h.t('发送第一条消息 · 离线好友也能收到','SEND A MESSAGE · OFFLINE FRIENDS CAN READ LATER'),x+w/2,area.y+area.h/2,13,w-48,60,'#d0e6ef');

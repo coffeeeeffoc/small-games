@@ -62,7 +62,7 @@ try{
   await b.page.waitForFunction(ammo=>{const p=__night.snapshot().enemyEquipment;return p.selected===2&&p.guns[2].ammo===ammo;},fired.guns[2].ammo);
   evidence.checks.push('Double burst × twin trajectory fires four projectiles, spends one round, and opponent observes the selected weapon and remaining ammunition');
   await hit(a,'battleReport');await hit(a,'equipment');await hit(b,'battleReport');await hit(b,'equipment');
-  for(const actor of [a,b]){const text=await labels(actor.page);assert(text.includes('我方')&&text.includes('对方')&&text.includes('两连发')&&text.includes('电磁干扰')&&text.includes('默认 → 当前'));assert(!text.includes('尚未提供'));await shot(actor,'both-loadouts-'+actor.width);}
+  for(const actor of [a,b]){const text=await labels(actor.page);assert(text.includes('我方')&&text.includes('对方')&&text.includes('两连发')&&text.includes('电磁干扰')&&text.includes('剩余弹药'));assert(!text.includes('尚未提供'));await shot(actor,'both-loadouts-'+actor.width);}
   await hit(b,'close');await hit(b,'skillUse');
   await a.page.waitForFunction(()=>{const s=__night.snapshot();return s.enemyEquipment.skill.activeUntil>s.time;});
   await waitText(a.page,'电磁干扰 · 生效');await shot(a,'opponent-emp-active');
@@ -70,7 +70,7 @@ try{
   await a.page.waitForFunction(()=>{const s=__night.snapshot(),p=s.enemyEquipment;return p.skill.activeUntil<=s.time&&p.skill.readyAt>s.time;});
   assert((await snapshot(a.page)).time>time);await waitText(a.page,'电磁干扰 · 冷却');
   await hit(b,'weapon5');await a.page.waitForFunction(()=>__night.snapshot().enemyEquipment.selected===5);await settleVisuals(a.page);
-  await waitText(a.page,'装配武器：激光');await shot(a,'opponent-laser-cooldown');
+  await waitText(a.page,'当前武器：激光');await shot(a,'opponent-laser-cooldown');
   assert.equal((await snapshot(a.page)).enemyEquipment.buff??null,null);
   evidence.checks.push('Opponent EMP changes from active to cooldown while the equipment view stays open; weapon switch to laser and battle time update live');
   assert.deepEqual(evidence.errors,[]);evidence.final={a:(await snapshot(a.page)).loadout,b:(await snapshot(b.page)).loadout,ammo:fired.guns[2].ammo};

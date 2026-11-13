@@ -106,11 +106,17 @@ try {
   const rejectCreate=route=>route.fulfill({status:409,contentType:'application/json',body:JSON.stringify({error:'RULE_VERSION_CHANGED'})});
   await a.route('**/games/night-overwatch/rooms',rejectCreate);await choose(a,'online:invitePlayer:'+bid);
   await a.waitForFunction(()=>__night.snapshot().chat.status.includes('版本不匹配'));await shot(a,'invite-failure');assert(!(await snapshot(a)).online.room);await a.unroute('**/games/night-overwatch/rooms',rejectCreate);
+  await click(b,'qm:modes');await click(b,'mode:duel');await click(b,'mode:enter');await click(b,'online:friend');await click(b,'online:createConfirm');
+  await b.waitForFunction(()=>__night.snapshot().online.room?.status==='waiting');const original=(await snapshot(b)).online.room.code;
+  await click(b,'online:roomCollapse');await b.waitForFunction(code=>__night.snapshot().buttons.some(btn=>btn.id==='online:roomReturn:'+code&&!btn.disabled),original);
+  await choose(b,'online:roomReturn:'+original,'rooms');assert.equal((await snapshot(b)).online.room.code,original);
   await choose(a,'online:invitePlayer:'+bid);await a.waitForFunction(()=>__night.snapshot().online.panel==='room'&&__night.snapshot().online.room);await b.waitForFunction(()=>__night.snapshot().online.notification?.text?.includes('来我的房间'));
   for(const [width,height]of [[568,320],[844,390],[1280,720]]){await a.setViewportSize({width,height});await shot(a,'ready-room-empty-'+width);assertLayout(await snapshot(a),width,height);}
   await a.setViewportSize({width:844,height:390});await settleVisuals(a);
   await click(b,'social:reply');await b.waitForFunction(()=>__night.snapshot().chat.messages.some(m=>m.room?.canJoin));const invite=(await snapshot(b)).chat.messages.find(m=>m.room?.canJoin);await shot(b,'invitation-card');
-  await choose(b,'online:chatJoin:'+invite.id,'direct');await b.waitForFunction(()=>__night.snapshot().online.room?.players.length===2);await shot(a,'created-room');
+  const switchButton=await scrollToButton(b,'online:chatJoin:'+invite.id,'direct');assert.match(switchButton.text,/切换房间/);
+  await choose(b,'online:chatJoin:'+invite.id,'direct');await b.waitForFunction(code=>__night.snapshot().online.room?.code===code&&__night.snapshot().online.room.players.length===2,invite.room.code);await shot(a,'created-room');
+  evidence.checks.push('My Room reopens the original preparation room; a private invitation switches directly to its target room');
   await a.waitForFunction(()=>__night.snapshot().online.room?.players.length===2);await shot(a,'ready-room-two');
   await click(a,'online:ready');await click(b,'online:ready');for(const p of [a,b])await p.waitForFunction(()=>__night.snapshot().online.active&&__night.snapshot().phase==='playing');
   await click(c,'online:players');await c.waitForFunction(id=>__night.snapshot().online.onlinePlayers.find(p=>p.playerId===id)?.status==='playing',bid);

@@ -155,11 +155,19 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
     return data;
   }
   async function openRoom(operation, body) {
+    const previous = body.switchFrom?.code;
     const credential =
-      operation === '/join' && roomOwners.has(body.code)
-        ? await auth.forOwner(roomOwners.get(body.code))
-        : await auth.current();
+      previous && roomOwners.has(previous)
+        ? await auth.forOwner(roomOwners.get(previous))
+        : operation === '/join' && roomOwners.has(body.code)
+          ? await auth.forOwner(roomOwners.get(body.code))
+          : await auth.current();
     const room = await request(path + '/rooms' + operation, body, credential);
+    if (previous) {
+      roomOwners.delete(previous);
+      roomLeases.delete(previous);
+      matchOwner = undefined;
+    }
     rememberRoom(room.code, credential);
     if (room.leaseId) roomLeases.set(room.code, room.leaseId);
     return room;
@@ -224,12 +232,16 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
       if (room.leaseId) roomLeases.set(room.code, room.leaseId);
       return room;
     },
-    joinRoom: ({ code, password, createdAt }) =>
-      openRoom('/join', {
+    joinRoom: ({ code, password, createdAt, switchFrom }) => {
+      const leaseId = roomLeases.get(switchFrom);
+      if (switchFrom && !leaseId) return Promise.reject(failure('STALE_LEASE'));
+      return openRoom('/join', {
         code,
         ...(password ? { password } : {}),
         ...(createdAt ? { createdAt } : {}),
-      }),
+        ...(switchFrom ? { switchFrom: { code: switchFrom, leaseId } } : {}),
+      });
+    },
     spectateRoom: ({ code, password }) =>
       roomRequest(code, 'spectate', password ? { password } : {}),
     connectRoom: ({ code }) => roomRequest(code, 'connect', {}),

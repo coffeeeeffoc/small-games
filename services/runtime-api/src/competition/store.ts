@@ -829,6 +829,7 @@ export function createCompetitionStore(
       leaseId?: string;
       ready?: boolean;
       buildId?: string;
+      switchFrom?: { code: string; leaseId: string };
     },
     tx: Tx,
     policy: Awaited<ReturnType<typeof gamePolicy>>,
@@ -928,7 +929,19 @@ export function createCompetitionStore(
       if (room.players.length >= (rule.roomSize?.(room.mode) ?? 2))
         throw new CompetitionError('ROOM_FULL');
       const active = await activeRoom(tx, room.game, playerId);
-      if (active && active.code !== room.code) throw new CompetitionError('ACTIVE_ROOM');
+      if (active && active.code !== room.code) {
+        const previous = input.switchFrom;
+        if (
+          room.game !== 'night-overwatch' ||
+          room.visibility === 'private' ||
+          !previous ||
+          active.code !== previous.code ||
+          active.status !== 'waiting'
+        )
+          throw new CompetitionError('ACTIVE_ROOM');
+        // Validate the target first, then leave and join under the same match lock and transaction.
+        await lobbyAction(active, playerId, 'leave', { leaseId: previous.leaseId }, tx, policy);
+      }
       member = {
         id: playerId,
         ...(input.buildId ? { buildId: input.buildId } : {}),
@@ -941,6 +954,19 @@ export function createCompetitionStore(
       room.players.push(member);
       room.spectators = room.spectators?.filter((id) => id !== playerId);
       delete room.spectatorSeenAt![playerId];
+      exposeLease = member.leaseId;
+    }
+    if (
+      member &&
+      operation === 'join' &&
+      input.switchFrom &&
+      room.game === 'night-overwatch' &&
+      room.status === 'waiting' &&
+      !member.left &&
+      !exposeLease
+    ) {
+      // A retry after a lost switch response can reclaim the target like a regular connect.
+      member.leaseId = randomUUID();
       exposeLease = member.leaseId;
     }
     if (member && operation === 'connect') {
@@ -1223,6 +1249,7 @@ export function createCompetitionStore(
       ready?: boolean;
       createdAt?: number;
       buildId?: string;
+      switchFrom?: { code: string; leaseId: string };
     } = {},
   ) {
     const playerId = playerIdOf(auth);

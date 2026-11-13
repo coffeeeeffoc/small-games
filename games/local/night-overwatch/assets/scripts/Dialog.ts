@@ -12,14 +12,24 @@ export type DialogOptions = {
   close?: string;
   dim?: string;
   background?: string;
+  keepCapsuleBeside?: boolean;
 };
 
 export function dialog(h: Host, n: Node, g: Graphics, options: DialogOptions) {
-  const w = Math.min(options.width, h.w - h.safe.left - h.safe.right - 32);
-  const x = options.anchor ? Math.max(h.safe.left + 16, Math.min(options.anchor.x, h.w - h.safe.right - w - 16))
+  const safeWidth = h.w - h.safe.left - h.safe.right;
+  const center = h.safe.left + safeWidth / 2, capsule = h.capsuleRect;
+  const besideWidth = capsule && options.keepCapsuleBeside
+    ? 2 * (Math.max(capsule.left - center, center - capsule.right) - 12) : 0;
+  const left = h.safe.left + 16, right = h.w - h.safe.right - 16;
+  const before = capsule && options.keepCapsuleBeside ? capsule.left - 12 - left : 0;
+  const after = capsule && options.keepCapsuleBeside ? right - capsule.right - 12 : 0;
+  const w = Math.min(options.width, safeWidth - 32, besideWidth >= 280 ? besideWidth : Math.max(before, after) >= 280 ? Math.max(before, after) : Infinity);
+  const x = options.anchor ? Math.max(left, Math.min(options.anchor.x, right - w))
     : options.position === 'right' ? h.w - h.safe.right - w - 16
-    : h.safe.left + (h.w - h.safe.left - h.safe.right - w) / 2;
-  const top = Math.max(h.safe.top, h.capsuleRect && x + w > h.capsuleRect.left ? h.capsuleRect.bottom : 0);
+    : besideWidth < 280 && before >= 280 && before >= after ? Math.min(center - w / 2, left + before - w)
+    : besideWidth < 280 && after >= 280 ? Math.max(center - w / 2, right - after)
+    : center - w / 2;
+  const top = Math.max(h.safe.top, capsule && x + w > capsule.left && (!options.keepCapsuleBeside || x < capsule.right) ? capsule.bottom : 0);
   const anchorY = options.anchor ? Math.max(top + 6, options.anchor.y + options.anchor.h + 6) : undefined;
   const height = Math.min(options.height, h.h - (anchorY ?? top + 12) - h.safe.bottom - 12);
   const y = anchorY ?? top + (h.h - top - h.safe.bottom - height) / 2;

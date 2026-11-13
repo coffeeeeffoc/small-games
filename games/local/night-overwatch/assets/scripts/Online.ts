@@ -50,7 +50,7 @@ function validRelease(value: Release) {
 }
 type Bridge = { ready: Promise<Metadata | undefined>; refresh?: () => Promise<Metadata | undefined>;
   subscribeRequests?(listener: (result: RequestResult) => void): () => void;
-  services: { createRoom(input: { mode: string; visibility?: string; password?: string }): Promise<Room>; match(): Promise<Room>; joinRoom(input: { code: string; password?: string }): Promise<Room>;
+  services: { createRoom(input: { mode: string; visibility?: string; password?: string }): Promise<Room>; match(): Promise<Room>; joinRoom(input: { code: string; password?: string; createdAt?: number; switchFrom?: string }): Promise<Room>;
     listRooms?(): Promise<{ rooms: RoomSummary[] }>; history?(input: { cursor?: string }): Promise<BattleHistory>;
     updateProfile?(input: { nickname: string }): Promise<Player>; connectRoom?(input: { code: string }): Promise<Room>;
     spectateRoom?(input: { code: string; password?: string }): Promise<Room>;
@@ -184,6 +184,11 @@ export class Online {
   get incomingFriends(){return this.social.requests.filter(p=>p.direction==='incoming'&&!this.blockedPlayers.has(playerId(p))).length;}
   peer(id:string):Player|undefined{return [...this.onlinePlayers,...this.social.friends,...this.social.requests,...this.social.conversations].find(p=>playerId(p)===id);}
   canInvite(peer:Player){return this.socialAvailable&&this.activity!=='playing'&&!this.active&&!this.busy&&!this.inviting&&!this.chatSending&&!this.blockedPlayers.has(playerId(peer))&&peer.status!=='playing'&&peer.status!=='offline'&&(!this.room||this.room.status==='waiting'&&this.room.visibility==='public'&&this.room.players.length<2&&playerId(this.room.players[0])===this.authenticatedId);}
+  canJoinInvitation(message: ChatMessage) {
+    const room = message.room;
+    return !!room?.canJoin && message.playerId !== this.authenticatedId && !this.busy && !this.active && this.activity !== 'playing' &&
+      (!this.room || this.room.status === 'waiting' && !this.spectator && this.room.code !== room.code);
+  }
   async refreshSocial(now=performance.now()) {
     if(!this.socialAvailable||!this.foreground||this.destroyed||this.socialPolling||now<this.socialNext||!this.bridge?.services.nightSocial)return;
     const owner=this.authenticatedId;this.socialPolling=true;
@@ -270,11 +275,17 @@ export class Online {
       if(!this.room) { this.privateRoom = false; await this.open('friend'); }
       if(owner !== this.authenticatedId || this.destroyed) return;
       if(!this.room){this.publicChat.status=this.message||'创建邀请失败，请稍后重试';return;}
+      const room = this.room, generation = this.generation;
       this.publicChat.status = ''; this.inviting=false;
       const sent = await this.sendChat(true, 'direct');
-      if(owner !== this.authenticatedId || this.destroyed)return;
+      if(owner !== this.authenticatedId || this.destroyed || generation !== this.generation)return;
       if(this.chatRetryPending){this.socialOpen=true;}
-      else {const message=this.directChat.status||(sent?'邀请已发送，等待对方加入':'邀请未发送，请稍后重试');this.closeConversation();this.message=message;this.publicChat.status=message;}
+      else {
+        const confirmation = this.isWaitingForInvitee(room) ? '邀请已发送，等待对方加入' : '';
+        const message = this.directChat.status || (sent ? confirmation : '邀请未发送，请稍后重试');
+        this.closeConversation();
+        if (message) this.message = this.publicChat.status = message;
+      }
     } finally { this.inviting = false;if(owner===this.authenticatedId&&!this.socialOpen&&!this.directChat.intent)this.closeConversation();this.chatRevision++;this.revision++; }
   }
   private presenceAvailable = false;
@@ -376,6 +387,7 @@ export class Online {
       };
     }
     const owner = this.authenticatedId, intent = chat.intent, wasOpen = this.socialOpen;
+    const generation = this.generation, invitedRoom = intent.roomCode === this.room?.code ? this.room : undefined;
     chat.sending = true; this.chatRevision++;
     try {
       const result = await this.bridge.services.sendNightChat(intent, owner);
@@ -383,7 +395,7 @@ export class Online {
       this.chatEpoch++; this.chatNext = 0; this.acceptChat(result);
       chat.intent = undefined;
       if (chat.draft.normalize('NFKC').trim() === intent.text) chat.draft = '';
-      chat.status = !direct && intent.roomCode ? '邀请已发到大厅' : '';
+      chat.status = !direct && this.generation === generation && this.isWaitingForInvitee(invitedRoom) ? '邀请已发到大厅' : '';
       return true;
     } catch(error) {
       if (owner !== this.authenticatedId || this.destroyed) return;
@@ -751,7 +763,9 @@ export class Online {
     finally { if (generation === this.generation) { this.busy = false; this.revision++; } }
   }
   async open(kind: 'friend' | 'match' | 'join' | 'bot' | 'watch' | 'resume', code?: string,createdAt?:number) {
-    if (this.destroyed || this.busy || this.active || this.room) return;
+    const invitation = kind === 'join' && createdAt !== undefined;
+    const previous = invitation && this.room?.status === 'waiting' && !this.spectator && this.room.code !== code ? this.room : undefined;
+    if (this.destroyed || this.busy || this.active || this.room && !previous || invitation && this.activity === 'playing') return;
     if (kind === 'friend' && this.privateRoom && (this.draftPassword.length < 4 || this.draftPassword.length > 64)) {
       this.message = '私密房密码需要 4–64 个字符'; this.revision++; return;
     }
@@ -759,13 +773,14 @@ export class Online {
       this.message = '请输入正确的房间号'; this.revision++; return;
     }
     this.message = ''; const generation = ++this.generation;
+    if (previous) { this.inflight = false; this.nextPoll = 0; }
     this.busy = true; this.opening = code || (['join', 'watch'].includes(kind) ? this.draftCode.trim().toUpperCase() : kind); this.revision++;
     try {
       if (!this.bridge || kind === 'bot' && !this.available) {
         if (kind === 'bot') { this.busy = false; this.startBot(performance.now()); return; }
         this.message = '联机服务暂不可用，可选择本地人机练习'; return;
       }
-      const services = this.bridge.services, input = { code: code || this.draftCode.trim().toUpperCase(), password: this.draftPassword || undefined,createdAt };
+      const services = this.bridge.services, input = { code: code || this.draftCode.trim().toUpperCase(), password: invitation ? undefined : this.draftPassword || undefined, createdAt };
       const room = await this.requestRoom(async () => {
         if (generation !== this.generation) return;
         if (this.releasing) await this.releaseRoom(this.releasing);
@@ -780,12 +795,14 @@ export class Online {
         : kind === 'match' ? await services.match()
         : kind === 'watch' ? await services.spectateRoom!(input)
         : kind === 'resume' ? await services.connectRoom!({ code: input.code })
-        : await services.joinRoom(input);
+        : await services.joinRoom(previous ? { ...input, switchFrom: previous.code } : input);
         if(this.destroyed)return;
         if (generation !== this.generation) { await this.releaseRoom(room); return; }
         return room;
       });
       if (!room || generation !== this.generation) return;
+      if (previous) this.hideRoom(previous.code);
+      if (invitation) this.closeConversation();
       this.panel = 'room'; this.draftPassword = ''; this.accept(room); this.nextPoll = 0;
       if (kind === 'bot' && room.status === 'waiting') {
         const started = await this.requestRoom(async () => generation === this.generation
@@ -800,11 +817,13 @@ export class Online {
           : /FULL|STARTED/.test(code) ? '房间已满或已经开战，请选择其他房间'
           : /STALE_LEASE/.test(code) ? '此对局已在另一个页面恢复'
           : code === 'ACTIVE_ROOM' ? '你还有一场未结束的对战，请先返回原房间'
+          : code === 'INVITATION_EXPIRED' ? '邀请已失效，请让对方重新邀请'
           : /^(?:RULE_VERSION_CHANGED|RULE_VERSION_RETIRED|BUILD_DISABLED|BUILD_REMOVED|BACKEND_VERSION_DISABLED)$/.test(code) ? '版本不匹配，请重新进入游戏或等待服务更新'
           : code === 'RULE_NEW_GAMES_DISABLED' ? '对战暂未开放新开局，请稍后重试'
           : /^(?:SERVICE_UNAVAILABLE|INTERNAL_ERROR|NIGHT_RELEASE_UNAVAILABLE)$/.test(code) ? '房间服务暂不可用，请稍后重试'
           : /ROOM_NOT_FOUND|INVITATION_NOT_FOUND|MATCH_CLOSED/.test(code) ? '房间不存在或已关闭，请确认房间号'
           : kind === 'friend' || kind === 'bot' ? '创建房间失败，请稍后重试' : '暂时无法进入房间，请检查房号与网络后重试';
+        if (invitation && this.socialOpen) { this.directChat.status = this.message; this.chatRevision++; }
         if (kind === 'resume' && ['PLAYER_DISCONNECTED', 'NOT_A_MEMBER', 'ROOM_NOT_FOUND', 'INVITATION_NOT_FOUND', 'MATCH_CLOSED', 'STALE_LEASE'].includes(code)) { this.resumeCode = ''; this.rememberRoom(); }
       }
     } finally { if (generation === this.generation) { this.busy = false; this.opening = ''; this.revision++; } }
@@ -843,6 +862,7 @@ export class Online {
   }
   leave() {
     this.restoreRoomOnConnect = false;
+    this.clearInvitationConfirmation();
     const room = this.room; this.generation++; this.busy = false; this.opening = ''; this.inflight = false;
     const resumable = room?.status === 'playing' && !this.view?.finished && !this.spectator && !this.replaced && !room.players[room.you]?.takenOver;
     if (resumable) this.lobbyTab = 'rooms';
@@ -945,6 +965,14 @@ export class Online {
       throw Object.assign(Error('This build cannot render the historical room'), { code: 'RULE_VERSION_CHANGED', incompatibleRoom: true });
   }
   private isNewRound(room: Room) { return !!this.room && (this.room.code !== room.code || !!this.room.id && !!room.id && this.room.id !== room.id); }
+  private isWaitingForInvitee(invited?: Room) {
+    return !!invited && this.room?.code === invited.code && this.room.id === invited.id && this.room.status === 'waiting' && this.room.players.length < 2;
+  }
+  private clearInvitationConfirmation() {
+    const confirmed = (status: string) => status === '邀请已发到大厅' || status === '邀请已发送，等待对方加入';
+    if (confirmed(this.message)) this.message = '';
+    if (confirmed(this.publicChat.status)) { this.publicChat.status = ''; this.chatRevision++; }
+  }
   private accept(room: Room) {
     this.assertRoomVersion(room);
     const reset = this.isNewRound(room) || !!this.view && room.status === 'waiting' && !room.state;
@@ -954,9 +982,7 @@ export class Online {
       this.roomKey = ''; this.enteringUntil = 0; this.botStarted = 0; this.nextPoll = 0;
       this.connectionLost = this.replaced = false; this.message = ''; this.panelHistory = []; this.panel = 'room';
     }
-    if(room.players.length===2&&this.publicChat.status==='邀请已发送，等待对方加入'){
-      if(this.message===this.publicChat.status)this.message='';this.publicChat.status='';this.chatRevision++;
-    }
+    if (reset || room.status !== 'waiting' || room.players.length >= 2) this.clearInvitationConfirmation();
     const start = !this.view && !!room.state;
     this.room = room; this.syncedAt = performance.now(); this.trackPeers(room);
     if (reset) this.changed(undefined, true);

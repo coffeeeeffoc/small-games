@@ -665,7 +665,7 @@ export class Overwatch extends Component {
       if(action.startsWith('chatReply:')){const m=[...online.chatMessages,...online.conversation].find(m=>m.id===action.slice(10));if(m){const own=m.playerId===online.authenticatedId;online.openConversation({playerId:own?m.recipientId:m.playerId,nickname:own?m.recipientNickname:m.nickname});}return;}
       if(action==='chatBlocks'){online.chatMenu=online.chatMenu==='blocks'?'':'blocks';online.chatRevision++;return;}
       if(action==='chatSend'){void online.sendChat(false, online.socialOpen ? 'direct' : 'public');return;}
-      if(action==='roomReturn'){if(!online.room)this.action('online:backLobby');else if(online.view?.finished&&!online.spectator)void online.rematch();else online.show('room');return;}
+      if(action==='roomReturn'||action===`roomReturn:${online.room?.code}`){if(!online.room)this.action('online:backLobby');else if(online.view?.finished&&!online.spectator)void online.rematch();else online.show('room');return;}
       if(action==='roomCollapse'&&online.room){online.show('menu');return;}
       // 邀请后留在当前界面（房间或收起后的大厅），结果显示在房间提示与大厅状态行。
       if (action === 'chatInvite') {
@@ -678,7 +678,7 @@ export class Overwatch extends Component {
       if(action.startsWith('chatMenu:')){online.chatMenu=online.chatMenu===action.slice(9)?'':action.slice(9);online.chatRevision++;return;}
       if(action.startsWith('chatBlock:')){online.toggleBlock(action.slice(10));return;}
       if(action.startsWith('chatReport:')){void online.reportChat(action.slice(11));return;}
-      if(action.startsWith('chatJoin:')){const m=[...online.chatMessages,...online.conversation].find(m=>m.id===action.slice(9));if(m?.room?.canJoin&&online.activity!=='playing'){online.closeConversation();void online.open('join',m.room.code,m.room.createdAt);}return;}
+      if(action.startsWith('chatJoin:')){const m=[...online.chatMessages,...online.conversation].find(m=>m.id===action.slice(9));if(m?.room&&online.canJoinInvitation(m))void online.open('join',m.room.code,m.room.createdAt);return;}
       if (action === 'chat') { online.selectChat();online.show('chat');return; }
       if (action === 'menu') { online.selectChat();online.lobbyTab='rooms';online.show('menu'); void online.loadRooms(); }
       if (action === 'profile') { this.pause('settings', false); online.show('profile'); }
