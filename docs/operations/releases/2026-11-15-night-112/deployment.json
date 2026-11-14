@@ -1,0 +1,379 @@
+{
+  "date": "2026-11-15",
+  "sourceSHA": "1216eb49442fd6f0b59669ff19fec2395ef6185e",
+  "baseSHA": "8d88f1e54965d8f9b9bbc79c2ea6ca36380c5cfc",
+  "backend": {
+    "ok": true,
+    "mode": "execute",
+    "sourceSHA": "1216eb49442fd6f0b59669ff19fec2395ef6185e",
+    "release": "1216eb49442f-1794694377992-a3bf75",
+    "services": ["runtime"],
+    "recreateCompanions": ["kart"],
+    "healthVerified": true,
+    "databaseReplaced": false,
+    "schemaChanged": false,
+    "backupCreated": true,
+    "backupSHA256": "c17ed7917178140e9040b305d769afd039a080ac70a53e3d8cc63557846f2278",
+    "isolatedRestoreVerified": false,
+    "activeImages": {
+      "runtime": "sha256:eb3b9e36e9e31a273813e0923b2c313e6121f1dfb4ffd3137153862cede22a56",
+      "kart": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c"
+    },
+    "imageCapabilities": {
+      "runtime": {
+        "image": "sha256:eb3b9e36e9e31a273813e0923b2c313e6121f1dfb4ffd3137153862cede22a56",
+        "control": 1,
+        "authenticatedGameScope": 1,
+        "controlCatalog": 4,
+        "nightOperations": 1
+      },
+      "kart": {
+        "image": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c",
+        "control": 1,
+        "identityRecheck": 1,
+        "authenticatedGameScope": 1
+      }
+    },
+    "deployment": {
+      "version": "1.1.2",
+      "sourceSHA": "1216eb49442fd6f0b59669ff19fec2395ef6185e",
+      "release": "1216eb49442f-1794694377992-a3bf75",
+      "mode": "execute",
+      "services": ["runtime"],
+      "activeImages": {
+        "runtime": "sha256:eb3b9e36e9e31a273813e0923b2c313e6121f1dfb4ffd3137153862cede22a56",
+        "kart": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c"
+      },
+      "verifiedAt": 1794694446937,
+      "nightRules": {
+        "ranked": "night-input-replay-v18",
+        "multiplayer": "night-duel-v12"
+      }
+    }
+  },
+  "admin": {
+    "ok": true,
+    "mode": "reuse",
+    "runnerSourceSHA": "1216eb49442fd6f0b59669ff19fec2395ef6185e",
+    "sourceSHA": "1216eb49442fd6f0b59669ff19fec2395ef6185e",
+    "release": "1216eb49442f-1794694459917-d8261a",
+    "services": ["management"],
+    "activeImages": {
+      "runtime": "sha256:eb3b9e36e9e31a273813e0923b2c313e6121f1dfb4ffd3137153862cede22a56",
+      "kart": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c",
+      "management": "sha256:2d44c65908c1d52ae330bcbf18e13c590d670380c77590dea16044bb375146ae"
+    },
+    "controlContract": {
+      "metadataSha256": "163027ed03084854938c165259a809af4704da4628244489bafd8493e0c4d36f",
+      "projectionSha256": "06fed71e3914a5421040c4b8919a32901e83c2f0e5c45d09950326a0abb4c86f",
+      "schema": "game_control",
+      "schemaVersion": 5,
+      "version": 1
+    },
+    "migrationArtifactSha256": "11653ac25a750ea10e4620ded710426a7f28b0a868bb0c4e8ebfae48514647d4",
+    "controlEnabled": true,
+    "remoteConfigReused": true,
+    "internalHealthVerified": true,
+    "publicHtmlVerified": true,
+    "anonymousSessionVerified": true,
+    "oauthStartVerified": true,
+    "realGithubLoginVerified": false,
+    "backupSHA256": "445b6388c6dbaec1cb1ac30d29405258267952f3d324a6e577cac9c71b40582c",
+    "oldStateSHA256": "9f0f7749db12c8548e7e1cda3848b098e4b7d130972a3bb5545c3bf4a11d31ef"
+  },
+  "ingress": {
+    "source": "20261114221605-1216eb49442f-f8e357",
+    "previous": "/opt/small-games/caddy/releases/20261113193843-7a9bf1a98d8c-14b743",
+    "backup": {
+      "archive": "caddy-20261114T221611Z-8045d1.tar.gz",
+      "sha256": "13edc1e68432a85adb687375311fa2369e0f51078a816316b5759c9e3a987003"
+    },
+    "acceptance": {
+      "adminUiAndAssets": "passed",
+      "gamePrefixes": ["/small-games/v1", "/api/competition/v1"],
+      "management": "anonymous-session-only",
+      "realGithubLoginVerified": false
+    },
+    "status": "active"
+  },
+  "before": {
+    "checkedAt": "2026-11-14T22:12:39.594Z",
+    "containers": {
+      "runtime": {
+        "id": "410c81a0e5560221a4f404eb20f96a57d0e2d1d419c4b587aa112a4cdc9de4dc",
+        "image": "sha256:98dd412c385a6339e99917139a118c1adb2710ce4be4d2f585c1cd54d80d7e30",
+        "health": "healthy",
+        "running": true,
+        "mounts": []
+      },
+      "kart": {
+        "id": "90188714fa3719141f870a64359d7116428f87189d0e810200b0fb04ef797c56",
+        "image": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c",
+        "health": "healthy",
+        "running": true,
+        "mounts": [
+          {
+            "name": "small-games_kart-outbox",
+            "destination": "/app/outbox"
+          }
+        ]
+      },
+      "management": {
+        "id": "9b178dadd97670f7297df51f8c24064d35ba1a285e70b6840ae913af57b5c035",
+        "image": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c",
+        "health": "healthy",
+        "running": true,
+        "mounts": []
+      },
+      "postgres": {
+        "id": "fb6f941c30af4788a29ad48b6c3a6a5e0eb831927c8df72c602511c8322cd229",
+        "image": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+        "health": "healthy",
+        "running": true,
+        "mounts": [
+          {
+            "name": "small-games_postgres-data",
+            "destination": "/var/lib/postgresql/data"
+          }
+        ]
+      },
+      "nginx": {
+        "id": "cf098c2e70affeff3228db4ae6405e2252b7e10f178f5271ece213d43669a9a0",
+        "image": "sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5",
+        "health": "healthy",
+        "running": true,
+        "mounts": [
+          {
+            "name": null,
+            "destination": "/srv/site"
+          },
+          {
+            "name": null,
+            "destination": "/etc/nginx/conf.d"
+          },
+          {
+            "name": null,
+            "destination": "/etc/nginx/legacy"
+          }
+        ]
+      }
+    },
+    "pointers": {
+      "current": "/opt/small-games/releases/20260928t144509669z-0b2c9952",
+      "backend-current": "/opt/small-games/backend-releases/identity-20261016t085143850z-da201f83",
+      "company/current": "/opt/small-games/company/releases/20261018174117-6cc69521c7ad-7deb08",
+      "caddy/current": "/opt/small-games/caddy/releases/20261113193843-7a9bf1a98d8c-14b743",
+      "admin-console/current": "/opt/small-games/admin-console/releases/7a9bf1a98d8c-1794598562686-5a3c77"
+    },
+    "packDailyLimit": 10,
+    "oauthTimeoutExpression": "const signal = AbortSignal.timeout(10000);",
+    "callbackProxyTimeout": null,
+    "backupDirectoryMode": "700",
+    "timers": {
+      "company-caddy-backup.timer": "active",
+      "small-games-ranked-retention.timer": "active"
+    }
+  },
+  "after": {
+    "checkedAt": "2026-11-14T22:16:52.384Z",
+    "containers": {
+      "runtime": {
+        "id": "74467b774b963d2a4c3fa85ab9f563921fa25d479b55792f1043beb2681492f2",
+        "image": "sha256:eb3b9e36e9e31a273813e0923b2c313e6121f1dfb4ffd3137153862cede22a56",
+        "health": "healthy",
+        "running": true,
+        "mounts": []
+      },
+      "kart": {
+        "id": "836ff99f428de763cd085e09ca2a586ff359e93e40e27411d7bdedd700f438df",
+        "image": "sha256:46624089cf47b968bd9664738b327e423296f0d2e53b41630da4406b41f03e6c",
+        "health": "healthy",
+        "running": true,
+        "mounts": [
+          {
+            "name": "small-games_kart-outbox",
+            "destination": "/app/outbox"
+          }
+        ]
+      },
+      "management": {
+        "id": "e7412a94c9563ca0b2e7b60fe15390a8c84ff789c21414096b413c92d8ca4c98",
+        "image": "sha256:2d44c65908c1d52ae330bcbf18e13c590d670380c77590dea16044bb375146ae",
+        "health": "healthy",
+        "running": true,
+        "mounts": []
+      },
+      "postgres": {
+        "id": "fb6f941c30af4788a29ad48b6c3a6a5e0eb831927c8df72c602511c8322cd229",
+        "image": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+        "health": "healthy",
+        "running": true,
+        "mounts": [
+          {
+            "name": "small-games_postgres-data",
+            "destination": "/var/lib/postgresql/data"
+          }
+        ]
+      },
+      "nginx": {
+        "id": "8abeed5a75fd8f690e3e37e9589016b09a4555afda3cbb79f4b1187024b001b5",
+        "image": "sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5",
+        "health": "healthy",
+        "running": true,
+        "mounts": [
+          {
+            "name": null,
+            "destination": "/srv/site"
+          },
+          {
+            "name": null,
+            "destination": "/etc/nginx/conf.d"
+          },
+          {
+            "name": null,
+            "destination": "/etc/nginx/legacy"
+          }
+        ]
+      }
+    },
+    "pointers": {
+      "current": "/opt/small-games/releases/20260928t144509669z-0b2c9952",
+      "backend-current": "/opt/small-games/backend-releases/identity-20261016t085143850z-da201f83",
+      "company/current": "/opt/small-games/company/releases/20261018174117-6cc69521c7ad-7deb08",
+      "caddy/current": "/opt/small-games/caddy/releases/20261114221605-1216eb49442f-f8e357",
+      "admin-console/current": "/opt/small-games/admin-console/releases/1216eb49442f-1794694459917-d8261a"
+    },
+    "packDailyLimit": 12,
+    "oauthTimeoutExpression": "const signal = AbortSignal.timeout(stage === 'exchange' ? 60_000 : 10_000);",
+    "callbackProxyTimeout": "90",
+    "backupDirectoryMode": "700",
+    "timers": {
+      "company-caddy-backup.timer": "active",
+      "small-games-ranked-retention.timer": "active"
+    },
+    "protectedStateVerified": true
+  },
+  "publicSmoke": {
+    "checkedAt": "2026-11-14T22:16:52.968Z",
+    "builds": [
+      {
+        "version": "1.1.4",
+        "buildId": "night-01bf0804271b6fa437551e0b4185854e4a8c7d2cd3c4cf74920344b2161f63e4",
+        "rule": "night-input-replay-v18",
+        "release": {
+          "currentBuildId": "night-01bf0804271b6fa437551e0b4185854e4a8c7d2cd3c4cf74920344b2161f63e4",
+          "currentVersion": "1.1.4",
+          "backendVersion": "1.1.0",
+          "latestBuildId": null,
+          "latestVersion": null,
+          "update": "none",
+          "canStartNewGames": true,
+          "admissions": {
+            "ranked": true,
+            "multiplayer": true
+          },
+          "action": "reopen"
+        },
+        "created": true,
+        "resumed": true,
+        "canceled": true
+      },
+      {
+        "version": "1.1.1",
+        "buildId": "night-f4c439b63f7e5985a12488f70225920469677b135c97bc48c8ffe62039699294",
+        "rule": "night-input-replay-v18",
+        "release": {
+          "currentBuildId": "night-f4c439b63f7e5985a12488f70225920469677b135c97bc48c8ffe62039699294",
+          "currentVersion": "1.1.1",
+          "backendVersion": "1.1.0",
+          "latestBuildId": "night-f4c439b63f7e5985a12488f70225920469677b135c97bc48c8ffe62039699294",
+          "latestVersion": "1.1.1",
+          "update": "none",
+          "canStartNewGames": true,
+          "admissions": {
+            "ranked": true,
+            "multiplayer": true
+          },
+          "action": "reopen"
+        },
+        "created": true,
+        "resumed": true,
+        "canceled": true
+      },
+      {
+        "version": "legacy",
+        "buildId": null,
+        "rule": "night-input-replay-v16",
+        "release": {
+          "currentBuildId": null,
+          "currentVersion": null,
+          "backendVersion": null,
+          "latestBuildId": "night-f4c439b63f7e5985a12488f70225920469677b135c97bc48c8ffe62039699294",
+          "latestVersion": "1.1.1",
+          "update": "optional",
+          "canStartNewGames": true,
+          "admissions": {
+            "ranked": true,
+            "multiplayer": true
+          },
+          "action": "reopen"
+        },
+        "created": true,
+        "resumed": true,
+        "canceled": true
+      }
+    ],
+    "publicChecks": [
+      {
+        "url": "https://api.nenggongzhiren.cn/health",
+        "status": 200
+      },
+      {
+        "url": "https://admin.nenggongzhiren.cn/api/session",
+        "status": 401
+      },
+      {
+        "url": "https://api.nenggongzhiren.cn/small-games/v1/games/night-overwatch/assets",
+        "status": 401
+      },
+      {
+        "url": "https://api.nenggongzhiren.cn/api/competition/v1/games/night-overwatch/assets",
+        "status": 401
+      },
+      {
+        "url": "https://api.nenggongzhiren.cn/internal/admin/players",
+        "status": 404
+      }
+    ],
+    "limits": {
+      "packDailyLimit": 12,
+      "wheelDailyLimit": 10,
+      "videoDailyLimit": 22
+    },
+    "loggedOut": true
+  },
+  "ingressSmoke": {
+    "checkedAt": "2026-11-14T22:17:13.435Z",
+    "requests": 240,
+    "counts": {
+      "401": 214,
+      "429": 26
+    },
+    "nginxRateLimits": 26,
+    "forgedSourceHeadersDidNotBypassRateLimit": true,
+    "authenticationBypassed": false
+  },
+  "frontendRegistrationChanged": false,
+  "channelPackageUploaded": false,
+  "realGithubLoginVerified": false,
+  "deviceAndRealAdsVerified": false,
+  "fullCandidateSuiteRerun": false,
+  "ci": {
+    "url": "https://github.com/coffeeeeffoc/small-games/actions/runs/43646828209",
+    "status": "in_progress"
+  },
+  "pages": {
+    "url": "https://github.com/coffeeeeffoc/small-games/actions/runs/43646828142",
+    "status": "in_progress"
+  }
+}
