@@ -175,6 +175,27 @@ export function renderApiCaddy(ingress) {
 
 export function renderIngressNginx(ingress) {
   const config = validateIngress(ingress);
+  const managementProxy = (location, timeout) => `    location ${location} {
+        if ($management_public_path = 0) { return 404 '{"error":"NOT_FOUND"}'; }
+        if ($request_method !~ ^(GET|POST|OPTIONS)$) { return 404 '{"error":"NOT_FOUND"}'; }
+        limit_req zone=management_ingress burst=40 nodelay;
+        limit_req_status 429;
+        set $management_upstream management:43001;
+        proxy_pass http://$management_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host ${adminDomain};
+        proxy_set_header X-Forwarded-Host ${adminDomain};
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Forwarded '';
+        proxy_set_header X-Competition-Internal-Key '';
+        proxy_set_header X-Management-Entry admin;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout ${timeout}s;
+        proxy_intercept_errors on;
+        error_page 502 503 504 =503 @management_unavailable;
+    }`;
   return `# Only this exact private peer may supply a client address.
 map $realip_remote_addr $competition_edge_peer {
     default 0;
@@ -260,27 +281,9 @@ server {
     error_log /dev/null crit;
     default_type application/json;
     location = /api { return 404 '{"error":"NOT_FOUND"}'; }
-    location /api/ {
-        if ($management_public_path = 0) { return 404 '{"error":"NOT_FOUND"}'; }
-        if ($request_method !~ ^(GET|POST|OPTIONS)$) { return 404 '{"error":"NOT_FOUND"}'; }
-        limit_req zone=management_ingress burst=40 nodelay;
-        limit_req_status 429;
-        set $management_upstream management:43001;
-        proxy_pass http://$management_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host ${adminDomain};
-        proxy_set_header X-Forwarded-Host ${adminDomain};
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header Forwarded '';
-        proxy_set_header X-Competition-Internal-Key '';
-        proxy_set_header X-Management-Entry admin;
-        proxy_connect_timeout 3s;
-        proxy_read_timeout 25s;
-        proxy_intercept_errors on;
-        error_page 502 503 504 =503 @management_unavailable;
-    }
+    # The callback waits for token exchange, profile and email lookups.
+${managementProxy('= /api/auth/github/callback', 90)}
+${managementProxy('/api/', 25)}
     location @management_unavailable { return 503 '{"error":"temporarily_unavailable"}'; }
     location / { return 404 '{"error":"NOT_FOUND"}'; }
 }

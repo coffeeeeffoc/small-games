@@ -23,7 +23,7 @@ export class GithubIdentityError extends Error {
 }
 
 async function requestJson(url: string, init: RequestInit, stage: GithubStage): Promise<unknown> {
-  const signal = AbortSignal.timeout(10000);
+  const signal = AbortSignal.timeout(stage === 'exchange' ? 60_000 : 10_000);
   let response: Response;
   try {
     response = await fetch(url, { ...init, redirect: 'error', signal });

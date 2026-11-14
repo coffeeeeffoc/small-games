@@ -13,5 +13,5 @@ export function assetFixture(playerId='qa-pilot'):AssetSnapshot {
     announcements:[{id:'news',title:'成长与军需更新',body:'单人和双人独立配装。主动技能可冷却后重复使用。',createdAt:now}],
     videoOrders:[{id:'video-order',purpose:'packs',quantity:5,required:3,completed:1,delivered:false,version:'night-growth-v1',createdAt:now}],
     wheelTickets:1,wheelVideosToday:0,wheelDailyLimit:10,wheelPrizes:WHEEL_PRIZES,
-    openReceipts:[{requestId:'qa-opening',at:now,item:'pack:general:3',quantity:5,drops:[{item:'twin-match'},{item:'twin-match'},{coins:800},{item:'laser-match'},{coins:800}]}],signedDays:['2026-10-31'],signedToday:false,day,serverNow:now,videoDailyLimit:20,packDailyLimit:10,videosToday:1,catalog:CATALOG,packages:PACKAGES,pools:POOLS,quoteVersion:'night-growth-v1',adVerification:'limited-client-callback',legacyPreserved:true};
+    openReceipts:[{requestId:'qa-opening',at:now,item:'pack:general:3',quantity:5,drops:[{item:'twin-match'},{item:'twin-match'},{coins:800},{item:'laser-match'},{coins:800}]}],signedDays:['2026-10-31'],signedToday:false,day,serverNow:now,videoDailyLimit:22,packDailyLimit:12,videosToday:1,catalog:CATALOG,packages:PACKAGES,pools:POOLS,quoteVersion:'night-growth-v1',adVerification:'limited-client-callback',legacyPreserved:true};
 }

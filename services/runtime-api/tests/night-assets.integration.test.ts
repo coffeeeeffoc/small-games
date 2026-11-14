@@ -1138,7 +1138,7 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       command(id, { kind: 'wheel-spin', requestId: randomUUID() }),
     ).rejects.toMatchObject({ code: 'NO_WHEEL_TICKETS' });
   });
-  it('allows ten ads for each reward and continues unfinished crate orders after midnight', async () => {
+  it('delivers a twenty-crate package in one day with a separate ten-ad wheel limit', async () => {
     const id = await owner();
     const createOrder = async (purpose: 'packs' | 'wheel', quantity: number) => {
       const snapshot = await command(id, {
@@ -1165,23 +1165,31 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       );
     };
     expect(await get(id)).toMatchObject({
-      videoDailyLimit: 20,
-      packDailyLimit: 10,
+      videoDailyLimit: 22,
+      packDailyLimit: 12,
       wheelDailyLimit: 10,
     });
     const pack = await createOrder('packs', 20);
     expect(pack.required).toBe(12);
-    for (let n = 0; n < 9; n++) await watch(pack.id);
+    for (let n = 0; n < 11; n++) await watch(pack.id);
     for (let n = 0; n < 10; n++) await watch((await createOrder('wheel', 1)).id);
 
     const wheel = await createOrder('wheel', 1);
     await expect(start(wheel.id)).rejects.toMatchObject({ code: 'DAILY_WHEEL_LIMIT' });
-    expect(await watch(pack.id)).toMatchObject({
-      videosToday: 20,
+    const finished = await watch(pack.id);
+    expect(finished).toMatchObject({
+      videosToday: 22,
       wheelVideosToday: 10,
       wheelTickets: 10,
     });
-    await expect(start(pack.id)).rejects.toMatchObject({ code: 'DAILY_VIDEO_LIMIT' });
+    expect(finished.videoOrders.find((o) => o.id === pack.id)).toMatchObject({
+      completed: 12,
+      delivered: true,
+    });
+    const { packs } = finished.lastReceipt as { packs: Record<string, number> };
+    expect(Object.values(packs).reduce((sum, count) => sum + count, 0)).toBe(20);
+    const nextPack = await createOrder('packs', 1);
+    await expect(start(nextPack.id)).rejects.toMatchObject({ code: 'DAILY_VIDEO_LIMIT' });
 
     const tomorrow = Date.parse('2026-11-03T00:00:00+08:00');
     expect(await get(id, tomorrow)).toMatchObject({
@@ -1189,16 +1197,9 @@ const databaseUrl = process.env.COMPETITION_TEST_DATABASE_URL;
       wheelVideosToday: 0,
       wheelTickets: 10,
     });
-    await watch(pack.id, tomorrow);
-    const finished = await watch(pack.id, tomorrow + 10000);
-    expect(finished.videoOrders.find((o) => o.id === pack.id)).toMatchObject({
-      completed: 12,
-      delivered: true,
-    });
-    const { packs } = finished.lastReceipt as { packs: Record<string, number> };
-    expect(Object.values(packs).reduce((sum, count) => sum + count, 0)).toBe(20);
-    expect(await watch(wheel.id, tomorrow + 20000)).toMatchObject({
-      videosToday: 3,
+    await watch(nextPack.id, tomorrow);
+    expect(await watch(wheel.id, tomorrow + 10000)).toMatchObject({
+      videosToday: 2,
       wheelVideosToday: 1,
       wheelTickets: 11,
     });

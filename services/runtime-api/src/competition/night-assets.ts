@@ -213,7 +213,7 @@ const walletId = (owner: string) => `night-assets:${owner}`;
 const eventId = (owner: string, event: string) => `night-assets-event:${owner}:${event}`;
 export const nightDay = (at: number) => new Date(at + 8 * 3600000).toISOString().slice(0, 10);
 const WHEEL_DAILY_LIMIT = 10;
-const PACK_DAILY_LIMIT = 10;
+const PACK_DAILY_LIMIT = 12;
 const cutoff = Date.parse('2026-11-01T00:00:00+08:00');
 const fail = (code: string): never => {
   throw new CompetitionError(code, 422);

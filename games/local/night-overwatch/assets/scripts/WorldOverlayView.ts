@@ -312,17 +312,17 @@ export class WorldOverlayView {
       this.hud.h,
       this.hud.reducedEffects,
     );
-    const project = (point: Point, y = 0) => {
-      const projectedPoint = world.project(point, y);
-      return {
-        x: projectedPoint.x / view.getScaleX() - this.hud.w / 2,
-        y: projectedPoint.y / view.getScaleY() - this.hud.h / 2,
-        visible:
-          [projectedPoint.x, projectedPoint.y, projectedPoint.z].every(Number.isFinite) &&
-          projectedPoint.z >= 0 &&
-          projectedPoint.z <= 1,
-      };
-    };
+    const toHud = (projectedPoint: ReturnType<World['project']>) => ({
+      x: projectedPoint.x / view.getScaleX() - this.hud.w / 2,
+      y: projectedPoint.y / view.getScaleY() - this.hud.h / 2,
+      visible:
+        [projectedPoint.x, projectedPoint.y, projectedPoint.z].every(Number.isFinite) &&
+        projectedPoint.z >= 0 &&
+        projectedPoint.z <= 1,
+    });
+    const project = (point: Point, y = 0) => toHud(world.project(point, y));
+    const projectContact = (unit: Simulation['units'][number]) =>
+      unit.friendly ? project(unit, 0.8) : toHud(world.projectUnitCenter(unit));
     const onScreen = (point: ReturnType<typeof project>, padding = 0) =>
       point.visible &&
       Math.abs(point.x) <= this.hud.w / 2 - padding &&
@@ -331,7 +331,7 @@ export class WorldOverlayView {
     priorityLabel.node.active = false;
     const threat = simulation.priorityThreat;
     if (threat && this.hud.autoPriority) {
-      const point = project(threat.unit, 1.5);
+      const point = projectContact(threat.unit);
       if (point.visible) {
         let x = Math.max(
           -this.hud.w / 2 + this.hud.safe.left + 48,
@@ -432,7 +432,7 @@ export class WorldOverlayView {
     let hoverDistance = Infinity;
     for (const u of simulation.units) {
       if (u.hp <= 0) continue;
-      const projectedPoint = project(u, 0.8);
+      const projectedPoint = projectContact(u);
       // Behind-camera projections mirror direction; those contacts remain on the north-up minimap.
       if (!projectedPoint.visible) continue;
       if (!onScreen(projectedPoint, 6)) continue;
@@ -759,7 +759,7 @@ export class WorldOverlayView {
           continue;
         if (
           simulation.units.some((u) => {
-            const projectedPoint = project(u, 0.8);
+            const projectedPoint = projectContact(u);
             return (
               u.hp > 0 &&
               projectedPoint.visible &&

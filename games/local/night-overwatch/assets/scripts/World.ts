@@ -1059,7 +1059,7 @@ export class World {
         for (const x of [-1, 1]) addBox(g, x * w * 0.32, 0.9, d * 0.47, 0.25, 0.18, 0.08, 1.1);
         addBox(g, 0, 0.6, d * 0.5, w * 0.96, 0.16, 0.15, 0.45);
       }
-      this.meshes.set(kind, this.mesh(g));
+      this.meshes.set(kind, this.mesh(g, true));
       const wreck = geometry();
       if(kind==='infantry'){
         addBox(wreck,0,.12,0,.65,.22,1.3,.45);addShape(wreck,cylinder,0,.14,.82,.48,.24,.48,.55);
@@ -1130,9 +1130,9 @@ export class World {
     this.setView(this.viewMode);
     this.updateCamera();
   }
-  private mesh(g: Geometry) {
+  private mesh(g: Geometry, calculateBounds = false) {
     if (g.positions.length / 3 > 65535) throw Error('World batch exceeds 16-bit vertex budget');
-    const mesh = utils.createMesh(g);
+    const mesh = utils.createMesh(g, undefined, { calculateBounds });
     this.ownedMeshes.add(mesh);
     this.triangleCount += g.indices.length / 3;
     return mesh;
@@ -1265,6 +1265,13 @@ export class World {
     const point = this.projectAir({ x: p.x, y: this.surfaceHeight(p.x, p.z) + y, z: p.z });
     if (stable) this.cameraPose(true);
     return point;
+  }
+  projectUnitCenter(unit: PresentedSimulation['units'][number]) {
+    const node = this.views.get(unit.id)?.node;
+    const bounds = this.meshes.get(unit.kind)?.struct;
+    if (!node || !bounds?.minPosition || !bounds.maxPosition) return this.project(unit);
+    const center = Vec3.lerp(new Vec3(), bounds.minPosition, bounds.maxPosition, 0.5);
+    return this.projectAir(Vec3.transformMat4(center, center, node.worldMatrix));
   }
   /** Forward camera distance in world units; Effects can clip actual ballistic segments at camera.near. */
   cameraDepth(p: Position) {

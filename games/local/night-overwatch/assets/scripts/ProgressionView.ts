@@ -690,7 +690,6 @@ export class ProgressionView {
     }));
     if(fresh){
       const cards=this.n.children.find(n=>n.name==='Scroll:qm:gifts');if(cards){const fade=cards.addComponent(UIOpacity);fade.opacity=0;tween(fade).delay(.08).to(.3,{opacity:255}).start();}
-      const flash=this.h.node('GiftRevealFlash',overlay),ink=flash.addComponent(Graphics),fade=flash.addComponent(UIOpacity);this.h.rect(ink,0,0,this.w,this.height,'#fff1c8');fade.opacity=120;tween(fade).to(.3,{opacity:0}).start();
     }
     const bw=(rw-12)/2,done=gift.opened;
     this.button(done?'qm:giftWarehouse':'qm:giftClose',this.t(done?'查看仓库':'稍后打开',done?'INVENTORY':'LATER'),rx,b-48,bw,44,'panel',q.busy);
@@ -728,7 +727,13 @@ export class ProgressionView {
     if(since<.35){
       fan.node.setScale(.9,.9,1);tween(fan.node).to(.3,{scale:new Vec3(1.3,1.3,1)},{easing:'quadOut'}).start();
       actor.setScale(calm ? .96 : .8,calm?1.08:1.3,1);actor.setPosition(0,cy+boxH*(calm ? .035 : .07));tween(actor).to(.13,{scale:new Vec3(calm?1.08:1.22,calm?1.04:1.1,1)},{easing:'quadOut'}).to(.3,{scale:one,position:new Vec3(0,cy,0)},{easing:'backOut'}).start();
-      if(!calm){const flash=this.h.node('CrateFlash',overlay),ink=flash.addComponent(Graphics),fade=flash.addComponent(UIOpacity);flash.setSiblingIndex(actor.getSiblingIndex());this.h.rect(ink,0,0,this.w,this.height,'#fff3d2');fade.opacity=215;tween(fade).to(.42,{opacity:0},{easing:'quadOut'}).start();}
+      if(!calm){
+        const flash=this.h.node('CrateFlash',overlay),ink=flash.addComponent(Graphics),light={alpha:112};
+        flash.setSiblingIndex(overlay.getChildByName('GiftShade')!.getSiblingIndex()+1);
+        // Graphics needs vertex alpha for the flash to fade over the background.
+        const paint=()=>{ink.clear();this.h.rect(ink,0,0,this.w,this.height,'#fff3d2'+Math.round(light.alpha).toString(16).padStart(2,'0'));};
+        paint();this.loop(flash,light).to(.3,{alpha:0},{easing:'quadOut',onUpdate:paint}).start();
+      }
       for(const [delay,width]of (calm?[[0,3]]:[[0,7],[.12,3]])){const ring=part('CrateRing');ring.ink.strokeColor=color(tone);ring.ink.lineWidth=width;ring.ink.circle(0,0,boxW*.3);ring.ink.stroke();ring.node.setScale(.35,.35,1);const scale=calm?1.8:2.6;tween(ring.node).delay(delay).to(.6,{scale:new Vec3(scale,scale,1)},{easing:'quadOut'}).start();tween(ring.fade).delay(delay).to(.6,{opacity:0}).start();}
       for(const {a,far,size} of sparks){
         const spark=part('CrateSpark');spark.ink.fillColor=color(size>5?'#fff6dc':tone);spark.ink.moveTo(0,size*1.8);spark.ink.lineTo(size*.55,0);spark.ink.lineTo(0,-size*1.8);spark.ink.lineTo(-size*.55,0);spark.ink.close();spark.ink.fill();

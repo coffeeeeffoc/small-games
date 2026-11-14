@@ -462,6 +462,11 @@ test('management stays on its sole origin with finite APIs and no SPA API fallba
   );
   const nginx = renderIngressNginx(ingress);
   assert.match(nginx, /proxy_set_header X-Management-Entry admin;/);
+  const callback = /location = \/api\/auth\/github\/callback \{([^]*?)\n    \}/.exec(nginx)?.[1];
+  const otherAdmin = /location \/api\/ \{([^]*?)\n    \}/.exec(nginx)?.[1];
+  assert.match(callback, /proxy_read_timeout 90s;/);
+  assert.match(otherAdmin, /proxy_read_timeout 25s;/);
+  assert.equal(callback.replace('90s;', '25s;'), otherAdmin);
   assert.match(nginx, /resolver_timeout 2s;/);
   assert.match(nginx, /error_log \/dev\/null crit;/);
   assert.match(nginx, /location = \/api \{ return 404 '\{"error":"NOT_FOUND"\}'; \}/);

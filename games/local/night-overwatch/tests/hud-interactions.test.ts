@@ -121,7 +121,7 @@ const heights: number[] = [];
 const world = { zoom: 1, thermal: false, viewMode: 'night', project(p: data.Point, y = 0) {
   heights.push(y);
   return { x: frame.width / 2 + p.x, y: frame.height / 2 - p.z + y * 10, z: 0.5 };
-} };
+}, projectUnitCenter(p: data.Point) { return this.project(p, 0.22); } };
 const overlaps = (a: any, b: any) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
 test('equipped supports dock after normal weapons and every control reaches each safe edge independently', () => {
@@ -229,7 +229,7 @@ test('zoomed enemy diamonds stay visible across transparent controls and footer 
  hud.placeControl('weapon0',{x:.4,y:.5});const button=hud.buttons.find((b:any)=>b.id==='weapon0');
  const points=[{x:button.x-12,y:button.y+22},{x:button.x+button.w/2,y:button.y+22},{x:button.x+button.w+12,y:button.y+22},{x:550,y:360},{x:810,y:310}];
  for(const p of points){
-  const projected={...world,project:()=>({x:p.x,y:390-p.y,z:.5})};hud.marks.clear();hud.drawWorld(sim,projected);
+   const projected={...world,projectUnitCenter:()=>({x:p.x,y:390-p.y,z:.5})};hud.marks.clear();hud.drawWorld(sim,projected);
   const x=p.x-422,y=195-p.y,r=enemy.kind==='heavy'?7:5,path=[['moveTo',x,y+r],['lineTo',x+r,y],['lineTo',x,y-r],['lineTo',x-r,y],['close'],['stroke']];
   assert(hud.marks.calls.some((_:any,i:number)=>path.every(([op,...args],j)=>{const c=hud.marks.calls[i+j];return c?.op===op&&c.color==='#ff525b'&&args.every((v,k)=>Math.abs(c.args[k]-Number(v))<.001);})),JSON.stringify(p));
  }
@@ -714,7 +714,7 @@ test('HUD: global actions hide behind panels, with safe modal layout, focus mark
       assert(calls.some((c: any) => c.op === 'lineTo' && c.args[0] === 32 && c.args[1] === 0 && c.width === 3), 'reticle spans 64 pixels');
     }
   }
-  assert(heights.includes(0.8) && !heights.includes(2.3), 'marker projection follows scaled vehicle height');
+  assert(heights.includes(0.22), 'hostile markers use the projected model center');
   focus.hp = focus.maxHp * 0.2;
   hud.update(sim, world);
   assert.match(active()[0].string, /重创/);
@@ -1318,7 +1318,7 @@ test('priority touch target never hides nearby ordinary enemy diamonds',()=>{
  const hud=new HUD(new SceneNode()),sim=new Simulation();sim.start();
  const enemy=sim.units.find(u=>!u.friendly)!;Object.assign(enemy,{x:sim.rescue.x+5,z:sim.rescue.z,born:-30,attack:3});
  const neighbour={...enemy,id:9876,kind:'light' as const,x:enemy.x+12,attack:20};sim.units.push(neighbour);hud.update(sim,world);
- const point=world.project(neighbour,.8),x=point.x-frame.width/2,y=point.y-frame.height/2,r=neighbour.kind==='heavy'?7:5;
+ const point=world.projectUnitCenter(neighbour),x=point.x-frame.width/2,y=point.y-frame.height/2,r=neighbour.kind==='heavy'?7:5;
  assert.equal(hud.hit(point.x,frame.height-point.y)?.id,'priority');
  const path=[['moveTo',x,y+r],['lineTo',x+r,y],['lineTo',x,y-r],['lineTo',x-r,y],['close'],['stroke']];
  assert(hud.marks.calls.some((_:any,i:number)=>path.every(([op,...args],j)=>{
@@ -1338,7 +1338,7 @@ test('infantry use small solid team-color dots while vehicles keep their markers
   sim.setAim({ x: 125, z: 50 });
   hud.update(sim, world);
   const calls = hud.marks.calls;
-  const projected = world.project(infantry, 0.8);
+  const projected = world.projectUnitCenter(infantry);
   const x = projected.x - frame.width / 2, y = projected.y - frame.height / 2;
   assert(calls.some((call: any, i: number) => call.op === 'circle' &&
     call.args[0] === x && call.args[1] === y && call.args[2] === 1.5 &&
@@ -1346,7 +1346,7 @@ test('infantry use small solid team-color dots while vehicles keep their markers
   assert(!calls.some((call: any) => call.op === 'moveTo' && call.args[0] === x && call.args[1] === y + 5),
     'infantry do not retain the vehicle diamond');
   for (const vehicle of vehicles) {
-    const point = world.project(vehicle, 0.8);
+    const point = world.projectUnitCenter(vehicle);
     const radius = vehicle.kind === 'heavy' ? 7 : 5;
     assert(calls.some((call: any) => call.op === 'moveTo' && call.args[0] === point.x - frame.width / 2 &&
       call.args[1] === point.y - frame.height / 2 + radius && call.color === '#ff525b'),

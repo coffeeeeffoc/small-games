@@ -6,6 +6,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 it('exchanges only server-side code/PKCE and returns only verified paginated emails', async () => {
+  const timeout = vi.spyOn(AbortSignal, 'timeout');
   const calls: { url: string; init: RequestInit }[] = [];
   vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
     calls.push({ url, init });
@@ -33,6 +34,7 @@ it('exchanges only server-side code/PKCE and returns only verified paginated ema
   );
   expect(identity).toEqual({ githubId: '123', login: 'creator', emails: ['1521152077@qq.com'] });
   expect(calls).toHaveLength(4);
+  expect(timeout.mock.calls).toEqual([[60_000], [10_000], [10_000], [10_000]]);
   const body = calls[0]!.init.body as URLSearchParams;
   expect(body.get('redirect_uri')).toBe(callback);
   expect(body.get('code_verifier')).toBe('verifier');

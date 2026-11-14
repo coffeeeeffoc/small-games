@@ -44,8 +44,9 @@ try{
       const shot=name=>page.screenshot({path:fileURLToPath(new URL(`${prefix}-${name}.png`,out))});
       const visual=()=>page.evaluate(async()=>{
         const {director,UIOpacity}=await System.import('cc'),names=[];let angle,opacity;
-        const walk=n=>{if(!n.activeInHierarchy)return;names.push(n.name);if(n.name==='CrateActor')angle=n.angle;if(n.name==='CrateGlow')opacity=n.getComponent(UIOpacity)?.opacity;n.children.forEach(walk);};
-        walk(director.getScene());return {names,angle,opacity};
+        let backgroundFlash;
+        const walk=n=>{if(!n.activeInHierarchy)return;names.push(n.name);if(n.name==='CrateActor')angle=n.angle;if(n.name==='CrateGlow')opacity=n.getComponent(UIOpacity)?.opacity;if(n.name==='CrateFlash')backgroundFlash=n.getSiblingIndex()<n.parent.getChildByName('CrateActor').getSiblingIndex();n.children.forEach(walk);};
+        walk(director.getScene());return {names,angle,opacity,backgroundFlash};
       });
       for(const entry of ['single','quantity','gift']){
         if(entry==='gift'){await click('qm:inbox');await click('qm:claimMail');await click('qm:giftOpen');}
@@ -64,12 +65,14 @@ try{
         if(reduced){assert(motion.every(s=>Math.abs(s.angle)<3.1),'reduced mode limits shaking');assert(new Set(motion.map(s=>s.opacity)).size>1,'reduced mode animates the glow');}
         await page.waitForFunction(()=>__night.snapshot().progression.gift?.illuminated,null,{timeout:4000});await settleVisuals(page);
         const opened=await visual();assert(opened.names.includes('Illustration:openCrate'));assert(!opened.names.includes('Scroll:qm:gifts'));
-        assert.equal(opened.names.includes('CrateFlash'),!reduced,'reduced mode avoids the full-screen flash');
+        assert.equal(opened.backgroundFlash,reduced?undefined:true,'only full effects flash behind the visible crate');
         assert.equal(opened.names.filter(name=>name==='CrateSpark').length,reduced?8:22,'both modes show opening particles');
         await shot(`${entry}-open`);
         await page.waitForFunction(()=>__night.snapshot().progression.gift?.revealed,null,{timeout:4000});await settleVisuals(page);
         const result=await snapshot(page);assert(result.progression.gift.revealed-started>=2200);
-        assert(result.buttons.some(b=>b.id==='qm:giftClose'&&!b.disabled));assert((await visual()).names.includes('Scroll:qm:gifts'));
+        const rewards=await visual();
+        assert(result.buttons.some(b=>b.id==='qm:giftClose'&&!b.disabled));assert(rewards.names.includes('Scroll:qm:gifts'));
+        assert(!rewards.names.includes('GiftRevealFlash'),'reward reveal never paints over the crate');
         await shot(`${entry}-rewards`);checks.push({prefix,entry,duration:result.progression.gift.revealed-started});
         await click('qm:giftClose');await click('qm:back');
       }
