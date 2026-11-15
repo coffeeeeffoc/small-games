@@ -11,9 +11,9 @@ export type NightStorage = Pick<
 
 /** All Night business callers share this instance; only engine/dev-mode use the browser facade. */
 export function getNightStorage(): NightStorage {
-  if (!sys.isBrowser) return sys.localStorage;
   const storage = (globalThis as typeof globalThis & { __nightStorage?: NightStorage })
     .__nightStorage;
+  if (!sys.isBrowser) return storage || sys.localStorage;
   if (!storage)
     throw Object.assign(new Error('Night storage is not initialized'), {
       code: 'STORAGE_UNAVAILABLE',

@@ -2,6 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Simulation } from '../assets/scripts/core/Simulation.ts';
 import { MISSIONS, TRAINING, readMissionSearch } from '../assets/scripts/core/MissionCatalog.ts';
+
+test('native startup needs no browser URL parser for an empty launch query', () => {
+  const previous = globalThis.URLSearchParams;
+  try {
+    globalThis.URLSearchParams = undefined as any;
+    assert.equal(readMissionSearch(''), undefined);
+  } finally { globalThis.URLSearchParams = previous; }
+});
 import { WEAPONS, UNITS, distance, patrolPoint } from '../assets/scripts/core/Data.ts';
 import { bestTrainingRecord, readTrainingRecord, trainingNextGoal } from '../assets/scripts/core/TrainingRecords.ts';
 const tick = (sim: Simulation, seconds: number) => {

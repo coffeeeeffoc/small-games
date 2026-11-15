@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 test('Night native build entry generates distinct official channel configurations without requiring Creator', async () => {
   const root = fileURLToPath(new URL('../', import.meta.url));
   for (const [target, platform, appId] of [
-    ['wechatgame', 'wechatgame', 'wxNightTest'],
+    ['wechatgame', 'wechatgame', 'wx0123456789abcdef'],
     ['bilibili', 'wechatgame', 'biligameNightTest'],
     ['douyin', 'bytedance-mini-game', 'ttNightTest'],
   ]) {

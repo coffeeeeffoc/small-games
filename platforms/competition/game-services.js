@@ -275,13 +275,15 @@ export function createGameServices({ gameId, ruleVersion, storage: suppliedStora
     nightChat: ({ cursor, waitMs = 0, direct = false, peer, before } = {}, expectedPlayerId) =>
       nightChatRequest(
         '?' +
-          new URLSearchParams({
+          Object.entries({
             ...(cursor ? { cursor } : {}),
             waitMs: String(waitMs),
             ...(direct ? { direct: '1' } : {}),
             ...(peer ? { peer } : {}),
             ...(before ? { before } : {}),
-          }),
+          })
+            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+            .join('&'),
         undefined,
         expectedPlayerId,
       ),

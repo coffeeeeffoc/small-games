@@ -11,8 +11,30 @@ import { nightCompilerVersion } from '../../../../scripts/night-build-version.mj
 const root = fileURLToPath(new URL('../', import.meta.url));
 const target = process.argv[2] || 'web-mobile';
 if (['wechatgame', 'bilibili', 'douyin'].includes(target)) {
+  if (target === 'wechatgame' && !['--wechat-staged', '--wechat-local', '--config-only', '--check-output'].some((flag) => process.argv.includes(flag))) {
+    const { buildPlatform } = await import('../platforms/build.mjs');
+    const { clearOutput } = await import('../../carding-car/scripts/clear-output.mjs');
+    const result = await buildPlatform('wechat', { mode: process.argv.includes('--release') ? 'release' : 'preview' });
+    const directory = path.join(root, 'build/wechatgame');
+    for (const [source, destination] of [[result.directory, directory], [result.remoteDirectory, directory + '-remote']]) {
+      await clearOutput(destination);
+      await cp(source, destination, { recursive: true });
+    }
+    for (const file of ['build-wechatgame.json', 'build-wechatgame.log']) {
+      await cp(path.resolve(result.directory, '../../reports', file), path.join(root, 'reports', file));
+    }
+    const { buildNative } = await import('./build-native.mjs');
+    const manifest = await buildNative(target, { checkOutput: true, production: process.argv.includes('--release') });
+    const report = { version: manifest.version.version, sourceHash: manifest.canonicalSourceHash,
+      mainBytes: (await stat(path.join(directory, 'wechat-manifest.json'))).size +
+        (await stat(path.join(directory, 'platform-manifest.json'))).size + manifest.files.reduce((sum, file) => sum + file.bytes, 0),
+      remoteBytes: manifest.resources.reduce((sum, file) => sum + file.bytes, 0), remoteDirectory: directory + '-remote' };
+    await writeFile(path.join(root, 'reports/wechatgame-size.json'), JSON.stringify(report, null, 2));
+    console.log(`Built WeChat ${JSON.stringify(report)}; developer tools and devices unverified.`);
+    process.exit(0);
+  }
   const { buildNative } = await import('./build-native.mjs');
-  await buildNative(target, { configOnly: process.argv.includes('--config-only'), checkOutput: process.argv.includes('--check-output') });
+  await buildNative(target, { configOnly: process.argv.includes('--config-only'), checkOutput: process.argv.includes('--check-output'), production: process.argv.includes('--release'), wechatRuntime: !process.argv.includes('--wechat-local') });
   process.exit(0);
 }
 if (!['web-mobile', 'web-desktop'].includes(target))

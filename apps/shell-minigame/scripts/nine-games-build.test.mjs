@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -190,6 +190,41 @@ test('integrity detects altered, missing and additional files instead of checkin
     await assert.rejects(verifyArtifact(directory), /integrity/);
   } finally {
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('remote Cocos delivery checks sibling resources and includes all manifests in the main budget', async () => {
+  const temp = await mkdtemp(path.join(tmpdir(), 'nine-remote-integrity-'));
+  const directory = path.join(temp, 'night-overwatch');
+  try {
+    await mkdir(directory);
+    await mkdir(directory + '-remote');
+    await writeFile(path.join(directory, 'game.js'), 'entry');
+    await writeFile(path.join(directory, 'game.json'), '{}');
+    await writeFile(path.join(directory + '-remote', 'resource.png'), 'pixels');
+    const resources = {
+      url: 'https://cdn.example.com/night/',
+      files: await inventory(directory + '-remote'),
+    };
+    await writeFile(
+      path.join(directory, 'artifact-manifest.json'),
+      JSON.stringify({ resources, files: await inventory(directory) }),
+    );
+    await verifyArtifact(directory);
+    await writeFile(path.join(directory + '-remote', 'resource.png'), 'wrong');
+    await assert.rejects(verifyArtifact(directory), /Remote resource integrity/);
+    await writeFile(path.join(directory + '-remote', 'resource.png'), 'pixels');
+    await writeFile(
+      path.join(directory, 'artifact-manifest.json'),
+      JSON.stringify({
+        resources,
+        files: await inventory(directory),
+        padding: 'x'.repeat(4 * 1024 * 1024),
+      }),
+    );
+    await assert.rejects(verifyArtifact(directory), /main package exceeds/);
+  } finally {
+    await rm(temp, { recursive: true, force: true });
   }
 });
 

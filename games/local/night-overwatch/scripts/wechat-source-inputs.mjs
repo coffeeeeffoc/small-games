@@ -1,0 +1,15 @@
+export const wechatSourceInputs = [
+  'pnpm-lock.yaml',
+  'apps/shell-minigame/scripts/cocos-platform.mjs',
+  'apps/shell-minigame/scripts/night-native-project.mjs',
+  'games/local/night-overwatch/platforms/build.mjs',
+  'packages/native-game-shell/src/creator-ads.ts',
+  'packages/native-game-shell/src/ads.ts',
+  'packages/native-game-shell/src/douyin-ads.ts',
+  'packages/ad-runtime/src/index.ts',
+  'packages/ad-runtime/src/runtime.ts',
+  'packages/ad-runtime/src/adapters.ts',
+  'packages/ad-config/src/index.ts',
+  'packages/ad-config/src/policy.ts',
+  'packages/ad-config/src/managed.ts',
+];

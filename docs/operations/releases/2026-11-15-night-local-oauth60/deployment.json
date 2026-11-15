@@ -1,0 +1,92 @@
+{
+  "deployedAt": "2026-11-15T03:38:24.336Z",
+  "release": "night-20261115-admin-oauth60",
+  "scope": "local Management only",
+  "sourceCommit": "1216eb49442fd6f0b59669ff19fec2395ef6185e",
+  "sourceHash": "72bdee4eb1b51431b61ea0e5d70834bfd73684d10022a044b08031f44d44b289",
+  "compiledSha256": "926e34f29c751bfba1b7eeba5042f56d00a3cb129fc9282aa4888dc3281aaa84",
+  "previousImage": "small-games-bundle:night-20261113-duel12",
+  "previousImageId": "sha256:fef92f9013e9165f92a86f08c07575387056decd2d46ef88033ac1c3b54bf426",
+  "image": "small-games-bundle:night-20261115-admin-oauth60",
+  "imageId": "sha256:3cbb66890eb94abb3cf2f19e2caa64eee0ebf3f5209bce3116e5daeca644f755",
+  "containerId": "158b7abd167dd98bf99005aa64d6d45c43544888a3cefaef94603106b921fbc0",
+  "environmentPreserved": true,
+  "noDatabaseMigration": true,
+  "onlyCompiledTimeoutChanged": true,
+  "targetedTests": {
+    "files": 2,
+    "passed": 5
+  },
+  "preflight": {
+    "compiledHash": true,
+    "timeouts": [60000, 10000, 10000]
+  },
+  "actual": {
+    "compiledHash": true,
+    "timeouts": [60000, 10000, 10000]
+  },
+  "retained": {
+    "night-overwatch-taptap-test-runtime-1": {
+      "id": "5b0644d8f880098e20c94b3b604f6667d4e22d0245abbdbb030e26439fb757f9",
+      "imageId": "sha256:6df11291f61d7696ed2cf1f759515a34523a43aee0ccb7e1ea552c147683238a",
+      "startedAt": "2026-11-13T17:45:42.990495805Z",
+      "volumes": []
+    },
+    "night-overwatch-taptap-test-postgres-1": {
+      "id": "e605bab6b7adb4408f91b3b999b320c9bece364b3af913ca8b39575c658201bd",
+      "imageId": "sha256:d741b376874687de90374fd34f55c6b2760e8f7bd7e4ae5cd47f50757fc08cf8",
+      "startedAt": "2026-11-11T01:08:08.643453219Z",
+      "volumes": [
+        {
+          "type": "volume",
+          "name": "night-overwatch-taptap-test_postgres-data",
+          "source": "/var/lib/docker/volumes/night-overwatch-taptap-test_postgres-data/_data",
+          "destination": "/var/lib/postgresql/data"
+        }
+      ]
+    },
+    "night-overwatch-taptap-test-gateway-1": {
+      "id": "562511a53bf9074426df7acac742d6951aadf71bea598c499f85af56d55b25df",
+      "imageId": "sha256:dc73b49f5124cf2ee538dfbdfbd121f0b4ccdcb20fea30f3a81bd477c02e2bb5",
+      "startedAt": "2026-11-11T01:08:04.114764003Z",
+      "volumes": [
+        {
+          "type": "bind",
+          "source": "F:\\playground\\playground-ai\\small-games\\.scratch\\night-overwatch-selftest\\night-1794334935236-11ae\\nginx.conf",
+          "destination": "/etc/nginx/conf.d/default.conf"
+        }
+      ]
+    }
+  },
+  "endpoints": [
+    {
+      "url": "http://127.0.0.1:43001/health",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:5182/api/session",
+      "status": 401
+    },
+    {
+      "url": "http://127.0.0.1:5182/api/control/state",
+      "status": 401
+    },
+    {
+      "url": "http://127.0.0.1:43003/health/runtime",
+      "status": 200
+    },
+    {
+      "url": "https://nas.hc2a5c9f0.nyat.app:29549/health/runtime",
+      "status": 200
+    },
+    {
+      "url": "https://nas.hc2a5c9f0.nyat.app:29549/api/control/state",
+      "status": 404
+    }
+  ],
+  "realGithubLoginAfterDeployment": false,
+  "composeOverride": "F:\\playground\\playground-ai\\small-games\\.scratch\\night-overwatch-selftest\\night-20261115-admin-oauth60.compose.json",
+  "existingAuthenticatedBrowserSessionPreserved": true,
+  "browserGameConfigRead": true,
+  "browserRuntimeRulesRead": true
+}

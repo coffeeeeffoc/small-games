@@ -44,6 +44,19 @@ export async function verifyArtifact(directory) {
   const files = await inventory(directory);
   if (JSON.stringify(files) !== JSON.stringify(manifest.files))
     throw new Error('Artifact integrity mismatch or unexpected/missing file.');
+  if (manifest.resources) {
+    if (
+      JSON.stringify(await inventory(directory + '-remote')) !==
+      JSON.stringify(manifest.resources.files)
+    )
+      throw new Error('Remote resource integrity mismatch.');
+    if (
+      files.reduce((sum, file) => sum + file.bytes, 0) +
+        (await stat(path.join(directory, 'artifact-manifest.json'))).size >
+      4 * 1024 * 1024
+    )
+      throw new Error('WeChat complete main package exceeds 4 MiB.');
+  }
   if (
     !files.some((file) => file.path === 'game.js') ||
     !files.some((file) => file.path === 'game.json')
@@ -92,8 +105,10 @@ export async function buildTarget(selected, config, outputRoot) {
   const outDir = path.join(outputRoot, config.platform, selected.id);
   // Never leave an older success looking like the result of a failed current build.
   await rm(outDir, { recursive: true, force: true });
+  await rm(outDir + '-remote', { recursive: true, force: true });
   if (selected.blocked) throw new Error(selected.blocked);
-  let inputs = [];
+  let inputs = [],
+    resources;
   if (selected.cocos) {
     const wrapper = await import(
       pathToFileURL(path.join(root, selected.directory, 'platforms/build.mjs'))
@@ -119,6 +134,10 @@ export async function buildTarget(selected, config, outputRoot) {
     if (typeof source !== 'string')
       throw new Error('Cocos wrapper returned no verified native artifact directory.');
     await cp(source, outDir, { recursive: true });
+    if (result.remoteDirectory) {
+      await cp(result.remoteDirectory, outDir + '-remote', { recursive: true });
+      resources = result.manifest.resources;
+    }
   } else {
     const { build } = await import('vite');
     const descriptorPath = path.join(root, 'platforms', config.platform, 'build.mjs');
@@ -352,6 +371,7 @@ export async function buildTarget(selected, config, outputRoot) {
       }).trim(),
     ),
     sourceFiles,
+    ...(resources ? { resources } : {}),
     files: await inventory(outDir),
     officialToolsVerified: false,
     deviceVerified: false,
@@ -401,6 +421,9 @@ export async function runBuild({
         platform: config.platform,
         status: 'built-integrity-checked',
         directory: path.relative(root, directory),
+        ...((await stat(directory + '-remote').catch(() => null))
+          ? { remoteDirectory: path.relative(root, directory + '-remote') }
+          : {}),
         officialTools: 'unrun',
         device: 'unrun',
       });

@@ -49,6 +49,8 @@ pnpm dev
 
 ## 原生小游戏构建
 
+微信小游戏已接入原生存储、可选联网与激励广告，主包和远程资源分别交付。运行 `build:wechat` 后用 `dev:wechat` 启动本地资源服务；公开配置、HTTPS 资源部署和验收边界见[微信接入说明](docs/wechat.md)。
+
 复制 `release-config.example.json` 为 Git 忽略的 `release-config.local.json`，填写对应公开 AppID；也可使用 `WECHAT_APP_ID`、`BILIBILI_APP_ID`、`DOUYIN_APP_ID`。不在客户端填写 AppSecret。微信游客模式和 B站 `preview-only` 仅供配置预览；抖音实际构建需要该渠道的 `tt` AppID。
 
 ```powershell
@@ -68,7 +70,7 @@ node games/local/night-overwatch/scripts/build.mjs douyin --config-only
 | 抖音 | `bytedance-mini-game` 官方扩展，由 Creator 生成 `tt` 适配 | `build/bytedance-mini-game` |
 | 快手 | 尚缺与 Creator 3.8.8 兼容且已验证的构建扩展 | 尚无已验证制品 |
 
-原生目标使用同一任务规则、渲染、输入和音频，`resources` 在微信/抖音导出为本地素材分包；构建后校验横屏、项目 AppID、主包 4 MiB / 总包 20 MiB，并记录源码哈希。Web 保留原有本地资源加载与启动反馈。构建目标依据为官方 Creator 3.8 [抖音文档](https://github.com/cocos/cocos-docs/blob/master/versions/3.8/zh/editor/publish/publish-bytedance-mini-game.md)和[命令行文档](https://github.com/cocos/cocos-docs/blob/master/versions/3.8/zh/editor/publish/publish-in-command-line.md)。
+原生目标使用同一任务规则、渲染、输入和音频。微信在隔离工程导出远程 `resources`，校验完整主包 4 MiB；其他原生消费者保留本地资源／分包及既有 4 MiB / 20 MiB 门禁，当前素材规模不代表它们也能通过预算。所有构建校验横屏、AppID 和源码哈希。Web 保留本地资源加载。构建目标依据为官方 Creator 3.8 [抖音文档](https://github.com/cocos/cocos-docs/blob/master/versions/3.8/zh/editor/publish/publish-bytedance-mini-game.md)和[命令行文档](https://github.com/cocos/cocos-docs/blob/master/versions/3.8/zh/editor/publish/publish-in-command-line.md)。
 
 2026-10-24 本机已执行 Creator 3.8.8 Web 构建、类型检查与浏览器验收，证据见 publishing/STATUS.md。原生渠道本轮只验证配置和源码边界，未宣称开发者工具或手机真机验收；配置生成通过不等于原生游戏运行通过。快手须取得合适的 Creator 适配并实际验证，不能直接重命名微信制品。
 

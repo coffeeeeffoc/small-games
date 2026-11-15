@@ -118,11 +118,20 @@ test('Night native configurations compile adapted project inputs while canonical
   for (const channel of ['wechat', 'bilibili', 'douyin', 'alipay', 'kuaishou']) {
     const result = await buildPlatform(gameRoot, channel, { configOnly: true, env: {} });
     assert.equal(result.canonicalSourceHash, before);
-    assert.equal(result.sourceHash, before);
+    if (channel === 'wechat') assert.notEqual(result.sourceHash, before);
+    else assert.equal(result.sourceHash, before);
     assert.match(result.adaptationRecipeSha256, /^[a-f0-9]{64}$/);
     const projectRoot = path.dirname(path.dirname(result.configuration));
     assert.notEqual(projectRoot, gameRoot);
     assert.equal(await sourceHash(projectRoot), result.sourceHash);
+    const builder = JSON.parse(
+      await readFile(path.join(projectRoot, 'settings/v2/packages/builder.json'), 'utf8'),
+    );
+    assert.equal(
+      builder.bundleConfig.custom['night-art'].configs.miniGame.overwriteSettings.wechatgame
+        .isRemote,
+      channel === 'wechat',
+    );
     assert.doesNotMatch(
       await readFile(path.join(projectRoot, 'assets/scripts/HUD.ts'), 'utf8'),
       /fullscreen/i,

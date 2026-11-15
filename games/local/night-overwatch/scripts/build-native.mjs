@@ -7,15 +7,19 @@ import { clearOutput } from '../../carding-car/scripts/clear-output.mjs';
 import { editor, runCreator } from '../../carding-car/scripts/toolchain.mjs';
 import { sourceHash } from './artifact.mjs';
 import { brandCocos } from '../../carding-car/scripts/cocos-branding.mjs';
+import { nightCompilerVersion } from '../../../../scripts/night-build-version.mjs';
+import { wechatConfiguration, wechatCreatorOptions, finishWechatBuild, verifyWechatBuild } from './wechat-build.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-export async function buildNative(target, { configOnly = false, checkOutput = false } = {}) {
+export async function buildNative(target, { configOnly = false, checkOutput = false, production = false, wechatRuntime = true } = {}) {
   const localPath = path.join(root, 'release-config.local.json');
   const release = existsSync(localPath) ? JSON.parse(await readFile(localPath, 'utf8')) : {};
   const descriptor = nativeTarget(target, release);
+  const wechat = target === 'wechatgame' && wechatRuntime ? wechatConfiguration(release, process.env, production) : undefined;
   if (checkOutput) {
     const directory = path.join(root, 'build', target === 'bilibili' ? 'biligame' : descriptor.outputName);
-    const checked = await verifyNativeOutput(directory, descriptor, await sourceHash());
+    const checked = wechat ? await verifyWechatBuild(directory, wechat, await sourceHash()) :
+      await verifyNativeOutput(directory, descriptor, await sourceHash());
     console.log(`${target} Creator output matches current source and package budget; platform authorization and devices unverified.`);
     return checked;
   }
@@ -26,6 +30,7 @@ export async function buildNative(target, { configOnly = false, checkOutput = fa
     startScene: '47889f0b-3be6-4dbd-a05d-b4381a0277e9',
     scenes: [{ url: 'db://assets/scenes/main.scene', uuid: '47889f0b-3be6-4dbd-a05d-b4381a0277e9' }],
     packages: nativePackages(target, release),
+    ...(wechat ? wechatCreatorOptions(wechat) : {}),
   };
   const reports = path.join(root, 'reports');
   await mkdir(reports, { recursive: true });
@@ -36,6 +41,8 @@ export async function buildNative(target, { configOnly = false, checkOutput = fa
     return config;
   }
   if (!existsSync(editor)) throw new Error('Set COCOS_CREATOR to the Cocos Creator 3.8.8 executable before native builds.');
+  const version = wechat ? await nightCompilerVersion(root) : undefined;
+  const source = await sourceHash();
   if (target === 'douyin' && !descriptor.configured)
     throw new Error('Set DOUYIN_APP_ID or release-config.local.json douyinAppId before building; use --config-only to inspect an unconfigured target.');
   if (target === 'bilibili') {
@@ -76,10 +83,12 @@ export async function buildNative(target, { configOnly = false, checkOutput = fa
   }
   await brandCocos(directory, new URL('./startup-logo.png', import.meta.url));
   await writeFile(path.join(directory, 'build-info.json'), JSON.stringify({
-    creator: '3.8.8', target, sourceHash: await sourceHash(),
+    creator: '3.8.8', target, sourceHash: source,
   }));
-  const checked = await verifyNativeOutput(directory, descriptor);
+  if (await sourceHash() !== source) throw new Error('Night source changed during compilation; rebuild.');
+  const checked = wechat ? await finishWechatBuild(directory, wechat, version, source) :
+    await verifyNativeOutput(directory, descriptor);
   await writeFile(path.join(reports, `${target}-size.json`), JSON.stringify(checked, null, 2));
-  console.log(`Built ${target}: main=${checked.mainBytes}, total=${checked.totalBytes} bytes; ${descriptor.configured ? 'platform authorization and real devices unverified' : 'preview-only; valid platform AppID required for release'}.`);
+  console.log(`Built ${target}: ${JSON.stringify(checked)}; platform authorization and real devices unverified.`);
   return config;
 }

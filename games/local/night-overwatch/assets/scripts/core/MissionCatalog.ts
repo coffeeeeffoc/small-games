@@ -95,6 +95,7 @@ export function nextMission(id: MissionId): MissionId {
   return MISSIONS[Math.min(MISSIONS.length - 1, Math.max(0, index + 1))].id;
 }
 export function readMissionSearch(search: string): MissionId | undefined {
+  if (!search) return undefined;
   const values = new URLSearchParams(search).getAll('mission');
   return values.length === 1 && [...MISSIONS, TRAINING].some((mission) => mission.id === values[0])
     ? values[0] as MissionId : undefined;

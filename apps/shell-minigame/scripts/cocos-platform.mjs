@@ -6,6 +6,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { prepareNativeProject } from './night-native-project.mjs';
 import { verifyAlipayPackageBudget } from './alipay-package-budget.mjs';
 const editor =
@@ -132,7 +133,12 @@ export async function prepareNativeInputs(gameRoot, channel) {
 
 export async function prepareKuaishouSource(gameRoot, options = {}) {
   const env = { ...process.env, ...(options.env || {}), WECHAT_APP_ID: '' };
-  const source = await buildPlatform(gameRoot, 'wechat', { ...options, mode: 'preview', env });
+  const source = await buildPlatform(gameRoot, 'wechat', {
+    ...options,
+    mode: 'preview',
+    env,
+    legacyWechat: true,
+  });
   const reports = path.join(gameRoot, 'reports');
   const plan = {
     game: path.basename(gameRoot),
@@ -176,9 +182,38 @@ export async function prepareKuaishouSource(gameRoot, options = {}) {
 }
 
 export async function buildPlatform(gameRoot, channel, options = {}) {
-  const info = descriptor(channel, options); // release credentials fail before engine checks
   const configOnly = options.configOnly === true;
   const environment = { ...process.env, ...(options.env || {}) };
+  let wechatConfig, wechatBuild;
+  if (
+    path.basename(gameRoot) === 'night-overwatch' &&
+    channel === 'wechat' &&
+    !options.legacyWechat
+  ) {
+    wechatBuild = await import(pathToFileURL(path.join(gameRoot, 'scripts/wechat-build.mjs')));
+    const local = await readFile(path.join(gameRoot, 'release-config.local.json'), 'utf8').catch(
+      (error) => {
+        if (error.code === 'ENOENT') return '{}';
+        throw error;
+      },
+    );
+    wechatConfig = wechatBuild.wechatConfiguration(
+      JSON.parse(local),
+      environment,
+      options.mode === 'release',
+    );
+    Object.assign(environment, {
+      WECHAT_APP_ID: wechatConfig.appId === 'touristappid' ? '' : wechatConfig.appId,
+      NIGHT_WECHAT_RESOURCE_URL: wechatConfig.resourceUrl,
+      NIGHT_WECHAT_API_URL: wechatConfig.apiUrl,
+      NIGHT_WECHAT_AD_UNIT_ID: wechatConfig.adUnitId,
+      NIGHT_WECHAT_ZOD_ENTRY: createRequire(
+        path.resolve(gameRoot, '../../../packages/ad-config/package.json'),
+      ).resolve('zod'),
+      NIGHT_WECHAT_VITE_ENTRY: import.meta.resolve('vite'),
+    });
+  }
+  const info = descriptor(channel, { ...options, env: environment });
   if (
     channel === 'kuaishou' &&
     !configOnly &&
@@ -192,7 +227,19 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
   await mkdir(reports, { recursive: true });
   if (channel === 'kuaishou' && (configOnly || options.prepareSource))
     return { ...info, ...(await prepareKuaishouSource(gameRoot, { ...options, configOnly })) };
-  const provenance = await prepareNativeProject(gameRoot);
+  if (wechatConfig && !configOnly) {
+    const { nightCompilerVersion } = await import('../../../scripts/night-build-version.mjs');
+    const version = await nightCompilerVersion(gameRoot, environment);
+    environment.NIGHT_BUILD_VERSION = version.version;
+    environment.NIGHT_BACKEND_VERSION = version.backendVersion;
+  }
+  const provenance = await prepareNativeProject(gameRoot, {
+    stageBase:
+      environment.NIGHT_NATIVE_STAGE_DIR ||
+      (wechatConfig ? path.join(os.tmpdir(), 'night-wechat-cocos') : undefined),
+    wechatRemoteResources: Boolean(wechatConfig),
+  });
+  if (wechatConfig) environment.NIGHT_WECHAT_CANONICAL_SOURCE_HASH = provenance.canonicalSourceHash;
   const projectRoot = provenance.projectRoot;
   const buildReports = path.join(projectRoot, 'reports');
   await mkdir(buildReports, { recursive: true });
@@ -274,12 +321,18 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
       throw Error('Set COCOS_CREATOR to Creator 3.8.8; no native artifact was built.');
     const result = spawnSync(
       process.execPath,
-      ['scripts/build.mjs', info.target, ...(configOnly ? ['--config-only'] : [])],
+      [
+        'scripts/build.mjs',
+        info.target,
+        ...(configOnly ? ['--config-only'] : []),
+        ...(wechatConfig ? ['--wechat-staged'] : options.legacyWechat ? ['--wechat-local'] : []),
+        ...(info.mode === 'release' ? ['--release'] : []),
+      ],
       {
         cwd: projectRoot,
         encoding: 'utf8',
         maxBuffer: 64 * 1024 * 1024,
-        env: { ...process.env, ...(options.env || {}) },
+        env: environment,
       },
     );
     if (result.status !== 0)
@@ -320,6 +373,9 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
       throw Error('Native artifact source provenance mismatch.');
   }
   const outputFiles = await files(directory);
+  const wechatManifest = wechatConfig
+    ? await wechatBuild.verifyWechatBuild(directory, wechatConfig, provenance.sourceHash)
+    : undefined;
   const manifest = {
     schema: 1,
     game: path.basename(gameRoot),
@@ -348,16 +404,21 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
     },
     capabilities: {
       login: 'unconfigured',
-      advertising: 'unconfigured',
+      advertising: wechatManifest?.ads.adsEnabled ? 'requires-host-verification' : 'unconfigured',
       sharing: channel === 'alipay' ? 'unavailable' : 'requires-host-verification',
     },
+    ...(wechatManifest
+      ? { resources: { url: wechatManifest.resourceUrl, files: wechatManifest.resources } }
+      : {}),
     files: outputFiles,
   };
   await writeFile(
     path.join(directory, 'platform-manifest.json'),
     JSON.stringify(manifest, null, 2),
   );
-  await verifyManifest(directory);
+  await verifyManifest(directory, { maxBytes: wechatConfig ? 4 * 1024 * 1024 : Infinity });
+  if (wechatConfig)
+    await wechatBuild.verifyWechatBuild(directory, wechatConfig, provenance.sourceHash);
   const packageBudget =
     channel === 'alipay' ? await verifyAlipayPackageBudget(directory) : undefined;
   if (convertedEvidence) {
@@ -389,7 +450,14 @@ export async function buildPlatform(gameRoot, channel, options = {}) {
     });
   }
   await verifySourceIdentity();
-  return { ...info, status: 'built-unverified-on-host', directory, manifest, packageBudget };
+  return {
+    ...info,
+    status: 'built-unverified-on-host',
+    directory,
+    manifest,
+    packageBudget,
+    ...(wechatManifest ? { remoteDirectory: directory + '-remote' } : {}),
+  };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

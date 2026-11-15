@@ -3,10 +3,11 @@ import { readFile } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const desktop = process.argv.includes('--desktop');
+const wechat = process.argv.includes('--wechat');
 const root = fileURLToPath(
-  new URL(desktop ? '../build/web-desktop/' : '../dist/', import.meta.url),
+  new URL(wechat ? '../build/wechatgame-remote/' : desktop ? '../build/web-desktop/' : '../dist/', import.meta.url),
 );
-const port = Number(process.env.PORT || (desktop ? 4319 : 4318));
+const port = Number(process.env.PORT || (wechat ? 4320 : desktop ? 4319 : 4318));
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript',
@@ -41,4 +42,4 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(404).end('Build the game first: pnpm build');
   }
-}).listen(port, '0.0.0.0', () => console.log(`Night Overwatch: http://localhost:${port}`));
+}).listen(port, wechat ? '127.0.0.1' : '0.0.0.0', () => console.log(`Night Overwatch${wechat ? ' WeChat resources' : ''}: http://localhost:${port}`));

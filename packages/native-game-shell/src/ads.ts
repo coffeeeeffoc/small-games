@@ -33,6 +33,7 @@ export function createNativeAdProvider(
     isNativeAdUnitConfigured(adUnitId) && typeof sdk?.createRewardedVideoAd === 'function';
   const available = () => configured && !disposed && !leases.has(sdk);
   return Object.freeze({
+    managesTimeout: true,
     get available() {
       return available();
     },
@@ -98,7 +99,7 @@ export function createNativeAdProvider(
             cancelled = true;
             settle('dismissed');
             if (!opening) finish('dismissed', true);
-            // An already opened SDK ad retains its lease/listeners until close or timeout.
+            // An opened SDK ad retains its lease/listeners until confirmed close.
           },
         };
         active = operation;
@@ -112,7 +113,12 @@ export function createNativeAdProvider(
             .then(() => {
               if (finished) return;
               opening = true;
-              return Promise.resolve(ad.show()).catch(() => finish('failed', true));
+              const shown = ad.show();
+              if (!shown || typeof shown.then !== 'function') return finish('failed', false);
+              return shown.then(
+                () => clearTimeout(timer),
+                () => finish('failed', true),
+              );
             })
             .catch(error);
         } catch {

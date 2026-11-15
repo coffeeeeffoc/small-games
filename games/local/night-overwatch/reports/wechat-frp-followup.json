@@ -1,0 +1,40 @@
+{
+  "checkedAt": "2026-11-15T03:41:42.021Z",
+  "status": "build-stopped-for-host-load",
+  "lastVerifiedPackage": "1.1.10",
+  "nextVersion": "1.1.13",
+  "apiUrl": "https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1",
+  "resourceUrl": "https://nas.hc2a5c9f0.nyat.app:29549/night-wechat/1.1.13/",
+  "resourceDeployment": "prepared-not-executed",
+  "adsEnabled": false,
+  "adsBlocker": {
+    "source": "user-reported WeChat console",
+    "condition": "cumulative unique visitors (UV) > 100"
+  },
+  "buildAttempts": [
+    {
+      "version": "1.1.11",
+      "status": "stalled-during-Creator-device-initialization"
+    },
+    {
+      "version": "1.1.12",
+      "status": "stopped-to-reduce-host-load"
+    }
+  ],
+  "localManagement": {
+    "image": "small-games-bundle:night-20261115-admin-oauth60",
+    "callbackError": "exchange timeout",
+    "deployedTimeoutMs": 60000,
+    "sourceTimeoutMs": 60000,
+    "upgradeApplied": true,
+    "previousImage": "small-games-bundle:night-20261113-duel12",
+    "imageId": "sha256:3cbb66890eb94abb3cf2f19e2caa64eee0ebf3f5209bce3116e5daeca644f755",
+    "existingSessionPreserved": true,
+    "realGithubLoginAfterDeployment": false,
+    "deploymentReport": "docs/operations/releases/2026-11-15-night-local-oauth60/deployment.json"
+  },
+  "newBuildRegistered": false,
+  "realDevice": false,
+  "existingPackageRegistered": "1.1.10",
+  "admissionReport": "reports/wechat-admission.json"
+}

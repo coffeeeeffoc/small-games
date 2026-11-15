@@ -1,0 +1,61 @@
+{
+  "version": "1.1.10",
+  "appId": "wx8f283351143d2dd3",
+  "sourceHash": "84c7467ca05e904c5b6d2e4e8873d9bb71ad8c9556545c6df8ebf35abade8cd9",
+  "creatorSourceHash": "496aaa12a37e76ea3ab99e040181dee82abf3960ebd1085077bd80f7f9db470a",
+  "resourceHttpVerifiedFiles": 105,
+  "actualBootstrapWithoutBrowserGlobals": true,
+  "sourceAndMainAndRemoteIntegrity": true,
+  "developerTools": true,
+  "realDevice": false,
+  "realAds": false,
+  "productionApi": false,
+  "developerToolsVersion": "2.02.2608070",
+  "baseLibraryVersion": "3.18.0",
+  "apiUrl": "http://127.0.0.1:43003/api/competition/v1",
+  "buildId": "night-wechat-00a5859bbe5f010a3bea2a6816cd0a232aad5ce6165a220863d956e389259066",
+  "localDockerBootstrap": true,
+  "previousOfflineSimulator": {
+    "version": "1.1.9",
+    "appId": "wx8f283351143d2dd3",
+    "sourceHash": "84c7467ca05e904c5b6d2e4e8873d9bb71ad8c9556545c6df8ebf35abade8cd9",
+    "creatorSourceHash": "496aaa12a37e76ea3ab99e040181dee82abf3960ebd1085077bd80f7f9db470a",
+    "resourceHttpVerifiedFiles": 105,
+    "actualBootstrapWithoutBrowserGlobals": true,
+    "sourceAndMainAndRemoteIntegrity": true,
+    "developerTools": true,
+    "realDevice": false,
+    "realAds": false,
+    "productionApi": false,
+    "developerToolsVersion": "2.02.2608070",
+    "baseLibraryVersion": "3.18.0",
+    "developerToolsChecks": [
+      "landscape home",
+      "first mission loaded",
+      "fired: ammo 120 -> 119",
+      "pause and exit to home",
+      "audio setting persisted after recompile",
+      "audio restored on"
+    ],
+    "consoleErrors": 0,
+    "consoleWarnings": [
+      "HarmonyOS platform notice",
+      "resource cache directory already exists"
+    ]
+  },
+  "developerToolsChecks": [
+    "landscape home",
+    "guest nickname and online count loaded from local Docker"
+  ],
+  "consoleErrors": 0,
+  "consoleWarnings": [
+    "HarmonyOS platform notice",
+    "resource cache directory already exists"
+  ],
+  "newGameAdmission": true,
+  "admissionBlocker": null,
+  "wechatAdminBlocker": "Browser site-safety policy blocks mp.weixin.qq.com; no admin or ad configuration changed",
+  "previousAdmissionBlocker": "Local control-center session expired; exact build registration pending manual login",
+  "admissionReport": "reports/wechat-admission.json",
+  "developerToolsNewGameRechecked": false
+}

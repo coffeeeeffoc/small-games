@@ -49,6 +49,7 @@ export function createCreatorAdBridge(
     timeoutMs: Math.max(1, options.timeoutMs ?? 120_000) + 1000,
     authority: configuration.adsEnabled === true ? 'host' : 'none',
     host: {
+      managesTimeout: true,
       show(request) {
         return disposed || pending !== generation
           ? Promise.resolve({ status: 'unavailable' as const })

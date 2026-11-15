@@ -1,0 +1,54 @@
+{
+  "version": "1.1.10",
+  "apiUrl": "http://127.0.0.1:43003/api/competition/v1",
+  "healthStatus": 200,
+  "sessionStatus": 200,
+  "metadataStatus": 200,
+  "release": {
+    "currentBuildId": "night-wechat-00a5859bbe5f010a3bea2a6816cd0a232aad5ce6165a220863d956e389259066",
+    "currentVersion": "1.1.10",
+    "backendVersion": "1.1.0",
+    "latestBuildId": null,
+    "latestVersion": null,
+    "update": "none",
+    "canStartNewGames": true,
+    "admissions": {
+      "ranked": true,
+      "multiplayer": true
+    },
+    "action": "reopen"
+  },
+  "supportedRules": {
+    "ranked": [
+      "night-input-replay-v18",
+      "night-input-replay-v17",
+      "night-input-replay-v16"
+    ],
+    "multiplayer": [
+      "night-duel-v12",
+      "night-duel-v11",
+      "night-duel-v10",
+      "night-duel-v9"
+    ]
+  },
+  "clientRules": {
+    "ranked": "night-input-replay-v18",
+    "multiplayer": "night-duel-v12"
+  },
+  "previousRelease": {
+    "currentBuildId": "night-wechat-00a5859bbe5f010a3bea2a6816cd0a232aad5ce6165a220863d956e389259066",
+    "currentVersion": null,
+    "backendVersion": null,
+    "latestBuildId": null,
+    "latestVersion": null,
+    "update": "none",
+    "canStartNewGames": false,
+    "admissions": {
+      "ranked": false,
+      "multiplayer": false
+    },
+    "action": "reopen"
+  },
+  "checkedAt": "2026-11-15T03:41:42.021Z",
+  "admissionReport": "reports/wechat-admission.json"
+}

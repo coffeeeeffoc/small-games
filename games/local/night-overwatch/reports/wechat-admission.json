@@ -1,0 +1,67 @@
+{
+  "checkedAt": "2026-11-15T03:41:42.021Z",
+  "version": "1.1.10",
+  "buildId": "night-wechat-00a5859bbe5f010a3bea2a6816cd0a232aad5ce6165a220863d956e389259066",
+  "localControlPublished": true,
+  "verifiedMainFiles": 25,
+  "checks": [
+    {
+      "apiUrl": "http://127.0.0.1:43003/api/competition/v1",
+      "release": {
+        "currentBuildId": "night-wechat-00a5859bbe5f010a3bea2a6816cd0a232aad5ce6165a220863d956e389259066",
+        "currentVersion": "1.1.10",
+        "backendVersion": "1.1.0",
+        "latestBuildId": null,
+        "latestVersion": null,
+        "update": "none",
+        "canStartNewGames": true,
+        "admissions": {
+          "ranked": true,
+          "multiplayer": true
+        },
+        "action": "reopen"
+      },
+      "clientRules": {
+        "ranked": "night-input-replay-v18",
+        "multiplayer": "night-duel-v12"
+      },
+      "metadata": 200,
+      "roomList": 200,
+      "createRun": 200,
+      "resumeRun": 200,
+      "cancelRun": 200
+    },
+    {
+      "apiUrl": "https://nas.hc2a5c9f0.nyat.app:29549/api/competition/v1",
+      "release": {
+        "currentBuildId": "night-wechat-00a5859bbe5f010a3bea2a6816cd0a232aad5ce6165a220863d956e389259066",
+        "currentVersion": "1.1.10",
+        "backendVersion": "1.1.0",
+        "latestBuildId": null,
+        "latestVersion": null,
+        "update": "none",
+        "canStartNewGames": true,
+        "admissions": {
+          "ranked": true,
+          "multiplayer": true
+        },
+        "action": "reopen"
+      },
+      "clientRules": {
+        "ranked": "night-input-replay-v18",
+        "multiplayer": "night-duel-v12"
+      },
+      "metadata": 200,
+      "roomList": 200,
+      "createRun": 200,
+      "resumeRun": 200,
+      "cancelRun": 200
+    }
+  ],
+  "qaSessionLoggedOut": true,
+  "qaRunsCancelled": true,
+  "realDevice": false,
+  "packagedApiUrl": "http://127.0.0.1:43003/api/competition/v1",
+  "packagedResourceUrl": "http://127.0.0.1:4320/",
+  "httpsPackagedClient": false
+}

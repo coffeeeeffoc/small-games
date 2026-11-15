@@ -18,6 +18,8 @@ export type AdProviderRequest = Readonly<{ opportunityId: string }>;
 
 /** Host- or managed-owned adapter that validates one advertisement playback. */
 export interface AdProvider {
+  /** Provider bounds preparation itself and waits for the SDK's actual close after display. */
+  managesTimeout?: boolean;
   show(request: AdProviderRequest): Promise<RewardOutcome>;
 }
 
@@ -89,12 +91,14 @@ export function createAdRuntime(options: AdRuntimeOptions): AdvertisingPort {
       }
       let outcome: RewardOutcome;
       try {
-        outcome = await Promise.race([
-          playback,
-          new Promise<RewardOutcome>((resolve) => {
-            timer = setTimeout(() => resolve({ status: 'failed' }), timeoutMs);
-          }),
-        ]);
+        outcome = provider.managesTimeout
+          ? await playback
+          : await Promise.race([
+              playback,
+              new Promise<RewardOutcome>((resolve) => {
+                timer = setTimeout(() => resolve({ status: 'failed' }), timeoutMs);
+              }),
+            ]);
       } finally {
         clearTimeout(timer);
       }

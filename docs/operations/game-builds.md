@@ -113,6 +113,8 @@ MiniApp Secret 只配置到 Runtime 的 `COMPETITION_PLATFORM_CONFIG`，通过�
 
 ## 夜航的前后端发布版本号
 
+夜航微信原生构建使用 `pnpm --filter @coffeeeeffoc/night-overwatch build:wechat`（正式配置加 `--release`），主包与同级 `-remote` 资源独立交付。它不使用 H5 ZIP 入口。微信公开配置、资源站部署和工具验收见[微信接入说明](../../games/local/night-overwatch/docs/wechat.md)。
+
 夜航每次实际前端编译/打包先从 `games/local/night-overwatch/publishing/versions.json` 预留 `nextVersion`，再将补丁位加一；必须显式维护 `major.minor.patch` 格式的起始版本和 `backendVersion` 兼容绑定。每个广告/后端变体分别分配编号，失败的构建也消耗编号，避免重用已生成过的包身份。普通 Creator 构建和统一 H5 入口共用这项规则；Turbo 不缓存该游戏构建。
 
 H5 配套 JSON 清单的 `release` 与包内 `game-service-config.js` 同时保留人类可读的前端版本、后端兼容版本、内容构建 ID 和两个规则版本。重盖章或更换 API 配置保留已分配版本，内容变化仍重新计算构建 ID；旧包重打标不虚构历史版本号。编译器内的版本环境变量由统一打包入口传递，不作为人工跳过自增的工作流。

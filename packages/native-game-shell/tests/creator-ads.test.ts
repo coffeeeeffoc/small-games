@@ -216,9 +216,10 @@ describe('Creator advertising composition', () => {
     expect(bridge.available).toBe(true);
   });
 
-  it('cleans up timed-out playback, rejects late completion and forbids unconfirmed reentry', async () => {
+  it('cleans up an opening that never resolves and rejects late completion and reentry', async () => {
     vi.useFakeTimers();
     const f = fixture();
+    f.ad.show.mockImplementationOnce(() => new Promise(() => {}));
     const bridge = createCreatorAdBridge(configuration, { tap: f.sdk }, { timeoutMs: 50 });
     const result = bridge.offer(opportunity);
     await start(f.ad);
@@ -230,6 +231,19 @@ describe('Creator advertising composition', () => {
     const next = createCreatorAdBridge(configuration, { tap: f.sdk });
     await expect(next.offer(opportunity)).resolves.toEqual({ status: 'unavailable' });
     expect(f.sdk.createRewardedVideoAd).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for a real close through ten minutes of playback and end-screen time', async () => {
+    vi.useFakeTimers();
+    const f = fixture();
+    const bridge = createCreatorAdBridge({ ...configuration, platform: 'wechat' }, { wx: f.sdk });
+    const result = bridge.offer(opportunity);
+    await start(f.ad);
+    await vi.advanceTimersByTimeAsync(600_000);
+    expect(bridge.pending).toBe(true);
+    expect(f.ad.destroy).not.toHaveBeenCalled();
+    f.end({ isEnded: true });
+    await expect(result).resolves.toEqual({ status: 'completed' });
   });
 
   it('handles load failure and SDK exceptions without a reward or leaked listeners', async () => {

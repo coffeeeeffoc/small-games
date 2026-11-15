@@ -1,4 +1,5 @@
 import { nightStorageSourceFiles } from '../../../platforms/competition/night-storage/manifest.mjs';
+import { wechatSourceInputs } from '../../../games/local/night-overwatch/scripts/wechat-source-inputs.mjs';
 import { cp, mkdir, mkdtemp, lstat, readdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -74,7 +75,10 @@ async function copyFile(source, destination) {
 }
 
 /** Stage only native project inputs. Does not run Creator or authenticate plugins. */
-export async function prepareNativeProject(gameRoot, { stageBase } = {}) {
+export async function prepareNativeProject(
+  gameRoot,
+  { stageBase, wechatRemoteResources = false } = {},
+) {
   gameRoot = path.resolve(gameRoot);
   const artifact = await import(pathToFileURL(path.join(gameRoot, 'scripts/artifact.mjs')));
   const canonicalSourceHash = await artifact.sourceHash(gameRoot);
@@ -118,6 +122,15 @@ export async function prepareNativeProject(gameRoot, { stageBase } = {}) {
     const copied = {};
     for (const folder of ['assets', 'scripts', 'settings', 'startup'])
       copied[folder] = await copyTree(path.join(gameRoot, folder), path.join(projectRoot, folder));
+    if (wechatRemoteResources) {
+      const builderPath = path.join(projectRoot, 'settings/v2/packages/builder.json');
+      const builder = JSON.parse(await readFile(builderPath, 'utf8'));
+      builder.bundleConfig.custom['night-art'].configs.miniGame.overwriteSettings.wechatgame = {
+        isRemote: true,
+        compressionType: 'merge_dep',
+      };
+      await writeFile(builderPath, JSON.stringify(builder, null, 2));
+    }
     for (const file of ['package.json', 'tsconfig.json'])
       copied[file] = await copyFile(path.join(gameRoot, file), path.join(projectRoot, file));
     const cardRoot = path.resolve(gameRoot, '../carding-car');
@@ -140,6 +153,7 @@ export async function prepareNativeProject(gameRoot, { stageBase } = {}) {
       'platforms/competition/game-bootstrap.js',
       'platforms/competition/legacy-polyfills.js',
       ...nightStorageSourceFiles,
+      ...wechatSourceInputs,
       'platforms/taptap/competition-identity.mjs',
       'platforms/taptap/calls.mjs',
     ])
@@ -149,7 +163,7 @@ export async function prepareNativeProject(gameRoot, { stageBase } = {}) {
       );
     for (const input of inputs) await writeFile(path.join(projectRoot, input.file), input.output);
     let extension;
-    for (const owner of [gameRoot, cardRoot]) {
+    for (const owner of wechatRemoteResources ? [] : [gameRoot, cardRoot]) {
       const extensionSource = path.join(owner, 'extensions/biligame-builder');
       const exists = await lstat(extensionSource).catch((error) => {
         if (error.code !== 'ENOENT') throw error;
@@ -182,6 +196,7 @@ export async function prepareNativeProject(gameRoot, { stageBase } = {}) {
       canonicalSourceHash,
       sourceHash,
       adaptationRecipeSha256,
+      wechatRemoteResources,
       inputs: inputs.map((input) => ({
         file: input.file,
         canonicalSha256: input.canonicalSha256,

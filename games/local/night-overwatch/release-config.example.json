@@ -1,5 +1,8 @@
 {
   "wechatAppId": "touristappid",
+  "wechatResourceUrl": "http://127.0.0.1:4320/",
+  "wechatApiUrl": "",
+  "wechatAdUnitId": "",
   "bilibiliAppId": "",
   "douyinAppId": ""
 }

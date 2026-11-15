@@ -1,4 +1,5 @@
 import { nightStorageSourceFiles } from '../../../../platforms/competition/night-storage/manifest.mjs';
+import { wechatSourceInputs } from './wechat-source-inputs.mjs';
 import { createHash } from 'node:crypto';
 import { access, readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -35,6 +36,7 @@ export async function sourceHash(directory = fileURLToPath(root)) {
   for (const file of ['scripts/h5-game-services.mjs', 'scripts/night-build-version.mjs', 'scripts/competition-service-config.mjs',
     'platforms/competition/client.js', 'platforms/competition/game-services.js', 'platforms/competition/game-bootstrap.js', 'platforms/competition/legacy-polyfills.js',
     ...nightStorageSourceFiles,
+    ...wechatSourceInputs,
     'platforms/taptap/competition-identity.mjs', 'platforms/taptap/calls.mjs']) {
     hash.update(file + '\0');
     hash.update((await readFile(new URL('../../../../' + file, import.meta.url), 'utf8')).replaceAll('\r\n', '\n'));
